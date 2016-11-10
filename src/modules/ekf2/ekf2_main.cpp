@@ -135,6 +135,23 @@ private:
 	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
 	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
+	// Initialise time stamps used to send sensor data to the EKF and for logging
+	uint64_t _timestamp_mag_us = 0;
+	uint64_t _timestamp_balt_us = 0;
+
+	// Used to down sample magnetometer data
+	float _mag_data_sum[3];			// summed magnetometer readings (Ga)
+	uint64_t _mag_time_sum_ms;		// summed magnetoemter time stamps (msec)
+	uint8_t _mag_sample_count = 0;		// number of magnetometer measurements summed
+	uint32_t _mag_time_ms_last_used = 0;	// time stamp in msec of the last averaged magnetometer measurement used by the EKF
+
+	// Used to down sample barometer data
+	float _balt_data_sum;			// summed barometric altitude readings (m)
+	uint64_t _balt_time_sum_ms;		// summed barometric altitude time stamps (msec)
+	uint8_t _balt_sample_count = 0;		// number of barometric altitude measurements summed
+	uint32_t _balt_time_ms_last_used =
+		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
+
 	bool	_prev_landed = true;	// landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
@@ -157,6 +174,7 @@ private:
 
 	parameters *_params;	// pointer to ekf parameter struct (located in _ekf class instance)
 
+	control::BlockParamExtInt _obs_dt_min_ms;
 	control::BlockParamExtFloat _mag_delay_ms;
 	control::BlockParamExtFloat _baro_delay_ms;
 	control::BlockParamExtFloat _gps_delay_ms;
@@ -285,6 +303,7 @@ Ekf2::Ekf2():
 	_lp_yaw_rate(250.0f, 20.0f),
 	_ekf(),
 	_params(_ekf.getParamHandle()),
+	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
 	_baro_delay_ms(this, "EKF2_BARO_DELAY", false, _params->baro_delay_ms),
 	_gps_delay_ms(this, "EKF2_GPS_DELAY", false, _params->gps_delay_ms),
@@ -513,18 +532,63 @@ void Ekf2::task_main()
 
 		// read mag data
 		if (sensors.magnetometer_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-			_ekf.setMagData(0, sensors.magnetometer_ga);
+			// set a zero timestamp to let the ekf replay program know that this data is not valid
+			_timestamp_mag_us = 0;
 
 		} else {
-			_ekf.setMagData(sensors.timestamp + sensors.magnetometer_timestamp_relative, sensors.magnetometer_ga);
+			if ((sensors.timestamp + sensors.magnetometer_timestamp_relative) != _timestamp_mag_us) {
+				_timestamp_mag_us = sensors.timestamp + sensors.magnetometer_timestamp_relative;
+
+				// If the time last used by the EKF is less than specified, then accumulate the
+				// data and push the average when the 50msec is reached.
+				_mag_time_sum_ms += _timestamp_mag_us / 1000;
+				_mag_sample_count++;
+				_mag_data_sum[0] += sensors.magnetometer_ga[0];
+				_mag_data_sum[1] += sensors.magnetometer_ga[1];
+				_mag_data_sum[2] += sensors.magnetometer_ga[2];
+				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
+
+				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
+					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
+					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv , _mag_data_sum[1] *mag_sample_count_inv , _mag_data_sum[2] *mag_sample_count_inv};
+					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
+					_mag_time_ms_last_used = mag_time_ms;
+					_mag_time_sum_ms = 0;
+					_mag_sample_count = 0;
+					_mag_data_sum[0] = 0.0f;
+					_mag_data_sum[1] = 0.0f;
+					_mag_data_sum[2] = 0.0f;
+
+				}
+			}
 		}
 
 		// read baro data
 		if (sensors.baro_timestamp_relative == sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-			_ekf.setBaroData(0, &sensors.baro_alt_meter);
+			// set a zero timestamp to let the ekf replay program know that this data is not valid
+			_timestamp_balt_us = 0;
 
 		} else {
-			_ekf.setBaroData(sensors.timestamp + sensors.baro_timestamp_relative, &sensors.baro_alt_meter);
+			if ((sensors.timestamp + sensors.baro_timestamp_relative) != _timestamp_balt_us) {
+				_timestamp_balt_us = sensors.timestamp + sensors.baro_timestamp_relative;
+
+				// If the time last used by the EKF is less than specified, then accumulate the
+				// data and push the average when the 50msec is reached.
+				_balt_time_sum_ms += _timestamp_balt_us / 1000;
+				_balt_sample_count++;
+				_balt_data_sum += sensors.baro_alt_meter;
+				uint32_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
+
+				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
+					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
+					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, &balt_data_avg);
+					_balt_time_ms_last_used = balt_time_ms;
+					_balt_time_sum_ms = 0;
+					_balt_sample_count = 0;
+					_balt_data_sum = 0.0f;
+
+				}
+			}
 		}
 
 		// read gps data if available
@@ -548,6 +612,7 @@ void Ekf2::task_main()
 			gps_msg.gdop = 0.0f;
 
 			_ekf.setGpsData(gps.timestamp, &gps_msg);
+
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
@@ -932,8 +997,8 @@ void Ekf2::task_main()
 			replay.time_ref = now;
 			replay.gyro_integral_dt = sensors.gyro_integral_dt;
 			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
-			replay.magnetometer_timestamp = sensors.timestamp + sensors.magnetometer_timestamp_relative;
-			replay.baro_timestamp = sensors.timestamp + sensors.baro_timestamp_relative;
+			replay.magnetometer_timestamp = _timestamp_mag_us;
+			replay.baro_timestamp = _timestamp_balt_us;
 			memcpy(replay.gyro_rad, sensors.gyro_rad, sizeof(replay.gyro_rad));
 			memcpy(replay.accelerometer_m_s2, sensors.accelerometer_m_s2, sizeof(replay.accelerometer_m_s2));
 			memcpy(replay.magnetometer_ga, sensors.magnetometer_ga, sizeof(replay.magnetometer_ga));

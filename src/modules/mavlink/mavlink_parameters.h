@@ -61,7 +61,7 @@ public:
 		return "PARAM_VALUE";
 	}
 
-	uint8_t get_id()
+	uint16_t get_id()
 	{
 		return MAVLINK_MSG_ID_PARAM_VALUE;
 	}
