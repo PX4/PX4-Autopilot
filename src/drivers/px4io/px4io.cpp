@@ -1700,7 +1700,7 @@ PX4IO::dsm_bind_ioctl(int dsmMode)
 		}
 
 	} else {
-		mavlink_log_info(&_mavlink_log_pub, "[IO] system armed, bind request rejected");
+		mavlink_log_info(&_mavlink_log_pub, "[IO] safety off, bind request rejected");
 	}
 }
 
