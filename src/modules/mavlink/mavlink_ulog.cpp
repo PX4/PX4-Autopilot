@@ -95,6 +95,7 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 			PX4_WARN("no ack from logger (is it running?)");
 			return -1;
 		}
+		return 0;
 	}
 
 	// check if we're waiting for an ACK
