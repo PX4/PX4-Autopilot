@@ -2836,6 +2836,7 @@ int commander_thread_main(int argc, char *argv[])
 			    ((status.rc_signal_lost /*&& status_flags.gps_failure*/) ||
 			     (status_flags.rc_signal_lost_cmd && status_flags.gps_failure_cmd))) {
 				armed.force_failsafe = true;
+				armed.lockdown = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
 
