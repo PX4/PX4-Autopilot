@@ -110,7 +110,7 @@ uint8_t sumd_crc8(uint8_t crc, uint8_t value)
 }
 
 int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
-		uint16_t max_chan_count)
+		uint16_t max_chan_count, bool *failsafe)
 {
 
 	int ret = 1;
@@ -143,7 +143,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_HEADER:
-		if (byte == SUMD_ID_SUMD || byte == SUMD_ID_SUMH) {
+		if (byte == SUMD_ID_SUMD || byte == SUMD_ID_FAILSAFE || byte == SUMD_ID_SUMH) {
 			_rxpacket.status = byte;
 
 			if (byte == SUMD_ID_SUMH) {
@@ -310,6 +310,9 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			*rx_count = _cnt;
 
 			*rssi = 100;
+
+			/* failsafe flag */
+			*failsafe = (_rxpacket.status == SUMD_ID_FAILSAFE);
 
 			/* received Channels */
 			if ((uint16_t)_rxpacket.length > max_chan_count) {
