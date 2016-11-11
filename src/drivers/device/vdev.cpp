@@ -84,13 +84,11 @@ VDev::VDev(const char *name,
 	// private
 	_devname(devname),
 	_registered(false),
-	_open_count(0)
+	_max_pollwaiters(0),
+	_open_count(0),
+	_pollset(nullptr)
 {
 	PX4_DEBUG("VDev::VDev");
-
-	for (unsigned i = 0; i < _max_pollwaiters; i++) {
-		_pollset[i] = nullptr;
-	}
 }
 
 VDev::~VDev()
@@ -99,6 +97,10 @@ VDev::~VDev()
 
 	if (_registered) {
 		unregister_driver(_devname);
+	}
+
+	if (_pollset) {
+		delete[](_pollset);
 	}
 }
 
@@ -486,7 +488,29 @@ VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 		}
 	}
 
-	return -ENOMEM;
+	/* No free slot found. Resize the pollset */
+
+	if (_max_pollwaiters >= 256 / 2) { //_max_pollwaiters is uint8_t
+		return -ENOMEM;
+	}
+
+	const uint8_t new_count = _max_pollwaiters > 0 ? _max_pollwaiters * 2 : 1;
+	px4_pollfd_struct_t **new_pollset = new px4_pollfd_struct_t *[new_count];
+
+	if (!new_pollset) {
+		return -ENOMEM;
+	}
+
+	if (_max_pollwaiters > 0) {
+		memset(new_pollset + _max_pollwaiters, 0, sizeof(px4_pollfd_struct_t *) * (new_count - _max_pollwaiters));
+		memcpy(new_pollset, _pollset, sizeof(px4_pollfd_struct_t *) * _max_pollwaiters);
+		delete[](_pollset);
+	}
+
+	_pollset = new_pollset;
+	_pollset[_max_pollwaiters] = fds;
+	_max_pollwaiters = new_count;
+	return PX4_OK;
 }
 
 int
