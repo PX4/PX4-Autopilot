@@ -180,6 +180,18 @@ static systemlib::Hysteresis auto_disarm_hysteresis(false);
 static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
+/* pre-flight EKF checks */
+static float max_ekf_pos_ratio = 0.5f;
+static float max_ekf_vel_ratio = 0.5f;
+static float max_ekf_hgt_ratio = 0.5f;
+static float max_ekf_yaw_ratio = 0.5f;
+static float max_ekf_dvel_bias = 2.0e-3f;
+static float max_ekf_dang_bias = 3.5e-4f;
+
+/* pre-flight IMU consistency checks */
+static float max_imu_acc_diff = 0.7f;
+static float max_imu_gyr_diff = 0.09f;
+
 static struct vehicle_status_s status = {};
 static struct vehicle_roi_s _roi = {};
 static struct battery_status_s battery = {};
@@ -309,7 +321,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT + 40,
-					     3100,
+					     3200,
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
@@ -1299,6 +1311,18 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
+	/* pre-flight EKF checks */
+	param_t _param_max_ekf_pos_ratio = param_find("COM_ARM_EKF_POS");
+	param_t _param_max_ekf_vel_ratio = param_find("COM_ARM_EKF_VEL");
+	param_t _param_max_ekf_hgt_ratio = param_find("COM_ARM_EKF_HGT");
+	param_t _param_max_ekf_yaw_ratio = param_find("COM_ARM_EKF_YAW");
+	param_t _param_max_ekf_dvel_bias = param_find("COM_ARM_EKF_AB");
+	param_t _param_max_ekf_dang_bias = param_find("COM_ARM_EKF_GB");
+
+	/* pre-flight IMU consistency checks */
+	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
+	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
+
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
 
@@ -1779,6 +1803,18 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
+
+			/* pre-flight EKF checks */
+			param_get(_param_max_ekf_pos_ratio, &max_ekf_pos_ratio);
+			param_get(_param_max_ekf_vel_ratio, &max_ekf_vel_ratio);
+			param_get(_param_max_ekf_hgt_ratio, &max_ekf_hgt_ratio);
+			param_get(_param_max_ekf_yaw_ratio, &max_ekf_yaw_ratio);
+			param_get(_param_max_ekf_dvel_bias, &max_ekf_dvel_bias);
+			param_get(_param_max_ekf_dang_bias, &max_ekf_dang_bias);
+
+			/* pre-flight IMU consistency checks */
+			param_get(_param_max_imu_acc_diff, &max_imu_acc_diff);
+			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
 
 			param_init_forced = false;
 
