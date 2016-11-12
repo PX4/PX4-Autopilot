@@ -65,7 +65,8 @@
 
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_gps_position.h>
-
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/sensor_preflight.h>
 
 #include "PreflightCheck.h"
 
@@ -157,6 +158,55 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 
 out:
 	DevMgr::releaseHandle(h);
+	return success;
+}
+
+static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bool checkGyro, bool report_status)
+{
+	// get the sensor preflight data
+	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
+	struct sensor_preflight_s sensors = {};
+	orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors);
+	px4_close(sensors_sub);
+
+	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
+	bool success = true;
+	float test_limit;
+	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
+	if (checkAcc) {
+		if (sensors.accel_inconsistency_m_s_s > test_limit) {
+			if (report_status) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+			}
+			success = false;
+			goto out;
+
+		} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.5f) {
+			if (report_status) {
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+
+			}
+		}
+	}
+	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
+	param_get(param_find("COM_ARM_IMU_GYR"), &test_limit);
+	if (checkGyro) {
+		if (sensors.gyro_inconsistency_rad_s > test_limit) {
+			if (report_status) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+			}
+			success = false;
+			goto out;
+
+		} else if (sensors.gyro_inconsistency_rad_s > test_limit * 0.5f) {
+			if (report_status) {
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+
+			}
+		}
+	}
+
+out:
 	return success;
 }
 
@@ -382,6 +432,84 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	return success;
 }
 
+static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+{
+	// Get estimator status data if available and exit with a fail recorded if not
+	int sub = orb_subscribe(ORB_ID(estimator_status));
+	bool updated;
+	orb_check(sub,&updated);
+	struct estimator_status_s status;
+	orb_copy(ORB_ID(estimator_status), sub, &status);
+	orb_unsubscribe(sub);
+	px4_close(sub);
+
+	bool success = true; // start with a pass and change to a fail if any test fails
+	float test_limit; // pass limit re-used for each test
+
+	// check vertical position innovation test ratio
+	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
+	if (status.hgt_test_ratio > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check velocity innovation test ratio
+	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
+	if (status.hgt_test_ratio > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check horizontal position innovation test ratio
+	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
+	if (status.pos_test_ratio > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check magnetometer innovation test ratio
+	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
+	if (status.mag_test_ratio > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check accelerometer delta velocity bias estimates
+	param_get(param_find("COM_ARM_IMU_AB"), &test_limit);
+	if (fabsf(status.states[13]) > test_limit ||  fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check gyro delta angle bias estimates
+	param_get(param_find("COM_ARM_IMU_GB"), &test_limit);
+	if (fabsf(status.states[10]) > test_limit ||  fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
+		}
+		success = false;
+		goto out;
+	}
+
+out:
+	return success;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc, bool checkGyro,
 		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool isVTOL, bool reportFailures)
 {
@@ -518,6 +646,9 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 		}
 	}
 
+	/* ---- IMU CONSISTENCY ---- */
+	imuConsistencyCheck(mavlink_log_pub, checkAcc, checkGyro, reportFailures);
+
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
 		if (!airspeedCheck(mavlink_log_pub, true, reportFailures)) {
@@ -538,6 +669,16 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	/* ---- Global Navigation Satellite System receiver ---- */
 	if (checkGNSS) {
 		if (!gnssCheck(mavlink_log_pub, reportFailures)) {
+			failed = true;
+		}
+	}
+
+	/* ---- Navigation EKF ---- */
+	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
+	int32_t estimator_type;
+	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+	if (estimator_type == 2 && checkGNSS) {
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures)) {
 			failed = true;
 		}
 	}
