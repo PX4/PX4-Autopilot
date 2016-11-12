@@ -102,8 +102,6 @@ struct log_SENS_s {
 	float baro_pres;
 	float baro_alt;
 	float baro_temp;
-	float diff_pres;
-	float diff_pres_filtered;
 };
 
 /* --- LPOS - LOCAL POSITION --- */
@@ -201,9 +199,11 @@ struct log_OUT_s {
 /* --- AIRS - AIRSPEED --- */
 #define LOG_AIRS_MSG 13
 struct log_AIRS_s {
-	float indicated_airspeed;
-	float true_airspeed;
+	float indicated_airspeed_m_s;
+	float true_airspeed_m_s;
+	float true_airspeed_unfiltered_m_s;
 	float air_temperature_celsius;
+	float confidence;
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
@@ -624,6 +624,16 @@ struct log_LOAD_s {
 	float cpu_load;
 };
 
+/* --- DPRS - DIFFERENTIAL PRESSURE --- */
+#define LOG_DPRS_MSG 62
+struct log_DPRS_s {
+	uint64_t error_count;
+	float differential_pressure_raw_pa;
+	float differential_pressure_filtered_pa;
+	float max_differential_pressure_pa;
+	float temperature;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -658,7 +668,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT_S(IMU, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU1, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
 	LOG_FORMAT_S(IMU2, IMU, "ffffffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ,tA,tG,tM"),
-	LOG_FORMAT_S(SENS, SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
+	LOG_FORMAT_S(SENS, SENS, "fff",		"BaroPres,BaroAlt,BaroTemp"),
 	LOG_FORMAT_S(AIR1, SENS, "fffff",	"BaroPa,BaroAlt,BaroTmp,DiffPres,DiffPresF"),
 	LOG_FORMAT(LPOS, "ffffffffLLfBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffffffffff",		"X,Y,Z,Yaw,VX,VY,VZ,AX,AY,AZ"),
@@ -672,7 +682,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RC, "ffffffffffffBBBL",		"C0,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,RSSI,CNT,Lost,Drop"),
 	LOG_FORMAT_S(OUT0, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT_S(OUT1, OUT, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
-	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
+	LOG_FORMAT(AIRS, "fffff",			"IAS,TAS,TASraw,Temp,Confidence"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
 	LOG_FORMAT(GPOS, "LLfffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV,TALT"),
@@ -713,6 +723,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL6, "Qff", "Tasp,inAsp,trAsp"),
 	LOG_FORMAT(LAND, "B", "Landed"),
 	LOG_FORMAT(LOAD, "f", "CPU"),
+	LOG_FORMAT(DPRS, "Qffff", "errors,DPRESraw,DPRES,DPRESmax,Temp"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
