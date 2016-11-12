@@ -65,7 +65,8 @@
 
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_gps_position.h>
-
+#include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/estimator_status.h>
 
 #include "PreflightCheck.h"
 
@@ -382,6 +383,87 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	return success;
 }
 
+static bool ekfCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+{
+	bool success = true;
+
+	int fd1 = orb_subscribe(ORB_ID(ekf2_innovations));
+	struct ekf2_innovations_s innovations;
+	orb_copy(ORB_ID(ekf2_innovations), fd1, &innovations);
+	px4_close(fd1);
+
+	int fd2 = orb_subscribe(ORB_ID(estimator_status));
+	struct estimator_status_s status;
+	orb_copy(ORB_ID(estimator_status), fd1, &status);
+	px4_close(fd2);
+
+	// check vertical velocity innovation
+	if (fabsf(innovations.vel_pos_innov[2]) > 0.5f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VERT VEL INNOVATIONS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check vertical position innovation
+	if (fabsf(innovations.vel_pos_innov[5]) > 1.0f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VERT POS INNOVATIONS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check horizontal velocity innovations
+	if ((innovations.vel_pos_innov[0]*innovations.vel_pos_innov[0] + innovations.vel_pos_innov[1]*innovations.vel_pos_innov[1]) > 0.25f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ VEL INNOVATIONS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check horizontal position innovations
+	if ((innovations.vel_pos_innov[3]*innovations.vel_pos_innov[3] + innovations.vel_pos_innov[4]*innovations.vel_pos_innov[4]) > 1.0f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS INNOVATIONS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check yaw innovation and fail if larger than 15 deg
+	if (fabsf(innovations.heading_innov) > 0.2618f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW INNOVATION");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check IMU delta velocity bias and fail if any single bias value is greater than 0.002 m/s (0.5 m/s/s at a 250Hz sample rate)
+	if (fabsf(status.states[13]) > 0.002f ||  fabsf(status.states[14]) > 0.002f || fabsf(status.states[15]) > 0.002f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check IMU delta angle bias and fail if any single bias value is greater than 3.5e-4 rad (5 deg/sec at a 250Hz sample rate)
+	if (fabsf(status.states[10]) > 3.5e-4f ||  fabsf(status.states[11]) > 3.5e-4f || fabsf(status.states[12]) > 3.5e-4f) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
+		}
+		success = false;
+		goto out;
+	}
+
+out:
+	return success;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc, bool checkGyro,
 		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool isVTOL, bool reportFailures)
 {
@@ -538,6 +620,13 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	/* ---- Global Navigation Satellite System receiver ---- */
 	if (checkGNSS) {
 		if (!gnssCheck(mavlink_log_pub, reportFailures)) {
+			failed = true;
+		}
+	}
+
+	/* ---- Navigation EKF ---- */
+	if (checkGNSS) {
+		if (!ekfCheck(mavlink_log_pub, true, reportFailures)) {
 			failed = true;
 		}
 	}
