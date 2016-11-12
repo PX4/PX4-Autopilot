@@ -74,13 +74,13 @@ then
 	then
 		set BOARD_FMUV3 true
 	else
-	  # Check for Pixhawk 2 board
-    if mpu9250 -S -R 4 start
-    then
-      set BOARD_FMUV3 true
-    else
-      set BOARD_FMUV3 false
-    fi
+		# Check for Pixhawk 2 board
+		if mpu9250 -S -R 4 start
+		then
+			set BOARD_FMUV3 true
+		else
+			set BOARD_FMUV3 false
+		fi
 	fi
 
 	if [ $BOARD_FMUV3 == true ]
@@ -99,9 +99,9 @@ then
 		if mpu6000 -R 14 start
 		then
 		else
-		  if mpu9250 -R 14 start
-		  then
-		  fi
+			if mpu9250 -R 14 start
+			then
+			fi
 		fi
 
 		if hmc5883 -C -T -S -R 8 start
