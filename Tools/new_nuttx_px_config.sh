@@ -121,6 +121,11 @@ cp -r nuttx-configs/${oldname} nuttx-configs/${newname}
 git add nuttx-configs/${newname}
 cp -r src/drivers/boards/${oldname} src/drivers/boards/${newname}
 git add src/drivers/boards/${newname}
+if [[ $have_bootloader -eq 1 ]]; then
+	cp cmake/configs/uavcan_board_ident/${oldname}.cmake cmake/configs/uavcan_board_ident/${newname}.cmake
+	git add cmake/configs/uavcan_board_ident/${newname}.cmake
+	sed -i -r -e 's%\\"([^\\]*)\\"%\\"FIXME (was: \1)\\"%' cmake/configs/uavcan_board_ident/${newname}.cmake
+fi
 
 # Rename certain files.
 
@@ -134,7 +139,9 @@ echo "newstem=\"$newstem\""
 FILES=$(find src/drivers/boards/${newname} -regextype egrep -regex ".*/$oldstem[0-9]*_$TYPE_RE\.[cp]*")
 for f in $FILES; do
 	nf=$(echo $f | sed -r -e 's%^(.*/)'"$oldstem"'([0-9]*_'"$TYPE_RE"'\.[cp]*)$%\1'"$newstem"'\2%')
-	git mv "$f" "$nf"
+	if [[ "$f" != "$nf" ]]; then
+		git mv "$f" "$nf"
+	fi
 	git add "$nf"
 	bf=$(basename "$f")
 	bnf=$(basename "$nf")
