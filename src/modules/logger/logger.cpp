@@ -542,6 +542,7 @@ void Logger::add_default_topics()
 	add_topic("rc_channels");
 	add_topic("input_rc");
 	add_topic("airspeed", 50);
+	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
 	add_topic("estimator_status", 50); //this one is large
