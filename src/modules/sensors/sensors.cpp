@@ -273,6 +273,11 @@ private:
 	uint64_t _last_mag_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
 	uint64_t _last_baro_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
 
+	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
+	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
+	float _accel_diff_max_mag;	/**< magnitude of the maximum accel difference between different IMU units (m/s/s)*/
+	float _gyro_diff_max_mag;	/**< magnitude of the maximum gyro difference between different IMU units (rad/s)*/
+
 	hrt_abstime _vibration_warning_timestamp;
 	bool _vibration_warning;
 
@@ -549,6 +554,16 @@ private:
 	bool check_vibration();
 
 	/**
+	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
+	 */
+	void calc_accel_inconsistency(struct sensor_combined_s &raw);
+
+	/**
+	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
+	 */
+	void calc_gyro_inconsistency(struct sensor_combined_s &raw);
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -613,6 +628,8 @@ Sensors::Sensors() :
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
 	memset(&_last_mag_timestamp, 0, sizeof(_last_mag_timestamp));
 	memset(&_last_baro_timestamp, 0, sizeof(_last_baro_timestamp));
+	memset(&_accel_diff, 0, sizeof(_accel_diff));
+	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -2249,6 +2266,108 @@ Sensors::check_vibration()
 }
 
 void
+Sensors::calc_accel_inconsistency(sensor_combined_s &raw)
+{
+	// skip check if less than 2 sensors
+	if (_accel.subscription_count < 2) {
+		raw.accel_inconsistency_m_s_s = 0.0f;
+		return;
+
+	}
+
+	float accel_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
+	uint8_t check_index = 0; // the number of sensors the primary has been checked against
+
+	// Check each sensor against the primary
+	for (unsigned sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
+
+		// check that the sensor we are checking against is not the same as the primary
+		if (sensor_index != _accel.last_best_vote) {
+
+			float accel_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison agains the primary
+
+			// calculate accel_diff_sum_sq for the specified sensor against the primary
+			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+				_accel_diff[axis_index][check_index] = 0.95f * _accel_diff[axis_index][check_index] + 0.05f *
+								       (_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2[axis_index] -
+									_last_sensor_data[sensor_index].accelerometer_m_s2[axis_index]);
+				accel_diff_sum_sq += _accel_diff[axis_index][check_index] * _accel_diff[axis_index][check_index];
+
+			}
+
+			// capture the largest sum value
+			if (accel_diff_sum_sq > accel_diff_sum_max_sq) {
+				accel_diff_sum_max_sq = accel_diff_sum_sq;
+
+			}
+
+			// increment the check index
+			check_index++;
+		}
+
+		// check to see if the maximum number of checks has been reached and break
+		if (check_index >= 2) {
+			break;
+
+		}
+	}
+
+	// get the vector length of the largest difference and write to the combined sensor struct
+	raw.accel_inconsistency_m_s_s = sqrtf(accel_diff_sum_max_sq);
+}
+
+void Sensors::calc_gyro_inconsistency(sensor_combined_s &raw)
+{
+	// skip check if less than 2 sensors
+	if (_gyro.subscription_count < 2) {
+		raw.gyro_inconsistency_rad_s = 0.0f;
+		return;
+
+	}
+
+	float gyro_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
+	uint8_t check_index = 0; // the number of sensors the primary has been checked against
+
+
+	// Check each sensor against the primary
+	for (unsigned sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
+
+		// check that the sensor we are checking against is not the same as the primary
+		if (sensor_index != _gyro.last_best_vote) {
+
+			float gyro_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
+
+			// calculate gyro_diff_sum_sq for the specified sensor against the primary
+			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+				_gyro_diff[axis_index][check_index] = 0.95f * _gyro_diff[axis_index][check_index] + 0.05f *
+								      (_last_sensor_data[_gyro.last_best_vote].gyro_rad[axis_index] -
+								       _last_sensor_data[sensor_index].gyro_rad[axis_index]);
+				gyro_diff_sum_sq += _gyro_diff[axis_index][check_index] * _gyro_diff[axis_index][check_index];
+
+			}
+
+			// capture the largest sum value
+			if (gyro_diff_sum_sq > gyro_diff_sum_max_sq) {
+				gyro_diff_sum_max_sq = gyro_diff_sum_sq;
+
+			}
+
+			// increment the check index
+			check_index++;
+		}
+
+		// check to see if the maximum number of checks has been reached and break
+		if (check_index >= 2) {
+			break;
+
+		}
+	}
+
+	// get the vector length of the largest difference and write to the combined sensor struct
+	raw.gyro_inconsistency_rad_s = sqrtf(gyro_diff_sum_max_sq);
+}
+
+void
 Sensors::task_main_trampoline(int argc, char *argv[])
 {
 	sensors::g_sensors->task_main();
@@ -2406,7 +2525,6 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
-
 		/* check battery voltage */
 		adc_poll(raw);
 
@@ -2433,6 +2551,19 @@ Sensors::task_main()
 			check_failover(_gyro, "Gyro");
 			check_failover(_mag, "Mag");
 			check_failover(_baro, "Baro");
+
+			/* If the the vehicle is disarmed calculate the length of the maximum difference between
+			 * IMU units as a consistency metric and publish to the sensor combined topic
+			*/
+			if (!_armed) {
+				calc_accel_inconsistency(raw);
+				calc_gyro_inconsistency(raw);
+
+			} else {
+				raw.accel_inconsistency_m_s_s = 0.0f;
+				raw.gyro_inconsistency_rad_s = 0.0f;
+
+			}
 
 			//check_vibration(); //disabled for now, as it does not seem to be reliable
 		}
