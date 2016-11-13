@@ -67,6 +67,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/sensor_combined.h>
 
 #include "PreflightCheck.h"
 
@@ -158,6 +159,53 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bo
 
 out:
 	DevMgr::releaseHandle(h);
+	return success;
+}
+
+static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bool checkGyro, bool report_status)
+{
+	// get the sensor combined data
+	int sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	struct sensor_combined_s sensors = {};
+	orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
+	px4_close(sensors_sub);
+
+	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
+	// Fail if accel difference greater than 0.7 m/s/s and notify if greater than 0.35 m/s/s
+	bool success = true;
+	if (checkAcc) {
+		if (sensors.accel_inconsistency_m_s_s > 0.7f) {
+			if (report_status) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+			}
+			success = false;
+			goto out;
+
+		} else if (sensors.accel_inconsistency_m_s_s > 0.35f) {
+			if (report_status) {
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+
+			}
+		}
+	}
+	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
+	if (checkGyro) {
+		if (sensors.gyro_inconsistency_rad_s > 0.0873f) {
+			if (report_status) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+			}
+			success = false;
+			goto out;
+
+		} else if (sensors.gyro_inconsistency_rad_s > 0.0436f) {
+			if (report_status) {
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+
+			}
+		}
+	}
+
+out:
 	return success;
 }
 
@@ -599,6 +647,9 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 			failed = true;
 		}
 	}
+
+	/* ---- IMU CONSISTENCY ---- */
+	imuConsistencyCheck(mavlink_log_pub, checkAcc, checkGyro, reportFailures);
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
