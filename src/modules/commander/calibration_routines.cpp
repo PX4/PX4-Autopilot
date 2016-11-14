@@ -234,265 +234,283 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 }
 
 int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-			     unsigned int size, unsigned int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
-			     float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+				unsigned int size, unsigned int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
+				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	float _fitness = 1.0e30f, _sphere_lambda = 1.0f;
-	for(int i=0; i < max_iterations; i++) {
+
+	for (int i = 0; i < max_iterations; i++) {
 		//printf("%d, offset: %.6f %.6f %.6f %.6f fitness: %.6f\n", i, (double)*offset_x, (double)*offset_y, (double)*offset_z, (double)*sphere_radius, (double)_fitness);
 		run_lm_sphere_fit(x, y, z, _fitness, _sphere_lambda,
-				 size, offset_x, offset_y, offset_z,
-			     sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
+				  size, offset_x, offset_y, offset_z,
+				  sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
 	}
+
 	return 0;
 }
 
 int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
-				 unsigned int size, float *offset_x, float *offset_y, float *offset_z,
-			     float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+		      unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+		      float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	//Run Sphere Fit using Levenberg Marquardt LSq Fit
-    const float lma_damping = 10.0f;
-    float _samples_collected = size;
-    float fitness = _fitness;
-    float fit1 = 0.0f, fit2 = 0.0f;
+	const float lma_damping = 10.0f;
+	float _samples_collected = size;
+	float fitness = _fitness;
+	float fit1 = 0.0f, fit2 = 0.0f;
 
-    float JTJ[16];
-    float JTJ2[16];
-    float JTFI[4];
-    float residual = 0.0f;
-    memset(&JTJ,0,sizeof(JTJ));
-    memset(&JTJ2,0,sizeof(JTJ2));
-    memset(&JTFI,0,sizeof(JTFI));
-    // Gauss Newton Part common for all kind of extensions including LM
-    for(uint16_t k = 0; k<_samples_collected; k++) {
+	float JTJ[16];
+	float JTJ2[16];
+	float JTFI[4];
+	float residual = 0.0f;
+	memset(&JTJ, 0, sizeof(JTJ));
+	memset(&JTJ2, 0, sizeof(JTJ2));
+	memset(&JTFI, 0, sizeof(JTFI));
 
-        float sphere_jacob[4];
-        //Calculate Jacobian
-	    float A =  (*diag_x    * (x[k] + *offset_x)) + (*offdiag_x * (y[k] + *offset_y)) + (*offdiag_y * (z[k] + *offset_z));
-	    float B =  (*offdiag_x * (x[k] + *offset_x)) + (*diag_y    * (y[k] + *offset_y)) + (*offdiag_z * (z[k] + *offset_z));
-	    float C =  (*offdiag_y * (x[k] + *offset_x)) + (*offdiag_z * (y[k] + *offset_y)) + (*diag_z    * (z[k] + *offset_z));
-	    float length = sqrtf(A*A + B*B + C*C);
+	// Gauss Newton Part common for all kind of extensions including LM
+	for (uint16_t k = 0; k < _samples_collected; k++) {
 
-	    // 0: partial derivative (radius wrt fitness fn) fn operated on sample
-	    sphere_jacob[0] = 1.0f;
-	    // 1-3: partial derivative (offsets wrt fitness fn) fn operated on sample
-	    sphere_jacob[1] = -1.0f * (((*diag_x    * A) + (*offdiag_x * B) + (*offdiag_y * C))/length);
-	    sphere_jacob[2] = -1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C))/length);
-		sphere_jacob[3] = -1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C))/length);
+		float sphere_jacob[4];
+		//Calculate Jacobian
+		float A = (*diag_x    * (x[k] + *offset_x)) + (*offdiag_x * (y[k] + *offset_y)) + (*offdiag_y * (z[k] + *offset_z));
+		float B = (*offdiag_x * (x[k] + *offset_x)) + (*diag_y    * (y[k] + *offset_y)) + (*offdiag_z * (z[k] + *offset_z));
+		float C = (*offdiag_y * (x[k] + *offset_x)) + (*offdiag_z * (y[k] + *offset_y)) + (*diag_z    * (z[k] + *offset_z));
+		float length = sqrtf(A * A + B * B + C * C);
+
+		// 0: partial derivative (radius wrt fitness fn) fn operated on sample
+		sphere_jacob[0] = 1.0f;
+		// 1-3: partial derivative (offsets wrt fitness fn) fn operated on sample
+		sphere_jacob[1] = -1.0f * (((*diag_x    * A) + (*offdiag_x * B) + (*offdiag_y * C)) / length);
+		sphere_jacob[2] = -1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C)) / length);
+		sphere_jacob[3] = -1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C)) / length);
 		residual = *sphere_radius - length;
 
-        for(uint8_t i = 0;i < 4; i++) {
-            // compute JTJ
-            for(uint8_t j = 0; j < 4; j++) {
-                JTJ[i*4 + j] += sphere_jacob[i] * sphere_jacob[j];
-                JTJ2[i*4 + j] += sphere_jacob[i] * sphere_jacob[j];   //a backup JTJ for LM
-            }
-            JTFI[i] += sphere_jacob[i] * residual;
-        }
-    }
+		for (uint8_t i = 0; i < 4; i++) {
+			// compute JTJ
+			for (uint8_t j = 0; j < 4; j++) {
+				JTJ[i * 4 + j] += sphere_jacob[i] * sphere_jacob[j];
+				JTJ2[i * 4 + j] += sphere_jacob[i] * sphere_jacob[j]; //a backup JTJ for LM
+			}
+
+			JTFI[i] += sphere_jacob[i] * residual;
+		}
+	}
 
 
-    //------------------------Levenberg-Marquardt-part-starts-here---------------------------------//
-    //refer: http://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
-    float fit1_params[4] = {*sphere_radius, *offset_x, *offset_y, *offset_z};
-    float fit2_params[4];
-    memcpy(fit2_params,fit1_params,sizeof(fit1_params));
+	//------------------------Levenberg-Marquardt-part-starts-here---------------------------------//
+	//refer: http://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
+	float fit1_params[4] = {*sphere_radius, *offset_x, *offset_y, *offset_z};
+	float fit2_params[4];
+	memcpy(fit2_params, fit1_params, sizeof(fit1_params));
 
-    for(uint8_t i = 0; i < 4; i++) {
-        JTJ[i*4 + i] += _sphere_lambda;
-        JTJ2[i*4 + i] += _sphere_lambda/lma_damping;
-    }
+	for (uint8_t i = 0; i < 4; i++) {
+		JTJ[i * 4 + i] += _sphere_lambda;
+		JTJ2[i * 4 + i] += _sphere_lambda / lma_damping;
+	}
 
-    if(!inverse4x4(JTJ, JTJ)) {
-        return -1;
-    }
-
-    if(!inverse4x4(JTJ2, JTJ2)) {
-        return -1;
-    }
-
-    for(uint8_t row=0; row < 4; row++) {
-        for(uint8_t col=0; col < 4; col++) {
-            fit1_params[row] -= JTFI[col] * JTJ[row*4 + col];
-            fit2_params[row] -= JTFI[col] * JTJ2[row*4 + col];
-        }
-    }
-    //Calculate mean squared residuals
-    for(uint16_t k=0; k < _samples_collected; k++){
-		float A =  (*diag_x    * (x[k] + fit1_params[1])) + (*offdiag_x * (y[k] + fit1_params[2])) + (*offdiag_y * (z[k] + fit1_params[3]));
-	    float B =  (*offdiag_x * (x[k] + fit1_params[1])) + (*diag_y    * (y[k] + fit1_params[2])) + (*offdiag_z * (z[k] + fit1_params[3]));
-	    float C =  (*offdiag_y * (x[k] + fit1_params[1])) + (*offdiag_z * (y[k] + fit1_params[2])) + (*diag_z    * (z[k] + fit1_params[3]));
-	    float length = sqrtf(A*A + B*B + C*C);
-		residual = fit1_params[0] - length;
-        fit1 += residual*residual;
-
-        A =  (*diag_x    * (x[k] + fit2_params[1])) + (*offdiag_x * (y[k] + fit2_params[2])) + (*offdiag_y * (z[k] + fit2_params[3]));
-	    B =  (*offdiag_x * (x[k] + fit2_params[1])) + (*diag_y    * (y[k] + fit2_params[2])) + (*offdiag_z * (z[k] + fit2_params[3]));
-	    C =  (*offdiag_y * (x[k] + fit2_params[1])) + (*offdiag_z * (y[k] + fit2_params[2])) + (*diag_z    * (z[k] + fit2_params[3]));
-	    length = sqrtf(A*A + B*B + C*C);
-		residual = fit2_params[0] - length;
-        fit2 += residual*residual;
-    }
-
-    fit1 = sqrtf(fit1)/_samples_collected;
-    fit2 = sqrtf(fit2)/_samples_collected;
-
-    if(fit1 > _fitness && fit2 > _fitness){
-        _sphere_lambda *= lma_damping;
-    } else if(fit2 < _fitness && fit2 < fit1) {
-        _sphere_lambda /= lma_damping;
-        memcpy(fit1_params,fit2_params,sizeof(fit1_params));
-        fitness = fit2;
-    } else if(fit1 < _fitness){
-        fitness = fit1;
-    }
-    //--------------------Levenberg-Marquardt-part-ends-here--------------------------------//
-
-    if(!isnan(fitness) && fitness < _fitness) {
-        _fitness = fitness;
-        *sphere_radius = fit1_params[0];
-        *offset_x = fit1_params[1];
-        *offset_y = fit1_params[2];
-        *offset_z = fit1_params[3];
-        return 0;
-    } else {
+	if (!inverse4x4(JTJ, JTJ)) {
 		return -1;
-    }
+	}
+
+	if (!inverse4x4(JTJ2, JTJ2)) {
+		return -1;
+	}
+
+	for (uint8_t row = 0; row < 4; row++) {
+		for (uint8_t col = 0; col < 4; col++) {
+			fit1_params[row] -= JTFI[col] * JTJ[row * 4 + col];
+			fit2_params[row] -= JTFI[col] * JTJ2[row * 4 + col];
+		}
+	}
+
+	//Calculate mean squared residuals
+	for (uint16_t k = 0; k < _samples_collected; k++) {
+		float A = (*diag_x    * (x[k] + fit1_params[1])) + (*offdiag_x * (y[k] + fit1_params[2])) + (*offdiag_y *
+				(z[k] + fit1_params[3]));
+		float B = (*offdiag_x * (x[k] + fit1_params[1])) + (*diag_y    * (y[k] + fit1_params[2])) + (*offdiag_z *
+				(z[k] + fit1_params[3]));
+		float C = (*offdiag_y * (x[k] + fit1_params[1])) + (*offdiag_z * (y[k] + fit1_params[2])) + (*diag_z    *
+				(z[k] + fit1_params[3]));
+		float length = sqrtf(A * A + B * B + C * C);
+		residual = fit1_params[0] - length;
+		fit1 += residual * residual;
+
+		A = (*diag_x    * (x[k] + fit2_params[1])) + (*offdiag_x * (y[k] + fit2_params[2])) + (*offdiag_y *
+				(z[k] + fit2_params[3]));
+		B = (*offdiag_x * (x[k] + fit2_params[1])) + (*diag_y    * (y[k] + fit2_params[2])) + (*offdiag_z *
+				(z[k] + fit2_params[3]));
+		C = (*offdiag_y * (x[k] + fit2_params[1])) + (*offdiag_z * (y[k] + fit2_params[2])) + (*diag_z    *
+				(z[k] + fit2_params[3]));
+		length = sqrtf(A * A + B * B + C * C);
+		residual = fit2_params[0] - length;
+		fit2 += residual * residual;
+	}
+
+	fit1 = sqrtf(fit1) / _samples_collected;
+	fit2 = sqrtf(fit2) / _samples_collected;
+
+	if (fit1 > _fitness && fit2 > _fitness) {
+		_sphere_lambda *= lma_damping;
+
+	} else if (fit2 < _fitness && fit2 < fit1) {
+		_sphere_lambda /= lma_damping;
+		memcpy(fit1_params, fit2_params, sizeof(fit1_params));
+		fitness = fit2;
+
+	} else if (fit1 < _fitness) {
+		fitness = fit1;
+	}
+
+	//--------------------Levenberg-Marquardt-part-ends-here--------------------------------//
+
+	if (!isnan(fitness) && fitness < _fitness) {
+		_fitness = fitness;
+		*sphere_radius = fit1_params[0];
+		*offset_x = fit1_params[1];
+		*offset_y = fit1_params[2];
+		*offset_z = fit1_params[3];
+		return 0;
+
+	} else {
+		return -1;
+	}
 }
 
 
-bool inverse4x4(float m[],float invOut[])
+bool inverse4x4(float m[], float invOut[])
 {
-    float inv[16], det;
-    uint8_t i;
+	float inv[16], det;
+	uint8_t i;
 
-    inv[0] = m[5]  * m[10] * m[15] -
-    m[5]  * m[11] * m[14] -
-    m[9]  * m[6]  * m[15] +
-    m[9]  * m[7]  * m[14] +
-    m[13] * m[6]  * m[11] -
-    m[13] * m[7]  * m[10];
+	inv[0] = m[5]  * m[10] * m[15] -
+		 m[5]  * m[11] * m[14] -
+		 m[9]  * m[6]  * m[15] +
+		 m[9]  * m[7]  * m[14] +
+		 m[13] * m[6]  * m[11] -
+		 m[13] * m[7]  * m[10];
 
-    inv[4] = -m[4]  * m[10] * m[15] +
-    m[4]  * m[11] * m[14] +
-    m[8]  * m[6]  * m[15] -
-    m[8]  * m[7]  * m[14] -
-    m[12] * m[6]  * m[11] +
-    m[12] * m[7]  * m[10];
+	inv[4] = -m[4]  * m[10] * m[15] +
+		 m[4]  * m[11] * m[14] +
+		 m[8]  * m[6]  * m[15] -
+		 m[8]  * m[7]  * m[14] -
+		 m[12] * m[6]  * m[11] +
+		 m[12] * m[7]  * m[10];
 
-    inv[8] = m[4]  * m[9] * m[15] -
-    m[4]  * m[11] * m[13] -
-    m[8]  * m[5] * m[15] +
-    m[8]  * m[7] * m[13] +
-    m[12] * m[5] * m[11] -
-    m[12] * m[7] * m[9];
+	inv[8] = m[4]  * m[9] * m[15] -
+		 m[4]  * m[11] * m[13] -
+		 m[8]  * m[5] * m[15] +
+		 m[8]  * m[7] * m[13] +
+		 m[12] * m[5] * m[11] -
+		 m[12] * m[7] * m[9];
 
-    inv[12] = -m[4]  * m[9] * m[14] +
-    m[4]  * m[10] * m[13] +
-    m[8]  * m[5] * m[14] -
-    m[8]  * m[6] * m[13] -
-    m[12] * m[5] * m[10] +
-    m[12] * m[6] * m[9];
+	inv[12] = -m[4]  * m[9] * m[14] +
+		  m[4]  * m[10] * m[13] +
+		  m[8]  * m[5] * m[14] -
+		  m[8]  * m[6] * m[13] -
+		  m[12] * m[5] * m[10] +
+		  m[12] * m[6] * m[9];
 
-    inv[1] = -m[1]  * m[10] * m[15] +
-    m[1]  * m[11] * m[14] +
-    m[9]  * m[2] * m[15] -
-    m[9]  * m[3] * m[14] -
-    m[13] * m[2] * m[11] +
-    m[13] * m[3] * m[10];
+	inv[1] = -m[1]  * m[10] * m[15] +
+		 m[1]  * m[11] * m[14] +
+		 m[9]  * m[2] * m[15] -
+		 m[9]  * m[3] * m[14] -
+		 m[13] * m[2] * m[11] +
+		 m[13] * m[3] * m[10];
 
-    inv[5] = m[0]  * m[10] * m[15] -
-    m[0]  * m[11] * m[14] -
-    m[8]  * m[2] * m[15] +
-    m[8]  * m[3] * m[14] +
-    m[12] * m[2] * m[11] -
-    m[12] * m[3] * m[10];
+	inv[5] = m[0]  * m[10] * m[15] -
+		 m[0]  * m[11] * m[14] -
+		 m[8]  * m[2] * m[15] +
+		 m[8]  * m[3] * m[14] +
+		 m[12] * m[2] * m[11] -
+		 m[12] * m[3] * m[10];
 
-    inv[9] = -m[0]  * m[9] * m[15] +
-    m[0]  * m[11] * m[13] +
-    m[8]  * m[1] * m[15] -
-    m[8]  * m[3] * m[13] -
-    m[12] * m[1] * m[11] +
-    m[12] * m[3] * m[9];
+	inv[9] = -m[0]  * m[9] * m[15] +
+		 m[0]  * m[11] * m[13] +
+		 m[8]  * m[1] * m[15] -
+		 m[8]  * m[3] * m[13] -
+		 m[12] * m[1] * m[11] +
+		 m[12] * m[3] * m[9];
 
-    inv[13] = m[0]  * m[9] * m[14] -
-    m[0]  * m[10] * m[13] -
-    m[8]  * m[1] * m[14] +
-    m[8]  * m[2] * m[13] +
-    m[12] * m[1] * m[10] -
-    m[12] * m[2] * m[9];
+	inv[13] = m[0]  * m[9] * m[14] -
+		  m[0]  * m[10] * m[13] -
+		  m[8]  * m[1] * m[14] +
+		  m[8]  * m[2] * m[13] +
+		  m[12] * m[1] * m[10] -
+		  m[12] * m[2] * m[9];
 
-    inv[2] = m[1]  * m[6] * m[15] -
-    m[1]  * m[7] * m[14] -
-    m[5]  * m[2] * m[15] +
-    m[5]  * m[3] * m[14] +
-    m[13] * m[2] * m[7] -
-    m[13] * m[3] * m[6];
+	inv[2] = m[1]  * m[6] * m[15] -
+		 m[1]  * m[7] * m[14] -
+		 m[5]  * m[2] * m[15] +
+		 m[5]  * m[3] * m[14] +
+		 m[13] * m[2] * m[7] -
+		 m[13] * m[3] * m[6];
 
-    inv[6] = -m[0]  * m[6] * m[15] +
-    m[0]  * m[7] * m[14] +
-    m[4]  * m[2] * m[15] -
-    m[4]  * m[3] * m[14] -
-    m[12] * m[2] * m[7] +
-    m[12] * m[3] * m[6];
+	inv[6] = -m[0]  * m[6] * m[15] +
+		 m[0]  * m[7] * m[14] +
+		 m[4]  * m[2] * m[15] -
+		 m[4]  * m[3] * m[14] -
+		 m[12] * m[2] * m[7] +
+		 m[12] * m[3] * m[6];
 
-    inv[10] = m[0]  * m[5] * m[15] -
-    m[0]  * m[7] * m[13] -
-    m[4]  * m[1] * m[15] +
-    m[4]  * m[3] * m[13] +
-    m[12] * m[1] * m[7] -
-    m[12] * m[3] * m[5];
+	inv[10] = m[0]  * m[5] * m[15] -
+		  m[0]  * m[7] * m[13] -
+		  m[4]  * m[1] * m[15] +
+		  m[4]  * m[3] * m[13] +
+		  m[12] * m[1] * m[7] -
+		  m[12] * m[3] * m[5];
 
-    inv[14] = -m[0]  * m[5] * m[14] +
-    m[0]  * m[6] * m[13] +
-    m[4]  * m[1] * m[14] -
-    m[4]  * m[2] * m[13] -
-    m[12] * m[1] * m[6] +
-    m[12] * m[2] * m[5];
+	inv[14] = -m[0]  * m[5] * m[14] +
+		  m[0]  * m[6] * m[13] +
+		  m[4]  * m[1] * m[14] -
+		  m[4]  * m[2] * m[13] -
+		  m[12] * m[1] * m[6] +
+		  m[12] * m[2] * m[5];
 
-    inv[3] = -m[1] * m[6] * m[11] +
-    m[1] * m[7] * m[10] +
-    m[5] * m[2] * m[11] -
-    m[5] * m[3] * m[10] -
-    m[9] * m[2] * m[7] +
-    m[9] * m[3] * m[6];
+	inv[3] = -m[1] * m[6] * m[11] +
+		 m[1] * m[7] * m[10] +
+		 m[5] * m[2] * m[11] -
+		 m[5] * m[3] * m[10] -
+		 m[9] * m[2] * m[7] +
+		 m[9] * m[3] * m[6];
 
-    inv[7] = m[0] * m[6] * m[11] -
-    m[0] * m[7] * m[10] -
-    m[4] * m[2] * m[11] +
-    m[4] * m[3] * m[10] +
-    m[8] * m[2] * m[7] -
-    m[8] * m[3] * m[6];
+	inv[7] = m[0] * m[6] * m[11] -
+		 m[0] * m[7] * m[10] -
+		 m[4] * m[2] * m[11] +
+		 m[4] * m[3] * m[10] +
+		 m[8] * m[2] * m[7] -
+		 m[8] * m[3] * m[6];
 
-    inv[11] = -m[0] * m[5] * m[11] +
-    m[0] * m[7] * m[9] +
-    m[4] * m[1] * m[11] -
-    m[4] * m[3] * m[9] -
-    m[8] * m[1] * m[7] +
-    m[8] * m[3] * m[5];
+	inv[11] = -m[0] * m[5] * m[11] +
+		  m[0] * m[7] * m[9] +
+		  m[4] * m[1] * m[11] -
+		  m[4] * m[3] * m[9] -
+		  m[8] * m[1] * m[7] +
+		  m[8] * m[3] * m[5];
 
-    inv[15] = m[0] * m[5] * m[10] -
-    m[0] * m[6] * m[9] -
-    m[4] * m[1] * m[10] +
-    m[4] * m[2] * m[9] +
-    m[8] * m[1] * m[6] -
-    m[8] * m[2] * m[5];
+	inv[15] = m[0] * m[5] * m[10] -
+		  m[0] * m[6] * m[9] -
+		  m[4] * m[1] * m[10] +
+		  m[4] * m[2] * m[9] +
+		  m[8] * m[1] * m[6] -
+		  m[8] * m[2] * m[5];
 
-    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+	det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
-    if(fabsf(det) < 1.1755e-38f){
-        return false;
-    }
+	if (fabsf(det) < 1.1755e-38f) {
+		return false;
+	}
 
-    det = 1.0f / det;
+	det = 1.0f / det;
 
-    for (i = 0; i < 16; i++)
-        invOut[i] = inv[i] * det;
-    return true;
+	for (i = 0; i < 16; i++) {
+		invOut[i] = inv[i] * det;
+	}
+
+	return true;
 }
 
-enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub, bool lenient_still_position)
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
+		bool lenient_still_position)
 {
 	const unsigned ndim = 3;
 
@@ -633,9 +651,9 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 	return DETECT_ORIENTATION_ERROR;	// Can't detect orientation
 }
 
-const char* detect_orientation_str(enum detect_orientation_return orientation)
+const char *detect_orientation_str(enum detect_orientation_return orientation)
 {
-	static const char* rgOrientationStrs[] = {
+	static const char *rgOrientationStrs[] = {
 		"back",		// tail down
 		"front",	// nose down
 		"left",
@@ -649,17 +667,18 @@ const char* detect_orientation_str(enum detect_orientation_return orientation)
 }
 
 calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
-					    int		cancel_sub,
-					    bool	side_data_collected[detect_orientation_side_count],
-					    calibration_from_orientation_worker_t calibration_worker,
-					    void*	worker_data,
-					    bool	lenient_still_position)
+		int		cancel_sub,
+		bool	side_data_collected[detect_orientation_side_count],
+		calibration_from_orientation_worker_t calibration_worker,
+		void	*worker_data,
+		bool	lenient_still_position)
 {
 	calibrate_return result = calibrate_return_ok;
 
 	// Setup subscriptions to onboard accel sensor
 
 	int sub_accel = orb_subscribe(ORB_ID(sensor_combined));
+
 	if (sub_accel < 0) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "No onboard accel");
 		return calibrate_return_error;
@@ -698,17 +717,19 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		char pendingStr[80];
 		pendingStr[0] = 0;
 
-		for (unsigned int cur_orientation=0; cur_orientation<detect_orientation_side_count; cur_orientation++) {
+		for (unsigned int cur_orientation = 0; cur_orientation < detect_orientation_side_count; cur_orientation++) {
 			if (!side_data_collected[cur_orientation]) {
 				strncat(pendingStr, " ", sizeof(pendingStr) - 1);
 				strncat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation), sizeof(pendingStr) - 1);
 			}
 		}
+
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
 		usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
 		usleep(20000);
-		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel, lenient_still_position);
+		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
+							lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
@@ -733,7 +754,8 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		// Call worker routine
 		result = calibration_worker(orient, cancel_sub, worker_data);
-		if (result != calibrate_return_ok ) {
+
+		if (result != calibrate_return_ok) {
 			break;
 		}
 
@@ -768,17 +790,17 @@ void calibrate_cancel_unsubscribe(int cmd_sub)
 static void calibrate_answer_command(orb_advert_t *mavlink_log_pub, struct vehicle_command_s &cmd, unsigned result)
 {
 	switch (result) {
-		case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive(true);
-			break;
+	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
+		tune_positive(true);
+		break;
 
-		case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-			mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
-			tune_negative(true);
-			break;
+	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
+		mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
+		tune_negative(true);
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 }
 
@@ -804,6 +826,7 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 			mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 			return true;
+
 		} else {
 			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 		}
