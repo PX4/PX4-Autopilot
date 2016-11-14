@@ -472,3 +472,111 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 12 Follow Me
  */
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
+
+/**
+ * Maximum EKF vertical position innovation that will allow arming
+ *
+ * @group Commander
+ * @unit m
+ * @min 0.5
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_PD, 1.0f);
+
+/**
+ * Maximum EKF vertical velocity innovation that will allow arming
+ *
+ * @group Commander
+ * @unit m/s
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_VD, 0.5f);
+
+/**
+ * Maximum EKF horizontal position innovation that will allow arming
+ *
+ * @group Commander
+ * @unit m
+ * @min 0.5
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_PH, 1.0f);
+
+/**
+ * Maximum EKF horizontal velocity innovation that will allow arming
+ *
+ * @group Commander
+ * @unit m/s
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_VH, 0.5f);
+
+/**
+ * Maximum EKF yaw innovation that will allow arming
+ *
+ * @group Commander
+ * @unit rad
+ * @min 0.05
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.25f);
+
+/**
+ * Maximum value of EKF accelerometer delta velocity bias estimate that will allow arming
+ *
+ * @group Commander
+ * @unit m/s
+ * @min 0.001
+ * @max 0.004
+ * @decimal 4
+ * @increment 0.0005
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 2.0e-3f);
+
+/**
+ * Maximum value of EKF gyro delta angle bias estimate that will allow arming
+ *
+ * @group Commander
+ * @unit rad
+ * @min 0.0001
+ * @max 0.0007
+ * @decimal 5
+ * @increment 0.00005
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 3.5e-4f);
+
+/**
+ * Maximum accelerometer inconsistency between IMU units that will allow arming
+ *
+ * @group Commander
+ * @unit m/s/s
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
+
+/**
+ * Maximum rate gyro inconsistency between IMU units that will allow arming
+ *
+ * @group Commander
+ * @unit rad/s
+ * @min 0.02
+ * @max 0.2
+ * @decimal 3
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.09f);
