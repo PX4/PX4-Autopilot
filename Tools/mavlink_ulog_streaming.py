@@ -123,14 +123,17 @@ class MavlinkLogStreaming():
             # m is either 'LOGGING_DATA_ACKED' or 'LOGGING_DATA':
             is_newer, num_drops = self.check_sequence(m.sequence)
 
+            # return an ack, even we already sent it for the same sequence,
+            # because the ack could have been dropped
+            if m.get_type() == 'LOGGING_DATA_ACKED':
+                self.mav.mav.logging_ack_send(self.mav.target_system,
+                        self.target_component, m.sequence)
+
             if is_newer:
                 if num_drops > 0:
                     self.num_dropouts += num_drops
 
-                if m.get_type() == 'LOGGING_DATA_ACKED':
-                    self.mav.mav.logging_ack_send(self.mav.target_system,
-                            self.target_component, m.sequence)
-                else:
+                if m.get_type() == 'LOGGING_DATA':
                     if not self.got_header_section:
                         print('Header received in {:0.2f}s'.format(timer()-self.start_time))
                         self.logging_started = True
