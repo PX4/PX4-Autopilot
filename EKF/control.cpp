@@ -329,21 +329,21 @@ void Ekf::controlGpsFusion()
 
 				// If the heading is valid start using gps aiding
 				if (_control_status.flags.yaw_align) {
-					_control_status.flags.gps = true;
-					_time_last_gps = _time_last_imu;
-
 					// if we are not already aiding with optical flow, then we need to reset the position and velocity
+					// otherwise we only need to reset the position
+					_control_status.flags.gps = true;
 					if (!_control_status.flags.opt_flow) {
-						if (resetPosition() && resetVelocity()) {
-							_control_status.flags.gps = true;
-
-						} else {
+						if (!resetPosition() || !resetVelocity()) {
 							_control_status.flags.gps = false;
 
 						}
+					} else if (!resetPosition()) {
+						_control_status.flags.gps = false;
+
 					}
 					if (_control_status.flags.gps) {
 						ECL_INFO("EKF commencing GPS aiding");
+					       _time_last_gps = _time_last_imu;
 
 					}
 				}
