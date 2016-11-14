@@ -568,10 +568,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	// Calculate calibration values for each mag
 
 
-	float sphere_x[max_mags];
-	float sphere_y[max_mags];
-	float sphere_z[max_mags];
-	float sphere_radius[max_mags];
+	float sphere_x[max_mags] = {0.0f};
+	float sphere_y[max_mags] = {0.0f};
+	float sphere_z[max_mags] = {0.0f};
+	float sphere_radius[max_mags] = {0.2f};
+	float diag_x[max_mags] = {1.0f};
+	float diag_y[max_mags] = {1.0f};
+	float diag_z[max_mags] = {1.0f};
+	float offdiag_x[max_mags] = {0.0f};
+	float offdiag_y[max_mags] = {0.0f};
+	float offdiag_z[max_mags] = {0.0f};
 
 	// Sphere fit the data to get calibration values
 	if (result == calibrate_return_ok) {
@@ -579,11 +585,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 			if (device_ids[cur_mag] != 0) {
 				// Mag in this slot is available and we should have values for it to calibrate
 
-				sphere_fit_least_squares(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
+				ellipsoid_fit_least_squares(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
 							 worker_data.calibration_counter_total[cur_mag],
 							 100, 0.0f,
 							 &sphere_x[cur_mag], &sphere_y[cur_mag], &sphere_z[cur_mag],
-							 &sphere_radius[cur_mag]);
+							 &sphere_radius[cur_mag], &diag_x[cur_mag], &diag_y[cur_mag], &diag_z[cur_mag], &offdiag_x[cur_mag], &offdiag_y[cur_mag], &offdiag_z[cur_mag]);
 
 				if (!PX4_ISFINITE(sphere_x[cur_mag]) || !PX4_ISFINITE(sphere_y[cur_mag]) || !PX4_ISFINITE(sphere_z[cur_mag])) {
 					calibration_log_emergency(mavlink_log_pub, "ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
