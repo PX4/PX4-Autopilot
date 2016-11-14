@@ -55,7 +55,13 @@
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
 			     float *sphere_radius);
-
+int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
+			     unsigned int size, unsigned int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
+			     float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z);
+int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
+				 unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+			     float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z);
+bool inverse4x4(float m[],float invOut[]);
 // FIXME: Change the name
 static const unsigned max_accel_sens = 3;
 
