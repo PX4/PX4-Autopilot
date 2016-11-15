@@ -962,31 +962,31 @@ void Ekf2::task_main()
 
 		// publish estimator innovation data
 		{
-		struct ekf2_innovations_s innovations = {};
-		innovations.timestamp = hrt_absolute_time();
-		_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-		_ekf.get_mag_innov(&innovations.mag_innov[0]);
-		_ekf.get_heading_innov(&innovations.heading_innov);
-		_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-		_ekf.get_beta_innov(&innovations.beta_innov);
-		_ekf.get_flow_innov(&innovations.flow_innov[0]);
-		_ekf.get_hagl_innov(&innovations.hagl_innov);
+			struct ekf2_innovations_s innovations = {};
+			innovations.timestamp = hrt_absolute_time();
+			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+			_ekf.get_mag_innov(&innovations.mag_innov[0]);
+			_ekf.get_heading_innov(&innovations.heading_innov);
+			_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+			_ekf.get_beta_innov(&innovations.beta_innov);
+			_ekf.get_flow_innov(&innovations.flow_innov[0]);
+			_ekf.get_hagl_innov(&innovations.hagl_innov);
 
-		_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-		_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-		_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-		_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-		_ekf.get_beta_innov_var(&innovations.beta_innov_var);
-		_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-		_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+			_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+			_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
+			_ekf.get_heading_innov_var(&innovations.heading_innov_var);
+			_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+			_ekf.get_beta_innov_var(&innovations.beta_innov_var);
+			_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
+			_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
-		_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+			_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
-		if (_estimator_innovations_pub == nullptr) {
-			_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+			if (_estimator_innovations_pub == nullptr) {
+				_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
 
-		} else {
-			orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+			} else {
+				orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
 			}
 
 		}
