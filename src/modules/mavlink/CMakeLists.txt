@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 1200
 	STACK_MAX 1500
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		mavlink.c
 		mavlink_main.cpp
@@ -50,7 +49,8 @@ px4_add_module(
 		mavlink_ftp.cpp
 		mavlink_log_handler.cpp
 		mavlink_shell.cpp
+		mavlink_ulog.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

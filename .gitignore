@@ -72,3 +72,7 @@ GTAGS
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
 vectorcontrol/
+
+
+# CLion ignores
+.idea

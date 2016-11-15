@@ -108,7 +108,7 @@ int Gpio::configgpio(uint32_t pinset)
 	addr = (uintptr_t)_gpio_map + GPIO_GPFSEL0_OFFSET + pin / 10;
 	shift = (pin % 10) * 3;
 
-	atomic_modify(addr, shift, GPIO_CNF_MASK, cnf);
+	atomic_modify(addr, shift, GPIO_CNF_MASK >> GPIO_CNF_SHIFT, cnf);
 
 	return 0;
 }

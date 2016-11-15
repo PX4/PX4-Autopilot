@@ -96,7 +96,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	perf_end(c_gather_dsm);
 
 	/* get data from FD and attempt to parse with DSM and ST24 libs */
-	uint8_t st24_rssi, rx_count;
+	uint8_t st24_rssi, lost_count;
 	uint16_t st24_channel_count = 0;
 
 	*st24_updated = false;
@@ -104,11 +104,11 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
 		st24_rssi = RC_INPUT_RSSI_MAX;
-		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &rx_count,
+		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
 						    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
-	if (*st24_updated) {
+	if (*st24_updated && lost_count == 0) {
 
 		/* ensure ADC RSSI is disabled */
 		r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
@@ -125,6 +125,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	/* get data from FD and attempt to parse with SUMD libs */
 	uint8_t sumd_rssi, sumd_rx_count;
 	uint16_t sumd_channel_count = 0;
+	bool sumd_failsafe_state;
 
 	*sumd_updated = false;
 
@@ -132,7 +133,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		/* set updated flag if one complete packet was parsed */
 		sumd_rssi = RC_INPUT_RSSI_MAX;
 		*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
-						    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+						    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
 	}
 
 	if (*sumd_updated) {
@@ -142,7 +143,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+
+		if (sumd_failsafe_state) {
+			r_raw_rc_flags |= (PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+		}
 	}
 
 	return (*dsm_updated | *st24_updated | *sumd_updated);

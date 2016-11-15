@@ -112,7 +112,10 @@ public:
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1);
+	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1)
+	{
+		return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT, queue_size);
+	}
 
 	/**
 	 * Advertise as the publisher of a topic.

@@ -79,10 +79,10 @@ static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 typedef struct {
 	px4_main_t entry;
-	const char *name;
+	char name[16]; //pthread_setname_np is restricted to 16 chars
 	int argc;
 	char *argv[];
-	// strings are allocated after the
+	// strings are allocated after the struct data
 } pthdata_t;
 
 static void *entry_adapter(void *ptr)
@@ -95,10 +95,7 @@ static void *entry_adapter(void *ptr)
 #ifdef __PX4_DARWIN
 	rv = pthread_setname_np(data->name);
 #else
-	char buf[17];
-	snprintf(buf, 16, "%s", data->name);
-	buf[16] = '0';
-	rv = pthread_setname_np(pthread_self(), buf);
+	rv = pthread_setname_np(pthread_self(), data->name);
 #endif
 
 	if (rv) {
@@ -155,7 +152,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	memset(taskdata, 0, structsize + len);
 	offset = ((unsigned long)taskdata) + structsize;
 
-	taskdata->name = name;
+	strncpy(taskdata->name, name, 16);
+	taskdata->name[15] = 0;
 	taskdata->entry = entry;
 	taskdata->argc = argc;
 
@@ -387,9 +385,21 @@ bool px4_task_is_running(const char *taskname)
 	return false;
 }
 
-unsigned long px4_getpid()
+px4_task_t px4_getpid()
 {
-	return (unsigned long)pthread_self();
+	pthread_t pid = pthread_self();
+	px4_task_t ret = -1;
+
+	pthread_mutex_lock(&task_mutex);
+
+	for (int i = 0; i < PX4_MAX_TASKS; i++) {
+		if (taskmap[i].isused && taskmap[i].pid == pid) {
+			ret = i;
+		}
+	}
+
+	pthread_mutex_unlock(&task_mutex);
+	return ret;
 }
 
 const char *px4_get_taskname()
@@ -410,7 +420,7 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
-int px4_prctl(int option, const char *arg2, unsigned pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv;
 

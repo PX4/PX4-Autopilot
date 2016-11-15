@@ -107,12 +107,11 @@ private:
 int RcInput::navio_rc_init()
 {
 	int i;
-	char *buf;
+	char buf[64];
 
 	for (i = 0; i < _channels; ++i) {
-		::asprintf(&buf, "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
+		::snprintf(buf, sizeof(buf), "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
 		int fd = ::open(buf, O_RDONLY);
-		::free(buf);
 
 		if (fd < 0) {
 			PX4_WARN("error: open %d failed", i);
@@ -197,7 +196,7 @@ void RcInput::_measure(void)
 	}
 
 	ts = hrt_absolute_time();
-	_data.timestamp_publication = ts;
+	_data.timestamp = ts;
 	_data.timestamp_last_signal = ts;
 	_data.channel_count = _channels;
 	_data.rssi = 100;
@@ -262,7 +261,7 @@ int navio_sysfs_rc_in_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 
-		if (rc_input == nullptr || rc_input->isRunning()) {
+		if (rc_input == nullptr || !rc_input->isRunning()) {
 			PX4_WARN("not running");
 			/* this is not an error */
 			return 0;

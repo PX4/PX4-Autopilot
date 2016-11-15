@@ -47,9 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -271,8 +268,10 @@ __BEGIN_DECLS
 		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
 
 /* This board provides a DMA pool and APIs */
-
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
+__BEGIN_DECLS
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

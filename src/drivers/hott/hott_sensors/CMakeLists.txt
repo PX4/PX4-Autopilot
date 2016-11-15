@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__hott__hott_sensors
 	MAIN hott_sensors
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		hott_sensors.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

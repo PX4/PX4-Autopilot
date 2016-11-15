@@ -24,6 +24,7 @@ echo build_path: $build_path
 
 working_dir=`pwd`
 sitl_bin=$build_path/src/firmware/posix/px4
+rootfs=$build_path/tmp/rootfs
 
 if [ "$chroot" == "1" ]
 then
@@ -95,6 +96,7 @@ then
 	# Check if we need to creat a param file to allow user to change parameters
 	if ! [ -f "$rootfs/replay_params.txt" ]
 		then
+		mkdir -p $rootfs
 		touch $rootfs/replay_params.txt
 	fi
 fi

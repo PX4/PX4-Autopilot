@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Airmind nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -146,43 +146,38 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
-#include <math.h>
-
-#if 0
-#ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e)
-{
-	return 1;
-}
-#else
-__EXPORT int matherr(struct exception *e)
-{
-	return 1;
-}
-#endif
-#endif
-
 __EXPORT int nsh_archinitialize(void)
 {
-
 	/* configure ADC pins */
-	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_CURRENT_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
-	// px4_arch_configgpio(GPIO_ADC1_IN11);	/* unused */
-	// px4_arch_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
+	px4_arch_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
 	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
 	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
-//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
-//	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-//	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
-//	px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
-//	px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-//	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	// px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	// px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	// px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
+	// px4_arch_configgpio(GPIO_VDD_SERVO_VALID);
+	// px4_arch_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	// px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	px4_arch_configgpio(GPIO_SBUS_INV);
+	px4_arch_configgpio(GPIO_RC_OUT);	/* Serial RC output pin */
+	px4_arch_gpiowrite(GPIO_RC_OUT, 1);	/* set it high to pull RC input up */
+	px4_arch_configgpio(GPIO_FRSKY_INV);
+
+	/* configure the GPIO pins to outputs and keep them low */
+	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO6_OUTPUT);
+	px4_arch_configgpio(GPIO_GPIO7_OUTPUT);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -220,7 +215,7 @@ __EXPORT int nsh_archinitialize(void)
 	led_off(LED_AMBER);
 
 	/* Configure SPI-based devices */
-	message("[boot] Initialized SPI port 4 (SENSORS)\n");
+
 	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
@@ -240,7 +235,6 @@ __EXPORT int nsh_archinitialize(void)
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
-	message("[boot] Initialized SPI port 1 (RAMTRON FRAM)\n");
 
 	spi1 = px4_spibus_initialize(1);
 
@@ -260,9 +254,6 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, SPIDEV_FLASH, false);
 
 
-
-	message("[boot] Initialized SPI port 2 (nRF24 and ext)\n");
-
 	spi2 = px4_spibus_initialize(2);
 
 	/* Default SPI2 to 10MHz and de-assert the known chip selects. */
@@ -270,9 +261,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, PX4_SPIDEV_EXT0, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT1, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT2, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT3, false);
+
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
@@ -297,17 +286,6 @@ __EXPORT int nsh_archinitialize(void)
 	sdio_mediachange(sdio, true);
 
 #endif
-
-
-	px4_arch_configgpio(GPIO_I2C2_SCL);
-	px4_arch_configgpio(GPIO_I2C2_SDA);
-	message("[boot] Initialized ext I2C Port\n");
-
-	px4_arch_configgpio(GPIO_I2C1_SCL);
-	px4_arch_configgpio(GPIO_I2C1_SDA);
-	message("[boot] Initialized onboard I2C Port\n");
-
-
 
 	return OK;
 }

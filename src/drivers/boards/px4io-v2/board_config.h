@@ -47,7 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -143,4 +142,3 @@
 #define LED_SIGNAL        5  /* LED? + LED? */
 #define LED_ASSERTION     6  /* LED? + LED? + LED? */
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
-

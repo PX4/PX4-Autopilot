@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file controllib.cpp
+ * @file controllib_test_main.cpp
  * Unit testing for controllib.
  *
  * @author James Goppert <james.goppert@gmail.com>
@@ -69,25 +69,26 @@ int blockDelayTest();
 
 int basicBlocksTest()
 {
-	blockLimitTest();
-	blockLimitSymTest();
-	blockLowPassTest();
-	blockHighPassTest();
-	blockLowPass2Test();
-	blockIntegralTest();
-	blockIntegralTrapTest();
-	blockDerivativeTest();
-	blockPTest();
-	blockPITest();
-	blockPDTest();
-	blockPIDTest();
-	blockOutputTest();
-	//blockRandUniformTest();
+	bool failed = false;
+	failed = failed || blockLimitTest() < 0;
+	failed = failed || blockLimitSymTest() < 0;
+	failed = failed || blockLowPassTest() < 0;
+	failed = failed || blockHighPassTest() < 0;
+	failed = failed || blockLowPass2Test() < 0;
+	failed = failed || blockIntegralTest() < 0;
+	failed = failed || blockIntegralTrapTest() < 0;
+	failed = failed || blockDerivativeTest() < 0;
+	failed = failed || blockPTest() < 0;
+	failed = failed || blockPITest() < 0;
+	failed = failed || blockPDTest() < 0;
+	failed = failed || blockPIDTest() < 0;
+	failed = failed || blockOutputTest() < 0;
 	// known failures
-	// blockRandGaussTest();
-	blockStatsTest();
-	blockDelayTest();
-	return 0;
+	//failed = failed || blockRandUniformTest() < 0;
+	//failed = failed || blockRandGaussTest() < 0;
+	failed = failed || blockStatsTest() < 0;
+	failed = failed || blockDelayTest() < 0;
+	return failed ? -1 : 0;
 }
 
 int blockLimitTest()

@@ -117,7 +117,7 @@ public:
 
 	// MavlinkStream overrides
 	virtual const char *get_name(void) const;
-	virtual uint8_t get_id(void);
+	virtual uint16_t get_id(void);
 	virtual unsigned get_size(void);
 
 private:

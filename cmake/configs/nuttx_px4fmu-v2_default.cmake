@@ -26,18 +26,18 @@ set(config_module_list
 	#drivers/mb12xx
 	#drivers/srf02
 	drivers/sf0x
-	drivers/ll40ls
+	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
+	#drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
-	drivers/frsky_telemetry
+	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
@@ -97,7 +97,7 @@ set(config_module_list
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
+	#modules/position_estimator_inav
 	modules/local_position_estimator
 	modules/ekf2
 

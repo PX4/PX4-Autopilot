@@ -60,6 +60,7 @@ ekf2 start
 mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/hexa_x.main.mix
+mixer append /dev/pwm_output0 ROMFS/px4fmu_common/mixers/mount_legs.aux.mix
 mavlink start -u 14556 -r 4000000
 mavlink start -u 14557 -r 4000000 -m onboard -o 14540
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
@@ -73,5 +74,6 @@ mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 sdlog2 start -r 100 -e -t -a
+vmount start
 mavlink boot_complete
 replay trystart

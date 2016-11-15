@@ -43,6 +43,7 @@
 
 #include <fcntl.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,12 +57,6 @@
 #include "../messages.h"
 
 #define DEFAULT_UART "/dev/ttyS0";		/**< USART1 */
-
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
@@ -133,7 +128,7 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 		}
 	}
 
-	return ERROR;
+	return PX4_ERROR;
 }
 
 int

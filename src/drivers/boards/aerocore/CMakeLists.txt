@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__boards__aerocore
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		../common/board_name.c
 		aerocore_init.c

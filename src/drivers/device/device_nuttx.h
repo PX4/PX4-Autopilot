@@ -209,8 +209,7 @@ protected:
 	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	int		_irq;
-	bool		_irq_attached;
+	int		_irq; /**< if non-zero, it's a valid IRQ */
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
@@ -452,13 +451,13 @@ protected:
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:
-	static const unsigned _max_pollwaiters = 8;
 
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
-	unsigned	_open_count;		/**< number of successful opens */
+	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
+	uint16_t	_open_count;		/**< number of successful opens */
 
-	struct pollfd	*_pollset[_max_pollwaiters];
+	struct pollfd	**_pollset;
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.

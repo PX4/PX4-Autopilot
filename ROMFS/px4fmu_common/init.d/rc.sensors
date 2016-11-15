@@ -30,7 +30,7 @@ else
 		# schematic and BOM, leading to sensor brownouts
 		# on boot. Original Pixracers following the
 		# open hardware design do not require this.
-		fmu sensor_reset 20
+		fmu sensor_reset 50
 	fi
 
 	if ms5611 -s start
@@ -74,7 +74,13 @@ then
 	then
 		set BOARD_FMUV3 true
 	else
-		set BOARD_FMUV3 false
+		# Check for Pixhawk 2 board
+		if mpu9250 -S -R 4 start
+		then
+			set BOARD_FMUV3 true
+		else
+			set BOARD_FMUV3 false
+		fi
 	fi
 
 	if [ $BOARD_FMUV3 == true ]
@@ -92,6 +98,10 @@ then
 		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
 		if mpu6000 -R 14 start
 		then
+		else
+			if mpu9250 -R 14 start
+			then
+			fi
 		fi
 
 		if hmc5883 -C -T -S -R 8 start
@@ -184,24 +194,25 @@ fi
 
 if ver hwcmp MINDPX_V2
 then
-	if mpu6500 start
-	then
-	fi
-
-	if lsm303d start
-	then
-	fi
-
-	if l3gd20 start
-	then
-	fi
-
 	# External I2C bus
 	if hmc5883 -C -T -X start
 	then
 	fi
 
-	if lis3mdl -R 2 start
+	# Internal I2C bus
+	if hmc5883 -C -T -I -R 8 start
+	then
+	fi
+
+	if mpu6500 -R 8 start
+	then
+	fi
+
+	if lsm303d -R 10 start
+	then
+	fi
+
+	if l3gd20 -R 14 start
 	then
 	fi
 fi

@@ -39,6 +39,18 @@
  *
  */
 
+
+/**
+ * Minimum time of arrival delta between non-IMU observations before data is downsampled.
+ * Baro and Magnetometer data will be averaged before downsampling, other data will be point sampled resulting in loss of information.
+ *
+ * @group EKF2
+ * @min 10
+ * @max 50
+ * @unit ms
+ */
+PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
+
 /**
  * Magnetometer measurement delay relative to IMU measurements
  *
@@ -817,7 +829,7 @@ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.25f);
 
 /**
  * Time constant of the position output prediction and smoothing filter. Controls how tightly the output track the EKF states.

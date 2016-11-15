@@ -42,8 +42,9 @@ param set MP_PITCH_P 4
 param set MP_PITCHRATE_P 0.3
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2
+replay tryapplyparams
 simulator start -s
-rgbled start
+rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -62,12 +63,16 @@ mc_pos_control_m start
 mc_att_control_m start
 mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_x.main.mix
 mavlink start -u 14556 -r 2000000
-mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556
-mavlink stream -r 80 -s LOCAL_POSITION_NED -u 14556
-mavlink stream -r 80 -s GLOBAL_POSITION_INT -u 14556
-mavlink stream -r 80 -s ATTITUDE -u 14556
-mavlink stream -r 80 -s ATTITUDE_QUATERNION -u 14556
-mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
+mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
+mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
+mavlink stream -r 50 -s GLOBAL_POSITION_INT -u 14556
+mavlink stream -r 50 -s ATTITUDE -u 14556
+mavlink stream -r 50 -s ATTITUDE_QUATERNION -u 14556
+mavlink stream -r 50 -s ATTITUDE_TARGET -u 14556
+mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
+mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
+logger start -e -t
 mavlink boot_complete
+replay trystart

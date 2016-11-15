@@ -49,22 +49,16 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
-
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
+#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 Geofence::Geofence(Navigator *navigator) :
-	SuperBlock(NULL, "GF"),
+	SuperBlock(navigator, "GF"),
 	_navigator(navigator),
 	_fence_pub(nullptr),
 	_home_pos{},
@@ -74,12 +68,12 @@ Geofence::Geofence(Navigator *navigator) :
 	_altitude_min(0),
 	_altitude_max(0),
 	_vertices_count(0),
-	_param_action(this, "ACTION"),
-	_param_altitude_mode(this, "ALTMODE"),
-	_param_source(this, "SOURCE"),
-	_param_counter_threshold(this, "COUNT"),
-	_param_max_hor_distance(this, "MAX_HOR_DIST"),
-	_param_max_ver_distance(this, "MAX_VER_DIST"),
+	_param_action(this, "GF_ACTION", false),
+	_param_altitude_mode(this, "GF_ALTMODE", false),
+	_param_source(this, "GF_SOURCE", false),
+	_param_counter_threshold(this, "GF_COUNT", false),
+	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
+	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false),
 	_outside_counter(0)
 {
 	/* Load initial params */
@@ -107,8 +101,6 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
 		      const struct home_position_s home_pos, bool home_position_set)
 {
-	updateParams();
-
 	_home_pos = home_pos;
 	_home_pos_set = home_position_set;
 
@@ -132,12 +124,17 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 	}
 }
 
+bool Geofence::inside(const struct mission_item_s &mission_item)
+{
+	return inside(mission_item.lat, mission_item.lon, mission_item.altitude);
+}
+
 bool Geofence::inside(double lat, double lon, float altitude)
 {
 		float max_horizontal_distance = _param_max_hor_distance.get();
 		float max_vertical_distance = _param_max_ver_distance.get();
 
-		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
+		if (max_horizontal_distance > 1 || max_vertical_distance > 1) {
 			if (_home_pos_set) {
 				float dist_xy = -1.0f;
 				float dist_z = -1.0f;
@@ -147,7 +144,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
 					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max vertical distance by %.1f m",
 									         (double)(dist_z - max_vertical_distance));
 						_last_vertical_range_warning = hrt_absolute_time();
@@ -158,7 +155,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
 					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_navigator->get_mavlink_log_pub(),
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 										 "Geofence exceeded max horizontal distance by %.1f m",
 									         (double)(dist_xy - max_horizontal_distance));
 						_last_horizontal_range_warning = hrt_absolute_time();
@@ -323,7 +320,7 @@ Geofence::loadFromFile(const char *filename)
 	int			pointCounter = 0;
 	bool		gotVertical = false;
 	const char commentChar = '#';
-	int rc = ERROR;
+	int rc = PX4_ERROR;
 
 	/* Make sure no data is left in the datamanager */
 	clearDm();
@@ -332,7 +329,7 @@ Geofence::loadFromFile(const char *filename)
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
 	if (fp == NULL) {
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* create geofence points from valid lines and store in DM */
@@ -408,7 +405,7 @@ Geofence::loadFromFile(const char *filename)
 		_vertices_count = pointCounter;
 		warnx("Geofence: imported successfully");
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported");
-		rc = OK;
+		rc = PX4_OK;
 
 	} else {
 		warnx("Geofence: import error");
@@ -423,5 +420,5 @@ error:
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
-	return OK;
+	return PX4_OK;
 }

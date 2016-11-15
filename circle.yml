@@ -5,17 +5,18 @@ machine:
 checkout:
   post:
     # workaround for known git bug where attempting to fetch a missing commit fails early on the first try
-    - git submodule update --init || true
+    - git submodule update --init --recursive || true
     - git submodule sync --recursive
-    - git submodule update --init --recursive
+    - git submodule deinit -f .
+    - git submodule update --init --recursive --force
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-nuttx-gcc4.9
+    - docker pull px4io/px4-dev-nuttx-gcc_next:2016-10-20
 
 test:
   override:
-    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc4.9 /bin/bash -c "make quick_check"
+    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc_next:2016-10-20 /bin/bash -c "make quick_check"
 
 general:
   artifacts:

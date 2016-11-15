@@ -294,7 +294,7 @@ perf_end(perf_counter_t handle)
 	}
 }
 
-#include <systemlib/err.h>
+#include "systemlib/err.h"
 
 void
 perf_set_elapsed(perf_counter_t handle, int64_t elapsed)

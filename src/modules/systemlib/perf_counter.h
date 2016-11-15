@@ -64,7 +64,9 @@ __BEGIN_DECLS
  * @return			Handle for the new counter, or NULL if a counter
  *				could not be allocated.
  */
+#ifndef perf_alloc	// perf_alloc might be defined to be NULL in src/modules/px4iofirmware/px4io.h
 __EXPORT extern perf_counter_t	perf_alloc(enum perf_counter_type type, const char *name);
+#endif
 
 /**
  * Get the reference to an existing counter or create a new one if it does not exist.

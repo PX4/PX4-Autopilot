@@ -34,6 +34,7 @@
 set(srcs
 	test_adc.c
 	test_autodeclination.cpp
+#	test_dataman.c # Enable for by hand testing
 	test_hysteresis.cpp
 	test_bson.c
 	test_conv.cpp
@@ -82,7 +83,6 @@ px4_add_module(
 		-Wno-missing-declarations
 		-Wno-double-promotion
 		-Wno-unknown-warning-option
-		-Os
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

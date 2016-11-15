@@ -38,11 +38,10 @@ px4_add_module(
 	STACK_MAX 1600
 	COMPILE_FLAGS
 		${MODULE_CFLAGS}
-		-Os
 	SRCS
 		sdlog2.c
 		logbuffer.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

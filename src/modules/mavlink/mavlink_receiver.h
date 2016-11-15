@@ -77,6 +77,8 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/control_state.h>
+
 
 #include "mavlink_ftp.h"
 
@@ -144,6 +146,7 @@ private:
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
+	void handle_message_logging_ack(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -154,8 +157,10 @@ private:
 	 * @param msgId the message ID of to change the interval of
 	 * @param interval the interval in us to send the message at
 	 * @param data_rate the total link data rate in bytes per second
+	 *
+	 * @return PX4_OK on success, PX4_ERROR on fail
 	 */
-	void set_message_interval(int msgId, float interval, int data_rate = -1);
+	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
 	/**
@@ -218,8 +223,10 @@ private:
 	orb_advert_t _time_offset_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _transponder_report_pub;
+	orb_advert_t _control_state_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
+	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;

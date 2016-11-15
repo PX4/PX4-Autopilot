@@ -47,7 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 

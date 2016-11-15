@@ -122,7 +122,7 @@ static int land_detector_start(const char *mode)
 		land_detector_task = new VtolLandDetector();
 
 	} else {
-		PX4_WARN("[mode] must be either 'fixedwing' or 'multicopter'");
+		PX4_WARN("[mode] must be either 'fixedwing', 'multicopter', or 'vtol'");
 		return -1;
 	}
 
@@ -193,7 +193,7 @@ int land_detector_main(int argc, char *argv[])
 		if (land_detector_task) {
 
 			if (land_detector_task->is_running()) {
-				PX4_INFO("running (%s): %s", _currentMode);
+				PX4_INFO("running (%s)", _currentMode);
 				LandDetector::LandDetectionState state = land_detector_task->get_state();
 
 				switch (state) {

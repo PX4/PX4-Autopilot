@@ -41,6 +41,8 @@
 
 #include "common.h"
 #include <drivers/drv_hrt.h>
+#include <geo/geo.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 
@@ -78,9 +80,14 @@ public:
 	/** report status to stdout */
 	virtual void print_status() = 0;
 
+	/** Publish _angle_outputs as a mount_status message. */
+	void publish();
+
 protected:
-	static float _calculate_pitch(double lon, double lat, float altitude,
-				      const vehicle_global_position_s &global_position);
+	float _calculate_pitch(double lon, double lat, float altitude,
+			       const vehicle_global_position_s &global_position);
+
+	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 
 	const OutputConfig &_config;
 
@@ -91,14 +98,14 @@ protected:
 	void _handle_position_update(bool force_update = false);
 
 	const ControlData *_cur_control_data = nullptr;
-	float _angle_setpoints[3] = { 0.f, 0.f, 0.f };
+	float _angle_setpoints[3] = { 0.f, 0.f, 0.f }; ///< [rad]
 	float _angle_speeds[3] = { 0.f, 0.f, 0.f };
 	bool _stabilize[3] = { false, false, false };
 
 	/** calculate the _angle_outputs (with speed) and stabilize if needed */
 	void _calculate_output_angles(const hrt_abstime &t);
 
-	float _angle_outputs[3] = { 0.f, 0.f, 0.f };
+	float _angle_outputs[3] = { 0.f, 0.f, 0.f }; ///< calculated output angles (roll, pitch, yaw) [rad]
 	hrt_abstime _last_update;
 
 	int _get_vehicle_attitude_sub() const { return _vehicle_attitude_sub; }
@@ -107,6 +114,7 @@ private:
 	int _vehicle_attitude_sub = -1;
 	int _vehicle_global_position_sub = -1;
 
+	orb_advert_t _mount_status_pub = nullptr;
 };
 
 

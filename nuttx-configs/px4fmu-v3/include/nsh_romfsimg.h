@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,12 @@
  *
  ****************************************************************************/
 
-#include "board_config.h"
+/**
+ * nsh_romfsetc.h
+ *
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
+ */
 
-__EXPORT void board_spi_reset(int ms)
-{
-	/* Do nothing, no SPI devices used */
-}
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;

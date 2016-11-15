@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE modules__vtol_att_control
 	MAIN vtol_att_control
 	STACK_MAIN 1300
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		vtol_att_control_main.cpp
 		tiltrotor.cpp
@@ -44,4 +44,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

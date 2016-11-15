@@ -379,13 +379,9 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-	/* configure the timer to update at 328.125 kHz (recommended) */
-	rARR(timer) = 255;
-#else
+
 	/* configure the timer to update at the desired rate */
 	rARR(timer) = 1000000 / rate;
-#endif
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;
@@ -394,7 +390,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 }
 
 
-static int io_timer_init_timer(unsigned timer)
+int io_timer_init_timer(unsigned timer)
 {
 	/* Do this only once per timer */
 
@@ -432,15 +428,12 @@ static int io_timer_init_timer(unsigned timer)
 			rBDTR(timer) = ATIM_BDTR_MOE;
 		}
 
-#if defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-		/* configure the timer to free-run at timer frequency */
-		rPSC(timer) = 0;
-#else
-		/* configure the timer to free-run at 1MHz */
+		/* If the timer clock source provided as clock_freq is the STM32_APBx_TIMx_CLKIN
+		 * then configure the timer to free-run at 1MHz.
+		 * Otherwize, other frequencies are attainable by adjusting .clock_freq accordingly.
+		 */
 
 		rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
-#endif
-
 
 		/*
 		 * Note we do the Standard PWM Out init here
@@ -708,6 +701,10 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 		} else {
 
 			/* configure the channel */
+#ifdef BOARD_PWM_DRIVE_ACTIVE_LOW
+			unsigned period = rARR(channels_timer(channel));
+			value = period - value;
+#endif
 
 			if (value > 0) {
 				value--;
@@ -727,6 +724,12 @@ uint16_t io_channel_get_ccr(unsigned channel)
 	if (io_timer_validate_channel_index(channel) == 0 &&
 	    io_timer_get_channel_mode(channel) == IOTimerChanMode_PWMOut) {
 		value = REG(channels_timer(channel), timer_io_channels[channel].ccr_offset) + 1;
+
+#ifdef BOARD_PWM_DRIVE_ACTIVE_LOW
+		unsigned period = rARR(channels_timer(channel));
+		value = period - value;
+#endif
+
 	}
 
 	return value;

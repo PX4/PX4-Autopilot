@@ -47,9 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -88,6 +85,8 @@ __BEGIN_DECLS
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 #define BOARD_NAME "PX4_STM32F4DISCOVERY"
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types

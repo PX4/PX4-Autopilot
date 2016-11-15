@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include "systemlib/err.h"
 #include "systemlib/param/param.h"
-#include "tests.h"
+#include "tests_main.h"
 
 #define PARAM_MAGIC1 12345678
 #define PARAM_MAGIC2 0xa5a5a5a5

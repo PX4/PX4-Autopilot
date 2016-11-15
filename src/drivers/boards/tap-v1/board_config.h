@@ -48,9 +48,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -110,7 +107,7 @@ __BEGIN_DECLS
 
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_SONAR_HZ        400000
-#define PX4_I2C_BUS_EXPANSION_HZ    100000
+#define PX4_I2C_BUS_EXPANSION_HZ    400000
 /*
  * Devices on the onboard bus.
  *
@@ -195,10 +192,18 @@ __BEGIN_DECLS
 #define GPIO_TIM3_CH4OUT	GPIO_TIM3_CH4OUT_1
 #define DIRECT_PWM_OUTPUT_CHANNELS	4
 
+#define GPIO_TIM3_CH1IN		GPIO_TIM3_CH1IN_1
+#define GPIO_TIM3_CH2IN		GPIO_TIM3_CH2IN_1
+#define GPIO_TIM3_CH3IN		GPIO_TIM3_CH3IN_1
+#define GPIO_TIM3_CH4IN		GPIO_TIM3_CH4IN_1
+#define DIRECT_INPUT_TIMER_CHANNELS  4
+
 #define BOARD_HAS_LED_PWM
 #define LED_TIM3_CH1OUT  GPIO_TIM3_CH1OUT
 #define LED_TIM3_CH2OUT  GPIO_TIM3_CH2OUT
 #define LED_TIM3_CH3OUT  GPIO_TIM3_CH3OUT
+
+#define BOARD_PWM_DRIVE_ACTIVE_LOW 1
 
 
 /* USB OTG FS
@@ -254,6 +259,9 @@ __BEGIN_DECLS
 #define TEMP_CONTROL(_on_true)	px4_arch_gpiowrite(GPIO_TEMP_CONT, (_on_true))
 
 #define  FLASH_BASED_PARAMS
+
+__BEGIN_DECLS
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -312,7 +320,6 @@ extern int board_sdio_initialize(void);
 int nsh_archinitialize(void);
 #endif
 
-
 /************************************************************************************
  * Name: board_pwr_init()
  *
@@ -356,4 +363,5 @@ void board_pwr(bool on_not_off);
 int board_i2c_initialize(void);
 
 #endif /* __ASSEMBLY__ */
+
 __END_DECLS

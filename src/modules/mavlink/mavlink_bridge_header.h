@@ -42,8 +42,6 @@
 #ifndef MAVLINK_BRIDGE_HEADER_H
 #define MAVLINK_BRIDGE_HEADER_H
 
-__BEGIN_DECLS
-
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
@@ -54,9 +52,11 @@ __BEGIN_DECLS
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
+#include <stdbool.h>			// Needs to be included before v2.0/mavlink_types.h until https://github.com/ArduPilot/pymavlink/pull/22 makes it through.
 #include <v2.0/mavlink_types.h>
 #include <unistd.h>
 
+__BEGIN_DECLS
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -83,7 +83,7 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length);
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
-#include <v2.0/common/mavlink.h>
+#include <v2.0/standard/mavlink.h>
 
 __END_DECLS
 

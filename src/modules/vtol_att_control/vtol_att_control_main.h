@@ -53,45 +53,46 @@
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <drivers/drv_hrt.h>
+
 #include <arch/board/board.h>
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/mc_virtual_attitude_setpoint.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/mc_virtual_rates_setpoint.h>
-#include <uORB/topics/fw_virtual_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/tecs_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/control_state.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/circuit_breaker.h>
-#include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
-#include <fcntl.h>
+#include <lib/mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
+
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/fw_virtual_attitude_setpoint.h>
+#include <uORB/topics/fw_virtual_rates_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mc_virtual_attitude_setpoint.h>
+#include <uORB/topics/mc_virtual_rates_setpoint.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
@@ -130,7 +131,6 @@ public:
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct airspeed_s 				*get_airspeed() {return &_airspeed;}
 	struct battery_status_s 			*get_batt_status() {return &_batt_status;}
-	struct vehicle_status_s 			*get_vehicle_status() {return &_vehicle_status;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_land_detected_s			*get_land_detected() {return &_land_detected;}
 
@@ -146,19 +146,18 @@ private:
 	/* handlers for subscriptions */
 	int	_v_att_sub;				//vehicle attitude subscription
 	int	_v_att_sp_sub;			//vehicle attitude setpoint subscription
-	int 	_mc_virtual_att_sp_sub;
-	int 	_fw_virtual_att_sp_sub;
+	int	_mc_virtual_att_sp_sub;
+	int	_fw_virtual_att_sp_sub;
 	int	_mc_virtual_v_rates_sp_sub;		//vehicle rates setpoint subscription
 	int	_fw_virtual_v_rates_sp_sub;		//vehicle rates setpoint subscription
 	int	_v_control_mode_sub;	//vehicle control mode subscription
 	int	_params_sub;			//parameter updates subscription
 	int	_manual_control_sp_sub;	//manual control setpoint subscription
 	int	_armed_sub;				//arming status subscription
-	int 	_local_pos_sub;			// sensor subscription
-	int 	_airspeed_sub;			// airspeed subscription
-	int 	_battery_status_sub;	// battery status subscription
-	int 	_vehicle_cmd_sub;
-	int 	_vehicle_status_sub;
+	int	_local_pos_sub;			// sensor subscription
+	int	_airspeed_sub;			// airspeed subscription
+	int	_battery_status_sub;	// battery status subscription
+	int	_vehicle_cmd_sub;
 	int	_tecs_status_sub;
 	int	_land_detected_sub;
 
@@ -171,6 +170,7 @@ private:
 	orb_advert_t	_vtol_vehicle_status_pub;
 	orb_advert_t	_v_rates_sp_pub;
 	orb_advert_t	_v_att_sp_pub;
+
 //*******************data containers***********************************************************
 	struct vehicle_attitude_s			_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s		_v_att_sp;			//vehicle attitude setpoint
@@ -191,7 +191,6 @@ private:
 	struct airspeed_s 				_airspeed;			// airspeed
 	struct battery_status_s 			_batt_status; 		// battery status
 	struct vehicle_command_s			_vehicle_cmd;
-	struct vehicle_status_s				_vehicle_status;
 	struct tecs_status_s				_tecs_status;
 	struct vehicle_land_detected_s			_land_detected;
 
@@ -247,7 +246,6 @@ private:
 	void		tecs_status_poll();
 	void		land_detected_poll();
 	void 		parameters_update_poll();		//Check if parameters have changed
-	void 		vehicle_status_poll();
 	int 		parameters_update();			//Update local paraemter cache
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();

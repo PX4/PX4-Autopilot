@@ -41,9 +41,8 @@
 
 #pragma once
 
-__BEGIN_DECLS
-
 #include <px4_config.h>
+
 #include <stdint.h>
 
 #ifndef CONFIG_MAX_TASKS
@@ -62,6 +61,8 @@ struct print_load_s {
 	float curr_loads[CONFIG_MAX_TASKS];
 	float interval_time_ms_inv;
 };
+
+__BEGIN_DECLS
 
 __EXPORT void init_print_load_s(uint64_t t, struct print_load_s *s);
 

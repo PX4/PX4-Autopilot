@@ -127,13 +127,13 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
 #include <fcntl.h>
-//#include <sys/prctl.h>
 #include <math.h>
 #include <poll.h>
 #include <float.h>
@@ -147,12 +147,6 @@
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 static const char *sensor_name = "accel";
 
@@ -189,7 +183,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	accel_scale.z_offset = 0.0f;
 	accel_scale.z_scale = 1.0f;
 
-	int res = OK;
+	int res = PX4_OK;
 
 	char str[30];
 
@@ -209,38 +203,38 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 		px4_close(fd);
 
-		if (res != OK) {
+		if (res != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, s);
 		}
 #else
 		(void)sprintf(str, "CAL_ACC%u_XOFF", s);
 		res = param_set(param_find(str), &accel_scale.x_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_YOFF", s);
 		res = param_set(param_find(str), &accel_scale.y_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_ZOFF", s);
 		res = param_set(param_find(str), &accel_scale.z_offset);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_XSCALE", s);
 		res = param_set(param_find(str), &accel_scale.x_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_YSCALE", s);
 		res = param_set(param_find(str), &accel_scale.y_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", s);
 		res = param_set(param_find(str), &accel_scale.z_scale);
-		if (res != OK) {
+		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 #endif
@@ -251,23 +245,23 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	unsigned active_sensors;
 
 	/* measure and calculate offsets & scales */
-	if (res == OK) {
+	if (res == PX4_OK) {
 		calibrate_return cal_return = do_accel_calibration_measurements(mavlink_log_pub, accel_offs, accel_T, &active_sensors);
 		if (cal_return == calibrate_return_cancelled) {
 			// Cancel message already displayed, nothing left to do
-			return ERROR;
+			return PX4_ERROR;
 		} else if (cal_return == calibrate_return_ok) {
-			res = OK;
+			res = PX4_OK;
 		} else {
-			res = ERROR;
+			res = PX4_ERROR;
 		}
 	}
 
-	if (res != OK) {
+	if (res != PX4_OK) {
 		if (active_sensors == 0) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SENSOR_MSG);
 		}
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	/* measurements completed successfully, rotate calibration values */
@@ -296,7 +290,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		bool failed = false;
 
-		failed = failed || (OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
+		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
 
 
 		PX4_DEBUG("found offset %d: x: %.6f, y: %.6f, z: %.6f", i,
@@ -310,23 +304,23 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		/* set parameters */
 		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
 		(void)sprintf(str, "CAL_ACC%u_YOFF", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
 		(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
 		(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
 		(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
 		(void)sprintf(str, "CAL_ACC%u_ID", i);
-		failed |= (OK != param_set_no_notification(param_find(str), &(device_id[i])));
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[i])));
 
 		if (failed) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, i);
-			return ERROR;
+			return PX4_ERROR;
 		}
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
@@ -335,23 +329,23 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (fd < 0) {
 			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "sensor does not exist");
-			res = ERROR;
+			res = PX4_ERROR;
 		} else {
 			res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 			px4_close(fd);
 		}
 
-		if (res != OK) {
+		if (res != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, i);
 		}
 #endif
 	}
 
-	if (res == OK) {
+	if (res == PX4_OK) {
 		/* auto-save to EEPROM */
 		res = param_save_default();
 
-		if (res != OK) {
+		if (res != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
 		}
 
@@ -579,7 +573,7 @@ int mat_invert3(float src[3][3], float dst[3][3])
 		    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
 
 	if (fabsf(det) < FLT_EPSILON) {
-		return ERROR;        // Singular matrix
+		return PX4_ERROR;        // Singular matrix
 	}
 
 	dst[0][0] = (src[1][1] * src[2][2] - src[1][2] * src[2][1]) / det;
@@ -592,7 +586,7 @@ int mat_invert3(float src[3][3], float dst[3][3])
 	dst[1][2] = (src[0][2] * src[1][0] - src[0][0] * src[1][2]) / det;
 	dst[2][2] = (src[0][0] * src[1][1] - src[0][1] * src[1][0]) / det;
 
-	return OK;
+	return PX4_OK;
 }
 
 calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][detect_orientation_side_count][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g)
@@ -616,7 +610,7 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 	/* calculate inverse matrix for A */
 	float mat_A_inv[3][3];
 
-	if (mat_invert3(mat_A, mat_A_inv) != OK) {
+	if (mat_invert3(mat_A, mat_A_inv) != PX4_OK) {
 		return calibrate_return_error;
 	}
 
@@ -693,8 +687,9 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub) {
 		}
 
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-		roll_mean += att.roll;
-		pitch_mean += att.pitch;
+		matrix::Eulerf euler = matrix::Quatf(att.q);
+		roll_mean += euler.phi();
+		pitch_mean += euler.theta();
 		counter++;
 	}
 

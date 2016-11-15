@@ -53,9 +53,7 @@
 
 #include <arch/board/board.h>
 
-//#include <nuttx/spi.h>
-
-#include "tests.h"
+#include "tests_main.h"
 
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>

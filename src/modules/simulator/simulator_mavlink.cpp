@@ -41,6 +41,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+#include <mathlib/mathlib.h>
+
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
 #define SEND_INTERVAL 	20
@@ -76,26 +78,93 @@ const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
 
-void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index)
+void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsigned index)
 {
-	actuator_msg.time_usec = hrt_absolute_time();
+	msg.time_usec = hrt_absolute_time();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	for (unsigned i = 0; i < MAVLINK_MSG_HIL_ACTUATOR_CONTROLS_FIELD_CONTROLS_LEN; i++) {
-		// scale PWM out 900..2100 us to -1..1 */
-		actuator_msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+	/* scale outputs depending on system type */
+	if (_system_type == MAV_TYPE_QUADROTOR ||
+	    _system_type == MAV_TYPE_HEXAROTOR ||
+	    _system_type == MAV_TYPE_OCTOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
 
-		if (!PX4_ISFINITE(actuator_msg.controls[i])) {
-			actuator_msg.controls[i] = -1.0f;
+		/* multirotors: set number of rotor outputs depending on type */
+
+		unsigned n;
+
+		switch (_system_type) {
+		case MAV_TYPE_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_HEXAROTOR:
+			n = 6;
+			break;
+
+		case MAV_TYPE_VTOL_DUOROTOR:
+			n = 2;
+			break;
+
+		case MAV_TYPE_VTOL_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_VTOL_RESERVED2:
+			n = 8;
+			break;
+
+		default:
+			n = 8;
+			break;
+		}
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i < n) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				}
+
+			} else {
+				/* send 0 when disarmed and for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
+		}
+
+	} else {
+		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i != 3) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+				}
+
+			} else {
+				/* set 0 for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
 		}
 	}
 
-	actuator_msg.mode = mode_flag_custom;
-	actuator_msg.mode |= (armed) ? mode_flag_armed : 0;
-	actuator_msg.flags = 0;
+	msg.mode = mode_flag_custom;
+	msg.mode |= (armed) ? mode_flag_armed : 0;
+	msg.flags = 0;
 }
 
 void Simulator::send_controls()
@@ -114,8 +183,8 @@ void Simulator::send_controls()
 
 static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
 {
-	rc->timestamp_publication = hrt_absolute_time();
-	rc->timestamp_last_signal = hrt_absolute_time();
+	rc->timestamp = hrt_absolute_time();
+	rc->timestamp_last_signal = rc->timestamp;
 	rc->channel_count = rc_channels->chancount;
 	rc->rssi = rc_channels->rssi;
 
@@ -216,7 +285,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			uint64_t sim_timestamp = imu.time_usec;
 			struct timespec ts;
-			px4_clock_gettime(CLOCK_REALTIME, &ts);
+			px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 			uint64_t timestamp = ts.tv_sec * 1000 * 1000 + ts.tv_nsec / 1000;
 
 			perf_set_elapsed(_perf_sim_delay, timestamp - sim_timestamp);
@@ -301,7 +370,105 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		}
 
 		break;
+
+	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
+		mavlink_hil_state_quaternion_t hil_state;
+		mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
+
+		uint64_t timestamp = hrt_absolute_time();
+
+		/* attitude */
+		struct vehicle_attitude_s hil_attitude = {};
+		{
+			hil_attitude.timestamp = timestamp;
+
+			math::Quaternion q(hil_state.attitude_quaternion);
+
+			hil_attitude.q[0] = q(0);
+			hil_attitude.q[1] = q(1);
+			hil_attitude.q[2] = q(2);
+			hil_attitude.q[3] = q(3);
+
+			hil_attitude.rollspeed = hil_state.rollspeed;
+			hil_attitude.pitchspeed = hil_state.pitchspeed;
+			hil_attitude.yawspeed = hil_state.yawspeed;
+
+			// always publish ground truth attitude message
+			int hilstate_multi;
+			orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
+		}
+
+		/* global position */
+		struct vehicle_global_position_s hil_gpos = {};
+		{
+			hil_gpos.timestamp = timestamp;
+
+			hil_gpos.time_utc_usec = timestamp;
+			hil_gpos.lat = hil_state.lat;
+			hil_gpos.lon = hil_state.lon;
+			hil_gpos.alt = hil_state.alt;
+
+			hil_gpos.vel_n = hil_state.vx;
+			hil_gpos.vel_e = hil_state.vy;
+			hil_gpos.vel_d = hil_state.vz;
+
+			// always publish ground truth attitude message
+			int hil_gpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+		/* local position */
+		struct vehicle_local_position_s hil_lpos = {};
+		{
+			hil_lpos.timestamp = timestamp;
+
+			double lat = hil_state.lat * 1e-7;
+			double lon = hil_state.lon * 1e-7;
+
+			if (!_hil_local_proj_inited) {
+				_hil_local_proj_inited = true;
+				map_projection_init(&_hil_local_proj_ref, lat, lon);
+				_hil_ref_timestamp = timestamp;
+				_hil_ref_lat = lat;
+				_hil_ref_lon = lon;
+				_hil_ref_alt = hil_state.alt / 1000.0f;;
+			}
+
+			float x;
+			float y;
+			map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+			hil_lpos.timestamp = timestamp;
+			hil_lpos.xy_valid = true;
+			hil_lpos.z_valid = true;
+			hil_lpos.v_xy_valid = true;
+			hil_lpos.v_z_valid = true;
+			hil_lpos.x = x;
+			hil_lpos.y = y;
+			hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+			hil_lpos.vx = hil_state.vx / 100.0f;
+			hil_lpos.vy = hil_state.vy / 100.0f;
+			hil_lpos.vz = hil_state.vz / 100.0f;
+			matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+			hil_lpos.yaw = euler.psi();
+			hil_lpos.xy_global = true;
+			hil_lpos.z_global = true;
+			hil_lpos.ref_lat = _hil_ref_lat;
+			hil_lpos.ref_lon = _hil_ref_lon;
+			hil_lpos.ref_alt = _hil_ref_alt;
+			hil_lpos.ref_timestamp = _hil_ref_timestamp;
+
+			// always publish ground truth attitude message
+			int hil_lpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+
+
+		break;
 	}
+
 }
 
 void Simulator::send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID)
@@ -513,6 +680,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// this is important for the UDP communication to work
 	int pret = -1;
 	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..", udp_port);
+	fflush(stdout);
 
 	uint64_t pstart_time = 0;
 
@@ -577,6 +745,13 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	bool sim_delay = false;
 
 	const unsigned max_wait_ms = 6;
+
+	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
+	mavlink_command_long_t cmd_long = {};
+	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
+	cmd_long.param2 = 5e3;
+	send_mavlink_message(MAVLINK_MSG_ID_COMMAND_LONG, &cmd_long, 200);
 
 	// wait for new mavlink messages to arrive
 	while (true) {

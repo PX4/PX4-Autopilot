@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(TOOLS_ERROR_MSG 
+set(TOOLS_ERROR_MSG
 		"The FC_ADDON must be installed and the environment variable FC_ADDON must be set"
 		"(e.g. export FC_ADDON=${HOME}/Qualcomm/addon)")
 
@@ -53,7 +53,7 @@ px4_add_module(
         MAIN rc_receiver
 	STACK_MAIN 1200
         COMPILE_FLAGS
-                -Os -Weffc++
+                -Weffc++
         SRCS
                 rc_receiver_main.cpp
 		rc_receiver_params.c
@@ -62,10 +62,10 @@ px4_add_module(
                 platforms__common
         )
 
-set(module_external_libraries 
+set(module_external_libraries
 	${module_external_libraries}
 	librc_receiver
 	CACHE INTERNAL "module_external_libraries"
 	)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

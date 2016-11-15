@@ -179,17 +179,6 @@ then
 		set USE_IO no
 	fi
 
-
-	# should set to 0.8 for mindpx-v2 borad.
-	if param compare INAV_LIDAR_ERR 0.5
-	then
-		if ver hwcmp MINDPX_V2
-		then
-			param set INAV_LIDAR_ERR 0.8
-			param save
-		fi
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
@@ -224,7 +213,6 @@ then
 	if [ $AUTOCNF == yes ]
 	then
 		param set SYS_AUTOCONFIG 0
-		param save
 	fi
 	unset AUTOCNF
 
@@ -369,6 +357,20 @@ then
 		set OUTPUT_MODE uavcan_esc
 	fi
 
+	# Sensors on the PWM interface bank
+	# clear pins 5 and 6
+	if param compare SENS_EN_LL40LS 1
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	fi
+	if param greater TRIG_MODE 0
+	then
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+		camera_trigger start
+	fi
+
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
@@ -505,9 +507,19 @@ then
 				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
 			fi
 		fi
+
+		if ver hwcmp CRAZYFLIE
+		then
+			# Avoid using either of the two available serials
+			set MAVLINK_F none
+		fi
 	fi
 
-	mavlink start $MAVLINK_F
+	if [ "x$MAVLINK_F" == xnone ]
+	then
+	else
+		mavlink start $MAVLINK_F
+	fi
 	unset MAVLINK_F
 
 	#
@@ -543,6 +555,14 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -m magic -r 5000 -x
 		fi
+		if param compare SYS_COMPANION 319200
+		then
+			mavlink start -d /dev/ttyS2 -b 19200 -r 1000
+		fi
+		if param compare SYS_COMPANION 338400
+		then
+			mavlink start -d /dev/ttyS2 -b 38400 -r 1000
+		fi
 		if param compare SYS_COMPANION 357600
 		then
 			mavlink start -d /dev/ttyS2 -b 57600 -r 1000
@@ -551,20 +571,8 @@ then
 		then
 			mavlink start -d /dev/ttyS2 -b 921600 -r 20000
 		fi
-		# Sensors on the PWM interface bank
-		# clear pins 5 and 6
-		if param compare SENS_EN_LL40LS 1
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-		fi
-		if param greater TRIG_MODE 0
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-			camera_trigger start
-		fi
 	fi
+
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
@@ -625,7 +633,18 @@ then
 		frsky_telemetry start -d /dev/ttyS6
 	fi
 
+	if ver hwcmp MINDPX_V2
+	then
+		frsky_telemetry start -d /dev/ttyS6
+	fi
+
 	if ver hwcmp PX4FMU_V2
+	then
+		# Check for flow sensor - as it is a background task, launch it last
+		px4flow start &
+	fi
+
+	if ver hwcmp PX4FMU_V4
 	then
 		# Check for flow sensor - as it is a background task, launch it last
 		px4flow start &
@@ -633,33 +652,11 @@ then
 
 	if ver hwcmp MINDPX_V2
 	then
-		#mindxp also need flow
 		px4flow start &
 	fi
 
-
-	set DEBUG_MODE no
-
-	if [ $LOG_FILE == /dev/null ]
-	then
-		set DEBUG_MODE yes
-	fi
-
-
-	if ver hwcmp CRAZYFLIE
-	then
-		set DEBUG_MODE no
-	fi
-
-
-	# Start USB shell if no microSD present, MAVLink else
-	if [ $DEBUG_MODE == yes ]
-	then
-		# Try to get an USB console
-		nshterm /dev/ttyACM0 &
-	else
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
+	# Start MAVLink
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 
 	#
 	# Logging
@@ -924,11 +921,18 @@ then
 	fi
 	unset FEXTRAS
 
-	# Run no SD alarm
-	if [ $LOG_FILE == /dev/null ]
+	if ver hwcmp CRAZYFLIE
 	then
-		# Play SOS
-		tone_alarm error
+		# CF2 shouldn't have an sd card
+	else
+
+		# Run no SD alarm
+		if [ $LOG_FILE == /dev/null ]
+		then
+			# Play SOS
+			tone_alarm error
+		fi
+
 	fi
 
 # End of autostart

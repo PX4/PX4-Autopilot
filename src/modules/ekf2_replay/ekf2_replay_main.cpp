@@ -157,6 +157,13 @@ private:
 	struct vision_position_estimate_s _ev;
 	struct vehicle_status_s _vehicle_status;
 
+	uint32_t _numInnovSamples;	// number of samples used to calculate the RMS innovation values
+	float _velInnovSumSq;		// GPS velocity innovation sum of squares
+	float _posInnovSumSq;		// GPS position innovation sum of squares
+	float _hgtInnovSumSq;		// Vertical position innovation sum of squares
+	float _magInnovSumSq;		// magnetometer innovation sum of squares
+	float _tasInnovSumSq;		// airspeed innovation sum of squares
+
 	unsigned _message_counter; // counter which will increase with every message read from the log
 	unsigned _part1_counter_ref;		// this is the value of _message_counter when the part1 of the replay message is read (imu data)
 	bool _read_part2;				// indicates if part 2 of replay message has been read
@@ -227,6 +234,12 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_range{},
 	_airspeed{},
 	_vehicle_status{},
+	_numInnovSamples(0),
+	_velInnovSumSq(0.0f),
+	_posInnovSumSq(0.0f),
+	_hgtInnovSumSq(0.0f),
+	_magInnovSumSq(0.0f),
+	_tasInnovSumSq(0.0f),
 	_message_counter(0),
 	_part1_counter_ref(0),
 	_read_part2(false),
@@ -379,8 +392,23 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 		_sensors.timestamp = replay_part1.time_ref;
 		_sensors.gyro_integral_dt = replay_part1.gyro_integral_dt;
 		_sensors.accelerometer_integral_dt = replay_part1.accelerometer_integral_dt;
-		_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
-		_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+
+		// If the magnetometer timestamp is zero, then there is no valid data
+		if (replay_part1.magnetometer_timestamp == 0) {
+			_sensors.magnetometer_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+		} else {
+			_sensors.magnetometer_timestamp_relative = (int32_t)(replay_part1.magnetometer_timestamp - _sensors.timestamp);
+		}
+
+		// If the barometer timestamp is zero then there is no valid data
+		if (replay_part1.baro_timestamp == 0) {
+			_sensors.baro_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+		} else {
+			_sensors.baro_timestamp_relative = (int32_t)(replay_part1.baro_timestamp - _sensors.timestamp);
+		}
+
 		_sensors.gyro_rad[0] = replay_part1.gyro_x_rad;
 		_sensors.gyro_rad[1] = replay_part1.gyro_y_rad;
 		_sensors.gyro_rad[2] = replay_part1.gyro_z_rad;
@@ -535,15 +563,14 @@ void Ekf2Replay::logIfUpdated()
 	log_message.body.att.q_x = att.q[1];
 	log_message.body.att.q_y = att.q[2];
 	log_message.body.att.q_z = att.q[3];
-	log_message.body.att.roll = att.roll;
-	log_message.body.att.pitch = att.pitch;
-	log_message.body.att.yaw = att.yaw;
+	log_message.body.att.roll = atan2f(2 * (att.q[0] * att.q[1] + att.q[2] * att.q[3]),
+					   1 - 2 * (att.q[1] * att.q[1] + att.q[2] * att.q[2]));
+	log_message.body.att.pitch = asinf(2 * (att.q[0] * att.q[2] - att.q[3] * att.q[1]));
+	log_message.body.att.yaw = atan2f(2 * (att.q[0] * att.q[3] + att.q[1] * att.q[2]),
+					  1 - 2 * (att.q[2] * att.q[2] + att.q[3] * att.q[3]));
 	log_message.body.att.roll_rate = att.rollspeed;
 	log_message.body.att.pitch_rate = att.pitchspeed;
 	log_message.body.att.yaw_rate = att.yawspeed;
-	log_message.body.att.gx = att.g_comp[0];
-	log_message.body.att.gy = att.g_comp[1];
-	log_message.body.att.gz = att.g_comp[2];
 
 	writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_ATT_MSG].length);
 
@@ -646,6 +673,10 @@ void Ekf2Replay::logIfUpdated()
 			log_message.body.innov.s[i + 6] = innov.vel_pos_innov_var[i];
 		}
 
+		for (unsigned i = 0; i < 3; i++) {
+			log_message.body.innov.s[i + 12] = innov.output_tracking_error[i];
+		}
+
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST4_MSG].length);
 
 		log_message.type = LOG_EST5_MSG;
@@ -679,6 +710,16 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.innov3.s[4] = innov.hagl_innov;
 		log_message.body.innov3.s[5] = innov.hagl_innov_var;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST6_MSG].length);
+
+		// Update tuning metrics
+		_numInnovSamples++;
+		_velInnovSumSq += innov.vel_pos_innov[0] * innov.vel_pos_innov[0] + innov.vel_pos_innov[1] * innov.vel_pos_innov[1];
+		_posInnovSumSq += innov.vel_pos_innov[3] * innov.vel_pos_innov[3] + innov.vel_pos_innov[4] * innov.vel_pos_innov[4];
+		_hgtInnovSumSq += innov.vel_pos_innov[5] * innov.vel_pos_innov[5];
+		_magInnovSumSq += innov.mag_innov[0] * innov.mag_innov[0] + innov.mag_innov[1] * innov.mag_innov[1] + innov.mag_innov[2]
+				  * innov.mag_innov[2];
+		_tasInnovSumSq += innov.airspeed_innov * innov.airspeed_innov;
+
 	}
 
 	// update control state
@@ -987,6 +1028,16 @@ void Ekf2Replay::task_main()
 	::close(fd);
 	delete ekf2_replay::instance;
 	ekf2_replay::instance = nullptr;
+
+	// Report sensor innovation RMS values to assist with time delay tuning
+	if (_numInnovSamples > 0) {
+		PX4_INFO("GPS vel innov RMS = %6.3f", sqrt(_velInnovSumSq / _numInnovSamples));
+		PX4_INFO("GPS pos innov RMS = %6.3f", sqrt(_posInnovSumSq / _numInnovSamples));
+		PX4_INFO("Hgt innov RMS = %6.3f", sqrt(_hgtInnovSumSq / _numInnovSamples));
+		PX4_INFO("Mag innov RMS = %6.4f", sqrt(_magInnovSumSq / _numInnovSamples));
+		PX4_INFO("TAS innov RMS = %6.3f", sqrt(_tasInnovSumSq / _numInnovSamples));
+	}
+
 }
 
 void Ekf2Replay::task_main_trampoline(int argc, char *argv[])

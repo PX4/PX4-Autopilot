@@ -34,10 +34,9 @@ px4_add_module(
 	MODULE drivers__tap_esc
 	MAIN tap_esc
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		tap_esc.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

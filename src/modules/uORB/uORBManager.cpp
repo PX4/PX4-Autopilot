@@ -139,12 +139,6 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 #endif
 }
 
-orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size)
-{
-	//warnx("orb_advertise meta = %p", meta);
-	return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT, queue_size);
-}
-
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 		int priority, unsigned int queue_size)
 {

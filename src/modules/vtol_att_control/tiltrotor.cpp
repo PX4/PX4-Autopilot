@@ -244,7 +244,7 @@ void Tiltrotor::update_vtol_state()
 
 	case TRANSITION_FRONT_P1:
 	case TRANSITION_FRONT_P2:
-		_vtol_mode = TRANSITION_TO_MC;
+		_vtol_mode = TRANSITION_TO_FW;
 		break;
 
 	case TRANSITION_BACK:

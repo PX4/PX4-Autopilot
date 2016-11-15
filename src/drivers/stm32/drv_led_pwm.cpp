@@ -37,8 +37,9 @@
 *
 */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
+#include <board_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -60,7 +61,6 @@
 #include <drivers/stm32/drv_io_timer.h>
 
 
-#include <board_config.h>
 
 #if defined(BOARD_HAS_LED_PWM)
 #define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))
@@ -85,8 +85,9 @@
 #define rDMAR(_tmr)     REG(_tmr, STM32_GTIM_DMAR_OFFSET)
 #define rBDTR(_tmr)     REG(_tmr, STM32_ATIM_BDTR_OFFSET)
 
-static void             led_pwm_timer_init(unsigned timer);
-static void             led_pwm_timer_set_rate(unsigned timer, unsigned rate);
+
+extern int             io_timer_init_timer(unsigned timer);
+
 static void             led_pwm_channel_init(unsigned channel);
 
 int led_pwm_servo_set(unsigned channel, uint8_t  value);
@@ -97,55 +98,10 @@ void led_pwm_servo_arm(bool armed);
 unsigned led_pwm_timer_get_period(unsigned timer);
 
 
-static void
-led_pwm_timer_init(unsigned timer)
-{
-	/* valid Timer */
-
-	if (led_pwm_timers[timer].base != 0) {
-
-		/* enable the timer clock before we try to talk to it */
-
-		modifyreg32(led_pwm_timers[timer].clock_register, 0, led_pwm_timers[timer].clock_bit);
-
-		/* disable and configure the timer */
-		rCR1(timer) = 0;
-		rCR2(timer) = 0;
-		rSMCR(timer) = 0;
-		rDIER(timer) = 0;
-		rCCER(timer) = 0;
-		rCCMR1(timer) = 0;
-		rCCMR2(timer) = 0;
-		rCCER(timer) = 0;
-		rDCR(timer) = 0;
-
-		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
-			/* master output enable = on */
-			rBDTR(timer) = ATIM_BDTR_MOE;
-		}
-
-		/* configure the timer to free-run at 1MHz */
-		rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
-
-		/* default to updating at 50Hz */
-		led_pwm_timer_set_rate(timer, 50);
-
-		/* note that the timer is left disabled - arming is performed separately */
-	}
-}
 unsigned
 led_pwm_timer_get_period(unsigned timer)
 {
 	return (rARR(timer));
-}
-static void
-led_pwm_timer_set_rate(unsigned timer, unsigned rate)
-{
-	/* configure the timer to update at the desired rate */
-	rARR(timer) = 1000000 / rate;
-
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
 }
 
 
@@ -277,7 +233,7 @@ led_pwm_servo_init(void)
 {
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
-		led_pwm_timer_init(i);
+		io_timer_init_timer(i);
 	}
 
 	/* now init channels */

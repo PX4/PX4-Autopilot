@@ -49,7 +49,7 @@
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 int test_sleep(int argc, char *argv[])
 {
