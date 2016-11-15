@@ -1076,10 +1076,11 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		_reset_pos_sp = true;
 		_reset_alt_sp = true;
-
-		reset_pos_sp();
-		reset_alt_sp();
 	}
+
+	// Always check reset state of altitude and position control flags in auto
+	reset_pos_sp();
+	reset_alt_sp();
 
 	//Poll position setpoint
 	bool updated;
@@ -1237,25 +1238,6 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-		}
-
-		/*
-		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
-		 * this makes the takeoff finish smoothly.
-		 */
-		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-		     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)
-		    && _pos_sp_triplet.current.acceptance_radius > 0.0f
-		    /* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
-		    && (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
-			_reset_pos_sp = false;
-			_reset_alt_sp = false;
-
-			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
-
-		} else {
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
 		}
 
 		// During a mission or in loiter it's safe to retract the landing gear.
@@ -1660,7 +1642,7 @@ MulticopterPositionControl::task_main()
 				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
 				acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
 
-				if (acc_hor.length() > _params.acc_hor_max) {
+				if ((acc_hor.length() > _params.acc_hor_max) & !_reset_pos_sp) {
 					acc_hor.normalize();
 					acc_hor *= _params.acc_hor_max;
 					math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
@@ -1670,9 +1652,10 @@ MulticopterPositionControl::task_main()
 				}
 
 				// limit vertical acceleration
+
 				float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 
-				if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
+				if ((fabsf(acc_v) > 2 * _params.acc_hor_max) & !_reset_alt_sp) {
 					acc_v /= fabsf(acc_v);
 					_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
 				}
