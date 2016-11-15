@@ -3135,6 +3135,24 @@ PARAM_DEFINE_INT32(SENS_EN_TRONE, 0);
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
 /**
+ * Set the PWM output frequency for the MAIN outputs
+ *
+ * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
+ * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
+ * THE SYSTEM TO PUT CHANGES INTO EFFECT.
+ *
+ * Set to 400 for industry default or 1000 for high frequency ESCs.
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2000
+ * @unit Hz
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_RATE, 400);
+
+/**
  * Set the minimum PWM for the MAIN outputs
  *
  * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
