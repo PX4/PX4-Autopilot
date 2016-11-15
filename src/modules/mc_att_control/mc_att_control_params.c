@@ -466,18 +466,3 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_D, 0.0f);
-
-/**
- * I Rate Mode
- * @value 0 Original
- * @value 1 No thrust SP check
- * @value 2 No yaw limit check
- * @value 3 No I rate limit checks at all
- *
- * @min 0
- * @max 4
- * @increment 1
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_INT32(MC_RATE_I_MODE, 0);
-
