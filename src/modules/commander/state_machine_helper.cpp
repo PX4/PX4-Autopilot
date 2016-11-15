@@ -80,12 +80,14 @@ using namespace DriverFramework;
 #define AVIONICS_WARN_VOLTAGE	4.9f
 #endif
 
-const char *reason_no_rc = "no rc";
-const char *reason_no_gps = "no gps";
-const char *reason_no_gpos = "no gpos";
-const char *reason_no_gps_cmd = "no gps cmd";
-const char *reason_no_home = "no home";
-const char *reason_no_datalink = "no datalink";
+static const char reason_no_rc[] = "no RC";
+static const char reason_no_offboard[] = "no offboard";
+static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
+static const char reason_no_gps[] = "no gps";
+static const char reason_no_gpos[] = "no gpos";
+static const char reason_no_gps_cmd[] = "no gps cmd";
+static const char reason_no_home[] = "no home";
+static const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
@@ -1020,7 +1022,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		/* require offboard control, otherwise stay where you are */
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
 				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
@@ -1059,7 +1061,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			}
 
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
 				if (offb_loss_act == 2 && status_flags->condition_global_position_valid
