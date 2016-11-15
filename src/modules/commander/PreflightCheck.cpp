@@ -171,7 +171,6 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	px4_close(sensors_sub);
 
 	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	// Fail if accel difference greater than 0.7 m/s/s and notify if greater than 0.35 m/s/s
 	bool success = true;
 	float test_limit;
 	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
@@ -434,19 +433,25 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	return success;
 }
 
-static bool ekfCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
 {
-	bool success = true;
-
-	int fd1 = orb_subscribe(ORB_ID(ekf2_innovations));
+	// Get EKF2 innovation data if available and exit wiht a fail recorded if not
+	bool updated;
+	int sub1 = orb_subscribe(ORB_ID(ekf2_innovations));
 	struct ekf2_innovations_s innovations;
-	orb_copy(ORB_ID(ekf2_innovations), fd1, &innovations);
-	px4_close(fd1);
+	orb_copy(ORB_ID(ekf2_innovations), sub1, &innovations);
+	orb_unsubscribe(sub1);
+	px4_close(sub1);
 
-	int fd2 = orb_subscribe(ORB_ID(estimator_status));
+	// Get estimator status data if available and exit with a fail recorded if not
+	int sub2 = orb_subscribe(ORB_ID(estimator_status));
+	orb_check(sub2,&updated);
 	struct estimator_status_s status;
-	orb_copy(ORB_ID(estimator_status), fd1, &status);
-	px4_close(fd2);
+	orb_copy(ORB_ID(estimator_status), sub2, &status);
+	orb_unsubscribe(sub2);
+	px4_close(sub2);
+
+	bool success = true;
 
 	float test_limit;
 	param_get(param_find("COM_ARM_EKF_VD"), &test_limit);
@@ -687,8 +692,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	}
 
 	/* ---- Navigation EKF ---- */
-	if (checkGNSS) {
-		if (!ekfCheck(mavlink_log_pub, true, reportFailures)) {
+	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
+	int32_t estimator_type;
+	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+	if (estimator_type == 2 && checkGNSS) {
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures)) {
 			failed = true;
 		}
 	}
