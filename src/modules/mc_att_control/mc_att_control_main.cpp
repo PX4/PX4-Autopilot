@@ -99,6 +99,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
+#define TPA_SLOPE_LOWER_LIMIT 0.05f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
 
@@ -186,7 +187,14 @@ private:
 		param_t pitch_rate_d;
 		param_t pitch_rate_ff;
 		param_t tpa_breakpoint;
+		param_t tpa_breakpoint_p;
+		param_t tpa_breakpoint_i;
+		param_t tpa_breakpoint_d;
 		param_t tpa_slope;
+		param_t tpa_slope_p;
+		param_t tpa_slope_i;
+		param_t tpa_slope_d;
+		param_t rate_i_mode;
 		param_t yaw_p;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
@@ -220,7 +228,14 @@ private:
 		float yaw_ff;						/**< yaw control feed-forward */
 
 		float tpa_breakpoint;				/**< Throttle PID Attenuation breakpoint */
+		float tpa_breakpoint_p;				/**< Throttle PID Attenuation breakpoint */
+		float tpa_breakpoint_i;				/**< Throttle PID Attenuation breakpoint */
+		float tpa_breakpoint_d;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_slope;					/**< Throttle PID Attenuation slope */
+		float tpa_slope_p;					/**< Throttle PID Attenuation slope */
+		float tpa_slope_i;					/**< Throttle PID Attenuation slope */
+		float tpa_slope_d;					/**< Throttle PID Attenuation slope */
+		int rate_i_mode;					/**< Mode for I rate usage */
 
 		float roll_rate_max;
 		float pitch_rate_max;
@@ -281,6 +296,11 @@ private:
 	 * Attitude rates controller.
 	 */
 	void		control_attitude_rates(float dt);
+
+	/**
+	 * Throttle PID attenuation.
+	 */
+	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_slope);
 
 	/**
 	 * Check for vehicle status updates.
@@ -386,8 +406,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
 	_params_handles.pitch_rate_ff 	= 	param_find("MC_PITCHRATE_FF");
-	_params_handles.tpa_breakpoint 	= 	param_find("MC_TPA_BREAK");
-	_params_handles.tpa_slope	 	= 	param_find("MC_TPA_SLOPE");
+	_params_handles.tpa_breakpoint_p 	= 	param_find("MC_TPA_BREAK_P");
+	_params_handles.tpa_breakpoint_i 	= 	param_find("MC_TPA_BREAK_I");
+	_params_handles.tpa_breakpoint_d 	= 	param_find("MC_TPA_BREAK_D");
+	_params_handles.tpa_slope_p	 	= 	param_find("MC_TPA_SLOPE_P");
+	_params_handles.tpa_slope_i	 	= 	param_find("MC_TPA_SLOPE_I");
+	_params_handles.tpa_slope_d	 	= 	param_find("MC_TPA_SLOPE_D");
+	_params_handles.rate_i_mode	 	= 	param_find("MC_RATE_I_MODE");
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
@@ -484,10 +509,13 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.pitch_rate_ff, &v);
 	_params.rate_ff(1) = v;
 
-	param_get(_params_handles.tpa_breakpoint, &v);
-	_params.tpa_breakpoint = v;
-	param_get(_params_handles.tpa_slope, &v);
-	_params.tpa_slope = v;
+	param_get(_params_handles.tpa_breakpoint_p, &_params.tpa_breakpoint_p);
+	param_get(_params_handles.tpa_breakpoint_i, &_params.tpa_breakpoint_i);
+	param_get(_params_handles.tpa_breakpoint_d, &_params.tpa_breakpoint_d);
+	param_get(_params_handles.tpa_slope_p, &_params.tpa_slope_p);
+	param_get(_params_handles.tpa_slope_i, &_params.tpa_slope_i);
+	param_get(_params_handles.tpa_slope_d, &_params.tpa_slope_d);
+	param_get(_params_handles.rate_i_mode, &_params.rate_i_mode);
 
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
@@ -765,6 +793,27 @@ MulticopterAttitudeControl::control_attitude(float dt)
 }
 
 /*
+ * Throttle PID attenuation
+ * Function visualization available here https://www.desmos.com/calculator/gn4mfoddje
+ * Input: 'tpa_breakpoint', 'tpa_slope', '_thrust_sp'
+ * Output: 'pidAttenuationPerAxis' vector
+ */
+math::Vector<3>
+MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_slope)
+{
+	/* throttle pid attenuation factor */
+	float tpa = 1.0f - tpa_slope * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint)/(1.0f - tpa_breakpoint);
+	tpa = fmaxf(TPA_SLOPE_LOWER_LIMIT, fminf(1.0f, tpa));
+
+	math::Vector<3> pidAttenuationPerAxis;
+	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;
+	pidAttenuationPerAxis(AXIS_INDEX_PITCH) = tpa;
+	pidAttenuationPerAxis(AXIS_INDEX_YAW) = 1.0;
+
+	return pidAttenuationPerAxis;
+}
+
+/*
  * Attitude rates controller.
  * Input: '_rates_sp' vector, '_thrust_sp'
  * Output: '_att_control' vector
@@ -783,28 +832,69 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) = _ctrl_state.pitch_rate;
 	rates(2) = _ctrl_state.yaw_rate;
 
-	/* throttle pid attenuation factor */
-	float tpa =  fmaxf(0.0f, fminf(1.0f, 1.0f - _params.tpa_slope * (fabsf(_v_rates_sp.thrust) - _params.tpa_breakpoint)));
+	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_slope_p));
+	math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_slope_i));
+	math::Vector<3> rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_slope_d));
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
 
-	_att_control = _params.rate_p.emult(rates_err * tpa) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int +
-		       _params.rate_ff.emult(_rates_sp);
+	_att_control = rates_p_scaled.emult(rates_err) +
+        _rates_int +
+        rates_d_scaled.emult(_rates_prev - rates) / dt +
+        _params.rate_ff.emult(_rates_sp);
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 
-	/* update integral only if not saturated on low limit and if motor commands are not saturated */
-	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
+	int rateIMode = _params.rate_i_mode;
+
+	if (rateIMode == 0) {
+		/* update integral only if not saturated on low limit and if motor commands are not saturated */
+		if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
+			for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+				if (fabsf(_att_control(i)) < _thrust_sp) {
+					float rate_i = _rates_int(i) + rates_i_scaled(i) * rates_err(i) * dt;
+	
+					if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+						_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+						/* if the axis is the yaw axis, do not update the integral if the limit is hit */
+						!((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+						_rates_int(i) = rate_i;
+					}
+				}
+			}
+		}
+	} else if (rateIMode == 1) {
 		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
-				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
-				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+					/* if the axis is the yaw axis, do not update the integral if the limit is hit */
+					!((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+					_rates_int(i) = rate_i;
+				}
+			}
+		}
+	} else if (rateIMode == 2) {
+		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+			if (fabsf(_att_control(i)) < _thrust_sp) {
+				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
+
+				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+					_rates_int(i) = rate_i;
+				}
+			}
+		}
+	} else if (rateIMode == 3) {
+		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+			if (fabsf(_att_control(i)) < _thrust_sp) {
+				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
+
+				if (PX4_ISFINITE(rate_i)) {
 					_rates_int(i) = rate_i;
 				}
 			}
@@ -1003,6 +1093,61 @@ MulticopterAttitudeControl::task_main()
 
 				} else {
 					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+				}
+			}
+
+			if (_v_control_mode.flag_control_termination_enabled) {
+				if (!_vehicle_status.is_vtol) {
+
+					_rates_sp.zero();
+					_rates_int.zero();
+					_thrust_sp = 0.0f;
+					_att_control.zero();
+
+
+					/* publish actuator controls */
+					_actuators.control[0] = 0.0f;
+					_actuators.control[1] = 0.0f;
+					_actuators.control[2] = 0.0f;
+					_actuators.control[3] = 0.0f;
+					_actuators.timestamp = hrt_absolute_time();
+					_actuators.timestamp_sample = _ctrl_state.timestamp;
+
+					if (!_actuators_0_circuit_breaker_enabled) {
+						if (_actuators_0_pub != nullptr) {
+
+							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+							perf_end(_controller_latency_perf);
+
+						} else if (_actuators_id) {
+							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+						}
+					}
+
+					_controller_status.roll_rate_integ = _rates_int(0);
+					_controller_status.pitch_rate_integ = _rates_int(1);
+					_controller_status.yaw_rate_integ = _rates_int(2);
+					_controller_status.timestamp = hrt_absolute_time();
+
+					/* publish controller status */
+					if (_controller_status_pub != nullptr) {
+						orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
+
+					} else {
+						_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+					}
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub != nullptr) {
+						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+					} else if (_rates_sp_id) {
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					}
 				}
 			}
 		}
