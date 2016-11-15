@@ -659,6 +659,7 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
+
 	bool updated;
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -770,6 +771,19 @@ MulticopterPositionControl::poll_subscriptions()
 		_xy_reset_counter = _local_pos.xy_reset_counter;
 		_vz_reset_counter = _local_pos.vz_reset_counter;
 		_vxy_reset_counter = _local_pos.vxy_reset_counter;
+	}
+
+	orb_check(_pos_sp_triplet_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+
+		//Make sure that the position setpoint is valid
+		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+			_pos_sp_triplet.current.valid = false;
+		}
 	}
 }
 
@@ -1003,12 +1017,6 @@ MulticopterPositionControl::control_manual(float dt)
 void
 MulticopterPositionControl::control_offboard(float dt)
 {
-	bool updated;
-	orb_check(_pos_sp_triplet_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-	}
 
 	if (_pos_sp_triplet.current.valid) {
 		if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
@@ -1120,21 +1128,6 @@ void MulticopterPositionControl::control_auto(float dt)
 	// Always check reset state of altitude and position control flags in auto
 	reset_pos_sp();
 	reset_alt_sp();
-
-	//Poll position setpoint
-	bool updated;
-	orb_check(_pos_sp_triplet_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-
-		//Make sure that the position setpoint is valid
-		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
-			_pos_sp_triplet.current.valid = false;
-		}
-	}
 
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
