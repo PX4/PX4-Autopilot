@@ -113,10 +113,10 @@ usage(const char *reason)
 }
 
 static unsigned
-get_parameter_value(const char *option, const char* paramDescription)
+get_parameter_value(const char *option, const char *paramDescription)
 {
 	unsigned result_value = 0;
-	
+
 	/* check if this is a param name */
 	if (strncmp("p:", option, 2) == 0) {
 
@@ -131,9 +131,11 @@ get_parameter_value(const char *option, const char* paramDescription)
 
 			if (gret == 0) {
 				result_value = pwm_parm;
+
 			} else {
 				errx(gret, "PARAM '%s' LOAD FAIL", paramDescription);
 			}
+
 		} else {
 			errx(1, "PARAM '%s' NAME NOT FOUND", paramName);
 		}
@@ -228,7 +230,7 @@ pwm_main(int argc, char *argv[])
 
 			break;
 
-		case 'p': 
+		case 'p':
 			pwm_value = get_parameter_value(optarg, "PWM Value");
 			break;
 
