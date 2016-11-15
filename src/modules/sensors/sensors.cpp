@@ -99,6 +99,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/sensor_preflight.h>
 
 #include <DevMgr.hpp>
 
@@ -249,6 +250,7 @@ private:
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_mavlink_log_pub;
+	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -556,12 +558,12 @@ private:
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
 	 */
-	void calc_accel_inconsistency(struct sensor_combined_s &raw);
+	void calc_accel_inconsistency(sensor_preflight_s &preflt);
 
 	/**
 	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
 	 */
-	void calc_gyro_inconsistency(struct sensor_combined_s &raw);
+	void calc_gyro_inconsistency(struct sensor_preflight_s &preflt);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -604,6 +606,7 @@ Sensors::Sensors() :
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 	_mavlink_log_pub(nullptr),
+	_sensor_preflight(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
@@ -2266,11 +2269,11 @@ Sensors::check_vibration()
 }
 
 void
-Sensors::calc_accel_inconsistency(sensor_combined_s &raw)
+Sensors::calc_accel_inconsistency(sensor_preflight_s &preflt)
 {
 	// skip check if less than 2 sensors
 	if (_accel.subscription_count < 2) {
-		raw.accel_inconsistency_m_s_s = 0.0f;
+		preflt.accel_inconsistency_m_s_s = 0.0f;
 		return;
 
 	}
@@ -2313,14 +2316,14 @@ Sensors::calc_accel_inconsistency(sensor_combined_s &raw)
 	}
 
 	// get the vector length of the largest difference and write to the combined sensor struct
-	raw.accel_inconsistency_m_s_s = sqrtf(accel_diff_sum_max_sq);
+	preflt.accel_inconsistency_m_s_s = sqrtf(accel_diff_sum_max_sq);
 }
 
-void Sensors::calc_gyro_inconsistency(sensor_combined_s &raw)
+void Sensors::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 {
 	// skip check if less than 2 sensors
 	if (_gyro.subscription_count < 2) {
-		raw.gyro_inconsistency_rad_s = 0.0f;
+		preflt.gyro_inconsistency_rad_s = 0.0f;
 		return;
 
 	}
@@ -2364,7 +2367,7 @@ void Sensors::calc_gyro_inconsistency(sensor_combined_s &raw)
 	}
 
 	// get the vector length of the largest difference and write to the combined sensor struct
-	raw.gyro_inconsistency_rad_s = sqrtf(gyro_diff_sum_max_sq);
+	preflt.gyro_inconsistency_rad_s = sqrtf(gyro_diff_sum_max_sq);
 }
 
 void
@@ -2429,6 +2432,8 @@ Sensors::task_main()
 
 	raw.baro_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
 
+	struct sensor_preflight_s preflt = {};
+
 	/*
 	 * do subscriptions
 	 */
@@ -2478,6 +2483,13 @@ Sensors::task_main()
 
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
+
+	/* advertise the sensor_preflight topic and make the initial publication */
+	preflt.accel_inconsistency_m_s_s = 0.0f;
+
+	preflt.gyro_inconsistency_rad_s = 0.0f;
+
+	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
 
 	/* wakeup source */
 	px4_pollfd_struct_t poll_fds = {};
@@ -2553,15 +2565,12 @@ Sensors::task_main()
 			check_failover(_baro, "Baro");
 
 			/* If the the vehicle is disarmed calculate the length of the maximum difference between
-			 * IMU units as a consistency metric and publish to the sensor combined topic
+			 * IMU units as a consistency metric and publish to the sensor preflight topic
 			*/
 			if (!_armed) {
-				calc_accel_inconsistency(raw);
-				calc_gyro_inconsistency(raw);
-
-			} else {
-				raw.accel_inconsistency_m_s_s = 0.0f;
-				raw.gyro_inconsistency_rad_s = 0.0f;
+				calc_accel_inconsistency(preflt);
+				calc_gyro_inconsistency(preflt);
+				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
 
 			}
 
