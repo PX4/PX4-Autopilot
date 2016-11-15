@@ -352,6 +352,8 @@ private:
 
 	void control_position(float dt);
 
+	void limit_acceleration(float dt);
+
 	/**
 	 * Select between barometric and global (AMSL) altitudes
 	 */
@@ -1071,6 +1073,90 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_att_sp.disable_mc_yaw_control = false;
 	}
 
+	// guard against any bad velocity values
+
+	bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
+			      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
+			      _pos_sp_triplet.current.velocity_valid;
+
+	// do not go slower than the follow target velocity when position tracking is active (set to valid)
+
+	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+	    velocity_valid &&
+	    _pos_sp_triplet.current.position_valid) {
+
+		math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
+
+		float cos_ratio = (ft_vel * _vel_sp) / (ft_vel.length() * _vel_sp.length());
+
+		// only override velocity set points when uav is traveling in same direction as target and vector component
+		// is greater than calculated position set point velocity component
+
+		if (cos_ratio > 0) {
+			ft_vel *= (cos_ratio);
+			// min speed a little faster than target vel
+			ft_vel += ft_vel.normalized() * 1.5f;
+
+		} else {
+			ft_vel.zero();
+		}
+
+		_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
+		_vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
+
+		// track target using velocity only
+
+	} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
+		   velocity_valid) {
+
+		_vel_sp(0) = _pos_sp_triplet.current.vx;
+		_vel_sp(1) = _pos_sp_triplet.current.vy;
+	}
+
+	/* use constant descend rate when landing, ignore altitude setpoint */
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		_vel_sp(2) = _params.land_speed;
+	}
+
+	/* special thrust setpoint generation for takeoff from ground */
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && _control_mode.flag_armed) {
+
+		// check if we are not already in air.
+		// if yes then we don't need a jumped takeoff anymore
+		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
+			_takeoff_jumped = true;
+		}
+
+		if (!_takeoff_jumped) {
+			// ramp thrust setpoint up
+			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
+				_takeoff_thrust_sp += 0.5f * dt;
+				_vel_sp.zero();
+				_vel_prev.zero();
+
+			} else {
+				// copter has reached our takeoff speed. split the thrust setpoint up
+				// into an integral part and into a P part
+				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
+				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
+				_vel_sp_prev(2) = -_params.tko_speed;
+				_takeoff_jumped = true;
+				_reset_int_z = false;
+			}
+		}
+
+		if (_takeoff_jumped) {
+			_vel_sp(2) = -_params.tko_speed;
+		}
+
+	} else {
+		_takeoff_jumped = false;
+		_takeoff_thrust_sp = 0.0f;
+	}
+
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		/* idle state, don't run controller and set zero thrust */
@@ -1154,6 +1240,33 @@ MulticopterPositionControl::control_offboard(float dt)
 		reset_pos_sp();
 		reset_alt_sp();
 	}
+}
+
+void
+MulticopterPositionControl::limit_acceleration(float dt)
+{
+	// limit total horizontal acceleration
+	math::Vector<2> acc_hor;
+	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
+	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
+
+	if (acc_hor.length() > _params.acc_hor_max) {
+		acc_hor.normalize();
+		acc_hor *= _params.acc_hor_max;
+		math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
+		math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
+		_vel_sp(0) = vel_sp_hor(0);
+		_vel_sp(1) = vel_sp_hor(1);
+	}
+
+	// limit vertical acceleration
+	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+
+	if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
+		acc_v /= fabsf(acc_v);
+		_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
+	}
+
 }
 
 bool
@@ -1478,46 +1591,6 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 	}
 
-	// guard against any bad velocity values
-
-	bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
-			      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
-			      _pos_sp_triplet.current.velocity_valid;
-
-	// do not go slower than the follow target velocity when position tracking is active (set to valid)
-
-	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
-	    velocity_valid &&
-	    _pos_sp_triplet.current.position_valid) {
-
-		math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
-
-		float cos_ratio = (ft_vel * _vel_sp) / (ft_vel.length() * _vel_sp.length());
-
-		// only override velocity set points when uav is traveling in same direction as target and vector component
-		// is greater than calculated position set point velocity component
-
-		if (cos_ratio > 0) {
-			ft_vel *= (cos_ratio);
-			// min speed a little faster than target vel
-			ft_vel += ft_vel.normalized() * 1.5f;
-
-		} else {
-			ft_vel.zero();
-		}
-
-		_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
-		_vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
-
-		// track target using velocity only
-
-	} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
-		   velocity_valid) {
-
-		_vel_sp(0) = _pos_sp_triplet.current.vx;
-		_vel_sp(1) = _pos_sp_triplet.current.vy;
-	}
-
 	if (_run_alt_control) {
 		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 	}
@@ -1561,71 +1634,17 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
-	/* use constant descend rate when landing, ignore altitude setpoint */
-	if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		_vel_sp(2) = _params.land_speed;
-	}
+	/* TODO: remove this is a pathetic leftover, it's here just to make sure that
+	 * _takeoff_jumped flags are reset */
+	if (_control_mode.flag_control_manual_enabled || !_pos_sp_triplet.current.valid
+	    || _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    || !_control_mode.flag_armed) {
 
-	/* special thrust setpoint generation for takeoff from ground */
-	if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed) {
-
-		// check if we are not already in air.
-		// if yes then we don't need a jumped takeoff anymore
-		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-			_takeoff_jumped = true;
-		}
-
-		if (!_takeoff_jumped) {
-			// ramp thrust setpoint up
-			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-				_takeoff_thrust_sp += 0.5f * dt;
-				_vel_sp.zero();
-				_vel_prev.zero();
-
-			} else {
-				// copter has reached our takeoff speed. split the thrust setpoint up
-				// into an integral part and into a P part
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
-				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-				_vel_sp_prev(2) = -_params.tko_speed;
-				_takeoff_jumped = true;
-				_reset_int_z = false;
-			}
-		}
-
-		if (_takeoff_jumped) {
-			_vel_sp(2) = -_params.tko_speed;
-		}
-
-	} else {
 		_takeoff_jumped = false;
 		_takeoff_thrust_sp = 0.0f;
 	}
 
-	// limit total horizontal acceleration
-	math::Vector<2> acc_hor;
-	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
-	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
-
-	if (acc_hor.length() > _params.acc_hor_max) {
-		acc_hor.normalize();
-		acc_hor *= _params.acc_hor_max;
-		math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
-		math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
-		_vel_sp(0) = vel_sp_hor(0);
-		_vel_sp(1) = vel_sp_hor(1);
-	}
-
-	// limit vertical acceleration
-	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
-
-	if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
-		acc_v /= fabsf(acc_v);
-		_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
-	}
+	limit_acceleration(dt);
 
 	_vel_sp_prev = _vel_sp;
 
