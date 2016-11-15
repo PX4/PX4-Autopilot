@@ -22,7 +22,3 @@ float32[3] magnetometer_ga		# Magnetic field in NED body frame, in Gauss
 int32 baro_timestamp_relative		# timestamp + baro_timestamp_relative = Barometer timestamp
 float32 baro_alt_meter			# Altitude, already temp. comp.
 float32 baro_temp_celcius		# Temperature in degrees celsius
-
-# Pre-flight consistency check metrics. These will be zero if the vehicle only has one IMU sensor or is armed.
-float32 accel_inconsistency_m_s_s  # magnitude of maximum acceleration difference between IMU instances in (m/s/s).
-float32 gyro_inconsistency_rad_s   # magnitude of maximum angular rate difference between IMU instances in (rad/s).
