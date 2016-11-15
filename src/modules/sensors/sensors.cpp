@@ -747,24 +747,49 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("CAL_MAG_SIDES");
+	
 	(void)param_find("CAL_MAG1_XOFF");
 	(void)param_find("CAL_MAG1_XSCALE");
 	(void)param_find("CAL_MAG1_YOFF");
 	(void)param_find("CAL_MAG1_YSCALE");
 	(void)param_find("CAL_MAG1_ZOFF");
 	(void)param_find("CAL_MAG1_ZSCALE");
+
+	(void)param_find("CAL_MAG2_XOFF");
+	(void)param_find("CAL_MAG2_XSCALE");
+	(void)param_find("CAL_MAG2_YOFF");
+	(void)param_find("CAL_MAG2_YSCALE");
+	(void)param_find("CAL_MAG2_ZOFF");
+	(void)param_find("CAL_MAG2_ZSCALE");
+
 	(void)param_find("CAL_GYRO1_XOFF");
 	(void)param_find("CAL_GYRO1_XSCALE");
 	(void)param_find("CAL_GYRO1_YOFF");
 	(void)param_find("CAL_GYRO1_YSCALE");
 	(void)param_find("CAL_GYRO1_ZOFF");
 	(void)param_find("CAL_GYRO1_ZSCALE");
+
+	(void)param_find("CAL_GYRO2_XOFF");
+	(void)param_find("CAL_GYRO2_XSCALE");
+	(void)param_find("CAL_GYRO2_YOFF");
+	(void)param_find("CAL_GYRO2_YSCALE");
+	(void)param_find("CAL_GYRO2_ZOFF");
+	(void)param_find("CAL_GYRO2_ZSCALE");
+
 	(void)param_find("CAL_ACC1_XOFF");
 	(void)param_find("CAL_ACC1_XSCALE");
 	(void)param_find("CAL_ACC1_YOFF");
 	(void)param_find("CAL_ACC1_YSCALE");
 	(void)param_find("CAL_ACC1_ZOFF");
 	(void)param_find("CAL_ACC1_ZSCALE");
+
+	(void)param_find("CAL_ACC2_XOFF");
+	(void)param_find("CAL_ACC2_XSCALE");
+	(void)param_find("CAL_ACC2_YOFF");
+	(void)param_find("CAL_ACC2_YSCALE");
+	(void)param_find("CAL_ACC2_ZOFF");
+	(void)param_find("CAL_ACC2_ZSCALE");
+
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
