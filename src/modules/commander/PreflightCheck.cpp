@@ -67,7 +67,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_preflight.h>
 
 #include "PreflightCheck.h"
 
@@ -164,10 +164,10 @@ out:
 
 static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bool checkGyro, bool report_status)
 {
-	// get the sensor combined data
-	int sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s sensors = {};
-	orb_copy(ORB_ID(sensor_combined), sensors_sub, &sensors);
+	// get the sensor preflight data
+	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
+	struct sensor_preflight_s sensors = {};
+	orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors);
 	px4_close(sensors_sub);
 
 	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
