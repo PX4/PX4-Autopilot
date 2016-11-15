@@ -256,6 +256,9 @@ private:
 	bool _reset_int_z_manual = false;
 	bool _reset_yaw_sp = true;
 
+	bool _hold_offboard_xy = false;
+	bool _hold_offboard_z = false;
+
 	math::Vector<3> _thrust_int;
 
 	math::Vector<3> _pos;
@@ -1060,6 +1063,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_mode_auto = false;
 
 	} else {
+		_hold_offboard_xy = false;
+		_hold_offboard_z = false;
+
 		/* AUTO */
 		control_auto(dt);
 	}
@@ -1190,23 +1196,74 @@ MulticopterPositionControl::control_non_manual(float dt)
 void
 MulticopterPositionControl::control_offboard(float dt)
 {
-
 	if (_pos_sp_triplet.current.valid) {
+
 		if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
 			/* control position */
 			_pos_sp(0) = _pos_sp_triplet.current.x;
 			_pos_sp(1) = _pos_sp_triplet.current.y;
+			_run_pos_control = true;
+
+			_hold_offboard_xy = false;
 
 		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* control velocity */
+
 			/* reset position setpoint to current position if needed */
 			reset_pos_sp();
 
-			/* set position setpoint move rate */
-			_vel_sp(0) = _pos_sp_triplet.current.vx;
-			_vel_sp(1) = _pos_sp_triplet.current.vy;
+			if (fabsf(_pos_sp_triplet.current.vx) <= FLT_EPSILON &&
+			    fabsf(_pos_sp_triplet.current.vy) <= FLT_EPSILON &&
+			    _local_pos.xy_valid) {
 
-			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+				if (!_hold_offboard_xy) {
+					_pos_sp(0) = _pos(0);
+					_pos_sp(1) = _pos(1);
+					_hold_offboard_xy = true;
+				}
+
+				_run_pos_control = false;
+
+			} else {
+				/* set position setpoint move rate */
+				_vel_sp(0) = _pos_sp_triplet.current.vx;
+				_vel_sp(1) = _pos_sp_triplet.current.vy;
+				_run_pos_control = false;
+
+				_hold_offboard_xy = false;
+			}
+
+		}
+
+		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
+			/* control altitude as it is enabled */
+			_pos_sp(2) = _pos_sp_triplet.current.z;
+			_run_alt_control = true;
+
+			_hold_offboard_z = false;
+
+		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
+
+			/* reset alt setpoint to current altitude if needed */
+			reset_alt_sp();
+
+			if (fabsf(_pos_sp_triplet.current.vz) <= FLT_EPSILON &&
+			    _local_pos.z_valid) {
+
+				if (!_hold_offboard_z) {
+					_pos_sp(2) = _pos(2);
+					_hold_offboard_z = true;
+				}
+
+				_run_alt_control = true;
+
+			} else {
+				/* set position setpoint move rate */
+				_vel_sp(2) = _pos_sp_triplet.current.vz;
+				_run_alt_control = false;
+
+				_hold_offboard_z = false;
+			}
 		}
 
 		if (_pos_sp_triplet.current.yaw_valid) {
@@ -1216,27 +1273,9 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
-		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
-			/* control altitude as it is enabled */
-			_pos_sp(2) = _pos_sp_triplet.current.z;
-			_run_alt_control = true;
-
-		} else if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
-			/* control altitude because full position control is enabled */
-			_pos_sp(2) = _pos_sp_triplet.current.z;
-			_run_alt_control = true;
-
-		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
-			/* reset alt setpoint to current altitude if needed */
-			reset_alt_sp();
-
-			/* set altitude setpoint move rate */
-			_vel_sp(2) = _pos_sp_triplet.current.vz;
-
-			_run_alt_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-		}
-
 	} else {
+		_hold_offboard_xy = false;
+		_hold_offboard_z = false;
 		reset_pos_sp();
 		reset_alt_sp();
 	}
@@ -1577,9 +1616,13 @@ MulticopterPositionControl::do_control(float dt)
 		control_manual(dt);
 		_mode_auto = false;
 
+		_hold_offboard_xy = false;
+		_hold_offboard_z = false;
+
 	} else {
 		control_non_manual(dt);
 	}
+
 }
 
 void
