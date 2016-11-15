@@ -865,6 +865,14 @@ MulticopterPositionControl::limit_pos_sp_offset()
 void
 MulticopterPositionControl::control_manual(float dt)
 {
+	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
+	if (_mode_auto) {
+		_mode_auto = false;
+
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
+	}
+
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
@@ -1433,7 +1441,6 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				control_manual(dt);
-				_mode_auto = false;
 
 			} else if (_control_mode.flag_control_offboard_enabled) {
 				/* offboard control */
