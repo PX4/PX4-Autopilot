@@ -798,7 +798,7 @@ math::Vector<3>
 MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_slope)
 {
 	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_slope * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint)/(1.0f - tpa_breakpoint);
+	float tpa = 1.0f - tpa_slope * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
 	tpa = fmaxf(TPA_SLOPE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	math::Vector<3> pidAttenuationPerAxis;
@@ -836,9 +836,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	math::Vector<3> rates_err = _rates_sp - rates;
 
 	_att_control = rates_p_scaled.emult(rates_err) +
-        _rates_int +
-        rates_d_scaled.emult(_rates_prev - rates) / dt +
-        _params.rate_ff.emult(_rates_sp);
+		       _rates_int +
+		       rates_d_scaled.emult(_rates_prev - rates) / dt +
+		       _params.rate_ff.emult(_rates_sp);
 
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
@@ -850,9 +850,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 				float rate_i = _rates_int(i) + rates_i_scaled(i) * rates_err(i) * dt;
 
 				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
-					/* if the axis is the yaw axis, do not update the integral if the limit is hit */
-					!((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
+				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
 					_rates_int(i) = rate_i;
 				}
 			}
@@ -1094,6 +1094,7 @@ MulticopterAttitudeControl::task_main()
 					} else {
 						_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
 					}
+
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
 					_v_rates_sp.pitch = _rates_sp(1);
@@ -1103,6 +1104,7 @@ MulticopterAttitudeControl::task_main()
 
 					if (_v_rates_sp_pub != nullptr) {
 						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
 					} else if (_rates_sp_id) {
 						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
 					}
