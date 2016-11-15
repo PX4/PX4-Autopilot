@@ -747,7 +747,7 @@ Sensors::Sensors() :
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("CAL_MAG_SIDES");
-	
+
 	(void)param_find("CAL_MAG1_XOFF");
 	(void)param_find("CAL_MAG1_XSCALE");
 	(void)param_find("CAL_MAG1_YOFF");
