@@ -244,6 +244,7 @@ private:
 
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
+	bool _do_reset_alt_pos_flag;
 	bool _mode_auto;
 	bool _pos_hold_engaged;
 	bool _alt_hold_engaged;
@@ -403,6 +404,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
+	_do_reset_alt_pos_flag(true),
 	_mode_auto(false),
 	_pos_hold_engaged(false),
 	_alt_hold_engaged(false),
@@ -869,8 +871,11 @@ MulticopterPositionControl::control_manual(float dt)
 	if (_mode_auto) {
 		_mode_auto = false;
 
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
+		/* Reset alt pos flags if resetting is enabled */
+		if (_do_reset_alt_pos_flag) {
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
+		}
 	}
 
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
@@ -1248,6 +1253,23 @@ void MulticopterPositionControl::control_auto(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
 
+		/*
+		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
+		 * this makes the takeoff finish smoothly.
+		 */
+		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+		     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)
+		    && _pos_sp_triplet.current.acceptance_radius > 0.0f
+		    /* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
+		    && (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
+			_do_reset_alt_pos_flag = false;
+
+			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
+
+		} else {
+			_do_reset_alt_pos_flag = true;
+		}
+
 		// During a mission or in loiter it's safe to retract the landing gear.
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
 		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
@@ -1355,6 +1377,7 @@ MulticopterPositionControl::task_main()
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
+			_do_reset_alt_pos_flag = true;
 			_vel_sp_prev.zero();
 			reset_int_z = true;
 			reset_int_xy = true;
@@ -1489,6 +1512,7 @@ MulticopterPositionControl::task_main()
 				/* don't run controller when landed */
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
+				_do_reset_alt_pos_flag = true;
 				_mode_auto = false;
 				reset_int_z = true;
 				reset_int_xy = true;
@@ -2042,6 +2066,7 @@ MulticopterPositionControl::task_main()
 			/* position controller disabled, reset setpoints */
 			_reset_alt_sp = true;
 			_reset_pos_sp = true;
+			_do_reset_alt_pos_flag = true;
 			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;
