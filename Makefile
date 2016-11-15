@@ -279,7 +279,7 @@ submodulesclean:
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean clean
-	@git clean -ff -x -d -e ".project" -e ".cproject"
+	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
