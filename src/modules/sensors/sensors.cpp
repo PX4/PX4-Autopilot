@@ -750,6 +750,7 @@ Sensors::Sensors() :
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_find("PWM_RATE");
 	(void)param_find("PWM_MIN");
 	(void)param_find("PWM_MAX");
 	(void)param_find("PWM_DISARMED");
