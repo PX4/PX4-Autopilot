@@ -435,7 +435,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 
 static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
 {
-	// Get EKF2 innovation data if available and exit wiht a fail recorded if not
+	// Get EKF2 innovation data if available and exit with a fail recorded if not
 	bool updated;
 	int sub1 = orb_subscribe(ORB_ID(ekf2_innovations));
 	struct ekf2_innovations_s innovations;
