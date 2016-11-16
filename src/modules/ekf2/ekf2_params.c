@@ -387,6 +387,17 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
 
 /**
+ * Noise for synthetic sideslip fusion.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit m/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
+
+/**
  * Magnetic declination
  *
  * @group EKF2
@@ -819,6 +830,16 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 * @decimal 1
 */
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
+
+/**
+* Boolean determining if synthetic sideslip measurements should fused.
+*
+* A value of 1 indicates that fusion is active
+*
+* @group EKF2
+* @boolean
+*/
+PARAM_DEFINE_INT32(EKF2_FUSE_BETA, 0);
 
 /**
 
