@@ -31,21 +31,21 @@ then
 		fi
 	fi
 
-	if ver hwcmp AEROFC_V1
-		# Do nothing
+	if [ $OUTPUT_MODE == mkblctrl ]
 	then
+		set OUTPUT_DEV /dev/mkblctrl0
 	else
-		if [ $OUTPUT_MODE == mkblctrl ]
-		then
-			set OUTPUT_DEV /dev/mkblctrl0
-		else
-			set OUTPUT_DEV /dev/pwm_output0
-		fi
+		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
 	if [ $OUTPUT_MODE == uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
+	fi
+
+	if [ $OUTPUT_MODE == tap_esc ]
+	then
+		set OUTPUT_DEV /dev/tap_esc
 	fi
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE

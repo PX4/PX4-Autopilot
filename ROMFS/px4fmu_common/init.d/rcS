@@ -323,6 +323,11 @@ then
 		set FMU_MODE gpio_serial
 	fi
 
+	if [ $OUTPUT_MODE == tap_esc ]
+	then
+		set FMU_MODE rcin
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
