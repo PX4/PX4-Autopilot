@@ -54,8 +54,8 @@ void BlockLocalPositionEstimator::landCorrect()
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
 	R.setZero();
-	R(Y_land_vx, Y_land_vx) = 0.1;
-	R(Y_land_vy, Y_land_vy) = 0.1;
+	R(Y_land_vx, Y_land_vx) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
+	R(Y_land_vy, Y_land_vy) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
 	R(Y_land_agl, Y_land_agl) = _land_z_stddev.get() * _land_z_stddev.get();
 
 	// residual
@@ -101,3 +101,4 @@ void BlockLocalPositionEstimator::landCheckTimeout()
 		}
 	}
 }
+
