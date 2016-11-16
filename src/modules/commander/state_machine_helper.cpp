@@ -84,7 +84,6 @@ static const char reason_no_rc[] = "no RC";
 static const char reason_no_offboard[] = "no offboard";
 static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static const char reason_no_gps[] = "no gps";
-static const char reason_no_gpos[] = "no gpos";
 static const char reason_no_gps_cmd[] = "no gps cmd";
 static const char reason_no_home[] = "no home";
 static const char reason_no_datalink[] = "no datalink";
