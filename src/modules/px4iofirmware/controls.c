@@ -73,6 +73,11 @@ static uint16_t rc_value_override = 0;
 static unsigned _rssi_adc_counts = 0;
 #endif
 
+/* Link Quality indicator. Sliding window tracking lost frames. At about 45 frames per second
+   a 32 bit int is good for about 0.7 seconds, which seems like a reasonable amount of
+   local smoothing. */
+static uint32_t link_quality_bits;
+
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated, bool *srxl_updated)
 {
 	perf_begin(c_gather_dsm);
@@ -229,8 +234,9 @@ controls_tick()
 	 * other.  Don't do that.
 	 */
 
-	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
+	/* receive signal strength indicator (RSSI). 0 = no connection, 255: perfect connection */
 	uint16_t rssi = 0;
+	bool rssi_update = false;
 
 #ifdef ADC_RSSI
 
@@ -248,14 +254,18 @@ controls_tick()
 			if (rssi > RC_INPUT_RSSI_MAX) {
 				rssi = RC_INPUT_RSSI_MAX;
 			}
+
+			rssi_update = true;
 		}
 	}
 
 #endif
 
-	/* zero RSSI if signal is lost */
+	/* zero RSSI and Link Quality if signal is lost */
 	if (!(r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_RC_OK))) {
 		rssi = 0;
+		link_quality_bits = 0;
+		rssi_update = true;
 	}
 
 	perf_begin(c_gather_dsm);
@@ -264,18 +274,22 @@ controls_tick()
 
 	if (dsm_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+		rssi_update = true;
 	}
 
 	if (st24_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+		rssi_update = true;
 	}
 
 	if (sumd_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
+		rssi_update = true;
 	}
 
 	if (srxl_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SRXL;
+		rssi_update = true;
 	}
 
 	perf_end(c_gather_dsm);
@@ -289,14 +303,19 @@ controls_tick()
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 
-		unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
+		// disable ADC based RSSI for SBUS
+		r_setup_features &= ~PX4IO_P_SETUP_FEATURES_ADC_RSSI;
+
+		/* Slide Link Quality bitset one bit forward when we receive a frame */
+		link_quality_bits <<= 1;
 
 		if (sbus_frame_drop) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-			sbus_rssi = RC_INPUT_RSSI_MAX / 2;
 
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+			/* Set most current bit in bitset to true, indicating we received a valid frame */
+			link_quality_bits |= 1;
 		}
 
 		if (sbus_failsafe) {
@@ -306,11 +325,9 @@ controls_tick()
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 		}
 
-		/* set RSSI to an emulated value if ADC RSSI is off */
-		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
-			rssi = sbus_rssi;
-		}
-
+		/* use link quality bits for RSSI on SBUS */
+		rssi = (255U * __builtin_popcount(link_quality_bits)) / 32;
+		rssi_update = true;
 	}
 
 	perf_end(c_gather_sbus);
@@ -338,7 +355,9 @@ controls_tick()
 	}
 
 	/* store RSSI */
-	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
+	if (rssi_update) {
+			r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
+	}
 
 	/*
 	 * In some cases we may have received a frame, but input has still
