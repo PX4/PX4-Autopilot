@@ -181,11 +181,10 @@ static float eph_threshold = 5.0f;
 static float epv_threshold = 10.0f;
 
 /* pre-flight EKF checks */
-static float max_ekf_vpos_innov = 1.0f;
-static float max_ekf_vvel_innov = 0.5f;
-static float max_ekf_hpos_innov = 1.0f;
-static float max_ekf_hvel_innov = 0.5f;
-static float max_ekf_yaw_innov = 0.25f;
+static float max_ekf_pos_ratio = 0.5f;
+static float max_ekf_vel_ratio = 0.5f;
+static float max_ekf_hgt_ratio = 0.5f;
+static float max_ekf_yaw_ratio = 0.5f;
 static float max_ekf_dvel_bias = 2.0e-3f;
 static float max_ekf_dang_bias = 3.5e-4f;
 
@@ -1313,11 +1312,10 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
 	/* pre-flight EKF checks */
-	param_t _param_max_ekf_vpos_innov = param_find("COM_ARM_EKF_PD");
-	param_t _param_max_ekf_vvel_innov = param_find("COM_ARM_EKF_VD");
-	param_t _param_max_ekf_hpos_innov = param_find("COM_ARM_EKF_PH");
-	param_t _param_max_ekf_hvel_innov = param_find("COM_ARM_EKF_VH");
-	param_t _param_max_ekf_yaw_innov = param_find("COM_ARM_EKF_YAW");
+	param_t _param_max_ekf_pos_ratio = param_find("COM_ARM_EKF_POS");
+	param_t _param_max_ekf_vel_ratio = param_find("COM_ARM_EKF_VEL");
+	param_t _param_max_ekf_hgt_ratio = param_find("COM_ARM_EKF_HGT");
+	param_t _param_max_ekf_yaw_ratio = param_find("COM_ARM_EKF_YAW");
 	param_t _param_max_ekf_dvel_bias = param_find("COM_ARM_EKF_AB");
 	param_t _param_max_ekf_dang_bias = param_find("COM_ARM_EKF_GB");
 
@@ -1807,11 +1805,10 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
 
 			/* pre-flight EKF checks */
-			param_get(_param_max_ekf_vpos_innov, &max_ekf_vpos_innov);
-			param_get(_param_max_ekf_vvel_innov, &max_ekf_vvel_innov);
-			param_get(_param_max_ekf_hpos_innov, &max_ekf_hpos_innov);
-			param_get(_param_max_ekf_hvel_innov, &max_ekf_hvel_innov);
-			param_get(_param_max_ekf_yaw_innov, &max_ekf_yaw_innov);
+			param_get(_param_max_ekf_pos_ratio, &max_ekf_pos_ratio);
+			param_get(_param_max_ekf_vel_ratio, &max_ekf_vel_ratio);
+			param_get(_param_max_ekf_hgt_ratio, &max_ekf_hgt_ratio);
+			param_get(_param_max_ekf_yaw_ratio, &max_ekf_yaw_ratio);
 			param_get(_param_max_ekf_dvel_bias, &max_ekf_dvel_bias);
 			param_get(_param_max_ekf_dang_bias, &max_ekf_dang_bias);
 

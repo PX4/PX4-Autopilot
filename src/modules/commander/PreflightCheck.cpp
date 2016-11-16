@@ -65,7 +65,6 @@
 
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_preflight.h>
 
@@ -435,70 +434,53 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 
 static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
 {
-	// Get EKF2 innovation data if available and exit with a fail recorded if not
-	bool updated;
-	int sub1 = orb_subscribe(ORB_ID(ekf2_innovations));
-	struct ekf2_innovations_s innovations;
-	orb_copy(ORB_ID(ekf2_innovations), sub1, &innovations);
-	orb_unsubscribe(sub1);
-	px4_close(sub1);
-
 	// Get estimator status data if available and exit with a fail recorded if not
-	int sub2 = orb_subscribe(ORB_ID(estimator_status));
-	orb_check(sub2,&updated);
+	int sub = orb_subscribe(ORB_ID(estimator_status));
+	bool updated;
+	orb_check(sub,&updated);
 	struct estimator_status_s status;
-	orb_copy(ORB_ID(estimator_status), sub2, &status);
-	orb_unsubscribe(sub2);
-	px4_close(sub2);
+	orb_copy(ORB_ID(estimator_status), sub, &status);
+	orb_unsubscribe(sub);
+	px4_close(sub);
 
-	bool success = true;
+	bool success = true; // start with a pass and change to a fail if any test fails
+	float test_limit; // pass limit re-used for each test
 
-	float test_limit;
-	param_get(param_find("COM_ARM_EKF_VD"), &test_limit);
-	// check vertical velocity innovation
-	if (fabsf(innovations.vel_pos_innov[2]) > test_limit) {
+	// check vertical position innovation test ratio
+	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
+	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VERT VEL INNOVATIONS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR");
 		}
 		success = false;
 		goto out;
 	}
 
-	// check vertical position innovation
-	param_get(param_find("COM_ARM_EKF_PD"), &test_limit);
-	if (fabsf(innovations.vel_pos_innov[5]) > test_limit) {
+	// check velocity innovation test ratio
+	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
+	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VERT POS INNOVATIONS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
 		}
 		success = false;
 		goto out;
 	}
 
-	// check horizontal velocity innovations
-	param_get(param_find("COM_ARM_EKF_VH"), &test_limit);
-	if ((innovations.vel_pos_innov[0]*innovations.vel_pos_innov[0] + innovations.vel_pos_innov[1]*innovations.vel_pos_innov[1]) > test_limit) {
+	// check horizontal position innovation test ratio
+	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
+	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ VEL INNOVATIONS");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
 		}
 		success = false;
 		goto out;
 	}
 
-	// check horizontal position innovations
-	param_get(param_find("COM_ARM_EKF_PH"), &test_limit);
-	if ((innovations.vel_pos_innov[3]*innovations.vel_pos_innov[3] + innovations.vel_pos_innov[4]*innovations.vel_pos_innov[4]) > test_limit) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS INNOVATIONS");
-		}
-		success = false;
-		goto out;
-	}
-
-	// check yaw innovation
+	// check magnetometer innovation test ratio
 	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
-	if (fabsf(innovations.heading_innov) > test_limit) {
+	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW INNOVATION");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
 		}
 		success = false;
 		goto out;

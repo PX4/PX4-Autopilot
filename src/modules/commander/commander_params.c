@@ -474,19 +474,19 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
 /**
- * Maximum EKF vertical position innovation that will allow arming
+ * Maximum EKF position innovation test ratio that will allow arming
  *
  * @group Commander
  * @unit m
- * @min 0.5
- * @max 2.0
+ * @min 0.1
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_PD, 1.0f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
 
 /**
- * Maximum EKF vertical velocity innovation that will allow arming
+ * Maximum EKF velocity innovation test ratio that will allow arming
  *
  * @group Commander
  * @unit m/s
@@ -495,43 +495,31 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_PD, 1.0f);
  * @decimal 2
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_VD, 0.5f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
 
 /**
- * Maximum EKF horizontal position innovation that will allow arming
+ * Maximum EKF height innovation test ratio that will allow arming
  *
  * @group Commander
  * @unit m
- * @min 0.5
- * @max 2.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_PH, 1.0f);
-
-/**
- * Maximum EKF horizontal velocity innovation that will allow arming
- *
- * @group Commander
- * @unit m/s
  * @min 0.1
  * @max 1.0
  * @decimal 2
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_VH, 0.5f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
 
 /**
- * Maximum EKF yaw innovation that will allow arming
+ * Maximum EKF yaw innovation test ratio that will allow arming
  *
  * @group Commander
  * @unit rad
- * @min 0.05
- * @max 0.5
+ * @min 0.1
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.25f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
 
 /**
  * Maximum value of EKF accelerometer delta velocity bias estimate that will allow arming
