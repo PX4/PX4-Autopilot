@@ -99,7 +99,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
 #define RATES_I_LIMIT	0.3f
-#define TPA_SLOPE_LOWER_LIMIT 0.05f
+#define TPA_RATE_LOWER_LIMIT 0.05f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
 
@@ -186,14 +186,12 @@ private:
 		param_t pitch_rate_i;
 		param_t pitch_rate_d;
 		param_t pitch_rate_ff;
-		param_t tpa_breakpoint;
 		param_t tpa_breakpoint_p;
 		param_t tpa_breakpoint_i;
 		param_t tpa_breakpoint_d;
-		param_t tpa_slope;
-		param_t tpa_slope_p;
-		param_t tpa_slope_i;
-		param_t tpa_slope_d;
+		param_t tpa_rate_p;
+		param_t tpa_rate_i;
+		param_t tpa_rate_d;
 		param_t yaw_p;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
@@ -226,14 +224,12 @@ private:
 		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
 		float yaw_ff;						/**< yaw control feed-forward */
 
-		float tpa_breakpoint;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_breakpoint_p;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_breakpoint_i;				/**< Throttle PID Attenuation breakpoint */
 		float tpa_breakpoint_d;				/**< Throttle PID Attenuation breakpoint */
-		float tpa_slope;					/**< Throttle PID Attenuation slope */
-		float tpa_slope_p;					/**< Throttle PID Attenuation slope */
-		float tpa_slope_i;					/**< Throttle PID Attenuation slope */
-		float tpa_slope_d;					/**< Throttle PID Attenuation slope */
+		float tpa_rate_p;					/**< Throttle PID Attenuation slope */
+		float tpa_rate_i;					/**< Throttle PID Attenuation slope */
+		float tpa_rate_d;					/**< Throttle PID Attenuation slope */
 
 		float roll_rate_max;
 		float pitch_rate_max;
@@ -298,7 +294,7 @@ private:
 	/**
 	 * Throttle PID attenuation.
 	 */
-	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_slope);
+	math::Vector<3> pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
 	/**
 	 * Check for vehicle status updates.
@@ -407,9 +403,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.tpa_breakpoint_p 	= 	param_find("MC_TPA_BREAK_P");
 	_params_handles.tpa_breakpoint_i 	= 	param_find("MC_TPA_BREAK_I");
 	_params_handles.tpa_breakpoint_d 	= 	param_find("MC_TPA_BREAK_D");
-	_params_handles.tpa_slope_p	 	= 	param_find("MC_TPA_SLOPE_P");
-	_params_handles.tpa_slope_i	 	= 	param_find("MC_TPA_SLOPE_I");
-	_params_handles.tpa_slope_d	 	= 	param_find("MC_TPA_SLOPE_D");
+	_params_handles.tpa_rate_p	 	= 	param_find("MC_TPA_RATE_P");
+	_params_handles.tpa_rate_i	 	= 	param_find("MC_TPA_RATE_I");
+	_params_handles.tpa_rate_d	 	= 	param_find("MC_TPA_RATE_D");
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
@@ -509,9 +505,9 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.tpa_breakpoint_p, &_params.tpa_breakpoint_p);
 	param_get(_params_handles.tpa_breakpoint_i, &_params.tpa_breakpoint_i);
 	param_get(_params_handles.tpa_breakpoint_d, &_params.tpa_breakpoint_d);
-	param_get(_params_handles.tpa_slope_p, &_params.tpa_slope_p);
-	param_get(_params_handles.tpa_slope_i, &_params.tpa_slope_i);
-	param_get(_params_handles.tpa_slope_d, &_params.tpa_slope_d);
+	param_get(_params_handles.tpa_rate_p, &_params.tpa_rate_p);
+	param_get(_params_handles.tpa_rate_i, &_params.tpa_rate_i);
+	param_get(_params_handles.tpa_rate_d, &_params.tpa_rate_d);
 
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
@@ -791,15 +787,15 @@ MulticopterAttitudeControl::control_attitude(float dt)
 /*
  * Throttle PID attenuation
  * Function visualization available here https://www.desmos.com/calculator/gn4mfoddje
- * Input: 'tpa_breakpoint', 'tpa_slope', '_thrust_sp'
+ * Input: 'tpa_breakpoint', 'tpa_rate', '_thrust_sp'
  * Output: 'pidAttenuationPerAxis' vector
  */
 math::Vector<3>
-MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_slope)
+MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_slope * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
-	tpa = fmaxf(TPA_SLOPE_LOWER_LIMIT, fminf(1.0f, tpa));
+	float tpa = 1.0f - tpa_rate * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
+	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	math::Vector<3> pidAttenuationPerAxis;
 	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;
@@ -828,9 +824,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	rates(1) = _ctrl_state.pitch_rate;
 	rates(2) = _ctrl_state.yaw_rate;
 
-	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_slope_p));
-	math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_slope_i));
-	math::Vector<3> rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_slope_d));
+	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
+	math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
+	math::Vector<3> rates_d_scaled = _params.rate_d.emult(pid_attenuations(_params.tpa_breakpoint_d, _params.tpa_rate_d));
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;

@@ -34,5 +34,5 @@ then
 	param set CBRK_IO_SAFETY 22027
 	param set ATT_BIAS_MAX 0.0
 	param set MC_TPA_BREAK_P 0.5
- 	param set MC_TPA_SLOPE_P 0.5
+	param set MC_TPA_RATE_P 0.5
 fi

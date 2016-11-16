@@ -420,12 +420,12 @@ PARAM_DEFINE_FLOAT(MC_TPA_BREAK_I, 1.0f);
 PARAM_DEFINE_FLOAT(MC_TPA_BREAK_D, 1.0f);
 
 /**
- * TPA Slope P
+ * TPA Rate P
  *
  * Throttle PID Attenuation (TPA)
  * Rate at which to attenuate roll/pitch P gain
  * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - slope * (throttle - breakpoint) / (1.0 - breakpoint))
+ * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
  *
  * @min 0.0
  * @max 1.0
@@ -433,15 +433,15 @@ PARAM_DEFINE_FLOAT(MC_TPA_BREAK_D, 1.0f);
  * @increment 0.05
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_P, 0.0f);
+PARAM_DEFINE_FLOAT(MC_TPA_RATE_P, 0.0f);
 
 /**
- * TPA Slope I
+ * TPA Rate I
  *
  * Throttle PID Attenuation (TPA)
  * Rate at which to attenuate roll/pitch I gain
  * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - slope * (throttle - breakpoint) / (1.0 - breakpoint))
+ * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
  *
  * @min 0.0
  * @max 1.0
@@ -449,15 +449,15 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_P, 0.0f);
  * @increment 0.05
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_TPA_RATE_I, 0.0f);
 
 /**
- * TPA Slope D
+ * TPA Rate D
  *
  * Throttle PID Attenuation (TPA)
  * Rate at which to attenuate roll/pitch D gain
  * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - slope * (throttle - breakpoint) / (1.0 - breakpoint))
+ * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
  *
  * @min 0.0
  * @max 1.0
@@ -465,4 +465,4 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_I, 0.0f);
  * @increment 0.05
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_TPA_SLOPE_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
