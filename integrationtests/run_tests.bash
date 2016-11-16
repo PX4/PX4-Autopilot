@@ -5,16 +5,31 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
-# handle cleaning command
-do_clean=true
-if [ "$1" = "-o" ]
-then
-	echo not cleaning
-	do_clean=false
-fi
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
-# gui
-gui="true"
+# Initialize our own variables:
+do_clean=true
+gui=false
+
+while getopts "h?og:" opt; do
+    case "$opt" in
+    h|\?)
+		echo """
+		$0 [-h] [-o] [-g]
+		-h show help
+		-o don't clean before building (to save time)
+		-g run gazebo gui
+		"""
+        exit 0
+        ;;
+    o)  do_clean=false
+		echo not cleaning
+        ;;
+    g)  gui="true"
+        ;;
+    esac
+done
 
 # determine the directory of the source given the directory of this script
 pushd `dirname $0` > /dev/null
