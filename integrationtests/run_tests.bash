@@ -13,6 +13,9 @@ then
 	do_clean=false
 fi
 
+# gui
+gui="true"
+
 # determine the directory of the source given the directory of this script
 pushd `dirname $0` > /dev/null
 SCRIPTPATH=`pwd`
@@ -87,9 +90,9 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 # however, stop executing tests after the first failure
 set +e
 echo "=====> run tests"
-test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch
-test $? -eq 0 && rostest px4 mavros_posix_tests_iris_opt_flow.launch
-test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris_opt_flow.launch gui:=$gui
+test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui
 TEST_RESULT=$?
 echo "<====="
 
