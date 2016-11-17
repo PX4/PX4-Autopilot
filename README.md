@@ -49,14 +49,16 @@ make -j8
 sudo make install
 ```
 
-For cross-compiling the procedure is similar (assuming that you have the toolchain file,
+For cross-compiling with CMake the procedure is similar (assuming that you have the toolchain file,
 `Toolchain-stm32-cortex-m4.cmake` in this example).
-If you're using Make, please refer to the [documentation](http://uavcan.org/Implementations/Libuavcan).
+**If you're using Make, please refer to the [documentation](http://uavcan.org/Implementations/Libuavcan).**
+For embedded ARM targets, it is recommended to use [GCC ARM Embedded](https://launchpad.net/gcc-arm-embedded);
+however, any other standard-compliant C++ compiler should also work.
 
 ```bash
 mkdir build
 cd build
-cmake .. -D CMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
 make -j8
 ```
 
