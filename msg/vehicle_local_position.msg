@@ -1,5 +1,13 @@
 # Fused local position in NED.
 
+uint8 ESTIMATOR_TYPE_NAIVE = 1		# Estimator without real covariance feedback
+uint8 ESTIMATOR_TYPE_VISION = 2		# Computer vision based estimate. Might be up to scale.
+uint8 ESTIMATOR_TYPE_VIO = 3		# Visual-Inertial estimator.
+uint8 ESTIMATOR_TYPE_GPS = 4		# Plain GPS estimate.
+uint8 ESTIMATOR_TYPE_GPS_INS = 5	# Estimator integrating GPS and inertial sensing.
+
+uint8 estimator_type			# type of estimator according to above types
+
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
 bool v_xy_valid				# true if vy and vy are valid
@@ -28,6 +36,11 @@ uint8 z_reset_counter
 uint8 vxy_reset_counter
 uint8 vz_reset_counter
 
+# Acceleration in NED frame
+float32 ax        # North acceleration in NED earth-fixed frame, (metres/sec^2)
+float32 ay        # East acceleration in NED earth-fixed frame, (metres/sec^2)
+float32 az        # Down acceleration in NED earth-fixed frame, (metres/sec^2)
+
 # Heading
 float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
 
@@ -47,4 +60,4 @@ bool dist_bottom_valid			# true if distance to bottom surface is valid
 float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
 
-# TOPICS vehicle_local_position vehicle_local_position_groundtruth
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position
