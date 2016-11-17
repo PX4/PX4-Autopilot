@@ -378,8 +378,8 @@ then
 		then
 			if param compare UAVCAN_ENABLE 0
 			then
-				echo "OVERRIDING UAVCAN_ENABLE = 1" >> $LOG_FILE
-				param set UAVCAN_ENABLE 1
+				echo "OVERRIDING UAVCAN_ENABLE = 3" >> $LOG_FILE
+				param set UAVCAN_ENABLE 3
 			fi
 		fi
 
@@ -578,15 +578,6 @@ then
 	# Starting stuff according to UAVCAN_ENABLE value
 	#
 	if param greater UAVCAN_ENABLE 0
-	then
-		if uavcan start
-		then
-		else
-			tone_alarm $TUNE_ERR
-		fi
-	fi
-
-	if param greater UAVCAN_ENABLE 1
 	then
 		if uavcan start fw
 		then
