@@ -414,8 +414,7 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE, 1.0f);
  * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
  * it will still be 0.5 at 60% battery.
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
