@@ -59,7 +59,6 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -126,6 +125,9 @@ private:
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
+	void handle_message_gps_global_origin(mavlink_message_t *msg);
+	void handle_message_attitude_quaternion_cov(mavlink_message_t *msg);
+	void handle_message_local_position_ned_cov(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
@@ -218,6 +220,7 @@ private:
 	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
+	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
@@ -231,6 +234,7 @@ private:
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
+	uint64_t _global_ref_timestamp;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	uint64_t _hil_last_frame;
