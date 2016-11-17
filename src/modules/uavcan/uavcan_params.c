@@ -42,16 +42,15 @@
  * UAVCAN mode
  *
  *  0 - UAVCAN disabled.
- *  1 - Enabled support for UAVCAN actuators and sensors.
- *  2 - Enabled support for dynamic node ID allocation and firmware update.
+ *  1 - Basic support for UAVCAN actuators and sensors.
+ *  2 - Full support for dynamic node ID allocation and firmware update.
  *  3 - Sets the motor control outputs to UAVCAN and enables support for dynamic node ID allocation and firmware update.
  *
  * @min 0
  * @max 3
  * @value 0 Disabled
- * @value 1 Enabled
- * @value 2 Dynamic ID/Update
- * @value 3 Motors/Update
+ * @value 2 Sensors Enabled
+ * @value 3 Sensors and Motors
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
