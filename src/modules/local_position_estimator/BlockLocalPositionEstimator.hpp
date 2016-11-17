@@ -215,6 +215,7 @@ private:
 
 	// misc
 	float agl();
+	bool landed();
 	void correctionLogic(Vector<float, n_x> &dx);
 	void predictionLogic(Vector<float, n_x> &dx);
 	void covPropagationLogic(Matrix<float, n_x, n_x> &dP);
