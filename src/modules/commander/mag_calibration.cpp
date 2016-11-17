@@ -635,6 +635,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 								 (internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
 					calibration_log_info(mavlink_log_pub, "Offsets: x: %8.4f, y: %8.4f, z: %8.4f, #%u", (double)sphere_x[cur_mag],
 							     (double)sphere_y[cur_mag], (double)sphere_z[cur_mag], cur_mag);
+					calibration_log_info(mavlink_log_pub, "Scale: x: %8.4f, y: %8.4f, z: %8.4f, #%u", (double)diag_x[cur_mag],
+							     (double)diag_y[cur_mag], (double)diag_z[cur_mag], cur_mag);
+					calibration_log_info(mavlink_log_pub, "offdiag: x: %8.4f, y: %8.4f, z: %8.4f, #%u", (double)offdiag_x[cur_mag],
+							     (double)offdiag_y[cur_mag], (double)offdiag_z[cur_mag], cur_mag);
 					result = calibrate_return_ok;
 				}
 			}
@@ -727,6 +731,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.x_offset = sphere_x[cur_mag];
 					mscale.y_offset = sphere_y[cur_mag];
 					mscale.z_offset = sphere_z[cur_mag];
+					mscale.x_scale = diag_x[cur_mag];
+					mscale.y_scale = diag_y[cur_mag];
+					mscale.z_scale = diag_z[cur_mag];
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 
