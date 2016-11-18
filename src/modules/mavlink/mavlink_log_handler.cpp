@@ -586,6 +586,8 @@ LogListHelper::_scan_logs(FILE *f, const char *dir, time_t &date)
 			}
 		}
 	}
+
+	closedir(dp);
 }
 
 //-------------------------------------------------------------------
