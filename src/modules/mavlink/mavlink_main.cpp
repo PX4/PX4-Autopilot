@@ -118,6 +118,15 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int leng
 	}
 }
 
+void mavlink_start_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+
+	if (m != nullptr) {
+		(void)m->begin_send();
+	}
+}
+
 void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 {
 	Mavlink *m = Mavlink::get_instance((unsigned)chan);
@@ -901,6 +910,14 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
+void
+Mavlink::begin_send()
+{
+	// must protect the network buffer so other calls from receive_thread do not
+	// mangle the message.
+	pthread_mutex_lock(&_send_mutex);
+}
+
 int
 Mavlink::send_packet()
 {
@@ -910,6 +927,7 @@ Mavlink::send_packet()
 
 	/* Only send packets if there is something in the buffer. */
 	if (_network_buf_len == 0) {
+		pthread_mutex_unlock(&_send_mutex);
 		return 0;
 	}
 
@@ -955,6 +973,7 @@ Mavlink::send_packet()
 	_network_buf_len = 0;
 #endif
 
+	pthread_mutex_unlock(&_send_mutex);
 	return ret;
 }
 
@@ -966,8 +985,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 	if (!should_transmit()) {
 		return;
 	}
-
-	pthread_mutex_lock(&_send_mutex);
 
 	_last_write_try_time = hrt_absolute_time();
 
@@ -983,7 +1000,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 			/* not enough space in buffer to send */
 			count_txerr();
 			count_txerrbytes(packet_len);
-			pthread_mutex_unlock(&_send_mutex);
 			return;
 		}
 	}
@@ -1017,7 +1033,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		count_txbytes(packet_len);
 	}
 
-	pthread_mutex_unlock(&_send_mutex);
 }
 
 void
