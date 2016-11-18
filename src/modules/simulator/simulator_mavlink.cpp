@@ -59,13 +59,10 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
 #define PRESS_GROUND 101325.0f
 #define DENSITY 1.2041f
-#define GRAVITY 9.81f
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
-static int openUart(const char *uart_name, int baud);
 
 static int _fd;
 static unsigned char _buf[1024];
@@ -241,7 +238,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = (PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
+	baro.pressure = (PRESS_GROUND - CONSTANTS_ONE_G * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
@@ -653,26 +650,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
-	// setup serial connection to autopilot (used to get manual controls)
-	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
-
-	char serial_buf[1024];
-
 	struct pollfd fds[2];
 	memset(fds, 0, sizeof(fds));
 	unsigned fd_count = 1;
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
-
-
-	if (serial_fd >= 0) {
-		fds[1].fd = serial_fd;
-		fds[1].events = POLLIN;
-		fd_count++;
-
-	} else {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-	}
 
 	int len = 0;
 
@@ -740,7 +722,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	pthread_attr_destroy(&sender_thread_attr);
 
 	mavlink_status_t udp_status = {};
-	mavlink_status_t serial_status = {};
 
 	bool sim_delay = false;
 
@@ -800,125 +781,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 				}
 			}
 		}
-
-		// got data from PIXHAWK
-		if (fd_count > 1 && fds[1].revents & POLLIN) {
-			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
-
-			if (len > 0) {
-				mavlink_message_t msg;
-
-				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
-						// have a message, handle it
-						handle_message(&msg, true);
-					}
-				}
-			}
-		}
 	}
-}
-
-int openUart(const char *uart_name, int baud)
-{
-	/* process baud rate */
-	int speed;
-
-	switch (baud) {
-	case 0:      speed = B0;      break;
-
-	case 50:     speed = B50;     break;
-
-	case 75:     speed = B75;     break;
-
-	case 110:    speed = B110;    break;
-
-	case 134:    speed = B134;    break;
-
-	case 150:    speed = B150;    break;
-
-	case 200:    speed = B200;    break;
-
-	case 300:    speed = B300;    break;
-
-	case 600:    speed = B600;    break;
-
-	case 1200:   speed = B1200;   break;
-
-	case 1800:   speed = B1800;   break;
-
-	case 2400:   speed = B2400;   break;
-
-	case 4800:   speed = B4800;   break;
-
-	case 9600:   speed = B9600;   break;
-
-	case 19200:  speed = B19200;  break;
-
-	case 38400:  speed = B38400;  break;
-
-	case 57600:  speed = B57600;  break;
-
-	case 115200: speed = B115200; break;
-
-	case 230400: speed = B230400; break;
-
-	case 460800: speed = B460800; break;
-
-	case 921600: speed = B921600; break;
-
-	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
-		      baud);
-		return -EINVAL;
-	}
-
-	/* open uart */
-	int uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
-
-	if (uart_fd < 0) {
-		return uart_fd;
-	}
-
-
-	/* Try to set baud rate */
-	struct termios uart_config;
-	memset(&uart_config, 0, sizeof(uart_config));
-
-	int termios_state;
-
-	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
-		::close(uart_fd);
-		return -1;
-	}
-
-	/* Fill the struct for the new configuration */
-	tcgetattr(uart_fd, &uart_config);
-
-	/* USB serial is indicated by /dev/ttyACM0*/
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
-
-		/* Set baud rate */
-		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
-			::close(uart_fd);
-			return -1;
-		}
-
-	}
-
-	// Make raw
-	cfmakeraw(&uart_config);
-
-	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
-		::close(uart_fd);
-		return -1;
-	}
-
-	return uart_fd;
 }
 
 int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
