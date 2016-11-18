@@ -47,12 +47,12 @@
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
 
+#define MAVLINK_START_UART_SEND mavlink_start_uart_send
 #define MAVLINK_END_UART_SEND mavlink_end_uart_send
 
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
-#include <stdbool.h>			// Needs to be included before v2.0/mavlink_types.h until https://github.com/ArduPilot/pymavlink/pull/22 makes it through.
 #include <v2.0/mavlink_types.h>
 #include <unistd.h>
 
@@ -78,6 +78,7 @@ extern mavlink_system_t mavlink_system;
  */
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
 
+void mavlink_start_uart_send(mavlink_channel_t chan, int length);
 void mavlink_end_uart_send(mavlink_channel_t chan, int length);
 
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
