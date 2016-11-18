@@ -277,8 +277,6 @@ private:
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _accel_diff_max_mag;	/**< magnitude of the maximum accel difference between different IMU units (m/s/s)*/
-	float _gyro_diff_max_mag;	/**< magnitude of the maximum gyro difference between different IMU units (rad/s)*/
 
 	hrt_abstime _vibration_warning_timestamp;
 	bool _vibration_warning;
