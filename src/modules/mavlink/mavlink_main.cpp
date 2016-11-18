@@ -1818,6 +1818,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 			} else if (strcmp(myoptarg, "config") == 0) {
 				_mode = MAVLINK_MODE_CONFIG;
+
+			} else if (strcmp(myoptarg, "iridium") == 0) {
+				_mode = MAVLINK_MODE_IRIDIUM;
+				_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
 			}
 
 			break;
@@ -1935,14 +1939,18 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* add default streams depending on mode */
 
-	/* HEARTBEAT is constant rate stream, rate never adjusted */
-	configure_stream("HEARTBEAT", 1.0f);
+	if (_mode != MAVLINK_MODE_IRIDIUM) {
 
-	/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
-	configure_stream("STATUSTEXT", 20.0f);
+		/* HEARTBEAT is constant rate stream, rate never adjusted */
+		configure_stream("HEARTBEAT", 1.0f);
 
-	/* COMMAND_LONG stream: use high rate to avoid commands skipping */
-	configure_stream("COMMAND_LONG", 100.0f);
+		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
+		configure_stream("STATUSTEXT", 20.0f);
+
+		/* COMMAND_LONG stream: use high rate to avoid commands skipping */
+		configure_stream("COMMAND_LONG", 100.0f);
+
+	}
 
 	/* PARAM_VALUE stream */
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
@@ -2078,6 +2086,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
+		break;
+
+	case MAVLINK_MODE_IRIDIUM:
+		configure_stream("HIGH_LATENCY", 0.1f);
+		break;
 
 	default:
 		break;
@@ -2441,7 +2454,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2400,
+			   2500,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 

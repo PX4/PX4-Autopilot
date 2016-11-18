@@ -600,6 +600,11 @@ then
 		then
 			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 57600 -r 1000
 		fi
+		if param compare SYS_COMPANION 419200
+		then
+			iridiumsbd start -d /dev/ttyS2
+			mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+		fi
 		if param compare SYS_COMPANION 1921600
 		then
 			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 921600 -r 20000
