@@ -246,7 +246,8 @@ else()
 	message(STATUS "catkin DISABLED")
 endif()
 
-find_package(PythonInterp 2.7 REQUIRED)
+set(Python_ADDITIONAL_VERSIONS "3"; "2.7")
+find_package(PythonInterp REQUIRED)
 
 #=============================================================================
 # cmake modules
