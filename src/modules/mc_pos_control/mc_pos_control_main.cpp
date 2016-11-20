@@ -178,12 +178,17 @@ private:
 		param_t z_vel_max_up;
 		param_t z_vel_max_down;
 		param_t z_ff;
-		param_t xy_p;
-		param_t xy_vel_p;
-		param_t xy_vel_i;
-		param_t xy_vel_d;
+		param_t x_p;
+		param_t y_p;
+		param_t x_vel_p;
+		param_t y_vel_p;
+		param_t x_vel_i;
+		param_t y_vel_i;
+		param_t x_vel_d;
+		param_t y_vel_d;
 		param_t xy_vel_max;
-		param_t xy_vel_cruise;
+		param_t x_vel_cruise;
+		param_t y_vel_cruise;
 		param_t xy_ff;
 		param_t tilt_max_air;
 		param_t land_speed;
@@ -261,6 +266,7 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
+	math::Matrix<3, 3> _R_yaw;		/**< in-plane rotation by yaw angle (euler) */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
 	bool _takeoff_jumped;
@@ -344,6 +350,13 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main();
+
+	/**
+	 * Function to scale lateral errors(world xy plane) in world frame by gains in body frame
+	 */
+	void 		scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
+			const math::Vector<3> &gains,
+			const bool set_z);
 };
 
 namespace pos_control
@@ -433,6 +446,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_err_d.zero();
 
 	_R.identity();
+	_R_yaw.identity();
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -454,12 +468,17 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
+	_params_handles.x_p		= param_find("MPC_X_P");
+	_params_handles.y_p		= param_find("MPC_Y_P");
+	_params_handles.x_vel_p		= param_find("MPC_X_VEL_P");
+	_params_handles.y_vel_p		= param_find("MPC_Y_VEL_P");
+	_params_handles.x_vel_i		= param_find("MPC_X_VEL_I");
+	_params_handles.y_vel_i		= param_find("MPC_Y_VEL_I");
+	_params_handles.x_vel_d		= param_find("MPC_X_VEL_D");
+	_params_handles.y_vel_d		= param_find("MPC_Y_VEL_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
-	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
+	_params_handles.x_vel_cruise	= param_find("MPC_X_CRUISE");
+	_params_handles.y_vel_cruise	= param_find("MPC_Y_CRUISE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
@@ -536,23 +555,27 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		float v;
 		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);
+		param_get(_params_handles.x_p, &v);
 		_params.pos_p(0) = v;
+		param_get(_params_handles.y_p, &v);
 		_params.pos_p(1) = v;
 		param_get(_params_handles.z_p, &v);
 		_params.pos_p(2) = v;
-		param_get(_params_handles.xy_vel_p, &v);
+		param_get(_params_handles.x_vel_p, &v);
 		_params.vel_p(0) = v;
+		param_get(_params_handles.y_vel_p, &v);
 		_params.vel_p(1) = v;
 		param_get(_params_handles.z_vel_p, &v);
 		_params.vel_p(2) = v;
-		param_get(_params_handles.xy_vel_i, &v);
+		param_get(_params_handles.x_vel_i, &v);
 		_params.vel_i(0) = v;
+		param_get(_params_handles.y_vel_i, &v);
 		_params.vel_i(1) = v;
 		param_get(_params_handles.z_vel_i, &v);
 		_params.vel_i(2) = v;
-		param_get(_params_handles.xy_vel_d, &v);
+		param_get(_params_handles.x_vel_d, &v);
 		_params.vel_d(0) = v;
+		param_get(_params_handles.y_vel_d, &v);
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
@@ -564,8 +587,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_max(2) = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
-		param_get(_params_handles.xy_vel_cruise, &v);
+		param_get(_params_handles.x_vel_cruise, &v);
 		_params.vel_cruise(0) = v;
+		param_get(_params_handles.y_vel_cruise, &v);
 		_params.vel_cruise(1) = v;
 		/* using Z max up for now */
 		param_get(_params_handles.z_vel_max_up, &v);
@@ -623,6 +647,31 @@ MulticopterPositionControl::parameters_update(bool force)
 }
 
 void
+MulticopterPositionControl::scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
+		const math::Vector<3> &gains, const bool set_z)
+{
+	float z_setpoint;
+
+	if (!set_z) {
+		// Preserve z-component
+		z_setpoint = setpoint(2);
+	}
+
+	/* Project body-fixed gains to world frame and multiply by world-fixed errors. */
+	math::Matrix<3, 3> Gains;
+	Gains.identity();
+	Gains(0, 0) = gains(0);
+	Gains(1, 1) = gains(1);
+	Gains(2, 2) = gains(2);
+	setpoint = _R_yaw * Gains * _R_yaw.transposed() * errors;
+
+	/* Reset z setpoint if required */
+	if (!set_z) {
+		setpoint(2) = z_setpoint;
+	}
+}
+
+void
 MulticopterPositionControl::poll_subscriptions()
 {
 	bool updated;
@@ -660,6 +709,7 @@ MulticopterPositionControl::poll_subscriptions()
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
+		_R_yaw.from_euler(0.0f, 0.0f, _yaw);
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -787,8 +837,8 @@ MulticopterPositionControl::limit_pos_sp_offset()
 	pos_sp_offs.zero();
 
 	if (_control_mode.flag_control_position_enabled) {
-		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
-		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+		/* Limit maximum setpoint offset in position in body frame */
+		scale_with_body_fixed_gains(pos_sp_offs, _pos_sp - _pos, _params.sp_offs_max.einv(), false);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -1082,7 +1132,9 @@ void MulticopterPositionControl::control_auto(float dt)
 			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
 		}
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+		/* Get the scale in the world frame */
+		math::Vector<3> scale;
+		scale = _R_yaw * _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
@@ -1160,11 +1212,17 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
 
 		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+		math::Vector<3> d_pos_m;
+
+		/* Calculate the scaled difference with the gains in body frame */
+		scale_with_body_fixed_gains(d_pos_m, pos_sp_s - pos_sp_old_s, _params.pos_p.einv(), true);
+
 		float d_pos_m_len = d_pos_m.length();
 
 		if (d_pos_m_len > dt) {
-			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
+			math::Vector<3> d_pos_m_increment;
+			scale_with_body_fixed_gains(d_pos_m_increment, d_pos_m, _params.pos_p / d_pos_m_len * dt, true);
+			pos_sp_s = pos_sp_old_s + d_pos_m_increment;
 		}
 
 		/* scale result back to normal space */
@@ -1465,8 +1523,7 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+					scale_with_body_fixed_gains(_vel_sp, _pos_sp - _pos, _params.pos_p, false);
 				}
 
 				// guard against any bad velocity values
@@ -1680,15 +1737,18 @@ MulticopterPositionControl::task_main()
 
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
-						_vel_sp(0) = _vel(0) + (-Rb(0,
-									    2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
-						_vel_sp(1) = _vel(1) + (-Rb(1,
-									    2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
-						_vel_sp(2) = _vel(2) + (-Rb(2,
-									    2) * _att_sp.thrust - thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
-						_vel_sp_prev(0) = _vel_sp(0);
-						_vel_sp_prev(1) = _vel_sp(1);
-						_vel_sp_prev(2) = _vel_sp(2);
+						math::Vector<3> req_th_sp_d, req_th_p, req_vel_err;
+						scale_with_body_fixed_gains(req_th_sp_d, _vel_err_d, _params.vel_d, true);
+
+						/* Calculate p error in body frame and scale with p gains in body frame */
+						req_th_p(0) = (-Rb(0, 2) * _att_sp.thrust - thrust_int(0) - req_th_sp_d(0));
+						req_th_p(1) = (-Rb(1, 2) * _att_sp.thrust - thrust_int(1) - req_th_sp_d(1));
+						req_th_p(2) = (-Rb(2, 2) * _att_sp.thrust - thrust_int(2) - req_th_sp_d(2));
+
+						scale_with_body_fixed_gains(req_vel_err, req_th_p, _params.vel_p.einv(), true);
+
+						_vel_sp = _vel + req_vel_err;
+						_vel_sp_prev = _vel_sp;
 						control_vel_enabled_prev = true;
 
 						// compute updated velocity error
@@ -1702,7 +1762,14 @@ MulticopterPositionControl::task_main()
 						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 					} else {
-						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+						/* Use body-fixed gains */
+						math::Vector<3> thrust_sp_p, thrust_sp_d;
+						scale_with_body_fixed_gains(thrust_sp_p, vel_err, _params.vel_p, true);
+						scale_with_body_fixed_gains(thrust_sp_d, _vel_err_d, _params.vel_d, true);
+						thrust_sp = thrust_sp_p + thrust_sp_d;
+
+						/* Add integral to thrust setpoint */
+						thrust_sp += thrust_int;
 					}
 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1871,8 +1938,11 @@ MulticopterPositionControl::task_main()
 
 					/* update integrals */
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-						thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
-						thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
+						/* Use separate body-fixed gains for integrals */
+						math::Vector<3> thrust_int_increment;
+						thrust_int_increment.zero();
+						scale_with_body_fixed_gains(thrust_int_increment, vel_err, _params.vel_i * dt, false);
+						thrust_int += thrust_int_increment;
 					}
 
 					if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
