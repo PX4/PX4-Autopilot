@@ -120,9 +120,15 @@ void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
 
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub,
-		   const bool data_link_loss_enabled, const bool mission_finished,
+		   const int data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed,
-		   const bool rc_loss_enabled, const int offb_loss_act, const int offb_loss_rc_act);
+		   const int rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act);
+
+void set_rc_loss_nav_state(struct vehicle_status_s *status, status_flags_s *status_flags,
+	const int rc_loss_act);
+
+void set_data_link_loss_nav_state(struct vehicle_status_s *status, status_flags_s *status_flags,
+	const int data_link_loss_act);
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report, status_flags_s *status_flags, battery_status_s *battery, bool can_arm_without_gps);
 

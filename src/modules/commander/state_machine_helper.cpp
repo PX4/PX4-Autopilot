@@ -650,9 +650,9 @@ void enable_failsafe(struct vehicle_status_s *status,
  */
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub,
-		   const bool data_link_loss_enabled, const bool mission_finished,
+		   const int data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, status_flags_s *status_flags, bool landed,
-		   const bool rc_loss_enabled, const int offb_loss_act, const int offb_loss_rc_act)
+		   const int rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
@@ -670,21 +670,10 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
 		/* require RC for all manual modes */
-		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
+		if (rc_loss_act > 0 && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
-
-			} else if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+			set_rc_loss_nav_state(status, status_flags, rc_loss_act);
 
 		} else {
 			switch (internal_state->main_state) {
@@ -717,26 +706,12 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		break;
 
 	case commander_state_s::MAIN_STATE_POSCTL: {
-			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
+			const bool rc_lost = rc_loss_act > 0 && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
 
 			if (rc_lost && armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-				if (status_flags->condition_global_position_valid &&
-				    status_flags->condition_home_position_valid &&
-				    !status_flags->gps_failure) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
-
-				} else if (status_flags->condition_local_position_valid &&
-					   !status_flags->gps_failure) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-				} else if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-				}
+				set_rc_loss_nav_state(status, status_flags, rc_loss_act);
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
@@ -804,41 +779,19 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			/* datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
 
-		} else if (data_link_loss_enabled && status->data_link_lost) {
+		} else if (data_link_loss_act > 0 && status->data_link_lost) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
-
-			} else if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+			set_data_link_loss_nav_state(status, status_flags, data_link_loss_act);
 
 			/* datalink loss disabled:
 			 * check if both, RC and datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
 
-		} else if (!data_link_loss_enabled && status->rc_signal_lost && status->data_link_lost && !landed && mission_finished) {
+		} else if (data_link_loss_act <= 0 && status->rc_signal_lost && status->data_link_lost && !landed && mission_finished) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
-
-			} else if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+			set_rc_loss_nav_state(status, status_flags, rc_loss_act);
 
 			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
 
@@ -860,38 +813,17 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 			/* also go into failsafe if just datalink is lost */
 
-		} else if (status->data_link_lost && data_link_loss_enabled) {
+		} else if (status->data_link_lost && data_link_loss_act > 0) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
-
-			} else if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+			set_data_link_loss_nav_state(status, status_flags, data_link_loss_act);
 
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not disabled */
 
-		} else if (status->rc_signal_lost && rc_loss_enabled && !data_link_loss_enabled) {
+		} else if (status->rc_signal_lost && rc_loss_act > 0 && data_link_loss_act <= 0) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 
-			} else if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+			set_rc_loss_nav_state(status, status_flags, rc_loss_act);
 
 			/* don't bother if RC is lost if datalink is connected */
 
@@ -1099,6 +1031,74 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	}
 
 	return status->nav_state != nav_state_old;
+}
+
+void set_rc_loss_nav_state(struct vehicle_status_s *status, status_flags_s *status_flags,
+	const int rc_loss_act)
+{
+	// do the best you can according to the action set
+	if (rc_loss_act == 4
+	    && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+
+	} else if (rc_loss_act == 1 && status_flags->condition_global_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+	} else if (rc_loss_act == 2
+		   && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	} else if (rc_loss_act == 3 && status_flags->condition_local_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+		// do the best you can according to the current state
+
+	} else if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	} else if (status_flags->condition_local_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+	} else if (status_flags->condition_local_altitude_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+	} else {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+	}
+}
+
+void set_data_link_loss_nav_state(struct vehicle_status_s *status, status_flags_s *status_flags,
+	const int data_link_loss_act)
+{
+	// do the best you can according to the action set
+	if (data_link_loss_act == 4
+	    && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+
+	} else if (data_link_loss_act == 1 && status_flags->condition_global_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+	} else if (data_link_loss_act == 2
+		   && status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	} else if (data_link_loss_act == 3 && status_flags->condition_local_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+		// do the best you can according to the current state
+
+	} else if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	} else if (status_flags->condition_local_position_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+	} else if (status_flags->condition_local_altitude_valid) {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+	} else {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+	}
 }
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
