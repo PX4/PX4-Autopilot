@@ -187,6 +187,10 @@ then
 
 	if ver hwcmp AEROFC_V1
 	then
+		if param compare SYS_AUTOSTART 0
+		then
+			set AUTOCNF yes
+		fi
 		param set SYS_AUTOSTART 4070
 	fi
 
