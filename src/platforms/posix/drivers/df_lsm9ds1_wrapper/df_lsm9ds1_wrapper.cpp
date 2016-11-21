@@ -673,11 +673,9 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.z = accel_val_filt(2);
 
 	if (_mag_enabled) {
-		//because the sensor coordinate system of mag is different.
-		float _mag_tmp;
-		_mag_tmp = -data.mag_ga_x;	
-		rotate_3f(_rotation, _mag_tmp, data.mag_ga_y, data.mag_ga_z);
-		math::Vector<3> mag_val((_mag_tmp - _mag_calibration.x_offset) * _mag_calibration.x_scale,
+		//TODO: the sensor coordinate system of mag is different. MAG_X should be -MAG_X
+		rotate_3f(_rotation, data.mag_ga_x, data.mag_ga_y, data.mag_ga_z);
+		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
 					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
 					(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
 
