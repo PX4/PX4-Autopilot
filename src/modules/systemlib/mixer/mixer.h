@@ -601,6 +601,24 @@ private:
 	orb_advert_t			_limits_pub;
 	multirotor_motor_limits_s 	_limits;
 
+	union {
+	    struct {
+		uint16_t motor_pos	: 1; // 0 - true when any motor has saturated in the positive direction
+		uint16_t motor_neg	: 1; // 1 - true when any motor has saturated in the negative direction
+		uint16_t roll_pos	: 1; // 2 - true when a positive roll demand change will increase saturation
+		uint16_t roll_neg	: 1; // 3 - true when a negative roll demand change will increase saturation
+		uint16_t pitch_pos	: 1; // 4 - true when a positive pitch demand change will increase saturation
+		uint16_t pitch_neg	: 1; // 5 - true when a negative pitch demand change will increase saturation
+		uint16_t yaw_pos	: 1; // 6 - true when a positive yaw demand change will increase saturation
+		uint16_t yaw_neg	: 1; // 7 - true when a negative yaw demand change will increase saturation
+		uint16_t thrust_pos	: 1; // 8 - true when a positive thrust demand change will increase saturation
+		uint16_t thrust_neg	: 1; // 9 - true when a negative thrust demand change will increase saturation
+	    } flags;
+	    uint16_t value;
+	} _saturation_status;
+
+	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
