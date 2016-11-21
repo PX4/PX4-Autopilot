@@ -128,6 +128,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset_pub(nullptr),
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
+	_collision_report_pub(nullptr),
 	_control_state_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
@@ -256,6 +257,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_ADSB_VEHICLE:
 		handle_message_adsb_vehicle(msg);
+		break;
+
+	case MAVLINK_MSG_ID_COLLISION:
+		handle_message_collision(msg);
 		break;
 
 	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
@@ -1924,6 +1929,30 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);
+	}
+}
+
+void MavlinkReceiver::handle_message_collision(mavlink_message_t *msg)
+{
+	mavlink_collision_t collision;
+	collision_report_s t = { };
+
+	mavlink_msg_collision_decode(msg, &collision);
+
+	t.timestamp = hrt_absolute_time();
+	t.src = collision.src;
+	t.id = collision.id;
+	t.action = collision.action;
+	t.threat_level = collision.threat_level;
+	t.time_to_minimum_delta = collision.time_to_minimum_delta;
+	t.altitude_minimum_delta = collision.altitude_minimum_delta;
+	t.horizontal_minimum_delta = collision.horizontal_minimum_delta;
+
+	if (_collision_report_pub == nullptr) {
+		_collision_report_pub = orb_advertise(ORB_ID(collision_report), &t);
+
+	} else {
+		orb_publish(ORB_ID(collision_report), _collision_report_pub, &t);
 	}
 }
 

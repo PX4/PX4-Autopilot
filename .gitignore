@@ -5,6 +5,7 @@
 *.px4log
 *.dSYM
 *.o
+*.gch
 *.pyc
 *~
 .*.swp

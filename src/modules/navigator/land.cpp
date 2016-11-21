@@ -54,10 +54,10 @@
 #include "navigator.h"
 
 Land::Land(Navigator *navigator, const char *name) :
-    MissionBlock(navigator, name)
+	MissionBlock(navigator, name)
 {
-    /* load initial params */
-    updateParams();
+	/* load initial params */
+	updateParams();
 }
 
 Land::~Land()
@@ -72,34 +72,34 @@ Land::on_inactive()
 void
 Land::on_activation()
 {
-    /* set current mission item to Land */
-    set_land_item(&_mission_item, true);
-    _navigator->get_mission_result()->reached = false;
-    _navigator->get_mission_result()->finished = false;
-    _navigator->set_mission_result_updated();
-    reset_mission_item_reached();
+	/* set current mission item to Land */
+	set_land_item(&_mission_item, true);
+	_navigator->get_mission_result()->reached = false;
+	_navigator->get_mission_result()->finished = false;
+	_navigator->set_mission_result_updated();
+	reset_mission_item_reached();
 
-    /* convert mission item to current setpoint */
-    struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-    pos_sp_triplet->previous.valid = false;
-    mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-    pos_sp_triplet->next.valid = false;
+	/* convert mission item to current setpoint */
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->previous.valid = false;
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->next.valid = false;
 
-    _navigator->set_can_loiter_at_sp(false);
+	_navigator->set_can_loiter_at_sp(false);
 
-    _navigator->set_position_setpoint_triplet_updated();
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
 Land::on_active()
 {
-    if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
-        _navigator->get_mission_result()->finished = true;
-        _navigator->set_mission_result_updated();
-        set_idle_item(&_mission_item);
+	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
+		_navigator->get_mission_result()->finished = true;
+		_navigator->set_mission_result_updated();
+		set_idle_item(&_mission_item);
 
-        struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-        mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-        _navigator->set_position_setpoint_triplet_updated();
-    }
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }

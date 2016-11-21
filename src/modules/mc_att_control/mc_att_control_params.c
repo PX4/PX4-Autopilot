@@ -403,3 +403,18 @@ PARAM_DEFINE_FLOAT(MC_TPA_BREAK, 1.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_TPA_SLOPE, 1.0f);
+
+
+/**
+ * Whether to scale outputs by battery power level
+ *
+ * This compensates for voltage drop of the battery over time by attempting to
+ * normalize performance across the operating range of the battery. The copter
+ * should constantly behave as if it was fully charged with reduced max acceleration
+ * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+ * it will still be 0.5 at 60% battery.
+ *
+ * @boolean
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);

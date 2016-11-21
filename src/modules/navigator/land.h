@@ -50,15 +50,15 @@
 class Land : public MissionBlock
 {
 public:
-    Land(Navigator *navigator, const char *name);
+	Land(Navigator *navigator, const char *name);
 
-    ~Land();
+	~Land();
 
-    virtual void on_inactive();
+	virtual void on_inactive();
 
-    virtual void on_activation();
+	virtual void on_activation();
 
-    virtual void on_active();
+	virtual void on_active();
 
 };
 
