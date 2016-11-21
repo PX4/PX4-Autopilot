@@ -145,7 +145,6 @@ private:
 		float z_scale;
 	} _mag_calibration;
 
-	//math::Matrix<3, 3>	    _rotation_matrix;
 	enum Rotation               _rotation;
 	int			    _accel_orb_class_instance;
 	int			    _gyro_orb_class_instance;
@@ -222,8 +221,6 @@ DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
 		_mag_calibration.z_offset = 0.0f;
 	}
 
-	// Get sensor rotation matrix
-	//get_rot_matrix(rotation, &_rotation_matrix);
 }
 
 DfLsm9ds1Wrapper::~DfLsm9ds1Wrapper()
@@ -579,8 +576,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 				  (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale,
 				  (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale);
 
-	//accel_val = _rotation_matrix * accel_val;
-
 	_accel_int.put_with_interval(data.fifo_sample_interval_us,
 				     accel_val,
 				     vec_integrated_unused,
@@ -590,9 +585,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	math::Vector<3> gyro_val((data.gyro_rad_s_x - _gyro_calibration.x_offset) * _gyro_calibration.x_scale,
 				 (data.gyro_rad_s_y - _gyro_calibration.y_offset) * _gyro_calibration.y_scale,
 				 (data.gyro_rad_s_z - _gyro_calibration.z_offset) * _gyro_calibration.z_scale);
-
-	
-	//gyro_val = _rotation_matrix * gyro_val;
 
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
@@ -679,8 +671,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
 					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
 					(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
-
-		//mag_val = _rotation_matrix * mag_val;
 
 		mag_report.x = mag_val(0);
 		mag_report.y = mag_val(1);
