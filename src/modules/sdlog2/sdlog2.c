@@ -111,6 +111,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/low_stack.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1222,6 +1223,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
+		struct low_stack_s low_stack;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1284,6 +1286,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_RPL6_s log_RPL6;
 			struct log_LOAD_s log_LOAD;
 			struct log_DPRS_s log_DPRS;
+			struct log_STCK_s log_STCK;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1334,6 +1337,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int commander_state_sub;
 		int cpuload_sub;
 		int diff_pres_sub;
+		int low_stack_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1377,6 +1381,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.commander_state_sub = -1;
 	subs.cpuload_sub = -1;
 	subs.diff_pres_sub = -1;
+	subs.low_stack_sub = -1;
 
 	/* add new topics HERE */
 
@@ -2319,7 +2324,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_LOAD_MSG;
 			log_msg.body.log_LOAD.cpu_load = buf.cpuload.load;
 			LOGBUFFER_WRITE_AND_COUNT(LOAD);
+		}
 
+		/* --- STACK --- */
+		if (copy_if_updated(ORB_ID(low_stack), &subs.low_stack_sub, &buf.low_stack)) {
+			log_msg.msg_type = LOG_STCK_MSG;
+			log_msg.body.log_STCK.stack_free = buf.low_stack.stack_free;
+			strncpy(log_msg.body.log_STCK.task_name, (char*)buf.low_stack.task_name, sizeof(log_msg.body.log_STCK.task_name));
+			LOGBUFFER_WRITE_AND_COUNT(STCK);
 		}
 
 		pthread_mutex_lock(&logbuffer_mutex);
