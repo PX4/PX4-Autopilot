@@ -81,7 +81,7 @@ Tailsitter::~Tailsitter()
 
 }
 
-int
+void
 Tailsitter::parameters_update()
 {
 	float v;
@@ -117,13 +117,10 @@ Tailsitter::parameters_update()
 	if (_params_tailsitter.airspeed_trans < _params_tailsitter.airspeed_blend_start + 1.0f) {
 		_params_tailsitter.airspeed_trans = _params_tailsitter.airspeed_blend_start + 1.0f;
 	}
-
-	return OK;
 }
 
 void Tailsitter::update_vtol_state()
 {
-	parameters_update();
 
 	/* simple logic using a two way switch to perform transitions.
 	 * after flipping the switch the vehicle will start tilting in MC control mode, picking up
