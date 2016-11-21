@@ -9,6 +9,9 @@ uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed
 uint8 SETPOINT_TYPE_OFFBOARD=6 	# setpoint in NED frame (x, y, z, vx, vy, vz) set by offboard
 uint8 SETPOINT_TYPE_FOLLOW_TARGET=7  # setpoint in NED frame (x, y, z, vx, vy, vz) set by follow target
 
+uint8 VELOCITY_FRAME_LOCAL_NED = 1 # MAV_FRAME_LOCAL_NED
+uint8 VELOCITY_FRAME_BODY_NED = 8 # MAV_FRAME_BODY_NED
+
 bool valid			# true if setpoint is valid
 uint8 type			# setpoint type to adjust behavior of position controller
 float32 x			# local position setpoint in m in NED
@@ -19,6 +22,8 @@ float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED
 bool velocity_valid		# true if local velocity setpoint valid
+uint8 velocity_frame		# to set velocity setpoints in NED or body
+
 bool alt_valid		# do not set for 3D position control. Set to true if you want z-position control while doing vx,vy velocity control.
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg

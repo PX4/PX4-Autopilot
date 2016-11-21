@@ -1222,12 +1222,24 @@ MulticopterPositionControl::control_offboard(float dt)
 					_hold_offboard_xy = true;
 				}
 
-				_run_pos_control = false;
+				_run_pos_control = true;
 
 			} else {
-				/* set position setpoint move rate */
-				_vel_sp(0) = _pos_sp_triplet.current.vx;
-				_vel_sp(1) = _pos_sp_triplet.current.vy;
+
+				if (_pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
+					/* set position setpoint move rate */
+					_vel_sp(0) = _pos_sp_triplet.current.vx;
+					_vel_sp(1) = _pos_sp_triplet.current.vy;
+
+				} else if (_pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
+					// Transform velocity command from body frame to NED frame
+					_vel_sp(0) = cosf(_yaw) * _pos_sp_triplet.current.vx - sinf(_yaw) * _pos_sp_triplet.current.vy;
+					_vel_sp(1) = sinf(_yaw) * _pos_sp_triplet.current.vx + cosf(_yaw) * _pos_sp_triplet.current.vy;
+
+				} else {
+					PX4_WARN("Unknown velocity offboard coordinate frame");
+				}
+
 				_run_pos_control = false;
 
 				_hold_offboard_xy = false;
