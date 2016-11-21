@@ -99,7 +99,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
-#define RATES_I_LIMIT	0.3f
 #define TPA_RATE_LOWER_LIMIT 0.05f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
@@ -166,6 +165,22 @@ private:
 	struct mc_att_ctrl_status_s 		_controller_status; /**< controller status */
 	struct battery_status_s				_battery_status;	/**< battery status */
 
+	union {
+	    struct {
+		uint16_t motor_pos	: 1; // 0 - true when any motor has saturated in the positive direction
+		uint16_t motor_neg	: 1; // 1 - true when any motor has saturated in the negative direction
+		uint16_t roll_pos	: 1; // 2 - true when a positive roll demand change will increase saturation
+		uint16_t roll_neg	: 1; // 3 - true when a negative roll demand change will increase saturation
+		uint16_t pitch_pos	: 1; // 4 - true when a positive pitch demand change will increase saturation
+		uint16_t pitch_neg	: 1; // 5 - true when a negative pitch demand change will increase saturation
+		uint16_t yaw_pos	: 1; // 6 - true when a positive yaw demand change will increase saturation
+		uint16_t yaw_neg	: 1; // 7 - true when a negative yaw demand change will increase saturation
+		uint16_t thrust_pos	: 1; // 8 - true when a positive thrust demand change will increase saturation
+		uint16_t thrust_neg	: 1; // 9 - true when a negative thrust demand change will increase saturation
+	    } flags;
+	    uint16_t value;
+	} _saturation_status;
+
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
 
@@ -182,11 +197,13 @@ private:
 		param_t roll_p;
 		param_t roll_rate_p;
 		param_t roll_rate_i;
+		param_t roll_rate_integ_lim;
 		param_t roll_rate_d;
 		param_t roll_rate_ff;
 		param_t pitch_p;
 		param_t pitch_rate_p;
 		param_t pitch_rate_i;
+		param_t pitch_rate_integ_lim;
 		param_t pitch_rate_d;
 		param_t pitch_rate_ff;
 		param_t tpa_breakpoint_p;
@@ -198,6 +215,7 @@ private:
 		param_t yaw_p;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
+		param_t yaw_rate_integ_lim;
 		param_t yaw_rate_d;
 		param_t yaw_rate_ff;
 		param_t yaw_ff;
@@ -225,6 +243,7 @@ private:
 		math::Vector<3> att_p;					/**< P gain for angular error */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
+		math::Vector<3> rate_int_lim;			/**< integrator state limit for rate loop */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		math::Vector<3>	rate_ff;			/**< Feedforward gain for desired rates */
 		float yaw_ff;						/**< yaw control feed-forward */
@@ -379,6 +398,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.att_p.zero();
 	_params.rate_p.zero();
 	_params.rate_i.zero();
+	_params.rate_int_lim.zero();
 	_params.rate_d.zero();
 	_params.rate_ff.zero();
 	_params.yaw_ff = 0.0f;
@@ -405,11 +425,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
 	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
+	_params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
 	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
 	_params_handles.roll_rate_ff	= 	param_find("MC_ROLLRATE_FF");
 	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
 	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
+	_params_handles.pitch_rate_integ_lim	= 	param_find("MC_PR_INT_LIM");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
 	_params_handles.pitch_rate_ff 	= 	param_find("MC_PITCHRATE_FF");
 	_params_handles.tpa_breakpoint_p 	= 	param_find("MC_TPA_BREAK_P");
@@ -421,6 +443,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
+	_params_handles.yaw_rate_integ_lim	= 	param_find("MC_YR_INT_LIM");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_rate_ff	 	= 	param_find("MC_YAWRATE_FF");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
@@ -497,6 +520,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
 	param_get(_params_handles.roll_rate_i, &v);
 	_params.rate_i(0) = v;
+	param_get(_params_handles.roll_rate_integ_lim, &v);
+	_params.rate_int_lim(0) = v;
 	param_get(_params_handles.roll_rate_d, &v);
 	_params.rate_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
 	param_get(_params_handles.roll_rate_ff, &v);
@@ -509,6 +534,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_i, &v);
 	_params.rate_i(1) = v;
+	param_get(_params_handles.pitch_rate_integ_lim, &v);
+	_params.rate_int_lim(1) = v;
 	param_get(_params_handles.pitch_rate_d, &v);
 	_params.rate_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_ff, &v);
@@ -528,6 +555,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_p(2) = v;
 	param_get(_params_handles.yaw_rate_i, &v);
 	_params.rate_i(2) = v;
+	param_get(_params_handles.yaw_rate_integ_lim, &v);
+	_params.rate_int_lim(2) = v;
 	param_get(_params_handles.yaw_rate_d, &v);
 	_params.rate_d(2) = v;
 	param_get(_params_handles.yaw_rate_ff, &v);
@@ -687,6 +716,7 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &_motor_limits);
+		_saturation_status.value = _motor_limits.saturation_status;
 	}
 }
 
@@ -865,20 +895,47 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_rates_sp_prev = _rates_sp;
 	_rates_prev = rates;
 
-	/* update integral only if not saturated on low limit and if motor commands are not saturated */
-	if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
+	/* update integral only if motors are providing enough thrust to be effective */
+	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
 		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
-			if (fabsf(_att_control(i)) < _thrust_sp) {
-				float rate_i = _rates_int(i) + rates_i_scaled(i) * rates_err(i) * dt;
+			// Check for positive control saturation
+			bool positive_saturation =
+					((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
+					((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
+					((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
 
-				if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
-				    /* if the axis is the yaw axis, do not update the integral if the limit is hit */
-				    !((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
-					_rates_int(i) = rate_i;
-				}
+			// Check for negative control saturation
+			bool negative_saturation =
+					((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
+					((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
+					((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
+
+			// prevent further positive control saturation
+			if (positive_saturation) {
+				rates_err(i) = math::min(rates_err(i), 0.0f);
+
+			}
+
+			// prevent further negative control saturation
+			if (negative_saturation) {
+				rates_err(i) = math::max(rates_err(i), 0.0f);
+
+			}
+
+			// Perform the integration using a first order method and do not propaate the result if out of range or invalid
+			float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
+
+			if (PX4_ISFINITE(rate_i) && rate_i > -_params.rate_int_lim(i) && rate_i < _params.rate_int_lim(i)) {
+				_rates_int(i) = rate_i;
+
 			}
 		}
+	}
+
+	/* explicitly limit the integrator state */
+	for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+		_rates_int(i) = math::constrain(_rates_int(i), -_params.rate_int_lim(i), _params.rate_int_lim(i));
+
 	}
 }
 
