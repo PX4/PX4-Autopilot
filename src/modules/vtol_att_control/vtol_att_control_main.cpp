@@ -177,6 +177,11 @@ VtolAttitudeControl::~VtolAttitudeControl()
 		} while (_control_task != -1);
 	}
 
+	// free memory used by instances of base class VtolType
+	if (_vtol_type != nullptr) {
+		delete _vtol_type;
+	}
+
 	VTOL_att_control::g_control = nullptr;
 }
 
