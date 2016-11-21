@@ -75,7 +75,7 @@ Tiltrotor::~Tiltrotor()
 
 }
 
-int
+void
 Tiltrotor::parameters_update()
 {
 	float v;
@@ -128,8 +128,6 @@ Tiltrotor::parameters_update()
 	if (_params_tiltrotor.airspeed_trans < _params_tiltrotor.airspeed_blend_start + 1.0f) {
 		_params_tiltrotor.airspeed_trans = _params_tiltrotor.airspeed_blend_start + 1.0f;
 	}
-
-	return OK;
 }
 
 int Tiltrotor::get_motor_off_channels(int channels)
@@ -154,7 +152,6 @@ int Tiltrotor::get_motor_off_channels(int channels)
 
 void Tiltrotor::update_vtol_state()
 {
-	parameters_update();
 
 	/* simple logic using a two way switch to perform transitions.
 	 * after flipping the switch the vehicle will start tilting rotors, picking up

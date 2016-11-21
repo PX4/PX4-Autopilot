@@ -564,6 +564,11 @@ VtolAttitudeControl::parameters_update()
 	_params.fw_min_alt = v;
 
 
+	// update the parameters of the instances of base VtolType
+	if (_vtol_type != nullptr) {
+		_vtol_type->parameters_update();
+	}
+
 	return OK;
 }
 
