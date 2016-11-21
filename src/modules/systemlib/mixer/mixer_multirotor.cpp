@@ -240,10 +240,8 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	float		min_out = 1.0f;
 	float		max_out = 0.0f;
 
-	// clean register for saturation status flags
-	if (status_reg != NULL) {
-		(*status_reg) = 0;
-	}
+	// clean out class variable used to capture saturation
+	_saturation_status.value = 0;
 
 	// thrust boost parameters
 	float thrust_increase_factor = 1.5f;
@@ -269,7 +267,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		outputs[i] = out;
 	}
 
-	float boost = 0.0f;				// value added to demanded thrust (can also be negative)
+	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
 	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
 
 	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
@@ -310,17 +308,12 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 	}
 
-	// notify if saturation has occurred
+	// capture saturation
 	if (min_out < 0.0f) {
-		if (status_reg != NULL) {
-			(*status_reg) |= PX4IO_P_STATUS_MIXER_LOWER_LIMIT;
-		}
+		_saturation_status.flags.motor_neg = true;
 	}
-
 	if (max_out > 1.0f) {
-		if (status_reg != NULL) {
-			(*status_reg) |= PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
-		}
+		_saturation_status.flags.motor_pos = true;
 	}
 
 	// mix again but now with thrust boost, scale roll/pitch and also add yaw
@@ -341,11 +334,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 				yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
 					roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
 			}
-
-			if (status_reg != NULL) {
-				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
-			}
-
 		} else if (out > 1.0f) {
 			// allow to reduce thrust to get some yaw response
 			float thrust_reduction = fminf(0.15f, out - 1.0f);
@@ -357,10 +345,6 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 			} else {
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
 					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
-			}
-
-			if (status_reg != NULL) {
-				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
 			}
 		}
 	}
@@ -374,26 +358,145 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
 
-		// slew rate limiting
+	}
+
+	/* slew rate limiting and saturation checking */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		bool clipping_high = false;
+		bool clipping_low = false;
+
+		// check for saturation against static limits
+		if (outputs[i] > 0.99f) {
+			clipping_high = true;
+
+		} else if (outputs[i] < _idle_speed + 0.01f) {
+			clipping_low = true;
+
+		}
+
+		// check for saturation against slew rate limits
 		if (_delta_out_max > 0.0f) {
 			float delta_out = outputs[i] - _outputs_prev[i];
 
 			if (delta_out > _delta_out_max) {
 				outputs[i] = _outputs_prev[i] + _delta_out_max;
+				clipping_high = true;
 
 			} else if (delta_out < -_delta_out_max) {
 				outputs[i] = _outputs_prev[i] - _delta_out_max;
+				clipping_low = true;
+
 			}
 		}
 
 		_outputs_prev[i] = outputs[i];
+
+		// update the saturation status report
+		update_saturation_status(i, clipping_high, clipping_low);
 
 	}
 
 	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
 	_delta_out_max = 0.0f;
 
+	// Notify saturation status
+	if (status_reg != NULL) {
+		(*status_reg) = _saturation_status.value;
+	}
+
 	return _rotor_count;
+}
+
+/*
+ * This function update the control saturation status report using hte following inputs:
+ *
+ * index: 0 based index identifying the motor that is saturating
+ * clipping_high: true if the motor demand is being limited in the positive direction
+ * clipping_low: true if the motor demand is being limited in the negative direction
+*/
+void
+MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low)
+{
+	// The motor is saturated at the upper limit
+	// check which control axes and which directions are contributing
+	if (clipping_high) {
+		if (_rotors[index].roll_scale > 0.0f) {
+			// A positive change in roll will increase saturation
+			_saturation_status.flags.roll_pos = true;
+
+		} else if (_rotors[index].roll_scale < 0.0f) {
+			// A negative change in roll will increase saturation
+			_saturation_status.flags.roll_neg = true;
+
+		}
+
+		// check if the pitch input is saturating
+		if (_rotors[index].pitch_scale > 0.0f) {
+			// A positive change in pitch will increase saturation
+			_saturation_status.flags.pitch_pos = true;
+
+		} else if (_rotors[index].pitch_scale < 0.0f) {
+			// A negative change in pitch will increase saturation
+			_saturation_status.flags.pitch_neg = true;
+
+		}
+
+		// check if the yaw input is saturating
+		if (_rotors[index].yaw_scale > 0.0f) {
+			// A positive change in yaw will increase saturation
+			_saturation_status.flags.yaw_pos = true;
+
+		} else if (_rotors[index].yaw_scale < 0.0f) {
+			// A negative change in yaw will increase saturation
+			_saturation_status.flags.yaw_neg = true;
+
+		}
+
+		// A positive change in thrust will increase saturation
+		_saturation_status.flags.thrust_pos = true;
+
+	}
+
+	// The motor is saturated at the lower limit
+	// check which control axes and which directions are contributing
+	if (clipping_low) {
+		// check if the roll input is saturating
+		if (_rotors[index].roll_scale > 0.0f) {
+			// A negative change in roll will increase saturation
+			_saturation_status.flags.roll_neg = true;
+
+		} else if (_rotors[index].roll_scale < 0.0f) {
+			// A positive change in roll will increase saturation
+			_saturation_status.flags.roll_pos = true;
+
+		}
+
+		// check if the pitch input is saturating
+		if (_rotors[index].pitch_scale > 0.0f) {
+			// A negative change in pitch will increase saturation
+			_saturation_status.flags.pitch_neg = true;
+
+		} else if (_rotors[index].pitch_scale < 0.0f) {
+			// A positive change in pitch will increase saturation
+			_saturation_status.flags.pitch_pos = true;
+
+		}
+
+		// check if the yaw input is saturating
+		if (_rotors[index].yaw_scale > 0.0f) {
+			// A negative change in yaw will increase saturation
+			_saturation_status.flags.yaw_neg = true;
+
+		} else if (_rotors[index].yaw_scale < 0.0f) {
+			// A positive change in yaw will increase saturation
+			_saturation_status.flags.yaw_pos = true;
+
+		}
+
+		// A negative change in thrust will increase saturation
+		_saturation_status.flags.thrust_neg = true;
+
+	}
 }
 
 void
