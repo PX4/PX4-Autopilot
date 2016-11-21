@@ -1107,8 +1107,8 @@ MulticopterPositionControl::control_non_manual(float dt)
 			ft_vel.zero();
 		}
 
-		_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
-		_vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
+		_vel_sp(0) = fabsf(ft_vel(0)) > fabsf(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
+		_vel_sp(1) = fabsf(ft_vel(1)) > fabsf(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
 
 		// track target using velocity only
 
@@ -1837,7 +1837,7 @@ MulticopterPositionControl::control_position(float dt)
 
 			/* descend stabilized, we're landing */
 			if (!_in_landing && !_lnd_reached_ground
-			    && (float)fabs(_acc_z_lp) < 0.1f
+			    && (float)fabsf(_acc_z_lp) < 0.1f
 			    && _vel_z_lp > 0.5f * _params.land_speed) {
 				_in_landing = true;
 			}
