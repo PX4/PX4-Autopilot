@@ -111,10 +111,9 @@ endfunction()
 function(px4_posix_generate_alias)
 	px4_parse_function_args(
 		NAME px4_posix_generate_alias
-		ONE_VALUE OUT
+		ONE_VALUE OUT PREFIX
 		MULTI_VALUE MODULE_LIST
-		REQUIRED ONE_VALUE PREFIX
-		REQUIRED MODULE_LIST OUT
+		REQUIRED OUT PREFIX MODULE_LIST
 		ARGN ${ARGN})
 
 	set(alias_string)
@@ -140,9 +139,9 @@ endfunction()
 function(px4_posix_generate_symlinks)
 	px4_parse_function_args(
 		NAME px4_posix_generate_symlinks
+		ONE_VALUE TARGET PREFIX
 		MULTI_VALUE MODULE_LIST
-		REQUIRED ONE_VALUE PREFIX
-		REQUIRED ONE_VALUE TARGET
+		REQUIRED TARGET PREFIX MODULE_LIST
 		ARGN ${ARGN})
 
 	foreach(module ${MODULE_LIST})
