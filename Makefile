@@ -223,6 +223,7 @@ sizes:
 
 checks_defaults: \
 	check_auav-x21_default \
+	check_px4fmu-v5_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
