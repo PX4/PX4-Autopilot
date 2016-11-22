@@ -50,8 +50,9 @@ add_custom_target(posix_init_dir
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${init_directory}
 )
 
+# cmake -E copy with version < 3.5 does not support copying multiple files yet, therefore use cp.
 add_custom_target(posix_init
-	COMMAND ${CMAKE_COMMAND} -E copy ${posix_init_files} ${init_directory}
+	COMMAND cp ${posix_init_files} ${init_directory}
 	DEPENDS posix_init_dir
 )
 

@@ -97,8 +97,9 @@ add_custom_target(mixer_dir
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${mixer_directory}
 )
 
+# cmake -E copy with version < 3.5 does not support copying multiple files yet, therefore use cp.
 add_custom_target(mixer
-	COMMAND ${CMAKE_COMMAND} -E copy ${mixer_files} ${mixer_directory}
+	COMMAND cp ${mixer_files} ${mixer_directory}
 	DEPENDS mixer_dir
 )
 

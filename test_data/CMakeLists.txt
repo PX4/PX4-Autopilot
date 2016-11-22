@@ -45,14 +45,15 @@ foreach(test_data_file ${test_data_file_names})
 	list(APPEND test_data_files ${CMAKE_CURRENT_SOURCE_DIR}/${test_data_file})
 endforeach()
 
-set(test_data_directory ${ROOTFS_DIRECTORY}/test_data)
+set(test_data_directory ${ROOTFS_DIRECTORY}/test_data/)
 
 add_custom_target(test_data_dir
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${test_data_directory}
 )
 
+# cmake -E copy with version < 3.5 does not support copying multiple files yet, therefore use cp.
 add_custom_target(test_data
-	COMMAND ${CMAKE_COMMAND} -E copy ${test_data_files} ${test_data_directory}
+	COMMAND cp ${test_data_files} ${test_data_directory}
 	DEPENDS test_data_dir
 )
 
