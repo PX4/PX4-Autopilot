@@ -53,6 +53,7 @@ __BEGIN_DECLS
 #    define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
 #    define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
 #  endif
+#  include <stm32_tim.h>
 #  include <stm32_spi.h>
 #  include <stm32_i2c.h>
 #    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
