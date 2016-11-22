@@ -137,16 +137,13 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	parameters_update();
 
 	if (_params.vtol_type == vtol_type::TAILSITTER) {
-		_tailsitter = new Tailsitter(this);
-		_vtol_type = _tailsitter;
+		_vtol_type = new Tailsitter(this);
 
 	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
-		_tiltrotor = new Tiltrotor(this);
-		_vtol_type = _tiltrotor;
+		_vtol_type = new Tiltrotor(this);
 
 	} else if (_params.vtol_type == vtol_type::STANDARD) {
-		_standard = new Standard(this);
-		_vtol_type = _standard;
+		_vtol_type = new Standard(this);
 
 	} else {
 		_task_should_exit = true;
