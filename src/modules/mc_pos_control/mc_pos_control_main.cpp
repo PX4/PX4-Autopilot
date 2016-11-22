@@ -2161,7 +2161,7 @@ MulticopterPositionControl::task_main()
 
 					// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
 					// R_tilt is computed from_euler; only true if cos(roll) not equal zero
-					// -> valid if roll is not +-pi/2
+					// -> valid if roll is not +-pi/2;
 					_att_sp.roll_body = -asinf(z_roll_pitch_sp(1));
 					_att_sp.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
 
