@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013, 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -106,9 +106,6 @@
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
-
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
 
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>

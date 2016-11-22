@@ -97,6 +97,7 @@ int gpio_led_main(int argc, char *argv[])
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)      || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V5)         || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
 		errx(1, "usage: gpio_led {start|stop} [-p <n>]\n"
@@ -123,8 +124,8 @@ int gpio_led_main(int argc, char *argv[])
 #if defined(CONFIG_ARCH_BOARD_AUAV_X21)          || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4)         || \
-	defined(CONFIG_ARCH_BOARD_MINDPX_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)      || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V5)         || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
 			char pin_name[] = "AUX OUT 1";
@@ -169,12 +170,11 @@ int gpio_led_main(int argc, char *argv[])
 					}
 
 #endif
-
 #if defined(CONFIG_ARCH_BOARD_AUAV_X21)          || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4)         || \
-	defined(CONFIG_ARCH_BOARD_MINDPX_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)      || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V5)         || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2)         || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
 					unsigned int n = strtoul(argv[3], NULL, 10);
