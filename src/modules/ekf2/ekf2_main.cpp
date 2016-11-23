@@ -75,7 +75,6 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
