@@ -580,7 +580,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	accel_val(0) = (accel_val(0) - _accel_calibration.x_offset) * _accel_calibration.x_scale;
 	accel_val(1) = (accel_val(1) - _accel_calibration.y_offset) * _accel_calibration.y_scale;
 	accel_val(2) = (accel_val(2) - _accel_calibration.z_offset) * _accel_calibration.z_scale;
-	
 	_accel_int.put_with_interval(data.fifo_sample_interval_us,
 				     accel_val,
 				     vec_integrated_unused,
@@ -595,7 +594,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
 	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
 	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
-
 	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
 				    gyro_val,
 				    vec_integrated_unused,
