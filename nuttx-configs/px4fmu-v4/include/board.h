@@ -269,6 +269,15 @@
 #define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_1|GPIO_SPEED_50MHz)
 #endif
 
+#ifdef CONFIG_STM32_SPI_DMA
+/*
+  only enable DMA on the sensor bus for now. We don't have enough
+  spare DMA channels for the other sensors at the moment
+ */
+# define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_2
+# define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_2
+#endif
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
