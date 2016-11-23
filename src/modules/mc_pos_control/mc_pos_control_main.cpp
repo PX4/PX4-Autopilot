@@ -262,6 +262,8 @@ private:
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 	math::Vector<3> _acc_ff;
+	math::Vector<3> _x_ax;  /** x -axis */
+	math::Vector<3> _z_ax; /** z -axis */
 
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
@@ -368,6 +370,17 @@ private:
 	 */
 	void		saturate_asym(math::Vector<3> & vec, const float max_xy, const float max_up, const float max_down);
 
+	/*
+	 * computes yaw corresponding to a vector once projected on xy plane
+	 */
+	void 		compute_yaw(float &yaw, const math::Vector<3> &vec);
+
+	/*
+	 * Cross product for vector of 3 -> needs to go somewhere else
+	 */
+	void	cross_product(math::Vector<3> &cross, const math::Vector<3> &vec1, const math::Vector<3> &vec2);
+
+
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -472,6 +485,13 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
 	_acc_ff.zero();
+	_z_ax(0) = 0.0f;
+	_z_ax(1) = 0.0f;
+	_z_ax(2) = 1.0f;
+	_x_ax(0) = 1.0f;
+	_x_ax(1) = 0.0f;
+	_x_ax(2) = 0.0f;
+
 
 	_R.identity();
 
@@ -981,7 +1001,33 @@ MulticopterPositionControl::saturate_asym(math::Vector<3> & vec, const float max
 	}
 
 }
+void
+MulticopterPositionControl::compute_yaw(float &yaw, const math::Vector<3> &vec){
 
+
+	/* project vec onto xy plane */
+	math::Vector<3> vec_proj = vec - _z_ax * (_z_ax * vec);
+	vec_proj /= vec_proj.length();
+
+	/* angle betwee vec and x */
+	yaw = acosf(_x_ax * vec_proj);
+
+	/* check orientation */
+	math::Vector<3> cross;
+	cross_product(cross, _x_ax, vec_proj );
+	if (cross(2) < 0.0f){
+		yaw *= -1.0f;
+	}
+
+}
+
+void
+MulticopterPositionControl::cross_product(math::Vector<3> &cross, const math::Vector<3> &vec1, const math::Vector<3> &vec2){
+
+	cross(0) = vec1(1)*vec2(2) - vec1(2)* vec2(1);
+	cross(1) = vec1(2)*vec2(0) - vec1(0)* vec2(2);
+	cross(2) = vec1(0)*vec2(1) - vec1(1)* vec2(0);
+}
 
 
 
@@ -1284,6 +1330,11 @@ void MulticopterPositionControl::control_auto(float dt)
 		next_setpoint_valid = current_setpoint_valid;
 	}
 
+	/*ToDo just for test */
+		prev_sp(2) = 4.0f;
+		curr_sp(2) = 4.0f;
+		next_pt(2) = 4.0f;
+
 	/* ToDo: change the names back to setpoints once verified code is working this reassignment is only necessary for */
 	ctrl_pt = curr_sp;
 	prev_pt = prev_sp;
@@ -1298,10 +1349,13 @@ void MulticopterPositionControl::control_auto(float dt)
 			&& _pos_sp_triplet.current.type
 					== position_setpoint_s::SETPOINT_TYPE_POSITION) {
 
+
+
 		/* update tracking states: pos_sp, vel_sp, acc_sp*/
 		compute_states_closest_on_bezier(prev_pt, ctrl_pt, next_pt);
 
 		/* adjust yaw such that it points along desired velocity */
+		compute_yaw(_att_sp.yaw_body, _vel_ff);
 
 
 
@@ -1429,6 +1483,8 @@ void MulticopterPositionControl::control_auto(float dt)
 				(double )_pos_sp(0), (double )_pos_sp(1), (double )_pos_sp(2));
 		PX4_INFO("p  x: %.6f, p  y: %.6f, p  z: %.6f", (double )_pos(0),
 				(double )_pos(1), (double )_pos(2));
+		PX4_INFO("yaw: %.6f", (double)_yaw);
+		PX4_INFO("yaw sp: %.6f", (double)_att_sp.yaw_body);
 
 
 
