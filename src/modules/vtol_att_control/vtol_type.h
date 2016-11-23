@@ -139,6 +139,8 @@ public:
 
 	mode get_mode() {return _vtol_mode;};
 
+	virtual void parameters_update() = 0;
+
 protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;

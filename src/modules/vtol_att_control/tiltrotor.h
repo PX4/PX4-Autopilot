@@ -133,7 +133,7 @@ private:
 	/**
 	 * Update parameters.
 	 */
-	int parameters_update();
+	virtual void parameters_update();
 
 };
 #endif

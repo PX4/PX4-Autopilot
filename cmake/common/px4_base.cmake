@@ -901,7 +901,8 @@ function(px4_create_git_hash_header)
 		)
 	#message(STATUS "GIT_VERSION = ${git_version}")
 	set(git_version_short)
-	string(SUBSTRING ${git_version} 1 16 git_version_short)
+	# We use the first 16 chars, starting at index 0
+	string(SUBSTRING ${git_version} 0 16 git_version_short)
 	configure_file(${PX4_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
 endfunction()
 
