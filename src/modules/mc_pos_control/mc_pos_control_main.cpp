@@ -1112,9 +1112,11 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
+	//bool next_setpoint_valid = false;
 
 	math::Vector<3> prev_sp;
 	math::Vector<3> curr_sp;
+	math::Vector<3> next_sp2;
 
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1143,6 +1145,26 @@ void MulticopterPositionControl::control_auto(float dt)
 			previous_setpoint_valid = true;
 		}
 	}
+
+	if (_pos_sp_triplet.next.valid) {
+		map_projection_project(&_ref_pos,
+				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+				       &next_sp2.data[0], &next_sp2.data[1]);
+		next_sp2(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+
+		if (PX4_ISFINITE(next_sp2(0)) &&
+		    PX4_ISFINITE(next_sp2(1)) &&
+		    PX4_ISFINITE(next_sp2(2))) {
+			//next_setpoint_valid = true;
+		}
+	}
+
+
+
+
+	PX4_INFO("prev x: %.6f, prev y: %.6f, prev z: %.6f", (double)prev_sp(0), (double)prev_sp(1), (double)prev_sp(2) );
+	PX4_INFO("curr x: %.6f, curr y: %.6f, curr z: %.6f", (double)curr_sp(0), (double)curr_sp(1), (double)curr_sp(2) );
+	PX4_INFO("next x: %.6f, next y: %.6f, next z: %.6f", (double)next_sp2(0), (double)next_sp2(1), (double)next_sp2(2) );
 
 	if (current_setpoint_valid) {
 		/* scaled space: 1 == position error resulting max allowed speed */
@@ -1243,6 +1265,8 @@ void MulticopterPositionControl::control_auto(float dt)
 		/* scale result back to normal space */
 		_pos_sp = pos_sp_s.edivide(scale);
 
+		PX4_INFO("p sp x: %.6f, p sp y: %.6f, p sp z: %.6f", (double)_pos_sp(0), (double)_pos_sp(1), (double)_pos_sp(2) );
+		PX4_INFO("p  x: %.6f, p  y: %.6f, p  z: %.6f", (double)_pos(0), (double)_pos(1), (double)_pos(2) );
 		/* update yaw setpoint if needed */
 
 		if (_pos_sp_triplet.current.yawspeed_valid
@@ -1452,6 +1476,11 @@ MulticopterPositionControl::task_main()
 		    _control_mode.flag_control_climb_rate_enabled ||
 		    _control_mode.flag_control_velocity_enabled ||
 		    _control_mode.flag_control_acceleration_enabled) {
+
+
+
+			PX4_INFO("positin enabled: %d",  _control_mode.flag_control_position_enabled);
+			PX4_INFO("velocity enabled: %d",_control_mode.flag_control_velocity_enabled );
 
 			_vel_ff.zero();
 
