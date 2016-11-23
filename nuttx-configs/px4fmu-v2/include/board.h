@@ -192,7 +192,7 @@
  *   DMAMAP_SDIO_2 = Channel 4, Stream 6
  */
 
-#define DMAMAP_SDIO DMAMAP_SDIO_1
+#define DMAMAP_SDIO DMAMAP_SDIO_2
 
 /* Alternate function pin selections ************************************************/
 
@@ -271,6 +271,17 @@
 #define GPIO_SPI4_MISO	(GPIO_SPI4_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI4_MOSI	(GPIO_SPI4_MOSI_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI4_SCK	(GPIO_SPI4_SCK_1|GPIO_SPEED_50MHz)
+
+#ifdef CONFIG_STM32_SPI_DMA
+/*
+  only enable DMA on the sensor bus and external for now. We don't
+  have enough spare DMA channels for the other buses
+ */
+# define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_1
+# define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_2
+# define DMACHAN_SPI4_RX DMAMAP_SPI4_RX_2
+# define DMACHAN_SPI4_TX DMAMAP_SPI4_TX_2
+#endif
 
 /************************************************************************************
  * Public Data
