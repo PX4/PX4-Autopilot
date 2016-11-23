@@ -219,9 +219,9 @@ DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
 		_mag_calibration.y_offset = 0.0f;
 		_mag_calibration.z_offset = 0.0f;
 	}
+		
 	// Get sensor rotation matrix
-        get_rot_matrix(rotation, &_rotation_matrix);
-
+	get_rot_matrix(rotation, &_rotation_matrix);
 }
 
 DfLsm9ds1Wrapper::~DfLsm9ds1Wrapper()
