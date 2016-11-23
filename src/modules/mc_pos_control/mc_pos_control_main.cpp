@@ -1331,9 +1331,9 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 	/*ToDo just for test */
-		prev_sp(2) = 4.0f;
-		curr_sp(2) = 4.0f;
-		next_pt(2) = 4.0f;
+		//prev_sp(2) = 4.0f;
+		//curr_sp(2) = 4.0f;
+		//next_pt(2) = 4.0f;
 
 	/* ToDo: change the names back to setpoints once verified code is working this reassignment is only necessary for */
 	ctrl_pt = curr_sp;
@@ -1343,6 +1343,8 @@ void MulticopterPositionControl::control_auto(float dt)
 			(double )prev_pt(1), (double )prev_pt(2));
 	PX4_INFO("ctrlx: %.6f, ctrl y: %.6f, ctrl z: %.6f", (double )ctrl_pt(0),
 			(double )ctrl_pt(1), (double )ctrl_pt(2));
+
+	PX4_INFO("prev valid %d, curr valid: %d, next valid: %d",previous_setpoint_valid,current_setpoint_valid,next_setpoint_valid);
 
 	/* if bezier points are valid, compute desired tracking states */
 	if (current_setpoint_valid && previous_setpoint_valid && next_setpoint_valid
@@ -1708,10 +1710,6 @@ MulticopterPositionControl::task_main()
 		    _control_mode.flag_control_velocity_enabled ||
 		    _control_mode.flag_control_acceleration_enabled) {
 
-
-
-			PX4_INFO("positin enabled: %d",  _control_mode.flag_control_position_enabled);
-			PX4_INFO("velocity enabled: %d",_control_mode.flag_control_velocity_enabled );
 
 			//_vel_ff.zero();
 

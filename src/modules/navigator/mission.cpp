@@ -56,7 +56,7 @@
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
-#include <lib/mathlib/mathlib.h>
+
 #include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
@@ -91,6 +91,14 @@ Mission::Mission(Navigator *navigator, const char *name) :
 {
 	/* load initial params */
 	updateParams();
+
+	/* seit x and z axis */
+	_z_ax(0) = 0.0f;
+	_z_ax(1) = 0.0f;
+	_z_ax(2) = 1.0f;
+	_x_ax(0) = 1.0f;
+	_x_ax(1) = 0.0f;
+	_x_ax(2) = 0.0f;
 }
 
 Mission::~Mission()
@@ -887,6 +895,7 @@ Mission::heading_sp_update()
 	}
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	struct vehicle_global_velocity_setpoint_s *global_vel_sp = _navigator->get_global_velocity_setpoint();
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->current.valid) {
@@ -932,11 +941,18 @@ Mission::heading_sp_update()
 
 		/* stop if positions are close together to prevent excessive yawing */
 		if (d_current > _navigator->get_acceptance_radius()) {
-			float yaw = get_bearing_to_next_waypoint(
-					    point_from_latlon[0],
-					    point_from_latlon[1],
-					    point_to_latlon[0],
-					    point_to_latlon[1]);
+			//float yaw = get_bearing_to_next_waypoint(
+			//		    point_from_latlon[0],
+			//		    point_from_latlon[1],
+			//		    point_to_latlon[0],
+			//		    point_to_latlon[1]);
+			float yaw;
+			math::Vector<3> vel_sp;
+			vel_sp(0) = global_vel_sp->vx;
+			vel_sp(1) = global_vel_sp->vy;
+			vel_sp(2) = global_vel_sp->vz;
+			get_yaw_along_vec(yaw, vel_sp);
+
 
 			/* always keep the back of the rotary wing pointing towards home */
 			if (_param_yawmode.get() == MISSION_YAWMODE_BACK_TO_HOME) {
@@ -954,6 +970,27 @@ Mission::heading_sp_update()
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
+void
+Mission::get_yaw_along_vec(float &yaw, const math::Vector<3> &vec){
+
+
+	/* project vec onto xy plane */
+	math::Vector<3> vec_proj = vec - _z_ax * (_z_ax * vec);
+	vec_proj /= vec_proj.length();
+
+	/* angle between vec and x */
+	yaw = acosf(_x_ax * vec_proj);
+
+	/* check orientation using 3rd element of cross product*/
+	float cross_z;
+	cross_z = _x_ax(0)*vec_proj(1) - _x_ax(1)* vec_proj(0);
+
+	if (cross_z < 0.0f){
+		yaw *= -1.0f;
+	}
+
+
+}
 
 void
 Mission::altitude_sp_foh_update()
