@@ -104,6 +104,10 @@ SPI::init()
 		goto out;
 	}
 
+	// tell other SPI users that we may be doing transfers in
+	// interrupt context
+	up_spi_set_need_irq_save(_dev);
+
 	/* deselect device to ensure high to low transition of pin select */
 	SPI_SELECT(_dev, _device, false);
 
