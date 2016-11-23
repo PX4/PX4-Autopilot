@@ -249,42 +249,35 @@ function(px4_nuttx_add_export)
 		ARGN ${ARGN})
 
 	set(nuttx_src ${PX4_BINARY_DIR}/${CONFIG}/NuttX)
-	#
-	# Use full path to patches so that nested builds
-	# (px4pio) can find the dependencies.
-	#
+
+	# all patches
 	file(GLOB nuttx_patches ${PX4_SOURCE_DIR}/nuttx-patches/*.patch)
 
 	# copy
-	add_custom_target(__nuttx_copy_${CONFIG}
-		DEPENDS nuttx_copy_${CONFIG}.stamp
-	)
+	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND rsync -a --delete --exclude=.git ${PX4_SOURCE_DIR}/NuttX/  ${nuttx_src}/
+		COMMAND rsync -a --delete --exclude=.git ${PX4_SOURCE_DIR}/NuttX/ ${nuttx_src}/
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${nuttx_patches}
+		DEPENDS ${DEPENDS} ${nuttx_patches} ${nuttx_all_files}
 		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}")
-#todo: Add the nuttx source (md5 of git recursive staus) to the dependencies
 	
 	# patch
-
-	add_custom_target(__nuttx_patch_${CONFIG}) 
-
+	add_custom_target(nuttx_patch_${CONFIG})
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
 		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
-		set(stamp ${nuttx_src}/${patch_name}.stamp)
-		add_custom_command(OUTPUT ${stamp}
-							COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N  < ${patch}
-							COMMAND ${TOUCH} ${stamp}
-							DEPENDS ${DEPENDS} __nuttx_copy_${CONFIG} ${patch}
-							COMMENT "Applying ${patch}")
-		add_custom_target(${patch_name}
-							DEPENDS ${stamp}
-							__nuttx_copy_${CONFIG})
-		add_dependencies(__nuttx_patch_${CONFIG} ${patch_name})
+		set(patch_stamp ${nuttx_src}/${patch_name}.stamp)
+
+		add_custom_command(OUTPUT ${patch_stamp}
+			COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N < ${patch}
+			COMMAND ${TOUCH} ${patch_stamp}
+			DEPENDS ${DEPENDS} nuttx_copy_${CONFIG}.stamp ${patch}
+			COMMENT "Applying ${patch}")
+
+		add_custom_target(${patch_name} DEPENDS ${patch_stamp})
+		add_dependencies(nuttx_patch_${CONFIG} ${patch_name})
 	endforeach()
 
 	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
@@ -300,28 +293,26 @@ function(px4_nuttx_add_export)
 	# export
 	file(GLOB_RECURSE config_files ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
 
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${CONFIG}.export
+	add_custom_command(OUTPUT ${nuttx_src}/nuttx/nuttx-export.zip
 		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
-		COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
-		COMMAND ${CP} -r ${PX4_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_src}/nuttx/
-		COMMAND ${CP} -r ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
+		#COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
+		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_src}/nuttx/
+		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
 		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config} && cd ..
 		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
 		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
-		COMMAND ${CP} -r ${nuttx_src}/nuttx/nuttx-export.zip ${PX4_BINARY_DIR}/${CONFIG}.export
-		DEPENDS ${config_files} "${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig" ${DEPENDS} __nuttx_patch_${CONFIG} ${nuttx_patches}
+		DEPENDS ${DEPENDS} nuttx_copy_${CONFIG}.stamp nuttx_patch_${CONFIG} ${config_files}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}")
 
 	if(${nuttx_configure})
-
 		add_custom_target(
 			reconfigure_nuttx.${CONFIG} ALL
-			DEPENDS ${PX4_BINARY_DIR}/${CONFIG}.export
+			DEPENDS ${PX4_BINARY_DIR}/${nuttx_src}/nuttx/nuttx-export.zip
 			COMMAND cd ${nuttx_src}/nuttx
 			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
 			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
-			COMMAND ${CP} .config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+			COMMAND ${CP} -p .config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
 			USES_TERMINAL
 			COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
 	endif()
@@ -329,12 +320,12 @@ function(px4_nuttx_add_export)
 	# extract
 	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
-		COMMAND ${UNZIP} -q ${PX4_BINARY_DIR}/${CONFIG}.export -d ${nuttx_src}
+		COMMAND ${UNZIP} -q ${nuttx_src}/nuttx/nuttx-export.zip -d ${nuttx_src}
 		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${PX4_BINARY_DIR}/${CONFIG}.export)
+		DEPENDS ${DEPENDS} ${nuttx_src}/nuttx/nuttx-export.zip
+		COMMENT "Extracting NuttX")
 
-	add_custom_target(${OUT}
-		DEPENDS nuttx_export_${CONFIG}.stamp)
+	add_custom_target(${OUT} DEPENDS nuttx_export_${CONFIG}.stamp)
 
 endfunction()
 

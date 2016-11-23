@@ -255,7 +255,7 @@ if (CATKIN_DEVEL_PREFIX)
 		message(FATAL_ERROR "catkin not found")
 	endif()
 else()
-	message(STATUS "catkin DISABLED")
+	#message(STATUS "catkin DISABLED")
 endif()
 
 find_package(PythonInterp 2.7 REQUIRED)
