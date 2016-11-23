@@ -91,6 +91,7 @@
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
+#define GOLDEN_RATIO 1.61803398f //(sqrt(5)-1)/2
 
 /**
  * Multicopter position control app start / stop handling function
@@ -259,6 +260,7 @@ private:
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+	math::Vector<3> _acc_sp;
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -343,6 +345,21 @@ private:
 	 * Select between barometric and global (AMSL) altitudes
 	 */
 	void		select_alt(bool global);
+
+	/**
+	* Computes point, velocity and acceleration on bezier curve closest to current position
+	*/
+	void 		compute_states_closest_on_bezier(const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt);
+
+	/**
+	*  Dinstance from a point on bezier curve to current poisition
+	*/
+	float       get_distance_from_bezier_pt(const float t, const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt);
+
+	/**
+	* Golden section search
+	*/
+	float 		golden_section_search(const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -446,6 +463,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_ff.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_acc_sp.zero();
 
 	_R.identity();
 
@@ -863,6 +881,65 @@ MulticopterPositionControl::limit_pos_sp_offset()
 		_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 	}
 }
+
+void
+MulticopterPositionControl::compute_states_closest_on_bezier(const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt){
+
+		/* get t that corresponds to point closest on bezier point */
+		float t = golden_section_search(prev_pt, ctrl_pt, next_pt);
+
+		/* compute states correspoding to t: see wikipedia */
+		for (int i = 0; i<3; i++){
+			_pos_sp(i) = (1.0f-t)*(1.0f-t) * prev_pt(i) + 2.0f * (1.0f -t)*t*ctrl_pt(i) + t * t* next_pt(i);
+			_vel_sp(i) = 2.0f * (1.0f-t) * (ctrl_pt(i) - prev_pt(i)) + 2.0f * t * (next_pt(i) - ctrl_pt(i));
+			_acc_sp(i) = 2.0f * (next_pt(i) - 2.0f * ctrl_pt(i) + prev_pt(i));
+		}
+
+}
+
+float
+MulticopterPositionControl::golden_section_search(const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt){
+
+	float a, b, e, c, d;
+	a = 0.0f; // represents left
+	b = 1.0f; //represents right
+	e = 0.001f; //represent resolution: end criterion
+
+	/* ToDo: make all the variables fixed without redeclaration */
+	c = b - (b - a) / GOLDEN_RATIO;
+	d = a + (b - a) / GOLDEN_RATIO;
+	while(fabsf(c - d) > e){
+		if( get_distance_from_bezier_pt(c, prev_pt, ctrl_pt, next_pt) < get_distance_from_bezier_pt(d, prev_pt, ctrl_pt, next_pt)){
+			b = d;
+		}else{
+			a = c;
+		}
+
+		c = b - (b -a)/GOLDEN_RATIO;
+		d = a + (b -a)/GOLDEN_RATIO;
+
+	}
+	return (b+a)/2.0f;
+}
+
+float
+MulticopterPositionControl::get_distance_from_bezier_pt(const float t, const math::Vector<3> &prev_pt, const math::Vector<3> &ctrl_pt, const math::Vector<3> &next_pt){
+
+	/*
+	 *  distance from current position to point on bezier curve
+	 */
+
+	float d = 0.0f;
+	float coeff1 = (-t + 1.0f) * (-t + 1.0f);
+	float coeff2 = t * (-2.0f*t + 2.0f);
+	float coeff3 = t * t ;
+	for (int i = 0; i<3; i++){
+		d += ( prev_pt(i) * coeff1 + ctrl_pt(i) * coeff2 + next_pt(i) *coeff3 - _pos(i) ) * ( prev_pt(i) * coeff1 + ctrl_pt(i) * coeff2 + next_pt(i) *coeff3 - _pos(i) );
+	}
+	return d;
+}
+
+
 
 void
 MulticopterPositionControl::control_manual(float dt)
