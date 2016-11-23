@@ -1279,8 +1279,8 @@ void Mavlink::send_autopilot_capabilites()
 		msg.middleware_sw_version = version_tag_to_number(px4_git_tag);
 		msg.os_sw_version = version_tag_to_number(os_git_tag);
 		msg.board_version = px4_board_version;
-		memcpy(&msg.flight_custom_version, px4_git_version, sizeof(msg.flight_custom_version));
-		memcpy(&msg.middleware_custom_version, px4_git_version, sizeof(msg.middleware_custom_version));
+		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
+		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
 		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
 #ifdef CONFIG_CDCACM_VENDORID
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
