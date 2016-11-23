@@ -218,8 +218,7 @@ DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
 		_mag_calibration.x_offset = 0.0f;
 		_mag_calibration.y_offset = 0.0f;
 		_mag_calibration.z_offset = 0.0f;
-	}
-		
+	}	
 	// Get sensor rotation matrix
 	get_rot_matrix(rotation, &_rotation_matrix);
 }
@@ -584,7 +583,6 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 				     accel_val,
 				     vec_integrated_unused,
 				     integral_dt_unused);
-	
 	math::Vector<3> gyro_val(data.gyro_rad_s_x,
 				 data.gyro_rad_s_y,
 				 data.gyro_rad_s_z);
