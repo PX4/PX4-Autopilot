@@ -49,6 +49,7 @@
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -122,6 +123,7 @@ private:
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	orb_advert_t        _esc_feedback_pub = nullptr;
+	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 	esc_status_s      _esc_feedback;
 	uint8_t           _channels_count; // The number of ESC channels
 
@@ -172,6 +174,7 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_outputs_pub(nullptr),
 	_control_subs{ -1},
 	_esc_feedback_pub(nullptr),
+	_to_mixer_status(nullptr),
 	_esc_feedback{},
 	_channels_count(channels_count),
 	_mixers(nullptr),
@@ -640,11 +643,23 @@ TAP_ESC::cycle()
 		/* can we mix? */
 		if (_is_armed && _mixers != nullptr) {
 
-
 			/* do mixing */
 			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs, NULL);
 			_outputs.noutputs = num_outputs;
 			_outputs.timestamp = hrt_absolute_time();
+
+			/* publish mixer status */
+			multirotor_motor_limits_s multirotor_motor_limits = {};
+			multirotor_motor_limits.saturation_status = _mixers->get_saturation_status();
+
+			if (_to_mixer_status == nullptr) {
+				_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
+
+			} else {
+				orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &multirotor_motor_limits);
+
+			}
+
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
