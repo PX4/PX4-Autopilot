@@ -153,8 +153,6 @@ set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location"
 #
 # must come before project to set toolchain
 
-set(nuttx_configure "$ENV{NUTTX_CONFIGURE}")
-
 string(REPLACE "_" ";" config_args ${CONFIG})
 list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
@@ -426,7 +424,7 @@ set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "mod
 
 add_subdirectory(src/firmware/${OS})
 
-#add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
+#add_dependencies(df_driver_framework nuttx_export_${CONFIG})
 if (NOT "${OS}" STREQUAL "nuttx")
 endif()
 
