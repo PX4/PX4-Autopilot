@@ -312,6 +312,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	if (min_out < 0.0f) {
 		_saturation_status.flags.motor_neg = true;
 	}
+
 	if (max_out > 1.0f) {
 		_saturation_status.flags.motor_pos = true;
 	}
@@ -334,6 +335,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 				yaw = -((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
 					roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
 			}
+
 		} else if (out > 1.0f) {
 			// allow to reduce thrust to get some yaw response
 			float thrust_reduction = fminf(0.15f, out - 1.0f);
@@ -506,3 +508,7 @@ MultirotorMixer::groups_required(uint32_t &groups)
 	groups |= (1 << 0);
 }
 
+uint16_t MultirotorMixer::get_saturation_status()
+{
+	return _saturation_status.value;
+}
