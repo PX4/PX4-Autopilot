@@ -1631,6 +1631,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	param_get(_param_sys_type, &(status.system_type)); // get system type
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
+	status.is_vtol = is_vtol(&status);
 
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
