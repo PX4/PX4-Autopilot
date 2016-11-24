@@ -43,7 +43,7 @@
 /* Framelength in byte */
 #define SRXL_FRAMELEN_V1    27U      /* Framelength with header in byte for:  Mpx SRXLv1 or XBUS Mode B */
 #define SRXL_FRAMELEN_V2    35U      /* Framelength with header in byte for:  Mpx SRXLv2 */
-#define SRXL_FRAMELEN_V5    19U      /* Framelength with header in byte for  Spk AR7700 etc. */
+#define SRXL_FRAMELEN_V5    18U      /* Framelength with header in byte for  Spk AR7700 etc. */
 #define SRXL_FRAMELEN_MAX   35U      /* maximum possible framelengh  */
 
 /* Headerbyte */
@@ -188,9 +188,7 @@ static int srxl_channels_get_v5(uint16_t max_values, uint8_t *num_values, uint16
         uint16_t c = b >> 11; // channel number
         int32_t v = b & 0x7FF;
         if (b & 0x8000) {
-            //printf("bad data 0x%04x\n", b);
-            // bad data
-            return 2;
+            continue;
         }
         if (c == 12) {
             // special handling for channel 12
@@ -279,7 +277,7 @@ int srxl_decode(uint64_t timestamp_us, uint8_t byte, uint8_t *num_values, uint16
             decode_state = STATE_NEW;
             break;
         case SRXL_HEADER_V5:
-            frame_len_full = SRXL_HEADER_V5;
+            frame_len_full = SRXL_FRAMELEN_V5;
             frame_header = SRXL_HEADER_V5;
             decode_state = STATE_NEW;
             break;
