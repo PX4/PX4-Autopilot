@@ -10,7 +10,7 @@ add_executable(firmware_nuttx
 	builtin_commands.c)
 
 
-set(nuttx_export_dir ${PX4_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+set(nuttx_export_dir ${PX4_BINARY_DIR}/${BOARD}/NuttX/nuttx/nuttx-export)
 
 set(link_libs
 	apps nuttx m gcc
