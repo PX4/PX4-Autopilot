@@ -268,7 +268,7 @@ function(px4_nuttx_add_export)
 		get_filename_component(patch_file_name ${patch} NAME)
 		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
-		set(patch_stamp ${patch_name}.stamp)
+		set(patch_stamp ${nuttx_src}/${patch_name}.stamp)
 
 		add_custom_command(OUTPUT ${patch_stamp}
 			COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N < ${patch}
@@ -276,8 +276,8 @@ function(px4_nuttx_add_export)
 			DEPENDS ${DEPENDS} nuttx_copy_${CONFIG}.stamp ${patch}
 			COMMENT "Applying ${patch}")
 
-		#add_custom_target(${patch_name} DEPENDS ${patch_stamp})
-		add_dependencies(nuttx_patch_${CONFIG} ${patch_stamp})
+		add_custom_target(${patch_name} DEPENDS ${patch_stamp})
+		add_dependencies(nuttx_patch_${CONFIG} ${patch_name})
 	endforeach()
 
 	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
@@ -313,7 +313,7 @@ function(px4_nuttx_add_export)
 	# build and export
 	add_custom_command(OUTPUT ${nuttx_src}/nuttx/nuttx-export/include/nuttx/config.h
 		COMMAND ${RM} -rf ${nuttx_src}/nuttx/nuttx-export
-		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
+		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
 		DEPENDS ${DEPENDS} ${nuttx_src}/nuttx/.config
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}")
