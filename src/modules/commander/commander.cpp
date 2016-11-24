@@ -1528,6 +1528,7 @@ int commander_thread_main(int argc, char *argv[])
 	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
 	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
 	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
@@ -1535,6 +1536,7 @@ int commander_thread_main(int argc, char *argv[])
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
+		telemetry_preflight_checks_reported[i] = false;
 	}
 
 	/* Subscribe to global position */
@@ -1888,8 +1890,9 @@ int commander_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
 				/* perform system checks when new telemetry link connected */
-				if (/* we first connect a link or re-connect a link after loosing it */
-				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
+				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
+				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
+				        || !telemetry_preflight_checks_reported[i]) &&
 				    /* and this link has a communication partner */
 				    (telemetry.heartbeat_time > 0) &&
 				    /* and it is still connected */
@@ -1898,6 +1901,8 @@ int commander_thread_main(int argc, char *argv[])
 				    !armed.armed) {
 
 					hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+					/* flag the checks as reported for this link when we actually report them */
+					telemetry_preflight_checks_reported[i] = hotplug_timeout;
 
 					/* provide RC and sensor status feedback to the user */
 					if (is_hil_setup(autostart_id)) {

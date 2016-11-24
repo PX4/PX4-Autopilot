@@ -1105,8 +1105,6 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
 		    status_flags_s *status_flags, battery_status_s *battery, bool can_arm_without_gps, hrt_abstime time_since_boot)
 {
-	/*
-	 */
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
 					       status_flags->condition_system_hotplug_timeout);
 
