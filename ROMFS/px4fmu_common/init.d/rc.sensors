@@ -59,13 +59,18 @@ then
 	then
 	fi
 
-	# Internal I2C bus
-	if hmc5883 -C -T -I -R 4 start
+	# Internal SPI bus is rotated 90 deg yaw
+	if hmc5883 -C -T -S -R 2 start
 	then
 	fi
 
-	# Internal SPI bus ICM-20608-G
-	if mpu6000 -T 20608 start
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	if mpu9250 -R 2 start
 	then
 	fi
 
