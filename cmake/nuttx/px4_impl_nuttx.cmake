@@ -290,42 +290,35 @@ function(px4_nuttx_add_export)
 		set(config_nuttx_hw_stack_check_${CONFIG} y CACHE INTERNAL "" FORCE)
 	endif()
 
-	# export
+	# configure
 	file(GLOB_RECURSE config_files ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/*)
-
-	add_custom_command(OUTPUT ${nuttx_src}/nuttx/nuttx-export.zip
-		#COMMAND ${ECHO} Configuring NuttX for ${CONFIG} with ${config_nuttx_config}
-		#COMMAND ${MAKE} --no-print-directory -C${nuttx_src}/nuttx -r --quiet distclean
+	add_custom_command(OUTPUT ${nuttx_src}/nuttx/.config
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config} && cd ..
-		#COMMAND ${ECHO} Exporting NuttX for ${CONFIG}
-		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -j${THREADS} -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
-		DEPENDS ${DEPENDS} nuttx_copy_${CONFIG}.stamp nuttx_patch_${CONFIG} ${config_files}
+		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
+		DEPENDS ${DEPENDS} nuttx_patch_${CONFIG} ${config_files}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
+
+	# manual reconfigure helper
+	add_custom_target(reconfigure_nuttx_${CONFIG}
+		COMMAND cd ${nuttx_src}/nuttx
+		COMMAND ${MAKE} -C ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
+		COMMAND ${MAKE} -C ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
+		COMMAND ${CP} ${nuttx_src}/nuttx/.config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+		DEPENDS ${nuttx_src}/nuttx/.config
+		COMMENT "Reconfiguring NuttX for ${CONFIG} with ${config_nuttx_config}"
+		USES_TERMINAL)
+
+	# build and export
+	add_custom_command(OUTPUT ${nuttx_src}/nuttx/nuttx-export/include/nuttx/config.h
+		COMMAND ${RM} -rf ${nuttx_src}/nuttx/nuttx-export
+		COMMAND ${MAKE} --no-print-directory --quiet -C ${nuttx_src}/nuttx -r CONFIG_ARCH_BOARD=${CONFIG} export > nuttx_build.log
+		DEPENDS ${DEPENDS} ${nuttx_src}/nuttx/.config
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}")
 
-	if(${nuttx_configure})
-		add_custom_target(
-			reconfigure_nuttx.${CONFIG} ALL
-			DEPENDS ${PX4_BINARY_DIR}/${nuttx_src}/nuttx/nuttx-export.zip
-			COMMAND cd ${nuttx_src}/nuttx
-			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
-			COMMAND ${MAKE} ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
-			COMMAND ${CP} -p .config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
-			USES_TERMINAL
-			COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
-	endif()
-
-	# extract
-	add_custom_command(OUTPUT nuttx_export_${CONFIG}.stamp
-		COMMAND ${RM} -rf ${nuttx_src}/nuttx-export
-		COMMAND ${UNZIP} -q ${nuttx_src}/nuttx/nuttx-export.zip -d ${nuttx_src}
-		COMMAND ${TOUCH} nuttx_export_${CONFIG}.stamp
-		DEPENDS ${DEPENDS} ${nuttx_src}/nuttx/nuttx-export.zip
-		COMMENT "Extracting NuttX")
-
-	add_custom_target(${OUT} DEPENDS nuttx_export_${CONFIG}.stamp)
+	add_custom_target(${OUT} DEPENDS ${nuttx_src}/nuttx/nuttx-export/include/nuttx/config.h)
 
 endfunction()
 
@@ -511,7 +504,7 @@ function(px4_os_add_flags)
 		DEFINITIONS ${DEFINITIONS})
 
 	set(nuttx_export_root ${PX4_BINARY_DIR}/${BOARD}/NuttX)
-	set(nuttx_export_dir ${nuttx_export_root}/nuttx-export)
+	set(nuttx_export_dir ${nuttx_export_root}/nuttx/nuttx-export)
 	set(added_include_dirs
 		${nuttx_export_dir}/include
 		${nuttx_export_dir}/include/cxx
