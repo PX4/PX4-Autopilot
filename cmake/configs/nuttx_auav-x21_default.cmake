@@ -19,13 +19,12 @@ set(config_module_list
 	drivers/rgbled
 	drivers/mpu6000
 	drivers/mpu9250
-	drivers/lsm303d
-#	drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
+	drivers/sf1xx
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -64,9 +63,9 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
-	#systemcmds/sd_bench
+	systemcmds/sd_bench
 	systemcmds/top
-	#systemcmds/topic_listener
+	systemcmds/topic_listener
 	systemcmds/ver
 
 	#
