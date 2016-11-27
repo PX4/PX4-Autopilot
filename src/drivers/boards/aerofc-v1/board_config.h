@@ -37,7 +37,7 @@
  * @author David Sidrane <david_s5@nscdg.com>
  * @author Lorenz Meier <lorenz@px4.io>
  *
- * TAP_V1 internal definitions
+ * AEROFC_V1 internal definitions
  */
 
 #pragma once
@@ -66,26 +66,12 @@
  * PC4     BLUE_LED                  D4 Blue LED cathode
  * PC5     RED_LED                   D5 Red LED cathode
 */
-
-#define GPIO_LED1		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN4)
-#define GPIO_LED2		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_LED1              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
+#define GPIO_LED2              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN10)
 #define GPIO_BLUE_LED GPIO_LED1
 #define GPIO_RED_LED  GPIO_LED2
-/*
- * SPI
- *
- * Peripheral   Port     Signal Name               CONN
- * SPI2_NSS       PB12    SD_SPI2_NSS               SD-2 CS
- * SPI2_SCK       PB13    SD_SPI2_SCK               SD-5 CLK
- * SPI2_MISO      PB14    SD_SPI2_MISO              SD-7 D0
- * SPI2_MOSI      PB15    SD_SPI2_MOSI              SD-3 DI
- *
- *                PC2     SD_SW                     SD-9 SW
- *
- */
-#define GPIO_SPI_CS_SDCARD	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
-#define GPIO_SPI_SD_SW	    (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN2)
 
+#define GPIO_SENSORS_POWER		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN13)
 
 /*
  * I2C busses
@@ -101,29 +87,10 @@
  * I2C3_SDL     PA8     COMPASS_I2C3_SCL          JP1-25,26
  *
  */
-#define PX4_I2C_BUS_ONBOARD    1
-#define PX4_I2C_BUS_SONAR      2
-#define PX4_I2C_BUS_EXPANSION  3
+#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_I2C_BUS_ONBOARD		3
 
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
-/*
- * Devices on the onboard bus.
- *
- * Note that these are unshifted addresses (not includinf R/W).
- */
-
-/* todo:
- * Cannot tell from the schematic if there is one or 2 MPU6050
- * The slave address of the MPU-60X0 is b110100X which is 7 bits long.
- * The LSB bit of the 7 bit address is determined by the logic level
- * on pin AD0. This allows two MPU-60X0s to be connected to the same I2C bus.
- * When used in this configuration, the address of the one of the devices
- * should be b1101000 (pin AD0 is logic low) and the address of the other
- * should be b1101001 (pin AD0 is logic high).
- */
-#define PX4_I2C_ON_BOARD_MPU6050_ADDRS {0x68,0x69}
-
+#define PX4_I2C_OBDEV_HMC5883	0x1E
 
 /*
  * ADC channels
@@ -132,63 +99,19 @@
  * PC0     VOLTAGE                   JP2-13,14          - 1.84 @16.66  1.67 @15.12 Scale 0.1105
  *
  */
-#define ADC_CHANNELS (1 << 10)
-/* todo:Revisit - cannnot tell from schematic - some could be ADC */
-
-// ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-
-
-/* User GPIOs
- *
- * TIM3_CH1     PA6     LED_R                     JP2-23,24
- * TIM3_CH2     PA7     LED_G                     JP2-25,26
- * TIM3_CH3     PB0     LED_B                     JP2-27,28
- * TIM3_CH4     PB1     nPWM_1 AUX1(Landing Gear) JP1-21,22
- *
- * I2C2_SDA     PB11    Sonar Echo/I2C_SDA        JP2-31,32
- * I2C2_SDL     PB10    Sonar Trig/I2C_SCL        JP2-29,30
- *
- */
-#define GPIO_GPIO0_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_GPIO1_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN7)
-#define GPIO_GPIO2_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_GPIO3_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_GPIO4_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_GPIO5_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN11)
-
-#define GPIO_GPIO0_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_GPIO1_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
-#define GPIO_GPIO2_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_GPIO3_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_GPIO4_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_GPIO5_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
+#define ADC_CHANNELS 0
 
 /*
- * PWM
- *
- * Four PWM outputs can be configured on pins
- *
- *
- * Peripheral   Port     Signal Name               CONN
- * TIM3_CH1     PA6     LED_R                     JP2-23,24
- * TIM3_CH2     PA7     LED_G                     JP2-25,26
- * TIM3_CH3     PB0     LED_B                     JP2-27,28
- * TIM3_CH4     PB1     nPWM_1 AUX1(Landing Gear) JP1-21,22
- *
+ * ADC defines just to not break sensors.cpp build, battery voltage and current
+ * will be read in another way in future.
  */
-#define GPIO_TIM3_CH1OUT	GPIO_TIM3_CH1OUT_1
-#define GPIO_TIM3_CH2OUT	GPIO_TIM3_CH2OUT_1
-#define GPIO_TIM3_CH3OUT	GPIO_TIM3_CH3OUT_1
-#define GPIO_TIM3_CH4OUT	GPIO_TIM3_CH4OUT_1
-#define DIRECT_PWM_OUTPUT_CHANNELS	0
+#define ADC_BATTERY_VOLTAGE_CHANNEL    0
+#define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
-#define BOARD_HAS_LED_PWM
-#define LED_TIM3_CH1OUT  GPIO_TIM3_CH1OUT
-#define LED_TIM3_CH2OUT  GPIO_TIM3_CH2OUT
-#define LED_TIM3_CH3OUT  GPIO_TIM3_CH3OUT
+#define DIRECT_PWM_OUTPUT_CHANNELS	1
+#define BOARD_HAS_PWM	0
 
+#define BOARD_FMU_GPIO_TAB {{0, 0, 0}}
 
 /* USB OTG FS
  *
@@ -196,64 +119,23 @@
  */
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS2"
+
+/* RC Serial port
+ */
+#define RC_SERIAL_PORT		"/dev/ttyS3"
+#define INVERT_RC_INPUT(_s)		while(0)
+
 /* High-resolution timer
  */
-#define HRT_TIMER		3	/* use timer8 for the HRT */
+#define HRT_TIMER		3	/* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
 
-#define	BOARD_NAME "TAP_V1"
+#define	BOARD_NAME "AEROFC_V1"
 
-/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
- * system_power interface, and herefore provides the true logic
- * GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID   (1)
-#define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (0)
-#define BOARD_ADC_HIPOWER_5V_OC (0)
-
-#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
-
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, }
-
-
-#define GPIO_SPI_CS_MPU9250		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_SPI_CS_HMC5983		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
-#define GPIO_SPI_CS_LIS3MDL		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
-#define GPIO_SPI_CS_MS5611		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
-#define GPIO_SPI_CS_ICM_20608_G (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-
+#define GPIO_SPI_CS_MPU6500		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #define PX4_SPI_BUS_SENSORS	1
-#define PX4_SPI_BUS_RAMTRON	2
-#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_RAMTRON
-
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO			1
-#define PX4_SPIDEV_ACCEL_MAG		2
-#define PX4_SPIDEV_BARO			3
-#define PX4_SPIDEV_MPU			4
-#define PX4_SPIDEV_HMC			5
-#define PX4_SPIDEV_ICM			6
-#define PX4_SPIDEV_LIS			7
-#define PX4_SPIDEV_BMI			8
-#define PX4_SPIDEV_BMA			9
-
-#define GPIO_S0  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_S1  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN14)
-#define GPIO_S2  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
-
-#define GPIO_PCON_RADIO (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN3)
-#define RF_RADIO_POWER_CONTROL(_on_true)	px4_arch_gpiowrite(GPIO_PCON_RADIO, !(_on_true))
-
-#define GPIO_TEMP_CONT (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN4)
-#define TEMP_CONTROL(_on_true)	px4_arch_gpiowrite(GPIO_TEMP_CONT, (_on_true))
+#define PX4_SPIDEV_MPU			1
 
 #define  FLASH_BASED_PARAMS
 

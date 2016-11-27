@@ -10,6 +10,11 @@ then
 	fi
 
 else
+	if ver hwcmp AEROFC_V1
+	# Aero FC uses separate driver
+	then
+	else
+
 	if ver hwcmp CRAZYFLIE
 	then
 	# Crazyflie uses separate driver
@@ -40,6 +45,8 @@ else
 	# Blacksheep telemetry
 	if bst start
 	then
+	fi
+
 	fi
 fi
 
@@ -226,6 +233,31 @@ then
 
 	# I2C bypass of mpu 
 	if lps25h start
+	then
+	fi
+fi
+
+if ver hwcmp AEROFC_V1
+then
+	if ms5611 start
+	then
+	fi
+
+	if mpu6500 -R 14 start
+	then
+	fi
+
+	# Internal compass
+	if hmc5883 -I -R 4 start
+	then
+	fi
+
+	# Possible external compasses
+	if hmc5883 -X start
+	then
+	fi
+
+	if ist8310 -C -b 1 -R 8 start
 	then
 	fi
 fi
