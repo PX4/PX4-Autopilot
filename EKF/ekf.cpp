@@ -181,6 +181,8 @@ bool Ekf::init(uint64_t timestamp)
 
 	_filter_initialised = false;
 	_terrain_initialised = false;
+	_sin_tilt_rng = sinf(_params.rng_sens_pitch);
+	_cos_tilt_rng = cosf(_params.rng_sens_pitch);
 
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
@@ -393,8 +395,8 @@ bool Ekf::initialiseFilter()
 			// so it can be used as a backup ad set the initial height using the range finder
 			baroSample baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
-			_state.pos(2) = -math::max(_rng_filt_state * _R_to_earth(2, 2),_params.rng_gnd_clearance);
-
+			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2,_params.rng_gnd_clearance);
+			ECL_INFO("EKF using range finder height - commencing alignment");
 		} else if (_control_status.flags.ev_hgt) {
 			// if we are using external vision data for height, then the vertical position state needs to be reset
 			// because the initialisation position is not the zero datum

@@ -315,6 +315,9 @@ private:
 	float _hagl_innov_var;		// innovation variance for the last height above terrain measurement (m^2)
 	uint64_t _time_last_hagl_fuse;	// last system time in usec that the hagl measurement failed it's checks
 	bool _terrain_initialised;	// true when the terrain estimator has been intialised
+	float _sin_tilt_rng;		// sine of the range finder tilt rotation about the Y body axis
+	float _cos_tilt_rng;		// cosine of the range finder tilt rotation about the Y body axis
+	float _R_rng_to_earth_2_2;	// 2,2 element of the rotation matrix from sensor frame to earth frame
 
 	// height sensor fault status
 	bool _baro_hgt_faulty;		// true if valid baro data is unavailable for use
