@@ -312,6 +312,11 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
+
+	if (devid == SPIDEV_FLASH) {
+		sel = PX4_SPIDEV_MEMORY;
+	}
+
 	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_MEMORY);
 
 	/* Making sure the other peripherals are not selected */
@@ -381,10 +386,6 @@ __EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	int sel = (int) devid;
-
-	if (devid == SPIDEV_FLASH) {
-		sel = PX4_SPIDEV_MEMORY;
-	}
 
 	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_BARO);
 
