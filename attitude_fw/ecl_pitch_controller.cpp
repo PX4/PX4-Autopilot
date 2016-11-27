@@ -127,7 +127,7 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	/* roll is used as feedforward term and inverted flight needs to be considered */
 	if (fabsf(ctl_data.roll) < math::radians(90.0f)) {
 		/* not inverted, but numerically still potentially close to infinity */
-		constrained_roll = math::constrain(ctl_data.roll, -ctl_data.roll_setpoint, ctl_data.roll_setpoint);
+		constrained_roll = math::constrain(ctl_data.roll, -fabsf(ctl_data.roll_setpoint), fabsf(ctl_data.roll_setpoint));
 
 	} else {
 		/* inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity */
