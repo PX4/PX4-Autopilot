@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Siddharth Bharat Purohit <sibpurohit@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +33,18 @@
  ****************************************************************************/
 
 /**
- * @file mathlib.h
+ * @file matrix_alg.h
  *
- * Common header for mathlib exports.
+ * Matrix algebra on raw arrays
  */
+
 
 #pragma once
 
-#ifdef __cplusplus
+#include <inttypes.h>
+#include <string.h>
+#include <math.h>
 
-#include "math/Vector.hpp"
-#include "math/Matrix.hpp"
-#include "math/Quaternion.hpp"
-#include "math/Limits.hpp"
-#include "math/matrix_alg.h"
-#endif
+float *mat_mul(float *A, float *B, uint8_t n);
+bool mat_inverse(float *A, float *inv, uint8_t n);
+bool inverse4x4(float m[], float invOut[]);
