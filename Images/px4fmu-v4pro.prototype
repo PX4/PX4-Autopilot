@@ -1,5 +1,5 @@
 {
-    "board_id": 11,
+    "board_id": 13,
     "magic": "PX4FWv1",
     "description": "Firmware for the PX4FMUv4PRO board, based on STM32F469",
     "image": "",
