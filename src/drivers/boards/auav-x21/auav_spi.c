@@ -73,7 +73,7 @@ __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
 
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
@@ -81,7 +81,7 @@ __EXPORT void stm32_spiinitialize(void)
 	 * required for some peripheral
 	 * state machines
 	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
@@ -102,23 +102,23 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	switch (devid) {
 
-	case PX4_SPIDEV_ACCEL_MAG:
+	case PX4_SPIDEV_ICM:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, !selected);
 		break;
@@ -152,11 +152,11 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G_OFF);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
 
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G_OFF, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
@@ -192,7 +192,7 @@ __EXPORT void board_spi_reset(int ms)
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
@@ -200,7 +200,7 @@ __EXPORT void board_spi_reset(int ms)
 	 * required for some peripheral
 	 * state machines
 	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
