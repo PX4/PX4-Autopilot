@@ -2569,7 +2569,7 @@ int commander_thread_main(int argc, char *argv[])
 			    	internal_state.main_state == commander_state_s::MAIN_STATE_STAB ||
 			    	internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE ||
 			    	land_detector.landed) &&
-			    ((sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) || ((bool)arm_switch_is_button && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) ) {
+			    ((sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) || (arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) ) {
 
 				if (stick_off_counter > rc_arm_hyst) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -2704,23 +2704,27 @@ int commander_thread_main(int argc, char *argv[])
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
 
-			/* check arm switch */
-			/* we change the switch from disarm to arm */
-			if (arm_switch_is_button == 0 && _last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-				if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "arm switch")) {
-					mavlink_log_info(&mavlink_log_pub, "arming failed");
-				} else {
-					arming_state_changed = true;
+			/* check arm switch if it is not used as button */
+			if (arm_switch_is_button == 0) {
+				/* transition of the switch from disarm to arm */
+				if (_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
+						sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+					if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "arm switch")) {
+						mavlink_log_info(&mavlink_log_pub, "arming by switch failed");
+					} else {
+						arming_state_changed = true;
+					}
+				/* transition of the switch from arm to disarm */
+				} else if (_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+						sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+					if (TRANSITION_CHANGED != arm_disarm(false, &mavlink_log_pub, "arm switch")) {
+						mavlink_log_info(&mavlink_log_pub, "rejected disarming by switch");
+					} else {
+						arming_state_changed = true;
+					}
 				}
-			/* we change the switch from arm to disarm */
-			} else if (arm_switch_is_button == 0 && _last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-				if (TRANSITION_CHANGED != arm_disarm(false, &mavlink_log_pub, "arm switch")) {
-					mavlink_log_info(&mavlink_log_pub, "rejected disarm");
-				} else {
-					arming_state_changed = true;
-				}
+				/* no else case: do not change arming here if arm switch unconfigured */
 			}
-			/* no else case: do not change arming here if arm switch unconfigured */
 			_last_sp_man_arm_switch = sp_man.arm_switch;
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
