@@ -83,6 +83,7 @@ struct Parameters {
 	int rc_map_acro_sw;
 	int rc_map_offboard_sw;
 	int rc_map_kill_sw;
+	int rc_map_arm_sw;
 	int rc_map_trans_sw;
 	int rc_map_gear_sw;
 
@@ -108,6 +109,7 @@ struct Parameters {
 	float rc_acro_th;
 	float rc_offboard_th;
 	float rc_killswitch_th;
+	float rc_armswitch_th;
 	float rc_trans_th;
 	float rc_gear_th;
 	bool rc_assist_inv;
@@ -119,6 +121,7 @@ struct Parameters {
 	bool rc_acro_inv;
 	bool rc_offboard_inv;
 	bool rc_killswitch_inv;
+	bool rc_armswitch_inv;
 	bool rc_trans_inv;
 	bool rc_gear_inv;
 
@@ -159,6 +162,7 @@ struct ParameterHandles {
 	param_t rc_map_acro_sw;
 	param_t rc_map_offboard_sw;
 	param_t rc_map_kill_sw;
+	param_t rc_map_arm_sw;
 	param_t rc_map_trans_sw;
 	param_t rc_map_gear_sw;
 
@@ -188,6 +192,7 @@ struct ParameterHandles {
 	param_t rc_acro_th;
 	param_t rc_offboard_th;
 	param_t rc_killswitch_th;
+	param_t rc_armswitch_th;
 	param_t rc_trans_th;
 	param_t rc_gear_th;
 
