@@ -80,7 +80,7 @@ public:
 	/** report status to stdout */
 	virtual void print_status() = 0;
 
-	/** Publish _angle_outputs as a mount_status message. */
+	/** Publish _angle_outputs as a mount_orientation message. */
 	void publish();
 
 protected:
@@ -114,7 +114,7 @@ private:
 	int _vehicle_attitude_sub = -1;
 	int _vehicle_global_position_sub = -1;
 
-	orb_advert_t _mount_status_pub = nullptr;
+	orb_advert_t _mount_orientation_pub = nullptr;
 };
 
 
