@@ -71,15 +71,16 @@ set(config_module_list
 	#
 	# Testing
 	#
-	#drivers/sf0x/sf0x_tests
-	#drivers/test_ppm
+	drivers/sf0x/sf0x_tests
+	drivers/test_ppm
 	#lib/rc/rc_tests
-	#modules/commander/commander_tests
-	#modules/controllib_test
-	#modules/mavlink/mavlink_tests
-	#modules/unit_test
-	#modules/uORB/uORB_tests
-	#systemcmds/tests
+	modules/commander/commander_tests
+	modules/controllib_test
+	modules/mavlink/mavlink_tests
+	modules/mc_pos_control/mc_pos_control_tests
+	modules/unit_test
+	modules/uORB/uORB_tests
+	systemcmds/tests
 
 	#
 	# General system control
@@ -96,7 +97,7 @@ set(config_module_list
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	#modules/position_estimator_inav
+	modules/position_estimator_inav
 	modules/local_position_estimator
 	modules/ekf2
 
@@ -112,7 +113,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	#modules/logger
+	modules/logger
 	modules/sdlog2
 
 	#
