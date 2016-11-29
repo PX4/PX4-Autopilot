@@ -269,6 +269,8 @@ struct pwm_output_rc_config {
 /** fetch PX4IO status */
 #define PWM_IO_GET_STATUS			_PX4_IOC(_PWM_SERVO_BASE, 35)
 
+/** set alternate servo update clock */
+#define PWM_SERVO_SET_UPDATE_CLOCK _PX4_IOC(_PWM_SERVO_BASE, 36)
 
 /*
  *
@@ -349,6 +351,15 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Set the update clock for a given rate group.
+ *
+ * @param group		The rate group whose update rate will be changed.
+ * @param clock_MHz	the clock in MHz
+ * @return		OK if the group was adjusted, -ERANGE if an unsupported update clock is set.
+ */
+__EXPORT extern int	up_pwm_servo_set_rate_group_clock(unsigned group, unsigned clock_MHz);
 
 /**
  * Set the current output value for a channel.

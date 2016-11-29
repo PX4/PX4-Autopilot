@@ -183,6 +183,7 @@ private:
 	unsigned	_pwm_default_rate;
 	unsigned	_pwm_alt_rate;
 	uint32_t	_pwm_alt_rate_channels;
+	uint8_t		_pwm_clock;
 	unsigned	_current_update_rate;
 	struct work_s	_work;
 	int		_armed_sub;
@@ -247,6 +248,7 @@ private:
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
+	int		set_pwm_clock(unsigned rate_map, unsigned clock_MHz);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
@@ -389,6 +391,7 @@ PX4FMU::PX4FMU() :
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),
 	_pwm_alt_rate_channels(0),
+	_pwm_clock(1),
 	_current_update_rate(0),
 	_work{},
 	_armed_sub(-1),
@@ -733,6 +736,29 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 	_pwm_alt_rate_channels = rate_map;
 	_pwm_default_rate = default_rate;
 	_pwm_alt_rate = alt_rate;
+
+	set_pwm_clock(rate_map, _pwm_clock);
+
+	return OK;
+}
+
+
+int
+PX4FMU::set_pwm_clock(uint32_t rate_map, unsigned clock_MHz)
+{
+    for (unsigned group = 0; group < _max_actuators; group++) {
+
+        // get the channel mask for this rate group
+        uint32_t mask = up_pwm_servo_get_rate_group(group);
+
+        if ((rate_map & mask) != 0) {
+            if (up_pwm_servo_set_rate_group_clock(group, clock_MHz) != OK) {
+                return -EINVAL;
+            }
+        }
+	}
+
+    _pwm_clock = clock_MHz;
 
 	return OK;
 }
@@ -1665,6 +1691,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
 		break;
 
+	case PWM_SERVO_SET_UPDATE_CLOCK:
+		ret = set_pwm_clock(0xFF, arg);
+		break;
+        
 	case PWM_SERVO_GET_UPDATE_RATE:
 		*(uint32_t *)arg = _pwm_alt_rate;
 		break;
