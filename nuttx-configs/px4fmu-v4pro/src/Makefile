@@ -1,8 +1,9 @@
 ############################################################################
-# configs/px4fmu/src/Makefile
+# configs/px4fmu-v4pro/src/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2011, 2016 Gregory Nutt. All rights reserved.
+#   Authors: Gregory Nutt <gnutt@nuttx.org>
+#            David Sidrane <david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,24 +36,24 @@
 
 -include $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CFLAGS += -I$(TOPDIR)/sched
 
-ASRCS		=
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+ASRCS =
+AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= empty.c
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+CSRCS = empty.c
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-					   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-					   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+            -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+            -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
 else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+  CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
 endif
 
 all: libboard$(LIBEXT)
@@ -80,5 +81,8 @@ distclean: clean
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 
--include Make.dep
+ifneq ($(BOARD_CONTEXT),y)
+context:
+endif
 
+-include Make.dep
