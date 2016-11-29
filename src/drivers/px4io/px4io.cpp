@@ -2432,6 +2432,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
 		break;
 
+	case PWM_SERVO_SET_UPDATE_CLOCK:
+		/* set the requested alternate clock */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTCLOCK, arg);
+		break;
+        
 	case PWM_SERVO_GET_UPDATE_RATE:
 		/* get the alternative update rate */
 		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE);
