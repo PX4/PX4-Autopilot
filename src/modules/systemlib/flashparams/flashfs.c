@@ -132,12 +132,12 @@ const flash_file_token_t parameters_token = {
  * Name: parameter_flashfs_free
  *
  * Description:
- *   Frees  dynamicaly allocated memory
+ *   Frees  dynamically allocated memory
  *
  *
  ****************************************************************************/
 
-static void parameter_flashfs_free(void)
+void parameter_flashfs_free(void)
 {
 	if (!working_buffer_static && working_buffer != NULL) {
 		free(working_buffer);
@@ -769,7 +769,7 @@ int parameter_flashfs_read(flash_file_token_t token, uint8_t **buffer, size_t
  *   token      - File Token File to read
  *   buffer      - A pointer to a buffer with buf_size bytes to be written
  *                 to the flash. This buffer must be allocated
- *                 with a previous call to flash_alloc_buffer
+ *                 with a previous call to parameter_flashfs_alloc
  *   buf_size    - Number of bytes to write
  *
  * Returned value:
@@ -806,7 +806,6 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 			/* No Space */
 
 			if (pf == 0) {
-				parameter_flashfs_free();
 				return -ENOSPC;
 			}
 
@@ -829,7 +828,6 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				rv = erase_entry(pf);
 
 				if (rv < 0) {
-					parameter_flashfs_free();
 					return rv;
 				}
 
@@ -848,7 +846,6 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				/* Will the data fit */
 
 				if (current_sector->size < total_size) {
-					parameter_flashfs_free();
 					return -ENOSPC;
 				}
 
@@ -861,7 +858,6 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				rv = erase_entry(pf);
 
 				if (rv < 0) {
-					parameter_flashfs_free();
 					return rv;
 				}
 
@@ -892,7 +888,6 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		}
 	}
 
-	parameter_flashfs_free();
 	return rv;
 }
 
@@ -903,6 +898,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
  *   This function is called to get a buffer to use in a subsequent call
  *   to parameter_flashfs_write. The address returned is advanced into the
  *   buffer to reserve space for the flash entry header.
+ *   The caller is responsible to call parameter_flashfs_free after usage.
  *
  * Input Parameters:
  *   token      - File Token File to read (not used)
@@ -1003,9 +999,9 @@ int parameter_flashfs_erase(void)
  *                  space is reserved in the front for the
  *                  flash_entry_header_t.
  *                  If this is passes as NULL. The buffer will be
- *                  allocated from the heap on callse to
- *                  parameter_flashfs_alloc and fread on calls calls
- *                  to parameter_flashfs_write
+ *                  allocated from the heap on calls to
+ *                  parameter_flashfs_alloc and fread on calls
+ *                  to parameter_flashfs_free
  *
  *   size         - The size of the buffer in bytes. Should be be 0 if buffer
  *                  is NULL
@@ -1091,6 +1087,7 @@ __EXPORT void test(void)
 		buf_size = a;
 		written = parameter_flashfs_write(parameters_token, fbuffer, buf_size);
 		read = parameter_flashfs_read(parameters_token, &fbuffer, &buf_size);
+		parameter_flashfs_free();
 
 		if (read != written) {
 			static volatile int j;
@@ -1106,6 +1103,7 @@ __EXPORT void test(void)
 		buf_size = block;
 		written = parameter_flashfs_write(parameters_token, fbuffer, buf_size);
 		read = parameter_flashfs_read(parameters_token, &fbuffer, &buf_size);
+		parameter_flashfs_free();
 
 		if (read != written) {
 			static volatile int j;
