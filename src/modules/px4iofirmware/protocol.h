@@ -247,6 +247,7 @@ enum {							/* DSM bind states */
 #define PX4IO_HEATER_MIN			0
 #define PX4IO_HEATER_MAX			100
 #define PX4IO_P_SETUP_HEATER_DUTY_CYCLE		21	/**< control the heater pin, setting duty cycle */
+#define PX4IO_P_SETUP_PWM_ALTCLOCK			22  /* alt channel PWM clock in MHz */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */

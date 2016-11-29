@@ -56,6 +56,7 @@
 
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
+static void	pwm_configure_clock(uint16_t map, uint16_t clock_MHz);
 
 /**
  * PAGE 0
@@ -189,6 +190,7 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_TRIM_YAW] = 0,
 	[PX4IO_P_SETUP_IGNORE_SAFETY] = 0,
 	[PX4IO_P_SETUP_HEATER_DUTY_CYCLE] = PX4IO_HEATER_DISABLE,
+	[PX4IO_P_SETUP_PWM_ALTCLOCK]		= 1,
 };
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
@@ -644,7 +646,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				value = 25;
 			}
 
-			if (value > 400) {
+			if (value > 400 && r_page_setup[PX4IO_P_SETUP_PWM_ALTCLOCK] == 1) {
 				value = 400;
 			}
 
@@ -656,13 +658,25 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				value = 25;
 			}
 
-			if (value > 400) {
+			if (value > 400 && r_page_setup[PX4IO_P_SETUP_PWM_ALTCLOCK] == 1) {
 				value = 400;
 			}
 
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
+		case PX4IO_P_SETUP_PWM_ALTCLOCK:
+			if (value < 1) {
+				value = 1;
+			}
+
+			if (value > 8) {
+				value = 8;
+			}
+			pwm_configure_clock(r_setup_pwm_rates, value);
+			r_page_setup[PX4IO_P_SETUP_PWM_ALTCLOCK] = value;
+			break;
+            
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 
 		case PX4IO_P_SETUP_RELAYS:
@@ -1124,4 +1138,22 @@ pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 	r_setup_pwm_rates = map;
 	r_setup_pwm_defaultrate = defaultrate;
 	r_setup_pwm_altrate = altrate;
+}
+
+
+/*
+ * Helper function to handle changes to the PWM clock control registers.
+ */
+static void
+pwm_configure_clock(uint16_t map, uint16_t clock_MHz)
+{
+    for (unsigned group = 0; group < PX4IO_SERVO_COUNT; group++) {
+        uint32_t mask = up_pwm_servo_get_rate_group(group);
+
+        if ((map & mask) != 0) {
+            if (up_pwm_servo_set_rate_group_clock(group, clock_MHz) != OK) {
+                r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+            }
+        }
+    }
 }
