@@ -142,6 +142,12 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	return OK;
 }
 
+int up_pwm_servo_set_rate_group_clock(unsigned group, unsigned clock_MHz)
+{
+	io_timer_set_clock(group, clock_MHz);
+	return OK;
+}
+
 int up_pwm_servo_set_rate(unsigned rate)
 {
 	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
