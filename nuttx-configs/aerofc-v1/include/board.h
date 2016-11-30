@@ -195,7 +195,7 @@
 /* Alternate function pin selections ************************************************/
 
 /*
- * USARTs.
+ * USARTs and UARTs
  *
  *
  * Peripheral   Port     Signal Name               CONN
@@ -209,43 +209,36 @@
  * USART6_RX    PC7     RF_USART6_RX             JP2-17,18
 */
 
+// ESC
 #define GPIO_USART1_TX	GPIO_USART1_TX_2
 #define GPIO_USART1_RX	GPIO_USART1_RX_2
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
 
+// Companion
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
+#define GPIO_USART2_CTS	0 // unused
+#define GPIO_USART2_RTS	0 // unused
 
-#define GPIO_USART3_TX	GPIO_USART3_TX_2
-#define GPIO_USART3_RX	GPIO_USART3_RX_2
+// GPS
+#define GPIO_USART3_TX	GPIO_USART3_TX_1
+#define GPIO_USART3_RX	GPIO_USART3_RX_1
+#define GPIO_USART3_CTS	0 // unused
+#define GPIO_USART3_RTS	0 // unused
 
-#define GPIO_USART6_TX	GPIO_USART6_TX_1
-#define GPIO_USART6_RX	GPIO_USART6_RX_1
-
-#define GPIO_UART7_TX	GPIO_UART7_TX_1
-#define GPIO_UART7_RX	GPIO_UART7_RX_1
-
-/* USART DMA configuration for USART 1 and 6 */
-
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
-
-/*
- * UARTs.
- *
- *  N.B. The 's' is here to match the wrong labeling on Schematic
- *
- * Peripheral   Port     Signal Name               CONN
- * UART4_TX     PA0     OFS_UsART4_TX             JP1-19,20
- * UART4_RX     PA1     OFS_UsART4_RX             JP1-17,18
- * UART5_TX     PC12    ESC_UsART5_TX             U7-HCT244 etal ESC
- * UART5_RX     PD2     ESC_UsART5_RX             U8-5 74HCT151
- *
- * Note that UART5 has no optional pinout, so it is not listed here.
- *
-*/
-
+// RC
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
 #define GPIO_UART4_RX	GPIO_UART4_RX_1
+#define GPIO_UART4_CTS	0 // unused
+#define GPIO_UART4_RTS	0 // unused
+
+// Mavlink
+// UART5
+
+// Serial console
+#define GPIO_USART6_TX	GPIO_USART6_TX_1
+#define GPIO_USART6_RX	GPIO_USART6_RX_1
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
 /*
  * I2C
@@ -262,15 +255,10 @@
  * reset the bus to clear stuck slaves.  They match the pin configuration,
  * but are normally-high GPIOs.
  */
-// #define GPIO_I2C1_SDA		GPIO_I2C1_SDA_2
-// #define GPIO_I2C1_SCL		GPIO_I2C1_SCL_2
-// #define GPIO_I2C1_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
-// #define GPIO_I2C1_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
-
-// #define GPIO_I2C2_SDA		GPIO_I2C2_SDA_1
-// #define GPIO_I2C2_SCL		GPIO_I2C2_SCL_1
-// #define GPIO_I2C2_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
-// #define GPIO_I2C2_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN10)
+#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2
+#define GPIO_I2C1_SCL GPIO_I2C1_SCL_2
+#define GPIO_I2C1_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
+#define GPIO_I2C1_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
 
 #define GPIO_I2C3_SDA		GPIO_I2C3_SDA_1
 #define GPIO_I2C3_SCL		GPIO_I2C3_SCL_1
@@ -286,15 +274,10 @@
  *
  */
 
-#define GPIO_SPI3_NSS	(GPIO_SPI3_NSS_1  | GPIO_SPEED_50MHz)
-#define GPIO_SPI3_SCK	(GPIO_SPI3_SCK_2  | GPIO_SPEED_50MHz)
-#define GPIO_SPI3_MISO	(GPIO_SPI3_MISO_1 | GPIO_SPEED_50MHz)
-#define GPIO_SPI3_MOSI	(GPIO_SPI3_MOSI_1 | GPIO_SPEED_50MHz)
-
-#define GPIO_SPI4_NSS	(GPIO_SPI4_NSS_1  | GPIO_SPEED_50MHz)
-#define GPIO_SPI4_SCK	(GPIO_SPI4_SCK_2  | GPIO_SPEED_50MHz)
-#define GPIO_SPI4_MISO	(GPIO_SPI4_MISO_1 | GPIO_SPEED_50MHz)
-#define GPIO_SPI4_MOSI	(GPIO_SPI4_MOSI_1 | GPIO_SPEED_50MHz)
+#define GPIO_SPI1_NSS   (GPIO_SPI1_NSS_2  | GPIO_SPEED_50MHz)
+#define GPIO_SPI1_SCK   (GPIO_SPI1_SCK_1  | GPIO_SPEED_50MHz)
+#define GPIO_SPI1_MISO  (GPIO_SPI1_MISO_1 | GPIO_SPEED_50MHz)
+#define GPIO_SPI1_MOSI  (GPIO_SPI1_MOSI_1 | GPIO_SPEED_50MHz)
 
 /* The following Pin Mapping is just for completeness */
 /*

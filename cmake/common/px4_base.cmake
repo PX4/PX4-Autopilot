@@ -580,6 +580,23 @@ function(px4_add_scp_push)
 		)
 endfunction()
 
+function(px4_add_upload_aero)
+	px4_parse_function_args(
+		NAME px4_add_upload_aero
+		ONE_VALUE OS BOARD OUT BUNDLE
+		REQUIRED OS BOARD OUT BUNDLE
+		ARGN ${ARGN})
+
+	add_custom_target(${OUT}
+		COMMAND ${PX4_SOURCE_DIR}/Tools/aero_upload.sh ${BUNDLE}
+		DEPENDS ${BUNDLE}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		COMMENT "uploading ${BUNDLE}"
+		VERBATIM
+		USES_TERMINAL
+		)
+endfunction()
+
 
 #=============================================================================
 #

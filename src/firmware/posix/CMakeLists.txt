@@ -53,11 +53,13 @@ elseif ("${BOARD}" STREQUAL "rpi")
 		-Wl,--end-group
 		)
 
+	file(GLOB RPI_CONFIG_FILES ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config)
 	px4_add_scp_push(OUT upload
 			 OS ${OS}
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/px4
-				 ${PX4_SOURCE_DIR}/posix-configs/rpi/px4.config
+				${RPI_CONFIG_FILES}
+				${PX4_SOURCE_DIR}/ROMFS
 			 DEPENDS px4
 			 DEST /home/pi)
 

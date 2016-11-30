@@ -699,6 +699,14 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 	case 1000000: speed = B1000000; break;
 
+#ifdef B1500000
+	case 1500000: speed = B1500000; break;
+#endif
+
+#ifdef B3000000
+	case 3000000: speed = B3000000; break;
+#endif
+
 	default:
 		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n1000000\n",
 			baud);
@@ -1713,7 +1721,7 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
 
-			if (_baudrate < 9600 || _baudrate > 1000000) {
+			if (_baudrate < 9600 || _baudrate > 3000000) {
 				warnx("invalid baud rate '%s'", myoptarg);
 				err_flag = true;
 			}
