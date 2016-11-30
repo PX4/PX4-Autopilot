@@ -73,27 +73,23 @@ __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
 	stm32_configgpio(GPIO_SPI_CS_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-
 	stm32_configgpio(GPIO_DRDY_MPU9250);
-	stm32_configgpio(GPIO_DRDY_HMC5983);
+	stm32_configgpio(GPIO_DRDY_LIS3MDL);
 	stm32_configgpio(GPIO_DRDY_ICM_20608_G);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
 	stm32_configgpio(GPIO_SPI_CS_FRAM);
-	stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+#endif
+#ifdef CONFIG_STM32_SPI5
+	stm32_configgpio(GPIO_SPI5_CS);
+#endif
+#ifdef CONFIG_STM32_SPI6
+	stm32_configgpio(GPIO_SPI6_CS);
 #endif
 
 }
@@ -106,27 +102,23 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case PX4_SPIDEV_ICM:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
-		break;
-
-	case PX4_SPIDEV_ACCEL_MAG:
-		/* Making sure the other peripherals are not selected */
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
 
-	case PX4_SPIDEV_HMC:
+	case PX4_SPIDEV_LIS:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
@@ -134,7 +126,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		break;
@@ -153,24 +145,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 #ifdef CONFIG_STM32_SPI2
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* SPI select is active low, so write !selected to select the device */
-
-	switch (devid) {
-	case SPIDEV_FLASH:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
-		break;
-
-	case PX4_SPIDEV_BARO:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
-		break;
-
-	default:
-		break;
-	}
+	stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
 }
 
 __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
@@ -191,7 +166,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 #ifdef CONFIG_STM32_SPI5
 __EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-
+	stm32_gpiowrite(GPIO_SPI5_CS, !selected);
 
 }
 
@@ -212,7 +187,7 @@ __EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 #ifdef CONFIG_STM32_SPI6
 __EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
-	/* SPI select is active low, so write !selected to select the device */
+	stm32_gpiowrite(GPIO_SPI6_CS, !selected);
 
 }
 
@@ -226,12 +201,12 @@ __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
 	stm32_configgpio(GPIO_SPI_CS_OFF_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_OFF_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_OFF_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
 
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_LIS3MDL, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
 
@@ -244,11 +219,11 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
 	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
-	stm32_configgpio(GPIO_DRDY_OFF_HMC5983);
+	stm32_configgpio(GPIO_DRDY_OFF_LIS3MDL);
 	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
 
 	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
-	stm32_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_LIS3MDL, 0);
 	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
 
 	/* set the sensor rail off */
@@ -270,28 +245,18 @@ __EXPORT void board_spi_reset(int ms)
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
 	stm32_configgpio(GPIO_SPI_CS_MPU9250);
-	stm32_configgpio(GPIO_SPI_CS_HMC5983);
+	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
-
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);
 	stm32_configgpio(GPIO_SPI1_MOSI);
 
-	// // XXX bring up the EXTI pins again
-	// stm32_configgpio(GPIO_GYRO_DRDY);
-	// stm32_configgpio(GPIO_MAG_DRDY);
-	// stm32_configgpio(GPIO_ACCEL_DRDY);
-	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+	/* bring up the EXTI pins again */
+	stm32_configgpio(GPIO_DRDY_MPU9250);
+	stm32_configgpio(GPIO_DRDY_LIS3MDL);
+	stm32_configgpio(GPIO_DRDY_ICM_20608_G);
 
 #endif
 

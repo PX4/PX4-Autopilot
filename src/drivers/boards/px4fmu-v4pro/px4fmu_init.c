@@ -228,6 +228,8 @@ stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
+static struct spi_dev_s *spi5;
+static struct spi_dev_s *spi6;
 static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
@@ -418,10 +420,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI-based devices */
 
-	spi1 = stm32_spibus_initialize(1);
+	spi1 = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}
@@ -430,23 +432,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ICM, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_LIS, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = stm32_spibus_initialize(2);
+	spi2 = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\n");
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}
 
 	/* Default SPI2 to 12MHz and de-assert the known chip selects.
-	 * MS5611 has max SPI clock speed of 20MHz
 	 */
 
 	// XXX start with 10.4 MHz and go up to 20 once validated
@@ -454,7 +456,38 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
+
+	/* Configure SPI 5-based devices */
+
+	spi5 = stm32_spibus_initialize(PX4_SPI_EXT0);
+
+	if (!spi5) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT0);
+		board_autoled_on(LED_RED);
+		return -ENODEV;
+	}
+
+	/* Default SPI5 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi5, 10000000);
+	SPI_SETBITS(spi5, 8);
+	SPI_SETMODE(spi5, SPIDEV_MODE3);
+	SPI_SELECT(spi5, PX4_SPIDEV_EXT0, false);
+
+	/* Configure SPI 6-based devices */
+
+	spi6 = stm32_spibus_initialize(PX4_SPI_EXT1);
+
+	if (!spi6) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT1);
+		board_autoled_on(LED_RED);
+		return -ENODEV;
+	}
+
+	/* Default SPI6 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi6, 10000000);
+	SPI_SETBITS(spi6, 8);
+	SPI_SETMODE(spi6, SPIDEV_MODE3);
+	SPI_SELECT(spi6, PX4_SPIDEV_EXT1, false);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
