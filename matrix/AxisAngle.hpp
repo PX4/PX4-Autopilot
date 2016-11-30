@@ -79,7 +79,7 @@ public:
         Type ang = (Type)2.0f*acosf(q(0));
         Type mag = sinf(ang/2.0f);
         if (fabsf(ang) < 1e-10f) {
-            v(0) = 0;
+            v(0) = 1e-10f;
             v(1) = 0;
             v(2) = 0;
         } else {
