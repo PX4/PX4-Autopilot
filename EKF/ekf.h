@@ -318,6 +318,7 @@ private:
 	float _sin_tilt_rng;		// sine of the range finder tilt rotation about the Y body axis
 	float _cos_tilt_rng;		// cosine of the range finder tilt rotation about the Y body axis
 	float _R_rng_to_earth_2_2;	// 2,2 element of the rotation matrix from sensor frame to earth frame
+	bool _range_data_continuous;	// true when we are receiving range finder data faster than a 2Hz average
 
 	// height sensor fault status
 	bool _baro_hgt_faulty;		// true if valid baro data is unavailable for use
@@ -478,5 +479,8 @@ private:
 
 	// perform a reset of the wind states
 	void resetWindStates();
+
+	// check that the range finder data is continuous
+	void checkRangeDataContinuity();
 
 };
