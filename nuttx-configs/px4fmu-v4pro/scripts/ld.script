@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The STM32F469 has 2048Kb of FLASH beginning at address 0x0800:0000 and
+/* The STM32F469II has 2048Kb of FLASH beginning at address 0x0800:0000 and
  * 384Kb of SRAM. SRAM is split up into three blocks:
  *
  * 1) 160Kb of SRAM beginning at address 0x2000:0000
