@@ -163,6 +163,9 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* configure LEDs */
+	board_autoled_initialize();
+
 	/* configure ADC pins */
 	//todo:Revisit! ADC3 etc
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
@@ -197,8 +200,8 @@ stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs */
-	board_autoled_initialize();
+	stm32_usbinitialize();
+
 }
 
 /****************************************************************************

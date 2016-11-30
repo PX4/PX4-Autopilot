@@ -11,21 +11,6 @@ index f914f76..f83c80f 100644
  
  config STM32_DFU
  	bool "DFU bootloader"
-diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-index c570e6d..c6551fe 100644
---- NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-+++ NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-@@ -5201,8 +5201,8 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
- 
-   /* Deactivate the power down */
- 
--#if defined(CONFIG_STM32_STM32F446)
--  /* In the case of the STM32F446 the meaning of the bit has changed to VBUS
-+#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
-+  /* In the case of the STM32F446, STM32F469 the meaning of the bit has changed to VBUS
-    * Detection Enable when set
-    */
- 
 diff --git NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
 index 347d8a3..abb4431 100644
 --- NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
@@ -221,3 +206,58 @@ index 347d8a3..abb4431 100644
  
        /* Enable PLLI2S */
  
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+index c570e6d..f2d5561 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+@@ -4942,7 +4942,11 @@ static int stm32_pullup(struct usbdev_s *dev, bool enable)
+        * register
+        */
+ 
++#if defined(CONFIG_STM32_STM32F469)
++      regval |= OTGFS_DCTL_SDIS;
++#else
+       regval &= ~OTGFS_DCTL_SDIS;
++#endif
+     }
+   else
+     {
+@@ -4950,7 +4954,11 @@ static int stm32_pullup(struct usbdev_s *dev, bool enable)
+        * register
+        */
+ 
++#if defined(CONFIG_STM32_STM32F469)
++      regval &= ~OTGFS_DCTL_SDIS;
++#else
+       regval |= OTGFS_DCTL_SDIS;
++#endif
+     }
+ 
+   stm32_putreg(regval, STM32_OTGFS_DCTL);
+@@ -5201,9 +5209,9 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
+ 
+   /* Deactivate the power down */
+ 
+-#if defined(CONFIG_STM32_STM32F446)
+-  /* In the case of the STM32F446 the meaning of the bit has changed to VBUS
+-   * Detection Enable when set
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++  /* In the case of the STM32F446 or STM32F469 the meaning of the bit
++   * has changed to VBUS Detection Enable when set
+    */
+ 
+   regval  = OTGFS_GCCFG_PWRDWN;
+@@ -5228,11 +5236,11 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
+   stm32_putreg(regval, STM32_OTGFS_GCCFG);
+   up_mdelay(20);
+ 
+-  /* For the new OTG controller in the F446 when VBUS sensing is not used we
++  /* For the new OTG controller in the F446, F469 when VBUS sensing is not used we
+    * need to force the B session valid
+    */
+ 
+-#if defined(CONFIG_STM32_STM32F446)
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
+ # ifndef CONFIG_USBDEV_VBUSSENSING
+   regval  =  stm32_getreg(STM32_OTGFS_GOTGCTL);
+   regval |= (OTGFS_GOTGCTL_BVALOEN | OTGFS_GOTGCTL_BVALOVAL);
