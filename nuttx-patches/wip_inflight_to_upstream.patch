@@ -1,0 +1,223 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/Kconfig NuttX/nuttx/arch/arm/src/stm32/Kconfig
+index f914f76..f83c80f 100644
+--- NuttX/nuttx/arch/arm/src/stm32/Kconfig
++++ NuttX/nuttx/arch/arm/src/stm32/Kconfig
+@@ -1623,6 +1623,8 @@ config STM32_STM32F469
+ 	select STM32_HAVE_SPI4
+ 	select STM32_HAVE_SPI5
+ 	select STM32_HAVE_SPI6
++	select STM32_HAVE_SAIPLL
++	select STM32_HAVE_I2SPLL
+ 
+ config STM32_DFU
+ 	bool "DFU bootloader"
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+index c570e6d..c6551fe 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+@@ -5201,8 +5201,8 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
+ 
+   /* Deactivate the power down */
+ 
+-#if defined(CONFIG_STM32_STM32F446)
+-  /* In the case of the STM32F446 the meaning of the bit has changed to VBUS
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++  /* In the case of the STM32F446, STM32F469 the meaning of the bit has changed to VBUS
+    * Detection Enable when set
+    */
+ 
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
+index 347d8a3..abb4431 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
+@@ -725,7 +725,7 @@ static void stm32_stdclockconfig(void)
+ #else /* if STM32_BOARD_USEHSE */
+                 | RCC_PLLCFG_PLLSRC_HSE
+ #endif
+-#if defined(CONFIG_STM32_STM32F446)
++#if defined(STM32_PLLCFG_PLLR)
+                 | STM32_PLLCFG_PLLR
+ #endif
+                 );
+@@ -743,7 +743,8 @@ static void stm32_stdclockconfig(void)
+         {
+         }
+ 
+-#if defined(CONFIG_STM32_STM32F429) || defined(CONFIG_STM32_STM32F446)
++#if defined(PWR_CSR_ODRDY)
++
+       /* Enable the Over-drive to extend the clock frequency to 180 Mhz */
+ 
+       regval  = getreg32(STM32_PWR_CR);
+@@ -783,12 +784,12 @@ static void stm32_stdclockconfig(void)
+         {
+         }
+ 
+-#if defined(CONFIG_STM32_LTDC) || \
+-    (defined(CONFIG_STM32_STM32F446) && defined(CONFIG_STM32_SAIPLL))
++#if defined(CONFIG_STM32_LTDC) || defined(CONFIG_STM32_SAIPLL)
++
+       /* Configure PLLSAI */
+ 
+       regval  = getreg32(STM32_RCC_PLLSAICFGR);
+-#if defined(CONFIG_STM32_STM32F446)
++#  if defined(CONFIG_STM32_STM32F446)
+       regval &= ~(RCC_PLLSAICFGR_PLLSAIM_MASK
+                   | RCC_PLLSAICFGR_PLLSAIN_MASK
+                   | RCC_PLLSAICFGR_PLLSAIP_MASK
+@@ -797,35 +798,64 @@ static void stm32_stdclockconfig(void)
+                  | STM32_RCC_PLLSAICFGR_PLLSAIN
+                  | STM32_RCC_PLLSAICFGR_PLLSAIP
+                  | STM32_RCC_PLLSAICFGR_PLLSAIQ);
+-#else
++#  elif defined(CONFIG_STM32_STM32F469)
+       regval &= ~(RCC_PLLSAICFGR_PLLSAIN_MASK
+-                 | RCC_PLLSAICFGR_PLLSAIR_MASK
+-                 | RCC_PLLSAICFGR_PLLSAIQ_MASK);
++                 | RCC_PLLSAICFGR_PLLSAIP_MASK
++                 | RCC_PLLSAICFGR_PLLSAIQ_MASK
++                 | RCC_PLLSAICFGR_PLLSAIR_MASK);
+       regval |= (STM32_RCC_PLLSAICFGR_PLLSAIN
+-                | STM32_RCC_PLLSAICFGR_PLLSAIR
+-                | STM32_RCC_PLLSAICFGR_PLLSAIQ);
+-#endif
++                | STM32_RCC_PLLSAICFGR_PLLSAIP
++                | STM32_RCC_PLLSAICFGR_PLLSAIQ
++                | STM32_RCC_PLLSAICFGR_PLLSAIR);
++#  else
++      regval &= ~(RCC_PLLSAICFGR_PLLSAIN_MASK
++                 | RCC_PLLSAICFGR_PLLSAIQ_MASK
++                 | RCC_PLLSAICFGR_PLLSAIR_MASK);
++      regval |= (STM32_RCC_PLLSAICFGR_PLLSAIN
++                | STM32_RCC_PLLSAICFGR_PLLSAIQ
++                | STM32_RCC_PLLSAICFGR_PLLSAIR);
++#  endif
+       putreg32(regval, STM32_RCC_PLLSAICFGR);
+ 
+       regval  = getreg32(STM32_RCC_DCKCFGR);
+-#if defined(CONFIG_STM32_STM32F446)
++#  if defined(CONFIG_STM32_STM32F446)
+       regval &= ~(RCC_DCKCFGR_PLLI2SDIVQ_MASK
+-                  | RCC_DCKCFGR_PLLSAIDIVQ_MASK
+-                  | RCC_DCKCFGR_SAI1SRC_MASK
+-                  | RCC_DCKCFGR_SAI2SRC_MASK
+-                  | RCC_DCKCFGR_I2S1SRC_MASK
+-                  | RCC_DCKCFGR_I2S2SRC_MASK);
++                 | RCC_DCKCFGR_PLLSAIDIVQ_MASK
++                 | RCC_DCKCFGR_SAI1SRC_MASK
++                 | RCC_DCKCFGR_SAI2SRC_MASK
++                 | RCC_DCKCFGR_TIMPRE
++                 | RCC_DCKCFGR_I2S1SRC_MASK
++                 | RCC_DCKCFGR_I2S2SRC_MASK);
+       regval |= (STM32_RCC_DCKCFGR_PLLI2SDIVQ
+-                 | STM32_RCC_DCKCFGR_PLLSAIDIVQ
+-                 | STM32_RCC_DCKCFGR_SAI1SRC
+-                 | STM32_RCC_DCKCFGR_SAI2SRC
+-                 | STM32_RCC_DCKCFGR_TIMPRE
+-                 | STM32_RCC_DCKCFGR_I2S1SRC
+-                 | STM32_RCC_DCKCFGR_I2S2SRC);
+-#else
++                | STM32_RCC_DCKCFGR_PLLSAIDIVQ
++                | STM32_RCC_DCKCFGR_SAI1SRC
++                | STM32_RCC_DCKCFGR_SAI2SRC
++                | STM32_RCC_DCKCFGR_TIMPRE
++                | STM32_RCC_DCKCFGR_I2S1SRC
++                | STM32_RCC_DCKCFGR_I2S2SRC);
++#  elif defined(CONFIG_STM32_STM32F469)
++      regval &= ~(RCC_DCKCFGR_PLLI2SDIVQ_MASK
++                 | RCC_DCKCFGR_PLLSAIDIVQ_MASK
++                 | RCC_DCKCFGR_PLLSAIDIVR_MASK
++                 | RCC_DCKCFGR_SAI1ASRC_MASK
++                 | RCC_DCKCFGR_SAI1BSRC_MASK
++                 | RCC_DCKCFGR_TIMPRE
++                 | RCC_DCKCFGR_48MSEL_MASK
++                 | RCC_DCKCFGR_SDMMCSEL_MASK
++                 | RCC_DCKCFGR_DSISEL_MASK);
++      regval |= (STM32_RCC_DCKCFGR_PLLI2SDIVQ
++                | STM32_RCC_DCKCFGR_PLLSAIDIVQ
++                | STM32_RCC_DCKCFGR_PLLSAIDIVR
++                | STM32_RCC_DCKCFGR_SAI1ASRC
++                | STM32_RCC_DCKCFGR_SAI1BSRC
++                | STM32_RCC_DCKCFGR_TIMPRE
++                | STM32_RCC_DCKCFGR_48MSEL
++                | STM32_RCC_DCKCFGR_SDMMCSEL
++                | STM32_RCC_DCKCFGR_DSISEL);
++#  else
+       regval &= ~RCC_DCKCFGR_PLLSAIDIVR_MASK;
+       regval |= STM32_RCC_DCKCFGR_PLLSAIDIVR;
+-#endif
++#  endif
+       putreg32(regval, STM32_RCC_DCKCFGR);
+ 
+       /* Enable PLLSAI */
+@@ -841,34 +871,54 @@ static void stm32_stdclockconfig(void)
+         }
+ #endif
+ 
+-#if defined(CONFIG_STM32_STM32F446) && defined(CONFIG_STM32_I2SPLL)
++#if defined(CONFIG_STM32_I2SPLL)
++
+       /* Configure PLLI2S */
+ 
+       regval  = getreg32(STM32_RCC_PLLI2SCFGR);
++
++#  if defined(CONFIG_STM32_STM32F446)
++
+       regval &= ~(RCC_PLLI2SCFGR_PLLI2SM_MASK
+-                  | RCC_PLLI2SCFGR_PLLI2SN_MASK
+-                  | RCC_PLLI2SCFGR_PLLI2SP_MASK
+-                  | RCC_PLLI2SCFGR_PLLI2SQ_MASK);
++                 | RCC_PLLI2SCFGR_PLLI2SN_MASK
++                 | RCC_PLLI2SCFGR_PLLI2SP_MASK
++                 | RCC_PLLI2SCFGR_PLLI2SQ_MASK
++                 | RCC_PLLI2SCFGR_PLLI2SR_MASK);
+       regval |= (STM32_RCC_PLLI2SCFGR_PLLI2SM
+-                 | STM32_RCC_PLLI2SCFGR_PLLI2SN
+-                 | STM32_RCC_PLLI2SCFGR_PLLI2SP
+-                 | STM32_RCC_PLLI2SCFGR_PLLI2SQ
+-                 | STM32_RCC_PLLI2SCFGR_PLLI2SR);
++                | STM32_RCC_PLLI2SCFGR_PLLI2SN
++                | STM32_RCC_PLLI2SCFGR_PLLI2SP
++                | STM32_RCC_PLLI2SCFGR_PLLI2SQ
++                | STM32_RCC_PLLI2SCFGR_PLLI2SR);
++
++#  elif defined(CONFIG_STM32_STM32F469)
++
++      regval &= ~(RCC_PLLI2SCFGR_PLLI2SN_MASK
++                 | RCC_PLLI2SCFGR_PLLI2SQ_MASK
++                 | RCC_PLLI2SCFGR_PLLI2SR_MASK);
++      regval |= (STM32_RCC_PLLI2SCFGR_PLLI2SN
++                | STM32_RCC_PLLI2SCFGR_PLLI2SQ
++                | STM32_RCC_PLLI2SCFGR_PLLI2SR);
++#  endif
++
+       putreg32(regval, STM32_RCC_PLLI2SCFGR);
+ 
++#  if defined(STM32_RCC_DCKCFGR2)
++
+       regval  = getreg32(STM32_RCC_DCKCFGR2);
++
+       regval &= ~(RCC_DCKCFGR2_FMPI2C1SEL_MASK
+-                  | RCC_DCKCFGR2_CECSEL_MASK
+-                  | RCC_DCKCFGR2_CK48MSEL_MASK
+-                  | RCC_DCKCFGR2_SDIOSEL_MASK
+-                  | RCC_DCKCFGR2_SPDIFRXSEL_MASK);
++                 | RCC_DCKCFGR2_CECSEL_MASK
++                 | RCC_DCKCFGR2_CK48MSEL_MASK
++                 | RCC_DCKCFGR2_SDIOSEL_MASK
++                 | RCC_DCKCFGR2_SPDIFRXSEL_MASK);
+       regval |= (STM32_RCC_DCKCFGR2_FMPI2C1SEL
+-                 | STM32_RCC_DCKCFGR2_CECSEL
+-                 | STM32_RCC_DCKCFGR2_CK48MSEL
+-                 | STM32_RCC_DCKCFGR2_SDIOSEL
+-                 | STM32_RCC_DCKCFGR2_SPDIFRXSEL);
++                | STM32_RCC_DCKCFGR2_CECSEL
++                | STM32_RCC_DCKCFGR2_CK48MSEL
++                | STM32_RCC_DCKCFGR2_SDIOSEL
++                | STM32_RCC_DCKCFGR2_SPDIFRXSEL);
+ 
+       putreg32(regval, STM32_RCC_DCKCFGR2);
++#  endif
+ 
+       /* Enable PLLI2S */
+ 
