@@ -130,9 +130,9 @@ __END_DECLS
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_PERIPH_3V3_EN);
+	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
 
-	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 0);
 
 	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
@@ -146,7 +146,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* switch the peripheral rail back on */
 	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
-	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 1);
 
 }
 
@@ -164,13 +164,14 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure ADC pins */
+	//todo:Revisit! ADC3 etc
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
 	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
 
 	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_PERIPH_3V3_EN);
+	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 
 	stm32_configgpio(GPIO_SBUS_INV);
