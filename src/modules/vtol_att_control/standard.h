@@ -110,7 +110,6 @@ private:
 
 	void set_max_mc(unsigned pwm_value);
 
-	int parameters_update();
-
+	virtual void parameters_update();
 };
 #endif

@@ -62,7 +62,7 @@ static char _device[64] = "/sys/class/pwm/pwmchip0";
 static int  _pwm_fd[NUM_PWM];
 
 static const int FREQUENCY_PWM = 400;
-static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
+static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
 
 // subscriptions
 int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -144,7 +144,7 @@ int initialize_mixer(const char *mixer_filename)
 
 	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
 		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
-			PX4_INFO("Successfully initialized mixer from config file %s", mixer_filename);
+			PX4_INFO("Loaded mixer from file %s", mixer_filename);
 			return 0;
 
 		} else {
@@ -458,7 +458,7 @@ void usage()
 	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation");
 	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
-	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/AERT.main.mix)");
+	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/quad_x.main.mix)");
 	PX4_INFO("       pwm_out stop");
 	PX4_INFO("       pwm_out status");
 }

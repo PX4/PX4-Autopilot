@@ -51,83 +51,15 @@
 
 #include "board_config.h"
 
-__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN,
-		.first_channel_index = 0,
-		.last_channel_index = 3,
-		.handler = io_timer_handler0,
-		.vectorno =  STM32_IRQ_TIM3,
-	}
-};
 
-__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	{
-		.gpio_out = GPIO_TIM3_CH1OUT,
-		.gpio_in = 0,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
-		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
-	},
-	{
-		.gpio_out = GPIO_TIM3_CH2OUT,
-		.gpio_in = 0,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
-		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF
-	},
-	{
-		.gpio_out = GPIO_TIM3_CH3OUT,
-		.gpio_in = 0,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
-		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
-	},
-	{
-		.gpio_out = GPIO_TIM3_CH4OUT,
-		.gpio_in = 0,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
-		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
-	}
-};
+// Invalidate all timers (base == 0): we don't have any
+__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = { };
 
-__EXPORT const struct io_timers_t led_pwm_timers[1] = {
-	{
-		.base 				= STM32_TIM3_BASE,
-		.clock_register 	= STM32_RCC_APB1ENR,
-		.clock_bit 			= RCC_APB1ENR_TIM3EN,
-		.clock_freq 		= STM32_APB1_TIM3_CLKIN,
-		.vectorno 			=  STM32_IRQ_TIM3,
-		.first_channel_index = 0,
-		.last_channel_index = 2,
-	}
-};
+// Invalidate all channels (timer_channel == 0): we don't have any
+__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = { };
 
-__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = {
-	{
-		.gpio_out = LED_TIM3_CH1OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 1,
-	},
-	{
-		.gpio_out = LED_TIM3_CH2OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 2,
-	},
-	{
-		.gpio_out = LED_TIM3_CH3OUT,
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 3,
-	}
-};
+// Invalidate all timers (base == 0): we don't have any
+__EXPORT const struct io_timers_t led_pwm_timers[1] = { };
+
+// Invalidate all channels (timer_channel == 0): we don't have any
+__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = { };

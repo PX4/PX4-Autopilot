@@ -492,6 +492,24 @@ Navigator::task_main()
 				rep->current.valid = true;
 				rep->next.valid = false;
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
+
+				/* find NAV_CMD_DO_LAND_START in the mission and
+				 * use MAV_CMD_MISSION_START to start the mission there
+				 */
+				unsigned land_start = _mission.find_offboard_land_start();
+				if (land_start != -1) {
+					vehicle_command_s vcmd = {};
+					vcmd.target_system = get_vstatus()->system_id;
+					vcmd.target_component = get_vstatus()->component_id;
+					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
+					vcmd.param1 = land_start;
+					vcmd.param2 = 0;
+
+					orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+					(void)orb_unadvertise(pub);
+				}
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 
 				if (get_mission_result()->valid &&

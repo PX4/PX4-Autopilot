@@ -94,14 +94,16 @@ private:
 	void filterVoltage(float voltage_v);
 	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float throttle_normalized, bool armed);
+	void estimateRemaining(float voltage_v, float current_a, float throttle_normalized, bool armed);
 	void determineWarning();
+	void computeScale();
 
 	control::BlockParamFloat _param_v_empty;
 	control::BlockParamFloat _param_v_full;
 	control::BlockParamInt _param_n_cells;
 	control::BlockParamFloat _param_capacity;
 	control::BlockParamFloat _param_v_load_drop;
+	control::BlockParamFloat _param_r_internal;
 	control::BlockParamFloat _param_low_thr;
 	control::BlockParamFloat _param_crit_thr;
 
@@ -111,7 +113,7 @@ private:
 	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
 	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity
 	float _remaining;			///< normalized battery charge level, selected based on config param
+	float _scale;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 };
-
