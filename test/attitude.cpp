@@ -283,6 +283,10 @@ int main()
     AxisAnglef aa_data_init(aa_data);
     TEST(isEqual(aa_data_init, AxisAnglef(4.0f, 5.0f, 6.0f)));
 
+    AxisAnglef aa_norm_check(Vector3f(0.0f, 0.0f, 0.0f));
+    TEST(isEqual(aa_norm_check.axis(), Vector3f(1, 0, 0)));
+    TEST(isEqualF(aa_norm_check.angle(), 0.0f));
+
     q = Quatf(-0.29555112749297824f, 0.25532186f,  0.51064372f,  0.76596558f);
     TEST(isEqual(q.imag(), Vector3f(0.25532186f,  0.51064372f,  0.76596558f)));
 

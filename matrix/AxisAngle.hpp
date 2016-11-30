@@ -78,14 +78,14 @@ public:
         AxisAngle &v = *this;
         Type ang = (Type)2.0f*acosf(q(0));
         Type mag = sinf(ang/2.0f);
-        if (fabsf(ang) < 1e-10f) {
-            v(0) = 1e-10f;
-            v(1) = 0;
-            v(2) = 0;
-        } else {
+        if (fabsf(mag) > 0) {
             v(0) = ang*q(1)/mag;
             v(1) = ang*q(2)/mag;
             v(2) = ang*q(3)/mag;
+        } else {
+            v(0) = 0;
+            v(1) = 0;
+            v(2) = 0;
         }
     }
 
@@ -156,7 +156,11 @@ public:
 
 
     Vector<Type, 3> axis() {
-        return Vector<Type, 3>::unit();
+        if (Vector<Type, 3>::norm() > 0) {
+            return Vector<Type, 3>::unit();
+        } else {
+            return Vector3<Type>(1, 0, 0);
+        }
     }
 
     Type angle() {
