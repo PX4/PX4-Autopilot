@@ -180,6 +180,48 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 }
 #endif
 
+/************************************************************************************
+ * Name: stm32_spi5select and stm32_spi5status
+ *
+ * Description:
+ *   Called by stm32 spi driver on bus 5.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_SPI5
+__EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+
+
+}
+
+__EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	return SPI_STATUS_PRESENT;
+}
+#endif
+
+/************************************************************************************
+ * Name: stm32_spi6select and stm32_spi6status
+ *
+ * Description:
+ *   Called by stm32 spi driver on bus 6.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_SPI6
+__EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+	/* SPI select is active low, so write !selected to select the device */
+
+}
+
+__EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	return SPI_STATUS_PRESENT;
+}
+#endif
+
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
