@@ -2571,7 +2571,7 @@ int commander_thread_main(int argc, char *argv[])
 			    	land_detector.landed) &&
 			    ((sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) || (arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) ) {
 
-				if (stick_off_counter > rc_arm_hyst) {
+				if (stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
@@ -2590,14 +2590,10 @@ int commander_thread_main(int argc, char *argv[])
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
 					}
-
-					stick_off_counter = 0;
-
-				} else {
-					stick_off_counter++;
 				}
+				stick_off_counter++;
 
-			} else {
+			} else if (arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				stick_off_counter = 0;
 			}
 
@@ -2605,7 +2601,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 					(status.arming_state != vehicle_status_s::ARMING_STATE_ARMED && status.arming_state != vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
 					((sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) || (arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) ) {
-				if (stick_on_counter > rc_arm_hyst) {
+				if (stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) {
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
@@ -2645,13 +2641,10 @@ int commander_thread_main(int argc, char *argv[])
 							print_reject_arm("NOT ARMING: Preflight checks failed");
 						}
 					}
-					stick_on_counter = 0;
-
-				} else {
-					stick_on_counter++;
 				}
+				stick_on_counter++;
 
-			} else {
+			} else if (arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				stick_on_counter = 0;
 			}
 
