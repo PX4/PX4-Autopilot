@@ -280,6 +280,14 @@ private:
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 	bool _sequencer_initialized;
 
+	// counters for reset events on position and velocity states
+	// they are used to identify a reset event
+	uint8_t _z_reset_counter;
+	uint8_t _xy_reset_counter;
+	uint8_t _vz_reset_counter;
+	uint8_t _vxy_reset_counter;
+	uint8_t _heading_reset_counter;
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -420,7 +428,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
-	_sequencer_initialized(false)
+	_sequencer_initialized(false),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
