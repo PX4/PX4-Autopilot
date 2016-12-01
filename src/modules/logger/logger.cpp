@@ -542,6 +542,7 @@ void Logger::add_default_topics()
 	add_topic("rc_channels");
 	add_topic("input_rc");
 	add_topic("airspeed", 50);
+	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
 	add_topic("estimator_status", 50); //this one is large
@@ -552,6 +553,7 @@ void Logger::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
+	add_topic("sensor_preflight");
 
 	/* for estimator replay (need to be at full rate) */
 	add_topic("sensor_combined");

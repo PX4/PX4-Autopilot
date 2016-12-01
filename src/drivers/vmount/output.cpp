@@ -44,7 +44,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/mount_status.h>
+#include <uORB/topics/mount_orientation.h>
 #include <px4_defines.h>
 #include <geo/geo.h>
 #include <math.h>
@@ -86,13 +86,13 @@ int OutputBase::initialize()
 void OutputBase::publish()
 {
 	int instance;
-	mount_status_s mount_status;
+	mount_orientation_s mount_orientation;
 
 	for (unsigned i = 0; i < 3; ++i) {
-		mount_status.attitude_euler_angle[i] = _angle_outputs[i];
+		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
 	}
 
-	orb_publish_auto(ORB_ID(mount_status), &_mount_status_pub, &mount_status, &instance, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(mount_orientation), &_mount_orientation_pub, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
 }
 
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,

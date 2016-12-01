@@ -643,6 +643,10 @@ void Ekf2Replay::logIfUpdated()
 					    est_status.covariances) : sizeof(log_message.body.est2.cov);
 		memset(&(log_message.body.est2.cov), 0, sizeof(log_message.body.est2.cov));
 		memcpy(&(log_message.body.est2.cov), est_status.covariances, maxcopy2);
+		log_message.body.est2.gps_check_fail_flags = est_status.gps_check_fail_flags;
+		log_message.body.est2.control_mode_flags = est_status.control_mode_flags;
+		log_message.body.est2.health_flags = est_status.health_flags;
+		log_message.body.est2.innov_test_flags = est_status.innovation_check_flags;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST2_MSG].length);
 
 		log_message.type = LOG_EST3_MSG;
@@ -693,6 +697,8 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.innov2.s[7] = innov.heading_innov_var;
 		log_message.body.innov2.s[8] = innov.airspeed_innov;
 		log_message.body.innov2.s[9] = innov.airspeed_innov_var;
+		log_message.body.innov2.s[10] = innov.beta_innov;
+		log_message.body.innov2.s[11] = innov.beta_innov_var;
 
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_EST5_MSG].length);
 

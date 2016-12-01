@@ -218,10 +218,7 @@ private:
 	int _transition_command;
 	bool _abort_front_transition;
 
-	VtolType *_vtol_type;	// base class for different vtol types
-	Tiltrotor *_tiltrotor;	// tailsitter vtol type
-	Tailsitter *_tailsitter;	// tiltrotor vtol type
-	Standard *_standard;	// standard vtol type
+	VtolType *_vtol_type = nullptr;	// base class for different vtol types
 
 //*****************Member functions***********************************************************************
 

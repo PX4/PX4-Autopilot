@@ -75,7 +75,7 @@ Standard::~Standard()
 {
 }
 
-int
+void
 Standard::parameters_update()
 {
 	float v;
@@ -122,13 +122,10 @@ Standard::parameters_update()
 
 
 
-	return OK;
 }
 
 void Standard::update_vtol_state()
 {
-	parameters_update();
-
 	/* After flipping the switch the vehicle will start the pusher (or tractor) motor, picking up
 	 * forward speed. After the vehicle has picked up enough speed the rotors shutdown.
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.

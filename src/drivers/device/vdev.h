@@ -425,13 +425,12 @@ protected:
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:
-	static const unsigned _max_pollwaiters = 8;
-
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
+	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
 	unsigned	_open_count;		/**< number of successful opens */
 
-	px4_pollfd_struct_t	*_pollset[_max_pollwaiters];
+	px4_pollfd_struct_t	**_pollset;
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.

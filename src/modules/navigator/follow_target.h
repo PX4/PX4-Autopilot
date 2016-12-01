@@ -85,21 +85,30 @@ private:
 	};
 
 	float _follow_position_matricies[4][9] = {
-				 	 	 	 	 	 {1.0F,  -1.0F, 0.0F,
-						 	 	 	  1.0F,   1.0F, 0.0F,
-									  0.0F,   0.0F, 1.0F}, // follow right
+		{
+			1.0F,  -1.0F, 0.0F,
+			1.0F,   1.0F, 0.0F,
+			0.0F,   0.0F, 1.0F
+		}, // follow right
 
-									 {-1.0F,  0.0F, 0.0F,
-						 	 	 	   0.0F, -1.0F, 0.0F,
-									   0.0F,  0.0F, 1.0F}, // follow behind
+		{
+			-1.0F,  0.0F, 0.0F,
+			0.0F, -1.0F, 0.0F,
+			0.0F,  0.0F, 1.0F
+		}, // follow behind
 
-									 {1.0F,   0.0F, 0.0F,
-							 	 	  0.0F,   1.0F, 0.0F,
-									  0.0F,   0.0F, 1.0F}, // follow front
+		{
+			1.0F,   0.0F, 0.0F,
+			0.0F,   1.0F, 0.0F,
+			0.0F,   0.0F, 1.0F
+		}, // follow front
 
-									 {1.0F,   1.0F, 0.0F,
-							 	 	 -1.0F,   1.0F, 0.0F,
-									  0.0F,   0.0F, 1.0F}}; // follow left side
+		{
+			1.0F,   1.0F, 0.0F,
+			-1.0F,   1.0F, 0.0F,
+			0.0F,   0.0F, 1.0F
+		}
+	}; // follow left side
 
 
 	Navigator *_navigator;
@@ -137,14 +146,14 @@ private:
 
 	// Mavlink defined motion reporting capabilities
 
-    enum {
-        POS = 0,
-        VEL = 1,
-        ACCEL = 2,
-        ATT_RATES = 3
-    };
+	enum {
+		POS = 0,
+		VEL = 1,
+		ACCEL = 2,
+		ATT_RATES = 3
+	};
 
-	math::Matrix<3,3> _rot_matrix;
+	math::Matrix<3, 3> _rot_matrix;
 	void track_target_position();
 	void track_target_velocity();
 	bool target_velocity_valid();

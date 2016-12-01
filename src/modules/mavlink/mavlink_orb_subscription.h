@@ -43,7 +43,7 @@
 
 #include <systemlib/uthash/utlist.h>
 #include <drivers/drv_hrt.h>
-
+#include "uORB/uORB.h"	// orb_id_t
 
 class MavlinkOrbSubscription
 {

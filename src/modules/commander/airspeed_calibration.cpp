@@ -142,6 +142,13 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
 			calibration_counter++;
 
+			/* any differential pressure failure a reason to abort */
+			if (diff_pres.error_count != 0) {
+				calibration_log_critical(mavlink_log_pub, "[cal] airspeed error count non zero");
+				feedback_calibration_failed(mavlink_log_pub);
+				goto error_return;
+			}
+
 			if (calibration_counter % (calibration_count / 20) == 0) {
 				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (calibration_counter * 80) / calibration_count);
 			}

@@ -137,16 +137,13 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	parameters_update();
 
 	if (_params.vtol_type == vtol_type::TAILSITTER) {
-		_tailsitter = new Tailsitter(this);
-		_vtol_type = _tailsitter;
+		_vtol_type = new Tailsitter(this);
 
 	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
-		_tiltrotor = new Tiltrotor(this);
-		_vtol_type = _tiltrotor;
+		_vtol_type = new Tiltrotor(this);
 
 	} else if (_params.vtol_type == vtol_type::STANDARD) {
-		_standard = new Standard(this);
-		_vtol_type = _standard;
+		_vtol_type = new Standard(this);
 
 	} else {
 		_task_should_exit = true;
@@ -175,6 +172,11 @@ VtolAttitudeControl::~VtolAttitudeControl()
 				break;
 			}
 		} while (_control_task != -1);
+	}
+
+	// free memory used by instances of base class VtolType
+	if (_vtol_type != nullptr) {
+		delete _vtol_type;
 	}
 
 	VTOL_att_control::g_control = nullptr;
@@ -558,6 +560,11 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_min_alt, &v);
 	_params.fw_min_alt = v;
 
+
+	// update the parameters of the instances of base VtolType
+	if (_vtol_type != nullptr) {
+		_vtol_type->parameters_update();
+	}
 
 	return OK;
 }

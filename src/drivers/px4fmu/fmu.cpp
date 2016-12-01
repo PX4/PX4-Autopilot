@@ -1415,6 +1415,7 @@ PX4FMU::cycle()
 			if (newBytes > 0) {
 				// parse new data
 				uint8_t sumd_rssi, rx_count;
+				bool sumd_failsafe;
 
 				rc_updated = false;
 
@@ -1422,14 +1423,14 @@ PX4FMU::cycle()
 					/* set updated flag if one complete packet was parsed */
 					sumd_rssi = RC_INPUT_RSSI_MAX;
 					rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
-									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
 				}
 
 				if (rc_updated) {
 					// we have a new SUMD frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
 					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
-						   false, false, frame_drops, sumd_rssi);
+						   false, sumd_failsafe, frame_drops, sumd_rssi);
 					_rc_scan_locked = true;
 				}
 			}
@@ -2254,6 +2255,10 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	unsigned count = len / 2;
 	uint16_t values[8];
 
+#if BOARD_HAS_PWM == 0
+	return 0;
+#endif
+
 	if (count > BOARD_HAS_PWM) {
 		// we have at most BOARD_HAS_PWM outputs
 		count = BOARD_HAS_PWM;
@@ -2555,7 +2560,11 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GPIO_SET_OUTPUT_HIGH:
 	case GPIO_SET_INPUT:
 	case GPIO_SET_ALT_1:
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
+		ret = -EINVAL;
+#else
 		gpio_set_function(arg, cmd);
+#endif
 		break;
 
 	case GPIO_SET_ALT_2:
@@ -2566,11 +2575,19 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GPIO_SET:
 	case GPIO_CLEAR:
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
+		ret = -EINVAL;
+#else
 		gpio_write(arg, cmd);
+#endif
 		break;
 
 	case GPIO_GET:
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
+		ret = -EINVAL;
+#else
 		*(uint32_t *)arg = gpio_read();
+#endif
 		break;
 
 	default:
