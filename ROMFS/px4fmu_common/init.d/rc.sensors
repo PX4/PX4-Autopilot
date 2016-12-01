@@ -187,6 +187,11 @@ then
 	if mpu9250 -R 2 start
 	then
 	fi
+
+	# Internal SPI bus BMI160
+	if bmi160 start
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V1
