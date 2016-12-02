@@ -1144,7 +1144,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-	if (current_setpoint_valid) {
+	if (current_setpoint_valid &&
+	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+
 		/* scaled space: 1 == position error resulting max allowed speed */
 
 		math::Vector<3> cruising_speed = _params.vel_cruise;
