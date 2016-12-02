@@ -25,6 +25,8 @@ then
 	param set MC_YAWRATE_I 0.050000000745058060
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
+
+	param set SYS_MC_EST_GROUP 2
 fi
 
 tap_esc start -d /dev/ttyS0 -n 4
