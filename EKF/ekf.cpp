@@ -214,14 +214,8 @@ bool Ekf::update()
 		predictState();
 		predictCovariance();
 
-		// perform state and variance prediction for the terrain estimator
-		checkRangeDataContinuity();
-		if (!_terrain_initialised) {
-			_terrain_initialised = initHagl();
-
-		} else {
-			predictHagl();
-		}
+		// run a separate filter for terrain estimation
+		runTerrainEstimator();
 
 		// control fusion of observation data
 		controlFusionModes();

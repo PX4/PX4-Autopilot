@@ -70,20 +70,35 @@ bool Ekf::initHagl()
 	}
 }
 
-void Ekf::predictHagl()
+void Ekf::runTerrainEstimator()
 {
-	// predict the state variance growth
-	// the state is the vertical position of the terrain underneath the vehicle
+	// Perform a continuity check on range finder data
+	checkRangeDataContinuity();
 
-	// process noise due to errors in vehicle height estimate
-	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise);
+	// Perform initialisation check
+	if (!_terrain_initialised) {
+		_terrain_initialised = initHagl();
 
-	// process noise due to terrain gradient
-	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
-				1)));
+	} else {
 
-	// limit the variance to prevent it becoming badly conditioned
-	_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
+		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
+
+		// process noise due to errors in vehicle height estimate
+		_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise);
+
+		// process noise due to terrain gradient
+		_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
+					1)));
+
+		// limit the variance to prevent it becoming badly conditioned
+		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
+
+		// Fuse range finder data if available
+		if (_range_data_ready) {
+			fuseHagl();
+
+		}
+	}
 }
 
 void Ekf::fuseHagl()

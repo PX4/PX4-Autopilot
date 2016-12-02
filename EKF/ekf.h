@@ -376,8 +376,8 @@ private:
 	// return true if the initialisation is successful
 	bool initHagl();
 
-	// predict the terrain vertical position state and variance
-	void predictHagl();
+	// run the terrain estimator
+	void runTerrainEstimator();
 
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void fuseHagl();

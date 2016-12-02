@@ -744,12 +744,6 @@ void Ekf::controlRangeFinderFusion()
 		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
 
-		// always fuse available range finder data into a terrain height estimator if the estimator has been initialised
-		if (_terrain_initialised) {
-			fuseHagl();
-
-		}
-
 		// only use range finder as a height observation in the main filter if specifically enabled
 		if (_control_status.flags.rng_hgt) {
 			_fuse_height = true;
