@@ -694,6 +694,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	_thrust_sp = _v_att_sp.thrust;
 
+	PX4_INFO("yaw sp: %.6f", (double)_v_att_sp.yaw_body);
 	/* construct attitude setpoint rotation matrix */
 	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
 	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
@@ -926,6 +927,8 @@ MulticopterAttitudeControl::task_main()
 					_v_control_mode.flag_control_attitude_enabled = false;
 				}
 			}
+
+
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 

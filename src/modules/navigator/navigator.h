@@ -137,6 +137,7 @@ public:
 	struct vehicle_land_detected_s*	    get_land_detected() { return &_land_detected; }
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
+	struct vehicle_global_velocity_setpoint_s* get_global_velocity_setpoint() { return &_global_vel_sp;}
 	struct vehicle_gps_position_s*	    get_gps_position() { return &_gps_pos; }
 	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
@@ -225,6 +226,7 @@ private:
 	orb_advert_t	_mavlink_log_pub;		/**< the uORB advert to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
+	int 	_global_vel_sp_sub;   /**< global velocity setpoint subscription */
 	int		_gps_pos_sub;		/**< gps position subscription */
 	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
@@ -248,6 +250,7 @@ private:
 	vehicle_land_detected_s				_land_detected;		/**< vehicle land_detected */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
+	vehicle_global_velocity_setpoint_s  _global_vel_sp; 	/**< global velocity setpoint */
 	vehicle_gps_position_s				_gps_pos;		/**< gps position */
 	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
@@ -311,6 +314,11 @@ private:
 	 * Retrieve global position
 	 */
 	void		global_position_update();
+
+	/**
+	 * Retrieve global velocity setpoint update
+	 */
+	void 		global_velocity_setpoint_update();
 
 	/**
 	 * Retrieve gps position

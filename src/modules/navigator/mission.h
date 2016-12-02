@@ -49,6 +49,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include <lib/mathlib/mathlib.h>
 
 #include <dataman/dataman.h>
 
@@ -157,6 +158,11 @@ private:
 	 */
 	void altitude_sp_foh_update();
 
+	/*
+	 *  compute yaw from given vector
+	 */
+	void get_yaw_along_vec(float &yaw, const math::Vector<3> &vec);
+
 	/**
 	 * Resets the altitude sp foh logic
 	 */
@@ -240,7 +246,11 @@ private:
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
-	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	bool _need_takeoff;
+	/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	math::Vector<3> _z_ax;
+	math::Vector<3> _x_ax;
 
 	enum {
 		MISSION_TYPE_NONE,

@@ -51,6 +51,8 @@
 
 #include <uORB/topics/position_setpoint_triplet.h>
 
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
+
 class Navigator;
 
 class NavigatorMode : public control::SuperBlock
