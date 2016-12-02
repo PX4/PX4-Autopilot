@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__navio_sysfs_pwm_out
-	MAIN navio_sysfs_pwm_out
+	MODULE drivers__snapdragon_pwm_out
+	MAIN snapdragon_pwm_out
 	COMPILE_FLAGS
 	SRCS
-		navio_sysfs_pwm_out.cpp
+		snapdragon_pwm_out.cpp
 	DEPENDS
 		platforms__common
 	)

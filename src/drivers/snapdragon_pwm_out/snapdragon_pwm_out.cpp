@@ -49,22 +49,22 @@
 #include <drivers/drv_mixer.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/mixer/mixer_load.h>
+#include <systemlib/mixer/mixer_multirotor.generated.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 
 /*
- * ToDO: might not be needed
+ * This driver is supposed to run on Snapdragon.
+ * Author: Dennis Mannhart
+ * email: dennis.mannhart@gmail.com
  */
-#define PWM_PULSE_WIDTH_INCREMENTS 10
-#define PWM_MINIMUM_PULSE_WIDTH 1050
-#define INCREMENT_PULSE_WIDTH(x,y) ((x + PWM_PULSE_WIDTH_INCREMENTS) >= y ? PWM_MINIMUM_PULSE_WIDTH : x + PWM_PULSE_WIDTH_INCREMENTS)
-
 namespace snapdragon_pwm
 {
-static px4_task_t _task_handle = -1;
-volatile bool _task_should_exit = false;
-static bool _is_running = false;
+
+static px4_task_t _task_handle = -1; // handle to the task main thread
+volatile bool _task_should_exit = false; // should task exit
+static bool _is_running = false; // is app running
 
 static const int NUM_PWM = 4;
 static char _device[64] = "/dev/pwm-1";
@@ -76,19 +76,21 @@ static struct ::dspal_pwm _pwm_gpio[NUM_PWM];
 static struct ::dspal_pwm_ioctl_update_buffer *_update_buffer;
 static struct ::dspal_pwm *_pwm;
 
-int _fd = -1;
 
-static const int FREQUENCY_PWM = 500;
-static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/AERT.main.mix";
+// ToDo: check frequency required
+static const int FREQUENCY_PWM = 400;
 
+
+/* filename: /dev/fs is mapped to /usr/share/data/adsp */
+static const char *MIXER_FILENAME = "/dev/fs/quad_x.main.mix";
 
 // subscriptions
 int	_controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 int	_armed_sub;
+int _fd = -1;
 
 // publications
 orb_advert_t    _outputs_pub = nullptr;
-orb_advert_t    _rc_pub = nullptr;
 
 // topic structures
 actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -102,9 +104,8 @@ px4_pollfd_struct_t _poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 // control group
 uint32_t	_groups_required = 0;
-uint32_t	_groups_subscribed = 0;
 
-
+// limit for pwm
 pwm_limit_t     _pwm_limit;
 
 // esc parameters
@@ -112,7 +113,7 @@ int32_t _pwm_disarmed;
 int32_t _pwm_min;
 int32_t _pwm_max;
 
-MixerGroup *_mixer_group = nullptr;
+MultirotorMixer *_mixer = nullptr;
 
 
 /*
@@ -137,11 +138,9 @@ void subscribe();
 
 void task_main(int argc, char *argv[]);
 
-/* mixer initialization */
 int initialize_mixer(const char *mixer_filename);
+
 int mixer_control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
-
-
 
 
 
@@ -166,44 +165,52 @@ int initialize_mixer(const char *mixer_filename)
 {
 
 	char buf[2048];
-	unsigned buflen = sizeof(buf);
-	memset(buf, '\0', buflen);
+	size_t buflen = sizeof(buf);
+	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
+	int fd_load = ::open(mixer_filename, O_RDONLY);
+	if (fd_load != -1) {
+		int nRead = ::read(fd_load, buf, buflen);
+		close(fd_load);
 
-	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
+		if (nRead > 0) {
+			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
+			if (_mixer != nullptr) {
+				PX4_INFO("Successfully initialized mixer from config file");
+				return 0;
 
-	// PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
-
-	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
-
-		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
-
-			PX4_INFO("Successfully initialized mixer from config file %s", mixer_filename);
-
-			return 0;
+			} else {
+				PX4_ERR("Unable to parse from mixer config file");
+				return -1;
+			}
 
 		} else {
-
-			PX4_ERR("Unable to parse from mixer config file %s", mixer_filename);
-
+			PX4_WARN("Unable to read from mixer config file");
+			return -2;
 		}
 
 	} else {
+		PX4_WARN("No mixer config file found, using default mixer.");
 
-		PX4_ERR("Unable to load config file %s", mixer_filename);
+		/* Mixer file loading failed, fall back to default mixer configuration for
+		* QUAD_X airframe. */
+		float roll_scale = 1;
+		float pitch_scale = 1;
+		float yaw_scale = 1;
+		float deadband = 0;
+
+		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
+					     MultirotorGeometry::QUAD_X,
+					     roll_scale, pitch_scale, yaw_scale, deadband);
+
+		if (_mixer == nullptr) {
+			return -1;
+		}
+
+		return 0;
 
 	}
 
-
-	if (_mixer_group->count() <= 0) {
-
-		PX4_ERR("Mixer initialization failed");
-
-		return -1;
-
-	}
-
-	return 0;
 }
 
 void subscribe()
@@ -259,7 +266,7 @@ int pwm_initialize(const char *device)
 	 * open PWM device
 	 */
 	int i = 0;
-	_fd = px4_open(_device, O_RDWR | O_NOCTTY);
+	_fd = open("/dev/pwm-1", 0);
 
 	if (_fd < 0) {
 		PX4_ERR("failed to open PWM device!");
@@ -298,9 +305,6 @@ int pwm_initialize(const char *device)
 		return -1;
 	}
 	_pwm = &_update_buffer->pwm_signal[0];
-	//_update_buffer->reserved_1 = 0;
-
-
 
 
 	return 0;
@@ -317,8 +321,10 @@ void pwm_deinitialize()
 
 void send_outputs_pwm(const uint16_t *pwm)
 {
+
+
 	/*
-	 * send pwm in us: ToDo: is it in us?
+	 * send pwm in us: ToDo: check if it is in us
 	 */
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
 		_pwm[i].pulse_width_in_usecs = pwm[i];
@@ -337,12 +343,12 @@ void task_main(int argc, char *argv[])
 	}
 
 	// Set up mixer
-	if (initialize_mixer(_mixer_filename) < 0) {
+	if (initialize_mixer(MIXER_FILENAME) < 0) {
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
 
-	_mixer_group->groups_required(_groups_required);
+	_mixer->groups_required(_groups_required);
 	// subscribe and set up polling
 	subscribe();
 
@@ -350,7 +356,7 @@ void task_main(int argc, char *argv[])
 	_armed.armed = false;
 	_armed.prearmed = false;
 
-	// get max min pwm
+	// set max min pwm
 	pwm_limit_init(&_pwm_limit);
 
 	// Main loop
@@ -392,13 +398,13 @@ void task_main(int argc, char *argv[])
 			}
 		}
 
-		if (_mixer_group != nullptr) {
+		if (_mixer != nullptr) {
 
 
 			_outputs.timestamp = hrt_absolute_time();
 
 			/* do  mixing for virtual control group */
-			_outputs.noutputs = _mixer_group->mix(_outputs.output,
+			_outputs.noutputs = _mixer->mix(_outputs.output,
 							_outputs.NUM_ACTUATOR_OUTPUTS,
 							NULL);
 
@@ -423,7 +429,8 @@ void task_main(int argc, char *argv[])
 
 			uint16_t pwm[4];
 
-			// TODO FIXME: pre-armed seems broken
+
+			// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
 			pwm_limit_calc(_armed.armed,
 				       false/*_armed.prearmed*/,
 				       _outputs.noutputs,
@@ -523,19 +530,17 @@ void usage()
 	PX4_INFO("usage: pwm_out start [-d pwmdevice] -m mixerfile");
 	PX4_INFO("       -d pwmdevice : device for pwm generation");
 	PX4_INFO("                       (default /dev/pwm-1)");
-	PX4_INFO("       -m mixerfile : path to mixerfile");
-	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/AERT.main.mix)");
 	PX4_INFO("       pwm_out stop");
 	PX4_INFO("       pwm_out status");
 
 }
 
-} // namespace navio_sysfs_pwm_out
+} // namespace snapdragon_pwm_out
 
 /* driver 'main' command */
-extern "C" __EXPORT int snapdragon_pwm_main(int argc, char *argv[]);
+extern "C" __EXPORT int snapdragon_pwm_out_main(int argc, char *argv[]);
 
-int snapdragon_pwm_main(int argc, char *argv[])
+int snapdragon_pwm_out_main(int argc, char *argv[])
 {
 
 
@@ -552,7 +557,7 @@ int snapdragon_pwm_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:m", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 
@@ -560,9 +565,6 @@ int snapdragon_pwm_main(int argc, char *argv[])
 
 			break;
 
-		case 'm':
-
-			strncpy(snapdragon_pwm::_mixer_filename, myoptarg, sizeof(snapdragon_pwm::_mixer_filename));
 		}
 	}
 
@@ -603,3 +605,4 @@ int snapdragon_pwm_main(int argc, char *argv[])
 
 	return 0;
 }
+
