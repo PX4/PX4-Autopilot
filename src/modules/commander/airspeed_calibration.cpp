@@ -249,6 +249,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
+
 			} else {
 				calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
 					(int)diff_pres.differential_pressure_raw_pa);
@@ -271,6 +272,10 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 	tune_neutral(true);
+
+	/* Wait 2sec for the airflow to stop and ensure the driver filter has caught up, otherwise
+	 * the followup preflight checks might fail. */
+	usleep(2e6);
 
 normal_return:
 	calibrate_cancel_unsubscribe(cancel_sub);
