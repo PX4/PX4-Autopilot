@@ -20,13 +20,13 @@ then
 	param set MC_ROLL_P 2.0
 	param set MC_ROLLRATE_P 0.05
 	param set MC_ROLLRATE_I 0.2
-	param set MC_ROLLRATE_D	0.0003
+	param set MC_ROLLRATE_D	0.0015
 	param set MC_ROLL_TC 0.18
 
 	param set MC_PITCH_P 2.0
 	param set MC_PITCHRATE_P 0.05
 	param set MC_PITCHRATE_I 0.2
-	param set MC_PITCHRATE_D 0.0003
+	param set MC_PITCHRATE_D 0.0015
 	param set MC_PITCH_TC 0.18
 
 	param set MC_YAW_P 1.0
@@ -35,24 +35,21 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
 
-	param set MC_ROLLRATE_MAX 720.0
-	param set MC_PITCHRATE_MAX 720.0
-	param set MC_YAWRATE_MAX 400.0
-	param set MC_ACRO_R_MAX 720.0
-	param set MC_ACRO_P_MAX 720.0
+	param set MC_ACRO_R_MAX 1080.0
+	param set MC_ACRO_P_MAX 1080.0
+	param set MC_ACRO_Y_MAX 1080.0
 
-	param set MC_TPA_BREAK_P 0.7
+	param set MC_TPA_BREAK_P 0.5
 	param set MC_TPA_BREAK_D 0.7
-	param set MC_TPA_RATE_P 0.3
-	param set MC_TPA_RATE_D 0.3
+	param set MC_TPA_RATE_P 0.5
+	param set MC_TPA_RATE_D 0.5
 	
 	param set PWM_MIN 1075
-	param set PWM_RATE 1000
+	param set PWM_RATE 400
+	param set PWM_DISARMED 900
+	param set FAILSAFE 100
 
-	param set MPC_THR_MIN 0.06
-	param set MPC_THR_MAX 0.9
-	param set MPC_MANTHR_MIN 0.06
-	param set MPC_MANTHR_MAX 0.9
+	# param set NAV_RCL_ACT 6 # Lockdown
 
 	param set CBRK_IO_SAFETY 22027
 fi
