@@ -29,8 +29,8 @@ void BlockLocalPositionEstimator::mocapInit()
 					     double(_mocapStats.getStdDev()(0)),
 					     double(_mocapStats.getStdDev()(1)),
 					     double(_mocapStats.getStdDev()(2)));
-		_mocapInitialized = true;
-		_mocapFault = FAULT_NONE;
+		_sensorTimeout &= ~SENSOR_MOCAP;
+		_sensorFault &= ~SENSOR_MOCAP;
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
@@ -81,21 +81,20 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_mocap]) {
-		if (_mocapFault < FAULT_MINOR) {
+		if (!(_sensorFault & SENSOR_MOCAP)) {
 			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap fault, beta %5.2f", double(beta));
-			_mocapFault = FAULT_MINOR;
+			_sensorFault |= SENSOR_MOCAP;
 		}
 
-	} else if (_mocapFault) {
-		_mocapFault = FAULT_NONE;
+	} else if (_sensorFault & SENSOR_MOCAP) {
+		_sensorFault &= ~SENSOR_MOCAP;
 		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_mocapFault < fault_lvl_disable) {
+	if (!(_sensorFault & SENSOR_MOCAP)) {
 		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}
@@ -104,8 +103,8 @@ void BlockLocalPositionEstimator::mocapCorrect()
 void BlockLocalPositionEstimator::mocapCheckTimeout()
 {
 	if (_timeStamp - _time_last_mocap > MOCAP_TIMEOUT) {
-		if (_mocapInitialized) {
-			_mocapInitialized = false;
+		if (!(_sensorTimeout & SENSOR_MOCAP)) {
+			_sensorTimeout |= SENSOR_MOCAP;
 			_mocapStats.reset();
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap timeout ");
 		}

@@ -26,8 +26,8 @@ void BlockLocalPositionEstimator::baroInit()
 					     "[lpe] baro init %d m std %d cm",
 					     (int)_baroStats.getMean()(0),
 					     (int)(100 * _baroStats.getStdDev()(0)));
-		_baroInitialized = true;
-		_baroFault = FAULT_NONE;
+		_sensorTimeout &= ~SENSOR_BARO;
+		_sensorFault &= ~SENSOR_BARO;
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
@@ -74,25 +74,21 @@ void BlockLocalPositionEstimator::baroCorrect()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_baro]) {
-		if (_baroFault < FAULT_MINOR) {
-			if (beta > 2.0f * BETA_TABLE[n_y_baro]) {
-				mavlink_log_critical(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
-						     double(r(0)), double(beta));
-			}
-
-			_baroFault = FAULT_MINOR;
+		if (!(_sensorFault & SENSOR_BARO)) {
+			mavlink_log_critical(&mavlink_log_pub, "[lpe] baro fault, r %5.2f m, beta %5.2f",
+					     double(r(0)), double(beta));
+			_sensorFault |= SENSOR_BARO;
 		}
 
-	} else if (_baroFault) {
-		_baroFault = FAULT_NONE;
-		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro OK");
+	} else if (_sensorFault & SENSOR_BARO) {
+		_sensorFault &= ~SENSOR_BARO;
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_baroFault < fault_lvl_disable) {
+	if (!(_sensorFault & SENSOR_BARO)) {
 		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}
@@ -101,8 +97,8 @@ void BlockLocalPositionEstimator::baroCorrect()
 void BlockLocalPositionEstimator::baroCheckTimeout()
 {
 	if (_timeStamp - _time_last_baro > BARO_TIMEOUT) {
-		if (_baroInitialized) {
-			_baroInitialized = false;
+		if (!(_sensorTimeout & SENSOR_BARO)) {
+			_sensorTimeout |= SENSOR_BARO;
 			_baroStats.reset();
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro timeout ");
 		}

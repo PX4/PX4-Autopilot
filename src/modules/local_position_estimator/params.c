@@ -3,14 +3,6 @@
 // 16 is max name length
 
 /**
- * Publish AGL as Z
- *
- * @group Local Position Estimator
- * @boolean
- */
-PARAM_DEFINE_FLOAT(LPE_PUB_AGL_Z, 0);
-
-/**
  * Optical flow z offset from center
  *
  * @group Local Position Estimator
@@ -33,15 +25,26 @@ PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
 PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
 
 /**
- * Optical flow gyro compensation
+ * Optical flow rotation (roll/pitch) noise gain
  *
  * @group Local Position Estimator
- * @unit m
- * @min -1
- * @max 1
+ * @unit m/s / (rad)
+ * @min 0.1
+ * @max 10.0
  * @decimal 3
  */
-PARAM_DEFINE_INT32(LPE_FLW_GYRO_CMP, 1);
+PARAM_DEFINE_FLOAT(LPE_FLW_R, 7.0f);
+
+/**
+ * Optical flow angular velocity noise gain
+ *
+ * @group Local Position Estimator
+ * @unit m/s / (rad/s)
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_FLW_RR, 7.0f);
 
 /**
  * Optical flow minimum quality threshold
@@ -131,18 +134,10 @@ PARAM_DEFINE_FLOAT(LPE_ACC_Z, 0.02f);
  * @group Local Position Estimator
  * @unit m
  * @min 0.01
- * @max 3
+ * @max 100
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
-
-/**
- * Enables GPS data, also forces alt init with GPS
- *
- * @group Local Position Estimator
- * @boolean
- */
-PARAM_DEFINE_INT32(LPE_GPS_ON, 1);
 
 /**
  * GPS delay compensaton
@@ -251,18 +246,10 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.1f);
  * @group Local Position Estimator
  * @unit m
  * @min 0.01
- * @max 2
+ * @max 100
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
-
-/**
- * Vision correction
- *
- * @group Local Position Estimator
- * @boolean
- */
-PARAM_DEFINE_INT32(LPE_VIS_ON, 1);
 
 /**
  * Vicon position standard deviation.
@@ -357,7 +344,7 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
  * @max 90
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
+PARAM_DEFINE_FLOAT(LPE_LAT, 47.397742f);
 
 /**
  * Local origin longitude for nav w/o GPS
@@ -368,7 +355,7 @@ PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
  * @max 180
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
+PARAM_DEFINE_FLOAT(LPE_LON, 8.545594);
 
 /**
  * Cut frequency for state publication
@@ -413,3 +400,43 @@ PARAM_DEFINE_FLOAT(LPE_Z_PUB, 1.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
+
+/**
+ * Land detector xy velocity standard deviation
+ *
+ * @group Local Position Estimator
+ * @unit m/s
+ * @min 0.01
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
+
+/**
+ * Integer bitmask controlling data fusion
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
+ * 1 : Set to true to fuse optical flow data if available
+ * 2 : Set to true to fuse vision position
+ * 3 : Set to true to fuse vision yaw
+ * 4 : Set to true to fuse land detector
+ * 5 : Set to true to publish AGL as local position down component
+ * 6 : Set to true to enable flow gyro compensation
+ * 7 : Set to true to enable baro fusion
+ *
+ * default (247, no vision yaw)
+ *
+ * @group Local Position Estimator
+ * @min 0
+ * @max 255
+ * @bit 0 fuse GPS, requires GPS for alt. init
+ * @bit 1 fuse optical flow
+ * @bit 2 fuse vision position
+ * @bit 3 fuse vision yaw
+ * @bit 4 fuse land detector
+ * @bit 5 pub agl as lpos down
+ * @bit 6 flow gyro compensation
+ * @bit 7 fuse baro
+ */
+PARAM_DEFINE_INT32(LPE_FUSION, 247);

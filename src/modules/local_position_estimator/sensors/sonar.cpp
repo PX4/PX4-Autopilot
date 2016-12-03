@@ -38,8 +38,8 @@ void BlockLocalPositionEstimator::sonarInit()
 				 "mean %d cm std %d cm",
 				 int(100 * _sonarStats.getMean()(0)),
 				 int(100 * _sonarStats.getStdDev()(0)));
-			_sonarInitialized = true;
-			_sonarFault = FAULT_NONE;
+			_sensorTimeout &= ~SENSOR_SONAR;
+			_sensorFault &= ~SENSOR_SONAR;
 		}
 	}
 }
@@ -116,25 +116,24 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_sonar]) {
-		if (_sonarFault < FAULT_MINOR) {
-			_sonarFault = FAULT_MINOR;
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar fault,  beta %5.2f", double(beta));
+		if (!(_sensorFault & SENSOR_SONAR)) {
+			_sensorFault |= SENSOR_SONAR;
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar fault,  beta %5.2f", double(beta));
 		}
 
 		// abort correction
 		return;
 
-	} else if (_sonarFault) {
-		_sonarFault = FAULT_NONE;
+	} else if (_sensorFault & SENSOR_SONAR) {
+		_sensorFault &= ~SENSOR_SONAR;
 		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_sonarFault < fault_lvl_disable) {
+	if (!(_sensorFault & SENSOR_SONAR)) {
 		Matrix<float, n_x, n_y_sonar> K =
 			_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}
@@ -144,8 +143,8 @@ void BlockLocalPositionEstimator::sonarCorrect()
 void BlockLocalPositionEstimator::sonarCheckTimeout()
 {
 	if (_timeStamp - _time_last_sonar > SONAR_TIMEOUT) {
-		if (_sonarInitialized) {
-			_sonarInitialized = false;
+		if (!(_sensorTimeout & SENSOR_SONAR)) {
+			_sensorTimeout |= SENSOR_SONAR;
 			_sonarStats.reset();
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar timeout ");
 		}

@@ -34,8 +34,8 @@ void BlockLocalPositionEstimator::visionInit()
 					     double(_visionStats.getStdDev()(0)),
 					     double(_visionStats.getStdDev()(1)),
 					     double(_visionStats.getStdDev()(2)));
-		_visionInitialized = true;
-		_visionFault = FAULT_NONE;
+		_sensorTimeout &= ~SENSOR_VISION;
+		_sensorFault &= ~SENSOR_VISION;
 
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
@@ -91,21 +91,20 @@ void BlockLocalPositionEstimator::visionCorrect()
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_vision]) {
-		if (_visionFault < FAULT_MINOR) {
-			//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position fault, beta %5.2f", double(beta));
-			_visionFault = FAULT_MINOR;
+		if (!(_sensorFault & SENSOR_VISION)) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position fault, beta %5.2f", double(beta));
+			_sensorFault |= SENSOR_VISION;
 		}
 
-	} else if (_visionFault) {
-		_visionFault = FAULT_NONE;
-		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position OK");
+	} else if (_sensorFault & SENSOR_VISION) {
+		_sensorFault &= ~SENSOR_VISION;
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position OK");
 	}
 
 	// kalman filter correction if no fault
-	if (_visionFault <  fault_lvl_disable) {
+	if (!(_sensorFault & SENSOR_VISION)) {
 		Matrix<float, n_x, n_y_vision> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
-		correctionLogic(dx);
 		_x += dx;
 		_P -= K * C * _P;
 	}
@@ -114,8 +113,8 @@ void BlockLocalPositionEstimator::visionCorrect()
 void BlockLocalPositionEstimator::visionCheckTimeout()
 {
 	if (_timeStamp - _time_last_vision_p > VISION_TIMEOUT) {
-		if (_visionInitialized) {
-			_visionInitialized = false;
+		if (!(_sensorTimeout & SENSOR_VISION)) {
+			_sensorTimeout |= SENSOR_VISION;
 			_visionStats.reset();
 			mavlink_log_critical(&mavlink_log_pub, "[lpe] vision position timeout ");
 		}
