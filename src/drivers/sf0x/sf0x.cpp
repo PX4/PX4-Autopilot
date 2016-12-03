@@ -81,10 +81,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define SF0X_CONVERSION_INTERVAL	83334
 #define SF0X_TAKE_RANGE_REG		'd'
-#define SF02F_MIN_DISTANCE		0.3f
-#define SF02F_MAX_DISTANCE		40.0f
 
 // designated SERIAL4/5 on Pixhawk
 #define SF0X_DEFAULT_PORT		"/dev/ttyS6"
@@ -112,6 +109,7 @@ private:
 	char 				_port[20];
 	float				_min_distance;
 	float				_max_distance;
+	int                 _conversion_interval;
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
@@ -182,8 +180,9 @@ extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
 SF0X::SF0X(const char *port) :
 	CDev("SF0X", RANGE_FINDER0_DEVICE_PATH),
-	_min_distance(SF02F_MIN_DISTANCE),
-	_max_distance(SF02F_MAX_DISTANCE),
+	_min_distance(0.30f),
+	_max_distance(40.0f),
+	_conversion_interval(83334),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -269,6 +268,50 @@ SF0X::~SF0X()
 int
 SF0X::init()
 {
+	int hw_model;
+	param_get(param_find("SENS_EN_SF0X"), &hw_model);
+
+	switch (hw_model) {
+	case 0:
+		DEVICE_LOG("disabled.");
+		return 0;
+
+	case 1: /* SF02 (40m, 12 Hz)*/
+		_min_distance = 0.3f;
+		_max_distance = 40.0f;
+		_conversion_interval =	83334;
+		break;
+
+	case 2:  /* SF10/a (25m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 25.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 3:  /* SF10/b (50m 32Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 50.0f;
+		_conversion_interval = 31250;
+		break;
+
+	case 4:  /* SF10/c (100m 16Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 100.0f;
+		_conversion_interval = 62500;
+		break;
+
+	case 5:
+		/* SF11/c (120m 20Hz) */
+		_min_distance = 0.01f;
+		_max_distance = 120.0f;
+		_conversion_interval = 50000;
+		break;
+
+	default:
+		DEVICE_LOG("invalid HW model %d.", hw_model);
+		return -1;
+	}
+
 	/* status */
 	int ret = 0;
 
@@ -367,7 +410,7 @@ SF0X::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(SF0X_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -387,7 +430,7 @@ SF0X::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(SF0X_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(_conversion_interval)) {
 						return -EINVAL;
 					}
 
@@ -496,7 +539,7 @@ SF0X::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(SF0X_CONVERSION_INTERVAL);
+		usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -559,7 +602,7 @@ SF0X::collect()
 		perf_end(_sample_perf);
 
 		/* only throw an error if we time out */
-		if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
+		if (read_elapsed > (_conversion_interval * 2)) {
 			return ret;
 
 		} else {
@@ -705,14 +748,14 @@ SF0X::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(SF0X_CONVERSION_INTERVAL)) {
+		if (_measure_ticks > USEC2TICK(_conversion_interval)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&SF0X::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(SF0X_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(_conversion_interval));
 
 			return;
 		}
@@ -731,7 +774,7 @@ SF0X::cycle()
 		   &_work,
 		   (worker_t)&SF0X::cycle_trampoline,
 		   this,
-		   USEC2TICK(SF0X_CONVERSION_INTERVAL));
+		   USEC2TICK(_conversion_interval));
 }
 
 void

@@ -3090,12 +3090,18 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 
 /**
- * Lightware SF0x laser rangefinder
+ * Lightware laser rangefinder (serial)
  *
  * @reboot_required true
- *
- * @boolean
+ * @min 0
+ * @max 4
  * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 SF02
+ * @value 2 SF10/a
+ * @value 3 SF10/b
+ * @value 4 SF10/c
+ * @value 5 SF11/c
  */
 PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 
@@ -3120,7 +3126,7 @@ PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 PARAM_DEFINE_INT32(SENS_EN_TRONE, 0);
 
 /**
- * Lightware SF1xx laser rangefinder
+ * Lightware SF1xx laser rangefinder (i2c)
  *
  * @reboot_required true
  * @min 0
