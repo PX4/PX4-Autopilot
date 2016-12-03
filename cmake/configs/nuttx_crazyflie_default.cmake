@@ -49,11 +49,10 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
-	# Too high RAM usage due to static allocations
-	# modules/attitude_estimator_ekf
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/ekf2
 
 	#
 	# Vehicle Control
