@@ -293,10 +293,13 @@ bool StateMachineHelperTest::armingStateTransitionTest(void)
 
         // Attempt transition
         transition_result_t result = arming_state_transition(&status, &battery, &safety, test->requested_state, &armed,
-        		false /* no pre-arm checks */,
-        		nullptr /* no mavlink_log_pub */,
-        		&status_flags,
-        		5.0f, check_gps);
+				false /* no pre-arm checks */,
+				nullptr /* no mavlink_log_pub */,
+				&status_flags,
+				5.0f, /* avionics rail voltage */
+                check_gps,
+                2e6 /* 2 seconds after boot, everything should be checked */
+                );
 
         // Validate result of transition
         ut_compare(test->assertMsg, test->expected_transition_result, result);
