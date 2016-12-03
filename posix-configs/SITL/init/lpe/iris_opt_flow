@@ -23,7 +23,7 @@ param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2
 param set COM_DISARM_LAND 3
-param set NAV_ACC_RAD 12.0
+param set NAV_ACC_RAD 2.0
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
@@ -41,14 +41,26 @@ param set MPC_Z_VEL_I 0.15
 param set MPC_XY_VEL_P 0.15
 param set MPC_XY_VEL_I 0.2
 
-# changes for LPE indoor flight
+# changes for optical flow navigation
+param set MC_PITCH_P 5.0
+param set MC_ROLL_P 5.0
+param set MC_ROLLRATE_P 0.2
+param set MC_PITCHRATE_P 0.2
+param set MC_ROLLRATE_I 0.05
+param set MC_PITCHRATE_I 0.05
 param set LPE_GPS_ON 0
 param set MPC_ALT_MODE 1
 param set LPE_T_MAX_GRADE 0
 param set MPC_XY_VEL_MAX 2
 param set MPC_Z_VEL_MAX 2
+param set MPC_TILTMAX_AIR 10
+param set MPC_TILTMAX_LND 10
 param set MPC_XY_P 0.5
 param set MIS_TAKEOFF_ALT 2
+param set NAV_ACC_RAD 1.0
+param set CBRK_GPSFAIL 240024
+param set LPE_FUSION 246
+# 11110110 no vis (1 << 3) yaw and no gps (1 << 0)
 
 replay tryapplyparams
 simulator start -s
@@ -81,6 +93,6 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-sdlog2 start -r 100 -e -t -a
+logger start -e -t
 mavlink boot_complete
 replay trystart

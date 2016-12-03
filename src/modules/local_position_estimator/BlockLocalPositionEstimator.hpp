@@ -3,7 +3,6 @@
 #include <px4_posix.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
-#include <systemlib/perf_counter.h>
 #include <lib/geo/geo.h>
 #include <matrix/Matrix.hpp>
 
@@ -39,28 +38,6 @@ static const float HIST_STEP = 0.05f; // 20 hz
 static const float BIAS_MAX = 1e-1f;
 static const size_t HIST_LEN = 10; // DELAY_MAX / HIST_STEP;
 static const size_t N_DIST_SUBS = 4;
-
-enum fault_t {
-	FAULT_NONE = 0,
-	FAULT_MINOR,
-	FAULT_SEVERE
-};
-
-enum sensor_t {
-	SENSOR_BARO = 0,
-	SENSOR_GPS,
-	SENSOR_LIDAR,
-	SENSOR_FLOW,
-	SENSOR_SONAR,
-	SENSOR_VISION,
-	SENSOR_MOCAP,
-	SENSOR_LAND,
-};
-
-// change this to set when
-// the system will abort correcting a measurement
-// given a fault has been detected
-static const fault_t fault_lvl_disable = FAULT_SEVERE;
 
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
@@ -135,15 +112,39 @@ public:
 	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
-	enum {Y_land_vx, Y_land_vy, Y_land_agl = 0, n_y_land};
-	enum {POLL_FLOW, POLL_SENSORS, POLL_PARAM, n_poll};
+	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
+	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
+	enum {
+		FUSE_GPS = 1 << 0,
+		FUSE_FLOW = 1 << 1,
+		FUSE_VIS_POS = 1 << 2,
+		FUSE_VIS_YAW = 1 << 3,
+		FUSE_LAND = 1 << 4,
+		FUSE_PUB_AGL_Z = 1 << 5,
+		FUSE_FLOW_GYRO_COMP = 1 << 6,
+		FUSE_BARO = 1 << 7,
+	};
 
+	enum sensor_t {
+		SENSOR_BARO = 1 << 0,
+		SENSOR_GPS = 1 << 1,
+		SENSOR_LIDAR = 1 << 2,
+		SENSOR_FLOW = 1 << 3,
+		SENSOR_SONAR = 1 << 4,
+		SENSOR_VISION = 1 << 5,
+		SENSOR_MOCAP = 1 << 6,
+		SENSOR_LAND = 1 << 7,
+	};
+
+	enum estimate_t {
+		EST_XY = 1 << 0,
+		EST_Z = 1 << 1,
+		EST_TZ = 1 << 2,
+	};
+
+	// public methods
 	BlockLocalPositionEstimator();
 	void update();
-	Vector<float, n_x> dynamics(
-		float t,
-		const Vector<float, n_x> &x,
-		const Vector<float, n_u> &u);
 	virtual ~BlockLocalPositionEstimator();
 
 private:
@@ -153,6 +154,11 @@ private:
 
 	// methods
 	// ----------------------------
+	//
+	Vector<float, n_x> dynamics(
+		float t,
+		const Vector<float, n_x> &x,
+		const Vector<float, n_u> &u);
 	void initP();
 	void initSS();
 	void updateSSStates();
@@ -189,7 +195,6 @@ private:
 	int  flowMeasure(Vector<float, n_y_flow> &y);
 	void flowCorrect();
 	void flowInit();
-	void flowDeinit();
 	void flowCheckTimeout();
 
 	// vision
@@ -214,10 +219,8 @@ private:
 	void checkTimeouts();
 
 	// misc
-	float agl();
-	void correctionLogic(Vector<float, n_x> &dx);
-	void covPropagationLogic(Matrix<float, n_x, n_x> &dP);
-	void detectDistanceSensors();
+	inline float agl() { return _x(X_tz) - _x(X_z); }
+	bool landed();
 	int getDelayPeriods(float delay, uint8_t *periods);
 
 	// publications
@@ -257,7 +260,7 @@ private:
 	struct map_projection_reference_s _map_ref;
 
 	// general parameters
-	BlockParamInt  _pub_agl_z;
+	BlockParamInt _fusion;
 	BlockParamFloat  _vxy_pub_thresh;
 	BlockParamFloat  _z_pub_thresh;
 
@@ -277,7 +280,6 @@ private:
 	BlockParamFloat  _baro_stddev;
 
 	// gps parameters
-	BlockParamInt   _gps_on;
 	BlockParamFloat  _gps_delay;
 	BlockParamFloat  _gps_xy_stddev;
 	BlockParamFloat  _gps_z_stddev;
@@ -290,21 +292,22 @@ private:
 	BlockParamFloat  _vision_xy_stddev;
 	BlockParamFloat  _vision_z_stddev;
 	BlockParamFloat  _vision_delay;
-	BlockParamInt   _vision_on;
 
 	// mocap parameters
 	BlockParamFloat  _mocap_p_stddev;
 
 	// flow parameters
-	BlockParamInt  _flow_gyro_comp;
 	BlockParamFloat  _flow_z_offset;
 	BlockParamFloat  _flow_scale;
 	//BlockParamFloat  _flow_board_x_offs;
 	//BlockParamFloat  _flow_board_y_offs;
 	BlockParamInt    _flow_min_q;
+	BlockParamFloat  _flow_r;
+	BlockParamFloat  _flow_rr;
 
 	// land parameters
 	BlockParamFloat  _land_z_stddev;
+	BlockParamFloat  _land_vxy_stddev;
 
 	// process noise
 	BlockParamFloat  _pn_p_noise_density;
@@ -342,10 +345,8 @@ private:
 	// misc
 	px4_pollfd_struct_t _polls[3];
 	uint64_t _timeStamp;
+	uint64_t _timeStampLastBaro;
 	uint64_t _time_last_hist;
-	uint64_t _time_last_xy;
-	uint64_t _time_last_z;
-	uint64_t _time_last_tz;
 	uint64_t _time_last_flow;
 	uint64_t _time_last_baro;
 	uint64_t _time_last_gps;
@@ -356,17 +357,6 @@ private:
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
 
-	// initialization flags
-	bool _receivedGps;
-	bool _baroInitialized;
-	bool _gpsInitialized;
-	bool _lidarInitialized;
-	bool _sonarInitialized;
-	bool _flowInitialized;
-	bool _visionInitialized;
-	bool _mocapInitialized;
-	bool _landInitialized;
-
 	// reference altitudes
 	float _altOrigin;
 	bool _altOriginInitialized;
@@ -374,28 +364,13 @@ private:
 	float _gpsAltOrigin;
 
 	// status
-	bool _validXY;
-	bool _validZ;
-	bool _validTZ;
-	bool _xyTimeout;
-	bool _zTimeout;
-	bool _tzTimeout;
+	bool _receivedGps;
 	bool _lastArmedState;
 
-	// sensor faults
-	fault_t _baroFault;
-	fault_t _gpsFault;
-	fault_t _lidarFault;
-	fault_t _flowFault;
-	fault_t _sonarFault;
-	fault_t _visionFault;
-	fault_t _mocapFault;
-	fault_t _landFault;
-
-	// performance counters
-	perf_counter_t _loop_perf;
-	perf_counter_t _interval_perf;
-	perf_counter_t _err_perf;
+	// masks
+	uint8_t _sensorTimeout;
+	uint8_t _sensorFault;
+	uint8_t _estimatorInitialized;
 
 	// state space
 	Vector<float, n_x>  _x; // state vector
