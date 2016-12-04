@@ -376,21 +376,36 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-		/*
-		  blink blue LED at 4Hz in normal operation. When in
-		  override blink 4x faster so the user can clearly see
-		  that override is happening. This helps when
-		  pre-flight testing the override system
+		/* some boards such as Pixhawk 2.1 made
+		   the unfortunate choice to combine the blue led channel with
+		   the IMU heater. We need a software hack to fix the hardware hack
+		   by allowing to disable the LED / heater.
 		 */
-		uint32_t heartbeat_period_us = 250 * 1000UL;
+		if (r_page_setup[PX4IO_P_SETUP_THERMAL] == PX4IO_THERMAL_IGNORE) {
+			/*
+			  blink blue LED at 4Hz in normal operation. When in
+			  override blink 4x faster so the user can clearly see
+			  that override is happening. This helps when
+			  pre-flight testing the override system
+			 */
+			uint32_t heartbeat_period_us = 250 * 1000UL;
 
-		if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
-			heartbeat_period_us /= 4;
-		}
+			if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+				heartbeat_period_us /= 4;
+			}
 
-		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
-			last_heartbeat_time = hrt_absolute_time();
-			heartbeat_blink();
+			if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+				last_heartbeat_time = hrt_absolute_time();
+				heartbeat_blink();
+			}
+
+		} else if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
+			/* switch resistive heater off */
+			LED_BLUE(false);
+
+		} else {
+			/* switch resistive heater hard on */
+			LED_BLUE(true);
 		}
 
 		ring_blink();
