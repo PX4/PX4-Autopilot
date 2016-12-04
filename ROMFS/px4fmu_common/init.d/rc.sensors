@@ -38,6 +38,10 @@ else
 		fmu sensor_reset 50
 	fi
 
+	if ms5611 -S start
+	then
+	fi
+
 	if ms5611 -s start
 	then
 	fi
