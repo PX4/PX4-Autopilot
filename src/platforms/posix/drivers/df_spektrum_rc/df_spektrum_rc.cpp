@@ -51,8 +51,12 @@
 
 #include <lib/rc/dsm.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_hrt.h>
 
-#define SPEKTRUM_UART_DEVICE_PATH	/dev/serialABC
+#include <uORB/topics/input_rc.h>
+
+#define SPEKTRUM_UART_DEVICE_PATH	"/dev/serialABC"
+#define SBUS_BUFFER_SIZE 128
 
 extern "C" { __EXPORT int df_spektrum_rc_main(int argc, char *argv[]); }
 
@@ -63,17 +67,24 @@ volatile bool _task_should_exit = false; // flag indicating if bebop esc control
 static bool _is_running = false;         // flag indicating if bebop esc  app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
 
+input_rc_s _rc_in;
+float		_analog_rc_rssi_volt;
+bool		_analog_rc_rssi_stable;
+
 int start();
 int stop();
 int info();
 void usage();
 void task_main(int argc, char *argv[]);
+void fill_rc_in(uint16_t raw_rc_count,
+		uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+		hrt_abstime now, bool frame_drop, bool failsafe,
+		unsigned frame_drops, int rssi = -1);
 
 void task_main(int argc, char *argv[])
 {
 	// publications
 	orb_advert_t    rc_pub = nullptr;
-	int rc_orb_class_instance = -1;
 	uint8_t _rcs_buf[50];
 
 	// important to keep these buffers out of the stack
@@ -117,15 +128,17 @@ void task_main(int argc, char *argv[])
 
 			if (newbytes > 0) {
 
+				hrt_abstime now = hrt_absolute_time();
+
 				// parse new data
-				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newbytes, &raw_rc_values[0], &raw_rc_count,
-						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+				bool rc_updated = dsm_parse(now, &_rcs_buf[0], newbytes, &raw_rc_values[0], &raw_rc_count,
+							    &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
 
 					// we have a new DSM frame. Publish it.
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-					fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+					fill_rc_in(raw_rc_count, raw_rc_values, now,
 						   false, false, frame_drops);
 
 					if (rc_pub == nullptr) {
@@ -139,10 +152,72 @@ void task_main(int argc, char *argv[])
 		}
 	}
 
-	orb_deadvertise(_rc_pub);
+	orb_unadvertise(rc_pub);
 
 	_is_running = false;
 
+}
+
+void
+fill_rc_in(uint16_t raw_rc_count,
+	   uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+	   hrt_abstime now, bool frame_drop, bool failsafe,
+	   unsigned frame_drops, int rssi)
+{
+	// fill rc_in struct for publishing
+	_rc_in.channel_count = raw_rc_count;
+
+	if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+	}
+
+	unsigned valid_chans = 0;
+
+	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
+		_rc_in.values[i] = raw_rc_values[i];
+
+		if (raw_rc_values[i] != UINT16_MAX) {
+			valid_chans++;
+		}
+	}
+
+	_rc_in.timestamp = now;
+	_rc_in.timestamp_last_signal = _rc_in.timestamp;
+	_rc_in.rc_ppm_frame_length = 0;
+
+	/* fake rssi if no value was provided */
+	if (rssi == -1) {
+
+		/* set RSSI if analog RSSI input is present */
+		if (_analog_rc_rssi_stable) {
+			float rssi_analog = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
+
+			if (rssi_analog > 100.0f) {
+				rssi_analog = 100.0f;
+			}
+
+			if (rssi_analog < 0.0f) {
+				rssi_analog = 0.0f;
+			}
+
+			_rc_in.rssi = rssi_analog;
+
+		} else {
+			_rc_in.rssi = 255;
+		}
+
+	} else {
+		_rc_in.rssi = rssi;
+	}
+
+	if (valid_chans == 0) {
+		_rc_in.rssi = 0;
+	}
+
+	_rc_in.rc_failsafe = failsafe;
+	_rc_in.rc_lost = (valid_chans == 0);
+	_rc_in.rc_lost_frame_count = frame_drops;
+	_rc_in.rc_total_frame_count = 0;
 }
 
 int start()
