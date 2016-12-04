@@ -53,6 +53,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
+#include <systemlib/perf_counter.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/cpuload.h>
@@ -88,6 +89,8 @@ public:
 
 	bool isRunning() { return _taskIsRunning; }
 
+	void printStatus();
+
 private:
 	/* Do a compute and schedule the next cycle. */
 	void _cycle();
@@ -114,6 +117,7 @@ private:
 	struct cpuload_s _cpuload;
 	orb_advert_t _cpuload_pub;
 	hrt_abstime _last_idle_time;
+	perf_counter_t _stack_perf;
 };
 
 LoadMon::LoadMon() :
@@ -127,7 +131,8 @@ LoadMon::LoadMon() :
 	_work{},
 	_cpuload{},
 	_cpuload_pub(nullptr),
-	_last_idle_time(0)
+	_last_idle_time(0),
+	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
 {}
 
 LoadMon::~LoadMon()
@@ -184,7 +189,11 @@ void LoadMon::_compute()
 	_cpuload.ram_usage = _ram_used();
 
 #ifdef __PX4_NUTTX
+	perf_begin(_stack_perf);
+	sched_lock();
 	_stack_usage();
+	sched_unlock();
+	perf_end(_stack_perf);
 #endif
 
 	if (_cpuload_pub == nullptr) {
@@ -275,6 +284,11 @@ void LoadMon::_stack_usage()
 }
 #endif
 
+void LoadMon::printStatus()
+{
+	perf_print_counter(_stack_perf);
+}
+
 /**
  * Print the correct usage.
  */
@@ -361,6 +375,7 @@ int load_mon_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (load_mon != nullptr && load_mon->isRunning()) {
 			PX4_INFO("running");
+			load_mon->printStatus();
 
 		} else {
 			PX4_INFO("not running\n");
