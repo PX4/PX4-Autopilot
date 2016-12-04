@@ -305,6 +305,13 @@ dsm_init(const char *device)
 	}
 }
 
+void
+dsm_deinit()
+{
+	close(dsm_fd);
+	dsm_fd = -1;
+}
+
 #ifdef GPIO_SPEKTRUM_PWR_EN
 /**
  * Handle DSM satellite receiver bind mode handler
