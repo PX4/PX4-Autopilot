@@ -687,14 +687,17 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_SCALE_ROLL:
 		case PX4IO_P_SETUP_SCALE_PITCH:
 		case PX4IO_P_SETUP_SCALE_YAW:
-		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
-
-			r_page_setup[offset] = value;
-			break;
-
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
+			break;
+
+		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
+			r_page_setup[offset] = value;
+			break;
+
+		case PX4IO_P_SETUP_THERMAL:
+			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
 			break;
 
 		default:
