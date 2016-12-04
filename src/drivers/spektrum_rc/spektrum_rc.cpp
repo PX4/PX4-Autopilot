@@ -98,7 +98,7 @@ void task_main(int argc, char *argv[])
 	// Main loop
 	while (!_task_should_exit) {
 
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
 		/* Timed out, do a periodic check for _task_should_exit. */
 		if (pret == 0) {
