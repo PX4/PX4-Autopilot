@@ -138,6 +138,7 @@ LoadMon::LoadMon() :
 LoadMon::~LoadMon()
 {
 	work_cancel(LPWORK, &_work);
+	perf_free(_stack_perf);
 	_taskIsRunning = false;
 }
 
