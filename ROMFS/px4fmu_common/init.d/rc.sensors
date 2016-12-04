@@ -11,46 +11,44 @@ then
 
 else
 	if ver hwcmp AEROFC_V1
-	# Aero FC uses separate driver
 	then
+		# Aero FC uses separate driver
 	else
+		if ver hwcmp CRAZYFLIE
+		then
+			# Crazyflie uses separate driver
+		else
+			# Configure all I2C buses to 100 KHz as they
+			# are all external or slow
+			fmu i2c 1 100000
+			fmu i2c 2 100000
+		fi
 
-	if ver hwcmp CRAZYFLIE
-	then
-	# Crazyflie uses separate driver
-	else
+		if ver hwcmp PX4FMU_V4
+		then
+			# We know there are sketchy boards out there
+			# as chinese companies produce Pixracers without
+			# fully understanding the critical parts of the
+			# schematic and BOM, leading to sensor brownouts
+			# on boot. Original Pixracers following the
+			# open hardware design do not require this.
+			fmu sensor_reset 50
+		fi
 
-	# Configure all I2C buses to 100 KHz as they
-	# are all external or slow
-	fmu i2c 1 100000
-	fmu i2c 2 100000
+		# External SPI
+		if ms5611 -S start
+		then
+		fi
 
-	fi
+		# Internal SPI
+		if ms5611 -s start
+		then
+		fi
 
-	if ver hwcmp PX4FMU_V4
-	then
-		# We know there are sketchy boards out there
-		# as chinese companies produce Pixracers without
-		# fully understanding the critical parts of the
-		# schematic and BOM, leading to sensor brownouts
-		# on boot. Original Pixracers following the
-		# open hardware design do not require this.
-		fmu sensor_reset 50
-	fi
-
-	if ms5611 -S start
-	then
-	fi
-
-	if ms5611 -s start
-	then
-	fi
-
-	# Blacksheep telemetry
-	if bst start
-	then
-	fi
-
+		# Blacksheep telemetry
+		if bst start
+		then
+		fi
 	fi
 fi
 
