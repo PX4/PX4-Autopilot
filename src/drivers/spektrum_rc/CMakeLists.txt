@@ -31,15 +31,12 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
-
 px4_add_module(
-	MODULE platforms__posix__drivers__df_spektrum_rc
-	MAIN df_spektrum_rc
+	MODULE drivers__spektrum_rc
+	MAIN spektrum_rc
 	SRCS
-		df_spektrum_rc.cpp
+		spektrum_rc.cpp
 	DEPENDS
 		platforms__common
-		df_driver_framework
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
