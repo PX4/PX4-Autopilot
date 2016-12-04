@@ -227,12 +227,17 @@ float LoadMon::_ram_used()
 #ifdef __PX4_NUTTX
 void LoadMon::_stack_usage()
 {
-	for (int i = _stack_task_index; i < CONFIG_MAX_TASKS; i++) {
-		if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid > 0) {
-			unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
-					      (uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
+	int task_index = 0;
+
+	/* Scan maximum 3 tasks per cycle to reduce load. */
+	for (int i = _stack_task_index; i < _stack_task_index + 3; i++) {
+		task_index = i % CONFIG_MAX_TASKS;
+
+		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
+			unsigned stack_size = (uintptr_t)system_load.tasks[task_index].tcb->adj_stack_ptr -
+					      (uintptr_t)system_load.tasks[task_index].tcb->stack_alloc_ptr;
 			unsigned stack_free = 0;
-			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
+			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[task_index].tcb->stack_alloc_ptr;
 
 			while (stack_free < stack_size) {
 				if (*stack_sweeper++ != 0xff) {
@@ -246,7 +251,7 @@ void LoadMon::_stack_usage()
 			 * Found task low on stack, report and exit. Continue here in next cycle.
 			 */
 			if (stack_free < 300) {
-				strncpy((char *)_low_stack.task_name, system_load.tasks[i].tcb->name, low_stack_s::MAX_REPORT_TASK_NAME_LEN);
+				strncpy((char *)_low_stack.task_name, system_load.tasks[task_index].tcb->name, low_stack_s::MAX_REPORT_TASK_NAME_LEN);
 				_low_stack.stack_free = stack_free;
 
 				if (_low_stack_pub == nullptr) {
@@ -256,14 +261,17 @@ void LoadMon::_stack_usage()
 					orb_publish(ORB_ID(low_stack), _low_stack_pub, &_low_stack);
 				}
 
-				// continue at next index
-				_stack_task_index = i + 1;
-				return;
+				break;
 			}
+
+		} else {
+			/* No task here, check one more task in same cycle. */
+			_stack_task_index++;
 		}
 	}
 
-	_stack_task_index = 0;
+	/* Continue after last checked task next cycle. */
+	_stack_task_index = task_index + 1;
 }
 #endif
 
