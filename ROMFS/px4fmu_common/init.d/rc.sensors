@@ -102,11 +102,11 @@ then
 	fi
 
 	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -X -R 4 start
+	if mpu6000 -S -R 4 start
 	then
 		set BOARD_FMUV3 true
 	else
-		# Check for Pixhawk 2 board
+		# Check for Pixhawk 2.1 board
 		if mpu9250 -S -R 4 start
 		then
 			set BOARD_FMUV3 true
