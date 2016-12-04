@@ -69,9 +69,10 @@ set(config_module_list
 	#
 	drivers/gps
 	#drivers/pwm_out_rc_in
+	platforms/posix/drivers/df_spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
-	
+
 	#
 	# Libraries
 	#
