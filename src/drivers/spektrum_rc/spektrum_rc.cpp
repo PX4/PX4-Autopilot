@@ -267,7 +267,7 @@ int info()
 void
 usage()
 {
-	PX4_INFO("Usage: spektrum_rc 'start', 'info', 'stop'");
+	PX4_INFO("Usage: spektrum_rc {start|info|stop}");
 }
 
 } // namespace spektrum_rc
