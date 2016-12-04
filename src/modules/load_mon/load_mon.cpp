@@ -118,6 +118,7 @@ private:
 	orb_advert_t _cpuload_pub;
 	hrt_abstime _last_idle_time;
 	perf_counter_t _stack_perf;
+	bool _stack_check_enabled;
 };
 
 LoadMon::LoadMon() :
@@ -132,8 +133,17 @@ LoadMon::LoadMon() :
 	_cpuload{},
 	_cpuload_pub(nullptr),
 	_last_idle_time(0),
-	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
-{}
+	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check")),
+	_stack_check_enabled(false)
+{
+	/* Parameter for stack checking */
+	param_t _param_stack_check = param_find("SYS_STCK_EN");
+	int ret_val = 0;
+	param_get(_param_stack_check, &ret_val);
+	_stack_check_enabled = ret_val > 0;
+
+	PX4_INFO("stack check enabled: %s", _stack_check_enabled ? "yes" : "no");
+}
 
 LoadMon::~LoadMon()
 {
@@ -190,7 +200,11 @@ void LoadMon::_compute()
 	_cpuload.ram_usage = _ram_used();
 
 #ifdef __PX4_NUTTX
-	_stack_usage();
+
+	if (_stack_check_enabled) {
+		_stack_usage();
+	}
+
 #endif
 
 	if (_cpuload_pub == nullptr) {
