@@ -308,7 +308,10 @@ dsm_init(const char *device)
 void
 dsm_deinit()
 {
-	close(dsm_fd);
+	if (dsm_fd >= 0) {
+		close(dsm_fd);
+	}
+
 	dsm_fd = -1;
 }
 
