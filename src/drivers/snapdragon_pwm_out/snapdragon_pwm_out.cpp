@@ -359,7 +359,7 @@ void task_main(int argc, char *argv[])
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
 
 		/* Timed out, do a periodic check for _task_should_exit. */
-		bool timeout;
+		bool timeout = false;
 
 		if (pret == 0) {
 			timeout = true;
