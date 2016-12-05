@@ -2560,25 +2560,31 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.rc_signal_lost = false;
 
+			const bool in_armed_state = status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR;
+			const bool arm_button_pressed = arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+
 			/* DISARM
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed */
-			bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
+			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f;
+			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
-			if ((status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) && status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-				(status.arming_state == vehicle_status_s::ARMING_STATE_ARMED || status.arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
-				(internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
-						internal_state.main_state == commander_state_s::MAIN_STATE_ACRO ||
-						internal_state.main_state == commander_state_s::MAIN_STATE_STAB ||
-						internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE ||
-						land_detector.landed) &&
-				((sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) ||
-					(arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) ||
-					arm_switch_to_disarm_transition) ) {
 
-				if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
+			if (in_armed_state &&
+				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
+				(stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition) ) {
+
+				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
+						internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
+						internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
+						internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
+						!land_detector.landed) {
+					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
+
+				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? vehicle_status_s::ARMING_STATE_STANDBY :
 									   vehicle_status_s::ARMING_STATE_STANDBY_ERROR);
@@ -2607,14 +2613,14 @@ int commander_thread_main(int argc, char *argv[])
 			/* ARM
 			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
 			 * and we're in MANUAL mode */
-			bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
+			const bool stick_in_lower_right = (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f);
+			const bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
-			if (status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-				(status.arming_state != vehicle_status_s::ARMING_STATE_ARMED && status.arming_state != vehicle_status_s::ARMING_STATE_ARMED_ERROR) &&
-				((sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) ||
-					(arm_switch_is_button == 1 && sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) ||
-					arm_switch_to_arm_transition) ) {
+
+			if (!in_armed_state &&
+				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+				(stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition) ) {
 				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
