@@ -3141,6 +3141,15 @@ PARAM_DEFINE_INT32(SENS_EN_TRONE, 0);
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
 /**
+ * Thermal control of sensor temperature
+ *
+ * @value -1 Thermal control unavailable
+ * @value 0 Thermal control off
+ * @group Sensor Enable
+ */
+PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
+
+/**
  * Set the PWM output frequency for the MAIN outputs
  *
  * IMPORTANT: CHANGING THIS PARAMETER REQUIRES A COMPLETE SYSTEM
