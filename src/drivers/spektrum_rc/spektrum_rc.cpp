@@ -118,7 +118,7 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
+		int newbytes = ::read(uart_fd, rx_buf, sizeof(rx_buf));
 
 		if (newbytes < 0) {
 			PX4_WARN("read failed");
@@ -139,7 +139,7 @@ void task_main(int argc, char *argv[])
 		uint16_t raw_rc_count;
 
 		// parse new data
-		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
+		bool rc_updated = dsm_parse(now, rx_buf, newbytes, raw_rc_values, &raw_rc_count,
 					    &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 		UNUSED(dsm_11_bit);
 
