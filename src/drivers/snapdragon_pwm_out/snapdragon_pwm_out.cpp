@@ -55,34 +55,31 @@
 #include <dev_fs_lib_pwm.h>
 
 /*
- * This driver is supposed to run on Snapdragon.
- * Author: Dennis Mannhart
- * email: dennis.mannhart@gmail.com
+ * PWM Driver for snapdragon.
+ * @author: Dennis Mannhart <dennis.mannhart@gmail.com>
  */
 namespace snapdragon_pwm
 {
 
-static px4_task_t _task_handle = -1; // handle to the task main thread
-volatile bool _task_should_exit = false; // should task exit
-static bool _is_running = false; // is app running
-
+static px4_task_t _task_handle = -1;
+volatile bool _task_should_exit = false;
+static bool _is_running = false;
 static const int NUM_PWM = 4;
-static char _device[64] = "/dev/pwm-1";
+static char _device[] = "/dev/pwm-1";
 
-// pwm configuration with start pin 27
+// snapdragon pins 27,28,29,30 configured for pwm (port J13)
 static const int PIN_GPIO = 27;
 static struct ::dspal_pwm_ioctl_signal_definition _signal_definition;
 static struct ::dspal_pwm _pwm_gpio[NUM_PWM];
 static struct ::dspal_pwm_ioctl_update_buffer *_update_buffer;
 static struct ::dspal_pwm *_pwm;
 
+// TODO: check frequency required
+static const int FREQUENCY_PWM_HZ = 400;
 
-// ToDo: check frequency required
-static const int FREQUENCY_PWM = 400;
-
-
-/* filename: /dev/fs is mapped to /usr/share/data/adsp */
-static const char *MIXER_FILENAME = "/dev/fs/quad_x.main.mix";
+/* TODO: copied from pwm_out_rc_in: check how that works
+ * filename: /dev/fs is mapped to /usr/share/data/adsp */
+static char _mixer_filename[32] = "/dev/fs/quad_x.main.mix";
 
 // subscriptions
 int	_controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -168,6 +165,7 @@ int initialize_mixer(const char *mixer_filename)
 	size_t buflen = sizeof(buf);
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 	int fd_load = ::open(mixer_filename, O_RDONLY);
+
 	if (fd_load != -1) {
 		int nRead = ::read(fd_load, buf, buflen);
 		close(fd_load);
@@ -252,9 +250,9 @@ void subscribe()
 
 		}
 
-		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
 	}
+
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 }
 
@@ -265,8 +263,7 @@ int pwm_initialize(const char *device)
 	/*
 	 * open PWM device
 	 */
-	int i = 0;
-	_fd = open("/dev/pwm-1", 0);
+	_fd = open(_device, 0);
 
 	if (_fd < 0) {
 		PX4_ERR("failed to open PWM device!");
@@ -276,7 +273,7 @@ int pwm_initialize(const char *device)
 	/*
 	 * configure PWM
 	 */
-	for (i = 0; i < NUM_PWM; i++) {
+	for (int i = 0; i < NUM_PWM; i++) {
 		_pwm_gpio[i].gpio_id = PIN_GPIO + i;
 	}
 
@@ -284,12 +281,12 @@ int pwm_initialize(const char *device)
 	 * description of signal
 	 */
 	_signal_definition.num_gpios = NUM_PWM;
-	_signal_definition.period_in_usecs = 1e6/FREQUENCY_PWM;
+	_signal_definition.period_in_usecs = 1e6f / FREQUENCY_PWM_HZ;
 	_signal_definition.pwm_signal = _pwm_gpio;
 
 
 	/*
-	 * send signal description to DSP
+	 * send signal definition to DSP
 	 */
 	if (::ioctl(_fd, PWM_IOCTL_SIGNAL_DEFINITION, &_signal_definition) != 0) {
 		PX4_ERR("failed to send signal to DSP");
@@ -297,14 +294,14 @@ int pwm_initialize(const char *device)
 	}
 
 	/*
-	 * retrive shared update buffer to make immediate changed in width of the pulse
+	 * retrive shared buffer which will be used to update desired pulse width
 	 */
-	if (::ioctl(_fd, PWM_IOCTL_GET_UPDATE_BUFFER, &_update_buffer) != 0)
-	{
+	if (::ioctl(_fd, PWM_IOCTL_GET_UPDATE_BUFFER, &_update_buffer) != 0) {
 		PX4_ERR("failed to receive update buffer ");
 		return -1;
 	}
-	_pwm = &_update_buffer->pwm_signal[0];
+
+	_pwm = _update_buffer->pwm_signal;
 
 
 	return 0;
@@ -312,19 +309,15 @@ int pwm_initialize(const char *device)
 
 void pwm_deinitialize()
 {
-	/*
-	 * close device ID
-	 */
+	delete _mixer;
 	close(_fd);
 
 }
 
 void send_outputs_pwm(const uint16_t *pwm)
 {
-
-
 	/*
-	 * send pwm in us: ToDo: check if it is in us
+	 * send pwm in us: TODO: check if it is in us
 	 */
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
 		_pwm[i].pulse_width_in_usecs = pwm[i];
@@ -335,20 +328,18 @@ void send_outputs_pwm(const uint16_t *pwm)
 
 void task_main(int argc, char *argv[])
 {
-	_is_running = true;
-
 	if (pwm_initialize(_device) < 0) {
 		PX4_ERR("Failed to initialize PWM.");
 		return;
 	}
 
-	// Set up mixer
-	if (initialize_mixer(MIXER_FILENAME) < 0) {
+	if (initialize_mixer(_mixer_filename) < 0) {
 		PX4_ERR("Mixer initialization failed.");
 		return;
 	}
 
 	_mixer->groups_required(_groups_required);
+
 	// subscribe and set up polling
 	subscribe();
 
@@ -359,12 +350,13 @@ void task_main(int argc, char *argv[])
 	// set max min pwm
 	pwm_limit_init(&_pwm_limit);
 
+	_is_running = true;
+
 	// Main loop
 	while (!_task_should_exit) {
 
 		/* wait up to 10ms for data */
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
-
 
 		/* Timed out, do a periodic check for _task_should_exit. */
 		if (pret == 0) {
@@ -379,109 +371,90 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-
-		/* get controls for required topics */
-		unsigned poll_id = 0;
-
-
-		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-
-			if (_controls_subs[i] >= 0) {
-
-				if (_poll_fds[poll_id].revents & POLLIN) {
-
-					orb_copy(_controls_topics[i], _controls_subs[i], &_controls[i]);
-
-				}
-
-				poll_id++;
-			}
-		}
-
-		if (_mixer != nullptr) {
-
-
-			_outputs.timestamp = hrt_absolute_time();
-
-			/* do  mixing for virtual control group */
-			_outputs.noutputs = _mixer->mix(_outputs.output,
-							_outputs.NUM_ACTUATOR_OUTPUTS,
-							NULL);
-
-
-			/* disable unused ports by setting their output to NaN */
-			for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS; i++){
-
-				_outputs.output[i] = NAN;
-
-			}
-
-			const uint16_t reverse_mask = 0;
-			uint16_t disarmed_pwm[4];
-			uint16_t min_pwm[4];
-			uint16_t max_pwm[4];
-
-			for (unsigned int i = 0; i < 4; i++) {
-				disarmed_pwm[i] = _pwm_disarmed;
-				min_pwm[i] = _pwm_min;
-				max_pwm[i] = _pwm_max;
-			}
-
-			uint16_t pwm[4];
-
-
-			// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
-			pwm_limit_calc(_armed.armed,
-				       false/*_armed.prearmed*/,
-				       _outputs.noutputs,
-				       reverse_mask,
-				       disarmed_pwm,
-				       min_pwm,
-				       max_pwm,
-				       _outputs.output,
-				       pwm,
-				       &_pwm_limit);
-
-
-			if (_armed.lockdown) {
-				send_outputs_pwm(disarmed_pwm);
-
-			} else {
-				send_outputs_pwm(pwm);
-			}
-
-			if (_outputs_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
-
-			} else {
-				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-			}
-
-
-		} else {
-			PX4_ERR("Could not mix output! Exiting...");
-			_task_should_exit = true;
-		}
-
-
 		bool updated;
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
+
+		/* get controls for required topics */
+		unsigned poll_id = 0;
+
+		for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_controls_subs[i] >= 0) {
+				if (_poll_fds[poll_id].revents & POLLIN) {
+					orb_copy(_controls_topics[i], _controls_subs[i], &_controls[i]);
+				}
+
+				poll_id++;
+			}
+		}
+
+		if (_mixer == nullptr) {
+			PX4_ERR("Could not mix output! Exiting...");
+			_task_should_exit = true;
+			continue;
+		}
+
+		_outputs.timestamp = hrt_absolute_time();
+
+		/* do  mixing for virtual control group */
+		_outputs.noutputs = _mixer->mix(_outputs.output,
+						_outputs.NUM_ACTUATOR_OUTPUTS,
+						NULL);
+
+		/* disable unused ports by setting their output to NaN */
+		for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS;
+		     i++) {
+			_outputs.output[i] = NAN;
+		}
+
+		//set max, min and disarmed pwm
+		const uint16_t reverse_mask = 0;
+		uint16_t disarmed_pwm[4];
+		uint16_t min_pwm[4];
+		uint16_t max_pwm[4];
+		uint16_t pwm[4];
+
+		for (unsigned int i = 0; i < 4; i++) {
+			disarmed_pwm[i] = _pwm_disarmed;
+			min_pwm[i] = _pwm_min;
+			max_pwm[i] = _pwm_max;
+		}
+
+
+		// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
+		pwm_limit_calc(_armed.armed,
+			       false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
+			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+
+		// send and publish outputs
+		if (_armed.lockdown) {
+			send_outputs_pwm(disarmed_pwm);
+
+		} else {
+			send_outputs_pwm(pwm);
+		}
+
+		if (_outputs_pub != nullptr) {
+			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
+
+		} else {
+			_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
+		}
+
 	}
 
 	pwm_deinitialize();
 
 	for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_controls_subs[i] >= 0) {
-				orb_unsubscribe(_controls_subs[i]);
+			orb_unsubscribe(_controls_subs[i]);
 		}
 	}
 
 	orb_unsubscribe(_armed_sub);
-
 	_is_running = false;
 
 }
@@ -527,15 +500,17 @@ void stop()
 void usage()
 {
 
-	PX4_INFO("usage: pwm_out start [-d pwmdevice] -m mixerfile");
+	PX4_INFO("usage: pwm_out start [-d pwmdevice] [-m mixerfile]");
 	PX4_INFO("       -d pwmdevice : device for pwm generation");
 	PX4_INFO("                       (default /dev/pwm-1)");
+	PX4_INFO("		 -m mixerfile : path to mixerfile");
+	PX4_INFO("						 (default /dev/fs/quad_x.main.mix");
 	PX4_INFO("       pwm_out stop");
 	PX4_INFO("       pwm_out status");
 
 }
 
-} // namespace snapdragon_pwm_out
+} // namespace snapdragon_pwm
 
 /* driver 'main' command */
 extern "C" __EXPORT int snapdragon_pwm_out_main(int argc, char *argv[]);
@@ -557,14 +532,15 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:m", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-
 			strncpy(snapdragon_pwm::_device, myoptarg, sizeof(snapdragon_pwm::_device));
-
 			break;
 
+		case 'm':
+			strncpy(snapdragon_pwm::_mixer_filename, myoptarg, sizeof(snapdragon_pwm::_mixer_filename));
+			break;
 		}
 	}
 
@@ -595,7 +571,7 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("pwm_out is %s", snapdragon_pwm::_is_running ? "running" : "not running");
+		PX4_INFO("pwm_out is %s", snapdragon_pwm::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
