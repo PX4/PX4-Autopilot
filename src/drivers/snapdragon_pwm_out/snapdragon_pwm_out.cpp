@@ -360,6 +360,7 @@ void task_main(int argc, char *argv[])
 
 		/* Timed out, do a periodic check for _task_should_exit. */
 		bool timeout;
+
 		if (pret == 0) {
 			timeout = true;
 		}
