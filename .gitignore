@@ -77,3 +77,7 @@ vectorcontrol/
 
 # CLion ignores
 .idea
+
+# gcov code coverage
+coverage-html/
+coverage.info
