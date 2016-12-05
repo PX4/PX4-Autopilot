@@ -191,6 +191,9 @@ then
 		then
 			set AUTOCNF yes
 		fi
+
+		# We don't allow changing AUTOSTART as it doesn't work in
+		# other configurations
 		param set SYS_AUTOSTART 4070
 	fi
 
