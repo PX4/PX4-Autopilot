@@ -672,6 +672,7 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
+			_mission_item.vtol_back_transition = true;
 		}
 
 		/* transition to MC */
