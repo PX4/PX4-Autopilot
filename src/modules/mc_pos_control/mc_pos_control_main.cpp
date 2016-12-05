@@ -925,9 +925,10 @@ MulticopterPositionControl::control_manual(float dt)
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
 			if (!_pos_hold_engaged) {
-				if (_params.hold_max_xy < FLT_EPSILON || (fabsf(_vel(0)) < _params.hold_max_xy
-						&& fabsf(_vel(1)) < _params.hold_max_xy)) {
+				if (_params.hold_max_xy < FLT_EPSILON || (sqrtf(_vel(0)*_vel(0) + _vel(1)*_vel(1)) < _params.hold_max_xy)) {
 					_pos_hold_engaged = true;
+					_pos_sp(0) = _pos(0);
+					_pos_sp(1) = _pos(1);
 
 				} else {
 					_pos_hold_engaged = false;
@@ -955,6 +956,7 @@ MulticopterPositionControl::control_manual(float dt)
 			if (!_alt_hold_engaged) {
 				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
 					_alt_hold_engaged = true;
+					_pos_sp(2) = _pos(2);
 
 				} else {
 					_alt_hold_engaged = false;
