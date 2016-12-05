@@ -281,7 +281,7 @@ int pwm_initialize(const char *device)
 	 * description of signal
 	 */
 	_signal_definition.num_gpios = NUM_PWM;
-	_signal_definition.period_in_usecs = 1e6f / FREQUENCY_PWM_HZ;
+	_signal_definition.period_in_usecs = 1000000 / FREQUENCY_PWM_HZ;
 	_signal_definition.pwm_signal = _pwm_gpio;
 
 
@@ -294,7 +294,7 @@ int pwm_initialize(const char *device)
 	}
 
 	/*
-	 * retrive shared buffer which will be used to update desired pulse width
+	 * retrieve shared buffer which will be used to update desired pulse width
 	 */
 	if (::ioctl(_fd, PWM_IOCTL_GET_UPDATE_BUFFER, &_update_buffer) != 0) {
 		PX4_ERR("failed to receive update buffer ");
@@ -359,8 +359,9 @@ void task_main(int argc, char *argv[])
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
 
 		/* Timed out, do a periodic check for _task_should_exit. */
+		bool timeout;
 		if (pret == 0) {
-			continue;
+			timeout = true;
 		}
 
 		/* This is undesirable but not much we can do. */
@@ -404,12 +405,6 @@ void task_main(int argc, char *argv[])
 						_outputs.NUM_ACTUATOR_OUTPUTS,
 						NULL);
 
-		/* disable unused ports by setting their output to NaN */
-		for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS;
-		     i++) {
-			_outputs.output[i] = NAN;
-		}
-
 		//set max, min and disarmed pwm
 		const uint16_t reverse_mask = 0;
 		uint16_t disarmed_pwm[4];
@@ -430,7 +425,7 @@ void task_main(int argc, char *argv[])
 			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 		// send and publish outputs
-		if (_armed.lockdown) {
+		if (_armed.lockdown || timeout) {
 			send_outputs_pwm(disarmed_pwm);
 
 		} else {
@@ -471,7 +466,7 @@ void start()
 	_task_should_exit = false;
 
 	/* start the task */
-	_task_handle = px4_task_spawn_cmd("pwm_out_main",
+	_task_handle = px4_task_spawn_cmd("snapdragon_pwm_out_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
 					  1500,
@@ -500,7 +495,7 @@ void stop()
 void usage()
 {
 
-	PX4_INFO("usage: pwm_out start [-d pwmdevice] [-m mixerfile]");
+	PX4_INFO("usage: snapdragon_pwm_out start [-d pwmdevice] [-m mixerfile]");
 	PX4_INFO("       -d pwmdevice : device for pwm generation");
 	PX4_INFO("                       (default /dev/pwm-1)");
 	PX4_INFO("		 -m mixerfile : path to mixerfile");
