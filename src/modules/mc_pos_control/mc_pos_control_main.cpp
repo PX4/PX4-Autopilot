@@ -1891,8 +1891,8 @@ MulticopterPositionControl::task_main()
 						}
 					}
 
-					if (_control_mode.flag_control_altitude_enabled) {
-						/* thrust compensation for altitude only control modes */
+					if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
+						/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
 						float att_comp;
 
 						if (_R(2, 2) > TILT_COS_MAX) {
