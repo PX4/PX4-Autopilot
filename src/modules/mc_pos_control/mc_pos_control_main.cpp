@@ -1831,7 +1831,6 @@ MulticopterPositionControl::control_position(float dt)
 						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF);
 
 		if (_vehicle_land_detected.landed && !got_takeoff_setpoint) {
-			PX4_INFO("still on ground");
 			// Keep throttle low while still on ground.
 			thr_max = 0.0f;
 
