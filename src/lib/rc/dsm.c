@@ -51,7 +51,7 @@
 #include "dsm.h"
 #include <drivers/drv_hrt.h>
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || defined(__PX4_QURT)
 #define dsm_udelay(arg) usleep(arg)
 #else
 #include <nuttx/arch.h>
