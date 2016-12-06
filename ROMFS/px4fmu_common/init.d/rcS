@@ -639,10 +639,18 @@ then
 		fi
 	fi
 
-	# sf0x lidar sensor
-	if param compare SENS_EN_SF0X 1
+	# lightware serial lidar sensor
+	if param compare SENS_EN_SF0X 0
 	then
+	else
 		sf0x start
+	fi
+
+	# lightware i2c lidar sensor
+	if param compare SENS_EN_SF1XX 0
+	then
+	else
+		sf1xx start
 	fi
 
 	# mb12xx sonar sensor
