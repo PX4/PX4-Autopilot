@@ -1867,7 +1867,8 @@ MulticopterPositionControl::task_main()
 					/* limit min lift */
 					if (-thrust_sp(2) < thr_min) {
 						thrust_sp(2) = -thr_min;
-						saturation_z = true;
+						/* Don't freeze altitude integral if it wants to throttle up */
+						saturation_z = vel_err(2) > 0.0f ? true : saturation_z;
 					}
 
 					if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
@@ -1885,7 +1886,8 @@ MulticopterPositionControl::task_main()
 									float k = thrust_xy_max / thrust_sp_xy_len;
 									thrust_sp(0) *= k;
 									thrust_sp(1) *= k;
-									saturation_xy = true;
+									/* Don't freeze x,y integrals if they both want to throttle down */
+									saturation_xy = ((vel_err(0) < 0.0f) && (vel_err(0) < 0.0f)) ? saturation_xy : true;
 								}
 							}
 						}
@@ -1921,7 +1923,8 @@ MulticopterPositionControl::task_main()
 								thrust_sp(1) = 0.0f;
 								thrust_sp(2) = -thr_max;
 								saturation_xy = true;
-								saturation_z = true;
+								/* Don't freeze altitude integral if it wants to throttle down */
+								saturation_z = vel_err(2) < 0.0f ? true : saturation_z;
 
 							} else {
 								/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
@@ -1930,7 +1933,8 @@ MulticopterPositionControl::task_main()
 								float k = thrust_xy_max / thrust_xy_abs;
 								thrust_sp(0) *= k;
 								thrust_sp(1) *= k;
-								saturation_xy = true;
+								/* Don't freeze x,y integrals if they both want to throttle down */
+								saturation_xy = ((vel_err(0) < 0.0f) && (vel_err(0) < 0.0f)) ? saturation_xy : true;
 							}
 
 						} else {
