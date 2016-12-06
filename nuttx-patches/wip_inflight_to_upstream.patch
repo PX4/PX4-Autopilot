@@ -1,16 +1,184 @@
 diff --git NuttX/nuttx/arch/arm/src/stm32/Kconfig NuttX/nuttx/arch/arm/src/stm32/Kconfig
-index f914f76..f83c80f 100644
+index f914f76..2cebd8e 100644
 --- NuttX/nuttx/arch/arm/src/stm32/Kconfig
 +++ NuttX/nuttx/arch/arm/src/stm32/Kconfig
-@@ -1623,6 +1623,8 @@ config STM32_STM32F469
+@@ -1571,6 +1571,10 @@ config STM32_STM32F446
+ 	select STM32_HAVE_UART5
+ 	select STM32_HAVE_USART6
+ 	select STM32_HAVE_TIM1
++	select STM32_HAVE_TIM2
++	select STM32_HAVE_TIM3
++	select STM32_HAVE_TIM4
++	select STM32_HAVE_TIM5
+ 	select STM32_HAVE_TIM6
+ 	select STM32_HAVE_TIM7
+ 	select STM32_HAVE_TIM8
+@@ -1604,6 +1608,10 @@ config STM32_STM32F469
+ 	select STM32_HAVE_UART7
+ 	select STM32_HAVE_UART8
+ 	select STM32_HAVE_TIM1
++	select STM32_HAVE_TIM2
++	select STM32_HAVE_TIM3
++	select STM32_HAVE_TIM4
++	select STM32_HAVE_TIM5
+ 	select STM32_HAVE_TIM6
+ 	select STM32_HAVE_TIM7
+ 	select STM32_HAVE_TIM8
+@@ -1623,6 +1631,9 @@ config STM32_STM32F469
  	select STM32_HAVE_SPI4
  	select STM32_HAVE_SPI5
  	select STM32_HAVE_SPI6
-+	select STM32_HAVE_SAIPLL
-+	select STM32_HAVE_I2SPLL
++        select STM32_HAVE_SAIPLL
++        select STM32_HAVE_I2SPLL
++
  
  config STM32_DFU
  	bool "DFU bootloader"
+diff --git NuttX/nuttx/arch/arm/src/stm32/chip/stm32fxxxxx_otgfs.h NuttX/nuttx/arch/arm/src/stm32/chip/stm32fxxxxx_otgfs.h
+index 8658aec..bccc9c1 100644
+--- NuttX/nuttx/arch/arm/src/stm32/chip/stm32fxxxxx_otgfs.h
++++ NuttX/nuttx/arch/arm/src/stm32/chip/stm32fxxxxx_otgfs.h
+@@ -494,11 +494,20 @@
+ #define OTGFS_GINT_OEP                  (1 << 19) /* Bit 19: ro OUT endpoint interrupt */
+ #define OTGFS_GINT_IISOIXFR             (1 << 20) /* Bit 20: rc_w1Incomplete isochronous IN transfer */
+ #define OTGFS_GINT_IISOOXFR             (1 << 21) /* Bit 21: rc_w1 Incomplete isochronous OUT transfer */
+-#define OTGFS_GINT_RES2223              (3 << 22) /* Bits 22-23: Reserved, must be kept at reset value */
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++#  define OTGFS_GINT_RES22              (1 << 22) /* Bits 22: Reserved, must be kept at reset value */
++#  define OTGFS_GINT_RSTDET             (1 << 23) /* Bits 23: asserted when a reset is detected on the USB in partial */
++#else
++#  define OTGFS_GINT_RES2223            (3 << 22) /* Bits 22-23: Reserved, must be kept at reset value */
++#endif
+ #define OTGFS_GINT_HPRT                 (1 << 24) /* Bit 24: ro Host port interrupt */
+ #define OTGFS_GINT_HC                   (1 << 25) /* Bit 25: ro Host channels interrupt */
+ #define OTGFS_GINT_PTXFE                (1 << 26) /* Bit 26: ro Periodic TxFIFO empty */
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++#define OTGFS_GINT_LPMINT               (1 << 27) /* Bit 27 LPM interrupt */
++#else
+ #define OTGFS_GINT_RES27                (1 << 27) /* Bit 27 Reserved, must be kept at reset value */
++#endif
+ #define OTGFS_GINT_CIDSCHG              (1 << 28) /* Bit 28: rc_w1 Connector ID status change */
+ #define OTGFS_GINT_DISC                 (1 << 29) /* Bit 29: rc_w1 Disconnect detected interrupt */
+ #define OTGFS_GINT_SRQ                  (1 << 30) /* Bit 30: rc_w1 Session request/new session detected interrupt */
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+index c570e6d..2fcbf59 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
+@@ -153,25 +153,50 @@
+ #  error "CONFIG_USBDEV_EP3_TXFIFO_SIZE is out of range"
+ #endif
+ 
+-#define OTGFS_GINT_RESERVED (OTGFS_GINT_RES89 | \
+-                            (OTGFS_GINT_RES16 | OTGFS_GINTMSK_EPMISM) \
+-                            |OTGFS_GINT_RES2223 | \
+-                             OTGFS_GINT_RES27)
+-
+-#define OTGFS_GINT_RC_W1 (OTGFS_GINT_MMIS     | \
+-                          OTGFS_GINT_SOF      | \
+-                          OTGFS_GINT_ESUSP    | \
+-                          OTGFS_GINT_USBSUSP  | \
+-                          OTGFS_GINT_USBRST   | \
+-                          OTGFS_GINT_ENUMDNE  | \
+-                          OTGFS_GINT_ISOODRP  | \
+-                          OTGFS_GINT_EOPF     | \
+-                          OTGFS_GINT_IISOIXFR | \
+-                          OTGFS_GINT_IISOOXFR | \
+-                          OTGFS_GINT_CIDSCHG  | \
+-                          OTGFS_GINT_DISC     | \
+-                          OTGFS_GINT_SRQ      | \
+-                          OTGFS_GINT_WKUP)
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++#  define OTGFS_GINT_RESETS (OTGFS_GINT_USBRST | OTGFS_GINT_RSTDET)
++#  define OTGFS_GINT_RESERVED (OTGFS_GINT_RES89 | \
++                              (OTGFS_GINT_RES16 | OTGFS_GINTMSK_EPMISM) \
++                              |OTGFS_GINT_RES22)
++
++#  define OTGFS_GINT_RC_W1 (OTGFS_GINT_MMIS     | \
++                            OTGFS_GINT_SOF      | \
++                            OTGFS_GINT_ESUSP    | \
++                            OTGFS_GINT_USBSUSP  | \
++                            OTGFS_GINT_USBRST   | \
++                            OTGFS_GINT_ENUMDNE  | \
++                            OTGFS_GINT_ISOODRP  | \
++                            OTGFS_GINT_EOPF     | \
++                            OTGFS_GINT_IISOIXFR | \
++                            OTGFS_GINT_IISOOXFR | \
++                            OTGFS_GINT_RSTDET   | \
++                            OTGFS_GINT_LPMINT   | \
++                            OTGFS_GINT_CIDSCHG  | \
++                            OTGFS_GINT_DISC     | \
++                            OTGFS_GINT_SRQ      | \
++                            OTGFS_GINT_WKUP)
++#else
++#  define OTGFS_GINT_RESETS OTGFS_GINT_USBRST
++#  define OTGFS_GINT_RESERVED (OTGFS_GINT_RES89 | \
++                              (OTGFS_GINT_RES16 | OTGFS_GINTMSK_EPMISM) \
++                              |OTGFS_GINT_RES2223 | \
++                               OTGFS_GINT_RES27)
++
++#  define OTGFS_GINT_RC_W1 (OTGFS_GINT_MMIS     | \
++                            OTGFS_GINT_SOF      | \
++                            OTGFS_GINT_ESUSP    | \
++                            OTGFS_GINT_USBSUSP  | \
++                            OTGFS_GINT_USBRST   | \
++                            OTGFS_GINT_ENUMDNE  | \
++                            OTGFS_GINT_ISOODRP  | \
++                            OTGFS_GINT_EOPF     | \
++                            OTGFS_GINT_IISOIXFR | \
++                            OTGFS_GINT_IISOOXFR | \
++                            OTGFS_GINT_CIDSCHG  | \
++                            OTGFS_GINT_DISC     | \
++                            OTGFS_GINT_SRQ      | \
++                            OTGFS_GINT_WKUP)
++#endif
+ 
+ /* Debug ***********************************************************************/
+ /* Trace error codes */
+@@ -3517,7 +3542,7 @@ static inline void stm32_otginterrupt(FAR struct stm32_usbdev_s *priv)
+ 
+   /* Clear OTG interrupt */
+ 
+-  stm32_putreg(retval, STM32_OTGFS_GOTGINT);
++  stm32_putreg(regval, STM32_OTGFS_GOTGINT);
+ }
+ #endif
+ 
+@@ -3642,7 +3667,7 @@ static int stm32_usbinterrupt(int irq, FAR void *context)
+ 
+       /* USB reset interrupt */
+ 
+-      if ((regval & OTGFS_GINT_USBRST) != 0)
++      if ((regval & OTGFS_GINT_RESETS) != 0)
+         {
+           usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_DEVRESET), (uint16_t)regval);
+ 
+@@ -5201,9 +5226,9 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
+ 
+   /* Deactivate the power down */
+ 
+-#if defined(CONFIG_STM32_STM32F446)
+-  /* In the case of the STM32F446 the meaning of the bit has changed to VBUS
+-   * Detection Enable when set
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
++  /* In the case of the STM32F446 or STM32F469 the meaning of the bit
++   * has changed to VBUS Detection Enable when set
+    */
+ 
+   regval  = OTGFS_GCCFG_PWRDWN;
+@@ -5228,11 +5253,11 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
+   stm32_putreg(regval, STM32_OTGFS_GCCFG);
+   up_mdelay(20);
+ 
+-  /* For the new OTG controller in the F446 when VBUS sensing is not used we
++  /* For the new OTG controller in the F446, F469 when VBUS sensing is not used we
+    * need to force the B session valid
+    */
+ 
+-#if defined(CONFIG_STM32_STM32F446)
++#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
+ # ifndef CONFIG_USBDEV_VBUSSENSING
+   regval  =  stm32_getreg(STM32_OTGFS_GOTGCTL);
+   regval |= (OTGFS_GOTGCTL_BVALOEN | OTGFS_GOTGCTL_BVALOVAL);
 diff --git NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
 index 347d8a3..abb4431 100644
 --- NuttX/nuttx/arch/arm/src/stm32/stm32f40xxx_rcc.c
@@ -206,58 +374,3 @@ index 347d8a3..abb4431 100644
  
        /* Enable PLLI2S */
  
-diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-index c570e6d..f2d5561 100644
---- NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-+++ NuttX/nuttx/arch/arm/src/stm32/stm32_otgfsdev.c
-@@ -4942,7 +4942,11 @@ static int stm32_pullup(struct usbdev_s *dev, bool enable)
-        * register
-        */
- 
-+#if defined(CONFIG_STM32_STM32F469)
-+      regval |= OTGFS_DCTL_SDIS;
-+#else
-       regval &= ~OTGFS_DCTL_SDIS;
-+#endif
-     }
-   else
-     {
-@@ -4950,7 +4954,11 @@ static int stm32_pullup(struct usbdev_s *dev, bool enable)
-        * register
-        */
- 
-+#if defined(CONFIG_STM32_STM32F469)
-+      regval &= ~OTGFS_DCTL_SDIS;
-+#else
-       regval |= OTGFS_DCTL_SDIS;
-+#endif
-     }
- 
-   stm32_putreg(regval, STM32_OTGFS_DCTL);
-@@ -5201,9 +5209,9 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
- 
-   /* Deactivate the power down */
- 
--#if defined(CONFIG_STM32_STM32F446)
--  /* In the case of the STM32F446 the meaning of the bit has changed to VBUS
--   * Detection Enable when set
-+#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
-+  /* In the case of the STM32F446 or STM32F469 the meaning of the bit
-+   * has changed to VBUS Detection Enable when set
-    */
- 
-   regval  = OTGFS_GCCFG_PWRDWN;
-@@ -5228,11 +5236,11 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
-   stm32_putreg(regval, STM32_OTGFS_GCCFG);
-   up_mdelay(20);
- 
--  /* For the new OTG controller in the F446 when VBUS sensing is not used we
-+  /* For the new OTG controller in the F446, F469 when VBUS sensing is not used we
-    * need to force the B session valid
-    */
- 
--#if defined(CONFIG_STM32_STM32F446)
-+#if defined(CONFIG_STM32_STM32F446) || defined(CONFIG_STM32_STM32F469)
- # ifndef CONFIG_USBDEV_VBUSSENSING
-   regval  =  stm32_getreg(STM32_OTGFS_GOTGCTL);
-   regval |= (OTGFS_GOTGCTL_BVALOEN | OTGFS_GOTGCTL_BVALOVAL);
