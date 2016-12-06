@@ -204,6 +204,12 @@
  * SDIOCLK =48MHz, SDMMC_CK=SDIOCLK/(118+2)=400 KHz
  */
 
+/* Use the Falling edge of the SDIO_CLK clock to change the edge the
+ * data and commands are change on
+ */
+
+#define SDIO_CLKCR_EDGE SDIO_CLKCR_NEGEDGE
+
 #define SDIO_INIT_CLKDIV         (118 << SDIO_CLKCR_CLKDIV_SHIFT)
 
 /* DMA ON:  SDIOCLK=48MHz, SDMMC_CK=SDIOCLK/(1+2)=16 MHz
