@@ -2031,7 +2031,9 @@ MulticopterPositionControl::task_main()
 						_att_sp.pitch_body = 0.0f;
 					}
 
-					_att_sp.thrust = thrust_abs;
+					/* Compensate vertical thrust for attitude tracking errors */
+					float corrected_thrust_abs = thrust_sp(2) / _R(2, 2);
+					_att_sp.thrust = corrected_thrust_abs;
 
 					/* save thrust setpoint for logging */
 					_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
