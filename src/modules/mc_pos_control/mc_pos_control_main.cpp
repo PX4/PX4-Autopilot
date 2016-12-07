@@ -926,7 +926,8 @@ MulticopterPositionControl::control_manual(float dt)
 		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
 			if (!_pos_hold_engaged) {
 
-				float vel_xy_mag = sqrtf(_vel(0)*_vel(0) + _vel(1)*_vel(1));
+				float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+
 				if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
 					/* reset position setpoint to have smooth transition from velocity control to position control */
 					_pos_hold_engaged = true;
