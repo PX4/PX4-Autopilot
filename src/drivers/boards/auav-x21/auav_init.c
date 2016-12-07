@@ -35,10 +35,10 @@
  * @file auav_init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -149,31 +149,12 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
-
 	/* configure LEDs */
-	up_ledinit();
-}
 
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization
- *
- ****************************************************************************/
-
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct sdio_dev_s *sdio;
-
-#include <math.h>
-
-__EXPORT int nsh_archinitialize(void)
-{
+	board_autoled_initialize();
 
 	/* configure ADC pins */
+
 	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
@@ -194,6 +175,41 @@ __EXPORT int nsh_archinitialize(void)
 	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
 	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
 	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
+
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
+
+}
+
+/****************************************************************************
+ * Name: board_app_initialize
+ *
+ * Description:
+ *   Perform architecture specific initialization
+ *
+ ****************************************************************************/
+
+
+static struct spi_dev_s *spi1;
+static struct spi_dev_s *spi2;
+static struct sdio_dev_s *sdio;
+
+__EXPORT int board_app_initialize(uintptr_t arg)
+{
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
+	/* run C++ ctors before we go any further */
+
+	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
