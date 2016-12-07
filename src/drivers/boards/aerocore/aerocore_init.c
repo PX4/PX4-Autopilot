@@ -38,7 +38,7 @@
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
