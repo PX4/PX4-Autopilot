@@ -243,6 +243,7 @@
 
 #ifdef CONFIG_ARCH_BOARD_AEROFC_V1
 /* no GPIO driver on the ASC board */
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_SITL
