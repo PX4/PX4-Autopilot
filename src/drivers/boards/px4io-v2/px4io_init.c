@@ -38,7 +38,7 @@
  * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
