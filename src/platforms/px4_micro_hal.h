@@ -43,19 +43,19 @@ __BEGIN_DECLS
 #  define px4_leave_critical_section(flags)  leave_critical_section(flags)
 
 #  if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
-#  if defined(CONFIG_ARCH_CHIP_STM32)
-#    include <stm32.h>
-#    define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
-#    define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
-#  endif
-#  if defined(CONFIG_ARCH_CHIP_STM32F7)
-#    include <chip.h>
-#    define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-#    define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#  endif
-#  include <stm32_tim.h>
-#  include <stm32_spi.h>
-#  include <stm32_i2c.h>
+#    if defined(CONFIG_ARCH_CHIP_STM32)
+#      include <stm32.h>
+#      define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
+#      define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
+#    endif
+#    if defined(CONFIG_ARCH_CHIP_STM32F7)
+#      include <chip.h>
+#      define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
+#      define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
+#    endif
+#    include <stm32_tim.h>
+#    include <stm32_spi.h>
+#    include <stm32_i2c.h>
 #    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
 #    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
@@ -67,5 +67,6 @@ __BEGIN_DECLS
 #    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
 #  endif
+#include <arch/board/board.h>
 __END_DECLS
 #endif
