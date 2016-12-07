@@ -99,15 +99,6 @@ then
 	#then
 	#fi
 
-	if ver hwcmp AEROFC_V1
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOCONFIG 1
-			param set SYS_AUTOSTART 4070
-		fi
-	fi
-
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts
 	#
@@ -192,6 +183,18 @@ then
 		fi
 	else
 		set USE_IO no
+	fi
+
+	if ver hwcmp AEROFC_V1
+	then
+		if param compare SYS_AUTOSTART 0
+		then
+			set AUTOCNF yes
+		fi
+
+		# We don't allow changing AUTOSTART as it doesn't work in
+		# other configurations
+		param set SYS_AUTOSTART 4070
 	fi
 
 	#
@@ -636,10 +639,18 @@ then
 		fi
 	fi
 
-	# sf0x lidar sensor
-	if param compare SENS_EN_SF0X 1
+	# lightware serial lidar sensor
+	if param compare SENS_EN_SF0X 0
 	then
+	else
 		sf0x start
+	fi
+
+	# lightware i2c lidar sensor
+	if param compare SENS_EN_SF1XX 0
+	then
+	else
+		sf1xx start
 	fi
 
 	# mb12xx sonar sensor
