@@ -35,10 +35,10 @@
  * @file crazyflie_init.c
  *
  * Crazyflie specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -130,10 +130,12 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 
 	board_autoled_initialize();
+
+	stm32_usbinitialize();
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization
