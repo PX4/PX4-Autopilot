@@ -33,13 +33,13 @@
  ****************************************************************************/
 
 /**
- * @file asc-v1_init.c
+ * @file aerofc-v1_init.c
  *
- * tap-v1-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * aerofc-specific early startup code.  This file implements the
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -144,7 +144,7 @@ __EXPORT void stm32_boardinitialize(void)
 }
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_app_initialize
  *
  * Description:
  *   Perform architecture specific initialization

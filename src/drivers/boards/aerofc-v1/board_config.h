@@ -50,9 +50,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32.h>
-#include <arch/board/board.h>
-
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -178,26 +175,6 @@ extern void stm32_usbinitialize(void);
  ************************************************************************************/
 
 extern int board_sdio_initialize(void);
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
 
 /************************************************************************************
  * Name: board_pwr_init()
