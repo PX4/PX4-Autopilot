@@ -152,6 +152,16 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					/* set and send parameter */
 					param_set(param, &(set.param_value));
 					send_param(param);
+
+					/* check for deprecated value, coming from an older GCS */
+					if (strcmp(name, "SYS_MC_EST_GROUP") == 0) {
+						uint32_t val = *(uint32_t *)&set.param_value;
+
+						if (val == 0) { //INAV
+							mavlink_log_critical(_mavlink->get_mavlink_log_pub(),
+									     "INAV is deprecated. Using LPE after reboot");
+						}
+					}
 				}
 			}
 
@@ -339,7 +349,10 @@ MavlinkParametersManager::send(const hrt_abstime t)
 			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
 
-		mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
+		// Re-pack the message with the UAVCAN node ID
+		mavlink_message_t mavlink_packet;
+		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet, &msg);
+		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
 
 	} else if (_send_all_index >= 0 && _mavlink->boot_complete()) {
 		/* send all parameters if requested, but only after the system has booted */
@@ -397,7 +410,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 }
 
 int
-MavlinkParametersManager::send_param(param_t param)
+MavlinkParametersManager::send_param(param_t param, int component_id)
 {
 	if (param == PARAM_INVALID) {
 		return 1;
@@ -436,7 +449,17 @@ MavlinkParametersManager::send_param(param_t param)
 		msg.param_type = MAVLINK_TYPE_FLOAT;
 	}
 
-	mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
+	/* default component ID */
+	if (component_id < 0) {
+		mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
+
+	} else {
+
+		// Re-pack the message with a different component ID
+		mavlink_message_t mavlink_packet;
+		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink->get_channel(), &mavlink_packet, &msg);
+		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
+	}
 
 	return 0;
 }

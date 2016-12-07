@@ -292,6 +292,8 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
+			thread_data.output_obj->publish();
+
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
 			usleep(1e6);

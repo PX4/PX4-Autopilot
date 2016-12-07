@@ -39,8 +39,8 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <queue.h>
 #include <px4_workqueue.h>
+
 #include "hrt_work.h"
 
 /****************************************************************************

@@ -82,7 +82,7 @@ public:
 		return "MISSION_ITEM";
 	}
 
-	uint8_t get_id()
+	uint16_t get_id()
 	{
 		return MAVLINK_MSG_ID_MISSION_ITEM;
 	}

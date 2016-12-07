@@ -19,7 +19,7 @@ set(config_module_list
 	drivers/px4io
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
-#TO FIT	drivers/mpu6000
+	drivers/mpu6000
 	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
@@ -48,8 +48,8 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
-##TO FIT	drivers/lis3mdl
+##TO FIT drivers/snapdragon_rc_pwm
+	drivers/lis3mdl
 
 	#
 	# System commands
@@ -100,8 +100,8 @@ set(config_module_list
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
-	modules/local_position_estimator
+	#modules/position_estimator_inav
+##TO FIT modules/local_position_estimator
 	modules/ekf2
 
 	#
@@ -204,11 +204,13 @@ set(config_io_extra_libs
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon" STACK_MAIN "2048"
+	MAIN "sercon"
+	STACK_MAIN "2048"
 	COMPILE_FLAGS "-Os")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis" STACK_MAIN "2048"
+	MAIN "serdis"
+	STACK_MAIN "2048"
 	COMPILE_FLAGS "-Os")

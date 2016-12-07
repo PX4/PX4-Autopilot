@@ -39,11 +39,7 @@
 
 #include <px4_defines.h>
 #include "LowPassFilter2p.hpp"
-#include "math.h"
-
-#ifndef M_PI_F
-#define M_PI_F 3.14159f
-#endif
+#include <cmath>
 
 namespace math
 {

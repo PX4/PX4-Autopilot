@@ -54,7 +54,6 @@
 #include <poll.h>
 #include <termios.h>
 #include <time.h>
-#include <math.h> /* isinf / isnan checks */
 
 #ifdef __PX4_POSIX
 #include <net/if.h>
@@ -116,6 +115,15 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int leng
 
 	if (m != nullptr) {
 		m->send_bytes(ch, length);
+	}
+}
+
+void mavlink_start_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+
+	if (m != nullptr) {
+		(void)m->begin_send();
 	}
 }
 
@@ -691,6 +699,14 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 	case 1000000: speed = B1000000; break;
 
+#ifdef B1500000
+	case 1500000: speed = B1500000; break;
+#endif
+
+#ifdef B3000000
+	case 3000000: speed = B3000000; break;
+#endif
+
 	default:
 		PX4_ERR("Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n1000000\n",
 			baud);
@@ -902,6 +918,14 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
+void
+Mavlink::begin_send()
+{
+	// must protect the network buffer so other calls from receive_thread do not
+	// mangle the message.
+	pthread_mutex_lock(&_send_mutex);
+}
+
 int
 Mavlink::send_packet()
 {
@@ -911,6 +935,7 @@ Mavlink::send_packet()
 
 	/* Only send packets if there is something in the buffer. */
 	if (_network_buf_len == 0) {
+		pthread_mutex_unlock(&_send_mutex);
 		return 0;
 	}
 
@@ -956,6 +981,7 @@ Mavlink::send_packet()
 	_network_buf_len = 0;
 #endif
 
+	pthread_mutex_unlock(&_send_mutex);
 	return ret;
 }
 
@@ -967,8 +993,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 	if (!should_transmit()) {
 		return;
 	}
-
-	pthread_mutex_lock(&_send_mutex);
 
 	_last_write_try_time = hrt_absolute_time();
 
@@ -984,7 +1008,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 			/* not enough space in buffer to send */
 			count_txerr();
 			count_txerrbytes(packet_len);
-			pthread_mutex_unlock(&_send_mutex);
 			return;
 		}
 	}
@@ -1018,7 +1041,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		count_txbytes(packet_len);
 	}
 
-	pthread_mutex_unlock(&_send_mutex);
 }
 
 void
@@ -1699,7 +1721,7 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
 
-			if (_baudrate < 9600 || _baudrate > 1000000) {
+			if (_baudrate < 9600 || _baudrate > 3000000) {
 				warnx("invalid baud rate '%s'", myoptarg);
 				err_flag = true;
 			}
@@ -1956,6 +1978,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ADSB_VEHICLE", 2.0f);
+		configure_stream("COLLISION", 2.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream("VISION_POSITION_NED", 1.0f);
@@ -1981,6 +2004,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("COLLISION", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
@@ -2036,6 +2060,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 10.0f);
 		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("COLLISION", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
@@ -2355,6 +2380,11 @@ Mavlink::task_main(int argc, char *argv[])
 	if (_forwarding_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
+	}
+
+	if (_mavlink_ulog) {
+		_mavlink_ulog->stop();
+		_mavlink_ulog = nullptr;
 	}
 
 	warnx("exiting channel %i", (int)_channel);

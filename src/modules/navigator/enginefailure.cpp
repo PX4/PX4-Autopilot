@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /* @file enginefailure.cpp
- * Helper class for a fixedwing engine failure mode
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
+/* @file enginefailure.cpp
+* Helper class for a fixedwing engine failure mode
+*
+* @author Thomas Gubler <thomasgubler@gmail.com>
+*/
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -104,23 +104,24 @@ EngineFailure::set_ef_item()
 
 	switch (_ef_state) {
 	case EF_STATE_LOITERDOWN: {
-		//XXX create mission item at ground (below?) here
+			//XXX create mission item at ground (below?) here
 
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		 //XXX setting altitude to a very low value, evaluate other options
-		_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude_is_relative = false;
+			//XXX setting altitude to a very low value, evaluate other options
+			_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
+			_mission_item.yaw = NAN;
+			_mission_item.loiter_radius = _navigator->get_loiter_radius();
+			_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
 
-		_navigator->set_can_loiter_at_sp(true);
-		break;
-	}
+			_navigator->set_can_loiter_at_sp(true);
+			break;
+		}
+
 	default:
 		break;
 	}
@@ -142,6 +143,7 @@ EngineFailure::advance_ef()
 		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
+
 	default:
 		break;
 	}

@@ -510,6 +510,8 @@ void Logger::add_default_topics()
 {
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("vehicle_attitude_groundtruth", 10);
+	add_topic("vehicle_global_position_groundtruth", 100);
+	add_topic("vehicle_local_position_groundtruth", 100);
 #endif
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
@@ -540,6 +542,7 @@ void Logger::add_default_topics()
 	add_topic("rc_channels");
 	add_topic("input_rc");
 	add_topic("airspeed", 50);
+	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
 	add_topic("estimator_status", 50); //this one is large
@@ -550,6 +553,7 @@ void Logger::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
+	add_topic("sensor_preflight");
 
 	/* for estimator replay (need to be at full rate) */
 	add_topic("sensor_combined");
@@ -1124,12 +1128,13 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) == 0) {
 		utc_time_sec = gps_pos.time_utc_usec / 1e6;
-		orb_unsubscribe(vehicle_gps_position_sub);
 
 		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
 			use_clock_time = false;
 		}
 	}
+
+	orb_unsubscribe(vehicle_gps_position_sub);
 
 	if (use_clock_time) {
 		/* take clock time if there's no fix (yet) */

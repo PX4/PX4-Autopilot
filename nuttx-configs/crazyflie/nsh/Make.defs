@@ -38,6 +38,8 @@ include ${TOPDIR}/tools/Config.mk
 include $(TOPDIR)/PX4_Warnings.mk
 include $(TOPDIR)/PX4_Config.mk
 
+include $(TOPDIR)/PX4_Warnings.mk
+
 #
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.

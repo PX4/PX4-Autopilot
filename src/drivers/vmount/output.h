@@ -42,6 +42,7 @@
 #include "common.h"
 #include <drivers/drv_hrt.h>
 #include <geo/geo.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 
@@ -79,6 +80,9 @@ public:
 	/** report status to stdout */
 	virtual void print_status() = 0;
 
+	/** Publish _angle_outputs as a mount_status message. */
+	void publish();
+
 protected:
 	float _calculate_pitch(double lon, double lat, float altitude,
 			       const vehicle_global_position_s &global_position);
@@ -110,6 +114,7 @@ private:
 	int _vehicle_attitude_sub = -1;
 	int _vehicle_global_position_sub = -1;
 
+	orb_advert_t _mount_status_pub = nullptr;
 };
 
 

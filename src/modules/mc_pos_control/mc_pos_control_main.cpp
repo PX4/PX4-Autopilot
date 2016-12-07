@@ -244,6 +244,7 @@ private:
 
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
+	bool _do_reset_alt_pos_flag;
 	bool _mode_auto;
 	bool _pos_hold_engaged;
 	bool _alt_hold_engaged;
@@ -268,6 +269,14 @@ private:
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
+
+	// counters for reset events on position and velocity states
+	// they are used to identify a reset event
+	uint8_t _z_reset_counter;
+	uint8_t _xy_reset_counter;
+	uint8_t _vz_reset_counter;
+	uint8_t _vxy_reset_counter;
+	uint8_t _heading_reset_counter;
 
 	/**
 	 * Update our local parameter cache.
@@ -395,6 +404,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
+	_do_reset_alt_pos_flag(true),
 	_mode_auto(false),
 	_pos_hold_engaged(false),
 	_alt_hold_engaged(false),
@@ -407,7 +417,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
-	control_vel_enabled_prev(false)
+	control_vel_enabled_prev(false),
+	_z_reset_counter(0),
+	_xy_reset_counter(0),
+	_vz_reset_counter(0),
+	_vxy_reset_counter(0),
+	_heading_reset_counter(0)
 {
 	// Make the quaternion valid for control state
 	_ctrl_state.q[0] = 1.0f;
@@ -660,6 +675,19 @@ MulticopterPositionControl::poll_subscriptions()
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
+
+		if (_control_mode.flag_control_manual_enabled) {
+			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
+				_heading_reset_counter = _ctrl_state.quat_reset_counter;
+				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
+							 _ctrl_state.delta_q_reset[3]);
+
+				// we only extract the heading change from the delta quaternion
+				math::Vector<3> delta_euler = delta_q.to_euler();
+				_att_sp.yaw_body += delta_euler(2);
+			}
+		}
+
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -690,6 +718,39 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+
+		// check if a reset event has happened
+		// if the vehicle is in manual mode we will shift the setpoints of the
+		// states which were reset. In auto mode we do not shift the setpoints
+		// since we want the vehicle to track the original state.
+		if (_control_mode.flag_control_manual_enabled) {
+			if (_z_reset_counter != _local_pos.z_reset_counter) {
+				_pos_sp(2) += _local_pos.delta_z;
+			}
+
+			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
+				_pos_sp(0) += _local_pos.delta_xy[0];
+				_pos_sp(1) += _local_pos.delta_xy[1];
+			}
+
+			if (_vz_reset_counter != _local_pos.vz_reset_counter) {
+				_vel_sp(2) += _local_pos.delta_vz;
+				_vel_sp_prev(2) +=  _local_pos.delta_vz;
+			}
+
+			if (_vxy_reset_counter != _local_pos.vxy_reset_counter) {
+				_vel_sp(0) += _local_pos.delta_vxy[0];
+				_vel_sp(1) += _local_pos.delta_vxy[1];
+				_vel_sp_prev(0) += _local_pos.delta_vxy[0];
+				_vel_sp_prev(1) += _local_pos.delta_vxy[1];
+			}
+		}
+
+		// update the reset counters in any case
+		_z_reset_counter = _local_pos.z_reset_counter;
+		_xy_reset_counter = _local_pos.xy_reset_counter;
+		_vz_reset_counter = _local_pos.vz_reset_counter;
+		_vxy_reset_counter = _local_pos.vxy_reset_counter;
 	}
 }
 
@@ -806,6 +867,17 @@ MulticopterPositionControl::limit_pos_sp_offset()
 void
 MulticopterPositionControl::control_manual(float dt)
 {
+	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
+	if (_mode_auto) {
+		_mode_auto = false;
+
+		/* Reset alt pos flags if resetting is enabled */
+		if (_do_reset_alt_pos_flag) {
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
+		}
+	}
+
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
@@ -937,9 +1009,15 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
-		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
-			/* Control altitude */
+		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
+			/* control altitude as it is enabled */
 			_pos_sp(2) = _pos_sp_triplet.current.z;
+			_run_alt_control = true;
+
+		} else if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
+			/* control altitude because full position control is enabled */
+			_pos_sp(2) = _pos_sp_triplet.current.z;
+			_run_alt_control = true;
 
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* reset alt setpoint to current altitude if needed */
@@ -1011,10 +1089,11 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		_reset_pos_sp = true;
 		_reset_alt_sp = true;
-
-		reset_pos_sp();
-		reset_alt_sp();
 	}
+
+	// Always check reset state of altitude and position control flags in auto
+	reset_pos_sp();
+	reset_alt_sp();
 
 	//Poll position setpoint
 	bool updated;
@@ -1183,14 +1262,12 @@ void MulticopterPositionControl::control_auto(float dt)
 		    && _pos_sp_triplet.current.acceptance_radius > 0.0f
 		    /* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
 		    && (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
-			_reset_pos_sp = false;
-			_reset_alt_sp = false;
+			_do_reset_alt_pos_flag = false;
 
 			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
 
 		} else {
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
+			_do_reset_alt_pos_flag = true;
 		}
 
 		// During a mission or in loiter it's safe to retract the landing gear.
@@ -1300,6 +1377,7 @@ MulticopterPositionControl::task_main()
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
+			_do_reset_alt_pos_flag = true;
 			_vel_sp_prev.zero();
 			reset_int_z = true;
 			reset_int_xy = true;
@@ -1386,7 +1464,6 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				control_manual(dt);
-				_mode_auto = false;
 
 			} else if (_control_mode.flag_control_offboard_enabled) {
 				/* offboard control */
@@ -1435,6 +1512,7 @@ MulticopterPositionControl::task_main()
 				/* don't run controller when landed */
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
+				_do_reset_alt_pos_flag = true;
 				_mode_auto = false;
 				reset_int_z = true;
 				reset_int_xy = true;
@@ -1595,7 +1673,7 @@ MulticopterPositionControl::task_main()
 				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
 				acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
 
-				if (acc_hor.length() > _params.acc_hor_max) {
+				if ((acc_hor.length() > _params.acc_hor_max) & !_reset_pos_sp) {
 					acc_hor.normalize();
 					acc_hor *= _params.acc_hor_max;
 					math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
@@ -1605,9 +1683,10 @@ MulticopterPositionControl::task_main()
 				}
 
 				// limit vertical acceleration
+
 				float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 
-				if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
+				if ((fabsf(acc_v) > 2 * _params.acc_hor_max) & !_reset_alt_sp) {
 					acc_v /= fabsf(acc_v);
 					_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
 				}
@@ -1987,6 +2066,7 @@ MulticopterPositionControl::task_main()
 			/* position controller disabled, reset setpoints */
 			_reset_alt_sp = true;
 			_reset_pos_sp = true;
+			_do_reset_alt_pos_flag = true;
 			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;

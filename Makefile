@@ -147,7 +147,7 @@ define colorecho
 endef
 
 # Get a list of all config targets.
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -245,7 +245,7 @@ checks_tests: \
 	check_px4fmu-v2_test
 
 checks_alts: \
-	check_asc-v1_default \
+	check_aerofc-v1_default \
 	check_px4-stm32f4discovery_default \
 
 checks_uavcan: \
@@ -312,7 +312,7 @@ submodulesclean:
 	@git submodule update --init --recursive --force
 
 distclean: submodulesclean clean
-	@git clean -ff -x -d -e ".project" -e ".cproject"
+	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:

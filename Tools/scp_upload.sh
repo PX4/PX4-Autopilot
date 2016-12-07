@@ -1,4 +1,5 @@
 #!/bin/bash
+# upload script for network-connected devices via scp (eg Raspberry Pi)
 
 if [[ "$#" < 2 ]]; then
 	echo "usage: scp_upload.sh SRC1 [SRC2 ...] DEST"
@@ -13,20 +14,19 @@ else
 	echo "\$AUTOPILOT_HOST is set to $host"
 fi
 
-echo "Uploading..."
+user=pi
+if [ -n "${AUTOPILOT_USER}" ]; then
+	user=${AUTOPILOT_USER}
+fi
 
 # Get last argument
 for last; do true; done
 
-# Go through source files and push them one by one.
-i=0
-for arg
-do
-	if [[ $((i+1)) == "$#" ]]; then
-		break
-	fi
-	# echo "Pushing $arg to $last"
-	#adb push $arg $last
-	scp $arg pi@$host:$last
-	((i+=1))
-done
+# All except last argument
+length=$(($#-1))
+src_files=${@:1:$length}
+
+echo "Uploading $src_files..."
+
+# Upload files
+scp -r $src_files ${user}@${host}:$last

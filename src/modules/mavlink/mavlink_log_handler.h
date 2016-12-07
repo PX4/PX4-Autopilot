@@ -40,6 +40,7 @@
 #include <queue.h>
 #include <time.h>
 #include <stdio.h>
+#include <cstdbool>
 #include <v2.0/mavlink_types.h>
 #include "mavlink_stream.h"
 
@@ -99,7 +100,7 @@ public:
 
 	// Overrides from MavlinkStream
 	const char     *get_name(void) const;
-	uint8_t         get_id(void);
+	uint16_t        get_id(void);
 	unsigned        get_size(void);
 	void            send(const hrt_abstime t);
 

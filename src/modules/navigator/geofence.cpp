@@ -58,7 +58,7 @@
 #define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 Geofence::Geofence(Navigator *navigator) :
-	SuperBlock(NULL, "GF"),
+	SuperBlock(navigator, "GF"),
 	_navigator(navigator),
 	_fence_pub(nullptr),
 	_home_pos{},
@@ -68,12 +68,12 @@ Geofence::Geofence(Navigator *navigator) :
 	_altitude_min(0),
 	_altitude_max(0),
 	_vertices_count(0),
-	_param_action(this, "ACTION"),
-	_param_altitude_mode(this, "ALTMODE"),
-	_param_source(this, "SOURCE"),
-	_param_counter_threshold(this, "COUNT"),
-	_param_max_hor_distance(this, "MAX_HOR_DIST"),
-	_param_max_ver_distance(this, "MAX_VER_DIST"),
+	_param_action(this, "GF_ACTION", false),
+	_param_altitude_mode(this, "GF_ALTMODE", false),
+	_param_source(this, "GF_SOURCE", false),
+	_param_counter_threshold(this, "GF_COUNT", false),
+	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
+	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false),
 	_outside_counter(0)
 {
 	/* Load initial params */
@@ -101,8 +101,6 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
 		      const struct home_position_s home_pos, bool home_position_set)
 {
-	updateParams();
-
 	_home_pos = home_pos;
 	_home_pos_set = home_position_set;
 
@@ -126,44 +124,51 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 	}
 }
 
+bool Geofence::inside(const struct mission_item_s &mission_item)
+{
+	return inside(mission_item.lat, mission_item.lon, mission_item.altitude);
+}
+
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-		float max_horizontal_distance = _param_max_hor_distance.get();
-		float max_vertical_distance = _param_max_ver_distance.get();
+	bool inside_fence = true;
 
-		if (max_horizontal_distance > 1 || max_vertical_distance > 1) {
-			if (_home_pos_set) {
-				float dist_xy = -1.0f;
-				float dist_z = -1.0f;
-				get_distance_to_point_global_wgs84(lat, lon, altitude,
-								   _home_pos.lat, _home_pos.lon, _home_pos.alt,
-								   &dist_xy, &dist_z);
+	float max_horizontal_distance = _param_max_hor_distance.get();
+	float max_vertical_distance = _param_max_ver_distance.get();
 
-				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
-					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-										 "Geofence exceeded max vertical distance by %.1f m",
-									         (double)(dist_z - max_vertical_distance));
-						_last_vertical_range_warning = hrt_absolute_time();
-					}
+	if (max_horizontal_distance > 1.0f || max_vertical_distance > 1.0f) {
+		if (_home_pos_set) {
+			float dist_xy = -1.0f;
+			float dist_z = -1.0f;
+			get_distance_to_point_global_wgs84(lat, lon, altitude,
+							   _home_pos.lat, _home_pos.lon, _home_pos.alt,
+							   &dist_xy, &dist_z);
 
-					return false;
+			if (max_vertical_distance > 1.0f && (dist_z > max_vertical_distance)) {
+				if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "Maximum altitude above home exceeded by %.1f m",
+							     (double)(dist_z - max_vertical_distance));
+					_last_vertical_range_warning = hrt_absolute_time();
 				}
 
-				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
-					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-										 "Geofence exceeded max horizontal distance by %.1f m",
-									         (double)(dist_xy - max_horizontal_distance));
-						_last_horizontal_range_warning = hrt_absolute_time();
-					}
+				inside_fence = false;
+			}
 
-					return false;
+			if (max_horizontal_distance > 1.0f && (dist_xy > max_horizontal_distance)) {
+				if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "Maximum distance from home exceeded by %.1f m",
+							     (double)(dist_xy - max_horizontal_distance));
+					_last_horizontal_range_warning = hrt_absolute_time();
 				}
+
+				inside_fence = false;
 			}
 		}
+	}
 
-	bool inside_fence = inside_polygon(lat, lon, altitude);
+	inside_fence |= inside_polygon(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;

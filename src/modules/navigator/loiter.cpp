@@ -80,6 +80,7 @@ Loiter::on_activation()
 {
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
+
 	} else {
 		set_loiter_position();
 	}
@@ -103,8 +104,9 @@ Loiter::set_loiter_position()
 {
 	// not setting loiter position until armed
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED ||
-		_loiter_pos_set) {
+	    _loiter_pos_set) {
 		return;
+
 	} else {
 		_loiter_pos_set = true;
 	}
@@ -149,16 +151,17 @@ Loiter::reposition()
 
 		// set yaw
 
-		float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-								pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
+		float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
+				    _navigator->get_global_position()->lon,
+				    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 		if (travel_dist > 1.0f) {
 			// calculate direction the vehicle should point to.
 			pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
-					_navigator->get_global_position()->lat,
-					_navigator->get_global_position()->lon,
-					pos_sp_triplet->current.lat,
-					pos_sp_triplet->current.lon);
+							      _navigator->get_global_position()->lat,
+							      _navigator->get_global_position()->lon,
+							      pos_sp_triplet->current.lat,
+							      pos_sp_triplet->current.lon);
 		}
 
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);

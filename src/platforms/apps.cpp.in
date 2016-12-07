@@ -4,11 +4,23 @@
 
 #include "apps.h"
 
-#include <iostream>
+#include <cstdio>
 #include <map>
 #include <string>
 
 #include <cstdlib>
+
+extern "C" {
+
+${builtin_apps_decl_string}
+int shutdown_main(int argc, char *argv[]);
+int list_tasks_main(int argc, char *argv[]);
+int list_files_main(int argc, char *argv[]);
+int list_devices_main(int argc, char *argv[]);
+int list_topics_main(int argc, char *argv[]);
+int sleep_main(int argc, char *argv[]);
+
+}
 
 extern void px4_show_devices(void);
 
@@ -32,7 +44,7 @@ void list_builtins(apps_map_type &apps)
 
 int shutdown_main(int argc, char *argv[])
 {
-	std::cout << "Shutting down" << std::endl;
+	printf("Shutting down\n");
 	exit(0);
 }
 
@@ -68,7 +80,7 @@ int sleep_main(int argc, char *argv[])
         }
 
         unsigned long usecs = 1000000UL * atol(argv[1]);
-        std::cout << "Sleeping for " << argv[1] << " s; (" << usecs << " us)." << std::endl;
+        printf("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
         usleep(usecs);
         return 0;
 }

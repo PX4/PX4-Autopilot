@@ -7,9 +7,16 @@ if("${DSPAL_STUBS_ENABLE}" STREQUAL "")
 	set(DSPAL_STUBS_ENABLE "1")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 
 set(config_generate_parameters_scope ALL)
+
+# Get $QC_SOC_TARGET from environment if existing.
+if (DEFINED ENV{QC_SOC_TARGET})
+	set(QC_SOC_TARGET $ENV{QC_SOC_TARGET})
+else()
+	set(QC_SOC_TARGET "APQ8074")
+endif()
 
 set(config_module_list
 	drivers/device
@@ -31,8 +38,10 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
+	lib/ecl
 	lib/geo
 	lib/geo_lookup
 	lib/conversion

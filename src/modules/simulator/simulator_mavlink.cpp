@@ -59,13 +59,10 @@ extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
 #define PRESS_GROUND 101325.0f
 #define DENSITY 1.2041f
-#define GRAVITY 9.81f
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
-static int openUart(const char *uart_name, int baud);
 
 static int _fd;
 static unsigned char _buf[1024];
@@ -78,26 +75,93 @@ const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
 
-void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index)
+void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsigned index)
 {
-	actuator_msg.time_usec = hrt_absolute_time();
+	msg.time_usec = hrt_absolute_time();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	for (unsigned i = 0; i < MAVLINK_MSG_HIL_ACTUATOR_CONTROLS_FIELD_CONTROLS_LEN; i++) {
-		// scale PWM out 900..2100 us to -1..1 */
-		actuator_msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+	/* scale outputs depending on system type */
+	if (_system_type == MAV_TYPE_QUADROTOR ||
+	    _system_type == MAV_TYPE_HEXAROTOR ||
+	    _system_type == MAV_TYPE_OCTOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
+	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
 
-		if (!PX4_ISFINITE(actuator_msg.controls[i])) {
-			actuator_msg.controls[i] = -1.0f;
+		/* multirotors: set number of rotor outputs depending on type */
+
+		unsigned n;
+
+		switch (_system_type) {
+		case MAV_TYPE_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_HEXAROTOR:
+			n = 6;
+			break;
+
+		case MAV_TYPE_VTOL_DUOROTOR:
+			n = 2;
+			break;
+
+		case MAV_TYPE_VTOL_QUADROTOR:
+			n = 4;
+			break;
+
+		case MAV_TYPE_VTOL_RESERVED2:
+			n = 8;
+			break;
+
+		default:
+			n = 8;
+			break;
+		}
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i < n) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				}
+
+			} else {
+				/* send 0 when disarmed and for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
+		}
+
+	} else {
+		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
+
+		for (unsigned i = 0; i < 16; i++) {
+			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+				if (i != 3) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
+					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
+					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+				}
+
+			} else {
+				/* set 0 for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
 		}
 	}
 
-	actuator_msg.mode = mode_flag_custom;
-	actuator_msg.mode |= (armed) ? mode_flag_armed : 0;
-	actuator_msg.flags = 0;
+	msg.mode = mode_flag_custom;
+	msg.mode |= (armed) ? mode_flag_armed : 0;
+	msg.flags = 0;
 }
 
 void Simulator::send_controls()
@@ -174,7 +238,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	RawBaroData baro = {};
 	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = (PRESS_GROUND - GRAVITY * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
+	baro.pressure = (PRESS_GROUND - CONSTANTS_ONE_G * DENSITY * imu->pressure_alt) / 100.0f; // convert from Pa to mbar
 	baro.altitude = imu->pressure_alt;
 	baro.temperature = imu->temperature;
 
@@ -330,6 +394,75 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			int hilstate_multi;
 			orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
 		}
+
+		/* global position */
+		struct vehicle_global_position_s hil_gpos = {};
+		{
+			hil_gpos.timestamp = timestamp;
+
+			hil_gpos.time_utc_usec = timestamp;
+			hil_gpos.lat = hil_state.lat;
+			hil_gpos.lon = hil_state.lon;
+			hil_gpos.alt = hil_state.alt;
+
+			hil_gpos.vel_n = hil_state.vx;
+			hil_gpos.vel_e = hil_state.vy;
+			hil_gpos.vel_d = hil_state.vz;
+
+			// always publish ground truth attitude message
+			int hil_gpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+		/* local position */
+		struct vehicle_local_position_s hil_lpos = {};
+		{
+			hil_lpos.timestamp = timestamp;
+
+			double lat = hil_state.lat * 1e-7;
+			double lon = hil_state.lon * 1e-7;
+
+			if (!_hil_local_proj_inited) {
+				_hil_local_proj_inited = true;
+				map_projection_init(&_hil_local_proj_ref, lat, lon);
+				_hil_ref_timestamp = timestamp;
+				_hil_ref_lat = lat;
+				_hil_ref_lon = lon;
+				_hil_ref_alt = hil_state.alt / 1000.0f;;
+			}
+
+			float x;
+			float y;
+			map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+			hil_lpos.timestamp = timestamp;
+			hil_lpos.xy_valid = true;
+			hil_lpos.z_valid = true;
+			hil_lpos.v_xy_valid = true;
+			hil_lpos.v_z_valid = true;
+			hil_lpos.x = x;
+			hil_lpos.y = y;
+			hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+			hil_lpos.vx = hil_state.vx / 100.0f;
+			hil_lpos.vy = hil_state.vy / 100.0f;
+			hil_lpos.vz = hil_state.vz / 100.0f;
+			matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+			hil_lpos.yaw = euler.psi();
+			hil_lpos.xy_global = true;
+			hil_lpos.z_global = true;
+			hil_lpos.ref_lat = _hil_ref_lat;
+			hil_lpos.ref_lon = _hil_ref_lon;
+			hil_lpos.ref_alt = _hil_ref_alt;
+			hil_lpos.ref_timestamp = _hil_ref_timestamp;
+
+			// always publish ground truth attitude message
+			int hil_lpos_multi;
+			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
+					 ORB_PRIO_HIGH);
+		}
+
+
+
 		break;
 	}
 
@@ -517,26 +650,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
-	// setup serial connection to autopilot (used to get manual controls)
-	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
-
-	char serial_buf[1024];
-
 	struct pollfd fds[2];
 	memset(fds, 0, sizeof(fds));
 	unsigned fd_count = 1;
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
-
-
-	if (serial_fd >= 0) {
-		fds[1].fd = serial_fd;
-		fds[1].events = POLLIN;
-		fd_count++;
-
-	} else {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-	}
 
 	int len = 0;
 
@@ -604,7 +722,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	pthread_attr_destroy(&sender_thread_attr);
 
 	mavlink_status_t udp_status = {};
-	mavlink_status_t serial_status = {};
 
 	bool sim_delay = false;
 
@@ -664,125 +781,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 				}
 			}
 		}
-
-		// got data from PIXHAWK
-		if (fd_count > 1 && fds[1].revents & POLLIN) {
-			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
-
-			if (len > 0) {
-				mavlink_message_t msg;
-
-				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
-						// have a message, handle it
-						handle_message(&msg, true);
-					}
-				}
-			}
-		}
 	}
-}
-
-int openUart(const char *uart_name, int baud)
-{
-	/* process baud rate */
-	int speed;
-
-	switch (baud) {
-	case 0:      speed = B0;      break;
-
-	case 50:     speed = B50;     break;
-
-	case 75:     speed = B75;     break;
-
-	case 110:    speed = B110;    break;
-
-	case 134:    speed = B134;    break;
-
-	case 150:    speed = B150;    break;
-
-	case 200:    speed = B200;    break;
-
-	case 300:    speed = B300;    break;
-
-	case 600:    speed = B600;    break;
-
-	case 1200:   speed = B1200;   break;
-
-	case 1800:   speed = B1800;   break;
-
-	case 2400:   speed = B2400;   break;
-
-	case 4800:   speed = B4800;   break;
-
-	case 9600:   speed = B9600;   break;
-
-	case 19200:  speed = B19200;  break;
-
-	case 38400:  speed = B38400;  break;
-
-	case 57600:  speed = B57600;  break;
-
-	case 115200: speed = B115200; break;
-
-	case 230400: speed = B230400; break;
-
-	case 460800: speed = B460800; break;
-
-	case 921600: speed = B921600; break;
-
-	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
-		      baud);
-		return -EINVAL;
-	}
-
-	/* open uart */
-	int uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
-
-	if (uart_fd < 0) {
-		return uart_fd;
-	}
-
-
-	/* Try to set baud rate */
-	struct termios uart_config;
-	memset(&uart_config, 0, sizeof(uart_config));
-
-	int termios_state;
-
-	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
-		::close(uart_fd);
-		return -1;
-	}
-
-	/* Fill the struct for the new configuration */
-	tcgetattr(uart_fd, &uart_config);
-
-	/* USB serial is indicated by /dev/ttyACM0*/
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
-
-		/* Set baud rate */
-		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
-			::close(uart_fd);
-			return -1;
-		}
-
-	}
-
-	// Make raw
-	cfmakeraw(&uart_config);
-
-	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
-		::close(uart_fd);
-		return -1;
-	}
-
-	return uart_fd;
 }
 
 int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)

@@ -101,14 +101,14 @@ if(NOT ${BOARD} STREQUAL "sim")
 #
 # Bootloaders do not need .px4 or xml
 #
-if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
-	px4_nuttx_add_firmware(OUT ${fw_file}
-		BOARD ${BOARD}
-		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
-		PARAM_XML ${PX4_BINARY_DIR}/parameters.xml
-		AIRFRAMES_XML ${PX4_BINARY_DIR}/airframes.xml
-		)
-endif()
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		px4_nuttx_add_firmware(OUT ${fw_file}
+			BOARD ${BOARD}
+			EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+			PARAM_XML ${PX4_BINARY_DIR}/parameters.xml
+			AIRFRAMES_XML ${PX4_BINARY_DIR}/airframes.xml
+			)
+	endif()
 
 	configure_file(gdbinit.in .gdbinit)
 
@@ -151,14 +151,16 @@ endif()
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
-
 	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
-		px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-			BUNDLE ${fw_file})
+		if ("${BOARD}" STREQUAL "aerofc-v1")
+			px4_add_upload_aero(OUT upload OS ${OS} BOARD ${BOARD}
+				BUNDLE ${fw_file})
+		else()
+			px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+				BUNDLE ${fw_file})
+		endif()
 	endif()
-
 endif()
-
 
 if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
 	install(FILES ${fw_file} DESTINATION .)

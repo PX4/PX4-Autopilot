@@ -42,13 +42,12 @@
 #ifndef MAVLINK_BRIDGE_HEADER_H
 #define MAVLINK_BRIDGE_HEADER_H
 
-__BEGIN_DECLS
-
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
 
+#define MAVLINK_START_UART_SEND mavlink_start_uart_send
 #define MAVLINK_END_UART_SEND mavlink_end_uart_send
 
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
@@ -57,6 +56,7 @@ __BEGIN_DECLS
 #include <v2.0/mavlink_types.h>
 #include <unistd.h>
 
+__BEGIN_DECLS
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -78,6 +78,7 @@ extern mavlink_system_t mavlink_system;
  */
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
 
+void mavlink_start_uart_send(mavlink_channel_t chan, int length);
 void mavlink_end_uart_send(mavlink_channel_t chan, int length);
 
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);

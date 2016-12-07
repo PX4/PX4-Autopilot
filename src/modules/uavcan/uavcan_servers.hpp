@@ -41,6 +41,8 @@
 
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 
 #include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
 #include <uavcan/protocol/node_info_retriever.hpp>

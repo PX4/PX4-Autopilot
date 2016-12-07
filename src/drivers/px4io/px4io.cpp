@@ -1700,7 +1700,7 @@ PX4IO::dsm_bind_ioctl(int dsmMode)
 		}
 
 	} else {
-		mavlink_log_info(&_mavlink_log_pub, "[IO] system armed, bind request rejected");
+		mavlink_log_info(&_mavlink_log_pub, "[IO] safety off, bind request rejected");
 	}
 }
 
@@ -3625,7 +3625,8 @@ px4io_main(int argc, char *argv[])
 			fn[1] =	"/fs/microsd/px4io1.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+	  defined(CONFIG_ARCH_BOARD_AUAV_X21)
 			fn[0] = "/etc/extras/px4io-v2.bin";
 			fn[1] =	"/fs/microsd/px4io2.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";

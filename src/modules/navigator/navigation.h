@@ -69,6 +69,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
 	NAV_CMD_DO_SET_SERVO=183,
+	NAV_CMD_DO_LAND_START=189,
 	NAV_CMD_DO_SET_ROI=201,
 	NAV_CMD_DO_DIGICAM_CONTROL=203,
 	NAV_CMD_DO_MOUNT_CONFIGURE=204,
@@ -127,7 +128,8 @@ struct mission_item_s {
 		loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
 		force_heading : 1,				/**< heading needs to be reached ***/
 		altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
-		autocontinue : 1;				/**< true if next waypoint should follow after this one */
+		autocontinue : 1,				/**< true if next waypoint should follow after this one */
+		disable_mc_yaw : 1;				/**< weathervane mode */
 	};
 };
 #pragma pack(pop)

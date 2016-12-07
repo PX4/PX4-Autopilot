@@ -48,9 +48,6 @@
 #include <stdint.h>
 #include <nuttx/board.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -223,6 +220,8 @@ __BEGIN_DECLS
  * column above has entries.
  */
 #define BOARD_HAS_MULTI_PURPOSE_GPIO 1
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types

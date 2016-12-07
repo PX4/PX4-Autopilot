@@ -125,7 +125,7 @@ MavlinkLogHandler::get_name(void) const
 }
 
 //-------------------------------------------------------------------
-uint8_t
+uint16_t
 MavlinkLogHandler::get_id(void)
 {
 	return MAVLINK_MSG_ID_LOG_ENTRY;
@@ -534,6 +534,14 @@ bool
 LogListHelper::_get_session_date(const char *path, const char *dir, time_t &date)
 {
 	if (strlen(dir) > 4) {
+		// Always try to get file time first
+		if (stat_file(path, &date)) {
+			// Try to prevent taking date if it's around 1970 (use the logic below instead)
+			if (date > 60 * 60 * 24) {
+				return true;
+			}
+		}
+
 		// Convert "sess000" to 00:00 Jan 1 1970 (day per session)
 		if (strncmp(dir, "sess", 4) == 0) {
 			unsigned u;
@@ -542,20 +550,6 @@ LogListHelper::_get_session_date(const char *path, const char *dir, time_t &date
 				date = u * 60 * 60 * 24;
 				return true;
 			}
-
-		} else {
-			if (stat_file(path, &date)) {
-				return true;
-			}
-
-			/* strptime not available for some reason
-			// Get date from directory name
-			struct tm tt;
-			if(strptime(dir, "%Y-%m-%d", &tt)) {
-				date = mktime(&tt);
-				return true;
-			}
-			*/
 		}
 	}
 
@@ -586,6 +580,8 @@ LogListHelper::_scan_logs(FILE *f, const char *dir, time_t &date)
 			}
 		}
 	}
+
+	closedir(dp);
 }
 
 //-------------------------------------------------------------------
@@ -594,6 +590,14 @@ LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &da
 {
 	if (file && file[0]) {
 		if (strstr(file, ".px4log") || strstr(file, ".ulg")) {
+			// Always try to get file time first
+			if (stat_file(path, &date, &size)) {
+				// Try to prevent taking date if it's around 1970 (use the logic below instead)
+				if (date > 60 * 60 * 24) {
+					return true;
+				}
+			}
+
 			// Convert "log000" to 00:00 (minute per flight in session)
 			if (strncmp(file, "log", 3) == 0) {
 				unsigned u;
@@ -605,20 +609,6 @@ LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &da
 						return true;
 					}
 				}
-
-			} else {
-				if (stat_file(path, &date, &size)) {
-					return true;
-				}
-
-				/* strptime not available for some reason
-				// Get time from file name
-				struct tm tt;
-				if(strptime(file, "%H_%M_%S", &tt)) {
-					date += mktime(&tt);
-					return true;
-				}
-				*/
 			}
 		}
 	}

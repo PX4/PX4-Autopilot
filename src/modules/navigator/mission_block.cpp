@@ -103,6 +103,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
+		case NAV_CMD_DO_LAND_START:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -168,6 +169,38 @@ MissionBlock::is_mission_item_reached()
 					_navigator->get_global_position()->lon,
 					_navigator->get_global_position()->alt,
 					&dist_xy, &dist_z);
+
+		/* FW special case for NAV_CMD_WAYPOINT to achieve altitude via loiter */
+		if (!_navigator->get_vstatus()->is_rotary_wing &&
+			(_mission_item.nav_cmd == NAV_CMD_WAYPOINT)) {
+
+			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+			/* close to waypoint, but altitude error greater than twice acceptance */
+			if ((dist >= 0.0f)
+				&& (dist_z > 2 * _navigator->get_altitude_acceptance_radius())
+				&& (dist_xy < 2 * _navigator->get_loiter_radius())) {
+
+				/* SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER */
+				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					curr_sp->loiter_radius = _navigator->get_loiter_radius();
+					curr_sp->loiter_direction = 1;
+					_navigator->set_position_setpoint_triplet_updated();
+				}
+			} else {
+				/* restore SETPOINT_TYPE_POSITION */
+				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+					/* loiter acceptance criteria required to revert back to SETPOINT_TYPE_POSITION */
+					if ((dist >= 0.0f)
+						&& (dist_z < _navigator->get_loiter_radius())
+						&& (dist_xy <= _navigator->get_loiter_radius() * 1.2f)) {
+
+						curr_sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+						_navigator->set_position_setpoint_triplet_updated();
+					}
+				}
+			}
+		}
 
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 			&& _navigator->get_vstatus()->is_rotary_wing) {
@@ -400,6 +433,11 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		return;
 	}
 
+	// NAV_CMD_DO_LAND_START is only a marker
+	if (item->nav_cmd == NAV_CMD_DO_LAND_START) {
+		return;
+	}
+
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
@@ -438,6 +476,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_LAND_START ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
 		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
@@ -488,7 +527,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 				_navigator->get_loiter_radius();
 	sp->loiter_direction = (item->loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item->acceptance_radius;
-	sp->disable_mc_yaw_control = false;
+	sp->disable_mc_yaw_control = item->disable_mc_yaw;
+
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
 

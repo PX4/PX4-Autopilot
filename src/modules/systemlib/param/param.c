@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 #include <errno.h>
 #include <semaphore.h>
+#include <math.h>
 
 #include <sys/stat.h>
 
@@ -541,6 +542,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 				.val.p = NULL,
 				.unsaved = false
 			};
+			params_changed = true;
 
 			/* add it to the array and sort */
 			utarray_push_back(param_values, &buf);
@@ -554,12 +556,12 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		switch (param_type(param)) {
 
 		case PARAM_TYPE_INT32:
-			params_changed = s->val.i != *(int32_t *)val;
+			params_changed = params_changed || s->val.i != *(int32_t *)val;
 			s->val.i = *(int32_t *)val;
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			params_changed = fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
+			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
 			break;
 

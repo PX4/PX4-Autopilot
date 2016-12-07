@@ -252,10 +252,11 @@ static void usage()
 
 static void process_line(string &line, bool exit_on_fail)
 {
-	vector<string> appargs(10);
+	vector<string> appargs(20);
 
 	stringstream(line) >> appargs[0] >> appargs[1] >> appargs[2] >> appargs[3] >> appargs[4] >> appargs[5] >> appargs[6] >>
-			   appargs[7] >> appargs[8] >> appargs[9];
+			   appargs[7] >> appargs[8] >> appargs[9] >> appargs[10] >> appargs[11] >> appargs[12] >> appargs[13] >>
+			   appargs[14] >> appargs[15] >> appargs[16] >> appargs[17] >> appargs[18] >> appargs[19];
 	run_cmd(appargs, exit_on_fail);
 }
 

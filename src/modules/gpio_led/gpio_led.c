@@ -92,7 +92,9 @@ int gpio_led_main(int argc, char *argv[])
 		     "\t\tr2\tPX4IO RELAY2"
 		    );
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+
+#if defined(CONFIG_ARCH_BOARD_AUAV_X21)  || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4) || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
@@ -117,7 +119,8 @@ int gpio_led_main(int argc, char *argv[])
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 			char *pin_name = "PX4FMU GPIO_EXT1";
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+#if defined(CONFIG_ARCH_BOARD_AUAV_X21)  || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4) || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)
@@ -163,7 +166,8 @@ int gpio_led_main(int argc, char *argv[])
 					}
 
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+#if defined(CONFIG_ARCH_BOARD_AUAV_X21)  || \
+	defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4FMU_V4) || \
 	defined(CONFIG_ARCH_BOARD_MINDPX_V2) || \
 	defined(CONFIG_ARCH_BOARD_PX4NUCLEOF767ZI_V1)

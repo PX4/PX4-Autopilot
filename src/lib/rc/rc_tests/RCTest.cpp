@@ -302,9 +302,10 @@ bool RCTest::sumdTest(void)
 		uint8_t rx_count;
 		uint16_t channel_count;
 		uint16_t channels[32];
+		bool sumd_failsafe;
 
 
-		if (!sumd_decode(b, &rssi, &rx_count, &channel_count, channels, 32)) {
+		if (!sumd_decode(b, &rssi, &rx_count, &channel_count, channels, 32, &sumd_failsafe)) {
 			//PX4_INFO("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
 
 			for (unsigned i = 0; i < channel_count; i++) {

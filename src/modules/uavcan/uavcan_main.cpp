@@ -1258,10 +1258,10 @@ UavcanNode::print_info()
 	// Printing all nodes that are online
 	std::printf("Online nodes (Node ID, Health, Mode):\n");
 	_node_status_monitor.forEachNode([](uavcan::NodeID nid, uavcan::NodeStatusMonitor::NodeStatus ns) {
-		static constexpr std::array<const char*, 4> HEALTH {
+		static constexpr std::array<const char*, 4> HEALTH = {
 			"OK", "WARN", "ERR", "CRIT"
 		};
-		static constexpr std::array<const char*, 8> MODES {
+		static constexpr std::array<const char*, 8> MODES = {
 			"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"
 		};
 		std::printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH.at(ns.health), MODES.at(ns.mode));

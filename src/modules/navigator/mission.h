@@ -92,6 +92,10 @@ public:
 		MISSION_YAWMODE_MAX = 4
 	};
 
+	bool set_current_offboard_mission_index(unsigned index);
+
+	unsigned find_offboard_land_start();
+
 private:
 	/**
 	 * Update onboard mission topic
@@ -107,12 +111,6 @@ private:
 	 * Move on to next mission item or switch to loiter
 	 */
 	void advance_mission();
-
-	/**
-	 * Check distance to first waypoint (with lat/lon)
-	 * @return true only if it's not too far from home (< MIS_DIST_1WP)
-	 */
-	bool check_dist_1wp();
 
 	/**
 	 * Set new mission items
@@ -214,7 +212,7 @@ private:
 	void set_mission_finished();
 
 	/**
-	 * Check wether a mission is ready to go
+	 * Check whether a mission is ready to go
 	 */
 	void check_mission_valid(bool force);
 
@@ -258,7 +256,6 @@ private:
 
 	float _min_current_sp_distance_xy; /**< minimum distance which was achieved to the current waypoint  */
 
-	float _on_arrival_yaw; /**< holds the yaw value that should be applied when the current waypoint is reached */
 	float _distance_current_previous; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
 

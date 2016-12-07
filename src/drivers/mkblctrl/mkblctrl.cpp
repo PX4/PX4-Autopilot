@@ -545,7 +545,7 @@ MK::task_main()
 					for (unsigned int i = 0; i < _num_outputs; i++) {
 						/* last resort: catch NaN, INF and out-of-band errors */
 						if (i < outputs.noutputs &&
-						    isfinite(outputs.output[i]) &&
+						    PX4_ISFINITE(outputs.output[i]) &&
 						    outputs.output[i] >= -1.0f &&
 						    outputs.output[i] <= 1.0f) {
 							/* scale for PWM output 900 - 2100us */

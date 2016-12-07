@@ -47,6 +47,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <crc32.h>
+#include <syslog.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>

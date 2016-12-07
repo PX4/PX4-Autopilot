@@ -5,6 +5,7 @@
 *.px4log
 *.dSYM
 *.o
+*.gch
 *.pyc
 *~
 .*.swp
@@ -72,3 +73,7 @@ GTAGS
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
 vectorcontrol/
+
+
+# CLion ignores
+.idea
