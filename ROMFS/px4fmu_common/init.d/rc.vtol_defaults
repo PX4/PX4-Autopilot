@@ -23,12 +23,3 @@ fi
 
 # set environment variables (!= parameters)
 set PWM_RATE 400
-# tell the mixer to use parameters for these instead
-set PWM_DISARMED p:PWM_DISARMED
-set PWM_MIN p:PWM_MIN
-set PWM_MAX p:PWM_MAX
-
-if param compare PWM_DISARMED 0
-then
-	param set PWM_DISARMED 900
-fi
