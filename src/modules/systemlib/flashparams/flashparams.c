@@ -203,6 +203,7 @@ out:
 			}
 
 			free(enc_buff);
+			parameter_flashfs_free();
 		}
 	}
 

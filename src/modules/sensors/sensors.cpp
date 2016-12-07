@@ -619,6 +619,7 @@ Sensors::Sensors() :
 	_vibration_warning_timestamp(0),
 	_vibration_warning(false)
 {
+	_baro.voter.set_timeout(300000);
 	_mag.voter.set_timeout(300000);
 
 	memset(&_rc, 0, sizeof(_rc));
@@ -1409,6 +1410,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 						   _last_best_baro_pressure * 1e2f, air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
+		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub != nullptr) {

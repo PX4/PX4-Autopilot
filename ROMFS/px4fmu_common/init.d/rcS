@@ -207,6 +207,9 @@ then
 		then
 			set AUTOCNF yes
 		fi
+
+		# We don't allow changing AUTOSTART as it doesn't work in
+		# other configurations
 		param set SYS_AUTOSTART 4070
 	fi
 
@@ -619,7 +622,7 @@ then
 		fi
 		if param compare SYS_COMPANION 1500000
 		then
-			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 1500000 -m onboard -r 10000 -x
+			mavlink start -d $MAVLINK_COMPANION_DEVICE -b 1500000 -m onboard -r 100000 -x
 		fi
 	fi
 
@@ -652,10 +655,18 @@ then
 		fi
 	fi
 
-	# sf0x lidar sensor
-	if param compare SENS_EN_SF0X 1
+	# lightware serial lidar sensor
+	if param compare SENS_EN_SF0X 0
 	then
+	else
 		sf0x start
+	fi
+
+	# lightware i2c lidar sensor
+	if param compare SENS_EN_SF1XX 0
+	then
+	else
+		sf1xx start
 	fi
 
 	# mb12xx sonar sensor

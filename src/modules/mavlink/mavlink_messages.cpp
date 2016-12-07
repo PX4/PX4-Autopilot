@@ -89,7 +89,7 @@
 #include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/mount_status.h>
+#include <uORB/topics/mount_orientation.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/uORB.h>
 
@@ -3526,22 +3526,22 @@ protected:
 	}
 };
 
-class MavlinkStreamMountStatus : public MavlinkStream
+class MavlinkStreamMountOrientation : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamMountStatus::get_name_static();
+		return MavlinkStreamMountOrientation::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "MOUNT_STATUS";
+		return "MOUNT_ORIENTATION";
 	}
 
 	static uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_MOUNT_STATUS;
+		return MAVLINK_MSG_ID_MOUNT_ORIENTATION;
 	}
 
 	uint16_t get_id()
@@ -3551,43 +3551,43 @@ public:
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamMountStatus(mavlink);
+		return new MavlinkStreamMountOrientation(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return (_mount_status_time > 0) ? MAVLINK_MSG_ID_MOUNT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return (_mount_orientation_time > 0) ? MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	MavlinkOrbSubscription *_mount_status_sub;
-	uint64_t _mount_status_time;
+	MavlinkOrbSubscription *_mount_orientation_sub;
+	uint64_t _mount_orientation_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamMountStatus(MavlinkStreamMountStatus &);
-	MavlinkStreamMountStatus &operator = (const MavlinkStreamMountStatus &);
+	MavlinkStreamMountOrientation(MavlinkStreamMountOrientation &);
+	MavlinkStreamMountOrientation &operator = (const MavlinkStreamMountOrientation &);
 
 protected:
-	explicit MavlinkStreamMountStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_mount_status_sub(_mavlink->add_orb_subscription(ORB_ID(mount_status))),
-		_mount_status_time(0)
+	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_mount_orientation_sub(_mavlink->add_orb_subscription(ORB_ID(mount_orientation))),
+		_mount_orientation_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct mount_status_s mount_status = {};
+		struct mount_orientation_s mount_orientation = {};
 
-		bool updated = _mount_status_sub->update(&_mount_status_time, &mount_status);
+		bool updated = _mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation);
 
 		if (updated) {
 
-			mavlink_mount_status_t msg = {};
+			mavlink_mount_orientation_t msg = {};
 
-			msg.roll = 180.0f / M_PI_F * mount_status.attitude_euler_angle[0];
-			msg.pitch = 180.0f / M_PI_F * mount_status.attitude_euler_angle[1];
-			msg.yaw = 180.0f / M_PI_F * mount_status.attitude_euler_angle[2];
+			msg.roll = 180.0f / M_PI_F * mount_orientation.attitude_euler_angle[0];
+			msg.pitch = 180.0f / M_PI_F * mount_orientation.attitude_euler_angle[1];
+			msg.yaw = 180.0f / M_PI_F * mount_orientation.attitude_euler_angle[2];
 
-			mavlink_msg_mount_status_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_mount_orientation_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -3637,6 +3637,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
 	new StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
 	new StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
-	new StreamListItem(&MavlinkStreamMountStatus::new_instance, &MavlinkStreamMountStatus::get_name_static, &MavlinkStreamMountStatus::get_id_static),
+	new StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	nullptr
 };

@@ -339,13 +339,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #if defined(FLASH_BASED_PARAMS)
 	/*
-	 * Bootloader:
+	 * Bootloader(sector 0):
 	 * start: 0x08000000, len: 16K, end: 0x08003E80
 	 *
-	 * FlashFS:
-	 * start: 0x08004000, len: 8K, end: 0x0800C000
+	 * FlashFS(sector 1 and 2):
+	 * start: 0x08004000, len: 32K, end: 0x0800C000
 	 *
-	 * Firmware:
+	 * Firmware(sector 3 to 11):
 	 * start: 0x0800C000, len: 976K, end: 0x080FA480
 	 *
 	 * First 1MB memory bank complete.

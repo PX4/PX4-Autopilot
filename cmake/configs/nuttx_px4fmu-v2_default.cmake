@@ -56,7 +56,7 @@ set(config_module_list
 	#
 	systemcmds/bl_update
 	systemcmds/config
-	systemcmds/dumpfile
+	#systemcmds/dumpfile
 	#systemcmds/esc_calib
 	systemcmds/hardfault_log
 	systemcmds/mixer

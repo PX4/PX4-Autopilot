@@ -122,7 +122,7 @@ set(msg_file_names
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	vehicle_roi.msg
-	mount_status.msg
+	mount_orientation.msg
 	collision_report.msg
 	)
 

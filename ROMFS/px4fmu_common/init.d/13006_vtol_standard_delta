@@ -1,10 +1,15 @@
 #!nsh
 #
-# @name Generic quad delta VTOL.
-#
+# @name Generic quad delta VTOL
 # @type Standard VTOL
-#
 # @maintainer Simon Wilks <simon@uaventure.com>
+# @output MAIN1 Front right motor: CCW
+# @output MAIN2 Back left motor: CCW
+# @output MAIN3 Front left motor: CW
+# @output MAIN4 Back right motor: CW
+# @output AUX1 Right elevon
+# @output AUX2 Left elevon
+# @output AUX3 Motor
 #
 
 sh /etc/init.d/rc.vtol_defaults

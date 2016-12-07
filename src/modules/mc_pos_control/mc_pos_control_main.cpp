@@ -925,9 +925,14 @@ MulticopterPositionControl::control_manual(float dt)
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
 			if (!_pos_hold_engaged) {
-				if (_params.hold_max_xy < FLT_EPSILON || (fabsf(_vel(0)) < _params.hold_max_xy
-						&& fabsf(_vel(1)) < _params.hold_max_xy)) {
+
+				float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+
+				if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
+					/* reset position setpoint to have smooth transition from velocity control to position control */
 					_pos_hold_engaged = true;
+					_pos_sp(0) = _pos(0);
+					_pos_sp(1) = _pos(1);
 
 				} else {
 					_pos_hold_engaged = false;
@@ -954,7 +959,9 @@ MulticopterPositionControl::control_manual(float dt)
 		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
 			if (!_alt_hold_engaged) {
 				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
+					/* reset position setpoint to have smooth transition from velocity control to position control */
 					_alt_hold_engaged = true;
+					_pos_sp(2) = _pos(2);
 
 				} else {
 					_alt_hold_engaged = false;
@@ -1144,7 +1151,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-	if (current_setpoint_valid) {
+	if (current_setpoint_valid &&
+	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+
 		/* scaled space: 1 == position error resulting max allowed speed */
 
 		math::Vector<3> cruising_speed = _params.vel_cruise;
@@ -1889,8 +1898,8 @@ MulticopterPositionControl::task_main()
 						}
 					}
 
-					if (_control_mode.flag_control_altitude_enabled) {
-						/* thrust compensation for altitude only control modes */
+					if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
+						/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
 						float att_comp;
 
 						if (_R(2, 2) > TILT_COS_MAX) {

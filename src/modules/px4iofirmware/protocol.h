@@ -242,7 +242,12 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_SBUS_RATE			22	/* frame rate of SBUS1 output in Hz */
 
-#define PX4IO_P_SETUP_MOTOR_SLEW_MAX 	24 	/* max motor slew rate */
+#define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/* max motor slew rate */
+
+#define PX4IO_P_SETUP_THERMAL			25	/* thermal management */
+#define PX4IO_THERMAL_IGNORE			UINT16_MAX
+#define PX4IO_THERMAL_OFF			0
+#define PX4IO_THERMAL_FULL			10000
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
