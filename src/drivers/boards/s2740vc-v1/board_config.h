@@ -47,12 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
-#include <stm32.h>
-#include <arch/board/board.h>
-
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -88,6 +82,8 @@ __BEGIN_DECLS
 
 #define BOARD_NAME "S2740VC_V1"
 
+__BEGIN_DECLS
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
@@ -101,25 +97,6 @@ __BEGIN_DECLS
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-
-/************************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ************************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 /************************************************************************************
  * Name: stm32_can_initialize
