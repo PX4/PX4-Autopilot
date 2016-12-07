@@ -130,16 +130,16 @@ then
 	set MIXER_AUX none
 	set OUTPUT_MODE none
 	set PWM_OUT none
-	set PWM_RATE none
-	set PWM_DISARMED none
-	set PWM_MIN none
-	set PWM_MAX none
+	set PWM_RATE p:PWM_RATE
+	set PWM_DISARMED p:PWM_DISARMED
+	set PWM_MIN p:PWM_MIN
+	set PWM_MAX p:PWM_MAX
 	set PWM_AUX_OUT none
 	set PWM_AUX_RATE none
 	set PWM_ACHDIS none
-	set PWM_AUX_DISARMED none
-	set PWM_AUX_MIN none
-	set PWM_AUX_MAX none
+	set PWM_AUX_DISARMED p:PWM_AUX_DISARMED
+	set PWM_AUX_MIN p:PWM_AUX_MIN
+	set PWM_AUX_MAX p:PWM_AUX_MAX
 	set FAILSAFE_AUX none
 	set MK_MODE none
 	set FMU_MODE pwm
