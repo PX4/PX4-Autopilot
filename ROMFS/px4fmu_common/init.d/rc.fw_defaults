@@ -17,19 +17,7 @@ then
 	
 	param set MIS_LTRMIN_ALT 25
 	param set MIS_TAKEOFF_ALT 25
-	param set PWM_AUX_DISARMED 1500
-	param set PWM_AUX_MIN 1000
-	param set PWM_AUX_MAX 2000
 fi
-
-# tell the mixer to use parameters for these instead
-set PWM_RATE p:PWM_RATE
-set PWM_DISARMED p:PWM_DISARMED
-set PWM_MIN p:PWM_MIN
-set PWM_MAX p:PWM_MAX
-set PWM_AUX_DISARMED p:PWM_AUX_DISARMED
-set PWM_AUX_MIN p:PWM_AUX_MIN
-set PWM_AUX_MAX p:PWM_AUX_MAX
 
 # This is the gimbal pass mixer
 set MIXER_AUX pass
