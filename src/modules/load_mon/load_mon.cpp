@@ -190,11 +190,7 @@ void LoadMon::_compute()
 	_cpuload.ram_usage = _ram_used();
 
 #ifdef __PX4_NUTTX
-	perf_begin(_stack_perf);
-	sched_lock();
 	_stack_usage();
-	sched_unlock();
-	perf_end(_stack_perf);
 #endif
 
 	if (_cpuload_pub == nullptr) {
@@ -242,11 +238,16 @@ void LoadMon::_stack_usage()
 	/* Scan maximum 3 tasks per cycle to reduce load. */
 	for (int i = _stack_task_index; i < _stack_task_index + 3; i++) {
 		task_index = i % CONFIG_MAX_TASKS;
+		unsigned stack_free = 0;
+		bool checked_task = false;
+
+		perf_begin(_stack_perf);
+		sched_lock();
 
 		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
 			unsigned stack_size = (uintptr_t)system_load.tasks[task_index].tcb->adj_stack_ptr -
 					      (uintptr_t)system_load.tasks[task_index].tcb->stack_alloc_ptr;
-			unsigned stack_free = 0;
+
 			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[task_index].tcb->stack_alloc_ptr;
 
 			while (stack_free < stack_size) {
@@ -257,6 +258,13 @@ void LoadMon::_stack_usage()
 				stack_free++;
 			}
 
+			checked_task = true;
+		}
+
+		sched_unlock();
+		perf_end(_stack_perf);
+
+		if (checked_task) {
 			/*
 			 * Found task low on stack, report and exit. Continue here in next cycle.
 			 */
