@@ -88,36 +88,13 @@ void task_main(int argc, char *argv[])
 	// Use a buffer size of the double of the minimum, just to be safe.
 	uint8_t rx_buf[2 * DSM_BUFFER_SIZE];
 
-	// Set up poll topic
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd     = uart_fd;
-	fds[0].events = POLLIN;
-
 	_is_running = true;
 
 	// Main loop
 	while (!_task_should_exit) {
 
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
-
-		/* Timed out, do a periodic check for _task_should_exit. */
-		if (pret == 0) {
-			continue;
-		}
-
-		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
-			/* sleep a bit before next try */
-			usleep(100000);
-			continue;
-		}
-
-		if (!(fds[0].revents & POLLIN)) {
-			// There is only one fd in poll, so this should be impossible.
-			PX4_WARN("poll bit not set");
-			continue;
-		}
-
+		// sleep since no poll
+		usleep(10000);
 		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
 
 		if (newbytes < 0) {
