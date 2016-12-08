@@ -358,13 +358,13 @@ void Standard::update_mc_state()
 
 	// calculate the desired pitch seen in the heading frame
 	// this value corresponds to the amount the vehicle would try to pitch forward
-	float pitch_forward = asinf(body_z_sp(0));
+	float pitch_forward = atan2f(body_z_sp(0), body_z_sp(2));
 
 	// only allow pitching forward up to threshold, the rest of the desired
 	// forward acceleration will be compensated by the pusher
 	if (pitch_forward < -_params_standard.down_pitch_max) {
 		// desired roll angle in heading frame stays the same
-		float roll_new = -atan2f(body_z_sp(1), body_z_sp(2));
+		float roll_new = -asinf(body_z_sp(1));
 
 		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
 				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
@@ -383,9 +383,9 @@ void Standard::update_mc_state()
 		tilt_new = R_yaw_correction * tilt_new;
 
 		// now extract roll and pitch setpoints
-		float pitch = asinf(tilt_new(0));
-		float roll = -atan2f(tilt_new(1), tilt_new(2));
-		R_sp = matrix::Eulerf(roll, pitch, euler_sp(2));
+		_v_att_sp->pitch_body = atan2f(tilt_new(0), tilt_new(2));
+		_v_att_sp->roll_body = -asinf(tilt_new(1));
+		R_sp = matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2));
 		matrix::Quatf q_sp(R_sp);
 		memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
 	}
