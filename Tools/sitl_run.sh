@@ -135,6 +135,15 @@ then
 elif [ "$debugger" == "valgrind" ]
 then
 	valgrind $sitl_command
+elif [ "$debugger" == "ide" ]
+then
+	echo "######################################################################"
+	echo
+	echo "PX4 simulator not started, use your IDE to start PX4_${model} target."
+	echo "Hit enter to quit..."
+	echo
+	echo "######################################################################"
+	read
 else
 	$sitl_command
 fi
