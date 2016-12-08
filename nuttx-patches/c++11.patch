@@ -14,7 +14,7 @@ index 67716ab..a6c6cfe 100755
 + */
  namespace std
  {
--#if 0 /* Not defined */
+-#if 0 // Not defined
 +#if __cplusplus >= 201103L
    using ::mbstate_t;
  #endif
