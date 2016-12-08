@@ -345,19 +345,23 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 {
 	class Event
 	{
-		FAR sem_t sem;
+		FAR px4_sem_t sem;
 
 
 	public:
 
 		int init()
 		{
-			return sem_init(&sem, 0, 0);
+			int rv = px4_sem_init(&sem, 0, 0);
+			if (rv == 0) {
+				px4_sem_setprotocol(&sem, SEM_PRIO_NONE);
+			}
+			return rv;
 		}
 
 		int deinit()
 		{
-			return sem_destroy(&sem);
+			return px4_sem_destroy(&sem);
 		}
 
 
@@ -388,7 +392,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 						abstime.tv_nsec -= NsPerSec;
 					}
 
-					(void)sem_timedwait(&sem, &abstime);
+					(void)px4_sem_timedwait(&sem, &abstime);
 				}
 			}
 		}
@@ -396,7 +400,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		void signal()
 		{
 			int count;
-			int rv = sem_getvalue(&sem, &count);
+			int rv = px4_sem_getvalue(&sem, &count);
 
 			if (rv > 0 && count <= 0) {
 				px4_sem_post(&sem);

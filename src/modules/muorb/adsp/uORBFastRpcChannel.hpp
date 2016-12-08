@@ -222,6 +222,8 @@ private: // data members
 		Semaphore()
 		{
 			sem_init(&_Sem, 0, 0);
+			/* _Sem use case is a signal */
+			px4_sem_setprotocol(&_Sem, SEM_PRIO_NONE);
 		}
 		~Semaphore()
 		{

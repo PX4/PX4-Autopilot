@@ -301,6 +301,11 @@ PX4IO_serial::init()
 
 	/* create semaphores */
 	px4_sem_init(&_completion_semaphore, 0, 0);
+
+	/* _completion_semaphore use case is a signal */
+
+	px4_sem_setprotocol(&_completion_semaphore, SEM_PRIO_NONE);
+
 	px4_sem_init(&_bus_semaphore, 0, 1);
 
 
