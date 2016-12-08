@@ -650,7 +650,7 @@ void
 MulticopterPositionControl::scale_with_body_fixed_gains(math::Vector<3> &setpoint, const math::Vector<3> errors,
 		const math::Vector<3> &gains, const bool set_z)
 {
-	float z_setpoint;
+	float z_setpoint = 0.0f;
 
 	if (!set_z) {
 		// Preserve z-component
