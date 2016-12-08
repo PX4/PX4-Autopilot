@@ -257,6 +257,13 @@ run_tests_posix: posix_sitl_default
 
 tests: check_unittest run_tests_posix
 
+tests_coverage:
+	@(PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 ${MAKE} tests)
+	@(lcov --directory . --capture --quiet --output-file coverage.info)
+	@(lcov --remove coverage.info '/usr/*' --quiet --output-file coverage.info)
+	#@(lcov --list coverage.info)
+	@(genhtml coverage.info --quiet --output-directory coverage-html)
+
 # QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
 	check_px4fmu-v1_default \
