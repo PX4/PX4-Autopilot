@@ -166,11 +166,17 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	// disable debug() calls
 	_debug_enabled = false;
 
+	/* Set device parameters and make sure parameters of the bus device are adopted */
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
+	_device_id.devid_s.bus = _interface->get_device_bus();;
+	_device_id.devid_s.address = _interface->get_device_address();;
 
 	/* Prime _gyro with parents devid. */
+	/* Set device parameters and make sure parameters of the bus device are adopted */
 	_gyro->_device_id.devid = _device_id.devid;
 	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU9250;
+	_gyro->_device_id.devid_s.bus = _interface->get_device_bus();
+	_gyro->_device_id.devid_s.address = _interface->get_device_address();
 
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
