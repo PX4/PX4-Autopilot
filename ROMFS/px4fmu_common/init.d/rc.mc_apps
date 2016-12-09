@@ -19,8 +19,14 @@ fi
 # LPE
 if param compare SYS_MC_EST_GROUP 1
 then
-	attitude_estimator_q start
-	local_position_estimator start
+	# Try to start LPE. If it fails, start EKF2 as a default
+	# Unfortunately we do not build it on px4fmu-v2 duo to a limited flash.
+	if attitude_estimator_q start
+	then
+		local_position_estimator start
+	else
+		ekf2 start
+	fi
 fi
 
 # EKF
