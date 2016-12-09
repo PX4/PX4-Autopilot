@@ -93,8 +93,6 @@ void task_main(int argc, char *argv[])
 	// Main loop
 	while (!_task_should_exit) {
 
-		// sleep since no poll
-		usleep(10000);
 		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
 
 		if (newbytes < 0) {
@@ -137,6 +135,10 @@ void task_main(int argc, char *argv[])
 				orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
 			}
 		}
+
+		// sleep since no poll for qurt
+		usleep(10000);
+
 	}
 
 	orb_unadvertise(rc_pub);
