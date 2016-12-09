@@ -1,5 +1,7 @@
 include(nuttx/px4_impl_nuttx)
 
+px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
+
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_uavcan_num_ifaces 1)
@@ -62,6 +64,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/esc_calib
+	systemcmds/hardfault_log
 	systemcmds/reboot
 	systemcmds/topic_listener
 	systemcmds/top

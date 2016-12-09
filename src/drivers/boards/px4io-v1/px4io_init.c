@@ -35,10 +35,10 @@
  * @file px4io_init.c
  *
  * PX4IO-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -53,6 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
 
 #include "stm32.h"
 #include "board_config.h"
@@ -81,26 +82,26 @@
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure GPIOs */
-	px4_arch_configgpio(GPIO_ACC1_PWR_EN);
-	px4_arch_configgpio(GPIO_ACC2_PWR_EN);
-	px4_arch_configgpio(GPIO_SERVO_PWR_EN);
-	px4_arch_configgpio(GPIO_RELAY1_EN);
-	px4_arch_configgpio(GPIO_RELAY2_EN);
+	stm32_configgpio(GPIO_ACC1_PWR_EN);
+	stm32_configgpio(GPIO_ACC2_PWR_EN);
+	stm32_configgpio(GPIO_SERVO_PWR_EN);
+	stm32_configgpio(GPIO_RELAY1_EN);
+	stm32_configgpio(GPIO_RELAY2_EN);
 
 	/* turn off - all leds are active low */
-	px4_arch_gpiowrite(GPIO_LED1, true);
-	px4_arch_gpiowrite(GPIO_LED2, true);
-	px4_arch_gpiowrite(GPIO_LED3, true);
+	stm32_gpiowrite(GPIO_LED1, true);
+	stm32_gpiowrite(GPIO_LED2, true);
+	stm32_gpiowrite(GPIO_LED3, true);
 
 	/* LED config */
-	px4_arch_configgpio(GPIO_LED1);
-	px4_arch_configgpio(GPIO_LED2);
-	px4_arch_configgpio(GPIO_LED3);
+	stm32_configgpio(GPIO_LED1);
+	stm32_configgpio(GPIO_LED2);
+	stm32_configgpio(GPIO_LED3);
 
-	px4_arch_configgpio(GPIO_ACC_OC_DETECT);
-	px4_arch_configgpio(GPIO_SERVO_OC_DETECT);
-	px4_arch_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_ACC_OC_DETECT);
+	stm32_configgpio(GPIO_SERVO_OC_DETECT);
+	stm32_configgpio(GPIO_BTN_SAFETY);
 
-	px4_arch_configgpio(GPIO_ADC_VBATT);
-	px4_arch_configgpio(GPIO_ADC_IN5);
+	stm32_configgpio(GPIO_ADC_VBATT);
+	stm32_configgpio(GPIO_ADC_IN5);
 }

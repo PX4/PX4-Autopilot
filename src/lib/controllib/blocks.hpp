@@ -500,7 +500,7 @@ public:
 	virtual ~BlockRandUniform() {};
 	float update()
 	{
-		static float rand_max = MAX_RAND;
+		static float rand_max = RAND_MAX;
 		float rand_val = rand();
 		float bounds = getMax() - getMin();
 		return getMin() + (rand_val * bounds) / rand_max;
@@ -537,8 +537,8 @@ public:
 
 		if (phase == 0) {
 			do {
-				float U1 = (float)rand() / MAX_RAND;
-				float U2 = (float)rand() / MAX_RAND;
+				float U1 = (float)rand() / RAND_MAX;
+				float U2 = (float)rand() / RAND_MAX;
 				V1 = 2 * U1 - 1;
 				V2 = 2 * U2 - 1;
 				S = V1 * V1 + V2 * V2;

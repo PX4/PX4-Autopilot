@@ -25,4 +25,3 @@ exec find src \
     -path src/modules/uavcan -prune -o \
     -path src/modules/uavcan/libuavcan -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
-

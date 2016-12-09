@@ -58,8 +58,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
 
-#include <arch/stm32/chip.h>
-#include <stm32.h>
+#include <stm32_adc.h>
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>
@@ -68,6 +67,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>
 
+#if defined(ADC_CHANNELS)
 /*
  * Register accessors.
  * For now, no reason not to just use ADC1.
@@ -363,6 +363,7 @@ ADC::update_system_power(hrt_abstime now)
 	 */
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
+
 	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
 
 	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
@@ -482,3 +483,4 @@ adc_main(int argc, char *argv[])
 
 	exit(0);
 }
+#endif

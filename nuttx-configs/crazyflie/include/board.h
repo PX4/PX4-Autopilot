@@ -47,8 +47,6 @@
 # include <stdint.h>
 #endif
 
-#include "stm32_rcc.h"
-#include "stm32_sdio.h"
 #include "stm32.h"
 
 /************************************************************************************
@@ -150,11 +148,23 @@
 
 /* Timer Frequencies, if APBx is set to 1, frequency is same to APBx
  * otherwise frequency is 2xAPBx.
- * Note: TIM1,8 are on APB2, others on APB1
+ * Note: TIM1,8-11 are on APB2, others on APB1
  */
 
-#define STM32_TIM18_FREQUENCY   (2*STM32_PCLK2_FREQUENCY)
-#define STM32_TIM27_FREQUENCY   (2*STM32_PCLK1_FREQUENCY)
+#define BOARD_TIM1_FREQUENCY    STM32_APB2_TIM1_CLKIN
+#define BOARD_TIM2_FREQUENCY    STM32_APB1_TIM2_CLKIN
+#define BOARD_TIM3_FREQUENCY    STM32_APB1_TIM3_CLKIN
+#define BOARD_TIM4_FREQUENCY    STM32_APB1_TIM4_CLKIN
+#define BOARD_TIM5_FREQUENCY    STM32_APB1_TIM5_CLKIN
+#define BOARD_TIM6_FREQUENCY    STM32_APB1_TIM6_CLKIN
+#define BOARD_TIM7_FREQUENCY    STM32_APB1_TIM7_CLKIN
+#define BOARD_TIM8_FREQUENCY    STM32_APB2_TIM8_CLKIN
+#define BOARD_TIM9_FREQUENCY    STM32_APB2_TIM9_CLKIN
+#define BOARD_TIM10_FREQUENCY   STM32_APB2_TIM10_CLKIN
+#define BOARD_TIM11_FREQUENCY   STM32_APB2_TIM11_CLKIN
+#define BOARD_TIM12_FREQUENCY   STM32_APB1_TIM12_CLKIN
+#define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
+#define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
 
 /* Alternate function pin selections ************************************************/
 
@@ -238,22 +248,6 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-
-/************************************************************************************
- * Name:  stm32_ledinit, stm32_setled, and stm32_setleds
- *
- * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
- *   CONFIG_ARCH_LEDS is not defined, then the following interfacesare available to
- *   control the LEDs from user applications.
- *
- ************************************************************************************/
-
-#ifndef CONFIG_ARCH_LEDS
-EXTERN void stm32_ledinit(void);
-EXTERN void stm32_setled(int led, bool ledon);
-EXTERN void stm32_setleds(uint8_t ledset);
-#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

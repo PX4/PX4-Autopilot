@@ -35,19 +35,38 @@
  * This file is a shim to bridge to nuttx_v3
  */
 #ifdef __PX4_NUTTX
+__BEGIN_DECLS
+#include <nuttx/spi/spi.h>
+#include <nuttx/i2c/i2c_master.h>
 
-#  define px4_enter_critical_section()       irqsave()
-#  define px4_leave_critical_section(flags)  irqrestore(flags)
+#  define px4_enter_critical_section()       enter_critical_section()
+#  define px4_leave_critical_section(flags)  leave_critical_section(flags)
 
-#  define px4_spibus_initialize(port_1based)       up_spiinitialize(port_1based)
+#  if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
+#    if defined(CONFIG_ARCH_CHIP_STM32)
+#      include <stm32.h>
+#      define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
+#      define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
+#    endif
+#    if defined(CONFIG_ARCH_CHIP_STM32F7)
+#      include <chip.h>
+#      define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
+#      define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
+#    endif
+#    include <stm32_tim.h>
+#    include <stm32_spi.h>
+#    include <stm32_i2c.h>
+#    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
-#  define px4_i2cbus_initialize(bus_num_1based)    up_i2cinitialize(bus_num_1based)
-#  define px4_i2cbus_uninitialize(pdev)            up_i2cuninitialize(pdev)
+#    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
+#    define px4_i2cbus_uninitialize(pdev)            stm32_i2cbus_uninitialize(pdev)
 
-#  if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_STM32F40XX)
-#    define px4_arch_configgpio(pinset)      stm32_configgpio(pinset)
-#    define px4_arch_unconfiggpio(pinset)     stm32_unconfiggpio(pinset)
-#    define px4_arch_gpioread(pinset)         stm32_gpioread(pinset)
-#    define px4_arch_gpiowrite(pinset, value) stm32_gpiowrite(pinset, value)
+#    define px4_arch_configgpio(pinset)             stm32_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
 #  endif
+#include <arch/board/board.h>
+__END_DECLS
 #endif
