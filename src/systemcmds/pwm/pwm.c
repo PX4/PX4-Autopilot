@@ -449,50 +449,6 @@ pwm_main(int argc, char *argv[])
 
 		exit(0);
 
-//	} else if (!strcmp(argv[1], "trim")) {
-//
-//		if (set_mask == 0) {
-//			usage("no channels set");
-//		}
-//
-//		struct pwm_output_values pwm_values;
-//
-//		memset(&pwm_values, 0, sizeof(pwm_values));
-//
-//		pwm_values.channel_count = servo_count;
-//
-//		/* first get current state before modifying it */
-//		ret = ioctl(fd, PWM_SERVO_GET_TRIM_PWM, (long unsigned int)&pwm_values);
-//
-//		if (ret != OK) {
-//			errx(ret, "failed get trim values");
-//		}
-//
-//		for (unsigned i = 0; i < servo_count; i++) {
-//			if (set_mask & 1 << i) {
-//				pwm_values.values[i] = pwm_value;
-//
-//				if (print_verbose) {
-//					warnx("Channel %d: trim PWM: %d", i + 1, pwm_value);
-//				}
-//			}
-//		}
-//
-//		if (pwm_values.channel_count == 0) {
-//			usage("no PWM values added");
-//
-//		} else {
-//
-//			ret = ioctl(fd, PWM_SERVO_SET_TRIM_PWM, (long unsigned int)&pwm_values);
-//
-//			if (ret != OK) {
-//				errx(ret, "failed setting trim values");
-//			}
-//		}
-//
-//		exit(0);
-//
-
 	} else if (!strcmp(argv[1], "disarmed")) {
 
 		if (set_mask == 0) {
