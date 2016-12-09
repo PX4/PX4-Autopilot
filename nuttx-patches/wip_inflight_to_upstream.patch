@@ -1,8 +1,21 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/chip/stm32f76xx77xx_pinmap.h NuttX/nuttx/arch/arm/src/stm32f7/chip/stm32f76xx77xx_pinmap.h
+index 6054d70..c5d1b50 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/chip/stm32f76xx77xx_pinmap.h
++++ NuttX/nuttx/arch/arm/src/stm32f7/chip/stm32f76xx77xx_pinmap.h
+@@ -997,7 +997,7 @@
+ #define GPIO_SPI2_SCK_3       (GPIO_ALT|GPIO_AF5|GPIO_SPEED_50MHz|GPIO_PORTB|GPIO_PIN13)
+ #define GPIO_SPI2_SCK_4       (GPIO_ALT|GPIO_AF5|GPIO_SPEED_50MHz|GPIO_PORTD|GPIO_PIN3)
+ #define GPIO_SPI2_SCK_5       (GPIO_ALT|GPIO_AF5|GPIO_SPEED_50MHz|GPIO_PORTI|GPIO_PIN1)
+-#define GPIO_SPI2_SCK_6       (GPIO_ALT|GPIO_AF5|GPIO_SPEED_50MHz|GPIO_PORTIA|GPIO_PIN12)
++#define GPIO_SPI2_SCK_6       (GPIO_ALT|GPIO_AF5|GPIO_SPEED_50MHz|GPIO_PORTA|GPIO_PIN12)
+ 
+ #define GPIO_SPI3_MISO_1      (GPIO_ALT|GPIO_AF6|GPIO_SPEED_50MHz|GPIO_PORTB|GPIO_PIN4)
+ #define GPIO_SPI3_MISO_2      (GPIO_ALT|GPIO_AF6|GPIO_SPEED_50MHz|GPIO_PORTC|GPIO_PIN11)
 diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_allocateheap.c NuttX/nuttx/arch/arm/src/stm32/stm32_allocateheap.c
-index a222253..c77f81b 100644
+index a222253..92a3fcd 100644
 --- NuttX/nuttx/arch/arm/src/stm32/stm32_allocateheap.c
 +++ NuttX/nuttx/arch/arm/src/stm32/stm32_allocateheap.c
-@@ -295,10 +295,13 @@
+@@ -295,6 +295,10 @@
  #    define SRAM1_END 0x20018000
  #  elif defined(CONFIG_STM32_STM32F427) || defined(CONFIG_STM32_STM32F429)
  #    define SRAM1_END 0x20030000
@@ -13,7 +26,3 @@ index a222253..c77f81b 100644
  #  else
  #    define SRAM1_END 0x20020000
  #  endif
--
-    /* Set the range of CCM SRAM as well (although we may not use it) */
- 
- #  define SRAM2_START 0x10000000
