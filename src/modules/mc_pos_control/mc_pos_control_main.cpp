@@ -2139,11 +2139,10 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
 			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-			// to calculate the new desired roll and pitch angles
-			// R_tilt can be written as a function of the new desired roll and pitch
-			// angles. we get three equations and have to solve for 2 unknowns
-			_att_sp.pitch_body = asinf(z_roll_pitch_sp(0));
-			_att_sp.roll_body = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
+			// R_tilt is computed from_euler; only true if cos(roll) not equal zero
+			// -> valid if roll is not +-pi/2;
+			_att_sp.roll_body = -asinf(z_roll_pitch_sp(1));
+			_att_sp.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
 		}
 
 		/* copy quaternion setpoint to attitude setpoint topic */
