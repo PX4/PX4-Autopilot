@@ -102,14 +102,24 @@ Loiter::on_active()
 void
 Loiter::set_loiter_position()
 {
-	// not setting loiter position until armed
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED ||
-	    _loiter_pos_set) {
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED &&
+	    _navigator->get_land_detected()->landed) {
+
+		// Not setting loiter position if disarmed and landed, instead mark the current
+		// setpoint as invalid and idle (both, just to be sure).
+
+		_navigator->set_can_loiter_at_sp(false);
+		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+		_navigator->set_position_setpoint_triplet_updated();
+		_loiter_pos_set = false;
 		return;
 
-	} else {
-		_loiter_pos_set = true;
+	} else if (_loiter_pos_set) {
+		// Already set, nothing to do.
+		return;
 	}
+
+	_loiter_pos_set = true;
 
 	// set current mission item to loiter
 	set_loiter_item(&_mission_item, _param_min_alt.get());
