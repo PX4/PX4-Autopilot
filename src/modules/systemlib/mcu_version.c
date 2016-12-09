@@ -47,6 +47,8 @@
 
 #if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
+# define ARCH_CHIP_STM
+
 //STM DocID018909 Rev 8 Sect 38.18 and DocID026670 Rev 5 40.6.1 (MCU device ID code)
 # define REVID_MASK    0xFFFF0000
 # define DEVID_MASK    0xFFF
@@ -67,10 +69,17 @@
 /** Copy the 96bit MCU Unique ID into the provided pointer */
 void mcu_unique_id(uint32_t *uid_96_bit)
 {
-#ifdef __PX4_NUTTX
+#if defined(__PX4_NUTTX)
+
+#if defined(ARCH_CHIP_STM)
 	uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
 	uid_96_bit[1] = getreg32(STM32_SYSMEM_UID + 4);
 	uid_96_bit[2] = getreg32(STM32_SYSMEM_UID + 8);
+#elif defined(ARCH_CHIP_KINETIS)
+	uid_96_bit[0] = 0xdeadbeef;
+	uid_96_bit[1] = 0xbadf00d;
+	uid_96_bit[2] = 0xdeadbeef;
+#endif
 #else
 	uid_96_bit[0] = 0;
 	uid_96_bit[1] = 1;
@@ -80,7 +89,8 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 
 int mcu_version(char *rev, char **revstr)
 {
-#ifdef __PX4_NUTTX
+#if defined(_PX4_NUTTX) && defined(ARCH_CHIP_STM)
+
 	uint32_t abc = getreg32(STM32_DEBUGMCU_BASE);
 
 	int32_t chip_version = abc & DEVID_MASK;

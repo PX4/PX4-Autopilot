@@ -1,0 +1,38 @@
+diff --git NuttX/nuttx/configs/Kconfig NuttX/nuttx/configs/Kconfig
+index b4552dd..348a329 100644
+--- NuttX/nuttx/configs/Kconfig
++++ NuttX/nuttx/configs/Kconfig
+@@ -470,6 +470,15 @@ config ARCH_BOARD_NUTINY_NUC120
+ 		Nuvoton NUC120 chip, specifically the NUC120LE3AN.  See http://www.nuvoton.com/
+ 		for further information.
+ 
++config ARCH_BOARD_NXPHLITE_V1
++	bool "NXPHlite V1 development board"
++	depends on ARCH_CHIP_MK64FX512VLQ12
++	select ARCH_HAVE_LEDS
++	---help---
++		development board.
++		This port uses the NXPHlite V1 development board. This
++		board uses the Kinetis K64 MK64FX512VLQ12Cortex-M4 MCU.
++
+ config ARCH_BOARD_OLIMEX_EFM32G880F128_STK
+ 	bool "Olimex EFM32G880F128 STK"
+ 	depends on ARCH_CHIP_EFM32G880F128
+@@ -1408,6 +1417,7 @@ config ARCH_BOARD
+ 	default "mirtoo"                   if ARCH_BOARD_MIRTOO
+ 	default "moteino-mega"             if ARCH_BOARD_MOTEINO_MEGA
+ 	default "mx1ads"                   if ARCH_BOARD_MX1ADS
++	default "nxphlite-v1"              if ARCH_BOARD_NXPHLITE_V1
+ 	default "ne64badge"                if ARCH_BOARD_NE64BADGE
+ 	default "ntosd-dm320"              if ARCH_BOARD_NTOSD_DM320
+ 	default "nutiny-nuc120"            if ARCH_BOARD_NUTINY_NUC120
+@@ -1672,6 +1682,9 @@ endif
+ if ARCH_BOARD_NUTINY_NUC120
+ source "configs/nutiny-nuc120/Kconfig"
+ endif
++if ARCH_BOARD_NXPHLITE_V1
++source "configs/nxphlite-v1/Kconfig"
++endif
+ if ARCH_BOARD_OLIMEX_EFM32G880F128_STK
+ source "configs/olimex-efm32g880f128-stk/Kconfig"
+ endif
