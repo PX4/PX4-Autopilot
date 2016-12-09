@@ -101,10 +101,8 @@ void task_main(int argc, char *argv[])
 		}
 
 		if (newbytes == 0) {
-			PX4_WARN("read nothing");
 			continue;
 		}
-
 
 		const hrt_abstime now = hrt_absolute_time();
 
