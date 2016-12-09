@@ -41,7 +41,8 @@
 
 #include <systemlib/err.h>
 #include <unit_test/unit_test.h>
-#include <mathlib/mathlib.h>
+#include <mathlib/math/Limits.hpp>
+#include <matrix/math.hpp>
 
 extern "C" __EXPORT int mc_pos_control_tests_main(int argc, char *argv[]);
 
@@ -51,8 +52,8 @@ bool mcPosControlTests(void);
 class MulticopterPositionControl
 {
 public:
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+	bool		cross_sphere_line(const matrix::Vector3f &sphere_c, float sphere_r,
+					  const matrix::Vector3f line_a, const matrix::Vector3f line_b, matrix::Vector3f &res);
 };
 
 class McPosControlTests : public UnitTest
@@ -79,9 +80,9 @@ bool McPosControlTests::cross_sphere_line_test(void)
 {
 	MulticopterPositionControl	*control = {};
 
-	math::Vector<3> prev = math::Vector<3>(0, 0, 0);
-	math::Vector<3> curr = math::Vector<3>(0, 0, 2);
-	math::Vector<3> res;
+	matrix::Vector3f prev = matrix::Vector3f(0, 0, 0);
+	matrix::Vector3f curr = matrix::Vector3f(0, 0, 2);
+	matrix::Vector3f res;
 	bool retval = false;
 
 	/*
@@ -108,7 +109,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	 */
 
 	// on line, near, before previous waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, -0.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.0f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target A 0", res(0), 0.0f, 2);
@@ -116,7 +117,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target A 2", res(2), 0.5f, 2);
 
 	// on line, near, before target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, 1.0f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.0f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target B 0", res(0), 0.0f, 2);
@@ -124,7 +125,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target B 2", res(2), 2.0f, 2);
 
 	// on line, near, after target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.0f, 2.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.0f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target C 0", res(0), 0.0f, 2);
@@ -132,7 +133,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target C 2", res(2), 2.0f, 2);
 
 	// near, before previous waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, -0.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.5f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target D 0", res(0), 0.0f, 2);
@@ -140,7 +141,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target D 2", res(2), 0.37f, 2);
 
 	// near, before target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, 1.0f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.5f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target E 0", res(0), 0.0f, 2);
@@ -148,7 +149,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target E 2", res(2), 1.87f, 2);
 
 	// near, after target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 0.5f, 2.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 0.5f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_true(retval);
 	ut_compare_float("target F 0", res(0), 0.0f, 2);
@@ -156,7 +157,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target F 2", res(2), 2.0f, 2);
 
 	// far, before previous waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, -0.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 2.0f, -0.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
 	ut_compare_float("target G 0", res(0), 0.0f, 2);
@@ -164,7 +165,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target G 2", res(2), 0.0f, 2);
 
 	// far, before target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, 1.0f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 2.0f, 1.0f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
 	ut_compare_float("target H 0", res(0), 0.0f, 2);
@@ -172,7 +173,7 @@ bool McPosControlTests::cross_sphere_line_test(void)
 	ut_compare_float("target H 2", res(2), 1.0f, 2);
 
 	// far, after target waypoint
-	retval = control->cross_sphere_line(math::Vector<3>(0.0f, 2.0f, 2.5f), 1.0f, prev, curr, res);
+	retval = control->cross_sphere_line(matrix::Vector3f(0.0f, 2.0f, 2.5f), 1.0f, prev, curr, res);
 	PX4_WARN("result %.2f, %.2f, %.2f", (double)res(0), (double)res(1), (double)res(2));
 	ut_assert_false(retval);
 	ut_compare_float("target I 0", res(0), 0.0f, 2);

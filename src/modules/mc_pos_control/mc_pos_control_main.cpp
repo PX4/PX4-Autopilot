@@ -79,9 +79,10 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
-#include <mathlib/mathlib.h>
+#include <mathlib/math/Limits.hpp>
 #include <lib/geo/geo.h>
 #include <platforms/px4_defines.h>
+#include <matrix/math.hpp>
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -119,8 +120,8 @@ public:
 	 */
 	int		start();
 
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+	bool		cross_sphere_line(const matrix::Vector3f &sphere_c, float sphere_r,
+					  const matrix::Vector3f line_a, const matrix::Vector3f line_b, matrix::Vector3f &res);
 
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -228,14 +229,14 @@ private:
 
 		int opt_recover;
 
-		math::Vector<3> pos_p;
-		math::Vector<3> vel_p;
-		math::Vector<3> vel_i;
-		math::Vector<3> vel_d;
-		math::Vector<3> vel_ff;
-		math::Vector<3> vel_max;
-		math::Vector<3> vel_cruise;
-		math::Vector<3> sp_offs_max;
+		matrix::Vector3f pos_p;
+		matrix::Vector3f vel_p;
+		matrix::Vector3f vel_i;
+		matrix::Vector3f vel_d;
+		matrix::Vector3f vel_ff;
+		matrix::Vector3f vel_max;
+		matrix::Vector3f vel_cruise;
+		matrix::Vector3f sp_offs_max;
 	}		_params;
 
 	struct map_projection_reference_s _ref_pos;
@@ -260,19 +261,23 @@ private:
 	bool _hold_offboard_xy = false;
 	bool _hold_offboard_z = false;
 
+<<<<<<< 75be79e1928e73adcb8798850bebe0fa26cea5c0
 
 	math::Vector<3> _thrust_int;
+=======
+	matrix::Vector3f _thrust_int;
+>>>>>>> changed from mathlib library to matrix library
 
-	math::Vector<3> _pos;
-	math::Vector<3> _pos_sp;
-	math::Vector<3> _vel;
-	math::Vector<3> _vel_sp;
-	math::Vector<3> _vel_prev;			/**< velocity on previous step */
-	math::Vector<3> _vel_ff;
-	math::Vector<3> _vel_sp_prev;
-	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+	matrix::Vector3f _pos;
+	matrix::Vector3f _pos_sp;
+	matrix::Vector3f _vel;
+	matrix::Vector3f _vel_sp;
+	matrix::Vector3f _vel_prev;			/**< velocity on previous step */
+	matrix::Vector3f _vel_ff;
+	matrix::Vector3f _vel_sp_prev;
+	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
 
-	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
+	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
@@ -703,21 +708,18 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-		_R = q_att.to_dcm();
-		math::Vector<3> euler_angles;
-		euler_angles = _R.to_euler();
-		_yaw = euler_angles(2);
+		_R = matrix::Quatf(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+		matrix::Eulerf euler_angles = _R;
+		_yaw = euler_angles.psi();
 
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
 				_heading_reset_counter = _ctrl_state.quat_reset_counter;
-				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
-							 _ctrl_state.delta_q_reset[3]);
 
 				// we only extract the heading change from the delta quaternion
-				math::Vector<3> delta_euler = delta_q.to_euler();
-				_att_sp.yaw_body += delta_euler(2);
+				matrix::Eulerf delta_euler = matrix::Quatf(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
+						 _ctrl_state.delta_q_reset[3]);
+				_att_sp.yaw_body += delta_euler.psi();
 			}
 		}
 
@@ -852,7 +854,8 @@ MulticopterPositionControl::update_ref()
 
 		if (_ref_timestamp != 0) {
 			/* reproject position setpoint to new reference */
-			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
+			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp(0), &_pos_sp(1));
+
 			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
 
@@ -890,7 +893,7 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_pos_sp_offset()
 {
-	math::Vector<3> pos_sp_offs;
+	matrix::Vector3f pos_sp_offs;
 	pos_sp_offs.zero();
 
 	if (_control_mode.flag_control_position_enabled) {
@@ -924,7 +927,7 @@ MulticopterPositionControl::control_manual(float dt)
 		}
 	}
 
-	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
+	matrix::Vector3f req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
 	if (_control_mode.flag_control_altitude_enabled) {
@@ -956,9 +959,9 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
-	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
+	matrix::Dcmf R_yaw_sp;
+	R_yaw_sp = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
+	matrix::Vector3f req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
 	/*
@@ -1095,7 +1098,7 @@ MulticopterPositionControl::control_non_manual(float dt)
 	    velocity_valid &&
 	    _pos_sp_triplet.current.position_valid) {
 
-		math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
+		matrix::Vector3f ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
 
 		float cos_ratio = (ft_vel * _vel_sp) / (ft_vel.length() * _vel_sp.length());
 
@@ -1302,15 +1305,15 @@ void
 MulticopterPositionControl::limit_acceleration(float dt)
 {
 	// limit total horizontal acceleration
-	math::Vector<2> acc_hor;
+	matrix::Vector2f acc_hor;
 	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
 	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
 
 	if (acc_hor.length() > _params.acc_hor_max) {
 		acc_hor.normalize();
 		acc_hor *= _params.acc_hor_max;
-		math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
-		math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
+		matrix::Vector2f vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
+		matrix::Vector2f vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
 		_vel_sp(0) = vel_sp_hor(0);
 		_vel_sp(1) = vel_sp_hor(1);
 	}
@@ -1327,14 +1330,14 @@ MulticopterPositionControl::limit_acceleration(float dt)
 }
 
 bool
-MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
+MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, float sphere_r,
+		const matrix::Vector3f line_a, const matrix::Vector3f line_b, matrix::Vector3f &res)
 {
 	/* project center of sphere on line */
 	/* normalized AB */
-	math::Vector<3> ab_norm = line_b - line_a;
+	matrix::Vector3f ab_norm = line_b - line_a;
 	ab_norm.normalize();
-	math::Vector<3> d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
+	matrix::Vector3f d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
 	float cd_len = (sphere_c - d).length();
 
 	if (sphere_r > cd_len) {
@@ -1389,15 +1392,15 @@ void MulticopterPositionControl::control_auto(float dt)
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
 
-	math::Vector<3> prev_sp;
-	math::Vector<3> curr_sp;
+	matrix::Vector3f prev_sp;
+	matrix::Vector3f curr_sp;
 
 	if (_pos_sp_triplet.current.valid) {
 
 		/* project setpoint to local frame */
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-				       &curr_sp.data[0], &curr_sp.data[1]);
+				       &curr_sp(0), &curr_sp(1));
 		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
 		if (PX4_ISFINITE(curr_sp(0)) &&
@@ -1410,7 +1413,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (_pos_sp_triplet.previous.valid) {
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
-				       &prev_sp.data[0], &prev_sp.data[1]);
+				       &prev_sp(0), &prev_sp(1));
 		prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
 
 		if (PX4_ISFINITE(prev_sp(0)) &&
@@ -1425,7 +1428,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* scaled space: 1 == position error resulting max allowed speed */
 
-		math::Vector<3> cruising_speed = _params.vel_cruise;
+		matrix::Vector3f cruising_speed = _params.vel_cruise;
 
 		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
 		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
@@ -1433,13 +1436,13 @@ void MulticopterPositionControl::control_auto(float dt)
 			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
 		}
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+		matrix::Vector3f scale = _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
-		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+		matrix::Vector3f curr_sp_s = curr_sp.emult(scale);
 
 		/* by default use current setpoint as is */
-		math::Vector<3> pos_sp_s = curr_sp_s;
+		matrix::Vector3f pos_sp_s = curr_sp_s;
 
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
 		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
@@ -1450,28 +1453,28 @@ void MulticopterPositionControl::control_auto(float dt)
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
 
 				/* find X - cross point of unit sphere and trajectory */
-				math::Vector<3> pos_s = _pos.emult(scale);
-				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
-				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
-				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
+				matrix::Vector3f pos_s = _pos.emult(scale);
+				matrix::Vector3f prev_sp_s = prev_sp.emult(scale);
+				matrix::Vector3f prev_curr_s = curr_sp_s - prev_sp_s;
+				matrix::Vector3f curr_pos_s = pos_s - curr_sp_s;
 				float curr_pos_s_len = curr_pos_s.length();
 
 				if (curr_pos_s_len < 1.0f) {
 					/* copter is closer to waypoint than unit radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
 					if (_pos_sp_triplet.next.valid) {
-						math::Vector<3> next_sp;
+						matrix::Vector3f next_sp;
 						map_projection_project(&_ref_pos,
 								       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
-								       &next_sp.data[0], &next_sp.data[1]);
+								       &next_sp(0), &next_sp(1));
 						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
 
 						if ((next_sp - curr_sp).length() > MIN_DIST) {
-							math::Vector<3> next_sp_s = next_sp.emult(scale);
+							matrix::Vector3f next_sp_s = next_sp.emult(scale);
 
 							/* calculate angle prev - curr - next */
-							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
+							matrix::Vector3f curr_next_s = next_sp_s - curr_sp_s;
+							matrix::Vector3f prev_curr_s_norm = prev_curr_s.normalized();
 
 							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
 							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
@@ -1488,7 +1491,7 @@ void MulticopterPositionControl::control_auto(float dt)
 								}
 
 								/* feed forward position setpoint offset */
-								math::Vector<3> pos_ff = prev_curr_s_norm *
+								matrix::Vector3f pos_ff = prev_curr_s_norm *
 											 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
 											 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
 								pos_sp_s += pos_ff;
@@ -1508,10 +1511,10 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 		/* move setpoint not faster than max allowed speed */
-		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
+		matrix::Vector3f pos_sp_old_s = _pos_sp.emult(scale);
 
 		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+		matrix::Vector3f d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
 		float d_pos_m_len = d_pos_m.length();
 
 		if (d_pos_m_len > dt) {
@@ -1752,7 +1755,7 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		/* velocity error */
-		math::Vector<3> vel_err = _vel_sp - _vel;
+		matrix::Vector3f vel_err = _vel_sp - _vel;
 
 		// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
 		// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
@@ -1776,10 +1779,10 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		/* thrust vector in NED frame */
-		math::Vector<3> thrust_sp;
+		matrix::Vector3f thrust_sp;
 
 		if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
-			thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
+			thrust_sp = matrix::Vector3f(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 		} else {
 			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + _thrust_int;
@@ -1892,7 +1895,7 @@ MulticopterPositionControl::control_position(float dt)
 			/* limit max tilt */
 			if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 				/* absolute horizontal thrust */
-				float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
+				float thrust_sp_xy_len = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
 
 				if (thrust_sp_xy_len > 0.01f) {
 					/* max horizontal thrust for given vertical thrust*/
@@ -1943,7 +1946,7 @@ MulticopterPositionControl::control_position(float dt)
 				} else {
 					/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
 					float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
-					float thrust_xy_abs = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
+					float thrust_xy_abs = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
 					float k = thrust_xy_max / thrust_xy_abs;
 					thrust_sp(0) *= k;
 					thrust_sp(1) *= k;
@@ -1979,9 +1982,9 @@ MulticopterPositionControl::control_position(float dt)
 		/* calculate attitude setpoint from thrust vector */
 		if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 			/* desired body_z axis = -normalize(thrust_vector) */
-			math::Vector<3> body_x;
-			math::Vector<3> body_y;
-			math::Vector<3> body_z;
+			matrix::Vector3f body_x;
+			matrix::Vector3f body_y;
+			matrix::Vector3f body_z;
 
 			if (thrust_abs > SIGMA) {
 				body_z = -thrust_sp / thrust_abs;
@@ -1993,7 +1996,7 @@ MulticopterPositionControl::control_position(float dt)
 			}
 
 			/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-			math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
+			matrix::Vector3f y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
 
 			if (fabsf(body_z(2)) > SIGMA) {
 				/* desired body_x axis, orthogonal to body_z */
@@ -2124,17 +2127,15 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 			// compute the vector obtained by rotating a z unit vector by the rotation
 			// given by the roll and pitch commands of the user
-			math::Vector<3> zB = {0, 0, 1};
-			math::Matrix<3, 3> R_sp_roll_pitch;
-			R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
-			math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
+			matrix::Vector3f zB = {0, 0, 1};
+			matrix::Dcmf R_sp_roll_pitch = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, 0);
+			matrix::Vector3f z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
 
 			// transform the vector into a new frame which is rotated around the z axis
 			// by the current yaw error. this vector defines the desired tilt when we look
 			// into the direction of the desired heading
-			math::Matrix<3, 3> R_yaw_correction;
-			R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+			matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
 			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
