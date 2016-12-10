@@ -1045,96 +1045,97 @@ PX4FMU::cycle()
 			}
 		}
 
-		/* can we mix? */
-		if (_mixers != nullptr) {
-
-			size_t num_outputs;
-
-			switch (_mode) {
-			case MODE_1PWM:
-				num_outputs = 1;
-				break;
-
-			case MODE_2PWM:
-			case MODE_2PWM2CAP:
-				num_outputs = 2;
-				break;
-
-			case MODE_3PWM:
-			case MODE_3PWM1CAP:
-				num_outputs = 3;
-				break;
-
-			case MODE_4PWM:
-				num_outputs = 4;
-				break;
-
-			case MODE_6PWM:
-				num_outputs = 6;
-				break;
-
-			case MODE_8PWM:
-				num_outputs = 8;
-				break;
-
-			default:
-				num_outputs = 0;
-				break;
-			}
-
-			hrt_abstime now = hrt_absolute_time();
-			float dt = (now - _time_last_mix) / 1e6f;
-			_time_last_mix = now;
-
-			if (dt < 0.0001f) {
-				dt = 0.0001f;
-
-			} else if (dt > 0.02f) {
-				dt = 0.02f;
-			}
-
-			if (_mot_t_max > FLT_EPSILON) {
-				// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-				// factor 2 is needed because actuator ouputs are in the range [-1,1]
-				float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
-				_mixers->set_max_delta_out_once(delta_out_max);
-			}
-
-			/* do mixing */
-			float outputs[_max_actuators];
-			num_outputs = _mixers->mix(outputs, num_outputs, NULL);
-
-			/* disable unused ports by setting their output to NaN */
-			for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
-				if (i >= num_outputs) {
-					outputs[i] = NAN_VALUE;
-				}
-			}
-
-			uint16_t pwm_limited[_max_actuators];
-
-			/* the PWM limit call takes care of out of band errors, NaN and constrains */
-			pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
-				       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
-
-
-			/* overwrite outputs in case of lockdown with disarmed PWM values */
-			if (_armed.lockdown) {
-				for (size_t i = 0; i < num_outputs; i++) {
-					pwm_limited[i] = _disarmed_pwm[i];
-				}
-			}
-
-			/* output to the servos */
-			for (size_t i = 0; i < num_outputs; i++) {
-				pwm_output_set(i, pwm_limited[i]);
-			}
-
-			publish_pwm_outputs(pwm_limited, num_outputs);
-		}
 	}
 
 	_cycle_timestamp = hrt_absolute_time();
+
+	/* can we mix? */
+	if (_mixers != nullptr) {
+
+		size_t num_outputs;
+
+		switch (_mode) {
+		case MODE_1PWM:
+			num_outputs = 1;
+			break;
+
+		case MODE_2PWM:
+		case MODE_2PWM2CAP:
+			num_outputs = 2;
+			break;
+
+		case MODE_3PWM:
+		case MODE_3PWM1CAP:
+			num_outputs = 3;
+			break;
+
+		case MODE_4PWM:
+			num_outputs = 4;
+			break;
+
+		case MODE_6PWM:
+			num_outputs = 6;
+			break;
+
+		case MODE_8PWM:
+			num_outputs = 8;
+			break;
+
+		default:
+			num_outputs = 0;
+			break;
+		}
+
+		hrt_abstime now = hrt_absolute_time();
+		float dt = (now - _time_last_mix) / 1e6f;
+		_time_last_mix = now;
+
+		if (dt < 0.0001f) {
+			dt = 0.0001f;
+
+		} else if (dt > 0.02f) {
+			dt = 0.02f;
+		}
+
+		if (_mot_t_max > FLT_EPSILON) {
+			// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+			// factor 2 is needed because actuator ouputs are in the range [-1,1]
+			float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
+			_mixers->set_max_delta_out_once(delta_out_max);
+		}
+
+		/* do mixing */
+		float outputs[_max_actuators];
+		num_outputs = _mixers->mix(outputs, num_outputs, NULL);
+
+		/* disable unused ports by setting their output to NaN */
+		for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
+			if (i >= num_outputs) {
+				outputs[i] = NAN_VALUE;
+			}
+		}
+
+		uint16_t pwm_limited[_max_actuators];
+
+		/* the PWM limit call takes care of out of band errors, NaN and constrains */
+		pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
+			       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
+
+
+		/* overwrite outputs in case of lockdown with disarmed PWM values */
+		if (_armed.lockdown) {
+			for (size_t i = 0; i < num_outputs; i++) {
+				pwm_limited[i] = _disarmed_pwm[i];
+			}
+		}
+
+		/* output to the servos */
+		for (size_t i = 0; i < num_outputs; i++) {
+			pwm_output_set(i, pwm_limited[i]);
+		}
+
+		publish_pwm_outputs(pwm_limited, num_outputs);
+	}
 
 #ifdef GPIO_BTN_SAFETY
 
