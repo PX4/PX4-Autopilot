@@ -122,14 +122,16 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		bool can_arm_without_gps)
 {
 	// Double check that our static arrays are still valid
+	// 对静态数组的有效性进行两次检查
 	ASSERT(vehicle_status_s::ARMING_STATE_INIT == 0);
-	ASSERT(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1);
+	ASSERT(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1); // 6 = 7-1
 
 	transition_result_t ret = TRANSITION_DENIED;
 	arming_state_t current_arming_state = status->arming_state;
 	bool feedback_provided = false;
 
 	/* only check transition if the new state is actually different from the current one */
+	// 如果新状态与当前的不同，则仅检查转换
 	if (new_arming_state == current_arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
@@ -137,27 +139,30 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 		/*
 		 * Get sensing state if necessary
+		 * 如果需要的话，则获取感应状态
 		 */
 		int prearm_ret = OK;
 
 		/* only perform the pre-arm check if we have to */
+		// 如果需要的话，仅执行解锁前的检查
 		if (fRunPreArmChecks && new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags, battery, can_arm_without_gps);
+						     status_flags, battery, can_arm_without_gps); // 判断是否可以解锁
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
+		// 只要传感器崩溃，则重新运行解锁前的检查
 		if (!status_flags->condition_system_sensors_initialized
 		    && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			|| new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
+		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) { // 传感器初始化&&新解锁状态就绪&&非HIL状态
 
-			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
+			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) { // 间隔一秒进行检查
 				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, false /* force_report */,
 							     status_flags, battery, can_arm_without_gps);
-				status_flags->condition_system_sensors_initialized = !prearm_ret;
+				status_flags->condition_system_sensors_initialized = !prearm_ret;    // ？？？？？？？？
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
 
@@ -347,6 +352,10 @@ bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safet
 	// 1) Not armed
 	// 2) Armed, but in software lockdown (HIL)
 	// 3) Safety switch is present AND engaged -> actuators locked
+	// 如果满足以下条件，则系统是安全的：
+	// 1) 未解锁
+	// 2) 已解锁，三十处于软件锁定状态(HIL)
+	// 3) 有安全开关并且未按下 -> 执行器锁定
 	if (!armed->armed || (armed->armed && armed->lockdown) || (safety->safety_switch_available && !safety->safety_off)) {
 		return true;
 
@@ -355,6 +364,8 @@ bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safet
 	}
 }
 
+
+//////////////////////  飞行模式切换条件  //////////////////////
 transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
 		      status_flags_s *status_flags, struct commander_state_s *internal_state)
@@ -362,57 +373,61 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* transition may be denied even if the same state is requested because conditions may have changed */
-	switch (new_main_state) {
-	case commander_state_s::MAIN_STATE_MANUAL:
-	case commander_state_s::MAIN_STATE_STAB:
-		ret = TRANSITION_CHANGED;
+	// 因为情况可能已经改变，即使是相同的状态也可能会拒绝状态切换
+	switch (new_main_state) { // 想要切换到的状态
+	case commander_state_s::MAIN_STATE_MANUAL:  // 0 
+	case commander_state_s::MAIN_STATE_STAB:    // 8
+		ret = TRANSITION_CHANGED;				// 自稳  手动可以直接切换
 		break;
 
-	case commander_state_s::MAIN_STATE_ACRO:
-	case commander_state_s::MAIN_STATE_RATTITUDE:
-		if (status->is_rotary_wing) {
-			ret = TRANSITION_CHANGED;
+	case commander_state_s::MAIN_STATE_ACRO:    // 6
+	case commander_state_s::MAIN_STATE_RATTITUDE: // 9
+		if (status->is_rotary_wing) {     // 仅用于旋翼机
+			ret = TRANSITION_CHANGED;     
 		}
 
 		break;
 
-	case commander_state_s::MAIN_STATE_ALTCTL:
+	case commander_state_s::MAIN_STATE_ALTCTL:     // 1
 
 		/* need at minimum altitude estimate */
-		if (status_flags->condition_local_altitude_valid ||
+		// 至少需要存在高度估计
+		if (status_flags->condition_local_altitude_valid ||   
 		    status_flags->condition_global_position_valid) {
-			ret = TRANSITION_CHANGED;
+			ret = TRANSITION_CHANGED;     	// 只要Local或者Global其中一个高度有效，即可切换定高模式
 		}
 
 		break;
 
-	case commander_state_s::MAIN_STATE_POSCTL:
+	case commander_state_s::MAIN_STATE_POSCTL:      // 2
 
 		/* need at minimum local position estimate */
-		//也就是只要Local 或 Global 其中一个定位有效，即可切换 POSCTL
+		// 至少需要本地位置估计
 		if (status_flags->condition_local_position_valid ||
 		    status_flags->condition_global_position_valid) {
-			ret = TRANSITION_CHANGED;
+			ret = TRANSITION_CHANGED;		// 也就是只要Local 或 Global 其中一个定位有效，即可切换 POSCTL
 		}
 
 		break;
 
-	case commander_state_s::MAIN_STATE_AUTO_LOITER:
+	case commander_state_s::MAIN_STATE_AUTO_LOITER:    //  4
 
 		/* need global position estimate */
+		// 需要全球位置估计
 		if (status_flags->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
 		break;
 
-	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
-	case commander_state_s::MAIN_STATE_AUTO_MISSION:
-	case commander_state_s::MAIN_STATE_AUTO_RTL:
-	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-	case commander_state_s::MAIN_STATE_AUTO_LAND:
+	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:    // 12
+	case commander_state_s::MAIN_STATE_AUTO_MISSION:		  // 3	
+	case commander_state_s::MAIN_STATE_AUTO_RTL:		      // 5
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:		  // 10
+	case commander_state_s::MAIN_STATE_AUTO_LAND:			  // 11
 
 		/* need global position and home position */
+		// 需要全球位置和起飞点位置
 		if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
@@ -422,13 +437,14 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* need offboard signal */
+		// 需要外部信号
 		if (!status_flags->offboard_control_signal_lost) {
 			ret = TRANSITION_CHANGED;
 		}
 
 		break;
 
-	case commander_state_s::MAIN_STATE_MAX:
+	case commander_state_s::MAIN_STATE_MAX:   // 13
 	default:
 		break;
 	}
@@ -436,7 +452,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	if (ret == TRANSITION_CHANGED) {
 		if (internal_state->main_state != new_main_state) {
 			main_state_prev = internal_state->main_state;
-			internal_state->main_state = new_main_state;
+			internal_state->main_state = new_main_state;  // 更新状态
 			internal_state->timestamp = hrt_absolute_time();
 
 		} else {
@@ -449,6 +465,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 /**
  * Transition from one hil state to another
+ * 从一个HIL状态转换到另一个状态
  */
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub,
 		struct vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub)
@@ -1094,6 +1111,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
+	// 只要断路器空闲并且机型不是旋翼机，就执行空速检查
 	if (!status_flags->circuit_breaker_engaged_airspd_check && (!status->is_rotary_wing || status->is_vtol)) {
 		checkAirspeed = true;
 	}
@@ -1119,9 +1137,10 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 	}
 
 	/* report once, then set the flag */
+	// 报告一次，然后设置标志位
 	if (reportFailures && !preflight_ok) {
 		status_flags->condition_system_prearm_error_reported = true;
 	}
 
-	return !preflight_ok;
+	return !preflight_ok;   // 不给飞
 }

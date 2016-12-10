@@ -137,7 +137,7 @@ public:
 	}
 
 	/**
-	 * conjugation
+	 * conjugation 四元数姿态矩阵进行向量转换 b-n
 	 */
 	Vector<3> conjugate(const Vector<3> &v) const {
 		float q0q0 = data[0] * data[0];

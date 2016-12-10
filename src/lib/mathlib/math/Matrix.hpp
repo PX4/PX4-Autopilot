@@ -434,7 +434,7 @@ public:
 	 * create a rotation matrix from given euler angles
 	 * based on http://gentlenav.googlecode.com/files/EulerAngles.pdf
 	 */
-	 // 鏍规嵁缁欏畾鐨勬鎷夎鍒涘缓鏃嬭浆鐭╅樀
+	 // 由欧拉角创建旋转矩阵
 	void from_euler(float roll, float pitch, float yaw) {
 		float cp = cosf(pitch);
 		float sp = sinf(pitch);
@@ -456,6 +456,7 @@ public:
 
 	/**
 	 * get euler angles from rotation matrix
+	 * 由旋转阵得到欧拉角
 	 */
 	Vector<3> to_euler(void) const {
 		Vector<3> euler;

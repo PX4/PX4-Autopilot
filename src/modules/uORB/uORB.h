@@ -60,6 +60,7 @@ typedef const struct orb_metadata *orb_id_t;
 
 /**
  * Maximum number of multi topic instances
+ * 最大实例数
  */
 #define ORB_MULTI_MAX_INSTANCES	4
 

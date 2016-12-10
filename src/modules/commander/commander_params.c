@@ -46,12 +46,16 @@
 #include <systemlib/param/param.h>
 
 /**
- * Roll trim
+ * Roll trim  横滚调整
  *
  * The trim value is the actuator control value the system needs
  * for straight and level flight. It can be calibrated by
  * flying manually straight and level using the RC trims and
  * copying them using the GCS.
+ *
+ * 调整值是系统在直线以及水平飞行时需要的执行器控制输出值。
+ * 可以通过使用'RC调整'手动操作飞机直线或水平飞行进行校正。
+ * 并使用地面站复制
  *
  * @group Radio Calibration
  * @min -0.25
@@ -94,9 +98,10 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
- * Datalink loss time threshold
+ * Datalink loss time threshold   数据链丢失时间阈值
  *
  * After this amount of seconds without datalink the data link lost mode triggers
+ * 经过一段没有数据链的时间(s)后，数据链路丢失模式会被触发
  *
  * @group Commander
  * @unit s
@@ -123,9 +128,10 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
 
 /**
- * Engine Failure Throttle Threshold
+ * Engine Failure Throttle Threshold 引擎故障油门阈值
  *
  * Engine failure triggers only above this throttle value
+ * 仅当油门值超过这个阈值时油门故障才会被触发
  *
  * @group Commander
  * @unit norm
@@ -278,13 +284,15 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
  * Battery failsafe mode
- *
+ * 电池故障保护模式
+ * 
  * Action the system takes on low battery. Defaults to off
+ * 系统在低电压模式下采取的措施。默认关闭，即不采取措施，非低电压状态
  *
  * @group Commander
- * @value 0 Warning
- * @value 1 Return to Land
- * @value 2 Land at current position
+ * @value 0 Warning  警告 -> 0
+ * @value 1 Return to Land 返航 -> 1
+ * @value 2 Land at current position  降落 -> 2
  * @decimal 0
  * @increment 1
  */
@@ -303,10 +311,12 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
 
 /**
- * Set offboard loss failsafe mode
+ * Set offboard loss failsafe mode 设置外部控制模式丢失故障保护模式
  *
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
+ * 外部控制模式故障保护只会在一个超时后进入
+ * 这个时间由COM_OF_LOSS_T设置，单位 s
  *
  * @value 0 Land at current position
  * @value 1 Loiter
@@ -333,25 +343,26 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
 /**
- * First flightmode slot (1000-1160)
+ * First flightmode slot (1000-1160)  飞行模式安排
  *
  * If the main switch channel is in this range the
  * selected flight mode will be applied.
+ * 如果主切换通道在此范围内，选择的飞行模式将会被应用
  *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 9 Rattitude
- * @value 12 Follow Me
+ * @value -1 Unassigned      -1 -> 未指定
+ * @value 0 Manual			  0 -> 手动
+ * @value 1 Altitude		  1 -> 定高
+ * @value 2 Position          2 -> 定点
+ * @value 3 Mission           3 -> 任务
+ * @value 4 Hold              4 -> 悬停
+ * @value 10 Takeoff         10 -> 起飞
+ * @value 11 Land            11 -> 降落
+ * @value 5 Return            5 -> 返航
+ * @value 6 Acro              6 -> 特技
+ * @value 7 Offboard          7 -> 外部
+ * @value 8 Stabilized        8 -> 自稳
+ * @value 9 Rattitude         9 -> 角速度
+ * @value 12 Follow Me       12 -> 跟踪
  */
 PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
 
