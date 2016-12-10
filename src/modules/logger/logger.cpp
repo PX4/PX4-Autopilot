@@ -554,6 +554,7 @@ void Logger::add_default_topics()
 	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
 	add_topic("sensor_preflight");
+	add_topic("low_stack");
 
 	/* for estimator replay (need to be at full rate) */
 	add_topic("sensor_combined");

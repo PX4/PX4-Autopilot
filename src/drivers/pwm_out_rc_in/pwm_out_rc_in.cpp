@@ -426,11 +426,13 @@ void task_main(int argc, char *argv[])
 			uint16_t disarmed_pwm[4];
 			uint16_t min_pwm[4];
 			uint16_t max_pwm[4];
+			uint16_t trim_pwm[4];
 
 			for (unsigned int i = 0; i < 4; i++) {
 				disarmed_pwm[i] = _pwm_disarmed;
 				min_pwm[i] = _pwm_min;
 				max_pwm[i] = _pwm_max;
+				trim_pwm[i] = 0;
 			}
 
 			uint16_t pwm[4];

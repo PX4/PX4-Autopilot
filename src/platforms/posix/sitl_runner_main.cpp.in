@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Anton Matosov. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,52 +30,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file pwm_limit.c
+ * @file sitl_runner_main.cpp
+ * Basic shell to execute px4 with specific model
  *
- * Library for PWM output limiting
- *
- * @author Julian Oes <julian@px4.io>
+ * @author Anton Matosov <anton.matosov@gmail.com>
  */
 
-#ifndef PWM_LIMIT_H_
-#define PWM_LIMIT_H_
+#include <unistd.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define __PX4_SITL_MAIN_OVERRIDE
+#include "@SITL_RUNNER_MAIN_CPP@"
 
-__BEGIN_DECLS
-
-/*
- * time for the ESCs to initialize
- * (this is not actually needed if PWM is sent right after boot)
- */
-#define INIT_TIME_US 50000
-/*
- * time to slowly ramp up the ESCs
- */
-#define RAMP_TIME_US 500000
-
-enum pwm_limit_state {
-	PWM_LIMIT_STATE_OFF = 0,
-	PWM_LIMIT_STATE_INIT,
-	PWM_LIMIT_STATE_RAMP,
-	PWM_LIMIT_STATE_ON
-};
-
-typedef struct {
-	enum pwm_limit_state state;
-	uint64_t time_armed;
-} pwm_limit_t;
-
-__EXPORT void pwm_limit_init(pwm_limit_t *limit);
-
-__EXPORT void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels,
-			     const uint16_t reverse_mask, const uint16_t *disarmed_pwm,
-			     const uint16_t *min_pwm, const uint16_t *max_pwm,
-			     const float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
-
-__END_DECLS
-
-#endif /* PWM_LIMIT_H_ */
+int main(int argc, const char **argv)
+{
+    if (chdir("@SITL_RUNNER_WORKING_DIRECTORY@") != 0) {
+        PX4_ERR("Failed to change current directory to @SITL_RUNNER_WORKING_DIRECTORY@. error %i", errno);
+        return errno;
+    }
+    const char *argsOverride[] = {argv[0], "@SITL_RUNNER_SOURCE_DIR@", "@SITL_RUNNER_MODEL_FILE@"};
+    return SITL_MAIN(sizeof(argsOverride) / sizeof(argsOverride[0]), (char**)argsOverride);
+}

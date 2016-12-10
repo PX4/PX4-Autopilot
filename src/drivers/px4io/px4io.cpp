@@ -1204,6 +1204,30 @@ PX4IO::task_main()
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
 
+				// update trim values
+				struct pwm_output_values pwm_values;
+
+//				memset(&pwm_values, 0, sizeof(pwm_values));
+//				ret = io_reg_get(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, (uint16_t *)pwm_values.values, _max_actuators);
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					float pval;
+
+					/* fetch the trim values from parameters */
+					sprintf(pname, "PWM_MAIN_TRIM%u", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+
+						param_get(param_h, &pval);
+						pwm_values.values[i] = (int16_t)(10000 * pval);
+					}
+				}
+
+				/* copy values to registers in IO */
+				ret = io_reg_set(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm_values.values, _max_actuators);
+
 				float param_val;
 				param_t parm_handle;
 
@@ -2680,6 +2704,33 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			pwm->channel_count = _max_actuators;
 
 			ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm->values, _max_actuators);
+
+			if (ret != OK) {
+				ret = -EIO;
+			}
+		}
+
+		break;
+
+	case PWM_SERVO_SET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			if (pwm->channel_count > _max_actuators)
+				/* fail with error */
+			{
+				return -E2BIG;
+			}
+
+			/* copy values to registers in IO */
+			ret = io_reg_set(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm->values, pwm->channel_count);
+			break;
+		}
+
+	case PWM_SERVO_GET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
+
+			ret = io_reg_get(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm->values, _max_actuators);
 
 			if (ret != OK) {
 				ret = -EIO;

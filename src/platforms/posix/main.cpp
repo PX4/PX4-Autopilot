@@ -286,7 +286,13 @@ static void set_cpu_scaling()
 #endif
 }
 
+#ifdef __PX4_SITL_MAIN_OVERRIDE
+int SITL_MAIN(int argc, char **argv);
+
+int SITL_MAIN(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	bool daemon_mode = false;
 	bool chroot_on = false;

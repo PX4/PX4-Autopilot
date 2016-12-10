@@ -500,7 +500,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check accelerometer delta velocity bias estimates
-	param_get(param_find("COM_ARM_IMU_AB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
 	if (fabsf(status.states[13]) > test_limit ||  fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
@@ -510,7 +510,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check gyro delta angle bias estimates
-	param_get(param_find("COM_ARM_IMU_GB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
 	if (fabsf(status.states[10]) > test_limit ||  fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");

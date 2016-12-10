@@ -527,11 +527,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
  * @group Commander
  * @unit m/s
  * @min 0.001
- * @max 0.004
+ * @max 0.01
  * @decimal 4
  * @increment 0.0005
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 2.0e-3f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 5.0e-3f);
 
 /**
  * Maximum value of EKF gyro delta angle bias estimate that will allow arming
@@ -539,11 +539,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 2.0e-3f);
  * @group Commander
  * @unit rad
  * @min 0.0001
- * @max 0.0007
+ * @max 0.0017
  * @decimal 5
- * @increment 0.00005
+ * @increment 0.0001
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 3.5e-4f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 8.7e-4f);
 
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming

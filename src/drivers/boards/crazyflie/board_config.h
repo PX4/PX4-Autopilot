@@ -172,6 +172,7 @@
 #define PWM_HIGHEST_MAX 255
 #define PWM_DEFAULT_MAX 255
 #define PWM_LOWEST_MAX 255
+#define PWM_DEFAULT_TRIM 1500
 
 
 /* High-resolution timer */
