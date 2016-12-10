@@ -1,0 +1,13 @@
+diff --git NuttX/nuttx/include/assert.h NuttX/nuttx/include/assert.h
+index 88254f6..b9fb6c2 100644
+--- NuttX/nuttx/include/assert.h
++++ NuttX/nuttx/include/assert.h
+@@ -94,7 +94,7 @@
+  */
+ 
+ #ifndef __cplusplus
+-#  define static_assert _Static_assert
++//#  define static_assert _Static_assert
+ #endif
+ 
+ /****************************************************************************

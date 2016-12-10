@@ -59,7 +59,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/i2c.h>
+#include <nuttx/i2c/i2c_master.h>
 
 #include <board_config.h>
 

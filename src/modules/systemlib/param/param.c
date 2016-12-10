@@ -147,7 +147,6 @@ FLASH_PARAMS_EXPOSE UT_array        *param_values;
 FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 #if !defined(PARAM_NO_ORB)
-
 /** parameter update topic handle */
 static orb_advert_t param_topic = NULL;
 #endif
@@ -612,7 +611,6 @@ const void *param_get_value_ptr_external(param_t param)
 {
 	return param_get_value_ptr(param);
 }
-
 #endif
 
 int
@@ -795,7 +793,6 @@ param_save_default(void)
 #else
 	res = flash_param_save();
 #endif
-
 	return res;
 }
 
@@ -829,16 +826,12 @@ param_load_default(void)
 	return 0;
 }
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-//struct spi_dev_s *dev = nullptr;
-irqstate_t irq_state;
-#endif
-
 static void
 param_bus_lock(bool lock)
 {
 
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
+
 	// FMUv4 has baro and FRAM on the same bus,
 	// as this offers on average a 100% silent
 	// bus for the baro operation
@@ -851,6 +844,9 @@ param_bus_lock(bool lock)
 	// SPI_LOCK(dev, lock);
 
 	// we lock like this for Pixracer for now
+
+	static irqstate_t irq_state = 0;
+
 	if (lock) {
 		irq_state = px4_enter_critical_section();
 

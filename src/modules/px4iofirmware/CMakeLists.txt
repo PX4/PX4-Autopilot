@@ -45,6 +45,8 @@ set(include_dirs)
 set(link_dirs)
 set(definitions)
 
+px4_nuttx_configure(HWCLASS m3 CONFIG nsh)
+
 px4_os_prebuild_targets(OUT io_prebuild_targets
 	BOARD ${config_io_board}
 	THREADS ${THREADS})
@@ -120,7 +122,7 @@ add_dependencies(${fw_io_name}
 	mixer_gen
 	)
 
-set(nuttx_export_dir ${PX4_BINARY_DIR}/${config_io_board}/NuttX/nuttx-export)
+set(nuttx_export_dir ${PX4_BINARY_DIR}/${config_io_board}/NuttX/nuttx/nuttx-export)
 set(main_link_flags
 	"-T${nuttx_export_dir}/build/ld.script"
 	"-Wl,-Map=${PX4_BINARY_DIR}/${config_io_board}/main.map"

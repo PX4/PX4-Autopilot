@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		../common/board_name.c
+		../common/board_dma_alloc.c
 		tap_init.c
 		tap_pwr.c
 		tap_i2c.cpp

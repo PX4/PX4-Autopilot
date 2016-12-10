@@ -46,7 +46,7 @@
 
 #include <stdint.h>
 #include <errno.h>
-#include <nuttx/gran.h>
+#include <nuttx/mm/gran.h>
 
 #include <systemlib/perf_counter.h>
 

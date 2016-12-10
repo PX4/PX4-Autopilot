@@ -45,27 +45,32 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
-#ifdef CONFIG_ARCH_CHIP_STM32
-#include <up_arch.h>
+#if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
-#define DBGMCU_IDCODE	0xE0042000  //STM DocID018909 Rev 8 Sect 38.18 (MCU device ID code)
-#define UNIQUE_ID    	0x1FFF7A10  //STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
+//STM DocID018909 Rev 8 Sect 38.18 and DocID026670 Rev 5 40.6.1 (MCU device ID code)
+# define REVID_MASK    0xFFFF0000
+# define DEVID_MASK    0xFFF
 
-#define STM32F40x_41x	0x413
-#define STM32F42x_43x	0x419
 
-#define REVID_MASK	0xFFFF0000
-#define DEVID_MASK	0xFFF
+# define STM32F74xxx_75xxx  0x449
+# define STM32F76xxx_77xxx  0x451
+# define STM32F40x_41x      0x413
+# define STM32F42x_43x      0x419
+# define STM32F103_LD       0x412
+# define STM32F103_MD       0x410
+# define STM32F103_HD       0x414
+# define STM32F103_XLD      0x430
+# define STM32F103_CON      0x418
 
 #endif
 
 /** Copy the 96bit MCU Unique ID into the provided pointer */
 void mcu_unique_id(uint32_t *uid_96_bit)
 {
-#ifdef CONFIG_ARCH_CHIP_STM32
-	uid_96_bit[0] = getreg32(UNIQUE_ID);
-	uid_96_bit[1] = getreg32(UNIQUE_ID + 4);
-	uid_96_bit[2] = getreg32(UNIQUE_ID + 8);
+#ifdef __PX4_NUTTX
+	uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
+	uid_96_bit[1] = getreg32(STM32_SYSMEM_UID + 4);
+	uid_96_bit[2] = getreg32(STM32_SYSMEM_UID + 8);
 #else
 	uid_96_bit[0] = 0;
 	uid_96_bit[1] = 1;
@@ -75,19 +80,44 @@ void mcu_unique_id(uint32_t *uid_96_bit)
 
 int mcu_version(char *rev, char **revstr)
 {
-#ifdef CONFIG_ARCH_CHIP_STM32
-	uint32_t abc = getreg32(DBGMCU_IDCODE);
+#ifdef __PX4_NUTTX
+	uint32_t abc = getreg32(STM32_DEBUGMCU_BASE);
 
 	int32_t chip_version = abc & DEVID_MASK;
 	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
 
 	switch (chip_version) {
-	case STM32F40x_41x:
-		*revstr = "STM32F40x";
+
+	case STM32F74xxx_75xxx:
+		*revstr = "STM32F74xxx";
+		break;
+
+	case STM32F76xxx_77xxx:
+		*revstr = "STM32F76xxx";
 		break;
 
 	case STM32F42x_43x:
 		*revstr = "STM32F42x";
+		break;
+
+	case STM32F103_LD:
+		*revstr = "STM32F1xx Low";
+		break;
+
+	case STM32F103_MD:
+		*revstr = "STM32F1xx Med";
+		break;
+
+	case STM32F103_HD:
+		*revstr = "STM32F1xx Hi";
+		break;
+
+	case STM32F103_XLD:
+		*revstr = "STM32F1xx XL";
+		break;
+
+	case STM32F103_CON:
+		*revstr = "STM32F1xx Con";
 		break;
 
 	default:
@@ -118,6 +148,7 @@ int mcu_version(char *rev, char **revstr)
 		break;
 
 	default:
+		// todo add rev for 103 - if needed
 		*rev = '?';
 		revid = -1;
 		break;

@@ -41,6 +41,14 @@
 
 #include <semaphore.h>
 
+#if !defined(__PX4_NUTTX)
+/* Values for protocol attribute */
+
+#define SEM_PRIO_NONE             0
+#define SEM_PRIO_INHERIT          1
+#define SEM_PRIO_PROTECT          2
+#define sem_setprotocol(s,p)
+#endif
 
 #ifdef __PX4_DARWIN
 
@@ -53,6 +61,7 @@ typedef struct {
 } px4_sem_t;
 
 __EXPORT int		px4_sem_init(px4_sem_t *s, int pshared, unsigned value);
+__EXPORT int		px4_sem_setprotocol(px4_sem_t *s, int protocol);
 __EXPORT int		px4_sem_wait(px4_sem_t *s);
 __EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
 __EXPORT int		px4_sem_post(px4_sem_t *s);
@@ -67,11 +76,12 @@ __BEGIN_DECLS
 
 typedef sem_t px4_sem_t;
 
-#define px4_sem_init	 sem_init
-#define px4_sem_wait	 sem_wait
-#define px4_sem_post	 sem_post
-#define px4_sem_getvalue sem_getvalue
-#define px4_sem_destroy	 sem_destroy
+#define px4_sem_init		sem_init
+#define px4_sem_setprotocol sem_setprotocol
+#define px4_sem_wait		sem_wait
+#define px4_sem_post		sem_post
+#define px4_sem_getvalue	sem_getvalue
+#define px4_sem_destroy		sem_destroy
 
 #ifdef __PX4_QURT
 __EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);

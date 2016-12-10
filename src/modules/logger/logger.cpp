@@ -723,6 +723,12 @@ void Logger::run()
 	memset(&timer_call, 0, sizeof(hrt_call));
 	px4_sem_t timer_semaphore;
 	px4_sem_init(&timer_semaphore, 0, 0);
+
+	/* timer_semaphore use case is a signal */
+
+	px4_sem_setprotocol(&timer_semaphore, SEM_PRIO_NONE);
+
+
 	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
 
 	// check for new subscription data
