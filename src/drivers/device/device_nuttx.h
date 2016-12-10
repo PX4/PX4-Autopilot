@@ -130,6 +130,20 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
+	/**
+	 * Return the bus ID the device is connected to.
+	 *
+	 * @return The bus ID
+	 */
+	virtual uint8_t get_device_bus() {return _device_id.devid_s.bus;};
+
+	/**
+	 * Return the bus address of the device.
+	 *
+	 * @return The bus address
+	 */
+	virtual uint8_t get_device_address() {return _device_id.devid_s.address;};
+
 	/*
 	  device bus types for DEVID
 	 */
