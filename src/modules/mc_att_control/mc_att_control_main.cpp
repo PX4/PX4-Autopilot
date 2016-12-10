@@ -166,19 +166,19 @@ private:
 	struct battery_status_s				_battery_status;	/**< battery status */
 
 	union {
-	    struct {
-		uint16_t motor_pos	: 1; // 0 - true when any motor has saturated in the positive direction
-		uint16_t motor_neg	: 1; // 1 - true when any motor has saturated in the negative direction
-		uint16_t roll_pos	: 1; // 2 - true when a positive roll demand change will increase saturation
-		uint16_t roll_neg	: 1; // 3 - true when a negative roll demand change will increase saturation
-		uint16_t pitch_pos	: 1; // 4 - true when a positive pitch demand change will increase saturation
-		uint16_t pitch_neg	: 1; // 5 - true when a negative pitch demand change will increase saturation
-		uint16_t yaw_pos	: 1; // 6 - true when a positive yaw demand change will increase saturation
-		uint16_t yaw_neg	: 1; // 7 - true when a negative yaw demand change will increase saturation
-		uint16_t thrust_pos	: 1; // 8 - true when a positive thrust demand change will increase saturation
-		uint16_t thrust_neg	: 1; // 9 - true when a negative thrust demand change will increase saturation
-	    } flags;
-	    uint16_t value;
+		struct {
+			uint16_t motor_pos	: 1; // 0 - true when any motor has saturated in the positive direction
+			uint16_t motor_neg	: 1; // 1 - true when any motor has saturated in the negative direction
+			uint16_t roll_pos	: 1; // 2 - true when a positive roll demand change will increase saturation
+			uint16_t roll_neg	: 1; // 3 - true when a negative roll demand change will increase saturation
+			uint16_t pitch_pos	: 1; // 4 - true when a positive pitch demand change will increase saturation
+			uint16_t pitch_neg	: 1; // 5 - true when a negative pitch demand change will increase saturation
+			uint16_t yaw_pos	: 1; // 6 - true when a positive yaw demand change will increase saturation
+			uint16_t yaw_neg	: 1; // 7 - true when a negative yaw demand change will increase saturation
+			uint16_t thrust_pos	: 1; // 8 - true when a positive thrust demand change will increase saturation
+			uint16_t thrust_neg	: 1; // 9 - true when a negative thrust demand change will increase saturation
+		} flags;
+		uint16_t value;
 	} _saturation_status;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -900,15 +900,15 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 			// Check for positive control saturation
 			bool positive_saturation =
-					((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
-					((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
-					((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
+				((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
+				((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
+				((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
 
 			// Check for negative control saturation
 			bool negative_saturation =
-					((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
-					((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
-					((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
+				((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
+				((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
+				((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
 
 			// prevent further positive control saturation
 			if (positive_saturation) {
