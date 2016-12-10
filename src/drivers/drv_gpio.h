@@ -185,6 +185,10 @@
 
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_AEROCORE
 /*
  * AeroCore GPIO numbers and configuration.
@@ -238,7 +242,6 @@
 	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && \
 	!defined(CONFIG_ARCH_BOARD_SITL) && \
 	!defined(CONFIG_ARCH_BOARD_TAP_V1) && \
-	!defined(CONFIG_ARCH_BOARD_ASC_V1) && \
 	!defined(CONFIG_ARCH_BOARD_AEROFC_V1) && \
 	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
 # error No CONFIG_ARCH_BOARD_xxxx set
