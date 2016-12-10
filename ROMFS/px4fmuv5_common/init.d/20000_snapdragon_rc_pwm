@@ -1,0 +1,12 @@
+#!nsh
+#
+# @name Passthrough mode for Snapdragon
+#
+# @type custom
+#
+# @maintainer Julian Oes <julian@oes.ch>
+#
+# This startup can be used on Pixhawk/Pixfalcon/Pixracer for the
+# passthrough of RC input and PWM output.
+
+set VEHICLE_TYPE passthrough

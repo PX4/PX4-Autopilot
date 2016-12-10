@@ -1,0 +1,14 @@
+#
+#!nsh
+#
+# @name Viper
+#
+# @type Flying Wing
+#
+# @maintainer Simon Wilks <simon@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER Viper
+

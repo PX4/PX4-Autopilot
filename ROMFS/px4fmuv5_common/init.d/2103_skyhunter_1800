@@ -1,0 +1,20 @@
+#!nsh
+#
+# @name Skyhunter 1800
+#
+# @type Standard Plane
+#
+# @output MAIN1 aileron
+# @output MAIN2 elevator
+# @output MAIN4 throttle
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER AET

@@ -1,0 +1,33 @@
+#!nsh
+#
+# @name Steadidrone QU4D
+#
+# @type Quadrotor Wide
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.13
+	param set MC_ROLLRATE_I 0.05
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.19
+	param set MC_PITCHRATE_I 0.05
+	param set MC_PITCHRATE_D 0.004
+	param set MC_YAW_P 4.0
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.1
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAW_FF 0.5
+
+	param set BAT_N_CELLS 4
+fi
+
+set MIXER quad_w
+
+set PWM_OUT 1234

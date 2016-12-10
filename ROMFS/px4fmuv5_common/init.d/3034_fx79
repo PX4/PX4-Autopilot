@@ -1,0 +1,20 @@
+#!nsh
+#
+# @name FX-79 Buffalo Flying Wing
+#
+# @type Flying Wing
+#
+# @maintainer Simon Wilks <simon@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set NAV_LOITER_RAD 150
+	param set FW_AIRSPD_MAX 30
+	param set FW_AIRSPD_MIN 13
+	param set FW_AIRSPD_TRIM 15
+fi
+
+set MIXER FX79

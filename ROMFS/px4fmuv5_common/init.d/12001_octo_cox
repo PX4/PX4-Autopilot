@@ -1,0 +1,14 @@
+#!nsh
+#
+# @name Generic 10" Octo coaxial geometry
+#
+# @type Octorotor Coaxial
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER octo_cox
+
+set PWM_OUT 12345678
