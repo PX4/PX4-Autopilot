@@ -910,6 +910,33 @@ PX4FMU::update_pwm_out_state(bool on)
 	up_pwm_servo_arm(on);
 }
 
+void PX4FMU::setWIFIstate(int32_t wifi_mode, bool armed)
+{
+#ifdef WIFI_TX
+
+	switch (wifi_mode) {
+	case 0: /* always off */
+		WIFI_TX(0);
+		break;
+
+	case 1: /* off when armed */
+		if (armed) {
+			WIFI_TX(0);
+
+		} else {
+			WIFI_TX(1);
+		}
+
+		break;
+
+	case 2: /* always on */
+		WIFI_TX(1);
+		break;
+	}
+
+#endif
+}
+
 void
 PX4FMU::cycle()
 {
@@ -925,6 +952,21 @@ PX4FMU::cycle()
 		pwm_limit_init(&_pwm_limit);
 
 		update_pwm_rev_mask();
+
+#ifdef WIFI_TX
+
+		/* read wifi TX control parameter and init the TX enable pin */
+		if (_wifi_tx_param != PARAM_INVALID) {
+			_wifi_tx_param = param_find("WIFI_TX_MODE");
+			param_get(_wifi_tx_param, &_wifi_tx_mode);
+		}
+
+		if (_wifi_tx_mode != 0) {
+			/* WIFI should be on at boot time */
+			WIFI_TX(1);
+		}
+
+#endif
 
 #ifdef RC_SERIAL_PORT
 
@@ -1191,6 +1233,9 @@ PX4FMU::cycle()
 				  (_safety_off && _armed.in_esc_calibration_mode);
 
 
+		/* update WIFI TX state */
+		setWIFIstate(_wifi_tx_mode, _armed.armed);
+
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
 
@@ -1221,6 +1266,7 @@ PX4FMU::cycle()
 	orb_check(_param_sub, &updated);
 
 	if (updated) {
+		/* TODO: these 2 lines are present to achieve a side-effect */
 		parameter_update_s pupdate;
 		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
 
@@ -1243,6 +1289,12 @@ PX4FMU::cycle()
 
 		if (param_handle != PARAM_INVALID) {
 			param_get(param_handle, &_mot_t_max);
+		}
+
+		/* check for update to WIFI control parameter */
+		if (_wifi_tx_param != PARAM_INVALID) {
+			param_get(_wifi_tx_param, &_wifi_tx_mode);
+			setWIFIstate(_wifi_tx_mode, _armed.armed);
 		}
 	}
 
@@ -2293,7 +2345,51 @@ PX4FMU::peripheral_reset(int ms)
 		ms = 10;
 	}
 
-	board_peripheral_reset(ms);
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_PERIPH_3V3_EN);
+
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 0);
+
+	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
+	/* Keep Spektum on to discharge rail*/
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
+	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
+#endif
+#if defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+
+	if (ms < 1) {
+		ms = 10;
+	}
+
+#endif
 }
 
 void
