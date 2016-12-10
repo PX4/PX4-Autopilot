@@ -27,6 +27,7 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop
+#TODO add pwr_ctrl sd_card reset
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	echo "[i] microSD mounted: /fs/microsd"
@@ -101,6 +102,7 @@ then
 	#
 	# Start system state indicator
 	#
+#todo:Extend PWM LED driver to support n instances
 	if rgbled start
 	then
 	else
@@ -172,45 +174,12 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
-		if ver hwcmp PX4FMU_V4
-		then
-			set USE_IO no
-		fi
-
-		if ver hwcmp MINDPX_V2
-		then
-			set USE_IO no
-		fi
-
-		if ver hwcmp CRAZYFLIE
-		then
-			set USE_IO no
-
-			if param compare SYS_AUTOSTART 0
-			then
-				param set SYS_AUTOSTART 4900
-				set AUTOCNF yes
-			fi
-		fi
-
-		if ver hwcmp AEROFC_V1
+		if ver hwcmp PX4FMU_V5
 		then
 			set USE_IO no
 		fi
 	else
 		set USE_IO no
-	fi
-
-	if ver hwcmp AEROFC_V1
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			set AUTOCNF yes
-		fi
-
-		# We don't allow changing AUTOSTART as it doesn't work in
-		# other configurations
-		param set SYS_AUTOSTART 4070
 	fi
 
 	#
@@ -225,12 +194,7 @@ then
 
 	#
 	# Wipe incompatible settings for boards not having two outputs
-	if ver hwcmp PX4FMU_V4
-	then
-		set MIXER_AUX none
-	fi
-
-	if ver hwcmp AEROFC_V1
+	if ver hwcmp PX4FMU_V5
 	then
 		set MIXER_AUX none
 	fi
@@ -265,8 +229,6 @@ then
 		if [ -f /etc/extras/px4io-v2.bin ]
 		then
 			set IO_FILE /etc/extras/px4io-v2.bin
-		else
-			set IO_FILE /etc/extras/px4io-v1.bin
 		fi
 
 		if px4io checkcrc ${IO_FILE}
@@ -334,30 +296,11 @@ then
 		# Need IO for output but it not present, disable output
 		set OUTPUT_MODE none
 
-		# Avoid using ttyS0 for MAVLink on FMUv1
-		if ver hwcmp PX4FMU_V1
-		then
-			set FMU_MODE serial
-		fi
-	fi
-
-	if [ $OUTPUT_MODE == ardrone ]
-	then
-		set FMU_MODE gpio_serial
-	fi
-
-	if [ $OUTPUT_MODE == tap_esc ]
-	then
-		set FMU_MODE rcin
 	fi
 
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		if ver hwcmp PX4FMU_V1
-		then
-			set FMU_MODE serial
-		fi
 		unset HIL
 	else
 		unset HIL
