@@ -218,7 +218,7 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 sizes:
-	@-find build_* -name firmware_nuttx -type f | xargs size
+	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
 
 checks_defaults: \
@@ -259,7 +259,7 @@ checks_sitls: \
 	check_posix_sitl_default
 
 checks_last: \
-	check_tests \
+	tests \
 	check_format \
 
 compiler_version:
@@ -268,7 +268,7 @@ compiler_version:
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
 check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last sizes
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default check_tests check_format sizes
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default tests check_format sizes
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -283,6 +283,11 @@ check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
+	@mkdir -p Binaries
+	@mkdir -p Meta/$(subst check_,,$@)
+	@cp build_$(subst check_,,$@)/*.xml Meta/$(subst check_,,$@) 2> /dev/null || :
+	@find build_$(subst check_,,$@)/src/firmware -type f -name 'nuttx-*-default.px4' -exec cp "{}" Binaries \; 2> /dev/null || :
+	@rm -rf build_$(subst check_,,$@)
 	@echo
 
 unittest: posix_sitl_default
@@ -292,7 +297,7 @@ unittest: posix_sitl_default
 run_tests_posix: posix_sitl_default
 	@(cd build_posix_sitl_default/ && ctest -V)
 
-tests: check_unittest run_tests_posix
+tests: unittest run_tests_posix
 
 tests_coverage:
 	@(PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 ${MAKE} tests)
@@ -312,7 +317,7 @@ qgc_firmware: \
 	check_format
 
 package_firmware:
-	@zip --junk-paths Firmware.zip `find . -name \*.px4`
+	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
 
 clean:
 	@rm -rf build_*/
