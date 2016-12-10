@@ -1,0 +1,11 @@
+#!nsh
+#
+# @name Axial Racing AX10
+#
+# @type Rover
+#
+
+sh /etc/init.d/rc.axialracing_ax10_defaults
+
+#choose a mixer, for rover control we need a plain passthrough to the servos
+set MIXER IO_pass

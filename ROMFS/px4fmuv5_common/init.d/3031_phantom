@@ -1,0 +1,51 @@
+#!nsh
+#
+# @name Phantom FPV Flying Wing
+#
+# @url https://pixhawk.org/platforms/planes/z-84_wing_wing
+#
+# @type Flying Wing
+#
+# @output MAIN1 left aileron
+# @output MAIN2 right aileron
+# @output MAIN4 throttle
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Simon Wilks <simon@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set FW_AIRSPD_MIN 13
+	param set FW_AIRSPD_TRIM 15
+	param set FW_AIRSPD_MAX 25
+	param set FW_R_TC 0.3
+	param set FW_P_TC 0.3
+	param set FW_L1_DAMPING 0.75
+	param set FW_L1_PERIOD 15
+	param set FW_PR_FF 0.2
+	param set FW_PR_IMAX 0.2
+	param set FW_PR_P 0.03
+	param set FW_P_LIM_MAX 50
+	param set FW_P_LIM_MIN -50
+	param set FW_P_ROLLFF 1
+	param set FW_RR_FF 0.5
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.08
+	param set FW_R_LIM 50
+	param set FW_R_RMAX 0
+	# Bottom of bay and nominal zero-pitch attitude differ
+	# the payload bay is pitched up about 7 degrees
+	param set SENS_BOARD_Y_OFF 7.0
+fi
+
+set MIXER phantom
+
+# Provide ESC a constant 1000 us pulse
+set PWM_OUT 4
+set PWM_DISARMED 1000

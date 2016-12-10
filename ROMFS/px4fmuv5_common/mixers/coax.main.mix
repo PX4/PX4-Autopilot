@@ -1,0 +1,33 @@
+Coaxial helicopter mixer
+- Two servomotors act on the swashplate (90° angle on the swashplate, decoupled effect on roll and pitch).
+- No collective pitch.
+- One motor per rotor.
+===========================
+
+Left swashplate servomotor, pitch axis
+-------------
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 0 1  -10000  -10000      0 -10000  10000
+
+Right swashplate servomotor, roll axis
+-------------
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 0 0  10000  10000      0 -10000  10000
+
+Upper rotor (CCW)
+Mixing between yaw and thrust
+-------------
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 0 2  10000  10000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
+Lower rotor (CW)
+Mixing between yaw and thrust
+-------------
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 0 2  -10000  -10000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000

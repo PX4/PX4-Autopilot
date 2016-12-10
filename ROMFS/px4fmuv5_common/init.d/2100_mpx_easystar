@@ -1,0 +1,12 @@
+#!nsh
+#
+# @name Multiplex Easystar
+#
+# @type Standard Plane
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.fw_defaults
+ 
+set MIXER easystar

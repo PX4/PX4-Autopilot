@@ -1,0 +1,14 @@
+#!nsh
+#
+# @name HIL Quadcopter +
+#
+# @type Simulation
+#
+# @maintainer Anton Babushkin <anton@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_+
+
+set HIL yes
