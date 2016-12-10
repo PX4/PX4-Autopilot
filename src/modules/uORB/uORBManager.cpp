@@ -357,7 +357,7 @@ int uORB::Manager::node_open
 
 	/*
 	 * If meta is null, the object was not defined, i.e. it is not
-	 * known to the system.  We can't advertise/subscribe such a thing.
+	 * known to the system.  We can't a dvertise/subscribe such a thing.
 	 */
 	if (nullptr == meta) {
 		errno = ENOENT;

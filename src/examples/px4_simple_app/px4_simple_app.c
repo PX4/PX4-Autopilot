@@ -75,7 +75,7 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	int error_counter = 0;
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0;  ; i++) {   //不断采集数据
 		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
 		// 等待一个文件描述符的传感器更新1秒
 		int poll_ret = px4_poll(fds, 1, 1000);
@@ -103,15 +103,30 @@ int px4_simple_app_main(int argc, char *argv[])
 				struct sensor_combined_s raw;
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
-				PX4_WARN("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
 					 (double)raw.accelerometer_m_s2[0],
 					 (double)raw.accelerometer_m_s2[1],
 					 (double)raw.accelerometer_m_s2[2]);
+
+				PX4_INFO("Gyroscope:\t%8.4f\t%8.4f\t%8.4f",
+				 	 (double)raw.gyro_rad[0],
+				 	 (double)raw.gyro_rad[1],
+				 	 (double)raw.gyro_rad[2]);
+				PX4_INFO("Magnetometer:\t%8.4f\t%8.4f\t%8.4f",
+				 	 (double)raw.magnetometer_ga[0],
+				 	 (double)raw.magnetometer_ga[1],
+				 	 (double)raw.magnetometer_ga[2]);
 
 				/* set att and publish this information for other apps */
 				att.roll = raw.accelerometer_m_s2[0];
 				att.pitch = raw.accelerometer_m_s2[1];
 				att.yaw = raw.accelerometer_m_s2[2];
+				att.rollspeed = raw.gyro_rad[0];
+				att.pitchspeed = raw.gyro_rad[1];
+				att.yawspeed = raw.gyro_rad[2];
+				att.rollacc = raw.magnetometer_ga[0];
+				att.pitchacc = raw.magnetometer_ga[1];
+				att.yawacc = raw.magnetometer_ga[2];
 				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
 

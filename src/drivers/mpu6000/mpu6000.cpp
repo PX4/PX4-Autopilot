@@ -1869,7 +1869,6 @@ MPU6000::measure()
 	/*
 	 * Convert from big to little endian
 	 */
-
 	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
 	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
 	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);

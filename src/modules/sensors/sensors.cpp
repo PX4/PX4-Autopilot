@@ -35,10 +35,13 @@
  * @file sensors.cpp
  *
  * PX4 Flight Core transitional mapping layer.
+ * PX4飞控核心的过渡映射层
  *
  * This app / class mapps the PX4 middleware layer / drivers to the application
  * layer of the PX4 Flight Core. Individual sensors can be accessed directly as
  * well instead of relying on the sensor_combined topic.
+ * 这个程序/类将PX4中间件层/驱动映射到PX4飞控核心的应用层。
+ * 可以直接获取独立的传感器信息而不用依赖于sensor_combined话题
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@oes.ch>
@@ -107,10 +110,11 @@
 using namespace DriverFramework;
 
 /**
- * Analog layout:
+ * Analog layout 类比布局:
+ * 
  * FMU:
- * IN2 - battery voltage
- * IN3 - battery current
+ * IN2 - battery voltage 电压
+ * IN3 - battery current 电流
  * IN4 - 5V sense
  * IN10 - spare (we could actually trim these from the set)
  * IN11 - spare on FMUv2 & v3, RC RSSI on FMUv4
@@ -120,16 +124,18 @@ using namespace DriverFramework;
  * IN15 - pressure sensor on FMUv2, unavaible on v3 & v4
  *
  * IO:
- * IN4 - servo supply rail
+ * IN4 - servo supply rail 伺服电机轨
  * IN5 - analog RSSI on FMUv2 & v3
  *
  * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
+ * 通道定义都在board_config.h中
  */
 
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
  * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
+ * HACK - 真正的温度比气压计测得的温度要低得多，减去5度作为PCB电气加热的解释
  */
 #define PCB_TEMP_ESTIMATE_DEG		5.0f
 #define STICK_ON_OFF_LIMIT		0.75f

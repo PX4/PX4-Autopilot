@@ -206,6 +206,7 @@ baro_init()
 		return PX4_ERROR;
 	}
 
+
 	/* set the driver to poll at 150Hz */
 	h_baro.ioctl(SENSORIOCSPOLLRATE, 150);
 

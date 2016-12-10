@@ -453,7 +453,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
 
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
- * 使能定点模式时的最大水平速度（将此值设置为0以禁用检测）
+ * 使能位置保持(定点)模式时的最大水平速度（将此值设置为0以禁用检测）
  *
  * @unit m/s
  * @min 0.0
@@ -465,7 +465,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
 
 /**
  * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
- * 使能定点模式时的最大垂直速度（将此值设置为0以禁用检测）
+ * 使能位置保持(定点)模式时的最大垂直速度（将此值设置为0以禁用检测）
  *
  * @unit m/s
  * @min 0.0

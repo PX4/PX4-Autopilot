@@ -119,11 +119,12 @@ void init(int argc, char *argv[], const char *app_name)
 }
 
 /** Retrieve from the data manager store */
+// 从数据管理存储中读取
 ssize_t
 dm_read(
 	dm_item_t item,                 /* The item type to retrieve */
 	unsigned char index,            /* The index of the item */
-	void *buffer,                   /* Pointer to caller data buffer */
+	void *buffer,                   /* Pointer to caller data buffer 指向调用数据缓存的指针 */
 	size_t buflen                   /* Length in bytes of data to retrieve */
 )
 {
