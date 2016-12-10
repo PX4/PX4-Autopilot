@@ -385,6 +385,7 @@ namespace pos_control
 MulticopterPositionControl	*g_control;
 }
 
+// 初始化参数列表
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(NULL, "MPC"),
 	_task_should_exit(false),
