@@ -161,11 +161,7 @@
  * way.  The following definitions are used to access individual LEDs.
  */
 
-/* LED index values for use with stm32_setled()
- *
- * PC4     BLUE_LED                  D4 Blue LED cathode
- * PC5     RED_LED                   D5 Red LED cathode
-*/
+/* LED index values for use with stm32_setled() */
 #define BOARD_LED1        0
 #define BOARD_LED2        1
 #define BOARD_NLEDS       2
