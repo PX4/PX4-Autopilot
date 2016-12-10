@@ -61,7 +61,7 @@
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
-//#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
+//#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
 /*
  * Clockwise: 1

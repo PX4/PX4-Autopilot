@@ -55,7 +55,6 @@
 #include <nuttx/compiler.h>
 #include <nuttx/progmem.h>
 
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -943,7 +942,6 @@ int parameter_flashfs_alloc(flash_file_token_t token, uint8_t **buffer, size_t *
 			rv = 0;
 
 		}
-
 	}
 
 	return rv;

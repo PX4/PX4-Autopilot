@@ -47,7 +47,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <apps/nsh.h>
+#include <nshlib/nshlib.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>

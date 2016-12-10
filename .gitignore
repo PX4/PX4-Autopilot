@@ -20,6 +20,8 @@
 Archives/*
 Build/*
 Testing/
+Binaries/*
+Meta/*
 build/*
 build_*/
 core

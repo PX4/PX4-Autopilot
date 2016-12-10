@@ -106,7 +106,12 @@ Syslink::Syslink() :
 	_bstate(BAT_DISCHARGING)
 {
 	px4_sem_init(&radio_sem, 0, 0);
+	/* radio_sem use case is a signal */
+	px4_sem_setprotocol(&radio_sem, SEM_PRIO_NONE);
+
 	px4_sem_init(&memory_sem, 0, 0);
+	/* memory_sem use case is a signal */
+	px4_sem_setprotocol(&memory_sem, SEM_PRIO_NONE);
 }
 
 

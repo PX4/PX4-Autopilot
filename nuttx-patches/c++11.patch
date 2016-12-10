@@ -1,0 +1,106 @@
+diff --git NuttX/nuttx/include/cxx/cwchar NuttX/nuttx/include/cxx/cwchar
+index 67716ab..a6c6cfe 100755
+--- NuttX/nuttx/include/cxx/cwchar
++++ NuttX/nuttx/include/cxx/cwchar
+@@ -46,13 +46,100 @@
+ // Namespace
+ //***************************************************************************
+ 
++/* N.B. The following definitions are enabled at this time to allow the PX4
++ * development to continue until there is a SAFE  solution to foreign
++ * (non-nuttx) header file inclusion. There is a potential of a binary
++ * incompatibility and runtime errors, memory overwrites or corruption
++ * VVVVVVVVVVVVVVVVVVVVVVVVVV Begin Warning VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
++ */
+ namespace std
+ {
+-#if 0 // Not defined
++#if __cplusplus >= 201103L
+   using ::mbstate_t;
+ #endif
++/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
++
+   using ::wint_t;
+   using ::size_t;
+ };
+ 
++/* N.B. The following definitions are enabled at this time to allow the PX4
++ * development to continue until there is a SAFE  solution to foreign
++ * (non-nuttx) header file inclusion. There is a potential of a binary
++ * incompatibility and runtime errors, memory overwrites or corruption
++ *
++ * These functions are not implemented, but listed here to allow compilation
++ *  Any resulting linker error will require the implementation of the offending
++ *  function(s) Code contributions are welcome.
++ * VVVVVVVVVVVVVVVVVVVVVVVVVV Begin Warning VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
++ */
++
++#if __cplusplus >= 201103L
++
++wint_t            btowc(int);
++int               fwprintf(FILE *, const wchar_t *, ...);
++int               fwscanf(FILE *, const wchar_t *, ...);
++wint_t            fgetwc(FILE *);
++wchar_t          *fgetws(wchar_t *, int, FILE *);
++wint_t            fputwc(wchar_t, FILE *);
++int               fputws(const wchar_t *, FILE *);
++int               fwide(FILE *, int);
++wint_t            getwc(FILE *);
++wint_t            getwchar(void);
++int               mbsinit(const mbstate_t *);
++size_t            mbrlen(const char *, size_t, mbstate_t *);
++size_t            mbrtowc(wchar_t *, const char *, size_t,
++                      mbstate_t *);
++size_t            mbsrtowcs(wchar_t *, const char **, size_t,
++                      mbstate_t *);
++wint_t            putwc(wchar_t, FILE *);
++wint_t            putwchar(wchar_t);
++int               swprintf(wchar_t *, size_t, const wchar_t *, ...);
++int               swscanf(const wchar_t *, const wchar_t *, ...);
++wint_t            ungetwc(wint_t, FILE *);
++int               vfwprintf(FILE *, const wchar_t *, va_list);
++int               vwprintf(const wchar_t *, va_list);
++int               vswprintf(wchar_t *, size_t, const wchar_t *,
++                      va_list);
++size_t            wcrtomb(char *, wchar_t, mbstate_t *);
++wchar_t          *wcscat(wchar_t *, const wchar_t *);
++wchar_t          *wcschr(const wchar_t *, wchar_t);
++int               wcscmp(const wchar_t *, const wchar_t *);
++int               wcscoll(const wchar_t *, const wchar_t *);
++wchar_t          *wcscpy(wchar_t *, const wchar_t *);
++size_t            wcscspn(const wchar_t *, const wchar_t *);
++size_t            wcsftime(wchar_t *, size_t, const wchar_t *,
++                      const struct tm *);
++size_t            wcslen(const wchar_t *);
++wchar_t          *wcsncat(wchar_t *, const wchar_t *, size_t);
++int               wcsncmp(const wchar_t *, const wchar_t *, size_t);
++wchar_t          *wcsncpy(wchar_t *, const wchar_t *, size_t);
++wchar_t          *wcspbrk(const wchar_t *, const wchar_t *);
++wchar_t          *wcsrchr(const wchar_t *, wchar_t);
++size_t            wcsrtombs(char *, const wchar_t **, size_t,
++                      mbstate_t *);
++size_t            wcsspn(const wchar_t *, const wchar_t *);
++wchar_t          *wcsstr(const wchar_t *, const wchar_t *);
++double            wcstod(const wchar_t *, wchar_t **);
++wchar_t          *wcstok(wchar_t *, const wchar_t *, wchar_t **);
++long int          wcstol(const wchar_t *, wchar_t **, int);
++unsigned long int wcstoul(const wchar_t *, wchar_t **, int);
++wchar_t          *wcswcs(const wchar_t *, const wchar_t *);
++int               wcswidth(const wchar_t *, size_t);
++size_t            wcsxfrm(wchar_t *, const wchar_t *, size_t);
++int               wctob(wint_t);
++int               wcwidth(wchar_t);
++wchar_t          *wmemchr(const wchar_t *, wchar_t, size_t);
++int               wmemcmp(const wchar_t *, const wchar_t *, size_t);
++wchar_t          *wmemcpy(wchar_t *, const wchar_t *, size_t);
++wchar_t          *wmemmove(wchar_t *, const wchar_t *, size_t);
++wchar_t          *wmemset(wchar_t *, wchar_t, size_t);
++int               wprintf(const wchar_t *, ...);
++int               wscanf(const wchar_t *, ...);
++int               vfwscanf(FILE *, const wchar_t *, va_list);
++int               vswscanf(const wchar_t *, const wchar_t *, va_list);
++int               vwscanf(const wchar_t *, va_list);
++float             wcstof(const wchar_t *, wchar_t **);
++#endif
++/*^^^^^^^^^^^^^^^^^^^^^^^^^ End Warning ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+ #endif // __INCLUDE_CXX_CWCHAR

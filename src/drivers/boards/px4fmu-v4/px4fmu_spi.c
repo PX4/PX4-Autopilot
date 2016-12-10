@@ -48,7 +48,7 @@
 #include <debug.h>
 #include <unistd.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 
 #include <up_arch.h>
@@ -78,24 +78,13 @@ __EXPORT void stm32_spiinitialize(void)
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 	px4_arch_configgpio(GPIO_SPI_CS_BMI160);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-
 	px4_arch_configgpio(GPIO_DRDY_MPU9250);
 	px4_arch_configgpio(GPIO_DRDY_HMC5983);
 	px4_arch_configgpio(GPIO_DRDY_ICM_20608_G);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
-	px4_arch_configgpio(GPIO_SPI_CS_FRAM);
-	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+	stm32_configgpio(GPIO_SPI_CS_FRAM);
 #endif
 
 }
@@ -173,14 +162,14 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	switch (devid) {
 	case SPIDEV_FLASH:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_FRAM, !selected);
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_FRAM, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
 		break;
 
 	default:
@@ -210,25 +199,25 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI160, 0);
 
-	px4_arch_configgpio(GPIO_SPI1_SCK_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MISO_OFF);
-	px4_arch_configgpio(GPIO_SPI1_MOSI_OFF);
+	stm32_configgpio(GPIO_SPI1_SCK_OFF);
+	stm32_configgpio(GPIO_SPI1_MISO_OFF);
+	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
 
-	px4_arch_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
-	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	px4_arch_configgpio(GPIO_DRDY_OFF_MPU9250);
-	px4_arch_configgpio(GPIO_DRDY_OFF_HMC5983);
-	px4_arch_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
+	stm32_configgpio(GPIO_DRDY_OFF_HMC5983);
+	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
 
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
-	px4_arch_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_HMC5983, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
 
 	/* set the sensor rail off */
-	px4_arch_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -237,7 +226,7 @@ __EXPORT void board_spi_reset(int ms)
 	/* re-enable power */
 
 	/* switch the sensor rail back on */
-	px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
@@ -250,25 +239,15 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 	px4_arch_configgpio(GPIO_SPI_CS_BMI160);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-
-	px4_arch_configgpio(GPIO_SPI1_SCK);
-	px4_arch_configgpio(GPIO_SPI1_MISO);
-	px4_arch_configgpio(GPIO_SPI1_MOSI);
+	stm32_configgpio(GPIO_SPI1_SCK);
+	stm32_configgpio(GPIO_SPI1_MISO);
+	stm32_configgpio(GPIO_SPI1_MOSI);
 
 	// // XXX bring up the EXTI pins again
-	// px4_arch_configgpio(GPIO_GYRO_DRDY);
-	// px4_arch_configgpio(GPIO_MAG_DRDY);
-	// px4_arch_configgpio(GPIO_ACCEL_DRDY);
-	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
 
 #endif
 

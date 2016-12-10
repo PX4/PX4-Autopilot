@@ -46,9 +46,7 @@
 #include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
-
-#include <stm32.h>
-#include <arch/board/board.h>
+#include <nuttx/board.h>
 
 /****************************************************************************************************
  * Definitions
@@ -57,7 +55,6 @@
 
 /* PX4IO connection configuration */
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
-#define UDID_START		0x1FFF7A10
 
 //#ifdef CONFIG_STM32_SPI2
 //#  error "SPI2 is not supported on this board"
@@ -251,25 +248,6 @@ extern void stm32_spiinitialize(void);
 extern void stm32_usbinitialize(void);
 
 #define board_peripheral_reset(ms)
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 #include "../common/board_common.h"
 

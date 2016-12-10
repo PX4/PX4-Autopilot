@@ -46,7 +46,7 @@
 
 int get_board_serial(uint8_t *serialid)
 {
-	const volatile uint32_t *udid_ptr = (const uint32_t *)UDID_START;
+	const volatile uint32_t *udid_ptr = (const uint32_t *)STM32_SYSMEM_UID;
 	union udid id;
 	val_read((uint32_t *)&id, udid_ptr, sizeof(id));
 

@@ -274,6 +274,10 @@ create_work_item(void)
 	/* If we got one then lock the item*/
 	if (item) {
 		px4_sem_init(&item->wait_sem, 1, 0);        /* Caller will wait on this... initially locked */
+
+		/* item->wait_sem use case is a signal */
+
+		px4_sem_setprotocol(&item->wait_sem, SEM_PRIO_NONE);
 	}
 
 	/* return the item pointer, or NULL if all failed */
@@ -922,6 +926,10 @@ task_main(int argc, char *argv[])
 
 	px4_sem_init(&g_work_queued_sema, 1, 0);
 
+	/* g_work_queued_sema use case is a signal */
+
+	px4_sem_setprotocol(&g_work_queued_sema, SEM_PRIO_NONE);
+
 	if (!on_disk) {
 
 		/* In memory */
@@ -1134,6 +1142,10 @@ start(void)
 	int task;
 
 	px4_sem_init(&g_init_sema, 1, 0);
+
+	/* g_init_sema use case is a signal */
+
+	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
 	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, 1200, task_main, NULL)) <= 0) {

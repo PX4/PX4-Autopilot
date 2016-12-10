@@ -136,12 +136,8 @@ SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	// All termios commands should be silently ignored as they are handled
 
 	switch (cmd) {
-#ifdef FIONSPACE
 
 	case FIONSPACE:
-#else
-	case FIONWRITE:
-#endif
 		*((int *) arg) = _link->_writebuffer.space() * CRTP_MAX_DATA_SIZE;
 		return 0;
 

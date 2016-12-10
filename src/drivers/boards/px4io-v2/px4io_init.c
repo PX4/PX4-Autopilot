@@ -35,10 +35,10 @@
  * @file px4iov2_init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -53,6 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -69,13 +70,13 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
+#    define message(...) syslog(__VA_ARGS__)
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message lowsyslog
+#    define message syslog
 #  else
 #    define message printf
 #  endif
@@ -105,55 +106,55 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure GPIOs */
 
 	/* LEDS - default to off */
-	px4_arch_configgpio(GPIO_LED1);
-	px4_arch_configgpio(GPIO_LED2);
-	px4_arch_configgpio(GPIO_LED3);
-	px4_arch_configgpio(GPIO_LED4);
+	stm32_configgpio(GPIO_LED1);
+	stm32_configgpio(GPIO_LED2);
+	stm32_configgpio(GPIO_LED3);
+	stm32_configgpio(GPIO_LED4);
 
-	px4_arch_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_BTN_SAFETY);
 
 	/* spektrum power enable is active high - enable it by default */
-	px4_arch_configgpio(GPIO_SPEKTRUM_PWR_EN);
+	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
-	px4_arch_configgpio(GPIO_SERVO_FAULT_DETECT);
+	stm32_configgpio(GPIO_SERVO_FAULT_DETECT);
 
 	/* RSSI inputs */
-	px4_arch_configgpio(GPIO_TIM_RSSI); /* xxx alternate function */
-	px4_arch_configgpio(GPIO_ADC_RSSI);
+	stm32_configgpio(GPIO_TIM_RSSI); /* xxx alternate function */
+	stm32_configgpio(GPIO_ADC_RSSI);
 
 	/* servo rail voltage */
-	px4_arch_configgpio(GPIO_ADC_VSERVO);
+	stm32_configgpio(GPIO_ADC_VSERVO);
 
-	px4_arch_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
-	px4_arch_configgpio(GPIO_SBUS_OUTPUT);
+	stm32_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
+	stm32_configgpio(GPIO_SBUS_OUTPUT);
 
 	/* sbus output enable is active low - disable it by default */
-	px4_arch_gpiowrite(GPIO_SBUS_OENABLE, true);
-	px4_arch_configgpio(GPIO_SBUS_OENABLE);
+	stm32_gpiowrite(GPIO_SBUS_OENABLE, true);
+	stm32_configgpio(GPIO_SBUS_OENABLE);
 
-	px4_arch_configgpio(GPIO_PPM); /* xxx alternate function */
+	stm32_configgpio(GPIO_PPM); /* xxx alternate function */
 
-	px4_arch_gpiowrite(GPIO_PWM1, true);
-	px4_arch_configgpio(GPIO_PWM1);
+	stm32_gpiowrite(GPIO_PWM1, true);
+	stm32_configgpio(GPIO_PWM1);
 
-	px4_arch_gpiowrite(GPIO_PWM2, true);
-	px4_arch_configgpio(GPIO_PWM2);
+	stm32_gpiowrite(GPIO_PWM2, true);
+	stm32_configgpio(GPIO_PWM2);
 
-	px4_arch_gpiowrite(GPIO_PWM3, true);
-	px4_arch_configgpio(GPIO_PWM3);
+	stm32_gpiowrite(GPIO_PWM3, true);
+	stm32_configgpio(GPIO_PWM3);
 
-	px4_arch_gpiowrite(GPIO_PWM4, true);
-	px4_arch_configgpio(GPIO_PWM4);
+	stm32_gpiowrite(GPIO_PWM4, true);
+	stm32_configgpio(GPIO_PWM4);
 
-	px4_arch_gpiowrite(GPIO_PWM5, true);
-	px4_arch_configgpio(GPIO_PWM5);
+	stm32_gpiowrite(GPIO_PWM5, true);
+	stm32_configgpio(GPIO_PWM5);
 
-	px4_arch_gpiowrite(GPIO_PWM6, true);
-	px4_arch_configgpio(GPIO_PWM6);
+	stm32_gpiowrite(GPIO_PWM6, true);
+	stm32_configgpio(GPIO_PWM6);
 
-	px4_arch_gpiowrite(GPIO_PWM7, true);
-	px4_arch_configgpio(GPIO_PWM7);
+	stm32_gpiowrite(GPIO_PWM7, true);
+	stm32_configgpio(GPIO_PWM7);
 
-	px4_arch_gpiowrite(GPIO_PWM8, true);
-	px4_arch_configgpio(GPIO_PWM8);
+	stm32_gpiowrite(GPIO_PWM8, true);
+	stm32_configgpio(GPIO_PWM8);
 }
