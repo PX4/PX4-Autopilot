@@ -1,5 +1,4 @@
 #include "BlockIEKF.hpp"
-#include "stdio.h"
 #include <px4_posix.h>
 
 BlockIEKF::BlockIEKF() :
