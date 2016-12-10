@@ -41,7 +41,8 @@
 
 #include "gnss.hpp"
 #include <systemlib/err.h>
-#include <mathlib/mathlib.h>
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
@@ -121,7 +122,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		msg.position_covariance.unpackSquareMatrix(pos_cov);
 
 		// Horizontal position uncertainty
-		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
+		const float horizontal_pos_variance = MAX(pos_cov[0], pos_cov[4]);
 		report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
 
 		// Vertical position uncertainty
@@ -135,7 +136,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	if (valid_velocity_covariance) {
 		float vel_cov[9];
 		msg.velocity_covariance.unpackSquareMatrix(vel_cov);
-		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
+		report.s_variance_m_s = MAX(MAX(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
