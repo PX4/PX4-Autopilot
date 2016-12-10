@@ -676,6 +676,11 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 
+	unsigned set_trim(float trim)
+	{
+		return 4;
+	}
+
 private:
 	mixer_heli_s			_mixer_info;
 
