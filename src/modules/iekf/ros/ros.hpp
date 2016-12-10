@@ -33,8 +33,8 @@ public:
 	Subscriber(const std::string &topic, size_t queue_size);
 	virtual ~Subscriber();
 private:
-	std::string _topic;
-	size_t _queue_size;
+	//std::string _topic;
+	//size_t _queue_size;
 };
 
 class Publisher
@@ -49,8 +49,8 @@ public:
 	}
 
 private:
-	std::string _name;
-	size_t _queue_size;;
+	//std::string _name;
+	//size_t _queue_size;;
 };
 
 class NodeHandle

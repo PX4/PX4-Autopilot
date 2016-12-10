@@ -39,9 +39,9 @@ void Rate::sleep()
 	_wake_timestamp = hrt_absolute_time() + 1.0e6f / _frequency;
 }
 
-Subscriber::Subscriber(const std::string &topic, size_t queue_size):
-	_topic(topic),
-	_queue_size(queue_size)
+Subscriber::Subscriber(const std::string &topic, size_t queue_size)
+//_topic(topic),
+//_queue_size(queue_size)
 {
 }
 
@@ -49,9 +49,9 @@ Subscriber::~Subscriber()
 {
 }
 
-Publisher::Publisher(const std::string &name, size_t queue_size) :
-	_name(name),
-	_queue_size(queue_size)
+Publisher::Publisher(const std::string &name, size_t queue_size)
+//_name(name),
+//_queue_size(queue_size)
 {
 }
 
