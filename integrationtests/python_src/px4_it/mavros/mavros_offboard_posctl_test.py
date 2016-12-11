@@ -41,6 +41,7 @@ import unittest
 import rospy
 import math
 import rosbag
+import time
 
 from numpy import linalg
 import numpy as np
@@ -131,7 +132,14 @@ class MavrosOffboardPosctlTest(unittest.TestCase):
             # (need to wait the first few rounds until PX4 has the offboard stream)
             if not self.armed and count > 5:
                 self._srv_cmd_long(False, 176, False,
-                                   128 | 1, 6, 0, 0, 0, 0, 0)
+                                   1, 6, 0, 0, 0, 0, 0)
+                # make sure the first command doesn't get lost
+                time.sleep(1)
+
+                self._srv_cmd_long(False, 400, False,
+                                   # arm
+                                   1, 0, 0, 0, 0, 0, 0)
+
                 self.armed = True
 
             if self.is_at_position(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z, 1):
