@@ -8,7 +8,7 @@ namespace ros
 // The node for this process
 Node _node;
 
-void init(int argc, char **argv, const std::string &node_name)
+void init(int argc, char **argv, const char *node_name)
 {
 }
 
@@ -59,7 +59,7 @@ void Rate::sleep()
 	_wake_timestamp = hrt_absolute_time() + 1.0e6f / _frequency;
 }
 
-Subscriber::Subscriber(const std::string &topic, size_t queue_size, CallbackInterface *cb) :
+Subscriber::Subscriber(const char *topic, size_t queue_size, CallbackInterface *cb) :
 	next(NULL),
 	_callbackPtr(cb)
 //_topic(topic),
@@ -76,7 +76,7 @@ void Subscriber::callback()
 	_callbackPtr->callback();
 }
 
-Publisher::Publisher(const std::string &name, size_t queue_size)
+Publisher::Publisher(const char *name, size_t queue_size)
 //_name(name),
 //_queue_size(queue_size)
 {
@@ -91,7 +91,7 @@ bool NodeHandle::ok()
 	return true;
 }
 
-void NodeHandle::param(std::string name, float val, std::string topic)
+void NodeHandle::param(const char *name, float val, const char *topic)
 {
 }
 

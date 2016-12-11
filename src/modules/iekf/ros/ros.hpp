@@ -16,7 +16,7 @@ class CallbackInterface;
 extern Node _node;
 
 void spin();
-void init(int argc, char **argv, const std::string &node_name);
+void init(int argc, char **argv, const char *node_name);
 
 class Node
 {
@@ -40,20 +40,20 @@ private:
 class Subscriber
 {
 public:
-	Subscriber(const std::string &topic, size_t queue_size, CallbackInterface *cb);
+	Subscriber(const char *topic, size_t queue_size, CallbackInterface *cb);
 	virtual ~Subscriber();
 	void callback();
 	Subscriber *next;
 private:
 	CallbackInterface *_callbackPtr;
-	//std::string _topic;
+	//const char * _topic;
 	//size_t _queue_size;
 };
 
 class Publisher
 {
 public:
-	Publisher(const std::string &name, size_t queue_size);
+	Publisher(const char *name, size_t queue_size);
 	virtual ~Publisher();
 
 	template <class T>
@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	//std::string _name;
+	//const char * _name;
 	//size_t _queue_size;;
 };
 
@@ -97,10 +97,10 @@ public:
 
 	bool ok();
 
-	void param(std::string name, float val, std::string topic);
+	void param(const char *name, float val, const char *topic);
 
 	template <class MsgType, class ObjType>
-	Subscriber subscribe(const std::string &topic, size_t queue_size,
+	Subscriber subscribe(const char *topic, size_t queue_size,
 			     void (ObjType::*cb)(const MsgType *msg), ObjType *obj)
 	{
 		CallbackInterface *callback = new CallbackImpl<MsgType, ObjType>(cb, obj);
@@ -110,7 +110,7 @@ public:
 	}
 
 	template <class T>
-	Publisher advertise(const std::string &name, size_t queue_size)
+	Publisher advertise(const char *name, size_t queue_size)
 	{
 		return Publisher(name, queue_size);
 	}
