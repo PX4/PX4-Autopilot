@@ -174,14 +174,15 @@ public:
 	Subscriber subscribe(const char *topic, size_t queue_size,
 			     void (ObjType::*cb)(const MsgType *msg), ObjType *obj)
 	{
-		//const struct orb_metadata * meta = NULL;
-		//if (!_node->getTopicMeta(topic, meta)) {
-		//ROS_ERROR("error, topic not found %s\n", topic);
-		//return Subscriber();
-		//}
-		//Subscriber sub(new CallbackImpl<MsgType, ObjType>(meta, 0, 0, cb, obj));
+		const struct orb_metadata *meta = NULL;
+
+		if (!_node->getTopicMeta(topic, meta)) {
+			ROS_ERROR("error, topic not found %s\n", topic);
+			return Subscriber();
+		}
+
 		Subscriber sub(_node, new CallbackImpl<MsgType, ObjType>(
-				       ORB_ID(sensor_combined), 0, 0, cb, obj));
+				       meta, 0, 0, cb, obj));
 		return sub;
 	}
 
