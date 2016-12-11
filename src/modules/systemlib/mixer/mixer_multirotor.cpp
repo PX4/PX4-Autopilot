@@ -167,6 +167,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "4w")) {
 		geometry = MultirotorGeometry::QUAD_WIDE;
 
+	} else if (!strcmp(geomname, "4s")) {
+		geometry = MultirotorGeometry::QUAD_S250AQ;
+
 	} else if (!strcmp(geomname, "4dc")) {
 		geometry = MultirotorGeometry::QUAD_DEADCAT;
 
