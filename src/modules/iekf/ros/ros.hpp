@@ -1,23 +1,41 @@
-#include <string>
+#include <px4_posix.h>
 
 ///
 // ROS to uORB API translator
 //
 
+#define ROS_INFO PX4_INFO
+#define ROS_WARN PX4_WARN
+
 namespace ros
 {
 
+// forward declarations
 class Node;
+class Rate;
 class Subscriber;
 class Publishder;
 class Callback;
 class CallbackInterface;
 
+// node for this process declared in ros.cpp
 extern Node _node;
 
+/***
+ * Check if any callbacks are ready to fire and call them
+ * for this process
+ */
 void spin();
+
+/**
+ * Doesn't actually do anything currently
+ */
 void init(int argc, char **argv, const char *node_name);
 
+/**
+ * There is one node per process and it's job is to run communication
+ * with the rest of the system via uORB
+ */
 class Node
 {
 public:
@@ -27,6 +45,10 @@ private:
 	Subscriber *_subListHead;
 };
 
+/**
+ * This sleeps until a deadline to meet a
+ * desired frequency
+ */
 class Rate
 {
 public:
@@ -37,6 +59,10 @@ private:
 	uint64_t _wake_timestamp;
 };
 
+/**
+ * This class represents one subscribe and contains the required
+ * hooks for the callback
+ */
 class Subscriber
 {
 public:
@@ -50,6 +76,9 @@ private:
 	//size_t _queue_size;
 };
 
+/**
+ * A publisher.
+ */
 class Publisher
 {
 public:
@@ -66,12 +95,20 @@ private:
 	//size_t _queue_size;;
 };
 
+/**
+ * The abstract interface to the callback.
+ */
 class CallbackInterface
 {
 public:
 	virtual void callback() = 0;
 };
 
+/**
+ * The callback implementation. It contains
+ * an object and a function pointre to call a member
+ * function.
+ */
 template <class MsgType, class ObjType>
 class CallbackImpl : public CallbackInterface
 {
@@ -91,6 +128,10 @@ private:
 	MsgType _msg;
 };
 
+/**
+ * This defines the standard ROS node handle that
+ * ROS users expect.
+ */
 class NodeHandle
 {
 public:
@@ -103,8 +144,7 @@ public:
 	Subscriber subscribe(const char *topic, size_t queue_size,
 			     void (ObjType::*cb)(const MsgType *msg), ObjType *obj)
 	{
-		CallbackInterface *callback = new CallbackImpl<MsgType, ObjType>(cb, obj);
-		Subscriber sub(topic, queue_size, callback);
+		Subscriber sub(topic, queue_size, new CallbackImpl<MsgType, ObjType>(cb, obj));
 		_node.addSubscriber(&sub);
 		return sub;
 	}

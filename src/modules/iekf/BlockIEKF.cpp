@@ -1,5 +1,4 @@
 #include "BlockIEKF.hpp"
-#include <px4_posix.h>
 
 BlockIEKF::BlockIEKF() :
 	_nh(), // node handle
@@ -11,10 +10,10 @@ BlockIEKF::BlockIEKF() :
 void BlockIEKF::update()
 {
 	_pub_test.publish(1.0f);
-	PX4_INFO("publish %d", X::q_nb_3);
+	ROS_INFO("publish %d", X::q_nb_3);
 }
 
 void BlockIEKF::callback(const vehicle_attitude_s *msg)
 {
-	PX4_INFO("callback %d", msg->timestamp);
+	ROS_INFO("callback %d", msg->timestamp);
 }
