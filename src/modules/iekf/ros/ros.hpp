@@ -1,4 +1,19 @@
+
 #include <px4_posix.h>
+#include "uORB/Subscription.hpp"
+#include "uORB/Publication.hpp"
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/estimator_status.h>
+
+#include "hash/HashMap.h"
 
 ///
 // ROS to uORB API translator
@@ -6,6 +21,7 @@
 
 #define ROS_INFO PX4_INFO
 #define ROS_WARN PX4_WARN
+#define ROS_ERROR PX4_ERR
 
 namespace ros
 {
@@ -19,7 +35,7 @@ class Callback;
 class CallbackInterface;
 
 // node for this process declared in ros.cpp
-extern Node _node;
+extern Node *_node;
 
 /***
  * Check if any callbacks are ready to fire and call them
@@ -28,7 +44,7 @@ extern Node _node;
 void spin();
 
 /**
- * Doesn't actually do anything currently
+ * Initializes node interface
  */
 void init(int argc, char **argv, const char *node_name);
 
@@ -39,10 +55,13 @@ void init(int argc, char **argv, const char *node_name);
 class Node
 {
 public:
+	Node();
 	void spin();
 	void addSubscriber(Subscriber *sub);
+	bool getTopicMeta(const char *topic, const struct orb_metadata *meta);
 private:
 	Subscriber *_subListHead;
+	//HashMap<const char *, const struct orb_metadata *> _hmap;
 };
 
 /**
@@ -66,14 +85,13 @@ private:
 class Subscriber
 {
 public:
-	Subscriber(const char *topic, size_t queue_size, CallbackInterface *cb);
+	Subscriber();
+	Subscriber(Node *node, CallbackInterface *cb);
 	virtual ~Subscriber();
 	void callback();
 	Subscriber *next;
 private:
 	CallbackInterface *_callbackPtr;
-	//const char * _topic;
-	//size_t _queue_size;
 };
 
 /**
@@ -113,24 +131,36 @@ template <class MsgType, class ObjType>
 class CallbackImpl : public CallbackInterface
 {
 public:
-	CallbackImpl(void (ObjType::*callbackFuncPtr)(const MsgType *msg), ObjType *obj) :
-		_callbackFuncPtr(callbackFuncPtr), _objPtr(obj), _msg()
+	CallbackImpl(const struct orb_metadata *meta,
+		     unsigned interval,
+		     int instance,
+		     void (ObjType::*callbackFuncPtr)(const MsgType *msg),
+		     ObjType *obj) :
+		_sub(meta, interval, instance),
+		_callbackFuncPtr(callbackFuncPtr),
+		_objPtr(obj)
 	{
 	}
 
 	virtual void callback()
 	{
-		(_objPtr->*_callbackFuncPtr)(&_msg);
+		if (_sub.updated()) {
+			_sub.update();
+			(_objPtr->*_callbackFuncPtr)(&(_sub.get()));
+		}
 	}
 private:
+	uORB::Subscription<MsgType> _sub;
 	void (ObjType::*_callbackFuncPtr)(const MsgType *msg);
 	ObjType *_objPtr;
-	MsgType _msg;
 };
 
 /**
  * This defines the standard ROS node handle that
  * ROS users expect.
+ *
+ * Only difference is interval and instance and meta passed
+ * instead of topic name.
  */
 class NodeHandle
 {
@@ -144,8 +174,14 @@ public:
 	Subscriber subscribe(const char *topic, size_t queue_size,
 			     void (ObjType::*cb)(const MsgType *msg), ObjType *obj)
 	{
-		Subscriber sub(topic, queue_size, new CallbackImpl<MsgType, ObjType>(cb, obj));
-		_node.addSubscriber(&sub);
+		//const struct orb_metadata * meta = NULL;
+		//if (!_node->getTopicMeta(topic, meta)) {
+		//ROS_ERROR("error, topic not found %s\n", topic);
+		//return Subscriber();
+		//}
+		//Subscriber sub(new CallbackImpl<MsgType, ObjType>(meta, 0, 0, cb, obj));
+		Subscriber sub(_node, new CallbackImpl<MsgType, ObjType>(
+				       ORB_ID(sensor_combined), 0, 0, cb, obj));
 		return sub;
 	}
 

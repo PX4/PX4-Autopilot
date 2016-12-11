@@ -22,6 +22,7 @@
     <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
 
     <arg name="debug" default="false"/>
+    <arg name="px4_launch_prefix" default=""/>
     <arg name="verbose" default="false"/>
     <arg name="paused" default="false"/>
 
@@ -45,6 +46,7 @@
         <arg name="debug" value="$(arg debug)"/>
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
+        <arg name="px4_launch_prefix" value="$(arg px4_launch_prefix)"/>
     </include>
 
     <include file="$(find px4)/launch/mavros.launch">

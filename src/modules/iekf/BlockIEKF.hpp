@@ -1,5 +1,4 @@
 #include "ros/ros.hpp"
-#include <uORB/topics/vehicle_attitude.h>
 
 /**
  * State enum
@@ -77,9 +76,9 @@ public:
 	BlockIEKF();
 	void update();
 	bool ok() { return _nh.ok(); }
-	void callback(const vehicle_attitude_s *msg);
+	void callback(const sensor_combined_s *msg);
 private:
 	ros::NodeHandle _nh;
 	ros::Subscriber _sub_test;
-	ros::Publisher _pub_test;
+	//ros::Publisher _pub_test;
 };

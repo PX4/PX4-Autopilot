@@ -6,15 +6,27 @@ namespace ros
 {
 
 // The node for this process
-Node _node;
+Node *_node;
 
 void init(int argc, char **argv, const char *node_name)
 {
+	_node = new Node();
 }
 
 void spin()
 {
-	_node.spin();
+	_node->spin();
+}
+
+Node::Node()
+{
+	//_hmap.put("vehicle_attitude", ORB_ID(vehicle_attitude));
+	//_hmap.put("sensor_combined", ORB_ID(sensor_combined));
+	//_hmap.put("vision_position_estimate", ORB_ID(vision_position_estimate));
+	//_hmap.put("att_pos_mocap", ORB_ID(att_pos_mocap));
+	//_hmap.put("airspeed", ORB_ID(airspeed));
+	//_hmap.put("parameter_update", ORB_ID(parameter_update));
+	//_hmap.put("vehicle_global_position", ORB_ID(vehicle_global_position));
 }
 
 void Node::spin()
@@ -42,6 +54,13 @@ void Node::addSubscriber(Subscriber *sub)
 	tail->next = sub;
 }
 
+bool Node::getTopicMeta(const char *topic, const struct orb_metadata *meta)
+{
+	//return _hmap.get(topic, meta);
+	return true;
+}
+
+
 Rate::Rate(float frequency):
 	_frequency(frequency),
 	_wake_timestamp(hrt_absolute_time())
@@ -59,13 +78,19 @@ void Rate::sleep()
 	_wake_timestamp = hrt_absolute_time() + 1.0e6f / _frequency;
 }
 
-Subscriber::Subscriber(const char *topic, size_t queue_size, CallbackInterface *cb) :
+Subscriber::Subscriber() :
 	next(NULL),
-	_callbackPtr(cb)
-//_topic(topic),
-//_queue_size(queue_size)
+	_callbackPtr(NULL)
 {
 }
+
+Subscriber::Subscriber(Node *node, CallbackInterface *cb) :
+	next(NULL),
+	_callbackPtr(cb)
+{
+	node->addSubscriber(this);
+}
+
 
 Subscriber::~Subscriber()
 {

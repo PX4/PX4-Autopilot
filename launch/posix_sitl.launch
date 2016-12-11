@@ -20,8 +20,9 @@
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>
     <arg name="paused" default="false"/>
+    <arg name="px4_launch_prefix" default=""/>
 
-    <node name="sitl" pkg="px4" type="px4" output="screen"
+    <node name="sitl" pkg="px4" type="px4" output="screen" launch-prefix="$(arg px4_launch_prefix)"
         args="$(find px4) $(arg rcS)">
     </node>
 
