@@ -89,6 +89,7 @@ Syslink::Syslink() :
 	txrate(0),
 	_syslink_task(-1),
 	_task_running(false),
+	_bootloader_mode(false),
 	_count(0),
 	_null_count(0),
 	_count_in(0),
@@ -106,8 +107,6 @@ Syslink::Syslink() :
 	_bstate(BAT_DISCHARGING)
 {
 	px4_sem_init(&memory_sem, 0, 0);
-
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 }
 
 
@@ -319,6 +318,7 @@ Syslink::task_main()
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
 
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	fds[1].fd = _params_sub;
 	fds[1].events = POLLIN;
 
@@ -533,7 +533,9 @@ Syslink::handle_raw(syslink_message_t *sys)
 	crtp_message_t *c = (crtp_message_t *) &sys->length;
 
 	if (CRTP_NULL(*c)) {
-		// TODO: Handle bootloader messages if possible
+		if (c->size >= 3) {
+			handle_bootloader(sys);
+		}
 
 		_null_count++;
 
@@ -580,10 +582,42 @@ Syslink::handle_raw(syslink_message_t *sys)
 		handle_raw_other(sys);
 	}
 
+	// Block all non-requested messaged in bootloader mode
+	if (_bootloader_mode) {
+		return;
+	}
+
 	// Allow one raw message to be sent from the queue
 	send_queued_raw_message();
 }
 
+void
+Syslink::handle_bootloader(syslink_message_t *sys)
+{
+	// Minimal bootloader emulation for being detectable
+	// To the bitcraze utilities, the STM32 will appear to have no flashable pages
+	// Upon receiving a bootloader message, all outbound packets are blocked in 'bootloader mode' due to how fragile the aforementioned utilities are to extra packets
+
+	crtp_message_t *c = (crtp_message_t *) &sys->length;
+
+	uint8_t target = c->data[0];
+	uint8_t cmd = c->data[1];
+
+	if (target != 0xFF) { // CF2 STM32 target
+		return;
+	}
+
+	_bootloader_mode = true;
+
+	if (cmd == 0x10) { // GET_INFO
+
+		c->size = 1 + 23;
+		memset(&c->data[2], 0, 21);
+		c->data[22] = 0x10; // Protocol version
+		send_message(sys);
+	}
+
+}
 
 void
 Syslink::handle_raw_other(syslink_message_t *sys)

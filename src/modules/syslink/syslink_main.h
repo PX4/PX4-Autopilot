@@ -84,6 +84,7 @@ private:
 	void handle_message(syslink_message_t *msg);
 	void handle_raw(syslink_message_t *sys);
 	void handle_radio(syslink_message_t *sys);
+	void handle_bootloader(syslink_message_t *sys);
 
 	// Handles other types of messages that we don't really care about, but
 	// will be maintained with the bare minimum implementation for supporting
@@ -101,6 +102,7 @@ private:
 
 	int _syslink_task;
 	bool _task_running;
+	bool _bootloader_mode;
 
 	int _count;
 	int _null_count;
