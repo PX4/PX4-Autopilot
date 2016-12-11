@@ -7,15 +7,25 @@
 namespace ros
 {
 
+class Node;
+class Subscriber;
+class Publishder;
+class Callback;
+class CallbackInterface;
+
+extern Node _node;
+
+void spin();
+void init(int argc, char **argv, const std::string &node_name);
+
 class Node
 {
 public:
 	void spin();
+	void addSubscriber(Subscriber *sub);
+private:
+	Subscriber *_subListHead;
 };
-
-void spin();
-
-void init(int argc, char **argv, const std::string &node_name);
 
 class Rate
 {
@@ -30,9 +40,12 @@ private:
 class Subscriber
 {
 public:
-	Subscriber(const std::string &topic, size_t queue_size);
+	Subscriber(const std::string &topic, size_t queue_size, CallbackInterface *cb);
 	virtual ~Subscriber();
+	void callback();
+	Subscriber *next;
 private:
+	CallbackInterface *_callbackPtr;
 	//std::string _topic;
 	//size_t _queue_size;
 };
@@ -53,6 +66,31 @@ private:
 	//size_t _queue_size;;
 };
 
+class CallbackInterface
+{
+public:
+	virtual void callback() = 0;
+};
+
+template <class MsgType, class ObjType>
+class CallbackImpl : public CallbackInterface
+{
+public:
+	CallbackImpl(void (ObjType::*callbackFuncPtr)(const MsgType *msg), ObjType *obj) :
+		_callbackFuncPtr(callbackFuncPtr), _objPtr(obj), _msg()
+	{
+	}
+
+	virtual void callback()
+	{
+		(_objPtr->*_callbackFuncPtr)(&_msg);
+	}
+private:
+	void (ObjType::*_callbackFuncPtr)(const MsgType *msg);
+	ObjType *_objPtr;
+	MsgType _msg;
+};
+
 class NodeHandle
 {
 public:
@@ -61,11 +99,14 @@ public:
 
 	void param(std::string name, float val, std::string topic);
 
-	template <class M, class T>
+	template <class MsgType, class ObjType>
 	Subscriber subscribe(const std::string &topic, size_t queue_size,
-			     void (T::*cb)(const M *msg), T *obj)
+			     void (ObjType::*cb)(const MsgType *msg), ObjType *obj)
 	{
-		return Subscriber(topic, queue_size);
+		CallbackInterface *callback = new CallbackImpl<MsgType, ObjType>(cb, obj);
+		Subscriber sub(topic, queue_size, callback);
+		_node.addSubscriber(&sub);
+		return sub;
 	}
 
 	template <class T>
