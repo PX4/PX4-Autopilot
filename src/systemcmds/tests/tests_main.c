@@ -83,6 +83,7 @@ const struct {
 	{"sensors",		test_sensors,	0},
 	{"time",		test_time,	OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
+	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #else
 	{"rc",			rc_tests_main,	0},
 #endif /* __PX4_NUTTX */
