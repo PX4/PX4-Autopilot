@@ -214,7 +214,7 @@ then
 		#
 		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
 		then
-			pwm disarmed -c $PWM_ACHDIS -p $PWM_AUX_DISARMED -d $OUTPUT_AUX_DEV
+			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
 		fi
 
 		if [ $FAILSAFE_AUX != none ]
