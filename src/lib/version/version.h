@@ -53,6 +53,11 @@ __EXPORT const char *board_name(void);
 
 __END_DECLS
 
+#define FREEZE_STR(s) #s
+#define STRINGIFY(s) FREEZE_STR(s)
+#define FW_GIT STRINGIFY(GIT_VERSION)
+#define FW_BUILD_URI STRINGIFY(BUILD_URI)
+
 #if defined(CONFIG_ARCH_BOARD_SITL)
 #  define	HW_ARCH "SITL"
 #elif defined(CONFIG_ARCH_BOARD_EAGLE)

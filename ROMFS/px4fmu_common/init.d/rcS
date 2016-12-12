@@ -6,6 +6,11 @@
 #
 
 #
+# Mount the procfs.
+#
+mount -t procfs /proc
+
+#
 # Start CDC/ACM serial driver
 #
 sercon
@@ -24,8 +29,19 @@ set LOG_FILE /fs/microsd/bootlog.txt
 # REBOOTWORK this needs to start after the flight control loop
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	# Start playing the startup tune
-	tone_alarm start
+	echo "[i] microSD mounted: /fs/microsd"
+	if hardfault_log check
+	then
+		tone_alarm error
+		if hardfault_log commit
+		then
+			hardfault_log reset
+			tone_alarm stop
+		fi
+  else
+    # Start playing the startup tune
+    tone_alarm start
+ fi
 else
 	tone_alarm MBAGP
 	if mkfatfs /dev/mmcsd0
@@ -275,7 +291,7 @@ then
 
 			if px4io forceupdate 14662 ${IO_FILE}
 			then
-				usleep 500000
+				usleep 10000
 				if px4io checkcrc $IO_FILE
 				then
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE

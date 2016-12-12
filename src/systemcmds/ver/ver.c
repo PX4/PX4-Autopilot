@@ -50,20 +50,24 @@
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
-static const char sz_ver_hwcmp_str[] = "hwcmp";
+static const char sz_ver_hwcmp_str[]    = "hwcmp";
 static const char sz_ver_git_str[] 	= "git";
-static const char sz_ver_bdate_str[] = "bdate";
+static const char sz_ver_bdate_str[]    = "bdate";
+static const char sz_ver_buri_str[]     = "uri";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
-static const char mcu_uid_str[]		= "uid";
+static const char mcu_uid_str[]         = "uid";
 
 const char *px4_git_version = PX4_GIT_VERSION_STR;
 const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
+#if !defined(CONFIG_CDCACM_PRODUCTID)
+# define CONFIG_CDCACM_PRODUCTID 0
+#endif
 const char *px4_git_tag = PX4_GIT_TAG_STR;
 
 #if defined(__PX4_NUTTX)
-__EXPORT const char *os_git_tag = "6.27";
+__EXPORT const char *os_git_tag = "7.18";
 __EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
 #else
 __EXPORT const char *os_git_tag = "";
@@ -178,7 +182,7 @@ static void usage(const char *reason)
 		printf("%s\n", reason);
 	}
 
-	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu|uid}\n\n");
+	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu|uid|uri}\n\n");
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -238,6 +242,13 @@ int ver_main(int argc, char *argv[])
 				ret = 0;
 
 			}
+
+			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
+				printf("Build uri: %s\n", FW_BUILD_URI);
+				ret = 0;
+
+			}
+
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				printf("Toolchain: %s\n", __VERSION__);
