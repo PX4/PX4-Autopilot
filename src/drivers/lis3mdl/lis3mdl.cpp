@@ -79,9 +79,6 @@
 
 #include "lis3mdl.h"
 
-#undef DEVICE_DEBUG
-#define DEVICE_DEBUG printf
-
 /*
  * LIS3MDL internal constants and data structures.
  */

@@ -58,9 +58,6 @@
 #include "lis3mdl.h"
 #include "board_config.h"
 
-#undef DEVICE_DEBUG
-#define DEVICE_DEBUG printf
-
 #ifdef PX4_SPIDEV_LIS
 
 /* SPI protocol address bits */
