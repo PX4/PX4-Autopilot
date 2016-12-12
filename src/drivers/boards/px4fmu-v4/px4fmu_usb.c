@@ -82,10 +82,10 @@ __EXPORT void stm32_usbinitialize(void)
 	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
 #ifdef CONFIG_STM32_OTGFS
-	px4_arch_configgpio(GPIO_OTGFS_VBUS);
+	stm32_configgpio(GPIO_OTGFS_VBUS);
 	/* XXX We only support device mode
-	px4_arch_configgpio(GPIO_OTGFS_PWRON);
-	px4_arch_configgpio(GPIO_OTGFS_OVER);
+	stm32_configgpio(GPIO_OTGFS_PWRON);
+	stm32_configgpio(GPIO_OTGFS_OVER);
 	*/
 #endif
 }
@@ -103,6 +103,6 @@ __EXPORT void stm32_usbinitialize(void)
 
 __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
-	//ulldbg("resume: %d\n", resume);
+	uinfo("resume: %d\n", resume);
 }
 
