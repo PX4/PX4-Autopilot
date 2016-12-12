@@ -10,16 +10,49 @@ add_executable(firmware_nuttx
 	builtin_commands.c)
 
 
-set(nuttx_export_dir ${PX4_BINARY_DIR}/${BOARD}/NuttX/nuttx-export)
+set(nuttx_export_dir ${PX4_BINARY_DIR}/${BOARD}/NuttX/nuttx/nuttx-export)
 
 set(link_libs
-	romfs apps nuttx m gcc
+	apps nuttx m gcc
 	)
 
+if("${romfs_used}" STREQUAL "y")
+	list(APPEND link_libs romfs)
+endif()
+
+#
+# Bootloaders use a different ld file, a seperate startup file
+# and need to override the os version of sched_process_timer
+#
+set(startup_libs)
+
+if("${config_nuttx_config}" STREQUAL "bootloader")
+	set(nuttx_ld_prefix "bootloader")
+	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})
+	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer")
+
+	add_custom_command(OUTPUT
+		${nuttx_startup_files}
+		DEPENDS nuttx_export_${BOARD})
+
+	set_source_files_properties(
+		${nuttx_startup_files}
+		PROPERTIES
+		EXTERNAL_OBJECT true
+		GENERATED true)
+
+	add_library(startup
+		${nuttx_startup_files})
+	set_target_properties(startup
+		PROPERTIES
+		LINKER_LANGUAGE C)
+	list(APPEND startup_libs startup)
+
+endif()
+
 if(NOT ${BOARD} STREQUAL "sim")
-	list(APPEND link_libs nosys)
 	set(main_link_flags
-		"-T${nuttx_export_dir}/build/ld.script"
+		"-T${nuttx_export_dir}/build/${nuttx_ld_prefix}ld.script"
 		"-Wl,-Map=${PX4_BINARY_DIR}/${BOARD}/main.map"
 		)
 	px4_join(OUT main_link_flags LIST ${main_link_flags} GLUE " ")
@@ -27,10 +60,14 @@ if(NOT ${BOARD} STREQUAL "sim")
 endif()
 
 target_link_libraries(firmware_nuttx
+	-Wl,--warn-common
+	-Wl,--gc-sections
 	-Wl,--start-group
+	${startup_libs}
 	${module_libraries}
 	${df_driver_libs}
 	${config_extra_libs}
+	${nuttx_bootloader_wrapers}
 	${link_libs}
 	-Wl,--end-group)
 
@@ -42,35 +79,36 @@ add_custom_target(check_weak
 
 if(NOT ${BOARD} STREQUAL "sim")
 
-	if (config_io_board)
-		set(extras "${PX4_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
+	if ("${romfs_used}" STREQUAL "y")
+
+		if (config_io_board)
+			set(extras "${CMAKE_BINARY_DIR}/src/modules/px4iofirmware/${config_io_board}.bin")
+		endif()
+
+		message(STATUS "Adding ROMFS on ${BOARD}")
+		px4_nuttx_add_romfs(OUT romfs
+			ROOT ROMFS/${config_romfs_root}
+			EXTRAS ${extras}
+			)
+		if (config_io_board)
+			add_dependencies(romfs fw_io)
+		endif()
 	endif()
 
-	set(romfs_dir "ROMFS/px4fmu_common")
-	if (${BOARD} STREQUAL "tap-v1")
-		set(romfs_dir "ROMFS/tap_common")
+	set(fw_file
+		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+
+#
+# Bootloaders do not need .px4 or xml
+#
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		px4_nuttx_add_firmware(OUT ${fw_file}
+			BOARD ${BOARD}
+			EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
+			PARAM_XML ${PX4_BINARY_DIR}/parameters.xml
+			AIRFRAMES_XML ${PX4_BINARY_DIR}/airframes.xml
+			)
 	endif()
-	if (${BOARD} STREQUAL "px4fmu-v2" AND ${LABEL} STREQUAL "test")
-	    set(romfs_dir "ROMFS/px4fmu_test")
-	endif()
-
-
-	px4_nuttx_add_romfs(OUT romfs
-		ROOT ${romfs_dir}
-		EXTRAS ${extras}
-		)
-	if (config_io_board)
-	    add_dependencies(romfs fw_io)
-	endif()
-
-	set(fw_file ${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
-
-	px4_nuttx_add_firmware(OUT ${fw_file}
-		BOARD ${BOARD}
-		EXE ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx
-		PARAM_XML ${PX4_BINARY_DIR}/parameters.xml
-		AIRFRAMES_XML ${PX4_BINARY_DIR}/airframes.xml
-		)
 
 	configure_file(gdbinit.in .gdbinit)
 
@@ -113,15 +151,19 @@ if(NOT ${BOARD} STREQUAL "sim")
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
-	if ("${BOARD}" STREQUAL "aerofc-v1")
-		px4_add_upload_aero(OUT upload OS ${OS} BOARD ${BOARD}
-			BUNDLE ${fw_file})
-	else()
-		px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-			BUNDLE ${fw_file})
+	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+		if ("${BOARD}" STREQUAL "aerofc-v1")
+			px4_add_upload_aero(OUT upload OS ${OS} BOARD ${BOARD}
+				BUNDLE ${fw_file})
+		else()
+			px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+				BUNDLE ${fw_file})
+		endif()
 	endif()
 endif()
 
-install(FILES ${fw_file} DESTINATION .)
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+	install(FILES ${fw_file} DESTINATION .)
+endif()
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
