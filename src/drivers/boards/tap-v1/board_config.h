@@ -48,15 +48,10 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32.h>
-#include <arch/board/board.h>
-
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
-
-#define UDID_START		0x1FFF7A10
 
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs
@@ -242,6 +237,9 @@
 		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, }
 
+/* This board provides a DMA pool and APIs */
+
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 #define MS_PWR_BUTTON_DOWN 200
 #define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTC|GPIO_PIN1)
@@ -275,7 +273,6 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
-
 /****************************************************************************************************
  * Name: stm32_spiinitialize
  *
@@ -286,8 +283,34 @@ __BEGIN_DECLS
 
 extern void stm32_spiinitialize(void);
 
+/************************************************************************************
+ * Name: stm32_spi_bus_initialize
+ *
+ * Description:
+ *   Called to configure SPI Buses.
+ *
+ ************************************************************************************/
+
+extern int stm32_spi_bus_initialize(void);
+
+/****************************************************************************************************
+ * Name: board_spi_reset board_peripheral_reset
+ *
+ * Description:
+ *   Called to reset SPI and the perferal bus
+ *
+ ****************************************************************************************************/
+
 #define board_spi_reset(ms)
 #define board_peripheral_reset(ms)
+
+/****************************************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called to configure USB IO.
+ *
+ ****************************************************************************************************/
 
 extern void stm32_usbinitialize(void);
 
@@ -302,23 +325,14 @@ extern void stm32_usbinitialize(void);
 extern int board_sdio_initialize(void);
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: board_i2c_initialize
  *
  * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
+ *   Called to set I2C bus frequencies.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
+int board_i2c_initialize(void);
 
 /************************************************************************************
  * Name: board_pwr_init()
@@ -352,15 +366,7 @@ bool board_pwr_button_down(void);
 
 void board_pwr(bool on_not_off);
 
-/****************************************************************************
- * Name: board_i2c_initialize
- *
- * Description:
- *   Called to set I2C bus frequncies.
- *
- ****************************************************************************/
-
-int board_i2c_initialize(void);
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 
