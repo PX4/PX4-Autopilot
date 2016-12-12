@@ -1727,8 +1727,9 @@ MulticopterPositionControl::task_main()
 				}
 
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
-				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+				if ((!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
+				     && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+				    (_manual.z <= _land_throttle_thresh.get() && _control_mode.flag_control_manual_enabled)) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
@@ -1893,8 +1894,10 @@ MulticopterPositionControl::task_main()
 					_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;
 
 					/* adjust limits for landing mode */
-					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-					    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+					if ((!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
+					     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+					    (_manual.z <= _land_throttle_thresh.get() && _control_mode.flag_control_manual_enabled)) {
+
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.tilt_max_land;
 
@@ -1937,6 +1940,13 @@ MulticopterPositionControl::task_main()
 					} else {
 						_in_landing = false;
 						_lnd_reached_ground = false;
+					}
+
+					// if we reached the ground, set the landed locked flag
+					// from now on a takeoff is needed to get off the ground, e.g user has to put
+					// throttle over 50 %
+					if (_control_mode.flag_control_manual_enabled && _lnd_reached_ground) {
+						_landed_locked = true;
 					}
 
 					/* limit min lift */
