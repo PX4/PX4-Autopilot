@@ -573,6 +573,8 @@ TAP_ESC::cycle()
 		/* advertise the mixed control outputs, insist on the first group output */
 		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 		_esc_feedback_pub = orb_advertise(ORB_ID(esc_report), &_esc_feedback);
+		multirotor_motor_limits_s multirotor_motor_limits = {};
+		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 		_initialized = true;
@@ -652,14 +654,7 @@ TAP_ESC::cycle()
 			multirotor_motor_limits_s multirotor_motor_limits = {};
 			multirotor_motor_limits.saturation_status = _mixers->get_saturation_status();
 
-			if (_to_mixer_status == nullptr) {
-				_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
-
-			} else {
-				orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &multirotor_motor_limits);
-
-			}
-
+			orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &multirotor_motor_limits);
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
