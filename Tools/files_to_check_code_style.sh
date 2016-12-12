@@ -16,6 +16,9 @@ exec find src \
     -path src/lib/external_lgpl -prune -o \
     -path src/lib/mathlib -prune -o \
     -path src/lib/matrix -prune -o \
+    -path src/drivers/bootloaders -o \
+    -path src/modules/uavcanesc -o \
+    -path src/modules/uavcannode -o \
     -path src/modules/attitude_estimator_ekf -prune -o \
     -path src/modules/commander -prune -o \
     -path src/modules/mavlink -prune -o \
@@ -25,4 +28,3 @@ exec find src \
     -path src/modules/uavcan -prune -o \
     -path src/modules/uavcan/libuavcan -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
-
