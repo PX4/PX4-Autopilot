@@ -1,0 +1,62 @@
+diff --git NuttX/nuttx/include/signal.h NuttX/nuttx/include/signal.h
+index bd8ee9f..7ee242a 100644
+--- NuttX/nuttx/include/signal.h
++++ NuttX/nuttx/include/signal.h
+@@ -282,8 +282,11 @@ extern "C"
+ 
+ int kill(pid_t pid, int signo);
+ int raise(int signo);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int sigaction(int signo, FAR const struct sigaction *act,
+               FAR struct sigaction *oact);
++#pragma GCC diagnostic pop
+ int sigaddset(FAR sigset_t *set, int signo);
+ int sigdelset(FAR sigset_t *set, int signo);
+ int sigemptyset(FAR sigset_t *set);
+diff --git NuttX/nuttx/include/stdlib.h NuttX/nuttx/include/stdlib.h
+index aa259c9..f2b0640 100644
+--- NuttX/nuttx/include/stdlib.h
++++ NuttX/nuttx/include/stdlib.h
+@@ -202,7 +202,10 @@ FAR void *zalloc(size_t);
+ FAR void *calloc(size_t, size_t);
+ 
+ #ifdef CONFIG_CAN_PASS_STRUCTS
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ struct mallinfo mallinfo(void);
++#pragma GCC diagnostic pop
+ #else
+ int      mallinfo(FAR struct mallinfo *info);
+ #endif
+diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
+index 3f2658b..41c8604 100644
+--- NuttX/nuttx/include/sys/stat.h
++++ NuttX/nuttx/include/sys/stat.h
+@@ -131,7 +131,10 @@ extern "C"
+ 
+ int mkdir(FAR const char *pathname, mode_t mode);
+ int mkfifo(FAR const char *pathname, mode_t mode);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int stat(const char *path, FAR struct stat *buf);
++#pragma GCC diagnostic pop
+ #if 0 /* Not yet supported */
+ int fstat(int fd, FAR struct stat *buf);
+ #endif
+diff --git NuttX/nuttx/include/sys/statfs.h NuttX/nuttx/include/sys/statfs.h
+index 1d1786a..12f802b 100644
+--- NuttX/nuttx/include/sys/statfs.h
++++ NuttX/nuttx/include/sys/statfs.h
+@@ -139,8 +139,11 @@ extern "C"
+  * form of the struct statfs.
+  */
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int statfs(FAR const char *path, FAR struct statfs *buf);
+ int fstatfs(int fd, FAR struct statfs *buf);
++#pragma GCC diagnostic pop
+ 
+ #undef EXTERN
+ #if defined(__cplusplus)
