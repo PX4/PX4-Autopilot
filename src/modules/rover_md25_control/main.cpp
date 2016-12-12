@@ -70,7 +70,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include "FuzzyFB.h"
+
 /* process-specific header files */
 #include "rover_params.h"
 #include "BlockEncoderPositionEstimator.hpp"
@@ -86,103 +86,6 @@
  * ^Z support by the shell.
  */
 extern "C" __EXPORT int rover_md25_control_main(int argc, char *argv[]);
-
-FuzzyFB FUZZ;
-
- /************************************************/
- /*  Jeux de regles flous   destination          */
- /************************************************/
-
-int num_inputs = 2;
-int num_outputs = 2;
-int num_rules = 21;
-
-int num_input_mfs[2] = { 3, 7 };
-
-struct  In  NInputs[] =
-{
-    { 0.000000, 200.000000 },
-    { -180.000000, 180.000000 }
-};
-
-float   inmem_points[2][7][4] =
-{
-        {
-            { 0.000000, 0.000000, 0.000000, 30.000000 },
-            { 0.000000, 30.000000, 45.000000, 80.000000 },
-            { 45.000000, 80.000000, 200.000000, 200.000000 }
-        },
-
-    {
-        { -180.000000, -180.000000, -90.000000, -30.000000 },
-        { -90.000000, -30.000000, -30.000000, -5.000000 },
-        { -30.000000, -5.000000, -5.000000, 0.000000 },
-        { -5.000000, 0.000000, 0.000000, 5.000000 },
-        { 0.000000, 5.000000, 5.000000, 30.000000 },
-        { 5.000000, 30.000000, 30.000000, 90.000000 },
-        { 30.000000, 90.000000, 180.000000, 180.000000 }
-    }
-};
-int num_output_mfs[2] = { 7, 7 };
-
-struct  Out NOutputs[] =
-{
-    { 0.000000, 256.000000 },
-    { 0.000000, 256.000000 }
-};
-
-float   outmem_points[2][7][4] =
-{
-    {
-        { 38.000000 },
-        { 54.000000 },
-        { 84.000000 },
-        { 128.000000 },
-        { 158.000000 },
-        { 176.000000 },
-        { 198.000000 }
-    },  {
-        { 38.000000 },
-        { 54.000000 },
-        { 84.000000 },
-        { 128.000000 },
-        { 158.000000 },
-        { 176.000000 },
-        { 198.000000 }
-    }
-};
-float   crisp_outputs[2] = { 0, 0};
-
-int num_rule_ants[21] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-int num_rule_cons[21] = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-
-struct  Rule    Rules[21] =
-{
-    { { 0x00, 0x01 }, { 0xa0, 0x99 } },
-    { { 0x00, 0x09 }, { 0xa0, 0x99 } },
-    { { 0x00, 0x11 }, { 0xa0, 0x99 } },
-    { { 0x00, 0x19 }, { 0x98, 0x99 } },
-    { { 0x00, 0x21 }, { 0x98, 0xa1 } },
-    { { 0x00, 0x29 }, { 0x98, 0xa1 } },
-    { { 0x00, 0x31 }, { 0x98, 0xa1 } },
-    { { 0x08, 0x01 }, { 0xa8, 0x99 } },
-    { { 0x08, 0x09 }, { 0xa8, 0x99 } },
-    { { 0x08, 0x11 }, { 0xa8, 0xa1 } },
-    { { 0x08, 0x19 }, { 0xa8, 0xa9 } },
-    { { 0x08, 0x21 }, { 0xa0, 0xa9 } },
-    { { 0x08, 0x29 }, { 0x98, 0xa9 } },
-    { { 0x08, 0x31 }, { 0x98, 0xa9 } },
-    { { 0x10, 0x01 }, { 0xb0, 0x99 } },
-    { { 0x10, 0x31 }, { 0x98, 0xb1 } },
-    { { 0x10, 0x11 }, { 0xb0, 0xa9 } },
-    { { 0x10, 0x19 }, { 0xb0, 0xb1 } },
-    { { 0x10, 0x21 }, { 0xa8, 0xb1 } },
-    { { 0x10, 0x09 }, { 0xb0, 0xa1 } },
-    { { 0x10, 0x29 }, { 0xa0, 0xb1 } }
-};
-
- int inputs[2] = {0, 0};
- int outputs[2] = { 0, 0};
 
 struct params {
     float yaw_p;
@@ -283,75 +186,31 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
     /*
      * Calculate yaw error and apply P gain
      */
-   float vire=0.0f;
+
     float yaw_err =  att_sp->yaw_body - att->yaw ;
-    //fprintf(stderr, "robot=%0.2f\n",(double)(att->yaw*360/M_TWOPI_F));
-    //fprintf(stderr, "dist=%0.2f\n",(double)att_sp->pitch_body);
     //normalisation de l'orientation du robot F.BERNAT
     yaw_err = (float)fmod((float)fmod((yaw_err + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
-    //fprintf(stderr, "att_sp->yaw_body=%0.2f,att->yaw=%0.2f \n",(double)att_sp->yaw_body,(double)att->yaw);
+   // fprintf(stderr, "att_sp->yaw_body=%0.2f,att->yaw=%0.2f \n",(double)att_sp->yaw_body,(double)att->yaw);
    // fprintf(stderr, "yaw_err=%0.2f \n",(double)yaw_err);
-
     float theta = fabs(yaw_err * pp.yaw_p);
-    float thr_p=0.0f;
-    if ((double)att_sp->thrust > 0.0){
+    float thr_p;
+    if (att_sp->thrust >0.0f)
+      thr_p=att_sp->thrust + pp.thr_p;
+    else
+      thr_p=att_sp->thrust;
 
-         if ((int)(att_sp->pitch_body*100.0f)<0)
-          inputs[0]=0;
-         else
-          inputs[0]=(int)(att_sp->pitch_body*100.0f);
+    if (fabs(yaw_err)<=(double)pp.yaw_t){
+        actuators->control[0] = thr_p ;
+        actuators->control[1] = thr_p ;
+        }else
+         if (yaw_err>0){
+           actuators->control[0] = thr_p * cosf(theta);
+           actuators->control[1] = thr_p * sinf(theta);
+        }else{
+           actuators->control[0] = thr_p * sinf(theta);
+           actuators->control[1] = thr_p * cosf(theta);
+    }
 
-         inputs[1]=(int)(yaw_err*180.0f/M_PI_F);
-
-         FUZZ.fuzzy_step(inputs, outputs);
-
-         if (abs(outputs[1]-128)==0)
-             actuators->control[0]=0;
-         else
-             actuators->control[0] = (float)(outputs[1]-128)/127.0f ;
-
-         if (abs(outputs[0]-128)==0)
-             actuators->control[1] = 0;
-         else
-             actuators->control[1] = (float)(outputs[0]-128)/127.0f ;
-
-         //thr_p=att_sp->thrust + pp.thr_p;
-      //   fprintf(stderr, "thrust=%0.2f \n",(double)thr_p);
-      /*   if (fabs(yaw_err)<=(double)pp.yaw_t){
-                //fprintf(stderr, "ttdroit \n");
-                actuators->control[0] = thr_p ;
-                actuators->control[1] = thr_p ;
-         }else
-          if (yaw_err>0.0f){
-            actuators->control[0] = thr_p * cosf(theta);
-            actuators->control[1] = thr_p * sinf(theta);
-          }else{
-            actuators->control[0] = thr_p * sinf(theta);
-            actuators->control[1] = thr_p * cosf(theta);
-          }*/
-     }
-     else{
-        if((double)att_sp->yaw_sp_move_rate>0.0){
-
-          thr_p=att_sp->yaw_sp_move_rate;
-
-          if (fabs(yaw_err)>(double)pp.yaw_t){
-
-           if((float)fabs(yaw_err)<0.2f)
-               thr_p=0.3;
-
-            vire =thr_p * cosf(theta);
-
-            if (yaw_err>0){
-                   actuators->control[0] = vire * cosf(theta);
-                   actuators->control[1] = -vire * cosf(theta);
-            }else{
-                   actuators->control[0] = -vire * cosf(theta);
-                   actuators->control[1] = vire * cosf(theta);
-                 }
-          }
-         }
-      }
     actuators->timestamp = hrt_absolute_time();
 }
 
@@ -401,18 +260,7 @@ int rover_md25_control_thread_main(int argc, char *argv[])
         actuators.control[i] = 0.0f;
     }
 
-      FUZZ.num_inputs = 2;
-      FUZZ.num_outputs = 2;
-      FUZZ.num_rules = 21;
-      FUZZ.Outputs = (Out*)NOutputs;
-      FUZZ.num_output_mfs =(int*) num_output_mfs;
-      FUZZ.num_input_mfs = (int*)num_input_mfs;
-      FUZZ.Inputs = (In*)NInputs;
-      FUZZ.Rules = (Rule*) Rules;
-      FUZZ.num_rule_ants = (int*)num_rule_ants ;
-      FUZZ.num_rule_cons =(int*) num_rule_cons;
-      FUZZ.outmem_points = outmem_points;
-      FUZZ.inmem_points = inmem_points;
+
 
     /*
      * Advertise that this controller will publish actuator

@@ -42,8 +42,8 @@ set(config_module_list
 	#drivers/mkblctrl
 	drivers/px4flow
 	drivers/md25
-	#drivers/roboclaw
-	#drivers/oreoled
+	drivers/roboclaw
+	drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
 	drivers/camera_trigger

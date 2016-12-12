@@ -640,7 +640,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
 
 		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
-		//fprintf(stderr, "velocity=%i\n",offboard_control_mode.ignore_velocity);
 		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
 		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
 		/* yaw ignore flag mapps to ignore_attitude */
@@ -692,7 +691,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					/* set the local pos values */
 					if (!offboard_control_mode.ignore_position) {
-					   // fprintf(stderr, "position vx=%0.2f\n",(double)set_position_target_local_ned.vx);
+
 						pos_sp_triplet.current.position_valid = true;
 						pos_sp_triplet.current.x = set_position_target_local_ned.x;
 						pos_sp_triplet.current.y = set_position_target_local_ned.y;
@@ -703,7 +702,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					/* set the local vel values */
 					if (!offboard_control_mode.ignore_velocity) {
-					   // fprintf(stderr, "velocity vz=%0.2f\n",(double)set_position_target_local_ned.vx);
+
 						pos_sp_triplet.current.velocity_valid = true;
 						pos_sp_triplet.current.vx = set_position_target_local_ned.vx;
 						pos_sp_triplet.current.vy = set_position_target_local_ned.vy;
@@ -730,7 +729,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					if (!offboard_control_mode.ignore_attitude && PX4_ISFINITE(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yaw_valid = true;
 						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
-						//fprintf(stderr, "receive yaw=%0.2f\n",(double)pos_sp_triplet.current.yaw);
 
 					} else {
 						pos_sp_triplet.current.yaw_valid = false;
@@ -739,10 +737,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					/* set the yawrate sp value */
 					if (!offboard_control_mode.ignore_bodyrate && PX4_ISFINITE(set_position_target_local_ned.yaw)) {
 						pos_sp_triplet.current.yawspeed_valid = true;
-
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
-
-
 
 					} else {
 						pos_sp_triplet.current.yawspeed_valid = false;

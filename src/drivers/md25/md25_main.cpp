@@ -317,7 +317,6 @@ int md25_thread_main(int argc, char *argv[])
 
     // init the driver:
      ret= md25dev->Init();
-     printf("[MD25] ret %i\n",ret);
      // destroy it again because it failed.
      if (ret!=OK){
        delete md25dev;

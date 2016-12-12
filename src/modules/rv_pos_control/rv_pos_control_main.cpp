@@ -622,16 +622,10 @@ RoverPositionControl::vehicle_setpoint_poll()
 
 	/* check if there is a new setpoint */
 	bool pos_sp_triplet_updated;
-	bool updated;
 	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
 
 	if (pos_sp_triplet_updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-	}
-	orb_check(_local_pos_sub, &updated);
-
-    if (updated) {
-	        orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
 }
 
@@ -1096,7 +1090,7 @@ RoverPositionControl::control_offboard()
             /* control position */
             _pos_sp(0) = _pos_sp_triplet.current.x;
             _pos_sp(1) = _pos_sp_triplet.current.y;
-         //   fprintf(stderr, "_pos_sp_triplet.current.x=%0.2f,_pos_sp_triplet.current.y=%0.2f \n",(double)_pos_sp_triplet.current.x,(double)_pos_sp_triplet.current.y);
+      //      fprintf(stderr, "_pos_sp_triplet.current.x=%0.2f,_pos_sp_triplet.current.y=%0.2f \n",(double)_pos_sp_triplet.current.x,(double)_pos_sp_triplet.current.y);
 
         } else if (_pos_sp_triplet.current.velocity_valid) {
             /* control velocity */
@@ -1110,10 +1104,10 @@ RoverPositionControl::control_offboard()
             _run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
         }
 
-        /*if (_pos_sp_triplet.current.yaw_valid) {
+        if (_pos_sp_triplet.current.yaw_valid) {
             _att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-           // fprintf(stderr, "_pos_sp_triplet.current.yaw=%0.2f\n",(double)_pos_sp_triplet.current.yaw);
-        }*/
+            fprintf(stderr, "_pos_sp_triplet.current.yaw=%0.2f\n",(double)_pos_sp_triplet.current.yaw);
+        }
     }
 }
 
@@ -1122,9 +1116,9 @@ void
 RoverPositionControl::task_main()
 {
     bool updated;
-    float x,y,alpha,yawspeed;
+    float x,y,alpha;
     bool first=true;
-    float dist=0;
+
 
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -1138,13 +1132,13 @@ RoverPositionControl::task_main()
     _att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* rate limit control mode updates to 5Hz */
-	orb_set_interval(_control_mode_sub, 5);
+	orb_set_interval(_control_mode_sub, 200);
 	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vehicle_status_sub, 5);
+	orb_set_interval(_vehicle_status_sub, 200);
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 	/* rate limit position updates to 50 Hz */
-	//orb_set_interval(_local_pos_sub, 50);
+	orb_set_interval(_local_pos_sub, 20);
     /* rate limit position updates to 50 Hz */
     orb_set_interval(_att_sub, 20);
 	/* wakeup source(s) */
@@ -1159,8 +1153,6 @@ RoverPositionControl::task_main()
     if (updated) {
          orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
     }//F.BERNAT
-    _att_sp.thrust = 0.0f;
-    yawspeed=0.0f;
 	while (!_task_should_exit) {
 
 	    /* wait for up to 500ms for data */
@@ -1213,7 +1205,7 @@ RoverPositionControl::task_main()
 			 */
 			if (_control_mode.flag_control_offboard_enabled) {
 			       orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
-			 //      orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+			       orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
                    control_offboard();
                    if(first){
@@ -1221,48 +1213,27 @@ RoverPositionControl::task_main()
                        first=false;
                    }
 
-                   if ( _pos_sp_triplet.current.valid && _local_pos.xy_valid){
-                       x= _pos_sp(0) - _local_pos.x;
-                       y= _pos_sp(1) - _local_pos.y;
-                      // fprintf(stderr, "x=%0.2f\n",(double)_pos_sp_triplet.current.x);
-                      // fprintf(stderr, "y=%0.2f\n",(double)_pos_sp_triplet.current.y);
-                       if (_pos_sp_triplet.current.velocity_valid){
-                           _att_sp.thrust=(float)_pos_sp_triplet.current.vx;
-                           yawspeed=(float)_pos_sp_triplet.current.vz;
-                        //   fprintf(stderr, "_att_sp.thrust=%0.2f\n",(double)_att_sp.thrust);
-                        //   fprintf(stderr, "yawspeed=%0.2f\n",(double)yawspeed);
+                   if ( _pos_sp_triplet.current.valid){
+                       x= _pos_sp_triplet.current.x - _local_pos.x;
+                       y= _pos_sp_triplet.current.y - _local_pos.y;
+                       alpha=atan2f(y,x);
+                       //fprintf(stderr, "alpha=%0.2f\n",(double)alpha);
+                       //fprintf(stderr, "att.yaw=%0.2f\n",(double)att.yaw);
+                       _att_sp.yaw_body=yaw_dep-alpha;
+                      // fprintf(stderr, "_local_pos.x=%0.2f,_local_pos.y=%0.2f\n",(double)_local_pos.x,(double)_local_pos.y);
+
+                     //  fprintf(stderr, "_att_sp.yaw_body=%0.2f\n",(double)_att_sp.yaw_body);
+                        if ((_att_sp.yaw_body < 0.0f) && (_att_sp.yaw_body < -3.1415926f))
+                         _att_sp.yaw_body= _att_sp.yaw_body + 2*3.1415926f;
+                        else
+                         if ((_att_sp.yaw_body > 0.0f) && (_att_sp.yaw_body >  3.1415926f))
+                          _att_sp.yaw_body = _att_sp.yaw_body - 2*3.1415926f;
+
+                        _att_sp.thrust = _pos_sp_triplet.current.vx; //0.3f;
+                       }else{
+                           _att_sp.thrust = 0.0f;
                        }
 
-                       //if (dist>0.2f){
-                       if(_att_sp.thrust>0.0f){
-                          alpha=atan2f(y,x);
-                          dist=sqrt(x*x+y*y);
-                       //   fprintf(stderr, "x=%0.2f\n",(double)x);
-                       //   fprintf(stderr, "y=%0.2f\n",(double)y);
-                       //   fprintf(stderr, "alpha=%0.2f\n",(double)alpha);
-
-                       //fprintf(stderr, "att.yaw=%0.2f\n",(double)att.yaw);
-                          _att_sp.yaw_body=yaw_dep-alpha;
-
-                          _att_sp.yaw_body=(float)fmod((float)fmod((_att_sp.yaw_body + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
-                      //    fprintf(stderr, "angle=%0.2f\n",(double)(_att_sp.yaw_body*180/M_PI_F));
-                          _att_sp.pitch_body=dist;
-                          _att_sp.yaw_sp_move_rate=0.0f;
-                          yawspeed=0.0f;
-
-                       }else
-                           if (fabs(yawspeed)>0.0){
-                            if (_pos_sp_triplet.current.yaw_valid)
-                              _att_sp.yaw_body=_pos_sp_triplet.current.yaw;
-
-                              _att_sp.yaw_sp_move_rate=yawspeed;
-
-                          }else
-                              _att_sp.thrust=0.0f;
-
-                    }
-                   else
-                       fprintf(stderr, "pos valid false\n");
                      _att_sp.timestamp = hrt_absolute_time();
 
                    /* lazily publish the setpoint only once available */
