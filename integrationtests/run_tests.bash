@@ -107,13 +107,6 @@ cp -r $ROS_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}
 cp -r $PX4_LOG_DIR/* ${TEST_RESULT_TARGET_DIR}
 # cp $BAGS/*.bag ${TEST_RESULT_TARGET_DIR}/
 # cp -r $CHARTS ${TEST_RESULT_TARGET_DIR}/
-
-echo "uploading test logs to Flight Review"
-for LOG in `ls $PX4_LOG_DIR/**/*.ulg`
-do
-	LINK=`$SRC_DIR/Tools/upload_log.py -q --source CI $LOG`
-	echo "Test log: $LINK"
-done
 echo "<====="
 
 # need to return error if tests failed, else Jenkins won't notice the failure
