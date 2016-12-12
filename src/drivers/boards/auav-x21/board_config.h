@@ -47,10 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32.h>
-#include <arch/board/board.h>
-
-#define UDID_START		0x1FFF7A10
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -254,6 +250,26 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
+/****************************************************************************************************
+ * Name: board_spi_reset board_peripheral_reset
+ *
+ * Description:
+ *   Called to reset SPI and the perferal bus
+ *
+ ****************************************************************************************************/
+
+extern void board_spi_reset(int ms);
+extern void board_peripheral_reset(int ms);
+
+/****************************************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called to configure USB IO.
+ *
+ ****************************************************************************************************/
+
+extern void stm32_usbinitialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize
@@ -264,30 +280,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-extern void board_spi_reset(int ms);
-
-extern void stm32_usbinitialize(void);
-
-extern void board_peripheral_reset(int ms);
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 #include "../common/board_common.h"
 
