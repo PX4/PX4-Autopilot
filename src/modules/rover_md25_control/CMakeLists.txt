@@ -41,6 +41,7 @@ px4_add_module(
 		BlockEncoderPositionEstimator.cpp
 		main.cpp
 		rover_params.c
+		FuzzyFB.cpp
 		
 	DEPENDS
 		platforms__common

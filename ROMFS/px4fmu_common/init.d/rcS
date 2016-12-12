@@ -482,7 +482,7 @@ then
 
         if [ $OUTPUT_MODE == md25 ]
          then
-            echo "[init] Use md25 as primary output"
+            echo "[init m] Use md25 as primary output"
             if md25 start 1 0x58
             then
                 echo "[init] md25 started"
