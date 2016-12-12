@@ -1,0 +1,12 @@
+{
+    "board_id": 13,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the PX4FMUv4PRO board, based on STM32F469",
+    "image": "",
+    "build_time": 0,
+    "summary": "PX4FMUv4PRO",
+    "version": "0.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}
