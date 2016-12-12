@@ -973,7 +973,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* enable logging on start (-e option) */
 	bool log_on_start = false;
 
-    /* enable logging when armed (-a option) */
+	/* enable logging when armed (-a option) */
 	bool log_when_armed = false;
 	log_name_timestamp = false;
 

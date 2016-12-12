@@ -95,7 +95,8 @@ PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
 PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 2);
 
 /**
- * Controls when logging starts.
+ * Controls when the sdlog2 program starts logging data.
+ * The sdlog2 program is used when SYS_LOGGER is set to 0.
  *
  * A value of 0 is the default which starts on arming for normal
  * logging and on startup for ekf2 replay logging. A value of 1
