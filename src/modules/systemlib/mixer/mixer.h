@@ -705,6 +705,7 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual void			groups_required(uint32_t &groups);
 
+	virtual uint16_t		get_saturation_status(void) { return 0; }
 	unsigned set_trim(float trim)
 	{
 		return 4;
