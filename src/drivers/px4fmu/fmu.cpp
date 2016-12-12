@@ -811,7 +811,7 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 	}
 
 	if (_outputs_pub == nullptr) {
-		int instance = -1;
+		int instance = _class_instance;
 		_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &instance, ORB_PRIO_DEFAULT);
 
 	} else {
@@ -1172,7 +1172,10 @@ PX4FMU::cycle()
 			multirotor_motor_limits.saturation_status = _mixers->get_saturation_status();
 
 			if (_to_mixer_status == nullptr) {
-				_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
+				/* publish limits */
+				int instance = _class_instance;
+				_to_mixer_status = orb_advertise_multi(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits, &instance,
+								       ORB_PRIO_DEFAULT);
 
 			} else {
 				orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &multirotor_motor_limits);
@@ -1250,7 +1253,8 @@ PX4FMU::cycle()
 			orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 		} else {
-			_to_safety = orb_advertise(ORB_ID(safety), &safety);
+			int instance = _class_instance;
+			_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
 		}
 	}
 
@@ -1578,7 +1582,8 @@ PX4FMU::cycle()
 	if (rc_updated) {
 		/* lazily advertise on first publication */
 		if (_to_input_rc == nullptr) {
-			_to_input_rc = orb_advertise(ORB_ID(input_rc), &_rc_in);
+			int instance = _class_instance;
+			_to_input_rc = orb_advertise_multi(ORB_ID(input_rc), &_rc_in, &instance, ORB_PRIO_DEFAULT);
 
 		} else {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &_rc_in);
@@ -3179,6 +3184,8 @@ fake(int argc, char *argv[])
 		errx(1, "advertise failed");
 	}
 
+	orb_unadvertise(handle);
+
 	actuator_armed_s aa;
 
 	aa.armed = true;
@@ -3189,6 +3196,8 @@ fake(int argc, char *argv[])
 	if (handle == nullptr) {
 		errx(1, "advertise failed 2");
 	}
+
+	orb_unadvertise(handle);
 
 	exit(0);
 }
