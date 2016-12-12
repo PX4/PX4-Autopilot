@@ -48,7 +48,7 @@
 #include <stdbool.h>
 #include <debug.h>
 
-#include <nuttx/spi.h>
+#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
@@ -73,11 +73,6 @@ __EXPORT void stm32_spiinitialize(void)
 #ifdef CONFIG_STM32_SPI1
 	px4_arch_configgpio(GPIO_SPI_CS_MPU6500);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU6500, 1);
 #endif
 }
 

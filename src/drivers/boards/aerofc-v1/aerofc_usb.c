@@ -102,4 +102,3 @@ __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	//ulldbg("resume: %d\n", resume);
 }
-
