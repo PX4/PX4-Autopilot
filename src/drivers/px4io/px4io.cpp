@@ -3396,7 +3396,6 @@ checkcrc(int argc, char *argv[])
 		exit(1);
 	}
 
-	warnx("CRCs match");
 	exit(0);
 }
 
