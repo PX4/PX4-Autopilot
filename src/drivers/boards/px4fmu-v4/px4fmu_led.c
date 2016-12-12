@@ -73,20 +73,20 @@ __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		px4_arch_configgpio(g_ledmap[l]);
+		stm32_configgpio(g_ledmap[l]);
 	}
 }
 
 static void phy_set_led(int led, bool state)
 {
 	/* Pull Down to switch on */
-	px4_arch_gpiowrite(g_ledmap[led], !state);
+	stm32_gpiowrite(g_ledmap[led], !state);
 }
 
 static bool phy_get_led(int led)
 {
 
-	return !px4_arch_gpioread(g_ledmap[led]);
+	return !stm32_gpioread(g_ledmap[led]);
 }
 
 __EXPORT void led_on(int led)
