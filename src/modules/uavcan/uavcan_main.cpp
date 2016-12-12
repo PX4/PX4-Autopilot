@@ -110,6 +110,8 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	if (res < 0) {
 		std::abort();
 	}
+	/* _server_command_sem use case is a signal */
+	px4_sem_setprotocol(&_server_command_sem, SEM_PRIO_NONE);
 
 	if (_perfcnt_node_spin_elapsed == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
