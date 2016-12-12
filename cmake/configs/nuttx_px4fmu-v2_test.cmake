@@ -1,5 +1,7 @@
 include(nuttx/px4_impl_nuttx)
 
+px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_test)
+
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
 
 set(config_uavcan_num_ifaces 2)
@@ -18,7 +20,7 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
-	drivers/mpu9250
+#TO FIT	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
@@ -56,6 +58,7 @@ set(config_module_list
 	systemcmds/config
 	systemcmds/dumpfile
 	#systemcmds/esc_calib
+#TO FIT	systemcmds/hardfault_log
 	systemcmds/mixer
 	systemcmds/motor_ramp
 	systemcmds/mtd
@@ -202,9 +205,11 @@ set(config_io_extra_libs
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon" STACK_MAIN "2048")
+	MAIN "sercon" STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")
 
 add_custom_target(serdis)
 set_target_properties(serdis PROPERTIES
 	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis" STACK_MAIN "2048")
+	MAIN "serdis" STACK_MAIN "2048"
+	COMPILE_FLAGS "-Os")
