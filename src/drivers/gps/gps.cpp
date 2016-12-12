@@ -510,8 +510,6 @@ int GPS::setBaudrate(unsigned baud)
 	int speed;
 
 	switch (baud) {
-	case 4800:   speed = B4800;   break;
-
 	case 9600:   speed = B9600;   break;
 
 	case 19200:  speed = B19200;  break;
