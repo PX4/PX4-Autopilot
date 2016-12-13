@@ -124,3 +124,63 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	}
 };
+
+__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
+	{
+		.base 				= STM32_TIM3_BASE,
+		.clock_register 	= STM32_RCC_APB1ENR,
+		.clock_bit 			= RCC_APB1ENR_TIM3EN,
+		.clock_freq 		= STM32_APB1_TIM3_CLKIN,
+		.vectorno 			=  0,
+		.first_channel_index = 0,
+		.last_channel_index = 2,
+	},
+	{
+		.base 				= STM32_TIM5_BASE,
+		.clock_register 	= STM32_RCC_APB1ENR,
+		.clock_bit 			= RCC_APB1ENR_TIM5EN,
+		.clock_freq 		= STM32_APB1_TIM5_CLKIN,
+		.vectorno 			=  0,
+		.first_channel_index = 3,
+		.last_channel_index = 5,
+	}
+};
+
+__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
+	{
+		.gpio_out = LED_TIM3_CH4OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 4,
+	},
+	{
+		.gpio_out = LED_TIM3_CH1OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 1,
+	},
+	{
+		.gpio_out = LED_TIM3_CH2OUT,
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM5_CH1OUT,
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 1,
+	},
+	{
+		.gpio_out = LED_TIM5_CH2OUT,
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM5_CH3OUT,
+		.gpio_in  = 0,
+		.timer_index = 1,
+		.timer_channel = 3,
+	}
+};
