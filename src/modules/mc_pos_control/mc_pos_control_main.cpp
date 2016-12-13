@@ -1825,10 +1825,12 @@ MulticopterPositionControl::control_position(float dt)
 		float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
 		_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;
 
-		// We can only run the control if we're already in-air or have a takeoff setpoint.
+		// We can only run the control if we're already in-air, have a takeoff setpoint,
+		// or if we're in offboard control.
 		// Otherwise, we should just bail out
 		const bool got_takeoff_setpoint = (_pos_sp_triplet.current.valid &&
-						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF);
+						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
+						  _control_mode.flag_control_offboard_enabled;
 
 		if (_vehicle_land_detected.landed && !got_takeoff_setpoint) {
 			// Keep throttle low while still on ground.
