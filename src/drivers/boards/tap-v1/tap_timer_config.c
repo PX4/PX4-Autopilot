@@ -75,7 +75,7 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	}
 };
 
-__EXPORT const struct io_timers_t led_pwm_timers[1] = {
+__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 	{
 		.base 				= STM32_TIM3_BASE,
 		.clock_register 	= STM32_RCC_APB1ENR,
@@ -87,7 +87,7 @@ __EXPORT const struct io_timers_t led_pwm_timers[1] = {
 	}
 };
 
-__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = {
+__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 	{
 		.gpio_out = LED_TIM3_CH1OUT,
 		.gpio_in  = 0,
