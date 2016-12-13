@@ -163,11 +163,6 @@ using ::isfinite;
 #define _PX4_IOC(x,y) _IO(x,y)
 
 /* FIXME - Used to satisfy build */
-//STM DocID018909 Rev 8 Sect 39.1 (Unique device ID Register)
-#define UNIQUE_ID       0x1FFF7A10
-#define STM32_SYSMEM_UID "SIMULATIONID"
-
-/* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
 
 #define USEC_PER_TICK (1000000UL/PX4_TICKS_PER_SEC)
