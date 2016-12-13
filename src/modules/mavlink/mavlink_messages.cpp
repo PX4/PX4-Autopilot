@@ -445,7 +445,7 @@ protected:
 						} else {
 							(void)fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(_fp->fs_filedes);
+							fsync(fileno(_fp));
 #endif
 						}
 
@@ -466,7 +466,7 @@ protected:
 							fputs(msg.text, _fp);
 							fputs("\n", _fp);
 #ifdef __PX4_NUTTX
-							fsync(_fp->fs_filedes);
+							fsync(fileno(_fp));
 #endif
 
 						} else {
