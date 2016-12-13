@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/systemlib.h>
 
 #include <stm32_uart.h>
 
@@ -61,8 +62,6 @@
 #include "px4io.h"
 
 __EXPORT int user_start(int argc, char *argv[]);
-
-extern void up_cxxinitialize(void);
 
 struct sys_state_s 	system_state;
 
@@ -238,8 +237,19 @@ user_start(int argc, char *argv[])
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
 
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
 	/* run C++ ctors before we go any further */
+
 	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
@@ -259,7 +269,7 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* print some startup info */
-	lowsyslog("\nPX4IO: starting\n");
+	syslog(LOG_INFO, "\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -301,7 +311,7 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
@@ -321,7 +331,7 @@ user_start(int argc, char *argv[])
 	 */
 	if (minfo.mxordblk < 600) {
 
-		lowsyslog("ERR: not enough MEM");
+		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
 
 		while (true) {
