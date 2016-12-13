@@ -308,6 +308,7 @@ tests_coverage:
 
 # QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
+	check_aerofc-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v3_default \
