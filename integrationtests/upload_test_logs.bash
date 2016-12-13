@@ -1,23 +1,19 @@
 #!/bin/bash
 #
-# Run container and start test execution
+# Upload SITL CI logs to Flight Review
 #
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 
-if [ -z "$WORKSPACE" ]; then
-    echo "\$WORKSPACE not set"
+if [ -z "$WORKSPACE" ] || [ -z "${ghprbActualCommitAuthorEmail}" ] || [ -z "${ghprbPullDescription}" ]; then
+    echo "Environment not set. Needs to be called from within Jenkins."
     exit 1
 fi
 
-# determine the directory of the source given the directory of this script
-pushd `dirname $0` > /dev/null
-SCRIPTPATH=`pwd`
-popd > /dev/null
-ORIG_SRC=$(dirname $SCRIPTPATH)
+echo "Uploading test logs to Flight Review"
 
-echo "uploading test logs to Flight Review"
-for LOG in `ls $WORKSPACE/test_results/**/*.ulg`
-do
-    LINK=`$ORIG_SRC/Tools/upload_log.py -q --source CI $LOG`
-    echo "Test log: $LINK"
-done
+CMD="$WORKSPACE/Firmware/Tools/upload_log.py"
+find "$WORKSPACE/test_results" -name \*.ulg -exec "$CMD" -q \
+	--description "${ghprbPullDescription}" --source CI "{}" \;
+
+# XXX: move up if we want email notifications
+#	--email "${ghprbActualCommitAuthorEmail}" \
