@@ -195,7 +195,7 @@ run_sitl_ros: _sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
 .NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
@@ -208,30 +208,67 @@ ifeq ($(VECTORCONTROL),1)
 endif
 
 check_px4fmu-v4_default: uavcan_firmware
+
 check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo
+	@echo VECTORCONTROL=$VECTORCONTROL
 ifeq ($(VECTORCONTROL),1)
 	@echo "Cleaning up vectorcontrol firmware"
 	@rm -rf vectorcontrol
 	@rm -rf ROMFS/px4fmu_common/uavcan
 endif
 
-# All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: 	check_px4fmu-v1_default \
+sizes:
+	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
+
+
+checks_defaults: \
+	check_auav-x21_default \
+	check_px4fmu-v5_default \
+	check_px4nucleoF767ZI-v1_default \
+	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
-	check_px4fmu-v2_test \
-	check_px4fmu-v4_default_and_uavcan \
+	check_px4fmu-v3_default \
+	check_px4fmu-v4_default \
+	check_px4fmu-v4pro_default \
 	check_mindpx-v2_default \
-	check_posix_sitl_default \
+	check_px4cannode-v1_default \
+	check_px4esc-v1_default \
+	check_s2740vc-v1_default \
 	check_tap-v1_default \
+	check_crazyflie_default \
+
+checks_bootloaders: \
+	check_px4cannode-v1_bootloader \
+	check_esc35-v1_bootloader \
+	check_px4esc-v1_bootloader \
+	check_px4flow-v2_bootloader \
+	check_s2740vc-v1_bootloader \
+	check_zubaxgnss-v1_bootloader \
+
+checks_tests: \
+	check_px4fmu-v2_test
+
+checks_alts: \
 	check_aerofc-v1_default \
 	check_px4-stm32f4discovery_default \
-	check_crazyflie_default \
-	check_tests \
-	check_format
 
+checks_uavcan: \
+	check_px4fmu-v4_default_and_uavcan
+
+checks_sitls: \
+	check_posix_sitl_default
+
+checks_last: \
+	tests \
+	check_format \
+
+compiler_version:
+	-arm-none-eabi-gcc --version
+
+# All default targets that don't require a special build environment (currently built on semaphore-ci)
+check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last sizes
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_posix_sitl_default check_px4fmu-v4_default check_tests check_format
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default tests check_format sizes
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -246,6 +283,11 @@ check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
+	@mkdir -p Binaries
+	@mkdir -p Meta/$(subst check_,,$@)
+	@cp build_$(subst check_,,$@)/*.xml Meta/$(subst check_,,$@) 2> /dev/null || :
+	@find build_$(subst check_,,$@)/src/firmware -type f -name 'nuttx-*-default.px4' -exec cp "{}" Binaries \; 2> /dev/null || :
+	@rm -rf build_$(subst check_,,$@)
 	@echo
 
 unittest: posix_sitl_default
@@ -255,7 +297,7 @@ unittest: posix_sitl_default
 run_tests_posix: posix_sitl_default
 	@(cd build_posix_sitl_default/ && ctest -V)
 
-tests: check_unittest run_tests_posix
+tests: unittest run_tests_posix
 
 tests_coverage:
 	@(PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 ${MAKE} tests)
@@ -276,7 +318,7 @@ qgc_firmware: \
 	check_format
 
 package_firmware:
-	@zip --junk-paths Firmware.zip `find . -name \*.px4`
+	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
 
 clean:
 	@rm -rf build_*/
@@ -322,4 +364,3 @@ help:
 # Print a list of all config targets.
 list_config_targets:
 	@for targ in $(patsubst nuttx_%,[nuttx_]%,$(ALL_CONFIG_TARGETS)); do echo $$targ; done
-
