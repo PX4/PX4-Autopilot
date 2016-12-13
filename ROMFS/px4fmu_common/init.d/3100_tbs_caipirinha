@@ -51,9 +51,5 @@ then
 	param set NAV_LOITER_RAD 30
 fi
 
-set PWM_DISARMED p:PWM_DISARMED
-set PWM_MIN p:PWM_MIN
-set PWM_MAX p:PWM_MAX
-
 set MIXER caipi
 set PWM_OUT 1234
