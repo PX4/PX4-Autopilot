@@ -61,11 +61,6 @@
 #include "drv_io_timer.h"
 #include "drv_pwm_servo.h"
 
-#include <chip.h>
-#include <up_internal.h>
-#include <up_arch.h>
-
-#include <stm32.h>
 #include <stm32_tim.h>
 
 int up_pwm_servo_set(unsigned channel, servo_position_t value)

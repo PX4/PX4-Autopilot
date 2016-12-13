@@ -545,7 +545,7 @@ HC_SR04::measure()
 	usleep(10);  // 10us
 	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, false);
 
-	stm32_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, sonar_isr);
+	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, sonar_isr);
 	_status = 0;
 	ret = OK;
 
@@ -562,7 +562,7 @@ HC_SR04::collect()
 	/* read from the sensor */
 	if (_status != 2) {
 		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
-		stm32_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
+		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
 		perf_end(_sample_perf);
 		return (ret);
 	}
@@ -629,7 +629,7 @@ HC_SR04::collect()
 
 	ret = OK;
 
-	stm32_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr); /* close interrupt */
+	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr); /* close interrupt */
 	perf_end(_sample_perf);
 #endif
 	return ret;
