@@ -1451,6 +1451,7 @@ MulticopterPositionControl::task_main()
 			_do_reset_alt_pos_flag = true;
 			_vel_sp_prev.zero();
 			_reset_int_z = true;
+			_takeoff_thrust_sp = 0.0f;
 			reset_int_xy = true;
 			reset_yaw_sp = true;
 		}
