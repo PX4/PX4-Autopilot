@@ -47,7 +47,7 @@
 
 
 #ifdef __PX4_NUTTX
-#include <apps/nsh.h>
+#include <nshlib/nshlib.h>
 #endif /* __PX4_NUTTX */
 
 
