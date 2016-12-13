@@ -1875,7 +1875,7 @@ MulticopterPositionControl::control_position(float dt)
 			    && (_acc_z_lp > 4.0f
 				|| _vel_z_lp > 2.0f * _params.land_speed)) {
 				thr_max = _params.thr_max;
-				_in_landing = false;
+				_in_landing = true;
 				_lnd_reached_ground = false;
 			}
 
