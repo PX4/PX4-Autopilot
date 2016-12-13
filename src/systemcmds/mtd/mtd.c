@@ -51,10 +51,11 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <nuttx/spi.h>
-#include <nuttx/mtd.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/drivers/drivers.h>
 
 #include <arch/board/board.h>
 
@@ -230,9 +231,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_MTD);
-	/* this resets the I2C bus, set correct bus speed again */
-	I2C_SETFREQUENCY(i2c, 400000);
+	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_MTD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");
