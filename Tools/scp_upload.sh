@@ -30,4 +30,3 @@ echo "Uploading $src_files..."
 
 # Upload files
 scp -r $src_files ${user}@${host}:$last
-
