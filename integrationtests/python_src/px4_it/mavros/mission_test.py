@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #***************************************************************************
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
@@ -35,6 +35,10 @@
 #
 # @author Andreas Antener <andreas@uaventure.com>
 #
+
+# The shebang of this file is currently Python2 because some
+# dependencies such as pymavlink don't play well with Python3 yet.
+
 PKG = 'px4'
 
 import unittest
