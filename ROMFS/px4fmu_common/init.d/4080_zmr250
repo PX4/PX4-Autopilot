@@ -43,7 +43,7 @@ then
 	param set MC_TPA_BREAK_D 0.7
 	param set MC_TPA_RATE_P 0.5
 	param set MC_TPA_RATE_D 0.5
-	
+
 	param set PWM_MIN 1075
 	param set PWM_RATE 400
 	param set PWM_DISARMED 900
