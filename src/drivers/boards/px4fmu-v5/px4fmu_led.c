@@ -77,7 +77,7 @@ static uint32_t g_ledmap[] = {
 
 #else
 
-#  define xlat(p)
+#  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
 	GPIO_LED_BLUE,    // Indexed by LED_BLUE
 	GPIO_LED_RED,     // Indexed by LED_RED, LED_AMBER
@@ -97,9 +97,9 @@ __EXPORT void led_init(void)
 
 static void phy_set_led(int led, bool state)
 {
-	/* Drive High to switch on */
+	/* Drive Low to switch on */
 
-	stm32_gpiowrite(g_ledmap[led], state);
+	stm32_gpiowrite(g_ledmap[led], !state);
 }
 
 static bool phy_get_led(int led)
