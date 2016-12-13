@@ -91,7 +91,7 @@ public:
 		MISSION_YAWMODE_BACK_TO_HOME = 3,
 		MISSION_YAWMODE_MAX = 4
 	};
-	
+
 	bool set_current_offboard_mission_index(unsigned index);
 
 	unsigned find_offboard_land_start();
