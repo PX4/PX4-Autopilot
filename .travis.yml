@@ -73,9 +73,9 @@ script:
 after_success:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
          make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
-      && find . -type f -name 'nuttx-*-default.px4' -exec cp "{}" . \;
+      && cp Binaries/* .
       && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
-      && mkdir s3deploy-branch && mv *_default.px4 build_px4fmu-v2_default/parameters.xml build_px4fmu-v2_default/airframes.xml s3deploy-branch/;
+      && mkdir s3deploy-branch && mv *_default.px4 Meta/px4fmu-v2_default/parameters.xml Meta/px4fmu-v2_default/airframes.xml s3deploy-branch/;
     fi
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "4.9" ]]; then
       export PX4_S3_DEPLOY=1;
