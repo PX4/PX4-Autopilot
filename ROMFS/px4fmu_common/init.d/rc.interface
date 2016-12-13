@@ -56,10 +56,10 @@ then
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "INFO  [init] Mixer: $MIXER_FILE on $OUTPUT_DEV"
+		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
-		echo "ERROR [init] Error loading mixer: $MIXER_FILE"
-		echo "ERROR:[init] Could not load mixer: $MIXER_FILE" >> $LOG_FILE
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 
@@ -67,8 +67,8 @@ then
 else
 	if [ $MIXER != skip ]
 	then
-		echo "ERROR [init] Mixer not defined"
-		echo "ERROR [init] Mixer not defined" >> $LOG_FILE
+		echo "ERROR  [init] Mixer undefined"
+		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 fi
@@ -159,20 +159,20 @@ then
 			then
 				if mixer append $OUTPUT_DEV $MIXER_AUX_FILE
 				then
-					echo "INFO  [init] Mixer: $MIXER_AUX_FILE appended to $OUTPUT_DEV"
+					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
 				else
-					echo "ERROR [init] Error appending mixer: $MIXER_AUX_FILE"
-					echo "ERROR [init] Could not append mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+					echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
+					echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
 				fi
 			fi
 			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then
-					echo "INFO  [init] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
 				else
-					echo "ERROR [init] Error loading mixer: $MIXER_AUX_FILE"
-					echo "ERROR [init] Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
 				fi
 			else
 				set PWM_AUX_OUT none
