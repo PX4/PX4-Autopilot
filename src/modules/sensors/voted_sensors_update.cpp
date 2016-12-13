@@ -617,13 +617,13 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 
 		} else {
 			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failover: %s%s%s%s%s!",
-							  sensor_name,
-							  sensor.voter.failover_index(),
-							  ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-							  ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
+					      sensor_name,
+					      sensor.voter.failover_index(),
+					      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
 		}
 
 		sensor.last_failover_count = sensor.voter.failover_count();
@@ -648,9 +648,9 @@ bool VotedSensorsUpdate::check_vibration()
 		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000 * 1000) {
 			_vibration_warning = true;
 			mavlink_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
-							 (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
-							 (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
-							 (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
+					     (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
+					     (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
+					     (int)(100 * _mag.voter.get_vibration_factor(cur_time)));
 			ret = true;
 		}
 
