@@ -98,9 +98,10 @@ public:
         q(1) = 0;
         q(2) = 0;
         q(3) = 0;
-        if (((Type(1) + dcm(0, 0) + dcm(1, 1) + dcm(2, 2)) > 0) & (fabsf(q(0)) > 0) ) {
-            q(0) = Type(0.5) * Type(sqrt(Type(1) + dcm(0, 0) +
-                                         dcm(1, 1) + dcm(2, 2)));
+        Type q0_tmp = Type(0.5) * Type(sqrt(Type(1) + dcm(0, 0) +
+                                            dcm(1, 1) + dcm(2, 2)));
+        if (fabsf(q0_tmp) > 0) {
+            q(0) = q0_tmp;
             q(1) = Type((dcm(2, 1) - dcm(1, 2)) /
                         (Type(4) * q(0)));
             q(2) = Type((dcm(0, 2) - dcm(2, 0)) /
