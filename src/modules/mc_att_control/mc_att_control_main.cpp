@@ -377,22 +377,25 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_actuators_0_circuit_breaker_enabled(false),
 
+	_ctrl_state{},
+	_v_att_sp{},
+	_v_rates_sp{},
+	_manual_control_sp{},
+	_v_control_mode{},
+	_actuators{},
+	_armed{},
+	_vehicle_status{},
+	_motor_limits{},
+	_controller_status{},
+	_battery_status{},
+
+	_saturation_status{},
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_ts_opt_recovery(nullptr)
 
 {
-	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
-	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
-	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
-	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
-	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-	memset(&_actuators, 0, sizeof(_actuators));
-	memset(&_armed, 0, sizeof(_armed));
-	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
-	memset(&_motor_limits, 0, sizeof(_motor_limits));
-	memset(&_controller_status, 0, sizeof(_controller_status));
 	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
