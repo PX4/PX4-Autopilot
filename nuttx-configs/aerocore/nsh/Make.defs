@@ -1,5 +1,5 @@
 ############################################################################
-# configs/aerocore/nsh/Make.defs
+# nuttx-configs/aerocore/nsh/Make.defs
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,6 +35,8 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
+include $(TOPDIR)/PX4_Warnings.mk
+include $(TOPDIR)/PX4_Config.mk
 
 include $(TOPDIR)/PX4_Warnings.mk
 
@@ -42,7 +44,7 @@ include $(TOPDIR)/PX4_Warnings.mk
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
 #
-CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI
+CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI${HOST_OS_FIRST_LETTER}
 
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
@@ -62,17 +64,19 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 			   -mfpu=fpv4-sp-d16 \
 			   -mfloat-abi=hard
 
+# Enable precise stack overflow tracking
 
-# enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 INSTRUMENTATIONDEFINES	 = -finstrument-functions -ffixed-r10
 endif
 
-# pull in *just* libm from the toolchain ... this is grody
+# Pull in *just* libm from the toolchain ... this is grody
+
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 EXTRA_LIBS		+= $(LIBM)
 
-# use our linker script
+# Use our linker script
+
 LDSCRIPT		 = ld.script
 
 ifeq ($(WINTOOL),y)
@@ -94,18 +98,20 @@ else
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   else
     # Linux/Cygwin-native toolchain
-    MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
+    MKDEP		 = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
   endif
 endif
 
-# tool versions
+# Tool versions
+
 ARCHCCVERSION		 = ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		 = ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
-# optimisation flags
+# Optimization flags
+
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
@@ -127,7 +133,8 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) $(PX4_ARCHWARNINGSXX)
 ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
-# this seems to be the only way to add linker flags
+# This seems to be the only way to add linker flags
+
 EXTRA_LIBS		+= --warn-common \
 			   --gc-sections
 
@@ -146,8 +153,8 @@ OBJEXT			 = .o
 LIBEXT			 = .a
 EXEEXT			 =
 
+# Produce partially-linked $1 from files in $2
 
-# produce partially-linked $1 from files in $2
 define PRELINK
 	@echo "PRELINK: $1"
 	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
