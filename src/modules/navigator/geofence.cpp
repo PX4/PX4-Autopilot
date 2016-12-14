@@ -168,7 +168,7 @@ bool Geofence::inside(double lat, double lon, float altitude)
 		}
 	}
 
-	inside_fence |= inside_polygon(lat, lon, altitude);
+	inside_fence &= inside_polygon(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;
