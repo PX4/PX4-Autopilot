@@ -1152,40 +1152,29 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate_s vision_position = {};
+	struct vehicle_local_position_s vision_position = {};
 
-	// Use the component ID to identify the vision sensor
-	vision_position.id = msg->compid;
+	// Use the estimator type to identify the simple vision estimate
+	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 	vision_position.timestamp = sync_stamp(pos.usec);
-	vision_position.timestamp_received = hrt_absolute_time();
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
-	// XXX fix this
-	vision_position.vx = 0.0f;
-	vision_position.vy = 0.0f;
-	vision_position.vz = 0.0f;
+	struct vehicle_attitude_s vision_attitude = {};
 
 	math::Quaternion q;
 	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
-	vision_position.q[0] = q(0);
-	vision_position.q[1] = q(1);
-	vision_position.q[2] = q(2);
-	vision_position.q[3] = q(3);
+	vision_attitude.q[0] = q(0);
+	vision_attitude.q[1] = q(1);
+	vision_attitude.q[2] = q(2);
+	vision_attitude.q[3] = q(3);
 
-	// TODO fix this
-	vision_position.pos_err = 0.0f;
-	vision_position.ang_err = 0.0f;
-
-	if (_vision_position_pub == nullptr) {
-		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
-
-	} else {
-		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
-	}
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id, ORB_PRIO_DEFAULT);
 }
 
 void
