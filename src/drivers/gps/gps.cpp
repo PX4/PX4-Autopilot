@@ -966,12 +966,13 @@ namespace gps
 {
 
 
-void	start(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
-	      bool enable_sat_info, int gps_num);
-void	stop();
-void	test();
-void	reset();
-void	info();
+void start(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
+	   bool enable_sat_info, int gps_num);
+void stop();
+void test();
+void reset();
+void info();
+void print_usage();
 
 /**
  * Start the driver.
@@ -1056,7 +1057,18 @@ info()
 	return;
 }
 
-} // namespace
+void print_usage()
+{
+	PX4_INFO("Usage: gps {start|stop|status|test|reset|status}");
+	PX4_INFO("           -f (to enable faking)");
+	PX4_INFO("           -s (to enable sat info)");
+	PX4_INFO("           -d " GPS_DEFAULT_UART_PORT);
+	PX4_INFO("           -dualgps /dev/...");
+	PX4_INFO("           -i {spi|uart}");
+	PX4_INFO("           -p {ubx|mtk|ash}");
+}
+
+} // namespace gps
 
 
 int
@@ -1071,7 +1083,9 @@ gps_main(int argc, char *argv[])
 	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
 
 	if (argc < 2) {
-		goto out;
+		PX4_ERR("not enough arguments");
+		gps::print_usage();
+		return 1;
 	}
 
 	/*
@@ -1084,8 +1098,9 @@ gps_main(int argc, char *argv[])
 				device_name = argv[3];
 
 			} else {
-				PX4_ERR("DID NOT GET -d");
-				goto out;
+				PX4_ERR("did not get -d");
+				gps::print_usage();
+				return 1;
 			}
 		}
 
@@ -1115,6 +1130,11 @@ gps_main(int argc, char *argv[])
 
 					} else if (!strcmp(argv[interface_arg], "uart")) {
 						interface = GPSHelper::Interface::UART;
+
+					} else {
+						PX4_ERR("unknown interface");
+						gps::print_usage();
+						return 1;
 					}
 				}
 			}
@@ -1135,6 +1155,11 @@ gps_main(int argc, char *argv[])
 
 					} else if (!strcmp(argv[mode_arg], "ash")) {
 						mode = GPS_DRIVER_MODE_ASHTECH;
+
+					} else {
+						PX4_ERR("unknown protocol");
+						gps::print_usage();
+						return 1;
 					}
 				}
 			}
@@ -1147,7 +1172,9 @@ gps_main(int argc, char *argv[])
 					device_name2 = argv[i + 1];
 
 				} else {
-					PX4_ERR("Did not get second device address");
+					PX4_ERR("no second device address");
+					gps::print_usage();
+					return 1;
 				}
 			}
 		}
@@ -1158,38 +1185,23 @@ gps_main(int argc, char *argv[])
 			gps::start(device_name2, mode, interface, fake_gps, enable_sat_info, 2);
 		}
 
-	}
-
-	if (!strcmp(argv[1], "stop")) {
+	} else if (!strcmp(argv[1], "stop")) {
 		gps::stop();
-	}
 
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(argv[1], "test")) {
+	} else if (!strcmp(argv[1], "test")) {
 		gps::test();
-	}
 
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[1], "reset")) {
+	} else if (!strcmp(argv[1], "reset")) {
 		gps::reset();
-	}
 
-	/*
-	 * Print driver status.
-	 */
-	if (!strcmp(argv[1], "status")) {
+	} else if (!strcmp(argv[1], "status")) {
 		gps::info();
+
+	} else {
+		PX4_ERR("unknown action");
+		gps::print_usage();
+		return 1;
 	}
 
 	return 0;
-
-out:
-	PX4_ERR("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'");
-	PX4_ERR("[-d " GPS_DEFAULT_UART_PORT
-		"][-f (for enabling fake)][-s (to enable sat info)] [-i {spi|uart}] [-p {ubx|mtk|ash}]");
-	return 1;
 }
