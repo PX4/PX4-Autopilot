@@ -322,6 +322,17 @@ int main()
     Dcmf dcm4(Eulerf(4, 5, 6));
     Dcmf dcm34 = dcm3 * dcm4;
     TEST(isEqual(Eulerf(Quatf(dcm4)*Quatf(dcm3)), Eulerf(dcm34)));
+
+    // check corner cases of matrix to quaternion conversion
+    q = Quatf(0,1,0,0); // 180 degree rotation around the x axis
+    R = Dcmf(q);
+    TEST(isEqual(q, Quatf(R)));
+    q = Quatf(0,0,1,0); // 180 degree rotation around the y axis
+    R = Dcmf(q);
+    TEST(isEqual(q, Quatf(R)));
+    q = Quatf(0,0,0,1); // 180 degree rotation around the z axis
+    R = Dcmf(q);
+    TEST(isEqual(q, Quatf(R)));
 };
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
