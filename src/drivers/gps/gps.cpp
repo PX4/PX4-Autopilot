@@ -681,11 +681,14 @@ GPS::task_main()
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.s_variance_m_s = 10.0f;
+			_report_gps_pos.alt_ellipsoid = 10000;
+			_report_gps_pos.s_variance_m_s = 0.5f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;
-			_report_gps_pos.eph = 0.9f;
-			_report_gps_pos.epv = 1.8f;
+			_report_gps_pos.eph = 0.8f;
+			_report_gps_pos.epv = 1.2f;
+			_report_gps_pos.hdop = 0.9f;
+			_report_gps_pos.vdop = 0.9f;
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
