@@ -1349,7 +1349,7 @@ MulticopterPositionControl::do_ground_takeoff(float dt)
 			_vel_prev.zero();
 
 		} else {
-			// copter has reached half of the takeoff speed
+			// copter has reached takeoff speed
 			// we can assume we are off the ground, set takeoff target velocity
 			// set the integator z value to hover thrust since it's the best guess we have
 			_takeoff_jumped = true;
