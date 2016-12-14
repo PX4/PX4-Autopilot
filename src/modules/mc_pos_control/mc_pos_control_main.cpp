@@ -1887,9 +1887,7 @@ MulticopterPositionControl::task_main()
 									thrust_sp(0) *= k;
 									thrust_sp(1) *= k;
 									/* Don't freeze x,y integrals if they both want to throttle down */
-									int sign_0 = _vel_sp(0) > 0.0f ? +1 : -1;
-									int sign_1 = _vel_sp(1) > 0.0f ? +1 : -1;
-									saturation_xy = ((vel_err(0) * sign_0 < 0.0f) && (vel_err(1) * sign_1 < 0.0f)) ? saturation_xy : true;
+									saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
 								}
 							}
 						}
@@ -1936,9 +1934,7 @@ MulticopterPositionControl::task_main()
 								thrust_sp(0) *= k;
 								thrust_sp(1) *= k;
 								/* Don't freeze x,y integrals if they both want to throttle down */
-								int sign_0 = _vel_sp(0) > 0.0f ? +1 : -1;
-								int sign_1 = _vel_sp(1) > 0.0f ? +1 : -1;
-								saturation_xy = ((vel_err(0) * sign_0 < 0.0f) && (vel_err(1) * sign_1 < 0.0f)) ? saturation_xy : true;
+								saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
 							}
 
 						} else {
