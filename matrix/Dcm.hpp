@@ -38,7 +38,7 @@ class AxisAngle;
  * described by this class.
  */
 template<typename Type>
-class Dcm : public Matrix<Type, 3, 3>
+class Dcm : public SquareMatrix<Type, 3>
 {
 public:
     virtual ~Dcm() {};
@@ -50,7 +50,7 @@ public:
      *
      * Initializes to identity
      */
-    Dcm() : Matrix<Type, 3, 3>()
+    Dcm() : SquareMatrix<Type, 3>()
     {
         (*this) = eye<Type, 3>();
     }
@@ -60,7 +60,7 @@ public:
      *
      * @param _data pointer to array
      */
-    Dcm(const Type *data_) : Matrix<Type, 3, 3>(data_)
+    Dcm(const Type *data_) : SquareMatrix<Type, 3>(data_)
     {
     }
 
@@ -69,7 +69,7 @@ public:
      *
      * @param other Matrix33 to set dcm to
      */
-    Dcm(const Matrix<Type, 3, 3> &other) : Matrix<Type, 3, 3>(other)
+    Dcm(const Matrix<Type, 3, 3> &other) : SquareMatrix<Type, 3>(other)
     {
     }
 
