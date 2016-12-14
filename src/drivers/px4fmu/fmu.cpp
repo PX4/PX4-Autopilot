@@ -770,10 +770,7 @@ PX4FMU::update_pwm_trims()
 {
 	PX4_DEBUG("update_pwm_trims");
 
-	if (_mixers == nullptr) {
-		PX4_WARN("no mixers defined");
-
-	} else {
+	if (_mixers != nullptr) {
 
 		int16_t values[_max_actuators] = {};
 
@@ -969,7 +966,6 @@ PX4FMU::cycle()
 		pwm_limit_init(&_pwm_limit);
 
 		update_pwm_rev_mask();
-		update_pwm_trims();
 
 #ifdef RC_SERIAL_PORT
 
@@ -2329,6 +2325,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 					_mixers->groups_required(_groups_required);
 					PX4_DEBUG("loaded mixers \n%s\n", buf);
+					update_pwm_trims();
 				}
 			}
 
