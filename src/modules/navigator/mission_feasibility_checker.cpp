@@ -396,7 +396,8 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 					} else {
 						/* item is too far from home */
-						mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
+						mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m > %d, refusing mission",
+								     (int)dist_to_1wp, (int)dist_first_wp);
 						warning_issued = true;
 						return false;
 					}
