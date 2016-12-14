@@ -558,7 +558,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	static CanInitHelper* can = nullptr;
 
 	if (can == nullptr) {
-		warnx("CAN driver init...");
 
 		can = new CanInitHelper();
 
@@ -627,7 +626,8 @@ void UavcanNode::fill_node_info()
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
-	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
+	// Too verbose for normal operation
+	//warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
 
 	_node.setSoftwareVersion(swver);
 

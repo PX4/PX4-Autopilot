@@ -122,7 +122,7 @@ get_parameter_value(const char *option, const char *paramDescription)
 	if (strncmp("p:", option, 2) == 0) {
 
 		char paramName[32];
-		strncpy(paramName, option + 2, 16);
+		strncpy(paramName, option + 2, 17);
 		/* user wants to use a param name */
 		param_t parm = param_find(paramName);
 

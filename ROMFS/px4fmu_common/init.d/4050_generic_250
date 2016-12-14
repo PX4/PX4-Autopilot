@@ -41,7 +41,6 @@ then
 	param set MC_ACRO_P_MAX 360.0
 	param set MC_TPA_BREAK_P 0.5
 	param set MC_TPA_RATE_P 0.5
-	
 
 	param set PWM_MIN 1075
 

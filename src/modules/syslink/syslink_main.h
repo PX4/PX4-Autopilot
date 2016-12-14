@@ -63,11 +63,11 @@ public:
 
 	int start();
 
-	// TODO: These should wait for an ACK
 	int set_datarate(uint8_t datarate);
 	int set_channel(uint8_t channel);
 	int set_address(uint64_t addr);
 
+	int is_good(int i) { return _params_ack != 0; }
 
 	int pktrate;
 	int nullrate;
@@ -83,6 +83,8 @@ private:
 
 	void handle_message(syslink_message_t *msg);
 	void handle_raw(syslink_message_t *sys);
+	void handle_radio(syslink_message_t *sys);
+	void handle_bootloader(syslink_message_t *sys);
 
 	// Handles other types of messages that we don't really care about, but
 	// will be maintained with the bare minimum implementation for supporting
@@ -96,9 +98,11 @@ private:
 
 	int send_queued_raw_message();
 
+	void update_params(bool force_set);
 
 	int _syslink_task;
 	bool _task_running;
+	bool _bootloader_mode;
 
 	int _count;
 	int _null_count;
@@ -118,6 +122,14 @@ private:
 	SyslinkBridge *_bridge;
 	SyslinkMemory *_memory;
 
+	int _params_sub;
+
+	// Current parameter values
+	uint32_t _channel, _rate;
+	uint64_t _addr;
+	hrt_abstime _params_update[3]; // Time at which the parameters were updated
+	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
+
 	orb_advert_t _battery_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _cmd_pub;
@@ -129,10 +141,8 @@ private:
 	int32_t _rssi;
 	battery_state _bstate;
 
-	px4_sem_t radio_sem;
 	px4_sem_t memory_sem;
 
-	syslink_message_t radio_msg;
 	syslink_message_t memory_msg;
 
 	static int task_main_trampoline(int argc, char *argv[]);

@@ -136,13 +136,19 @@ LoadMon::LoadMon() :
 	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check")),
 	_stack_check_enabled(false)
 {
-	/* Parameter for stack checking */
-	param_t _param_stack_check = param_find("SYS_STCK_EN");
-	int ret_val = 0;
-	param_get(_param_stack_check, &ret_val);
-	_stack_check_enabled = ret_val > 0;
+	// Enable stack checking by param
+	param_t param_stack_check = param_find("SYS_STCK_EN");
 
-	PX4_INFO("stack check enabled: %s", _stack_check_enabled ? "yes" : "no");
+	if (param_stack_check != PARAM_INVALID) {
+		int ret_val = 0;
+		param_get(param_stack_check, &ret_val);
+		_stack_check_enabled = ret_val > 0;
+
+		// Only be verbose if enabled
+		if (_stack_check_enabled) {
+			PX4_INFO("stack check enabled");
+		}
+	}
 }
 
 LoadMon::~LoadMon()

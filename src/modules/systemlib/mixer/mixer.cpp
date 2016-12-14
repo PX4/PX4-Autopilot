@@ -169,6 +169,12 @@ NullMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	return 0;
 }
 
+uint16_t
+NullMixer::get_saturation_status()
+{
+	return 0;
+}
+
 void
 NullMixer::groups_required(uint32_t &groups)
 {

@@ -3,6 +3,7 @@ uint8 TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO = 1
 uint8 TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET = 2
 uint8 TELEMETRY_STATUS_RADIO_TYPE_WIRE = 3
 uint8 TELEMETRY_STATUS_RADIO_TYPE_USB = 4
+uint8 TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM = 5
 
 uint64 heartbeat_time			# Time of last received heartbeat from remote system
 uint64 telem_time			# Time of last received telemetry status packet, 0 for none

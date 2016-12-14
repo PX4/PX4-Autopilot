@@ -141,6 +141,13 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 	return index;
 }
 
+uint16_t
+MixerGroup::get_saturation_status()
+{
+	Mixer	*mixer = _first;
+	return mixer->get_saturation_status();
+}
+
 unsigned
 MixerGroup::count()
 {

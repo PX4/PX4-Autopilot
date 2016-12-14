@@ -31,16 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__syslink
-	MAIN syslink
-	STACK_MAIN 1300
+	MODULE drivers__iridiumsbd
+	MAIN iridiumsbd
+	STACK 1024
+	STACK_MAIN 1024
+	COMPILE_FLAGS
+		-Os
 	SRCS
-		syslink_main.cpp
-		syslink_bridge.cpp
-		syslink_memory.cpp
-		syslink_params.c
-		syslink.c
+		IridiumSBD.cpp
+		iridiumsbd_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

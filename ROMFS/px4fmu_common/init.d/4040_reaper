@@ -24,19 +24,17 @@ then
     param set NAV_ACC_RAD 2.0
     param set RTL_RETURN_ALT 30.0
     param set RTL_DESCEND_ALT 10.0
+
+    param set PWM_MIN 1100
+    param set PWM_MAX 1900
+    param set PWM_AUX_DISARMED 950
 fi
 
 set MIXER quad_h
 
 set PWM_RATE 50
 set PWM_OUT 1234
-set PWM_MIN 1100
-set PWM_MAX 1900
-set PWM_DISARMED 1500
 
 set MIXER_AUX pass
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000
-set PWM_AUX_DISARMED 950

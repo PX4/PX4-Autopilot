@@ -40,6 +40,7 @@ PKG = 'px4'
 import unittest
 import rospy
 import rosbag
+import time
 
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
@@ -122,7 +123,14 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             # (need to wait the first few rounds until PX4 has the offboard stream)
             if not armed and count > 5:
                 self._srv_cmd_long(False, 176, False,
-                                   128 | 1, 6, 0, 0, 0, 0, 0)
+                                   1, 6, 0, 0, 0, 0, 0)
+                # make sure the first command doesn't get lost
+                time.sleep(1)
+
+                self._srv_cmd_long(False, 400, False,
+                                   # arm
+                                   1, 0, 0, 0, 0, 0, 0)
+
                 armed = True
 
             if (self.local_position.pose.position.x > 5

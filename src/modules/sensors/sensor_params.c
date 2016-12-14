@@ -3220,7 +3220,7 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_DISARMED, 0);
+PARAM_DEFINE_INT32(PWM_DISARMED, 900);
 
 /**
  * Set the minimum PWM for the MAIN outputs
@@ -3275,7 +3275,7 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1000);
+PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
 
 /**
  * Minimum motor rise time (slew rate limit).

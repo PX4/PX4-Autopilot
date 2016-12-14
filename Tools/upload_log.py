@@ -50,7 +50,11 @@ def ask_value(text, default=None):
 
 def get_git_email():
     """ get (globally) configured git email """
-    output = subprocess.check_output(["git", "config", "--global", "user.email"])
+    try:
+        output = subprocess.check_output(["git", "config", "--global", "user.email"])
+    except Exception:
+        return ""
+
     return output.decode("utf-8").replace('\n', '')
 
 
@@ -92,7 +96,9 @@ def main():
             'feedback': feedback, 'email': email}
 
     for file_name in args.FILE:
-        print('Uploading '+file_name+'...')
+        if not quiet:
+            print('Uploading '+file_name+'...')
+
         with open(file_name, 'rb') as f:
             r = requests.post(UPLOAD_URL, data=payload, files={'filearg': f},
                     allow_redirects=False)
