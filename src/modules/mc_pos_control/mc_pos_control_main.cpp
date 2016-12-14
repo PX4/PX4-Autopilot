@@ -1623,9 +1623,8 @@ MulticopterPositionControl::task_main()
 
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = 0.0f;
-				R = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				_att_sp.timestamp = hrt_absolute_time();
-				matrix::Quatf q_sp = R;
+				matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				memcpy(&_att_sp.q_d[0], &q_sp._data, sizeof(_att_sp.q_d));
 				_att_sp.q_d_valid = true;
 
