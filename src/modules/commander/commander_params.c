@@ -93,6 +93,17 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
+ * ACRO control method
+ *
+ * Set this parameter to 0 for gyro-only rate control
+ * or non-zero for full attitude control in ACRO mode.
+ *
+ * @group Multicopter Attitude Control
+ * @boolean
+ */
+PARAM_DEFINE_INT32(ACRO_ATT, 0);
+
+/**
  * Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers

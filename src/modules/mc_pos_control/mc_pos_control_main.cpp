@@ -65,6 +65,7 @@
 #include <arch/board/board.h>
 
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/mc_virtual_attitude_setpoint.h>
@@ -85,6 +86,8 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+
+#include "mc_sequencer.h"
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -198,6 +201,9 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+		param_t acro_rollRate_max;
+		param_t acro_pitchRate_max;
+		param_t acro_yawRate_max;
 		param_t alt_mode;
 		param_t opt_recover;
 
@@ -222,6 +228,9 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+		float acro_rollRate_max;
+		float acro_pitchRate_max;
+		float acro_yawRate_max;
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
@@ -269,6 +278,7 @@ private:
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
+	bool _sequencer_initialized;
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -418,6 +428,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	control_vel_enabled_prev(false),
+	_sequencer_initialized(false),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -489,6 +500,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
+	_params_handles.acro_rollRate_max	= 	param_find("MC_ACRO_R_MAX");
+	_params_handles.acro_pitchRate_max	= 	param_find("MC_ACRO_P_MAX");
+	_params_handles.acro_yawRate_max	= 	param_find("MC_ACRO_Y_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
@@ -621,10 +635,16 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
+		param_get(_params_handles.acro_rollRate_max, &_params.acro_rollRate_max);
+		param_get(_params_handles.acro_pitchRate_max, &_params.acro_pitchRate_max);
+		param_get(_params_handles.acro_yawRate_max, &_params.acro_yawRate_max);
 		_params.man_roll_max = math::radians(_params.man_roll_max);
 		_params.man_pitch_max = math::radians(_params.man_pitch_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
 		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+		_params.acro_rollRate_max = math::radians(_params.acro_rollRate_max);
+		_params.acro_pitchRate_max = math::radians(_params.acro_pitchRate_max);
+		_params.acro_yawRate_max = math::radians(_params.acro_yawRate_max);
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
@@ -2127,13 +2147,80 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			/* control roll and pitch directly if no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
 				_att_sp.roll_body = _manual.y * _params.man_roll_max;
 				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-				/* only if optimal recovery is not used, modify roll/pitch */
-				if (_params.opt_recover <= 0) {
+				/* If ACRO attitude control mode */
+				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO) {
+
+					float rollRate = _manual.y * _params.acro_rollRate_max;
+					float pitchRate = -_manual.x * _params.acro_pitchRate_max;
+					float yawRate = _manual.r * _params.acro_yawRate_max;
+
+					// attitude setpoint quaternion
+					matrix::Quatf R_sp(_att_sp.q_d);
+
+
+					/* the control sequencer overrides manual inputs
+					 * by setting values for roll/pitch/yawRate and modifying R_sp as needed
+					 */
+					if (!_sequencer_initialized) {
+						_sequencer_initialized = true;
+						prog_sequence_init(sequence_set::coord_turn, 25.0f);
+					}
+
+					prog_sequence(_ctrl_state, _att_sp, _manual, R_sp, rollRate, pitchRate, yawRate);
+
+					float tilt_error = 0.0f;
+					float yaw_error = 0.0f;
+
+#undef LIMIT_LEAD_ANGLE
+#ifdef LIMIT_LEAD_ANGLE
+					/* limit setpoint lead angle */
+					math::Quaternion q_cur(_ctrl_state.q);
+					math::Matrix<3, 3> R_cur = q_cur.to_dcm();
+					math::Vector<3> zb(R_cur.data[2]);
+					math::Vector<3> zsp(R_sp.data[2]);
+					tilt_error = acosf(zb * zsp);
+					math::Vector<3> xb(R_cur.data[0]);
+					math::Vector<3> xsp(R_sp.data[0]);
+					yaw_error = acosf(xb * xsp);
+#endif
+
+					/* update attitude setpoint quaternion */
+					/* interpret roll/pitch/yaw inputs as rate demands */
+					float dRoll = 0.0f;
+					float dPitch = 0.0f;
+					float dYaw = 0.0f;
+
+					if (tilt_error < M_PI_4_F) {
+						dRoll = rollRate * dt;
+						dPitch = pitchRate * dt;
+					}
+
+					if (yaw_error < M_PI_4_F) {
+						dYaw = yawRate * dt;
+					}
+
+					matrix::Quatf R_xy(matrix::Eulerf(dRoll, dPitch, 0.0f));
+					matrix::Quatf R_z(matrix::Eulerf(0.0f, 0.0f, dYaw));
+
+					// chaining order for quaternion rotations is reversed
+					R_sp = R_sp * R_z;
+					R_sp = R_xy * R_sp;
+					R_sp.normalize();
+
+					matrix::Eulerf eulerAngles(R_sp);
+					_att_sp.roll_body = eulerAngles.phi();
+					_att_sp.pitch_body = eulerAngles.theta();
+					_att_sp.yaw_body = eulerAngles.psi();
+
+				} else if (_params.opt_recover <= 0) {
+					/* not in ACRO mode and optimal recovery is not in use */
+					_att_sp.roll_body = _manual.y * _params.man_roll_max;
+					_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+
 					// construct attitude setpoint rotation matrix. modify the setpoints for roll
 					// and pitch such that they reflect the user's intention even if a yaw error
 					// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
