@@ -99,7 +99,7 @@
  * ADC defines just to not break sensors.cpp build, battery voltage and current
  * will be read in another way in future.
  */
-#define ADC_BATTERY_VOLTAGE_CHANNEL    5
+#define ADC_BATTERY_VOLTAGE_CHANNEL    1
 #define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
