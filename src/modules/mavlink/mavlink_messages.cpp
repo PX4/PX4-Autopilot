@@ -1479,8 +1479,8 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		struct vehicle_global_position_s pos;
-		struct home_position_s home;
+		struct vehicle_global_position_s pos = {};
+		struct home_position_s home = {};
 
 		bool updated = _pos_sub->update(&_pos_time, &pos);
 		updated |= _home_sub->update(&_home_time, &home);
