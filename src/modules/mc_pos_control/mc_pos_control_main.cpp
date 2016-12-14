@@ -1123,6 +1123,7 @@ MulticopterPositionControl::control_non_manual(float dt)
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		_vel_sp(2) = _params.land_speed;
+		_run_alt_control = false;
 	}
 
 	/* special thrust setpoint generation for takeoff from ground */
