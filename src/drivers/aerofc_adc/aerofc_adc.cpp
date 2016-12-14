@@ -47,12 +47,8 @@
 #include <systemlib/err.h>
 
 #define SLAVE_ADDR 0x50
-#define ENABLE_ADC_REG 0x00
-#define ADC_CHANNEL_1_REG 0x01
-#define ADC_CHANNEL_2_REG 0x02
-#define ADC_CHANNEL_3_REG 0x03
-#define ADC_CHANNEL_4_REG 0x04
-#define ADC_CHANNEL_5_REG 0x05
+#define ADC_ENABLE_REG 0x00
+#define ADC_CHANNEL_REG 0x05
 #define MAX_CHANNEL 5
 
 // 10Hz
@@ -77,11 +73,37 @@ private:
 	static void cycle_trampoline(void *arg);
 
 	struct work_s _work;
-	adc_msg_s _samples[MAX_CHANNEL];
-	pthread_mutex_t _samples_mutex;
+	adc_msg_s _sample;
+	pthread_mutex_t _sample_mutex;
 };
 
 static AEROFC_ADC *instance = nullptr;
+
+static void test()
+{
+	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		err(1, "can't open ADC device");
+	}
+
+	adc_msg_s data[MAX_CHANNEL];
+	ssize_t count = read(fd, data, sizeof(data));
+
+	if (count < 0) {
+		errx(1, "read error");
+	}
+
+	unsigned channels = count / sizeof(data[0]);
+
+	for (unsigned j = 0; j < channels; j++) {
+		printf("%d: %u  ", data[j].am_channel, data[j].am_data);
+	}
+
+	printf("\n");
+
+	exit(0);
+}
 
 int aerofc_adc_main(int argc, char *argv[])
 {
@@ -107,6 +129,9 @@ int aerofc_adc_main(int argc, char *argv[])
 			instance = nullptr;
 		}
 
+	} else if (!strcmp(argv[1], "test")) {
+		test();
+
 	} else {
 		warn("Action not supported");
 	}
@@ -115,13 +140,11 @@ int aerofc_adc_main(int argc, char *argv[])
 }
 
 AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
-	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, 0, 400000)
+	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
+	_sample{}
 {
-	for (unsigned i = 0; i < MAX_CHANNEL; i++) {
-		_samples[i].am_channel = i + 1;
-	}
-
-	pthread_mutex_init(&_samples_mutex, NULL);
+	_sample.am_channel = 1;
+	pthread_mutex_init(&_sample_mutex, NULL);
 }
 
 AEROFC_ADC::~AEROFC_ADC()
@@ -145,23 +168,27 @@ int AEROFC_ADC::init()
 
 int AEROFC_ADC::probe()
 {
-	uint8_t buffer[1];
+	uint8_t buffer[2];
 	int ret;
 
 	_retries = 3;
 
-	set_address(SLAVE_ADDR | ENABLE_ADC_REG);
-	buffer[0] = 1;
-	ret = transfer(buffer, sizeof(buffer), NULL, 0);
+	/* Enable ADC */
+	buffer[0] = ADC_ENABLE_REG;
+	buffer[1] = 0x01;
+	ret = transfer(buffer, 2, NULL, 0);
 
 	if (ret != PX4_OK) {
 		goto error;
 	}
 
-	buffer[0] = 0;
-	ret = transfer(0, 0, buffer, sizeof(buffer));
+	usleep(10000);
 
-	if (ret != PX4_OK || buffer[0] != 1) {
+	/* Read ADC value */
+	buffer[0] = ADC_CHANNEL_REG;
+	ret = transfer(buffer, 1, buffer, 2);
+
+	if (ret != PX4_OK) {
 		goto error;
 	}
 
@@ -172,59 +199,52 @@ error:
 	return -EIO;
 }
 
-int
-AEROFC_ADC::ioctl(file *filp, int cmd, unsigned long arg)
+int AEROFC_ADC::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	return -ENOTTY;
 }
 
-ssize_t
-AEROFC_ADC::read(file *filp, char *buffer, size_t len)
+ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
 {
-	if (len > sizeof(_samples)) {
-		len = sizeof(_samples);
+	if (len < sizeof(_sample)) {
+		return -ENOSPC;
 	}
 
-	pthread_mutex_lock(&_samples_mutex);
-	memcpy(buffer, _samples, len);
-	pthread_mutex_unlock(&_samples_mutex);
+	if (len > sizeof(_sample)) {
+		len = sizeof(_sample);
+	}
+
+	pthread_mutex_lock(&_sample_mutex);
+	memcpy(buffer, &_sample, len);
+	pthread_mutex_unlock(&_sample_mutex);
 
 	return len;
 }
 
-void
-AEROFC_ADC::cycle_trampoline(void *arg)
+void AEROFC_ADC::cycle_trampoline(void *arg)
 {
 	AEROFC_ADC *dev = reinterpret_cast<AEROFC_ADC * >(arg);
 	dev->cycle();
 }
 
-void
-AEROFC_ADC::cycle()
+void AEROFC_ADC::cycle()
 {
-	int32_t value[MAX_CHANNEL];
+	uint8_t buffer[2];
+	int ret;
 
-	for (uint8_t i = 0; i < MAX_CHANNEL; i++) {
-		int ret;
-		uint8_t buffer[2];
+	buffer[0] = ADC_CHANNEL_REG;
+	ret = transfer(buffer, 1, buffer, sizeof(buffer));
 
-		set_address(SLAVE_ADDR | (ADC_CHANNEL_1_REG + i));
-		ret = transfer(0, 0, buffer, sizeof(buffer));
-
-		if (ret != PX4_OK) {
-			warn("Error reading channel %u", i + 1);
-		}
-
-		value[i] = (int32_t)(buffer[0] | (buffer[1] << 8));
+	if (ret != PX4_OK) {
+		warn("Error reading sample");
+		return;
 	}
 
-	pthread_mutex_lock(&_samples_mutex);
+	pthread_mutex_lock(&_sample_mutex);
 
-	for (uint8_t i = 0; i < MAX_CHANNEL; i++) {
-		_samples[i].am_data = value[i];
-	}
+	_sample.am_data = (buffer[0] | (buffer[1] << 8));
 
-	pthread_mutex_unlock(&_samples_mutex);
+	pthread_mutex_unlock(&_sample_mutex);
 
 	work_queue(HPWORK, &_work, (worker_t)&AEROFC_ADC::cycle_trampoline, this,
 		   CYCLE_TICKS_DELAY);
