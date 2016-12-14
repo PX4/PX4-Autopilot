@@ -2039,7 +2039,7 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* Compensate vertical thrust for attitude tracking errors */
-					float corrected_thrust_abs = math::constrain(fabsf(thrust_sp(2) / _R(2, 2)), thr_min, thr_max);
+					float corrected_thrust_abs = math::constrain(fabsf(thrust_sp(2) / (_R(2, 2) + FLT_EPSILON)), thr_min, thr_max);
 					_att_sp.thrust = corrected_thrust_abs;
 
 					/* save thrust setpoint for logging */
