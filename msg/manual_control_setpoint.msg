@@ -54,3 +54,4 @@ uint8 kill_switch		 # throttle kill: _NORMAL_, KILL
 uint8 transition_switch	 # VTOL transition switch: _HOVER, FORWARD_FLIGHT
 uint8 gear_switch	 # landing gear switch: _DOWN_, UP
 int8 mode_slot			 # the slot a specific model selector is in
+uint8 sysid_switch		# spring back switch to activate system identification maneuver

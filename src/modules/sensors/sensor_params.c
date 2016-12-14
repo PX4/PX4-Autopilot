@@ -2571,6 +2571,35 @@ PARAM_DEFINE_INT32(RC_MAP_TRANS_SW, 0);
  * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
+
+/**
+ * System identification switch channel mapping
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_SYSID_SW, 0);
+
 /**
  * AUX1 Passthrough RC Channel
  *
@@ -3022,6 +3051,24 @@ PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.25f);
 PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.25f);
 
 /**
+ * Threshold for the system identification transition switch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_SYSID_TH, 0.25f);
+
+/**
  * PWM input channel that provides RSSI.
  *
  * 0: do not read RSSI from input channel
@@ -3291,3 +3338,108 @@ PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
+/**
+ * Define the sysID manoeuvre
+ *
+ * @min 0
+ * @max 10
+ * @value 0 Disabled
+ * @value 1 Step/Ramp in roll
+ * @value 2 Step/Ramp in pitch
+ * @value 3 Step/Ramp in yaw
+ * @value 4 Step in throttle
+ * @value 5 Chirp in roll
+ * @value 6 Chirp in pitch
+ * @value 7 Chirp in yaw
+ * @value 8 2-1-1 in roll
+ * @value 9 2-1-1 in pitch
+ * @value 10 2-1-1 in yaw
+ * @group SysID
+ */
+PARAM_DEFINE_INT32(SID_MANOEUVRE, 0);
+
+/**
+ * Define the amplitude of the sysID manoeuvre
+ *
+ * @min -1
+ * @max 1
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_AMPLITUDE, 0.3f);
+
+/**
+ * Define the active time of the sysID manoeuvre
+ *
+ * @min 0
+ * @max 15
+ * @unit seconds
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_ON_TIME, 3.0f);
+
+/**
+ * Define the trim time before the sysID manoeuvre
+ *
+ * The input signal will be zero before the sid manoeuvre
+ * for this specified time
+ *
+ * @min 0
+ * @max 60
+ * @unit seconds
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_TRIM_TIME_B, 1.0f);
+
+/**
+ * Define the trim time after the sysID manoeuvre
+ *
+ * The input signal will be zero after the sid manoeuvre
+ * for this specified time
+ *
+ * @min 0
+ * @max 60
+ * @unit seconds
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_TRIM_TIME_A, 1.0f);
+
+/**
+ * Define the start frequency of the sysID manoeuvre
+ *
+ * @min 0.1
+ * @max 5
+ * @unit Hz
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_START_FREQ, 1.0f);
+
+/**
+ * Define the Stop frequency of the sysID manoeuvre
+ *
+ * @min 0.1
+ * @max 5
+ * @unit Hz
+ * @decimal 1
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_STOP_FREQ, 1.0f);
+
+/**
+ * Define the ramp slope. (1/rate)
+ *
+ * This corresponds to the time [s] it takes to go from 0 to 1 (max. stick input)
+ *
+ * @min 0
+ * @max 5
+ * @decimal 1
+ * @unit seconds
+ * @group SysID
+ */
+PARAM_DEFINE_FLOAT(SID_RAMP_SLOPE, 0.0f);
+
