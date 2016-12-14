@@ -72,6 +72,7 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
+	drivers/gps
 
 	#
 	# Libraries

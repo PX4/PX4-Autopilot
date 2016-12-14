@@ -1004,7 +1004,7 @@ start(enum MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
 	}
 
 	if (!started) {
-		errx(1, "driver start failed");
+		exit(1);
 	}
 
 	// one or more drivers started OK

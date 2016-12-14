@@ -121,6 +121,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @value 319200 Normal Telemetry (19200 baud, 8N1)
  * @value 338400 Normal Telemetry (38400 baud, 8N1)
  * @value 357600 Normal Telemetry (57600 baud, 8N1)
+ * @value 419200 Iridium Telemetry (19200 baud, 8N1)
  * @value 1921600 ESP8266 (921600 baud, 8N1)
  *
  * @min 0
@@ -153,3 +154,11 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_LOGGER, 0);
+
+/**
+ * Enable stack checking
+ *
+ * @min 0
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_STCK_EN, 0);

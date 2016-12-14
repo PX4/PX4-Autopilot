@@ -133,9 +133,6 @@
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 #define PX4IO_P_STATUS_MIXER			9	 /* mixer actuator limit flags */
-#define PX4IO_P_STATUS_MIXER_LOWER_LIMIT 		(1 << 0) /**< at least one actuator output has reached lower limit */
-#define PX4IO_P_STATUS_MIXER_UPPER_LIMIT 		(1 << 1) /**< at least one actuator output has reached upper limit */
-#define PX4IO_P_STATUS_MIXER_YAW_LIMIT 			(1 << 2) /**< yaw control is limited because it causes output clipping */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -298,8 +295,11 @@ enum {							/* DSM bind states */
 /* PWM maximum values for certain ESCs */
 #define PX4IO_PAGE_CONTROL_MAX_PWM		107		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
+/* PWM mtrim values for central position */
+#define PX4IO_PAGE_CONTROL_TRIM_PWM		108		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
+
 /* PWM disarmed values that are active, even when SAFETY_SAFE */
-#define PX4IO_PAGE_DISARMED_PWM		108			/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DISARMED_PWM		109			/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

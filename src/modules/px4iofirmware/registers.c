@@ -260,6 +260,14 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_MAX, PWM_D
 /**
  * PAGE 108
  *
+ * trim values for center position
+ *
+ */
+int16_t		r_page_servo_control_trim[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM };
+
+/**
+ * PAGE 109
+ *
  * disarmed PWM values for difficult ESCs
  *
  */
@@ -378,6 +386,20 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			} else {
 				r_page_servo_control_max[offset] = *values;
 			}
+
+			offset++;
+			num_values--;
+			values++;
+		}
+
+		break;
+
+	case PX4IO_PAGE_CONTROL_TRIM_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+
+			r_page_servo_control_trim[offset] = *values;
 
 			offset++;
 			num_values--;
@@ -998,6 +1020,10 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 	case PX4IO_PAGE_CONTROL_MAX_PWM:
 		SELECT_PAGE(r_page_servo_control_max);
+		break;
+
+	case PX4IO_PAGE_CONTROL_TRIM_PWM:
+		SELECT_PAGE(r_page_servo_control_trim);
 		break;
 
 	case PX4IO_PAGE_DISARMED_PWM:

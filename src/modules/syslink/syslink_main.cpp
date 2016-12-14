@@ -89,6 +89,7 @@ Syslink::Syslink() :
 	txrate(0),
 	_syslink_task(-1),
 	_task_running(false),
+	_bootloader_mode(false),
 	_count(0),
 	_null_count(0),
 	_count_in(0),
@@ -105,7 +106,6 @@ Syslink::Syslink() :
 	_rssi(RC_INPUT_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
-	px4_sem_init(&radio_sem, 0, 0);
 	px4_sem_init(&memory_sem, 0, 0);
 }
 
@@ -134,20 +134,7 @@ Syslink::set_datarate(uint8_t datarate)
 	msg.type = SYSLINK_RADIO_DATARATE;
 	msg.length = 1;
 	msg.data[0] = datarate;
-
-	if (send_message(&msg) != 0) {
-		return -1;
-	}
-
-	// Wait for a second
-//	struct timespec abstime = {1, 0};
-//	if(px4_sem_timedwait(&radio_sem, &abstime) != 0) {
-//		return -1;
-//	}
-
-
-
-	return OK;
+	return send_message(&msg);
 }
 
 int
@@ -190,6 +177,55 @@ Syslink::send_queued_raw_message()
 }
 
 
+void
+Syslink::update_params(bool force_set)
+{
+	param_t _param_radio_channel = param_find("SLNK_RADIO_CHAN");
+	param_t _param_radio_rate = param_find("SLNK_RADIO_RATE");
+	param_t _param_radio_addr1 = param_find("SLNK_RADIO_ADDR1");
+	param_t _param_radio_addr2 = param_find("SLNK_RADIO_ADDR2");
+
+
+	// reading parameter values into temp variables
+
+	uint32_t channel, rate, addr1, addr2;
+	uint64_t addr = 0;
+
+	param_get(_param_radio_channel, &channel);
+	param_get(_param_radio_rate, &rate);
+	param_get(_param_radio_addr1, &addr1);
+	param_get(_param_radio_addr2, &addr2);
+
+	memcpy(&addr, &addr2, 4); memcpy(((char *)&addr) + 4, &addr1, 4);
+
+
+	hrt_abstime t = hrt_absolute_time();
+
+	// request updates if needed
+
+	if (channel != this->_channel || force_set) {
+		this->_channel = channel;
+		set_channel(channel);
+		this->_params_update[0] = t;
+		this->_params_ack[0] = 0;
+	}
+
+	if (rate != this->_rate || force_set) {
+		this->_rate = rate;
+		set_datarate(rate);
+		this->_params_update[1] = t;
+		this->_params_ack[1] = 0;
+	}
+
+	if (addr != this->_addr || force_set) {
+		this->_addr = addr;
+		set_address(addr);
+		this->_params_update[2] = t;
+		this->_params_ack[2] = 0;
+	}
+
+
+}
 
 // 1M 8N1 serial connection to NRF51
 int
@@ -249,21 +285,6 @@ Syslink::task_main_trampoline(int argc, char *argv[])
 void
 Syslink::task_main()
 {
-	param_t _param_radio_channel = param_find("SLNK_RADIO_CHAN");
-	param_t _param_radio_rate = param_find("SLNK_RADIO_RATE");
-	param_t _param_radio_addr1 = param_find("SLNK_RADIO_ADDR1");
-	param_t _param_radio_addr2 = param_find("SLNK_RADIO_ADDR2");
-
-	uint32_t channel, rate, addr1, addr2;
-	uint64_t addr = 0;
-
-	param_get(_param_radio_channel, &channel);
-	param_get(_param_radio_rate, &rate);
-	param_get(_param_radio_addr1, &addr1);
-	param_get(_param_radio_addr2, &addr2);
-
-	memcpy(&addr, &addr2, 4); memcpy(((char *)&addr) + 4, &addr1, 4);
-
 	_bridge = new SyslinkBridge(this);
 	_bridge->init();
 
@@ -293,14 +314,13 @@ Syslink::task_main()
 
 	px4_arch_configgpio(GPIO_NRF_TXEN);
 
-	set_channel(channel);
-	set_datarate(rate);
-	set_address(addr);
-
-
-	px4_pollfd_struct_t fds[1];
+	px4_pollfd_struct_t fds[2];
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
+
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	fds[1].fd = _params_sub;
+	fds[1].events = POLLIN;
 
 	int error_counter = 0;
 
@@ -312,10 +332,11 @@ Syslink::task_main()
 
 	syslink_parse_init(&state);
 
+	// setup initial parameters
+	update_params(true);
 
 	while (_task_running) {
-		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = px4_poll(fds, 1, 1000);
+		int poll_ret = px4_poll(fds, 2, 1000);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
@@ -341,6 +362,12 @@ Syslink::task_main()
 						handle_message(&msg);
 					}
 				}
+			}
+
+			if (fds[1].revents & POLLIN) {
+				struct parameter_update_s update;
+				orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+				update_params(false);
 			}
 		}
 	}
@@ -419,8 +446,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		_lastrxtime = t;
 
 	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_RADIO) {
-		radio_msg = *msg;
-		px4_sem_post(&radio_sem);
+		handle_radio(msg);
 
 	} else if ((msg->type & SYSLINK_GROUP) == SYSLINK_OW) {
 		memcpy(&_memory->msgbuf, msg, sizeof(syslink_message_t));
@@ -469,6 +495,36 @@ Syslink::handle_message(syslink_message_t *msg)
 		led_off(LED_TX);
 	}
 
+
+	// resend parameters if they haven't been acknowledged
+	if (_params_ack[0] == 0 && t - _params_update[0] > 10000) {
+		set_channel(_channel);
+
+	} else if (_params_ack[1] == 0 && t - _params_update[1] > 10000) {
+		set_datarate(_rate);
+
+	} else if (_params_ack[2] == 0 && t - _params_update[2] > 10000) {
+		set_address(_addr);
+	}
+
+}
+
+void
+Syslink::handle_radio(syslink_message_t *sys)
+{
+	hrt_abstime t = hrt_absolute_time();
+
+	// record acknowlegements to parameter messages
+	if (sys->type == SYSLINK_RADIO_CHANNEL) {
+		_params_ack[0] = t;
+
+	} else if (sys->type == SYSLINK_RADIO_DATARATE) {
+		_params_ack[1] = t;
+
+	} else if (sys->type == SYSLINK_RADIO_ADDRESS) {
+		_params_ack[2] = t;
+	}
+
 }
 
 void
@@ -477,7 +533,9 @@ Syslink::handle_raw(syslink_message_t *sys)
 	crtp_message_t *c = (crtp_message_t *) &sys->length;
 
 	if (CRTP_NULL(*c)) {
-		// TODO: Handle bootloader messages if possible
+		if (c->size >= 3) {
+			handle_bootloader(sys);
+		}
 
 		_null_count++;
 
@@ -524,10 +582,42 @@ Syslink::handle_raw(syslink_message_t *sys)
 		handle_raw_other(sys);
 	}
 
+	// Block all non-requested messaged in bootloader mode
+	if (_bootloader_mode) {
+		return;
+	}
+
 	// Allow one raw message to be sent from the queue
 	send_queued_raw_message();
 }
 
+void
+Syslink::handle_bootloader(syslink_message_t *sys)
+{
+	// Minimal bootloader emulation for being detectable
+	// To the bitcraze utilities, the STM32 will appear to have no flashable pages
+	// Upon receiving a bootloader message, all outbound packets are blocked in 'bootloader mode' due to how fragile the aforementioned utilities are to extra packets
+
+	crtp_message_t *c = (crtp_message_t *) &sys->length;
+
+	uint8_t target = c->data[0];
+	uint8_t cmd = c->data[1];
+
+	if (target != 0xFF) { // CF2 STM32 target
+		return;
+	}
+
+	_bootloader_mode = true;
+
+	if (cmd == 0x10) { // GET_INFO
+
+		c->size = 1 + 23;
+		memset(&c->data[2], 0, 21);
+		c->data[22] = 0x10; // Protocol version
+		send_message(sys);
+	}
+
+}
 
 void
 Syslink::handle_raw_other(syslink_message_t *sys)
@@ -598,7 +688,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 		else if (c->channel == 1) { // Param read
 			// 0 is ok
 			c->data[1] = 0; // value
-			c->size = 1 + 3;
+			c->size = 1 + 2;
 			send_message(sys);
 		}
 
@@ -680,6 +770,14 @@ void status()
 	printf("- total rx: %d p/s\n", g_syslink->pktrate);
 	printf("- radio rx: %d p/s (%d null)\n", g_syslink->rxrate, g_syslink->nullrate);
 	printf("- radio tx: %d p/s\n\n", g_syslink->txrate);
+
+	printf("Parameter Status:\n");
+	const char *goodParam = "good";
+	const char *badParam = "fail!";
+	printf("- channel: %s\n", g_syslink->is_good(0) ? goodParam : badParam);
+	printf("- data rate: %s\n", g_syslink->is_good(1) != 0 ? goodParam : badParam);
+	printf("- address: %s\n\n", g_syslink->is_good(2) != 0 ? goodParam : badParam);
+
 
 	int deckfd = open(DECK_DEVICE_PATH, O_RDONLY);
 	int ndecks = 0; ioctl(deckfd, DECKIOGNUM, (unsigned long) &ndecks);

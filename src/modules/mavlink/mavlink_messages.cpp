@@ -3592,6 +3592,210 @@ protected:
 	}
 };
 
+class MavlinkStreamHighLatency : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamHighLatency::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "HIGH_LATENCY";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_HIGH_LATENCY;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamHighLatency(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_HIGH_LATENCY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_actuator_sub;
+	uint64_t _actuator_time;
+
+	MavlinkOrbSubscription *_airspeed_sub;
+	uint64_t _airspeed_time;
+
+	MavlinkOrbSubscription *_attitude_sp_sub;
+	uint64_t _attitude_sp_time;
+
+	MavlinkOrbSubscription *_attitude_sub;
+	uint64_t _attitude_time;
+
+	MavlinkOrbSubscription *_battery_sub;
+	uint64_t _battery_time;
+
+	MavlinkOrbSubscription *_fw_pos_ctrl_status_sub;
+	uint64_t _fw_pos_ctrl_status_time;
+
+	MavlinkOrbSubscription *_global_pos_sub;
+	uint64_t _global_pos_time;
+
+	MavlinkOrbSubscription *_gps_sub;
+	uint64_t _gps_time;
+
+	MavlinkOrbSubscription *_home_sub;
+	uint64_t _home_time;
+
+	MavlinkOrbSubscription *_landed_sub;
+	uint64_t _landed_time;
+
+	MavlinkOrbSubscription *_mission_result_sub;
+	uint64_t _mission_result_time;
+
+	MavlinkOrbSubscription *_sensor_sub;
+	uint64_t _sensor_time;
+
+	MavlinkOrbSubscription *_status_sub;
+	uint64_t _status_time;
+
+	MavlinkOrbSubscription *_tecs_status_sub;
+	uint64_t _tecs_time;
+
+	MavlinkOrbSubscription *_wind_sub;
+	uint64_t _wind_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamHighLatency(MavlinkStreamHighLatency &);
+	MavlinkStreamHighLatency& operator = (const MavlinkStreamHighLatency &);
+
+protected:
+	explicit MavlinkStreamHighLatency(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_actuator_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
+		_actuator_time(0),
+		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
+		_airspeed_time(0),
+		_attitude_sp_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_attitude_sp_time(0),
+		_attitude_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_attitude_time(0),
+		_battery_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status))),
+		_battery_time(0),
+		_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_fw_pos_ctrl_status_time(0),
+		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_global_pos_time(0),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position))),
+		_gps_time(0),
+		_home_sub(_mavlink->add_orb_subscription(ORB_ID(home_position))),
+		_home_time(0),
+		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
+		_landed_time(0),
+		_mission_result_sub(_mavlink->add_orb_subscription(ORB_ID(mission_result))),
+		_mission_result_time(0),
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
+		_sensor_time(0),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_status_time(0),
+		_tecs_status_sub(_mavlink->add_orb_subscription(ORB_ID(tecs_status))),
+		_tecs_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct actuator_controls_s actuator = {};
+		struct airspeed_s airspeed = {};
+		struct battery_status_s battery = {};
+		struct fw_pos_ctrl_status_s fw_pos_ctrl_status = {};
+		struct home_position_s home = {};
+		struct mission_result_s mission_result = {};
+		struct sensor_combined_s sensor = {};
+		struct tecs_status_s tecs_status = {};
+		struct vehicle_attitude_s attitude = {};
+		struct vehicle_attitude_setpoint_s attitude_sp = {};
+		struct vehicle_global_position_s global_pos = {};
+		struct vehicle_gps_position_s gps = {};
+		struct vehicle_land_detected_s land_detected = {};
+		struct vehicle_status_s status = {};
+
+		bool updated = _status_sub->update(&_status_time, &status);
+		updated |= _actuator_sub->update(&_actuator_time, &actuator);
+		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _attitude_sp_sub->update(&_attitude_sp_time, &attitude_sp);
+		updated |= _attitude_sub->update(&_attitude_time, &attitude);
+		updated |= _battery_sub->update(&_battery_time, &battery);
+		updated |= _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
+		updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
+		updated |= _gps_sub->update(&_gps_time, &gps);
+		updated |= _home_sub->update(&_home_time, &home);
+		updated |= _landed_sub->update(&_landed_time, &land_detected);
+		updated |= _mission_result_sub->update(&_mission_result_time, &mission_result);
+		updated |= _sensor_sub->update(&_sensor_time, &sensor);
+		updated |= _tecs_status_sub->update(&_tecs_time, &tecs_status);
+
+		if (updated) {
+			mavlink_high_latency_t msg = {};
+
+			//timespec tv;
+			//px4_clock_gettime(CLOCK_REALTIME, &tv);
+			//msg.time_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+
+			msg.base_mode = 0;
+			msg.custom_mode = 0;
+			uint8_t sys_status;
+			get_mavlink_mode_state(&status, &sys_status, &msg.base_mode, &msg.custom_mode);
+
+			matrix::Eulerf euler = matrix::Quatf(attitude.q);
+			msg.roll = math::degrees(euler.phi()) * 100;
+			msg.pitch = math::degrees(euler.theta()) * 100;
+			msg.heading = math::degrees(_wrap_2pi(euler.psi())) * 100;
+
+			//msg.roll_sp = math::degrees(attitude_sp.roll_body) * 100;
+			//msg.pitch_sp = math::degrees(attitude_sp.pitch_body) * 100;
+			msg.heading_sp = math::degrees(_wrap_2pi(attitude_sp.yaw_body)) * 100;
+
+			if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				msg.throttle = actuator.control[actuator_controls_s::INDEX_THROTTLE] * 100;
+			} else {
+				msg.throttle = 0;
+			}
+
+			msg.latitude = global_pos.lat * 1e7;
+			msg.longitude = global_pos.lon * 1e7;
+
+			//msg.altitude_home = (_home_time > 0) ? (global_pos.alt - home.alt) : NAN;
+			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
+
+			msg.altitude_sp = (_tecs_time > 0) ? (tecs_status.altitudeSp - home.alt) : NAN;
+
+			msg.airspeed = airspeed.indicated_airspeed_m_s * 100.0f;
+			msg.groundspeed = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e) * 100.0f;
+			msg.climb_rate = -global_pos.vel_d;
+
+			msg.gps_nsat = gps.satellites_used;
+			msg.gps_fix_type = gps.fix_type;
+
+			msg.landed_state = land_detected.landed ? MAV_LANDED_STATE_ON_GROUND : MAV_LANDED_STATE_IN_AIR;
+
+			msg.battery_remaining = (battery.connected) ? battery.remaining * 100.0f : -1;
+
+			msg.temperature = sensor.baro_temp_celcius;
+			msg.temperature_air = airspeed.air_temperature_celsius;
+
+			msg.wp_num = mission_result.seq_current;
+			msg.wp_distance = fw_pos_ctrl_status.wp_dist;
+
+			mavlink_msg_high_latency_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -3638,5 +3842,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
 	new StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	new StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
+	new StreamListItem(&MavlinkStreamHighLatency::new_instance, &MavlinkStreamHighLatency::get_name_static, &MavlinkStreamWind::get_id_static),
 	nullptr
 };

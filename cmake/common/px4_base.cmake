@@ -827,6 +827,7 @@ function(px4_add_common_flags)
 		)
 
 	set(added_link_dirs) # none used currently
+	set(added_exe_linker_flags)
 
 	string(TOUPPER ${BOARD} board_upper)
 	string(REPLACE "-" "_" board_config ${board_upper})
@@ -846,6 +847,20 @@ function(px4_add_common_flags)
 			-Wl,--gc-sections
 			#,--print-gc-sections
 			)
+	endif()
+
+	# code coverage
+	if ($ENV{PX4_CODE_COVERAGE} MATCHES "1")
+		message(STATUS "Code coverage build flags enabled")
+		list(APPEND added_cxx_flags
+			-fprofile-arcs -ftest-coverage --coverage -g3 -O0 -fno-elide-constructors -Wno-invalid-offsetof -fno-default-inline -fno-inline
+		)
+		list(APPEND added_c_flags
+			-fprofile-arcs -ftest-coverage --coverage -g3 -O0 -fno-default-inline -fno-inline
+		)
+		list(APPEND added_exe_linker_flags
+			-ftest-coverage --coverage -lgcov
+		)
 	endif()
 
 	# output

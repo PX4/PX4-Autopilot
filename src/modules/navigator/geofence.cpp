@@ -168,7 +168,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 		}
 	}
 
-	inside_fence |= inside_polygon(lat, lon, altitude);
+	// to be inside the geofence both fences have to report being inside
+	// as they both report being inside when not enabled
+	inside_fence = inside_fence && inside_polygon(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;

@@ -47,6 +47,7 @@ px4_add_module(
 		mixer_group.cpp
 		mixer_multirotor.cpp
 		mixer_simple.cpp
+		mixer_helicopter.cpp
 		mixer_load.c
 		mixer_multirotor.generated.h
 	DEPENDS

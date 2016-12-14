@@ -213,6 +213,13 @@ mixer_tick(void)
 	}
 
 	/*
+	 * Set simple mixer trim values
+	 * (there should be a "dirty" flag to indicate that r_page_servo_control_trim has changed)
+	 */
+	mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
+
+
+	/*
 	 * Run the mixers.
 	 */
 	if (source == MIX_FAILSAFE) {

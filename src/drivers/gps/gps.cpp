@@ -520,6 +520,8 @@ int GPS::setBaudrate(unsigned baud)
 
 	case 115200: speed = B115200; break;
 
+	case 230400: speed = B230400; break;
+
 	default:
 		PX4_ERR("ERR: unknown baudrate: %d", baud);
 		return -EINVAL;
