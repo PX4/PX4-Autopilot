@@ -322,6 +322,32 @@ then
 	fi
 fi
 
+if ver hwcmp PX4FMU_V5
+then
+	# Internal SPI bus ICM-20602
+# Place holder Need 20602 Support added
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus ICM-20689
+# Place holder Need 20689 Support added
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus BMI055
+# Place holder Need BMI055 Support added
+	if bmi055 -R 2 start
+	then
+	fi
+
+	# Possible external compasses
+	if hmc5883 -X start
+	then
+	fi
+fi
+
 if meas_airspeed start
 then
 else

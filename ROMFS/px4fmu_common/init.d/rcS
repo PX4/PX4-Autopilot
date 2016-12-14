@@ -177,6 +177,12 @@ then
 			set USE_IO no
 		fi
 
+		if ver hwcmp PX4FMU_V5
+		then
+			set USE_IO no
+			set MAVLINK_COMPANION_DEVICE /dev/ttyS3
+		fi
+
 		if ver hwcmp MINDPX_V2
 		then
 			set USE_IO no
@@ -226,6 +232,11 @@ then
 	#
 	# Wipe incompatible settings for boards not having two outputs
 	if ver hwcmp PX4FMU_V4
+	then
+		set MIXER_AUX none
+	fi
+
+	if ver hwcmp PX4FMU_V5
 	then
 		set MIXER_AUX none
 	fi
