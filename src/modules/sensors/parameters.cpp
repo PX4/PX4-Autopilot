@@ -428,6 +428,8 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		parameters.battery_v_div = 10.177939394f;
 #elif defined (CONFIG_ARCH_BOARD_TAP_V1)
 		parameters.battery_v_div = 9.0f;
+#elif defined (CONFIG_ARCH_BOARD_AEROFC_V1)
+		parameters.battery_v_div = 9.0f;
 #else
 		/* ensure a missing default trips a low voltage lockdown */
 		parameters.battery_v_div = 0.0f;
