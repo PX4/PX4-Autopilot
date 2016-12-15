@@ -250,7 +250,6 @@ private:
 	bool _alt_hold_engaged;
 	bool _run_pos_control;
 	bool _run_alt_control;
-	bool _idle = true;
 
 	bool _reset_int_z = true;
 	bool _reset_int_xy = true;
@@ -275,8 +274,14 @@ private:
 	float _yaw;				/**< yaw angle (euler) */
 	bool _probably_descending = false;	/**< the vehicle thinks it's in the landing descent */
 	bool _probably_reached_ground = false; /**< the vehicle thinkgs it has reached the ground */
-	bool _in_takeoff_jump = false;
-	bool _in_land_descent = false;
+
+	enum class air_state {
+		IDLE,
+		TAKEOFF_JUMP,
+		FLYING,
+		DESCENDING
+	};
+	air_state _air_state = air_state::IDLE;
 
 	float _vel_z_lp;
 	float _acc_z_lp;
@@ -927,10 +932,58 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
 	req_vel_sp.zero();
 
+
 	if (_control_mode.flag_control_altitude_enabled) {
+
 		/* set vertical velocity setpoint with throttle stick */
 		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
+
+		switch (_air_state) {
+		case air_state::IDLE:
+			if (_vehicle_land_detected.landed &&
+			    _control_mode.flag_armed &&
+			    req_vel_sp(2) < -0.5f) {
+
+				/* go clearly above center if landed and the takeoff jump
+				 * has not started yet. */
+
+				_air_state = air_state::TAKEOFF_JUMP;
+				_run_alt_control = false;
+
+			} else {
+				req_vel_sp(2) = 0.0f;
+			}
+
+			break;
+
+		case air_state::TAKEOFF_JUMP:
+			_run_alt_control = false;
+			break;
+
+		case air_state::FLYING:
+			if (req_vel_sp(2) > 0.0f) {
+				_air_state = air_state::DESCENDING;
+				_run_alt_control = false;
+			}
+
+			break;
+
+		case air_state::DESCENDING:
+			_run_alt_control = false;
+
+			if (req_vel_sp(2) < FLT_EPSILON) {
+				_air_state = air_state::FLYING;
+			}
+
+			if (_vehicle_land_detected.landed) {
+				_air_state = air_state::IDLE;
+			}
+
+			break;
+		}
 	}
+
+
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
@@ -961,86 +1014,82 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
-	// Don't do anything if we're landed
-	if (_vehicle_land_detected.landed) {
-		_idle = true;
-		_run_alt_control = false;
-		_run_pos_control = false;
+	/* horizontal axes */
+	if (!_vehicle_land_detected.landed && _control_mode.flag_control_position_enabled
+	    && _air_state != air_state::IDLE) {
 
-	} else {
-		/* horizontal axes */
-		if (!_vehicle_land_detected.landed && _control_mode.flag_control_position_enabled) {
-
-			/*
-			 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
-			 * hold is activated for the corresponding axis
-			 */
-			if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
-				if (!_pos_hold_engaged) {
-
-					float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-
-					if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
-						/* reset position setpoint to have smooth transition from velocity control to position control */
-						_pos_hold_engaged = true;
-						_pos_sp(0) = _pos(0);
-						_pos_sp(1) = _pos(1);
-
-					} else {
-						_pos_hold_engaged = false;
-					}
-				}
-
-			} else {
-				_pos_hold_engaged = false;
-			}
-
-			/* set requested velocity setpoint */
+		/*
+		 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
+		 * hold is activated for the corresponding axis
+		 */
+		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
 			if (!_pos_hold_engaged) {
-				_pos_sp(0) = _pos(0);
-				_pos_sp(1) = _pos(1);
-				_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-				_vel_sp(0) = req_vel_sp_scaled(0);
-				_vel_sp(1) = req_vel_sp_scaled(1);
-			}
-		}
 
-		/* vertical axis */
-		if (!_vehicle_land_detected.landed && _control_mode.flag_control_altitude_enabled) {
-			/* check for pos. hold */
-			if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
-				if (!_alt_hold_engaged) {
-					if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
-						/* reset position setpoint to have smooth transition from velocity control to position control */
-						_alt_hold_engaged = true;
-						_pos_sp(2) = _pos(2);
+				float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
 
-					} else {
-						_alt_hold_engaged = false;
-					}
+				if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
+					/* reset position setpoint to have smooth transition from velocity control to position control */
+					_pos_hold_engaged = true;
+					_pos_sp(0) = _pos(0);
+					_pos_sp(1) = _pos(1);
+
+				} else {
+					_pos_hold_engaged = false;
 				}
-
-			} else {
-				_alt_hold_engaged = false;
-				_pos_sp(2) = _pos(2);
 			}
 
-			/* set requested velocity setpoint */
-			if (!_alt_hold_engaged) {
-				_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
-				_vel_sp(2) = req_vel_sp_scaled(2);
-			}
+		} else {
+			_pos_hold_engaged = false;
 		}
+
+		/* set requested velocity setpoint */
+		if (!_pos_hold_engaged) {
+			_pos_sp(0) = _pos(0);
+			_pos_sp(1) = _pos(1);
+			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+			_vel_sp(0) = req_vel_sp_scaled(0);
+			_vel_sp(1) = req_vel_sp_scaled(1);
+		}
+	}
+
+	/* vertical axis */
+	if (!_vehicle_land_detected.landed && _control_mode.flag_control_altitude_enabled
+	    && _air_state != air_state::IDLE && _air_state != air_state::TAKEOFF_JUMP) {
+		/* check for pos. hold */
+		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
+			if (!_alt_hold_engaged) {
+				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
+					/* reset position setpoint to have smooth transition from velocity control to position control */
+					_alt_hold_engaged = true;
+					_pos_sp(2) = _pos(2);
+
+				} else {
+					_alt_hold_engaged = false;
+				}
+			}
+
+		} else {
+			_alt_hold_engaged = false;
+			_pos_sp(2) = _pos(2);
+		}
+
+		/* set requested velocity setpoint */
+		if (!_alt_hold_engaged) {
+			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
+			_vel_sp(2) = req_vel_sp_scaled(2);
+
+			_run_alt_control = false;
+		}
+
+	} else if (_air_state == air_state::TAKEOFF_JUMP) {
+		// This vel setpoint is needed to jump.
+		_vel_sp(2) = req_vel_sp_scaled(2);
 	}
 }
 
 void
 MulticopterPositionControl::control_non_manual(float dt)
 {
-	// By default run controllers.
-	_run_alt_control = true;
-	_run_pos_control = true;
-
 	/* select control source */
 	if (_control_mode.flag_control_offboard_enabled) {
 		/* offboard control */
@@ -1108,8 +1157,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND
 	    && !_vehicle_land_detected.landed) {
 
-		_in_land_descent = true;
+		_air_state = air_state::DESCENDING;
 		_run_alt_control = false;
+
 		/* use constant descend rate when landing, ignore altitude setpoint */
 		_vel_sp(2) = _params.land_speed;
 
@@ -1117,8 +1167,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 		    && _control_mode.flag_armed && _vehicle_land_detected.landed) {
 
-		_in_takeoff_jump = true;
+		_air_state = air_state::TAKEOFF_JUMP;
 		_run_alt_control = false;
+
 		/* use land speed from param until landed */
 		_vel_sp(2) = -(_params.tko_speed);
 
@@ -1129,7 +1180,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_vel_sp.zero();
 		_run_alt_control = false;
 		_run_pos_control = false;
-		_idle = true;
 
 	} else {
 		// Nothing unusual for everything else.
@@ -1164,7 +1214,7 @@ MulticopterPositionControl::do_takeoff_jump(float dt, math::Vector<3> &thrust_sp
 		_reset_int_z = false;
 
 		// We're done with the jump.
-		_in_takeoff_jump = false;
+		_air_state = air_state::FLYING;
 		// Reset start time.
 		time_jump_started = 0;
 	}
@@ -1212,7 +1262,7 @@ MulticopterPositionControl::do_land_descent(float dt, float &tilt_max, float &th
 	if (_vehicle_land_detected.landed) {
 		_probably_reached_ground = false;
 		_probably_descending = false;
-		_in_land_descent = false;
+		_air_state = air_state::IDLE;
 	}
 }
 
@@ -1584,7 +1634,6 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	} else {
 		// Idle requested, just stay where we are.
-		_idle = true;
 		_run_alt_control = false;
 		_run_pos_control = false;
 	}
@@ -1649,7 +1698,6 @@ MulticopterPositionControl::do_control(float dt)
 	 * can disable this and run velocity controllers directly in this cycle */
 	_run_pos_control = true;
 	_run_alt_control = true;
-	_idle = false;
 
 	if (_control_mode.flag_control_manual_enabled) {
 		/* manual control */
@@ -1670,7 +1718,7 @@ MulticopterPositionControl::do_control(float dt)
 void
 MulticopterPositionControl::control_position(float dt)
 {
-	if (!_idle) {
+	if (_air_state != air_state::IDLE) {
 
 		/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 		if (_run_pos_control) {
@@ -1722,7 +1770,7 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		// Don't limit acceleration to takeoff, otherwise the takeoff speed is affected.
-		if (!_in_takeoff_jump) {
+		if (_air_state != air_state::TAKEOFF_JUMP) {
 			limit_acceleration(dt);
 		}
 
@@ -1768,7 +1816,7 @@ MulticopterPositionControl::control_position(float dt)
 
 			// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
 			// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
-			if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
+			if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled && _air_state != air_state::TAKEOFF_JUMP) {
 
 				matrix::Dcmf Rb = matrix::Quatf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
 
@@ -1830,10 +1878,10 @@ MulticopterPositionControl::control_position(float dt)
 			_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;
 
 			/* special modes for takeoff and land */
-			if (_in_takeoff_jump) {
+			if (_air_state == air_state::TAKEOFF_JUMP) {
 				do_takeoff_jump(dt, thrust_sp);
 
-			} else if (_in_land_descent) {
+			} else if (_air_state == air_state::DESCENDING) {
 				do_land_descent(dt, tilt_max, thr_max);
 
 				// TODO: check if this is needed
@@ -2023,9 +2071,6 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 	} else {
-
-		_in_takeoff_jump = false;
-		_in_land_descent = false;
 
 		_vel_sp.zero();
 
