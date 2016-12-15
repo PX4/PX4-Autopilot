@@ -294,7 +294,7 @@ then
 	then
 	fi
 
-	if ist8310 -C -b 1 -R 8 start
+	if ist8310 -C -b 1 -R 4 start
 	then
 	fi
 fi
