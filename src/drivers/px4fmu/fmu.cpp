@@ -233,6 +233,7 @@ private:
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 
 	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
+	float _thr_mdl_fac;	// thrust to pwm modelling factor
 
 	perf_counter_t	_ctl_latency;
 
@@ -346,6 +347,7 @@ PX4FMU::PX4FMU() :
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
 	_mot_t_max(0.0f),
+	_thr_mdl_fac(0.0f),
 	_ctl_latency(perf_alloc(PC_ELAPSED, "ctl_lat"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1159,6 +1161,10 @@ PX4FMU::cycle()
 				_mixers->set_max_delta_out_once(delta_out_max);
 			}
 
+			if (_thr_mdl_fac > FLT_EPSILON) {
+				_mixers->set_thrust_factor(_thr_mdl_fac);
+			}
+
 			/* do mixing */
 			float outputs[_max_actuators];
 			num_outputs = _mixers->mix(outputs, num_outputs, NULL);
@@ -1321,6 +1327,13 @@ PX4FMU::cycle()
 
 		if (param_handle != PARAM_INVALID) {
 			param_get(param_handle, &_mot_t_max);
+		}
+
+		// thrust to pwm modelling factor
+		param_handle = param_find("THR_MDL_FAC");
+
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &_thr_mdl_fac);
 		}
 	}
 
