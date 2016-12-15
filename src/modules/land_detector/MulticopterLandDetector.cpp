@@ -172,7 +172,8 @@ bool MulticopterLandDetector::_get_landed_state()
 	// Check if user commands throttle and if so, report not landed based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled) {
+	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled
+	    && !_ctrl_mode.flag_control_altitude_enabled) {
 		return false;
 	}
 
