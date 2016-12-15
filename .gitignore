@@ -79,6 +79,7 @@ vectorcontrol/
 
 # CLion ignores
 .idea
+cmake-build-*/
 
 # gcov code coverage
 coverage-html/

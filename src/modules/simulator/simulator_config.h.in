@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 Anton Matosov. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file commander_helper.h
- * Commander helper functions definitions
- *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <julian@oes.ch>
- */
+#pragma once
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
+#cmakedefine ENABLE_UART_RC_INPUT
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
-
-
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
-bool is_vtol(const struct vehicle_status_s *current_status);
-
-int buzzer_init(void);
-void buzzer_deinit(void);
-
-void set_tune_override(int tune);
-void set_tune(int tune);
-void tune_home_set(bool use_buzzer);
-void tune_mission_ok(bool use_buzzer);
-void tune_mission_fail(bool use_buzzer);
-void tune_positive(bool use_buzzer);
-void tune_neutral(bool use_buzzer);
-void tune_negative(bool use_buzzer);
-void tune_failsafe(bool use_buzzer);
-
-int blink_msg_state();
-
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
-#endif /* COMMANDER_HELPER_H_ */
+#cmakedefine PIXHAWK_DEVICE "@PIXHAWK_DEVICE@"
+#cmakedefine PIXHAWK_DEVICE_BAUD @PIXHAWK_DEVICE_BAUD@

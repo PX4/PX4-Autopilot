@@ -536,7 +536,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			struct actuator_armed_s armed;
 			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
-			if (armed.armed && !armed.lockdown) {
+			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
 				warnx("UAVCAN command bridge: system armed, exiting now.");
 				break;
 			}

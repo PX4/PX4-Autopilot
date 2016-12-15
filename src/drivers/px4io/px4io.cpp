@@ -1462,11 +1462,11 @@ PX4IO::io_set_arming_state()
 
 		_armed = armed.armed;
 
-		if (armed.lockdown && !_lockdown_override) {
+		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
 
-		} else if (!armed.lockdown && _lockdown_override) {
+		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = false;
 		}

@@ -333,7 +333,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			/* for now only spin if armed and immediately shut down
 			 * if in failsafe
 			 */
-			if (armed.armed && !armed.lockdown) {
+			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
 
 			} else {

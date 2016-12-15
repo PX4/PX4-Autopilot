@@ -1200,8 +1200,15 @@ PX4FMU::cycle()
 				       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
+			/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
+			if (_armed.force_failsafe) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					pwm_limited[i] = _failsafe_pwm[i];
+				}
+			}
+
 			/* overwrite outputs in case of lockdown with disarmed PWM values */
-			if (_armed.lockdown) {
+			if (_armed.lockdown || _armed.manual_lockdown) {
 				for (size_t i = 0; i < num_outputs; i++) {
 					pwm_limited[i] = _disarmed_pwm[i];
 				}
