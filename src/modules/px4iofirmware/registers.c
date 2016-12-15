@@ -181,7 +181,8 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_SCALE_ROLL] = 10000,
 	[PX4IO_P_SETUP_SCALE_PITCH] = 10000,
 	[PX4IO_P_SETUP_SCALE_YAW] = 10000,
-	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0
+	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0,
+	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
 };
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
@@ -258,6 +259,14 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_MAX, PWM_D
 
 /**
  * PAGE 108
+ *
+ * trim values for center position
+ *
+ */
+int16_t		r_page_servo_control_trim[PX4IO_SERVO_COUNT] = { PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM, PWM_DEFAULT_TRIM };
+
+/**
+ * PAGE 109
  *
  * disarmed PWM values for difficult ESCs
  *
@@ -377,6 +386,20 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			} else {
 				r_page_servo_control_max[offset] = *values;
 			}
+
+			offset++;
+			num_values--;
+			values++;
+		}
+
+		break;
+
+	case PX4IO_PAGE_CONTROL_TRIM_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+
+			r_page_servo_control_trim[offset] = *values;
 
 			offset++;
 			num_values--;
@@ -686,14 +709,17 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_SCALE_ROLL:
 		case PX4IO_P_SETUP_SCALE_PITCH:
 		case PX4IO_P_SETUP_SCALE_YAW:
-		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
-
-			r_page_setup[offset] = value;
-			break;
-
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
+			break;
+
+		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
+			r_page_setup[offset] = value;
+			break;
+
+		case PX4IO_P_SETUP_THERMAL:
+			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
 			break;
 
 		default:
@@ -994,6 +1020,10 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 	case PX4IO_PAGE_CONTROL_MAX_PWM:
 		SELECT_PAGE(r_page_servo_control_max);
+		break;
+
+	case PX4IO_PAGE_CONTROL_TRIM_PWM:
+		SELECT_PAGE(r_page_servo_control_trim);
 		break;
 
 	case PX4IO_PAGE_DISARMED_PWM:

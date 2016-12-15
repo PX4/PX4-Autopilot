@@ -119,9 +119,9 @@ typedef struct sector_descriptor_t {
  *                  space is reserved in the front for the
  *                  flash_entry_header_t.
  *                  If this is passes as NULL. The buffer will be
- *                  allocated from the heap on callse to
- *                  parameter_flashfs_alloc and fread on calls calls
- *                  to parameter_flashfs_write
+ *                  allocated from the heap on calls to
+ *                  parameter_flashfs_alloc and fread on calls
+ *                  to parameter_flashfs_free
  *
  *   size         - The size of the buffer in bytes. Should be be 0 if buffer
  *                  is NULL
@@ -167,13 +167,11 @@ __EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, siz
  *   token      - File Token File to read
  *   buffer      - A pointer to a buffer with buf_size bytes to be written
  *                 to the flash. This buffer must be allocated
- *                 with a previous call to flash_alloc_buffer
+ *                 with a previous call to parameter_flashfs_alloc
  *   buf_size    - Number of bytes to write
  *
  * Returned value:
  *   On success the number of bytes written On Error a negative value of errno
- *   If static buffer was not provided to parameter_flashfs_init the
- *   buffer will be freed.
  *
  ****************************************************************************/
 
@@ -216,5 +214,18 @@ __EXPORT int parameter_flashfs_erase(void);
  ****************************************************************************/
 
 __EXPORT int parameter_flashfs_alloc(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
+
+
+/****************************************************************************
+ * Name: parameter_flashfs_free
+ *
+ * Description:
+ *   Frees  dynamically allocated memory
+ *
+ *
+ ****************************************************************************/
+
+__EXPORT void parameter_flashfs_free(void);
+
 __END_DECLS
 #endif /* _SYSTEMLIB_FLASHPARAMS_NUTTX_PARAM_H */

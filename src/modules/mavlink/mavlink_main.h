@@ -163,7 +163,8 @@ public:
 		MAVLINK_MODE_ONBOARD,
 		MAVLINK_MODE_OSD,
 		MAVLINK_MODE_MAGIC,
-		MAVLINK_MODE_CONFIG
+		MAVLINK_MODE_CONFIG,
+		MAVLINK_MODE_IRIDIUM
 	};
 
 	enum BROADCAST_MODE {
@@ -190,6 +191,9 @@ public:
 
 		case MAVLINK_MODE_CONFIG:
 			return "Config";
+
+		case MAVLINK_MODE_IRIDIUM:
+			return "Iridium";
 
 		default:
 			return "Unknown";
@@ -231,14 +235,6 @@ public:
 	unsigned		get_free_tx_buf();
 
 	static int		start_helper(int argc, char *argv[]);
-
-	/**
-	 * Handle parameter related messages.
-	 */
-	void			mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
-
-	void			get_mavlink_mode_and_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
-			uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 	/**
 	 * Enable / disable Hardware in the Loop simulation mode.

@@ -86,7 +86,7 @@ void LogWriterFile::start_log(const char *filename)
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 	if (_fd < 0) {
-		PX4_ERR("Can't open log file %s", filename);
+		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
 		_should_run = false;
 		return;
 

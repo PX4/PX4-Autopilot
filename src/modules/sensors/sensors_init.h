@@ -42,4 +42,9 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
+namespace sensors
+{
+
 int sensors_init(void);
+
+} /* namespace sensors */

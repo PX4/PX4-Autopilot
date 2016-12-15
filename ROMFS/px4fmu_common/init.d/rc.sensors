@@ -10,41 +10,73 @@ then
 	fi
 
 else
-	if ver hwcmp CRAZYFLIE
+	if ver hwcmp AEROFC_V1
 	then
-	# Crazyflie uses separate driver
+		# Aero FC uses separate driver
 	else
+		if ver hwcmp CRAZYFLIE
+		then
+			# Crazyflie uses separate driver
+		else
+			# Configure all I2C buses to 100 KHz as they
+			# are all external or slow
+			fmu i2c 1 100000
+			fmu i2c 2 100000
+		fi
 
-	# Configure all I2C buses to 100 KHz as they
-	# are all external or slow
-	fmu i2c 1 100000
-	fmu i2c 2 100000
+		if ver hwcmp PX4FMU_V4
+		then
+			# We know there are sketchy boards out there
+			# as chinese companies produce Pixracers without
+			# fully understanding the critical parts of the
+			# schematic and BOM, leading to sensor brownouts
+			# on boot. Original Pixracers following the
+			# open hardware design do not require this.
+			fmu sensor_reset 50
+		fi
 
-	fi
+		# External SPI
+		if ms5611 -S start
+		then
+		fi
 
-	if ver hwcmp PX4FMU_V4
-	then
-		# We know there are sketchy boards out there
-		# as chinese companies produce Pixracers without
-		# fully understanding the critical parts of the
-		# schematic and BOM, leading to sensor brownouts
-		# on boot. Original Pixracers following the
-		# open hardware design do not require this.
-		fmu sensor_reset 50
-	fi
+		# Internal SPI
+		if ms5611 -s start
+		then
+		fi
 
-	if ms5611 -s start
-	then
-	fi
-
-	# Blacksheep telemetry
-	if bst start
-	then
+		# Blacksheep telemetry
+		if bst start
+		then
+		fi
 	fi
 fi
 
 if adc start
 then
+fi
+
+if ver hwcmp AUAV_X21
+then
+	# I2C bus
+	if hmc5883 -C -T start
+	then
+	fi
+
+	# I2C bus
+	if lis3mdl start
+	then
+	fi
+
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	if mpu9250 -R 2 start
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V2
@@ -70,11 +102,11 @@ then
 	fi
 
 	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -X -R 4 start
+	if mpu6000 -S -R 4 start
 	then
 		set BOARD_FMUV3 true
 	else
-		# Check for Pixhawk 2 board
+		# Check for Pixhawk 2.1 board
 		if mpu9250 -S -R 4 start
 		then
 			set BOARD_FMUV3 true
@@ -85,6 +117,9 @@ then
 
 	if [ $BOARD_FMUV3 == true ]
 	then
+		# sensor heating is available, but we disable it for now
+		param set SENS_EN_THERMAL 0
+
 		# external L3GD20H is rotated 180 degrees yaw
 		if l3gd20 -X -R 4 start
 		then
@@ -153,8 +188,17 @@ then
 	then
 	fi
 
+	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
+	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+	# will prevent the incorrect driver from a successful initialization.
+
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
 	if mpu9250 -R 2 start
+	then
+	fi
+
+	# Internal SPI bus BMI160
+	if bmi160 start
 	then
 	fi
 fi
@@ -226,6 +270,31 @@ then
 
 	# I2C bypass of mpu 
 	if lps25h start
+	then
+	fi
+fi
+
+if ver hwcmp AEROFC_V1
+then
+	if ms5611 start
+	then
+	fi
+
+	if mpu6500 -R 14 start
+	then
+	fi
+
+	# Internal compass
+	if hmc5883 -I -R 4 start
+	then
+	fi
+
+	# Possible external compasses
+	if hmc5883 -X start
+	then
+	fi
+
+	if ist8310 -C -b 1 -R 8 start
 	then
 	fi
 fi

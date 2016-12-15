@@ -80,12 +80,13 @@ using namespace DriverFramework;
 #define AVIONICS_WARN_VOLTAGE	4.9f
 #endif
 
-const char *reason_no_rc = "no rc";
-const char *reason_no_gps = "no gps";
-const char *reason_no_gpos = "no gpos";
-const char *reason_no_gps_cmd = "no gps cmd";
-const char *reason_no_home = "no home";
-const char *reason_no_datalink = "no datalink";
+static const char reason_no_rc[] = "no RC";
+static const char reason_no_offboard[] = "no offboard";
+static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
+static const char reason_no_gps[] = "no gps";
+static const char reason_no_gps_cmd[] = "no gps cmd";
+static const char reason_no_home[] = "no home";
+static const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
@@ -126,7 +127,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
 		status_flags_s *status_flags,
 		float avionics_power_rail_voltage,
-		bool can_arm_without_gps)
+		bool can_arm_without_gps,
+		hrt_abstime time_since_boot)
 {
 	// Double check that our static arrays are still valid
 	ASSERT(vehicle_status_s::ARMING_STATE_INIT == 0);
@@ -152,7 +154,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags, battery, can_arm_without_gps);
+						     status_flags, battery, can_arm_without_gps, time_since_boot);
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
@@ -163,7 +165,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, false /* force_report */,
-							     status_flags, battery, can_arm_without_gps);
+							     status_flags, battery, can_arm_without_gps, time_since_boot);
 				status_flags->condition_system_sensors_initialized = !prearm_ret;
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -1019,7 +1021,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 
 		/* require offboard control, otherwise stay where you are */
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
 				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
@@ -1058,7 +1060,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			}
 
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
 				if (offb_loss_act == 2 && status_flags->condition_global_position_valid
@@ -1102,10 +1104,8 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 }
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
-		    status_flags_s *status_flags, battery_status_s *battery, bool can_arm_without_gps)
+		    status_flags_s *status_flags, battery_status_s *battery, bool can_arm_without_gps, hrt_abstime time_since_boot)
 {
-	/*
-	 */
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
 					       status_flags->condition_system_hotplug_timeout);
 
@@ -1119,7 +1119,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, true, true, true, true,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-			    !can_arm_without_gps, true, status->is_vtol, reportFailures);
+			    !can_arm_without_gps, true, status->is_vtol, reportFailures, prearm, time_since_boot);
 
 	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;

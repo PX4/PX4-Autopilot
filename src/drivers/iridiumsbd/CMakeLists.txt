@@ -1,7 +1,6 @@
 ############################################################################
 #
 #   Copyright (c) 2016 PX4 Development Team. All rights reserved.
-#         Author: David Sidrane <david_s5@nscdg.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,16 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__boards__asc-v1
+	MODULE drivers__iridiumsbd
+	MAIN iridiumsbd
+	STACK 1024
+	STACK_MAIN 1024
 	COMPILE_FLAGS
+		-Os
 	SRCS
-		../common/board_name.c
-		asc_init.c
-		asc_timer_config.c
-		asc_spi.c
-		asc_usb.c
-		asc_led.c
+		IridiumSBD.cpp
+		iridiumsbd_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

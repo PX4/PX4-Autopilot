@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #***************************************************************************
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
@@ -35,6 +35,10 @@
 #
 # @author Andreas Antener <andreas@uaventure.com>
 #
+
+# The shebang of this file is currently Python2 because some
+# dependencies such as pymavlink don't play well with Python3 yet.
+
 PKG = 'px4'
 
 import unittest
@@ -43,6 +47,7 @@ import math
 import rosbag
 import sys
 import os
+import time
 
 import mavros
 from pymavlink import mavutil
@@ -174,10 +179,16 @@ class MavrosMissionTest(unittest.TestCase):
             (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d)))
 
     def run_mission(self):
-        """switch mode: armed | auto"""
+        """switch mode: auto and arm"""
         self._srv_cmd_long(False, 176, False,
-                           # arm | custom, auto, mission
-                           128 | 1, 4, 4, 0, 0, 0, 0)
+                           # custom, auto, mission
+                           1, 4, 4, 0, 0, 0, 0)
+        # make sure the first command doesn't get lost
+        time.sleep(1)
+
+        self._srv_cmd_long(False, 400, False,
+                           # arm
+                           1, 0, 0, 0, 0, 0, 0)
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""

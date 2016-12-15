@@ -401,9 +401,9 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "check")) {
 		int checkres = 0;
-		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, false);
+		checkres = preflight_check(&status, &mavlink_log_pub, false, true, &status_flags, &battery, false, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Preflight check: %s", (checkres == 0) ? "OK" : "FAILED");
-		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, true);
+		checkres = preflight_check(&status, &mavlink_log_pub, true, true, &status_flags, &battery, true, hrt_elapsed_time(&commander_boot_timestamp));
 		warnx("Prearm check: %s", (checkres == 0) ? "OK" : "FAILED");
 		return 0;
 	}
@@ -663,7 +663,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 					     mavlink_log_pub_local,
 					     &status_flags,
 					     avionics_power_rail_voltage,
-					     can_arm_without_gps);
+					     can_arm_without_gps,
+					     hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -729,17 +730,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			hil_state_t new_hil_state = (base_mode & VEHICLE_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
 			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, &mavlink_log_pub);
 
-			// Transition the arming state
-			bool cmd_arm = base_mode & VEHICLE_MODE_FLAG_SAFETY_ARMED;
-
-			arming_ret = arm_disarm(cmd_arm, &mavlink_log_pub, "set mode command");
-
-			/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
-			if (cmd_arm && (arming_ret == TRANSITION_CHANGED) &&
-				(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
-
-				commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
-			}
+			// We ignore base_mode & VEHICLE_MODE_FLAG_SAFETY_ARMED because
+			// the command VEHICLE_CMD_COMPONENT_ARM_DISARM should be used
+			// instead according to the latest mavlink spec.
 
 			if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
@@ -1527,6 +1520,7 @@ int commander_thread_main(int argc, char *argv[])
 	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
 	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
 	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
 
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
@@ -1534,6 +1528,7 @@ int commander_thread_main(int argc, char *argv[])
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
+		telemetry_preflight_checks_reported[i] = false;
 	}
 
 	/* Subscribe to global position */
@@ -1630,11 +1625,13 @@ int commander_thread_main(int argc, char *argv[])
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	param_get(_param_sys_type, &(status.system_type)); // get system type
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
+	status.is_vtol = is_vtol(&status);
 
 	bool checkAirspeed = false;
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status_flags.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+	if (!status_flags.circuit_breaker_engaged_airspd_check &&
+	    (!status.is_rotary_wing || status.is_vtol)) {
 		checkAirspeed = true;
 	}
 
@@ -1654,8 +1651,8 @@ int commander_thread_main(int argc, char *argv[])
 	} else {
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
-				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-				!can_arm_without_gps, /*checkDynamic */ false, is_vtol(&status), /* reportFailures */ false);
+				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status_flags.circuit_breaker_engaged_gpsfailure_check,
+				/* checkDynamic */ false, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
@@ -1885,8 +1882,9 @@ int commander_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
 				/* perform system checks when new telemetry link connected */
-				if (/* we first connect a link or re-connect a link after loosing it */
-				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)) &&
+				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
+				    (telemetry_last_heartbeat[i] == 0 || (hrt_elapsed_time(&telemetry_last_heartbeat[i]) > 3 * 1000 * 1000)
+				        || !telemetry_preflight_checks_reported[i]) &&
 				    /* and this link has a communication partner */
 				    (telemetry.heartbeat_time > 0) &&
 				    /* and it is still connected */
@@ -1894,25 +1892,21 @@ int commander_thread_main(int argc, char *argv[])
 				    /* and the system is not already armed (and potentially flying) */
 				    !armed.armed) {
 
-					bool chAirspeed = false;
 					hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
-
-					/* Perform airspeed check only if circuit breaker is not
-					 * engaged and it's not a rotary wing
-					 */
-					if (!status_flags.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
-						chAirspeed = true;
-					}
+					/* flag the checks as reported for this link when we actually report them */
+					telemetry_preflight_checks_reported[i] = hotplug_timeout;
 
 					/* provide RC and sensor status feedback to the user */
 					if (is_hil_setup(autostart_id)) {
 						/* HIL configuration: check only RC input */
 						(void)Commander::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
-								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), /* checkGNSS */ false, /* checkDynamic */ true, /* reportFailures */ false);
+								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
+								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					} else {
 						/* check sensors also */
-						(void)Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, chAirspeed,
-								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !can_arm_without_gps, /* checkDynamic */ true, hotplug_timeout);
+						(void)Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
+								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !can_arm_without_gps,
+								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					}
 				}
 
@@ -2022,7 +2016,8 @@ int commander_thread_main(int argc, char *argv[])
 										  &mavlink_log_pub,
 										  &status_flags,
 										  avionics_power_rail_voltage,
-										  can_arm_without_gps)) {
+										  can_arm_without_gps,
+										  hrt_elapsed_time(&commander_boot_timestamp))) {
 					mavlink_log_info(&mavlink_log_pub, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
@@ -2322,7 +2317,8 @@ int commander_thread_main(int argc, char *argv[])
 							     &mavlink_log_pub,
 							     &status_flags,
 							     avionics_power_rail_voltage,
-							     can_arm_without_gps);
+							     can_arm_without_gps,
+							     hrt_elapsed_time(&commander_boot_timestamp));
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
@@ -2583,7 +2579,8 @@ int commander_thread_main(int argc, char *argv[])
 									     &mavlink_log_pub,
 									     &status_flags,
 									     avionics_power_rail_voltage,
-									     can_arm_without_gps);
+									     can_arm_without_gps,
+									     hrt_elapsed_time(&commander_boot_timestamp));
 
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
@@ -2631,7 +2628,8 @@ int commander_thread_main(int argc, char *argv[])
 										     &mavlink_log_pub,
 										     &status_flags,
 										     avionics_power_rail_voltage,
-										     can_arm_without_gps);
+										     can_arm_without_gps,
+										     hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
@@ -3920,7 +3918,8 @@ void *commander_low_prio_loop(void *arg)
 											 &mavlink_log_pub,
 											 &status_flags,
 											 avionics_power_rail_voltage,
-											 can_arm_without_gps)) {
+											 can_arm_without_gps,
+											 hrt_elapsed_time(&commander_boot_timestamp))) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
 						break;
 					} else {
@@ -3999,12 +3998,14 @@ void *commander_low_prio_loop(void *arg)
 						bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 						/* Perform airspeed check only if circuit breaker is not
 						 * engaged and it's not a rotary wing */
-						if (!status_flags.circuit_breaker_engaged_airspd_check && !status.is_rotary_wing) {
+						if (!status_flags.circuit_breaker_engaged_airspd_check &&
+						    (!status.is_rotary_wing || status.is_vtol)) {
 							checkAirspeed = true;
 						}
 
 						status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
-							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !can_arm_without_gps, /* checkDynamic */ true, hotplug_timeout);
+							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !can_arm_without_gps,
+							/* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 
 						arming_state_transition(&status,
 									&battery,
@@ -4015,7 +4016,8 @@ void *commander_low_prio_loop(void *arg)
 									&mavlink_log_pub,
 									&status_flags,
 								        avionics_power_rail_voltage,
-									can_arm_without_gps);
+									can_arm_without_gps,
+									hrt_elapsed_time(&commander_boot_timestamp));
 
 					} else {
 						tune_negative(true);

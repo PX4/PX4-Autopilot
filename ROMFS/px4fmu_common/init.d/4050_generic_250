@@ -4,9 +4,15 @@
 #
 # @type Quadrotor x
 #
+# @output MAIN1 motor1 (front right: CCW)
+# @output MAIN2 motor2 (back left: CCW)
+# @output MAIN3 motor3 (front left: CW)
+# @output MAIN4 motor4 (back right: CW)
+#
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC FLAPS channel
 #
 # @maintainer Mark Whitehorn <kd0aij@gmail.com>
 #
@@ -33,9 +39,8 @@ then
 	param set MC_YAWRATE_MAX 400.0
 	param set MC_ACRO_R_MAX 360.0
 	param set MC_ACRO_P_MAX 360.0
-	param set MC_TPA_BREAK 0.5
-	param set MC_TPA_SLOPE 1.0
-	
+	param set MC_TPA_BREAK_P 0.5
+	param set MC_TPA_RATE_P 0.5
 
 	param set PWM_MIN 1075
 

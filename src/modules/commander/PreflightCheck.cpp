@@ -363,7 +363,7 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 	return success;
 }
 
-static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail, bool prearm, hrt_abstime time_since_boot)
 {
 	bool success = true;
 	int ret;
@@ -388,11 +388,24 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 		goto out;
 	}
 
-	if (fabsf(airspeed.indicated_airspeed_m_s) > 6.0f) {
+	/**
+	 * Check if differential pressure is off by more than 15Pa which equals to 5m/s when measuring no airspeed.
+	 * Negative and positive offsets are considered. Do not check anymore while arming because pitot cover
+	 * might have been removed.
+	 */
+
+	if (time_since_boot < 1e6) {
+		// the airspeed driver filter doesn't deliver the actual value yet
+		success = false;
+		goto out;
+	}
+
+	if (fabsf(airspeed.differential_pressure_filtered_pa) > 15.0f && !prearm) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "AIRSPEED WARNING: WIND OR CALIBRATION ISSUE");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: HIGH AIRSPEED, CHECK CALIBRATION");
 		}
-		// XXX do not make this fatal yet
+		success = false;
+		goto out;
 	}
 
 out:
@@ -487,7 +500,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check accelerometer delta velocity bias estimates
-	param_get(param_find("COM_ARM_IMU_AB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
 	if (fabsf(status.states[13]) > test_limit ||  fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
@@ -497,7 +510,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check gyro delta angle bias estimates
-	param_get(param_find("COM_ARM_IMU_GB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
 	if (fabsf(status.states[10]) > test_limit ||  fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
@@ -511,7 +524,8 @@ out:
 }
 
 bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc, bool checkGyro,
-		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic, bool isVTOL, bool reportFailures)
+		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS,
+		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot)
 {
 
 #ifdef __PX4_QURT
@@ -651,7 +665,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
-		if (!airspeedCheck(mavlink_log_pub, true, reportFailures)) {
+		if (!airspeedCheck(mavlink_log_pub, true, reportFailures, prearm, time_since_boot)) {
 			failed = true;
 		}
 	}

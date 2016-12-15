@@ -36,6 +36,7 @@
  *
  * @author Jonathan Challinger <jonathan@3drobotics.com>
  * @author Julian Oes <julian@oes.ch
+ * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #include <stdio.h>
@@ -52,9 +53,11 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
+#include <systemlib/perf_counter.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/low_stack.h>
 
 extern struct system_load_s system_load;
 
@@ -86,6 +89,8 @@ public:
 
 	bool isRunning() { return _taskIsRunning; }
 
+	void printStatus();
+
 private:
 	/* Do a compute and schedule the next cycle. */
 	void _cycle();
@@ -96,6 +101,15 @@ private:
 	/* Calculate the memory usage */
 	float _ram_used();
 
+#ifdef __PX4_NUTTX
+	/* Calculate stack usage */
+	void _stack_usage();
+
+	struct low_stack_s _low_stack;
+	int _stack_task_index;
+	orb_advert_t _low_stack_pub;
+#endif
+
 	bool _taskShouldExit;
 	bool _taskIsRunning;
 	struct work_s _work;
@@ -103,28 +117,51 @@ private:
 	struct cpuload_s _cpuload;
 	orb_advert_t _cpuload_pub;
 	hrt_abstime _last_idle_time;
+	perf_counter_t _stack_perf;
+	bool _stack_check_enabled;
 };
 
-
 LoadMon::LoadMon() :
+#ifdef __PX4_NUTTX
+	_low_stack {},
+	_stack_task_index(0),
+	_low_stack_pub(nullptr),
+#endif
 	_taskShouldExit(false),
 	_taskIsRunning(false),
 	_work{},
 	_cpuload{},
 	_cpuload_pub(nullptr),
-	_last_idle_time(0)
-{}
+	_last_idle_time(0),
+	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check")),
+	_stack_check_enabled(false)
+{
+	// Enable stack checking by param
+	param_t param_stack_check = param_find("SYS_STCK_EN");
+
+	if (param_stack_check != PARAM_INVALID) {
+		int ret_val = 0;
+		param_get(param_stack_check, &ret_val);
+		_stack_check_enabled = ret_val > 0;
+
+		// Only be verbose if enabled
+		if (_stack_check_enabled) {
+			PX4_INFO("stack check enabled");
+		}
+	}
+}
 
 LoadMon::~LoadMon()
 {
-	work_cancel(HPWORK, &_work);
+	work_cancel(LPWORK, &_work);
+	perf_free(_stack_perf);
 	_taskIsRunning = false;
 }
 
 int LoadMon::start()
 {
 	/* Schedule a cycle to start things. */
-	return work_queue(HPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this, 0);
+	return work_queue(LPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this, 0);
 }
 
 void LoadMon::stop()
@@ -147,7 +184,7 @@ void LoadMon::_cycle()
 	_compute();
 
 	if (!_taskShouldExit) {
-		work_queue(HPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this,
+		work_queue(LPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this,
 			   USEC2TICK(LOAD_MON_INTERVAL_US));
 	}
 }
@@ -167,6 +204,14 @@ void LoadMon::_compute()
 	_cpuload.timestamp = hrt_absolute_time();
 	_cpuload.load = 1.0f - (float)interval_idletime / (float)LOAD_MON_INTERVAL_US;
 	_cpuload.ram_usage = _ram_used();
+
+#ifdef __PX4_NUTTX
+
+	if (_stack_check_enabled) {
+		_stack_usage();
+	}
+
+#endif
 
 	if (_cpuload_pub == nullptr) {
 		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &_cpuload);
@@ -203,6 +248,74 @@ float LoadMon::_ram_used()
 #else
 	return 0.0f;
 #endif
+}
+
+#ifdef __PX4_NUTTX
+void LoadMon::_stack_usage()
+{
+	int task_index = 0;
+
+	/* Scan maximum 3 tasks per cycle to reduce load. */
+	for (int i = _stack_task_index; i < _stack_task_index + 3; i++) {
+		task_index = i % CONFIG_MAX_TASKS;
+		unsigned stack_free = 0;
+		bool checked_task = false;
+
+		perf_begin(_stack_perf);
+		sched_lock();
+
+		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
+			unsigned stack_size = (uintptr_t)system_load.tasks[task_index].tcb->adj_stack_ptr -
+					      (uintptr_t)system_load.tasks[task_index].tcb->stack_alloc_ptr;
+
+			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[task_index].tcb->stack_alloc_ptr;
+
+			while (stack_free < stack_size) {
+				if (*stack_sweeper++ != 0xff) {
+					break;
+				}
+
+				stack_free++;
+			}
+
+			checked_task = true;
+		}
+
+		sched_unlock();
+		perf_end(_stack_perf);
+
+		if (checked_task) {
+			/*
+			 * Found task low on stack, report and exit. Continue here in next cycle.
+			 */
+			if (stack_free < 300) {
+				strncpy((char *)_low_stack.task_name, system_load.tasks[task_index].tcb->name, low_stack_s::MAX_REPORT_TASK_NAME_LEN);
+				_low_stack.stack_free = stack_free;
+
+				if (_low_stack_pub == nullptr) {
+					_low_stack_pub = orb_advertise(ORB_ID(low_stack), &_low_stack);
+
+				} else {
+					orb_publish(ORB_ID(low_stack), _low_stack_pub, &_low_stack);
+				}
+
+				break;
+			}
+
+		} else {
+			/* No task here, check one more task in same cycle. */
+			_stack_task_index++;
+		}
+	}
+
+	/* Continue after last checked task next cycle. */
+	_stack_task_index = task_index + 1;
+}
+#endif
+
+void LoadMon::printStatus()
+{
+	perf_print_counter(_stack_perf);
 }
 
 /**
@@ -291,6 +404,7 @@ int load_mon_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (load_mon != nullptr && load_mon->isRunning()) {
 			PX4_INFO("running");
+			load_mon->printStatus();
 
 		} else {
 			PX4_INFO("not running\n");

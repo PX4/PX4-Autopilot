@@ -10,9 +10,11 @@ if [ -z "$WORKSPACE" ]; then
     exit 1
 fi
 
+IMAGE=px4io/px4-dev-ros:v1.0
+
 # Pulling latest image
 echo "===> pull latest Docker image"
-docker pull px4io/px4-dev-ros
+docker pull $IMAGE
 
 # removing some images might fail
 set +e
@@ -25,5 +27,5 @@ echo "<==="
 # Assuming that necessary source projects, including this one, are cloned in the build server workspace of this job.
 #
 echo "===> run container"
-docker run --rm -v "$WORKSPACE:/job:rw" px4io/px4-dev-ros bash "/job/Firmware/integrationtests/run_tests.bash" /job/Firmware
+docker run --rm -v "$WORKSPACE:/job:rw" $IMAGE bash "/job/Firmware/integrationtests/run_tests.bash" /job/Firmware
 echo "<==="

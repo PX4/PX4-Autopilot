@@ -63,7 +63,10 @@
 
 /* Define a usable PX4_ISFINITE. Note that PX4_ISFINITE is ONLY used in C++ files,
  * therefore, by default, we want to use std::isfinite. */
-#  define PX4_ISFINITE(x) std::isfinite(x)
+#ifdef __cplusplus
+#include <cmath>
+#define PX4_ISFINITE(x) std::isfinite(x)
+#endif
 
 #if defined(__PX4_ROS)
 /****************************************************************************
@@ -197,7 +200,7 @@ __END_DECLS
 #  if defined(__PX4_POSIX_EAGLE)
 #    define PX4_ROOTFSDIR "/home/linaro"
 #  elif defined(__PX4_POSIX_BEBOP)
-#    define PX4_ROOTFSDIR "/home/root"
+#    define PX4_ROOTFSDIR "/data/ftp/internal_000"
 #  else
 #    define PX4_ROOTFSDIR "rootfs"
 #  endif

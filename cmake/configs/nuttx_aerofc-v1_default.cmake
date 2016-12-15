@@ -10,18 +10,17 @@ set(config_module_list
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/led
-	#drivers/px4fmu
-	drivers/boards/asc-v1
-	drivers/rgbled_pwm
+	drivers/px4fmu
+	drivers/boards/aerofc-v1
 	drivers/tap_esc
 	drivers/mpu6500
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
-	drivers/airspeed
-	drivers/meas_airspeed
+	drivers/ist8310
 	modules/sensors
-	drivers/camera_trigger
+	# dummy tone alarm
+	modules/dummy
 
 	#
 	# System commands
@@ -53,6 +52,9 @@ set(config_module_list
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
 	#
+	modules/attitude_estimator_q
+	modules/position_estimator_inav
+	modules/local_position_estimator
 	modules/ekf2
 
 	#
@@ -94,6 +96,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/DriverFramework/framework
+	lib/rc
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

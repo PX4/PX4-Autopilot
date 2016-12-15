@@ -321,6 +321,7 @@ private:
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
 	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
+	int32_t			_thermal_control; ///< thermal control state
 	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
@@ -558,6 +559,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0),
+	_thermal_control(-1),
 	_analog_rc_rssi_stable(false),
 	_analog_rc_rssi_volt(-1.0f),
 	_last_throttle(0.0f),
@@ -1157,6 +1159,30 @@ PX4IO::task_main()
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
 				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
 
+				param_t thermal_param = param_find("SENS_EN_THERMAL");
+
+				if (thermal_param != PARAM_INVALID) {
+
+					int32_t thermal_p;
+					param_get(thermal_param, &thermal_p);
+
+					if (thermal_p != _thermal_control || _param_update_force) {
+
+						_thermal_control = thermal_p;
+						/* set power management state for thermal */
+						uint16_t tctrl;
+
+						if (_thermal_control < 0) {
+							tctrl = PX4IO_THERMAL_IGNORE;
+
+						} else {
+							tctrl = PX4IO_THERMAL_OFF;
+						}
+
+						ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
+					}
+				}
+
 				/*
 				 * Set invert mask for PWM outputs (does not apply to S.Bus)
 				 */
@@ -1177,6 +1203,30 @@ PX4IO::task_main()
 				}
 
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, pwm_invert_mask);
+
+				// update trim values
+				struct pwm_output_values pwm_values;
+
+//				memset(&pwm_values, 0, sizeof(pwm_values));
+//				ret = io_reg_get(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, (uint16_t *)pwm_values.values, _max_actuators);
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					char pname[16];
+					float pval;
+
+					/* fetch the trim values from parameters */
+					sprintf(pname, "PWM_MAIN_TRIM%u", i + 1);
+					param_t param_h = param_find(pname);
+
+					if (param_h != PARAM_INVALID) {
+
+						param_get(param_h, &pval);
+						pwm_values.values[i] = (int16_t)(10000 * pval);
+					}
+				}
+
+				/* copy values to registers in IO */
+				ret = io_reg_set(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm_values.values, _max_actuators);
 
 				float param_val;
 				param_t parm_handle;
@@ -1996,9 +2046,7 @@ PX4IO::io_publish_pwm_outputs()
 	/* get mixer status flags from IO */
 	uint16_t mixer_status;
 	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status, sizeof(mixer_status) / sizeof(uint16_t));
-	motor_limits.lower_limit = mixer_status & PX4IO_P_STATUS_MIXER_LOWER_LIMIT;
-	motor_limits.upper_limit = mixer_status & PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
-	motor_limits.yaw = mixer_status & PX4IO_P_STATUS_MIXER_YAW_LIMIT;
+	motor_limits.saturation_status = mixer_status;
 
 	if (ret != OK) {
 		return ret;
@@ -2473,6 +2521,18 @@ PX4IO::print_status(bool extended_status)
 		printf(" %u", io_reg_get(PX4IO_PAGE_DISARMED_PWM, i));
 	}
 
+	/* IMU heater (Pixhawk 2.1) */
+	uint16_t heater_level = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL);
+
+	if (heater_level != UINT16_MAX) {
+		if (heater_level == PX4IO_THERMAL_OFF) {
+			printf("\nIMU heater off", heater_level);
+
+		} else {
+			printf("\nIMU heater level %d", heater_level);
+		}
+	}
+
 	printf("\n");
 }
 
@@ -2642,6 +2702,33 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			pwm->channel_count = _max_actuators;
 
 			ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm->values, _max_actuators);
+
+			if (ret != OK) {
+				ret = -EIO;
+			}
+		}
+
+		break;
+
+	case PWM_SERVO_SET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			if (pwm->channel_count > _max_actuators)
+				/* fail with error */
+			{
+				return -E2BIG;
+			}
+
+			/* copy values to registers in IO */
+			ret = io_reg_set(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm->values, pwm->channel_count);
+			break;
+		}
+
+	case PWM_SERVO_GET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+			pwm->channel_count = _max_actuators;
+
+			ret = io_reg_get(PX4IO_PAGE_CONTROL_TRIM_PWM, 0, pwm->values, _max_actuators);
 
 			if (ret != OK) {
 				ret = -EIO;
@@ -3307,7 +3394,6 @@ checkcrc(int argc, char *argv[])
 		exit(1);
 	}
 
-	warnx("CRCs match");
 	exit(0);
 }
 
@@ -3625,7 +3711,8 @@ px4io_main(int argc, char *argv[])
 			fn[1] =	"/fs/microsd/px4io1.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
 			fn[3] =	nullptr;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
+	  defined(CONFIG_ARCH_BOARD_AUAV_X21)
 			fn[0] = "/etc/extras/px4io-v2.bin";
 			fn[1] =	"/fs/microsd/px4io2.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";

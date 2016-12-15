@@ -429,6 +429,8 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 		_update_gyro_calibration();
 	}
 
+	uint64_t now = hrt_absolute_time();
+
 	math::Vector<3> vec_integrated_unused;
 	uint64_t integral_dt_unused;
 
@@ -441,10 +443,10 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	accel_val(1) = (accel_val(1) - _accel_calibration.y_offset) * _accel_calibration.y_scale;
 	accel_val(2) = (accel_val(2) - _accel_calibration.z_offset) * _accel_calibration.z_scale;
 
-	_accel_int.put_with_interval(data.fifo_sample_interval_us,
-				     accel_val,
-				     vec_integrated_unused,
-				     integral_dt_unused);
+	_accel_int.put(now,
+		       accel_val,
+		       vec_integrated_unused,
+		       integral_dt_unused);
 
 	math::Vector<3> gyro_val(data.gyro_rad_s_x, data.gyro_rad_s_y, data.gyro_rad_s_z);
 
@@ -455,10 +457,10 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
 	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
 
-	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
-				    gyro_val,
-				    vec_integrated_unused,
-				    integral_dt_unused);
+	_gyro_int.put(now,
+		      gyro_val,
+		      vec_integrated_unused,
+		      integral_dt_unused);
 
 	// If we are not receiving the last sample from the FIFO buffer yet, let's stop here
 	// and wait for more packets.

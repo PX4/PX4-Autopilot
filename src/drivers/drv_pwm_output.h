@@ -112,11 +112,16 @@ __BEGIN_DECLS
 #define PWM_DEFAULT_MAX 2000
 
 /**
+ * Default trim PWM in us
+ */
+#define PWM_DEFAULT_TRIM 0
+
+/**
  * Lowest PWM allowed as the maximum PWM
  */
 #define PWM_LOWEST_MAX 200
 
-#endif // PX4_PWM_ALTERNATE_RANGES
+#endif // not PX4_PWM_ALTERNATE_RANGES
 
 /**
  * Do not output a channel with this value
@@ -217,42 +222,48 @@ struct pwm_output_rc_config {
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
+/** set the TRIM value the output will send */
+#define PWM_SERVO_SET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 20)
+
+/** get the TRIM value the output will send */
+#define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
+
 /** set the number of servos in (unsigned)arg - allows change of
  * split between servos and GPIO */
-#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 20)
+#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 22)
 
 /** set the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 21)
+#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
 
 /** get the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 22)
+#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 24)
 
 /** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 23)
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
 
 /** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE		_PX4_IOC(_PWM_SERVO_BASE, 24)
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_PX4_IOC(_PWM_SERVO_BASE, 26)
 
 /** make failsafe non-recoverable (termination) if it occurs */
-#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 25)
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
 
 /** force safety switch on (to enable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 26)
+#define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
 /** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
-#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 27)
+#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 29)
 
 /** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 28)
+#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 30)
 
 /** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 29)
+#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 31)
 
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
-#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 30)
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
 
 /** set SBUS output frame rate in Hz */
-#define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 31)
+#define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 33)
 
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE			0
@@ -267,7 +278,7 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_4CAP			9
 #define PWM_SERVO_MODE_5CAP		       10
 #define PWM_SERVO_MODE_6CAP		       11
-#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 32)
+#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
  *

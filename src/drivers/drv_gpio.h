@@ -42,6 +42,34 @@
 
 #include <sys/ioctl.h>
 
+#ifdef CONFIG_ARCH_BOARD_AUAV_X21
+/*
+ * PX4FMUv2 GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+# define GPIO_SERVO_1		(1<<0)		/**< servo 1 output */
+# define GPIO_SERVO_2		(1<<1)		/**< servo 2 output */
+# define GPIO_SERVO_3		(1<<2)		/**< servo 3 output */
+# define GPIO_SERVO_4		(1<<3)		/**< servo 4 output */
+# define GPIO_SERVO_5		(1<<4)		/**< servo 5 output */
+# define GPIO_SERVO_6		(1<<5)		/**< servo 6 output */
+
+# define GPIO_5V_PERIPH_EN	(1<<6)		/**< PA8 - !VDD_5V_PERIPH_EN */
+# define GPIO_3V3_SENSORS_EN	(1<<7)		/**< PE3 - VDD_3V3_SENSORS_EN */
+# define GPIO_BRICK_VALID	(1<<8)		/**< PB5 - !VDD_BRICK_VALID */
+# define GPIO_SERVO_VALID	(1<<9)		/**< PB7 - !VDD_SERVO_VALID */
+# define GPIO_5V_HIPOWER_OC	(1<<10)		/**< PE10 - !VDD_5V_HIPOWER_OC */
+# define GPIO_5V_PERIPH_OC	(1<<11)		/**< PE10 - !VDD_5V_PERIPH_OC */
+
+/**
+ * Device paths for things that support the GPIO ioctl protocol.
+ */
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+# define PX4IO_DEVICE_PATH	"/dev/px4io"
+
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 /*
  * PX4FMU GPIO numbers.
@@ -191,7 +219,7 @@
 /* no GPIO driver on the PX4_STM32F4DISCOVERY board */
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_ASC_V1
+#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
 /* no GPIO driver on the ASC board */
 #endif
 
@@ -199,12 +227,19 @@
 /* no GPIO driver on the SITL configuration */
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
-	!defined(CONFIG_ARCH_BOARD_AEROCORE) && !defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && \
+    !defined(CONFIG_ARCH_BOARD_PX4IO_V2)  && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V2) && \
+	!defined(CONFIG_ARCH_BOARD_AUAV_X21) && \
+	!defined(CONFIG_ARCH_BOARD_AEROCORE) && \
+	!defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
 	!defined(CONFIG_ARCH_BOARD_MINDPX_V2) && \
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && !defined(CONFIG_ARCH_BOARD_SITL) && \
-	!defined(CONFIG_ARCH_BOARD_TAP_V1) && !defined(CONFIG_ARCH_BOARD_ASC_V1) && \
+	!defined(CONFIG_ARCH_BOARD_PX4FMU_V4) && \
+	!defined(CONFIG_ARCH_BOARD_SITL) && \
+	!defined(CONFIG_ARCH_BOARD_TAP_V1) && \
+	!defined(CONFIG_ARCH_BOARD_ASC_V1) && \
+	!defined(CONFIG_ARCH_BOARD_AEROFC_V1) && \
 	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
 # error No CONFIG_ARCH_BOARD_xxxx set
 #endif
