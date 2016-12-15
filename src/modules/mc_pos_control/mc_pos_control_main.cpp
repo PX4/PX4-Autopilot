@@ -284,6 +284,7 @@ private:
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
 	hrt_abstime _time_landed;	// timestamp when vehicle landed, if zero, then vehicle is in the air
+	bool _landed_for_sure = true;	// yet another check on top of the landing detector, to be removed ASAP
 	bool _landed_locked;		// if this is true then we assume we are on the ground and nothing but takeoff gets us off the ground, except full manual mode
 	float _takeoff_alt;		// local altitude at time of takeoff
 
@@ -1146,8 +1147,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 	}
 
 	/* use constant descend rate when landing, ignore altitude setpoint */
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	if ((!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
+	     && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+	    (_manual.z <= _land_throttle_thresh.get() && _control_mode.flag_control_manual_enabled)) {
 		_vel_sp(2) = _params.land_speed;
 		_run_alt_control = false;
 	}
@@ -1157,33 +1159,7 @@ MulticopterPositionControl::control_non_manual(float dt)
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 	    && _control_mode.flag_armed) {
 
-		// check if we are not already in air.
-		// if yes then we don't need a jumped takeoff anymore
-		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-			_takeoff_jumped = true;
-		}
-
-		if (!_takeoff_jumped) {
-			// ramp thrust setpoint up
-			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-				_takeoff_thrust_sp += 0.5f * dt;
-				_vel_sp.zero();
-				_vel_prev.zero();
-
-			} else {
-				// copter has reached our takeoff speed. split the thrust setpoint up
-				// into an integral part and into a P part
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
-				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-				_vel_sp_prev(2) = -_params.tko_speed;
-				_takeoff_jumped = true;
-				_reset_int_z = false;
-			}
-		}
-
-		if (_takeoff_jumped) {
-			_vel_sp(2) = -_params.tko_speed;
-		}
+		do_ground_takeoff(dt);
 
 	} else {
 		_takeoff_jumped = false;
@@ -1206,6 +1182,56 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_att_sp.thrust = 0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
+
+		/* publish attitude setpoint */
+		if (_att_sp_pub != nullptr) {
+			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
+		} else if (_attitude_setpoint_id) {
+			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+		}
+
+	} else if (_control_mode.flag_control_manual_enabled
+		   && (_landed_for_sure || (_landed_locked && _acc_z_lp < 4.0f))) {
+
+		if (_manual.z >= _takeoff_throttle_thresh.get() || _takeoff_thrust_sp > FLT_EPSILON) {
+			if (fabsf(_takeoff_alt) < FLT_EPSILON) {
+				_takeoff_alt = _pos(2);
+			}
+
+			do_ground_takeoff(dt);
+
+			_att_sp.thrust = _takeoff_thrust_sp;
+
+		} else {
+			_att_sp.thrust = 0.0f;
+			_reset_yaw_sp = true;
+		}
+
+		if (!_takeoff_jumped) {
+			/* don't run controller when landed */
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
+			_mode_auto = false;
+			_reset_int_xy = true;
+			_alt_hold_engaged = false;
+			_pos_hold_engaged = false;
+
+		} else {
+			_pos_sp(2) = _takeoff_alt - _tk_alt_sp.get();
+			_takeoff_alt = 0.0f;
+			_reset_int_z = false;	// integrator has been set, do not reset!!!
+			_alt_hold_engaged = true;
+			_pos_hold_engaged = true;
+			_landed_locked = false;
+		}
+
+		_att_sp.roll_body = 0.0f;
+		_att_sp.pitch_body = 0.0f;
+		_att_sp.timestamp = hrt_absolute_time();
+		matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+		memcpy(&_att_sp.q_d[0], &q_sp._data, sizeof(_att_sp.q_d));
+		_att_sp.q_d_valid = true;
 
 		/* publish attitude setpoint */
 		if (_att_sp_pub != nullptr) {
@@ -1897,8 +1923,9 @@ MulticopterPositionControl::control_position(float dt)
 			// Keep throttle low while still on ground.
 			thr_max = 0.0f;
 
-		} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		} else if ((!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
+			    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+			   (_manual.z <= _land_throttle_thresh.get() && _control_mode.flag_control_manual_enabled)) {
 
 			/* adjust limits for landing mode */
 			/* limit max tilt and min lift when landing */
@@ -1943,6 +1970,13 @@ MulticopterPositionControl::control_position(float dt)
 		} else {
 			_in_landing = false;
 			_lnd_reached_ground = false;
+		}
+
+		// if we reached the ground, set the landed locked flag
+		// from now on a takeoff is needed to get off the ground, e.g user has to put
+		// throttle over 50 %
+		if (_control_mode.flag_control_manual_enabled && _lnd_reached_ground) {
+			_landed_locked = true;
 		}
 
 		/* limit min lift */
@@ -2340,11 +2374,11 @@ MulticopterPositionControl::task_main()
 		}
 
 		// assume really landed if landed, and if we have seen landed state for at least 0.5 seconds
-		bool landed_for_sure = _vehicle_land_detected.landed && _time_landed != 0 && (hrt_elapsed_time(&_time_landed) > 5e5);
+		_landed_for_sure = _vehicle_land_detected.landed && _time_landed != 0 && (hrt_elapsed_time(&_time_landed) > 5e5);
 
 		// once we are sure that we are landed, then set the landed lock which prevents noise from the landed detector
 		// to interrupt the takeoff
-		if (landed_for_sure && !_landed_locked) {
+		if (_landed_for_sure && !_landed_locked) {
 			_landed_locked = true;
 		}
 
