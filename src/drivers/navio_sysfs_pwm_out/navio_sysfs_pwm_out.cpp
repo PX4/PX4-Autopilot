@@ -373,7 +373,7 @@ void task_main(int argc, char *argv[])
 				       pwm,
 				       &_pwm_limit);
 
-			if (_armed.lockdown) {
+			if (_armed.lockdown || _armed.manual_lockdown) {
 				send_outputs_pwm(disarmed_pwm);
 
 			} else {

@@ -1670,8 +1670,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	transition_result_t arming_ret;
 
-	int32_t datalink_loss_enabled = 0;
-	int32_t rc_loss_enabled = 0;
+	int32_t datalink_loss_act = 0;
+	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
@@ -1758,8 +1758,8 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* Safety parameters */
-			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
-			param_get(_param_enable_rc_loss, &rc_loss_enabled);
+			param_get(_param_enable_datalink_loss, &datalink_loss_act);
+			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
@@ -2708,15 +2708,15 @@ int commander_thread_main(int argc, char *argv[])
 			/* check throttle kill switch */
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
-				if (!armed.lockdown) {
+				if (!armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH ENGAGED");
 				}
-				armed.lockdown = true;
+				armed.manual_lockdown = true;
 			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-				if (armed.lockdown) {
+				if (armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH OFF");
 				}
-				armed.lockdown = false;
+				armed.manual_lockdown = false;
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
 		} else {
@@ -2931,18 +2931,20 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
-						       &internal_state,
-						       &mavlink_log_pub,
-						       (datalink_loss_enabled > 0),
-						       _mission_result.finished,
-						       _mission_result.stay_in_failsafe,
-						       &status_flags,
-						       land_detector.landed,
-						       (rc_loss_enabled > 0),
-						       offboard_loss_act,
-						       offboard_loss_rc_act);
+											   &armed,
+											   &internal_state,
+											   &mavlink_log_pub,
+											   (link_loss_actions_t)datalink_loss_act,
+											   _mission_result.finished,
+											   _mission_result.stay_in_failsafe,
+											   &status_flags,
+											   land_detector.landed,
+											   (link_loss_actions_t)rc_loss_act,
+											   offboard_loss_act,
+											   offboard_loss_rc_act);
 
-		if (status.failsafe != failsafe_old) {
+		if (status.failsafe != failsafe_old)
+		{
 			status_changed = true;
 
 			if (status.failsafe) {
@@ -3002,9 +3004,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_LOW)) {
-			/* play tune on battery warning or failsafe */
+			/* play tune on battery warning */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
+		} else if (status.failsafe) {
+			tune_failsafe(true);
 		} else {
 			set_tune(TONE_STOP_TUNE);
 		}
@@ -3197,19 +3201,30 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
-		/* armed, solid */
-		led_on(LED_BLUE);
+		if (status.failsafe) {
+			led_off(LED_BLUE);
+			if (leds_counter % 5 == 0) {
+				led_toggle(LED_GREEN);
+			}
+		} else {
+			led_off(LED_GREEN);
+			
+			/* armed, solid */
+			led_on(LED_BLUE);
+		}
 
 	} else if (actuator_armed->ready_to_arm) {
+		led_off(LED_BLUE);
 		/* ready to arm, blink at 1Hz */
 		if (leds_counter % 20 == 0) {
-			led_toggle(LED_BLUE);
+			led_toggle(LED_GREEN);
 		}
 
 	} else {
+		led_off(LED_BLUE);
 		/* not ready to arm, blink at 10Hz */
 		if (leds_counter % 2 == 0) {
-			led_toggle(LED_BLUE);
+			led_toggle(LED_GREEN);
 		}
 	}
 

@@ -88,6 +88,8 @@ class PWMSim : public device::CDev
 class PWMSim : public device::VDev
 #endif
 {
+	const uint32_t PWM_SIM_DISARMED_MAGIC = 900;
+	const uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
 public:
 	enum Mode {
 		MODE_2PWM,
@@ -128,6 +130,8 @@ private:
 
 	volatile bool	_task_should_exit;
 	static bool	_armed;
+	static bool	_lockdown;
+	static bool	_failsafe;
 
 	MixerGroup	*_mixers;
 
@@ -170,6 +174,8 @@ PWMSim	*g_pwm_sim;
 } // namespace
 
 bool PWMSim::_armed = false;
+bool PWMSim::_lockdown = false;
+bool PWMSim::_failsafe = false;
 
 PWMSim::PWMSim() :
 #ifdef __PX4_NUTTX
@@ -508,10 +514,23 @@ PWMSim::task_main()
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
 					 * spinning motors. It would be deadly in flight.
 					 */
-					outputs.output[i] = 900;
+					outputs.output[i] = PWM_SIM_DISARMED_MAGIC;
 				}
 			}
 
+			/* overwrite outputs in case of force_failsafe */
+			if (_failsafe) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					outputs.output[i] = PWM_SIM_FAILSAFE_MAGIC;
+				}
+			}
+
+			/* overwrite outputs in case of lockdown */
+			if (_lockdown) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					outputs.output[i] = 0.0;
+				}
+			}
 
 			/* and publish for anyone that cares to see */
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &outputs);
@@ -526,6 +545,8 @@ PWMSim::task_main()
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &aa);
 			/* do not obey the lockdown value, as lockdown is for PWMSim */
 			_armed = aa.armed;
+			_failsafe = aa.force_failsafe;
+			_lockdown = aa.lockdown || aa.manual_lockdown;
 		}
 	}
 

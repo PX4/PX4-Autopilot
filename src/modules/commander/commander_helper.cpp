@@ -243,6 +243,17 @@ void tune_negative(bool use_buzzer)
 	}
 }
 
+void tune_failsafe(bool use_buzzer)
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_PURPLE);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
+	if (use_buzzer) {
+		set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+	}
+}
+
 int blink_msg_state()
 {
 	if (blink_msg_end == 0) {
