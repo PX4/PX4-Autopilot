@@ -255,8 +255,8 @@ private:
 	bool _run_pos_control;
 	bool _run_alt_control;
 
-	bool _reset_int_z = true;
 	bool _reset_int_xy = true;
+	bool _reset_int_z = true;
 	bool _reset_int_z_manual = false;
 	bool _reset_yaw_sp = true;
 
@@ -443,7 +443,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
-	_reset_int_z(true),
 	_do_reset_alt_pos_flag(true),
 	_mode_auto(false),
 	_pos_hold_engaged(false),
@@ -1625,6 +1624,7 @@ MulticopterPositionControl::do_ground_takeoff(float dt)
 	}
 }
 
+void
 MulticopterPositionControl::update_velocity_derivative()
 {
 
@@ -2309,8 +2309,8 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev.zero();
 			_reset_int_z = true;
 			_takeoff_thrust_sp = 0.0f;
-			reset_int_xy = true;
-			reset_yaw_sp = true;
+			_reset_int_xy = true;
+			_reset_yaw_sp = true;
 		}
 
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
