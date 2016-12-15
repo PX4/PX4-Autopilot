@@ -1039,14 +1039,6 @@ MulticopterPositionControl::control_manual(float dt)
 
 		_att_sp.timestamp = hrt_absolute_time();
 
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
-
 	} else {
 		control_position(dt);
 	}
@@ -1180,14 +1172,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_att_sp.thrust = 0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
-
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
 
 	} else {
 		control_position(dt);
