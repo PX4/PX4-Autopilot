@@ -1358,6 +1358,9 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
+		// FIXME: in offboard we're just in flying state for now, we don't care about takeoff/land.
+		_air_state = air_state::FLYING;
+
 	} else {
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;
