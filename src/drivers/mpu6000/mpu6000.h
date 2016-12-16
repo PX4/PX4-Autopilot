@@ -121,6 +121,7 @@
 
 #define MPU_WHOAMI_6000			0x68
 #define ICM_WHOAMI_20608		0xaf
+#define ICM_WHOAMI_20602		0x12
 
 // ICM2608 specific registers
 
@@ -139,6 +140,11 @@
 */
 #define MPUREG_ICM_UNDOC1		0x11
 #define MPUREG_ICM_UNDOC1_VALUE	0xc9
+
+// Product ID Description for ICM2602
+// Read From device
+
+#define ICM20602_REV_02		2
 
 // Product ID Description for ICM2608
 // There is none

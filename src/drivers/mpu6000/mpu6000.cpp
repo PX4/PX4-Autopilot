@@ -108,7 +108,6 @@
  */
 #define MPU6000_TIMER_REDUCTION				200
 
-
 enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
 	MPU6000_BUS_I2C_INTERNAL,
@@ -255,7 +254,7 @@ private:
 	/**
 	 * is_icm_device
 	 */
-	bool 		is_icm_device() { return _device_type == 20608;}
+	bool 		is_icm_device() { return !is_mpu_device();}
 	/**
 	 * is_mpu_device
 	 */
@@ -778,7 +777,23 @@ int
 MPU6000::probe()
 {
 	uint8_t whoami = read_reg(MPUREG_WHOAMI);
-	uint8_t expected = is_mpu_device() ? MPU_WHOAMI_6000 : ICM_WHOAMI_20608;
+	uint8_t expected = 0;
+
+	switch (_device_type) {
+
+	default:
+	case 6000:
+		expected = MPU_WHOAMI_6000;
+		break;
+
+	case 20602:
+		expected = ICM_WHOAMI_20602;
+		break;
+
+	case 20608:
+		expected = ICM_WHOAMI_20608;
+		break;
+	}
 
 	if (whoami != expected) {
 		DEVICE_DEBUG("unexpected WHOAMI 0x%02x", whoami);
@@ -803,6 +818,7 @@ MPU6000::probe()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 	case ICM20608_REV_00:
+	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
 		DEVICE_DEBUG("ID 0x%02x", _product);
 		_checked_values[0] = _product;
@@ -2182,29 +2198,36 @@ struct mpu6000_bus_option {
 	const char *gyropath;
 	MPU6000_constructor interface_constructor;
 	uint8_t busnum;
+	bool external;
 	MPU6000	*dev;
 } bus_options[] = {
 #if defined (USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
+	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU6000_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU6000_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT, NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
+#endif
+#ifdef PX4_SPIDEV_ICM_20602
+	{ MPU6000_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+#endif
+#if defined(PX4_SPI_BUS_EXTERNAL)
+	{ MPU6000_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
 #endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 
-void	start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type, bool external);
-bool 	start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type, bool external);
+void	start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type);
+bool 	start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type);
 void	stop(enum MPU6000_BUS busid);
 void	test(enum MPU6000_BUS busid);
 static struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid);
@@ -2234,16 +2257,16 @@ struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid)
  * start driver for a specific bus option
  */
 bool
-start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type, bool external)
+start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type)
 {
 	int fd = -1;
 
 	if (bus.dev != nullptr) {
-		warnx("%s SPI not available", external ? "External" : "Internal");
+		warnx("%s SPI not available", bus.external ? "External" : "Internal");
 		return false;
 	}
 
-	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, external);
+	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, bus.external);
 
 	if (interface == nullptr) {
 		warnx("no device on bus %u", (unsigned)bus.busid);
@@ -2308,7 +2331,7 @@ fail:
  * or failed to detect the sensor.
  */
 void
-start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type, bool external)
+start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type)
 {
 
 	bool started = false;
@@ -2324,7 +2347,7 @@ start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], rotation, range, device_type, external);
+		started |= start_bus(bus_options[i], rotation, range, device_type);
 	}
 
 	exit(started ? 0 : 1);
@@ -2539,8 +2562,11 @@ usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
 	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -T 6000|20608 (default 6000)");
+	warnx("    -X external I2C bus");
+	warnx("    -I internal I2C bus");
+	warnx("    -S external SPI bus");
+	warnx("    -s internal SPI bus");
+	warnx("    -T 6000|20608|20602 (default 6000)");
 	warnx("    -R rotation");
 	warnx("    -a accel range (in g)");
 }
@@ -2553,7 +2579,6 @@ mpu6000_main(int argc, char *argv[])
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
 	int device_type = 6000;
 	int ch;
-	bool external = false;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = 8;
 
@@ -2594,8 +2619,6 @@ mpu6000_main(int argc, char *argv[])
 		}
 	}
 
-	external = (busid == MPU6000_BUS_I2C_EXTERNAL || busid == MPU6000_BUS_SPI_EXTERNAL);
-
 	const char *verb = argv[optind];
 
 	/*
@@ -2603,7 +2626,7 @@ mpu6000_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(busid, rotation, accel_range, device_type, external);
+		mpu6000::start(busid, rotation, accel_range, device_type);
 	}
 
 	if (!strcmp(verb, "stop")) {
