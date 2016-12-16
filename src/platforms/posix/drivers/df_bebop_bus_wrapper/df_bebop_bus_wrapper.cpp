@@ -53,7 +53,6 @@
 #include <uORB/topics/battery_status.h>
 
 #include <systemlib/mixer/mixer.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
 #include <systemlib/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>
@@ -88,7 +87,7 @@ public:
 	int clear_errors();
 
 	/// Set the ESC speeds [front left, front right, back right, back left]
-	int set_esc_speeds(const float pwm[4]);
+	int set_esc_speeds(const float speed_scaled[4]);
 
 	/// Capture the last throttle value for the battey computation
 	void set_last_throttle(float throttle) {_last_throttle = throttle;};
@@ -184,9 +183,9 @@ int DfBebopBusWrapper::clear_errors()
 	return BebopBus::_clear_errors();
 }
 
-int DfBebopBusWrapper::set_esc_speeds(const float pwm[4])
+int DfBebopBusWrapper::set_esc_speeds(const float speed_scaled[4])
 {
-	return BebopBus::_set_esc_speed(pwm);
+	return BebopBus::_set_esc_speed(speed_scaled);
 }
 
 int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
