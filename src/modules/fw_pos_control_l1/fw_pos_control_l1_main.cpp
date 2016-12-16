@@ -2346,14 +2346,20 @@ FixedwingPositionControl::task_main()
 				_att_sp.q_d[3] = q(3);
 				_att_sp.q_d_valid = true;
 
-				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr) {
-					/* publish the attitude setpoint */
-					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+				if (!_control_mode.flag_control_offboard_enabled ||
+				    _control_mode.flag_control_position_enabled ||
+				    _control_mode.flag_control_velocity_enabled ||
+				    _control_mode.flag_control_acceleration_enabled) {
 
-				} else if (_attitude_setpoint_id) {
-					/* advertise and publish */
-					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					/* lazily publish the setpoint only once available */
+					if (_attitude_sp_pub != nullptr) {
+						/* publish the attitude setpoint */
+						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+
+					} else if (_attitude_setpoint_id) {
+						/* advertise and publish */
+						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					}
 				}
 
 				/* XXX check if radius makes sense here */
