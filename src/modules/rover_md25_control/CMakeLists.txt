@@ -40,8 +40,13 @@ px4_add_module(
 	SRCS
 		BlockEncoderPositionEstimator.cpp
 		main.cpp
+<<<<<<< HEAD
 		FuzzyFB.cpp
 		rover_params.c
+=======
+		rover_params.c
+		
+>>>>>>> origin/GroundFirmware
 	DEPENDS
 		platforms__common
 	)

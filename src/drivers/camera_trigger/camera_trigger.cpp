@@ -273,7 +273,7 @@ CameraTrigger::stop()
 	work_cancel(LPWORK, &_work);
 	hrt_cancel(&_engagecall);
 	hrt_cancel(&_disengagecall);
-	fprintf(stderr, "stop\n");
+
 	if (camera_trigger::g_camera_trigger != nullptr) {
 		delete(camera_trigger::g_camera_trigger);
 	}
@@ -301,22 +301,19 @@ CameraTrigger::cycle_trampoline(void *arg)
 		struct vehicle_command_s cmd;
 
 		orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
-        //VEHICLE_CMD_DO_DIGICAM_CONTROL
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL  ) {
+
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL ) {
 
 			// Set trigger rate from command
 			if (cmd.param2 > 0) {
 				trig->_interval = cmd.param2;
-				fprintf(stderr, "cmd.param2>0\n");
 				param_set(trig->_p_interval, &(trig->_interval));
 			}
 
 			if (cmd.param1 < 1.0f) {
-			    fprintf(stderr, "cmd.param1<1.0\n");
 				trig->control(false);
 
 			} else if (cmd.param1 >= 1.0f) {
-			    fprintf(stderr, "trig->control(true)\n");
 				trig->control(true);
 				// while the trigger is active there is no
 				// need to poll at a very high rate
@@ -364,7 +361,6 @@ CameraTrigger::disengage(void *arg)
 	for (unsigned i = 0; i < sizeof(trig->_pins) / sizeof(trig->_pins[0]); i++) {
 		if (trig->_pins[i] >= 0) {
 			// ACTIVE_LOW == 1
-		    fprintf(stderr, "disengage pola:%i i=%i\n",trig->_polarity,i);
 			stm32_gpiowrite(trig->_gpios[trig->_pins[i]], !(trig->_polarity));
 		}
 	}
