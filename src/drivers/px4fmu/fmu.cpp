@@ -988,6 +988,7 @@ PX4FMU::cycle()
 #endif
 
 		param_find("MOT_SLEW_MAX");
+		param_find("THR_MDL_FAC");
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			char pname[16];
