@@ -1997,7 +1997,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("COLLISION", 2.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream("VISION_POSITION_NED", 1.0f);
+		configure_stream("VISION_POSITION_ESTIMATE", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream("GLOBAL_POSITION_INT", 5.0f);
@@ -2024,7 +2024,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("COLLISION", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream("GLOBAL_POSITION_INT", 50.0f);
@@ -2081,7 +2081,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("COLLISION", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream("VISION_POSITION_NED", 10.0f);
+		configure_stream("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
