@@ -3287,7 +3287,7 @@ PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
  * @max 1.0
  * @group PWM Outputs
  */
-PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.65f);
+PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
 
 /**
  * Minimum motor rise time (slew rate limit).
