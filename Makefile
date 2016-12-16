@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-PWD = "C:\Users\BERNAT\Mes documents\GitHub\Firmware"
+PWD = "C:\Users\BERNAT\Documents\GitHub\Firmware"
 
 # Enforce the presence of the GIT repository
 #

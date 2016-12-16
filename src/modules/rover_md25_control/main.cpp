@@ -140,7 +140,7 @@ float   outmem_points[2][7][4] =
         { 128.000000 },
         { 158.000000 },
         { 176.000000 },
-        { 198.000000 }
+        { 200.000000 }
     },  {
         { 38.000000 },
         { 54.000000 },
@@ -148,7 +148,7 @@ float   outmem_points[2][7][4] =
         { 128.000000 },
         { 158.000000 },
         { 176.000000 },
-        { 198.000000 }
+        { 200.000000 }
     }
 };
 float   crisp_outputs[2] = { 0, 0};
@@ -280,20 +280,18 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
      *    ...
      */
 
+
+    float vire=0.0f;
+    float yaw_err =  att_sp->yaw_body - att->yaw ;
+
+    //normalisation de l'orientation du robot F.BERNAT
+    yaw_err = (float)fmod((float)fmod((yaw_err + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
     /*
      * Calculate yaw error and apply P gain
      */
-   float vire=0.0f;
-    float yaw_err =  att_sp->yaw_body - att->yaw ;
-    //fprintf(stderr, "robot=%0.2f\n",(double)(att->yaw*360/M_TWOPI_F));
-    //fprintf(stderr, "dist=%0.2f\n",(double)att_sp->pitch_body);
-    //normalisation de l'orientation du robot F.BERNAT
-    yaw_err = (float)fmod((float)fmod((yaw_err + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
-    //fprintf(stderr, "att_sp->yaw_body=%0.2f,att->yaw=%0.2f \n",(double)att_sp->yaw_body,(double)att->yaw);
-   // fprintf(stderr, "yaw_err=%0.2f \n",(double)yaw_err);
-
     float theta = fabs(yaw_err * pp.yaw_p);
     float thr_p=0.0f;
+
     if ((double)att_sp->thrust > 0.0){
 
          if ((int)(att_sp->pitch_body*100.0f)<0)
@@ -308,16 +306,16 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
          if (abs(outputs[1]-128)==0)
              actuators->control[0]=0;
          else
-             actuators->control[0] = (float)(outputs[1]-128)/127.0f ;
+             actuators->control[0] = (float)(outputs[1]-128)/127.0f * pp.thr_p;
 
          if (abs(outputs[0]-128)==0)
              actuators->control[1] = 0;
          else
-             actuators->control[1] = (float)(outputs[0]-128)/127.0f ;
-
-         //thr_p=att_sp->thrust + pp.thr_p;
-      //   fprintf(stderr, "thrust=%0.2f \n",(double)thr_p);
-      /*   if (fabs(yaw_err)<=(double)pp.yaw_t){
+             actuators->control[1] = (float)(outputs[0]-128)/127.0f * pp.thr_p;
+         /* control de la vitesse en fonction de l'orientation (ancienne version)
+         thr_p=att_sp->thrust + pp.thr_p;
+         fprintf(stderr, "thrust=%0.2f \n",(double)thr_p);
+         if (fabs(yaw_err)<=(double)pp.yaw_t){
                 //fprintf(stderr, "ttdroit \n");
                 actuators->control[0] = thr_p ;
                 actuators->control[1] = thr_p ;
@@ -332,25 +330,20 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
      }
      else{
         if((double)att_sp->yaw_sp_move_rate>0.0){
-
-          thr_p=att_sp->yaw_sp_move_rate;
-
-          if (fabs(yaw_err)>(double)pp.yaw_t){
-
-           if((float)fabs(yaw_err)<0.2f)
-               thr_p=0.3;
+            if(theta>0.01f){
+              thr_p=att_sp->yaw_sp_move_rate;
 
             vire =thr_p * cosf(theta);
 
             if (yaw_err>0){
-                   actuators->control[0] = vire * cosf(theta);
-                   actuators->control[1] = -vire * cosf(theta);
+                   actuators->control[0] = vire ;
+                   actuators->control[1] = -vire ;
             }else{
-                   actuators->control[0] = -vire * cosf(theta);
-                   actuators->control[1] = vire * cosf(theta);
+                   actuators->control[0] = -vire ;
+                   actuators->control[1] = vire;
                  }
-          }
          }
+        }
       }
     actuators->timestamp = hrt_absolute_time();
 }

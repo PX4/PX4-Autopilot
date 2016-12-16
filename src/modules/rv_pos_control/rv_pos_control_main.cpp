@@ -767,7 +767,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
     _control_position_last_called = hrt_absolute_time();
 
     bool setpoint = true;
-
+    float wp_distance=0.0;
     _att_sp.fw_control_yaw = false;     // by default we don't want yaw to be contoller directly with rudder
     _att_sp.apply_flaps = false;        // by default we don't use flaps
 
@@ -815,7 +815,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
             prev_wp(1) = (float)pos_sp_triplet.current.lon;
 
         }
-
+        float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
         if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
             _att_sp.thrust = 0.0f;
 
@@ -826,6 +826,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
             _att_sp.yaw_body = _rv_control.nav_bearing();
 
             _att_sp.thrust = 0.3f;
+            _att_sp.pitch_body=wp_distance;
 
         } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -836,6 +837,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
             _att_sp.yaw_body = _rv_control.nav_bearing();
 
             _att_sp.thrust = 0.3f;
+            _att_sp.pitch_body=wp_distance;
 
         } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
@@ -853,7 +855,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
 
             /* Horizontal landing control */
             /* switch to heading hold for the last meters, continue heading hold after */
-            float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
+            //float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
             /* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 
 
@@ -904,6 +906,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
 
             _att_sp.yaw_body = _rv_control.nav_bearing();
             _att_sp.thrust = 0.2f;
+            _att_sp.pitch_body=wp_distance;
 
         } else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
@@ -923,7 +926,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
 
 
                 _att_sp.thrust = 0.3f;
-
+                _att_sp.pitch_body=wp_distance;
                 // assign values
 
                 _att_sp.yaw_body = _rv_control.nav_bearing();
@@ -1028,15 +1031,10 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
         }
       }
 
-    if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-           pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ) {
-        /* making sure again that the correct thrust is used,
-        * without depending on library calls for safety reasons */
-        _att_sp.thrust = 0.3f;
-
-    } else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
+    if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
            pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ) {
         _att_sp.thrust = 0.3f;
+        _att_sp.pitch_body=wp_distance;
 
     } else if (_control_mode_current ==  RV_POSCTRL_MODE_AUTO &&
            pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -1052,6 +1050,7 @@ RoverPositionControl::control_position(const math::Vector<2> &current_position, 
 
         } else if (!_control_mode.flag_control_offboard_enabled){
             _att_sp.thrust =0.3f;
+            _att_sp.pitch_body=wp_distance;
         }
 
 
@@ -1224,28 +1223,17 @@ RoverPositionControl::task_main()
                    if ( _pos_sp_triplet.current.valid && _local_pos.xy_valid){
                        x= _pos_sp(0) - _local_pos.x;
                        y= _pos_sp(1) - _local_pos.y;
-                      // fprintf(stderr, "x=%0.2f\n",(double)_pos_sp_triplet.current.x);
-                      // fprintf(stderr, "y=%0.2f\n",(double)_pos_sp_triplet.current.y);
+
                        if (_pos_sp_triplet.current.velocity_valid){
-                           _att_sp.thrust=(float)_pos_sp_triplet.current.vx;
-                           yawspeed=(float)_pos_sp_triplet.current.vz;
-                        //   fprintf(stderr, "_att_sp.thrust=%0.2f\n",(double)_att_sp.thrust);
-                        //   fprintf(stderr, "yawspeed=%0.2f\n",(double)yawspeed);
+                           _att_sp.thrust=(float)_vel_sp(0);
+                           yawspeed=(float)_pos_sp_triplet.current.yawspeed;
                        }
 
-                       //if (dist>0.2f){
                        if(_att_sp.thrust>0.0f){
                           alpha=atan2f(y,x);
                           dist=sqrt(x*x+y*y);
-                       //   fprintf(stderr, "x=%0.2f\n",(double)x);
-                       //   fprintf(stderr, "y=%0.2f\n",(double)y);
-                       //   fprintf(stderr, "alpha=%0.2f\n",(double)alpha);
-
-                       //fprintf(stderr, "att.yaw=%0.2f\n",(double)att.yaw);
                           _att_sp.yaw_body=yaw_dep-alpha;
-
                           _att_sp.yaw_body=(float)fmod((float)fmod((_att_sp.yaw_body + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
-                      //    fprintf(stderr, "angle=%0.2f\n",(double)(_att_sp.yaw_body*180/M_PI_F));
                           _att_sp.pitch_body=dist;
                           _att_sp.yaw_sp_move_rate=0.0f;
                           yawspeed=0.0f;
@@ -1255,11 +1243,9 @@ RoverPositionControl::task_main()
                             if (_pos_sp_triplet.current.yaw_valid)
                               _att_sp.yaw_body=_pos_sp_triplet.current.yaw;
 
-                              _att_sp.yaw_sp_move_rate=yawspeed;
-
+                            _att_sp.yaw_sp_move_rate=yawspeed;
                           }else
                               _att_sp.thrust=0.0f;
-
                     }
                    else
                        fprintf(stderr, "pos valid false\n");
