@@ -58,7 +58,6 @@
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
@@ -157,7 +156,7 @@ private:
 	Vector<3>	_accel;
 	Vector<3>	_mag;
 
-	vision_position_estimate_s _vision = {};
+	vehicle_attitude_s _vision = {};
 	Vector<3>	_vision_hdg;
 
 	att_pos_mocap_s _mocap = {};
@@ -291,7 +290,7 @@ void AttitudeEstimatorQ::task_main()
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
-	_vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	_vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
 	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -371,7 +370,7 @@ void AttitudeEstimatorQ::task_main()
 		orb_check(_mocap_sub, &mocap_updated);
 
 		if (vision_updated) {
-			orb_copy(ORB_ID(vision_position_estimate), _vision_sub, &_vision);
+			orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &_vision);
 			math::Quaternion q(_vision.q);
 
 			math::Matrix<3, 3> Rvis = q.to_dcm();
