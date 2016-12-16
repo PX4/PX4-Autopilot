@@ -87,7 +87,7 @@
  */
 extern "C" __EXPORT int rover_md25_control_main(int argc, char *argv[]);
 
-<<<<<<< HEAD
+
 FuzzyFB FUZZ;
 
  /************************************************/
