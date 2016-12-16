@@ -62,7 +62,6 @@
 #include "topics/vehicle_control_mode.h"
 #include "topics/actuator_armed.h"
 #include "topics/att_pos_mocap.h"
-#include "topics/vision_position_estimate.h"
 #include "topics/control_state.h"
 #include "topics/vehicle_land_detected.h"
 
@@ -180,7 +179,6 @@ template class __EXPORT Subscription<home_position_s>;
 template class __EXPORT Subscription<optical_flow_s>;
 template class __EXPORT Subscription<distance_sensor_s>;
 template class __EXPORT Subscription<att_pos_mocap_s>;
-template class __EXPORT Subscription<vision_position_estimate_s>;
 template class __EXPORT Subscription<control_state_s>;
 template class __EXPORT Subscription<vehicle_land_detected_s>;
 
