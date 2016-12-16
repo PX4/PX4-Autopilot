@@ -1103,10 +1103,10 @@ RoverPositionControl::control_offboard()
             _run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
         }
 
-        if (_pos_sp_triplet.current.yaw_valid) {
-            _att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-            fprintf(stderr, "_pos_sp_triplet.current.yaw=%0.2f\n",(double)_pos_sp_triplet.current.yaw);
-        }
+      //  if (_pos_sp_triplet.current.yaw_valid) {
+          //  _att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+       //     fprintf(stderr, "_pos_sp_triplet.current.yaw=%0.2f\n",(double)_pos_sp_triplet.current.yaw);
+      //  }
     }
 }
 
@@ -1117,7 +1117,8 @@ RoverPositionControl::task_main()
     bool updated;
     float x,y,alpha;
     bool first=true;
-
+    float yawspeed=0.0f;
+    float dist=0.0f;
 
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -1212,7 +1213,7 @@ RoverPositionControl::task_main()
                        first=false;
                    }
 
-<<<<<<< HEAD
+
                    if ( _pos_sp_triplet.current.valid && _local_pos.xy_valid){
                        x= _pos_sp(0) - _local_pos.x;
                        y= _pos_sp(1) - _local_pos.y;
@@ -1242,29 +1243,7 @@ RoverPositionControl::task_main()
                     }
                    else
                        fprintf(stderr, "pos valid false\n");
-=======
-                   if ( _pos_sp_triplet.current.valid){
-                       x= _pos_sp_triplet.current.x - _local_pos.x;
-                       y= _pos_sp_triplet.current.y - _local_pos.y;
-                       alpha=atan2f(y,x);
-                       //fprintf(stderr, "alpha=%0.2f\n",(double)alpha);
-                       //fprintf(stderr, "att.yaw=%0.2f\n",(double)att.yaw);
-                       _att_sp.yaw_body=yaw_dep-alpha;
-                      // fprintf(stderr, "_local_pos.x=%0.2f,_local_pos.y=%0.2f\n",(double)_local_pos.x,(double)_local_pos.y);
 
-                     //  fprintf(stderr, "_att_sp.yaw_body=%0.2f\n",(double)_att_sp.yaw_body);
-                        if ((_att_sp.yaw_body < 0.0f) && (_att_sp.yaw_body < -3.1415926f))
-                         _att_sp.yaw_body= _att_sp.yaw_body + 2*3.1415926f;
-                        else
-                         if ((_att_sp.yaw_body > 0.0f) && (_att_sp.yaw_body >  3.1415926f))
-                          _att_sp.yaw_body = _att_sp.yaw_body - 2*3.1415926f;
-
-                        _att_sp.thrust = _pos_sp_triplet.current.vx; //0.3f;
-                       }else{
-                           _att_sp.thrust = 0.0f;
-                       }
-
->>>>>>> origin/GroundFirmware
                      _att_sp.timestamp = hrt_absolute_time();
 
                    /* lazily publish the setpoint only once available */

@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 
 /* process-specific header files */
+#include "FuzzyFB.h"
 #include "rover_params.h"
 #include "BlockEncoderPositionEstimator.hpp"
 /* Prototypes */
@@ -185,8 +186,8 @@ struct  Rule    Rules[21] =
  int inputs[2] = {0, 0};
  int outputs[2] = { 0, 0};
 
-=======
->>>>>>> origin/GroundFirmware
+
+
 struct params {
     float yaw_p;
     float yaw_t;
@@ -283,7 +284,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
      *    ...
      */
 
-<<<<<<< HEAD
+
 
     float vire=0.0f;
     float yaw_err =  att_sp->yaw_body - att->yaw ;
@@ -349,36 +350,14 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
          }
         }
       }
-=======
+
     /*
      * Calculate yaw error and apply P gain
      */
 
-    float yaw_err =  att_sp->yaw_body - att->yaw ;
-    //normalisation de l'orientation du robot F.BERNAT
-    yaw_err = (float)fmod((float)fmod((yaw_err + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
-   // fprintf(stderr, "att_sp->yaw_body=%0.2f,att->yaw=%0.2f \n",(double)att_sp->yaw_body,(double)att->yaw);
-   // fprintf(stderr, "yaw_err=%0.2f \n",(double)yaw_err);
-    float theta = fabs(yaw_err * pp.yaw_p);
-    float thr_p;
-    if (att_sp->thrust >0.0f)
-      thr_p=att_sp->thrust + pp.thr_p;
-    else
-      thr_p=att_sp->thrust;
 
-    if (fabs(yaw_err)<=(double)pp.yaw_t){
-        actuators->control[0] = thr_p ;
-        actuators->control[1] = thr_p ;
-        }else
-         if (yaw_err>0){
-           actuators->control[0] = thr_p * cosf(theta);
-           actuators->control[1] = thr_p * sinf(theta);
-        }else{
-           actuators->control[0] = thr_p * sinf(theta);
-           actuators->control[1] = thr_p * cosf(theta);
-    }
 
->>>>>>> origin/GroundFirmware
+
     actuators->timestamp = hrt_absolute_time();
 }
 

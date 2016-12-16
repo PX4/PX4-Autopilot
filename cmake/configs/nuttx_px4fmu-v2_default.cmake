@@ -42,7 +42,7 @@ set(config_module_list
 	#drivers/mkblctrl
 	drivers/px4flow
 	drivers/md25
-	drivers/roboclaw
+	#drivers/roboclaw
 	drivers/oreoled
 	drivers/gimbal
 	drivers/pwm_input
@@ -75,7 +75,7 @@ set(config_module_list
 	modules/mavlink
 	modules/gpio_led
 	modules/uavcan
-	modules/land_detector
+	#modules/land_detector
 	modules/rover_md25_control
 
 	#
