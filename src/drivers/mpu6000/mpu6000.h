@@ -51,8 +51,12 @@
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
+#define MPU_DEVICE_PATH_ACCEL1		"/dev/mpu6000_accel1"
+#define MPU_DEVICE_PATH_GYRO1		"/dev/mpu6000_gyro11"
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
+#define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu6000_accel_ext1"
+#define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu6000_gyro_ext1"
 
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
@@ -120,8 +124,9 @@
 #define BIT_INT_STATUS_DATA		0x01
 
 #define MPU_WHOAMI_6000			0x68
-#define ICM_WHOAMI_20608		0xaf
 #define ICM_WHOAMI_20602		0x12
+#define ICM_WHOAMI_20608		0xaf
+#define ICM_WHOAMI_20689		0x98
 
 // ICM2608 specific registers
 
@@ -147,9 +152,12 @@
 #define ICM20602_REV_02		2
 
 // Product ID Description for ICM2608
-// There is none
 
-#define ICM20608_REV_00		0
+#define ICM20608_REV_00		0xff // In the past, was thought to be not returning a value. But seem repeatable.
+
+// Product ID Description for ICM2689
+
+#define ICM20689_REV_00		0xfe
 
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
