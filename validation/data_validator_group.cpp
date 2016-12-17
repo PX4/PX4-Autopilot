@@ -193,8 +193,10 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 			}
 		}
 
-		/* for all cases we want to keep a record of the best index */
-		_curr_best = max_index;
+		if (max_index >= 0) {
+			/* for all cases we want to keep a record of the best index */
+			_curr_best = max_index;
+		}
 	}
 	*index = max_index;
 	return (best) ? best->value() : nullptr;
@@ -266,11 +268,11 @@ DataValidatorGroup::print()
 			uint32_t flags = next->state();
 
 			ECL_INFO("sensor #%u, prio: %d, state:%s%s%s%s%s%s", i, next->priority(),
-			((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " NO_DATA" : ""),
-			((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE_DATA" : ""),
-			((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " DATA_TIMEOUT" : ""),
-			((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " HIGH_ERRCOUNT" : ""),
-			((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " HIGH_ERRDENSITY" : ""),
+			((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+			((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+			((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TOUT" : ""),
+			((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ECNT" : ""),
+			((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " EDNST" : ""),
 			((flags == DataValidator::ERROR_FLAG_NO_ERROR) ? " OK" : ""));
 
 			next->print();
