@@ -57,6 +57,7 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 	_value{0.0f},
 	_vibe{0.0f},
 	_value_equal_count(0),
+	_value_equal_count_threshold(VALUE_EQUAL_COUNT_DEFAULT),
 	_sibling(prev_sibling)
 {
 
@@ -136,7 +137,7 @@ DataValidator::confidence(uint64_t timestamp)
 		ret = 0.0f;
 
 	/* we got the exact same sensor value N times in a row */
-	} else if (_value_equal_count > VALUE_EQUAL_COUNT_MAX) {
+	} else if (_value_equal_count > _value_equal_count_threshold) {
 		_error_mask |= ERROR_FLAG_STALE_DATA;
 		ret = 0.0f;
 

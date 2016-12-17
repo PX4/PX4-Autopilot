@@ -139,6 +139,13 @@ public:
 	void			set_timeout(uint32_t timeout_interval_us) { _timeout_interval = timeout_interval_us; }
 
 	/**
+	 * Set the equal count threshold
+	 *
+	 * @param threshold The number of equal values before considering the sensor stale
+	 */
+	void			set_equal_value_threshold(uint32_t threshold) { _value_equal_count_threshold = threshold; }
+
+	/**
 	 * Get the timeout value
 	 *
 	 * @return The timeout interval in microseconds
@@ -170,10 +177,11 @@ private:
 	float _value[dimensions];		/**< last value */
 	float _vibe[dimensions];		/**< vibration level, in sensor unit */
 	float _value_equal_count;		/**< equal values in a row */
+	float _value_equal_count_threshold; /**< when to consider an equal count as a problem */
 	DataValidator *_sibling;		/**< sibling in the group */
 	static const constexpr unsigned NORETURN_ERRCOUNT = 10000;	/**< if the error count reaches this value, return sensor as invalid */
 	static const constexpr float ERROR_DENSITY_WINDOW = 100.0f; 	/**< window in measurement counts for errors */
-	static const constexpr unsigned VALUE_EQUAL_COUNT_MAX = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
+	static const constexpr unsigned VALUE_EQUAL_COUNT_DEFAULT = 100;	/**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */
 	DataValidator(const DataValidator&) = delete;

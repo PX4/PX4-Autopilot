@@ -92,6 +92,18 @@ DataValidatorGroup::set_timeout(uint32_t timeout_interval_us)
 }
 
 void
+DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
+{
+	DataValidator *next = _first;
+
+	while (next != nullptr) {
+		next->set_equal_value_threshold(threshold);
+		next = next->sibling();
+	}
+}
+
+
+void
 DataValidatorGroup::put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count, int priority)
 {
 	DataValidator *next = _first;
