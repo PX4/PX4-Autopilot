@@ -119,7 +119,7 @@ struct rangeSample {
 
 struct airspeedSample {
 	float       true_airspeed;	// true airspeed measurement in m/s
-	float 		eas2tas;		// equivalent to true airspeed factor 
+	float 		eas2tas;		// equivalent to true airspeed factor
 	uint64_t    time_us;	// timestamp in microseconds
 };
 
@@ -325,13 +325,13 @@ struct parameters {
 		mag_fusion_type = 0;
 
 		// airspeed fusion
-		tas_innov_gate = 5.0f;		
-  		eas_noise = 1.4f;	
+		tas_innov_gate = 5.0f;
+  		eas_noise = 1.4f;
 
 		// synthetic sideslip fusion
  		beta_innov_gate = 5.0f;
 		beta_noise = 0.3f;
- 		beta_avg_ft_us = 1000000.0f; //1 Hz		
+ 		beta_avg_ft_us = 1000000.0f; //1 Hz
 
 		// range finder fusion
 		range_noise = 0.1f;
