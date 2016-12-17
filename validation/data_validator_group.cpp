@@ -252,7 +252,7 @@ DataValidatorGroup::print()
 	while (next != nullptr) {
 		if (next->used()) {
 			uint32_t flags = next->state();
-			
+
 			ECL_INFO("sensor #%u, prio: %d, state:%s%s%s%s%s%s", i, next->priority(),
 			((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " NO_DATA" : ""),
 			((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE_DATA" : ""),
@@ -260,7 +260,7 @@ DataValidatorGroup::print()
 			((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " HIGH_ERRCOUNT" : ""),
 			((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " HIGH_ERRDENSITY" : ""),
 			((flags == DataValidator::ERROR_FLAG_NO_ERROR) ? " OK" : ""));
-			
+
 			next->print();
 		}
 		next = next->sibling();
@@ -279,7 +279,7 @@ DataValidatorGroup::failover_index()
 {
 	DataValidator *next = _first;
 	unsigned i = 0;
-	
+
 	while (next != nullptr) {
 		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
 			return i;
@@ -292,10 +292,10 @@ DataValidatorGroup::failover_index()
 
 uint32_t
 DataValidatorGroup::failover_state()
-{	
+{
 	DataValidator *next = _first;
 	unsigned i = 0;
-	
+
 	while (next != nullptr) {
 		if (next->used() && (next->state() != DataValidator::ERROR_FLAG_NO_ERROR) && (i == (unsigned)_prev_best)) {
 			return next->state();

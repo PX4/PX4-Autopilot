@@ -101,13 +101,13 @@ public:
 	 * @return		the stored priority
 	 */
 	int			priority() { return (_priority); }
-	
+
 	/**
 	 * Get the error state of this validator
 	 * @return		the bitmask with the error status
 	 */
 	uint32_t		state() { return _error_mask; }
-	
+
 	/**
 	 * Reset the error state of this validator
 	 */
@@ -144,9 +144,9 @@ public:
 	 * @return The timeout interval in microseconds
 	 */
 	uint32_t			get_timeout() const { return _timeout_interval; }
-	
+
 	/**
-	 * Data validator error states 
+	 * Data validator error states
 	 */
 	static constexpr uint32_t ERROR_FLAG_NO_ERROR      	= (0x00000000U);
 	static constexpr uint32_t ERROR_FLAG_NO_DATA       	= (0x00000001U);
