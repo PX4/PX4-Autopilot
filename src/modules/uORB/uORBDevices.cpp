@@ -424,7 +424,13 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
-	/* this is a bit risky, since we are trusting the handle in order to deref it */
+	/* check if the device handle is initialized */
+	if ((devnode == nullptr) || (meta == nullptr)) {
+		errno = EFAULT;
+		return ERROR;
+	}
+
+	/* check if the orb meta data matches the publication */
 	if (devnode->_meta != meta) {
 		errno = EINVAL;
 		return ERROR;
