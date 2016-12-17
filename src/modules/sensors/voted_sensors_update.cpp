@@ -62,6 +62,7 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 
 	_baro.voter.set_timeout(300000);
 	_mag.voter.set_timeout(300000);
+	_mag.voter.set_equal_value_threshold(1000);
 }
 
 int VotedSensorsUpdate::init(sensor_combined_s &raw)
