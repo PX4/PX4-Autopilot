@@ -124,7 +124,7 @@ float
 DataValidator::confidence(uint64_t timestamp)
 {
 	float ret = 1.0f;
-	
+
 	/* check if we have any data */
 	if (_time_last == 0) {
 		_error_mask |= ERROR_FLAG_NO_DATA;
@@ -154,13 +154,13 @@ DataValidator::confidence(uint64_t timestamp)
 	} else {
 		_error_mask = ERROR_FLAG_NO_ERROR;
 	}
-	
+
 	/* no critical errors */
 	if (ret > 0.0f) {
 		/* return local error density for last N measurements */
 		ret = 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
 	}
-	
+
 	return ret;
 }
 
