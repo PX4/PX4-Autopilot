@@ -148,10 +148,10 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 		 * 1) the confidence is higher and priority is equal or higher
 		 * 2) the confidence is no less than 1% different and the priority is higher
 		 */
-		if (((max_confidence < MIN_REGULAR_CONFIDENCE) && (confidence >= MIN_REGULAR_CONFIDENCE)) ||
+		if ((((max_confidence < MIN_REGULAR_CONFIDENCE) && (confidence >= MIN_REGULAR_CONFIDENCE)) ||
 			(confidence > max_confidence && (next->priority() >= max_priority)) ||
 			(fabsf(confidence - max_confidence) < 0.01f && (next->priority() > max_priority))
-			) {
+			) && (confidence > FLT_EPSILON)) {
 			max_index = i;
 			max_confidence = confidence;
 			max_priority = next->priority();
@@ -162,8 +162,9 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 		i++;
 	}
 
-	/* the current best sensor is not matching the previous best sensor */
-	if (max_index != _curr_best) {
+	/* the current best sensor is not matching the previous best sensor,
+	 * or the only sensor went bad */
+	if (max_index != _curr_best || ((max_confidence < FLT_EPSILON) && (_curr_best >= 0))) {
 
 		bool true_failsafe = true;
 
@@ -193,10 +194,8 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 			}
 		}
 
-		if (max_index >= 0) {
-			/* for all cases we want to keep a record of the best index */
-			_curr_best = max_index;
-		}
+		/* for all cases we want to keep a record of the best index */
+		_curr_best = max_index;
 	}
 	*index = max_index;
 	return (best) ? best->value() : nullptr;

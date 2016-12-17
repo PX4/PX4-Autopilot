@@ -151,15 +151,16 @@ DataValidator::confidence(uint64_t timestamp)
 		_error_mask |= ERROR_FLAG_HIGH_ERRDENSITY;
 		_error_density = ERROR_DENSITY_WINDOW;
 
-	/* no error */
-	} else {
-		_error_mask = ERROR_FLAG_NO_ERROR;
 	}
 
 	/* no critical errors */
 	if (ret > 0.0f) {
 		/* return local error density for last N measurements */
 		ret = 1.0f - (_error_density / ERROR_DENSITY_WINDOW);
+
+		if (ret > 0.0f) {
+			_error_mask = ERROR_FLAG_NO_ERROR;
+		}
 	}
 
 	return ret;
