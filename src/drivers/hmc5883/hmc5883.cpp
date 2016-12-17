@@ -781,7 +781,11 @@ HMC5883::start()
 void
 HMC5883::stop()
 {
-	work_cancel(HPWORK, &_work);
+	if (_measure_ticks > 0) {
+		/* ensure no new items are queued while we cancel this one */
+		_measure_ticks = 0;
+		work_cancel(HPWORK, &_work);
+	}
 }
 
 int
@@ -802,6 +806,10 @@ HMC5883::cycle_trampoline(void *arg)
 void
 HMC5883::cycle()
 {
+	if (_measure_ticks == 0) {
+		return;
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -840,12 +848,14 @@ HMC5883::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HMC5883::cycle_trampoline,
-		   this,
-		   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+	if (_measure_ticks > 0) {
+		/* schedule a fresh cycle call when the measurement is done */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&HMC5883::cycle_trampoline,
+			   this,
+			   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+	}
 }
 
 int
