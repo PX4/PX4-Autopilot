@@ -617,14 +617,14 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 			PX4_INFO("%s sensor switch from #%i", sensor_name, sensor.voter.failover_index());
 
 		} else {
-			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failover: %s%s%s%s%s!",
+			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
 					      sensor_name,
 					      sensor.voter.failover_index(),
-					      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " No data" : ""),
-					      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " Stale data" : ""),
-					      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " Data timeout" : ""),
-					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " High error count" : ""),
-					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " High error density" : ""));
+					      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TOUT" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ECNT" : ""),
+					      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " EDNST" : ""));
 		}
 
 		sensor.last_failover_count = sensor.voter.failover_count();
