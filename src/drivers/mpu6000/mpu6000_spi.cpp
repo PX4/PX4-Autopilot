@@ -64,7 +64,7 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-#if defined(PX4_SPIDEV_MPU) || defined(PX4_SPIDEV_ICM_20602)
+#if defined(PX4_SPIDEV_MPU) || defined(PX4_SPIDEV_ICM_20602) || defined(PX4_SPIDEV_ICM_20689)
 #  ifdef PX4_SPI_BUS_EXT
 #    define EXTERNAL_BUS PX4_SPI_BUS_EXT
 #  else
@@ -138,6 +138,12 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 #  endif
 			break;
 
+		case 20689:
+#  if defined(PX4_SPIDEV_ICM_20689_EXT)
+			cs = PX4_SPIDEV_ICM_20689_EXT;
+#  endif
+			break;
+
 		default:
 			break;
 		}
@@ -167,6 +173,11 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 			cs = PX4_SPIDEV_ICM_20608;
 #endif
 			break;
+
+		case 20689:
+#  if defined(PX4_SPIDEV_ICM_20689)
+			cs = PX4_SPIDEV_ICM_20689;
+#  endif
 
 		default:
 			break;
@@ -330,6 +341,10 @@ MPU6000_SPI::probe()
 
 	case 20608:
 		expected = ICM_WHOAMI_20608;
+		break;
+
+	case 20689:
+		expected = ICM_WHOAMI_20689;
 		break;
 	}
 

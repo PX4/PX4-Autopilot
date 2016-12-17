@@ -112,8 +112,10 @@ enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
 	MPU6000_BUS_I2C_INTERNAL,
 	MPU6000_BUS_I2C_EXTERNAL,
-	MPU6000_BUS_SPI_INTERNAL,
-	MPU6000_BUS_SPI_EXTERNAL
+	MPU6000_BUS_SPI_INTERNAL1,
+	MPU6000_BUS_SPI_INTERNAL2,
+	MPU6000_BUS_SPI_EXTERNAL1,
+	MPU6000_BUS_SPI_EXTERNAL2
 };
 
 class MPU6000_gyro;
@@ -793,6 +795,10 @@ MPU6000::probe()
 	case 20608:
 		expected = ICM_WHOAMI_20608;
 		break;
+
+	case 20689:
+		expected = ICM_WHOAMI_20689;
+		break;
 	}
 
 	if (whoami != expected) {
@@ -818,6 +824,7 @@ MPU6000::probe()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 	case ICM20608_REV_00:
+	case ICM20689_REV_00:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
 		DEVICE_DEBUG("ID 0x%02x", _product);
@@ -1563,16 +1570,6 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 uint8_t
 MPU6000::read_reg(unsigned reg, uint32_t speed)
 {
-	/* There is no MPUREG_PRODUCT_ID on the icm device
-	 * so lets make dummy it up and allow the rest of the
-	 * code to run as is
-	 */
-
-	if (reg == MPUREG_PRODUCT_ID && is_icm_device()) {
-		return ICM20608_REV_00;
-	}
-
-
 	uint8_t buf;
 	_interface->read(MPU6000_SET_SPEED(reg, speed), &buf, 1);
 	return buf;
@@ -2203,23 +2200,27 @@ struct mpu6000_bus_option {
 } bus_options[] = {
 #if defined (USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
+	{ MPU6000_BUS_I2C_INTERNAL1, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL1, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU6000_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU6000_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20602
-	{ MPU6000_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+#endif
+#ifdef PX4_SPIDEV_ICM_20689
+	{ MPU6000_BUS_SPI_INTERNAL2, MPU_DEVICE_PATH_ACCEL1, MPU_DEVICE_PATH_GYRO1, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXTERNAL)
-	{ MPU6000_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
 #endif
 };
 
@@ -2566,6 +2567,8 @@ usage()
 	warnx("    -I internal I2C bus");
 	warnx("    -S external SPI bus");
 	warnx("    -s internal SPI bus");
+	warnx("    -Z external1 SPI bus");
+	warnx("    -z internal2 SPI bus");
 	warnx("    -T 6000|20608|20602 (default 6000)");
 	warnx("    -R rotation");
 	warnx("    -a accel range (in g)");
@@ -2583,7 +2586,7 @@ mpu6000_main(int argc, char *argv[])
 	int accel_range = 8;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "T:XISsR:a:")) != EOF) {
+	while ((ch = getopt(argc, argv, "T:XISsZzR:a:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU6000_BUS_I2C_EXTERNAL;
@@ -2594,11 +2597,19 @@ mpu6000_main(int argc, char *argv[])
 			break;
 
 		case 'S':
-			busid = MPU6000_BUS_SPI_EXTERNAL;
+			busid = MPU6000_BUS_SPI_EXTERNAL1;
 			break;
 
 		case 's':
-			busid = MPU6000_BUS_SPI_INTERNAL;
+			busid = MPU6000_BUS_SPI_INTERNAL1;
+			break;
+
+		case 'Z':
+			busid = MPU6000_BUS_SPI_EXTERNAL2;
+			break;
+
+		case 'z':
+			busid = MPU6000_BUS_SPI_INTERNAL2;
 			break;
 
 		case 'T':
