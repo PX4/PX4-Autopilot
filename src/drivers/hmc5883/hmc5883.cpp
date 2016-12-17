@@ -140,6 +140,11 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void			stop();
+
+	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
@@ -187,11 +192,6 @@ private:
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
 	void			start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void			stop();
 
 	/**
 	 * Reset the device
@@ -1459,6 +1459,7 @@ struct hmc5883_bus_option {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 void	start(enum HMC5883_BUS busid, enum Rotation rotation);
+int		stop();
 bool	start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation);
 struct hmc5883_bus_option &find_bus(enum HMC5883_BUS busid);
 void	test(enum HMC5883_BUS busid);
@@ -1539,6 +1540,23 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
 	if (!started) {
 		exit(1);
 	}
+}
+
+int
+stop()
+{
+	bool stopped = false;
+
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (bus_options[i].dev != nullptr) {
+			bus_options[i].dev->stop();
+			delete bus_options[i].dev;
+			bus_options[i].dev = nullptr;
+			stopped = true;
+		}
+	}
+
+	return !stopped;
 }
 
 /**
@@ -1841,6 +1859,13 @@ hmc5883_main(int argc, char *argv[])
 		}
 
 		exit(0);
+	}
+
+	/*
+	 * Stop the driver
+	 */
+	if (!strcmp(verb, "stop")) {
+		return hmc5883::stop();
 	}
 
 	/*
