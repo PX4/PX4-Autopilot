@@ -52,11 +52,32 @@
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
 #define MPU_DEVICE_PATH_ACCEL1		"/dev/mpu6000_accel1"
-#define MPU_DEVICE_PATH_GYRO1		"/dev/mpu6000_gyro11"
+#define MPU_DEVICE_PATH_GYRO1		"/dev/mpu6000_gyro1"
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
 #define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu6000_accel_ext1"
 #define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu6000_gyro_ext1"
+
+#define ICM20602_DEVICE_PATH_ACCEL		"/dev/icm20602_accel"
+#define ICM20602_DEVICE_PATH_GYRO		"/dev/icm20602_gyro"
+#define ICM20602_DEVICE_PATH_ACCEL1		"/dev/icm20602_accel1"
+#define ICM20602_DEVICE_PATH_GYRO1		"/dev/icm20602_gyro1"
+#define ICM20602_DEVICE_PATH_ACCEL_EXT	"/dev/icm20602_accel_ext"
+#define ICM20602_DEVICE_PATH_GYRO_EXT	"/dev/icm20602_gyro_ext"
+#define ICM20602_DEVICE_PATH_ACCEL_EXT1	"/dev/icm20602_accel_ext1"
+#define ICM20602_DEVICE_PATH_GYRO_EXT1	"/dev/icm20602_gyro_ext1"
+
+#define ICM20608_DEVICE_PATH_ACCEL		"/dev/icm20608_accel"
+#define ICM20608_DEVICE_PATH_GYRO		"/dev/icm20608_gyro"
+#define ICM20608_DEVICE_PATH_ACCEL1		"/dev/icm20608_accel1"
+#define ICM20608_DEVICE_PATH_GYRO1		"/dev/icm20608_gyro1"
+#define ICM20608_DEVICE_PATH_ACCEL_EXT	"/dev/icm20608_accel_ext"
+#define ICM20608_DEVICE_PATH_GYRO_EXT	"/dev/icm20608_gyro_ext"
+#define ICM20608_DEVICE_PATH_ACCEL_EXT1	"/dev/icm20608_accel_ext1"
+#define ICM20608_DEVICE_PATH_GYRO_EXT1	"/dev/icm20608_gyro_ext1"
+
+#define ICM20689_DEVICE_PATH_ACCEL		"/dev/icm20689_accel"
+#define ICM20689_DEVICE_PATH_GYRO		"/dev/icm20689_gyro"
 
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
