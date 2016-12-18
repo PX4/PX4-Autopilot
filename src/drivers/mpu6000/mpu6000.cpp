@@ -1696,8 +1696,13 @@ MPU6000::stop()
 	memset(_last_accel, 0, sizeof(_last_accel));
 
 	/* discard unread data in the buffers */
-	_accel_reports->flush();
-	_gyro_reports->flush();
+	if (_accel_reports != nullptr) {
+		_accel_reports->flush();
+	}
+
+	if (_gyro_reports != nullptr) {
+		_gyro_reports->flush();
+	}
 }
 
 #if defined(USE_I2C)
