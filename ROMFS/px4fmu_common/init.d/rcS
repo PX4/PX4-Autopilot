@@ -622,8 +622,9 @@ then
 	#
 	if param greater UAVCAN_ENABLE 0
 	then
-		if uavcan start fw
+		if uavcan start
 		then
+			uavcan start fw
 		else
 			tone_alarm $TUNE_ERR
 		fi
