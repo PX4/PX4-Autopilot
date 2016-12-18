@@ -149,9 +149,9 @@ UavcanNode::~UavcanNode()
 		} while (_task != -1);
 	}
 
-	(void)::close(_armed_sub);
-	(void)::close(_test_motor_sub);
-	(void)::close(_actuator_direct_sub);
+	(void)orb_unsubscribe(_armed_sub);
+	(void)orb_unsubscribe(_test_motor_sub);
+	(void)orb_unsubscribe(_actuator_direct_sub);
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
@@ -1022,12 +1022,12 @@ UavcanNode::teardown()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
 
-	return (_armed_sub >= 0) ? ::close(_armed_sub) : 0;
+	return (_armed_sub >= 0) ? orb_unsubscribe(_armed_sub) : 0;
 }
 
 int
@@ -1054,7 +1054,7 @@ UavcanNode::subscribe()
 
 		if (unsub_groups & (1 << i)) {
 			warnx("unsubscribe from actuator_controls_%d", i);
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 
