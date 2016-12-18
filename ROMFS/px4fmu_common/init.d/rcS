@@ -10,7 +10,8 @@
 # USART2		/dev/ttyS1		TELEM1 (flow control)
 # USART3		/dev/ttyS2		TELEM2 (flow control)
 # UART4
-# UART
+# UART7							CONSOLE
+# UART8							SERIAL4
 #
 #
 # UART mapping on FMUv5:
