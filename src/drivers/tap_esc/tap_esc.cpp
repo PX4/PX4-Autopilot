@@ -378,7 +378,7 @@ TAP_ESC::subscribe()
 
 		if (unsub_groups & (1 << i)) {
 			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 
