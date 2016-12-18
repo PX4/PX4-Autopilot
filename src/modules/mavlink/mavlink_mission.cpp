@@ -96,7 +96,8 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	close(_mission_result_sub);
+	orb_unsubscribe(_mission_result_sub);
+	orb_unadvertise(_offboard_mission_pub);
 }
 
 unsigned
