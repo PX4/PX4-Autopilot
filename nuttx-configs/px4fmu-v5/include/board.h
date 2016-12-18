@@ -478,7 +478,7 @@
                                              GPIO_SPEED_50MHz| \
                                              GPIO_OUTPUT_SET | \
                                              GPIO_PORTF      | \
-                                             GPIO_PIN14)
+                                             GPIO_PIN15)
 
 /* SDMMC1
  *
