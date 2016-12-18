@@ -326,6 +326,8 @@ __BEGIN_DECLS
 #define RC_UXART_BASE        STM32_USART6_BASE /* NOT FMUv5 test HW ONLY*/
 #define RC_SERIAL_PORT       "/dev/ttyS5"      /* NOT FMUv5 test HW ONLY*/
 
+#define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
+
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER             4
 #define PWMIN_TIMER_CHANNEL     /* T4C2 */ 2
