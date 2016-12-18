@@ -268,7 +268,7 @@ then
 	then
 	fi
 
-	# I2C bypass of mpu 
+	# I2C bypass of mpu
 	if lps25h start
 	then
 	fi
