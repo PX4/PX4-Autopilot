@@ -35,9 +35,9 @@ px4_add_module(
 	MAIN fmu
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Weffc++
 	SRCS
 		fmu.cpp
-		px4fmu_params.c
 	DEPENDS
 		platforms__common
 	)
