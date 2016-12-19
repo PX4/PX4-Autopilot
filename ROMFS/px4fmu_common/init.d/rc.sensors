@@ -325,12 +325,12 @@ fi
 if ver hwcmp PX4FMU_V5
 then
 	# Internal SPI bus ICM-20602
-	if mpu6000 -R 2 -s -T 20602 start
+	if mpu6000 -R 8 -s -T 20602 start
 	then
 	fi
 
 	# Internal SPI bus ICM-20689
-	if mpu6000 -R 2 -z -T 20689 start
+	if mpu6000 -R 8 -z -T 20689 start
 	then
 	fi
 
