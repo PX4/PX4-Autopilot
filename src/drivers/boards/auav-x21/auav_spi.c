@@ -47,15 +47,16 @@
 #include <stdbool.h>
 #include <debug.h>
 #include <unistd.h>
-#include <nuttx/spi.h>
+
+#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 
 #include <up_arch.h>
 #include <chip.h>
 #include <stm32.h>
+#include "board_config.h"
 #include <systemlib/err.h>
 
-#include "board_config.h"
 
 /************************************************************************************
  * Public Functions
@@ -77,21 +78,12 @@ __EXPORT void stm32_spiinitialize(void)
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
-
 	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
 	px4_arch_configgpio(GPIO_EXTI_ICM_20608_G_DRDY);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
 	px4_arch_configgpio(GPIO_SPI_CS_FRAM);
-	px4_arch_gpiowrite(GPIO_SPI_CS_FRAM, 1);
 #endif
 
 }
@@ -195,14 +187,6 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
-
-	/* De-activate all peripherals,
-	 * required for some peripheral
-	 * state machines
-	 */
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 
 	px4_arch_configgpio(GPIO_SPI1_SCK);
 	px4_arch_configgpio(GPIO_SPI1_MISO);

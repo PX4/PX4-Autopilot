@@ -240,7 +240,7 @@ float LoadMon::_ram_used()
 	float load = (float)mem.uordblks / mem.arena;
 
 	// Check for corruption of the allocation counters
-	if ((mem.arena > CONFIG_DRAM_SIZE) || (mem.fordblks > CONFIG_DRAM_SIZE)) {
+	if ((mem.arena > CONFIG_RAM_SIZE) || (mem.fordblks > CONFIG_RAM_SIZE)) {
 		load = 1.0f;
 	}
 

@@ -51,8 +51,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifndef CONFIG_ARCH_BOARD_SIM
-#include <stm32_pwr.h>
+#ifdef CONFIG_ARCH_BOARD_SIM
+#define stm32_pwr_enablebkp(onoff)
+#else
+# if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
+#  include <stm32_pwr.h>
+# endif
 #endif
 
 #include <systemlib/systemlib.h>
@@ -64,12 +68,11 @@ void
 px4_systemreset(bool to_bootloader)
 {
 	if (to_bootloader) {
-#ifndef CONFIG_ARCH_BOARD_SIM
-		stm32_pwr_enablebkp();
-#endif
+		stm32_pwr_enablebkp(true);
 
 		/* XXX wow, this is evil - write a magic number into backup register zero */
 		*(uint32_t *)0x40002850 = 0xb007b007;
+		stm32_pwr_enablebkp(false);
 	}
 
 	up_systemreset();

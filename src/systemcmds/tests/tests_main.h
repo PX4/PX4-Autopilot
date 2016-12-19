@@ -82,6 +82,7 @@ extern int	test_sleep(int argc, char *argv[]);
 extern int	test_time(int argc, char *argv[]);
 extern int	test_tone(int argc, char *argv[]);
 extern int	test_uart_baudchange(int argc, char *argv[]);
+extern int	test_uart_break(int argc, char *argv[]);
 extern int	test_uart_console(int argc, char *argv[]);
 extern int	test_uart_loopback(int argc, char *argv[]);
 extern int	test_uart_send(int argc, char *argv[]);

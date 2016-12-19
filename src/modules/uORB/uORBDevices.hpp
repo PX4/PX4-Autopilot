@@ -335,5 +335,3 @@ private:
 #endif
 	hrt_abstime       _last_statistics_output;
 };
-
-

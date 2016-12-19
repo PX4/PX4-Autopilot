@@ -47,11 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32.h>
-#include <arch/board/board.h>
-
-#define UDID_START		0x1FFF7A10
-
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -181,12 +176,6 @@
 #define GPIO_GPIO6_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 #define GPIO_GPIO7_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
 
-// #define BOARD_HAS_LED_PWM
-// #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW
-// #define LED_TIM3_CH3OUT		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN0)
-// #define LED_TIM3_CH2OUT		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN7)
-// #define LED_TIM3_CH4OUT		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN1)
-
 /* Power supply control and monitoring GPIOs */
 // #define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 // #define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
@@ -300,9 +289,9 @@
 
 #define BOARD_NAME "MINDPX_V2"
 
-/* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
- * system_power interface, and therefore provides the true logic
- * GPIO BOARD_ADC_xxxx macros.
+/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
+ * this board support the ADC system_power interface, and therefore
+ * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_BRICK_VALID   (1)
@@ -359,24 +348,6 @@ extern void stm32_usbinitialize(void);
 
 #define board_peripheral_reset(ms)
 
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 #include "../common/board_common.h"
 

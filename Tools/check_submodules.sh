@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
 
-[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-    # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules
-    echo "Skipping submodules. NUTTX_SRC is set to $NUTTX_SRC"
-    exit 0
-}
-
-
-GITSTATUS=$(git status)
-
 function check_git_submodule {
 
 # The .git exists in a submodule if init and update have been done.
@@ -62,22 +53,42 @@ fi
 
 }
 
-check_git_submodule NuttX
-check_git_submodule Tools/gencpp
-check_git_submodule Tools/genmsg
-check_git_submodule Tools/jMAVSim
-check_git_submodule Tools/sitl_gazebo
-check_git_submodule cmake/cmake_hexagon
-check_git_submodule mavlink/include/mavlink/v1.0
-check_git_submodule mavlink/include/mavlink/v2.0
-check_git_submodule src/lib/DriverFramework
-check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
-check_git_submodule src/lib/DriverFramework/dspal
-check_git_submodule src/lib/ecl
-check_git_submodule src/lib/matrix
-check_git_submodule src/modules/uavcan/libuavcan
-check_git_submodule unittests/googletest
-check_git_submodule src/drivers/gps/devices
+# If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
+if [ "$#" != "0" ];
+then
+# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
 
-exit 0
+	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
+	  exit 0
+	}
 
+	git submodule update --recursive $1
+
+else
+
+	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+	  # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+	  echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
+	  exit 0
+	}
+
+	check_git_submodule NuttX
+	check_git_submodule Tools/gencpp
+	check_git_submodule Tools/genmsg
+	check_git_submodule Tools/jMAVSim
+	check_git_submodule Tools/sitl_gazebo
+	check_git_submodule cmake/cmake_hexagon
+	check_git_submodule mavlink/include/mavlink/v1.0
+	check_git_submodule mavlink/include/mavlink/v2.0
+	check_git_submodule src/lib/DriverFramework
+	check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
+	check_git_submodule src/lib/DriverFramework/dspal
+	check_git_submodule src/lib/ecl
+	check_git_submodule src/lib/matrix
+	check_git_submodule src/modules/uavcan/libuavcan
+	check_git_submodule unittests/googletest
+	check_git_submodule src/drivers/gps/devices
+fi
+	exit 0

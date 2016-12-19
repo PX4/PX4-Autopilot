@@ -161,6 +161,16 @@ set(target_name "${OS}-${BOARD}-${LABEL}")
 
 message(STATUS "${target_name}")
 
+#  The Url for the elf file for crash logging
+
+if (DEFINED ENV{BUILD_URI})
+	set (BUILD_URI $ENV{BUILD_URI})
+else()
+	set (BUILD_URI "localhost")
+endif()
+
+add_definitions(-DBUILD_URI=${BUILD_URI})
+
 # Define GNU standard installation directories
 include(GNUInstallDirs)
 
@@ -243,7 +253,7 @@ if (CATKIN_DEVEL_PREFIX)
 		message(FATAL_ERROR "catkin not found")
 	endif()
 else()
-	message(STATUS "catkin DISABLED")
+	#message(STATUS "catkin DISABLED")
 endif()
 
 find_package(PythonInterp REQUIRED)
@@ -337,6 +347,7 @@ add_definitions(${definitions})
 #=============================================================================
 # source code generation
 #
+
 add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
@@ -413,7 +424,7 @@ set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "mod
 
 add_subdirectory(src/firmware/${OS})
 
-#add_dependencies(df_driver_framework nuttx_export_${CONFIG}.stamp)
+#add_dependencies(df_driver_framework nuttx_export_${CONFIG})
 if (NOT "${OS}" STREQUAL "nuttx")
 endif()
 

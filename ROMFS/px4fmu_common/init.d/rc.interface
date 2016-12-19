@@ -2,6 +2,12 @@
 #
 # Script to configure control interface
 #
+#
+# NOTE: environment variable references:
+#  If the dollar sign ('$') is followed by a left bracket ('{') then the
+#  variable name is terminated with the right bracket character ('}').
+#  Otherwise, the variable name goes to the end of the argument.
+#
 
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 
@@ -17,17 +23,17 @@ then
 	fi
 
 	# Use the mixer file from the SD-card if it exists
-	if [ -f $SDCARD_MIXERS_PATH/$MIXER.main.mix ]
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 	then
-		set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.main.mix
+		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
 	# Try out the old convention, for backward compatibility
 	else
 
-		if [ -f $SDCARD_MIXERS_PATH/$MIXER.mix ]
+		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
 		then
-			set MIXER_FILE $SDCARD_MIXERS_PATH/$MIXER.mix
+			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
 		else
-			set MIXER_FILE /etc/mixers/$MIXER.main.mix
+			set MIXER_FILE /etc/mixers/${MIXER}.main.mix
 		fi
 	fi
 
@@ -50,10 +56,10 @@ then
 
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then
-		echo "INFO  [init] Mixer: $MIXER_FILE on $OUTPUT_DEV"
+		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
-		echo "ERROR [init] Error loading mixer: $MIXER_FILE"
-		echo "ERROR:[init] Could not load mixer: $MIXER_FILE" >> $LOG_FILE
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 
@@ -61,8 +67,8 @@ then
 else
 	if [ $MIXER != skip ]
 	then
-		echo "ERROR [init] Mixer not defined"
-		echo "ERROR [init] Mixer not defined" >> $LOG_FILE
+		echo "ERROR  [init] Mixer undefined"
+		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
 		tone_alarm $TUNE_ERR
 	fi
 fi
@@ -133,14 +139,14 @@ then
 	set MIXER_AUX_FILE none
 	set OUTPUT_AUX_DEV /dev/pwm_output1
 
-	if [ -f $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix ]
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
 	then
-		set MIXER_AUX_FILE $SDCARD_MIXERS_PATH/$MIXER_AUX.aux.mix
+		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
 	else
 
-		if [ -f /etc/mixers/$MIXER_AUX.aux.mix ]
+		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
 		then
-			set MIXER_AUX_FILE /etc/mixers/$MIXER_AUX.aux.mix
+			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
 		fi
 	fi
 
@@ -153,20 +159,20 @@ then
 			then
 				if mixer append $OUTPUT_DEV $MIXER_AUX_FILE
 				then
-					echo "INFO  [init] Mixer: $MIXER_AUX_FILE appended to $OUTPUT_DEV"
+					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
 				else
-					echo "ERROR [init] Error appending mixer: $MIXER_AUX_FILE"
-					echo "ERROR [init] Could not append mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+					echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
+					echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
 				fi
 			fi
 			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
 				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
 				then
-					echo "INFO  [init] Mixer: $MIXER_AUX_FILE on $OUTPUT_AUX_DEV"
+					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
 				else
-					echo "ERROR [init] Error loading mixer: $MIXER_AUX_FILE"
-					echo "ERROR [init] Could not load mixer: $MIXER_AUX_FILE" >> $LOG_FILE
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
 				fi
 			else
 				set PWM_AUX_OUT none

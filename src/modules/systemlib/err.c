@@ -80,7 +80,7 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
-	lowsyslog("%s: ", px4_get_taskname());
+	syslog("%s: ", px4_get_taskname());
 	lowvsyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
@@ -89,10 +89,10 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	}
 
 	if (errcode < NOCODE) {
-		lowsyslog(": %s", strerror(errcode));
+		syslog(": %s", strerror(errcode));
 	}
 
-	lowsyslog("\n");
+	syslog("\n");
 #endif
 }
 
