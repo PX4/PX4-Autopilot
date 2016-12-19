@@ -824,7 +824,8 @@ MPU6000::probe()
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
 	case ICM20608_REV_00:
-	case ICM20689_REV_00:
+	case ICM20689_REV_FE:
+	case ICM20689_REV_03:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
 		DEVICE_DEBUG("ID 0x%02x", _product);
