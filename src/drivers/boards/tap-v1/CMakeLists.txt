@@ -35,7 +35,6 @@ px4_add_module(
 	MODULE drivers__boards__tap-v1
 	COMPILE_FLAGS
 	SRCS
-		../common/board_name.c
 		../common/board_dma_alloc.c
 		tap_init.c
 		tap_pwr.c
