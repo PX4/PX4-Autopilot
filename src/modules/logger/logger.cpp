@@ -57,6 +57,7 @@
 #include <px4_sem.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
+#include <version/version.h>
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -1361,7 +1362,7 @@ void Logger::write_header()
 void Logger::write_version()
 {
 	write_info("ver_sw", PX4_GIT_VERSION_STR);
-	write_info("ver_hw", HW_ARCH);
+	write_info("ver_hw", px4_board_name());
 	write_info("sys_name", "PX4");
 	int32_t utc_offset = 0;
 

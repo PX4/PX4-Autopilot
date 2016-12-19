@@ -40,36 +40,46 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#pragma once
 
-/* The preferred method for publishing a board name up is to
- * provide board_name()
- *
- */
-__BEGIN_DECLS
-
-__EXPORT const char *board_name(void);
-
-__END_DECLS
 
 #define FREEZE_STR(s) #s
 #define STRINGIFY(s) FREEZE_STR(s)
 #define FW_GIT STRINGIFY(GIT_VERSION)
 #define FW_BUILD_URI STRINGIFY(BUILD_URI)
 
+/* The preferred method for publishing a board name is to
+ * define it in board_config.h as BOARD_NAME
+ */
 #if defined(CONFIG_ARCH_BOARD_SITL)
-#  define	HW_ARCH "SITL"
+# define BOARD_NAME "SITL"
 #elif defined(CONFIG_ARCH_BOARD_EAGLE)
-#  define	HW_ARCH "EAGLE"
+# define BOARD_NAME "EAGLE"
 #elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-#  define HW_ARCH "EXCELSIOR"
+# define BOARD_NAME "EXCELSIOR"
 #elif defined(CONFIG_ARCH_BOARD_RPI)
-#  define	HW_ARCH "RPI"
+# define BOARD_NAME "RPI"
 #elif defined(CONFIG_ARCH_BOARD_BEBOP)
-#  define	HW_ARCH "BEBOP"
+# define BOARD_NAME "BEBOP"
 #else
-#define HW_ARCH (board_name())
+# include "board_config.h"
+# ifndef BOARD_NAME
+#  error "board_config.h must define BOARD_NAME"
+# endif
 #endif
 
-#endif /* VERSION_H_ */
+
+__BEGIN_DECLS
+
+/**
+ * get the board name as string (including the version if there are multiple)
+ */
+static inline const char *px4_board_name(void)
+{
+	return BOARD_NAME;
+}
+
+
+
+__END_DECLS
+

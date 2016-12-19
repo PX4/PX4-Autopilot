@@ -198,11 +198,12 @@ int ver_main(int argc, char *argv[])
 
 			if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
-					/* compare 3rd parameter with HW_ARCH string, in case of match, return 0 */
-					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
+					/* compare 3rd parameter with px4_board_name() string, in case of match, return 0 */
+					const char *board_name = px4_board_name();
+					ret = strncmp(board_name, argv[2], strlen(board_name));
 
 					if (ret == 0) {
-						PX4_INFO("match: %s", HW_ARCH);
+						PX4_INFO("match: %s", board_name);
 					}
 
 					return ret;
@@ -217,7 +218,7 @@ int ver_main(int argc, char *argv[])
 			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
-				printf("HW arch: %s\n", HW_ARCH);
+				printf("HW arch: %s\n", px4_board_name());
 				ret = 0;
 
 			}
