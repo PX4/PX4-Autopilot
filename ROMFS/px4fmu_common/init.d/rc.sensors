@@ -311,10 +311,6 @@ else
 	fi
 fi
 
-if sf1xx start
-then
-fi
-
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
 if sensors start
