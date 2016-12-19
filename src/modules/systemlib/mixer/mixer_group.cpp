@@ -157,7 +157,14 @@ uint16_t
 MixerGroup::get_saturation_status()
 {
 	Mixer	*mixer = _first;
-	return mixer->get_saturation_status();
+	uint16_t sat = 0;
+
+	while (mixer != nullptr) {
+		sat |= mixer->get_saturation_status();
+		mixer = mixer->_next;
+	}
+
+	return sat;
 }
 
 unsigned
@@ -166,7 +173,7 @@ MixerGroup::count()
 	Mixer	*mixer = _first;
 	unsigned index = 0;
 
-	while ((mixer != nullptr)) {
+	while (mixer != nullptr) {
 		mixer = mixer->_next;
 		index++;
 	}
