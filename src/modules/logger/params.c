@@ -67,3 +67,13 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+
+/**
+ * Log UUID
+ *
+ * If set, add an ID to the log, which uniquely identifies the vehicle
+ *
+ * @boolean
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_UUID, 1);
