@@ -3381,10 +3381,14 @@ protected:
 		{
 			struct vehicle_global_position_s global_pos;
 			updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
-			msg.altitude_amsl = (_global_pos_time > 0) ? global_pos.alt : NAN;
-			global_alt = global_pos.alt;
+			if (_global_pos_time != 0) {
+				msg.altitude_amsl = global_pos.alt;
+				global_alt = global_pos.alt;
+			} else {
+				msg.altitude_amsl = NAN;
+			}
 
-			if (global_pos.terrain_alt_valid) {
+			if (_global_pos_time != 0 && global_pos.terrain_alt_valid) {
 				msg.altitude_terrain = global_pos.terrain_alt;
 				msg.bottom_clearance = global_pos.alt - global_pos.terrain_alt;
 
@@ -3416,10 +3420,10 @@ protected:
 			struct home_position_s home;
 			updated |= _home_sub->update(&_home_time, &home);
 
-			if (_global_pos_time > 0 and _home_time > 0) {
+			if (_global_pos_time > 0 && _home_time > 0) {
 				msg.altitude_relative = global_alt - home.alt;
 
-			} else if (_local_pos_time > 0 and _home_time > 0) {
+			} else if (_local_pos_time > 0 && _home_time > 0) {
 				msg.altitude_relative = msg.altitude_local;
 
 			} else {
