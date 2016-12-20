@@ -72,11 +72,10 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/mcu_version.h>
-#include <systemlib/git_version.h>
 #include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
-//#include <mathlib/mathlib.h>
+#include <version/version.h>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -1283,13 +1282,15 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
-		msg.flight_sw_version = version_tag_to_number(px4_git_tag);
-		msg.middleware_sw_version = version_tag_to_number(px4_git_tag);
-		msg.os_sw_version = version_tag_to_number(os_git_tag);
-		msg.board_version = px4_board_version;
-		memcpy(&msg.flight_custom_version, &px4_git_version_binary, sizeof(msg.flight_custom_version));
-		memcpy(&msg.middleware_custom_version, &px4_git_version_binary, sizeof(msg.middleware_custom_version));
-		memset(&msg.os_custom_version, 0, sizeof(msg.os_custom_version));
+		msg.flight_sw_version = px4_firmware_version();
+		msg.middleware_sw_version = px4_firmware_version();
+		msg.os_sw_version = px4_os_version();
+		msg.board_version = px4_board_version();
+		uint64_t fw_git_version_binary = px4_firmware_version_binary();
+		memcpy(&msg.flight_custom_version, &fw_git_version_binary, sizeof(msg.flight_custom_version));
+		memcpy(&msg.middleware_custom_version, &fw_git_version_binary, sizeof(msg.middleware_custom_version));
+		uint64_t os_git_version_binary = px4_os_version_binary();
+		memcpy(&msg.os_custom_version, &os_git_version_binary, sizeof(msg.os_custom_version));
 #ifdef CONFIG_CDCACM_VENDORID
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
 #else

@@ -43,6 +43,7 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/conversion
+	lib/version
 	lib/DriverFramework/framework
 
 	#

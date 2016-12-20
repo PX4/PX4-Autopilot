@@ -53,7 +53,6 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
 #include <systemlib/scheduling_priorities.h>
-#include <systemlib/git_version.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -622,7 +621,7 @@ void UavcanNode::fill_node_info()
 
 	// Extracting the first 8 hex digits of GIT_VERSION and converting them to int
 	char fw_git_short[9] = {};
-	std::memmove(fw_git_short, px4_git_version, 8);
+	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	assert(fw_git_short[8] == '\0');
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);

@@ -60,7 +60,7 @@ __EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
  *
  * @param rev The silicon revision character
  * @param revstr The full chip name string
- * @return The silicon revision / version number as integer
+ * @return The silicon revision / version number as integer. -1 on error (rev and revstr will not be set)
  */
 __EXPORT int mcu_version(char *rev, char **revstr);
 

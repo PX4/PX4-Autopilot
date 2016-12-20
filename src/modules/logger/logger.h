@@ -39,7 +39,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <version/version.h>
-#include <systemlib/git_version.h>
 #include <systemlib/param/param.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
