@@ -7,6 +7,9 @@
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
 #
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+#
 # @maintainer Anton Matosov <anton.matosov@gmail.com>
 #
 
