@@ -8,6 +8,9 @@
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+#
 # @maintainer James Goppert <james.goppert@gmail.com>
 #
 
