@@ -46,8 +46,8 @@ echo "Copying files to Aero board ($target)..."
 scp -v $firmware $px_uploader $target:
 
 echo "Running px_uploader.py on Aero to update firmware in AeroFC..."
-ssh $target 'PATH=$PATH":/usr/sbin" && /etc/init.d/mavlink_bridge.sh stop'
+ssh $target "/etc/init.d/mavlink-routerd.sh stop"
 ssh $target "./px_uploader.py --port /dev/ttyS1 --baud-flightstack 1500000 $(basename $firmware)"
-ssh $target 'PATH=$PATH":/usr/sbin" && /etc/init.d/mavlink_bridge.sh start'
+ssh $target "/etc/init.d/mavlink-routerd.sh start"
 
 echo "Firmware updated"
