@@ -400,7 +400,6 @@ function(px4_nuttx_add_romfs)
 
 	set(cmake_test ${PX4_SOURCE_DIR}/cmake/test/cmake_tester.py)
 
-	
 	set(extras)
 	foreach(extra ${EXTRAS})
 		get_filename_component(file_name ${extra} NAME)
@@ -420,8 +419,10 @@ function(px4_nuttx_add_romfs)
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_autostart}
 			-a ${romfs_temp_dir}/init.d
 			-s ${romfs_temp_dir}/init.d/rc.autostart
+			--board ${BOARD}
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
+			--board ${BOARD}
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
 		#COMMAND cmake -E remove_directory ${romfs_temp_dir}
