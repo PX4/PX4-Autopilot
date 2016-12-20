@@ -181,6 +181,11 @@ private:
 
 	void write_info(const char *name, const char *value);
 	void write_info(const char *name, int32_t value);
+	void write_info(const char *name, uint32_t value);
+
+	/** generic common template method for write_info variants */
+	template<typename T>
+	void write_info_template(const char *name, T value, const char *type_str);
 
 	void write_parameters();
 

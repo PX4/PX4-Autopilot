@@ -58,6 +58,7 @@
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
+#include <systemlib/mcu_version.h>
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -1319,7 +1320,20 @@ void Logger::write_info(const char *name, const char *value)
 
 	_writer.unlock();
 }
+
 void Logger::write_info(const char *name, int32_t value)
+{
+	write_info_template<int32_t>(name, value, "int32_t");
+}
+
+void Logger::write_info(const char *name, uint32_t value)
+{
+	write_info_template<uint32_t>(name, value, "uint32_t");
+}
+
+
+template<typename T>
+void Logger::write_info_template(const char *name, T value, const char *type_str)
 {
 	_writer.lock();
 	ulog_message_info_header_s msg;
@@ -1327,12 +1341,12 @@ void Logger::write_info(const char *name, int32_t value)
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
 	/* construct format key (type and name) */
-	msg.key_len = snprintf(msg.key, sizeof(msg.key), "int32_t %s", name);
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, name);
 	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 	/* copy string value directly to buffer */
-	memcpy(&buffer[msg_size], &value, sizeof(int32_t));
-	msg_size += sizeof(int32_t);
+	memcpy(&buffer[msg_size], &value, sizeof(T));
+	msg_size += sizeof(T);
 
 	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
@@ -1362,8 +1376,45 @@ void Logger::write_header()
 void Logger::write_version()
 {
 	write_info("ver_sw", px4_firmware_version_string());
+	write_info("ver_sw_release", px4_firmware_version());
 	write_info("ver_hw", px4_board_name());
 	write_info("sys_name", "PX4");
+	write_info("sys_os_name", px4_os_name());
+	const char *os_version = px4_os_version_string();
+
+	if (os_version) {
+		write_info("sys_os_ver", os_version);
+	}
+
+	write_info("sys_os_ver_release", px4_os_version());
+	write_info("sys_toolchain", px4_toolchain_name());
+	write_info("sys_toolchain_ver", px4_toolchain_version());
+
+	char rev;
+	char *revstr;
+
+	if (mcu_version(&rev, &revstr) >= 0) {
+		char mcu_ver[64];
+		snprintf(mcu_ver, sizeof(mcu_ver), "%s, rev. %c", revstr, rev);
+		write_info("sys_mcu", mcu_ver);
+	}
+
+	/* write the UUID if enabled */
+	param_t write_uuid_param = param_find("SDLOG_UUID");
+
+	if (write_uuid_param != PARAM_INVALID) {
+		uint32_t write_uuid;
+		param_get(write_uuid_param, &write_uuid);
+
+		if (write_uuid == 1) {
+			uint32_t uuid[3];
+			mcu_unique_id(uuid);
+			char uuid_string[sizeof(uint32_t) * 3 * 2 + 1];
+			snprintf(uuid_string, sizeof(uuid_string), "%08x%08x%08x", uuid[0], uuid[1], uuid[2]);
+			write_info("sys_uuid", uuid_string);
+		}
+	}
+
 	int32_t utc_offset = 0;
 
 	if (_log_utc_offset != PARAM_INVALID) {
