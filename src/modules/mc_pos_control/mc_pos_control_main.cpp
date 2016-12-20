@@ -1314,6 +1314,7 @@ MulticopterPositionControl::limit_acceleration(float dt)
 	// limit vertical acceleration
 	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 
+	// TODO: vertical acceleration is not just 2 * horizontal acceleration
 	if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
 		acc_v /= fabsf(acc_v);
 		_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
@@ -1725,14 +1726,7 @@ MulticopterPositionControl::control_position(float dt)
 				float i = _params.thr_min;
 
 				if (_reset_int_z_manual) {
-					i = _params.thr_hover;
-
-					if (i < _params.thr_min) {
-						i = _params.thr_min;
-
-					} else if (i > _params.thr_max) {
-						i = _params.thr_max;
-					}
+					i = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
 				}
 
 				_thrust_int(2) = -i;
@@ -1770,9 +1764,7 @@ MulticopterPositionControl::control_position(float dt)
 						    2) * _att_sp.thrust - _thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
 			_vel_sp(2) = _vel(2) + (-Rb(2,
 						    2) * _att_sp.thrust - _thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
-			_vel_sp_prev(0) = _vel_sp(0);
-			_vel_sp_prev(1) = _vel_sp(1);
-			_vel_sp_prev(2) = _vel_sp(2);
+			_vel_sp_prev = _vel_sp;
 			control_vel_enabled_prev = true;
 
 			// compute updated velocity error
@@ -2232,7 +2224,7 @@ MulticopterPositionControl::task_main()
 		parameters_update(false);
 
 		hrt_abstime t = hrt_absolute_time();
-		float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
+		float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.0f;
 		t_prev = t;
 
 		// set dt for control blocks
@@ -2250,11 +2242,9 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
-		if (_vehicle_status.is_vtol) {
-			if (!_vehicle_status.is_rotary_wing) {
-				_reset_yaw_sp = true;
-				_reset_alt_sp = true;
-			}
+		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
+			_reset_yaw_sp = true;
+			_reset_alt_sp = true;
 		}
 
 		//Update previous arming state
@@ -2303,8 +2293,8 @@ MulticopterPositionControl::task_main()
 
 		} else {
 			/* position controller disabled, reset setpoints */
-			_reset_alt_sp = true;
 			_reset_pos_sp = true;
+			_reset_alt_sp = true;
 			_do_reset_alt_pos_flag = true;
 			_mode_auto = false;
 			_reset_int_z = true;
