@@ -56,6 +56,8 @@ def main():
     parser = argparse.ArgumentParser(description="ROMFS pruner.")
     parser.add_argument('--folder', action="store",
                         help="ROMFS scratch folder.")
+    parser.add_argument('--board', action="store",
+                        help="Board architecture for this run")
     args = parser.parse_args()
 
     # go through temp folder
@@ -80,20 +82,28 @@ def main():
 
             # read file line by line
             pruned_content = ""
+            board_excluded = False
             with open(file_path, "rU") as f:
                 for line in f:
+                    if re.search(r'\b{0} exclude\b'.format(args.board),line):
+                        board_excluded = True;
                     # handle mixer files differently than startup files
                     if file_path.endswith(".mix"):
                         if line.startswith(("Z:", "M:", "R: ", "O:", "S:", "H:", "T:", "P:")):
-                                            pruned_content += line
+                            pruned_content += line
                     else:
                         if not line.isspace() \
                                 and not line.strip().startswith("#"):
                             pruned_content += line.strip() + "\n"
-            # overwrite old scratch file
-            with open(file_path, "wb") as f:
-                pruned_content = re.sub("\r\n", "\n", pruned_content)
-                f.write(pruned_content.encode("ascii", errors='strict'))
+            # delete the file if it doesn't contain the architecture
+            # write out the pruned content else
+            if not board_excluded:
+                # overwrite old scratch file
+                with open(file_path, "wb") as f:
+                    pruned_content = re.sub("\r\n", "\n", pruned_content)
+                    f.write(pruned_content.encode("ascii", errors='strict'))
+            else:
+                os.remove(file_path)
 
 
 if __name__ == '__main__':
