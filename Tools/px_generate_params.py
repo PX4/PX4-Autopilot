@@ -33,7 +33,6 @@ class Scope(object):
 		while (self.re_deep_lines.match(scope)):
 			scope = os.path.dirname(scope)
 		return scope in self.scope
-			
 
 
 class CMakeParser(object):
