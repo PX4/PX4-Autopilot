@@ -54,9 +54,11 @@
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/sensor_correction.h>
 
 #include <DevMgr.hpp>
 
+#include "temperature_compensation.h"
 
 namespace sensors
 {
@@ -260,6 +262,16 @@ private:
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
+
+	/* sensor thermal compensation */
+	sensors_temp_comp::Parameters	_thermal_correction_param; /**< copy of the thermal correction parameters*/
+	sensors_temp_comp::ParameterHandles _thermal_correction_param_handles; /**< handles for the thermal correction parameters */
+	struct sensor_correction_s _corrections = {}; /**< struct containing the sensor corrections to be published to the uORB*/
+	orb_advert_t _sensor_correction_pub; /**< handle to the sensor correction uORB topic */
+	float _accel_offset[SENSOR_COUNT_MAX][3]; /**< offsets to be added to the raw accel data after scale factor correction */
+	float _accel_scale[SENSOR_COUNT_MAX][3]; /**< scale factor corrections to be applied to the raw accel data before offsets are added */
+	float _gyro_offset[SENSOR_COUNT_MAX][3]; /**< offsets to be added to the raw angular rate data after scale factor correction */
+	float _gyro_scale[SENSOR_COUNT_MAX][3]; /**< scale factor corrections to be applied to the raw angular rate data before offsets are added */
 
 };
 
