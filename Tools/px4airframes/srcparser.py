@@ -50,6 +50,7 @@ class Parameter(object):
     def __init__(self, path, name, airframe_type, airframe_id, maintainer):
         self.fields = {}
         self.outputs = {}
+        self.archs = {}
         self.path = path
         self.name = name
         self.type = airframe_type
@@ -82,6 +83,12 @@ class Parameter(object):
         Set named output value
         """
         self.outputs[code] = value
+
+    def SetArch(self, code, value):
+        """
+        Set named arch value
+        """
+        self.archs[code] = value
 
     def GetFieldCodes(self):
         """
@@ -121,6 +128,25 @@ class Parameter(object):
                 return ""
         return self.outputs.get(code)
 
+    def GetArchCodes(self):
+        """
+        Return list of existing arch codes in convenient order
+        """
+        keys = self.archs.keys()
+        keys = sorted(keys)
+        keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
+        return keys
+
+    def GetArchValue(self, code):
+        """
+        Return value of the given arch code or None if not found.
+        """
+        fv =  self.archs.get(code)
+        if not fv:
+                # required because python 3 sorted does not accept None
+                return ""
+        return self.archs.get(code)
+
 class SourceParser(object):
     """
     Parses provided data and stores all found parameters internally.
@@ -136,7 +162,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["url", "maintainer", "output", "name", "type"])
+    valid_tags = set(["url", "maintainer", "output", "arch", "name", "type"])
 
     # Order of parameter groups
     priority = {
@@ -173,6 +199,7 @@ class SourceParser(object):
         state = None
         tags = {}
         outputs = {}
+        archs = {}
         for line in self.re_split_lines.split(contents):
             line = line.strip()
             # Ignore empty lines
@@ -204,6 +231,9 @@ class SourceParser(object):
                             if (tag == "output"):
                                 key, text = desc.split(' ', 1)
                                 outputs[key] = text;
+                            elif (tag == "board"):
+                                key, text = desc.split(' ', 1)
+                                archs[key] = text;
                             else:
                                 tags[tag] = desc
                             current_tag = tag
@@ -281,13 +311,17 @@ class SourceParser(object):
         for output in outputs:
             param.SetOutput(output, outputs[output])
 
+        # Store outputs
+        for arch in archs:
+            param.SetArch(arch, archs[arch])
+
         # Store the parameter
         if airframe_type not in self.param_groups:
             self.param_groups[airframe_type] = ParameterGroup(airframe_type)
         self.param_groups[airframe_type].AddParameter(param)
 
         return True
-    
+
     def IsNumber(self, numberString):
         try:
             float(numberString)

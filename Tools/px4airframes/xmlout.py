@@ -86,7 +86,15 @@ class XMLOutput():
             else:
                 xml_group.attrib["image"] = "AirframeUnknown"
             for param in group.GetParams():
-                if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
+
+                # check if there is an exclude tag for this airframe
+                excluded = False
+                for code in param.GetArchCodes():
+                    if "CONFIG_ARCH_BOARD_{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                        excluded = True
+
+                if not excluded and ((last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName()):
+                    #print("generating: {0} {1}".format(param.GetName(), excluded))
                     xml_param = ET.SubElement(xml_group, "airframe")
                     xml_param.attrib["name"] = param.GetName()
                     xml_param.attrib["id"] = param.GetId()
@@ -94,16 +102,16 @@ class XMLOutput():
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():
                         value = param.GetFieldValue(code)
-                        if code == "board":
-                            if value == board:
-                                board_specific_param_set = True
-                                xml_field = ET.SubElement(xml_param, code)
-                                xml_field.text = value
-                            else:
-                                xml_group.remove(xml_param)
-                        else:
-                            xml_field = ET.SubElement(xml_param, code)
-                            xml_field.text = value
+                        # if code == "board":
+                        #     if value == board:
+                        #         board_specific_param_set = True
+                        #         xml_field = ET.SubElement(xml_param, code)
+                        #         xml_field.text = value
+                        #     else:
+                        #         xml_group.remove(xml_param)
+                        # else:
+                        xml_field = ET.SubElement(xml_param, code)
+                        xml_field.text = value
                     for code in param.GetOutputCodes():
                         value = param.GetOutputValue(code)
                         valstrs = value.split(";")
