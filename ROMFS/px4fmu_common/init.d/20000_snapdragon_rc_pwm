@@ -4,6 +4,13 @@
 #
 # @type custom
 #
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
 # @maintainer Julian Oes <julian@oes.ch>
 #
 # This startup can be used on Pixhawk/Pixfalcon/Pixracer for the
