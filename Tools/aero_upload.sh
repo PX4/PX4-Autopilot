@@ -43,11 +43,30 @@ firmware=$1
 px_uploader=${SCRIPT_DIR}/px_uploader.py
 
 echo "Copying files to Aero board ($target)..."
-scp -v $firmware $px_uploader $target:
+scp $firmware $px_uploader $target:
 
-echo "Running px_uploader.py on Aero to update firmware in AeroFC..."
-ssh $target "/etc/init.d/mavlink-routerd.sh stop"
-ssh $target "./px_uploader.py --port /dev/ttyS1 --baud-flightstack 1500000 $(basename $firmware)"
-ssh $target "/etc/init.d/mavlink-routerd.sh start"
+ssh $target /bin/bash <<EOF
+    uname -a
+    /usr/sbin/get_aero_version.py
+    router_running=0
+    if [ -n "\$(fuser /dev/ttyS1)" ]; then
+        router_running=1
+        # try stopping router
+        /etc/init.d/mavlink-routerd.sh stop
+        p=\$(fuser /dev/ttyS1)
+        if [ -n "\$p" ]; then
+            echo "Process \$p is running and keeping UART busy"
+            exit 1
+        fi
+    fi
+    echo -e "Updating firmware on AeroFC"
+    ~/px_uploader.py \
+        --port /dev/ttyS1 \
+        --baud-flightstack 1500000 \
+        $(basename $firmware)
+    if [ \$router_running -eq 1 ]; then
+        /etc/init.d/mavlink-routerd.sh start
+    fi
+EOF
 
 echo "Firmware updated"
