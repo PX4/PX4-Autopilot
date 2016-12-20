@@ -26,6 +26,7 @@ set(config_module_list
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
+	lib/version
 	lib/DriverFramework/framework
 	)
 

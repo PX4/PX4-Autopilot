@@ -1361,7 +1361,7 @@ void Logger::write_header()
 /* write version info messages */
 void Logger::write_version()
 {
-	write_info("ver_sw", PX4_GIT_VERSION_STR);
+	write_info("ver_sw", px4_firmware_version_string());
 	write_info("ver_hw", px4_board_name());
 	write_info("sys_name", "PX4");
 	int32_t utc_offset = 0;

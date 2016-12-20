@@ -87,6 +87,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/rc
+	lib/version
 	lib/DriverFramework/framework
 
 	#

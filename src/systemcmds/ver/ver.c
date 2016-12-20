@@ -46,7 +46,6 @@
 #include <version/version.h>
 #include <systemlib/err.h>
 #include <systemlib/mcu_version.h>
-#include <systemlib/git_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -58,123 +57,6 @@ static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
 static const char mcu_uid_str[]         = "uid";
-
-const char *px4_git_version = PX4_GIT_VERSION_STR;
-const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
-#if !defined(CONFIG_CDCACM_PRODUCTID)
-# define CONFIG_CDCACM_PRODUCTID 0
-#endif
-const char *px4_git_tag = PX4_GIT_TAG_STR;
-
-#if defined(__PX4_NUTTX)
-__EXPORT const char *os_git_tag = "7.18";
-__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
-#else
-__EXPORT const char *os_git_tag = "";
-__EXPORT const uint32_t px4_board_version = 1;
-#endif
-
-// dev >= 0
-// alpha >= 64
-// beta >= 128
-// release candidate >= 192
-// release == 255
-enum FIRMWARE_TYPE {
-	FIRMWARE_TYPE_DEV = 0,
-	FIRMWARE_TYPE_ALPHA = 64,
-	FIRMWARE_TYPE_BETA = 128,
-	FIRMWARE_TYPE_RC = 192,
-	FIRMWARE_TYPE_RELEASE = 255
-};
-
-/**
- * Convert a version tag string to a number
- */
-uint32_t version_tag_to_number(const char *tag)
-{
-	uint32_t ver = 0;
-	unsigned len = strlen(tag);
-	unsigned mag = 0;
-	int32_t type = -1;
-	bool dotparsed = false;
-	unsigned dashcount = 0;
-
-	for (int i = len - 1; i >= 0; i--) {
-
-		if (tag[i] == '-') {
-			dashcount++;
-		}
-
-		if (tag[i] >= '0' && tag[i] <= '9') {
-			unsigned number = tag[i] - '0';
-
-			ver += (number << mag);
-			mag += 8;
-
-		} else if (tag[i] == '.') {
-			continue;
-
-		} else if (mag > 2 * 8 && dotparsed) {
-			/* this is a full version and we have enough digits */
-			return ver;
-
-		} else if (i > 3 && type == -1) {
-			/* scan and look for signature characters for each type */
-			const char *curr = &tag[i - 1];
-
-			// dev: v1.4.0rc3-7-g7e282f57
-			// rc: v1.4.0rc4
-			// release: v1.4.0
-
-			while (curr > &tag[0]) {
-				if (*curr == 'v') {
-					type = FIRMWARE_TYPE_DEV;
-					break;
-
-				} else if (*curr == 'p') {
-					type = FIRMWARE_TYPE_ALPHA;
-					break;
-
-				} else if (*curr == 't') {
-					type = FIRMWARE_TYPE_BETA;
-					break;
-
-				} else if (*curr == 'r') {
-					type = FIRMWARE_TYPE_RC;
-					break;
-				}
-
-				curr--;
-			}
-
-			/* looks like a release */
-			if (type == -1) {
-				type = FIRMWARE_TYPE_RELEASE;
-			}
-
-		} else if (tag[i] != 'v') {
-			/* reset, because we don't have a full tag but
-			 * are seeing non-numeric characters
-			 */
-			ver = 0;
-			mag = 0;
-		}
-	}
-
-	/* if git describe contains dashes this is not a real tag */
-	if (dashcount > 0) {
-		type = FIRMWARE_TYPE_DEV;
-	}
-
-	/* looks like a release */
-	if (type == -1) {
-		type = FIRMWARE_TYPE_RELEASE;
-	}
-
-	ver = (ver << 8);
-
-	return ver | type;
-}
 
 static void usage(const char *reason)
 {
@@ -224,16 +106,41 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", px4_git_version);
-				unsigned fwver = version_tag_to_number(px4_git_tag);
+				printf("FW git-hash: %s\n", px4_firmware_version_string());
+				unsigned fwver = px4_firmware_version();
 				unsigned major = (fwver >> (8 * 3)) & 0xFF;
 				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
 				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
-				printf("FW version: %s (%u.%u.%u %u), %u\n", px4_git_tag, major, minor, patch,
-				       type, fwver);
-				/* middleware is currently the same thing as firmware, so not printing yet */
-				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
+
+				if (type == 255) {
+					printf("FW version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+
+				} else {
+					printf("FW version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
+				}
+
+
+				fwver = px4_os_version();
+				major = (fwver >> (8 * 3)) & 0xFF;
+				minor = (fwver >> (8 * 2)) & 0xFF;
+				patch = (fwver >> (8 * 1)) & 0xFF;
+				type = (fwver >> (8 * 0)) & 0xFF;
+				printf("OS: %s\n", px4_os_name());
+
+				if (type == 255) {
+					printf("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+
+				} else {
+					printf("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
+				}
+
+				const char *os_git_hash = px4_os_version_string();
+
+				if (os_git_hash) {
+					printf("OS git-hash: %s\n", os_git_hash);
+				}
+
 				ret = 0;
 
 			}
@@ -252,7 +159,7 @@ int ver_main(int argc, char *argv[])
 
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
-				printf("Toolchain: %s\n", __VERSION__);
+				printf("Toolchain: %s, %s\n", px4_toolchain_name(), px4_toolchain_version());
 				ret = 0;
 
 			}

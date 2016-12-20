@@ -97,11 +97,12 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
-	lib/terrain_estimation
+	lib/rc
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/terrain_estimation
+	lib/version
 	lib/DriverFramework/framework
-	lib/rc
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config

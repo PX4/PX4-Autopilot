@@ -149,6 +149,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
+	lib/version
 	platforms/nuttx
 
 	# had to add for cmake, not sure why wasn't in original config
