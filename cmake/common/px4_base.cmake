@@ -915,27 +915,17 @@ endfunction()
 function(px4_create_git_hash_header)
 	px4_parse_function_args(
 		NAME px4_create_git_hash_header
-		ONE_VALUE HEADER
-		REQUIRED HEADER
+		ONE_VALUE OUT
+		REQUIRED OUT
 		ARGN ${ARGN})
-	execute_process(
-		COMMAND git describe --always --tags
-		OUTPUT_VARIABLE git_tag
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	file(WRITE ${OUT} "")
+	add_custom_command(
+		OUTPUT __fake
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${OUT}
+		COMMENT "Generating git hash header"
 		)
-	message(STATUS "GIT_TAG = ${git_tag}")
-	execute_process(
-		COMMAND git rev-parse --verify HEAD
-		OUTPUT_VARIABLE git_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		)
-	#message(STATUS "GIT_VERSION = ${git_version}")
-	set(git_version_short)
-	# We use the first 16 chars, starting at index 0
-	string(SUBSTRING ${git_version} 0 16 git_version_short)
-	configure_file(${PX4_SOURCE_DIR}/cmake/templates/build_git_version.h.in ${HEADER} @ONLY)
+	add_custom_target(ver_gen ALL
+		DEPENDS ${OUT} __fake)
 endfunction()
 
 #=============================================================================
