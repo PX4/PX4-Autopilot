@@ -410,7 +410,7 @@ ToneAlarm::ToneAlarm() :
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr),
-	_cbrk(CBRK_UNINIT)
+	_cbrk(CBRK_OFF)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
