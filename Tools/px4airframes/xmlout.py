@@ -102,14 +102,6 @@ class XMLOutput():
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():
                         value = param.GetFieldValue(code)
-                        # if code == "board":
-                        #     if value == board:
-                        #         board_specific_param_set = True
-                        #         xml_field = ET.SubElement(xml_param, code)
-                        #         xml_field.text = value
-                        #     else:
-                        #         xml_group.remove(xml_param)
-                        # else:
                         xml_field = ET.SubElement(xml_param, code)
                         xml_field.text = value
                     for code in param.GetOutputCodes():
