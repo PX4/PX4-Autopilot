@@ -68,10 +68,11 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	#drivers/pwm_out_rc_in
+	drivers/pwm_out_rc_in
+	drivers/spektrum_rc
 	drivers/qshell/qurt
 	drivers/snapdragon_pwm_out
-	
+
 	#
 	# Libraries
 	#
@@ -85,6 +86,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/rc
 	lib/DriverFramework/framework
 
 	#
