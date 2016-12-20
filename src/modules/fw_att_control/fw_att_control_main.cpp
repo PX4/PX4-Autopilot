@@ -71,6 +71,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/battery_status.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -135,6 +136,7 @@ private:
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
+	int		_battery_status_sub;		/**< battery status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -156,6 +158,7 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
+	struct battery_status_s				_battery_status;	/**< battery status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -218,6 +221,8 @@ private:
 
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
+		int bat_scale_en;			/**< Battery scaling enabled */
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -268,6 +273,8 @@ private:
 		param_t flaperon_scale;
 
 		param_t vtol_type;
+
+		param_t bat_scale_en;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -328,6 +335,11 @@ private:
 	 * Check for vehicle land detected updates.
 	 */
 	void		vehicle_land_detected_poll();
+
+	/**
+	 * Check for battery status updates.
+	 */
+	void		battery_status_poll();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -453,6 +465,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
+	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -543,6 +557,8 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+
+	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.p_tc);
@@ -684,6 +700,18 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 }
 
 void
+FixedwingAttitudeControl::battery_status_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_battery_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(battery_status), _battery_status_sub, &_battery_status);
+	}
+}
+
+void
 FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_control::g_control->task_main();
@@ -704,6 +732,7 @@ FixedwingAttitudeControl::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	parameters_update();
 
@@ -714,6 +743,7 @@ FixedwingAttitudeControl::task_main()
 	vehicle_manual_poll();
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
+	battery_status_poll();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[2];
@@ -1113,6 +1143,12 @@ FixedwingAttitudeControl::task_main()
 							!(_vehicle_status.engine_failure ||
 							  _vehicle_status.engine_failure_cmd)) ?
 							throttle_sp : 0.0f;
+
+					/* scale effort by battery status */
+					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f) {
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
+					}
+
 
 					if (!PX4_ISFINITE(throttle_sp)) {
 						if (_debug && loop_counter % 10 == 0) {
