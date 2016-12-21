@@ -159,9 +159,9 @@ int DfBebopRangeFinderWrapper::_publish(struct bebop_range &data)
 
 	distance_data.id = 0; // TODO set proper ID
 
-	distance_data.orientation = 25; // MAV_SENSOR_ROTATION_PITCH_270 TODO check if this is correct
+	distance_data.orientation = 25; // MAV_SENSOR_ROTATION_PITCH_270
 
-	distance_data.covariance = 0.0f;
+	distance_data.covariance = 1.0f; // TODO set correct value
 
 	if (_range_topic == nullptr) {
 		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &distance_data,
@@ -274,7 +274,7 @@ df_bebop_rangefinder_wrapper_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		  // Add rotation if necessary
+		// Add rotation if necessary
 		default:
 			df_bebop_rangefinder_wrapper::usage();
 			return 0;
