@@ -217,7 +217,6 @@ static struct cpuload_s cpuload = {};
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
-static bool rtl_on = false;
 static bool last_overload = false;
 
 static struct status_flags_s status_flags = {};
