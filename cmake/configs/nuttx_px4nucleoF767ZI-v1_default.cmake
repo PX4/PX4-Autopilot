@@ -132,6 +132,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
 
