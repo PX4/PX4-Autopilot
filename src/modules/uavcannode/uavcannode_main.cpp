@@ -241,7 +241,6 @@ void UavcanNode::fill_node_info()
 	// Extracting the first 8 hex digits of the git hash and converting them to int
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
-	assert(fw_git_short[8] == '\0');
 	char *end = nullptr;
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
