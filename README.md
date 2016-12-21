@@ -6,8 +6,8 @@
 
 This repository holds the [PX4 Pro](http://px4.io) flight control solution for drones, with the main applications located in the src/modules directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
 
-*   Official Website: http://px4.io (License: BSD 3-clause, [LICENSE.md](https://github.com/PX4/Firmware/blob/master/LICENSE.md))
-*   Supported airframes (more experimental types than listed here are supported):
+* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE.md](https://github.com/PX4/Firmware/blob/master/LICENSE.md))
+* Supported airframes (more experimental types than listed here are supported):
   * [Multicopters](http://px4.io/portfolio_category/multicopter/)
   * [Fixed wing](http://px4.io/portfolio_category/plane/)
   * [VTOL](http://px4.io/portfolio_category/vtol/)
@@ -57,8 +57,8 @@ This repository contains code supporting these boards:
   * FMUv5.x (ARM Cortex M7, future Pixhawk)
   * AeroCore (v1 and v2)
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
-  * MindPX V2.8 [Tutorial] (http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
-  * MindRacer V1.2 [Tutorial] (http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
+  * MindPX V2.8 [Tutorial](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
+  * MindRacer V1.2 [Tutorial](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   
 ## Project Milestones
 
