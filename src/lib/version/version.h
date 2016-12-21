@@ -47,8 +47,6 @@
 
 #define FREEZE_STR(s) #s
 #define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
-#define FW_BUILD_URI STRINGIFY(BUILD_URI)
 
 /* The preferred method for publishing a board name is to
  * define it in board_config.h as BOARD_NAME
@@ -79,6 +77,14 @@ __BEGIN_DECLS
 static inline const char *px4_board_name(void)
 {
 	return BOARD_NAME;
+}
+
+/**
+ * get the build URI (used for crash logging)
+ */
+static inline const char *px4_build_uri(void)
+{
+	return STRINGIFY(BUILD_URI);
 }
 
 /**

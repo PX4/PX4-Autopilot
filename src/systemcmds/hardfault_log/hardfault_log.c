@@ -483,7 +483,7 @@ static int write_dump_info(int fdout, info_s *info, struct bbsramd_s *desc,
 		return -EIO;
 	}
 
-	n = snprintf(buffer, sz, " FW git-hash: %s\n", FW_GIT);
+	n = snprintf(buffer, sz, " FW git-hash: %s\n", px4_firmware_version_string());
 
 	if (n != write(fdout, buffer, n)) {
 		return -EIO;
@@ -495,7 +495,7 @@ static int write_dump_info(int fdout, info_s *info, struct bbsramd_s *desc,
 		return -EIO;
 	}
 
-	n = snprintf(buffer, sz, " Build url: %s \n", FW_BUILD_URI);
+	n = snprintf(buffer, sz, " Build url: %s \n", px4_build_uri());
 
 	if (n != write(fdout, buffer, n)) {
 		return -EIO;
