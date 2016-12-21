@@ -5,13 +5,31 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
-# handle cleaning command
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
 do_clean=true
-if [ "$1" = "-o" ]
-then
-	echo not cleaning
-	do_clean=false
-fi
+gui=false
+
+while getopts "h?og:" opt; do
+    case "$opt" in
+    h|\?)
+		echo """
+		$0 [-h] [-o] [-g]
+		-h show help
+		-o don't clean before building (to save time)
+		-g run gazebo gui
+		"""
+        exit 0
+        ;;
+    o)  do_clean=false
+		echo not cleaning
+        ;;
+    g)  gui="true"
+        ;;
+    esac
+done
 
 # determine the directory of the source given the directory of this script
 pushd `dirname $0` > /dev/null
@@ -87,8 +105,13 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 # however, stop executing tests after the first failure
 set +e
 echo "=====> run tests"
-test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch
-test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui
+
+# commented out optical flow test for now since ci server has
+# an issue producing the simulated flow camera currently
+#test $? -eq 0 && rostest px4 mavros_posix_tests_iris_opt_flow.launch gui:=$gui
+
+test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui
 TEST_RESULT=$?
 echo "<====="
 

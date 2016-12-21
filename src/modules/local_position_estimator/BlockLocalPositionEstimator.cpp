@@ -89,6 +89,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	//_flow_board_y_offs(NULL, "SENS_FLW_YOFF"),
 	_flow_min_q(this, "FLW_QMIN"),
 	_land_z_stddev(this, "LAND_Z"),
+	_land_vxy_stddev(this, "LAND_VXY"),
 	_pn_p_noise_density(this, "PN_P"),
 	_pn_v_noise_density(this, "PN_V"),
 	_pn_b_noise_density(this, "PN_B"),
@@ -292,11 +293,12 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
-	bool landUpdated = (
-				   (_sub_land.get().landed ||
-				    ((!_sub_armed.get().armed) && (!_sub_land.get().freefall)))
-				   && (!(_lidarInitialized || _mocapInitialized || _visionInitialized || _sonarInitialized))
-				   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE));
+	bool landUpdated = landed()
+			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle
+
+	if (landUpdated) {
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] landed");
+	}
 
 	// get new data
 	updateSubscriptions();
@@ -322,7 +324,7 @@ void BlockLocalPositionEstimator::update()
 
 	} else {
 		if (vxy_stddev_ok) {
-			if (_flowInitialized || _gpsInitialized || _visionInitialized || _mocapInitialized) {
+			if (_flowInitialized || _gpsInitialized || _visionInitialized || _mocapInitialized || _landInitialized) {
 				_validXY = true;
 			}
 		}
@@ -589,6 +591,39 @@ float BlockLocalPositionEstimator::agl()
 	return _x(X_tz) - _x(X_z);
 }
 
+bool BlockLocalPositionEstimator::landed()
+{
+	bool land_detector = _sub_land.get().landed;
+	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
+	bool close_to_ground = _aglLowPass.getState() < 1.0f;
+	bool landed = (land_detector || disarmed_not_falling) && close_to_ground;
+	return landed;
+}
+
+void BlockLocalPositionEstimator::predictionLogic(Vector<float, n_x> &dx)
+{
+	// if xy not valid, or landed without pos data, stop predicting xy
+	bool have_pos_data = _gpsInitialized || _visionInitialized || _mocapInitialized;
+
+	if (!_validXY || (landed() && !have_pos_data)) {
+		dx(X_x) = 0;
+		dx(X_y) = 0;
+		dx(X_vx) = 0;
+		dx(X_vy) = 0;
+	}
+
+	// if z not valid, stop predicting
+	if (!_validZ) {
+		dx(X_z) = 0;
+		dx(X_vz) = 0;
+	}
+
+	// if terrain not valid, stop predicting
+	if (!_validTZ) {
+		dx(X_tz) = 0;
+	}
+}
+
 void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 {
 	// don't correct bias when rotating rapidly
@@ -601,28 +636,6 @@ void BlockLocalPositionEstimator::correctionLogic(Vector<float, n_x> &dx)
 		dx(X_bx) = 0;
 		dx(X_by) = 0;
 		dx(X_bz) = 0;
-	}
-
-	// if xy not valid, stop estimating
-	if (!_validXY) {
-		dx(X_x) = 0;
-		dx(X_y) = 0;
-		dx(X_vx) = 0;
-		dx(X_vy) = 0;
-		dx(X_bx) = 0;
-		dx(X_by) = 0;
-	}
-
-	// if z not valid, stop estimating
-	if (!_validZ) {
-		dx(X_z) = 0;
-		dx(X_vz) = 0;
-		dx(X_bz) = 0;
-	}
-
-	// if terrain not valid, stop estimating
-	if (!_validTZ) {
-		dx(X_tz) = 0;
 	}
 
 	// saturate bias
@@ -964,7 +977,7 @@ void BlockLocalPositionEstimator::predict()
 	Vector<float, n_x> dx = (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
 
 	// propagate
-	correctionLogic(dx);
+	predictionLogic(dx);
 	_x += dx;
 	Matrix<float, n_x, n_x> dP = (_A * _P + _P * _A.transpose() +
 				      _B * _R * _B.transpose() + _Q) * getDt();

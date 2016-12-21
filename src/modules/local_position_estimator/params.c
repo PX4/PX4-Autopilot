@@ -357,7 +357,7 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
  * @max 90
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
+PARAM_DEFINE_FLOAT(LPE_LAT, 47.397742f);
 
 /**
  * Local origin longitude for nav w/o GPS
@@ -368,7 +368,7 @@ PARAM_DEFINE_FLOAT(LPE_LAT, 40.430f);
  * @max 180
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(LPE_LON, -86.929);
+PARAM_DEFINE_FLOAT(LPE_LON, 8.545594);
 
 /**
  * Cut frequency for state publication
@@ -413,3 +413,14 @@ PARAM_DEFINE_FLOAT(LPE_Z_PUB, 1.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
+
+/**
+ * Land detector xy velocity standard deviation
+ *
+ * @group Local Position Estimator
+ * @unit m
+ * @min 0.01
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
