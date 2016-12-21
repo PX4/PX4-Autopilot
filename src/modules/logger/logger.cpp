@@ -1390,12 +1390,12 @@ void Logger::write_version()
 	write_info("sys_toolchain", px4_toolchain_name());
 	write_info("sys_toolchain_ver", px4_toolchain_version());
 
-	char rev;
-	char *revstr;
+	char revision;
+	char *chip_name;
 
-	if (mcu_version(&rev, &revstr) >= 0) {
+	if (mcu_version(&revision, &chip_name) >= 0) {
 		char mcu_ver[64];
-		snprintf(mcu_ver, sizeof(mcu_ver), "%s, rev. %c", revstr, rev);
+		snprintf(mcu_ver, sizeof(mcu_ver), "%s, rev. %c", chip_name, revision);
 		write_info("sys_mcu", mcu_ver);
 	}
 
