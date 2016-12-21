@@ -8,9 +8,6 @@
 
 orb_advert_t mavlink_log_pub = nullptr;
 
-// timeouts for sensors in microseconds
-static const uint32_t 		EST_SRC_TIMEOUT = 10000; // 0.01 s
-
 // required standard deviation of estimate for estimator to publish data
 static const uint32_t 		EST_STDDEV_XY_VALID = 2.0; // 2.0 m
 static const uint32_t 		EST_STDDEV_Z_VALID = 2.0; // 2.0 m
