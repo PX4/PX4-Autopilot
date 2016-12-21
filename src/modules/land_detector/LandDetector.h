@@ -127,10 +127,10 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
 	/* Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 2000000;
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 2e6;
 
 	/* Time interval in us in which wider acceptance thresholds are used after arming. */
-	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
+	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2e6;
 
 	orb_advert_t _landDetectedPub;
 	struct vehicle_land_detected_s _landDetected;
