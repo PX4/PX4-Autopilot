@@ -88,12 +88,20 @@ FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
 
+NINJA_BIN := ninja
 ifndef NO_NINJA_BUILD
-NINJA_BUILD := $(shell ninja --version 2>/dev/null)
+NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
+
+ifndef NINJA_BUILD
+NINJA_BIN := ninja-build
+NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
 endif
+
+endif
+
 ifdef NINJA_BUILD
     PX4_CMAKE_GENERATOR ?= "Ninja"
-    PX4_MAKE = ninja
+    PX4_MAKE = $(NINJA_BIN)
     PX4_MAKE_ARGS =
 else
 
