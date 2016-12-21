@@ -619,7 +619,7 @@ void UavcanNode::fill_node_info()
 	/* software version */
 	uavcan::protocol::SoftwareVersion swver;
 
-	// Extracting the first 8 hex digits of GIT_VERSION and converting them to int
+	// Extracting the first 8 hex digits of the git hash and converting them to int
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	assert(fw_git_short[8] == '\0');

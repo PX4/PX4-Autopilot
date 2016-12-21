@@ -152,7 +152,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
-				printf("Build uri: %s\n", FW_BUILD_URI);
+				printf("Build uri: %s\n", px4_build_uri());
 				ret = 0;
 
 			}
