@@ -46,7 +46,6 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
-    ../common/board_name.c
     esc35_init.c
     esc35_led.c
     esc35_usb.c
