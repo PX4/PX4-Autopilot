@@ -932,6 +932,7 @@ function(px4_create_git_hash_header)
 	add_custom_command(
 		OUTPUT __fake
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${OUT}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating git hash header"
 		)
 	add_custom_target(ver_gen ALL
