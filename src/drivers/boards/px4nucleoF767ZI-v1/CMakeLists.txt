@@ -35,7 +35,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		../common/board_name.c
 		../common/board_dma_alloc.c
 #		WIP px4nucleo_can.c
 		px4nucleo_init.c
