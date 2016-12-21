@@ -448,7 +448,7 @@ endif()
 #=============================================================================
 # generate git version
 #
-px4_create_git_hash_header(HEADER ${PX4_BINARY_DIR}/build_git_version.h)
+px4_create_git_hash_header(OUT ${PX4_BINARY_DIR}/build_git_version.h)
 
 #=============================================================================
 # packaging
