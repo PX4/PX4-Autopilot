@@ -151,7 +151,7 @@ DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 		if ((((max_confidence < MIN_REGULAR_CONFIDENCE) && (confidence >= MIN_REGULAR_CONFIDENCE)) ||
 			(confidence > max_confidence && (next->priority() >= max_priority)) ||
 			(fabsf(confidence - max_confidence) < 0.01f && (next->priority() > max_priority))
-			) && (confidence > FLT_EPSILON)) {
+			) && (confidence > 0.0f)) {
 			max_index = i;
 			max_confidence = confidence;
 			max_priority = next->priority();
