@@ -197,13 +197,13 @@ MavlinkOrbSubscription::is_published()
 		_published = true;
 	}
 
-	// topic may have been last published before we subscribed
-	uint64_t time_topic = 0;
-	if (!_published && orb_stat(_fd, &time_topic) == PX4_OK) {
-		if (time_topic != 0) {
-			_published = true;
-		}
-	}
+	// // topic may have been last published before we subscribed
+	// uint64_t time_topic = 0;
+	// if (!_published && orb_stat(_fd, &time_topic) == PX4_OK) {
+	// 	if (time_topic != 0) {
+	// 		_published = true;
+	// 	}
+	// }
 
 	return _published;
 }

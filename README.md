@@ -15,7 +15,7 @@ This repository holds the [PX4 Pro](http://px4.io) flight control solution for d
 
 ### Users ###
 
-Please refer to the [user documentation](http://px4.io/user-guide/) and [user forum](http://discuss.px4.io) for flying drones with the PX4 flight stack.
+Please refer to the [user documentation](http://px4.io/user-guide/) and [user forum](http://discuss.px4.io) for operating drones with the PX4 flight stack.
 
 ### Developers ###
 
