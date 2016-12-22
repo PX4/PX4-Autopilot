@@ -83,8 +83,8 @@ private:
 		param_t maxRotation;
 		param_t minThrottle;
 		param_t minManThrottle;
-		param_t ff_acc_threshold;
-		param_t ff_trigger_time;
+		param_t freefall_acc_threshold;
+		param_t freefall_trigger_time;
 	} _paramHandle;
 
 	struct {
@@ -93,8 +93,8 @@ private:
 		float maxRotation_rad_s;
 		float minThrottle;
 		float minManThrottle;
-		float ff_acc_threshold;
-		float ff_trigger_time;
+		float freefall_acc_threshold;
+		float freefall_trigger_time;
 	} _params;
 
 	int _vehicleLocalPositionSub;
