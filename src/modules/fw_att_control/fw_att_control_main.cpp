@@ -1149,7 +1149,7 @@ FixedwingAttitudeControl::task_main()
 					/* scale effort by battery status */
 					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
 					    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] += (_battery_status.scale - 1);
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 					}
 
 
