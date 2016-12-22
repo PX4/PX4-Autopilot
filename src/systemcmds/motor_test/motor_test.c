@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_getopt.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +104,10 @@ int motor_test_main(int argc, char *argv[])
 	float value = 0.0f;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "m:p:")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "m:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'm':
