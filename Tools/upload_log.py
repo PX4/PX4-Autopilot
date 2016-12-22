@@ -93,7 +93,7 @@ def main():
         email = args.email
 
     payload = {'type': 'personal', 'description': description,
-            'feedback': feedback, 'email': email}
+            'feedback': feedback, 'email': email, 'source': args.source}
 
     for file_name in args.FILE:
         if not quiet:
