@@ -74,8 +74,8 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
-	_paramHandle.ff_acc_threshold = param_find("LNDMC_FFALL_THR");
-	_paramHandle.ff_trigger_time = param_find("LNDMC_FFALL_TTRI");
+	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
+	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 }
 
 void MulticopterLandDetector::_initialize_topics()
@@ -110,16 +110,16 @@ void MulticopterLandDetector::_update_params()
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
-	param_get(_paramHandle.ff_acc_threshold, &_params.ff_acc_threshold);
-	param_get(_paramHandle.ff_trigger_time, &_params.ff_trigger_time);
-	_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f * _params.ff_trigger_time);
+	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
+	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
+	_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f * _params.freefall_trigger_time);
 }
 
 
 bool MulticopterLandDetector::_get_freefall_state()
 {
-	if (_params.ff_acc_threshold < 0.1f
-	    || _params.ff_acc_threshold > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
+	if (_params.freefall_acc_threshold < 0.1f
+	    || _params.freefall_acc_threshold > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
 		return false;
 	}
 
@@ -133,7 +133,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 			 + _ctrl_state.z_acc * _ctrl_state.z_acc;
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
-	return (acc_norm < _params.ff_acc_threshold);	//true if we are currently falling
+	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
 }
 
 bool MulticopterLandDetector::_get_landed_state()
