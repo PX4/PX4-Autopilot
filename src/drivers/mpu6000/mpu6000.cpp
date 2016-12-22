@@ -828,13 +828,14 @@ MPU6000::probe()
 	case ICM20689_REV_03:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
-		DEVICE_DEBUG("ID 0x%02x", _product);
+		warnx("ID 0x%02x", _product);
 		_checked_values[0] = _product;
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
-	return -EIO;
+	warnx("unexpected ID 0x%02x", _product);
+	_checked_values[0] = _product;
+	return OK;
 }
 
 /*
