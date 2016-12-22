@@ -179,7 +179,7 @@ bool MulticopterLandDetector::_get_landed_state()
 
 	// Return status based on armed state and throttle if no position lock is available.
 	if (_vehicleLocalPosition.timestamp == 0 ||
-	    hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 0.5e6 ||
+	    hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
 	    !_vehicleLocalPosition.xy_valid ||
 	    !_vehicleLocalPosition.z_valid) {
 
@@ -188,7 +188,7 @@ bool MulticopterLandDetector::_get_landed_state()
 		// falling consider it to be landed. This should even sustain
 		// quite acrobatic flight.
 		if ((_min_trust_start > 0) &&
-		    (hrt_elapsed_time(&_min_trust_start) > 8e6)) {
+		    (hrt_elapsed_time(&_min_trust_start) > 8000000)) {
 
 			return true;
 
