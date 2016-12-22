@@ -364,7 +364,9 @@ px4_generate_messages(TARGET msg_gen
 	OS ${OS}
 	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
-px4_generate_parameters_xml(OUT parameters.xml BOARD ${BOARD})
+px4_generate_parameters_xml(OUT parameters.xml 
+                            BOARD ${BOARD}
+                            SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake)
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
 	DEPENDS parameters.xml airframes.xml)

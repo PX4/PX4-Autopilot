@@ -3,87 +3,23 @@ import xml.etree.ElementTree as ET
 import os
 import re
 import codecs
+import sys
 
-class Scope(object):
-	"""
-	Single parameter group
-	"""
-	re_deep_lines = re.compile(r'.*\/.*\/')
-	def __init__(self, ):
-		self.scope = set()
-
-
-	def __str__(self):
-		return self.scope.__str__()
-
-	def Add(self, scope):
-		"""
-		Add Scope to set
-		"""
-		self.scope.add(scope)
-
-	def Has(self, scope):
-		"""
-		Check for existance
-		"""
-		if len(self.scope) == 0:
-			return True
-		# Anything in the form xxxxx/yyyyy/zzzzz....
-		# is treated as xxxxx/yyyyy
-		while (self.re_deep_lines.match(scope)):
-			scope = os.path.dirname(scope)
-		return scope in self.scope
-
-
-class CMakeParser(object):
-	"""
-	Parses provided data and stores all found paths in scope.
-	"""
-	re_split_lines = re.compile(r'[\r\n]+')
-	re_comment = re.compile(r'^\#')
-	re_start = re.compile(r'set\s*\(\s*config_module_list')
-	re_end = re.compile(r'\)\s*')
-
-	def Parse(self, scope, contents):
-		"""
-		Incrementally parse cmake file contents and append all found path scope
-		to scope.
-		"""
-		# This code is essentially a comment-parsing grammar. "state"
-		# represents parser state. It contains human-readable state
-		# names.
-		state = None
-		for line in self.re_split_lines.split(contents):
-			line = line.strip()
-			# Ignore empty lines
-			if line == "":
-				continue
-			if self.re_comment.match(line):
-				continue
-			elif self.re_start.match(line):
-				state = "gather"
-				continue
-			elif state is not None and state == "gather":
-				if self.re_end.match(line):
-					return True
-				scope.Add(line)
-		return False
-
+from px4params import scope, cmakeparser
 
 if len(os.sys.argv) < 2:
-	print("Error in %s" % os.sys.argv[0])
-	print("Usage: %s <parameters.xml> [cmake-file-scoping] " % os.sys.argv[0])
-	raise SystemExit
+    print("Error in %s" % os.sys.argv[0])
+    print("Usage: %s <parameters.xml> [cmake-file-scoping] " % os.sys.argv[0])
+    raise SystemExit
 
-
-scope = Scope()
+cmake_scope = scope.Scope()
 if len(os.sys.argv) == 3:
 	with codecs.open(os.sys.argv[2], 'r', 'utf-8') as f:
 		try:
 			contents = f.read()
 			f.close()
-			parser  = CMakeParser()
-			parser.Parse(scope, contents)
+			parser = cmakeparser.CMakeParser()
+			parser.Parse(cmake_scope, contents)
 		except:
 			contents = ''
 			print('Failed reading file: %s, skipping scoping.' % os.sys.argv[2])
@@ -110,7 +46,9 @@ struct px4_parameters_t {
 start_name = ""
 end_name = ""
 
+sys.stderr.write("cmake_scope: " + str(cmake_scope) + "\n")
 for group in root:
+	sys.stderr.write(str(group.attrib) + group.tag + "\n")
 	if group.tag == "group" and "no_code_generation" not in group.attrib:
 		section = """
 	/*****************************************************************
@@ -118,7 +56,7 @@ for group in root:
 	 ****************************************************************/""" % group.attrib["name"]
 		for param in group:
 			scope_ = param.find('scope').text
-			if not scope.Has(scope_):
+			if not cmake_scope.Has(scope_):
 				continue
 			if not start_name:
 				start_name = param.attrib["name"]
@@ -156,7 +94,7 @@ for group in root:
 	 ****************************************************************/""" % group.attrib["name"]
 		for param in group:
 			scope_ = param.find('scope').text
-			if not scope.Has(scope_):
+			if not cmake_scope.Has(scope_):
 				continue
 			if not start_name:
 				start_name = param.attrib["name"]

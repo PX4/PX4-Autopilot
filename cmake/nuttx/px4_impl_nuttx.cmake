@@ -435,7 +435,7 @@ function(px4_nuttx_add_romfs)
 			--obj romfs.o
 			--var romfs_img
 			--bin romfs.bin
-		DEPENDS ${romfs_src_files} ${extras}
+		DEPENDS ${romfs_src_files} ${extras} ${optional_files}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 	add_library(${OUT} STATIC romfs.o)

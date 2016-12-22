@@ -1014,7 +1014,7 @@ endfunction()
 function(px4_generate_parameters_xml)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_xml
-		ONE_VALUE OUT BOARD
+		ONE_VALUE OUT BOARD SCOPE
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
 	set(path ${PX4_SOURCE_DIR}/src)
@@ -1023,7 +1023,7 @@ function(px4_generate_parameters_xml)
 		)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml --scope ${SCOPE}
 		DEPENDS ${param_src_files}
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
