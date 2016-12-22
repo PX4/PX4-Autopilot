@@ -51,6 +51,7 @@ set(config_module_list
 ##TO FIT drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	drivers/iridiumsbd
+	drivers/ulanding
 
 	#
 	# System commands
