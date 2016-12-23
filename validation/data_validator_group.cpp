@@ -41,6 +41,7 @@
 
 #include "data_validator_group.h"
 #include <ecl/ecl.h>
+#include <cfloat>
 
 DataValidatorGroup::DataValidatorGroup(unsigned siblings) :
 	_first(nullptr),
