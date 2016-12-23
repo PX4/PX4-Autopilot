@@ -174,7 +174,7 @@
 
 // Product ID Description for ICM2608
 
-#define ICM20608_REV_00		0xff // In the past, was thought to be not returning a value. But seem repeatable.
+#define ICM20608_REV_FF		0xff // In the past, was thought to be not returning a value. But seem repeatable.
 
 // Product ID Description for ICM2689
 
