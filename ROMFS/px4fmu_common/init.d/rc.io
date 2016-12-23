@@ -16,6 +16,6 @@ then
 	set PX4IO_LIMIT 200
 fi
 
-if px4io limit $PX4IO_LIMIT
+if px4io limit ${PX4IO_LIMIT}
 then
 fi

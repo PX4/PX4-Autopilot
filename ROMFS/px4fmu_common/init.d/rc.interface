@@ -19,7 +19,7 @@ then
 
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
-		set MIXER_AUX $MIXER.aux
+		set MIXER_AUX ${MIXER}.aux
 	fi
 
 	# Use the mixer file from the SD-card if it exists
@@ -54,13 +54,13 @@ then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
 
-	if mixer load $OUTPUT_DEV $MIXER_FILE
+	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
 	then
 		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tone_alarm ${TUNE_ERR}
 	fi
 
 	unset MIXER_FILE
@@ -69,7 +69,7 @@ else
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tone_alarm ${TUNE_ERR}
 	fi
 fi
 
@@ -82,7 +82,7 @@ then
 		#
 		if [ $PWM_RATE != none ]
 		then
-			pwm rate -c $PWM_OUT -r $PWM_RATE
+			pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
 		fi
 
 		#
@@ -90,21 +90,21 @@ then
 		#
 		if [ $PWM_DISARMED != none ]
 		then
-			pwm disarmed -c $PWM_OUT -p $PWM_DISARMED
+			pwm disarmed -c ${PWM_OUT} -p ${PWM_DISARMED}
 		fi
 		if [ $PWM_MIN != none ]
 		then
-			pwm min -c $PWM_OUT -p $PWM_MIN
+			pwm min -c ${PWM_OUT} -p ${PWM_MIN}
 		fi
 		if [ $PWM_MAX != none ]
 		then
-			pwm max -c $PWM_OUT -p $PWM_MAX
+			pwm max -c ${PWM_OUT} -p ${PWM_MAX}
 		fi
 	fi
 
 	if [ $FAILSAFE != none ]
 	then
-		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
+		pwm failsafe -d ${OUTPUT_DEV} ${FAILSAFE}
 	fi
 fi
 
@@ -157,7 +157,7 @@ then
 			# Append aux mixer to main device
 			if [ $OUTPUT_MODE == hil ]
 			then
-				if mixer append $OUTPUT_DEV $MIXER_AUX_FILE
+				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
 				then
 					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
 				else
@@ -167,7 +167,7 @@ then
 			fi
 			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
-				if mixer load $OUTPUT_AUX_DEV $MIXER_AUX_FILE
+				if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
 				then
 					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
 				else
@@ -180,7 +180,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm $TUNE_ERR
+			tone_alarm ${TUNE_ERR}
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
@@ -193,16 +193,16 @@ then
 			#
 			if [ $PWM_AUX_RATE != none ]
 			then
-				pwm rate -c $PWM_AUX_OUT -r $PWM_AUX_RATE -d $OUTPUT_AUX_DEV
+				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
 			fi
 
 			if [ $PWM_AUX_MIN != none ]
 			then
-				pwm min -c $PWM_AUX_OUT -p $PWM_AUX_MIN -d $OUTPUT_AUX_DEV
+				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
 			fi
 			if [ $PWM_AUX_MAX != none ]
 			then
-				pwm max -c $PWM_AUX_OUT -p $PWM_AUX_MAX -d $OUTPUT_AUX_DEV
+				pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
 			fi
 		fi
 
@@ -225,7 +225,7 @@ then
 
 		if [ $FAILSAFE_AUX != none ]
 		then
-			pwm failsafe -d $OUTPUT_AUX_DEV $FAILSAFE
+			pwm failsafe -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
 		fi
 
 	fi
