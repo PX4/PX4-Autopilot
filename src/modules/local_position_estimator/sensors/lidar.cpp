@@ -114,12 +114,10 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	}
 
 	// kalman filter correction always
-	if (!(_sensorFault & SENSOR_LIDAR)) {
-		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::lidarCheckTimeout()
