@@ -51,6 +51,7 @@
 #define RADAR_RANGE_DATA 		0x48
 
 #define RADAR_DEFAULT_PORT		"/dev/ttyS2"	// telem2 on Pixhawk
+#define BUF_LEN 		9
 
 
 extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
@@ -73,8 +74,15 @@ private:
 	int				_orb_class_instance;
 	orb_advert_t			_distance_sensor_topic;
 
+	unsigned 	_head;
+	unsigned 	_tail;
+	uint8_t 	_buf[BUF_LEN];
+
 	static void task_main_trampoline(int argc, char *argv[]);
 	void task_main();
+
+	bool read_and_parse(uint8_t *buf, int len, float *range);
+	bool is_header_byte(uint8_t c) {return ((c & 0x80) == 0x00 && (c & 0x7F) == RADAR_RANGE_DATA);};
 };
 
 namespace radar
@@ -88,7 +96,9 @@ Radar::Radar(const char *port) :
 	_task_handle(-1),
 	_class_instance(-1),
 	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr)
+	_distance_sensor_topic(nullptr),
+	_head(0),
+	_tail(0)
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));
@@ -97,6 +107,8 @@ Radar::Radar(const char *port) :
 
 	// disable debug() calls
 	_debug_enabled = false;
+
+	memset(&_buf[0], 0, sizeof(_buf));
 }
 
 Radar::~Radar()
@@ -248,6 +260,77 @@ Radar::start()
 	return OK;
 }
 
+bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
+{
+	bool ret = false;
+
+	// write new data into a ring buffer
+	for (unsigned i = 0; i < len; i++) {
+
+		_head++;
+
+		if (_head >= BUF_LEN) {
+			_head = 0;
+		}
+
+		if (_tail == _head) {
+			_tail = (_tail == BUF_LEN - 1) ? 0 : _head + 1;
+		}
+
+		_buf[_head] = buf[i];
+	}
+
+	// check how many bytes are in the buffer, return if it's lower than the size of one package
+	int num_bytes = _head >= _tail ? (_head - _tail + 1) : (_head + 1 + BUF_LEN - _tail);
+
+	if (num_bytes < 3) {
+		return false;
+	}
+
+	int index = _head;
+	uint8_t no_header_counter = 0;	// counter for bytes which are non header bytes
+	uint8_t byte1 = _buf[_head];
+	uint8_t byte2 = _buf[_head];
+
+	// go through the buffer backwards starting from the newest byte
+	// if we find a header byte and the previous two bytes weren't header bytes
+	// then we found the newest package.
+	for (unsigned i = 0; i < num_bytes; i++) {
+		if (is_header_byte(_buf[index])) {
+			if (no_header_counter >= 2) {
+				int raw = (byte1 & 0x7F);
+				raw += ((byte2 & 0x7F) << 7);
+
+				*range = ((float)raw) * 0.045f;
+
+				// set the tail to one after the index because we neglect
+				// any data before the one we just read
+				_tail = index == BUF_LEN - 1 ? 0 : index++;
+				ret = true;
+				break;
+
+			}
+
+			no_header_counter = 0;
+
+		} else {
+			no_header_counter++;
+		}
+
+		byte2 = byte1;
+		byte1 = _buf[index];
+
+		index--;
+
+		if (index < 0) {
+			index = BUF_LEN - 1;
+		}
+
+	}
+
+	return ret;
+}
+
 void
 Radar::task_main()
 {
@@ -260,7 +343,7 @@ Radar::task_main()
 	fds[0].events = POLLIN;
 
 	// read buffer, one measurement consists of three bytes
-	char buf[6];
+	uint8_t buf[BUF_LEN];
 
 	while (!_task_should_exit) {
 		// wait for up to 100ms for data
@@ -279,32 +362,22 @@ Radar::task_main()
 		}
 
 		if (fds[0].revents & POLLIN) {
-
-			int bytesAvailable = 0;
-			px4_ioctl(fd, FIONREAD, (unsigned long)&bytesAvailable);
-
-			if (bytesAvailable < 3) {
-				// we have less than three bytes available, wait a bit for data to arrive
-				usleep(2000);
-			}
-
+			memset(&buf[0], 0, sizeof(buf));
 			int len = px4_read(fd, &buf[0], sizeof(buf));
 
 			if (len <= 0) {
 				PX4_DEBUG("error reading radar");
 			}
 
-			// check if we have a data package and if we have read at least three bytes, because that is
-			// the size of one data package
-			if ((buf[0] & 0x80) == 0x00 && (buf[0] & 0x7F) == RADAR_RANGE_DATA && len >= 3) {
+			float range = 0;
 
-				int raw = (buf[1] & 0x7F) + ((buf[2] & 0x7F) << 7);
+			if (read_and_parse(&buf[0], len, &range)) {
 
 				struct distance_sensor_s report = {};
 				report.timestamp = hrt_absolute_time();
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 				report.orientation = 8;
-				report.current_distance = ((float)raw) * 0.045f;
+				report.current_distance = range;
 				report.current_distance = report.current_distance > ULANDING_MAX_DISTANCE ? ULANDING_MAX_DISTANCE :
 							  report.current_distance;
 				report.current_distance = report.current_distance < ULANDING_MIN_DISTANCE ? ULANDING_MIN_DISTANCE :
