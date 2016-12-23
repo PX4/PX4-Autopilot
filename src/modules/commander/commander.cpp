@@ -4139,7 +4139,8 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 			case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
-				/* handled in the IO driver */
+				/* just ack, implementation handled in the IO driver */
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 				break;
 
 			default:
