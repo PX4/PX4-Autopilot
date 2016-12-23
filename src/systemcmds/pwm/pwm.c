@@ -87,6 +87,7 @@ usage(const char *reason)
 	     "min ...\t\t\t\tMinimum PWM\n"
 	     "max ...\t\t\t\tMaximum PWM\n"
 //	     "trim ...\t\t\tTrim PWM\n"
+	     "\t[-e]\t\t\trobust error handling\n"
 	     "\t[-c <channels>]\t\t(e.g. 1234)\n"
 	     "\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 	     "\t[-a]\t\t\tConfigure all outputs\n"
@@ -157,6 +158,7 @@ pwm_main(int argc, char *argv[])
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
 	bool print_verbose = false;
+	bool error_on_warn = false;
 	int ch;
 	int ret;
 	char *ep;
@@ -170,7 +172,7 @@ pwm_main(int argc, char *argv[])
 		usage(NULL);
 	}
 
-	while ((ch = getopt(argc - 1, &argv[1], "d:vc:g:m:ap:r:")) != EOF) {
+	while ((ch = getopt(argc - 1, &argv[1], "d:vec:g:m:ap:r:")) != EOF) {
 		switch (ch) {
 
 		case 'd':
@@ -184,6 +186,10 @@ pwm_main(int argc, char *argv[])
 
 		case 'v':
 			print_verbose = true;
+			break;
+
+		case 'e':
+			error_on_warn = false;
 			break;
 
 		case 'c':
@@ -266,7 +272,8 @@ pwm_main(int argc, char *argv[])
 	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 
 	if (ret != OK) {
-		err(1, "PWM_SERVO_GET_COUNT");
+		PX4_ERR("PWM_SERVO_GET_COUNT");
+		return error_on_warn;
 	}
 
 	if (!strcmp(argv[1], "arm")) {
@@ -311,7 +318,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+				return error_on_warn;
 			}
 		}
 
@@ -320,7 +328,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_SELECT_UPDATE_RATE, set_mask);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				PX4_ERR("PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				return error_on_warn;
 			}
 		}
 
@@ -335,7 +344,8 @@ pwm_main(int argc, char *argv[])
 					ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
 
 					if (ret != OK) {
-						err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
+						PX4_ERR("PWM_SERVO_GET_RATEGROUP(%u)", group);
+						return error_on_warn;
 					}
 
 					mask |= group_mask;
@@ -345,7 +355,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_SELECT_UPDATE_RATE, mask);
 
 			if (ret != OK) {
-				err(1, "PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				PX4_ERR("PWM_SERVO_SET_SELECT_UPDATE_RATE");
+				return error_on_warn;
 			}
 		}
 
@@ -392,7 +403,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting min values");
+				PX4_ERR("failed setting min values (%d)", ret);
+				return error_on_warn;
 			}
 		}
 
@@ -439,7 +451,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting max values");
+				PX4_ERR("failed setting max values (%d)", ret);
+				return error_on_warn;
 			}
 		}
 
@@ -486,7 +499,8 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-				errx(ret, "failed setting disarmed values");
+				PX4_ERR("failed setting disarmed values (%d)", ret);
+				return error_on_warn;
 			}
 		}
 
