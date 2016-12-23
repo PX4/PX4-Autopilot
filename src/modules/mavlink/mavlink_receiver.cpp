@@ -361,103 +361,112 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (target_ok) {
-		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
-			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote");
-			fflush(stdout);
-			usleep(50000);
+	if (!target_ok) {
+		return;
+	}
 
-			/* terminate other threads and this thread */
-			_mavlink->_task_should_exit = true;
+	bool send_ack = true;
+	int ret = 0;
 
-		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-			/* send autopilot version message */
-			_mavlink->send_autopilot_capabilites();
+	//check for MAVLINK terminate command
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
+		/* This is the link shutdown command, terminate mavlink */
+		warnx("terminated by remote");
+		fflush(stdout);
+		usleep(50000);
 
-		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+		/* terminate other threads and this thread */
+		_mavlink->_task_should_exit = true;
 
-		} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-			int ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
-						       cmd_mavlink.param2, cmd_mavlink.param3);
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+		/* send autopilot version message */
+		_mavlink->send_autopilot_capabilites();
 
-			vehicle_command_ack_s command_ack;
-			command_ack.command = cmd_mavlink.command;
-			if (ret == PX4_OK) {
-				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-			} else {
-				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-			}
+	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
-			if (_command_ack_pub == nullptr) {
-				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
+					       cmd_mavlink.param2, cmd_mavlink.param3);
 
-			} else {
-				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-			}
+	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)cmd_mavlink.param1);
 
-		} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-			get_message_interval((int)cmd_mavlink.param1);
+	} else {
+
+		send_ack = false;
+
+		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+			      mavlink_system.sysid, mavlink_system.compid);
+			return;
+		}
+
+		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+			// we already instanciate the streaming object, because at this point we know on which
+			// mavlink channel streaming was requested. But in fact it's possible that the logger is
+			// not even running. The main mavlink thread takes care of this by waiting for an ack
+			// from the logger.
+			_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+
+		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
+			_mavlink->request_stop_ulog_streaming();
+		}
+
+		struct vehicle_command_s vcmd;
+
+		memset(&vcmd, 0, sizeof(vcmd));
+
+		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
+		vcmd.param1 = cmd_mavlink.param1;
+
+		vcmd.param2 = cmd_mavlink.param2;
+
+		vcmd.param3 = cmd_mavlink.param3;
+
+		vcmd.param4 = cmd_mavlink.param4;
+
+		vcmd.param5 = cmd_mavlink.param5;
+
+		vcmd.param6 = cmd_mavlink.param6;
+
+		vcmd.param7 = cmd_mavlink.param7;
+
+		// XXX do proper translation
+		vcmd.command = cmd_mavlink.command;
+
+		vcmd.target_system = cmd_mavlink.target_system;
+
+		vcmd.target_component = cmd_mavlink.target_component;
+
+		vcmd.source_system = msg->sysid;
+
+		vcmd.source_component = msg->compid;
+
+		vcmd.confirmation =  cmd_mavlink.confirmation;
+
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
+	}
 
-			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
-				return;
-			}
+	if (send_ack) {
+		vehicle_command_ack_s command_ack;
+		command_ack.command = cmd_mavlink.command;
+		if (ret == PX4_OK) {
+			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+		} else {
+			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+		}
 
-			if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
-				// we already instanciate the streaming object, because at this point we know on which
-				// mavlink channel streaming was requested. But in fact it's possible that the logger is
-				// not even running. The main mavlink thread takes care of this by waiting for an ack
-				// from the logger.
-				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+		if (_command_ack_pub == nullptr) {
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
-			} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
-				_mavlink->request_stop_ulog_streaming();
-			}
-
-			struct vehicle_command_s vcmd;
-
-			memset(&vcmd, 0, sizeof(vcmd));
-
-			/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
-			vcmd.param1 = cmd_mavlink.param1;
-
-			vcmd.param2 = cmd_mavlink.param2;
-
-			vcmd.param3 = cmd_mavlink.param3;
-
-			vcmd.param4 = cmd_mavlink.param4;
-
-			vcmd.param5 = cmd_mavlink.param5;
-
-			vcmd.param6 = cmd_mavlink.param6;
-
-			vcmd.param7 = cmd_mavlink.param7;
-
-			// XXX do proper translation
-			vcmd.command = cmd_mavlink.command;
-
-			vcmd.target_system = cmd_mavlink.target_system;
-
-			vcmd.target_component = cmd_mavlink.target_component;
-
-			vcmd.source_system = msg->sysid;
-
-			vcmd.source_component = msg->compid;
-
-			vcmd.confirmation =  cmd_mavlink.confirmation;
-
-			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
-			}
+		} else {
+			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
 		}
 	}
 }
@@ -471,69 +480,93 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (target_ok) {
-		//check for MAVLINK terminate command
-		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
-			/* This is the link shutdown command, terminate mavlink */
-			warnx("terminated by remote");
-			fflush(stdout);
-			usleep(50000);
+	if (!target_ok) {
+		return;
+	}
 
-			/* terminate other threads and this thread */
-			_mavlink->_task_should_exit = true;
+	bool send_ack = true;
+	int ret = 0;
 
-		} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-			/* send autopilot version message */
-			_mavlink->send_autopilot_capabilites();
+	//check for MAVLINK terminate command
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
+		/* This is the link shutdown command, terminate mavlink */
+		warnx("terminated by remote");
+		fflush(stdout);
+		usleep(50000);
 
-		} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-			_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+		/* terminate other threads and this thread */
+		_mavlink->_task_should_exit = true;
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+		/* send autopilot version message */
+		_mavlink->send_autopilot_capabilites();
+
+	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+
+	} else {
+
+		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+			      mavlink_system.sysid, mavlink_system.compid);
+			return;
+		}
+
+		send_ack = false;
+
+		struct vehicle_command_s vcmd;
+
+		memset(&vcmd, 0, sizeof(vcmd));
+
+		/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
+		vcmd.param1 = cmd_mavlink.param1;
+
+		vcmd.param2 = cmd_mavlink.param2;
+
+		vcmd.param3 = cmd_mavlink.param3;
+
+		vcmd.param4 = cmd_mavlink.param4;
+
+		/* these are coordinates as 1e7 scaled integers to work around the 32 bit floating point limits */
+		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+
+		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+
+		vcmd.param7 = cmd_mavlink.z;
+
+		// XXX do proper translation
+		vcmd.command = cmd_mavlink.command;
+
+		vcmd.target_system = cmd_mavlink.target_system;
+
+		vcmd.target_component = cmd_mavlink.target_component;
+
+		vcmd.source_system = msg->sysid;
+
+		vcmd.source_component = msg->compid;
+
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
+	}
 
-			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
-				return;
-			}
+	if (send_ack) {
+		vehicle_command_ack_s command_ack;
+		command_ack.command = cmd_mavlink.command;
+		if (ret == PX4_OK) {
+			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+		} else {
+			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+		}
 
-			struct vehicle_command_s vcmd;
+		if (_command_ack_pub == nullptr) {
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
-			memset(&vcmd, 0, sizeof(vcmd));
-
-			/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
-			vcmd.param1 = cmd_mavlink.param1;
-
-			vcmd.param2 = cmd_mavlink.param2;
-
-			vcmd.param3 = cmd_mavlink.param3;
-
-			vcmd.param4 = cmd_mavlink.param4;
-
-			/* these are coordinates as 1e7 scaled integers to work around the 32 bit floating point limits */
-			vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-
-			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
-
-			vcmd.param7 = cmd_mavlink.z;
-
-			// XXX do proper translation
-			vcmd.command = cmd_mavlink.command;
-
-			vcmd.target_system = cmd_mavlink.target_system;
-
-			vcmd.target_component = cmd_mavlink.target_component;
-
-			vcmd.source_system = msg->sysid;
-
-			vcmd.source_component = msg->compid;
-
-			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
-			}
+		} else {
+			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
 		}
 	}
 }
