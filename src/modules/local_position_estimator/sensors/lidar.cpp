@@ -113,7 +113,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar OK");
 	}
 
-	// kalman filter correction if no fault
+	// kalman filter correction always
 	if (!(_sensorFault & SENSOR_LIDAR)) {
 		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;

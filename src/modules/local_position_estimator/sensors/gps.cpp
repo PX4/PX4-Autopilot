@@ -190,7 +190,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
-	if (beta > BETA_TABLE[n_y_gps]) {
+	// artifically increase beta threshhold to prevent fault during landing
+	float beta_thresh = 1e2f;
+
+	if (beta / BETA_TABLE[n_y_gps] > beta_thresh) {
 		if (!(_sensorFault & SENSOR_GPS)) {
 			mavlink_log_critical(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
 					     double(r(0)*r(0) / S_I(0, 0)),  double(r(1)*r(1) / S_I(1, 1)), double(r(2)*r(2) / S_I(2, 2)),
@@ -203,13 +206,11 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] GPS OK");
 	}
 
-	// kalman filter correction if no hard fault
-	if (!(_sensorFault & SENSOR_GPS)) {
-		Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	// kalman filter correction always for GPS
+	Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::gpsCheckTimeout()

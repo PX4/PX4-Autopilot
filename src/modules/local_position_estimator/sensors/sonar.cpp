@@ -137,7 +137,6 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		_x += dx;
 		_P -= K * C * _P;
 	}
-
 }
 
 void BlockLocalPositionEstimator::sonarCheckTimeout()
