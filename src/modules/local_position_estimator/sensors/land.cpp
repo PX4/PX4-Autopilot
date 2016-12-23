@@ -67,7 +67,10 @@ void BlockLocalPositionEstimator::landCorrect()
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
-	if (beta > BETA_TABLE[n_y_land]) {
+	// artifically increase beta threshhold to prevent fault during landing
+	float beta_thresh = 1e2f;
+
+	if (beta / BETA_TABLE[n_y_land] > beta_thresh) {
 		if (!(_sensorFault & SENSOR_LAND)) {
 			_sensorFault |= SENSOR_LAND;
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] land fault,  beta %5.2f", double(beta));
@@ -81,13 +84,11 @@ void BlockLocalPositionEstimator::landCorrect()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] land OK");
 	}
 
-	// kalman filter correction if no fault
-	if (!(_sensorFault & SENSOR_LAND)) {
-		Matrix<float, n_x, n_y_land> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	// kalman filter correction always for land detector
+	Matrix<float, n_x, n_y_land> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::landCheckTimeout()

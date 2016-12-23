@@ -85,13 +85,11 @@ void BlockLocalPositionEstimator::baroCorrect()
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] baro OK");
 	}
 
-	// kalman filter correction if no fault
-	if (!(_sensorFault & SENSOR_BARO)) {
-		Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	// kalman filter correction always
+	Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::baroCheckTimeout()

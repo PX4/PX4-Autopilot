@@ -872,7 +872,6 @@ void BlockLocalPositionEstimator::predict()
 	}
 
 	_P += dP;
-
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
 }

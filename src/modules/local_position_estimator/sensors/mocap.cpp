@@ -91,13 +91,11 @@ void BlockLocalPositionEstimator::mocapCorrect()
 		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap OK");
 	}
 
-	// kalman filter correction if no fault
-	if (!(_sensorFault & SENSOR_MOCAP)) {
-		Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	// kalman filter correction always
+	Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::mocapCheckTimeout()
