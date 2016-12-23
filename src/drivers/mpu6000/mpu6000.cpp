@@ -220,6 +220,7 @@ private:
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
+#define MPU6000_CHECKED_PRODUCT_ID_INDEX 0
 #define MPU6000_NUM_CHECKED_REGISTERS 10
 	static const uint8_t	_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[MPU6000_NUM_CHECKED_REGISTERS];
@@ -780,6 +781,7 @@ MPU6000::probe()
 {
 	uint8_t whoami = read_reg(MPUREG_WHOAMI);
 	uint8_t expected = 0;
+	bool unknown_product_id = true;
 
 	switch (_device_type) {
 
@@ -823,18 +825,29 @@ MPU6000::probe()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
-	case ICM20608_REV_00:
+	case ICM20608_REV_FF:
 	case ICM20689_REV_FE:
 	case ICM20689_REV_03:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
-		DEVICE_DEBUG("ID 0x%02x", _product);
-		_checked_values[0] = _product;
-		return OK;
+		unknown_product_id = false;
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
-	return -EIO;
+	_checked_values[MPU6000_CHECKED_PRODUCT_ID_INDEX] = _product;
+
+	DEVICE_DEBUG("ID 0x%02x", _product);
+
+	if (unknown_product_id) {
+
+		PX4_WARN("unexpected ID 0x%02x %s", _product, is_icm_device() ? "accepted" : "exiting!");
+
+		if (is_mpu_device()) {
+			return -EIO;
+		}
+	}
+
+	return OK;
+
 }
 
 /*
@@ -1622,15 +1635,17 @@ int
 MPU6000::set_accel_range(unsigned max_g_in)
 {
 	// workaround for bugged versions of MPU6k (rev C)
-	switch (_product) {
-	case MPU6000ES_REV_C4:
-	case MPU6000ES_REV_C5:
-	case MPU6000_REV_C4:
-	case MPU6000_REV_C5:
-		write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
-		_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
-		_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
-		return OK;
+	if (is_mpu_device()) {
+		switch (_product) {
+		case MPU6000ES_REV_C4:
+		case MPU6000ES_REV_C5:
+		case MPU6000_REV_C4:
+		case MPU6000_REV_C5:
+			write_checked_reg(MPUREG_ACCEL_CONFIG, 1 << 3);
+			_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
+			_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
+			return OK;
+		}
 	}
 
 	uint8_t afs_sel;
@@ -1774,7 +1789,7 @@ MPU6000::check_registers(void)
 	uint8_t v;
 
 	// the MPUREG_ICM_UNDOC1 is specific to the ICM20608 (and undocumented)
-	if (_checked_registers[_checked_next] == MPUREG_ICM_UNDOC1 && !is_icm_device()) {
+	if ((_checked_registers[_checked_next] == MPUREG_ICM_UNDOC1 && !is_icm_device())) {
 		_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 	}
 
@@ -1793,7 +1808,7 @@ MPU6000::check_registers(void)
 		  fix one per loop to prevent a bad sensor hogging the
 		  bus.
 		 */
-		if (_register_wait == 0 || _checked_next == 0) {
+		if (_register_wait == 0 || _checked_next == MPU6000_CHECKED_PRODUCT_ID_INDEX) {
 			// if the product_id is wrong then reset the
 			// sensor completely
 			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
