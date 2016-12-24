@@ -51,6 +51,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/battery.h>
@@ -94,6 +95,7 @@ public:
 
 private:
 	orb_advert_t _battery_topic;
+	orb_advert_t _esc_topic;
 
 	Battery _battery;
 	bool _armed;
@@ -105,7 +107,8 @@ private:
 };
 
 DfBebopBusWrapper::DfBebopBusWrapper() :
-	BebopBus(BEBOP_BUS_DEVICE_PATH), _battery_topic(nullptr), _battery(), _armed(false), _last_throttle(0.0f),
+	BebopBus(BEBOP_BUS_DEVICE_PATH), _battery_topic(nullptr), _esc_topic(nullptr), _battery(), _armed(false),
+	_last_throttle(0.0f),
 	_battery_orb_class_instance(-1)
 {}
 
@@ -198,6 +201,23 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 	// We don't have current measurements
 	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, _last_throttle, _armed, &battery_report);
 
+	esc_status_s esc_status = {};
+
+	for (int i = 0; i < 4; i++) {
+		esc_status.timestamp = hrt_absolute_time();
+		esc_status.esc_count = 4;
+		esc_status.esc[i].timestamp = esc_status.timestamp;
+		esc_status.esc[i].esc_rpm = data.rpm[i];
+	}
+
+	// write desired motor rpm
+	uint16_t esc_speed_setpoint_rpm[4] = {};
+	BebopBus::_get_esc_speed_setpoint(esc_speed_setpoint_rpm);
+	esc_status.esc[0].esc_setpoint_raw = esc_speed_setpoint_rpm[1];
+	esc_status.esc[1].esc_setpoint_raw = esc_speed_setpoint_rpm[3];
+	esc_status.esc[2].esc_setpoint_raw = esc_speed_setpoint_rpm[0];
+	esc_status.esc[3].esc_setpoint_raw = esc_speed_setpoint_rpm[2];
+
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
@@ -207,6 +227,13 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 
 		} else {
 			orb_publish(ORB_ID(battery_status), _battery_topic, &battery_report);
+		}
+
+		if (_esc_topic == nullptr) {
+			_esc_topic = orb_advertise(ORB_ID(esc_status), &esc_status);
+
+		} else {
+			orb_publish(ORB_ID(esc_status), _esc_topic, &esc_status);
 		}
 
 	}
