@@ -22,3 +22,5 @@
         <test test-name="mission_test_old_3" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_3.txt" />
     </group>
 </launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->
