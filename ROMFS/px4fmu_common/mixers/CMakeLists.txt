@@ -70,8 +70,6 @@ set(mixer_file_names
 	quad_x_vtol.main.mix
 	README.md
 	RET.main.mix
-	sk450_deadcat.aux.mix
-	sk450_deadcat.main.mix
 	skywalker.main.mix
 	tri_y_yaw-.main.mix
 	tri_y_yaw+.main.mix
