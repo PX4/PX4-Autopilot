@@ -5,6 +5,9 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
+# TODO move to docker image
+pip install px4tools pymavlink -q
+
 # handle cleaning command
 do_clean=true
 if [ "$1" = "-o" ]
@@ -39,8 +42,7 @@ fi
 export ROS_HOME=$JOB_DIR/.ros
 export ROS_LOG_DIR=$ROS_HOME/log
 export ROS_TEST_RESULT_DIR=$ROS_HOME/test_results/px4
-
-PX4_LOG_DIR=$ROS_HOME/rootfs/fs/microsd/log
+export PX4_LOG_DIR=$ROS_HOME/rootfs/fs/microsd/log
 TEST_RESULT_TARGET_DIR=$JOB_DIR/test_results
 
 # TODO
