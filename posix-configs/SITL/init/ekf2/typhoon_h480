@@ -10,15 +10,15 @@ param set CAL_GYRO0_ID 2293768
 param set CAL_ACC0_ID 1376264
 param set CAL_ACC1_ID 1310728
 param set CAL_MAG0_ID 196616
-param set CAL_GYRO0_XOFF 0.01
-param set CAL_ACC0_XOFF 0.01
-param set CAL_ACC0_YOFF -0.01
-param set CAL_ACC0_ZOFF 0.01
-param set CAL_ACC0_XSCALE 1.01
-param set CAL_ACC0_YSCALE 1.01
-param set CAL_ACC0_ZSCALE 1.01
-param set CAL_ACC1_XOFF 0.01
-param set CAL_MAG0_XOFF 0.01
+param set CAL_GYRO0_XOFF 0.001
+param set CAL_ACC0_XOFF 0.001
+param set CAL_ACC0_YOFF -0.001
+param set CAL_ACC0_ZOFF 0.001
+param set CAL_ACC0_XSCALE 1.0001
+param set CAL_ACC0_YSCALE 1.0001
+param set CAL_ACC0_ZSCALE 1.0001
+param set CAL_ACC1_XOFF 0.001
+param set CAL_MAG0_XOFF 0.001
 param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
@@ -29,8 +29,8 @@ param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set MIS_TAKEOFF_ALT 2.5
-param set MC_ROLLRATE_P 0.2
-param set MC_PITCHRATE_P 0.2
+param set MC_ROLLRATE_P 0.15
+param set MC_PITCHRATE_P 0.15
 param set MC_PITCH_P 6
 param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
@@ -74,7 +74,7 @@ mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-sdlog2 start -r 100 -e -t -a
+logger start -e -t
 vmount start
 mavlink boot_complete
 replay trystart
