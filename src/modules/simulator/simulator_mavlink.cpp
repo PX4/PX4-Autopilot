@@ -113,7 +113,8 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 			break;
 
 		case MAV_TYPE_VTOL_RESERVED2:
-			n = 8;
+			// this is the standard VTOL / quad plane with 5 propellers
+			n = 5;
 			break;
 
 		default:
