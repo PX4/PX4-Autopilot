@@ -105,6 +105,7 @@ private:
 
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
+	uint64_t		_time_last_reached;			///< last time when the vehicle reached a waypoint
 
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
