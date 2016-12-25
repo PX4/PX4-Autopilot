@@ -696,7 +696,7 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 #ifdef DSM_DEBUG
 
 		for (unsigned i = 0; i < dsm_chan_count; i++) {
-			printf("dsm_decode: %u: %u\n", i, values[0]);
+			printf("dsm_decode: %u: %u\n", i, values[i]);
 		}
 
 #endif
