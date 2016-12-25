@@ -70,6 +70,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_state(MAVLINK_WPM_STATE_IDLE),
 	_time_last_recv(0),
 	_time_last_sent(0),
+	_time_last_reached(0),
 	_action_timeout(MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT),
 	_retry_timeout(MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT),
 	_int_mode(true),
@@ -358,6 +359,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		if (_verbose) { warnx("WPM: got mission result, new current_seq: %d", _current_seq); }
 
 		if (mission_result.reached) {
+			_time_last_reached = now;
 			_last_reached = mission_result.seq_reached;
 			send_mission_item_reached((uint16_t)mission_result.seq_reached);
 		} else {
@@ -375,7 +377,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	} else {
 		if (_slow_rate_limiter.check(now)) {
 			send_mission_current(_current_seq);
-			if (_last_reached >= 0) {
+
+			// send the reached message a couple of times after reaching the waypoint
+			if (_last_reached >= 0 && (now - _time_last_reached) < 300 * 1000) {
 				send_mission_item_reached((uint16_t)_last_reached);
 			}
 		}
