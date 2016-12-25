@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 #***************************************************************************
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -107,8 +107,9 @@ class MavrosMissionTest(unittest.TestCase):
         self.global_position = data
 
         if not self.has_global_pos:
-            self.home_alt = data.altitude
-            self.has_global_pos = True
+            if data.altitude != 0:
+                self.home_alt = data.altitude
+                self.has_global_pos = True
 
     def extended_state_callback(self, data):
 
