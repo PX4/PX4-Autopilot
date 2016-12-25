@@ -852,8 +852,8 @@ void Ekf2::task_main()
 			Vector3f pos_var, vel_var;
 			_ekf.get_pos_var(pos_var);
 			_ekf.get_vel_var(vel_var);
-			lpos.eph = sqrt(pos_var(0) + pos_var(1));
-			lpos.epv = sqrt(pos_var(2));
+			lpos.eph = sqrtf(pos_var(0) + pos_var(1));
+			lpos.epv = sqrtf(pos_var(2));
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -895,10 +895,10 @@ void Ekf2::task_main()
 				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
 				global_pos.vel_d = velocity[2]; // Ground downside velocity, m/s
 
-				global_pos.yaw = euler(2); // Yaw in radians -PI..+PI.
+				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
 
-				global_pos.eph = sqrt(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
-				global_pos.epv = sqrt(pos_var(2)); // Standard deviation of position vertically
+				global_pos.eph = sqrtf(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
+				global_pos.epv = sqrtf(pos_var(2)); // Standard deviation of position vertically
 
 				if (lpos.dist_bottom_valid) {
 					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
