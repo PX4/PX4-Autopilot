@@ -105,9 +105,10 @@ MavlinkStream::update(const hrt_abstime t)
 #ifndef __PX4_QURT
 		send(t);
 #endif
-		// do not use the actual time but increment at a fixed rate
-		// so that processing delays do not distort the average rate
-		_last_sent = _last_sent + interval;
+		// if the interval is non-zero do not use the actual time but
+		// increment at a fixed rate, so that processing delays do not
+		// distort the average rate
+		_last_sent = (interval > 0) ? _last_sent + interval : t;
 
 		return 0;
 	}
