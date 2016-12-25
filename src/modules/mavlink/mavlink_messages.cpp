@@ -1931,10 +1931,13 @@ protected:
 				msg.y = home.y;
 				msg.z = home.z;
 
-				msg.q[0] = 1.0f;
-				msg.q[1] = 0.0f;
-				msg.q[2] = 0.0f;
-				msg.q[3] = 0.0f;
+				matrix::Eulerf euler(0.0f, 0.0f, home.yaw);
+				matrix::Quatf q(euler);
+
+				msg.q[0] = q(0);
+				msg.q[1] = q(1);
+				msg.q[2] = q(2);
+				msg.q[3] = q(3);
 
 				msg.approach_x = 0.0f;
 				msg.approach_y = 0.0f;
