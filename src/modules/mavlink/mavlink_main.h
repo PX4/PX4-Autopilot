@@ -428,8 +428,10 @@ public:
 
 	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
 
-	int			get_data_rate() { return _datarate; }
+	int				get_data_rate() { return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
+
+	uint64_t		get_main_loop_delay() { return _main_loop_delay; }
 
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
