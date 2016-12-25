@@ -111,7 +111,12 @@ class MavrosMissionTest(unittest.TestCase):
             self.has_global_pos = True
 
     def extended_state_callback(self, data):
+
+        prev_state = self.extended_state.vtol_state;
+
         self.extended_state = data
+        if (prev_state != self.extended_state.vtol_state):
+            print("VTOL state change: %d" % self.extended_state.vtol_state);
 
     #
     # Helper methods
@@ -148,7 +153,7 @@ class MavrosMissionTest(unittest.TestCase):
         self.last_pos_d = 9999
 
         rospy.loginfo("trying to reach waypoint " +
-            "lat: %f, lon: %f, alt: %f, timeout: %d, index: %d" %
+            "lat: %13.9f, lon: %13.9f, alt: %6.2f, timeout: %d, index: %d" %
             (lat, lon, alt, timeout, index))
 
         # does it reach the position in X seconds?
@@ -174,9 +179,20 @@ class MavrosMissionTest(unittest.TestCase):
             count = count + 1
             self.rate.sleep()
 
+        vtol_state_string = "VTOL undefined"
+
+        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC):
+            vtol_state_string = "VTOL MC"
+        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW):
+            vtol_state_string = "VTOL FW"
+        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_MC):
+            vtol_state_string = "VTOL FW->MC"
+        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_FW):
+            vtol_state_string = "VTOL MC->FW"
+
         self.assertTrue(count < timeout, (("(%s) took too long to get to position " +
-            "lat: %f, lon: %f, alt: %f, xy off: %f, z off: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f") %
-            (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d)))
+            "lat: %13.9f, lon: %13.9f, alt: %6.2f, xy off: %f, z off: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f, VTOL state: %s") %
+            (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d, vtol_state_string)))
 
     def run_mission(self):
         """switch mode: auto and arm"""
@@ -283,6 +299,7 @@ class MavrosMissionTest(unittest.TestCase):
                 alt = waypoint.z_alt
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.home_alt
+
                 self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
 
             # check if VTOL transition happens if applicable
