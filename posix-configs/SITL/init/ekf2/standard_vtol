@@ -36,7 +36,7 @@ param set MPC_Z_VEL_MAX 1.5
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set FW_AIRSPD_MIN 14
-param set FW_AIRSPD_TRIM 20
+param set FW_AIRSPD_TRIM 16
 param set FW_AIRSPD_MAX 25
 param set SENS_BOARD_ROT 0
 param set SENS_DPRES_OFF 0.001
