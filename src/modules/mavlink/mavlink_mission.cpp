@@ -375,7 +375,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	} else {
 		if (_slow_rate_limiter.check(now)) {
 			send_mission_current(_current_seq);
-			if (_last_reached >= 0) {
+
+			// send the reached message a couple of times after reaching the waypoint
+			if (_last_reached >= 0 && (now - _last_reached) < 300 * 1000) {
 				send_mission_item_reached((uint16_t)_last_reached);
 			}
 		}
