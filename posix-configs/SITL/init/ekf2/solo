@@ -29,8 +29,8 @@ param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
 param set RTL_LAND_DELAY 0
 param set MIS_TAKEOFF_ALT 2.5
-param set MC_ROLLRATE_P 0.2
-param set MC_PITCHRATE_P 0.2
+param set MC_ROLLRATE_P 0.15
+param set MC_PITCHRATE_P 0.15
 param set MC_PITCH_P 6
 param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
