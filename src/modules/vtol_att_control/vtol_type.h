@@ -62,12 +62,13 @@ struct Params {
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
 };
 
+// Has to match 1:1 msg/vtol_vehicle_status.msg
 enum mode {
-	ROTARY_WING = 0,
-	FIXED_WING,
-	TRANSITION_TO_FW,
-	TRANSITION_TO_MC,
-	EXTERNAL
+	TRANSITION_TO_FW = 1,
+	TRANSITION_TO_MC = 2,
+	ROTARY_WING = 3,
+	FIXED_WING = 4,
+	EXTERNAL = 5
 };
 
 enum vtol_type {
