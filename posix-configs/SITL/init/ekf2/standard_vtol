@@ -46,8 +46,8 @@ param set NAV_DLL_ACT 2
 param set NAV_ACC_RAD 5.0
 param set NAV_LOITER_RAD 80
 param set MPC_TKO_SPEED 1.0
-param set MIS_LTRMIN_ALT 30
-param set MIS_TAKEOFF_ALT 30
+param set MIS_LTRMIN_ALT 20
+param set MIS_TAKEOFF_ALT 20
 param set MIS_YAW_TMT 10
 param set RTL_RETURN_ALT 30.0
 param set RTL_DESCEND_ALT 10.0
