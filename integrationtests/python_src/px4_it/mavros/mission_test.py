@@ -111,7 +111,12 @@ class MavrosMissionTest(unittest.TestCase):
             self.has_global_pos = True
 
     def extended_state_callback(self, data):
+
+        prev_state = self.extended_state.vtol_state;
+
         self.extended_state = data
+        if (prev_state != self.extended_state.vtol_state):
+            print("VTOL state change: %d" % self.extended_state.vtol_state);
 
     #
     # Helper methods
