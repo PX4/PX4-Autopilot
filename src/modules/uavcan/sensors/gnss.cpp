@@ -180,11 +180,8 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.hdop = msg.pdop;
 	report.vdop = msg.pdop;
 
-	if (_report_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
-
-	} else {
-		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report);
-	}
-
+	// Publish to a multi-topic
+	int32_t gps_orb_instance;
+	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_pub, &report, &gps_orb_instance,
+				 ORB_PRIO_HIGH);
 }
