@@ -176,14 +176,14 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	if (checkAcc) {
 		if (sensors.accel_inconsistency_m_s_s > test_limit) {
 			if (report_status) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELS INCONSISTENT - CHECK CAL");
 			}
 			success = false;
 			goto out;
 
 		} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.5f) {
 			if (report_status) {
-				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: ACCEL SENSORS INCONSISTENT - CHECK CALIBRATION");
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: ACCELS INCONSISTENT - CHECK CAL");
 
 			}
 		}
@@ -193,14 +193,14 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	if (checkGyro) {
 		if (sensors.gyro_inconsistency_rad_s > test_limit) {
 			if (report_status) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYROS INCONSISTENT - CHECK CAL");
 			}
 			success = false;
 			goto out;
 
 		} else if (sensors.gyro_inconsistency_rad_s > test_limit * 0.5f) {
 			if (report_status) {
-				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: GYRO SENSORS INCONSISTENT - CHECK CALIBRATION");
+				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: GYROS INCONSISTENT - CHECK CAL");
 
 			}
 		}
