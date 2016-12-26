@@ -916,7 +916,6 @@ Mavlink::get_free_tx_buf()
 			if (_last_write_try_time != 0 &&
 			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
 			    _last_write_success_time != _last_write_try_time) {
-				warnx("Disabling hardware flow control");
 				enable_flow_control(false);
 			}
 		}
