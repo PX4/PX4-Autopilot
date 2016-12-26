@@ -243,9 +243,6 @@ class MavrosMissionTest(unittest.TestCase):
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""
-        # wait for simulation to load
-        time.sleep(10)
-
         # wait for global position pub
         while not self.has_global_pos:
             self.rate.sleep()
@@ -319,12 +316,12 @@ class MavrosMissionTest(unittest.TestCase):
         with open(mission_file, 'r') as f:
             mission_ext = os.path.splitext(mission_file)[1]
             if mission_ext == '.mission':
-                rospy.loginfo("new style mission fiel detected")
+                rospy.loginfo("new style mission file detected")
                 for waypoint in read_new_mission(f):
                     wps.append(waypoint)
                     rospy.logdebug(waypoint)
             elif mission_ext == '.txt':
-                rospy.loginfo("old style mission fiel detected")
+                rospy.loginfo("old style mission file detected")
                 mission = QGroundControlWP()
                 for waypoint in mission.read(f):
                     wps.append(waypoint)
@@ -339,6 +336,8 @@ class MavrosMissionTest(unittest.TestCase):
         res = self._srv_wp_push(wps)
         rospy.loginfo(res)
         self.assertTrue(res.success, "(%s) mission could not be transfered" % self.mission_name)
+        # make sure mission is transferred before arming
+        time.sleep(10)
 
         rospy.loginfo("run mission")
         self.run_mission()
