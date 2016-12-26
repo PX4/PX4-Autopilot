@@ -287,6 +287,11 @@ then
 	#
 	if [ $AUTOCNF == yes ]
 	then
+		# Disable safety switch by default on Pixracer
+		if ver hwcmp PX4FMU_V4
+		then
+			param set CBRK_IO_SAFETY 22027
+		fi
 		param set SYS_AUTOCONFIG 0
 	fi
 	unset AUTOCNF
