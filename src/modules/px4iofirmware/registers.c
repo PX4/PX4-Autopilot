@@ -83,7 +83,7 @@ static const uint16_t	r_page_config[] = {
  *
  * Status values.
  */
-uint16_t		r_page_status[] = {
+volatile uint16_t	r_page_status[] = {
 	[PX4IO_P_STATUS_FREEMEM]		= 0,
 	[PX4IO_P_STATUS_CPULOAD]		= 0,
 	[PX4IO_P_STATUS_FLAGS]			= 0,
@@ -214,7 +214,7 @@ volatile uint16_t	r_page_setup[] = {
  *
  * Control values from the FMU.
  */
-volatile uint16_t	r_page_controls[PX4IO_CONTROL_GROUPS * PX4IO_CONTROL_CHANNELS];
+uint16_t	r_page_controls[PX4IO_CONTROL_GROUPS * PX4IO_CONTROL_CHANNELS];
 
 /*
  * PAGE 102 does not have a buffer.
