@@ -477,9 +477,9 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 
 bool StateMachineHelperTest::isSafeTest(void)
 {
-	struct vehicle_status_s current_state;
-	struct safety_s safety;
-	struct actuator_armed_s armed;
+	struct vehicle_status_s current_state = {};
+	struct safety_s safety = {};
+	struct actuator_armed_s armed = {};
 
 	armed.armed = false;
 	armed.lockdown = false;

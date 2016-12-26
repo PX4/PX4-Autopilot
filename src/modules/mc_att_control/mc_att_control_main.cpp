@@ -1144,6 +1144,63 @@ MulticopterAttitudeControl::task_main()
 					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
 				}
 			}
+
+			if (_v_control_mode.flag_control_termination_enabled) {
+				if (!_vehicle_status.is_vtol) {
+
+					_rates_sp.zero();
+					_rates_int.zero();
+					_thrust_sp = 0.0f;
+					_att_control.zero();
+
+
+					/* publish actuator controls */
+					_actuators.control[0] = 0.0f;
+					_actuators.control[1] = 0.0f;
+					_actuators.control[2] = 0.0f;
+					_actuators.control[3] = 0.0f;
+					_actuators.timestamp = hrt_absolute_time();
+					_actuators.timestamp_sample = _ctrl_state.timestamp;
+
+					if (!_actuators_0_circuit_breaker_enabled) {
+						if (_actuators_0_pub != nullptr) {
+
+							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+							perf_end(_controller_latency_perf);
+
+						} else if (_actuators_id) {
+							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+						}
+					}
+
+					_controller_status.roll_rate_integ = _rates_int(0);
+					_controller_status.pitch_rate_integ = _rates_int(1);
+					_controller_status.yaw_rate_integ = _rates_int(2);
+					_controller_status.timestamp = hrt_absolute_time();
+
+					/* publish controller status */
+					if (_controller_status_pub != nullptr) {
+						orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
+
+					} else {
+						_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+					}
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub != nullptr) {
+						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
+					} else if (_rates_sp_id) {
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					}
+				}
+			}
 		}
 
 		perf_end(_loop_perf);
