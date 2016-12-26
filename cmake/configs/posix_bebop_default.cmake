@@ -26,6 +26,7 @@ set(config_module_list
 	platforms/posix/drivers/df_mpu6050_wrapper
 	platforms/posix/drivers/df_ak8963_wrapper
 	platforms/posix/drivers/df_bebop_bus_wrapper
+	platforms/posix/drivers/bebop_flow
 
 	#
 	# System commands
