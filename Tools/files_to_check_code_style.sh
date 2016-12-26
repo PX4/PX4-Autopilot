@@ -19,7 +19,6 @@ exec find src \
     -path src/drivers/bootloaders -o \
     -path src/modules/uavcanesc -o \
     -path src/modules/uavcannode -o \
-    -path src/modules/attitude_estimator_ekf -prune -o \
     -path src/modules/commander -prune -o \
     -path src/modules/mavlink -prune -o \
     -path src/modules/navigator -prune -o \
