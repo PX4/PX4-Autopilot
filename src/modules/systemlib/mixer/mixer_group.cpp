@@ -88,11 +88,15 @@ void
 MixerGroup::reset()
 {
 	Mixer *mixer;
+	Mixer *next = _first;
+
+	/* flag mixer as invalid */
+	_first = nullptr;
 
 	/* discard sub-mixers */
-	while (_first != nullptr) {
-		mixer = _first;
-		_first = mixer->_next;
+	while (next != nullptr) {
+		mixer = next;
+		next = mixer->_next;
 		delete mixer;
 		mixer = nullptr;
 	}
