@@ -21,7 +21,7 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 
 # N.B. this would be uncommented when there is an APP
 #px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-# BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/firmware_nuttx.bin
+# BIN ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx.bin
 # HWNAME ${uavcanblid_name}
 # HW_MAJOR ${uavcanblid_hw_version_major}
 # HW_MINOR ${uavcanblid_hw_version_minor}
