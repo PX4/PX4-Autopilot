@@ -66,10 +66,10 @@ extern "C" {
 #define NAN_VALUE	(0.0f/0.0f)
 
 /* current servo arm/disarm state */
-static bool mixer_servos_armed = false;
-static bool should_arm = false;
-static bool should_arm_nothrottle = false;
-static bool should_always_enable_pwm = false;
+static volatile bool mixer_servos_armed = false;
+static volatile bool should_arm = false;
+static volatile bool should_arm_nothrottle = false;
+static volatile bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
 extern int _sbus_fd;
@@ -82,14 +82,32 @@ enum mixer_source {
 	MIX_FAILSAFE,
 	MIX_OVERRIDE_FMU_OK
 };
-static mixer_source source;
+static volatile mixer_source source;
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
 			       uint8_t control_index,
 			       float &control);
 
+static int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits);
+
 static MixerGroup mixer_group(mixer_callback, 0);
+
+int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
+{
+	/* poor mans mutex */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) == 0) {
+		return 0;
+	}
+
+	uint16_t mixer_limits = 0;
+	in_mixer = true;
+	int mixcount = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &mixer_limits);
+	*limits = mixer_limits;
+	in_mixer = false;
+
+	return mixcount;
+}
 
 void
 mixer_tick(void)
@@ -255,10 +273,7 @@ mixer_tick(void)
 		}
 
 		/* mix */
-		/* poor mans mutex */
-		in_mixer = true;
-		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
-		in_mixer = false;
+		mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
 		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
@@ -549,7 +564,8 @@ mixer_set_failsafe()
 	}
 
 	/* mix */
-	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT, &r_mixer_limits);
+
+	mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
 	/* scale to PWM and update the servo outputs as required */
 	for (unsigned i = 0; i < mixed; i++) {
