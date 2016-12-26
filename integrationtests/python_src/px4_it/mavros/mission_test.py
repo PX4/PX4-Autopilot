@@ -346,7 +346,7 @@ class MavrosMissionTest(unittest.TestCase):
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.home_alt
 
-                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
+                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 800, index)
 
             # check if VTOL transition happens if applicable
             if waypoint.command == 84 or waypoint.command == 85 or waypoint.command == 3000:
