@@ -34,9 +34,8 @@
         <arg name="paused" value="$(arg paused)" />
     </include>
 
-    <!--
     <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
-	args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>-->
+        args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
 
     <!-- This will set the environment variable needed to select iris in the startup. -->
     <machine name="px4" env-loader="iris_env.sh" address="none" />
