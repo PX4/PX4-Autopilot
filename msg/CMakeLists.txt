@@ -89,6 +89,7 @@ set(msg_file_names
 	sensor_accel.msg
 	sensor_baro.msg
 	sensor_combined.msg
+	sensor_correction.msg
 	sensor_gyro.msg
 	sensor_mag.msg
 	sensor_preflight.msg
