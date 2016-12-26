@@ -34,6 +34,7 @@
 
 #
 # @author Andreas Antener <andreas@uaventure.com>
+# @author James Goppert <james.goppert@gmail.com>
 #
 
 # The shebang of this file is currently Python2 because some
@@ -242,6 +243,10 @@ class MavrosMissionTest(unittest.TestCase):
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""
+        # wait for simulation to load
+        time.sleep(10)
+
+        # wait for global position pub
         while not self.has_global_pos:
             self.rate.sleep()
 
