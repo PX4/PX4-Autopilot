@@ -3,7 +3,7 @@
 # @name Esky (Big) Lama v4
 #
 # @type Coaxial Helicopter
-# 
+#
 # @output MAIN1 Left swashplate servomotor, pitch axis
 # @output MAIN2 Right swashplate servomotor, roll axis
 # @output MAIN3 Upper rotor (CCW)
