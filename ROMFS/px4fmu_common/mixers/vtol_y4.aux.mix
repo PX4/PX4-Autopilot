@@ -1,4 +1,6 @@
 # mixer for the vtol y4 tilt mechansim servo, elevons and landing gear
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
 =======================================================================
 
 Tilt mechanism servo mixer
