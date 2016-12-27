@@ -44,6 +44,7 @@
 #include <fcntl.h>
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_tasks.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
