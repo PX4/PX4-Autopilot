@@ -44,6 +44,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/fence_vertex.h>
+#include <uORB/topics/brkpoint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +59,7 @@ typedef enum {
 	DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
 	DM_KEY_MISSION_STATE,		/* Persistent mission state */
 	DM_KEY_COMPAT,
+	DM_KEY_BRKPOINT,
 	DM_KEY_NUM_KEYS			/* Total number of item types defined */
 } dm_item_t;
 
@@ -75,7 +77,8 @@ enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = (NUM_MISSIONS_SUPPORTED / 10),
 	DM_KEY_MISSION_STATE_MAX = 1,
-	DM_KEY_COMPAT_MAX = 1
+	DM_KEY_COMPAT_MAX = 1,
+	DM_KEY_BRKPOINT_MAX = 1
 };
 #else
 /** The maximum number of instances for each item type */
@@ -90,7 +93,8 @@ enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_MISSION_STATE_MAX = 1,
-	DM_KEY_COMPAT_MAX = 1
+	DM_KEY_COMPAT_MAX = 1,
+	DM_KEY_BRKPOINT_MAX = 1
 };
 #endif
 /** Data persistence levels */
@@ -125,6 +129,7 @@ typedef union dataman_max_size_t {
 	struct mission_s			mission;
 	struct fence_vertex_s		vertex;
 	struct dataman_compat_s		compat;
+	struct brkpoint_s			bp;
 } dataman_max_size_t;
 
 
