@@ -45,8 +45,8 @@ float32 az        # Down acceleration in NED earth-fixed frame, (metres/sec^2)
 float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
-bool xy_global				# true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
-bool z_global				# true if z is valid and has valid global reference (ref_alt)
+bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
+bool z_global				# true if z has a valid global reference (ref_alt)
 uint64 ref_timestamp			# Time when reference position was set since system start, (microseconds)
 float64 ref_lat				# Reference point latitude, (degrees)
 float64 ref_lon				# Reference point longitude, (degrees)
