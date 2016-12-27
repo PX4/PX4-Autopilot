@@ -10,6 +10,7 @@ uint8 type			# Type from MAV_DISTANCE_SENSOR enum
 uint8 MAV_DISTANCE_SENSOR_LASER = 0
 uint8 MAV_DISTANCE_SENSOR_ULTRASOUND = 1
 uint8 MAV_DISTANCE_SENSOR_INFRARED = 2
+uint8 MAV_DISTANCE_SENSOR_RADAR = 3
 
 uint8 id			# Onboard ID of the sensor
 
