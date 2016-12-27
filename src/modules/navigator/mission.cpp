@@ -560,8 +560,8 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
-			/* ignore yaw for takeoff items */
-			_mission_item.yaw = NAN;
+			/* hold heading for takeoff items */
+			_mission_item.yaw = _navigator->get_global_position()->yaw;
 			_mission_item.altitude = takeoff_alt;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
