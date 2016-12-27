@@ -839,17 +839,26 @@ MulticopterPositionControl::update_ref()
 		if (_ref_timestamp != 0) {
 			/* calculate current position setpoint in global frame */
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
-			alt_sp = _ref_alt - _pos_sp(2);
 		}
 
 		/* update local projection reference */
 		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
-		_ref_alt = _local_pos.ref_alt;
+
+		/*
+		 * If we are in an auto control mode, correct the altitude reference using the local position
+		 * reference if it is global. In manual control modes we are not interested in absolute altitude
+		 * and need to avoid the jump in estimator height reference that occurs when it starts using GPS
+		 * mid-flight and sets the EKF local frame origin.
+		 */
+		if (_mode_auto && _local_pos.z_global && (_ref_timestamp != 0)) {
+			alt_sp = _ref_alt - _pos_sp(2);
+			_ref_alt = _local_pos.ref_alt;
+			_pos_sp(2) = -(alt_sp - _ref_alt);
+		}
 
 		if (_ref_timestamp != 0) {
 			/* reproject position setpoint to new reference */
 			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
-			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
