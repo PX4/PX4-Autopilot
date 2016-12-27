@@ -218,6 +218,10 @@ Radar::init()
 		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 		struct distance_sensor_s ds_report = {};
+		ds_report.timestamp = hrt_absolute_time();
+		ds_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
+		ds_report.orientation = 8;
+		ds_report.id = 0;
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 					 &_orb_class_instance, ORB_PRIO_HIGH);
@@ -385,7 +389,7 @@ Radar::task_main()
 				report.min_distance = ULANDING_MIN_DISTANCE;
 				report.max_distance = ULANDING_MAX_DISTANCE;
 				report.covariance = 0.0f;
-				// TODO: set proper ID
+				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 				report.id = 0;
 
 				// publish it
