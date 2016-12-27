@@ -125,8 +125,9 @@ public:
 	*/
 	virtual void get_imu_vibe_metrics(float vibe[3]) = 0;
 
-	// get the ekf WGS-84 origin positoin and height and the system time it was last set
-	virtual void get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
+	// get the ekf WGS-84 origin position and height and the system time it was last set
+	// return true if the origin is valid
+	virtual bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	virtual void get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;

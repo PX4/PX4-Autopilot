@@ -694,11 +694,13 @@ void Ekf::get_covariances(float *covariances)
 }
 
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
-void Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
+// return true if the origin is valid
+bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
 {
 	memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
 	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
 	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
+	return _NED_origin_initialised;
 }
 
 // return an array containing the output predictor angular, velocity and position tracking
