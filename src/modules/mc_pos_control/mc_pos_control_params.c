@@ -468,3 +468,36 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
+
+/**
+ * Manual landing throttle threshold.
+ *
+ * The minimum throttle value required for a landing to commence in manual, climb-rate controlled modes.
+ *
+ * @min 0.01
+ * @max 0.3
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LND_T_THRESH, 0.1f);
+
+/**
+ * Manual takeoff throttle threshold.
+ *
+ * The minimum throttle value required for an automated takeoff to commence in manual, climb-rate controlled modes.
+ *
+ * @min 0.5
+ * @max 0.95
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_TK_T_THRESH, 0.6f);
+
+/**
+ * Relative takeoff altitude.
+ *
+ * The altitude relative to the pre-takeoff altitude the drone is going to target after a takeoff.
+ *
+ * @min 0.5
+ * @max 10.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_TK_ALT, 1.0f);
