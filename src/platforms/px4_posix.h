@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_defines.h>
+#include <px4_tasks.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
