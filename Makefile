@@ -207,7 +207,7 @@ run_sitl_ros: _sitl_deprecation
 .NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: checks_defaults checks_bootloaders checks_tests checks_alts checks_uavcan checks_sitls checks_last quick_check tests extra_firmware
+.PHONY: checks_defaults checks_bootloaders checks_tests checks_uavcan checks_sitls checks_last quick_check tests extra_firmware
 
 uavcan_firmware:
 ifeq ($(VECTORCONTROL),1)
@@ -230,41 +230,33 @@ sizes:
 
 
 checks_defaults: \
+	check_aerofc-v1_default \
 	check_auav-x21_default \
-	check_px4fmu-v5_default \
-	check_px4nucleoF767ZI-v1_default \
+	check_crazyflie_default \
+	check_mindpx-v2_default \
+	check_px4-stm32f4discovery_default \
+	check_px4cannode-v1_default \
+	check_px4esc-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_px4fmu-v4pro_default \
-	check_mindpx-v2_default \
-	check_px4cannode-v1_default \
-	check_px4esc-v1_default \
+	check_px4fmu-v5_default \
+	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
 	check_tap-v1_default \
-	check_crazyflie_default \
 
 checks_bootloaders: \
-	check_px4cannode-v1_bootloader \
 	check_esc35-v1_bootloader \
+	check_px4cannode-v1_bootloader \
 	check_px4esc-v1_bootloader \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 	check_zubaxgnss-v1_bootloader \
 
-checks_tests: \
-	check_px4fmu-v2_test
-
-checks_alts: \
-	check_aerofc-v1_default \
-	check_px4-stm32f4discovery_default \
-
 checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
-
-checks_sitls: \
-	check_posix_sitl_default
 
 checks_last: \
 	tests \
@@ -274,7 +266,7 @@ compiler_version:
 	-arm-none-eabi-gcc --version
 
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: compiler_version checks_defaults checks_tests checks_alts checks_uavcan checks_bootloaders checks_last sizes
+check: compiler_version checks_defaults checks_bootloaders checks_tests checks_uavcan checks_last sizes
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
 quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default tests check_format sizes
 
@@ -323,7 +315,6 @@ qgc_firmware: \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_tap-v1_default \
-	check_format
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
