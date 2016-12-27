@@ -65,7 +65,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_vehicleAttitude{},
 	_manual{},
 	_ctrl_state{},
-	_ctrl_mode{},
+	_control_mode{},
 	_min_trust_start(0),
 	_arming_time(0)
 {
@@ -99,7 +99,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
 	_orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_ctrl_mode);
+	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -144,7 +144,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	float sys_min_throttle = (_params.minThrottle + 0.01f);
 
 	// Determine the system min throttle based on flight mode
-	if (!_ctrl_mode.flag_control_altitude_enabled) {
+	if (!_control_mode.flag_control_altitude_enabled) {
 		sys_min_throttle = (_params.minManThrottle + 0.01f);
 	}
 
@@ -169,11 +169,18 @@ bool MulticopterLandDetector::_get_landed_state()
 		_arming_time = now;
 	}
 
+	const bool manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+
+	// If we control manually and are still landed, we want to stay idle until the pilot rises the throttle
+	if (_state == LandDetectionState::LANDED && manual_control_present && _manual.z < get_takeoff_throttle()) {
+		return true;
+	}
+
 	// If in manual flight mode never report landed if the user has more than idle throttle
 	// Check if user commands throttle and if so, report not landed based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled) {
+	if (manual_control_present && _manual.z > 0.15f) {
 		return false;
 	}
 
@@ -228,6 +235,19 @@ bool MulticopterLandDetector::_get_landed_state()
 	}
 
 	return true;
+}
+
+float MulticopterLandDetector::get_takeoff_throttle()
+{
+	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
+		return 0.9f;
+	}
+
+	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+		return 0.15f;
+	}
+
+	return 0.0f;
 }
 
 
