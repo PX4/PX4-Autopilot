@@ -261,6 +261,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches} ${nuttx_all_files}
 		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}")
+	add_custom_target(nuttx_copy_${CONFIG} DEPENDS nuttx_copy_${CONFIG}.stamp)
 
 	# patch
 	add_custom_target(nuttx_patch_${CONFIG})
@@ -273,7 +274,7 @@ function(px4_nuttx_add_export)
 		add_custom_command(OUTPUT ${patch_stamp}
 			COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N < ${patch}
 			COMMAND ${TOUCH} ${patch_stamp}
-			DEPENDS ${DEPENDS} nuttx_copy_${CONFIG}.stamp ${patch}
+			DEPENDS ${DEPENDS} nuttx_copy_${CONFIG} ${patch}
 			COMMENT "Applying ${patch}")
 
 		add_custom_target(${patch_name} DEPENDS ${patch_stamp})
