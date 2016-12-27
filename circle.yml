@@ -12,11 +12,11 @@ checkout:
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-nuttx-gcc_next:2016-10-20
+    - docker pull px4io/px4-dev-nuttx:2016-12-26
 
 test:
   override:
-    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` --user=$UID -it px4io/px4-dev-nuttx-gcc_next:2016-10-20 /bin/bash -c "make quick_check"
+    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` -e LOCAL_USER_ID=$UID -it px4io/px4-dev-nuttx:2016-12-26 /bin/bash -c "make quick_check"
 
 general:
   artifacts:
