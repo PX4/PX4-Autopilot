@@ -44,6 +44,7 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
+#include <float.h>
 #include <string.h>
 
 #include <drivers/drv_pwm_output.h>
