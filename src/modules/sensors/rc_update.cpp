@@ -39,12 +39,13 @@
 
 #include "rc_update.h"
 
+#include <string.h>
+#include <float.h>
+#include <errno.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
-
-#include <string.h>
-#include <errno.h>
 
 using namespace sensors;
 
