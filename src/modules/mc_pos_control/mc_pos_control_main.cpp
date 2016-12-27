@@ -568,6 +568,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
+		_params.thr_hover = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
 		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
 		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
@@ -1723,13 +1724,8 @@ MulticopterPositionControl::control_position(float dt)
 		if (_control_mode.flag_control_climb_rate_enabled) {
 			if (_reset_int_z) {
 				_reset_int_z = false;
-				float i = _params.thr_min;
+				_thrust_int(2) = 0.0f;
 
-				if (_reset_int_z_manual) {
-					i = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
-				}
-
-				_thrust_int(2) = -i;
 			}
 
 		} else {
@@ -1778,7 +1774,8 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 		} else {
-			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + _thrust_int;
+			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
+				    + _thrust_int - math::Vector<3>(0, 0, _params.thr_hover);
 		}
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1969,11 +1966,6 @@ MulticopterPositionControl::control_position(float dt)
 
 		if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
 			_thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
-
-			/* protection against flipping on ground when landing */
-			if (_thrust_int(2) > 0.0f) {
-				_thrust_int(2) = 0.0f;
-			}
 		}
 
 		/* calculate attitude setpoint from thrust vector */
