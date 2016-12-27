@@ -52,7 +52,8 @@
 
 #define RADAR_DEFAULT_PORT		"/dev/ttyS2"	// telem2 on Pixhawk
 #define BUF_LEN 		9
-
+#define SENS_VARIANCE 		0.045f * 0.045f		// assume standard deviation to be equal to sensor resolution. Static bench tests have shown that
+// the sensor ouput does not vary if the unit is not moved.
 
 extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 
@@ -222,6 +223,8 @@ Radar::init()
 		ds_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 		ds_report.orientation = 8;
 		ds_report.id = 0;
+		ds_report.current_distance = -1.0f;	// make evident that this range sample is invalid
+		ds_report.covariance = SENS_VARIANCE;
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 					 &_orb_class_instance, ORB_PRIO_HIGH);
@@ -388,7 +391,7 @@ Radar::task_main()
 							  report.current_distance;
 				report.min_distance = ULANDING_MIN_DISTANCE;
 				report.max_distance = ULANDING_MAX_DISTANCE;
-				report.covariance = 0.0f;
+				report.covariance = SENS_VARIANCE;
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 				report.id = 0;
 
