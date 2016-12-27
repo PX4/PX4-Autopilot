@@ -11,7 +11,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=4.9 DOCKER_REPO="px4io/px4-dev-base:2016-10-20"
+      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2016-12-26"
       services:
         - docker
     - os: osx
@@ -64,7 +64,7 @@ env:
 script:
   - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e CI=true -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` --user=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=0";
+      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e CI=true -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` -e LOCAL_USER_ID=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=0";
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
@@ -77,7 +77,7 @@ after_success:
       && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
       && mkdir s3deploy-branch && mv *_default.px4 Meta/px4fmu-v2_default/parameters.xml Meta/px4fmu-v2_default/airframes.xml s3deploy-branch/;
     fi
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "4.9" ]]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" ]]; then
       export PX4_S3_DEPLOY=1;
     fi
 
@@ -120,7 +120,7 @@ deploy:
       tags: true
       all_branches: true
       repo: PX4/Firmware
-      condition: $GCC_VER = 4.9
+      condition: $GCC_VER = 5.4
 
 notifications:
   webhooks:
