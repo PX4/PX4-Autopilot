@@ -291,7 +291,7 @@ test(const bool use_i2c, const int bus)
 	const char *path;
 
 	if (use_i2c) {
-		path = ((bus == PX4_I2C_BUS_EXPANSION) ? LL40LS_DEVICE_PATH_EXT : LL40LS_DEVICE_PATH_INT);
+		path = ((bus == -1 || bus == PX4_I2C_BUS_EXPANSION) ? LL40LS_DEVICE_PATH_EXT : LL40LS_DEVICE_PATH_INT);
 
 	} else {
 		path = LL40LS_DEVICE_PATH_PWM;
