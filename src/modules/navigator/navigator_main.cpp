@@ -55,6 +55,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
+#include <float.h>
 #include <poll.h>
 #include <time.h>
 #include <sys/ioctl.h>
