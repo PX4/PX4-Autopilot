@@ -1790,7 +1790,7 @@ MulticopterPositionControl::control_position(float dt)
 			thr_min = 0.0f;
 		}
 
-		float thrust_abs = thrust_sp.length();
+		float thrust_body_z = thrust_sp.length();
 		float tilt_max = _params.tilt_max_air;
 		float thr_max = _params.thr_max;
 		/* filter vel_z over 1/8sec */
@@ -1906,10 +1906,15 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp(2) *= att_comp;
 		}
 
-		/* limit max thrust */
-		thrust_abs = thrust_sp.length(); /* recalculate because it might have changed */
+		/* Calculate desired total thrust amount in body z direction
+		 * Project the desired thrust force vector F onto the vehicles thrust axis -R_z
+		 * to compensate for excess thrust during attitude tracking errors */
+		matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
+		matrix::Vector3f F(thrust_sp.data);
+		thrust_body_z = F.dot(-R_z); /* recalculate because it might have changed */
 
-		if (thrust_abs > thr_max) {
+		/* limit max thrust */
+		if (thrust_body_z > thr_max) {
 			if (thrust_sp(2) < 0.0f) {
 				if (-thrust_sp(2) > thr_max) {
 					/* thrust Z component is too large, limit it */
@@ -1933,14 +1938,16 @@ MulticopterPositionControl::control_position(float dt)
 
 			} else {
 				/* Z component is negative, going down, simply limit thrust vector */
-				float k = thr_max / thrust_abs;
+				float k = thr_max / thrust_body_z;
 				thrust_sp *= k;
 				saturation_xy = true;
 				saturation_z = true;
 			}
 
-			thrust_abs = thr_max;
+			thrust_body_z = thr_max;
 		}
+
+		_att_sp.thrust = thrust_body_z;
 
 		/* update integrals */
 		if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
@@ -1959,8 +1966,8 @@ MulticopterPositionControl::control_position(float dt)
 			math::Vector<3> body_y;
 			math::Vector<3> body_z;
 
-			if (thrust_abs > SIGMA) {
-				body_z = -thrust_sp / thrust_abs;
+			if (thrust_sp.length() > SIGMA) {
+				body_z = -thrust_sp.normalized();
 
 			} else {
 				/* no thrust, set Z axis to safe value */
@@ -2023,8 +2030,6 @@ MulticopterPositionControl::control_position(float dt)
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 		}
-
-		_att_sp.thrust = thrust_abs;
 
 		/* save thrust setpoint for logging */
 		_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
