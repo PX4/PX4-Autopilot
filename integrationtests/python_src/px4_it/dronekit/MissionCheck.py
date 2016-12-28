@@ -26,7 +26,7 @@ alt_acceptance_radius   = 5
 ################################################################################################
 
 # Import DroneKit-Python
-from dronekit import connect, Command
+from dronekit import connect, Command, VehicleMode
 from pymavlink import mavutil
 import time, sys, argparse
 
@@ -227,11 +227,8 @@ while not home_position_set:
 missionlist = upload_mission(import_mission_filename)
 time.sleep(2)
 
-# set mission mode the hard way
-vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
-                                           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
-                                           MAV_MODE_AUTO,
-                                           0, 0, 0, 0, 0, 0)
+# set mission mode
+vehicle.mode = VehicleMode("MISSION")
 time.sleep(1)
 
 
