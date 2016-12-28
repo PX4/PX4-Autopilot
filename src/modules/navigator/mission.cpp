@@ -584,6 +584,11 @@ Mission::set_mission_items()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 			_mission_item.yaw = NAN;
+			/* since _mission_item.time_inside and and _mission_item.pitch_min build a union, we need to set time_inside to zero
+			 * since in NAV_CMD_TAKEOFF mode there is currently no time_inside.
+			 * Note also that resetting time_inside to zero will cause pitch_min to be zero as well.
+			 */
+			_mission_item.time_inside = 0.0f;
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 
@@ -812,7 +817,6 @@ Mission::set_mission_items()
 
 	if (_mission_item.autocontinue && Navigator::get_time_inside(_mission_item) < FLT_EPSILON) {
 		/* try to process next mission item */
-
 		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(&mission_item_next_position, &pos_sp_triplet->next);
