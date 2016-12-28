@@ -300,7 +300,7 @@ test(const bool use_i2c, const int bus)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed, is the driver running?", path);
+		err(1, "%s %s open failed, is the driver running?", (use_i2c) ? "I2C" : "PWM", path);
 	}
 
 	/* do a simple demand read */
