@@ -362,9 +362,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
 	_obs_buffer_length = math::min(_obs_buffer_length,_imu_buffer_length);
 
-	ECL_INFO("EKF IMU buffer length = %i",(int)_imu_buffer_length);
-	ECL_INFO("EKF observation buffer length = %i",(int)_obs_buffer_length);
-
 	if (!(_imu_buffer.allocate(_imu_buffer_length) &&
 	      _gps_buffer.allocate(_obs_buffer_length) &&
 	      _mag_buffer.allocate(_obs_buffer_length) &&

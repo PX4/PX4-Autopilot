@@ -400,16 +400,11 @@ bool Ekf::initialiseFilter(void)
 			baroSample baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
 			_state.pos(2) = -math::max(_rng_filt_state * _R_to_earth(2, 2),_params.rng_gnd_clearance);
-			ECL_INFO("EKF using range finder height - commencing alignment");
 
 		} else if (_control_status.flags.ev_hgt) {
 			// if we are using external vision data for height, then the vertical position state needs to be reset
 			// because the initialisation position is not the zero datum
 			resetHeight();
-			ECL_INFO("EKF using vision height - commencing alignment");
-
-		} else if (_control_status.flags.baro_hgt){
-			ECL_INFO("EKF using pressure height - commencing alignment");
 
 		}
 
