@@ -309,13 +309,13 @@ tests_coverage:
 # QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
 	check_aerofc-v1_default \
+	check_crazyflie_default \
+	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default_and_uavcan \
-	check_crazyflie_default \
-	check_mindpx-v2_default \
-	check_tap-v1_default \
+	check_tap-v1_default
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
