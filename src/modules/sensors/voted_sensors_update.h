@@ -152,6 +152,7 @@ private:
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
 				subscription[i] = -1;
+				priority[i] = 0;
 			}
 		}
 
