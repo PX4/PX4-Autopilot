@@ -10,7 +10,7 @@ if [ -z "$WORKSPACE" ]; then
     exit 1
 fi
 
-IMAGE=px4io/px4-dev-ros:v1.0
+IMAGE=px4io/px4-dev-ros
 
 # Pulling latest image
 echo "===> pull latest Docker image"

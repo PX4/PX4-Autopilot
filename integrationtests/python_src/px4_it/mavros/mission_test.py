@@ -34,6 +34,7 @@
 
 #
 # @author Andreas Antener <andreas@uaventure.com>
+# @author James Goppert <james.goppert@gmail.com>
 #
 
 # The shebang of this file is currently Python2 because some
@@ -234,7 +235,7 @@ class MavrosMissionTest(unittest.TestCase):
                            # custom, auto, mission
                            1, 4, 4, 0, 0, 0, 0)
         # make sure the first command doesn't get lost
-        time.sleep(1)
+        time.sleep(3)
 
         self._srv_cmd_long(False, 400, False,
                            # arm
@@ -242,6 +243,7 @@ class MavrosMissionTest(unittest.TestCase):
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""
+        # wait for global position pub
         while not self.has_global_pos:
             self.rate.sleep()
 
@@ -314,12 +316,12 @@ class MavrosMissionTest(unittest.TestCase):
         with open(mission_file, 'r') as f:
             mission_ext = os.path.splitext(mission_file)[1]
             if mission_ext == '.mission':
-                rospy.loginfo("new style mission fiel detected")
+                rospy.loginfo("new style mission file detected")
                 for waypoint in read_new_mission(f):
                     wps.append(waypoint)
                     rospy.logdebug(waypoint)
             elif mission_ext == '.txt':
-                rospy.loginfo("old style mission fiel detected")
+                rospy.loginfo("old style mission file detected")
                 mission = QGroundControlWP()
                 for waypoint in mission.read(f):
                     wps.append(waypoint)
@@ -334,6 +336,8 @@ class MavrosMissionTest(unittest.TestCase):
         res = self._srv_wp_push(wps)
         rospy.loginfo(res)
         self.assertTrue(res.success, "(%s) mission could not be transfered" % self.mission_name)
+        # make sure mission is transferred before arming
+        time.sleep(15)
 
         rospy.loginfo("run mission")
         self.run_mission()
@@ -346,7 +350,7 @@ class MavrosMissionTest(unittest.TestCase):
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
                     alt += self.home_alt
 
-                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
+                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 800, index)
 
             # check if VTOL transition happens if applicable
             if waypoint.command == 84 or waypoint.command == 85 or waypoint.command == 3000:
