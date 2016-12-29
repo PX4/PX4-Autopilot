@@ -234,11 +234,12 @@ class MavrosMissionTest(unittest.TestCase):
                            # custom, auto, mission
                            1, 4, 4, 0, 0, 0, 0)
         # make sure the first command doesn't get lost
-        time.sleep(1)
+        time.sleep(2)
 
         self._srv_cmd_long(False, 400, False,
                            # arm
                            1, 0, 0, 0, 0, 0, 0)
+        time.sleep(2)
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""
@@ -334,6 +335,8 @@ class MavrosMissionTest(unittest.TestCase):
         res = self._srv_wp_push(wps)
         rospy.loginfo(res)
         self.assertTrue(res.success, "(%s) mission could not be transfered" % self.mission_name)
+        # make sure the mission got actually transferred
+        time.sleep(15)
 
         rospy.loginfo("run mission")
         self.run_mission()
