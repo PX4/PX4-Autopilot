@@ -256,12 +256,12 @@ PX4FLOW::init()
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
 
-	/* get rotation */
+	/* get yaw rotation from sensor frame to body frame */
 	param_t rot = param_find("SENS_FLOW_ROT");
 
 	/* only set it if the parameter exists */
 	if (rot != PARAM_INVALID) {
-		int32_t val = 0;
+		int32_t val = 6; // the recommended installation for the flow sensor is with the Y sensor axis forward
 		param_get(rot, &val);
 
 		_sensor_rotation = (enum Rotation)val;
@@ -538,7 +538,7 @@ PX4FLOW::collect()
 
 	report.sensor_id = 0;
 
-	/* rotate measurements according to parameter */
+	/* rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT */
 	float zeroval = 0.0f;
 
 	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
