@@ -568,6 +568,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
+		_params.thr_hover = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
 		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
 		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
@@ -1039,14 +1040,6 @@ MulticopterPositionControl::control_manual(float dt)
 
 		_att_sp.timestamp = hrt_absolute_time();
 
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
-
 	} else {
 		control_position(dt);
 	}
@@ -1180,14 +1173,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_att_sp.thrust = 0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
-
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
 
 	} else {
 		control_position(dt);
@@ -1723,13 +1708,8 @@ MulticopterPositionControl::control_position(float dt)
 		if (_control_mode.flag_control_climb_rate_enabled) {
 			if (_reset_int_z) {
 				_reset_int_z = false;
-				float i = _params.thr_min;
+				_thrust_int(2) = 0.0f;
 
-				if (_reset_int_z_manual) {
-					i = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
-				}
-
-				_thrust_int(2) = -i;
 			}
 
 		} else {
@@ -1778,7 +1758,8 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
 		} else {
-			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + _thrust_int;
+			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
+				    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
 		}
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1809,7 +1790,7 @@ MulticopterPositionControl::control_position(float dt)
 			thr_min = 0.0f;
 		}
 
-		float thrust_abs = thrust_sp.length();
+		float thrust_body_z = thrust_sp.length();
 		float tilt_max = _params.tilt_max_air;
 		float thr_max = _params.thr_max;
 		/* filter vel_z over 1/8sec */
@@ -1925,10 +1906,16 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp(2) *= att_comp;
 		}
 
-		/* limit max thrust */
-		thrust_abs = thrust_sp.length(); /* recalculate because it might have changed */
+		/* Calculate desired total thrust amount in body z direction. */
+		/* To compensate for excess thrust during attitude tracking errors we
+		 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
+		 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
+		matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
+		matrix::Vector3f F(thrust_sp.data);
+		thrust_body_z = F.dot(-R_z); /* recalculate because it might have changed */
 
-		if (thrust_abs > thr_max) {
+		/* limit max thrust */
+		if (thrust_body_z > thr_max) {
 			if (thrust_sp(2) < 0.0f) {
 				if (-thrust_sp(2) > thr_max) {
 					/* thrust Z component is too large, limit it */
@@ -1952,14 +1939,16 @@ MulticopterPositionControl::control_position(float dt)
 
 			} else {
 				/* Z component is negative, going down, simply limit thrust vector */
-				float k = thr_max / thrust_abs;
+				float k = thr_max / thrust_body_z;
 				thrust_sp *= k;
 				saturation_xy = true;
 				saturation_z = true;
 			}
 
-			thrust_abs = thr_max;
+			thrust_body_z = thr_max;
 		}
+
+		_att_sp.thrust = thrust_body_z;
 
 		/* update integrals */
 		if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
@@ -1969,11 +1958,6 @@ MulticopterPositionControl::control_position(float dt)
 
 		if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
 			_thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
-
-			/* protection against flipping on ground when landing */
-			if (_thrust_int(2) > 0.0f) {
-				_thrust_int(2) = 0.0f;
-			}
 		}
 
 		/* calculate attitude setpoint from thrust vector */
@@ -1983,8 +1967,8 @@ MulticopterPositionControl::control_position(float dt)
 			math::Vector<3> body_y;
 			math::Vector<3> body_z;
 
-			if (thrust_abs > SIGMA) {
-				body_z = -thrust_sp / thrust_abs;
+			if (thrust_sp.length() > SIGMA) {
+				body_z = -thrust_sp.normalized();
 
 			} else {
 				/* no thrust, set Z axis to safe value */
@@ -2047,8 +2031,6 @@ MulticopterPositionControl::control_position(float dt)
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 		}
-
-		_att_sp.thrust = thrust_abs;
 
 		/* save thrust setpoint for logging */
 		_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
