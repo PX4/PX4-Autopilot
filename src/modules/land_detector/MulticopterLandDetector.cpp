@@ -141,7 +141,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	// Time base for this function
 	const uint64_t now = hrt_absolute_time();
 
-	float sys_min_throttle = (_params.minThrottle + 0.01f);
+	float sys_min_throttle = (_params.minThrottle + 0.2f);
 
 	// Determine the system min throttle based on flight mode
 	if (!_control_mode.flag_control_altitude_enabled) {
