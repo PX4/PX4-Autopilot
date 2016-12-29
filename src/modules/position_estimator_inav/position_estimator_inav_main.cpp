@@ -649,7 +649,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					yaw_comp[0] = - params.flow_module_offset_y * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 					yaw_comp[1] = params.flow_module_offset_x * (flow_gyrospeed[2] - gyro_offset_filtered[2]);
 
-					/* convert raw flow to angular flow (rad/s) */
+					/*
+					 * Convert raw flow from the optical_flow uORB topic (rad) to angular flow (rad/s)
+					 * Note that the optical_flow uORB topic defines positive delta angles as produced by RH rotations
+					 * around the correspdonding body axes.
+					 */
+
 					float flow_ang[2];
 
 					/* check for vehicle rates setpoint - it below threshold -> dont subtract -> better hover */
@@ -661,25 +666,27 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					float rate_threshold = 0.15f;
 
+					/* calculate the angular flow rate produced by a negative velocity along the X body axis */
 					if (fabsf(rates_setpoint.pitch) < rate_threshold) {
 						//warnx("[inav] test ohne comp");
-						flow_ang[0] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) *
+						flow_ang[0] = (-flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) *
 							      params.flow_k;//for now the flow has to be scaled (to small)
 
 					} else {
 						//warnx("[inav] test mit comp");
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-						flow_ang[0] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
+						flow_ang[0] = (-(flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[0]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
+					/* calculate the angular flow rate produced by a negative velocity along the Y body axis */
 					if (fabsf(rates_setpoint.roll) < rate_threshold) {
-						flow_ang[1] = (flow.pixel_flow_y_integral / (float)flow.integration_timespan * 1000000.0f) *
+						flow_ang[1] = (flow.pixel_flow_x_integral / (float)flow.integration_timespan * 1000000.0f) *
 							      params.flow_k;//for now the flow has to be scaled (to small)
 
 					} else {
 						//calculate flow [rad/s] and compensate for rotations (and offset of flow-gyro)
-						flow_ang[1] = ((flow.pixel_flow_y_integral - flow.gyro_y_rate_integral) / (float)flow.integration_timespan * 1000000.0f
+						flow_ang[1] = ((flow.pixel_flow_x_integral - flow.gyro_x_rate_integral) / (float)flow.integration_timespan * 1000000.0f
 							       + gyro_offset_filtered[1]) * params.flow_k;//for now the flow has to be scaled (to small)
 					}
 
