@@ -786,8 +786,9 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 /**
  * PX4Flow board rotation
  *
- * This parameter defines the rotation of the PX4FLOW board relative to the platform.
- * Zero rotation is defined as Y on flow board pointing towards front of vehicle
+ * This parameter defines the yaw rotation of the PX4FLOW board relative to the vehicle body frame.
+ * Zero rotation is defined as X on flow board pointing towards front of vehicle.
+ * The recommneded installation default for the PX4FLOW board is with the Y axis forward (270 deg yaw).
  *
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -802,7 +803,7 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
+PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
 
 /**
  * Board rotation Y (Pitch) offset
