@@ -113,9 +113,6 @@ class MavrosMissionTest(unittest.TestCase):
         self.last_pos_d = 9999
         self.mission_name = ""
 
-        # need to simulate heartbeat for datalink loss detection
-        rospy.Timer(rospy.Duration(0.5), self.send_heartbeat)
-
         rospy.wait_for_service('mavros/cmd/command', 30)
         self.pub_mavlink = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
         self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
@@ -289,8 +286,6 @@ class MavrosMissionTest(unittest.TestCase):
         self.assertTrue(count < timeout, ("(%s) transition not detected " +
             "timeout: %d, index: %d") %
             (self.mission_name, timeout, index))
-
-    def send_heartbeat(self, event=None):
 
     def test_mission(self):
         """Test mission"""
