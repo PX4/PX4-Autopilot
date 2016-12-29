@@ -116,7 +116,7 @@ private:
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 	uint64_t _arming_time;
 
-	// get pilot throttle threshold with which we should quit landed state and take off
+	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float get_takeoff_throttle();
 };
 
