@@ -1759,7 +1759,7 @@ MulticopterPositionControl::control_position(float dt)
 
 		} else {
 			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
-				    + _thrust_int - math::Vector<3>(0, 0, _params.thr_hover);
+				    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
 		}
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1906,9 +1906,10 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp(2) *= att_comp;
 		}
 
-		/* Calculate desired total thrust amount in body z direction
-		 * Project the desired thrust force vector F onto the vehicles thrust axis -R_z
-		 * to compensate for excess thrust during attitude tracking errors */
+		/* Calculate desired total thrust amount in body z direction. */
+		/* To compensate for excess thrust during attitude tracking errors we
+		 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
+		 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
 		matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
 		matrix::Vector3f F(thrust_sp.data);
 		thrust_body_z = F.dot(-R_z); /* recalculate because it might have changed */
