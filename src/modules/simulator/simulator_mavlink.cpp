@@ -43,7 +43,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
+#include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
@@ -1046,6 +1046,14 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
 	flow.pixel_flow_y_integral = flow_mavlink->integrated_y;
 	flow.quality = flow_mavlink->quality;
+
+	/* rotate measurements according to parameter */
+	enum Rotation flow_rot;
+	param_get(param_find("SENS_FLOW_ROT"), &flow_rot);
+
+	float zeroval = 0.0f;
+	rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);
+	rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
 
 	int flow_multi;
 	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
