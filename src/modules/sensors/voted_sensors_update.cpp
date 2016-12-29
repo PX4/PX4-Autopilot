@@ -401,6 +401,13 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				continue; //ignore invalid data
 			}
 
+			// First publication with data
+			if (_accel.priority[i] == 0) {
+				int32_t priority = 0;
+				orb_priority(_accel.subscription[i], &priority);
+				_accel.priority[i] = (uint8_t)priority;
+			}
+
 			if (accel_report.integral_dt != 0) {
 				math::Vector<3> vect_int(accel_report.x_integral, accel_report.y_integral, accel_report.z_integral);
 				vect_int = _board_rotation * vect_int;
@@ -459,6 +466,13 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 			if (gyro_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			// First publication with data
+			if (_gyro.priority[i] == 0) {
+				int32_t priority = 0;
+				orb_priority(_gyro.subscription[i], &priority);
+				_gyro.priority[i] = (uint8_t)priority;
 			}
 
 			if (gyro_report.integral_dt != 0) {
@@ -522,6 +536,13 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				continue; //ignore invalid data
 			}
 
+			// First publication with data
+			if (_mag.priority[i] == 0) {
+				int32_t priority = 0;
+				orb_priority(_mag.subscription[i], &priority);
+				_mag.priority[i] = (uint8_t)priority;
+			}
+
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 			vect = _mag_rotation[i] * vect;
 
@@ -561,6 +582,13 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 
 			if (baro_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			// First publication with data
+			if (_baro.priority[i] == 0) {
+				int32_t priority = 0;
+				orb_priority(_baro.subscription[i], &priority);
+				_baro.priority[i] = (uint8_t)priority;
 			}
 
 			got_update = true;
@@ -664,10 +692,6 @@ void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, Sens
 				}
 			}
 		}
-
-		int32_t priority;
-		orb_priority(sensor_data.subscription[i], &priority);
-		sensor_data.priority[i] = (uint8_t)priority;
 	}
 
 	sensor_data.subscription_count = group_count;
@@ -761,21 +785,14 @@ void VotedSensorsUpdate::set_relative_timestamps(sensor_combined_s &raw)
 void
 VotedSensorsUpdate::calc_accel_inconsistency(sensor_preflight_s &preflt)
 {
-	// skip check if less than 2 sensors
-	if (_accel.subscription_count < 2) {
-		preflt.accel_inconsistency_m_s_s = 0.0f;
-		return;
-
-	}
-
 	float accel_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
-	uint8_t check_index = 0; // the number of sensors the primary has been checked against
+	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
 	for (unsigned sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (sensor_index != _accel.last_best_vote) {
+		if ((_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
 
 			float accel_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison agains the primary
 
@@ -805,28 +822,26 @@ VotedSensorsUpdate::calc_accel_inconsistency(sensor_preflight_s &preflt)
 		}
 	}
 
-	// get the vector length of the largest difference and write to the combined sensor struct
-	preflt.accel_inconsistency_m_s_s = sqrtf(accel_diff_sum_max_sq);
+	// skip check if less than 2 sensors
+	if (check_index < 1) {
+		preflt.accel_inconsistency_m_s_s = 0.0f;
+
+	} else {
+		// get the vector length of the largest difference and write to the combined sensor struct
+		preflt.accel_inconsistency_m_s_s = sqrtf(accel_diff_sum_max_sq);
+	}
 }
 
 void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 {
-	// skip check if less than 2 sensors
-	if (_gyro.subscription_count < 2) {
-		preflt.gyro_inconsistency_rad_s = 0.0f;
-		return;
-
-	}
-
 	float gyro_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
-	uint8_t check_index = 0; // the number of sensors the primary has been checked against
-
+	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
 	for (unsigned sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (sensor_index != _gyro.last_best_vote) {
+		if ((_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
 
 			float gyro_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
 
@@ -856,8 +871,14 @@ void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 		}
 	}
 
-	// get the vector length of the largest difference and write to the combined sensor struct
-	preflt.gyro_inconsistency_rad_s = sqrtf(gyro_diff_sum_max_sq);
+	// skip check if less than 2 sensors
+	if (check_index < 1) {
+		preflt.gyro_inconsistency_rad_s = 0.0f;
+
+	} else {
+		// get the vector length of the largest difference and write to the combined sensor struct
+		preflt.gyro_inconsistency_rad_s = sqrtf(gyro_diff_sum_max_sq);
+	}
 }
 
 
