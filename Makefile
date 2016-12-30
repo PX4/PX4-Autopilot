@@ -90,29 +90,36 @@ j ?= 4
 
 NINJA_BIN := ninja
 ifndef NO_NINJA_BUILD
-NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
+	NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
 
-ifndef NINJA_BUILD
-NINJA_BIN := ninja-build
-NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
-endif
-
+	ifndef NINJA_BUILD
+		NINJA_BIN := ninja-build
+		NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
+	endif
 endif
 
 ifdef NINJA_BUILD
-    PX4_CMAKE_GENERATOR ?= "Ninja"
-    PX4_MAKE = $(NINJA_BIN)
-    PX4_MAKE_ARGS =
+	PX4_CMAKE_GENERATOR := "Ninja"
+	PX4_MAKE := $(NINJA_BIN)
+	PX4_MAKE_ARGS :=
 else
-
-ifdef SYSTEMROOT
-	# Windows
-	PX4_CMAKE_GENERATOR ?= "MSYS Makefiles"
-else
-	PX4_CMAKE_GENERATOR ?= "Unix Makefiles"
+	ifdef SYSTEMROOT
+		# Windows
+		PX4_CMAKE_GENERATOR := "MSYS Makefiles"
+	else
+		PX4_CMAKE_GENERATOR := "Unix Makefiles"
+	endif
+	PX4_MAKE = $(MAKE)
+	PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
-    PX4_MAKE = $(MAKE)
-    PX4_MAKE_ARGS = -j$(j) --no-print-directory
+
+SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+# optionally run commmands in PX4 docker
+ifdef PX4_DOCKER
+	PX4_RUN = docker run -it --rm -v $(SRC_DIR):$(SRC_DIR):rw -w $(SRC_DIR) -v /tmp/.X11-unix:/tmp/.X11-unix:ro -v $(HOME)/.ccache:$(HOME)/.ccache:rw -e CCACHE_DIR=$(HOME)/.ccache -e LOCAL_USER_ID=`id -u $(USER)` px4io/px4-dev-nuttx /bin/bash -c "$1"
+else
+	PX4_RUN = $1
 endif
 
 # check if replay env variable is set & set build dir accordingly
@@ -128,7 +135,6 @@ ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
 
-SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # Functions
 # --------------------------------------------------------------------
@@ -136,22 +142,15 @@ SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake .. -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) $(CMAKE_ARGS) || (cd .. && rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && $(call PX4_RUN, cd $(BUILD_DIR); cmake $(2) -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) $(CMAKE_ARGS)) || (rm -rf $(BUILD_DIR)); fi
 +@echo "PX4 CONFIG: $(BUILD_DIR)"
-+@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
-endef
-
-define cmake-build-other
-+@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G$(PX4_CMAKE_GENERATOR) -DCONFIG=$(1) || (cd .. && rm -rf $(BUILD_DIR)); fi
-+@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
++@$(call PX4_RUN,$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 define colorecho
-      @tput setaf 6
-      @echo $1
-      @tput sgr0
++@tput setaf 6
++@echo $1
++@tput sgr0
 endef
 
 # Get a list of all config targets.
@@ -165,13 +164,13 @@ NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGE
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	$(call cmake-build,$@)
+	$(call cmake-build,$@,$(SRC_DIR))
 
 # Abbreviated config targets.
 
 # nuttx_ is left off by default; provide a rule to allow that.
 $(NUTTX_CONFIG_TARGETS):
-	$(call cmake-build,nuttx_$@)
+	$(call cmake-build,nuttx_$@,$(SRC_DIR))
 
 all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 
@@ -267,8 +266,9 @@ compiler_version:
 
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
 check: compiler_version checks_defaults checks_bootloaders checks_tests checks_uavcan checks_last sizes
+
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: compiler_version check_posix_sitl_default check_px4fmu-v4_default tests check_format sizes
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v3_default tests check_format sizes
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -291,7 +291,7 @@ check_%:
 	@echo
 
 unittest: posix_sitl_default
-	$(call cmake-build-other,unittest, ../unittests)
+	$(call cmake-build,unittest,$(SRC_DIR)/unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix: posix_sitl_default
@@ -329,7 +329,7 @@ submodulesclean:
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean clean
+distclean: submodulesclean
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
