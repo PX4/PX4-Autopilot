@@ -132,6 +132,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
+	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
+	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -560,6 +562,16 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_min_alt, &v);
 	_params.fw_min_alt = v;
 
+	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
+
+	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
+
+	/*
+	 * Minimum transition time can be maximum 90 percent of the open loop transition time,
+	 * anything else makes no sense and can potentially lead to numerical problems.
+	 */
+	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f,
+				       _params.front_trans_time_min);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
