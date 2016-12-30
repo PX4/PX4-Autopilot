@@ -41,6 +41,11 @@ param set MPC_Z_VEL_P 0.8
 param set MPC_Z_VEL_I 0.15
 param set MPC_XY_VEL_P 0.15
 param set MPC_XY_VEL_I 0.2
+param set INAV_LIDAR_EST 1
+param set INAV_W_XY_FLOW 1.0
+param set INAV_W_XY_GPS_P 0.0
+param set INAV_W_XY_GPS_V 0.0
+param set INAV_W_Z_GPS_P 0.0
 replay tryapplyparams
 simulator start -s
 rgbledsim start
