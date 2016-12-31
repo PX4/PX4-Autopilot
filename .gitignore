@@ -84,3 +84,5 @@ cmake-build-*/
 # gcov code coverage
 coverage-html/
 coverage.info
+
+posix-configs/SITL/init/test/*_generated

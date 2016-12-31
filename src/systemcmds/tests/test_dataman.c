@@ -46,7 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
@@ -55,8 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 
-
-#include "tests.h"
+#include "tests_main.h"
 
 #include "dataman/dataman.h"
 

@@ -51,7 +51,7 @@ set(srcs
 	test_matrix.cpp
 	test_mixer.cpp
 	test_mount.c
-	test_params.c
+	test_param.c
 	test_perf.c
 	test_ppm_loopback.c
 	test_rc.c

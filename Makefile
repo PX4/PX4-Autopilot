@@ -275,7 +275,7 @@ unittest: posix_sitl_default
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix: posix_sitl_default
-	@(cd build_posix_sitl_default/ && ctest -V)
+	@(cd build_posix_sitl_default/ && ctest --output-on-failure)
 
 tests: unittest run_tests_posix
 

@@ -79,11 +79,13 @@ const struct {
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #ifdef __PX4_NUTTX
 	{"adc",			test_adc,	OPT_NOJIGTEST},
+	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,	0},
 	{"sensors",		test_sensors,	0},
 	{"time",		test_time,	OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #else
 	{"rc",			rc_tests_main,	0},
 #endif /* __PX4_NUTTX */
@@ -102,8 +104,7 @@ const struct {
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
-	//{"dataman",		test_dataman, 0}, // Enable for by hand testing
-	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	//{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST}, // Enable for by hand testing
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},
 	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -122,7 +123,6 @@ const struct {
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
 	{"tone",		test_tone,	0},
-	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{NULL,			NULL, 		0}
@@ -264,7 +264,14 @@ int tests_main(int argc, char *argv[])
 
 	for (unsigned i = 0; tests[i].name; i++) {
 		if (!strcmp(tests[i].name, argv[1])) {
-			return tests[i].fn(argc - 1, argv + 1);
+			if (tests[i].fn(argc - 1, argv + 1) == 0) {
+				printf("%s PASSED\n", tests[i].name);
+				return 0;
+
+			} else {
+				printf("%s FAILED\n", tests[i].name);
+				return -1;
+			}
 		}
 	}
 
