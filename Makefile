@@ -39,26 +39,6 @@ ifeq ($(wildcard .git),)
     $(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
 endif
 
-CMAKE_VER := $(shell Tools/check_cmake.sh; echo $$?)
-ifneq ($(CMAKE_VER),0)
-    $(warning Not a valid CMake version or CMake not installed.)
-    $(warning On Ubuntu 16.04, install or upgrade via:)
-    $(warning )
-    $(warning 3rd party PPA:)
-    $(warning sudo add-apt-repository ppa:george-edison55/cmake-3.x -y)
-    $(warning sudo apt-get update)
-    $(warning sudo apt-get install cmake)
-    $(warning )
-    $(warning Official website:)
-    $(warning wget https://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.sh)
-    $(warning chmod +x cmake-3.4.3-Linux-x86_64.sh)
-    $(warning sudo mkdir /opt/cmake-3.4.3)
-    $(warning sudo ./cmake-3.4.3-Linux-x86_64.sh --prefix=/opt/cmake-3.4.3 --exclude-subdir)
-    $(warning export PATH=/opt/cmake-3.4.3/bin:$$PATH)
-    $(warning )
-    $(error Fatal)
-endif
-
 # Help
 # --------------------------------------------------------------------
 # Don't be afraid of this makefile, it is just passing
