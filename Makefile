@@ -278,17 +278,17 @@ unittest: posix_sitl_default
 	$(call cmake-build,unittest,$(SRC_DIR)/unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
-run_tests_posix: posix_sitl_default
-	@(cd build_posix_sitl_default/ && ctest --output-on-failure)
+run_tests_posix:
+	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
 
 tests: unittest run_tests_posix
 
 tests_coverage:
-	@(PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 ${MAKE} tests)
-	@(lcov --directory . --capture --quiet --output-file coverage.info)
-	@(lcov --remove coverage.info '/usr/*' --quiet --output-file coverage.info)
+	@$(call PX4_RUN,$(MAKE) --no-print-directory tests PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1)
+	@$(call PX4_RUN,lcov --directory . --capture --quiet --output-file coverage.info)
+	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' --quiet --output-file coverage.info)
 	#@(lcov --list coverage.info)
-	@(genhtml coverage.info --quiet --output-directory coverage-html)
+	@$(call PX4_RUN,genhtml coverage.info --quiet --output-directory coverage-html)
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`

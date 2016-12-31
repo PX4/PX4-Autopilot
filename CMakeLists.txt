@@ -271,6 +271,7 @@ find_package(PythonInterp REQUIRED)
 # cmake modules
 #
 enable_testing()
+include(CTest)
 
 #=============================================================================
 # generate compile command database

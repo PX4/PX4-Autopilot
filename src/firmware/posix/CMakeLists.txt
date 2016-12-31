@@ -187,4 +187,22 @@ foreach(test_name ${test_src_files})
 	endif()
 endforeach()
 
+add_custom_target(test_results
+		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test
+		DEPENDS px4
+		USES_TERMINAL
+		COMMENT "Running tests in sitl"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+
+add_custom_target(test_results_junit
+		COMMAND xsltproc ${PX4_SOURCE_DIR}/Tools/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/Test.xml > JUnitTestResults.xml
+		DEPENDS test_results
+		COMMENT "Converting ctest output to junit xml"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+
+add_custom_target(test_cdash_submit
+		COMMAND ${CMAKE_CTEST_COMMAND} -D Experimental
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
