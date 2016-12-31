@@ -117,6 +117,19 @@
 #
 #=============================================================================
 
+if("${CMAKE_VERSION}" VERSION_LESS 2.8.0)
+	message("Not a valid CMake version")
+	message("On Ubuntu 16.04, install or upgrade via:")
+	message("	sudo apt-get install cmake")
+	message("")
+	message("Official website:")
+	message("	wget https://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.sh")
+	message("	chmod +x cmake-3.4.3-Linux-x86_64.sh")
+	message("	sudo mkdir /opt/cmake-3.4.3")
+	message("	sudo ./cmake-3.4.3-Linux-x86_64.sh --prefix=/opt/cmake-3.4.3 --exclude-subdir")
+	message("	export PATH=/opt/cmake-3.4.3/bin:$$PATH")
+endif()
+
 # Warning: Changing this modifies CMake's internal workings
 # and leads to wrong toolchain detection
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
@@ -128,10 +141,6 @@ execute_process(
 	COMMAND Tools/check_submodules.sh
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
-
-# Use clang
-#SET (CMAKE_C_COMPILER /usr/bin/clang-3.6)
-#SET (CMAKE_CXX_COMPILER /usr/bin/clang++-3.6)
 
 #=============================================================================
 # parameters
