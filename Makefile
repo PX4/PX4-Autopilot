@@ -207,24 +207,28 @@ endif
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
-
-checks_defaults: \
+# QGroundControl flashable firmware (currently built by travis-ci)
+qgc_firmware: \
 	check_aerofc-v1_default \
-	check_auav-x21_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
-	check_px4-stm32f4discovery_default \
-	check_px4cannode-v1_default \
-	check_px4esc-v1_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
+	check_tap-v1_default \
+
+checks_alt: \
+	check_auav-x21_default \
+	check_px4-stm32f4discovery_default \
+	check_px4cannode-v1_default \
+	check_px4esc-v1_default \
 	check_px4fmu-v4pro_default \
 	check_px4fmu-v5_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
-	check_tap-v1_default \
+
+checks_defaults: qgc_firmware checks_alt
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
@@ -285,17 +289,6 @@ tests_coverage:
 	@(lcov --remove coverage.info '/usr/*' --quiet --output-file coverage.info)
 	#@(lcov --list coverage.info)
 	@(genhtml coverage.info --quiet --output-directory coverage-html)
-
-# QGroundControl flashable firmware (currently built by travis-ci)
-qgc_firmware: \
-	check_aerofc-v1_default \
-	check_crazyflie_default \
-	check_mindpx-v2_default \
-	check_px4fmu-v1_default \
-	check_px4fmu-v2_default \
-	check_px4fmu-v3_default \
-	check_px4fmu-v4_default_and_uavcan \
-	check_tap-v1_default
 
 package_firmware:
 	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
