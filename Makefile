@@ -79,15 +79,15 @@ ifndef NO_NINJA_BUILD
 endif
 
 ifdef NINJA_BUILD
-	PX4_CMAKE_GENERATOR := "Ninja"
+	PX4_CMAKE_GENERATOR := Ninja
 	PX4_MAKE := $(NINJA_BIN)
 	PX4_MAKE_ARGS :=
 else
 	ifdef SYSTEMROOT
 		# Windows
-		PX4_CMAKE_GENERATOR := "MSYS Makefiles"
+		PX4_CMAKE_GENERATOR := "MSYS\ Makefiles"
 	else
-		PX4_CMAKE_GENERATOR := "Unix Makefiles"
+		PX4_CMAKE_GENERATOR := "Unix\ Makefiles"
 	endif
 	PX4_MAKE = $(MAKE)
 	PX4_MAKE_ARGS = -j$(j) --no-print-directory
