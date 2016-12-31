@@ -12,15 +12,19 @@ checkout:
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-nuttx:2016-12-26
+    - docker pull px4io/px4-dev-base
 
 test:
   override:
-    - docker run --rm -v `pwd`:`pwd`:rw -e CI=true -w=`pwd` -e LOCAL_USER_ID=$UID -it px4io/px4-dev-nuttx:2016-12-26 /bin/bash -c "make quick_check"
+    - PX4_DOCKER=1 make tests
+    # copy test results for circleci
+    - mkdir -p $CIRCLE_TEST_REPORTS/unittests/ && cp build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/unittests/
+    - mkdir -p $CIRCLE_TEST_REPORTS/sitlunittests/ && cp ./build_posix_sitl_default/JUnitTestResults.xml $CIRCLE_TEST_REPORTS/sitlunittests/
+    - make distclean
+    - PX4_DOCKER=1 make tests_coverage
 
 general:
   artifacts:
-    - "build_px4fmu-v2_default/parameters.xml"
-    - "build_px4fmu-v2_default/airframes.xml"
-    - "build_.*/src/firmware/nuttx/.*.px4"
+    - "coverage-html"
+    - "coverage.info"
 
