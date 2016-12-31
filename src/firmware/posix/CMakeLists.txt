@@ -162,7 +162,15 @@ set(tests_exclude
 	uart_break
 	uart_console
 	uart_loopback
+	uart_send
 	)
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	list(APPEND tests_exclude
+		hysteresis
+		mixer
+	)
+endif()
 
 foreach(test_name ${test_src_files})
 	string(REPLACE "test_" "" test_name ${test_name})
@@ -175,7 +183,7 @@ foreach(test_name ${test_src_files})
 		add_test(NAME ${test_name}
 			COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 				$<TARGET_FILE:px4>
-				posix-configs/SITL/init/test/
+				posix-configs/SITL/init/test
 				none
 				none
 				${test_name}_generated
