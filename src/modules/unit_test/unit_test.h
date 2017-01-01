@@ -158,6 +158,20 @@ protected:
 		}										\
 	} while (0)
 
+/// @brief Used to compare two integer values within a unit test. If possible use ut_less_than instead of ut_assert
+/// since it will give you better error reporting of the actual values being compared.
+#define ut_less_than(message, v1_smaller, v2_bigger)								\
+	do {											\
+		int _v1 = v1_smaller;							\
+		int _v2 = v2_bigger;							\
+		if (!(_v1 < _v2)) {								\
+			_print_compare(message, #v1_smaller, _v1, #v2_bigger, _v2, __FILE__, __LINE__);	\
+			return false;								\
+		} else {									\
+			_assertions++;								\
+		}										\
+	} while (0)
+
 	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
 	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
 

@@ -57,9 +57,9 @@ void UnitTest::print_results(void)
 		PX4_INFO("ALL TESTS PASSED");
 	}
 
-	PX4_INFO("  Tests passed : %d", _tests_passed);
-	PX4_INFO("  Tests failed : %d", _tests_failed);
-	PX4_INFO("  Assertions : %d", _assertions);
+	PX4_INFO("  Tests passed :      %d", _tests_passed);
+	PX4_INFO("  Tests failed :      %d", _tests_failed);
+	PX4_INFO("  Tested assertions : %d", _assertions);
 }
 
 /// @brief Used internally to the ut_assert macro to print assert failures.
