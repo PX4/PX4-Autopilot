@@ -12,7 +12,6 @@ checkout:
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-nuttx
     - sudo pip install cpp-coveralls
     - sudo apt-get install -y lcov
     - gem install coveralls-lcov
@@ -23,12 +22,7 @@ test:
     - make distclean
     - PX4_DOCKER=1 make tests_coverage
     # copy test results for circleci
-    - mkdir -p $CIRCLE_TEST_REPORTS/unittests/ && cp build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/unittests/
-    - mkdir -p $CIRCLE_TEST_REPORTS/sitlunittests/ && cp ./build_posix_sitl_default/JUnitTestResults.xml $CIRCLE_TEST_REPORTS/sitlunittests/
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/ && cp ./build_posix_sitl_default/JUnitTestResults.xml build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/junit/
+    - mkdir -p $CIRCLE_ARTIFACTS && cp -R coverage-html $CIRCLE_ARTIFACTS
     - cpp-coveralls -l coverage.info
-
-general:
-  artifacts:
-    - "coverage-html"
-    - "coverage.info"
 
