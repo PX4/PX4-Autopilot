@@ -141,58 +141,54 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTAL
 # tests
 #
 
-file(GLOB test_src_files 
-	RELATIVE
-	${PX4_SOURCE_DIR}/src/systemcmds/tests/
-	${PX4_SOURCE_DIR}/src/systemcmds/tests/test_*.c*)
-
-#TODO: find a way to keep this in sync with tests_main
-set(tests_exclude
-	adc
-	dataman
-	file
-	hott_telemetry
-	jig_voltages
-	led
-	mount
-	ppm_loopback
-	sensors
-	time
-	uart_baudchange
-	uart_break
-	uart_console
-	uart_loopback
-	uart_send
+#T ODO: find a way to keep this in sync with tests_main
+set(tests
+	autodeclination
+	bson
+	commander
+	controllib
+	conv
+	file2
+	float
+	gpio
+	hrt
+	hysteresis
+	int
+	mathlib
+	matrix
+	mc_pos_control
+	mixer
+	param
+	perf
+	rc
+	servo
+	sf0x
+	sleep
+	uorb
 	)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	list(APPEND tests_exclude
+	list(REMOVE_ITEM tests
 		hysteresis
 		mixer
 	)
 endif()
 
-foreach(test_name ${test_src_files})
-	string(REPLACE "test_" "" test_name ${test_name})
-	string(REPLACE ".cpp" "" test_name ${test_name})
-	string(REPLACE ".c" "" test_name ${test_name})
+foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/${test_name}_generated)
-	
-	list(FIND tests_exclude ${test_name} _index)
-	if (${_index} EQUAL -1)
-		add_test(NAME ${test_name}
-			COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-				$<TARGET_FILE:px4>
-				posix-configs/SITL/init/test
-				none
-				none
-				${test_name}_generated
-				${PX4_SOURCE_DIR}
-				${PX4_BINARY_DIR}
-				WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
-		set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
-	endif()
+	add_test(NAME ${test_name}
+		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+			$<TARGET_FILE:px4>
+			posix-configs/SITL/init/test
+			none
+			none
+			${test_name}_generated
+			${PX4_SOURCE_DIR}
+			${PX4_BINARY_DIR}
+			WORKING_DIRECTORY ${SITL_WORKING_DIR})
+
+	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
 endforeach()
 
 add_custom_target(test_results

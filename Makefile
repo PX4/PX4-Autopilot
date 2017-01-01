@@ -281,7 +281,8 @@ unittest: posix_sitl_default
 run_tests_posix:
 	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
 
-tests: unittest run_tests_posix
+tests: run_tests_posix
+	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest)
 
 tests_coverage:
 	@$(call PX4_RUN,$(MAKE) --no-print-directory tests PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1)
