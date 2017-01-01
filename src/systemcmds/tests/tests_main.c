@@ -99,8 +99,8 @@ const struct {
 #ifndef __PX4_DARWIN
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
-	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 #endif /* __PX4_DARWIN */
+	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
