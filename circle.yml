@@ -12,17 +12,20 @@ checkout:
 
 dependencies:
   pre:
-    - docker pull px4io/px4-dev-base
+    - docker pull px4io/px4-dev-nuttx
+    - sudo pip install cpp-coveralls
+    - sudo apt-get install -y lcov
+    - gem install coveralls-lcov
 
 test:
   override:
     - mkdir -p ~/.ccache
-    - PX4_DOCKER=1 make tests
+    - make distclean
+    - PX4_DOCKER=1 make tests_coverage
     # copy test results for circleci
     - mkdir -p $CIRCLE_TEST_REPORTS/unittests/ && cp build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/unittests/
     - mkdir -p $CIRCLE_TEST_REPORTS/sitlunittests/ && cp ./build_posix_sitl_default/JUnitTestResults.xml $CIRCLE_TEST_REPORTS/sitlunittests/
-    - make distclean
-    - PX4_DOCKER=1 make tests_coverage
+    - cpp-coveralls -l coverage.info
 
 general:
   artifacts:
