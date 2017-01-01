@@ -1025,11 +1025,11 @@ task_main(int argc, char *argv[])
 	 */
 	g_on_disk = on_disk;
 
-	if (g_on_disk) {
+	if (g_on_disk && sys_restart_val != DM_INIT_REASON_POWER_ON) {
 		PX4_INFO("%s, data manager file '%s' size is %d bytes",
 			 restart_type_str, k_data_manager_device_path, max_offset);
 
-	} else {
+	} else if (!g_on_disk) {
 		PX4_INFO("%s, data manager RAM size is %d bytes",
 			 restart_type_str, max_offset);
 	}
