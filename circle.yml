@@ -16,6 +16,7 @@ dependencies:
 
 test:
   override:
+    - mkdir -p ~/.ccache
     - PX4_DOCKER=1 make tests
     # copy test results for circleci
     - mkdir -p $CIRCLE_TEST_REPORTS/unittests/ && cp build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/unittests/
