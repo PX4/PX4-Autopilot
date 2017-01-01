@@ -171,6 +171,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	list(REMOVE_ITEM tests
 		hysteresis
 		mixer
+		uorb
 	)
 endif()
 
