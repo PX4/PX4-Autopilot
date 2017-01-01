@@ -130,13 +130,16 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	unsigned loaded = strlen(buf);
 
-	PX4_INFO("loaded: \n\"%s\"\n (file: %s, %d chars)", &buf[0], filename, loaded);
+	if (verbose) {
+		PX4_INFO("loaded: \n\"%s\"\n (file: %s, %d chars)", &buf[0], filename, loaded);
+	}
 
 	// Test a number of chunk sizes
-	for (unsigned chunk_size = 8; chunk_size < 70; chunk_size++) {
+	for (unsigned chunk_size = 16; chunk_size < 70; chunk_size++) {
 		bool ret = load_mixer(buf, loaded, expected_count, chunk_size, verbose);
 
 		if (!ret) {
+			PX4_ERR("Mixer load failed with chunk size %u", chunk_size);
 			return ret;
 		}
 	}
@@ -176,14 +179,10 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 	/* FIRST mark the mixer as invalid */
 	/* THEN actually delete it */
 	mixer_group.reset();
-	char mixer_text[256];		/* large enough for one mixer */
+	char mixer_text[200];		/* large enough for one mixer */
 	unsigned mixer_text_length = 0;
 
 	unsigned transmitted = 0;
-
-	if (verbose) {
-		PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
-	}
 
 	while (transmitted < loaded) {
 
@@ -191,6 +190,7 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
+			PX4_ERR("Mixer text length overflow");
 			return false;
 		}
 
@@ -198,7 +198,7 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 		memcpy(&mixer_text[mixer_text_length], &buf[transmitted], text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		//fprintf(stderr, "buflen %u, text:\n\"%s\"", mixer_text_length, &mixer_text[0]);
+		//fprintf(stderr, "buflen %u, text:\n\"%s\"\n", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -206,7 +206,7 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			//fprintf(stderr, "used %u\n", mixer_text_length - resid);
+			//PX4_INFO("loaded %d mixers, used %u\n", mixer_group.count(), mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -217,6 +217,10 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 		}
 
 		transmitted += text_length;
+
+		if (verbose) {
+			PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
+		}
 	}
 
 	if (verbose) {
@@ -235,7 +239,7 @@ bool MixerTest::loadIOPass()
 
 bool MixerTest::loadQuadTest()
 {
-	return load_mixer(MIXER_PATH(quad_test.mix), 8);
+	return load_mixer(MIXER_PATH(quad_test.mix), 5);
 }
 
 bool MixerTest::loadVTOL1Test()
@@ -245,7 +249,7 @@ bool MixerTest::loadVTOL1Test()
 
 bool MixerTest::loadVTOL2Test()
 {
-	return load_mixer(MIXER_PATH(vtol2_test.mix), 7);
+	return load_mixer(MIXER_PATH(vtol2_test.mix), 6);
 }
 
 bool MixerTest::mixerTest()
