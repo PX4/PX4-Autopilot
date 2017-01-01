@@ -11,7 +11,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2016-12-26"
+      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
       services:
         - docker
     - os: osx
@@ -64,7 +64,7 @@ env:
 script:
   - ccache -M 1GB; ccache -z
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      docker run --rm -v `pwd`:`pwd`:rw -v $HOME/.ccache:$HOME/.ccache:rw -e CCACHE_DIR=$HOME/.ccache -e CI=true -e GIT_SUBMODULES_ARE_EVIL=1 -w=`pwd` -e LOCAL_USER_ID=$UID -it ${DOCKER_REPO} /bin/bash -c "make check_qgc_firmware VECTORCONTROL=0";
+      PX4_DOCKER=1 make check_qgc_firmware;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
