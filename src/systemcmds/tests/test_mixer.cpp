@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,6 +60,8 @@
 
 #include "tests_main.h"
 
+#include <unit_test/unit_test.h>
+
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
 			       uint8_t control_index,
@@ -77,50 +79,82 @@ static bool should_prearm = false;
 #define MIXER_DIFFERENCE_THRESHOLD 2
 #endif
 
-int test_mixer(int argc, char *argv[])
-{
-	/*
-	 * PWM limit structure
-	 */
-	pwm_limit_t pwm_limit;
-	bool should_arm = false;
-	uint16_t r_page_servo_disarmed[output_max];
-	uint16_t r_page_servo_control_min[output_max];
-	uint16_t r_page_servo_control_max[output_max];
-	uint16_t r_page_servos[output_max];
-	uint16_t servo_predicted[output_max];
-	int16_t reverse_pwm_mask = 0;
-
-	//PX4_INFO("testing mixer");
-
 #if !defined(CONFIG_ARCH_BOARD_SITL)
-	const char *filename = "/etc/mixers/IO_pass.mix";
+#define MIXER_PATH(_file) "/etc/mixers/"#_file
 #else
-	const char *filename = "ROMFS/px4fmu_test/mixers/IO_pass.mix";
+#define MIXER_PATH(_file) "ROMFS/px4fmu_test/mixers/"#_file
 #endif
 
-	//PX4_INFO("loading: %s", filename);
+#define MIXER_VERBOSE
 
-	char		buf[2048];
+class MixerTest : public UnitTest
+{
+public:
+	virtual bool run_tests(void);
+	MixerTest();
+
+private:
+	bool mixerTest();
+	bool loadIOPass();
+	bool loadQuadTest();
+	bool load_mixer(const char *filename, unsigned expected_count, bool verbose = false);
+	bool load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size, bool verbose);
+
+	MixerGroup mixer_group;
+};
+
+MixerTest::MixerTest() : UnitTest(),
+	mixer_group(mixer_callback, 0)
+{
+}
+
+bool MixerTest::run_tests(void)
+{
+	ut_run_test(loadIOPass);
+	ut_run_test(loadQuadTest);
+	ut_run_test(mixerTest);
+
+	return (_tests_failed == 0);
+}
+
+ut_declare_test_c(test_mixer, MixerTest)
+
+bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool verbose)
+{
+	char buf[2048];
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
 	unsigned loaded = strlen(buf);
 
-	//fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
+	PX4_INFO("loaded: \n\"%s\"\n (file: %s, %d chars)", &buf[0], filename, loaded);
+
+	// Test a number of chunk sizes
+	for (unsigned chunk_size = 8; chunk_size < 70; chunk_size++) {
+		bool ret = load_mixer(buf, loaded, expected_count, chunk_size, verbose);
+
+		if (!ret) {
+			return ret;
+		}
+	}
+
+	return true;
+}
+
+bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size,
+			   bool verbose)
+{
+
 
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
 	 * e.g. on PX4IO.
 	 */
 
-	const unsigned chunk_size = 64;
-
-	MixerGroup mixer_group(mixer_callback, 0);
-
 	/* load at once test */
 	unsigned xx = loaded;
+	mixer_group.reset();
 	mixer_group.load_from_buf(&buf[0], xx);
-	//ASSERT_EQ(mixer_group.count(), 8);
+	ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
 
 	unsigned empty_load = 2;
 	char empty_buf[2];
@@ -128,13 +162,12 @@ int test_mixer(int argc, char *argv[])
 	empty_buf[1] = '\0';
 	mixer_group.reset();
 	mixer_group.load_from_buf(&empty_buf[0], empty_load);
-	//PX4_INFO("empty buffer load: loaded %u mixers, used: %u", mixer_group.count(), empty_load);
 
-	//ASSERT_NE(empty_load, 0);
-
-	if (empty_load != 0) {
-		return 1;
+	if (verbose) {
+		PX4_INFO("empty buffer load: loaded %u mixers, used: %u", mixer_group.count(), empty_load);
 	}
+
+	ut_compare("empty buffer load", empty_load, 0);
 
 	/* FIRST mark the mixer as invalid */
 	/* THEN actually delete it */
@@ -144,7 +177,9 @@ int test_mixer(int argc, char *argv[])
 
 	unsigned transmitted = 0;
 
-	//PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
+	if (verbose) {
+		PX4_INFO("transmitted: %d, loaded: %d", transmitted, loaded);
+	}
 
 	while (transmitted < loaded) {
 
@@ -152,7 +187,7 @@ int test_mixer(int argc, char *argv[])
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
-			return 1;
+			return false;
 		}
 
 		/* append mixer text and nul-terminate */
@@ -167,7 +202,7 @@ int test_mixer(int argc, char *argv[])
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			//fprintf(stderr, "used %u", mixer_text_length - resid);
+			//fprintf(stderr, "used %u\n", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -180,10 +215,43 @@ int test_mixer(int argc, char *argv[])
 		transmitted += text_length;
 	}
 
-	//PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
+	if (verbose) {
+		PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
+	}
 
-	if (mixer_group.count() != 8) {
-		return 1;
+	ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+
+	return true;
+}
+
+bool MixerTest::loadIOPass()
+{
+	return load_mixer(MIXER_PATH(IO_pass.mix), 8);
+}
+
+bool MixerTest::loadQuadTest()
+{
+	return load_mixer(MIXER_PATH(quad_test.mix), 8);
+}
+
+bool MixerTest::mixerTest()
+{
+	/*
+	 * PWM limit structure
+	 */
+	pwm_limit_t pwm_limit;
+	bool should_arm = false;
+	uint16_t r_page_servo_disarmed[output_max];
+	uint16_t r_page_servo_control_min[output_max];
+	uint16_t r_page_servo_control_max[output_max];
+	uint16_t r_page_servos[output_max];
+	uint16_t servo_predicted[output_max];
+	int16_t reverse_pwm_mask = 0;
+
+	bool load_ok = load_mixer(MIXER_PATH(IO_pass.mix), 8);
+
+	if (!load_ok) {
+		return load_ok;
 	}
 
 	/* execute the mixer */
@@ -219,13 +287,13 @@ int test_mixer(int argc, char *argv[])
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
 				warnx("active servo < min");
-				return 1;
+				return false;
 			}
 
 		} else {
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
 				warnx("throttle output != 0 (this check assumed the IO pass mixer!)");
-				return 1;
+				return false;
 			}
 		}
 	}
@@ -261,13 +329,13 @@ int test_mixer(int argc, char *argv[])
 			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
 			    r_page_servos[i] != r_page_servo_disarmed[i]) {
 				PX4_ERR("disarmed servo value mismatch: %d vs %d", r_page_servos[i], r_page_servo_disarmed[i]);
-				return 1;
+				return false;
 			}
 
 			if (hrt_elapsed_time(&starttime) >= INIT_TIME_US &&
 			    r_page_servos[i] + 1 <= r_page_servo_disarmed[i]) {
 				PX4_ERR("ramp servo value mismatch");
-				return 1;
+				return false;
 			}
 		}
 
@@ -305,7 +373,7 @@ int test_mixer(int argc, char *argv[])
 				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
 					(int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
-				return 1;
+				return false;
 			}
 		}
 	}
@@ -332,7 +400,7 @@ int test_mixer(int argc, char *argv[])
 			/* check mixed outputs to be zero during init phase */
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
 				PX4_ERR("disarmed servo value mismatch");
-				return 1;
+				return false;
 			}
 		}
 
@@ -374,7 +442,7 @@ int test_mixer(int argc, char *argv[])
 			    (r_page_servos[i] + 1 <= r_page_servo_disarmed[i] ||
 			     r_page_servos[i] > servo_predicted[i])) {
 				PX4_ERR("ramp servo value mismatch");
-				return 1;
+				return false;
 			}
 
 			/* check post ramp phase */
@@ -382,7 +450,7 @@ int test_mixer(int argc, char *argv[])
 			    abs(servo_predicted[i] - r_page_servos[i]) > 2) {
 				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
 				PX4_ERR("mixer violated predicted value");
-				return 1;
+				return false;
 			}
 		}
 
@@ -395,33 +463,7 @@ int test_mixer(int argc, char *argv[])
 		}
 	}
 
-	//printf("\n");
-
-	/* load multirotor at once test */
-	mixer_group.reset();
-
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-	filename = "/etc/mixers/quad_test.mix";
-#else
-	filename = "ROMFS/px4fmu_test/mixers/quad_test.mix";
-#endif
-
-	load_mixer_file(filename, &buf[0], sizeof(buf));
-	loaded = strlen(buf);
-
-	//fprintf(stderr, "loaded: \n\"%s\"\n (%d chars)", &buf[0], loaded);
-
-	unsigned mc_loaded = loaded;
-	mixer_group.load_from_buf(&buf[0], mc_loaded);
-	//PX4_INFO("complete buffer load: loaded %u mixers", mixer_group.count());
-
-	if (mixer_group.count() != 5) {
-		PX4_ERR("FAIL: Quad test mixer load failed");
-		return 1;
-	}
-
-	//PX4_INFO("SUCCESS: No errors in mixer test");
-	return 0;
+	return true;
 }
 
 static int
