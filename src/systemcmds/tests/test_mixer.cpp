@@ -96,6 +96,8 @@ public:
 private:
 	bool mixerTest();
 	bool loadIOPass();
+	bool loadVTOL1Test();
+	bool loadVTOL2Test();
 	bool loadQuadTest();
 	bool load_mixer(const char *filename, unsigned expected_count, bool verbose = false);
 	bool load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size, bool verbose);
@@ -112,6 +114,8 @@ bool MixerTest::run_tests(void)
 {
 	ut_run_test(loadIOPass);
 	ut_run_test(loadQuadTest);
+	ut_run_test(loadVTOL1Test);
+	ut_run_test(loadVTOL2Test);
 	ut_run_test(mixerTest);
 
 	return (_tests_failed == 0);
@@ -232,6 +236,16 @@ bool MixerTest::loadIOPass()
 bool MixerTest::loadQuadTest()
 {
 	return load_mixer(MIXER_PATH(quad_test.mix), 8);
+}
+
+bool MixerTest::loadVTOL1Test()
+{
+	return load_mixer(MIXER_PATH(vtol1_test.mix), 4);
+}
+
+bool MixerTest::loadVTOL2Test()
+{
+	return load_mixer(MIXER_PATH(vtol2_test.mix), 7);
 }
 
 bool MixerTest::mixerTest()
