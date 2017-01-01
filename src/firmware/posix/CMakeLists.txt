@@ -141,7 +141,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTAL
 # tests
 #
 
-#T ODO: find a way to keep this in sync with tests_main
+# TODO: find a way to keep this in sync with tests_main
 set(tests
 	autodeclination
 	bson
