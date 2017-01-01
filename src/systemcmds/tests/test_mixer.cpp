@@ -99,6 +99,7 @@ private:
 	bool loadVTOL1Test();
 	bool loadVTOL2Test();
 	bool loadQuadTest();
+	bool loadComplexTest();
 	bool load_mixer(const char *filename, unsigned expected_count, bool verbose = false);
 	bool load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size, bool verbose);
 
@@ -116,12 +117,38 @@ bool MixerTest::run_tests(void)
 	ut_run_test(loadQuadTest);
 	ut_run_test(loadVTOL1Test);
 	ut_run_test(loadVTOL2Test);
+	ut_run_test(loadComplexTest);
 	ut_run_test(mixerTest);
 
 	return (_tests_failed == 0);
 }
 
 ut_declare_test_c(test_mixer, MixerTest)
+
+bool MixerTest::loadIOPass()
+{
+	return load_mixer(MIXER_PATH(IO_pass.mix), 8);
+}
+
+bool MixerTest::loadQuadTest()
+{
+	return load_mixer(MIXER_PATH(quad_test.mix), 5);
+}
+
+bool MixerTest::loadVTOL1Test()
+{
+	return load_mixer(MIXER_PATH(vtol1_test.mix), 4);
+}
+
+bool MixerTest::loadVTOL2Test()
+{
+	return load_mixer(MIXER_PATH(vtol2_test.mix), 6);
+}
+
+bool MixerTest::loadComplexTest()
+{
+	return load_mixer(MIXER_PATH(complex_test.mix), 8);
+}
 
 bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool verbose)
 {
@@ -230,26 +257,6 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 	ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
 
 	return true;
-}
-
-bool MixerTest::loadIOPass()
-{
-	return load_mixer(MIXER_PATH(IO_pass.mix), 8);
-}
-
-bool MixerTest::loadQuadTest()
-{
-	return load_mixer(MIXER_PATH(quad_test.mix), 5);
-}
-
-bool MixerTest::loadVTOL1Test()
-{
-	return load_mixer(MIXER_PATH(vtol1_test.mix), 4);
-}
-
-bool MixerTest::loadVTOL2Test()
-{
-	return load_mixer(MIXER_PATH(vtol2_test.mix), 6);
 }
 
 bool MixerTest::mixerTest()
