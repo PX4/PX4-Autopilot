@@ -262,6 +262,11 @@ protected:
 	 */
 	static const char 		*skipline(const char *buf, unsigned &buflen);
 
+	/**
+	 * Check wether the string is well formed and suitable for parsing
+	 */
+	static bool				string_well_formed(const char *buf, unsigned &buflen);
+
 private:
 
 	/* do not allow to copy due to pointer data members */
