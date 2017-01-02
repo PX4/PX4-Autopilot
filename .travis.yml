@@ -17,17 +17,17 @@ matrix:
         - secure: "dnvMc2ubMdFD0DNV9jNqrlZF1L0Y0Phqp/8GNciSiDrYEOxjdqN288tfTYqwMpb6U3Ur/4pB4LoPvzD6Y27L63nk0CWavARvAaBVpxBo9l6nJH5AzKM/7vmRmzXO40rFOL2Vy4v8Fz+icegRNcXHQNf8fmDLqkEIJ+XMD0bwLRw="
       services:
         - docker
+      addons:
+      coverity_scan:
+        project:
+          name: PX4/Firmware
+        notification_email: ci@px4.io
+        build_command: "make posix_sitl_default"
+        branch_pattern: coverity
     - os: osx
       sudo: true
       osx_image: xcode8
       env: CCACHE_CPP2=1
-
-addons:
-  coverity_scan:
-    project:
-      name: PX4/Firmware
-    build_command: "make posix_sitl_default"
-    branch_pattern: coverity
 
 cache:
   ccache: true
