@@ -42,7 +42,7 @@
 #include <systemlib/param/param.h>
 #include <mathlib/mathlib.h>
 
-/* These structs struct define the parameters used by the temperature compensation algorithm
+/* Struct containing parameters used by the single axis 5th order temperature compensation algorithm
 
 Input:
 
@@ -53,7 +53,7 @@ corrected_value : reading from the sensor after compensation for errors
 Compute:
 
 delta_temp = measured_temp - ref_temp
-offset = x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
+offset = x5 * delta_temp^5 + x4 * delta_temp^4 + x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
 corrected_value = raw_value * scale + offset
 
 */
@@ -61,17 +61,48 @@ namespace sensors_temp_comp
 {
 
 struct SENSOR_CAL_DATA_1D {
-	int ID;			/**< sensor device ID*/
-	float x3;		/**< x^3 term of polynomial */
-	float x2;		/**< x^2 term of polynomial */
-	float x1;		/**< x^1 term of polynomial */
-	float x0;		/**< x^0 / offset term of polynomial */
-	float scale;		/**< scale factor correction */
-	float ref_temp;		/**< reference temperature used by the curve-fit */
-	float min_temp;		/**< minimum temperature with valid compensation data */
-	float max_temp;		/**< maximum temperature with valid compensation data */
+	int ID;
+	float x5;
+	float x4;
+	float x3;
+	float x2;
+	float x1;
+	float x0;
+	float scale;
+	float ref_temp;
+	float min_temp;
+	float max_temp;
 };
 
+struct SENSOR_CAL_HANDLES_1D {
+	param_t ID;
+	param_t x5;
+	param_t x4;
+	param_t x3;
+	param_t x2;
+	param_t x1;
+	param_t x0;
+	param_t scale;
+	param_t ref_temp;
+	param_t min_temp;
+	param_t max_temp;
+};
+
+/* Struct containing parameters used by the 3-axis 3rd order temperature compensation algorithm
+
+Input:
+
+measured_temp : temperature measured at the sensor (deg C)
+raw_value[3] : XYZ readings from the sensor before compensation
+corrected_value[3] : XYZ readings from the sensor after compensation for errors
+
+Compute for each measurement index:
+
+delta_temp = measured_temp - ref_temp
+offset = x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
+corrected_value = raw_value * scale + offset
+
+*/
 struct SENSOR_CAL_DATA_3D {
 	int ID;			/**< sensor device ID*/
 	float x3[3];		/**< x^3 term of polynomial */
@@ -82,18 +113,6 @@ struct SENSOR_CAL_DATA_3D {
 	float ref_temp;		/**< reference temperature used by the curve-fit */
 	float min_temp;		/**< minimum temperature with valid compensation data */
 	float max_temp;		/**< maximum temperature with valid compensation data */
-};
-
-struct SENSOR_CAL_HANDLES_1D {
-	param_t ID;
-	param_t x3;
-	param_t x2;
-	param_t x1;
-	param_t x0;
-	param_t scale;
-	param_t ref_temp;
-	param_t min_temp;
-	param_t max_temp;
 };
 
 struct SENSOR_CAL_HANDLES_3D {
@@ -108,18 +127,24 @@ struct SENSOR_CAL_HANDLES_3D {
 	param_t max_temp;
 };
 
+// create a struct containing all thermal calibration parameters
 struct Parameters {
 	int gyro_tc_enable;
 	SENSOR_CAL_DATA_3D gyro_cal_data[3];
 	int accel_tc_enable;
 	SENSOR_CAL_DATA_3D accel_cal_data[3];
+	int baro_tc_enable;
+	SENSOR_CAL_DATA_1D baro_cal_data;
 };
 
+// create a struct containing the handles required to access all calibration parameters
 struct ParameterHandles {
 	param_t gyro_tc_enable;
 	SENSOR_CAL_HANDLES_3D gyro_cal_handles[3];
 	param_t accel_tc_enable;
 	SENSOR_CAL_HANDLES_3D accel_cal_handles[3];
+	param_t baro_tc_enable;
+	SENSOR_CAL_HANDLES_1D baro_cal_handles;
 };
 
 /**
@@ -137,7 +162,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 /*
 
-Calculate the offset required to compensate the sensor for temperature effects
+Calculate the offset required to compensate the sensor for temperature effects using a 5th order method
 If the measured temperature is outside the calibration range, clip the temperature to remain within the range and return false.
 If the measured temperature is within the calibration range, return true.
 
@@ -152,7 +177,7 @@ Returns:
 Boolean true if the measured temperature is inside the valid range for the compensation
 
 */
-bool correct_data_1D(SENSOR_CAL_DATA_1D &coef, const float &measured_temp, float &offset);
+bool calc_thermal_offsets_1D(SENSOR_CAL_DATA_1D &coef, const float &measured_temp, float &offset);
 
 /*
 
