@@ -19,6 +19,13 @@ matrix:
       osx_image: xcode8
       env: CCACHE_CPP2=1
 
+addons:
+  coverity_scan:
+    project:
+      name: PX4/Firmware
+    build_command: "make posix_sitl_default"
+    branch_pattern: coverity
+
 cache:
   ccache: true
   pip: true
