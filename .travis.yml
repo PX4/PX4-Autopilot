@@ -11,19 +11,9 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env:
-        - GCC_VER=5.4
-        - DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
-        - secure: "dnvMc2ubMdFD0DNV9jNqrlZF1L0Y0Phqp/8GNciSiDrYEOxjdqN288tfTYqwMpb6U3Ur/4pB4LoPvzD6Y27L63nk0CWavARvAaBVpxBo9l6nJH5AzKM/7vmRmzXO40rFOL2Vy4v8Fz+icegRNcXHQNf8fmDLqkEIJ+XMD0bwLRw="
+      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
       services:
         - docker
-      addons:
-      coverity_scan:
-        project:
-          name: PX4/Firmware
-        notification_email: ci@px4.io
-        build_command: "make posix_sitl_default"
-        branch_pattern: coverity
     - os: osx
       sudo: true
       osx_image: xcode8
@@ -41,9 +31,11 @@ before_install:
          cd ${TRAVIS_BUILD_DIR}
       && git fetch --unshallow && git fetch --all --tags
       && docker pull ${DOCKER_REPO}
+      && echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         sudo -H easy_install pip
+         test "${TRAVIS_BRANCH}" != 'coverity' || exit 0
+      && sudo -H easy_install pip
       && sudo -H pip install empy
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
       && sudo mv ccache /usr/local/bin
@@ -64,6 +56,8 @@ before_install:
 
 env:
   global:
+# COVERITY KEY
+    - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
 # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
@@ -73,7 +67,7 @@ env:
 
 script:
   - ccache -M 1GB; ccache -z
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       PX4_DOCKER=1 make check_qgc_firmware;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
@@ -81,13 +75,13 @@ script:
   - ccache -s
 
 after_success:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
       && cp Binaries/* .
       && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
       && mkdir s3deploy-branch && mv *_default.px4 Meta/px4fmu-v2_default/parameters.xml Meta/px4fmu-v2_default/airframes.xml s3deploy-branch/;
     fi
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" ]]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       export PX4_S3_DEPLOY=1;
     fi
 
@@ -131,6 +125,14 @@ deploy:
       all_branches: true
       repo: PX4/Firmware
       condition: $GCC_VER = 5.4
+
+addons:
+  coverity_scan:
+    project:
+      name: PX4/Firmware
+    notification_email: ci@px4.io
+    build_command: "make posix_sitl_default"
+    branch_pattern: coverity
 
 notifications:
   webhooks:
