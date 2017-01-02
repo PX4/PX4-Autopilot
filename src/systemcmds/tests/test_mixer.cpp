@@ -89,9 +89,9 @@ static bool should_prearm = false;
 #endif
 
 #if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_ONBOARD_PATH(_file) "/etc/mixers/"#_file
+#define MIXER_ONBOARD_PATH "/etc/mixers/"
 #else
-#define MIXER_ONBOARD_PATH(_file) "ROMFS/px4fmu_common/mixers/"#_file
+#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers/"
 #endif
 
 #define MIXER_VERBOSE
@@ -164,9 +164,9 @@ bool MixerTest::loadComplexTest()
 
 bool MixerTest::loadAllTest()
 {
-	PX4_INFO("Testing all mixers in %s", MIXER_ONBOARD_PATH());
+	PX4_INFO("Testing all mixers in %s", MIXER_ONBOARD_PATH);
 
-	DIR *dp = opendir(MIXER_ONBOARD_PATH());
+	DIR *dp = opendir(MIXER_ONBOARD_PATH);
 
 	if (dp == nullptr) {
 		PX4_ERR("File open failed");
@@ -207,8 +207,8 @@ bool MixerTest::loadAllTest()
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
 				char buf[200];
-				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH(), sizeof(buf));
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH())], result->d_name, sizeof(buf));
+				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf));
+				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], result->d_name, sizeof(buf));
 
 				bool ret = load_mixer(buf, 0);
 
