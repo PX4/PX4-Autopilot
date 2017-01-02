@@ -77,16 +77,17 @@ int test_uart_baudchange(int argc, char *argv[])
 
 	int ret;
 
-#define UART_BAUDRATE_RUNTIME_CONF
-#ifdef UART_BAUDRATE_RUNTIME_CONF
-
 	if ((termios_state = tcgetattr(uart2, &uart2_config)) < 0) {
 		printf("ERROR getting termios config for UART2: %d\n", termios_state);
 		ret = termios_state;
 		goto cleanup;
 	}
 
-	memcpy(&uart2_config_original, &uart2_config, sizeof(struct termios));
+	if ((termios_state = tcgetattr(uart2, &uart2_config)) < 0) {
+		printf("ERROR getting termios config for UART2: %d\n", termios_state);
+		ret = termios_state;
+		goto cleanup;
+	}
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart2_config, B9600) < 0 || cfsetospeed(&uart2_config, B9600) < 0) {
@@ -107,8 +108,6 @@ int test_uart_baudchange(int argc, char *argv[])
 		ret = termios_state;
 		goto cleanup;
 	}
-
-#endif
 
 	uint8_t sample_uart2[] = {'U', 'A', 'R', 'T', '2', ' ', '#', 0, '\n'};
 

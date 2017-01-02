@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
@@ -55,6 +56,8 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <px4iofirmware/mixer.h>
+#include <px4iofirmware/protocol.h>
 
 #include <uORB/topics/actuator_controls.h>
 
@@ -85,6 +88,12 @@ static bool should_prearm = false;
 #define MIXER_PATH(_file) "ROMFS/px4fmu_test/mixers/"#_file
 #endif
 
+#if !defined(CONFIG_ARCH_BOARD_SITL)
+#define MIXER_ONBOARD_PATH(_file) "/etc/mixers/"#_file
+#else
+#define MIXER_ONBOARD_PATH(_file) "ROMFS/px4fmu_common/mixers/"#_file
+#endif
+
 #define MIXER_VERBOSE
 
 class MixerTest : public UnitTest
@@ -100,8 +109,10 @@ private:
 	bool loadVTOL2Test();
 	bool loadQuadTest();
 	bool loadComplexTest();
+	bool loadAllTest();
 	bool load_mixer(const char *filename, unsigned expected_count, bool verbose = false);
-	bool load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size, bool verbose);
+	bool load_mixer(const char *filename, const char *buf, unsigned loaded, unsigned expected_count,
+			const unsigned chunk_size, bool verbose);
 
 	MixerGroup mixer_group;
 };
@@ -118,6 +129,7 @@ bool MixerTest::run_tests(void)
 	ut_run_test(loadVTOL1Test);
 	ut_run_test(loadVTOL2Test);
 	ut_run_test(loadComplexTest);
+	ut_run_test(loadAllTest);
 	ut_run_test(mixerTest);
 
 	return (_tests_failed == 0);
@@ -150,6 +162,74 @@ bool MixerTest::loadComplexTest()
 	return load_mixer(MIXER_PATH(complex_test.mix), 8);
 }
 
+bool MixerTest::loadAllTest()
+{
+	PX4_INFO("Testing all mixers in %s", MIXER_ONBOARD_PATH());
+
+	DIR *dp = opendir(MIXER_ONBOARD_PATH());
+
+	if (dp == nullptr) {
+		PX4_ERR("File open failed");
+		// this is not an FTP error, abort directory by simulating eof
+		return false;
+	}
+
+	struct dirent *result = nullptr;
+
+	// move to the requested offset
+	//seekdir(dp, payload->offset);
+
+	for (;;) {
+		errno = 0;
+		result = readdir(dp);
+
+		// read the directory entry
+		if (result == nullptr) {
+			if (errno) {
+				PX4_ERR("readdir failed");
+				closedir(dp);
+
+				return false;
+			}
+
+			// We are just at the last directory entry
+			break;
+		}
+
+		// Determine the directory entry type
+		switch (result->d_type) {
+#ifdef __PX4_NUTTX
+
+		case DTYPE_FILE:
+#else
+		case DT_REG:
+#endif
+			if (strncmp(result->d_name, ".", 1) != 0) {
+
+				char buf[200];
+				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH(), sizeof(buf));
+				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH())], result->d_name, sizeof(buf));
+
+				bool ret = load_mixer(buf, 0);
+
+				if (!ret) {
+					PX4_ERR("Error testing mixer %s", buf);
+					return false;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	closedir(dp);
+
+	return true;
+}
+
 bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool verbose)
 {
 	char buf[2048];
@@ -162,8 +242,8 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 	}
 
 	// Test a number of chunk sizes
-	for (unsigned chunk_size = 16; chunk_size < 70; chunk_size++) {
-		bool ret = load_mixer(buf, loaded, expected_count, chunk_size, verbose);
+	for (unsigned chunk_size = 6; chunk_size < PX4IO_MAX_TRANSFER_LEN + 1; chunk_size++) {
+		bool ret = load_mixer(filename, buf, loaded, expected_count, chunk_size, verbose);
 
 		if (!ret) {
 			PX4_ERR("Mixer load failed with chunk size %u", chunk_size);
@@ -174,7 +254,8 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 	return true;
 }
 
-bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_count, const unsigned chunk_size,
+bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loaded, unsigned expected_count,
+			   const unsigned chunk_size,
 			   bool verbose)
 {
 
@@ -188,7 +269,10 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 	unsigned xx = loaded;
 	mixer_group.reset();
 	mixer_group.load_from_buf(&buf[0], xx);
-	ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+
+	if (expected_count > 0) {
+		ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+	}
 
 	unsigned empty_load = 2;
 	char empty_buf[2];
@@ -206,7 +290,7 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 	/* FIRST mark the mixer as invalid */
 	/* THEN actually delete it */
 	mixer_group.reset();
-	char mixer_text[200];		/* large enough for one mixer */
+	char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
 	unsigned mixer_text_length = 0;
 
 	unsigned transmitted = 0;
@@ -217,7 +301,8 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
-			PX4_ERR("Mixer text length overflow");
+			PX4_ERR("Mixer text length overflow for file: %s. Is PX4IO_MAX_MIXER_LENGHT too small? (curr len: %d)", filename,
+				PX4IO_MAX_MIXER_LENGHT);
 			return false;
 		}
 
@@ -254,7 +339,9 @@ bool MixerTest::load_mixer(const char *buf, unsigned loaded, unsigned expected_c
 		PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
 	}
 
-	ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+	if (expected_count > 0) {
+		ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+	}
 
 	return true;
 }
