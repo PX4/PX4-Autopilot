@@ -21,11 +21,4 @@ mavlink start -u 14556 -r 2000000
 
 tests @test_name@
 
-mavlink stop-all
-
-tone_alarm stop
-rgbledsim stop
-
-dataman stop
-
 shutdown
