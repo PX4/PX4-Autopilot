@@ -156,6 +156,7 @@ set(tests
 	int
 	mathlib
 	matrix
+	mavlink
 	mc_pos_control
 	mixer
 	param
