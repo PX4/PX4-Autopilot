@@ -62,7 +62,7 @@ int test_uart_baudchange(int argc, char *argv[])
 	int uart2_nwrite = 0;
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
-	int uart2 = open("/dev/ttyS1", O_RDWR | O_NONBLOCK | O_NOCTTY); //
+	int uart2 = open("/dev/ttyS2", O_RDWR | O_NONBLOCK | O_NOCTTY); //
 
 	if (uart2 < 0) {
 		printf("ERROR opening UART2, aborting..\n");
@@ -83,7 +83,7 @@ int test_uart_baudchange(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	if ((termios_state = tcgetattr(uart2, &uart2_config)) < 0) {
+	if ((termios_state = tcgetattr(uart2, &uart2_config_original)) < 0) {
 		printf("ERROR getting termios config for UART2: %d\n", termios_state);
 		ret = termios_state;
 		goto cleanup;
