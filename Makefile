@@ -287,7 +287,7 @@ tests: run_tests_posix
 tests_coverage:
 	@$(call PX4_RUN,$(MAKE) --no-print-directory tests PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1)
 	@$(call PX4_RUN,lcov --directory . --capture --quiet --output-file coverage.info)
-	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' --quiet --output-file coverage.info)
+	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' 'mavlink/*' --quiet --output-file coverage.info)
 	#@(lcov --list coverage.info)
 	@$(call PX4_RUN,genhtml coverage.info --quiet --output-directory coverage-html)
 
