@@ -701,6 +701,7 @@ function(px4_add_common_flags)
 		)
 	endif()
 
+	# address sanitizer
 	if ($ENV{MEMORY_DEBUG} MATCHES "1")
 		message(STATUS "address sanitizer enabled")
 		if ("${OS}" STREQUAL "nuttx")
@@ -738,6 +739,11 @@ function(px4_add_common_flags)
 			-fdata-sections
 			${PIC_FLAG}
 			)
+	endif()
+
+	# code coverage
+	if ($ENV{PX4_CODE_COVERAGE} MATCHES "1")
+		set(max_optimization -O0)
 	endif()
 
 	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
