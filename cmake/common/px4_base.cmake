@@ -746,26 +746,12 @@ function(px4_add_common_flags)
 		set(max_optimization -O0)
 	endif()
 
-	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		list(APPEND _optimization_flags
-			-fno-strength-reduce
-			-fno-builtin-printf
-		)
-	endif()
-
 	set(c_warnings
 		-Wbad-function-cast
 		-Wstrict-prototypes
 		-Wmissing-prototypes
 		-Wnested-externs
 		)
-
-	if (NOT ${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		list(APPEND c_warnings
-			-Wold-style-declaration
-			-Wmissing-parameter-type
-		)
-	endif()
 
 	set(c_compile_flags
 		-g
@@ -787,7 +773,18 @@ function(px4_add_common_flags)
 		-D__CUSTOM_FILE_IO__
 		)
 
-	if (NOT (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*"))
+	# clang
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		# force color for clang (needed for clang + ccache)
+		list(APPEND _optimization_flags
+			-fcolor-diagnostics
+		)
+	else()
+		list(APPEND _optimization_flags
+			-fno-strength-reduce
+			-fno-builtin-printf
+		)
+
 		# -fcheck-new is a no-op for Clang in general
 		# and has no effect, but can generate a compile
 		# error for some OS
@@ -821,21 +818,18 @@ function(px4_add_common_flags)
 		)
 
 	set(added_include_dirs
-		${PX4_SOURCE_DIR}/src
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src
-		${PX4_SOURCE_DIR}/src/modules
+		${PX4_BINARY_DIR}/src/modules
+		${PX4_BINARY_DIR}/src/modules/px4_messages
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
+		${PX4_SOURCE_DIR}/src
+		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
-		${PX4_SOURCE_DIR}/src/platforms
-		# TODO Build/versioning was in Makefile,
-		# do we need this, how does it work with cmake
-		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}
-		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src/modules/px4_messages
-		${PX4_BINARY_DIR}/src/modules
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
+		${PX4_SOURCE_DIR}/src/modules
+		${PX4_SOURCE_DIR}/src/platforms
 		)
 
 	list(APPEND added_include_dirs

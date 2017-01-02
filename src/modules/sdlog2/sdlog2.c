@@ -393,7 +393,7 @@ int sdlog2_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "on")) {
+	if (!strncmp(argv[1], "on", 2)) {
 		struct vehicle_command_s cmd;
 		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
