@@ -55,6 +55,8 @@
 #include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
+#include "mixer.h"
+
 extern "C" {
 //#define DEBUG
 #include "px4io.h"
