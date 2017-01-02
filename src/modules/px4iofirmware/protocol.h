@@ -82,16 +82,17 @@
 #define PX4IO_PROTOCOL_MAX_CONTROL_COUNT	8	/**< The protocol does not support more than set here, individual units might support less - see PX4IO_P_CONFIG_CONTROL_COUNT */
 
 /* static configuration page */
-#define PX4IO_PAGE_CONFIG		0
+#define PX4IO_PAGE_CONFIG					0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* PX4IO_PROTOCOL_VERSION */
 #define PX4IO_P_CONFIG_HARDWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
-#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
+#define PX4IO_P_CONFIG_MAX_TRANSFER			3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
 #define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
-#define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
+#define PX4IO_P_CONFIG_RELAY_COUNT			8	/* hardcoded # of relay outputs */
+#define PX4IO_MAX_TRANSFER_LEN				64
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -337,6 +338,10 @@ struct IOPacket {
 	uint16_t	regs[PKT_MAX_REGS];
 };
 #pragma pack(pop)
+
+#if (PX4IO_MAX_TRANSFER_LEN > PKT_MAX_REGS * 2)
+#error The max transfer length of the IO protocol must not be larger than the IO packet size
+#endif
 
 #define PKT_CODE_READ		0x00	/* FMU->IO read transaction */
 #define PKT_CODE_WRITE		0x40	/* FMU->IO write transaction */
