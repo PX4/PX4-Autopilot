@@ -295,6 +295,12 @@ tests_coverage:
 test_startup_shutdown:
 	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_test gazebo_standard_vtol HEADLESS=1 MEMORY_DEBUG=1)
 
+scan-build:
+	export CCACHE_DISABLE=1
+	mkdir -p $(SRC_DIR)/build_posix_sitl_default_scan-build
+	cd $(SRC_DIR)/build_posix_sitl_default_scan-build && scan-build cmake .. -GNinja -DCONFIG=posix_sitl_default
+	scan-build cmake --build $(SRC_DIR)/build_posix_sitl_default_scan-build
+
 package_firmware:
 	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
 

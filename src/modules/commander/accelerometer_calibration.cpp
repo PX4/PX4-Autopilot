@@ -242,7 +242,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	float accel_offs[max_accel_sens][3];
 	float accel_T[max_accel_sens][3][3];
-	unsigned active_sensors;
+	unsigned active_sensors = 0;
 
 	/* measure and calculate offsets & scales */
 	if (res == PX4_OK) {
