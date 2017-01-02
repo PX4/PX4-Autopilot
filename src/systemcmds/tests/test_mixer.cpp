@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 #include <math.h>
 
 #include <systemlib/err.h>
@@ -80,6 +81,14 @@ static bool should_prearm = false;
 #define MIXER_DIFFERENCE_THRESHOLD 30
 #else
 #define MIXER_DIFFERENCE_THRESHOLD 2
+#endif
+
+#ifndef PATH_MAX
+#ifdef __PX4_NUTTX
+#define PATH_MAX 512
+#else
+#define PATH_MAX 4096
+#endif
 #endif
 
 #if !defined(CONFIG_ARCH_BOARD_SITL)
@@ -206,7 +215,7 @@ bool MixerTest::loadAllTest()
 #endif
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
-				char buf[200];
+				char buf[PATH_MAX];
 				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf));
 				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], result->d_name, sizeof(buf));
 
