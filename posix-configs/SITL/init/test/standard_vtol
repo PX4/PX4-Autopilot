@@ -127,6 +127,5 @@ gpssim stop
 measairspeedsim stop
 
 dataman stop
-uorb stop
 
 shutdown

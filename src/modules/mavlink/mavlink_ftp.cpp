@@ -48,9 +48,6 @@
 // Uncomment the line below to get better debug output. Never commit with this left on.
 //#define MAVLINK_FTP_DEBUG
 
-int buf_size_1 = 0;
-int buf_size_2 = 0;
-
 MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
 	MavlinkStream(mavlink),
 	_session_info{},
