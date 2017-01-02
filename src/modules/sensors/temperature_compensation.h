@@ -134,7 +134,7 @@ struct Parameters {
 	int accel_tc_enable;
 	SENSOR_CAL_DATA_3D accel_cal_data[3];
 	int baro_tc_enable;
-	SENSOR_CAL_DATA_1D baro_cal_data;
+	SENSOR_CAL_DATA_1D baro_cal_data[3];
 };
 
 // create a struct containing the handles required to access all calibration parameters
@@ -144,7 +144,7 @@ struct ParameterHandles {
 	param_t accel_tc_enable;
 	SENSOR_CAL_HANDLES_3D accel_cal_handles[3];
 	param_t baro_tc_enable;
-	SENSOR_CAL_HANDLES_1D baro_cal_handles;
+	SENSOR_CAL_HANDLES_1D baro_cal_handles[3];
 };
 
 /**
