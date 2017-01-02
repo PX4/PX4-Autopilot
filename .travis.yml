@@ -11,7 +11,10 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
+      env:
+        - GCC_VER=5.4
+        - DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
+        - secure: "dnvMc2ubMdFD0DNV9jNqrlZF1L0Y0Phqp/8GNciSiDrYEOxjdqN288tfTYqwMpb6U3Ur/4pB4LoPvzD6Y27L63nk0CWavARvAaBVpxBo9l6nJH5AzKM/7vmRmzXO40rFOL2Vy4v8Fz+icegRNcXHQNf8fmDLqkEIJ+XMD0bwLRw="
       services:
         - docker
     - os: osx
