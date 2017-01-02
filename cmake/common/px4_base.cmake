@@ -701,14 +701,15 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	# address sanitizer
-	if ($ENV{MEMORY_DEBUG} MATCHES "1")
+	# optimization flags and santiziers (ASAN, TSAN, UBSAN)
+	if ($ENV{PX4_ASAN} MATCHES "1")
 		message(STATUS "address sanitizer enabled")
-		if ("${OS}" STREQUAL "nuttx")
-			set(max_optimization -Os)
-		elseif (${BOARD} STREQUAL "bebop")
-			set(max_optimization -Os)
-		endif()
+
+		# environment variables
+		# ASAN_OPTIONS=detect_stack_use_after_return=1
+		# ASAN_OPTIONS=check_initialization_order=1
+
+		set(max_optimization -O1)
 
 		# Do not use optimization_flags (without _) as that is already used.
 		set(_optimization_flags
@@ -718,7 +719,59 @@ function(px4_add_common_flags)
 			-ffunction-sections
 			-fdata-sections
 			-g3 -fsanitize=address
+			#-fsanitize-address-use-after-scope
 			)
+
+	elseif ($ENV{PX4_TSAN} MATCHES "1")
+		message(STATUS "thread sanitizer enabled")
+
+		# needs some optimization for usable performance
+		set(max_optimization -O1)
+
+		# Do not use optimization_flags (without _) as that is already used.
+		set(_optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g3 -fsanitize=thread
+			)
+
+	elseif ($ENV{PX4_UBSAN} MATCHES "1")
+		message(STATUS "undefined behaviour sanitizer enabled")
+
+		set(max_optimization -O2)
+
+		# Do not use optimization_flags (without _) as that is already used.
+		set(_optimization_flags
+			-fno-strict-aliasing
+			-fno-omit-frame-pointer
+			-funsafe-math-optimizations
+			-ffunction-sections
+			-fdata-sections
+			-g3
+			#-fsanitize=alignment
+			-fsanitize=bool
+			-fsanitize=bounds
+			-fsanitize=enum
+			#-fsanitize=float-cast-overflow
+			-fsanitize=float-divide-by-zero
+			#-fsanitize=function
+			-fsanitize=integer-divide-by-zero
+			-fsanitize=nonnull-attribute
+			-fsanitize=null
+			-fsanitize=object-size
+			-fsanitize=return
+			-fsanitize=returns-nonnull-attribute
+			-fsanitize=shift
+			-fsanitize=signed-integer-overflow
+			-fsanitize=unreachable
+			#-fsanitize=unsigned-integer-overflow
+			-fsanitize=vla-bound
+			-fsanitize=vptr
+			)
+
 	else()
 		if ("${OS}" STREQUAL "nuttx")
 			set(max_optimization -Os)
