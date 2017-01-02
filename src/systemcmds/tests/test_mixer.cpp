@@ -217,7 +217,7 @@ bool MixerTest::loadAllTest()
 
 				char buf[PATH_MAX];
 				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf));
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], result->d_name, sizeof(buf));
+				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH));
 
 				bool ret = load_mixer(buf, 0);
 
