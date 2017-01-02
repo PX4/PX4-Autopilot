@@ -265,13 +265,19 @@ private:
 
 	/* sensor thermal compensation */
 	sensors_temp_comp::Parameters	_thermal_correction_param; /**< copy of the thermal correction parameters*/
-	sensors_temp_comp::ParameterHandles _thermal_correction_param_handles; /**< handles for the thermal correction parameters */
+	sensors_temp_comp::ParameterHandles
+	_thermal_correction_param_handles; /**< handles for the thermal correction parameters */
 	struct sensor_correction_s _corrections = {}; /**< struct containing the sensor corrections to be published to the uORB*/
 	orb_advert_t _sensor_correction_pub; /**< handle to the sensor correction uORB topic */
 	float _accel_offset[SENSOR_COUNT_MAX][3]; /**< offsets to be added to the raw accel data after scale factor correction */
 	float _accel_scale[SENSOR_COUNT_MAX][3]; /**< scale factor corrections to be applied to the raw accel data before offsets are added */
 	float _gyro_offset[SENSOR_COUNT_MAX][3]; /**< offsets to be added to the raw angular rate data after scale factor correction */
 	float _gyro_scale[SENSOR_COUNT_MAX][3]; /**< scale factor corrections to be applied to the raw angular rate data before offsets are added */
+	float _baro_offset[SENSOR_COUNT_MAX]; /**< offsets to be added to the raw baro pressure data after scale factor correction */
+	float _baro_scale[SENSOR_COUNT_MAX]; /**< scale factor corrections to be applied to the raw barp pressure data before offsets are added */
+
+	/* altitude conversion calibration */
+	unsigned		_msl_pressure;	/* in Pa */
 
 };
 
