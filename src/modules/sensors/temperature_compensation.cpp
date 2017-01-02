@@ -181,7 +181,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	return ret;
 }
 
-bool correct_data_1D(struct SENSOR_CAL_DATA_1D &coef, const float &measured_temp, float &offset)
+bool calc_thermal_offsets_1D(struct SENSOR_CAL_DATA_1D &coef, const float &measured_temp, float &offset)
 {
 	bool ret = true;
 
@@ -204,8 +204,15 @@ bool correct_data_1D(struct SENSOR_CAL_DATA_1D &coef, const float &measured_temp
 	delta_temp -= coef.ref_temp;
 
 	// calulate the offset
-	offset = coef.x0 + coef.x1 * delta_temp + coef.x2 * delta_temp * delta_temp + coef.x3 * delta_temp * delta_temp *
-		 delta_temp;
+	offset = coef.x0 + coef.x1 * delta_temp;
+	delta_temp *= delta_temp;
+	offset += coef.x2 * delta_temp;
+	delta_temp *= delta_temp;
+	offset += coef.x3 * delta_temp;
+	delta_temp *= delta_temp;
+	offset += coef.x4 * delta_temp;
+	delta_temp *= delta_temp;
+	offset += coef.x5 * delta_temp;
 
 	return ret;
 
