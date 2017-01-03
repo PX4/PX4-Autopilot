@@ -306,3 +306,15 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
+
+/**
+ * Airspeed less front transition time (open loop)
+ *
+ * The duration of the front transition when there is no airspeed feedback available.
+ *
+ * @unit seconds
+ * @min 1.0
+ * @max 30.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
