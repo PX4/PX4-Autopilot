@@ -98,9 +98,9 @@ static bool should_prearm = false;
 #endif
 
 #if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_ONBOARD_PATH "/etc/mixers/"
+#define MIXER_ONBOARD_PATH "/etc/mixers"
 #else
-#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers/"
+#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
 #endif
 
 #define MIXER_VERBOSE
@@ -217,7 +217,8 @@ bool MixerTest::loadAllTest()
 
 				char buf[PATH_MAX];
 				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf));
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH));
+				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], "/", 1);
+				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH) + 1], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH) - 1);
 
 				bool ret = load_mixer(buf, 0);
 
