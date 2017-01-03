@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -116,5 +116,6 @@ int test_servo(int argc, char *argv[])
 	printf("Advancing channel 1 to 1800\n");
 	result = ioctl(fd, PWM_SERVO_SET(1), 1800);
 out:
+	close(fd);
 	return 0;
 }
