@@ -339,14 +339,16 @@ void Tiltrotor::update_transition_state()
 		}
 
 		if (use_airspeed && _airspeed->indicated_airspeed_m_s >= _params_tiltrotor.airspeed_blend_start) {
-			_mc_roll_weight = 0.0f;
+			_mc_roll_weight = 1.0f - (_airspeed->indicated_airspeed_m_s - _params_tiltrotor.airspeed_blend_start) /
+					  (_params_tiltrotor.airspeed_trans - _params_tiltrotor.airspeed_blend_start);
 		}
 
-		// without airspeed wait until half of open-loop time has passed
+		// without airspeed do timed weight changes
 		if (!use_airspeed
-		    && (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params->front_trans_time_openloop * 1e6f) / 2) {
-			_mc_roll_weight = 0.0f;
-			_mc_yaw_weight = 0.0f;
+		    && (float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params->front_trans_time_min * 1e6f)) {
+			_mc_roll_weight = 1.0f - ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) - _params->front_trans_time_min *
+						  1e6f) / (_params->front_trans_time_openloop * 1e6f - _params->front_trans_time_min * 1e6f);
+			_mc_yaw_weight = _mc_roll_weight;
 		}
 
 		_thrust_transition = _mc_virtual_att_sp->thrust;
