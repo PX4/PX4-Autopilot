@@ -18,8 +18,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -std=gnu++0x -g -fno-excep
 # code coverage
 if ($ENV{PX4_CODE_COVERAGE} MATCHES "1")
 	message(STATUS "Code coverage build flags enabled")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage --coverage")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage --coverage")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g3 -fprofile-arcs -ftest-coverage --coverage")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g3 -fprofile-arcs -ftest-coverage --coverage")
 endif()
 
 if (NOT PX4_SOURCE_DIR)
