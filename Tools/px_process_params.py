@@ -143,7 +143,6 @@ def main():
                 use_scope = False
                 pass
     if use_scope:
-        print(cmake_scope.scope)
         if not scanner.ScanDir([os.path.join(args.src_path, p) for p in cmake_scope.scope], parser):
             sys.exit(1)
     else:    
