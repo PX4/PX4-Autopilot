@@ -119,6 +119,8 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 		rate_limiter++;
 	}
 
+	fclose(fp);
+
 	ut_test(ret == EOF);
 	PX4_INFO("drop: %d", (int)last_drop);
 	ut_test(last_drop == expected_dropcount);
