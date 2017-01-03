@@ -279,7 +279,7 @@ unittest: posix_sitl_default
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix:
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
+	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results)
 
 tests: run_tests_posix
 	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest)
