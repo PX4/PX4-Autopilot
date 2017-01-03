@@ -35,6 +35,7 @@
  * @file test_uart_loopback.c
  * Tests the uart outputs
  *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -75,6 +76,10 @@ int test_uart_loopback(int argc, char *argv[])
 	}
 
 	if (uart5 < 0) {
+		if (uart2 > 0) {
+			close(uart2);
+		}
+
 		printf("ERROR opening UART5, aborting..\n");
 		exit(uart5);
 	}

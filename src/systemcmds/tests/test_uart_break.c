@@ -1,9 +1,6 @@
 /****************************************************************************
- * px4/sensors/test_uart_break.c
  *
- *  Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
- *            Lorenz Meier <lm@inf.ethz.ch>
- *            David Sidrane <david_s5@nscdg.com>
+ *  Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,9 +31,12 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_uart_break.c
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author David Sidrane <david_s5@nscdg.com>
+ */
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -58,40 +58,6 @@
 
 #include <math.h>
 #include <float.h>
-
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: test_led
- ****************************************************************************/
 
 int test_uart_break(int argc, char *argv[])
 {
