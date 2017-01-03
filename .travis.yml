@@ -27,11 +27,14 @@ cache:
     - $HOME/Library/Caches/pip
 
 before_install:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          cd ${TRAVIS_BUILD_DIR}
       && git fetch --unshallow && git fetch --all --tags
       && docker pull ${DOCKER_REPO}
-      && echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+      ;
+    elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then
+         sudo apt-get install genromfs
+      && pip install empy
       ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
          test "${TRAVIS_BRANCH}" != 'coverity' || exit 0
@@ -131,7 +134,7 @@ addons:
     project:
       name: PX4/Firmware
     notification_email: ci@px4.io
-    build_command: "make posix_sitl_default"
+    build_command: make posix_sitl_default
     branch_pattern: coverity
 
 notifications:
