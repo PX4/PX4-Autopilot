@@ -159,8 +159,9 @@ static int land_detector_start(const char *mode)
 		}
 	}
 
-	//Remember current active mode
-	strncpy(_currentMode, mode, 12);
+	// Remember current active mode
+	strncpy(_currentMode, mode, sizeof(_currentMode) - 1);
+	_currentMode[sizeof(_currentMode) - 1] = '\0';
 
 	return 0;
 }
