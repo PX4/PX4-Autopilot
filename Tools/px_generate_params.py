@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import os
 import re
 import codecs
-import sys
 
 from px4params import scope, cmakeparser
 
@@ -46,9 +45,7 @@ struct px4_parameters_t {
 start_name = ""
 end_name = ""
 
-sys.stderr.write("cmake_scope: " + str(cmake_scope) + "\n")
 for group in root:
-	sys.stderr.write(str(group.attrib) + group.tag + "\n")
 	if group.tag == "group" and "no_code_generation" not in group.attrib:
 		section = """
 	/*****************************************************************
