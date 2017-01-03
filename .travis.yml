@@ -27,13 +27,18 @@ cache:
     - $HOME/Library/Caches/pip
 
 before_install:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          cd ${TRAVIS_BUILD_DIR}
       && git fetch --unshallow && git fetch --all --tags
       && docker pull ${DOCKER_REPO}
       ;
+    elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then
+         sudo apt-get install genromfs
+      && pip install empy
+      ;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         sudo -H easy_install pip
+         test "${TRAVIS_BRANCH}" != 'coverity' || exit 0
+      && sudo -H easy_install pip
       && sudo -H pip install empy
       && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
       && sudo mv ccache /usr/local/bin
@@ -54,6 +59,8 @@ before_install:
 
 env:
   global:
+# COVERITY KEY
+    - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
 # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
@@ -63,7 +70,7 @@ env:
 
 script:
   - ccache -M 1GB; ccache -z
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       PX4_DOCKER=1 make check_qgc_firmware;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
@@ -71,13 +78,13 @@ script:
   - ccache -s
 
 after_success:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
       && cp Binaries/* .
       && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
       && mkdir s3deploy-branch && mv *_default.px4 Meta/px4fmu-v2_default/parameters.xml Meta/px4fmu-v2_default/airframes.xml s3deploy-branch/;
     fi
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" ]]; then
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       export PX4_S3_DEPLOY=1;
     fi
 
@@ -121,6 +128,14 @@ deploy:
       all_branches: true
       repo: PX4/Firmware
       condition: $GCC_VER = 5.4
+
+addons:
+  coverity_scan:
+    project:
+      name: PX4/Firmware
+    notification_email: ci@px4.io
+    build_command: make posix_sitl_default
+    branch_pattern: coverity
 
 notifications:
   webhooks:
