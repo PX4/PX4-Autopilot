@@ -8,14 +8,16 @@ dataman start
 rgbledsim start
 tone_alarm start
 
-#simulator start -s
-#gyrosim start
-#accelsim start
-#barosim start
+simulator start -t
+gyrosim start
+accelsim start
+barosim start
 
-#adcsim start
-#gpssim start
-#pwm_out_sim mode_pwm
+adcsim start
+gpssim start
+pwm_out_sim mode_pwm
+
+ver all
 
 mavlink start -u 14556 -r 2000000
 
