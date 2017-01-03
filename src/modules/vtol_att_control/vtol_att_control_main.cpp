@@ -784,7 +784,6 @@ void VtolAttitudeControl::task_main()
 			if (got_new_data) {
 				_vtol_type->update_transition_state();
 				fill_mc_att_rates_sp();
-				publish_att_sp();
 			}
 
 		} else if (_vtol_type->get_mode() == EXTERNAL) {
