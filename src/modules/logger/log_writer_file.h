@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4.h>
+#include <px4_defines.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>

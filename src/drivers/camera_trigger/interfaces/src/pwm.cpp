@@ -1,4 +1,3 @@
-#include <px4.h>
 #include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 
