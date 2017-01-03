@@ -287,10 +287,12 @@ tests: run_tests_posix
 tests_coverage:
 	@$(call PX4_RUN,lcov --zerocounters --directory $(SRC_DIR) --quiet)
 	@$(call PX4_RUN,lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory tests PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
+	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
+	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
 	@$(call PX4_RUN,lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info)
 	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info)
 	@$(call PX4_RUN,genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info)
+	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
 
 test_startup_shutdown:
 	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_test gazebo_standard_vtol HEADLESS=1 MEMORY_DEBUG=1)

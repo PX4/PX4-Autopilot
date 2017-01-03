@@ -15,9 +15,14 @@ adcsim start
 gpssim start
 measairspeedsim start
 pwm_out_sim mode_pwm
-sleep 1
 
 ver all
+
+list_builtins
+list_tasks
+list_devices
+list_topics
+list_files
 
 mavlink start -u 14556 -r 2000000
 mavlink boot_complete
