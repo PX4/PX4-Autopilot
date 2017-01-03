@@ -143,8 +143,8 @@ void SuperBlock::setDt(float dt)
 
 	while (child != NULL) {
 		if (count++ > maxChildrenPerBlock) {
-			char name[40];
-			getName(name, 40);
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
 			printf("exceeded max children for block: %s\n", name);
 			break;
 		}
@@ -161,8 +161,8 @@ void SuperBlock::updateChildParams()
 
 	while (child != NULL) {
 		if (count++ > maxChildrenPerBlock) {
-			char name[40];
-			getName(name, 40);
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
 			printf("exceeded max children for block: %s\n", name);
 			break;
 		}
@@ -179,8 +179,8 @@ void SuperBlock::updateChildSubscriptions()
 
 	while (child != NULL) {
 		if (count++ > maxChildrenPerBlock) {
-			char name[40];
-			getName(name, 40);
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
 			printf("exceeded max children for block: %s\n", name);
 			break;
 		}
@@ -197,8 +197,8 @@ void SuperBlock::updateChildPublications()
 
 	while (child != NULL) {
 		if (count++ > maxChildrenPerBlock) {
-			char name[40];
-			getName(name, 40);
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
 			printf("exceeded max children for block: %s\n", name);
 			break;
 		}
