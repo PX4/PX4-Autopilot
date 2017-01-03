@@ -24,5 +24,5 @@ test:
     # copy test results for circleci
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/ && cp ./build_posix_sitl_default/JUnitTestResults.xml build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/junit/
     - mkdir -p $CIRCLE_ARTIFACTS && cp -R coverage-html $CIRCLE_ARTIFACTS
-    - cpp-coveralls -l coverage.info
-
+    # only post to coveralls if not a fork PR
+    - if [ -z ${CIRCLE_PR_USERNAME}]; then cpp-coveralls -l coverage.info; fi
