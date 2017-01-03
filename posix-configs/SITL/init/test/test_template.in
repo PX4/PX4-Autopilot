@@ -18,7 +18,6 @@ pwm_out_sim mode_pwm
 
 ver all
 
-list_builtins
 list_tasks
 list_devices
 list_topics
