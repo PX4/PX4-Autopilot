@@ -76,7 +76,7 @@ int test_uart_loopback(int argc, char *argv[])
 	}
 
 	if (uart5 < 0) {
-		if (uart2 > 0) {
+		if (uart2 >= 0) {
 			close(uart2);
 		}
 
