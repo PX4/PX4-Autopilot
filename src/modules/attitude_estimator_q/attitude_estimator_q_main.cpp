@@ -189,9 +189,6 @@ private:
 
 	orb_advert_t	_mavlink_log_pub = nullptr;
 
-	perf_counter_t _update_perf;
-	perf_counter_t _loop_perf;
-
 	void update_parameters(bool force);
 
 	int update_subscriptions();
