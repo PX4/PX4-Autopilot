@@ -387,7 +387,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
-					       cmd_mavlink.param2, cmd_mavlink.param3);
+					   cmd_mavlink.param2, cmd_mavlink.param3);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)cmd_mavlink.param1);
@@ -456,14 +456,17 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
+
 		if (ret == PX4_OK) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 		} else {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 		}
 
 		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -556,14 +559,17 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
+
 		if (ret == PX4_OK) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 		} else {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 		}
 
 		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -903,6 +909,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 						pos_sp_triplet.current.velocity_frame =
 							set_position_target_local_ned.coordinate_frame;
+
 					} else {
 						pos_sp_triplet.current.velocity_valid = false;
 					}
@@ -2241,7 +2248,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	ctrl_state.z_acc = hil_state.zacc;
 
 	static float _acc_hor_filt = 0;
-	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc * ctrl_state.y_acc);
+	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
+			ctrl_state.y_acc);
 	ctrl_state.horz_acc_mag = _acc_hor_filt;
 	ctrl_state.airspeed_valid = false;
 

@@ -2656,8 +2656,10 @@ protected:
 			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
+
 			if (att_sp.q_d_valid) {
 				memcpy(&msg.q[0], &att_sp.q_d[0], sizeof(msg.q));
+
 			} else {
 				mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
 			}
@@ -3284,7 +3286,7 @@ protected:
 				if (!status.in_transition_mode && status.is_rotary_wing) {
 					_msg.vtol_state = MAV_VTOL_STATE_MC;
 
-				} else if (!status.in_transition_mode){
+				} else if (!status.in_transition_mode) {
 					_msg.vtol_state = MAV_VTOL_STATE_FW;
 
 				} else if (status.in_transition_mode && status.in_transition_to_fw) {
@@ -3384,9 +3386,11 @@ protected:
 		{
 			struct vehicle_global_position_s global_pos;
 			updated |= _global_pos_sub->update(&_global_pos_time, &global_pos);
+
 			if (_global_pos_time != 0) {
 				msg.altitude_amsl = global_pos.alt;
 				global_alt = global_pos.alt;
+
 			} else {
 				msg.altitude_amsl = NAN;
 			}
@@ -3680,7 +3684,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency(MavlinkStreamHighLatency &);
-	MavlinkStreamHighLatency& operator = (const MavlinkStreamHighLatency &);
+	MavlinkStreamHighLatency &operator = (const MavlinkStreamHighLatency &);
 
 protected:
 	explicit MavlinkStreamHighLatency(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -3769,6 +3773,7 @@ protected:
 
 			if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				msg.throttle = actuator.control[actuator_controls_s::INDEX_THROTTLE] * 100;
+
 			} else {
 				msg.throttle = 0;
 			}
@@ -3835,7 +3840,7 @@ public:
 	unsigned get_size()
 	{
 		return (_att_time > 0 || _gpos_time > 0) ? MAVLINK_MSG_ID_HIL_STATE_QUATERNION_LEN +
-			MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3892,6 +3897,7 @@ protected:
 				msg.yacc = 0;
 				msg.zacc = 0;
 			}
+
 			mavlink_msg_hil_state_quaternion_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}

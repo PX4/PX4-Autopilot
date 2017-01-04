@@ -172,10 +172,11 @@ public:
 		BROADCAST_MODE_ON
 	};
 
-	static const char *mavlink_mode_str(enum MAVLINK_MODE mode) {
+	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
+	{
 		switch (mode) {
 		case MAVLINK_MODE_NORMAL:
-				return "Normal";
+			return "Normal";
 
 		case MAVLINK_MODE_CUSTOM:
 			return "Custom";
@@ -441,12 +442,14 @@ public:
 
 	/** get ulog streaming if active, nullptr otherwise */
 	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
-	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component) {
+	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component)
+	{
 		if (_mavlink_ulog) { return; }
 
 		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
 	}
-	void			request_stop_ulog_streaming() {
+	void			request_stop_ulog_streaming()
+	{
 		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
 	}
 

@@ -351,7 +351,8 @@ MavlinkParametersManager::send(const hrt_abstime t)
 
 		// Re-pack the message with the UAVCAN node ID
 		mavlink_message_t mavlink_packet;
-		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet, &msg);
+		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet,
+						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
 
 	} else if (_send_all_index >= 0 && _mavlink->boot_complete()) {
