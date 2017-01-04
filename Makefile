@@ -182,7 +182,7 @@ run_sitl_ros: _sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware package_firmware clean submodulesclean distclean
+.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware alt_firmware package_firmware clean submodulesclean distclean
 .NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
@@ -218,7 +218,7 @@ qgc_firmware: \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
 
-checks_alt: \
+alt_firmware: \
 	check_auav-x21_default \
 	check_px4-stm32f4discovery_default \
 	check_px4cannode-v1_default \
@@ -228,7 +228,7 @@ checks_alt: \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
 
-checks_defaults: qgc_firmware checks_alt
+checks_defaults: qgc_firmware alt_firmware
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
