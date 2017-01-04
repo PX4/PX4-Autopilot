@@ -311,7 +311,7 @@ void FollowTarget::on_active()
 
 			} else if (target_velocity_valid()) {
 
-				if ((current_time - _last_update_time) / 1000 >= _step_time_in_ms) {
+				if ((float)(current_time - _last_update_time) / 1000.0f >= _step_time_in_ms) {
 					_current_vel += _step_vel;
 					_last_update_time = current_time;
 				}
