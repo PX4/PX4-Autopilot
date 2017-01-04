@@ -521,7 +521,6 @@ bool Ekf::collect_imu(imuSample &imu)
 		imu.delta_vel     = _imu_down_sampled.delta_vel;
 		imu.delta_ang_dt  = _imu_down_sampled.delta_ang_dt;
 		imu.delta_vel_dt  = _imu_down_sampled.delta_vel_dt;
-		imu.time_us       = imu.time_us;
 
 		_imu_down_sampled.delta_ang.setZero();
 		_imu_down_sampled.delta_vel.setZero();
