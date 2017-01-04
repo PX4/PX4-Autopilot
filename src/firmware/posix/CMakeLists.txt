@@ -157,8 +157,9 @@ add_dependencies(run_config px4)
 # rotors_simulator has many discreet catkin packages, each with it's own
 # CMakeLists.txt
 ExternalProject_Add(sitl_gazebo
-	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo_plugins/
+	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
