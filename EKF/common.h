@@ -338,6 +338,9 @@ struct parameters {
 		range_innov_gate = 5.0f;
 		rng_gnd_clearance = 0.1f;
 
+		// vision position fusion
+		ev_innov_gate = 5.0f;
+
 		// optical flow fusion
 		flow_noise = 0.15f;
 		flow_noise_qual_min = 0.5f;
