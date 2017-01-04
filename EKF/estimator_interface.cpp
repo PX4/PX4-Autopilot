@@ -62,6 +62,7 @@ EstimatorInterface::EstimatorInterface():
 	_yaw_test_ratio(0.0f),
 	_tas_test_ratio(0.0f),
 	_terr_test_ratio(0.0f),
+	_beta_test_ratio(0.0f),
 	_time_last_imu(0),
 	_time_last_gps(0),
 	_time_last_mag(0),
@@ -69,6 +70,7 @@ EstimatorInterface::EstimatorInterface():
 	_time_last_range(0),
 	_time_last_airspeed(0),
 	_time_last_ext_vision(0),
+	_time_last_optflow(0),
 	_mag_declination_gps(0.0f),
 	_mag_declination_to_save_deg(0.0f)
 {
@@ -78,6 +80,13 @@ EstimatorInterface::EstimatorInterface():
 	_delta_ang_prev.setZero();
 	_delta_vel_prev.setZero();
 	memset(_vibe_metrics, 0, sizeof(_vibe_metrics));
+	memset(&_mag_sample_delayed, 0, sizeof(_mag_sample_delayed));
+	memset(&_baro_sample_delayed, 0, sizeof(_baro_sample_delayed));
+	memset(&_gps_sample_delayed, 0, sizeof(_gps_sample_delayed));
+	memset(&_range_sample_delayed, 0, sizeof(_range_sample_delayed));
+	memset(&_airspeed_sample_delayed, 0, sizeof(_airspeed_sample_delayed));
+	memset(&_flow_sample_delayed, 0, sizeof(_flow_sample_delayed));
+	memset(&_ev_sample_delayed, 0, sizeof(_ev_sample_delayed));
 }
 
 EstimatorInterface::~EstimatorInterface()
