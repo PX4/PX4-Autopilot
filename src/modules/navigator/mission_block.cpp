@@ -513,6 +513,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	case NAV_CMD_TAKEOFF:
 		// set pitch and ensure that the hold time is zero
 		sp->pitch_min = item->pitch_min;
+
+		// fall through
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		if(_navigator->get_vstatus()->is_vtol && _param_vtol_wv_takeoff.get()){
@@ -532,7 +534,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		// initially use current altitude, and switch to mission item altitude once in loiter position
 		sp->alt = math::max(_navigator->get_global_position()->alt, _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
 
-		// no break
+		// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
