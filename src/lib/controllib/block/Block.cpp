@@ -66,16 +66,20 @@ void Block::getName(char *buf, size_t n)
 {
 	if (getParent() == NULL) {
 		strncpy(buf, _name, n);
+		// ensure string is terminated
+		buf[n - 1] = '\0';
 
 	} else {
 		char parentName[blockNameLengthMax];
 		getParent()->getName(parentName, n);
 
 		if (!strcmp(_name, "")) {
-			strncpy(buf, parentName, blockNameLengthMax);
+			strncpy(buf, parentName, n);
+			// ensure string is terminated
+			buf[n - 1] = '\0';
 
 		} else {
-			snprintf(buf, blockNameLengthMax, "%s_%s", parentName, _name);
+			snprintf(buf, n, "%s_%s", parentName, _name);
 		}
 	}
 }
