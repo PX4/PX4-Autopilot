@@ -289,6 +289,7 @@ Mission::find_offboard_land_start()
 	for (size_t i = 0; i < _offboard_mission.count; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
+
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return -1;
@@ -860,8 +861,8 @@ Mission::do_need_takeoff()
 			_need_takeoff = false;
 
 		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_acceptance_radius()
-			&& (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
-			    || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
+			   && (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
 			/* if in-air but below takeoff height and we have a takeoff item */
 			_need_takeoff = true;
 		}
@@ -1054,8 +1055,8 @@ Mission::altitude_sp_foh_update()
 	 * or if the previous altitude isn't from a position or loiter setpoint
 	 */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
-		|| !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-			pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
 		return;
 	}
@@ -1234,7 +1235,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if (*mission_index_ptr != (int)mission->count) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr,
-								 (int)mission->count);
+						     (int)mission->count);
 			}
 
 			return false;

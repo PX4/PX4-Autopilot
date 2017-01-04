@@ -181,7 +181,7 @@ private:
 	 * @return true if current mission item available
 	 */
 	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-		struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
+				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
