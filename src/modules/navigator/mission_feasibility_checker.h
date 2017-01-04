@@ -63,18 +63,22 @@ private:
 
 	/* Checks for all airframes */
 	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt);
-	bool checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid, bool &warning_issued, bool throw_error = false);
+	bool checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool home_valid,
+				       bool &warning_issued, bool throw_error = false);
 	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems, bool condition_landed);
-	bool check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp, bool &warning_issued);
+	bool check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp,
+			    bool &warning_issued);
 	bool isPositionCommand(unsigned cmd);
 
 	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid);
+	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt,
+					   bool home_valid);
 	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid, float default_acceptance_rad);
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt,
+					    bool home_valid, float default_acceptance_rad);
 public:
 
 	MissionFeasibilityChecker();
@@ -88,9 +92,9 @@ public:
 	 * Returns true if mission is feasible and false otherwise
 	 */
 	bool checkMissionFeasible(orb_advert_t *mavlink_log_pub, bool isRotarywing, dm_item_t dm_current,
-		size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid,
-		double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued, float default_acceptance_rad,
-		bool condition_landed);
+				  size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid,
+				  double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued, float default_acceptance_rad,
+				  bool condition_landed);
 
 };
 

@@ -69,19 +69,19 @@ enum NAV_CMD {
 	NAV_CMD_VTOL_LAND = 85,
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
-	NAV_CMD_DO_SET_SERVO=183,
-	NAV_CMD_DO_LAND_START=189,
-	NAV_CMD_DO_SET_ROI=201,
-	NAV_CMD_DO_DIGICAM_CONTROL=203,
-	NAV_CMD_DO_MOUNT_CONFIGURE=204,
-	NAV_CMD_DO_MOUNT_CONTROL=205,
-	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
-	NAV_CMD_IMAGE_START_CAPTURE=2000,
-	NAV_CMD_IMAGE_STOP_CAPTURE=2001,
-	NAV_CMD_VIDEO_START_CAPTURE=2500,
-	NAV_CMD_VIDEO_STOP_CAPTURE=2501,
-	NAV_CMD_DO_VTOL_TRANSITION=3000,
-	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
+	NAV_CMD_DO_SET_SERVO = 183,
+	NAV_CMD_DO_LAND_START = 189,
+	NAV_CMD_DO_SET_ROI = 201,
+	NAV_CMD_DO_DIGICAM_CONTROL = 203,
+	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
+	NAV_CMD_DO_MOUNT_CONTROL = 205,
+	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
+	NAV_CMD_IMAGE_START_CAPTURE = 2000,
+	NAV_CMD_IMAGE_STOP_CAPTURE = 2001,
+	NAV_CMD_VIDEO_START_CAPTURE = 2500,
+	NAV_CMD_VIDEO_STOP_CAPTURE = 2501,
+	NAV_CMD_DO_VTOL_TRANSITION = 3000,
+	NAV_CMD_INVALID = UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
 enum ORIGIN {
@@ -125,12 +125,12 @@ struct mission_item_s {
 	uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
 	struct {
 		uint16_t frame : 4,				/**< mission frame ***/
-		origin : 3,						/**< how the mission item was generated */
-		loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
-		force_heading : 1,				/**< heading needs to be reached ***/
-		altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
-		autocontinue : 1,				/**< true if next waypoint should follow after this one */
-		disable_mc_yaw : 1;				/**< weathervane mode */
+			 origin : 3,						/**< how the mission item was generated */
+			 loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
+			 force_heading : 1,				/**< heading needs to be reached ***/
+			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
+			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
+			 disable_mc_yaw : 1;				/**< weathervane mode */
 	};
 };
 #pragma pack(pop)
