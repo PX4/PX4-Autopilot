@@ -283,7 +283,7 @@ param_find_internal(const char *name, bool notification)
 			break;
 
 		} else if (ret < 0) {
-			last = middle - 1;
+			last = middle;
 
 		} else {
 			front = middle;
