@@ -397,8 +397,6 @@ void Ekf::fuseOptFlow()
 			// run innovation consistency check
 			optflow_test_ratio[1] = sq(_flow_innov[1]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[1]);
 
-		} else {
-			return;
 		}
 	}
 
