@@ -19,7 +19,10 @@ float32[3] pos_variance	# Variance in local position estimate
 float32[4] q 			# Attitude Quaternion
 float32[4] delta_q_reset 	# Amount by which quaternion has changed during last reset
 uint8 quat_reset_counter	# Quaternion reset counter
-float32 roll_rate		# Roll body angular rate (rad/s, x forward/y right/z down)
-float32 pitch_rate		# Pitch body angular rate (rad/s, x forward/y right/z down)
-float32 yaw_rate		# Yaw body angular rate (rad/s, x forward/y right/z down)
-float32 horz_acc_mag	# low pass filtered magnitude of the horizontal acceleration
+float32 roll_rate		# Roll body angular rate (rad/s, x forward/y right/z down) - corrected for bias
+float32 pitch_rate		# Pitch body angular rate (rad/s, x forward/y right/z down) - corrected for bias
+float32 yaw_rate		# Yaw body angular rate (rad/s, x forward/y right/z down) - corrected for bias
+float32 horz_acc_mag		# low pass filtered magnitude of the horizontal acceleration
+float32 roll_rate_bias		# Roll body angular rate bias (rad/s, x forward) - subtract from uncorrected gyro data
+float32 pitch_rate_bias		# Pitch body angular rate bias (rad/s, y right) - subtract from uncorrected gyro data
+float32 yaw_rate_bias		# Yaw body angular rate bias (rad/s, z down) - subtract from uncorrected gyro data
