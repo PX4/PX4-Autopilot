@@ -78,6 +78,7 @@ static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op);
 static int 	do_reset(const char *excludes[], int num_excludes);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
+static int	do_find(const char *name);
 
 int
 param_main(int argc, char *argv[])
@@ -211,9 +212,18 @@ param_main(int argc, char *argv[])
 				return 1;
 			}
 		}
+
+		if (!strcmp(argv[1], "find")) {
+			if (argc >= 3) {
+				return do_find(argv[2]);
+			} else {
+				warnx("not enough arguments.\nTry 'param find PARAM_NAME'");
+				return 1;
+			}
+		}
 	}
 
-	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'greater', 'select', 'save', or 'reset' ");
+	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'find', 'greater', 'select', 'save', or 'reset' ");
 	return 1;
 }
 
@@ -327,6 +337,18 @@ do_show(const char *search_string)
 	param_foreach(do_show_print, (char *)search_string, false, false);
 	printf("\n %u parameters total, %u used.\n", param_count(), param_count_used());
 
+	return 0;
+}
+
+static int
+do_find(const char* name)
+{
+	param_t ret = param_find_no_notification(name);
+	if (ret == PARAM_INVALID) {
+		warnx("Parameter %s not found", name);
+		return 1;
+	}
+	printf("Found param %s at index %d\n", name, ret);
 	return 0;
 }
 
