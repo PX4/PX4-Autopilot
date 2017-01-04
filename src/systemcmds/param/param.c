@@ -216,6 +216,7 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "find")) {
 			if (argc >= 3) {
 				return do_find(argv[2]);
+
 			} else {
 				warnx("not enough arguments.\nTry 'param find PARAM_NAME'");
 				return 1;
@@ -341,13 +342,15 @@ do_show(const char *search_string)
 }
 
 static int
-do_find(const char* name)
+do_find(const char *name)
 {
 	param_t ret = param_find_no_notification(name);
+
 	if (ret == PARAM_INVALID) {
 		warnx("Parameter %s not found", name);
 		return 1;
 	}
+
 	printf("Found param %s at index %d\n", name, ret);
 	return 0;
 }

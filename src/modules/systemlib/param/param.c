@@ -263,25 +263,30 @@ param_find_internal(const char *name, bool notification)
 {
 	param_t middle;
 	param_t front = 0;
-	param_t last = get_param_info_count()-1;
+	param_t last = get_param_info_count() - 1;
 
 	/* perform a binary search of the known parameters */
 
 	while (front <= last) {
-		middle = front + (last-front) / 2;
+		middle = front + (last - front) / 2;
 		int ret = strcmp(name, param_info_base[middle].name);
+
 		if (ret == 0) {
 			if (notification) {
 				param_set_used_internal(middle);
 			}
+
 			return middle;
+
 		} else if (middle == front || middle == last) {
 			/* An end point has been hit, but there has been no match */
 			break;
+
 		} else if (ret < 0) {
 			last = middle - 1;
+
 		} else {
-			front = middle + 1;
+			front = middle;
 		}
 	}
 
