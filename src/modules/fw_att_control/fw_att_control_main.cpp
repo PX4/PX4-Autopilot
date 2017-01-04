@@ -45,46 +45,31 @@
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <arch/board/board.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/fw_virtual_rates_setpoint.h>
-#include <uORB/topics/mc_virtual_rates_setpoint.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/battery_status.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <systemlib/pid/pid.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
 
+#include <drivers/drv_accel.h>
+#include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
-#include <ecl/attitude_fw/ecl_yaw_controller.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>
-#include <platforms/px4_defines.h>
+#include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <geo/geo.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/fw_virtual_attitude_setpoint.h>
+#include <uORB/topics/fw_virtual_rates_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 /**
  * Fixedwing attitude control app start / stop handling function
@@ -126,17 +111,16 @@ private:
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle */
 
-	int		_ctrl_state_sub;	/**< control state subscription */
 	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_sub;			/**< notification of manual control updates */
-	int		_global_pos_sub;		/**< global position subscription */
-	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_battery_status_sub;		/**< battery status subscription */
+	int		_ctrl_state_sub;		/**< control state subscription */
+	int		_global_pos_sub;		/**< global position subscription */
+	int		_manual_sub;			/**< notification of manual control updates */
+	int		_params_sub;			/**< notification of parameter updates */
+	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
+	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
+	int		_vehicle_status_sub;		/**< vehicle status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -147,18 +131,18 @@ private:
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 	orb_id_t _attitude_setpoint_id;
 
-	struct control_state_s				_ctrl_state;	/**< control state */
 	struct accel_report				_accel;			/**< body frame accelerations */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
-	struct vehicle_global_position_s		_global_pos;		/**< global position */
-	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
-	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
 	struct battery_status_s				_battery_status;	/**< battery status */
+	struct control_state_s				_ctrl_state;	/**< control state */
+	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
+	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
+	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
+	struct vehicle_global_position_s		_global_pos;		/**< global position */
+	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
+	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
+	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -187,7 +171,6 @@ private:
 		float r_rmax;
 		float y_p;
 		float y_i;
-		float y_d;
 		float y_ff;
 		float y_integrator_max;
 		float y_coordinated_min_speed;
@@ -242,7 +225,6 @@ private:
 		param_t r_rmax;
 		param_t y_p;
 		param_t y_i;
-		param_t y_d;
 		param_t y_ff;
 		param_t y_integrator_max;
 		param_t y_coordinated_min_speed;
@@ -355,7 +337,6 @@ private:
 
 namespace att_control
 {
-
 FixedwingAttitudeControl	*g_control = nullptr;
 }
 
@@ -366,14 +347,16 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_control_task(-1),
 
 	/* subscriptions */
-	_ctrl_state_sub(-1),
 	_accel_sub(-1),
-	_vcontrol_mode_sub(-1),
-	_params_sub(-1),
-	_manual_sub(-1),
+	_att_sp_sub(-1),
+	_battery_status_sub(-1),
+	_ctrl_state_sub(-1),
 	_global_pos_sub(-1),
-	_vehicle_status_sub(-1),
+	_manual_sub(-1),
+	_params_sub(-1),
+	_vcontrol_mode_sub(-1),
 	_vehicle_land_detected_sub(-1),
+	_vehicle_status_sub(-1),
 
 	/* publications */
 	_rate_sp_pub(nullptr),
@@ -398,21 +381,24 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_setpoint_valid(false),
 	_debug(false),
 	_flaps_applied(0),
-	_flaperons_applied(0)
+	_flaperons_applied(0),
+	_roll(0.0f),
+	_pitch(0.0f),
+	_yaw(0.0f)
 {
 	/* safely initialize structs */
-	_ctrl_state = {};
 	_accel = {};
-	_att_sp = {};
-	_rates_sp = {};
-	_manual = {};
-	_vcontrol_mode = {};
 	_actuators = {};
 	_actuators_airframe = {};
+	_att_sp = {};
+	_battery_status = {};
+	_ctrl_state = {};
 	_global_pos = {};
-	_vehicle_status = {};
+	_manual = {};
+	_rates_sp = {};
+	_vcontrol_mode = {};
 	_vehicle_land_detected = {};
-
+	_vehicle_status = {};
 
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
@@ -1117,9 +1103,8 @@ FixedwingAttitudeControl::task_main()
 
 					if (_att_sp.fw_control_yaw == true) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-					}
 
-					else {
+					} else {
 						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					}
 
@@ -1139,8 +1124,7 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 
-					/* throttle passed through if it is finite and if no engine failure was
-					 * detected */
+					/* throttle passed through if it is finite and if no engine failure was detected */
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
 							!(_vehicle_status.engine_failure ||
 							  _vehicle_status.engine_failure_cmd)) ?
