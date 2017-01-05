@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 
 #include <arch/board/board.h>
