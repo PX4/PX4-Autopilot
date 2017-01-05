@@ -89,7 +89,7 @@ int sleep_main(int argc, char *argv[])
 
 #include "uORB/uORB.h"
 
-static int wait_for_topic(int argc, char *argv[])
+int wait_for_topic(int argc, char *argv[])
 {
 	if (argc < 2 || argc > 3) {
 		cout << "Usage: wait_for_topic <topic> [timeout_sec]" << endl;
