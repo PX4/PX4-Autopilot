@@ -56,8 +56,8 @@ include(CMakeParseArguments)
 #
 #	px4_parse_function_args
 #
-#	This function simpliies usage of the cmake_parse_arguments module.
-#	It is inteded to be called by other functions.
+#	This function simplifies usage of the cmake_parse_arguments module.
+#	It is intended to be called by other functions.
 #
 #	Usage:
 #		px4_parse_function_args(
@@ -148,7 +148,7 @@ function(px4_add_git_submodule)
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-# todo:Not have 2 list of submodues one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt)
+# todo:Not have 2 list of submodules one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt)
 # using the list of submodules from the CMake file to drive the test
 #		COMMAND Tools/check_submodules.sh ${PATH}
 		DEPENDS ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
@@ -165,7 +165,7 @@ endfunction()
 #		px4_prepend_string(OUT <output-list> STR <string> LIST <list>)
 #
 #	Input:
-#		STR			: string to prepend
+#		STR		: string to prepend
 #		LIST		: list to prepend to
 #
 #	Output:
