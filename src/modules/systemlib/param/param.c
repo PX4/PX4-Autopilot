@@ -263,7 +263,7 @@ param_find_internal(const char *name, bool notification)
 {
 	param_t middle;
 	param_t front = 0;
-	param_t last = get_param_info_count() - 1;
+	param_t last = get_param_info_count();
 
 	/* perform a binary search of the known parameters */
 
@@ -278,7 +278,7 @@ param_find_internal(const char *name, bool notification)
 
 			return middle;
 
-		} else if (middle == front || middle == last) {
+		} else if (middle == front) {
 			/* An end point has been hit, but there has been no match */
 			break;
 

@@ -42,9 +42,6 @@ __BEGIN_DECLS
 
 struct px4_parameters_t {
 """
-start_name = ""
-end_name = ""
-
 params = []
 for group in root:
 	if group.tag == "group" and "no_code_generation" not in group.attrib:
@@ -52,9 +49,6 @@ for group in root:
 			scope_ = param.find('scope').text
 			if not cmake_scope.Has(scope_):
 				continue
-			if not start_name:
-				start_name = param.attrib["name"]
-			end_name = param.attrib["name"]
 			params.append(param)
 
 params = sorted(params, key=lambda name: name.attrib["name"])

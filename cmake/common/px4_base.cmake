@@ -1024,7 +1024,8 @@ function(px4_generate_parameters_xml)
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml --scope ${SCOPE}
-		DEPENDS ${param_src_files}
+		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
+			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
