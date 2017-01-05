@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Exit if anything following returns a non-zero return value
+# (abort on first error)
 set -e
 
 echo args: $@
