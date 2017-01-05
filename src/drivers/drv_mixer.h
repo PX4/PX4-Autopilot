@@ -116,4 +116,61 @@ struct mixer_simple_s {
  * - save/serialise for saving tuned mixers.
  */
 
+
+/**
+ * Get the identification name of a mixer in (struct mixer_id_e *)arg
+ * set the mixer index and the string will be returned
+ */
+union mixer_id_e {
+	unsigned index;
+	char     id[32];
+};
+
+#define   MIXERIONAME                   _MIXERIOC(10)
+
+/**
+ * Get the count of mixers in the group as (unsigned *)arg
+ */
+#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
+
+
+/**
+ * Get the parameter identifiers for a mixer at index (mixer_type_s *)arg
+ * set the the mixer index in the struct
+ */
+struct mixer_type_s {
+        unsigned        mix_index;
+        unsigned        mix_type;
+};
+#define   MIXERIOGETTYPE		_MIXERIOC(12)
+
+/**
+ * Get the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return the value in the struct
+ */
+struct mixer_param_s {
+	unsigned        mix_index;
+	unsigned        param_index;
+	float           value;
+};
+#define   MIXERIOGETPARAM		_MIXERIOC(13)
+
+
+/**
+ * Set the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return 0 if success, -1 if fail.  Fail can indicate out of range.
+ * If failed then real value MAY be set in the mixer_param_s struct.
+ */
+#define MIXERIOSETPARAM                 _MIXERIOC(14)
+
+
+/**
+ * Get mixer configuration text for serialization
+ */
+#define MIXERIOGETCONFIG               _MIXERIOC(15)
+
+
+
 #endif /* _DRV_ACCEL_H */

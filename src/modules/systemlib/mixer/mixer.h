@@ -135,6 +135,9 @@
 
 #include "mixer_load.h"
 
+#include "mixer_types.h"
+
+
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
@@ -212,6 +215,50 @@ public:
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {};
+
+	/**
+	 * Writes a description of the mixer configuration which can be read with from_text
+	 *
+	 * @param buf   		The buffer to write the description to.
+	 * @param buflen   		The buffer size available.  Modfied to buffer length used.
+     * @re#endifturn              0 if succeeded. Otherwise non zero.
+	 */
+	virtual int             to_text(char *buf, unsigned &buflen) {return -1;}
+
+	/**
+	 * Get mixer name
+	 *
+	 * @param buff          char buffer in which name will be copied.
+	 * @param maxlen		Maximum length of the name
+	 * @return              name length if sucessful, -1 if failed or unsupported
+	 */
+	virtual signed          get_mixer_id(char *buff, unsigned maxlen) {return -1;}
+
+	/**
+	 * Get list of Mixer parameters
+	 *
+	 * @return              A type enumeration for this mixer
+	 */
+	virtual MIXER_TYPES     get_mixer_type(void) {return MIXER_TYPE_NONE;}
+
+	/**
+	 * gets a mixer parameter
+	 *
+	 * @param index         The index of the parameter
+	 * @return              The float value of the parameter
+	 */
+	virtual float       	get_parameter(uint16_t index) {return 0.0;}
+
+	/**
+	 * sets a mixer parameter
+	 *
+	 * @param index         The index of the parameter
+	 * @param value         The value of the parameter
+	 * @return              0 if set. -1 for error
+	 */
+	virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
+
+
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -391,6 +438,56 @@ public:
 	 */
 	virtual void	set_thrust_factor(float val);
 
+
+	/**
+	 * Generates text in buffer describing the mixer settings compatible
+	 * with load_from_buf
+	 *
+	 * @param buf			The mixer configuration buffer.
+	 * @param buflen		The length of the buffer, updated to reflect
+	 *                      the bytes written
+	 * @return              Zero on successful save, nonzero otherwise.
+	 *
+	 */
+	int                 save_to_buf(char *buf, unsigned &buflen);
+
+	/**
+	 * Get the identifier name of a mixer
+	 *
+	 * @param index     index of the mixer to get the id from
+	 * @param buf       buffer to put mixer names in
+	 * @param buflen    buffer length available
+	 * @return			Zero on success, nonzero otherwise.
+	 */
+	int                 mixer_id(unsigned index, char *buf, const unsigned buflen);
+
+	/**
+	 * Get the type of a mixer from its index
+	 *
+	 * @param mix_index index of the mixer to get the params from
+	 * @return			The type of the mixer.
+	 */
+	MIXER_TYPES         get_mixer_type_from_index(unsigned mix_index);
+
+	/**
+	 * Get the value of a mixer parameter
+	 *
+	 * @param mix_index     index of the mixer to get the param from
+	 * @param param_index   index of the parameter to get the value from
+	 * @return              Value of the parameter. Return 0.0 if index out of range.
+	 */
+	float get_mixer_param(unsigned mix_index, unsigned param_index);
+
+	/**
+	 * Set the value of a mixer parameter
+	 *
+	 * @param mix_index     index of the mixer to get the param from
+	 * @param param_index   index of the parameter to get the value from
+	 * @param value         value to set indexed parameter to
+	 * @return              Zero on success, -1 on failure.
+	 */
+	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
@@ -501,7 +598,13 @@ public:
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
-	/**
+	int                     to_text(char *buf, unsigned &buflen);
+	signed                  get_mixer_id(char *buff, unsigned maxlen);
+	MIXER_TYPES             get_mixer_type(void);
+	float                   get_parameter(uint16_t index);
+	int16_t                 set_parameter(uint16_t index, float value);
+
+    /**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
 	 * Note that this function will call control_cb, but only cares about
@@ -564,6 +667,7 @@ public:
 	 * @param control_cb		Callback invoked to read inputs.
 	 * @param cb_handle		Passed to control_cb.
 	 * @param geometry		The selected geometry.
+	 * @param geomname		The name of the geometry for serialization.
 	 * @param roll_scale		Scaling factor applied to roll inputs
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
@@ -632,6 +736,12 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+	int                     to_text(char *buf, unsigned &buflen);
+	signed                  get_mixer_id(char *buff, unsigned maxlen);
+	MIXER_TYPES             get_mixer_type(void);
+	float                   get_parameter(uint16_t index);
+	int16_t                 set_parameter(uint16_t index, float value);
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
@@ -664,6 +774,8 @@ private:
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+	MultirotorGeometry  _geometry;
 
 	float 				*_outputs_prev = nullptr;
 
@@ -745,6 +857,8 @@ public:
 
 private:
 	mixer_heli_s			_mixer_info;
+
+	MultirotorGeometry  _geometry;
 
 	/* do not allow to copy */
 	HelicopterMixer(const HelicopterMixer &);
