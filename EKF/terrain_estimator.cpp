@@ -175,20 +175,16 @@ void Ekf::checkRangeDataContinuity()
 {
 	// update range data continuous flag (2Hz ie 500 ms)
 	/* Timing in micro seconds */
-	static hrt_abstime t = 0;
-	static hrt_abstime t_prev = 0;
-	static float dt = 0.0f;
-	t = hrt_absolute_time();
-	dt = t_prev != 0 ? (t - t_prev) * 1.0f : 0.0f;
-	t_prev = t;
-	dt = math::min(dt, 1.0f);
 
-	static float range_update_interval = 0.0f;
 	/* Apply a 1.0 sec low pass filter to the time delta from the last range finder updates */
-	range_update_interval = range_update_interval * (1.0f - dt) + dt * (_time_last_imu - _time_last_range);
+	_dt_last_range_update_filt_us = _dt_last_range_update_filt_us * (1.0f - _dt_update) + _dt_update *
+					(_time_last_imu - _time_last_range);
 
-	if (range_update_interval < 5e5f) {
+	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 1e6f);
+
+	if (_dt_last_range_update_filt_us < 5e5f) {
 		_range_data_continuous = true;
+
 	} else {
 		_range_data_continuous = false;
 	}

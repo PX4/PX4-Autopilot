@@ -62,6 +62,7 @@ const float Ekf::_k_earth_rate = 0.000072921f;
 const float Ekf::_gravity_mss = 9.80665f;
 
 Ekf::Ekf():
+	_dt_update(0.01f),
 	_filter_initialised(false),
 	_earth_rate_initialised(false),
 	_fuse_height(false),
@@ -115,6 +116,8 @@ Ekf::Ekf():
 	_hagl_innov_var(0.0f),
 	_time_last_hagl_fuse(0),
 	_terrain_initialised(false),
+	_range_data_continuous(false),
+	_dt_last_range_update_filt_us(0.0f),
 	_baro_hgt_faulty(false),
 	_gps_hgt_faulty(false),
 	_rng_hgt_faulty(false),
@@ -183,7 +186,6 @@ bool Ekf::init(uint64_t timestamp)
 	_terrain_initialised = false;
 	_sin_tilt_rng = sinf(_params.rng_sens_pitch);
 	_cos_tilt_rng = cosf(_params.rng_sens_pitch);
-	_range_data_continuous = false;
 
 	_control_status.value = 0;
 	_control_status_prev.value = 0;

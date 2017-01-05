@@ -209,6 +209,8 @@ private:
 	} _state_reset_status;
 
 	float _dt_ekf_avg;		// average update rate of the ekf
+	float _dt_update;		// delta time since last ekf update. This time can be used for filters
+					// which run at the same rate as the Ekf::update() function
 
 	stateSample _state;		// state struct of the ekf running at the delayed time horizon
 
@@ -319,6 +321,8 @@ private:
 	float _cos_tilt_rng;		// cosine of the range finder tilt rotation about the Y body axis
 	float _R_rng_to_earth_2_2;	// 2,2 element of the rotation matrix from sensor frame to earth frame
 	bool _range_data_continuous;	// true when we are receiving range finder data faster than a 2Hz average
+	float _dt_last_range_update_filt_us;	// filtered value of the delta time elapsed since the last range measurement came into
+						// the filter (microseconds)
 
 	// height sensor fault status
 	bool _baro_hgt_faulty;		// true if valid baro data is unavailable for use
