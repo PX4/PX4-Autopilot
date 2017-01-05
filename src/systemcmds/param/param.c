@@ -351,7 +351,7 @@ do_find(const char *name)
 		return 1;
 	}
 
-	printf("Found param %s at index %lu\n", name, ret);
+	printf("Found param %s at index %"PRIxPTR"\n", name, ret);
 	return 0;
 }
 
