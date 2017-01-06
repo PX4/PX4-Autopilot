@@ -581,7 +581,6 @@ int Logger::add_topics_from_file(const char *fname)
 	}
 
 	/* call add_topic for each topic line in the file */
-	// format is TOPIC_NAME, [interval]
 	for (;;) {
 
 		/* get a line, bail on error/EOF */
@@ -596,14 +595,24 @@ int Logger::add_topics_from_file(const char *fname)
 			continue;
 		}
 
-		// default interval to zero
+		// read line with format: <topic_name>[, <interval>]
 		interval = 0;
-		int nfields = sscanf(line, "%s, %u", topic_name, &interval);
+		int nfields = sscanf(line, "%s %u", topic_name, &interval);
 
 		if (nfields > 0) {
+			int name_len = strlen(topic_name);
+
+			if (name_len > 0 && topic_name[name_len - 1] == ',') {
+				topic_name[name_len - 1] = '\0';
+			}
+
 			/* add topic with specified interval */
-			add_topic(topic_name, interval);
-			ntopics++;
+			if (add_topic(topic_name, interval) >= 0) {
+				ntopics++;
+
+			} else {
+				PX4_ERR("Failed to add topic %s", topic_name);
+			}
 		}
 	}
 

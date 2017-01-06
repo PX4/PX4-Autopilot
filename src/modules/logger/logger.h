@@ -99,7 +99,7 @@ public:
 	 * (because it does not write an ADD_LOGGED_MSG message).
 	 * @param name topic name
 	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
-	 * @return 0 on success
+	 * @return -1 on error, file descriptor otherwise
 	 */
 	int add_topic(const char *name, unsigned interval);
 
