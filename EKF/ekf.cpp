@@ -341,7 +341,8 @@ bool Ekf::initialiseFilter(void)
 		}
 
 	} else if (_primary_hgt_source == VDIST_SENSOR_EV) {
-		// do nothing becasue vision data is checked elsewhere
+		// vision data counters are sampled elsewhere
+		_hgt_counter = _ev_counter;
 	} else {
 		return false;
 	}
