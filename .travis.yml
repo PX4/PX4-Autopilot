@@ -11,7 +11,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=5.4 DOCKER_REPO="px4io/px4-dev-nuttx:2017-01-01"
+      env: GCC_VER=5.4
       services:
         - docker
     - os: osx
@@ -30,7 +30,6 @@ before_install:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          cd ${TRAVIS_BUILD_DIR}
       && git fetch --unshallow && git fetch --all --tags
-      && docker pull ${DOCKER_REPO}
       ;
     elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then
          sudo apt-get install genromfs
@@ -66,12 +65,11 @@ env:
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
     - PX4_AWS_BUCKET=px4-travis
-    - GIT_SUBMODULES_ARE_EVIL=1
 
 script:
   - ccache -M 1GB; ccache -z
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER=1 make check_qgc_firmware;
+      ./Tools/docker_run.sh 'GIT_SUBMODULES_ARE_EVIL=1 make qgc_firmware';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi

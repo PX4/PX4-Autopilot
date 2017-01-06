@@ -122,9 +122,9 @@ endif
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && $(call PX4_RUN, cd $(BUILD_DIR); cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS)) || (rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
 +@echo "PX4 CONFIG: $(BUILD_DIR)"
-+@$(call PX4_RUN,$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS))
++@$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 define colorecho
@@ -279,23 +279,19 @@ unittest: posix_sitl_default
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix:
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results)
+	$(MAKE) --no-print-directory posix_sitl_default test_results
 
-tests: run_tests_posix
-	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest)
+tests: unittest run_tests_posix
 
 tests_coverage:
-	@$(call PX4_RUN,lcov --zerocounters --directory $(SRC_DIR) --quiet)
-	@$(call PX4_RUN,lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
-	@$(call PX4_RUN,lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info)
-	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info)
-	@$(call PX4_RUN,genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
-
-test_startup_shutdown:
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_test gazebo_standard_vtol HEADLESS=1 MEMORY_DEBUG=1)
+	@lcov --zerocounters --directory $(SRC_DIR) --quiet
+	@lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info
+	@$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
+	@$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
+	@lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info
+	@lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info
+	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
+	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
 
 scan-build:
 	@export CCACHE_DISABLE=1
