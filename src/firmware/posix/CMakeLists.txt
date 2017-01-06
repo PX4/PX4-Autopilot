@@ -165,6 +165,16 @@ ExternalProject_Add(sitl_gazebo
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+# Add rotors_simulator/rotors_gazebo as a "external project" (part of the rotors_simulator repo)
+ExternalProject_Add(rotors_simulator_rotors_gazebo
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo/
+	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE
+	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
+	INSTALL_COMMAND ""
+	)
+set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
 set(debuggers none gdb lldb ddd valgrind)
