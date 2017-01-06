@@ -142,15 +142,18 @@ def main():
             except:
                 use_scope = False
                 pass
-    if use_scope:
+    if use_scope and len(cmake_scope.scope) > 0:
         if not scanner.ScanDir([os.path.join(args.src_path, p) for p in cmake_scope.scope], parser):
             sys.exit(1)
-    else:    
+    else:
         if not scanner.ScanDir([args.src_path], parser):
             sys.exit(1)
     if not parser.Validate():
         sys.exit(1)
     param_groups = parser.GetParamGroups()
+
+    if len(param_groups) == 0:
+        print("Warning: no parameters found")
 
     # Output to XML file
     if args.xml:
