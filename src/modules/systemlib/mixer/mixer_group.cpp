@@ -301,32 +301,6 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 	return 0;
 }
 
-
-int
-MixerGroup::mixer_id(unsigned index, char *buf, const unsigned buflen)
-{
-	Mixer   *mixer = _first;
-	signed   mix_count = 0;
-
-	while (mixer != NULL) {
-		if (mix_count == index) {
-			if (mixer->get_mixer_id(buf, buflen) > 0) {
-				return 0;
-
-			} else {
-				strcpy(buf, "NONAME");
-				return 0;
-			}
-		}
-
-		mixer = mixer->_next;
-		mix_count++;
-	}
-
-	return -1;
-}
-
-
 MIXER_TYPES
 MixerGroup::get_mixer_type_from_index(unsigned mix_index)
 {

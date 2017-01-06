@@ -221,18 +221,9 @@ public:
 	 *
 	 * @param buf   		The buffer to write the description to.
 	 * @param buflen   		The buffer size available.  Modfied to buffer length used.
-     * @re#endifturn              0 if succeeded. Otherwise non zero.
+     * @return              0 if succeeded. Otherwise non zero.
 	 */
 	virtual int             to_text(char *buf, unsigned &buflen) {return -1;}
-
-	/**
-	 * Get mixer name
-	 *
-	 * @param buff          char buffer in which name will be copied.
-	 * @param maxlen		Maximum length of the name
-	 * @return              name length if sucessful, -1 if failed or unsupported
-	 */
-	virtual signed          get_mixer_id(char *buff, unsigned maxlen) {return -1;}
 
 	/**
 	 * Get list of Mixer parameters
@@ -452,16 +443,6 @@ public:
 	int                 save_to_buf(char *buf, unsigned &buflen);
 
 	/**
-	 * Get the identifier name of a mixer
-	 *
-	 * @param index     index of the mixer to get the id from
-	 * @param buf       buffer to put mixer names in
-	 * @param buflen    buffer length available
-	 * @return			Zero on success, nonzero otherwise.
-	 */
-	int                 mixer_id(unsigned index, char *buf, const unsigned buflen);
-
-	/**
 	 * Get the type of a mixer from its index
 	 *
 	 * @param mix_index index of the mixer to get the params from
@@ -599,7 +580,6 @@ public:
 	virtual void			groups_required(uint32_t &groups);
 
 	int                     to_text(char *buf, unsigned &buflen);
-	signed                  get_mixer_id(char *buff, unsigned maxlen);
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
@@ -737,7 +717,6 @@ public:
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
 	int                     to_text(char *buf, unsigned &buflen);
-	signed                  get_mixer_id(char *buff, unsigned maxlen);
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
@@ -857,8 +836,6 @@ public:
 
 private:
 	mixer_heli_s			_mixer_info;
-
-	MultirotorGeometry  _geometry;
 
 	/* do not allow to copy */
 	HelicopterMixer(const HelicopterMixer &);

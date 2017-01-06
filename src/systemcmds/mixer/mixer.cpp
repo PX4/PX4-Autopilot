@@ -327,7 +327,7 @@ mixer_list(const char *devname)
 
 	unsigned mix_count;
 
-	mixer_id_e id;
+    mixer_type_e type;
 
 	/* Get the mixer count */
 	int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
@@ -343,10 +343,10 @@ mixer_list(const char *devname)
 
 	for (int index = 0; index < mix_count; index++) {
 		printf("mixer index %u : ", index);
-		id.index = index;
+        type.mix_index = index;
 		/* Get the mixer name at index*/
-		ret = px4_ioctl(dev, MIXERIONAME, (unsigned long)&id);
-		printf("%s", id.id);
+        ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+        printf("type %u", type.mix_type);
 		printf("\n");
 	}
 
@@ -370,8 +370,9 @@ mixer_param_list(const char *devname, int mix_index)
 		return 1;
 	}
 
-    mixer_type_s mixer_type;
+    mixer_type_e mixer_type;
     mixer_type.mix_index = mix_index;
+
 	/* Get the mixer paramer identifiers*/
     int ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&mixer_type);
 

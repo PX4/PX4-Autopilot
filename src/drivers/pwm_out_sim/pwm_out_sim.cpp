@@ -835,16 +835,6 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIONAME: {
-			if (_mixers == nullptr) {
-				ret = -EINVAL;
-			}
-
-			mixer_id_e *id = (mixer_id_e *)arg;
-			ret = _mixers->mixer_id((unsigned) id->index, id->id, (unsigned) sizeof(mixer_id_e));
-			break;
-		}
-
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
@@ -860,7 +850,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
             }
-            mixer_type_s *mixer_type = (mixer_type_s *)arg;
+            mixer_type_e *mixer_type = (mixer_type_e *)arg;
             mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index);
             if(mixer_type->mix_type == MIXER_TYPE_NONE)
                 ret = -EINVAL;

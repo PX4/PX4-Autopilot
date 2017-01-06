@@ -606,13 +606,6 @@ uint16_t MultirotorMixer::get_saturation_status()
 	return _saturation_status.value;
 }
 
-signed
-MultirotorMixer::get_mixer_id(char *buff, unsigned maxlen)
-{
-	snprintf(buff, maxlen, "MULTIROTOR");
-	return 5;
-}
-
 MIXER_TYPES
 MultirotorMixer::get_mixer_type(void)
 {

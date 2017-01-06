@@ -423,15 +423,6 @@ SimpleMixer::check()
 	return 0;
 }
 
-signed
-SimpleMixer::get_mixer_id(char *buff, unsigned maxlen)
-{
-	if (maxlen < 16) { return -1; }
-
-	strcpy(buff, "SIMPLE");
-	return 6;
-}
-
 MIXER_TYPES
 SimpleMixer::get_mixer_type(void)
 {

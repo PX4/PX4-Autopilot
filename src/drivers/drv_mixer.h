@@ -118,17 +118,6 @@ struct mixer_simple_s {
 
 
 /**
- * Get the identification name of a mixer in (struct mixer_id_e *)arg
- * set the mixer index and the string will be returned
- */
-union mixer_id_e {
-	unsigned index;
-	char     id[32];
-};
-
-#define   MIXERIONAME                   _MIXERIOC(10)
-
-/**
  * Get the count of mixers in the group as (unsigned *)arg
  */
 #define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
@@ -138,7 +127,7 @@ union mixer_id_e {
  * Get the parameter identifiers for a mixer at index (mixer_type_s *)arg
  * set the the mixer index in the struct
  */
-struct mixer_type_s {
+union mixer_type_e {
         unsigned        mix_index;
         unsigned        mix_type;
 };
