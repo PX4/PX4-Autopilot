@@ -50,6 +50,7 @@
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/mixer/mixer_parameters.h>
+#include <systemlib/mixer/mixer_type_id.h>
 #include <uORB/topics/actuator_controls.h>
 
 /**
@@ -346,7 +347,7 @@ mixer_list(const char *devname)
         type.mix_index = index;
 		/* Get the mixer name at index*/
         ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
-        printf("type %u", type.mix_type);
+        printf("type:%u id:%s", type.mix_type, MIXER_TYPE_ID[type.mix_type]);
 		printf("\n");
 	}
 
