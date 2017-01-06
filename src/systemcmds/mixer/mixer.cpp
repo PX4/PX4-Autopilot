@@ -187,6 +187,10 @@ usage(const char *reason)
 	PX4_INFO("usage:");
 	PX4_INFO("  mixer load <device> <filename>");
 	PX4_INFO("  mixer save <device> <filename>");
+	PX4_INFO("  mixer list <device>");
+	PX4_INFO("  mixer params <device> <mixer_index>");
+	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
+	PX4_INFO("  mixer config <device>"); 
 }
 
 static int
@@ -328,7 +332,7 @@ mixer_list(const char *devname)
 	/* Get the mixer count */
 	int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 
-	if (ret < 0) {
+	if (ret != 0) {
 		warnx("can't get mixer count for:%s", devname);
 		return 1;
 	}
