@@ -151,7 +151,7 @@ add_custom_target(run_config
 	)
 add_dependencies(run_config px4)
 
-# project to build rotors_simulator if necessary
+# Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
 # Changed from targetting sitl_gazebo to rotors_simulator
 # sitl_gazebo had a global CMakeLists.txt which built everything, while
 # rotors_simulator has many discreet catkin packages, each with it's own
@@ -168,9 +168,9 @@ set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # Add rotors_simulator/rotors_gazebo as a "external project" (part of the rotors_simulator repo)
 ExternalProject_Add(rotors_simulator_rotors_gazebo
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo/
-	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
+	# NO_ROS argument will build rotors_gazebo without any ROS dependencies
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE
-	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
+	BINARY_DIR ${PX4_BINARY_DIR}/build_test
 	INSTALL_COMMAND ""
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
@@ -210,7 +210,9 @@ foreach(viewer ${viewers})
 				)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
-				add_dependencies(${_targ_name} sitl_gazebo)
+				# Add both the rotors_simulator/rotors_gazebo_plugins (plugin files) and
+				# rotors_simulator/rotors_gazebo (world and model files) as dependencies
+				add_dependencies(${_targ_name} sitl_gazebo rotors_simulator_rotors_gazebo)
 			endif()
 		endforeach()
 	endforeach()
