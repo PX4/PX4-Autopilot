@@ -81,6 +81,8 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/mc_att_ctrl_status.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_correction.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
@@ -89,6 +91,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
+#include <conversion/rotation.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -107,6 +110,8 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define AXIS_INDEX_PITCH 1
 #define AXIS_INDEX_YAW 2
 #define AXIS_COUNT 3
+
+#define MAX_GYRO_COUNT 1
 
 class MulticopterAttitudeControl
 {
@@ -143,6 +148,11 @@ private:
 	int		_vehicle_status_sub;	/**< vehicle status subscription */
 	int 	_motor_limits_sub;		/**< motor limits subscription */
 	int 	_battery_status_sub;	/**< battery status subscription */
+	int	_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
+	int	_sensor_correction_sub;	/**< sensor thermal correction subscription */
+
+	unsigned _gyro_count;
+	int _selected_gyro;
 
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
@@ -164,6 +174,8 @@ private:
 	struct multirotor_motor_limits_s	_motor_limits;		/**< motor limits */
 	struct mc_att_ctrl_status_s 		_controller_status; /**< controller status */
 	struct battery_status_s				_battery_status;	/**< battery status */
+	struct sensor_gyro_s			_sensor_gyro;		/**< gyro data before thermal correctons and ekf bias estimates are applied */
+	struct sensor_correction_s		_sensor_correction;		/**< sensor thermal corrections */
 
 	union {
 		struct {
@@ -192,6 +204,8 @@ private:
 	math::Vector<3>		_att_control;	/**< attitude control vector */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
+
+	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
 
 	struct {
 		param_t roll_p;
@@ -237,6 +251,10 @@ private:
 
 		param_t bat_scale_en;
 
+		param_t board_rotation;
+
+		param_t board_offset[3];
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -268,6 +286,11 @@ private:
 		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
 
 		int bat_scale_en;
+
+		int board_rotation;
+
+		float board_offset[3];
+
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -338,6 +361,16 @@ private:
 	void		battery_status_poll();
 
 	/**
+	 * Check for control state updates.
+	 */
+	void		control_state_poll();
+
+	/**
+	 * Check for sensor thermal correction updates.
+	 */
+	void		sensor_correction_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -367,6 +400,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_manual_control_sp_sub(-1),
 	_armed_sub(-1),
 	_vehicle_status_sub(-1),
+	_motor_limits_sub(-1),
+	_battery_status_sub(-1),
+	_sensor_correction_sub(-1),
+
+	/* gyro selection */
+	_gyro_count(MAX_GYRO_COUNT),
+	_selected_gyro(0),
 
 	/* publications */
 	_v_rates_sp_pub(nullptr),
@@ -388,6 +428,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_motor_limits{},
 	_controller_status{},
 	_battery_status{},
+	_sensor_gyro{},
+	_sensor_correction{},
 
 	_saturation_status{},
 	/* performance counters */
@@ -396,6 +438,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_ts_opt_recovery(nullptr)
 
 {
+	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
+		_sensor_gyro_sub[i] = -1;
+	}
+
 	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
@@ -416,6 +462,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.vtol_wv_yaw_rate_scale = 1.0f;
 	_params.bat_scale_en = 0;
 
+	_params.board_rotation = 0;
+
+	_params.board_offset[0] = 0.0f;
+	_params.board_offset[1] = 0.0f;
+	_params.board_offset[2] = 0.0f;
+
 	_rates_prev.zero();
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
@@ -424,6 +476,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_control.zero();
 
 	_I.identity();
+	_board_rotation.identity();
 
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
 	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
@@ -464,6 +517,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
 	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
+
+	/* rotations */
+	_params_handles.board_rotation = param_find("SENS_BOARD_ROT");
+
+	/* rotation offsets */
+	_params_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
+	_params_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
+	_params_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
 
 
@@ -606,6 +667,14 @@ MulticopterAttitudeControl::parameters_update()
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
+	/* rotation of the autopilot relative to the body */
+	param_get(_params_handles.board_rotation, &(_params.board_rotation));
+
+	/* fine adjustment of the rotation */
+	param_get(_params_handles.board_offset[0], &(_params.board_offset[0]));
+	param_get(_params_handles.board_offset[1], &(_params.board_offset[1]));
+	param_get(_params_handles.board_offset[2], &(_params.board_offset[2]));
+
 	return OK;
 }
 
@@ -733,6 +802,33 @@ MulticopterAttitudeControl::battery_status_poll()
 	if (updated) {
 		orb_copy(ORB_ID(battery_status), _battery_status_sub, &_battery_status);
 	}
+}
+
+void
+MulticopterAttitudeControl::control_state_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_ctrl_state_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+	}
+}
+
+void
+MulticopterAttitudeControl::sensor_correction_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_sensor_correction_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(sensor_correction), _sensor_correction_sub, &_sensor_correction);
+	}
+
+	/* update the latest gyro selection */
+	_selected_gyro = _sensor_correction.gyro_select;
 }
 
 /**
@@ -877,11 +973,28 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 		_rates_int.zero();
 	}
 
-	/* current body angular rates */
-	math::Vector<3> rates;
-	rates(0) = _ctrl_state.roll_rate;
-	rates(1) = _ctrl_state.pitch_rate;
-	rates(2) = _ctrl_state.yaw_rate;
+	/* get transformation matrix from sensor/board to body frame */
+	get_rot_matrix((enum Rotation)_params.board_rotation, &_board_rotation);
+
+	/* fine tune the rotation */
+	math::Matrix<3, 3> board_rotation_offset;
+	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _params.board_offset[0],
+					 M_DEG_TO_RAD_F * _params.board_offset[1],
+					 M_DEG_TO_RAD_F * _params.board_offset[2]);
+	_board_rotation = board_rotation_offset * _board_rotation;
+
+	// get the raw gyro data and correct for thermal errors
+	math::Vector<3> rates(_sensor_gyro.x * _sensor_correction.gyro_scale[0] + _sensor_correction.gyro_offset[0],
+			      _sensor_gyro.y * _sensor_correction.gyro_scale[1] + _sensor_correction.gyro_offset[1] ,
+			      _sensor_gyro.z * _sensor_correction.gyro_scale[2] + _sensor_correction.gyro_offset[2]);
+
+	// rotate corrected measurements from sensor to body frame
+	rates = _board_rotation * rates;
+
+	// correct for in-run bias errors
+	rates(0) -= _ctrl_state.roll_rate_bias;
+	rates(1) -= _ctrl_state.pitch_rate_bias;
+	rates(2) -= _ctrl_state.yaw_rate_bias;
 
 	math::Vector<3> rates_p_scaled = _params.rate_p.emult(pid_attenuations(_params.tpa_breakpoint_p, _params.tpa_rate_p));
 	math::Vector<3> rates_i_scaled = _params.rate_i.emult(pid_attenuations(_params.tpa_breakpoint_i, _params.tpa_rate_i));
@@ -966,19 +1079,26 @@ MulticopterAttitudeControl::task_main()
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
+	_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+
+	for (unsigned s = 0; s < _gyro_count; s++) {
+		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+	}
+
+	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
+
 	/* initialize parameters cache */
 	parameters_update();
 
-	/* wakeup source: vehicle attitude */
-	px4_pollfd_struct_t fds[1];
-
-	fds[0].fd = _ctrl_state_sub;
-	fds[0].events = POLLIN;
+	/* wakeup source: gyro data from sensor selected by the sensor app */
+	px4_pollfd_struct_t poll_fds = {};
+	poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
+	poll_fds.events = POLLIN;
 
 	while (!_task_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&poll_fds, 1, 100);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
@@ -995,8 +1115,8 @@ MulticopterAttitudeControl::task_main()
 
 		perf_begin(_loop_perf);
 
-		/* run controller on attitude changes */
-		if (fds[0].revents & POLLIN) {
+		/* run controller on gyro changes */
+		if (poll_fds.revents & POLLIN) {
 			static uint64_t last_run = 0;
 			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -1009,8 +1129,8 @@ MulticopterAttitudeControl::task_main()
 				dt = 0.02f;
 			}
 
-			/* copy attitude and control state topics */
-			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+			/* copy gyro data */
+			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
 
 			/* check for updates in other topics */
 			parameter_update_poll();
@@ -1020,6 +1140,8 @@ MulticopterAttitudeControl::task_main()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 			battery_status_poll();
+			control_state_poll();
+			sensor_correction_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
