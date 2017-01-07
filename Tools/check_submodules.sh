@@ -72,10 +72,8 @@ else
 		exit 0
 	}
 
-	declare -a submodules=$(git submodule status --recursive | awk '{ print $2 }')
-	mapfile -t arr <<< "$submodules"
-	
-	for i in "${arr[@]}"
+	submodules=$(git submodule status --recursive | awk '{ print $2 }')
+	for i in $submodules;
 	do
 		check_git_submodule $i
 	done
