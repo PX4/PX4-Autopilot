@@ -32,16 +32,14 @@ then
 		if [ "$user_cmd" == "y" ]
 		then
 			echo "Continuing build with manually overridden submodule.."
+		elif [ "$user_cmd" == "u" ]
+		then
+			git submodule sync --recursive
+			git submodule update --init --recursive
+			echo "Submodule fixed, continuing build.."
 		else
-			if [ "$user_cmd" == "u" ]
-			then
-				git submodule sync --recursive
-				git submodule update --init --recursive
-				echo "Submodule fixed, continuing build.."
-			else
-				echo "Build aborted."
-				exit 1
-			fi
+			echo "Build aborted."
+			exit 1
 		fi
 	fi
 else
@@ -61,7 +59,7 @@ then
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
 		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
 		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
-	  exit 0
+		exit 0
 	}
 
 	git submodule update --recursive $1
@@ -69,26 +67,16 @@ then
 else
 
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-	  # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
-	  echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
-	  exit 0
+		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
+		exit 0
 	}
 
-	check_git_submodule NuttX
-	check_git_submodule Tools/gencpp
-	check_git_submodule Tools/genmsg
-	check_git_submodule Tools/jMAVSim
-	check_git_submodule Tools/sitl_gazebo
-	check_git_submodule cmake/cmake_hexagon
-	check_git_submodule mavlink/include/mavlink/v1.0
-	check_git_submodule mavlink/include/mavlink/v2.0
-	check_git_submodule src/lib/DriverFramework
-	check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
-	check_git_submodule src/lib/DriverFramework/dspal
-	check_git_submodule src/lib/ecl
-	check_git_submodule src/lib/matrix
-	check_git_submodule src/modules/uavcan/libuavcan
-	check_git_submodule unittests/googletest
-	check_git_submodule src/drivers/gps/devices
+	submodules=$(git submodule status --recursive | awk '{ print $2 }')
+	for i in $submodules;
+	do
+		check_git_submodule $i
+	done
+
 fi
 	exit 0
