@@ -376,6 +376,9 @@ __EXPORT uint32_t	param_hash_check(void);
 /** define a parameter that points to a structure */
 #define PARAM_DEFINE_STRUCT(_name, _default)
 
+/** Macro for getting the parameter handle */
+#define PARAM_FIND(_name) PARAM_##_name##_HANDLE
+
 /**
  * Parameter value union.
  */
@@ -414,5 +417,7 @@ struct param_info_s {
 };
 
 __END_DECLS
+
+#include <px4_parameters.h>
 
 #endif

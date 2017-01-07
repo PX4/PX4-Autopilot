@@ -38,12 +38,14 @@ px4_generate_parameters_source(OUT param_files
 	SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
 	DEPS xml_gen
 	)
+add_custom_target(param_gen
+	DEPENDS ${param_files})
 
 px4_add_module(
 	MODULE modules__param
 	COMPILE_FLAGS
 	SRCS ${param_files}
 	DEPENDS
-		platforms__common
+		platforms__common param_gen
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
