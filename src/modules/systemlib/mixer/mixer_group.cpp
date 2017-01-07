@@ -85,6 +85,35 @@ MixerGroup::add_mixer(Mixer *mixer)
 }
 
 void
+MixerGroup::add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo)
+{
+    Mixer *m = nullptr;
+
+    switch(static_cast<int>(mixtype)){
+    case static_cast<int>(MIXER_TYPE_NULL):
+        break;
+
+    case static_cast<int>(MIXER_TYPE_SIMPLE):
+        m = (Mixer*) new SimpleMixer(_control_cb, _cb_handle, (mixer_simple_s*) mixinfo );
+        break;
+
+    case static_cast<int>(MIXER_TYPE_MULTIROTOR):
+        m = (Mixer*) new MultirotorMixer(_control_cb, _cb_handle, (mixer_multi_s*) mixinfo );
+        break;
+
+    case static_cast<int>(MIXER_TYPE_HELICOPTER):
+        m = (Mixer*) new HelicopterMixer(_control_cb, _cb_handle, (mixer_heli_s*) mixinfo );
+        break;
+    }
+
+    if(m != nullptr)
+    {
+        add_mixer(m);
+    }
+
+}
+
+void
 MixerGroup::reset()
 {
 	Mixer *mixer;

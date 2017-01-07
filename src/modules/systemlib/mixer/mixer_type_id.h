@@ -49,6 +49,7 @@ const char *const MIXER_TYPE_ID[MIXER_TYPE_COUNT] = {
         "NULL",
         "SIMPLE",
         "MULTIROTOR"
+        "HELICOPTER"
 };
 
 

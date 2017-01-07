@@ -102,6 +102,27 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
 }
 
+
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
+                 uintptr_t cb_handle,
+                 mixer_multi_s *mixer_info) :
+    Mixer(control_cb, cb_handle),
+    _roll_scale(mixer_info->roll_scale),
+    _pitch_scale(mixer_info->pitch_scale),
+    _yaw_scale(mixer_info->yaw_scale),
+    _idle_speed(-1.0f + mixer_info->idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+    _delta_out_max(0.0f),
+    _thrust_factor(0.0f),
+    _limits_pub(),
+    _rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+    _rotors(_config_index[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+    _geometry(mixer_info->geometry),
+    _outputs_prev(new float[_rotor_count])
+{
+    memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
+}
+
+
 MultirotorMixer::~MultirotorMixer()
 {
 	if (_outputs_prev != nullptr) {

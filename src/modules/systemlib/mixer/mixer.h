@@ -399,6 +399,14 @@ public:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
+    /**
+     * @brief      Creates and adds a mixer based on type and mixer information
+     *
+     * @param[in]  mixer_type   mixer type from enumeration
+     * @param[in]  mixinfo      mixer information in structure according to mixer type.
+     */
+    void            add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo);
+
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
 	 *             the maximum allowed change of the output values per cycle.
@@ -621,6 +629,17 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
+
+/** multirotor mixer info */
+struct mixer_multi_s {
+    float   roll_scale;
+    float   pitch_scale;
+    float   yaw_scale;
+    float   idle_speed;
+    MultirotorGeometry geometry;
+};
+
+
 	/**
 	 * Multi-rotor mixer for pre-defined vehicle geometries.
 	 *
@@ -647,12 +666,11 @@ public:
 	 * @param control_cb		Callback invoked to read inputs.
 	 * @param cb_handle		Passed to control_cb.
 	 * @param geometry		The selected geometry.
-	 * @param geomname		The name of the geometry for serialization.
 	 * @param roll_scale		Scaling factor applied to roll inputs
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
-	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
+     * @param yaw_scale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
 	 * @param idle_speed		Minimum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
@@ -665,6 +683,18 @@ public:
 			float pitch_scale,
 			float yaw_scale,
 			float idle_speed);
+
+    /**
+     * Constructor.
+     *
+     * @param control_cb		Callback invoked to read inputs.
+     * @param cb_handle         Passed to control_cb.
+     * @param mixer_multi_s*    mixer info
+     */
+    MultirotorMixer(ControlCallback control_cb,
+            uintptr_t cb_handle,
+            mixer_multi_s *mixer_info);
+
 	~MultirotorMixer();
 
 	/**

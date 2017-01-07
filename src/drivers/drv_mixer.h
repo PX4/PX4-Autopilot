@@ -125,7 +125,7 @@ struct mixer_simple_s {
 
 /**
  * Get the parameter identifiers for a mixer at index (mixer_type_s *)arg
- * set the the mixer index in the struct
+ * set the the mixer index in the union
  */
 union mixer_type_e {
         unsigned        mix_index;
