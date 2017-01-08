@@ -249,6 +249,13 @@ public:
 	 */
 	virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
 
+    /**
+     * Calculates and returns the crc32 checksum of mixer parameters
+     *
+     * @param index         The index of the parameter
+     * @return              crc32 checksum of mixer parameters
+     */
+    virtual uint32_t       calc_checksum(void) {return 0;}
 
 
 protected:
@@ -477,6 +484,9 @@ public:
 	 */
 	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
 
+
+    uint32_t                calc_checksum(void);
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
@@ -591,6 +601,7 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
+    uint32_t                calc_checksum(void);
 
     /**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -750,6 +761,7 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
+    uint32_t                calc_checksum(void);
 
 private:
 	float				_roll_scale;

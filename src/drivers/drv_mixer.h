@@ -161,5 +161,15 @@ struct mixer_param_s {
 #define MIXERIOGETCONFIG               _MIXERIOC(15)
 
 
+/**
+ * Get mixer checksum for the group.  Return value for local mirror
+ * remote mixer depending on what is available.  Return zero if unavailable.
+ */
+struct mixer_checksum_s {
+        uint32_t        crc_local;
+        uint32_t        crc_remote;
+};
+#define MIXERIOGETCHECKSUM             _MIXERIOC(16)
+
 
 #endif /* _DRV_ACCEL_H */

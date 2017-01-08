@@ -51,6 +51,8 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <crc32.h>
+
 #include "mixer.h"
 
 #define debug(fmt, args...)	do { } while(0)
@@ -388,3 +390,21 @@ MixerGroup::set_mixer_param(unsigned mix_index, unsigned param_index, float valu
 	return -1;
 }
 
+
+uint32_t
+MixerGroup::calc_checksum(void)
+{
+    Mixer	*mixer = _first;
+    uint32_t sum = 0;
+    uint32_t crc;
+
+    while ((mixer != nullptr)) {
+        crc = mixer->calc_checksum();
+        sum = crc32part((uint8_t*)&crc, sizeof(crc), sum);
+
+        mixer = mixer->_next;
+    }
+
+
+    return sum;
+}

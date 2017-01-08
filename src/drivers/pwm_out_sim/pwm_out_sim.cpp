@@ -880,19 +880,30 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETCONFIG: {
-			if (_mixers == nullptr) {
-				ret = -EINVAL;
-			}
+    case MIXERIOGETCONFIG: {
+            if (_mixers == nullptr) {
+                ret = -EINVAL;
+            }
 
-			char *buf = (char *)arg;
+            char *buf = (char *)arg;
 
-			unsigned buflen = 1022;
-			ret = _mixers->save_to_buf(buf, buflen);
-			break;
-		}
+            unsigned buflen = 1022;
+            ret = _mixers->save_to_buf(buf, buflen);
+            break;
+        }
 
+    case MIXERIOGETCHECKSUM: {
+            if (_mixers == nullptr) {
+                ret = -EINVAL;
+            }
 
+            mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+
+            mix_crc->crc_local = _mixers->calc_checksum();
+            mix_crc->crc_remote = 0;
+            ret = 0;
+            break;
+        }
 
 	default:
 		ret = -ENOTTY;
