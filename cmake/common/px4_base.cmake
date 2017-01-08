@@ -1014,16 +1014,20 @@ endfunction()
 function(px4_generate_parameters_xml)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_xml
-		ONE_VALUE OUT BOARD SCOPE
+		ONE_VALUE OUT BOARD SCOPE OVERRIDES
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
 	set(path ${PX4_SOURCE_DIR}/src)
 	file(GLOB_RECURSE param_src_files
 		${PX4_SOURCE_DIR}/src/*params.c
 		)
+	if (NOT OVERRIDES)
+		set(OVERRIDES "{}")
+	endif()
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml --scope ${SCOPE}
+			--overrides ${OVERRIDES}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
