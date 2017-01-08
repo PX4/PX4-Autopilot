@@ -207,6 +207,7 @@ qgc_firmware: \
 	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v2_lpe \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
