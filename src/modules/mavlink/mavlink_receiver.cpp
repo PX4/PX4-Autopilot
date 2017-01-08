@@ -1064,7 +1064,7 @@ MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
 {
 	mavlink_gps_global_origin_t origin;
 	mavlink_msg_gps_global_origin_decode(msg, &origin);
-	
+
 	if (!globallocalconverter_initialized()) {
 		/* Set reference point conversion of local coordiantes <--> global coordinates */
 		globallocalconverter_init((double)origin.latitude * 1.0e-7, (double)origin.longitude * 1.0e-7,
@@ -1079,7 +1079,7 @@ MavlinkReceiver::handle_message_attitude_quaternion_cov(mavlink_message_t *msg)
 {
 	mavlink_attitude_quaternion_cov_t att;
 	mavlink_msg_attitude_quaternion_cov_decode(msg, &att);
-	
+
 	struct vehicle_attitude_s vision_attitude = {};
 
 	vision_attitude.timestamp = sync_stamp(att.time_usec);
@@ -1107,12 +1107,12 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	mavlink_msg_local_position_ned_cov_decode(msg, &pos);
 
 	struct vehicle_local_position_s vision_position = {};
-	
+
 	vision_position.timestamp = sync_stamp(pos.time_usec);
-	
+
 	// Use the estimator type to identify the external estimate
 	vision_position.estimator_type = pos.estimator_type;
-	
+
 	vision_position.xy_valid = true;
 	vision_position.z_valid = true;
 	vision_position.v_xy_valid = true;
@@ -1125,22 +1125,22 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	vision_position.vx = pos.vx;
 	vision_position.vy = pos.vy;
 	vision_position.vz = pos.vz;
-	
+
 	vision_position.ax = pos.ax;
 	vision_position.ay = pos.ay;
 	vision_position.az = pos.az;
 
 	// Low risk change for now. TODO : full covariance matrix
-	vision_position.eph = sqrtf(fmaxf(pos.covariance[0],pos.covariance[9]));
+	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
 	vision_position.epv = sqrtf(pos.covariance[17]);
-	
+
 	vision_position.xy_global = globallocalconverter_initialized();
 	vision_position.z_global = globallocalconverter_initialized();
 	vision_position.ref_timestamp = _global_ref_timestamp;
 	globallocalconverter_getref(&vision_position.ref_lat, &vision_position.ref_lon, &vision_position.ref_alt);
 
 	vision_position.dist_bottom_valid = false;
-	
+
 	int instance_id = 0;
 	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id, ORB_PRIO_HIGH);
 
@@ -1173,8 +1173,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_attitude.q[3] = q(3);
 
 	int instance_id = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id, ORB_PRIO_DEFAULT);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id,
+			 ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id,
+			 ORB_PRIO_DEFAULT);
 }
 
 void
