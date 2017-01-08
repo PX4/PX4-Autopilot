@@ -146,7 +146,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_offboard_control_mode{},
 	_att_sp{},
 	_rates_sp{},
-	_time_offset_avg_alpha(0.6),
+	_time_offset_avg_alpha(0.8),
 	_time_offset(0),
 	_orb_class_instance(-1),
 	_mom_switch_pos{},
@@ -2503,9 +2503,8 @@ uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 
 void MavlinkReceiver::smooth_time_offset(int64_t offset_ns)
 {
-	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
-	 * the faster the moving average updates in response to
-	 * new offset samples.
+	/* The closer alpha is to 1.0, the faster the moving
+	 * average updates in response to new offset samples.
 	 */
 
 	_time_offset = (_time_offset_avg_alpha * offset_ns) + (1.0 - _time_offset_avg_alpha) * _time_offset;
