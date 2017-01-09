@@ -527,6 +527,7 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 				}
 			}
 		}
+
 		if (ControlQSize() != 0) {
 			//PX4_DEBUG( "get_bulk_data: QSize: %d", ControlQSize() );
 			topic_count_to_return += ControlQSize();
@@ -575,6 +576,7 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 				}
 			}
 		}
+
 	} else {
 		PX4_ERR("[get_data_bulk] Error: Semaphore is up when there is no data on the control/data queues");
 		rc = -1;
@@ -617,12 +619,15 @@ int32_t uORB::FastRpcChannel::get_msg_size_at(bool isData, int32_t index)
 	// the assumption here is that this is called within the context of semaphore,
 	// hence lock/unlock is not needed.
 	int32_t rc = 0;
+
 	if (isData) {
 		rc += _DataMsgQueue[ index ]._Length;
 		rc += _DataMsgQueue[ index ]._MsgName.size() + 1;
+
 	} else {
 		rc += _ControlMsgQueue[ index ]._MsgName.size() + 1;
 	}
+
 	rc += _PACKET_HEADER_SIZE;
 	return rc;
 }
@@ -637,8 +642,8 @@ int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index,
 	// *  the dst_buffer is validated to
 
 	uint16_t msg_size = (isData ?
-				(uint16_t)(_DataMsgQueue[ src_index ]._MsgName.size()) :
-				(uint16_t)(_ControlMsgQueue[ src_index ]._MsgName.size()));
+			     (uint16_t)(_DataMsgQueue[ src_index ]._MsgName.size()) :
+			     (uint16_t)(_ControlMsgQueue[ src_index ]._MsgName.size()));
 
 	// compute the different offsets to pack the packets.
 	int32_t field_header_offset = offset;
@@ -647,8 +652,9 @@ int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index,
 
 	int16_t msg_type = isData ? _DATA_MSG_TYPE : _ControlMsgQueue[ src_index ]._Type;
 
-	struct BulkTransferHeader header = { (uint16_t)msg_type,( uint16_t)(msg_size + 1),
-		(uint16_t)(isData ? (_DataMsgQueue[ src_index ]._Length) : 0) };
+	struct BulkTransferHeader header = { (uint16_t)msg_type, (uint16_t)(msg_size + 1),
+		       (uint16_t)(isData ? (_DataMsgQueue[ src_index ]._Length) : 0)
+	};
 
 
 	//PX4_DEBUG( "Offsets: header[%d] name[%d] data[%d]",
@@ -693,12 +699,14 @@ int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index,
 
 	} else {
 		PX4_WARN("Error coping the Msg to dst buffer, insuffienct space. ");
+
 		if (isData) {
 			PX4_WARN("Data... offset[%ld] len[%ld] data_msg_len[%ld]",
-			 offset, dst_buffer_len, (field_data_offset - offset) + _DataMsgQueue[ src_index ]._Length);
+				 offset, dst_buffer_len, (field_data_offset - offset) + _DataMsgQueue[ src_index ]._Length);
+
 		} else {
 			PX4_WARN("ControlMsg... offset[%ld] len[%ld]",
-			 offset, dst_buffer_len, (field_data_offset - offset));
+				 offset, dst_buffer_len, (field_data_offset - offset));
 		}
 	}
 

@@ -169,9 +169,11 @@ int px4muorb_topic_advertised(const char *topic_name)
 
 	if (rxHandler != nullptr) {
 		rc = rxHandler->process_remote_topic(topic_name, 1);
+
 	} else {
 		rc = -1;
 	}
+
 	return rc;
 }
 
@@ -184,9 +186,11 @@ int px4muorb_topic_unadvertised(const char *topic_name)
 
 	if (rxHandler != nullptr) {
 		rc = rxHandler->process_remote_topic(topic_name, 0);
+
 	} else {
 		rc = -1;
 	}
+
 	return rc;
 }
 

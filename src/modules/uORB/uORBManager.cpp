@@ -136,9 +136,11 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 	return stat(path, &buffer);
 #else
 	ret = px4_access(path, F_OK);
+
 	if (ret == -1 && meta != nullptr && _remote_topics.size() > 0) {
 		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : ERROR;
 	}
+
 	return ret;
 #endif
 }
@@ -446,6 +448,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdver
 
 	if (isAdvertisement) {
 		_remote_topics.insert(topic_name);
+
 	} else {
 		_remote_topics.erase(topic_name);
 	}

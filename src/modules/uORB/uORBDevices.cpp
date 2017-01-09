@@ -492,9 +492,11 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta, int priority)
 {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+
 	if (ch != nullptr && meta != nullptr) {
 		return ch->topic_advertised(meta->o_name);
 	}
+
 	return -1;
 }
 /*

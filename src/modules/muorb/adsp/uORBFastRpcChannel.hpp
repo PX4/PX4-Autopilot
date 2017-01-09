@@ -188,7 +188,7 @@ private: // data members
 	static const int32_t _PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES = 2;
 	static const int32_t _PACKET_FIELD_DATA_LEN_IN_BYTES = 2;
 	static const int32_t _PACKET_HEADER_SIZE = 1 + //first byte is the MSG Type
-		_PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES + _PACKET_FIELD_DATA_LEN_IN_BYTES;
+			_PACKET_FIELD_TOPIC_NAME_LEN_SIZE_IN_BYTES + _PACKET_FIELD_DATA_LEN_IN_BYTES;
 
 	struct FastRpcDataMsg {
 		int32_t     _MaxBufferSize;
