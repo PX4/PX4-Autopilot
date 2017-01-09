@@ -92,7 +92,7 @@ int sleep_main(int argc, char *argv[])
 int wait_for_topic(int argc, char *argv[])
 {
 	if (argc < 2 || argc > 3) {
-		cout << "Usage: wait_for_topic <topic> [timeout_sec]" << endl;
+		printf("Usage: wait_for_topic <topic> [timeout_sec]\n");
 		return 1;
 	}
 
@@ -104,7 +104,7 @@ int wait_for_topic(int argc, char *argv[])
 	unsigned int timeout = (argc == 3) ? (unsigned int)atoi(argv[2]) : 0;
 	unsigned int elapsed = 0;
 
-	cout << "Waiting for topic " << argv[1] << " timeout " << timeout << endl;
+	printf("Waiting for topic %s timeout %u\n", argv[1], timeout);
 
 	while (orb_exists(&meta, 0) != 0 && (timeout && (elapsed < timeout)))
 	{
