@@ -796,7 +796,7 @@ function(px4_add_common_flags)
 
 	# code coverage
 	if ($ENV{PX4_CODE_COVERAGE} MATCHES "1")
-		set(max_optimization -O0)
+		#set(max_optimization -O0)
 	endif()
 
 	set(c_warnings
