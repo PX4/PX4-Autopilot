@@ -743,6 +743,9 @@ LPS25H::collect()
 	new_report.pressure = p;
 	new_report.altitude = alt;
 
+	/* TODO get device ID for sensor */
+	new_report.device_id = 0;
+
 	if (!(_pub_blocked)) {
 
 		if (_baro_topic != nullptr) {
