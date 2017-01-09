@@ -165,6 +165,9 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 	report.error_count = 0;
 
+	/* TODO get device ID for sensor */
+	report.device_id = 0;
+
 	/*
 	 * Altitude computation
 	 * Refer to the MS5611 driver for details
