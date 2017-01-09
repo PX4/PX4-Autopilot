@@ -17,9 +17,9 @@
 
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface(),
+	_p_pin(PARAM_FIND(TRIG_PINS)),
 	_camera_is_on(false)
 {
-	_p_pin = param_find("TRIG_PINS");
 	int pin_list;
 	param_get(_p_pin, &pin_list);
 

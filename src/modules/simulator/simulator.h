@@ -270,7 +270,7 @@ private:
 	{
 		// We need to know the type for the correct mapping from
 		// actuator controls to the hil actuator message.
-		param_t param_system_type = param_find("MAV_TYPE");
+		param_t param_system_type = PARAM_FIND(MAV_TYPE);
 		param_get(param_system_type, &_system_type);
 
 		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)

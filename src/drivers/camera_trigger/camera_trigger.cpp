@@ -164,7 +164,6 @@ private:
 	param_t			_p_activation_time;
 	param_t			_p_interval;
 	param_t			_p_distance;
-	param_t			_p_pin;
 	param_t			_p_interface;
 
 	camera_interface_mode_t	_camera_interface_mode;
@@ -228,6 +227,14 @@ CameraTrigger::CameraTrigger() :
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
 	_trigger_pub(nullptr),
+
+	/* Parameter handles */
+	_p_mode(PARAM_FIND(TRIG_MODE)),
+	_p_activation_time(PARAM_FIND(TRIG_ACT_TIME)),
+	_p_interval(PARAM_FIND(TRIG_INTERVAL)),
+	_p_distance(PARAM_FIND(TRIG_DISTANCE)),
+	_p_interface(PARAM_FIND(TRIG_INTERFACE)),
+
 	_camera_interface_mode(CAMERA_INTERFACE_MODE_RELAY),
 	_camera_interface(nullptr)
 {
@@ -241,12 +248,6 @@ CameraTrigger::CameraTrigger() :
 	memset(&_work, 0, sizeof(_work));
 
 	// Parameters
-	_p_interval = param_find("TRIG_INTERVAL");
-	_p_distance = param_find("TRIG_DISTANCE");
-	_p_activation_time = param_find("TRIG_ACT_TIME");
-	_p_mode = param_find("TRIG_MODE");
-	_p_interface = param_find("TRIG_INTERFACE");
-
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);

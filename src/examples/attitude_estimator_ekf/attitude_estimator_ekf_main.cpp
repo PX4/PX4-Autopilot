@@ -111,19 +111,19 @@ usage(const char *reason)
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
 	/* PID parameters */
-	h->q0 	=	param_find("EKF_ATT_V3_Q0");
-	h->q1 	=	param_find("EKF_ATT_V3_Q1");
-	h->q2 	=	param_find("EKF_ATT_V3_Q2");
-	h->q3 	=	param_find("EKF_ATT_V3_Q3");
+	h->q0 	=	PARAM_FIND(EKF_ATT_V3_Q0);
+	h->q1 	=	PARAM_FIND(EKF_ATT_V3_Q1);
+	h->q2 	=	PARAM_FIND(EKF_ATT_V3_Q2);
+	h->q3 	=	PARAM_FIND(EKF_ATT_V3_Q3);
 
-	h->r0 	=	param_find("EKF_ATT_V4_R0");
-	h->r1 	=	param_find("EKF_ATT_V4_R1");
-	h->r2 	=	param_find("EKF_ATT_V4_R2");
+	h->r0 	=	PARAM_FIND(EKF_ATT_V4_R0);
+	h->r1 	=	PARAM_FIND(EKF_ATT_V4_R1);
+	h->r2 	=	PARAM_FIND(EKF_ATT_V4_R2);
 
-	h->moment_inertia_J[0]  =   param_find("ATT_J11");
-	h->moment_inertia_J[1]  =   param_find("ATT_J22");
-	h->moment_inertia_J[2]  =   param_find("ATT_J33");
-	h->use_moment_inertia	=   param_find("ATT_J_EN");
+	h->moment_inertia_J[0]  =   PARAM_FIND(ATT_J11);
+	h->moment_inertia_J[1]  =   PARAM_FIND(ATT_J22);
+	h->moment_inertia_J[2]  =   PARAM_FIND(ATT_J33);
+	h->use_moment_inertia	=   PARAM_FIND(ATT_J_EN);
 
 	return OK;
 }

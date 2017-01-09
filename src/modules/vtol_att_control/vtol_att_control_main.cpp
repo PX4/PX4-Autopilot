@@ -119,21 +119,21 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params.vtol_motor_count = 0;
 	_params.vtol_fw_permanent_stab = 0;
 
-	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
-	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
-	_params_handles.mc_airspeed_min = param_find("VT_MC_ARSPD_MIN");
-	_params_handles.mc_airspeed_max = param_find("VT_MC_ARSPD_MAX");
-	_params_handles.mc_airspeed_trim = param_find("VT_MC_ARSPD_TRIM");
-	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
-	_params_handles.power_max = param_find("VT_POWER_MAX");
-	_params_handles.prop_eff = param_find("VT_PROP_EFF");
-	_params_handles.arsp_lp_gain = param_find("VT_ARSP_LP_GAIN");
-	_params_handles.vtol_type = param_find("VT_TYPE");
-	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
-	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
-	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
-	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+	_params_handles.idle_pwm_mc = PARAM_FIND(VT_IDLE_PWM_MC);
+	_params_handles.vtol_motor_count = PARAM_FIND(VT_MOT_COUNT);
+	_params_handles.vtol_fw_permanent_stab = PARAM_FIND(VT_FW_PERM_STAB);
+	_params_handles.mc_airspeed_min = PARAM_FIND(VT_MC_ARSPD_MIN);
+	_params_handles.mc_airspeed_max = PARAM_FIND(VT_MC_ARSPD_MAX);
+	_params_handles.mc_airspeed_trim = PARAM_FIND(VT_MC_ARSPD_TRIM);
+	_params_handles.fw_pitch_trim = PARAM_FIND(VT_FW_PITCH_TRIM);
+	_params_handles.power_max = PARAM_FIND(VT_POWER_MAX);
+	_params_handles.prop_eff = PARAM_FIND(VT_PROP_EFF);
+	_params_handles.arsp_lp_gain = PARAM_FIND(VT_ARSP_LP_GAIN);
+	_params_handles.vtol_type = PARAM_FIND(VT_TYPE);
+	_params_handles.elevons_mc_lock = PARAM_FIND(VT_ELEV_MC_LOCK);
+	_params_handles.fw_min_alt = PARAM_FIND(VT_FW_MIN_ALT);
+	_params_handles.front_trans_time_openloop = PARAM_FIND(VT_F_TR_OL_TM);
+	_params_handles.front_trans_time_min = PARAM_FIND(VT_TRANS_MIN_TM);
 
 	/* fetch initial parameter values */
 	parameters_update();

@@ -657,8 +657,8 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 	int32_t autostart;
 	int32_t autoconfig;
 
-	(void)param_get(param_find("SYS_AUTOSTART"), &autostart);
-	(void)param_get(param_find("SYS_AUTOCONFIG"), &autoconfig);
+	(void)param_get(PARAM_FIND(SYS_AUTOSTART), &autostart);
+	(void)param_get(PARAM_FIND(SYS_AUTOCONFIG), &autoconfig);
 
 	if (num_excludes > 0) {
 		param_reset_excludes(excludes, num_excludes);
@@ -667,8 +667,8 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
-	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
-	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
+	(void)param_set(PARAM_FIND(SYS_AUTOSTART), &autostart);
+	(void)param_set(PARAM_FIND(SYS_AUTOCONFIG), &autoconfig);
 
 	if (param_save_default()) {
 		warnx("Param export failed.");

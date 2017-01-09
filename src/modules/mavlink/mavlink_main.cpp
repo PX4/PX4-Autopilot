@@ -557,17 +557,18 @@ Mavlink::get_channel()
 void Mavlink::mavlink_update_system(void)
 {
 	if (!_param_initialized) {
-		_param_system_id = param_find("MAV_SYS_ID");
-		_param_component_id = param_find("MAV_COMP_ID");
-		_param_proto_ver = param_find("MAV_PROTO_VER");
-		_param_radio_id = param_find("MAV_RADIO_ID");
-		_param_system_type = param_find("MAV_TYPE");
-		_param_use_hil_gps = param_find("MAV_USEHILGPS");
-		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
-		_param_broadcast = param_find("MAV_BROADCAST");
+		_param_system_id = PARAM_FIND(MAV_SYS_ID);
+		_param_component_id = PARAM_FIND(MAV_COMP_ID);
+		_param_proto_ver = PARAM_FIND(MAV_PROTO_VER);
+		_param_radio_id = PARAM_FIND(MAV_RADIO_ID);
+		_param_system_type = PARAM_FIND(MAV_TYPE);
+		_param_use_hil_gps = PARAM_FIND(MAV_USEHILGPS);
+		_param_forward_externalsp = PARAM_FIND(MAV_FWDEXTSP);
+		_param_broadcast = PARAM_FIND(MAV_BROADCAST);
 
+		//XXX Is this still needed?
 		/* test param - needs to be referenced, but is unused */
-		(void)param_find("MAV_TEST_PAR");
+		(void)PARAM_FIND(MAV_TEST_PAR);
 	}
 
 	/* update system and component id */

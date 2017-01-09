@@ -385,7 +385,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_writer(backend, buffer_size, queue_size),
 	_log_interval(log_interval)
 {
-	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
+	_log_utc_offset = PARAM_FIND(SDLOG_UTC_OFFSET);
 }
 
 Logger::~Logger()
@@ -1164,9 +1164,7 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 	int32_t utc_offset = 0;
 
-	if (_log_utc_offset != PARAM_INVALID) {
-		param_get(_log_utc_offset, &utc_offset);
-	}
+	param_get(_log_utc_offset, &utc_offset);
 
 	/* apply utc offset */
 	utc_time_sec += utc_offset * 60;
@@ -1401,27 +1399,23 @@ void Logger::write_version()
 	}
 
 	/* write the UUID if enabled */
-	param_t write_uuid_param = param_find("SDLOG_UUID");
+	param_t write_uuid_param = PARAM_FIND(SDLOG_UUID);
 
-	if (write_uuid_param != PARAM_INVALID) {
-		uint32_t write_uuid;
-		param_get(write_uuid_param, &write_uuid);
+	uint32_t write_uuid;
+	param_get(write_uuid_param, &write_uuid);
 
-		if (write_uuid == 1) {
-			uint32_t uuid[3];
-			mcu_unique_id(uuid);
-			char uuid_string[sizeof(uint32_t) * 3 * 2 + 1];
-			snprintf(uuid_string, sizeof(uuid_string), "%08x%08x%08x", uuid[0], uuid[1], uuid[2]);
-			write_info("sys_uuid", uuid_string);
-		}
+	if (write_uuid == 1) {
+		uint32_t uuid[3];
+		mcu_unique_id(uuid);
+		char uuid_string[sizeof(uint32_t) * 3 * 2 + 1];
+		snprintf(uuid_string, sizeof(uuid_string), "%08x%08x%08x", uuid[0], uuid[1], uuid[2]);
+		write_info("sys_uuid", uuid_string);
 	}
 
 	int32_t utc_offset = 0;
 
-	if (_log_utc_offset != PARAM_INVALID) {
-		param_get(_log_utc_offset, &utc_offset);
-		write_info("time_ref_utc", utc_offset * 60);
-	}
+	param_get(_log_utc_offset, &utc_offset);
+	write_info("time_ref_utc", utc_offset * 60);
 
 	if (_replay_file_name) {
 		write_info("replay", _replay_file_name);

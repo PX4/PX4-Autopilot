@@ -400,58 +400,58 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vehicle_land_detected = {};
 	_vehicle_status = {};
 
-	_parameter_handles.p_tc = param_find("FW_P_TC");
-	_parameter_handles.p_p = param_find("FW_PR_P");
-	_parameter_handles.p_i = param_find("FW_PR_I");
-	_parameter_handles.p_ff = param_find("FW_PR_FF");
-	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
-	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
+	_parameter_handles.p_tc = PARAM_FIND(FW_P_TC);
+	_parameter_handles.p_p = PARAM_FIND(FW_PR_P);
+	_parameter_handles.p_i = PARAM_FIND(FW_PR_I);
+	_parameter_handles.p_ff = PARAM_FIND(FW_PR_FF);
+	_parameter_handles.p_rmax_pos = PARAM_FIND(FW_P_RMAX_POS);
+	_parameter_handles.p_rmax_neg = PARAM_FIND(FW_P_RMAX_NEG);
+	_parameter_handles.p_integrator_max = PARAM_FIND(FW_PR_IMAX);
 
-	_parameter_handles.r_tc = param_find("FW_R_TC");
-	_parameter_handles.r_p = param_find("FW_RR_P");
-	_parameter_handles.r_i = param_find("FW_RR_I");
-	_parameter_handles.r_ff = param_find("FW_RR_FF");
-	_parameter_handles.r_integrator_max = param_find("FW_RR_IMAX");
-	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
+	_parameter_handles.r_tc = PARAM_FIND(FW_R_TC);
+	_parameter_handles.r_p = PARAM_FIND(FW_RR_P);
+	_parameter_handles.r_i = PARAM_FIND(FW_RR_I);
+	_parameter_handles.r_ff = PARAM_FIND(FW_RR_FF);
+	_parameter_handles.r_integrator_max = PARAM_FIND(FW_RR_IMAX);
+	_parameter_handles.r_rmax = PARAM_FIND(FW_R_RMAX);
 
-	_parameter_handles.y_p = param_find("FW_YR_P");
-	_parameter_handles.y_i = param_find("FW_YR_I");
-	_parameter_handles.y_ff = param_find("FW_YR_FF");
-	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
-	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
+	_parameter_handles.y_p = PARAM_FIND(FW_YR_P);
+	_parameter_handles.y_i = PARAM_FIND(FW_YR_I);
+	_parameter_handles.y_ff = PARAM_FIND(FW_YR_FF);
+	_parameter_handles.y_integrator_max = PARAM_FIND(FW_YR_IMAX);
+	_parameter_handles.y_rmax = PARAM_FIND(FW_Y_RMAX);
 
-	_parameter_handles.w_p = param_find("FW_WR_P");
-	_parameter_handles.w_i = param_find("FW_WR_I");
-	_parameter_handles.w_ff = param_find("FW_WR_FF");
-	_parameter_handles.w_integrator_max = param_find("FW_WR_IMAX");
-	_parameter_handles.w_rmax = param_find("FW_W_RMAX");
+	_parameter_handles.w_p = PARAM_FIND(FW_WR_P);
+	_parameter_handles.w_i = PARAM_FIND(FW_WR_I);
+	_parameter_handles.w_ff = PARAM_FIND(FW_WR_FF);
+	_parameter_handles.w_integrator_max = PARAM_FIND(FW_WR_IMAX);
+	_parameter_handles.w_rmax = PARAM_FIND(FW_W_RMAX);
 
-	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
-	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
+	_parameter_handles.airspeed_min = PARAM_FIND(FW_AIRSPD_MIN);
+	_parameter_handles.airspeed_trim = PARAM_FIND(FW_AIRSPD_TRIM);
+	_parameter_handles.airspeed_max = PARAM_FIND(FW_AIRSPD_MAX);
 
-	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
-	_parameter_handles.y_coordinated_method = param_find("FW_YCO_METHOD");
+	_parameter_handles.y_coordinated_min_speed = PARAM_FIND(FW_YCO_VMIN);
+	_parameter_handles.y_coordinated_method = PARAM_FIND(FW_YCO_METHOD);
 
-	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
-	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
-	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
-	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
-	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
+	_parameter_handles.trim_roll = PARAM_FIND(TRIM_ROLL);
+	_parameter_handles.trim_pitch = PARAM_FIND(TRIM_PITCH);
+	_parameter_handles.trim_yaw = PARAM_FIND(TRIM_YAW);
+	_parameter_handles.rollsp_offset_deg = PARAM_FIND(FW_RSP_OFF);
+	_parameter_handles.pitchsp_offset_deg = PARAM_FIND(FW_PSP_OFF);
 
-	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
-	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
-	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
-	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
-	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
+	_parameter_handles.man_roll_max = PARAM_FIND(FW_MAN_R_MAX);
+	_parameter_handles.man_pitch_max = PARAM_FIND(FW_MAN_P_MAX);
+	_parameter_handles.man_roll_scale = PARAM_FIND(FW_MAN_R_SC);
+	_parameter_handles.man_pitch_scale = PARAM_FIND(FW_MAN_P_SC);
+	_parameter_handles.man_yaw_scale = PARAM_FIND(FW_MAN_Y_SC);
 
-	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
-	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
+	_parameter_handles.flaps_scale = PARAM_FIND(FW_FLAPS_SCL);
+	_parameter_handles.flaperon_scale = PARAM_FIND(FW_FLAPERON_SCL);
 
-	_parameter_handles.vtol_type = param_find("VT_TYPE");
+	_parameter_handles.vtol_type = PARAM_FIND(VT_TYPE);
 
-	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
+	_parameter_handles.bat_scale_en = PARAM_FIND(FW_BAT_SCALE_EN);
 
 	/* fetch initial parameter values */
 	parameters_update();

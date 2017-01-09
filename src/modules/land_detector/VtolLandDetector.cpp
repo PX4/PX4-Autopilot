@@ -54,7 +54,7 @@ VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
 	_was_in_air(false),
 	_airspeed_filtered(0)
 {
-	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
+	_paramHandle.maxAirSpeed = PARAM_FIND(LNDFW_AIRSPD_MAX);
 }
 
 void VtolLandDetector::_initialize_topics()

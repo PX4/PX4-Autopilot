@@ -335,31 +335,31 @@ void parameters_update()
 
 void parameters_init()
 {
-	_params_handles.accel_x_offset		=	param_find("CAL_ACC0_XOFF");
-	_params_handles.accel_x_scale		=	param_find("CAL_ACC0_XSCALE");
-	_params_handles.accel_y_offset		=	param_find("CAL_ACC0_YOFF");
-	_params_handles.accel_y_scale		=	param_find("CAL_ACC0_YSCALE");
-	_params_handles.accel_z_offset		=	param_find("CAL_ACC0_ZOFF");
-	_params_handles.accel_z_scale		=	param_find("CAL_ACC0_ZSCALE");
+	_params_handles.accel_x_offset		=	PARAM_FIND(CAL_ACC0_XOFF);
+	_params_handles.accel_x_scale		=	PARAM_FIND(CAL_ACC0_XSCALE);
+	_params_handles.accel_y_offset		=	PARAM_FIND(CAL_ACC0_YOFF);
+	_params_handles.accel_y_scale		=	PARAM_FIND(CAL_ACC0_YSCALE);
+	_params_handles.accel_z_offset		=	PARAM_FIND(CAL_ACC0_ZOFF);
+	_params_handles.accel_z_scale		=	PARAM_FIND(CAL_ACC0_ZSCALE);
 
-	_params_handles.gyro_x_offset		=	param_find("CAL_GYRO0_XOFF");
-	_params_handles.gyro_x_scale		=	param_find("CAL_GYRO0_XSCALE");
-	_params_handles.gyro_y_offset		=	param_find("CAL_GYRO0_YOFF");
-	_params_handles.gyro_y_scale		=	param_find("CAL_GYRO0_YSCALE");
-	_params_handles.gyro_z_offset		=	param_find("CAL_GYRO0_ZOFF");
-	_params_handles.gyro_z_scale		=	param_find("CAL_GYRO0_ZSCALE");
+	_params_handles.gyro_x_offset		=	PARAM_FIND(CAL_GYRO0_XOFF);
+	_params_handles.gyro_x_scale		=	PARAM_FIND(CAL_GYRO0_XSCALE);
+	_params_handles.gyro_y_offset		=	PARAM_FIND(CAL_GYRO0_YOFF);
+	_params_handles.gyro_y_scale		=	PARAM_FIND(CAL_GYRO0_YSCALE);
+	_params_handles.gyro_z_offset		=	PARAM_FIND(CAL_GYRO0_ZOFF);
+	_params_handles.gyro_z_scale		=	PARAM_FIND(CAL_GYRO0_ZSCALE);
 
-	_params_handles.mag_x_offset		=	param_find("CAL_MAG0_XOFF");
-	_params_handles.mag_x_scale		=	param_find("CAL_MAG0_XSCALE");
-	_params_handles.mag_y_offset		=	param_find("CAL_MAG0_YOFF");
-	_params_handles.mag_y_scale		=	param_find("CAL_MAG0_YSCALE");
-	_params_handles.mag_z_offset		=	param_find("CAL_MAG0_ZOFF");
-	_params_handles.mag_z_scale		=	param_find("CAL_MAG0_ZSCALE");
+	_params_handles.mag_x_offset		=	PARAM_FIND(CAL_MAG0_XOFF);
+	_params_handles.mag_x_scale		=	PARAM_FIND(CAL_MAG0_XSCALE);
+	_params_handles.mag_y_offset		=	PARAM_FIND(CAL_MAG0_YOFF);
+	_params_handles.mag_y_scale		=	PARAM_FIND(CAL_MAG0_YSCALE);
+	_params_handles.mag_z_offset		=	PARAM_FIND(CAL_MAG0_ZOFF);
+	_params_handles.mag_z_scale		=	PARAM_FIND(CAL_MAG0_ZSCALE);
 
-	_params_handles.gyro_lpf_enum		=	param_find("MPU_GYRO_LPF_ENM");
-	_params_handles.accel_lpf_enum		=	param_find("MPU_ACC_LPF_ENM");
+	_params_handles.gyro_lpf_enum		=	PARAM_FIND(MPU_GYRO_LPF_ENM);
+	_params_handles.accel_lpf_enum		=	PARAM_FIND(MPU_ACC_LPF_ENM);
 
-	_params_handles.imu_sample_rate_enum	=	param_find("MPU_SAMPLE_R_ENM");
+	_params_handles.imu_sample_rate_enum	=	PARAM_FIND(MPU_SAMPLE_R_ENM);
 
 	parameters_update();
 }

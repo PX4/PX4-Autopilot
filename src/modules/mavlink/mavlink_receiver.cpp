@@ -579,7 +579,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
 	enum Rotation flow_rot;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot);
+	param_get(PARAM_FIND(SENS_FLOW_ROT), &flow_rot);
 
 	struct optical_flow_s f = {};
 

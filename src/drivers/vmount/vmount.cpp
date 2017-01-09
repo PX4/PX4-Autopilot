@@ -467,29 +467,16 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 
 bool get_params(ParameterHandles &param_handles, Parameters &params)
 {
-	param_handles.mnt_mode_in = param_find("MNT_MODE_IN");
-	param_handles.mnt_mode_out = param_find("MNT_MODE_OUT");
-	param_handles.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
-	param_handles.mnt_mav_compid = param_find("MNT_MAV_COMPID");
-	param_handles.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
-	param_handles.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
-	param_handles.mnt_man_control = param_find("MNT_MAN_CONTROL");
-	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
-	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
-	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
-
-	if (param_handles.mnt_mode_in == PARAM_INVALID ||
-	    param_handles.mnt_mode_out == PARAM_INVALID ||
-	    param_handles.mnt_mav_sysid == PARAM_INVALID ||
-	    param_handles.mnt_mav_compid == PARAM_INVALID ||
-	    param_handles.mnt_ob_lock_mode == PARAM_INVALID ||
-	    param_handles.mnt_ob_norm_mode == PARAM_INVALID ||
-	    param_handles.mnt_man_control == PARAM_INVALID ||
-	    param_handles.mnt_man_pitch == PARAM_INVALID ||
-	    param_handles.mnt_man_roll == PARAM_INVALID ||
-	    param_handles.mnt_man_yaw == PARAM_INVALID) {
-		return false;
-	}
+	param_handles.mnt_mode_in = PARAM_FIND(MNT_MODE_IN);
+	param_handles.mnt_mode_out = PARAM_FIND(MNT_MODE_OUT);
+	param_handles.mnt_mav_sysid = PARAM_FIND(MNT_MAV_SYSID);
+	param_handles.mnt_mav_compid = PARAM_FIND(MNT_MAV_COMPID);
+	param_handles.mnt_ob_lock_mode = PARAM_FIND(MNT_OB_LOCK_MODE);
+	param_handles.mnt_ob_norm_mode = PARAM_FIND(MNT_OB_NORM_MODE);
+	param_handles.mnt_man_control = PARAM_FIND(MNT_MAN_CONTROL);
+	param_handles.mnt_man_pitch = PARAM_FIND(MNT_MAN_PITCH);
+	param_handles.mnt_man_roll = PARAM_FIND(MNT_MAN_ROLL);
+	param_handles.mnt_man_yaw = PARAM_FIND(MNT_MAN_YAW);
 
 	bool dummy;
 	update_params(param_handles, params, dummy);

@@ -130,7 +130,7 @@ void task_main(int argc, char *argv[])
 	fds[0].fd = _uart_fd;
 	fds[0].events = POLLIN;
 
-	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+	param_get(PARAM_FIND(PWM_DISARMED), &_pwm_disarmed);
 
 	while (!_task_should_exit) {
 

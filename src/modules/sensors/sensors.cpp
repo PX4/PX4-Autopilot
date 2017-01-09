@@ -276,13 +276,12 @@ Sensors::Sensors() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_airspeed_validator(),
 
+	_parameter_handles(),
 	_rc_update(_parameters),
 	_voted_sensors_update(_parameters)
 {
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
-
-	initialize_parameter_handles(_parameter_handles);
 }
 
 Sensors::~Sensors()

@@ -989,8 +989,10 @@ PX4FMU::cycle()
 #endif
 #endif
 
+#if 0
 		param_find("MOT_SLEW_MAX");
 		param_find("THR_MDL_FAC");
+#endif
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			char pname[16];
@@ -1321,10 +1323,10 @@ PX4FMU::cycle()
 		update_pwm_trims();
 
 		int32_t dsm_bind_val;
-		param_t param_handle;
+		param_t param_handle = PARAM_FIND(RC_DSM_BIND);
 
 		/* see if bind parameter has been set, and reset it to -1 */
-		param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
+		param_get(param_handle, &dsm_bind_val);
 
 		if (dsm_bind_val > -1) {
 			dsm_bind_ioctl(dsm_bind_val);
@@ -1333,14 +1335,14 @@ PX4FMU::cycle()
 		}
 
 		// maximum motor slew rate parameter
-		param_handle = param_find("MOT_SLEW_MAX");
+		param_handle = PARAM_FIND(MOT_SLEW_MAX);
 
 		if (param_handle != PARAM_INVALID) {
 			param_get(param_handle, &_mot_t_max);
 		}
 
 		// thrust to pwm modelling factor
-		param_handle = param_find("THR_MDL_FAC");
+		param_handle = PARAM_FIND(THR_MDL_FAC);
 
 		if (param_handle != PARAM_INVALID) {
 			param_get(param_handle, &_thr_mdl_fac);

@@ -210,7 +210,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 
 	param_t param_pointer;
 
-	param_pointer = param_find("ISBD_READINT");
+	param_pointer = PARAM_FIND(ISBD_READINT);
 	param_get(param_pointer, &param_read_interval_s);
 
 	if (param_read_interval_s == -1) {

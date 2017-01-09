@@ -67,12 +67,12 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tailsitter.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tailsitter.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_tailsitter.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_tailsitter.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_tailsitter.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_params_handles_tailsitter.front_trans_dur = PARAM_FIND(VT_F_TRANS_DUR);
+	_params_handles_tailsitter.front_trans_dur_p2 = PARAM_FIND(VT_TRANS_P2_DUR);
+	_params_handles_tailsitter.back_trans_dur = PARAM_FIND(VT_B_TRANS_DUR);
+	_params_handles_tailsitter.airspeed_trans = PARAM_FIND(VT_ARSP_TRANS);
+	_params_handles_tailsitter.airspeed_blend_start = PARAM_FIND(VT_ARSP_BLEND);
+	_params_handles_tailsitter.elevons_mc_lock = PARAM_FIND(VT_ELEV_MC_LOCK);
 
 }
 

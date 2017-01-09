@@ -68,9 +68,9 @@ int parameters_update(const struct param_handles *h, struct params *p);
 int parameters_init(struct param_handles *h)
 {
 	/* PID parameters */
-	h->hdng_p 	=	param_find("EXFW_HDNG_P");
-	h->roll_p 	=	param_find("EXFW_ROLL_P");
-	h->pitch_p 	=	param_find("EXFW_PITCH_P");
+	h->hdng_p 	=	PARAM_FIND(EXFW_HDNG_P);
+	h->roll_p 	=	PARAM_FIND(EXFW_ROLL_P);
+	h->pitch_p 	=	PARAM_FIND(EXFW_PITCH_P);
 
 	return 0;
 }

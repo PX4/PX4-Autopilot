@@ -335,7 +335,7 @@ void VotedSensorsUpdate::parameters_update()
 
 					/* handling of old setups, will be removed later (noted Feb 2015) */
 					int32_t deprecated_mag_rot = 0;
-					param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
+					param_get(PARAM_FIND(SENS_EXT_MAG_ROT), &deprecated_mag_rot);
 
 					/*
 					 * If the deprecated parameter is non-default (is != 0),
@@ -352,7 +352,7 @@ void VotedSensorsUpdate::parameters_update()
 						param_set_no_notification(param_find(str), &mag_rot);
 						/* clear the old param, not supported in GUI anyway */
 						deprecated_mag_rot = 0;
-						param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
+						param_set_no_notification(PARAM_FIND(SENS_EXT_MAG_ROT), &deprecated_mag_rot);
 					}
 
 					/* handling of transition from internal to external */

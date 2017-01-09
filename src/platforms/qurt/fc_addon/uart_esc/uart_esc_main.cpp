@@ -130,8 +130,8 @@ struct {
 
 void parameters_init()
 {
-	_parameter_handles.model 		= param_find("UART_ESC_MODEL");
-	_parameter_handles.baudrate = param_find("UART_ESC_BAUD");
+	_parameter_handles.model 		= PARAM_FIND(UART_ESC_MODEL);
+	_parameter_handles.baudrate = PARAM_FIND(UART_ESC_BAUD);
 
 	/* PX4 motor mapping parameters */
 	for (unsigned int i = 0; i < UART_ESC_MAX_MOTORS; i++) {

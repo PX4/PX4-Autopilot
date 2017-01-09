@@ -64,10 +64,10 @@ FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
 	_airspeed_filtered(0.0f),
 	_accel_horz_lp(0.0f)
 {
-	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
-	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
-	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
-	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
+	_paramHandle.maxVelocity = PARAM_FIND(LNDFW_VEL_XY_MAX);
+	_paramHandle.maxClimbRate = PARAM_FIND(LNDFW_VEL_Z_MAX);
+	_paramHandle.maxAirSpeed = PARAM_FIND(LNDFW_AIRSPD_MAX);
+	_paramHandle.maxIntVelocity = PARAM_FIND(LNDFW_VELI_MAX);
 }
 
 void FixedwingLandDetector::_initialize_topics()

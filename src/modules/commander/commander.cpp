@@ -1275,50 +1275,50 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* set parameters */
-	param_t _param_sys_type = param_find("MAV_TYPE");
-	param_t _param_system_id = param_find("MAV_SYS_ID");
-	param_t _param_component_id = param_find("MAV_COMP_ID");
-	param_t _param_enable_datalink_loss = param_find("NAV_DLL_ACT");
-	param_t _param_offboard_loss_act = param_find("COM_OBL_ACT");
-	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
-	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
-	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
-	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
-	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
-	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
-	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
-	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
-	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
-	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
-	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
-	param_t _param_eph = param_find("COM_HOME_H_T");
-	param_t _param_epv = param_find("COM_HOME_V_T");
-	param_t _param_geofence_action = param_find("GF_ACTION");
-	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
-	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
-	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
-	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
-	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
+	param_t _param_sys_type = PARAM_FIND(MAV_TYPE);
+	param_t _param_system_id = PARAM_FIND(MAV_SYS_ID);
+	param_t _param_component_id = PARAM_FIND(MAV_COMP_ID);
+	param_t _param_enable_datalink_loss = PARAM_FIND(NAV_DLL_ACT);
+	param_t _param_offboard_loss_act = PARAM_FIND(COM_OBL_ACT);
+	param_t _param_offboard_loss_rc_act = PARAM_FIND(COM_OBL_RC_ACT);
+	param_t _param_enable_rc_loss = PARAM_FIND(NAV_RCL_ACT);
+	param_t _param_datalink_loss_timeout = PARAM_FIND(COM_DL_LOSS_T);
+	param_t _param_rc_loss_timeout = PARAM_FIND(COM_RC_LOSS_T);
+	param_t _param_datalink_regain_timeout = PARAM_FIND(COM_DL_REG_T);
+	param_t _param_ef_throttle_thres = PARAM_FIND(COM_EF_THROT);
+	param_t _param_ef_current2throttle_thres = PARAM_FIND(COM_EF_C2T);
+	param_t _param_ef_time_thres = PARAM_FIND(COM_EF_TIME);
+	param_t _param_autostart_id = PARAM_FIND(SYS_AUTOSTART);
+	param_t _param_autosave_params = PARAM_FIND(COM_AUTOS_PAR);
+	param_t _param_rc_in_off = PARAM_FIND(COM_RC_IN_MODE);
+	param_t _param_rc_arm_hyst = PARAM_FIND(COM_RC_ARM_HYST);
+	param_t _param_eph = PARAM_FIND(COM_HOME_H_T);
+	param_t _param_epv = PARAM_FIND(COM_HOME_V_T);
+	param_t _param_geofence_action = PARAM_FIND(GF_ACTION);
+	param_t _param_disarm_land = PARAM_FIND(COM_DISARM_LAND);
+	param_t _param_low_bat_act = PARAM_FIND(COM_LOW_BAT_ACT);
+	param_t _param_offboard_loss_timeout = PARAM_FIND(COM_OF_LOSS_T);
+	param_t _param_arm_without_gps = PARAM_FIND(COM_ARM_WO_GPS);
+	param_t _param_arm_switch_is_button = PARAM_FIND(COM_ARM_SWISBTN);
 
-	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
-	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
-	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
-	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
-	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
-	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
+	param_t _param_fmode_1 = PARAM_FIND(COM_FLTMODE1);
+	param_t _param_fmode_2 = PARAM_FIND(COM_FLTMODE2);
+	param_t _param_fmode_3 = PARAM_FIND(COM_FLTMODE3);
+	param_t _param_fmode_4 = PARAM_FIND(COM_FLTMODE4);
+	param_t _param_fmode_5 = PARAM_FIND(COM_FLTMODE5);
+	param_t _param_fmode_6 = PARAM_FIND(COM_FLTMODE6);
 
 	/* pre-flight EKF checks */
-	param_t _param_max_ekf_pos_ratio = param_find("COM_ARM_EKF_POS");
-	param_t _param_max_ekf_vel_ratio = param_find("COM_ARM_EKF_VEL");
-	param_t _param_max_ekf_hgt_ratio = param_find("COM_ARM_EKF_HGT");
-	param_t _param_max_ekf_yaw_ratio = param_find("COM_ARM_EKF_YAW");
-	param_t _param_max_ekf_dvel_bias = param_find("COM_ARM_EKF_AB");
-	param_t _param_max_ekf_dang_bias = param_find("COM_ARM_EKF_GB");
+	param_t _param_max_ekf_pos_ratio = PARAM_FIND(COM_ARM_EKF_POS);
+	param_t _param_max_ekf_vel_ratio = PARAM_FIND(COM_ARM_EKF_VEL);
+	param_t _param_max_ekf_hgt_ratio = PARAM_FIND(COM_ARM_EKF_HGT);
+	param_t _param_max_ekf_yaw_ratio = PARAM_FIND(COM_ARM_EKF_YAW);
+	param_t _param_max_ekf_dvel_bias = PARAM_FIND(COM_ARM_EKF_AB);
+	param_t _param_max_ekf_dang_bias = PARAM_FIND(COM_ARM_EKF_GB);
 
 	/* pre-flight IMU consistency checks */
-	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
-	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
+	param_t _param_max_imu_acc_diff = PARAM_FIND(COM_ARM_IMU_ACC);
+	param_t _param_max_imu_gyr_diff = PARAM_FIND(COM_ARM_IMU_GYR);
 
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
@@ -3208,7 +3208,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			}
 		} else {
 			led_off(LED_GREEN);
-			
+
 			/* armed, solid */
 			led_on(LED_BLUE);
 		}

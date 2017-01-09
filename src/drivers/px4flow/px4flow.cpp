@@ -257,7 +257,7 @@ PX4FLOW::init()
 	_sensor_ok = true;
 
 	/* get yaw rotation from sensor frame to body frame */
-	param_t rot = param_find("SENS_FLOW_ROT");
+	param_t rot = PARAM_FIND(SENS_FLOW_ROT);
 
 	/* only set it if the parameter exists */
 	if (rot != PARAM_INVALID) {

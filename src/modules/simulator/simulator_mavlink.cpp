@@ -1049,7 +1049,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 
 	/* rotate measurements according to parameter */
 	enum Rotation flow_rot;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot);
+	param_get(PARAM_FIND(SENS_FLOW_ROT), &flow_rot);
 
 	float zeroval = 0.0f;
 	rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);

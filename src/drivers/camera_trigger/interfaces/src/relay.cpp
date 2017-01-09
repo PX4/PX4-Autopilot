@@ -5,11 +5,10 @@ constexpr uint32_t CameraInterfaceRelay::_gpios[6];
 CameraInterfaceRelay::CameraInterfaceRelay():
 	CameraInterface(),
 	_pins{},
-	_polarity(0)
+	_polarity(0),
+	_p_pin(PARAM_FIND(TRIG_PINS)),
+	_p_polarity(PARAM_FIND(TRIG_POLARITY))
 {
-	_p_pin = param_find("TRIG_PINS");
-	_p_polarity = param_find("TRIG_POLARITY");
-
 	int pin_list;
 	param_get(_p_pin, &pin_list);
 	param_get(_p_polarity, &_polarity);
