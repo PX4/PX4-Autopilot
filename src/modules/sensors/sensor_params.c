@@ -3350,3 +3350,13 @@ PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
+/**
+ * Threshold (of RMS) to warn about high vibration levels
+ *
+ * @group Attitude Q estimator
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
