@@ -691,7 +691,9 @@ dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	}
 
 	if (decode_ret) {
-		*num_values = dsm_chan_count;
+		/* num values should not decrease, only increase */
+		if (dsm_chan_count > *num_values)
+			*num_values = dsm_chan_count;
 		memcpy(&values[0], &dsm_chan_buf[0], dsm_chan_count * sizeof(dsm_chan_buf[0]));
 #ifdef DSM_DEBUG
 

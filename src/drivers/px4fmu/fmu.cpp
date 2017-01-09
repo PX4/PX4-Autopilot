@@ -218,6 +218,9 @@ private:
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
+	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	uint16_t raw_rc_count;
+
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
 	uint16_t	_failsafe_pwm[_max_actuators];
@@ -285,8 +288,8 @@ private:
 	/* do not allow to copy due to ptr data members */
 	PX4FMU(const PX4FMU &);
 	PX4FMU operator=(const PX4FMU &);
-	void fill_rc_in(uint16_t raw_rc_count,
-			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+	void fill_rc_in(uint16_t raw_rc_count_local,
+			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
 	void dsm_bind_ioctl(int dsmMode);
@@ -342,6 +345,7 @@ PX4FMU::PX4FMU() :
 	_groups_subscribed(0),
 	_control_subs{ -1},
 	_poll_fds_num(0),
+	raw_rc_count(0),
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
@@ -380,6 +384,9 @@ PX4FMU::PX4FMU() :
 	// rc input, published to ORB
 	memset(&_rc_in, 0, sizeof(_rc_in));
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	// initialize raw_rc values and count
+	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++)
+		raw_rc_values[i] = UINT16_MAX;
 
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
@@ -855,13 +862,13 @@ PX4FMU::capture_callback(uint32_t chan_index,
 }
 
 void
-PX4FMU::fill_rc_in(uint16_t raw_rc_count,
-		   uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
+PX4FMU::fill_rc_in(uint16_t raw_rc_count_local,
+		   uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 		   hrt_abstime now, bool frame_drop, bool failsafe,
 		   unsigned frame_drops, int rssi = -1)
 {
 	// fill rc_in struct for publishing
-	_rc_in.channel_count = raw_rc_count;
+	_rc_in.channel_count = raw_rc_count_local;
 
 	if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
@@ -870,11 +877,13 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count,
 	unsigned valid_chans = 0;
 
 	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
-		_rc_in.values[i] = raw_rc_values[i];
+		_rc_in.values[i] = raw_rc_values_local[i];
 
-		if (raw_rc_values[i] != UINT16_MAX) {
+		if (raw_rc_values_local[i] != UINT16_MAX) {
 			valid_chans++;
 		}
+		// once filled, reset values back to default
+		raw_rc_values[i] = UINT16_MAX;
 	}
 
 	_rc_in.timestamp = now;
@@ -1387,8 +1396,6 @@ PX4FMU::cycle()
 	constexpr hrt_abstime rc_scan_max = 300 * 1000;
 
 	bool sbus_failsafe, sbus_frame_drop;
-	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
-	uint16_t raw_rc_count;
 	unsigned frame_drops;
 	bool dsm_11_bit;
 
