@@ -12,4 +12,4 @@ docker run -it --rm -w ${SRC_DIR} \
 	-v ${CCACHE_DIR}:${CCACHE_DIR}:rw \
 	-e CCACHE_DIR=${CCACHE_DIR} \
 	-e LOCAL_USER_ID=`id -u` \
-	px4io/px4-dev-nuttx:2017-01-07 /bin/bash -c "$@"
+	px4io/px4-dev-nuttx:2017-01-08 /bin/bash -c "$@"

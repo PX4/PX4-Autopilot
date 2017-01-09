@@ -95,13 +95,6 @@ endif
 
 SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-# optionally run commmands in PX4 docker
-ifdef PX4_DOCKER
-	PX4_RUN = docker run -it --rm -v $(SRC_DIR):$(SRC_DIR):rw -w $(SRC_DIR) -v /tmp/.X11-unix:/tmp/.X11-unix:ro -v $(HOME)/.ccache:$(HOME)/.ccache:rw -e CCACHE_DIR=$(HOME)/.ccache -e LOCAL_USER_ID=`id -u $(USER)` px4io/px4-dev-nuttx:2017-01-01 /bin/bash -c "$1"
-else
-	PX4_RUN = $1
-endif
-
 # check if replay env variable is set & set build dir accordingly
 ifdef replay
 	BUILD_DIR_SUFFIX := _replay
