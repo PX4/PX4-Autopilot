@@ -42,7 +42,6 @@ param set SENS_BOARD_ROT 0
 param set SENS_DPRES_OFF 0.001
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
-param set NAV_DLL_ACT 2
 param set NAV_ACC_RAD 5.0
 param set NAV_LOITER_RAD 50
 param set MPC_TKO_SPEED 1.0
