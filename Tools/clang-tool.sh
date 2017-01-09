@@ -41,6 +41,7 @@ case "${tool}" in
     ;;
   "clang-tidy")
     command=clang-tidy
+    option=-header-filter=.*
     ;;
 esac
 
@@ -49,6 +50,7 @@ awk '{ print $2; }' |
 sed 's/\"//g' |
 while read FILE; do
     (cd $(dirname ${FILE});
-    ${command} ${option} -p ${COMPILE_DB} ${extra_args} $(basename ${FILE})
-    );
+    echo ${FILE}
+    ${command} ${option} -p ${COMPILE_DB} ${extra_args} $(basename ${FILE}));
+    echo
   done
