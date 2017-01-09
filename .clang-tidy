@@ -1,0 +1,46 @@
+# clang-tidy checks http://clang.llvm.org/extra/clang-tidy/checks/list.html
+
+Checks:          '-*,
+                  cert-flp30-c,
+                  clang-analyzer-cplusplus,
+                  clang-analyzer-unix*,
+                  google-readability-casting,
+                  google-readability-todo,
+                  misc-redundant-expression,
+                  misc-sizeof-container,
+                  misc-sizeof-expression,
+                  misc-string-compare,
+                  misc-suspicious-semicolon,
+                  misc-suspicious-string-compare,
+                  misc-swapped-arguments,
+                  misc-undelegated-constructor,
+                  misc-unused-alias-decls,
+                  misc-unused-parameters,
+                  misc-unused-raii,
+                  misc-unused-using-decls,
+                  misc-virtual-near-miss,
+                  performance-*,
+                  readability-braces-around-statements,
+                  readability-container-size-empty,
+                  readability-else-after-return,
+                  readability-function-size,
+                  readability-identifier-naming,
+                  readability-inconsistent-declaration-parameter-name,
+                  readability-named-parameter,
+                  readability-redundant-smartptr-get,
+                  readability-redundant-string-cstr,
+                  readability-simplify-boolean-expr,
+                  readability-uniqueptr-delete-release,
+                  '
+AnalyzeTemporaryDtors: false
+CheckOptions:
+  - key:             google-readability-braces-around-statements.ShortStatementLines
+    value:           '1'
+  - key:             google-readability-function-size.StatementThreshold
+    value:           '800'
+  - key:             google-readability-namespace-comments.ShortNamespaceLines
+    value:           '10'
+  - key:             google-readability-namespace-comments.SpacesBeforeComments
+    value:           '2'
+
+#WarningsAsErrors:
