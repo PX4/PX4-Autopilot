@@ -156,6 +156,9 @@ int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 
 	// TODO: verify this, it's just copied from the MS5611 driver.
 
+	/* TODO get device ID for sensor */
+	baro_report.device_id = 0;
+
 	// Constant for now
 	const double MSL_PRESSURE_KPA = 101325.0 / 1000.0;
 
