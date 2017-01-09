@@ -275,12 +275,14 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 					if (header->_MsgType == _DATA_MSG_TYPE) {
 						//PX4_DEBUG( "Received topic data for: [%s] len[%d]\n", messageName, data_length );
 						_RxHandler->process_received_message(messageName,
-										 header->_DataLen, topic_data);
+										     header->_DataLen, topic_data);
+
 					} else if (header->_MsgType == _CONTROL_MSG_TYPE_ADVERTISE) {
-						PX4_DEBUG( "Received topic advertise message for: [%s] len[%d]\n", messageName, data_length );
+						PX4_DEBUG("Received topic advertise message for: [%s] len[%d]\n", messageName, data_length);
 						_RxHandler->process_remote_topic(messageName, true);
+
 					} else if (header->_MsgType == _CONTROL_MSG_TYPE_UNADVERTISE) {
-						PX4_DEBUG( "Received topic unadvertise message for: [%s] len[%d]\n", messageName, data_length );
+						PX4_DEBUG("Received topic unadvertise message for: [%s] len[%d]\n", messageName, data_length);
 						_RxHandler->process_remote_topic(messageName, false);
 					}
 				}
