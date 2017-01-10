@@ -31,63 +31,58 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "dump_pgm.h"
 
-#include <stdint.h>
-#include <unistd.h>
+#include <string.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
 
-#define VIDEO_DEVICE_IMAGE_WIDTH 320
-#define VIDEO_DEVICE_IMAGE_HEIGHT 240
+#include <px4_posix.h>
 
-struct frame_data {
-	uint32_t timestamp;
-	uint32_t seq;
-	uint32_t bytes;
-	uint32_t index;
-	void *data;
-};
+#define HRES_STR "320"
+#define VRES_STR "240"
 
-struct buffer {
-	void *start;
-	size_t length;
-};
+char pgm_header[] = "P5\n#99999999999999 usec \n" HRES_STR " " VRES_STR "\n255\n";
+char pgm_dumpname[] = "image";
+char pgm_path[] = "/home/root/images/";
 
-class VideoDevice
+void dump_pgm(const void *data, uint32_t size, uint32_t seq, uint32_t timestamp)
 {
-public:
-	VideoDevice(char const *dev_name, uint32_t n_buffers) :
-		_fd(-1), _dev_name(dev_name), _n_buffers(n_buffers), _buffers(nullptr) {};
+	int written, total, fd;
+	struct stat sb;
 
-	~VideoDevice() = default;
+	// Check if dump directory exists
+	if (!(stat(pgm_path, &sb) == 0 && S_ISDIR(sb.st_mode))) {
+		PX4_ERR("Dump directory does not exist: %s", pgm_path);
+		PX4_ERR("No images are written!");
+		return;
+	}
 
-	/// Start the device
-	int start();
+	// Construct the absolute filename
+	char file_path[100] = {0};
+	snprintf(file_path, sizeof(file_path), "%s%s%08u.pgm", pgm_path, pgm_dumpname, seq);
+	PX4_INFO("%s", file_path);
 
-	/// Stop the device
-	int stop();
+	fd = open(file_path, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
 
-	/// Print various infos
-	int print_info();
+	if (fd < 0) {
+		PX4_ERR("Dump: Unable to open file");
+		return;
+	}
 
-	/// Non-blocking call to fetch an image. Returns 0 if the images was read, -1 on error
-	/// and 1 no new image is ready.
-	int get_frame(struct frame_data &frame);
+	// Write pgm header
+	snprintf(&pgm_header[4], 15, "%014d", (int)timestamp);
+	written = write(fd, pgm_header, sizeof(pgm_header));
 
-	/// Return a frame when the data is not needed any more.
-	int put_frame(struct frame_data &frame);
+	// Write image data
+	total = 0;
 
-private:
-	int _fd;
-	const char *_dev_name;
-	uint32_t _n_buffers;
-	struct buffer *_buffers;
+	do {
+		written = write(fd, data, size);
+		total += written;
+	} while (total < size);
 
-	int open_device();
-	int close_device();
-	int init_device();
-	int init_buffers();
-	int init_crop();
-	int init_format();
-	int start_capturing();
-	int stop_capturing();
-};
+	PX4_INFO("Wrote %d bytes\n", total);
+
+	close(fd);
+}

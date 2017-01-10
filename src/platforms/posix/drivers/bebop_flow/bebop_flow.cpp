@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file bebop_flow.cpp
  *
@@ -47,49 +45,119 @@
 #include <px4_posix.h>
 
 #include "video_device.h"
+#include "dump_pgm.h"
+#include <mt9v117/MT9V117.hpp>
 
 extern "C" { __EXPORT int bebop_flow_main(int argc, char *argv[]); }
 
+using namespace DriverFramework;
+
 namespace bebop_flow
 {
+MT9V117 *image_sensor = nullptr;				 // I2C image sensor
 VideoDevice *g_dev = nullptr;            // interface to the video device
 volatile bool _task_should_exit = false; // flag indicating if bebop flow task should exit
 static bool _is_running = false;         // flag indicating if bebop flow  app is running
 static px4_task_t _task_handle = -1;     // handle to the task main thread
+volatile unsigned int _trigger = 0;			 // Number of images to write as pgm
 
-static char *dev_name = "/dev/video0";
+const char *dev_name = "/dev/video0";		 // V4L video device
 
 int start();
 int stop();
 int info();
+int trigger(int count);
 int clear_errors();
 void usage();
 void task_main(int argc, char *argv[]);
 
-
 void task_main(int argc, char *argv[])
 {
 	_is_running = true;
+	int ret = 0;
+	struct frame_data frame;
+	memset(&frame, 0, sizeof(frame));
+	uint32_t timeout_cnt = 0;
 
 	// Main loop
 	while (!_task_should_exit) {
 
+		ret = g_dev->get_frame(frame);
+
+		if (ret < 0) {
+			PX4_ERR("Get Frame failed");
+			continue;
+
+		} else if (ret == 1) {
+			// No image in buffer
+			usleep(1000);
+			++timeout_cnt;
+
+			if (timeout_cnt > 1000) {
+				PX4_WARN("No frames received for 1 sec");
+				timeout_cnt = 0;
+			}
+
+			continue;
+		}
+
+		timeout_cnt = 0;
+
+		// Write images into a file
+		if (_trigger > 0) {
+			PX4_INFO("Trigger camera");
+
+			dump_pgm(frame.data, frame.bytes, frame.seq, frame.timestamp);
+			--_trigger;
+		}
+
+		/***************************************************************
+		 *
+		 * Optical Flow computation
+		 *
+		 **************************************************************/
+
+		ret = g_dev->put_frame(frame);
+
+		if (ret < 0) {
+			PX4_ERR("Put Frame failed");
+		}
 	}
 
 	_is_running = false;
-
 }
 
 int start()
 {
-	g_dev = new VideoDevice();
+	if (_is_running) {
+		PX4_WARN("bebop_flow already running");
+		return -1;
+	}
+
+	// Prepare the I2C device
+	image_sensor = new MT9V117(IMAGE_DEVICE_PATH);
+
+	if (image_sensor == nullptr) {
+		PX4_ERR("failed instantiating image sensor object");
+		return -1;
+	}
+
+	int ret = image_sensor->start();
+
+	if (ret != 0) {
+		PX4_ERR("Image sensor start failed");
+		return ret;
+	}
+
+	// Start the video device
+	g_dev = new VideoDevice(dev_name, 6);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating video device object");
 		return -1;
 	}
 
-	int ret = g_dev->start();
+	ret = g_dev->start();
 
 	if (ret != 0) {
 		PX4_ERR("Video device start failed");
@@ -105,7 +173,7 @@ int start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_WARN("task start failed");
 		return -1;
 	}
 
@@ -123,13 +191,14 @@ int stop()
 	}
 
 	_task_handle = -1;
+	_task_should_exit = false;
+	_trigger = 0;
 
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
-		return 1;
+		return -1;
 	}
 
-	// Stop DF device
 	int ret = g_dev->stop();
 
 	if (ret != 0) {
@@ -137,8 +206,22 @@ int stop()
 		return ret;
 	}
 
+	if (image_sensor == nullptr) {
+		PX4_ERR("Image sensor not running");
+		return -1;
+	}
+
+	ret = image_sensor->stop();
+
+	if (ret != 0) {
+		PX4_ERR("Image sensor driver  could not be stopped");
+		return ret;
+	}
+
 	delete g_dev;
+	delete image_sensor;
 	g_dev = nullptr;
+	image_sensor = nullptr;
 	return 0;
 }
 
@@ -165,10 +248,22 @@ info()
 	return 0;
 }
 
+int trigger(int count)
+{
+	if (_is_running) {
+		_trigger = count;
+
+	} else {
+		PX4_WARN("bebop_flow is not running");
+	}
+
+	return OK;
+}
+
 void
 usage()
 {
-	PX4_INFO("Usage: bebop_flow 'start', 'info', 'stop'");
+	PX4_INFO("Usage: bebop_flow 'start', 'info', 'stop', 'trigger [-n #]'");
 }
 
 } /* bebop flow namespace*/
@@ -176,8 +271,24 @@ usage()
 int
 bebop_flow_main(int argc, char *argv[])
 {
+	int ch;
 	int ret = 0;
 	int myoptind = 1;
+	const char *myoptarg = NULL;
+	unsigned int trigger_count = 1;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = px4_getopt(argc, argv, "n:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'n':
+			trigger_count = atoi(myoptarg);
+			break;
+
+		default:
+			bebop_flow::usage();
+			return 0;
+		}
+	}
 
 	if (argc <= 1) {
 		bebop_flow::usage();
@@ -185,7 +296,6 @@ bebop_flow_main(int argc, char *argv[])
 	}
 
 	const char *verb = argv[myoptind];
-
 
 	if (!strcmp(verb, "start")) {
 		ret = bebop_flow::start();
@@ -197,6 +307,10 @@ bebop_flow_main(int argc, char *argv[])
 
 	else if (!strcmp(verb, "info")) {
 		ret = bebop_flow::info();
+	}
+
+	else if (!strcmp(verb, "trigger")) {
+		ret = bebop_flow::trigger(trigger_count);
 	}
 
 	else {
