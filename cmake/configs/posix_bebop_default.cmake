@@ -108,4 +108,5 @@ set(config_df_driver_list
 	ak8963
 	bebop_bus
 	bebop_rangefinder
+	mt9v117
 )
