@@ -112,7 +112,7 @@ int motor_test_main(int argc, char *argv[])
 
 		case 'm':
 			/* Read in motor number */
-			channel = (int)strtoul(myoptarg, NULL, 0);
+			channel = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'p':
@@ -153,7 +153,7 @@ int motor_test_main(int argc, char *argv[])
 	}
 
 	if (run_test) {
-		if (channel == -1) {
+		if (channel < 0) {
 			for (int i = 0; i < 8; ++i) {
 				motor_test(i, value);
 				usleep(10000);
