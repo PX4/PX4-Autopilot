@@ -112,12 +112,12 @@ int motor_test_main(int argc, char *argv[])
 
 		case 'm':
 			/* Read in motor number */
-			channel = (int)strtoul(optarg, NULL, 0);
+			channel = (int)strtoul(myoptarg, NULL, 0);
 			break;
 
 		case 'p':
 			/* Read in power value */
-			lval = strtoul(optarg, NULL, 0);
+			lval = strtoul(myoptarg, NULL, 0);
 
 			if (lval > 100) {
 				usage("value invalid");
