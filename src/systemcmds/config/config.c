@@ -206,7 +206,7 @@ do_gyro(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
-		param_get(PARAM_FIND(CAL_GYRO0_ID), &(calibration_id));
+		param_get(param_find("CAL_GYRO0_ID"), &(calibration_id));
 
 		warnx("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps",
 		      id, calibration_id, srate, prate, range);
@@ -288,7 +288,7 @@ do_mag(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
-		param_get(PARAM_FIND(CAL_MAG0_ID), &(calibration_id));
+		param_get(param_find("CAL_MAG0_ID"), &(calibration_id));
 
 		warnx("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
 		      id, calibration_id, srate, prate, range);
@@ -370,7 +370,7 @@ do_accel(int argc, char *argv[])
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
-		param_get(PARAM_FIND(CAL_ACC0_ID), &(calibration_id));
+		param_get(param_find("CAL_ACC0_ID"), &(calibration_id));
 
 		warnx("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G",
 		      id, calibration_id, srate, prate, range);
