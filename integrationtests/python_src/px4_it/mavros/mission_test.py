@@ -52,7 +52,6 @@ import glob
 import json
 
 import mavros
-from pymavlink import mavutil
 from mavros import mavlink
 
 import px4tools
@@ -113,9 +112,6 @@ class MavrosMissionTest(unittest.TestCase):
         self.last_alt_d = 9999
         self.last_pos_d = 9999
         self.mission_name = ""
-
-        # need to simulate heartbeat for datalink loss detection
-        rospy.Timer(rospy.Duration(0.5), self.send_heartbeat)
 
         rospy.wait_for_service('mavros/cmd/command', 30)
         self.pub_mavlink = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
@@ -239,6 +235,7 @@ class MavrosMissionTest(unittest.TestCase):
         self._srv_cmd_long(False, 400, False,
                            # arm
                            1, 0, 0, 0, 0, 0, 0)
+        time.sleep(1)
 
     def wait_until_ready(self):
         """FIXME: hack to wait for simulation to be ready"""
@@ -290,14 +287,6 @@ class MavrosMissionTest(unittest.TestCase):
             "timeout: %d, index: %d") %
             (self.mission_name, timeout, index))
 
-    def send_heartbeat(self, event=None):
-        # mav type gcs
-        mavmsg = mavutil.mavlink.MAVLink_heartbeat_message(6, 0, 0, 0, 0, 0)
-        # XXX: hack: using header object to set mav properties
-        mavmsg.pack(mavutil.mavlink.MAVLink_header(0, 0, 0, 2, 1))
-        rosmsg = mavlink.convert_to_rosmsg(mavmsg)
-        self.pub_mavlink.publish(rosmsg)
-
     def test_mission(self):
         """Test mission"""
 
@@ -334,6 +323,8 @@ class MavrosMissionTest(unittest.TestCase):
         res = self._srv_wp_push(wps)
         rospy.loginfo(res)
         self.assertTrue(res.success, "(%s) mission could not be transfered" % self.mission_name)
+        # make sure the mission got actually transferred
+        time.sleep(5)
 
         rospy.loginfo("run mission")
         self.run_mission()
