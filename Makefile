@@ -153,7 +153,7 @@ broadcast: posix_sitl_broadcast
 # Multi- config targets.
 
 eagle_default: posix_eagle_default qurt_eagle_default
-eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
+eagle_legacy_default: posix_eaglelegacydriver_default qurt_eaglelegacydriver_default
 excelsior_default: posix_excelsior_default qurt_excelsior_default
 
 # Deprecated config targets.
