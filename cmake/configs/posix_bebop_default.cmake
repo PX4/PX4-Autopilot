@@ -106,4 +106,5 @@ set(config_df_driver_list
 	mpu6050
 	ak8963
 	bebop_bus
+	mt9v117
 )
