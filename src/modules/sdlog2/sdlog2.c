@@ -1107,9 +1107,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 	/* any other value means to ignore the parameter, so no else case */
 
-	param_t log_utc_offset = PARAM_FIND(SDLOG_UTC_OFFSET);
+	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
-	int32_t param_utc_offset;
+	int32_t param_utc_offset = 0;
 	param_get(log_utc_offset, &param_utc_offset);
 	_utc_offset = param_utc_offset;
 

@@ -75,12 +75,12 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	param_get(PARAM_FIND(TRIM_YAW), &yaw_trim_active);
 
 	/* get manual control scale values */
-	float roll_scale;
-	param_get(PARAM_FIND(FW_MAN_R_SC), &roll_scale);
-	float pitch_scale;
-	param_get(PARAM_FIND(FW_MAN_P_SC), &pitch_scale);
-	float yaw_scale;
-	param_get(PARAM_FIND(FW_MAN_Y_SC), &yaw_scale);
+	float roll_scale = 1.0f;
+	param_get(param_find("FW_MAN_R_SC"), &roll_scale);
+	float pitch_scale = 1.0f;
+	param_get(param_find("FW_MAN_P_SC"), &pitch_scale);
+	float yaw_scale = 1.0f;
+	param_get(param_find("FW_MAN_Y_SC"), &yaw_scale);
 
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user

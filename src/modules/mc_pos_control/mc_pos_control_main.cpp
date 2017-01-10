@@ -518,7 +518,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_z = PARAM_FIND(MPC_HOLD_MAX_Z);
 	_params_handles.acc_hor_max = PARAM_FIND(MPC_ACC_HOR_MAX);
 	_params_handles.alt_mode = PARAM_FIND(MPC_ALT_MODE);
-	_params_handles.opt_recover = PARAM_FIND(VT_OPT_RECOV_EN);
+	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -637,7 +637,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
-		int i;
+		int i = 0;
 		param_get(_params_handles.opt_recover, &i);
 		_params.opt_recover = i;
 

@@ -491,11 +491,14 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
-			/* Read add channels we got */
+			/* Read adc channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
 
-				/* look for specific channels and process the raw voltage to measurement data */
-				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+				if (false) {
+#ifdef ADC_BATTERY_VOLTAGE_CHANNEL
+					/* look for specific channels and process the raw voltage to measurement data */
+
+				} else if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
 
@@ -503,9 +506,14 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						updated_battery = true;
 					}
 
+#endif
+
+#ifdef ADC_BATTERY_CURRENT_CHANNEL
+
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
 					bat_current_a = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
 							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+#endif
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 

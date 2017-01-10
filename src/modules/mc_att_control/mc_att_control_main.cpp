@@ -458,11 +458,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_pitch_max	= 	PARAM_FIND(MC_ACRO_P_MAX);
 	_params_handles.acro_yaw_max	= 	PARAM_FIND(MC_ACRO_Y_MAX);
 	_params_handles.rattitude_thres = 	PARAM_FIND(MC_RATT_TH);
-	_params_handles.vtol_type 		= 	PARAM_FIND(VT_TYPE);
+	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
 	_params_handles.roll_tc			= 	PARAM_FIND(MC_ROLL_TC);
 	_params_handles.pitch_tc		= 	PARAM_FIND(MC_PITCH_TC);
-	_params_handles.vtol_opt_recovery_enabled	= PARAM_FIND(VT_OPT_RECOV_EN);
-	_params_handles.vtol_wv_yaw_rate_scale		= PARAM_FIND(VT_WV_YAWR_SCL);
+	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
+	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
 	_params_handles.bat_scale_en		= PARAM_FIND(MC_BAT_SCALE_EN);
 
 
