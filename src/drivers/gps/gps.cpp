@@ -493,6 +493,8 @@ int GPS::setBaudrate(unsigned baud)
 
 	case 115200: data_rate.bit_rate = DSPAL_SIO_BITRATE_115200; break;
 
+	case 230400: data_rate.bit_rate = DSPAL_SIO_BITRATE_230400; break;
+
 	default:
 		PX4_ERR("ERR: unknown baudrate: %d", baud);
 		return -EINVAL;
