@@ -287,7 +287,7 @@ void FollowTarget::on_active()
 
 	case TRACK_POSITION: {
 
-			if (_radius_entered == true) {
+			if (_radius_entered) {
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
@@ -306,7 +306,7 @@ void FollowTarget::on_active()
 
 	case TRACK_VELOCITY: {
 
-			if (_radius_exited == true) {
+			if (_radius_exited) {
 				_follow_target_state = TRACK_POSITION;
 
 			} else if (target_velocity_valid()) {

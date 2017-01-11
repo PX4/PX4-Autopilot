@@ -1823,7 +1823,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
-			if (updated && autosave_params != 0 && param_changed.saved == false) {
+			if (updated && autosave_params != 0 && !param_changed.saved) {
 				/* trigger an autosave */
 				need_param_autosave = true;
 			}
@@ -2124,20 +2124,10 @@ int commander_thread_main(int argc, char *argv[])
 		bool local_eph_good;
 
 		if (status_flags.condition_local_position_valid) {
-			if (local_position.eph > eph_threshold * 2.5f) {
-				local_eph_good = false;
-
-			} else {
-				local_eph_good = true;
-			}
+			local_eph_good = local_position.eph <= eph_threshold * 2.5f;
 
 		} else {
-			if (local_position.eph < eph_threshold) {
-				local_eph_good = true;
-
-			} else {
-				local_eph_good = false;
-			}
+			local_eph_good = local_position.eph < eph_threshold;
 		}
 
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid
@@ -2801,12 +2791,12 @@ int commander_thread_main(int argc, char *argv[])
 			 * only for fixed wing for now
 			 */
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    status.is_rotary_wing == false &&
+			    !status.is_rotary_wing &&
 			    armed.armed &&
 			    ((actuator_controls.control[3] > ef_throttle_thres &&
-			      battery.current_a / actuator_controls.control[3] <
-			      ef_current2throttle_thres) ||
+			      (battery.current_a / actuator_controls.control[3] < ef_current2throttle_thres)) ||
 			     (status.engine_failure))) {
+
 				/* potential failure, measure time */
 				if (timestamp_engine_healthy > 0 &&
 				    hrt_elapsed_time(&timestamp_engine_healthy) >

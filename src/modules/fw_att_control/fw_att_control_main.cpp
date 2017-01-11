@@ -866,12 +866,7 @@ FixedwingAttitudeControl::task_main()
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
-			if (_vcontrol_mode.flag_control_attitude_enabled && !_vehicle_status.is_rotary_wing) {
-				lock_integrator = false;
-
-			} else {
-				lock_integrator = true;
-			}
+			lock_integrator = !(_vcontrol_mode.flag_control_attitude_enabled && !_vehicle_status.is_rotary_wing);
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -1101,7 +1096,7 @@ FixedwingAttitudeControl::task_main()
 
 					float yaw_u = 0.0f;
 
-					if (_att_sp.fw_control_yaw == true) {
+					if (_att_sp.fw_control_yaw) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 
 					} else {

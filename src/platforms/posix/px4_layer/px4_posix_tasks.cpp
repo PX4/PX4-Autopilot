@@ -228,7 +228,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	int taskid = 0;
 
 	for (i = 0; i < PX4_MAX_TASKS; ++i) {
-		if (taskmap[i].isused == false) {
+		if (!taskmap[i].isused) {
 			taskmap[i].name = name;
 			taskmap[i].isused = true;
 			taskid = i;

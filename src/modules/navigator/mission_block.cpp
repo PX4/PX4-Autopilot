@@ -144,7 +144,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_land_detected()->landed == false)
+	if ((!_navigator->get_land_detected()->landed)
 	    && !_waypoint_position_reached) {
 
 		float dist = -1.0f;
@@ -472,26 +472,21 @@ bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
-	    item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-	    item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-	    item->nav_cmd == NAV_CMD_DO_LAND_START ||
-	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-	    item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
-	    item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
-	    item->nav_cmd == NAV_CMD_DO_SET_ROI ||
-	    item->nav_cmd == NAV_CMD_ROI ||
-	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-
-		return false;
-	}
-
-	return true;
+	return !(item->nav_cmd == NAV_CMD_DO_JUMP ||
+		 item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		 item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		 item->nav_cmd == NAV_CMD_DO_LAND_START ||
+		 item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		 item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+		 item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+		 item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+		 item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
+		 item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
+		 item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+		 item->nav_cmd == NAV_CMD_DO_SET_ROI ||
+		 item->nav_cmd == NAV_CMD_ROI ||
+		 item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+		 item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION);
 }
 
 void
