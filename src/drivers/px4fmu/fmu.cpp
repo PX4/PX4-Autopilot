@@ -2373,16 +2373,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIONAME: {
-			if (_mixers == nullptr) {
-				ret = -EINVAL;
-			}
-
-			mixer_id_e *id = (mixer_id_e *)arg;
-			ret = _mixers->mixer_id((unsigned) id->index, id->id, (unsigned) sizeof(mixer_id_e));
-			break;
-		}
-
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				PX4_DEBUG("_mixers not found");
@@ -2391,17 +2381,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			unsigned *count = (unsigned *)arg;
 			*count = _mixers->count();
-
-			break;
-		}
-
-	case MIXERIOGETPARAMIDS: {
-			if (_mixers == nullptr) {
-				ret = -EINVAL;
-			}
-
-			mixer_param_id_s *param_ids = (mixer_param_id_s *)arg;
-			param_ids->ids = (char **) _mixers->get_mixer_param_ids(param_ids->mix_index, &param_ids->id_count);
 
 			break;
 		}
@@ -2437,6 +2416,19 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			ret = _mixers->save_to_buf(buf, buflen);
 			break;
 		}
+
+        case MIXERIOGETCHECKSUM: {
+                if (_mixers == nullptr) {
+                    ret = -EINVAL;
+                }
+
+                mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+
+                mix_crc->crc_local = _mixers->calc_checksum();
+                mix_crc->crc_remote = 0;
+                ret = 0;
+                break;
+            }
 
 	default:
 		ret = -ENOTTY;
