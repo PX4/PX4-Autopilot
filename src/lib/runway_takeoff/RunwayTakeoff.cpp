@@ -52,7 +52,7 @@ namespace runwaytakeoff
 {
 
 RunwayTakeoff::RunwayTakeoff() :
-	SuperBlock(NULL, "RWTO"),
+	SuperBlock(nullptr, "RWTO"),
 	_state(),
 	_initialized(false),
 	_initialized_time(0),

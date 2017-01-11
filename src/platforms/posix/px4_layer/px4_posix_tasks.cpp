@@ -108,7 +108,7 @@ static void *entry_adapter(void *ptr)
 	px4_task_exit(0);
 	PX4_DEBUG("After px4_task_exit");
 
-	return NULL;
+	return nullptr;
 }
 
 void
@@ -134,10 +134,10 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	struct sched_param param = {};
 
 	// Calculate argc
-	while (p != (char *)0) {
+	while (p != (char *)nullptr) {
 		p = argv[argc];
 
-		if (p == (char *)0) {
+		if (p == (char *)nullptr) {
 			break;
 		}
 
@@ -165,7 +165,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 
 	// Must add NULL at end of argv
-	taskdata->argv[argc] = (char *)0;
+	taskdata->argv[argc] = (char *)nullptr;
 
 	PX4_DEBUG("starting task %s", name);
 
@@ -249,7 +249,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 		if (rv == EPERM) {
 			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-			rv = pthread_create(&taskmap[taskid].pid, NULL, &entry_adapter, (void *) taskdata);
+			rv = pthread_create(&taskmap[taskid].pid, nullptr, &entry_adapter, (void *) taskdata);
 
 			if (rv != 0) {
 				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
@@ -293,7 +293,7 @@ int px4_task_delete(px4_task_t id)
 	if (pthread_self() == pid) {
 		taskmap[id].isused = false;
 		pthread_mutex_unlock(&task_mutex);
-		pthread_exit(0);
+		pthread_exit(nullptr);
 
 	} else {
 		rv = pthread_cancel(pid);

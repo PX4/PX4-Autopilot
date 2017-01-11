@@ -159,7 +159,7 @@ static int mkpath(const char *path, mode_t mode)
 	status = 0;
 	pp = copypath;
 
-	while (status == 0 && (sp = strchr(pp, '/')) != 0) {
+	while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
 		if (sp != pp) {
 			/* Neither root nor double slash in path */
 			*sp = '\0';
@@ -214,7 +214,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 			++i;
 		}
 
-		arg[i] = (char *)0;
+		arg[i] = (char *)nullptr;
 
 		int retval = apps[command](i, (char **)arg);
 
@@ -310,9 +310,9 @@ int main(int argc, char **argv)
 	sig_fpe.sa_handler = _SigFpeHandler;
 	sig_fpe.sa_flags = 0;// not SA_RESTART!;
 
-	sigaction(SIGINT, &sig_int, NULL);
+	sigaction(SIGINT, &sig_int, nullptr);
 	//sigaction(SIGTERM, &sig_int, NULL);
-	sigaction(SIGFPE, &sig_fpe, NULL);
+	sigaction(SIGFPE, &sig_fpe, nullptr);
 
 	set_cpu_scaling();
 
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
 		term.c_lflag &= ~ICANON;
 		term.c_lflag &= ~ECHO;
 		tcsetattr(0, TCSANOW, &term);
-		setbuf(stdin, NULL);
+		setbuf(stdin, nullptr);
 
 		while (!_ExitFlag) {
 

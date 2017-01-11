@@ -192,7 +192,7 @@ int motor_ramp_main(int argc, char *argv[])
 					      SCHED_PRIORITY_DEFAULT + 40,
 					      2000,
 					      motor_ramp_thread_main,
-					      (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+					      (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 	return 0;
 
 	usage("unrecognized command");

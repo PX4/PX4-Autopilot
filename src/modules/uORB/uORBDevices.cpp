@@ -1123,7 +1123,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			if (ret > 0) {
 
-				ret = read(0, &c, 1);
+				ret = read(nullptr, &c, 1);
 
 				if (ret) {
 					quit = true;

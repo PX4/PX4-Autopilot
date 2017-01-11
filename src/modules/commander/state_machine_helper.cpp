@@ -572,7 +572,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				for (;;) {
 					devname = px4_get_device_names(&handle);
 
-					if (devname == NULL) {
+					if (devname == nullptr) {
 						break;
 					}
 

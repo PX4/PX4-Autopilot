@@ -557,7 +557,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_fw_pos_ctrl_status_pub(nullptr),
 
 	/* publication ID */
-	_attitude_setpoint_id(0),
+	_attitude_setpoint_id(nullptr),
 
 	/* states */
 	_ctrl_state(),

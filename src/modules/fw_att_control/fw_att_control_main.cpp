@@ -364,9 +364,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_0_pub(nullptr),
 	_actuators_2_pub(nullptr),
 
-	_rates_sp_id(0),
-	_actuators_id(0),
-	_attitude_setpoint_id(0),
+	_rates_sp_id(nullptr),
+	_actuators_id(nullptr),
+	_attitude_setpoint_id(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),

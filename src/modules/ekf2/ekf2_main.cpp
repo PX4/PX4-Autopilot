@@ -288,7 +288,7 @@ private:
 };
 
 Ekf2::Ekf2():
-	SuperBlock(NULL, "EKF"),
+	SuperBlock(nullptr, "EKF"),
 	_replay_mode(false),
 	_publish_replay_mode(0),
 	_att_pub(nullptr),

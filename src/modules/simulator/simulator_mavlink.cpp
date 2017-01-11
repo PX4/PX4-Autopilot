@@ -744,7 +744,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
-	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
+	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
 
 	mavlink_status_t udp_status = {};

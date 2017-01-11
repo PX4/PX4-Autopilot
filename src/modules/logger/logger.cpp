@@ -268,12 +268,12 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 	int myoptind = 1;
 	int ch;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
-				unsigned long r = strtoul(myoptarg, NULL, 10);
+				unsigned long r = strtoul(myoptarg, nullptr, 10);
 
 				if (r <= 0) {
 					r = 1e6;
@@ -288,7 +288,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 			break;
 
 		case 'b': {
-				unsigned long s = strtoul(myoptarg, NULL, 10);
+				unsigned long s = strtoul(myoptarg, nullptr, 10);
 
 				if (s < 1) {
 					s = 1;
@@ -325,7 +325,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 			break;
 
 		case 'q':
-			queue_size = strtoul(myoptarg, NULL, 10);
+			queue_size = strtoul(myoptarg, nullptr, 10);
 
 			if (queue_size == 0) {
 				queue_size = 1;
@@ -576,7 +576,7 @@ int Logger::add_topics_from_file(const char *fname)
 	/* open the topic list file */
 	fp = fopen(fname, "r");
 
-	if (fp == NULL) {
+	if (fp == nullptr) {
 		return -1;
 	}
 
@@ -586,7 +586,7 @@ int Logger::add_topics_from_file(const char *fname)
 		/* get a line, bail on error/EOF */
 		line[0] = '\0';
 
-		if (fgets(line, sizeof(line), fp) == NULL) {
+		if (fgets(line, sizeof(line), fp) == nullptr) {
 			break;
 		}
 
