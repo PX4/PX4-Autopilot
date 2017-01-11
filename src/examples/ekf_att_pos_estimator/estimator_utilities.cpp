@@ -74,12 +74,12 @@ void ekf_debug(const char *fmt, ...) { while(0){} }
 /* we don't want to pull in the standard lib just to swap two floats */
 void swap_var(float &d1, float &d2);
 
-float Vector3f::length(void) const
+float Vector3f::length() const
 {
     return sqrt(x*x + y*y + z*z);
 }
 
-void Vector3f::zero(void)
+void Vector3f::zero()
 {
     x = 0.0f;
     y = 0.0f;

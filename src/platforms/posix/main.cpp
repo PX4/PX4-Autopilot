@@ -56,7 +56,7 @@
 
 namespace px4
 {
-void init_once(void);
+void init_once();
 }
 
 using namespace std;
@@ -260,7 +260,7 @@ static void process_line(string &line, bool exit_on_fail)
 	run_cmd(appargs, exit_on_fail);
 }
 
-static void restore_term(void)
+static void restore_term()
 {
 	cout << "Restoring terminal\n";
 	tcsetattr(0, TCSANOW, &orig_term);

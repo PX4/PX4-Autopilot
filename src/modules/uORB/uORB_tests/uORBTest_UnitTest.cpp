@@ -60,7 +60,7 @@ uORBTest::UnitTest &uORBTest::UnitTest::instance()
 	return t;
 }
 
-int uORBTest::UnitTest::pubsublatency_main(void)
+int uORBTest::UnitTest::pubsublatency_main()
 {
 	/* poll on test topic and output latency */
 	float latency_integral = 0.0f;

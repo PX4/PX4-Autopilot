@@ -496,7 +496,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 	return result;
 }
 
-int calibrate_cancel_subscribe(void)
+int calibrate_cancel_subscribe()
 {
 	return orb_subscribe(ORB_ID(vehicle_command));
 }

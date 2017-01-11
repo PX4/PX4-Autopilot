@@ -356,7 +356,7 @@ RingBuffer::get(double &val)
 }
 
 unsigned
-RingBuffer::space(void)
+RingBuffer::space()
 {
 	unsigned tail, head;
 
@@ -377,7 +377,7 @@ RingBuffer::space(void)
 }
 
 unsigned
-RingBuffer::count(void)
+RingBuffer::count()
 {
 	/*
 	 * Note that due to the conservative nature of space(), this may

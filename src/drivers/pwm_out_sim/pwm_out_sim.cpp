@@ -158,10 +158,10 @@ private:
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
 
-	void		gpio_reset(void);
+	void		gpio_reset();
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read(void);
+	uint32_t	gpio_read();
 	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 };
@@ -927,7 +927,7 @@ hil_new_mode(PortMode new_mode)
 }
 
 int
-test(void)
+test()
 {
 	int	fd;
 
