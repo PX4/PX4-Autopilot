@@ -1,40 +1,51 @@
 #pragma once
 
 
-
 #include <mathlib/mathlib.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+#include <lib/geo/geo.h>
+#include <poll.h>
+#include <drivers/drv_hrt.h>
 
-class MulticopterPositionControl : public control::SuperBlock
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/mc_virtual_attitude_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_land_detected.h>
+
+
+class McPosControl : public control::SuperBlock
 {
 public:
 	/**
 	 * Constructor
 	 */
-	MulticopterPositionControl();
+	McPosControl();
 
 	/**
-	 * Destructor, also kills task.
+	 * Destructor
 	 */
-	~MulticopterPositionControl();
+	~McPosControl();
 
 	/**
-	 * Start task.
-	 *
-	 * @return		OK on success.
+	 * Runs the position controller
 	 */
-	int		start();
+	void		run();
 
 
 	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
 					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
 
 private:
-	bool		_task_should_exit;		/**< if true, task should exit */
-	int		_control_task;			/**< task handle for task */
-	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
@@ -66,6 +77,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -196,8 +208,12 @@ private:
 	uint8_t _vz_reset_counter;
 	uint8_t _vxy_reset_counter;
 	uint8_t _heading_reset_counter;
+	hrt_abstime _t_prev;
+	bool _was_armed;
 
 	matrix::Dcmf _R_setpoint;
+
+	px4_pollfd_struct_t _fds[1];
 
 	/**
 	 * Update our local parameter cache.
@@ -277,13 +293,4 @@ private:
 
 	void generate_attitude_setpoint(float dt);
 
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 };
