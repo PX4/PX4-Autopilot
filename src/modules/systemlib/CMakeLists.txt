@@ -56,7 +56,7 @@ if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
 		printload.c
-		param/param.c
+		param/param.cpp
 		flashparams/flashparams.c
 		flashparams/flashfs.c
 		up_cxxinitialize.c
@@ -68,7 +68,7 @@ elseif ("${CONFIG_SHMEM}" STREQUAL "1")
 		)
 else()
 	list(APPEND SRCS
-		param/param.c
+		param/param.cpp
 		print_load_posix.c
 		)
 endif()

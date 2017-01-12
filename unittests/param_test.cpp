@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 
 /*
- * These will be used in param.c if compiling for unit tests
+ * These will be used in param.cpp if compiling for unit tests
  */
 struct param_info_s	param_array[256];
 struct param_info_s	*param_info_base;

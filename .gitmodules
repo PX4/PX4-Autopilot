@@ -41,3 +41,6 @@
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
+[submodule "src/lib/HashMap"]
+	path = src/lib/HashMap
+	url = https://github.com/jgoppert/HashMap.git

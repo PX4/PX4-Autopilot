@@ -61,6 +61,9 @@ header += """
 };
 
 extern const struct px4_parameters_t px4_parameters;
+
+__END_DECLS
+
 """
 
 # Generate the C file content

@@ -61,6 +61,8 @@
 
 #include <drivers/drv_hrt.h>
 
+#include <HashMap/hashmap/HashMap.h>
+
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
@@ -118,7 +120,7 @@ struct param_wbuf_s {
 
 
 uint8_t  *param_changed_storage = 0;
-int size_param_changed_storage_bytes = 0;
+size_t size_param_changed_storage_bytes = 0;
 const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
 
@@ -128,7 +130,7 @@ get_param_info_count(void)
 	/* Singleton creation of and array of bits to track changed values */
 	if (!param_changed_storage) {
 		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
-		param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
+		param_changed_storage = (uint8_t *)calloc(size_param_changed_storage_bytes, 1);
 
 		/* If the allocation fails we need to indicate failure in the
 		 * API by returning PARAM_INVALID
@@ -145,7 +147,7 @@ get_param_info_count(void)
 FLASH_PARAMS_EXPOSE UT_array        *param_values;
 
 /** array info for the modified parameters array */
-FLASH_PARAMS_EXPOSE const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+FLASH_PARAMS_EXPOSE extern const UT_icd    param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 #if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
@@ -229,7 +231,7 @@ param_find_changed(param_t param)
 	if (param_values != NULL) {
 		struct param_wbuf_s key;
 		key.param = param;
-		s = utarray_find(param_values, &key, param_compare_values);
+		s = (param_wbuf_s *)utarray_find(param_values, &key, param_compare_values);
 	}
 
 	return s;
@@ -347,7 +349,7 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
-	int count = get_param_info_count();
+	size_t count = get_param_info_count();
 
 	if (count && index < count) {
 		/* walk all params and count used params */
@@ -543,11 +545,10 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		if (s == NULL) {
 
 			/* construct a new parameter */
-			struct param_wbuf_s buf = {
-				.param = param,
-				.val.p = NULL,
-				.unsaved = false
-			};
+			struct param_wbuf_s buf;
+			buf.param = param;
+			buf.val.p = NULL;
+			buf.unsaved = false;
 			params_changed = true;
 
 			/* add it to the array and sort */
@@ -780,7 +781,7 @@ param_save_default(void)
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	res = 1;
@@ -982,13 +983,13 @@ struct param_import_state {
 };
 
 static int
-param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
 	float f;
 	int32_t i;
 	void *v, *tmp = NULL;
 	int result = -1;
-	struct param_import_state *state = (struct param_import_state *)private;
+	struct param_import_state *state = (struct param_import_state *)priv;
 
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
@@ -1173,7 +1174,7 @@ uint32_t param_hash_check(void)
 		const char *name = param_name(param);
 		const void *val = param_get_value_ptr(param);
 		param_hash = crc32part((const uint8_t *)name, strlen(name), param_hash);
-		param_hash = crc32part(val, param_size(param), param_hash);
+		param_hash = crc32part((const uint8_t *)val, param_size(param), param_hash);
 	}
 
 	param_unlock();
