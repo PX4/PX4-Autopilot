@@ -449,6 +449,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		return ERROR;
 	}
 
+#if !defined(__PX4_QURT_EXCELSIOR) && !defined(__PX4_POSIX_EXCELSIOR)
 	/*
 	 * if the write is successful, send the data over the Multi-ORB link
 	 */
@@ -462,6 +463,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		}
 	}
 
+#endif
 	return PX4_OK;
 }
 

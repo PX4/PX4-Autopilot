@@ -377,7 +377,7 @@ private:
 
 	unsigned _write_err_count = 0;
 	static const unsigned write_err_threshold = 5;
-#ifndef __PX4_POSIX_EAGLE
+#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
 	FILE *_fp = nullptr;
 #endif
 
@@ -387,7 +387,7 @@ protected:
 
 	~MavlinkStreamStatustext()
 	{
-#ifndef __PX4_POSIX_EAGLE
+#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
 
 		if (_fp != nullptr) {
 			fclose(_fp);
@@ -413,7 +413,7 @@ protected:
 				mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
 
 // TODO: the logging doesn't work on Snapdragon yet because of file paths.
-#ifndef __PX4_POSIX_EAGLE
+#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
 				/* write log messages in first instance to disk
 				 * timestamp each message with gps time
 				 */
