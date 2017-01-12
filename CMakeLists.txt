@@ -242,6 +242,12 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
 endif()
 
+execute_process(
+	COMMAND git describe --always --tags
+	OUTPUT_VARIABLE git_tag
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
 set(version_major 1)
 set(version_minor 5)
 set(version_patch 0)
@@ -371,6 +377,10 @@ px4_generate_parameters_xml(OUT parameters.xml
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
 	DEPENDS parameters.xml airframes.xml)
+install(FILES
+	${CMAKE_CURRENT_BINARY_DIR}/airframes.xml
+	${CMAKE_CURRENT_BINARY_DIR}/parameters.xml
+	DESTINATION .)
 
 #=============================================================================
 # external projects
@@ -468,12 +478,6 @@ px4_create_git_hash_header(OUT ${PX4_BINARY_DIR}/build_git_version.h)
 #
 # Important to having packaging at end of cmake file.
 #
-execute_process(
-	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
 set(CPACK_PACKAGE_VERSION ${version})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
@@ -486,7 +490,7 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_PACKAGING_INSTALL_PREFIX "")
 set(CPACK_SET_DESTDIR "OFF")
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 	find_program(DPKG_PROGRAM dpkg)
