@@ -260,11 +260,9 @@ format:
 check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
-	@$(MAKE) --no-print-directory $(subst check_,,$@)
-	@mkdir -p Binaries
-	@mkdir -p Meta/$(subst check_,,$@)
-	@cp build_$(subst check_,,$@)/*.xml Meta/$(subst check_,,$@) 2> /dev/null || :
-	@find build_$(subst check_,,$@)/src/firmware -type f -name 'nuttx-*-default.px4' -exec cp "{}" Binaries \; 2> /dev/null || :
+	@$(MAKE) --no-print-directory $(subst check_,,$@) package
+	@mkdir -p Packages
+	@cp build_$(subst check_,,$@)/*.zip Packages
 	@rm -rf build_$(subst check_,,$@)
 	@echo
 

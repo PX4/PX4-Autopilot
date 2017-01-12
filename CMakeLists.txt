@@ -242,17 +242,20 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
 endif()
 
+# version info from git
+execute_process(
+	COMMAND Tools/tag_to_version.py ${PX4_SOURCE_DIR}
+	OUTPUT_VARIABLE version
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
 execute_process(
 	COMMAND git describe --always --tags
 	OUTPUT_VARIABLE git_tag
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
-set(version_major 1)
-set(version_minor 5)
-set(version_patch 0)
-set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "px4users@googlegroups.com")
+message(STATUS "PX4 VERSION: ${version}")
 
 #=============================================================================
 # find programs and packages
