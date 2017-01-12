@@ -48,7 +48,7 @@ extern "C" __EXPORT int mc_pos_control_tests_main(int argc, char *argv[]);
 bool mcPosControlTests(void);
 
 //#include "../mc_pos_control_main.cpp"
-class MulticopterPositionControl
+class McPosControl
 {
 public:
 	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
@@ -77,7 +77,7 @@ McPosControlTests::~McPosControlTests()
 
 bool McPosControlTests::cross_sphere_line_test(void)
 {
-	MulticopterPositionControl	*control = {};
+	McPosControl		*control = {};
 
 	math::Vector<3> prev = math::Vector<3>(0, 0, 0);
 	math::Vector<3> curr = math::Vector<3>(0, 0, 2);
