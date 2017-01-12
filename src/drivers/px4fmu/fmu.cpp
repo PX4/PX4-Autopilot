@@ -2307,7 +2307,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 #endif
 
-#if defined(MIXER_CONFIGURATION)
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
 			delete _mixers;
@@ -2374,6 +2373,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if defined(MIXER_CONFIGURATION)
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				PX4_DEBUG("_mixers not found");
