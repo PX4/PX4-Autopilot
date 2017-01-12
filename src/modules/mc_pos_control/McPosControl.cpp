@@ -975,7 +975,7 @@ McPosControl::limit_acceleration(float dt)
 
 bool
 McPosControl::cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
+				const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
 {
 	/* project center of sphere on line */
 	/* normalized AB */
@@ -1815,141 +1815,141 @@ McPosControl::generate_attitude_setpoint(float dt)
 void
 McPosControl::run()
 {
-		/* wait for up to 20ms for data */
-		int pret = px4_poll(&_fds[0], (sizeof(_fds) / sizeof(_fds[0])), 20);
+	/* wait for up to 20ms for data */
+	int pret = px4_poll(&_fds[0], (sizeof(_fds) / sizeof(_fds[0])), 20);
 
-		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0) {
-			// Go through the loop anyway to copy manual input at 50 Hz.
-		}
+	/* timed out - periodic check for _task_should_exit */
+	if (pret == 0) {
+		// Go through the loop anyway to copy manual input at 50 Hz.
+	}
 
-		/* this is undesirable but not much we can do */
-		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
-			return;
-		}
+	/* this is undesirable but not much we can do */
+	if (pret < 0) {
+		warn("poll error %d, %d", pret, errno);
+		return;
+	}
 
-		poll_subscriptions();
+	poll_subscriptions();
 
-		parameters_update(false);
+	parameters_update(false);
 
-		hrt_abstime t = hrt_absolute_time();
-		float dt = _t_prev != 0 ? (t - _t_prev) / 1e6f : 0.0f;
-		_t_prev = t;
+	hrt_abstime t = hrt_absolute_time();
+	float dt = _t_prev != 0 ? (t - _t_prev) / 1e6f : 0.0f;
+	_t_prev = t;
 
-		// set dt for control blocks
-		setDt(dt);
+	// set dt for control blocks
+	setDt(dt);
 
-		if (_control_mode.flag_armed && !_was_armed) {
-			/* reset setpoints and integrals on arming */
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-			_do_reset_alt_pos_flag = true;
-			_vel_sp_prev.zero();
-			_reset_int_z = true;
-			_reset_int_xy = true;
-			_reset_yaw_sp = true;
-		}
+	if (_control_mode.flag_armed && !_was_armed) {
+		/* reset setpoints and integrals on arming */
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
+		_do_reset_alt_pos_flag = true;
+		_vel_sp_prev.zero();
+		_reset_int_z = true;
+		_reset_int_xy = true;
+		_reset_yaw_sp = true;
+	}
 
-		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
-		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-			_reset_yaw_sp = true;
-			_reset_alt_sp = true;
-		}
+	/* reset yaw and altitude setpoint for VTOL which are in fw mode */
+	if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
+		_reset_yaw_sp = true;
+		_reset_alt_sp = true;
+	}
 
-		//Update previous arming state
-		_was_armed = _control_mode.flag_armed;
+	//Update previous arming state
+	_was_armed = _control_mode.flag_armed;
 
-		update_ref();
+	update_ref();
 
 
-		update_velocity_derivative();
+	update_velocity_derivative();
 
-		// reset the horizontal and vertical position hold flags for non-manual modes
-		// or if position / altitude is not controlled
-		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
-			_pos_hold_engaged = false;
-		}
+	// reset the horizontal and vertical position hold flags for non-manual modes
+	// or if position / altitude is not controlled
+	if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
+		_pos_hold_engaged = false;
+	}
 
-		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
-			_alt_hold_engaged = false;
-		}
+	if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
+		_alt_hold_engaged = false;
+	}
 
-		if (_control_mode.flag_control_altitude_enabled ||
-		    _control_mode.flag_control_position_enabled ||
-		    _control_mode.flag_control_climb_rate_enabled ||
-		    _control_mode.flag_control_velocity_enabled ||
-		    _control_mode.flag_control_acceleration_enabled) {
+	if (_control_mode.flag_control_altitude_enabled ||
+	    _control_mode.flag_control_position_enabled ||
+	    _control_mode.flag_control_climb_rate_enabled ||
+	    _control_mode.flag_control_velocity_enabled ||
+	    _control_mode.flag_control_acceleration_enabled) {
 
-			do_control(dt);
+		do_control(dt);
 
-			/* fill local position, velocity and thrust setpoint */
-			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _pos_sp(0);
-			_local_pos_sp.y = _pos_sp(1);
-			_local_pos_sp.z = _pos_sp(2);
-			_local_pos_sp.yaw = _att_sp.yaw_body;
-			_local_pos_sp.vx = _vel_sp(0);
-			_local_pos_sp.vy = _vel_sp(1);
-			_local_pos_sp.vz = _vel_sp(2);
+		/* fill local position, velocity and thrust setpoint */
+		_local_pos_sp.timestamp = hrt_absolute_time();
+		_local_pos_sp.x = _pos_sp(0);
+		_local_pos_sp.y = _pos_sp(1);
+		_local_pos_sp.z = _pos_sp(2);
+		_local_pos_sp.yaw = _att_sp.yaw_body;
+		_local_pos_sp.vx = _vel_sp(0);
+		_local_pos_sp.vy = _vel_sp(1);
+		_local_pos_sp.vz = _vel_sp(2);
 
-			/* publish local position setpoint */
-			if (_local_pos_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
-
-			} else {
-				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
-			}
+		/* publish local position setpoint */
+		if (_local_pos_sp_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
 		} else {
-			/* position controller disabled, reset setpoints */
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-			_do_reset_alt_pos_flag = true;
-			_mode_auto = false;
-			_reset_int_z = true;
-			_reset_int_xy = true;
-			control_vel_enabled_prev = false;
-
-			/* store last velocity in case a mode switch to position control occurs */
-			_vel_sp_prev = _vel;
+			_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 		}
 
-		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+	} else {
+		/* position controller disabled, reset setpoints */
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
+		_do_reset_alt_pos_flag = true;
+		_mode_auto = false;
+		_reset_int_z = true;
+		_reset_int_xy = true;
+		control_vel_enabled_prev = false;
 
-			generate_attitude_setpoint(dt);
+		/* store last velocity in case a mode switch to position control occurs */
+		_vel_sp_prev = _vel;
+	}
 
-		} else {
-			_reset_yaw_sp = true;
-			_att_sp.yaw_sp_move_rate = 0.0f;
+	/* generate attitude setpoint from manual controls */
+	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+
+		generate_attitude_setpoint(dt);
+
+	} else {
+		_reset_yaw_sp = true;
+		_att_sp.yaw_sp_move_rate = 0.0f;
+	}
+
+	/* update previous velocity for velocity controller D part */
+	_vel_prev = _vel;
+
+	/* publish attitude setpoint
+	 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
+	 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
+	 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+	 * attitude setpoints for the transition).
+	 */
+	if (!(_control_mode.flag_control_offboard_enabled &&
+	      !(_control_mode.flag_control_position_enabled ||
+		_control_mode.flag_control_velocity_enabled ||
+		_control_mode.flag_control_acceleration_enabled))) {
+
+		if (_att_sp_pub != nullptr) {
+			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
+		} else if (_attitude_setpoint_id) {
+			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 		}
+	}
 
-		/* update previous velocity for velocity controller D part */
-		_vel_prev = _vel;
-
-		/* publish attitude setpoint
-		 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
-		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
-		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-		 * attitude setpoints for the transition).
-		 */
-		if (!(_control_mode.flag_control_offboard_enabled &&
-		      !(_control_mode.flag_control_position_enabled ||
-			_control_mode.flag_control_velocity_enabled ||
-			_control_mode.flag_control_acceleration_enabled))) {
-
-			if (_att_sp_pub != nullptr) {
-				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-			} else if (_attitude_setpoint_id) {
-				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-			}
-		}
-
-		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
-		_reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled
-				      && !_control_mode.flag_control_climb_rate_enabled;
+	/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
+	_reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled
+			      && !_control_mode.flag_control_climb_rate_enabled;
 
 }
 

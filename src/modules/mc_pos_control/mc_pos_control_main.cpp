@@ -100,7 +100,7 @@ int mc_pos_control_main_thread(int argc, char *argv[]);
 
 namespace pos_control
 {
-	McPosControl *g_control;
+McPosControl *g_control;
 }
 
 
@@ -123,14 +123,14 @@ int mc_pos_control_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 
-		if(pos_control::g_control != nullptr){
+		if (pos_control::g_control != nullptr) {
 			warnx("already running");
 			return 1;
 		}
 
 		pos_control::g_control = new McPosControl;
 
-		if(pos_control::g_control == nullptr){
+		if (pos_control::g_control == nullptr) {
 			warnx("alloc failed");
 			return 1;
 		}
@@ -138,14 +138,14 @@ int mc_pos_control_main(int argc, char *argv[])
 
 		ASSERT(control_task == -1);
 
-		thread_should_exit= false;
+		thread_should_exit = false;
 
 		control_task = px4_task_spawn_cmd("mc_pos_control",
-							   SCHED_DEFAULT,
-							   SCHED_PRIORITY_MAX - 5,
-							   1900,
-							   mc_pos_control_main_thread,
-							   nullptr);
+						  SCHED_DEFAULT,
+						  SCHED_PRIORITY_MAX - 5,
+						  1900,
+						  mc_pos_control_main_thread,
+						  nullptr);
 
 
 		if (control_task < 0) {
@@ -157,44 +157,45 @@ int mc_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-			if (pos_control::g_control == nullptr) {
-				warnx("not running");
-				return 1;
-			}
+		if (pos_control::g_control == nullptr) {
+			warnx("not running");
+			return 1;
+		}
 
-			thread_should_exit = true;
-			if (control_task != -1) {
-				/* task wakes up every 100ms or so at the longest */
-				/* wait for a second for the task to quit at our request */
-				unsigned i = 0;
+		thread_should_exit = true;
 
-				do {
-					/* wait 20ms */
-					usleep(20000);
+		if (control_task != -1) {
+			/* task wakes up every 100ms or so at the longest */
+			/* wait for a second for the task to quit at our request */
+			unsigned i = 0;
 
-					/* if we have given up, kill it */
-					if (++i > 50) {
-						px4_task_delete(control_task);
-						break;
-					}
-				} while (control_task != -1);
-			}
+			do {
+				/* wait 20ms */
+				usleep(20000);
 
-			delete pos_control::g_control;
-			pos_control::g_control = nullptr;\
-			control_task = -1;
-			return 0;
+				/* if we have given up, kill it */
+				if (++i > 50) {
+					px4_task_delete(control_task);
+					break;
+				}
+			} while (control_task != -1);
+		}
+
+		delete pos_control::g_control;
+		pos_control::g_control = nullptr; \
+		control_task = -1;
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-			if (pos_control::g_control) {
-				warnx("running");
-				return 0;
+		if (pos_control::g_control) {
+			warnx("running");
+			return 0;
 
-			} else {
-				warnx("not running");
-				return 1;
-			}
+		} else {
+			warnx("not running");
+			return 1;
+		}
 	}
 
 
@@ -207,7 +208,7 @@ int mc_pos_control_main(int argc, char *argv[])
 int mc_pos_control_main_thread(int argc, char *argv[])
 {
 
-	while(!thread_should_exit) {
+	while (!thread_should_exit) {
 		pos_control::g_control->run();
 	}
 
