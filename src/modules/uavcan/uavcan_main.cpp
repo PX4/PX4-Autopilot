@@ -1458,11 +1458,13 @@ int uavcan_main(int argc, char *argv[])
 
 			int rv = inst->fw_server(UavcanNode::Stop);
 
+			/* Let's recover any memory we can */
+
+			inst->shrink();
 			if (rv < 0) {
 				warnx("Firmware Server Failed to Stop %d", rv);
 				::exit(rv);
 			}
-
 			::exit(0);
 
 		} else {
