@@ -189,22 +189,22 @@ class uploader(object):
                 self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5)
                 self.otp = b''
                 self.sn = b''
-                self.baudrate_bootloader = baudrate_bootloader;
-                self.baudrate_flightstack = baudrate_flightstack;
+                self.baudrate_bootloader = baudrate_bootloader
+                self.baudrate_flightstack = baudrate_flightstack
 
         def close(self):
                 if self.port is not None:
                         self.port.close()
 
         def __send(self, c):
-#               print("send " + binascii.hexlify(c))
+                # print("send " + binascii.hexlify(c))
                 self.port.write(c)
 
         def __recv(self, count=1):
                 c = self.port.read(count)
                 if len(c) < 1:
                         raise RuntimeError("timeout waiting for data (%u bytes)" % count)
-#               print("recv " + binascii.hexlify(c))
+                # print("recv " + binascii.hexlify(c))
                 return c
 
         def __recv_int(self):
@@ -229,30 +229,31 @@ class uploader(object):
         def __sync(self):
                 # send a stream of ignored bytes longer than the longest possible conversation
                 # that we might still have in progress
-#               self.__send(uploader.NOP * (uploader.PROG_MULTI_MAX + 2))
+                # self.__send(uploader.NOP * (uploader.PROG_MULTI_MAX + 2))
                 self.port.flushInput()
-                self.__send(uploader.GET_SYNC
-                            + uploader.EOC)
+                self.__send(uploader.GET_SYNC +
+                            uploader.EOC)
                 self.__getSync()
 
         def __trySync(self):
                 try:
                     self.port.flush()
                     if (self.__recv() != self.INSYNC):
-                            #print("unexpected 0x%x instead of INSYNC" % ord(c))
-                            return False;
+                            # print("unexpected 0x%x instead of INSYNC" % ord(c))
+                            return False
                     c = self.__recv()
                     if (c == self.BAD_SILICON_REV):
                         raise NotImplementedError()
                     if (c != self.OK):
-                            #print("unexpected 0x%x instead of OK" % ord(c))
+                            # print("unexpected 0x%x instead of OK" % ord(c))
                             return False
                     return True
 
                 except NotImplementedError:
-                    raise RuntimeError("Programing not supported for this version of silicon!\n See https://pixhawk.org/help/errata")
+                    raise RuntimeError("Programing not supported for this version of silicon!\n"
+                                       "See https://pixhawk.org/help/errata")
                 except RuntimeError:
-                    #timeout, no response yet
+                    # timeout, no response yet
                     return False
 
         # send the GET_DEVICE command and wait for an info parameter
@@ -264,7 +265,7 @@ class uploader(object):
 
         # send the GET_OTP command and wait for an info parameter
         def __getOTP(self, param):
-                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
+                t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
                 self.__send(uploader.GET_OTP + t + uploader.EOC)
                 value = self.__recv(4)
                 self.__getSync()
@@ -272,7 +273,7 @@ class uploader(object):
 
         # send the GET_SN command and wait for an info parameter
         def __getSN(self, param):
-                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
+                t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
                 self.__send(uploader.GET_SN + t + uploader.EOC)
                 value = self.__recv(4)
                 self.__getSync()
@@ -284,6 +285,7 @@ class uploader(object):
                 value = self.__recv_int()
                 self.__getSync()
                 return value
+
         # send the GET_CHIP command
         def __getCHIPDes(self):
                 self.__send(uploader.GET_CHIP_DES + uploader.EOC)
@@ -302,36 +304,35 @@ class uploader(object):
                 sys.stdout.write("\r%s: [%-20s] %.1f%%" % (label, '='*int(percent/5.0), percent))
                 sys.stdout.flush()
 
-
         # send the CHIP_ERASE command and wait for the bootloader to become ready
         def __erase(self, label):
                 print("\n", end='')
-                self.__send(uploader.CHIP_ERASE
-                            + uploader.EOC)
+                self.__send(uploader.CHIP_ERASE +
+                            uploader.EOC)
 
                 # erase is very slow, give it 20s
                 deadline = time.time() + 20.0
                 while time.time() < deadline:
 
-                        #Draw progress bar (erase usually takes about 9 seconds to complete)
+                        # Draw progress bar (erase usually takes about 9 seconds to complete)
                         estimatedTimeRemaining = deadline-time.time()
                         if estimatedTimeRemaining >= 9.0:
                             self.__drawProgressBar(label, 20.0-estimatedTimeRemaining, 9.0)
                         else:
                             self.__drawProgressBar(label, 10.0, 10.0)
-                            sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()) )
+                            sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))
                             sys.stdout.flush()
 
                         if self.__trySync():
                             self.__drawProgressBar(label, 10.0, 10.0)
-                            return;
+                            return
 
                 raise RuntimeError("timed out waiting for erase")
 
         # send a PROG_MULTI command to write a collection of bytes
         def __program_multi(self, data):
 
-                if runningPython3 == True:
+                if runningPython3:
                     length = len(data).to_bytes(1, byteorder='big')
                 else:
                     length = chr(len(data))
@@ -345,7 +346,7 @@ class uploader(object):
         # verify multiple bytes in flash
         def __verify_multi(self, data):
 
-                if runningPython3 == True:
+                if runningPython3:
                     length = len(data).to_bytes(1, byteorder='big')
                 else:
                     length = chr(len(data))
@@ -364,8 +365,8 @@ class uploader(object):
 
         # send the reboot command
         def __reboot(self):
-                self.__send(uploader.REBOOT
-                            + uploader.EOC)
+                self.__send(uploader.REBOOT +
+                            uploader.EOC)
                 self.port.flush()
 
                 # v3+ can report failure if the first word flash fails
@@ -386,7 +387,7 @@ class uploader(object):
                 for bytes in groups:
                         self.__program_multi(bytes)
 
-                        #Print upload progress (throttled, so it does not delay upload progress)
+                        # Print upload progress (throttled, so it does not delay upload progress)
                         uploadProgress += 1
                         if uploadProgress % 256 == 0:
                             self.__drawProgressBar(label, uploadProgress, len(groups))
@@ -395,8 +396,8 @@ class uploader(object):
         # verify code
         def __verify_v2(self, label, fw):
                 print("\n", end='')
-                self.__send(uploader.CHIP_VERIFY
-                            + uploader.EOC)
+                self.__send(uploader.CHIP_VERIFY +
+                            uploader.EOC)
                 self.__getSync()
                 code = fw.image
                 groups = self.__split_len(code, uploader.READ_MULTI_MAX)
@@ -413,8 +414,8 @@ class uploader(object):
                 print("\n", end='')
                 self.__drawProgressBar(label, 1, 100)
                 expect_crc = fw.crc(self.fw_maxsize)
-                self.__send(uploader.GET_CRC
-                            + uploader.EOC)
+                self.__send(uploader.GET_CRC +
+                            uploader.EOC)
                 report_crc = self.__recv_int()
                 self.__getSync()
                 if report_crc != expect_crc:
@@ -424,9 +425,9 @@ class uploader(object):
                 self.__drawProgressBar(label, 100, 100)
 
         def __set_boot_delay(self, boot_delay):
-                self.__send(uploader.SET_BOOT_DELAY
-                            + struct.pack("b", boot_delay)
-                            + uploader.EOC)
+                self.__send(uploader.SET_BOOT_DELAY +
+                            struct.pack("b", boot_delay) +
+                            uploader.EOC)
                 self.__getSync()
 
         # get basic data about the board
@@ -460,9 +461,9 @@ class uploader(object):
 
                 # OTP added in v4:
                 if self.bl_rev > 3:
-                    for byte in range(0,32*6,4):
+                    for byte in range(0, 32*6, 4):
                         x = self.__getOTP(byte)
-                        self.otp  = self.otp + x
+                        self.otp = self.otp + x
                         print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
                     # see src/modules/systemlib/otp.h in px4 code:
                     self.otp_id = self.otp[0:4]
@@ -475,14 +476,14 @@ class uploader(object):
                             print("type: " + self.otp_id.decode('Latin-1'))
                             print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
                             print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
-                            print("pid: "+ binascii.hexlify(self.otp_pid).decode('Latin-1'))
-                            print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
+                            print("pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                            print("coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
                             print("sn: ", end='')
-                            for byte in range(0,12,4):
+                            for byte in range(0, 12, 4):
                                     x = self.__getSN(byte)
                                     x = x[::-1]  # reverse the bytes
-                                    self.sn  = self.sn + x
-                                    print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
+                                    self.sn = self.sn + x
+                                    print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
                             print('')
                             print("chip: %08x" % self.__getCHIP())
                             if (self.bl_rev >= 5):
@@ -576,21 +577,21 @@ try:
 
             for port in portlist:
 
-                    #print("Trying %s" % port)
+                    # print("Trying %s" % port)
 
                     # create an uploader attached to the port
                     try:
                             if "linux" in _platform:
-                            # Linux, don't open Mac OS and Win ports
-                                    if not "COM" in port and not "tty.usb" in port:
+                                    # Linux, don't open Mac OS and Win ports
+                                    if "COM" not in port and "tty.usb" not in port:
                                             up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                             elif "darwin" in _platform:
                                     # OS X, don't open Windows and Linux ports
-                                    if not "COM" in port and not "ACM" in port:
+                                    if "COM" not in port and "ACM" not in port:
                                             up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                             elif "win" in _platform:
                                     # Windows, don't open POSIX ports
-                                    if not "/" in port:
+                                    if "/" not in port:
                                             up = uploader(port, args.baud_bootloader, args.baud_flightstack)
                     except Exception:
                             # open failed, rate-limit our attempts
@@ -627,7 +628,7 @@ try:
                             print("\nERROR: %s" % ex.args)
 
                     except IOError as e:
-                            up.close();
+                            up.close()
                             continue
 
                     finally:
