@@ -78,7 +78,7 @@
 
 static volatile bool thread_should_exit = true;     /**< Deamon exit flag */
 static volatile bool thread_running = false;     /**< Deamon status flag */
-static int control_task;             /**< Handle of deamon task / thread */
+static int control_task = -1;             /**< Handle of deamon task / thread */
 
 
 /**
@@ -115,7 +115,7 @@ int mc_pos_control_main(int argc, char *argv[])
 
 
 	if (argc < 2) {
-		PX4_INFO("usage: mc_pos_control {start|stop|status}");
+		warnx("usage: mc_pos_control {start|stop|status}");
 		return 1;
 	}
 
@@ -124,14 +124,14 @@ int mc_pos_control_main(int argc, char *argv[])
 
 
 		if(pos_control::g_control != nullptr){
-			PX4_INFO("already running");
+			warnx("already running");
 			return 1;
 		}
 
 		pos_control::g_control = new McPosControl;
 
 		if(pos_control::g_control == nullptr){
-			PX4_INFO("alloc failed");
+			warnx("alloc failed");
 			return 1;
 		}
 
@@ -181,7 +181,8 @@ int mc_pos_control_main(int argc, char *argv[])
 			}
 
 			delete pos_control::g_control;
-			pos_control::g_control = nullptr;
+			pos_control::g_control = nullptr;\
+			control_task = -1;
 			return 0;
 	}
 
@@ -209,7 +210,6 @@ int mc_pos_control_main_thread(int argc, char *argv[])
 	while(!thread_should_exit) {
 		pos_control::g_control->run();
 	}
-
 
 	orb_advert_t	mavlink_log_pub;
 	mavlink_log_info(&mavlink_log_pub, "[mpc] stopped");
