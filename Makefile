@@ -155,6 +155,7 @@ broadcast: posix_sitl_broadcast
 eagle_default: posix_eagle_default qurt_eagle_default
 eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
 excelsior_default: posix_excelsior_default qurt_excelsior_default
+excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 # Deprecated config targets.
 
@@ -170,7 +171,7 @@ run_sitl_plane: _sitl_deprecation
 run_sitl_ros: _sitl_deprecation
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros all_nuttx_targets
+.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros all_nuttx_targets
 
 # Other targets
 # --------------------------------------------------------------------
