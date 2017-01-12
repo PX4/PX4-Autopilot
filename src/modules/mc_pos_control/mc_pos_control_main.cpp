@@ -59,7 +59,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <mavlink_log.h>
 
 #include "McPosControl.hpp"
 //#include <errno.h>
@@ -77,7 +76,6 @@
 */
 
 static volatile bool thread_should_exit = true;     /**< Deamon exit flag */
-static volatile bool thread_running = false;     /**< Deamon status flag */
 static int control_task = -1;             /**< Handle of deamon task / thread */
 
 
@@ -211,9 +209,6 @@ int mc_pos_control_main_thread(int argc, char *argv[])
 	while (!thread_should_exit) {
 		pos_control::g_control->run();
 	}
-
-	orb_advert_t	mavlink_log_pub;
-	mavlink_log_info(&mavlink_log_pub, "[mpc] stopped");
 
 	return 0;
 }
