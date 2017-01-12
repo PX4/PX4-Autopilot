@@ -49,9 +49,12 @@
 
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
+#include <uORB/topics/actuator_controls.h>
+
+#if defined(MIXER_CONFIGURATION)
 #include <systemlib/mixer/mixer_parameters.h>
 #include <systemlib/mixer/mixer_type_id.h>
-#include <uORB/topics/actuator_controls.h>
+#endif //defined(MIXER_CONFIGURATION)
 
 /**
  * Mixer utility for loading mixer files to devices
@@ -62,11 +65,14 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname, bool append);
+
+#if defined(MIXER_CONFIGURATION)
 static int	save(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
 static int  mixer_param_list(const char *devname, int mix_index);
 static int  mixer_param_set(const char *devname, int mix_index, int param_index, float value);
 static int  mixer_show_config(const char *devname);
+#endif //defined(MIXER_CONFIGURATION)
 
 int
 mixer_main(int argc, char *argv[])
@@ -101,7 +107,7 @@ mixer_main(int argc, char *argv[])
 			PX4_ERR("failed to append mixer");
 			return 1;
 		}
-
+#if defined(MIXER_CONFIGURATION)
 	}  else if (!strcmp(argv[1], "save")) {
 		if (argc < 4) {
 			usage("missing device or filename");
@@ -169,7 +175,8 @@ mixer_main(int argc, char *argv[])
 			warnx("failed to show config");
 			return 1;
 		}
-	
+#endif //defined(MIXER_CONFIGURATION)
+
 	} else {
 		usage("Unknown command");
 		return 1;
@@ -187,11 +194,13 @@ usage(const char *reason)
 
 	PX4_INFO("usage:");
 	PX4_INFO("  mixer load <device> <filename>");
+#if defined(MIXER_CONFIGURATION)
 	PX4_INFO("  mixer save <device> <filename>");
 	PX4_INFO("  mixer list <device>");
 	PX4_INFO("  mixer params <device> <mixer_index>");
 	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
 	PX4_INFO("  mixer config <device>"); 
+#endif //defined(MIXER_CONFIGURATION)
 }
 
 static int
@@ -234,6 +243,7 @@ load(const char *devname, const char *fname, bool append)
 	return 0;
 }
 
+#if defined(MIXER_CONFIGURATION)
 static int
 save(const char *devname, const char *fname)
 {
@@ -446,4 +456,4 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
 		return -1;
 	}
 }
-
+#endif //defined(MIXER_CONFIGURATION)

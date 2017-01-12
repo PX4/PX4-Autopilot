@@ -444,13 +444,13 @@ public:
 	 */
 	virtual void	set_thrust_factor(float val);
 
-
+#if defined(MIXER_CONFIGURATION)
 	/**
-	 * Generates text in buffer describing the mixer settings compatible
-	 * with load_from_buf
+     * @brief               Generates text in buffer describing the mixer settings compatible
+     *                      with load_from_buf
 	 *
-	 * @param buf			The mixer configuration buffer.
-	 * @param buflen		The length of the buffer, updated to reflect
+     * @param[in]   buf		The mixer configuration buffer.
+     * @param       buflen	The length of the buffer, updated to reflect
 	 *                      the bytes written
 	 * @return              Zero on successful save, nonzero otherwise.
 	 *
@@ -466,26 +466,32 @@ public:
 	MIXER_TYPES         get_mixer_type_from_index(unsigned mix_index);
 
 	/**
-	 * Get the value of a mixer parameter
+     * @brief                   Get the value of a mixer parameter
 	 *
-	 * @param mix_index     index of the mixer to get the param from
-	 * @param param_index   index of the parameter to get the value from
-	 * @return              Value of the parameter. Return 0.0 if index out of range.
+     * @param[in] mix_index     index of the mixer to get the param from
+     * @param[in] param_index   index of the parameter to get the value from
+     * @return                  Value of the parameter. Return 0.0 if index out of range.
 	 */
 	float get_mixer_param(unsigned mix_index, unsigned param_index);
 
 	/**
-	 * Set the value of a mixer parameter
+     * @brief                       Set the value of a mixer parameter
 	 *
-	 * @param mix_index     index of the mixer to get the param from
-	 * @param param_index   index of the parameter to get the value from
-	 * @param value         value to set indexed parameter to
-	 * @return              Zero on success, -1 on failure.
+     * @param[in]   mix_index       index of the mixer to get the param from
+     * @param[in]   param_index     index of the parameter to get the value from
+     * @param       value           value to set indexed parameter to
+     * @return                      Zero on success, -1 on failure.
 	 */
 	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
 
-
+    /**
+     * @brief               Calculate the crc32 checksum of variable mixer parameters
+     *
+     * @return              crc32 parameter checksum
+     */
     uint32_t                calc_checksum(void);
+
+#endif //defined(MIXER_CONFIGURATION)
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -597,11 +603,13 @@ public:
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
+#if defined(MIXER_CONFIGURATION)
 	int                     to_text(char *buf, unsigned &buflen);
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
     uint32_t                calc_checksum(void);
+#endif //defined(MIXER_CONFIGURATION)
 
     /**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -757,11 +765,13 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+#if defined(MIXER_CONFIGURATION)
 	int                     to_text(char *buf, unsigned &buflen);
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
     uint32_t                calc_checksum(void);
+#endif //defined(MIXER_CONFIGURATION)
 
 private:
 	float				_roll_scale;

@@ -51,7 +51,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <ctype.h>
-
 #include <crc32.h>
 
 #include "mixer.h"
@@ -225,6 +224,7 @@ out:
 	return sm;
 }
 
+#if defined(MIXER_CONFIGURATION)
 int
 SimpleMixer::to_text(char *buf, unsigned &buflen)
 {
@@ -279,6 +279,7 @@ SimpleMixer::to_text(char *buf, unsigned &buflen)
 	buflen = bufpos - buf;
 	return 0;
 }
+#endif //defined(MIXER_CONFIGURATION)
 
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
@@ -425,6 +426,7 @@ SimpleMixer::check()
 	return 0;
 }
 
+#if defined(MIXER_CONFIGURATION)
 MIXER_TYPES
 SimpleMixer::get_mixer_type(void)
 {
@@ -500,3 +502,4 @@ SimpleMixer::calc_checksum(void)
 
     return sum;
 }
+#endif //defined(MIXER_CONFIGURATION)

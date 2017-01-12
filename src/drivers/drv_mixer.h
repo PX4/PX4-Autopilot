@@ -57,6 +57,18 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#if !defined(MIXER_CONFIGURATION)
+  #if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) ||      \
+    defined (CONFIG_ARCH_BOARD_PX4FMU_V4PRO) ||     \
+    defined (CONFIG_ARCH_BOARD_PX4FMU_V4) ||        \
+    defined (CONFIG_ARCH_BOARD_PX4FMU_V5) ||        \
+    defined (CONFIG_ARCH_BOARD_SITL) ||             \
+    defined (CONFIG_ARCH_BOARD_AUAV_X21)
+
+    #define MIXER_CONFIGURATION 1
+  #endif //CONFIG_ARCH_BOARD_XXXX
+#endif //MIXER_CONFIGURATION
+
 #define MIXER0_DEVICE_PATH		"/dev/mixer0"
 
 /*
