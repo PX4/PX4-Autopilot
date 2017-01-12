@@ -116,8 +116,10 @@ int test_servo(int argc, char *argv[])
 	printf("Advancing channel 1 to 1800\n");
 	result = ioctl(fd, PWM_SERVO_SET(1), 1800);
 out:
+
 	if (fd >= 0) {
 		close(fd);
 	}
+
 	return 0;
 }
