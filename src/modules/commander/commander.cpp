@@ -518,6 +518,24 @@ int commander_main(int argc, char *argv[])
 				new_main_state = commander_state_s::MAIN_STATE_ALTCTL;
 			} else if (!strcmp(argv[2], "posctl")) {
 				new_main_state = commander_state_s::MAIN_STATE_POSCTL;
+			} else if (!strcmp(argv[2], "posctl_circle")) {
+
+				vehicle_command_s cmd = {};
+				cmd.target_system = status.system_id;
+				cmd.target_component = status.component_id;
+				cmd.command = vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE;
+				cmd.param1 = 50.0f;
+				cmd.param2 = NAN;
+				cmd.param3 = NAN;
+				cmd.param4 = NAN;
+				cmd.param5 = NAN;
+				cmd.param6 = NAN;
+				cmd.param7 = NAN;
+
+				orb_advert_t pub;
+				pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+				(void)orb_unadvertise(pub);
+
 			} else if (!strcmp(argv[2], "auto:mission")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
 			} else if (!strcmp(argv[2], "auto:loiter")) {
@@ -1158,6 +1176,20 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 	}
 	break;
+
+	case vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_STANDARD:
+	case vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE: {
+		if (TRANSITION_DENIED != main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state)) {
+			mavlink_and_console_log_info(&mavlink_log_pub, "Position mode");
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else {
+			mavlink_log_critical(&mavlink_log_pub, "Position mode denied");
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+		}
+	}
+	break;
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
