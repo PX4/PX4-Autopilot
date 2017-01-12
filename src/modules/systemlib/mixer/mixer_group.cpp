@@ -50,7 +50,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-
 #include <crc32.h>
 
 #include "mixer.h"
@@ -305,6 +304,7 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 	}
 }
 
+#if defined(MIXER_CONFIGURATION)
 int
 MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 {
@@ -408,3 +408,4 @@ MixerGroup::calc_checksum(void)
 
     return sum;
 }
+#endif //defined(MIXER_CONFIGURATION)

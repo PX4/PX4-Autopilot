@@ -50,11 +50,10 @@
 #include <math.h>
 #include <unistd.h>
 #include <math.h>
+#include <crc32.h>
 
 #include <px4iofirmware/protocol.h>
 #include <drivers/drv_pwm_output.h>
-
-#include <crc32.h>
 
 #include "mixer.h"
 
@@ -235,6 +234,7 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		       s[3] / 10000.0f);
 }
 
+#if defined(MIXER_CONFIGURATION)
 int
 MultirotorMixer::to_text(char *buf, unsigned &buflen)
 {
@@ -322,6 +322,7 @@ MultirotorMixer::to_text(char *buf, unsigned &buflen)
 	buflen = written;
 	return 0;
 }
+#endif //defined(MIXER_CONFIGURATION)
 
 unsigned
 MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
@@ -629,6 +630,7 @@ uint16_t MultirotorMixer::get_saturation_status()
 	return _saturation_status.value;
 }
 
+#if defined(MIXER_CONFIGURATION)
 MIXER_TYPES
 MultirotorMixer::get_mixer_type(void)
 {
@@ -702,3 +704,4 @@ MultirotorMixer::calc_checksum(void)
 
     return sum;
 }
+#endif //defined(MIXER_CONFIGURATION)

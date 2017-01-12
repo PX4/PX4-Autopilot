@@ -2307,6 +2307,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 #endif
 
+#if defined(MIXER_CONFIGURATION)
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
 			delete _mixers;
@@ -2429,6 +2430,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
                 ret = 0;
                 break;
             }
+#endif //defined(MIXER_CONFIGURATION)
 
 	default:
 		ret = -ENOTTY;

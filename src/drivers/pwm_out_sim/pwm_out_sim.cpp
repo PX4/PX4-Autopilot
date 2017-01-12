@@ -835,6 +835,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if defined(MIXER_CONFIGURATION)
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
@@ -904,6 +905,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
             ret = 0;
             break;
         }
+#endif //defined(MIXER_CONFIGURATION)
 
 	default:
 		ret = -ENOTTY;
