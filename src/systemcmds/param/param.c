@@ -384,8 +384,8 @@ do_show_index(const char *index, bool used_index)
 	}
 
 	PARAM_PRINT("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
-	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param), param_get_used_index(param), param_get_index(param));
+		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
@@ -453,8 +453,8 @@ do_show_print(void *arg, param_t param)
 	}
 
 	PARAM_PRINT("%c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
-	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-	       param_name(param), param_get_used_index(param), param_get_index(param));
+		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	/*
 	 * This case can be expanded to handle printing common structure types.
@@ -517,8 +517,8 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 
 			if (i != newval) {
 				PARAM_PRINT("%c %s: ",
-				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-				       param_name(param));
+					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					    param_name(param));
 				PARAM_PRINT("curr: %ld", (long)i);
 				param_set_no_autosave(param, &newval);
 				PARAM_PRINT(" -> new: %ld\n", (long)newval);
@@ -539,8 +539,8 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			if (f != newval) {
 #pragma GCC diagnostic pop
 				PARAM_PRINT("%c %s: ",
-				       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-				       param_name(param));
+					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					    param_name(param));
 				PARAM_PRINT("curr: %4.4f", (double)f);
 				param_set_no_autosave(param, &newval);
 				PARAM_PRINT(" -> new: %4.4f\n", (double)newval);
