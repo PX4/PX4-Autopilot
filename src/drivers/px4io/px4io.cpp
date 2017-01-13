@@ -2997,7 +2997,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
                             if (_mixers == nullptr) {
                                     ret = -ENOMEM;
-
                             } else {
                                 unsigned buflen = strnlen(buf, 2048);
                                 ret = _mixers->load_from_buf(buf, buflen);
@@ -3012,11 +3011,10 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
                                 // else update of pwm trims removed
                         }
 #endif //defined(MIXER_CONFIGURATION)
-
                         break;
 		}
 
-#if 0
+#if defined(MIXER_CONFIGURATION)
         case MIXERIOCGETMIXERCOUNT: {
                         unsigned *count = (unsigned *)arg;
                         if (_mixers == nullptr)
@@ -3026,7 +3024,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
                         break;
                 }
-
         case MIXERIOGETPARAM: {
                         if (_mixers == nullptr) {
                                 ret = -EINVAL;
@@ -3039,11 +3036,32 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
         case MIXERIOSETPARAM: {
                         if (_mixers == nullptr) {
-                                ret = -EINVAL;
+                            ret = -EINVAL;
+                            break;
                         }
 
                         mixer_param_s *param = (mixer_param_s *)arg;
+                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, param->mix_index);
+                        if (ret != 0){
+                            ret = -EINVAL;
+                            break;
+                        }
+                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_INDEX, param->param_index);
+                        if (ret != 0){
+                            ret = -EINVAL;
+                            break;
+                        }
+                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER, param->value);
+                        if (ret != 0){
+                            ret = -EINVAL;
+                            break;
+                        }
                         ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+                        if (ret != 0){
+                            ret = -EINVAL;
+                            break;
+                        }
+                        ret = 0;
                         break;
                 }
 
@@ -3072,7 +3090,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
                 break;
             }
 #endif //defined(MIXER_CONFIGURATION)
-
 
 	case RC_INPUT_GET: {
 			uint16_t status;
