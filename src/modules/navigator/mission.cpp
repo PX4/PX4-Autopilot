@@ -554,7 +554,8 @@ Mission::set_mission_items()
 		set_previous_pos_setpoint();
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
-		if (do_need_takeoff() &&
+		/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
+		if (do_need_vertical_takeoff() &&
 		    _work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
@@ -580,7 +581,11 @@ Mission::set_mission_items()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 
-		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && _navigator->get_vstatus()->is_rotary_wing) {
+
 			/* if there is no need to do a takeoff but we have a takeoff item, treat is as waypoint */
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
@@ -591,7 +596,9 @@ Mission::set_mission_items()
 			 */
 			_mission_item.time_inside = 0.0f;
 
-		} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+			   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 			if (_navigator->get_vstatus()->is_rotary_wing) {
 				/* haven't transitioned yet, trigger vtol takeoff logic below */
@@ -846,7 +853,7 @@ Mission::set_mission_items()
 }
 
 bool
-Mission::do_need_takeoff()
+Mission::do_need_vertical_takeoff()
 {
 	if (_navigator->get_vstatus()->is_rotary_wing) {
 

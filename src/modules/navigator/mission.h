@@ -120,7 +120,7 @@ private:
 	/**
 	 * Returns true if we need to do a takeoff at the current state
 	 */
-	bool do_need_takeoff();
+	bool do_need_vertical_takeoff();
 
 	/**
 	 * Returns true if we need to move to waypoint location before starting descent
