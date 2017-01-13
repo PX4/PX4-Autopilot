@@ -388,6 +388,7 @@ protected:
 	~MavlinkStreamStatustext()
 	{
 #if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
+
 		if (_fp != nullptr) {
 			fclose(_fp);
 		}
