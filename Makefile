@@ -300,7 +300,7 @@ clang-tidy:
 	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
 
 package_firmware:
-	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
+	@./Tools/package_firmware.py
 
 clean:
 	@rm -rf build_*/
