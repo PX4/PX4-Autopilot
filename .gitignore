@@ -20,8 +20,9 @@
 Archives/*
 Build/*
 Testing/
-Binaries/*
-Meta/*
+Packages/*
+s3deploy-branch/
+s3deploy-archive/
 build/*
 build_*/
 core
