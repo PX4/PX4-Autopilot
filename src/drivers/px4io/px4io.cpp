@@ -332,6 +332,10 @@ private:
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
 #endif
 
+#if defined(MIXER_CONFIGURATION)
+        MixerGroup	*_mixers;
+#endif //defined(MIXER_CONFIGURATION)
+
 	/**
 	 * Trampoline to the worker task
 	 */
@@ -543,8 +547,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
-	_to_mixer_status(nullptr),
-	_outputs{},
+        _to_mixer_status(nullptr),
+        _outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
@@ -567,6 +571,9 @@ PX4IO::PX4IO(device::Device *interface) :
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
+      #if defined(MIXER_CONFIGURATION)
+        ,_mixers(nullptr)
+      #endif //defined(MIXER_CONFIGURATION)
 
 {
 	/* we need this potentially before it could be set in task_main */
@@ -2980,8 +2987,92 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			ret = mixer_send(buf, strnlen(buf, 2048));
-			break;
+
+#if defined(MIXER_CONFIGURATION)
+                        if (ret == 0)   /* load the mixer settings into a local copy for tracking parameters */
+
+                            if (_mixers == nullptr) {
+                                    _mixers = new MixerGroup(nullptr, (uintptr_t)nullptr);
+                            }
+
+                            if (_mixers == nullptr) {
+                                    ret = -ENOMEM;
+
+                            } else {
+                                unsigned buflen = strnlen(buf, 2048);
+                                ret = _mixers->load_from_buf(buf, buflen);
+
+                                if (ret != 0) {
+                                        PX4_DEBUG("mixer load failed with %d", ret);
+                                        delete _mixers;
+                                        _mixers = nullptr;
+                                        ret = -EINVAL;
+
+                                }
+                                // else update of pwm trims removed
+                        }
+#endif //defined(MIXER_CONFIGURATION)
+
+                        break;
 		}
+
+#if 0
+        case MIXERIOCGETMIXERCOUNT: {
+                        unsigned *count = (unsigned *)arg;
+                        if (_mixers == nullptr)
+                            *count = 0;
+                        else
+                            *count = _mixers->count();
+
+                        break;
+                }
+
+        case MIXERIOGETPARAM: {
+                        if (_mixers == nullptr) {
+                                ret = -EINVAL;
+                        }
+
+                        mixer_param_s *param = (mixer_param_s *)arg;
+                        param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
+                        break;
+                }
+
+        case MIXERIOSETPARAM: {
+                        if (_mixers == nullptr) {
+                                ret = -EINVAL;
+                        }
+
+                        mixer_param_s *param = (mixer_param_s *)arg;
+                        ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+                        break;
+                }
+
+        case MIXERIOGETCONFIG: {
+                        if (_mixers == nullptr) {
+                                ret = -EINVAL;
+                        }
+
+                        char *buf = (char *)arg;
+
+                        unsigned buflen = 1022;
+                        ret = _mixers->save_to_buf(buf, buflen);
+                        break;
+                }
+
+        case MIXERIOGETCHECKSUM: {
+                if (_mixers == nullptr) {
+                    ret = -EINVAL;
+                }
+
+                mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+
+                mix_crc->crc_local = _mixers->calc_checksum();
+                mix_crc->crc_remote = 0;
+                ret = 0;
+                break;
+            }
+#endif //defined(MIXER_CONFIGURATION)
+
 
 	case RC_INPUT_GET: {
 			uint16_t status;
