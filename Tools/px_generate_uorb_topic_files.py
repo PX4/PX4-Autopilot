@@ -79,7 +79,7 @@ __email__ = "thomasgubler@gmail.com"
 TEMPLATE_FILE = ['msg.h.template', 'msg.cpp.template']
 TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
 OUTPUT_FILE_EXT = ['.h', '.cpp']
-INCL_DEFAULT = ['std_msgs:./msg/std_msgs','px4:%s'%(px4_msg_dir)]
+INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
 
@@ -279,7 +279,11 @@ def generate_topics_list_file_from_files(files, outputdir, templatedir):
         tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
         tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
         generate_by_template(tl_out_file, tl_template_file, tl_globals)
-        
+
+def append_to_include_path(path_to_append, curr_include):
+    for p in path_to_append:
+        curr_include.append("%s:%s" % (PACKAGE, p))
+
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
             description='Convert msg files to uorb headers/sources')
@@ -291,6 +295,9 @@ if __name__ == "__main__":
         parser.add_argument('-f', dest='file',
                             help="files to convert (use only without -d)",
                             nargs="+")
+        parser.add_argument('-i', dest="include_paths",
+                            help='Additional Include Paths', nargs="*",
+                            default=None)
         parser.add_argument('-e', dest='templatedir',
                             help='directory with template files',)
         parser.add_argument('-o', dest='outputdir',
@@ -304,6 +311,9 @@ if __name__ == "__main__":
                             help='string added as prefix to the output file '
                             ' name when converting directories')
         args = parser.parse_args()
+
+        if args.include_paths:
+            append_to_include_path(args.include_paths, INCL_DEFAULT)
 
         if args.headers:
             generate_idx = 0
