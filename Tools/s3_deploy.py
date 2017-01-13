@@ -7,7 +7,7 @@ import re
 import shutil
 
 S3_DIR = 's3deploy-branch'
-S3_ARCHIVE_DIR = 's3deploy-branch'
+S3_ARCHIVE_DIR = 's3deploy-archive'
 
 if not os.path.isdir(S3_DIR):
     os.mkdir(S3_DIR)
@@ -15,7 +15,7 @@ if not os.path.isdir(S3_DIR):
 if not os.path.isdir(S3_ARCHIVE_DIR):
     os.mkdir(S3_ARCHIVE_DIR)
 
-shutil.copyfile(Firmware.zip, S3_ARCHIVE_DIR)
+shutil.copy("Firmware.zip", S3_ARCHIVE_DIR)
 
 def extract_file_only(filename, dest):
     # extract firmware files without paths
