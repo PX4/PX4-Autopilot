@@ -170,8 +170,7 @@ MavlinkOrbSubscription::is_published()
 	// We are checking now
 	_last_pub_check = now;
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE)
-
+#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 	// Snapdragon has currently no support for orb_exists, therefore
 	// we're not using it.
 	if (_fd < 0) {
