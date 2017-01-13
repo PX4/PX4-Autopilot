@@ -160,7 +160,8 @@ ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo_plugins/
 	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
 	# MAVLINK_INTERFACE will build with gazebo_mavlink_interface
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE -DMAVLINK_INTERFACE=TRUE
+	# BUILD_OPTICAL_FLOW_PLUGIN will build the optical flow plugin
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE -DMAVLINK_INTERFACE=TRUE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
