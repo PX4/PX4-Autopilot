@@ -453,10 +453,11 @@ _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, co
 	len = -1;
 
 	/* Seek to the right spot in the data manager file and write the data item */
-	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
+	if (lseek(g_task_fd, offset, SEEK_SET) == offset) {
 		if ((len = write(g_task_fd, buffer, count)) == count) {
 			fsync(g_task_fd);        /* Make sure data is written to physical media */
 		}
+	}
 
 	/* Make sure the write succeeded */
 	if (len != count) {

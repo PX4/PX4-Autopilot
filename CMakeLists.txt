@@ -242,11 +242,20 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
 endif()
 
-set(version_major 1)
-set(version_minor 5)
-set(version_patch 0)
-set(version "${version_major}.${version_minor}.${version_patch}")
+# version info from git
+execute_process(
+	COMMAND Tools/tag_to_version.py --root ${PX4_SOURCE_DIR}
+	OUTPUT_VARIABLE version
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+execute_process(
+	COMMAND git describe --always --tags
+	OUTPUT_VARIABLE git_tag
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
 set(package-contact "px4users@googlegroups.com")
+message(STATUS "VERSION: ${version}")
 
 #=============================================================================
 # find programs and packages
@@ -365,11 +374,19 @@ px4_generate_messages(TARGET msg_gen
 	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
 px4_generate_parameters_xml(OUT parameters.xml 
-                            BOARD ${BOARD}
-                            SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake)
+	BOARD ${BOARD}
+	SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
+	OVERRIDES ${PARAM_DEFAULT_OVERRIDES})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
 	DEPENDS parameters.xml airframes.xml)
+
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
+install(FILES
+	${CMAKE_CURRENT_BINARY_DIR}/airframes.xml
+	${CMAKE_CURRENT_BINARY_DIR}/parameters.xml
+	DESTINATION .)
+endif()
 
 #=============================================================================
 # external projects
@@ -467,12 +484,6 @@ px4_create_git_hash_header(OUT ${PX4_BINARY_DIR}/build_git_version.h)
 #
 # Important to having packaging at end of cmake file.
 #
-execute_process(
-	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
 set(CPACK_PACKAGE_VERSION ${version})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
@@ -485,7 +496,7 @@ set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${version}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_PACKAGING_INSTALL_PREFIX "")
 set(CPACK_SET_DESTDIR "OFF")
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 	find_program(DPKG_PROGRAM dpkg)

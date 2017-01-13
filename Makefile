@@ -207,6 +207,7 @@ qgc_firmware: \
 	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v2_lpe \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
@@ -259,11 +260,9 @@ format:
 check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
-	@$(MAKE) --no-print-directory $(subst check_,,$@)
-	@mkdir -p Binaries
-	@mkdir -p Meta/$(subst check_,,$@)
-	@cp build_$(subst check_,,$@)/*.xml Meta/$(subst check_,,$@) 2> /dev/null || :
-	@find build_$(subst check_,,$@)/src/firmware -type f -name 'nuttx-*-default.px4' -exec cp "{}" Binaries \; 2> /dev/null || :
+	@$(MAKE) --no-print-directory $(subst check_,,$@) package
+	@mkdir -p Packages
+	@cp build_$(subst check_,,$@)/*.zip Packages
 	@rm -rf build_$(subst check_,,$@)
 	@echo
 
@@ -301,7 +300,7 @@ clang-tidy:
 	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
 
 package_firmware:
-	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
+	@./Tools/package_firmware.py
 
 clean:
 	@rm -rf build_*/
