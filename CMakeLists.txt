@@ -371,6 +371,7 @@ add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
+	INCLUDES ${msg_include_paths}
 	DEPENDS git_genmsg git_gencpp prebuild_targets
 	)
 px4_generate_parameters_xml(OUT parameters.xml 
