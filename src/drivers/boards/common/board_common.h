@@ -92,12 +92,46 @@
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
 
+/* ADC defining tools
+ * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
+ */
+
+/* Provide overrideable defaults ADC Full scale ranges and Divider ratios
+ * If the board has a different ratio or full scale range for any voltage sensing
+ * the board_congig.h file should define the constants that differ from these
+ * defaults
+ */
+#if !defined(ADC_V5_V_FULL_SCALE)
+#define ADC_V5_V_FULL_SCALE             (6.6f)  // 5 volt Rail full scale voltage
+#endif
+#if !defined(ADC_V5_SCALE)
+#define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
+#if !defined(ADC_3V3_V_FULL_SCALE)
+#define ADC_3V3_V_FULL_SCALE             (3.6f)  // 3.3V volt Rail full scale voltage
+#endif
+#if !defined(ADC_3V3_SCALE)
+#define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
+/* Choose the source for ADC_SCALED_V5_SENSE */
+
+#if defined(ADC_5V_RAIL_SENSE)
+#define ADC_SCALED_V5_SENSE ADC_5V_RAIL_SENSE
+#else
+#  if defined(ADC_SCALED_V5)
+#    define ADC_SCALED_V5_SENSE ADC_SCALED_V5
+#  endif
+#endif
+
 /* Provide an overridable default nop
  * for BOARD_EEPROM_WP_CTRL
  */
 #if !defined(BOARD_EEPROM_WP_CTRL)
 #  define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
+
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
