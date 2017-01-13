@@ -137,10 +137,12 @@ void init_shared_memory(void)
 
 	//virt_addr = map_memory(MAP_ADDRESS);
 	map_base = malloc(0x4000);  //16KB
-	if(map_base == NULL) {
+
+	if (map_base == NULL) {
 		PX4_INFO("adsp memory malloc failed\n");
 		return;
 	}
+
 	virt_addr = map_base;
 	shmem_info_p = (struct shmem_info *) virt_addr;
 
