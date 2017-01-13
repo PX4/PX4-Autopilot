@@ -191,7 +191,7 @@ endif
 check_px4fmu-v4_default: uavcan_firmware
 
 check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo VECTORCONTROL=$VECTORCONTROL
+	@echo VECTORCONTROL=${VECTORCONTROL}
 ifeq ($(VECTORCONTROL),1)
 	@echo "Cleaning up vectorcontrol firmware"
 	@rm -rf vectorcontrol
