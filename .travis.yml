@@ -78,9 +78,7 @@ script:
 after_success:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
-      && cp Binaries/* .
-      && find . -maxdepth 1 -mindepth 1 -type f -name 'nuttx-*-default.px4' | sed 's/.\/nuttx-//' | sed 's/-default.px4//' | xargs -I{} mv nuttx-{}-default.px4 {}_default.px4
-      && mkdir s3deploy-branch && mv *_default.px4 Meta/px4fmu-v4_default/parameters.xml Meta/px4fmu-v4_default/airframes.xml s3deploy-branch/;
+      && Tools/s3_deploy.py;
     fi
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       export PX4_S3_DEPLOY=1;
