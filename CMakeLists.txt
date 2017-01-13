@@ -380,10 +380,13 @@ px4_generate_parameters_xml(OUT parameters.xml
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
 	DEPENDS parameters.xml airframes.xml)
+
+if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
 install(FILES
 	${CMAKE_CURRENT_BINARY_DIR}/airframes.xml
 	${CMAKE_CURRENT_BINARY_DIR}/parameters.xml
 	DESTINATION .)
+endif()
 
 #=============================================================================
 # external projects
