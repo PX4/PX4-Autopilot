@@ -93,6 +93,7 @@ else
 	PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
+ARM_COMPILER_VERSION := $(shell arm-none-eabi-gcc --version | awk '/gcc /{print $0;exit 0;}' 2> /dev/null)
 SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # check if replay env variable is set & set build dir accordingly
@@ -175,7 +176,7 @@ run_sitl_ros: _sitl_deprecation
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware alt_firmware package_firmware clean submodulesclean distclean
+.PHONY: uavcan_firmware compiler_version show_check_sizes clean_check_sizes check check_format format unittest tests qgc_firmware alt_firmware package_firmware clean submodulesclean distclean
 .NOTPARALLEL:
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
@@ -200,6 +201,15 @@ endif
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
+show_check_sizes:
+	@echo
+	@-head -n1 check_build_sizes.txt 2> /dev/null
+	@-cat check_build_sizes.txt 2> /dev/null | grep build 2> /dev/null
+	@echo
+
+clean_check_sizes:
+	-@rm -f check_build_sizes.txt
+
 # QGroundControl flashable firmware (currently built by travis-ci)
 qgc_firmware: \
 	check_aerofc-v1_default \
@@ -211,6 +221,7 @@ qgc_firmware: \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
+	show_check_sizes \
 
 alt_firmware: \
 	check_auav-x21_default \
@@ -221,6 +232,7 @@ alt_firmware: \
 	check_px4fmu-v5_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
+	show_check_sizes \
 
 checks_defaults: qgc_firmware alt_firmware
 
@@ -231,6 +243,7 @@ checks_bootloaders: \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 	check_zubaxgnss-v1_bootloader \
+	show_check_sizes \
 
 checks_uavcan: \
 	check_px4fmu-v4_default_and_uavcan
@@ -240,13 +253,13 @@ checks_last: \
 	check_format \
 
 compiler_version:
-	-arm-none-eabi-gcc --version
+	-@arm-none-eabi-gcc --version
 
 # All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: compiler_version checks_defaults checks_bootloaders checks_tests checks_uavcan checks_last sizes
+check: clean_check_sizes checks_defaults checks_bootloaders checks_tests checks_uavcan checks_last show_check_sizes
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: compiler_version check_posix_sitl_default check_px4fmu-v3_default tests check_format sizes
+quick_check: compiler_version check_posix_sitl_default check_px4fmu-v3_default tests check_format show_check_sizes
 
 check_format:
 	$(call colorecho,"Checking formatting with astyle")
@@ -260,10 +273,14 @@ format:
 check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
+	@echo "Using ${ARM_COMPILER_VERSION}"
 	@$(MAKE) --no-print-directory $(subst check_,,$@) package
 	@mkdir -p Packages
 	@cp build_$(subst check_,,$@)/*.zip Packages
+	@-find build_$(subst check_,,$@) -name firmware_nuttx -type f | xargs size 2> /dev/null >> check_build_sizes.txt
+ifneq ($(KEEP_BUILD_DIRS),1)
 	@rm -rf build_$(subst check_,,$@)
+endif
 	@echo
 
 unittest: posix_sitl_default
@@ -302,7 +319,7 @@ clang-tidy:
 package_firmware:
 	@./Tools/package_firmware.py
 
-clean:
+clean: clean_check_sizes
 	@rm -rf build_*/
 	-@$(MAKE) -C NuttX/nuttx clean
 

@@ -87,3 +87,4 @@ coverage-html/
 coverage.info
 
 posix-configs/SITL/init/test/*_generated
+check_build_sizes.txt
