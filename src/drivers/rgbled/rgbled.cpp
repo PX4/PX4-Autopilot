@@ -603,7 +603,7 @@ void
 RGBLED::update_params()
 {
 	int32_t maxbrt = 15;
-	param_get(param_find("LED_RGB_MAXBRT"), &maxbrt);
+	param_get(PARAM_FIND(LED_RGB_MAXBRT), &maxbrt);
 	maxbrt = maxbrt > 15 ? 15 : maxbrt;
 	maxbrt = maxbrt <  0 ?  0 : maxbrt;
 

@@ -42,7 +42,71 @@
 namespace sensors
 {
 
-int initialize_parameter_handles(ParameterHandles &parameter_handles)
+ParameterHandles::ParameterHandles() :
+	/* Differential pressure offset */
+	diff_pres_offset_pa(PARAM_FIND(SENS_DPRES_OFF)),
+	diff_pres_analog_scale(PARAM_FIND(SENS_DPRES_ANSC)),
+
+	/* mandatory input switched, mapped to channels 1-4 per default */
+	rc_map_roll(PARAM_FIND(RC_MAP_ROLL)),
+	rc_map_pitch(PARAM_FIND(RC_MAP_PITCH)),
+	rc_map_yaw(PARAM_FIND(RC_MAP_YAW)),
+	rc_map_throttle(PARAM_FIND(RC_MAP_THROTTLE)),
+	rc_map_failsafe(PARAM_FIND(RC_MAP_FAILSAFE)),
+
+	/* mandatory mode switches, mapped to channel 5 and 6 per default */
+	rc_map_mode_sw(PARAM_FIND(RC_MAP_MODE_SW)),
+	rc_map_return_sw(PARAM_FIND(RC_MAP_RETURN_SW)),
+	/* optional mode switches, not mapped per default */
+	rc_map_rattitude_sw(PARAM_FIND(RC_MAP_RATT_SW)),
+	rc_map_posctl_sw(PARAM_FIND(RC_MAP_POSCTL_SW)),
+	rc_map_loiter_sw(PARAM_FIND(RC_MAP_LOITER_SW)),
+	rc_map_acro_sw(PARAM_FIND(RC_MAP_ACRO_SW)),
+	rc_map_offboard_sw(PARAM_FIND(RC_MAP_OFFB_SW)),
+	rc_map_kill_sw(PARAM_FIND(RC_MAP_KILL_SW)),
+	rc_map_arm_sw(PARAM_FIND(RC_MAP_ARM_SW)),
+	rc_map_trans_sw(PARAM_FIND(RC_MAP_TRANS_SW)),
+	rc_map_gear_sw(PARAM_FIND(RC_MAP_GEAR_SW)),
+
+	rc_map_flaps(PARAM_FIND(RC_MAP_FLAPS)),
+
+	rc_map_aux1(PARAM_FIND(RC_MAP_AUX1)),
+	rc_map_aux2(PARAM_FIND(RC_MAP_AUX2)),
+	rc_map_aux3(PARAM_FIND(RC_MAP_AUX3)),
+	rc_map_aux4(PARAM_FIND(RC_MAP_AUX4)),
+	rc_map_aux5(PARAM_FIND(RC_MAP_AUX5)),
+
+	rc_map_flightmode(PARAM_FIND(RC_MAP_FLTMODE)),
+
+	/* RC thresholds */
+	rc_fails_thr(PARAM_FIND(RC_FAILS_THR)),
+	rc_assist_th(PARAM_FIND(RC_ASSIST_TH)),
+	rc_auto_th(PARAM_FIND(RC_AUTO_TH)),
+	rc_rattitude_th(PARAM_FIND(RC_RATT_TH)),
+	rc_posctl_th(PARAM_FIND(RC_POSCTL_TH)),
+	rc_return_th(PARAM_FIND(RC_RETURN_TH)),
+	rc_loiter_th(PARAM_FIND(RC_LOITER_TH)),
+	rc_acro_th(PARAM_FIND(RC_ACRO_TH)),
+	rc_offboard_th(PARAM_FIND(RC_OFFB_TH)),
+	rc_killswitch_th(PARAM_FIND(RC_KILLSWITCH_TH)),
+	rc_armswitch_th(PARAM_FIND(RC_ARMSWITCH_TH)),
+	rc_trans_th(PARAM_FIND(RC_TRANS_TH)),
+	rc_gear_th(PARAM_FIND(RC_GEAR_TH)),
+
+	battery_voltage_scaling(PARAM_FIND(BAT_CNT_V_VOLT)),
+	battery_current_scaling(PARAM_FIND(BAT_CNT_V_CURR)),
+	battery_current_offset(PARAM_FIND(BAT_V_OFFS_CURR)),
+	battery_v_div(PARAM_FIND(BAT_V_DIV)),
+	battery_a_per_v(PARAM_FIND(BAT_A_PER_V)),
+	battery_source(PARAM_FIND(BAT_SOURCE)),
+
+	/* rotations */
+	board_rotation(PARAM_FIND(SENS_BOARD_ROT)),
+
+	/* Barometer QNH */
+	baro_qnh(PARAM_FIND(SENS_BARO_QNH)),
+
+	vibe_thresh(PARAM_FIND(ATT_VIBE_THRESH)) /**< vibration threshold */
 {
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -50,175 +114,109 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 		/* min values */
 		sprintf(nbuf, "RC%d_MIN", i + 1);
-		parameter_handles.min[i] = param_find(nbuf);
+		min[i] = param_find(nbuf);
 
 		/* trim values */
 		sprintf(nbuf, "RC%d_TRIM", i + 1);
-		parameter_handles.trim[i] = param_find(nbuf);
+		trim[i] = param_find(nbuf);
 
 		/* max values */
 		sprintf(nbuf, "RC%d_MAX", i + 1);
-		parameter_handles.max[i] = param_find(nbuf);
+		max[i] = param_find(nbuf);
 
 		/* channel reverse */
 		sprintf(nbuf, "RC%d_REV", i + 1);
-		parameter_handles.rev[i] = param_find(nbuf);
+		rev[i] = param_find(nbuf);
 
 		/* channel deadzone */
 		sprintf(nbuf, "RC%d_DZ", i + 1);
-		parameter_handles.dz[i] = param_find(nbuf);
+		dz[i] = param_find(nbuf);
 
 	}
-
-	/* mandatory input switched, mapped to channels 1-4 per default */
-	parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
-	parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
-	parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
-	parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
-	parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
-
-	/* mandatory mode switches, mapped to channel 5 and 6 per default */
-	parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
-	parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
-
-	parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
-
-	/* optional mode switches, not mapped per default */
-	parameter_handles.rc_map_rattitude_sw = param_find("RC_MAP_RATT_SW");
-	parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
-	parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
-	parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
-	parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
-	parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
-	parameter_handles.rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
-	parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
-	parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
-
-	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
-	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
-	parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
-	parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
-	parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
 	/* RC to parameter mapping for changing parameters with RC */
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		char name[rc_parameter_map_s::PARAM_ID_LEN];
 		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d",
 			 i + 1); // shifted by 1 because param name starts at 1
-		parameter_handles.rc_map_param[i] = param_find(name);
+		rc_map_param[i] = param_find(name);
 	}
 
-	parameter_handles.rc_map_flightmode = param_find("RC_MAP_FLTMODE");
-
-	/* RC thresholds */
-	parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
-	parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
-	parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
-	parameter_handles.rc_rattitude_th = param_find("RC_RATT_TH");
-	parameter_handles.rc_posctl_th = param_find("RC_POSCTL_TH");
-	parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
-	parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
-	parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
-	parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
-	parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
-	parameter_handles.rc_armswitch_th = param_find("RC_ARMSWITCH_TH");
-	parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
-	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
-
-	/* Differential pressure offset */
-	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
-	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
-
-	parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
-	parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
-	parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
-	parameter_handles.battery_v_div = param_find("BAT_V_DIV");
-	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
-	parameter_handles.battery_source = param_find("BAT_SOURCE");
-
-	/* rotations */
-	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
-
 	/* rotation offsets */
-	parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
-	parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
-	parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
+	board_offset[0] = PARAM_FIND(SENS_BOARD_X_OFF);
+	board_offset[1] = PARAM_FIND(SENS_BOARD_Y_OFF);
+	board_offset[2] = PARAM_FIND(SENS_BOARD_Z_OFF);
 
-	/* Barometer QNH */
-	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
-
-	parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
-
+#if 0
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
-	(void)param_find("RC_CHAN_CNT");
-	(void)param_find("RC_TH_USER");
-	(void)param_find("CAL_MAG0_ID");
-	(void)param_find("CAL_MAG1_ID");
-	(void)param_find("CAL_MAG2_ID");
-	(void)param_find("CAL_MAG0_ROT");
-	(void)param_find("CAL_MAG1_ROT");
-	(void)param_find("CAL_MAG2_ROT");
-	(void)param_find("CAL_MAG_SIDES");
+	(void)PARAM_FIND(RC_CHAN_CNT);
+	(void)PARAM_FIND(RC_TH_USER);
+	(void)PARAM_FIND(CAL_MAG0_ID);
+	(void)PARAM_FIND(CAL_MAG1_ID);
+	(void)PARAM_FIND(CAL_MAG2_ID);
+	(void)PARAM_FIND(CAL_MAG0_ROT);
+	(void)PARAM_FIND(CAL_MAG1_ROT);
+	(void)PARAM_FIND(CAL_MAG2_ROT);
+	(void)PARAM_FIND(CAL_MAG_SIDES);
 
-	(void)param_find("CAL_MAG1_XOFF");
-	(void)param_find("CAL_MAG1_XSCALE");
-	(void)param_find("CAL_MAG1_YOFF");
-	(void)param_find("CAL_MAG1_YSCALE");
-	(void)param_find("CAL_MAG1_ZOFF");
-	(void)param_find("CAL_MAG1_ZSCALE");
+	(void)PARAM_FIND(CAL_MAG1_XOFF);
+	(void)PARAM_FIND(CAL_MAG1_XSCALE);
+	(void)PARAM_FIND(CAL_MAG1_YOFF);
+	(void)PARAM_FIND(CAL_MAG1_YSCALE);
+	(void)PARAM_FIND(CAL_MAG1_ZOFF);
+	(void)PARAM_FIND(CAL_MAG1_ZSCALE);
 
-	(void)param_find("CAL_MAG2_XOFF");
-	(void)param_find("CAL_MAG2_XSCALE");
-	(void)param_find("CAL_MAG2_YOFF");
-	(void)param_find("CAL_MAG2_YSCALE");
-	(void)param_find("CAL_MAG2_ZOFF");
-	(void)param_find("CAL_MAG2_ZSCALE");
+	(void)PARAM_FIND(CAL_MAG2_XOFF);
+	(void)PARAM_FIND(CAL_MAG2_XSCALE);
+	(void)PARAM_FIND(CAL_MAG2_YOFF);
+	(void)PARAM_FIND(CAL_MAG2_YSCALE);
+	(void)PARAM_FIND(CAL_MAG2_ZOFF);
+	(void)PARAM_FIND(CAL_MAG2_ZSCALE);
 
-	(void)param_find("CAL_GYRO1_XOFF");
-	(void)param_find("CAL_GYRO1_XSCALE");
-	(void)param_find("CAL_GYRO1_YOFF");
-	(void)param_find("CAL_GYRO1_YSCALE");
-	(void)param_find("CAL_GYRO1_ZOFF");
-	(void)param_find("CAL_GYRO1_ZSCALE");
+	(void)PARAM_FIND(CAL_GYRO1_XOFF);
+	(void)PARAM_FIND(CAL_GYRO1_XSCALE);
+	(void)PARAM_FIND(CAL_GYRO1_YOFF);
+	(void)PARAM_FIND(CAL_GYRO1_YSCALE);
+	(void)PARAM_FIND(CAL_GYRO1_ZOFF);
+	(void)PARAM_FIND(CAL_GYRO1_ZSCALE);
 
-	(void)param_find("CAL_GYRO2_XOFF");
-	(void)param_find("CAL_GYRO2_XSCALE");
-	(void)param_find("CAL_GYRO2_YOFF");
-	(void)param_find("CAL_GYRO2_YSCALE");
-	(void)param_find("CAL_GYRO2_ZOFF");
-	(void)param_find("CAL_GYRO2_ZSCALE");
+	(void)PARAM_FIND(CAL_GYRO2_XOFF);
+	(void)PARAM_FIND(CAL_GYRO2_XSCALE);
+	(void)PARAM_FIND(CAL_GYRO2_YOFF);
+	(void)PARAM_FIND(CAL_GYRO2_YSCALE);
+	(void)PARAM_FIND(CAL_GYRO2_ZOFF);
+	(void)PARAM_FIND(CAL_GYRO2_ZSCALE);
 
-	(void)param_find("CAL_ACC1_XOFF");
-	(void)param_find("CAL_ACC1_XSCALE");
-	(void)param_find("CAL_ACC1_YOFF");
-	(void)param_find("CAL_ACC1_YSCALE");
-	(void)param_find("CAL_ACC1_ZOFF");
-	(void)param_find("CAL_ACC1_ZSCALE");
+	(void)PARAM_FIND(CAL_ACC1_XOFF);
+	(void)PARAM_FIND(CAL_ACC1_XSCALE);
+	(void)PARAM_FIND(CAL_ACC1_YOFF);
+	(void)PARAM_FIND(CAL_ACC1_YSCALE);
+	(void)PARAM_FIND(CAL_ACC1_ZOFF);
+	(void)PARAM_FIND(CAL_ACC1_ZSCALE);
 
-	(void)param_find("CAL_ACC2_XOFF");
-	(void)param_find("CAL_ACC2_XSCALE");
-	(void)param_find("CAL_ACC2_YOFF");
-	(void)param_find("CAL_ACC2_YSCALE");
-	(void)param_find("CAL_ACC2_ZOFF");
-	(void)param_find("CAL_ACC2_ZSCALE");
+	(void)PARAM_FIND(CAL_ACC2_XOFF);
+	(void)PARAM_FIND(CAL_ACC2_XSCALE);
+	(void)PARAM_FIND(CAL_ACC2_YOFF);
+	(void)PARAM_FIND(CAL_ACC2_YSCALE);
+	(void)PARAM_FIND(CAL_ACC2_ZOFF);
+	(void)PARAM_FIND(CAL_ACC2_ZSCALE);
 
-	(void)param_find("SYS_PARAM_VER");
-	(void)param_find("SYS_AUTOSTART");
-	(void)param_find("SYS_AUTOCONFIG");
-	(void)param_find("PWM_RATE");
-	(void)param_find("PWM_MIN");
-	(void)param_find("PWM_MAX");
-	(void)param_find("PWM_DISARMED");
-	(void)param_find("PWM_AUX_MIN");
-	(void)param_find("PWM_AUX_MAX");
-	(void)param_find("PWM_AUX_DISARMED");
-	(void)param_find("TRIG_MODE");
-	(void)param_find("UAVCAN_ENABLE");
-	(void)param_find("SYS_MC_EST_GROUP");
+	(void)PARAM_FIND(SYS_PARAM_VER);
+	(void)PARAM_FIND(SYS_AUTOSTART);
+	(void)PARAM_FIND(SYS_AUTOCONFIG);
+	(void)PARAM_FIND(PWM_RATE);
+	(void)PARAM_FIND(PWM_MIN);
+	(void)PARAM_FIND(PWM_MAX);
+	(void)PARAM_FIND(PWM_DISARMED);
+	(void)PARAM_FIND(PWM_AUX_MIN);
+	(void)PARAM_FIND(PWM_AUX_MAX);
+	(void)PARAM_FIND(PWM_AUX_DISARMED);
+	(void)PARAM_FIND(TRIG_MODE);
+	(void)PARAM_FIND(UAVCAN_ENABLE);
+	(void)PARAM_FIND(SYS_MC_EST_GROUP);
+#endif
 
-
-	return 0;
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)

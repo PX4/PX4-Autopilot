@@ -477,47 +477,47 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_thrust_int.zero();
 
-	_params_handles.thr_min		= param_find("MPC_THR_MIN");
-	_params_handles.thr_max		= param_find("MPC_THR_MAX");
-	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
-	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
-	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
-	_params_handles.z_p		= param_find("MPC_Z_P");
-	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
-	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
-	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
-	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
-	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
+	_params_handles.thr_min		= PARAM_FIND(MPC_THR_MIN);
+	_params_handles.thr_max		= PARAM_FIND(MPC_THR_MAX);
+	_params_handles.thr_hover	= PARAM_FIND(MPC_THR_HOVER);
+	_params_handles.alt_ctl_dz	= PARAM_FIND(MPC_ALTCTL_DZ);
+	_params_handles.alt_ctl_dy	= PARAM_FIND(MPC_ALTCTL_DY);
+	_params_handles.z_p		= PARAM_FIND(MPC_Z_P);
+	_params_handles.z_vel_p		= PARAM_FIND(MPC_Z_VEL_P);
+	_params_handles.z_vel_i		= PARAM_FIND(MPC_Z_VEL_I);
+	_params_handles.z_vel_d		= PARAM_FIND(MPC_Z_VEL_D);
+	_params_handles.z_vel_max_up	= PARAM_FIND(MPC_Z_VEL_MAX_UP);
+	_params_handles.z_vel_max_down	= PARAM_FIND(MPC_Z_VEL_MAX);
 
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
 	// (currently at 1.3.0)
 	float p;
-	param_get(param_find("MPC_Z_VEL_MAX"), &p);
-	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
+	param_get(PARAM_FIND(MPC_Z_VEL_MAX), &p);
+	param_set(PARAM_FIND(MPC_Z_VEL_MAX_DN), &p);
 
-	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
-	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
-	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
-	_params_handles.xy_ff		= param_find("MPC_XY_FF");
-	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
-	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
-	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
-	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
-	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
-	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
-	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
-	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
-	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
-	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
-	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
-	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
+	_params_handles.z_ff		= PARAM_FIND(MPC_Z_FF);
+	_params_handles.xy_p		= PARAM_FIND(MPC_XY_P);
+	_params_handles.xy_vel_p	= PARAM_FIND(MPC_XY_VEL_P);
+	_params_handles.xy_vel_i	= PARAM_FIND(MPC_XY_VEL_I);
+	_params_handles.xy_vel_d	= PARAM_FIND(MPC_XY_VEL_D);
+	_params_handles.xy_vel_max	= PARAM_FIND(MPC_XY_VEL_MAX);
+	_params_handles.xy_vel_cruise	= PARAM_FIND(MPC_XY_CRUISE);
+	_params_handles.xy_ff		= PARAM_FIND(MPC_XY_FF);
+	_params_handles.tilt_max_air	= PARAM_FIND(MPC_TILTMAX_AIR);
+	_params_handles.land_speed	= PARAM_FIND(MPC_LAND_SPEED);
+	_params_handles.tko_speed	= PARAM_FIND(MPC_TKO_SPEED);
+	_params_handles.tilt_max_land	= PARAM_FIND(MPC_TILTMAX_LND);
+	_params_handles.man_roll_max = PARAM_FIND(MPC_MAN_R_MAX);
+	_params_handles.man_pitch_max = PARAM_FIND(MPC_MAN_P_MAX);
+	_params_handles.man_yaw_max = PARAM_FIND(MPC_MAN_Y_MAX);
+	_params_handles.global_yaw_max = PARAM_FIND(MC_YAWRATE_MAX);
+	_params_handles.mc_att_yaw_p = PARAM_FIND(MC_YAW_P);
+	_params_handles.hold_xy_dz = PARAM_FIND(MPC_HOLD_XY_DZ);
+	_params_handles.hold_max_xy = PARAM_FIND(MPC_HOLD_MAX_XY);
+	_params_handles.hold_max_z = PARAM_FIND(MPC_HOLD_MAX_Z);
+	_params_handles.acc_hor_max = PARAM_FIND(MPC_ACC_HOR_MAX);
+	_params_handles.alt_mode = PARAM_FIND(MPC_ALT_MODE);
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
@@ -637,7 +637,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
-		int i;
+		int i = 0;
 		param_get(_params_handles.opt_recover, &i);
 		_params.opt_recover = i;
 

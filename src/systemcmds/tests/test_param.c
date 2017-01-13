@@ -56,7 +56,7 @@ test_param(int argc, char *argv[])
 {
 	param_t		p;
 
-	p = param_find("TEST_PARAMS");
+	p = PARAM_FIND(TEST_PARAMS);
 
 	if (p == PARAM_INVALID) {
 		warnx("test parameter not found");

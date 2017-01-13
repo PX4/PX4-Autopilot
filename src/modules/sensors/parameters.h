@@ -139,6 +139,7 @@ struct Parameters {
 };
 
 struct ParameterHandles {
+	ParameterHandles();
 	param_t min[RC_MAX_CHAN_COUNT];
 	param_t trim[RC_MAX_CHAN_COUNT];
 	param_t max[RC_MAX_CHAN_COUNT];
@@ -212,12 +213,6 @@ struct ParameterHandles {
 	param_t vibe_thresh; /**< vibration threshold */
 
 };
-
-/**
- * initialize ParameterHandles struct
- * @return 0 on succes, <0 on error
- */
-int initialize_parameter_handles(ParameterHandles &parameter_handles);
 
 
 /**

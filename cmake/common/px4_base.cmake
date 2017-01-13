@@ -876,6 +876,7 @@ function(px4_add_common_flags)
 		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/modules
 		${PX4_BINARY_DIR}/src/modules/px4_messages
+		${PX4_BINARY_DIR}/src/modules/param
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/drivers/boards/${BOARD}

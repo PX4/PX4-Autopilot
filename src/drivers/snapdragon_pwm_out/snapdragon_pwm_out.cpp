@@ -541,9 +541,9 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &snapdragon_pwm::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &snapdragon_pwm::_pwm_min);
-	param_get(param_find("PWM_MAX"), &snapdragon_pwm::_pwm_max);
+	param_get(PARAM_FIND(PWM_DISARMED), &snapdragon_pwm::_pwm_disarmed);
+	param_get(PARAM_FIND(PWM_MIN), &snapdragon_pwm::_pwm_min);
+	param_get(PARAM_FIND(PWM_MAX), &snapdragon_pwm::_pwm_max);
 
 	/*
 	 * Start/load the driver.

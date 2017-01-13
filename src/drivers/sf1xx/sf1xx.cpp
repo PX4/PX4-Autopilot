@@ -231,7 +231,7 @@ SF1XX::init()
 {
 	int ret = PX4_ERROR;
 	int hw_model;
-	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
+	param_get(PARAM_FIND(SENS_EN_SF1XX), &hw_model);
 
 	switch (hw_model) {
 	case 0:

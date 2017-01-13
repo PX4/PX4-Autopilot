@@ -182,10 +182,10 @@ Syslink::send_queued_raw_message()
 void
 Syslink::update_params(bool force_set)
 {
-	param_t _param_radio_channel = param_find("SLNK_RADIO_CHAN");
-	param_t _param_radio_rate = param_find("SLNK_RADIO_RATE");
-	param_t _param_radio_addr1 = param_find("SLNK_RADIO_ADDR1");
-	param_t _param_radio_addr2 = param_find("SLNK_RADIO_ADDR2");
+	param_t _param_radio_channel = PARAM_FIND(SLNK_RADIO_CHAN);
+	param_t _param_radio_rate = PARAM_FIND(SLNK_RADIO_RATE);
+	param_t _param_radio_addr1 = PARAM_FIND(SLNK_RADIO_ADDR1);
+	param_t _param_radio_addr2 = PARAM_FIND(SLNK_RADIO_ADDR2);
 
 
 	// reading parameter values into temp variables

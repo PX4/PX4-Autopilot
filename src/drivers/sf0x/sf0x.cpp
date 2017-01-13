@@ -269,7 +269,7 @@ int
 SF0X::init()
 {
 	int hw_model;
-	param_get(param_find("SENS_EN_SF0X"), &hw_model);
+	param_get(PARAM_FIND(SENS_EN_SF0X), &hw_model);
 
 	switch (hw_model) {
 	case 0:

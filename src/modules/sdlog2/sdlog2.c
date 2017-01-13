@@ -331,7 +331,7 @@ int sdlog2_main(int argc, char *argv[])
 
 		// get sdlog priority boost parameter. This can be used to avoid message drops
 		// in the log file. However, it considered to be used only for developers.
-		param_t prio_boost_handle = param_find("SDLOG_PRIO_BOOST");
+		param_t prio_boost_handle = PARAM_FIND(SDLOG_PRIO_BOOST);
 		int prio_boost = 0;
 		param_get(prio_boost_handle, &prio_boost);
 		int task_priority = SCHED_PRIORITY_DEFAULT - 30;
@@ -1055,66 +1055,54 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* interpret logging params */
 	int32_t param_log_rate = -1;
-	param_t log_rate_ph = param_find("SDLOG_RATE");
+	param_t log_rate_ph = PARAM_FIND(SDLOG_RATE);
 
-	if (log_rate_ph != PARAM_INVALID) {
-		param_get(log_rate_ph, &param_log_rate);
+	param_get(log_rate_ph, &param_log_rate);
 
-		if (param_log_rate > 0) {
+	if (param_log_rate > 0) {
 
-			/* we can't do more than ~ 500 Hz, even with a massive buffer */
-			if (param_log_rate > 250) {
-				param_log_rate = 250;
-			}
-
-		} else if (param_log_rate == 0) {
-			/* we need at minimum 10 Hz to be able to see anything */
-			param_log_rate = 10;
+		/* we can't do more than ~ 500 Hz, even with a massive buffer */
+		if (param_log_rate > 250) {
+			param_log_rate = 250;
 		}
+
+	} else if (param_log_rate == 0) {
+		/* we need at minimum 10 Hz to be able to see anything */
+		param_log_rate = 10;
 	}
 
 	// if parameter was provided use it, if not use command line argument
 	log_rate = param_log_rate > -1 ? param_log_rate : log_rate;
 
-	param_t log_ext_ph = param_find("SDLOG_EXT");
+	param_t log_ext_ph = PARAM_FIND(SDLOG_EXT);
 
-	if (log_ext_ph != PARAM_INVALID) {
+	int32_t param_log_extended;
+	param_get(log_ext_ph, &param_log_extended);
 
-		int32_t param_log_extended;
-		param_get(log_ext_ph, &param_log_extended);
-
-		if (param_log_extended > 0) {
-			_extended_logging = true;
-		} else if (param_log_extended == 0) {
-			_extended_logging = false;
-		}
-		/* any other value means to ignore the parameter, so no else case */
-
+	if (param_log_extended > 0) {
+		_extended_logging = true;
+	} else if (param_log_extended == 0) {
+		_extended_logging = false;
 	}
+	/* any other value means to ignore the parameter, so no else case */
 
-	param_t log_gpstime_ph = param_find("SDLOG_GPSTIME");
+	param_t log_gpstime_ph = PARAM_FIND(SDLOG_GPSTIME);
 
-	if (log_gpstime_ph != PARAM_INVALID) {
+	int32_t param_log_gpstime;
+	param_get(log_gpstime_ph, &param_log_gpstime);
 
-		int32_t param_log_gpstime;
-		param_get(log_gpstime_ph, &param_log_gpstime);
-
-		if (param_log_gpstime > 0) {
-			_gpstime_only = true;
-		} else if (param_log_gpstime == 0) {
-			_gpstime_only = false;
-		}
-		/* any other value means to ignore the parameter, so no else case */
-
+	if (param_log_gpstime > 0) {
+		_gpstime_only = true;
+	} else if (param_log_gpstime == 0) {
+		_gpstime_only = false;
 	}
+	/* any other value means to ignore the parameter, so no else case */
 
 	param_t log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 
-	if ( log_utc_offset != PARAM_INVALID ) {
-	    int32_t param_utc_offset;
-	    param_get(log_utc_offset, &param_utc_offset);
-	    _utc_offset = param_utc_offset;
-	}
+	int32_t param_utc_offset = 0;
+	param_get(log_utc_offset, &param_utc_offset);
+	_utc_offset = param_utc_offset;
 
 	if (check_free_space() != OK) {
 		return 1;
@@ -1157,7 +1145,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	} log_type;
 
 	/* Check if we are gathering data for a replay log for ekf2. */
-	param_t replay_handle = param_find("EKF2_REC_RPL");
+	param_t replay_handle = PARAM_FIND(EKF2_REC_RPL);
 	int32_t tmp = 0;
 	param_get(replay_handle, &tmp);
 	bool record_replay_log = (bool)tmp;

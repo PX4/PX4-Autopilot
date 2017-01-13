@@ -663,7 +663,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	{
 		std::int32_t idle_throttle_when_armed = 0;
-		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &idle_throttle_when_armed);
+		(void) param_get(PARAM_FIND(UAVCAN_ESC_IDLT), &idle_throttle_when_armed);
 		_esc_controller.enable_idle_throttle_when_armed(idle_throttle_when_armed > 0);
 	}
 
@@ -1324,7 +1324,7 @@ int uavcan_main(int argc, char *argv[])
 
 		// Node ID
 		int32_t node_id = 1;
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+		(void)param_get(PARAM_FIND(UAVCAN_NODE_ID), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
 			warnx("Invalid Node ID %i", node_id);
@@ -1333,7 +1333,7 @@ int uavcan_main(int argc, char *argv[])
 
 		// CAN bitrate
 		int32_t bitrate = 1000000;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+		(void)param_get(PARAM_FIND(UAVCAN_BITRATE), &bitrate);
 
 		// Start
 		warnx("Node ID %u, bitrate %u", node_id, bitrate);

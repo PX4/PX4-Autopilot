@@ -496,9 +496,9 @@ int navio_sysfs_pwm_out_main(int argc, char *argv[])
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &navio_sysfs_pwm_out::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &navio_sysfs_pwm_out::_pwm_min);
-	param_get(param_find("PWM_MAX"), &navio_sysfs_pwm_out::_pwm_max);
+	param_get(PARAM_FIND(PWM_DISARMED), &navio_sysfs_pwm_out::_pwm_disarmed);
+	param_get(PARAM_FIND(PWM_MIN), &navio_sysfs_pwm_out::_pwm_min);
+	param_get(PARAM_FIND(PWM_MAX), &navio_sysfs_pwm_out::_pwm_max);
 
 	/*
 	 * Start/load the driver.

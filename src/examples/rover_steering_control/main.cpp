@@ -137,7 +137,7 @@ static struct param_handles ph;
 int parameters_init(struct param_handles *h)
 {
 	/* PID parameters */
-	h->yaw_p 	=	param_find("RV_YAW_P");
+	h->yaw_p 	=	PARAM_FIND(RV_YAW_P);
 
 	return OK;
 }

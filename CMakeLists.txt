@@ -362,9 +362,10 @@ add_subdirectory(msg)
 px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
-	DEPENDS git_genmsg git_gencpp prebuild_targets
+	DEPENDS git_genmsg git_gencpp prebuild_targets param_gen
 	)
-px4_generate_parameters_xml(OUT parameters.xml 
+
+px4_generate_parameters_xml(OUT parameters.xml
                             BOARD ${BOARD}
                             SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake)
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})

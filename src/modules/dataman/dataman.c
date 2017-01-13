@@ -1004,7 +1004,7 @@ task_main(int argc, char *argv[])
 
 	const char *restart_type_str = "Unkown restart";
 
-	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
+	if (param_get(PARAM_FIND(SYS_RESTART_TYPE), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
 			restart_type_str = "Power on restart";
 			g_dm_ops->restart(DM_INIT_REASON_POWER_ON);

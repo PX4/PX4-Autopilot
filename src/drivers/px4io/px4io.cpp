@@ -650,12 +650,10 @@ int
 PX4IO::init()
 {
 	int ret;
-	param_t sys_restart_param;
+	param_t sys_restart_param = PARAM_FIND(SYS_RESTART_TYPE);
 	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
-
-	sys_restart_param = param_find("SYS_RESTART_TYPE");
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
@@ -727,9 +725,9 @@ PX4IO::init()
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+	param_get(PARAM_FIND(RC_RSSI_PWM_CHAN), &_rssi_pwm_chan);
+	param_get(PARAM_FIND(RC_RSSI_PWM_MAX), &_rssi_pwm_max);
+	param_get(PARAM_FIND(RC_RSSI_PWM_MIN), &_rssi_pwm_min);
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -795,8 +793,8 @@ PX4IO::init()
 		/* send command to arm system via command API */
 		vehicle_command_s cmd;
 		/* send this to itself */
-		param_t sys_id_param = param_find("MAV_SYS_ID");
-		param_t comp_id_param = param_find("MAV_COMP_ID");
+		param_t sys_id_param = PARAM_FIND(MAV_SYS_ID);
+		param_t comp_id_param = PARAM_FIND(MAV_COMP_ID);
 
 		int32_t sys_id;
 		int32_t comp_id;
@@ -1089,10 +1087,10 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
 				int32_t dsm_bind_val;
-				param_t dsm_bind_param;
+				param_t dsm_bind_param = PARAM_FIND(RC_DSM_BIND);
 
 				/* see if bind parameter has been set, and reset it to -1 */
-				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+				param_get(dsm_bind_param, &dsm_bind_val);
 
 				if (dsm_bind_val > -1) {
 					dsm_bind_ioctl(dsm_bind_val);
@@ -1107,10 +1105,10 @@ PX4IO::task_main()
 
 				/* re-set the battery scaling */
 				int32_t voltage_scaling_val = 10000;
-				param_t voltage_scaling_param;
+				param_t voltage_scaling_param = PARAM_FIND(BAT_V_SCALE_IO);
 
 				/* set battery voltage scaling */
-				param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
+				param_get(voltage_scaling_param, &voltage_scaling_val);
 
 				/* send scaling voltage to IO */
 				uint16_t scaling = voltage_scaling_val;
@@ -1122,65 +1120,56 @@ PX4IO::task_main()
 
 				/* send RC throttle failsafe value to IO */
 				int32_t failsafe_param_val;
-				param_t failsafe_param = param_find("RC_FAILS_THR");
+				param_t failsafe_param = PARAM_FIND(RC_FAILS_THR);
 
-				if (failsafe_param != PARAM_INVALID) {
+				param_get(failsafe_param, &failsafe_param_val);
 
-					param_get(failsafe_param, &failsafe_param_val);
+				if (failsafe_param_val > 0) {
 
-					if (failsafe_param_val > 0) {
+					uint16_t failsafe_thr = failsafe_param_val;
+					pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
-						uint16_t failsafe_thr = failsafe_param_val;
-						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
-
-						if (pret != OK) {
-							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
-						}
+					if (pret != OK) {
+						mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
 					}
 				}
 
 				int32_t safety_param_val;
-				param_t safety_param = param_find("CBRK_IO_SAFETY");
+				param_t safety_param = PARAM_FIND(CBRK_IO_SAFETY);
 
-				if (safety_param != PARAM_INVALID) {
+				param_get(safety_param, &safety_param_val);
 
-					param_get(safety_param, &safety_param_val);
-
-					if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
-						/* disable IO safety if circuit breaker asked for it */
-						(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
-					}
+				if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
+					/* disable IO safety if circuit breaker asked for it */
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
 				}
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 
-				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+				param_get(PARAM_FIND(RC_RSSI_PWM_CHAN), &_rssi_pwm_chan);
+				param_get(PARAM_FIND(RC_RSSI_PWM_MAX), &_rssi_pwm_max);
+				param_get(PARAM_FIND(RC_RSSI_PWM_MIN), &_rssi_pwm_min);
 
-				param_t thermal_param = param_find("SENS_EN_THERMAL");
+				param_t thermal_param = PARAM_FIND(SENS_EN_THERMAL);
 
-				if (thermal_param != PARAM_INVALID) {
+				int32_t thermal_p;
+				param_get(thermal_param, &thermal_p);
 
-					int32_t thermal_p;
-					param_get(thermal_param, &thermal_p);
+				if (thermal_p != _thermal_control || _param_update_force) {
 
-					if (thermal_p != _thermal_control || _param_update_force) {
+					_thermal_control = thermal_p;
+					/* set power management state for thermal */
+					uint16_t tctrl;
 
-						_thermal_control = thermal_p;
-						/* set power management state for thermal */
-						uint16_t tctrl;
+					if (_thermal_control < 0) {
+						tctrl = PX4IO_THERMAL_IGNORE;
 
-						if (_thermal_control < 0) {
-							tctrl = PX4IO_THERMAL_IGNORE;
-
-						} else {
-							tctrl = PX4IO_THERMAL_OFF;
-						}
-
-						ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
+					} else {
+						tctrl = PX4IO_THERMAL_OFF;
 					}
+
+					ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
 				}
 
 				/*
@@ -1231,85 +1220,59 @@ PX4IO::task_main()
 				float param_val;
 				param_t parm_handle;
 
-				parm_handle = param_find("TRIM_ROLL");
+				parm_handle = PARAM_FIND(TRIM_ROLL);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(param_val));
 
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(param_val));
-				}
+				parm_handle = PARAM_FIND(TRIM_PITCH);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(param_val));
 
-				parm_handle = param_find("TRIM_PITCH");
+				parm_handle = PARAM_FIND(TRIM_YAW);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(param_val));
 
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(param_val));
-				}
+				parm_handle = PARAM_FIND(FW_MAN_R_SC);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_ROLL, FLOAT_TO_REG(param_val));
 
-				parm_handle = param_find("TRIM_YAW");
+				parm_handle = PARAM_FIND(FW_MAN_P_SC);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_PITCH, FLOAT_TO_REG(param_val));
 
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_YAW, FLOAT_TO_REG(param_val));
-				}
-
-				parm_handle = param_find("FW_MAN_R_SC");
-
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_ROLL, FLOAT_TO_REG(param_val));
-				}
-
-				parm_handle = param_find("FW_MAN_P_SC");
-
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_PITCH, FLOAT_TO_REG(param_val));
-				}
-
-				parm_handle = param_find("FW_MAN_Y_SC");
-
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_YAW, FLOAT_TO_REG(param_val));
-				}
+				parm_handle = PARAM_FIND(FW_MAN_Y_SC);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SCALE_YAW, FLOAT_TO_REG(param_val));
 
 				/* S.BUS output */
 				int sbus_mode;
-				parm_handle = param_find("PWM_SBUS_MODE");
+				parm_handle = PARAM_FIND(PWM_SBUS_MODE);
 
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &sbus_mode);
+				param_get(parm_handle, &sbus_mode);
 
-					if (sbus_mode == 1) {
-						/* enable S.BUS 1 */
-						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+				if (sbus_mode == 1) {
+					/* enable S.BUS 1 */
+					(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
 
-					} else if (sbus_mode == 2) {
-						/* enable S.BUS 2 */
-						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+				} else if (sbus_mode == 2) {
+					/* enable S.BUS 2 */
+					(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
 
-					} else {
-						/* disable S.BUS */
-						(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
-								    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
-					}
+				} else {
+					/* disable S.BUS */
+					(void)io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
+							    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 				}
 
 				/* thrust to pwm modelling factor */
-				parm_handle = param_find("THR_MDL_FAC");
-
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THR_MDL_FAC, FLOAT_TO_REG(param_val));
-				}
+				parm_handle = PARAM_FIND(THR_MDL_FAC);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THR_MDL_FAC, FLOAT_TO_REG(param_val));
 
 				/* maximum motor pwm slew rate */
-				parm_handle = param_find("MOT_SLEW_MAX");
-
-				if (parm_handle != PARAM_INVALID) {
-					param_get(parm_handle, &param_val);
-					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_MOTOR_SLEW_MAX, FLOAT_TO_REG(param_val));
-				}
+				parm_handle = PARAM_FIND(MOT_SLEW_MAX);
+				param_get(parm_handle, &param_val);
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_MOTOR_SLEW_MAX, FLOAT_TO_REG(param_val));
 
 				// Also trigger param update in Battery instance.
 				_battery.updateParams();
@@ -1555,63 +1518,63 @@ PX4IO::io_set_rc_config()
 	 */
 
 	/* ROLL */
-	param_get(param_find("RC_MAP_ROLL"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_ROLL), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 0;
 	}
 
 	/* PITCH */
-	param_get(param_find("RC_MAP_PITCH"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_PITCH), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 1;
 	}
 
 	/* YAW */
-	param_get(param_find("RC_MAP_YAW"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_YAW), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 2;
 	}
 
 	/* THROTTLE */
-	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_THROTTLE), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 3;
 	}
 
 	/* FLAPS */
-	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_FLAPS), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 4;
 	}
 
 	/* AUX 1*/
-	param_get(param_find("RC_MAP_AUX1"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_AUX1), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 5;
 	}
 
 	/* AUX 2*/
-	param_get(param_find("RC_MAP_AUX2"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_AUX2), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 6;
 	}
 
 	/* AUX 3*/
-	param_get(param_find("RC_MAP_AUX3"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_AUX3), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 7;
 	}
 
 	/* MAIN MODE SWITCH */
-	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
+	param_get(PARAM_FIND(RC_MAP_MODE_SW), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		/* use out of normal bounds index to indicate special channel */
@@ -3290,7 +3253,7 @@ start(int argc, char *argv[])
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	int dsm_vcc_ctl;
 
-	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
+	if (param_get(PARAM_FIND(RC_RL1_DSM_VCC), &dsm_vcc_ctl) == OK) {
 		if (dsm_vcc_ctl) {
 			g_dev->set_dsm_vcc_ctl(true);
 			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);

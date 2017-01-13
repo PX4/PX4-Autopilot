@@ -315,7 +315,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
+		failed = failed || (PX4_OK != param_set_no_notification(PARAM_FIND(CAL_GYRO_PRIME), &(device_id_primary)));
 
 		for (unsigned s = 0; s < max_gyros; s++) {
 			if (worker_data.device_id[s] != 0) {
@@ -362,7 +362,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	mcu_unique_id(&mcu_id[0]);
 
 	/* store last 32bit number - not unique, but unique in a given set */
-	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
+	(void)param_set(PARAM_FIND(CAL_BOARD_ID), &mcu_id[2]);
 
 	if (res == PX4_OK) {
 		/* auto-save to EEPROM */

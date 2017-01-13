@@ -69,13 +69,13 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_min_trust_start(0),
 	_arming_time(0)
 {
-	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
-	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
-	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
-	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
-	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
-	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
-	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
+	_paramHandle.maxRotation = PARAM_FIND(LNDMC_ROT_MAX);
+	_paramHandle.maxVelocity = PARAM_FIND(LNDMC_XY_VEL_MAX);
+	_paramHandle.maxClimbRate = PARAM_FIND(LNDMC_Z_VEL_MAX);
+	_paramHandle.minThrottle = PARAM_FIND(MPC_THR_MIN);
+	_paramHandle.minManThrottle = PARAM_FIND(MPC_MANTHR_MIN);
+	_paramHandle.freefall_acc_threshold = PARAM_FIND(LNDMC_FFALL_THR);
+	_paramHandle.freefall_trigger_time = PARAM_FIND(LNDMC_FFALL_TTRI);
 }
 
 void MulticopterLandDetector::_initialize_topics()

@@ -230,25 +230,26 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 {
 	_terrain_estimator = new TerrainEstimator();
 
-	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
-	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
-	_parameter_handles.height_delay_ms = param_find("PE_HGT_DELAY_MS");
-	_parameter_handles.mag_delay_ms = param_find("PE_MAG_DELAY_MS");
-	_parameter_handles.tas_delay_ms = param_find("PE_TAS_DELAY_MS");
-	_parameter_handles.velne_noise = param_find("PE_VELNE_NOISE");
-	_parameter_handles.veld_noise = param_find("PE_VELD_NOISE");
-	_parameter_handles.posne_noise = param_find("PE_POSNE_NOISE");
-	_parameter_handles.posd_noise = param_find("PE_POSD_NOISE");
-	_parameter_handles.mag_noise = param_find("PE_MAG_NOISE");
-	_parameter_handles.gyro_pnoise = param_find("PE_GYRO_PNOISE");
-	_parameter_handles.acc_pnoise = param_find("PE_ACC_PNOISE");
-	_parameter_handles.gbias_pnoise = param_find("PE_GBIAS_PNOISE");
-	_parameter_handles.abias_pnoise = param_find("PE_ABIAS_PNOISE");
-	_parameter_handles.mage_pnoise = param_find("PE_MAGE_PNOISE");
-	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
-	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
-	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
-	_parameter_handles.airspeed_mode = param_find("FW_AIRSPD_MODE");
+	_parameter_handles.vel_delay_ms = PARAM_FIND(PE_VEL_DELAY_MS);
+	_parameter_handles.pos_delay_ms = PARAM_FIND(PE_POS_DELAY_MS);
+	_parameter_handles.height_delay_ms = PARAM_FIND(PE_HGT_DELAY_MS);
+	_parameter_handles.mag_delay_ms = PARAM_FIND(PE_MAG_DELAY_MS);
+	_parameter_handles.tas_delay_ms = PARAM_FIND(PE_TAS_DELAY_MS);
+	_parameter_handles.velne_noise = PARAM_FIND(PE_VELNE_NOISE);
+	_parameter_handles.veld_noise = PARAM_FIND(PE_VELD_NOISE);
+	_parameter_handles.posne_noise = PARAM_FIND(PE_POSNE_NOISE);
+	_parameter_handles.posd_noise = PARAM_FIND(PE_POSD_NOISE);
+	_parameter_handles.mag_noise = PARAM_FIND(PE_MAG_NOISE);
+	_parameter_handles.gyro_pnoise = PARAM_FIND(PE_GYRO_PNOISE);
+	_parameter_handles.acc_pnoise = PARAM_FIND(PE_ACC_PNOISE);
+	_parameter_handles.gbias_pnoise = PARAM_FIND(PE_GBIAS_PNOISE);
+	_parameter_handles.abias_pnoise = PARAM_FIND(PE_ABIAS_PNOISE);
+	_parameter_handles.mage_pnoise = PARAM_FIND(PE_MAGE_PNOISE);
+	_parameter_handles.magb_pnoise = PARAM_FIND(PE_MAGB_PNOISE);
+	_parameter_handles.eas_noise = PARAM_FIND(PE_EAS_NOISE);
+	_parameter_handles.pos_stddev_threshold = PARAM_FIND(PE_POSDEV_INIT);
+	//XXX The parameter below doesn't seem to exist
+	//_parameter_handles.airspeed_mode = PARAM_FIND(FW_AIRSPD_MODE);
 
 	/* indicate consumers that the current position data is not valid */
 	_gps.eph = 10000.0f;

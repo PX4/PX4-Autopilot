@@ -541,9 +541,9 @@ int pwm_out_rc_in_main(int argc, char *argv[])
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &pwm_out_rc_in::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &pwm_out_rc_in::_pwm_min);
-	param_get(param_find("PWM_MAX"), &pwm_out_rc_in::_pwm_max);
+	param_get(PARAM_FIND(PWM_DISARMED), &pwm_out_rc_in::_pwm_disarmed);
+	param_get(PARAM_FIND(PWM_MIN), &pwm_out_rc_in::_pwm_min);
+	param_get(PARAM_FIND(PWM_MAX), &pwm_out_rc_in::_pwm_max);
 
 	/*
 	 * Start/load the driver.

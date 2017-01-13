@@ -445,7 +445,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	// Collect: As defined by configuration
 	// start with a full mask, all six bits set
 	uint32_t cal_mask = (1 << 6) - 1;
-	param_get(param_find("CAL_MAG_SIDES"), &cal_mask);
+	param_get(PARAM_FIND(CAL_MAG_SIDES), &cal_mask);
 
 	calibration_sides = 0;
 
@@ -746,7 +746,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 		// Trigger a param set on the last step so the whole
 		// system updates
-		(void)param_set(param_find("CAL_MAG_PRIME"), &(device_id_primary));
+		(void)param_set(PARAM_FIND(CAL_MAG_PRIME), &(device_id_primary));
 	}
 
 	return result;

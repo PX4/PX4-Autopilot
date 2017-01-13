@@ -172,7 +172,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
 	bool success = true;
 	float test_limit;
-	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_IMU_ACC), &test_limit);
 	if (checkAcc) {
 		if (sensors.accel_inconsistency_m_s_s > test_limit) {
 			if (report_status) {
@@ -189,7 +189,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 		}
 	}
 	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	param_get(param_find("COM_ARM_IMU_GYR"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_IMU_GYR), &test_limit);
 	if (checkGyro) {
 		if (sensors.gyro_inconsistency_rad_s > test_limit) {
 			if (report_status) {
@@ -460,7 +460,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	float test_limit; // pass limit re-used for each test
 
 	// check vertical position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_HGT), &test_limit);
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HGT ERROR");
@@ -470,7 +470,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check velocity innovation test ratio
-	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_VEL), &test_limit);
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
@@ -480,7 +480,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check horizontal position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_POS), &test_limit);
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
@@ -490,7 +490,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check magnetometer innovation test ratio
-	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_YAW), &test_limit);
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF YAW ERROR");
@@ -500,7 +500,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check accelerometer delta velocity bias estimates
-	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_AB), &test_limit);
 	if (fabsf(status.states[13]) > test_limit ||  fabsf(status.states[14]) > test_limit || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU ACCEL BIAS");
@@ -510,7 +510,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	}
 
 	// check gyro delta angle bias estimates
-	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
+	param_get(PARAM_FIND(COM_ARM_EKF_GB), &test_limit);
 	if (fabsf(status.states[10]) > test_limit ||  fabsf(status.states[11]) > test_limit || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HIGH IMU GYRO BIAS");
@@ -547,7 +547,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	if (checkMag) {
 		bool prime_found = false;
 		int32_t prime_id = 0;
-		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
+		param_get(PARAM_FIND(CAL_MAG_PRIME), &prime_id);
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_mag_count; i++) {
@@ -576,7 +576,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	if (checkAcc) {
 		bool prime_found = false;
 		int32_t prime_id = 0;
-		param_get(param_find("CAL_ACC_PRIME"), &prime_id);
+		param_get(PARAM_FIND(CAL_ACC_PRIME), &prime_id);
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
@@ -605,7 +605,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	if (checkGyro) {
 		bool prime_found = false;
 		int32_t prime_id = 0;
-		param_get(param_find("CAL_GYRO_PRIME"), &prime_id);
+		param_get(PARAM_FIND(CAL_GYRO_PRIME), &prime_id);
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
@@ -634,7 +634,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	if (checkBaro) {
 		bool prime_found = false;
 		int32_t prime_id = 0;
-		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
+		param_get(PARAM_FIND(CAL_BARO_PRIME), &prime_id);
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
@@ -690,7 +690,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	/* ---- Navigation EKF ---- */
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
 	int32_t estimator_type;
-	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+	param_get(PARAM_FIND(SYS_MC_EST_GROUP), &estimator_type);
 	if (estimator_type == 2 && checkGNSS) {
 		if (!ekf2Check(mavlink_log_pub, true, reportFailures)) {
 			failed = true;

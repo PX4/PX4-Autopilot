@@ -392,12 +392,12 @@ BottleDrop::task_main()
 
 	unsigned counter = 0;
 
-	param_t param_gproperties = param_find("BD_GPROPERTIES");
-	param_t param_turn_radius = param_find("BD_TURNRADIUS");
-	param_t param_precision = param_find("BD_PRECISION");
-	param_t param_cd = param_find("BD_OBJ_CD");
-	param_t param_mass = param_find("BD_OBJ_MASS");
-	param_t param_surface = param_find("BD_OBJ_SURFACE");
+	param_t param_gproperties = PARAM_FIND(BD_GPROPERTIES);
+	param_t param_turn_radius = PARAM_FIND(BD_TURNRADIUS);
+	param_t param_precision = PARAM_FIND(BD_PRECISION);
+	param_t param_cd = PARAM_FIND(BD_OBJ_CD);
+	param_t param_mass = PARAM_FIND(BD_OBJ_MASS);
+	param_t param_surface = PARAM_FIND(BD_OBJ_SURFACE);
 
 
 	param_get(param_precision, &precision);

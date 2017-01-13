@@ -212,15 +212,15 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_lp_gyro_y(250.0f, 30.0f),
 	_lp_gyro_z(250.0f, 30.0f)
 {
-	_params_handles.w_acc		= param_find("ATT_W_ACC");
-	_params_handles.w_mag		= param_find("ATT_W_MAG");
-	_params_handles.w_ext_hdg	= param_find("ATT_W_EXT_HDG");
-	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
-	_params_handles.mag_decl	= param_find("ATT_MAG_DECL");
-	_params_handles.mag_decl_auto	= param_find("ATT_MAG_DECL_A");
-	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
-	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
-	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
+	_params_handles.w_acc		= PARAM_FIND(ATT_W_ACC);
+	_params_handles.w_mag		= PARAM_FIND(ATT_W_MAG);
+	_params_handles.w_ext_hdg	= PARAM_FIND(ATT_W_EXT_HDG);
+	_params_handles.w_gyro_bias	= PARAM_FIND(ATT_W_GYRO_BIAS);
+	_params_handles.mag_decl	= PARAM_FIND(ATT_MAG_DECL);
+	_params_handles.mag_decl_auto	= PARAM_FIND(ATT_MAG_DECL_A);
+	_params_handles.acc_comp	= PARAM_FIND(ATT_ACC_COMP);
+	_params_handles.bias_max	= PARAM_FIND(ATT_BIAS_MAX);
+	_params_handles.ext_hdg_mode	= PARAM_FIND(ATT_EXT_HDG_M);
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 }
 

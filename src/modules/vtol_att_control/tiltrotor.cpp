@@ -59,17 +59,17 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tiltrotor.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_tiltrotor.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
-	_params_handles_tiltrotor.tilt_transition = param_find("VT_TILT_TRANS");
-	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
-	_params_handles_tiltrotor.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_tiltrotor.airspeed_blend_start = param_find("VT_ARSP_BLEND");
-	_params_handles_tiltrotor.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
-	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	_params_handles_tiltrotor.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_tiltrotor.front_trans_dur = PARAM_FIND(VT_F_TRANS_DUR);
+	_params_handles_tiltrotor.back_trans_dur = PARAM_FIND(VT_B_TRANS_DUR);
+	_params_handles_tiltrotor.tilt_mc = PARAM_FIND(VT_TILT_MC);
+	_params_handles_tiltrotor.tilt_transition = PARAM_FIND(VT_TILT_TRANS);
+	_params_handles_tiltrotor.tilt_fw = PARAM_FIND(VT_TILT_FW);
+	_params_handles_tiltrotor.airspeed_trans = PARAM_FIND(VT_ARSP_TRANS);
+	_params_handles_tiltrotor.airspeed_blend_start = PARAM_FIND(VT_ARSP_BLEND);
+	_params_handles_tiltrotor.elevons_mc_lock = PARAM_FIND(VT_ELEV_MC_LOCK);
+	_params_handles_tiltrotor.front_trans_dur_p2 = PARAM_FIND(VT_TRANS_P2_DUR);
+	_params_handles_tiltrotor.fw_motors_off = PARAM_FIND(VT_FW_MOT_OFFID);
+	_params_handles_tiltrotor.airspeed_mode = PARAM_FIND(FW_ARSP_MODE);
 }
 
 Tiltrotor::~Tiltrotor()

@@ -126,7 +126,7 @@ void parameters_update()
 
 void parameters_init()
 {
-	_params_handles.rc_receiver_type	=	param_find("RC_RECEIVER_TYPE");
+	_params_handles.rc_receiver_type	=	PARAM_FIND(RC_RECEIVER_TYPE);
 
 	parameters_update();
 }

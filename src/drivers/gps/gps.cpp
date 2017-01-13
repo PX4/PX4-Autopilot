@@ -593,10 +593,10 @@ int GPS::setBaudrate(unsigned baud)
 
 void GPS::initializeCommunicationDump()
 {
-	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
+	param_t gps_dump_comm_ph = PARAM_FIND(GPS_DUMP_COMM);
 	int32_t param_dump_comm;
 
-	if (gps_dump_comm_ph == PARAM_INVALID || param_get(gps_dump_comm_ph, &param_dump_comm) != 0) {
+	if (param_get(gps_dump_comm_ph, &param_dump_comm) != 0) {
 		return;
 	}
 

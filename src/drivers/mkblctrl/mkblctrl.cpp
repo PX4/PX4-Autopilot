@@ -236,7 +236,8 @@ MK::MK(int bus, const char *_device_path) :
 	_mixers(nullptr),
 	_indicate_esc(false),
 	_rc_min_value(RC_MIN_VALUE),
-	_rc_max_value(RC_MAX_VALUE)
+	_rc_max_value(RC_MAX_VALUE),
+	_param_indicate_esc(PARAM_FIND(MKBLCTRL_TEST))
 {
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
@@ -276,8 +277,6 @@ MK::~MK()
 int
 MK::init(unsigned motors)
 {
-	_param_indicate_esc	= param_find("MKBLCTRL_TEST");
-
 	_num_outputs = motors;
 	debugCounter = 0;
 	int ret;

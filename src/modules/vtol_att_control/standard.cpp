@@ -61,16 +61,16 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
 
-	_params_handles_standard.front_trans_dur = param_find("VT_F_TRANS_DUR");
-	_params_handles_standard.back_trans_dur = param_find("VT_B_TRANS_DUR");
-	_params_handles_standard.pusher_trans = param_find("VT_TRANS_THR");
-	_params_handles_standard.airspeed_blend = param_find("VT_ARSP_BLEND");
-	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_params_handles_standard.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
-	_params_handles_standard.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
-	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
-	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_standard.front_trans_dur = PARAM_FIND(VT_F_TRANS_DUR);
+	_params_handles_standard.back_trans_dur = PARAM_FIND(VT_B_TRANS_DUR);
+	_params_handles_standard.pusher_trans = PARAM_FIND(VT_TRANS_THR);
+	_params_handles_standard.airspeed_blend = PARAM_FIND(VT_ARSP_BLEND);
+	_params_handles_standard.airspeed_trans = PARAM_FIND(VT_ARSP_TRANS);
+	_params_handles_standard.front_trans_timeout = PARAM_FIND(VT_TRANS_TIMEOUT);
+	_params_handles_standard.front_trans_time_min = PARAM_FIND(VT_TRANS_MIN_TM);
+	_params_handles_standard.down_pitch_max = PARAM_FIND(VT_DWN_PITCH_MAX);
+	_params_handles_standard.forward_thrust_scale = PARAM_FIND(VT_FWD_THRUST_SC);
+	_params_handles_standard.airspeed_mode = PARAM_FIND(FW_ARSP_MODE);
 }
 
 Standard::~Standard()
