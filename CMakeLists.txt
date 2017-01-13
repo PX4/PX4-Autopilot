@@ -244,7 +244,7 @@ endif()
 
 # version info from git
 execute_process(
-	COMMAND Tools/tag_to_version.py ${PX4_SOURCE_DIR}
+	COMMAND Tools/tag_to_version.py --root ${PX4_SOURCE_DIR}
 	OUTPUT_VARIABLE version
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
@@ -255,7 +255,7 @@ execute_process(
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 set(package-contact "px4users@googlegroups.com")
-message(STATUS "PX4 VERSION: ${version}")
+message(STATUS "VERSION: ${version}")
 
 #=============================================================================
 # find programs and packages
