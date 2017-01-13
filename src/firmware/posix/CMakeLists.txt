@@ -152,11 +152,11 @@ add_custom_target(run_config
 add_dependencies(run_config px4)
 
 # Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
-# Changed from targetting sitl_gazebo to rotors_simulator
+# NOTE: Changed from targetting sitl_gazebo to packages within the rotors_simulator repo
 # sitl_gazebo had a global CMakeLists.txt which built everything, while
 # rotors_simulator has many discreet catkin packages, each with it's own
 # CMakeLists.txt
-ExternalProject_Add(sitl_gazebo
+ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo_plugins/
 	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
 	# MAVLINK_INTERFACE will build with gazebo_mavlink_interface
@@ -164,7 +164,7 @@ ExternalProject_Add(sitl_gazebo
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
-set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(rotors_simulator_rotors_gazebo_plugins PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Add rotors_simulator/rotors_gazebo as a "external project" (part of the rotors_simulator repo)
 ExternalProject_Add(rotors_simulator_rotors_gazebo
@@ -174,7 +174,7 @@ ExternalProject_Add(rotors_simulator_rotors_gazebo
 	BINARY_DIR ${PX4_BINARY_DIR}/build_test
 	INSTALL_COMMAND ""
 	)
-set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(rotors_simulator_rotors_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
@@ -213,7 +213,7 @@ foreach(viewer ${viewers})
 			if (viewer STREQUAL "gazebo")
 				# Add both the rotors_simulator/rotors_gazebo_plugins (plugin files) and
 				# rotors_simulator/rotors_gazebo (world and model files) as dependencies
-				add_dependencies(${_targ_name} sitl_gazebo rotors_simulator_rotors_gazebo)
+				add_dependencies(${_targ_name} rotors_simulator_rotors_gazebo_plugins rotors_simulator_rotors_gazebo)
 			endif()
 		endforeach()
 	endforeach()
