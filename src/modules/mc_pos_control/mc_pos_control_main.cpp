@@ -1823,16 +1823,25 @@ MulticopterPositionControl::control_position(float dt)
 			/* descend stabilized, we're landing */
 			if (!_in_landing && !_lnd_reached_ground
 			    && (float)fabsf(_acc_z_lp) < 0.1f
-			    && _vel_z_lp > 0.5f * _params.land_speed) {
+			    && _vel_z_lp > 0.6f * _params.land_speed) {
 				_in_landing = true;
 			}
 
+			float land_z_threshold = 0.1f;
+
+
 			/* assume ground, cut thrust */
 			if (_in_landing
-			    && _vel_z_lp < 0.1f) {
+			    && _vel_z_lp < land_z_threshold) {
 				thr_max = 0.0f;
 				_in_landing = false;
 				_lnd_reached_ground = true;
+
+			} else if (_in_landing
+				   && _vel_z_lp < math::min(0.3f * _params.land_speed, 2.5f * land_z_threshold)) {
+				/* not on ground but with ground contact, stop position and velocity control */
+				thrust_sp(0) = 0.0f;
+				thrust_sp(1) = 0.0f;
 			}
 
 			/* once we assumed to have reached the ground always cut the thrust.
