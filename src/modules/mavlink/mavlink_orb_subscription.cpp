@@ -170,16 +170,6 @@ MavlinkOrbSubscription::is_published()
 	// We are checking now
 	_last_pub_check = now;
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-
-	// Snapdragon has currently no support for orb_exists, therefore
-	// we're not using it.
-	if (_fd < 0) {
-		_fd = orb_subscribe_multi(_topic, _instance);
-	}
-
-#else
-
 	// We don't want to subscribe to anything that does not exist
 	// in order to save memory and file descriptors.
 	// However, for some topics like vehicle_command_ack, we want to subscribe
@@ -191,8 +181,6 @@ MavlinkOrbSubscription::is_published()
 	if (_fd < 0) {
 		_fd = orb_subscribe_multi(_topic, _instance);
 	}
-
-#endif
 
 	bool updated;
 	orb_check(_fd, &updated);
