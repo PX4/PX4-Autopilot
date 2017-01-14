@@ -1642,8 +1642,8 @@ LSM303D::measure()
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
-	/* TODO return unique hardware ID */
-	accel_report.device_id = 0;
+	/* Return class instance as a surrogate device ID */
+	accel_report.device_id = _accel_class_instance;
 
 	_accel_reports->force(&accel_report);
 

@@ -1075,8 +1075,8 @@ L3GD20::measure()
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
 
-	/* TODO return unique hardware ID */
-	report.device_id = 0;
+	/* Return class instance as a surrogate device ID */
+	report.device_id = _class_instance;
 
 	_reports->force(&report);
 
