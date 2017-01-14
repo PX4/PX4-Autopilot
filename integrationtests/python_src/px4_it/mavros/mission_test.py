@@ -369,7 +369,8 @@ class MavrosMissionTest(unittest.TestCase):
         rospy.loginfo("mission done, calculating performance metrics")
         last_log = get_last_log()
         rospy.loginfo("log file %s", last_log)
-        data = px4tools.ulog.read_ulog(last_log).resample_and_concat(0.1)
+        data = px4tools.ulog.read_ulog(last_log).concat(dt=0.1)
+        data = px4tools.ulog.compute_data(data)
         res = px4tools.estimator_analysis(data, False)
 
         # enforce performance
