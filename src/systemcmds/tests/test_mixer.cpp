@@ -297,10 +297,10 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 	ut_compare("empty buffer load", empty_load, 0);
 
-	/* FIRST mark the mixer as invalid */
-	/* THEN actually delete it */
+	/* reset, load in chunks */
 	mixer_group.reset();
 	char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
+
 	unsigned mixer_text_length = 0;
 
 	unsigned transmitted = 0;
@@ -333,6 +333,8 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
 				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				/* enforce null termination */
+				mixer_text[resid] = '\0';
 			}
 
 			mixer_text_length = resid;
