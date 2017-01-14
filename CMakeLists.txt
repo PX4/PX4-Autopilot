@@ -168,14 +168,26 @@ list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 set(target_name "${OS}-${BOARD}-${LABEL}")
 
-message(STATUS "${target_name}")
+# version info from git
+execute_process(
+	COMMAND Tools/tag_to_version.py --root ${PX4_SOURCE_DIR}
+	OUTPUT_VARIABLE version
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+execute_process(
+	COMMAND git describe --always --tags
+	OUTPUT_VARIABLE git_tag
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	)
+message(STATUS "PX4 VERSION: ${git_tag}")
+message(STATUS "CONFIG: ${target_name}")
 
-#  The Url for the elf file for crash logging
-
+# The URL for the elf file for crash logging
 if (DEFINED ENV{BUILD_URI})
-	set (BUILD_URI $ENV{BUILD_URI})
+	set(BUILD_URI $ENV{BUILD_URI})
 else()
-	set (BUILD_URI "localhost")
+	set(BUILD_URI "localhost")
 endif()
 
 add_definitions(-DBUILD_URI=${BUILD_URI})
@@ -192,10 +204,12 @@ if(NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
 endif()
-message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+if (CMAKE_INSTALL_PREFIX)
+	message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
-message(STATUS "cmake module path: ${CMAKE_MODULE_PATH}")
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 set(config_module "configs/${CONFIG}")
 include(${config_module})
 
@@ -242,20 +256,7 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
 	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
 endif()
 
-# version info from git
-execute_process(
-	COMMAND Tools/tag_to_version.py --root ${PX4_SOURCE_DIR}
-	OUTPUT_VARIABLE version
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
-execute_process(
-	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
 set(package-contact "px4users@googlegroups.com")
-message(STATUS "VERSION: ${version}")
 
 #=============================================================================
 # find programs and packages
@@ -270,14 +271,12 @@ if (CATKIN_DEVEL_PREFIX)
 	else()
 		message(FATAL_ERROR "catkin not found")
 	endif()
-else()
-	#message(STATUS "catkin DISABLED")
 endif()
 
 find_package(PythonInterp REQUIRED)
 
 #=============================================================================
-# cmake modules
+# cmake testing
 #
 enable_testing()
 include(CTest)
@@ -299,21 +298,39 @@ foreach(var ${required_variables})
 	endif()
 endforeach()
 
+# print full c compiler version
+execute_process(COMMAND ${CMAKE_C_COMPILER} --version
+		OUTPUT_VARIABLE c_compiler_version
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+STRING(REGEX MATCH "[^\n]*" c_compiler_version_short ${c_compiler_version})
+message(STATUS "C compiler: ${c_compiler_version_short}")
+
+# print full c++ compiler version
+execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version
+		OUTPUT_VARIABLE cxx_compiler_version
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+STRING(REGEX MATCH "[^\n]*" cxx_compiler_version_short ${cxx_compiler_version})
+message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
+
+
 #=============================================================================
 # git
 #
-px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
-px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
-px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
-px4_add_git_submodule(TARGET git_gtest PATH "unittests/gtest")
-px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
-px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
 px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
-px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
+px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
+px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
+px4_add_git_submodule(TARGET git_gtest PATH "unittests/gtest")
+px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
-px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
+px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
+px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
+px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
 
 add_custom_target(submodule_clean
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}

@@ -4,57 +4,26 @@
 language: cpp
 
 git:
-  depth: 1000
+  depth: 2000
 
 matrix:
   fast_finish: true
   include:
     - os: linux
       sudo: required
-      env: GCC_VER=5.4
       services:
         - docker
     - os: osx
       sudo: true
       osx_image: xcode8
-      env: CCACHE_CPP2=1
 
 cache:
   ccache: true
-  pip: true
-  directories:
-    - $HOME/.pip/cache/
-    - $HOME/Library/Caches/pip
 
 before_install:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         cd ${TRAVIS_BUILD_DIR}
-      && git fetch --unshallow && git fetch --all --tags
-      ;
-    elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then
-         sudo apt-get install genromfs
-      && pip install empy
-      ;
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-         test "${TRAVIS_BRANCH}" != 'coverity' || exit 0
-      && sudo -H easy_install pip
-      && sudo -H pip install empy
-      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ccache
-      && sudo mv ccache /usr/local/bin
-      && chmod +x /usr/local/bin/ccache
-      && mkdir -p ~/bin
-      && sudo ln -s /usr/local/bin/ccache ~/bin/c++
-      && sudo ln -s /usr/local/bin/ccache ~/bin/cc
-      && sudo ln -s /usr/local/bin/ccache ~/bin/clang
-      && sudo ln -s /usr/local/bin/ccache ~/bin/clang++
-      && sudo ln -s /usr/local/bin/ccache ~/bin/g++
-      && sudo ln -s /usr/local/bin/ccache ~/bin/gcc
-      && export PATH=~/bin:$PATH
-      && wget https://s3.amazonaws.com/px4-travis/toolchain/macos/ninja
-      && sudo mv ninja /usr/local/bin
-      && chmod +x /usr/local/bin/ninja
-      ;
-    fi
+  - sudo -H easy_install pip
+  - sudo -H pip install empy
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then sudo apt-get install genromfs; fi
 
 env:
   global:
@@ -64,55 +33,21 @@ env:
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
 # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
-    - PX4_AWS_BUCKET=px4-travis
 
 script:
-  - ccache -M 1GB; ccache -z
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      ./Tools/docker_run.sh 'GIT_SUBMODULES_ARE_EVIL=1 make qgc_firmware';
+      ./Tools/docker_run.sh 'make qgc_firmware';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
-  - ccache -s
 
 after_success:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         make package_firmware && mkdir s3deploy-archive && cp Firmware.zip s3deploy-archive/
-      && Tools/s3_deploy.py;
-    fi
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "$GCC_VER" == "5.4" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      export PX4_S3_DEPLOY=1;
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+         ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
+      && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
 
 deploy:
-# deploy *.px4 to S3 px4-travis/Firmware/$TRAVIS_BRANCH
-  - provider: s3
-    access_key_id: $PX4_AWS_KEY
-    secret_access_key:
-      secure: $PX4_AWS_SECRET
-    bucket: px4-travis
-    local_dir: s3deploy-branch
-    upload-dir: Firmware/$TRAVIS_BRANCH
-    acl: public_read
-    skip_cleanup: true
-    on:
-      all_branches: true
-      condition: $PX4_S3_DEPLOY = 1
-
-# deploy Firmware.zip to S3 px4-travis/archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
-  - provider: s3
-    access_key_id: $PX4_AWS_KEY
-    secret_access_key:
-      secure: $PX4_AWS_SECRET
-    bucket: px4-travis
-    local_dir: s3deploy-archive
-    upload-dir: archives/Firmware/$TRAVIS_BRANCH/$TRAVIS_BUILD_ID
-    acl: public_read
-    skip_cleanup: true
-    on:
-      all_branches: true
-      condition: $PX4_S3_DEPLOY = 1
-
 # on tags deploy Firmware.zip to Github releases
   - provider: releases
     api_key: 
@@ -123,7 +58,7 @@ deploy:
       tags: true
       all_branches: true
       repo: PX4/Firmware
-      condition: $GCC_VER = 5.4
+      condition: $TRAVIS_OS_NAME = linux
 
 addons:
   coverity_scan:
