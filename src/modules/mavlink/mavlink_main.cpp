@@ -460,7 +460,7 @@ Mavlink::destroy_all_instances()
 	while (_mavlink_instances) {
 		inst_to_del = _mavlink_instances;
 		LL_DELETE(_mavlink_instances, inst_to_del);
-		delete (inst_to_del);
+		delete inst_to_del;
 	}
 
 	printf("\n");
