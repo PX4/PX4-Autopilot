@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -336,6 +336,13 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		mavlink_param_value_t msg;
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
+		/*
+		 * coverity[buffer_size_warning : FALSE]
+		 *
+		 * The MAVLink spec does not require the string to be NUL-terminated if it
+		 * has length 16. In this case the receiving end needs to terminate it
+		 * when copying it.
+		 */
 		strncpy(msg.param_id, value.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 
 		if (value.param_type == MAV_PARAM_TYPE_REAL32) {
@@ -430,7 +437,13 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
 
-	/* copy parameter name */
+	/*
+	 * coverity[buffer_size_warning : FALSE]
+	 *
+	 * The MAVLink spec does not require the string to be NUL-terminated if it
+	 * has length 16. In this case the receiving end needs to terminate it
+	 * when copying it.
+	 */
 	strncpy(msg.param_id, param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 
 	/* query parameter type */
