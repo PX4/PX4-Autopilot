@@ -1062,17 +1062,26 @@ function(px4_generate_parameters_source)
 		ARGN ${ARGN})
 	set(generated_files
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.h
-		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
+		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c
+		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters_hashmap.hpp
+		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters_hashmap.cpp
+		)
+	file(GLOB_RECURSE TEMPLATES "${CMAKE_SOURCE_DIR}/Tools/templates/*.jinja")
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
 	if ("${config_generate_parameters_scope}" STREQUAL "ALL")
-		set(SCOPE "")
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
+				--scope ${SCOPE} --dest ${CMAKE_CURRENT_BINARY_DIR}
+				DEPENDS ${XML} ${DEPS} ${SCOPE} ${TEMPLATES}
+			)
+	else()
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
+				--scope ${SCOPE} --dest ${CMAKE_CURRENT_BINARY_DIR}
+				DEPENDS ${XML} ${DEPS} ${SCOPE} ${TEMPLATES}
+			)
 	endif()
-	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py ${XML}
-			--scope ${SCOPE} --dest ${CMAKE_CURRENT_BINARY_DIR}
-		DEPENDS ${XML} ${DEPS} ${SCOPE}
-		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
 

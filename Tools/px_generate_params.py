@@ -10,20 +10,19 @@ from jinja2 import Environment, FileSystemLoader
 from px4params import scope, cmakeparser
 import os
 
-def generate():
+def generate(xml_file, dest='.', file_scope=None):
     """
     Generate px4 param source from xml.
+
+    @param xml_file: input parameter xml file
+    @param dest: Destination directory for generated files
+    @param file_scope: The scope to search for params
+        None means to scan everything.
     """
     # pylint: disable=broad-except
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("xml", help="parameter xml file")
-    arg_parser.add_argument("--scope", help="cmake file scope", default=None)
-    arg_parser.add_argument("--dest", help="destination path", default=os.path.curdir)
-    args = arg_parser.parse_args()
-
     cmake_scope = scope.Scope()
-    if args.scope is not None:
-        with codecs.open(args.scope, 'r', 'utf-8') as fid:
+    if file_scope is not None:
+        with codecs.open(file_scope, 'r', 'utf-8') as fid:
             try:
                 contents = fid.read()
                 fid.close()
@@ -32,9 +31,9 @@ def generate():
             except Exception as exc:
                 contents = ''
                 print('Failed reading file: %s, skipping scoping. %s' %
-                      args.scope, exc)
+                      file_scope, exc)
 
-    tree = ET.parse(args.xml)
+    tree = ET.parse(xml_file)
     root = tree.getroot()
 
     params = []
@@ -54,14 +53,25 @@ def generate():
     env = Environment(
         loader=FileSystemLoader(os.path.join(script_path, 'templates')))
 
-    if not os.path.isdir(args.dest):
-        os.path.mkdir(args.dest)
+    if not os.path.isdir(dest):
+        os.path.mkdir(dest)
 
-    for template_file in ['px4_parameters.h.jinja', 'px4_parameters.c.jinja']:
+    template_files = [
+        'px4_parameters.h.jinja',
+        'px4_parameters.c.jinja',
+        'px4_parameters_hashmap.hpp.jinja',
+        'px4_parameters_hashmap.cpp.jinja',
+    ]
+    for template_file in template_files:
         template = env.get_template(template_file)
         with open(os.path.join(
-                args.dest, template_file.replace('.jinja','')), 'w') as fid:
+                dest, template_file.replace('.jinja','')), 'w') as fid:
             fid.write(template.render(params=params))
 
 if __name__ == "__main__":
-    generate()
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("xml", help="parameter xml file")
+    arg_parser.add_argument("--scope", help="cmake file scope", default=None)
+    arg_parser.add_argument("--dest", help="destination path", default=os.path.curdir)
+    args = arg_parser.parse_args()
+    generate(xml_file=args.xml, file_scope=args.scope, dest=args.dest)
