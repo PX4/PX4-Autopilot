@@ -1095,8 +1095,11 @@ void AttPosEKF::FuseVelposNED()
         float hgtVarianceScaler = dtHgtFilt / dtVelPosFilt;
 
         // set the GPS data timeout depending on whether airspeed data is present
-        if (useAirspeed) horizRetryTime = gpsRetryTime;
-        else horizRetryTime = gpsRetryTimeNoTAS;
+        if (useAirspeed) {
+            horizRetryTime = gpsRetryTime;
+        } else {
+            horizRetryTime = gpsRetryTimeNoTAS;
+        }
 
         // Form the observation vector
         for (uint8_t i=0; i <=2; i++) observation[i] = velNED[i];
