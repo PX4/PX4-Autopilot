@@ -171,7 +171,6 @@ function(px4_os_add_flags)
         set(PX4_BASE )
         set(added_include_dirs
 		src/modules/systemlib
-                src/lib/eigen
                 src/platforms/posix/include
                 mavlink/include/mavlink
                 )
