@@ -252,6 +252,7 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_PARAMETER_MIXER_INDEX     27      /**< Index of the mixer for parameter access */
 #define PX4IO_P_SETUP_PARAMETER_INDEX           28      /**< Mixer parameter index */
 #define PX4IO_P_SETUP_PARAMETER                 29      /**< Mixer parameter at mixer index and parameter index*/
+#define PX4IO_P_SETUP_PARAMETER_HIGH            30      /**< High word of 32bit mixer parameter*/
 
 
 /* autopilot control values, -10000..10000 */

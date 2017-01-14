@@ -301,6 +301,23 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
+
+#if defined(MIXER_CONFIGURATION)
+		if(update_mixer_param){
+			union{
+				uint16_t words[2];
+				float	 value;
+			} unpack;
+
+			unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
+			unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
+
+			mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
+											r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+											unpack.value);
+			update_mixer_param = false;
+		}
+#endif //MIXER_CONFIGURATION
 	}
 
 	/* set arming */

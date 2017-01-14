@@ -3040,27 +3040,25 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
                             break;
                         }
 
+                        struct {		/** to send mixer parameter indicies and value in the same packet **/
+                            uint16_t mix_index;
+                            uint16_t param_index;
+                            float param_value;
+                        } mix_param_send;
+
                         mixer_param_s *param = (mixer_param_s *)arg;
-                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, param->mix_index);
+
+
+                        mix_param_send.mix_index = param->mix_index;
+                        mix_param_send.param_index = param->param_index;
+                        mix_param_send.param_value = param->value;
+
+                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t*) &mix_param_send, 4);
                         if (ret != 0){
                             ret = -EINVAL;
                             break;
                         }
-                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_INDEX, param->param_index);
-                        if (ret != 0){
-                            ret = -EINVAL;
-                            break;
-                        }
-                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER, param->value);
-                        if (ret != 0){
-                            ret = -EINVAL;
-                            break;
-                        }
-                        ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
-                        if (ret != 0){
-                            ret = -EINVAL;
-                            break;
-                        }
+
                         ret = 0;
                         break;
                 }
