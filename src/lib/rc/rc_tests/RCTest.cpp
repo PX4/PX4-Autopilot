@@ -90,7 +90,10 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
-		ut_test(ret > 0);
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		frame[0] = x;
 		unsigned len = 1;
@@ -175,7 +178,10 @@ bool RCTest::sbus2Test(void)
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
-		ut_test(ret > 0);
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		frame[0] = x;
 		unsigned len = 1;
@@ -230,7 +236,11 @@ bool RCTest::st24Test(void)
 	float last_time = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		ut_test(ret > 0);
+
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			// warnx("FRAME RESET\n\n");
@@ -287,7 +297,11 @@ bool RCTest::sumdTest(void)
 	float last_time = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		ut_test(ret > 0);
+
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			// warnx("FRAME RESET\n\n");
