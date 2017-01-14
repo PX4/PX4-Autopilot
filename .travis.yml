@@ -21,9 +21,8 @@ cache:
   ccache: true
 
 before_install:
-  - sudo -H easy_install pip
-  - sudo -H pip install empy jinja2
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then sudo apt-get install genromfs; fi
+  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then sudo -H easy_install pip && sudo -H pip install empy jinja2; fi
 
 env:
   global:
