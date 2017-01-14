@@ -15,6 +15,7 @@ X11_TMP=/tmp/.X11-unix
 docker run -it --rm -w ${SRC_DIR} \
 	-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 	-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+	-e BRANCH_NAME=${BRANCH_NAME} \
 	-e CCACHE_DIR=${CCACHE_DIR} \
 	-e CI=${CI} \
 	-e DISPLAY=$DISPLAY \

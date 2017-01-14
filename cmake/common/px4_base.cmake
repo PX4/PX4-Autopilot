@@ -692,6 +692,8 @@ function(px4_add_common_flags)
 				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
+				-Wno-address-of-packed-member
+				-Wno-unknown-warning-option
 			)
 		endif()
 	else()
