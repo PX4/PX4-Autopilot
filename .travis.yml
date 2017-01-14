@@ -13,9 +13,16 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=qgc_firmware
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=clang-tidy PX4_DOCKER_REPO=px4io/px4-dev-clang
     - os: osx
       sudo: true
       osx_image: xcode8
+      env: BUILD_TARGET=tests
 
 cache:
   ccache: true
@@ -34,15 +41,17 @@ env:
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make qgc_firmware';
+    elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
 
 after_success:
 # s3 deploy individual firmware files (.px4), Firmware.zip, airframe.xml, and param.xml
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
       && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
@@ -58,7 +67,7 @@ deploy:
       tags: true
       all_branches: true
       repo: PX4/Firmware
-      condition: $TRAVIS_OS_NAME = linux
+      condition: $BUILD_TARGET = qgc_firmware
 
 addons:
   coverity_scan:
