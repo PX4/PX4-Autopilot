@@ -267,7 +267,7 @@ function(px4_nuttx_add_export)
 	add_custom_target(nuttx_patch_${CONFIG})
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
-		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
+		message(STATUS "${CONFIG} NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
 		set(patch_stamp ${nuttx_src}/${patch_name}.stamp)
 
