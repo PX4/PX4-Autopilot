@@ -41,7 +41,7 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * Multicopter Flight Control - [Dennis Mannhart](http://github.com/Stifael), [Matthias Grob](http://github.com/MaEtUgR)
   * VTOL Flight Control - [Roman Bapst](http://github.com/tumbili), [Andreas Antener](http://github.com/AndreasAntener), [Sander Smeets](http://github.com/sanderux)
   * Fixed Wing Flight Control - [Daniel Agar](http://github.com/dagar), [Paul Riseborough](http://github.com/priseborough)
-  * Racers - [Mark Whitehorn](http://github.com/kd0aij)
+  * Racers - Anton Matosov / [Mark Whitehorn](http://github.com/kd0aij)
   * OS / drivers - [David Sidrane](http://github.com/david_s5)
   * UAVCAN / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
   * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
