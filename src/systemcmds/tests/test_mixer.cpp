@@ -304,8 +304,8 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 	char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
 
 	unsigned mixer_text_length = 0;
-
 	unsigned transmitted = 0;
+	unsigned resid = 0;
 
 	while (transmitted < loaded) {
 
@@ -325,7 +325,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		//fprintf(stderr, "buflen %u, text:\n\"%s\"\n", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
-		unsigned resid = mixer_text_length;
+		resid = mixer_text_length;
 		mixer_group.load_from_buf(&mixer_text[0], resid);
 
 		/* if anything was parsed */
@@ -353,8 +353,10 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
 	}
 
-	if (expected_count > 0) {
-		ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+	if (expected_count > 0 && mixer_group.count() != expected_count) {
+		PX4_ERR("Load of mixer failed, last chunk: %s, transmitted: %u, text length: %u, resid: %u", mixer_text, transmitted,
+			mixer_text_length, resid);
+		ut_compare("check number of mixers loaded (chunk)", mixer_group.count(), expected_count);
 	}
 
 	return true;
