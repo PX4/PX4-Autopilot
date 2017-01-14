@@ -1107,8 +1107,8 @@ GYROSIM::_measure()
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	/* TODO return unique hardware ID */
-	arb.device_id = 0;
+	/* Return orb instance as a surrogate device ID */
+	arb.device_id = _accel_orb_class_instance;
 
 	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
 	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
@@ -1132,8 +1132,8 @@ GYROSIM::_measure()
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
 
-	/* TODO return unique hardware ID */
-	grb.device_id = 0;
+	/* Return orb instance as a surrogate device ID */
+	grb.device_id = _gyro->_gyro_orb_class_instance;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
