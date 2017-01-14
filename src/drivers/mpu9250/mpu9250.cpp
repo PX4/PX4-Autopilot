@@ -1424,6 +1424,9 @@ MPU9250::measure()
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
+	/* TODO return unique hardware ID */
+	arb.device_id = 0;
+
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -1456,6 +1459,9 @@ MPU9250::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+
+	/* TODO return unique hardware ID */
+	grb.device_id = 0;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
