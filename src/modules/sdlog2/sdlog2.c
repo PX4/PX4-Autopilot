@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -874,6 +874,7 @@ int write_version(int fd)
 	/* fill version message and write it */
 	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
 	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
 
@@ -893,6 +894,7 @@ int write_parameters(int fd)
 	for (param_t param = 0; param < params_cnt; param++) {
 		/* fill parameter message and write it */
 		strncpy(log_msg_PARM.body.name, param_name(param), sizeof(log_msg_PARM.body.name));
+		log_msg_PARM.body.name[sizeof(log_msg_PARM.body.name) - 1] = '\0';
 		float value = NAN;
 
 		switch (param_type(param)) {
