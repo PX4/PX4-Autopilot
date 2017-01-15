@@ -59,7 +59,7 @@ This repository contains code supporting these boards:
   * STM32F4Discovery (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
   * MindPX V2.8 [Tutorial] (http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * MindRacer V1.2 [Tutorial] (http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
-  
+
 ## Project Milestones
 
 The PX4 software and Pixhawk hardware (which has been designed for it) has been created in 2011 by Lorenz Meier.
