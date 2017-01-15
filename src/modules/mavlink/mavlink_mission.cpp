@@ -645,7 +645,8 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
 				if (_verbose) { warnx("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: no transfer"); }
 
-				_mavlink->send_statustext_critical("IGN MISSION_ITEM_REQUEST(_INT): No active transfer");
+				// Silently ignore this as some OSDs have buggy mission protocol implementations
+				//_mavlink->send_statustext_critical("IGN MISSION_ITEM_REQUEST(_INT): No active transfer");
 
 			} else {
 				if (_verbose) { warnx("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: busy (state %d).", _state); }
