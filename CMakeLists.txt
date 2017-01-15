@@ -336,7 +336,7 @@ px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 #px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/rotors_simulator")
-px4_add_git_submodule(TARGET git_gazebo PATH "Tools/OpticalFlow") # OpticalFlow is a dependency of the OpticalFlow plugin in rotors_simulator
+px4_add_git_submodule(TARGET git_optical_flow PATH "Tools/OpticalFlow") # OpticalFlow is a dependency of the OpticalFlow plugin in rotors_simulator
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
