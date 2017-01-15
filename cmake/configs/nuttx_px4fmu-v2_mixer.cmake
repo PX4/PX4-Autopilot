@@ -205,6 +205,7 @@ set(config_io_extra_libs
 	)
 
 add_definitions(-DMIXER_CONFIGURATION=1)
+set(MIXER_CONFIGURATION ON)
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
