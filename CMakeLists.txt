@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -239,6 +239,16 @@ endif()
 
 # force static lib build
 set(BUILD_SHARED_LIBS OFF)
+
+#=============================================================================
+# ccache
+#
+option(CCACHE "Use ccache if available" OFF)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE AND CCACHE_PROGRAM)
+	message(STATUS "Enabled ccache: ${CCACHE_PROGRAM}")
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
 
 #=============================================================================
 # project definition
