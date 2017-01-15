@@ -134,6 +134,9 @@
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 #define PX4IO_P_STATUS_MIXER			9	 /* mixer actuator limit flags */
+#define PX4IO_P_STATUS_MIXER_CRC_OK		10	 /* mixer crc32 checksum is valid*/
+#define PX4IO_P_STATUS_MIXER_CRC32		11	 /* mixer crc32 checksum*/
+#define PX4IO_P_STATUS_MIXER_CRC32_HIGH	12	 /* mixer crc32 checksum high word*/
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */

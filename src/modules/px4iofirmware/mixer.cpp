@@ -280,6 +280,7 @@ mixer_tick(void)
 		/* mix */
 		/* update parameter for mc thrust model if it updated */
 		if (update_mc_thrust_param) {
+			r_mixer_crc_ok = 0;
 			mixer_group.set_thrust_factor(REG_TO_FLOAT(r_setup_thr_fac));
 			update_mc_thrust_param = false;
 		}
@@ -302,22 +303,6 @@ mixer_tick(void)
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
 
-#if defined(MIXER_CONFIGURATION)
-		if(update_mixer_param){
-			union{
-				uint16_t words[2];
-				float	 value;
-			} unpack;
-
-			unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
-			unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
-
-			mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
-											r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
-											unpack.value);
-			update_mixer_param = false;
-		}
-#endif //MIXER_CONFIGURATION
 	}
 
 	/* set arming */
@@ -377,6 +362,32 @@ mixer_tick(void)
 			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
+
+#if defined(MIXER_CONFIGURATION)
+	if(update_mixer_param){
+		union{
+			uint16_t words[2];
+			float	 value;
+		} unpack;
+
+		unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
+		unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
+
+		r_mixer_crc_ok = 0;
+
+		mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
+										r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+										unpack.value);
+		update_mixer_param = false;
+	}
+
+	if(r_mixer_crc_ok == 0){
+		uint32_t *sum = (uint32_t*) &r_mixer_crc32;
+		*sum = mixer_group.calc_checksum();
+		r_mixer_crc_ok = 1;
+	}
+#endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
+
 }
 
 static int
@@ -521,6 +532,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* THEN actually delete it */
 		mixer_group.reset();
 		mixer_text_length = 0;
+		r_mixer_crc_ok = 0;
 
 	/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
@@ -553,6 +565,7 @@ mixer_handle_text(const void *buffer, size_t length)
 			}
 
 			mixer_text_length = resid;
+			r_mixer_crc_ok = 0;
 		}
 
 		break;
@@ -588,6 +601,7 @@ mixer_set_failsafe()
 
 	/* update parameter for mc thrust model if it updated */
 	if (update_mc_thrust_param) {
+		r_mixer_crc_ok = 0;
 		mixer_group.set_thrust_factor(REG_TO_FLOAT(r_setup_thr_fac));
 		update_mc_thrust_param = false;
 	}
@@ -609,4 +623,28 @@ mixer_set_failsafe()
 		r_page_servo_failsafe[i] = 0;
 	}
 
+#if defined(MIXER_CONFIGURATION)
+	if(update_mixer_param){
+		union{
+			uint16_t words[2];
+			float	 value;
+		} unpack;
+
+		unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
+		unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
+
+		r_mixer_crc_ok = 0;
+
+		mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
+										r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+										unpack.value);
+		update_mixer_param = false;
+	}
+
+	if(r_mixer_crc_ok == 0){
+		uint32_t *sum = (uint32_t*) &r_mixer_crc32;
+		*sum = mixer_group.calc_checksum();
+		r_mixer_crc_ok = 1;
+	}
+#endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
 }

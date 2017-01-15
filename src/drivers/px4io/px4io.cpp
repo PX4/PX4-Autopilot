@@ -3080,11 +3080,28 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
                     ret = -EINVAL;
                 }
 
+                struct{
+                	uint16_t	crc_ok;
+                	uint32_t	crc32;
+                } unpack;
+
                 mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
 
                 mix_crc->crc_local = _mixers->calc_checksum();
-                mix_crc->crc_remote = 0;
-                ret = 0;
+
+                ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER_CRC_OK, &unpack.crc_ok, 3);
+                if(ret == OK){
+                    if(unpack.crc_ok != 0){
+                        mix_crc->crc_remote = unpack.crc32;
+                        ret = 0;
+                    } else{
+                    	mix_crc->crc_remote = 0;
+                    	ret = -EINVAL;
+                    }
+                } else {
+                	mix_crc->crc_remote = 0;
+                	ret = -EINVAL;
+                }
                 break;
             }
 #endif //defined(MIXER_CONFIGURATION)
