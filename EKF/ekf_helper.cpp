@@ -868,7 +868,7 @@ Vector3f EstimatorInterface::cross_product(const Vector3f &vecIn1, const Vector3
 }
 
 // calculate the inverse rotation matrix from a quaternion rotation
-Matrix3f EstimatorInterface::quat_to_invrotmat(const Quaternion quat)
+Matrix3f EstimatorInterface::quat_to_invrotmat(const Quaternion& quat)
 {
 	float q00 = quat(0) * quat(0);
 	float q11 = quat(1) * quat(1);
