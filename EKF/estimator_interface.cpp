@@ -95,8 +95,8 @@ EstimatorInterface::~EstimatorInterface()
 }
 
 // Accumulate imu data and store to buffer at desired rate
-void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang,
-				    float *delta_vel)
+void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3],
+				    float (&delta_vel)[3])
 {
 	if (!_initialised) {
 		init(time_usec);
@@ -115,8 +115,8 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 	// copy data
 	imuSample imu_sample_new = {};
-	memcpy(&imu_sample_new.delta_ang, delta_ang, sizeof(imu_sample_new.delta_ang));
-	memcpy(&imu_sample_new.delta_vel, delta_vel, sizeof(imu_sample_new.delta_vel));
+	memcpy(&imu_sample_new.delta_ang._data[0], &delta_ang[0], sizeof(imu_sample_new.delta_ang._data));
+	memcpy(&imu_sample_new.delta_vel._data[0], &delta_vel[0], sizeof(imu_sample_new.delta_vel._data));
 
 	// convert time from us to secs
 	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
@@ -157,7 +157,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	}
 }
 
-void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
+void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 {
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_mag > _min_obs_interval_us) {
@@ -169,7 +169,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float *data)
 		_time_last_mag = time_usec;
 
 
-		memcpy(&mag_sample_new.mag, data, sizeof(mag_sample_new.mag));
+		memcpy(&mag_sample_new.mag._data[0], data, sizeof(mag_sample_new.mag._data));
 
 		_mag_buffer.push(mag_sample_new);
 	}
@@ -218,7 +218,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 	}
 }
 
-void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
+void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 {
 	if (!_initialised) {
 		return;
@@ -228,7 +228,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 	if (time_usec - _time_last_baro > _min_obs_interval_us) {
 
 		baroSample baro_sample_new;
-		baro_sample_new.hgt = *data;
+		baro_sample_new.hgt = data;
 		baro_sample_new.time_us = time_usec - _params.baro_delay_ms * 1000;
 
 		baro_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
@@ -240,7 +240,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float *data)
 	}
 }
 
-void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *true_airspeed, float *eas2tas)
+void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas)
 {
 	if (!_initialised) {
 		return;
@@ -249,8 +249,8 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *true_airspee
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_airspeed > _min_obs_interval_us) {
 		airspeedSample airspeed_sample_new;
-		airspeed_sample_new.true_airspeed = *true_airspeed;
-		airspeed_sample_new.eas2tas = *eas2tas;
+		airspeed_sample_new.true_airspeed = true_airspeed;
+		airspeed_sample_new.eas2tas = eas2tas;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
 		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2; //typo PeRRiod
 		_time_last_airspeed = time_usec;
@@ -260,7 +260,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float *true_airspee
 }
 static float rng;
 // set range data
-void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
+void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 {
 	if (!_initialised) {
 		return;
@@ -269,8 +269,8 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float *data)
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_range > _min_obs_interval_us) {
 		rangeSample range_sample_new = {};
-		range_sample_new.rng = *data;
-		rng = *data;
+		range_sample_new.rng = data;
+		rng = data;
 		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
 		_time_last_range = time_usec;
 

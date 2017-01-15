@@ -139,23 +139,22 @@ public:
 	virtual bool collect_imu(imuSample &imu) { return true; }
 
 	// set delta angle imu data
-	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float *delta_ang, float *delta_vel);
+	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3], float (&delta_vel)[3]);
 
 	// set magnetometer data
-	void setMagData(uint64_t time_usec, float *data);
-	//void setMagData(uint64_t time_usec, struct magSample *mag);
+	void setMagData(uint64_t time_usec, float (&data)[3]);
 
 	// set gps data
 	void setGpsData(uint64_t time_usec, struct gps_message *gps);
 
 	// set baro data
-	void setBaroData(uint64_t time_usec, float *data);
+	void setBaroData(uint64_t time_usec, float data);
 
 	// set airspeed data
-	void setAirspeedData(uint64_t time_usec, float *true_airspeed, float *eas2tas);
+	void setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas);
 
 	// set range data
-	void setRangeData(uint64_t time_usec, float *data);
+	void setRangeData(uint64_t time_usec, float data);
 
 	// set optical flow data
 	void setOpticalFlowData(uint64_t time_usec, flow_message *flow);
