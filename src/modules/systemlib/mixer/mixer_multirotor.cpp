@@ -235,6 +235,7 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 }
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
 int
 MultirotorMixer::to_text(char *buf, unsigned &buflen)
 {
@@ -322,6 +323,7 @@ MultirotorMixer::to_text(char *buf, unsigned &buflen)
 	buflen = written;
 	return 0;
 }
+#endif //MIXER_REMOTE
 #endif //defined(MIXER_CONFIGURATION)
 
 unsigned

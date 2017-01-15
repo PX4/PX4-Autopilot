@@ -305,6 +305,7 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 }
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
 int
 MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 {
@@ -331,6 +332,7 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 
 	return 0;
 }
+#endif //MIXER_REMOTE
 
 MIXER_TYPES
 MixerGroup::get_mixer_type_from_index(unsigned mix_index)

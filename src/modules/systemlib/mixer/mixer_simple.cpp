@@ -225,6 +225,7 @@ out:
 }
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
 int
 SimpleMixer::to_text(char *buf, unsigned &buflen)
 {
@@ -279,7 +280,8 @@ SimpleMixer::to_text(char *buf, unsigned &buflen)
 	buflen = bufpos - buf;
 	return 0;
 }
-#endif //defined(MIXER_CONFIGURATION)
+#endif //MIXER_REMOTE
+#endif //MIXER_CONFIGURATION
 
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,

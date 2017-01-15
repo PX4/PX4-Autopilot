@@ -39,6 +39,7 @@ set_directory_properties(PROPERTIES
 	COMPILE_DEFINITIONS ""
 	)
 add_definitions(-DMIXER_CONFIGURATION=1)
+add_definitions(-DMIXER_REMOTE=1)
 else()
 set_directory_properties(PROPERTIES
 	INCLUDE_DIRECTORIES ""

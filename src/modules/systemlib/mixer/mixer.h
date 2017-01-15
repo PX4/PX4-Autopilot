@@ -604,7 +604,9 @@ public:
 	virtual void			groups_required(uint32_t &groups);
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
+#endif //MIXER_REMOTE
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
@@ -766,7 +768,9 @@ public:
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
+#endif //MIXER_REMOTE
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
