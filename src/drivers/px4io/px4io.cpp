@@ -333,7 +333,7 @@ private:
 #endif
 
 #if defined(MIXER_CONFIGURATION)
-        MixerGroup	*_mixers;
+	MixerGroup	*_mixers;
 #endif //defined(MIXER_CONFIGURATION)
 
 	/**
@@ -547,8 +547,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
-        _to_mixer_status(nullptr),
-        _outputs{},
+	_to_mixer_status(nullptr),
+	_outputs{},
 	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
@@ -571,9 +571,9 @@ PX4IO::PX4IO(device::Device *interface) :
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
-      #if defined(MIXER_CONFIGURATION)
-        ,_mixers(nullptr)
-      #endif //defined(MIXER_CONFIGURATION)
+#if defined(MIXER_CONFIGURATION)
+	, _mixers(nullptr)
+#endif //defined(MIXER_CONFIGURATION)
 
 {
 	/* we need this potentially before it could be set in task_main */
@@ -2989,121 +2989,136 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = mixer_send(buf, strnlen(buf, 2048));
 
 #if defined(MIXER_CONFIGURATION)
-                        if (ret == 0)   /* load the mixer settings into a local copy for tracking parameters */
 
-                            if (_mixers == nullptr) {
-                                    _mixers = new MixerGroup(nullptr, (uintptr_t)nullptr);
-                            }
+			if (ret == 0)   /* load the mixer settings into a local copy for tracking parameters */
 
-                            if (_mixers == nullptr) {
-                                    ret = -ENOMEM;
-                            } else {
-                                unsigned buflen = strnlen(buf, 2048);
-                                ret = _mixers->load_from_buf(buf, buflen);
+				if (_mixers == nullptr) {
+					_mixers = new MixerGroup(nullptr, (uintptr_t)nullptr);
+				}
 
-                                if (ret != 0) {
-                                        PX4_DEBUG("mixer load failed with %d", ret);
-                                        delete _mixers;
-                                        _mixers = nullptr;
-                                        ret = -EINVAL;
+			if (_mixers == nullptr) {
+				ret = -ENOMEM;
 
-                                }
-                                // else update of pwm trims removed
-                        }
+			} else {
+				unsigned buflen = strnlen(buf, 2048);
+				ret = _mixers->load_from_buf(buf, buflen);
+
+				if (ret != 0) {
+					PX4_DEBUG("mixer load failed with %d", ret);
+					delete _mixers;
+					_mixers = nullptr;
+					ret = -EINVAL;
+
+				}
+
+				// else update of pwm trims removed
+			}
+
 #endif //defined(MIXER_CONFIGURATION)
-                        break;
+			break;
 		}
 
 #if defined(MIXER_CONFIGURATION)
-        case MIXERIOCGETMIXERCOUNT: {
-                        unsigned *count = (unsigned *)arg;
-                        if (_mixers == nullptr)
-                            *count = 0;
-                        else
-                            *count = _mixers->count();
 
-                        break;
-                }
-        case MIXERIOGETPARAM: {
-                        if (_mixers == nullptr) {
-                                ret = -EINVAL;
-                        }
+	case MIXERIOCGETMIXERCOUNT: {
+			unsigned *count = (unsigned *)arg;
 
-                        mixer_param_s *param = (mixer_param_s *)arg;
-                        param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
-                        break;
-                }
+			if (_mixers == nullptr) {
+				*count = 0;
 
-        case MIXERIOSETPARAM: {
-                        if (_mixers == nullptr) {
-                            ret = -EINVAL;
-                            break;
-                        }
+			} else {
+				*count = _mixers->count();
+			}
 
-                        struct {		/** to send mixer parameter indicies and value in the same packet **/
-                            uint16_t mix_index;
-                            uint16_t param_index;
-                            float param_value;
-                        } mix_param_send;
+			break;
+		}
 
-                        mixer_param_s *param = (mixer_param_s *)arg;
+	case MIXERIOGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
+			break;
+		}
+
+	case MIXERIOSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+				break;
+			}
+
+			struct {		/** to send mixer parameter indicies and value in the same packet **/
+				uint16_t mix_index;
+				uint16_t param_index;
+				float param_value;
+			} mix_param_send;
+
+			mixer_param_s *param = (mixer_param_s *)arg;
 
 
-                        mix_param_send.mix_index = param->mix_index;
-                        mix_param_send.param_index = param->param_index;
-                        mix_param_send.param_value = param->value;
+			mix_param_send.mix_index = param->mix_index;
+			mix_param_send.param_index = param->param_index;
+			mix_param_send.param_value = param->value;
 
-                        ret = io_reg_set(PX4IO_PAGE_SETUP ,PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t*) &mix_param_send, 4);
-                        if (ret != 0){
-                            ret = -EINVAL;
-                            break;
-                        }
+			ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param_send, 4);
 
-                        ret = 0;
-                        break;
-                }
+			if (ret != 0) {
+				ret = -EINVAL;
+				break;
+			}
 
-        case MIXERIOGETCONFIG: {
-                        if (_mixers == nullptr) {
-                                ret = -EINVAL;
-                        }
+			ret = 0;
+			break;
+		}
 
-                        char *buf = (char *)arg;
+	case MIXERIOGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-                        unsigned buflen = 1022;
-                        ret = _mixers->save_to_buf(buf, buflen);
-                        break;
-                }
+			char *buf = (char *)arg;
 
-        case MIXERIOGETCHECKSUM: {
-                if (_mixers == nullptr) {
-                    ret = -EINVAL;
-                }
+			unsigned buflen = 1022;
+			ret = _mixers->save_to_buf(buf, buflen);
+			break;
+		}
 
-                struct{
-                	uint16_t	crc_ok;
-                	uint32_t	crc32;
-                } unpack;
+	case MIXERIOGETCHECKSUM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-                mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+			struct {
+				uint16_t	crc_ok;
+				uint32_t	crc32;
+			} unpack;
 
-                mix_crc->crc_local = _mixers->calc_checksum();
+			mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
 
-                ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER_CRC_OK, &unpack.crc_ok, 3);
-                if(ret == OK){
-                    if(unpack.crc_ok != 0){
-                        mix_crc->crc_remote = unpack.crc32;
-                        ret = 0;
-                    } else{
-                    	mix_crc->crc_remote = 0;
-                    	ret = -EINVAL;
-                    }
-                } else {
-                	mix_crc->crc_remote = 0;
-                	ret = -EINVAL;
-                }
-                break;
-            }
+			mix_crc->crc_local = _mixers->calc_checksum();
+
+			ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER_CRC_OK, &unpack.crc_ok, 3);
+
+			if (ret == OK) {
+				if (unpack.crc_ok != 0) {
+					mix_crc->crc_remote = unpack.crc32;
+					ret = 0;
+
+				} else {
+					mix_crc->crc_remote = 0;
+					ret = -EINVAL;
+				}
+
+			} else {
+				mix_crc->crc_remote = 0;
+				ret = -EINVAL;
+			}
+
+			break;
+		}
+
 #endif //defined(MIXER_CONFIGURATION)
 
 	case RC_INPUT_GET: {

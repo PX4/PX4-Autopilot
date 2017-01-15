@@ -105,22 +105,22 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
-                 uintptr_t cb_handle,
-                 mixer_multi_s *mixer_info) :
-    Mixer(control_cb, cb_handle),
-    _roll_scale(mixer_info->roll_scale),
-    _pitch_scale(mixer_info->pitch_scale),
-    _yaw_scale(mixer_info->yaw_scale),
-    _idle_speed(-1.0f + mixer_info->idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-    _delta_out_max(0.0f),
-    _thrust_factor(0.0f),
-    _limits_pub(),
-    _rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
-    _rotors(_config_index[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
-    _geometry(mixer_info->geometry),
-    _outputs_prev(new float[_rotor_count])
+				 uintptr_t cb_handle,
+				 mixer_multi_s *mixer_info) :
+	Mixer(control_cb, cb_handle),
+	_roll_scale(mixer_info->roll_scale),
+	_pitch_scale(mixer_info->pitch_scale),
+	_yaw_scale(mixer_info->yaw_scale),
+	_idle_speed(-1.0f + mixer_info->idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_delta_out_max(0.0f),
+	_thrust_factor(0.0f),
+	_limits_pub(),
+	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+	_geometry(mixer_info->geometry),
+	_outputs_prev(new float[_rotor_count])
 {
-    memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
+	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
 }
 
 
@@ -695,15 +695,15 @@ MultirotorMixer::set_parameter(uint16_t index, float value)
 uint32_t
 MultirotorMixer::calc_checksum(void)
 {
-    uint32_t sum = 0;
-    const uint8_t *pgeom = (uint8_t*) &_geometry;
+	uint32_t sum = 0;
+	const uint8_t *pgeom = (uint8_t *) &_geometry;
 
-    sum = crc32(pgeom, sizeof(uint8_t));
-    sum = crc32part((uint8_t*) &_roll_scale, sizeof(_roll_scale), sum);
-    sum = crc32part((uint8_t*) &_pitch_scale, sizeof(_pitch_scale), sum);
-    sum = crc32part((uint8_t*) &_yaw_scale, sizeof(_yaw_scale), sum);
-    sum = crc32part((uint8_t*) &_idle_speed, sizeof(_idle_speed), sum);
+	sum = crc32(pgeom, sizeof(uint8_t));
+	sum = crc32part((uint8_t *) &_roll_scale, sizeof(_roll_scale), sum);
+	sum = crc32part((uint8_t *) &_pitch_scale, sizeof(_pitch_scale), sum);
+	sum = crc32part((uint8_t *) &_yaw_scale, sizeof(_yaw_scale), sum);
+	sum = crc32part((uint8_t *) &_idle_speed, sizeof(_idle_speed), sum);
 
-    return sum;
+	return sum;
 }
 #endif //defined(MIXER_CONFIGURATION)

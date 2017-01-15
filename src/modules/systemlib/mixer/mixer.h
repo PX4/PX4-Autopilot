@@ -221,7 +221,7 @@ public:
 	 *
 	 * @param buf   		The buffer to write the description to.
 	 * @param buflen   		The buffer size available.  Modfied to buffer length used.
-     * @return              0 if succeeded. Otherwise non zero.
+	* @return              0 if succeeded. Otherwise non zero.
 	 */
 	virtual int             to_text(char *buf, unsigned &buflen) {return -1;}
 
@@ -249,13 +249,13 @@ public:
 	 */
 	virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
 
-    /**
-     * Calculates and returns the crc32 checksum of mixer parameters
-     *
-     * @param index         The index of the parameter
-     * @return              crc32 checksum of mixer parameters
-     */
-    virtual uint32_t       calc_checksum(void) {return 0;}
+	/**
+	 * Calculates and returns the crc32 checksum of mixer parameters
+	 *
+	 * @param index         The index of the parameter
+	 * @return              crc32 checksum of mixer parameters
+	 */
+	virtual uint32_t       calc_checksum(void) {return 0;}
 
 
 protected:
@@ -406,13 +406,13 @@ public:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
-    /**
-     * @brief      Creates and adds a mixer based on type and mixer information
-     *
-     * @param[in]  mixer_type   mixer type from enumeration
-     * @param[in]  mixinfo      mixer information in structure according to mixer type.
-     */
-    void            add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo);
+	/**
+	 * @brief      Creates and adds a mixer based on type and mixer information
+	 *
+	 * @param[in]  mixer_type   mixer type from enumeration
+	 * @param[in]  mixinfo      mixer information in structure according to mixer type.
+	 */
+	void            add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo);
 
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
@@ -446,11 +446,11 @@ public:
 
 #if defined(MIXER_CONFIGURATION)
 	/**
-     * @brief               Generates text in buffer describing the mixer settings compatible
-     *                      with load_from_buf
+	* @brief               Generates text in buffer describing the mixer settings compatible
+	*                      with load_from_buf
 	 *
-     * @param[in]   buf		The mixer configuration buffer.
-     * @param       buflen	The length of the buffer, updated to reflect
+	* @param[in]   buf		The mixer configuration buffer.
+	* @param       buflen	The length of the buffer, updated to reflect
 	 *                      the bytes written
 	 * @return              Zero on successful save, nonzero otherwise.
 	 *
@@ -466,30 +466,30 @@ public:
 	MIXER_TYPES         get_mixer_type_from_index(unsigned mix_index);
 
 	/**
-     * @brief                   Get the value of a mixer parameter
+	* @brief                   Get the value of a mixer parameter
 	 *
-     * @param[in] mix_index     index of the mixer to get the param from
-     * @param[in] param_index   index of the parameter to get the value from
-     * @return                  Value of the parameter. Return 0.0 if index out of range.
+	* @param[in] mix_index     index of the mixer to get the param from
+	* @param[in] param_index   index of the parameter to get the value from
+	* @return                  Value of the parameter. Return 0.0 if index out of range.
 	 */
 	float get_mixer_param(unsigned mix_index, unsigned param_index);
 
 	/**
-     * @brief                       Set the value of a mixer parameter
+	* @brief                       Set the value of a mixer parameter
 	 *
-     * @param[in]   mix_index       index of the mixer to get the param from
-     * @param[in]   param_index     index of the parameter to get the value from
-     * @param       value           value to set indexed parameter to
-     * @return                      Zero on success, -1 on failure.
+	* @param[in]   mix_index       index of the mixer to get the param from
+	* @param[in]   param_index     index of the parameter to get the value from
+	* @param       value           value to set indexed parameter to
+	* @return                      Zero on success, -1 on failure.
 	 */
 	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
 
-    /**
-     * @brief               Calculate the crc32 checksum of variable mixer parameters
-     *
-     * @return              crc32 parameter checksum
-     */
-    uint32_t                calc_checksum(void);
+	/**
+	 * @brief               Calculate the crc32 checksum of variable mixer parameters
+	 *
+	 * @return              crc32 parameter checksum
+	 */
+	uint32_t                calc_checksum(void);
 
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -610,10 +610,10 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
-    uint32_t                calc_checksum(void);
+	uint32_t                calc_checksum(void);
 #endif //defined(MIXER_CONFIGURATION)
 
-    /**
+	/**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
 	 * Note that this function will call control_cb, but only cares about
@@ -651,23 +651,23 @@ typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
 
-/** multirotor mixer info */
-struct mixer_multi_s {
-    float   roll_scale;
-    float   pitch_scale;
-    float   yaw_scale;
-    float   idle_speed;
-    MultirotorGeometry geometry;
+	/** multirotor mixer info */
+	struct mixer_multi_s {
+	float   roll_scale;
+	float   pitch_scale;
+	float   yaw_scale;
+	float   idle_speed;
+	MultirotorGeometry geometry;
 };
 
 
-	/**
-	 * Multi-rotor mixer for pre-defined vehicle geometries.
-	 *
-	 * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
-	 * a set of outputs based on the configured geometry.
-	 */
-	class __EXPORT MultirotorMixer : public Mixer
+/**
+ * Multi-rotor mixer for pre-defined vehicle geometries.
+ *
+ * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
+ * a set of outputs based on the configured geometry.
+ */
+class __EXPORT MultirotorMixer : public Mixer
 {
 public:
 	/**
@@ -691,7 +691,7 @@ public:
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
-     * @param yaw_scale		Scaling factor applied to yaw inputs compared
+	* @param yaw_scale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
 	 * @param idle_speed		Minimum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
@@ -705,16 +705,16 @@ public:
 			float yaw_scale,
 			float idle_speed);
 
-    /**
-     * Constructor.
-     *
-     * @param control_cb		Callback invoked to read inputs.
-     * @param cb_handle         Passed to control_cb.
-     * @param mixer_multi_s*    mixer info
-     */
-    MultirotorMixer(ControlCallback control_cb,
-            uintptr_t cb_handle,
-            mixer_multi_s *mixer_info);
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle         Passed to control_cb.
+	 * @param mixer_multi_s*    mixer info
+	 */
+	MultirotorMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			mixer_multi_s *mixer_info);
 
 	~MultirotorMixer();
 
@@ -774,7 +774,7 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
-    uint32_t                calc_checksum(void);
+	uint32_t                calc_checksum(void);
 #endif //defined(MIXER_CONFIGURATION)
 
 private:

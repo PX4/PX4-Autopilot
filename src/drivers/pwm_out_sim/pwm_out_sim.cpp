@@ -836,6 +836,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 #if defined(MIXER_CONFIGURATION)
+
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
@@ -847,16 +848,20 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-    case MIXERIOGETTYPE: {
+	case MIXERIOGETTYPE: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
-            }
-            mixer_type_e *mixer_type = (mixer_type_e *)arg;
-            mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index);
-            if(mixer_type->mix_type == MIXER_TYPE_NONE)
-                ret = -EINVAL;
-            else
-                ret = 0;
+			}
+
+			mixer_type_e *mixer_type = (mixer_type_e *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index);
+
+			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+				ret = -EINVAL;
+
+			} else {
+				ret = 0;
+			}
 
 			break;
 		}
@@ -881,30 +886,31 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-    case MIXERIOGETCONFIG: {
-            if (_mixers == nullptr) {
-                ret = -EINVAL;
-            }
+	case MIXERIOGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-            char *buf = (char *)arg;
+			char *buf = (char *)arg;
 
-            unsigned buflen = 1022;
-            ret = _mixers->save_to_buf(buf, buflen);
-            break;
-        }
+			unsigned buflen = 1022;
+			ret = _mixers->save_to_buf(buf, buflen);
+			break;
+		}
 
-    case MIXERIOGETCHECKSUM: {
-            if (_mixers == nullptr) {
-                ret = -EINVAL;
-            }
+	case MIXERIOGETCHECKSUM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-            mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+			mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
 
-            mix_crc->crc_local = _mixers->calc_checksum();
-            mix_crc->crc_remote = 0;
-            ret = 0;
-            break;
-        }
+			mix_crc->crc_local = _mixers->calc_checksum();
+			mix_crc->crc_remote = 0;
+			ret = 0;
+			break;
+		}
+
 #endif //defined(MIXER_CONFIGURATION)
 
 	default:

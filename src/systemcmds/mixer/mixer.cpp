@@ -107,7 +107,9 @@ mixer_main(int argc, char *argv[])
 			PX4_ERR("failed to append mixer");
 			return 1;
 		}
+
 #if defined(MIXER_CONFIGURATION)
+
 	}  else if (!strcmp(argv[1], "save")) {
 		if (argc < 4) {
 			usage("missing device or filename");
@@ -175,6 +177,7 @@ mixer_main(int argc, char *argv[])
 			warnx("failed to show config");
 			return 1;
 		}
+
 #endif //defined(MIXER_CONFIGURATION)
 
 	} else {
@@ -199,7 +202,7 @@ usage(const char *reason)
 	PX4_INFO("  mixer list <device>");
 	PX4_INFO("  mixer params <device> <mixer_index>");
 	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
-	PX4_INFO("  mixer config <device>"); 
+	PX4_INFO("  mixer config <device>");
 #endif //defined(MIXER_CONFIGURATION)
 }
 
@@ -321,16 +324,18 @@ static int  mixer_show_config(const char *devname)
 		return 1;
 	}
 
-    /* Get the mixer group checksm */
-    mixer_checksum_s mix_crc = {0,0};
+	/* Get the mixer group checksm */
+	mixer_checksum_s mix_crc = {0, 0};
 
-    ret = px4_ioctl(dev, MIXERIOGETCHECKSUM, (unsigned long)&mix_crc);
-    if(ret == 0) {
-        printf("\ncrc32 checksums: local:%08XH remote:%08XH\n", mix_crc.crc_local, mix_crc.crc_remote);
-    } else {
-        warnx("Could not get checksum for mixer group");
-        return 1;
-    }
+	ret = px4_ioctl(dev, MIXERIOGETCHECKSUM, (unsigned long)&mix_crc);
+
+	if (ret == 0) {
+		printf("\ncrc32 checksums: local:%08XH remote:%08XH\n", mix_crc.crc_local, mix_crc.crc_remote);
+
+	} else {
+		warnx("Could not get checksum for mixer group");
+		return 1;
+	}
 
 	return 0;
 }
@@ -349,7 +354,7 @@ mixer_list(const char *devname)
 
 	unsigned mix_count;
 
-    mixer_type_e type;
+	mixer_type_e type;
 
 	/* Get the mixer count */
 	int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
@@ -365,10 +370,10 @@ mixer_list(const char *devname)
 
 	for (int index = 0; index < mix_count; index++) {
 		printf("mixer index %u : ", index);
-        type.mix_index = index;
+		type.mix_index = index;
 		/* Get the mixer name at index*/
-        ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
-        printf("type:%u id:%s", type.mix_type, MIXER_TYPE_ID[type.mix_type]);
+		ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+		printf("type:%u id:%s", type.mix_type, MIXER_TYPE_ID[type.mix_type]);
 		printf("\n");
 	}
 
@@ -392,31 +397,32 @@ mixer_param_list(const char *devname, int mix_index)
 		return 1;
 	}
 
-    mixer_type_e mixer_type;
-    mixer_type.mix_index = mix_index;
+	mixer_type_e mixer_type;
+	mixer_type.mix_index = mix_index;
 
 	/* Get the mixer paramer identifiers*/
-    int ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&mixer_type);
+	int ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&mixer_type);
 
 	if (ret < 0) {
-        warnx("can't get mixer :%s type for mixer %u", devname, mix_index);
+		warnx("can't get mixer :%s type for mixer %u", devname, mix_index);
 		return 1;
 	}
 
-    unsigned param_count = MIXER_PARAMETER_COUNTS[mixer_type.mix_type];
+	unsigned param_count = MIXER_PARAMETER_COUNTS[mixer_type.mix_type];
 
-    if (param_count == 0) {
+	if (param_count == 0) {
 		printf("mixer:%u  parameter list empty\n", mix_index);
 		return 1;
 	}
 
 	mixer_param_s param;
 
-    for (int index = 0; index < param_count; index++) {
+	for (int index = 0; index < param_count; index++) {
 		param.mix_index = mix_index;
 		param.param_index = index;
 		ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
-        printf("mixer:%u  param:%u id:%s value:%f\n", mix_index, index, MIXER_PARAMETER_TABLE[mixer_type.mix_type][index], (double) param.value);
+		printf("mixer:%u  param:%u id:%s value:%f\n", mix_index, index, MIXER_PARAMETER_TABLE[mixer_type.mix_type][index],
+		       (double) param.value);
 	}
 
 	if (ret < 0) {

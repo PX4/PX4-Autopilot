@@ -88,29 +88,28 @@ MixerGroup::add_mixer(Mixer *mixer)
 void
 MixerGroup::add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo)
 {
-    Mixer *m = nullptr;
+	Mixer *m = nullptr;
 
-    switch(static_cast<int>(mixtype)){
-    case static_cast<int>(MIXER_TYPE_NULL):
-        break;
+	switch (static_cast<int>(mixtype)) {
+	case static_cast<int>(MIXER_TYPE_NULL):
+		break;
 
-    case static_cast<int>(MIXER_TYPE_SIMPLE):
-        m = (Mixer*) new SimpleMixer(_control_cb, _cb_handle, (mixer_simple_s*) mixinfo );
-        break;
+	case static_cast<int>(MIXER_TYPE_SIMPLE):
+		m = (Mixer *) new SimpleMixer(_control_cb, _cb_handle, (mixer_simple_s *) mixinfo);
+		break;
 
-    case static_cast<int>(MIXER_TYPE_MULTIROTOR):
-        m = (Mixer*) new MultirotorMixer(_control_cb, _cb_handle, (mixer_multi_s*) mixinfo );
-        break;
+	case static_cast<int>(MIXER_TYPE_MULTIROTOR):
+		m = (Mixer *) new MultirotorMixer(_control_cb, _cb_handle, (mixer_multi_s *) mixinfo);
+		break;
 
-    case static_cast<int>(MIXER_TYPE_HELICOPTER):
-        m = (Mixer*) new HelicopterMixer(_control_cb, _cb_handle, (mixer_heli_s*) mixinfo );
-        break;
-    }
+	case static_cast<int>(MIXER_TYPE_HELICOPTER):
+		m = (Mixer *) new HelicopterMixer(_control_cb, _cb_handle, (mixer_heli_s *) mixinfo);
+		break;
+	}
 
-    if(m != nullptr)
-    {
-        add_mixer(m);
-    }
+	if (m != nullptr) {
+		add_mixer(m);
+	}
 
 }
 
@@ -396,18 +395,18 @@ MixerGroup::set_mixer_param(unsigned mix_index, unsigned param_index, float valu
 uint32_t
 MixerGroup::calc_checksum(void)
 {
-    Mixer	*mixer = _first;
-    uint32_t sum = 0;
-    uint32_t crc;
+	Mixer	*mixer = _first;
+	uint32_t sum = 0;
+	uint32_t crc;
 
-    while ((mixer != nullptr)) {
-        crc = mixer->calc_checksum();
-        sum = crc32part((uint8_t*)&crc, sizeof(crc), sum);
+	while ((mixer != nullptr)) {
+		crc = mixer->calc_checksum();
+		sum = crc32part((uint8_t *)&crc, sizeof(crc), sum);
 
-        mixer = mixer->_next;
-    }
+		mixer = mixer->_next;
+	}
 
 
-    return sum;
+	return sum;
 }
 #endif //defined(MIXER_CONFIGURATION)

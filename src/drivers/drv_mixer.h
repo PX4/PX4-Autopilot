@@ -128,8 +128,8 @@ struct mixer_simple_s {
  * set the the mixer index in the union
  */
 union mixer_type_e {
-        unsigned        mix_index;
-        unsigned        mix_type;
+	unsigned        mix_index;
+	unsigned        mix_type;
 };
 #define   MIXERIOGETTYPE		_MIXERIOC(12)
 
@@ -166,8 +166,8 @@ struct mixer_param_s {
  * remote mixer depending on what is available.  Return zero if unavailable.
  */
 struct mixer_checksum_s {
-        uint32_t        crc_local;
-        uint32_t        crc_remote;
+	uint32_t        crc_local;
+	uint32_t        crc_remote;
 };
 #define MIXERIOGETCHECKSUM             _MIXERIOC(16)
 

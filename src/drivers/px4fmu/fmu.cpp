@@ -2374,6 +2374,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 #if defined(MIXER_CONFIGURATION)
+
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
 				PX4_DEBUG("_mixers not found");
@@ -2418,18 +2419,19 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-        case MIXERIOGETCHECKSUM: {
-                if (_mixers == nullptr) {
-                    ret = -EINVAL;
-                }
+	case MIXERIOGETCHECKSUM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
 
-                mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
+			mixer_checksum_s *mix_crc = (mixer_checksum_s *)arg;
 
-                mix_crc->crc_local = _mixers->calc_checksum();
-                mix_crc->crc_remote = 0;
-                ret = 0;
-                break;
-            }
+			mix_crc->crc_local = _mixers->calc_checksum();
+			mix_crc->crc_remote = 0;
+			ret = 0;
+			break;
+		}
+
 #endif //defined(MIXER_CONFIGURATION)
 
 	default:

@@ -364,8 +364,9 @@ mixer_tick(void)
 	}
 
 #if defined(MIXER_CONFIGURATION)
-	if(update_mixer_param){
-		union{
+
+	if (update_mixer_param) {
+		union {
 			uint16_t words[2];
 			float	 value;
 		} unpack;
@@ -375,17 +376,18 @@ mixer_tick(void)
 
 		r_mixer_crc_ok = 0;
 
-		mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
-										r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
-										unpack.value);
+		mixer_group.set_mixer_param(r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
+					    r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+					    unpack.value);
 		update_mixer_param = false;
 	}
 
-	if(r_mixer_crc_ok == 0){
-		uint32_t *sum = (uint32_t*) &r_mixer_crc32;
+	if (r_mixer_crc_ok == 0) {
+		uint32_t *sum = (uint32_t *) &r_mixer_crc32;
 		*sum = mixer_group.calc_checksum();
 		r_mixer_crc_ok = 1;
 	}
+
 #endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
 
 }
@@ -624,8 +626,9 @@ mixer_set_failsafe()
 	}
 
 #if defined(MIXER_CONFIGURATION)
-	if(update_mixer_param){
-		union{
+
+	if (update_mixer_param) {
+		union {
 			uint16_t words[2];
 			float	 value;
 		} unpack;
@@ -635,16 +638,17 @@ mixer_set_failsafe()
 
 		r_mixer_crc_ok = 0;
 
-		mixer_group.set_mixer_param(	r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
-										r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
-										unpack.value);
+		mixer_group.set_mixer_param(r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
+					    r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+					    unpack.value);
 		update_mixer_param = false;
 	}
 
-	if(r_mixer_crc_ok == 0){
-		uint32_t *sum = (uint32_t*) &r_mixer_crc32;
+	if (r_mixer_crc_ok == 0) {
+		uint32_t *sum = (uint32_t *) &r_mixer_crc32;
 		*sum = mixer_group.calc_checksum();
 		r_mixer_crc_ok = 1;
 	}
+
 #endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
 }

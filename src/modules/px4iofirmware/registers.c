@@ -746,16 +746,19 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
 			break;
 #if defined(MIXER_CONFIGURATION)
+
 		case PX4IO_P_SETUP_PARAMETER_MIXER_INDEX:
 		case PX4IO_P_SETUP_PARAMETER_INDEX:
 		case PX4IO_P_SETUP_PARAMETER:
 			r_page_setup[offset] = value;
 			break;
+
 		case PX4IO_P_SETUP_PARAMETER_HIGH:
 			r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH] = value;
 			update_mixer_param = true;
 			break;
 #endif //MIXER_CONFIGURATION
+
 		default:
 			return -1;
 		}

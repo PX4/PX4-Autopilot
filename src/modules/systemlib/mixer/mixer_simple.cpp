@@ -498,10 +498,10 @@ SimpleMixer::set_parameter(uint16_t index, float value)
 uint32_t
 SimpleMixer::calc_checksum(void)
 {
-    uint32_t sum = 0;
+	uint32_t sum = 0;
 
-    sum = crc32((uint8_t*)_pinfo, sizeof(mixer_simple_s));
+	sum = crc32((uint8_t *)_pinfo, sizeof(mixer_simple_s));
 
-    return sum;
+	return sum;
 }
 #endif //defined(MIXER_CONFIGURATION)

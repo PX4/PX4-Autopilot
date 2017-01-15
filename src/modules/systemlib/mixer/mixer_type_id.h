@@ -45,11 +45,11 @@
 
 extern const char *const MIXER_TYPE_ID[MIXER_TYPE_COUNT];
 const char *const MIXER_TYPE_ID[MIXER_TYPE_COUNT] = {
-        "NONE",
-        "NULL",
-        "SIMPLE",
-        "MULTIROTOR"
-        "HELICOPTER"
+	"NONE",
+	"NULL",
+	"SIMPLE",
+	"MULTIROTOR"
+	"HELICOPTER"
 };
 
 
