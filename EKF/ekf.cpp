@@ -242,7 +242,7 @@ bool Ekf::update()
 	}
 }
 
-bool Ekf::initialiseFilter(void)
+bool Ekf::initialiseFilter()
 {
 	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 

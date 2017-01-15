@@ -75,12 +75,12 @@ float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 	return math::min(wp_radius, _L1_distance);
 }
 
-bool ECL_L1_Pos_Controller::reached_loiter_target(void)
+bool ECL_L1_Pos_Controller::reached_loiter_target()
 {
 	return _circle_mode;
 }
 
-float ECL_L1_Pos_Controller::crosstrack_error(void)
+float ECL_L1_Pos_Controller::crosstrack_error()
 {
 	return _crosstrack_error;
 }
