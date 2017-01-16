@@ -161,7 +161,7 @@ ExternalProject_Add(optical_flow
 
 # Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
 message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_MODULE_PATH.")
-LIST(APPEND CMAKE_MODULE_PATH "${PX4_BINARY_DIR}/build_optical_flow")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
 message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
 # Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
