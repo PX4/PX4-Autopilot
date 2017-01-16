@@ -249,15 +249,6 @@ public:
 	 */
 	virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
 
-	/**
-	 * Calculates and returns the crc32 checksum of mixer parameters
-	 *
-	 * @param index         The index of the parameter
-	 * @return              crc32 checksum of mixer parameters
-	 */
-	virtual uint32_t       calc_checksum(void) {return 0;}
-
-
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -483,13 +474,6 @@ public:
 	* @return                      Zero on success, -1 on failure.
 	 */
 	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
-
-	/**
-	 * @brief               Calculate the crc32 checksum of variable mixer parameters
-	 *
-	 * @return              crc32 parameter checksum
-	 */
-	uint32_t                calc_checksum(void);
 
 #endif //defined(MIXER_CONFIGURATION)
 

@@ -324,19 +324,6 @@ static int  mixer_show_config(const char *devname)
 		return 1;
 	}
 
-	/* Get the mixer group checksm */
-	mixer_checksum_s mix_crc = {0, 0};
-
-	ret = px4_ioctl(dev, MIXERIOGETCHECKSUM, (unsigned long)&mix_crc);
-
-	if (ret == 0) {
-		printf("\ncrc32 checksums: local:%08XH remote:%08XH\n", mix_crc.crc_local, mix_crc.crc_remote);
-
-	} else {
-		warnx("Could not get checksum for mixer group");
-		return 1;
-	}
-
 	return 0;
 }
 

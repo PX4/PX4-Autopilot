@@ -110,10 +110,6 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_rc_values			(&r_page_rc_input[PX4IO_P_RC_BASE])
 #define r_mixer_limits 		r_page_status[PX4IO_P_STATUS_MIXER]
 
-#define r_mixer_crc_ok 		r_page_status[PX4IO_P_STATUS_MIXER_CRC_OK]
-#define r_mixer_crc32 		r_page_status[PX4IO_P_STATUS_MIXER_CRC32]
-#define r_mixer_crc32_msw 	r_page_status[PX4IO_P_STATUS_MIXER_CRC32_MSW]
-
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
