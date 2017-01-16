@@ -249,7 +249,7 @@ then
 	fi
 
 	# Internal I2C bus
-	if hmc5883 -C -T -I -R 8 start
+	if hmc5883 -C -T -I -R 12 start
 	then
 	fi
 
