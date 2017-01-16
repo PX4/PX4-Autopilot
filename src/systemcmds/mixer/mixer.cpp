@@ -340,7 +340,6 @@ mixer_list(const char *devname)
 	}
 
 	unsigned mix_count;
-
 	mixer_type_e type;
 
 	/* Get the mixer count */
@@ -360,14 +359,16 @@ mixer_list(const char *devname)
 		type.mix_index = index;
 		/* Get the mixer name at index*/
 		ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+
+		if (ret < 0) {
+			warnx("can't get mixer type. Failure code %i", ret);
+			return 1;
+		}
+
 		printf("type:%u id:%s", type.mix_type, MIXER_TYPE_ID[type.mix_type]);
 		printf("\n");
 	}
 
-	if (ret < 0) {
-		warnx("can't get mixer id for:%s", devname);
-		return 1;
-	}
 
 	return 0;
 }

@@ -3033,6 +3033,24 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
+	case MIXERIOGETTYPE: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_type_e *mixer_type = (mixer_type_e *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index);
+
+			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+				ret = -EINVAL;
+
+			} else {
+				ret = 0;
+			}
+
+			break;
+		}
+
 	case MIXERIOGETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
