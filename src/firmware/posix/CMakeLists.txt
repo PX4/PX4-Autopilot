@@ -155,7 +155,7 @@ add_dependencies(run_config px4)
 ExternalProject_Add(optical_flow
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/OpticalFlow/
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
+	BINARY_DIR ${PX4_BINARY_DIR}/build_optical_flow
 	INSTALL_COMMAND ""
 	)
 
