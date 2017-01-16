@@ -152,11 +152,13 @@ add_custom_target(run_config
 add_dependencies(run_config px4)
 
 # Add OpticalFlow as an external project
+#message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 ExternalProject_Add(optical_flow
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/OpticalFlow/
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	CMAKE_CACHE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${PX4_BINARY_DIR}/install_optical_flow
 	BINARY_DIR ${PX4_BINARY_DIR}/build_optical_flow
-	INSTALL_COMMAND ""
+	INSTALL_DIR ${PX4_BINARY_DIR}/install_optical_flow
+	INSTALL_COMMAND "make install"
 	)
 
 # Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
