@@ -72,9 +72,22 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// noise matrix
 	Matrix<float, n_y_vision, n_y_vision> R;
 	R.setZero();
-	R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
-	R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
-	R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
+
+	if (_sub_vision_pos.get().eph > _vision_xy_stddev.get()) {
+		R(Y_vision_x, Y_vision_x) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
+		R(Y_vision_y, Y_vision_y) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
+
+	} else {
+		R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
+		R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
+	}
+
+	if (_sub_vision_pos.get().epv > _vision_z_stddev.get()) {
+		R(Y_vision_z, Y_vision_z) = _sub_vision_pos.get().epv * _sub_vision_pos.get().epv;
+
+	} else {
+		R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
+	}
 
 	// vision delayed x
 	uint8_t i_hist = 0;
