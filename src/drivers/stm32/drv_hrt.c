@@ -462,7 +462,7 @@ hrt_ppm_decode(uint32_t status)
 		goto error;
 	}
 
-	/* how long since the last edge? - this handles counter wrapping implicitely. */
+	/* how long since the last edge? - this handles counter wrapping implicitly. */
 	width = count - ppm.last_edge;
 
 #if PPM_DEBUG
@@ -506,7 +506,7 @@ hrt_ppm_decode(uint32_t status)
 
 		} else {
 			/* frame channel count matches expected, let's use it */
-			if (ppm.next_channel > PPM_MIN_CHANNELS) {
+			if (ppm.next_channel >= PPM_MIN_CHANNELS) {
 				for (i = 0; i < ppm.next_channel; i++) {
 					ppm_buffer[i] = ppm_temp_buffer[i];
 				}
