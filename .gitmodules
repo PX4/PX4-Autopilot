@@ -43,4 +43,4 @@
 	url = https://github.com/ethz-asl/rotors_simulator
 [submodule "Tools/OpticalFlow"]
 	path = Tools/OpticalFlow
-	url = https://github.com/PX4/OpticalFlow
+	url = https://github.com/gbmhunter/OpticalFlow
