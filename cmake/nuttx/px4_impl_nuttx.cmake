@@ -255,19 +255,22 @@ function(px4_nuttx_add_export)
 
 	# copy
 	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
+	file(RELATIVE_PATH nuttx_cp_src ${PX4_BINARY_DIR} ${PX4_SOURCE_DIR}/NuttX)
 	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${nuttx_src}
-		COMMAND rsync -a --delete --exclude=.git ${PX4_SOURCE_DIR}/NuttX/ ${nuttx_src}/
+		COMMAND rsync -a --delete --exclude=.git ${nuttx_cp_src}/ ${CONFIG}/NuttX/
 		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches} ${nuttx_all_files}
-		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}")
+		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		)
 	add_custom_target(nuttx_copy_${CONFIG} DEPENDS nuttx_copy_${CONFIG}.stamp)
 
 	# patch
 	add_custom_target(nuttx_patch_${CONFIG})
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
-		message(STATUS "NuttX patch: nuttx-patches/${patch_file_name}")
+		message(STATUS "${CONFIG} NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
 		set(patch_stamp ${nuttx_src}/${patch_name}.stamp)
 

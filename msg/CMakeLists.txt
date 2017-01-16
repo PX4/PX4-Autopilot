@@ -129,9 +129,14 @@ set(msg_file_names
 
 # Get absolute paths
 set(msg_files)
+set(msg_include_paths)
+
 foreach(msg_file ${msg_file_names})
 	list(APPEND msg_files ${CMAKE_CURRENT_SOURCE_DIR}/${msg_file})
 endforeach()
+
+list(APPEND msg_include_paths ${CMAKE_CURRENT_SOURCE_DIR})
+set(msg_include_paths ${msg_include_paths} PARENT_SCOPE)
 
 set(msg_files ${msg_files} PARENT_SCOPE)
 

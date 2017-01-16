@@ -283,6 +283,9 @@ Sensors::Sensors() :
 	memset(&_parameters, 0, sizeof(_parameters));
 
 	initialize_parameter_handles(_parameter_handles);
+
+	_airspeed_validator.set_timeout(300000);
+	_airspeed_validator.set_equal_value_threshold(100);
 }
 
 Sensors::~Sensors()
@@ -378,13 +381,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_airspeed.timestamp = _diff_pres.timestamp;
 
 		/* push data into validator */
-		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count, 100);
-
-#ifdef __PX4_POSIX
-		_airspeed.confidence = 1.0f;
-#else
+		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count,
+					ORB_PRIO_HIGH);
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
-#endif
 
 		/* don't risk to feed negative airspeed into the system */
 		_airspeed.indicated_airspeed_m_s = math::max(0.0f,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -460,7 +460,7 @@ Mavlink::destroy_all_instances()
 	while (_mavlink_instances) {
 		inst_to_del = _mavlink_instances;
 		LL_DELETE(_mavlink_instances, inst_to_del);
-		delete(inst_to_del);
+		delete inst_to_del;
 	}
 
 	printf("\n");
@@ -2183,7 +2183,9 @@ Mavlink::task_main(int argc, char *argv[])
 				// the file stream. Since this is a one-time
 				// config thing, we leave the file struct
 				// allocated.
-				//fclose(fs);
+#ifndef __PX4_NUTTX
+				fclose(fs);
+#endif
 
 			} else {
 				PX4_WARN("open fd %d failed", _uart_fd);
