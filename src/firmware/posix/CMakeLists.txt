@@ -164,6 +164,10 @@ message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_MODULE_P
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
 message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
+message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_PREFIX_PATH.")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
+message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
+
 # Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
 # NOTE: Changed from targetting sitl_gazebo to packages within the rotors_simulator repo
 # sitl_gazebo had a global CMakeLists.txt which built everything, while
@@ -174,7 +178,7 @@ ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
 	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
 	# MAVLINK_INTERFACE will build with gazebo_mavlink_interface
 	# BUILD_OPTICAL_FLOW_PLUGIN will build the optical flow plugin
-	CMAKE_ARGS -DTEST=FOO -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH} -DNO_ROS=TRUE -DMAVLINK_INTERFACE=TRUE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE
+	CMAKE_ARGS -DTEST=FOO -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH} -DNO_ROS=TRUE -DMAVLINK_INTERFACE=TRUE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
