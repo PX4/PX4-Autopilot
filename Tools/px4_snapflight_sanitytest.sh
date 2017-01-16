@@ -48,7 +48,6 @@ declare -a appsproc_strings_absent=(
 
 # List of expected strings from the DSP
 declare -a dsp_strings_present=(
-   "EKF alignment complete"
    "AdspCoreSvc: Started successfully"
    "loading BLSP configuration"
    )
