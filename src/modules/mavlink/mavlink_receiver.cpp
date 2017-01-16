@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -387,7 +387,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
-					       cmd_mavlink.param2, cmd_mavlink.param3);
+					   cmd_mavlink.param2, cmd_mavlink.param3);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)cmd_mavlink.param1);
@@ -456,14 +456,17 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
+
 		if (ret == PX4_OK) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 		} else {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 		}
 
 		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -556,14 +559,17 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
+
 		if (ret == PX4_OK) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 		} else {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 		}
 
 		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -903,6 +909,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 						pos_sp_triplet.current.velocity_frame =
 							set_position_target_local_ned.coordinate_frame;
+
 					} else {
 						pos_sp_triplet.current.velocity_valid = false;
 					}
@@ -1998,10 +2005,11 @@ void MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 
 	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
-	gps_inject_data_topic.len = gps_rtcm_data_msg.len;
+	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
+					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
 	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
 	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
-	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_rtcm_data_msg.len));
+	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_topic.len));
 
 	orb_advert_t &pub = _gps_inject_data_pub;
 
@@ -2241,7 +2249,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	ctrl_state.z_acc = hil_state.zacc;
 
 	static float _acc_hor_filt = 0;
-	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc * ctrl_state.y_acc);
+	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
+			ctrl_state.y_acc);
 	ctrl_state.horz_acc_mag = _acc_hor_filt;
 	ctrl_state.airspeed_valid = false;
 

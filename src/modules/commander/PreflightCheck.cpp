@@ -380,7 +380,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 		goto out;
 	}
 
-	if (fabsf(airspeed.confidence) < 0.99f) {
+	if (fabsf(airspeed.confidence) < 0.95f) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR COMM ERROR");
 		}

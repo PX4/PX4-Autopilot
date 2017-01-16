@@ -90,7 +90,7 @@ protected:
 
 	void send(const hrt_abstime t);
 
-	int send_param(param_t param, int component_id=-1);
+	int send_param(param_t param, int component_id = -1);
 
 	orb_advert_t _rc_param_map_pub;
 	struct rc_parameter_map_s _rc_param_map;

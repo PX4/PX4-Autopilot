@@ -41,14 +41,26 @@ case "${tool}" in
     ;;
   "clang-tidy")
     command=clang-tidy
+    #option=-fix
     ;;
 esac
 
-grep file ${COMPILE_DB}/compile_commands.json |
-awk '{ print $2; }' |
-sed 's/\"//g' |
-while read FILE; do
-    (cd $(dirname ${FILE});
-    ${command} ${option} -p ${COMPILE_DB} ${extra_args} $(basename ${FILE})
-    );
-  done
+failed=0
+while read line; do
+	file_line=$(echo $line | grep \"file\")
+	if [ $? -eq 0 ]; then
+		file_path=$(echo $file_line | awk '{ print $2; }' | sed 's/\"//g')
+
+		echo ${file_path}
+		${command} ${option} -p ${COMPILE_DB} ${extra_args} ${file_path}
+
+		if [ $? -ne 0 ]; then
+			failed=1
+		fi
+		echo
+	fi
+done <${COMPILE_DB}/compile_commands.json
+
+if [ $failed -ne 0 ]; then
+    exit 1
+fi

@@ -73,6 +73,18 @@ interface px4muorb{
    AEEResult param_update_value_from_shmem( in unsigned long param, rout sequence<octet> value);
 
    /**
+    * Interface called from krait to inform of a published topic.
+    * @param topic_name: name of the topic being advertised
+    */
+   AEEResult topic_advertised(in string topic_name);
+
+   /**
+    * Interface called from krait to inform of a published topic.
+    * @param topic_name: name of the topic being advertised
+    */
+   AEEResult topic_unadvertised(in string topic_name);
+
+   /**
     * Interface to add a subscriber to the identified topic
     * @param topic_name
     * @return status
@@ -125,6 +137,7 @@ interface px4muorb{
     *   1 ==> add_subscriber
     *   2 ==> remove_subscriber
     *   3 ==> recieve_topic_data
+    *   4 ==> advertised_topic
     * @note: for message types, 1 & 2, the data pointer returned is null with length of 0.
     * @param topic_name
     *   The topic being returned.
@@ -141,7 +154,7 @@ interface px4muorb{
    /**
     * Since the receive_msg is a blocking call, the client will not be able to peform a clean shutdown.  Calling this
     * function will unblock the receive msg an return an error code.
-    * Ideally this should be implemented as a time for the receive msg call.
+    * Ideally this should be implemented as a timeout for the #receive_msg call.
     * @param none
     * @return status
     *    0 = success

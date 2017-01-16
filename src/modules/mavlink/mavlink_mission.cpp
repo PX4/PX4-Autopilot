@@ -309,6 +309,7 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 			if (_verbose) {
 				PX4_INFO("WPM: Send MISSION_REQUEST_INT seq %u to ID %u", wpr.seq, wpr.target_system);
 			}
+
 		} else {
 
 			mavlink_mission_request_t wpr;
@@ -362,6 +363,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 			_time_last_reached = now;
 			_last_reached = mission_result.seq_reached;
 			send_mission_item_reached((uint16_t)mission_result.seq_reached);
+
 		} else {
 			_last_reached = -1;
 		}
@@ -572,6 +574,7 @@ MavlinkMissionManager::handle_mission_request(const mavlink_message_t *msg)
 	if (_int_mode) {
 		_int_mode = false;
 	}
+
 	handle_mission_request_both(msg);
 }
 
@@ -582,6 +585,7 @@ MavlinkMissionManager::handle_mission_request_int(const mavlink_message_t *msg)
 	if (!_int_mode) {
 		_int_mode = true;
 	}
+
 	handle_mission_request_both(msg);
 }
 
@@ -641,7 +645,8 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
 				if (_verbose) { warnx("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: no transfer"); }
 
-				_mavlink->send_statustext_critical("IGN MISSION_ITEM_REQUEST(_INT): No active transfer");
+				// Silently ignore this as some OSDs have buggy mission protocol implementations
+				//_mavlink->send_statustext_critical("IGN MISSION_ITEM_REQUEST(_INT): No active transfer");
 
 			} else {
 				if (_verbose) { warnx("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: busy (state %d).", _state); }
@@ -879,7 +884,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item,
-						  struct mission_item_s *mission_item)
+		struct mission_item_s *mission_item)
 {
 	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
@@ -890,12 +895,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			 * alignment, so we can just swap float for int32_t. */
 			const mavlink_mission_item_int_t *item_int
 				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-			mission_item->lat = ((double)item_int->x)*1e-7;
-			mission_item->lon = ((double)item_int->y)*1e-7;
+			mission_item->lat = ((double)item_int->x) * 1e-7;
+			mission_item->lon = ((double)item_int->y) * 1e-7;
+
 		} else {
 			mission_item->lat = (double)mavlink_mission_item->x;
 			mission_item->lon = (double)mavlink_mission_item->y;
 		}
+
 		mission_item->altitude = mavlink_mission_item->z;
 
 		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL) {
@@ -1027,7 +1034,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 int
 MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item,
-						   mavlink_mission_item_t *mavlink_mission_item)
+		mavlink_mission_item_t *mavlink_mission_item)
 {
 	mavlink_mission_item->frame = mission_item->frame;
 	mavlink_mission_item->command = mission_item->nav_cmd;
@@ -1089,6 +1096,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item->x = (float)mission_item->lat;
 			mavlink_mission_item->y = (float)mission_item->lon;
 		}
+
 		mavlink_mission_item->z = mission_item->altitude;
 
 		if (mission_item->altitude_is_relative) {

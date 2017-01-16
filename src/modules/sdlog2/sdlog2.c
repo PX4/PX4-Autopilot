@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -156,7 +156,7 @@ static bool _extended_logging = false;
 static bool _gpstime_only = false;
 static int32_t _utc_offset = 0;
 
-#ifndef __PX4_POSIX_EAGLE
+#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
 #define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd"
 #else
 #define MOUNTPOINT "/root"
@@ -745,7 +745,7 @@ void sdlog2_start_log()
 	/* initialize log buffer emptying thread */
 	pthread_attr_init(&logwriter_attr);
 
-#ifndef __PX4_POSIX_EAGLE
+#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
 	/* low priority, as this is expensive disk I/O. */
@@ -874,6 +874,7 @@ int write_version(int fd)
 	/* fill version message and write it */
 	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
 	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
 
@@ -893,6 +894,7 @@ int write_parameters(int fd)
 	for (param_t param = 0; param < params_cnt; param++) {
 		/* fill parameter message and write it */
 		strncpy(log_msg_PARM.body.name, param_name(param), sizeof(log_msg_PARM.body.name));
+		log_msg_PARM.body.name[sizeof(log_msg_PARM.body.name) - 1] = '\0';
 		float value = NAN;
 
 		switch (param_type(param)) {
@@ -928,16 +930,7 @@ bool copy_if_updated_multi(orb_id_t topic, int multi_instance, int *handle, void
 	bool updated = false;
 
 	if (*handle < 0) {
-#if __PX4_POSIX_EAGLE
-		// The orb_exists call doesn't work correctly on Snapdragon yet.
-		// (No data gets sent from the QURT to the Linux side because there
-		// are no subscribers. However, there won't be any subscribers, if
-		// they check using orb_exists() before subscribing.)
-		if (true)
-#else
 		if (OK == orb_exists(topic, multi_instance))
-#endif
-
 		{
 			*handle = orb_subscribe_multi(topic, multi_instance);
 			/* copy first data */

@@ -170,6 +170,7 @@ int test_ppm_loopback(int argc, char *argv[])
 
 	} else {
 		warnx("failed reading RC input data");
+		(void)close(servo_fd);
 		return ERROR;
 	}
 

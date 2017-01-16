@@ -51,16 +51,17 @@ const float MavlinkULog::_rate_calculation_delta_t = 0.1f;
 
 MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component)
 	: _target_system(target_system), _target_component(target_component),
-	_max_rate_factor(max_rate_factor),
-	_max_num_messages(math::max(1, (int)ceilf(_rate_calculation_delta_t * _max_rate_factor * datarate /
-			(MAVLINK_MSG_ID_LOGGING_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)))),
-	_current_rate_factor(max_rate_factor)
+	  _max_rate_factor(max_rate_factor),
+	  _max_num_messages(math::max(1, (int)ceilf(_rate_calculation_delta_t *_max_rate_factor * datarate /
+				      (MAVLINK_MSG_ID_LOGGING_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)))),
+	  _current_rate_factor(max_rate_factor)
 {
 	_ulog_stream_sub = orb_subscribe(ORB_ID(ulog_stream));
 
 	if (_ulog_stream_sub < 0) {
 		PX4_ERR("orb_subscribe failed (%i)", errno);
 	}
+
 	_waiting_for_initial_ack = true;
 	_last_sent_time = hrt_absolute_time(); //(ab)use this timestamp during initialization
 	_next_rate_check = _last_sent_time + _rate_calculation_delta_t * 1.e6f;
@@ -71,6 +72,7 @@ MavlinkULog::~MavlinkULog()
 	if (_ulog_stream_ack_pub) {
 		orb_unadvertise(_ulog_stream_ack_pub);
 	}
+
 	if (_ulog_stream_sub >= 0) {
 		orb_unsubscribe(_ulog_stream_sub);
 	}
@@ -87,28 +89,34 @@ void MavlinkULog::start_ack_received()
 
 int MavlinkULog::handle_update(mavlink_channel_t channel)
 {
-	static_assert(sizeof(ulog_stream_s::data) == MAVLINK_MSG_LOGGING_DATA_FIELD_DATA_LEN, "Invalid uorb ulog_stream.data length");
-	static_assert(sizeof(ulog_stream_s::data) == MAVLINK_MSG_LOGGING_DATA_ACKED_FIELD_DATA_LEN, "Invalid uorb ulog_stream.data length");
+	static_assert(sizeof(ulog_stream_s::data) == MAVLINK_MSG_LOGGING_DATA_FIELD_DATA_LEN,
+		      "Invalid uorb ulog_stream.data length");
+	static_assert(sizeof(ulog_stream_s::data) == MAVLINK_MSG_LOGGING_DATA_ACKED_FIELD_DATA_LEN,
+		      "Invalid uorb ulog_stream.data length");
 
 	if (_waiting_for_initial_ack) {
 		if (hrt_elapsed_time(&_last_sent_time) > 3e5) {
 			PX4_WARN("no ack from logger (is it running?)");
 			return -1;
 		}
+
 		return 0;
 	}
 
 	// check if we're waiting for an ACK
 	if (_last_sent_time) {
 		bool check_for_updates = false;
+
 		if (_ack_received) {
 			_last_sent_time = 0;
 			check_for_updates = true;
+
 		} else {
 
 			if (hrt_elapsed_time(&_last_sent_time) > ulog_stream_ack_s::ACK_TIMEOUT * 1000) {
 				if (++_sent_tries > ulog_stream_ack_s::ACK_MAX_TRIES) {
 					return -ETIMEDOUT;
+
 				} else {
 					PX4_DEBUG("re-sending ulog mavlink message (try=%i)", _sent_tries);
 					_last_sent_time = hrt_absolute_time();
@@ -131,8 +139,10 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 
 	bool updated = false;
 	int ret = orb_check(_ulog_stream_sub, &updated);
+
 	while (updated && !ret && _current_num_msgs < _max_num_messages) {
 		orb_copy(ORB_ID(ulog_stream), _ulog_stream_sub, &_ulog_data);
+
 		if (_ulog_data.flags & ulog_stream_s::FLAGS_NEED_ACK) {
 			_sent_tries = 1;
 			_last_sent_time = hrt_absolute_time();
@@ -160,22 +170,26 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 			memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
 			mavlink_msg_logging_data_send_struct(channel, &msg);
 		}
+
 		++_current_num_msgs;
 		ret = orb_check(_ulog_stream_sub, &updated);
 	}
 
 	//need to update the rate?
 	hrt_abstime t = hrt_absolute_time();
+
 	if (t > _next_rate_check) {
 		if (_current_num_msgs < _max_num_messages) {
 			_current_rate_factor = _max_rate_factor * (float)_current_num_msgs / _max_num_messages;
+
 		} else {
 			_current_rate_factor = _max_rate_factor;
 		}
+
 		_current_num_msgs = 0;
 		_next_rate_check = t + _rate_calculation_delta_t * 1.e6f;
 		PX4_DEBUG("current rate=%.3f (max=%i msgs in %.3fs)", (double)_current_rate_factor, _max_num_messages,
-				(double)_rate_calculation_delta_t);
+			  (double)_rate_calculation_delta_t);
 	}
 
 	return 0;
@@ -186,48 +200,58 @@ void MavlinkULog::initialize()
 	if (_init) {
 		return;
 	}
+
 	px4_sem_init(&_lock, 1, 1);
 	_init = true;
 }
 
-MavlinkULog* MavlinkULog::try_start(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component)
+MavlinkULog *MavlinkULog::try_start(int datarate, float max_rate_factor, uint8_t target_system,
+				    uint8_t target_component)
 {
 	MavlinkULog *ret = nullptr;
 	bool failed = false;
 	lock();
+
 	if (!_instance) {
 		ret = _instance = new MavlinkULog(datarate, max_rate_factor, target_system, target_component);
+
 		if (!_instance) {
 			failed = true;
 		}
 	}
+
 	unlock();
 
 	if (failed) {
 		PX4_ERR("alloc failed");
 	}
+
 	return ret;
 }
 
 void MavlinkULog::stop()
 {
 	lock();
+
 	if (_instance) {
 		delete _instance;
 		_instance = nullptr;
 	}
+
 	unlock();
 }
 
 void MavlinkULog::handle_ack(mavlink_logging_ack_t ack)
 {
 	lock();
+
 	if (_instance) { // make sure stop() was not called right before
 		if (_wait_for_ack_sequence == ack.sequence) {
 			_ack_received = true;
 			publish_ack(ack.sequence);
 		}
 	}
+
 	unlock();
 }
 

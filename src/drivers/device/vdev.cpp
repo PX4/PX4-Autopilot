@@ -435,10 +435,11 @@ VDev::poll_notify(pollevent_t events)
 	/* lock against poll() as well as other wakeups */
 	lock();
 
-	for (unsigned i = 0; i < _max_pollwaiters; i++)
+	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
 		}
+	}
 
 	unlock();
 }
@@ -621,20 +622,22 @@ void VDev::showFiles()
 
 const char *VDev::topicList(unsigned int *next)
 {
-	for (; *next < PX4_MAX_DEV; (*next)++)
+	for (; *next < PX4_MAX_DEV; (*next)++) {
 		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/obj/", 5) == 0) {
 			return devmap[(*next)++]->name;
 		}
+	}
 
 	return NULL;
 }
 
 const char *VDev::devList(unsigned int *next)
 {
-	for (; *next < PX4_MAX_DEV; (*next)++)
+	for (; *next < PX4_MAX_DEV; (*next)++) {
 		if (devmap[*next] && strncmp(devmap[(*next)]->name, "/dev/", 5) == 0) {
 			return devmap[(*next)++]->name;
 		}
+	}
 
 	return NULL;
 }

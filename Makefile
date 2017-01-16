@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 - 2016 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -95,13 +95,6 @@ endif
 
 SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-# optionally run commmands in PX4 docker
-ifdef PX4_DOCKER
-	PX4_RUN = docker run -it --rm -v $(SRC_DIR):$(SRC_DIR):rw -w $(SRC_DIR) -v /tmp/.X11-unix:/tmp/.X11-unix:ro -v $(HOME)/.ccache:$(HOME)/.ccache:rw -e CCACHE_DIR=$(HOME)/.ccache -e LOCAL_USER_ID=`id -u $(USER)` px4io/px4-dev-nuttx:2017-01-01 /bin/bash -c "$1"
-else
-	PX4_RUN = $1
-endif
-
 # check if replay env variable is set & set build dir accordingly
 ifdef replay
 	BUILD_DIR_SUFFIX := _replay
@@ -122,9 +115,8 @@ endif
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && $(call PX4_RUN, cd $(BUILD_DIR); cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS)) || (rm -rf $(BUILD_DIR)); fi
-+@echo "PX4 CONFIG: $(BUILD_DIR)"
-+@$(call PX4_RUN,$(PX4_MAKE) -C "$(BUILD_DIR)" $(PX4_MAKE_ARGS) $(ARGS))
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
++@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
 define colorecho
@@ -158,66 +150,34 @@ posix: posix_sitl_default
 broadcast: posix_sitl_broadcast
 
 # Multi- config targets.
-
 eagle_default: posix_eagle_default qurt_eagle_default
-eagle_legacy_default: posix_eagle_legacy_driver_default qurt_eagle_legacy_driver_default
+eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
 excelsior_default: posix_excelsior_default qurt_excelsior_default
+excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
-# Deprecated config targets.
-
-ros_sitl_default:
-	@echo "This target is deprecated. Use make 'posix_sitl_default gazebo' instead."
-
-_sitl_deprecation:
-	@echo "Deprecated. Use 'make posix_sitl_default jmavsim' or"
-	@echo "'make posix_sitl_default gazebo' if Gazebo is preferred."
-
-run_sitl_quad: _sitl_deprecation
-run_sitl_plane: _sitl_deprecation
-run_sitl_ros: _sitl_deprecation
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_default run_sitl_quad run_sitl_plane run_sitl_ros all_nuttx_targets
+.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_legacy_default excelsior_default all_nuttx_targets
 
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: uavcan_firmware compiler_version check check_format format unittest tests qgc_firmware alt_firmware package_firmware clean submodulesclean distclean
-.NOTPARALLEL:
+.PHONY: qgc_firmware alt_firmware checks_bootloaders uavcan_firmware sizes check quick_check
 
-# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: checks_defaults checks_bootloaders checks_tests checks_uavcan checks_sitls checks_last quick_check tests extra_firmware
-
-uavcan_firmware:
-ifeq ($(VECTORCONTROL),1)
-	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
-	@(rm -rf vectorcontrol && git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol && BOARD=s2740vc_1_0 make --silent --no-print-directory && BOARD=px4esc_1_6 make --silent --no-print-directory && ../Tools/uavcan_copy.sh)
-endif
-
-check_px4fmu-v4_default: uavcan_firmware
-
-check_px4fmu-v4_default_and_uavcan: check_px4fmu-v4_default
-	@echo VECTORCONTROL=$VECTORCONTROL
-ifeq ($(VECTORCONTROL),1)
-	@echo "Cleaning up vectorcontrol firmware"
-	@rm -rf vectorcontrol
-	@rm -rf ROMFS/px4fmu_common/uavcan
-endif
-
-sizes:
-	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
-
-# QGroundControl flashable firmware (currently built by travis-ci)
+# QGroundControl flashable NuttX firmware
 qgc_firmware: \
 	check_aerofc-v1_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
 	check_px4fmu-v2_default \
+	check_px4fmu-v2_lpe \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
+	check_sizes
 
+# Other NuttX firmware
 alt_firmware: \
 	check_auav-x21_default \
 	check_px4-stm32f4discovery_default \
@@ -227,8 +187,7 @@ alt_firmware: \
 	check_px4fmu-v5_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
-
-checks_defaults: qgc_firmware alt_firmware
+	check_sizes
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
@@ -237,65 +196,92 @@ checks_bootloaders: \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 	check_zubaxgnss-v1_bootloader \
+	check_sizes
 
-checks_uavcan: \
-	check_px4fmu-v4_default_and_uavcan
+uavcan_firmware:
+	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
+	@rm -rf vectorcontrol
+	@git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol
+	@BOARD=s2740vc_1_0 make --silent --no-print-directory
+	@BOARD=px4esc_1_6 make --silent --no-print-directory && $(SRC_DIR)/Tools/uavcan_copy.sh)
 
-checks_last: \
-	tests \
-	check_format \
 
-compiler_version:
-	-arm-none-eabi-gcc --version
+sizes:
+	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
-# All default targets that don't require a special build environment (currently built on semaphore-ci)
-check: compiler_version checks_defaults checks_bootloaders checks_tests checks_uavcan checks_last sizes
+# All default targets that don't require a special build environment
+check: check_posix_sitl_default qgc_firmware alt_firmware checks_bootloaders tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: compiler_version check_posix_sitl_default check_px4fmu-v3_default tests check_format sizes
-
-check_format:
-	$(call colorecho,"Checking formatting with astyle")
-	@./Tools/check_code_style_all.sh
-	@git diff --check
-
-format:
-	$(call colorecho,"Formatting with astyle")
-	@./Tools/check_code_style_all.sh --fix
+quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format
 
 check_%:
 	@echo
 	$(call colorecho,"Building" $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
-	@mkdir -p Binaries
-	@mkdir -p Meta/$(subst check_,,$@)
-	@cp build_$(subst check_,,$@)/*.xml Meta/$(subst check_,,$@) 2> /dev/null || :
-	@find build_$(subst check_,,$@)/src/firmware -type f -name 'nuttx-*-default.px4' -exec cp "{}" Binaries \; 2> /dev/null || :
-	@rm -rf build_$(subst check_,,$@)
 	@echo
+
+# S3 upload helpers
+# --------------------------------------------------------------------
+# s3cmd uses these ENV variables
+#  AWS_ACCESS_KEY_ID
+#  AWS_SECRET_ACCESS_KEY
+#  AWS_S3_BUCKET
+.PHONY: s3put_firmware s3put_qgc_firmware
+
+Firmware.zip:
+	@rm -rf Firmware.zip
+	@zip --junk-paths Firmware.zip `find . -name nuttx-\*.px4`
+
+s3put_firmware: Firmware.zip
+	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
+
+s3put_qgc_firmware: qgc_firmware
+	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/airframes.xml
+	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/parameters.xml
+	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+# Astyle
+# --------------------------------------------------------------------
+.PHONY: check_format format
+
+check_format:
+	$(call colorecho,"Checking formatting with astyle")
+	@$(SRC_DIR)/Tools/check_code_style_all.sh
+	@git diff --check
+
+format:
+	$(call colorecho,"Formatting with astyle")
+	@$(SRC_DIR)/Tools/check_code_style_all.sh --fix
+
+# Testing
+# --------------------------------------------------------------------
+.PHONY: unittest run_tests_posix tests tests_coverage
 
 unittest: posix_sitl_default
 	$(call cmake-build,unittest,$(SRC_DIR)/unittests)
 	@(cd build_unittest && ctest -j2 --output-on-failure)
 
 run_tests_posix:
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results)
+	$(MAKE) --no-print-directory posix_sitl_default test_results
 
-tests: run_tests_posix
-	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest)
+tests: unittest run_tests_posix
 
 tests_coverage:
-	@$(call PX4_RUN,lcov --zerocounters --directory $(SRC_DIR) --quiet)
-	@$(call PX4_RUN,lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1 HEADLESS=1)
-	@$(call PX4_RUN,lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info)
-	@$(call PX4_RUN,lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info)
-	@$(call PX4_RUN,genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info)
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_default test_results_junit)
+	@lcov --zerocounters --directory $(SRC_DIR) --quiet
+	@lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info
+	@$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
+	@$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
+	@lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info
+	@lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info
+	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
+	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
 
-test_startup_shutdown:
-	@$(call PX4_RUN,$(MAKE) --no-print-directory posix_sitl_test gazebo_standard_vtol HEADLESS=1 MEMORY_DEBUG=1)
+
+
+# Clang analyzers
+# --------------------------------------------------------------------
+.PHONY: scan-build clang-check clang-tidy
 
 scan-build:
 	@export CCACHE_DISABLE=1
@@ -308,15 +294,22 @@ clang-check:
 	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-check
 
 clang-tidy:
+	rm -rf $(SRC_DIR)/build_posix_sitl_default
 	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
+	@run-clang-tidy.py -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
 
-package_firmware:
-	@zip --junk-paths Firmware.zip `find Binaries/. -name \*.px4`
+clang-tidy-fix:
+	rm -rf $(SRC_DIR)/build_posix_sitl_default
+	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
+	@run-clang-tidy.py -fix -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
+
+# Cleanup
+# --------------------------------------------------------------------
+.PHONY: clean submodulesclean distclean
 
 clean:
-	@rm -rf build_*/
-	-@$(MAKE) -C NuttX/nuttx clean
+	@rm -rf $(SRC_DIR)/build_*/
+	-@$(MAKE) --no-print-directory -C NuttX/nuttx clean
 
 submodulesclean:
 	@git submodule sync --recursive
@@ -326,12 +319,12 @@ submodulesclean:
 distclean: submodulesclean
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
+# --------------------------------------------------------------------
+
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
-
-.PHONY: clean
 
 CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
 

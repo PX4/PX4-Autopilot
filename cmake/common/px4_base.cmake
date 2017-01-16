@@ -56,8 +56,8 @@ include(CMakeParseArguments)
 #
 #	px4_parse_function_args
 #
-#	This function simpliies usage of the cmake_parse_arguments module.
-#	It is inteded to be called by other functions.
+#	This function simplifies usage of the cmake_parse_arguments module.
+#	It is intended to be called by other functions.
 #
 #	Usage:
 #		px4_parse_function_args(
@@ -148,7 +148,7 @@ function(px4_add_git_submodule)
 		)
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-# todo:Not have 2 list of submodues one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt)
+# todo:Not have 2 list of submodules one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt)
 # using the list of submodules from the CMake file to drive the test
 #		COMMAND Tools/check_submodules.sh ${PATH}
 		DEPENDS ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
@@ -165,7 +165,7 @@ endfunction()
 #		px4_prepend_string(OUT <output-list> STR <string> LIST <list>)
 #
 #	Input:
-#		STR			: string to prepend
+#		STR		: string to prepend
 #		LIST		: list to prepend to
 #
 #	Output:
@@ -407,6 +407,7 @@ function(px4_generate_messages)
 			--headers
 			${QUIET}
 			-f ${MSG_FILES}
+			-i ${INCLUDES}
 			-o ${msg_out_path}
 			-e msg/templates/uorb
 			-t ${PX4_BINARY_DIR}/topics_temporary_header
@@ -428,6 +429,7 @@ function(px4_generate_messages)
 			--sources
 			${QUIET}
 			-f ${MSG_FILES}
+			-i ${INCLUDES}
 			-o ${msg_source_out_path}
 			-e msg/templates/uorb
 			-t ${PX4_BINARY_DIR}/topics_temporary_sources
@@ -458,6 +460,7 @@ function(px4_generate_messages)
 			--headers
 			${QUIET}
 			-f ${MSG_FILES}
+			-i ${INCLUDES}
 			-o ${msg_multi_out_path}
 			-e msg/templates/px4/uorb
 			-t ${PX4_BINARY_DIR}/multi_topics_temporary/${OS}
@@ -689,6 +692,8 @@ function(px4_add_common_flags)
 				-Qunused-arguments
 				-Wno-unused-const-variable
 				-Wno-varargs
+				-Wno-address-of-packed-member
+				-Wno-unknown-warning-option
 			)
 		endif()
 	else()
@@ -796,7 +801,7 @@ function(px4_add_common_flags)
 
 	# code coverage
 	if ($ENV{PX4_CODE_COVERAGE} MATCHES "1")
-		set(max_optimization -O0)
+		#set(max_optimization -O0)
 	endif()
 
 	set(c_warnings
@@ -1014,17 +1019,22 @@ endfunction()
 function(px4_generate_parameters_xml)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_xml
-		ONE_VALUE OUT BOARD SCOPE
+		ONE_VALUE OUT BOARD SCOPE OVERRIDES
 		REQUIRED OUT BOARD
 		ARGN ${ARGN})
 	set(path ${PX4_SOURCE_DIR}/src)
 	file(GLOB_RECURSE param_src_files
 		${PX4_SOURCE_DIR}/src/*params.c
 		)
+	if (NOT OVERRIDES)
+		set(OVERRIDES "{}")
+	endif()
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml --scope ${SCOPE}
-		DEPENDS ${param_src_files}
+			--overrides ${OVERRIDES}
+		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
+			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()

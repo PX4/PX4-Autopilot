@@ -554,6 +554,8 @@ mixer_handle_text(const void *buffer, size_t length)
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
 				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				/* enforce null termination */
+				mixer_text[resid] = '\0';
 			}
 
 			mixer_text_length = resid;

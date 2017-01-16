@@ -42,26 +42,20 @@ __BEGIN_DECLS
 
 struct px4_parameters_t {
 """
-start_name = ""
-end_name = ""
-
+params = []
 for group in root:
 	if group.tag == "group" and "no_code_generation" not in group.attrib:
-		section = """
-	/*****************************************************************
-	 * %s
-	 ****************************************************************/""" % group.attrib["name"]
 		for param in group:
 			scope_ = param.find('scope').text
 			if not cmake_scope.Has(scope_):
 				continue
-			if not start_name:
-				start_name = param.attrib["name"]
-			end_name = param.attrib["name"]
-			header += section
-			section =""
-			header += """
+			params.append(param)
+
+params = sorted(params, key=lambda name: name.attrib["name"])
+for param in params:
+	header += """
 	const struct param_info_s __param__%s;""" % param.attrib["name"]
+
 header += """
 	const unsigned int param_count;
 };
@@ -83,28 +77,14 @@ __attribute__((used, section("__param")))
 struct px4_parameters_t px4_parameters = {
 """
 i=0
-for group in root:
-	if group.tag == "group" and "no_code_generation" not in group.attrib:
-		section = """
-	/*****************************************************************
-	 * %s
-	 ****************************************************************/""" % group.attrib["name"]
-		for param in group:
-			scope_ = param.find('scope').text
-			if not cmake_scope.Has(scope_):
-				continue
-			if not start_name:
-				start_name = param.attrib["name"]
-			end_name = param.attrib["name"]
-			val_str = "#error UNKNOWN PARAM TYPE, FIX px_generate_params.py"
-			if (param.attrib["type"] == "FLOAT"):
-				val_str = ".val.f = "
-			elif (param.attrib["type"] == "INT32"):
-				val_str = ".val.i = "
-			i+=1
-			src += section
-			section =""
-			src += """
+for param in params:
+	val_str = "#error UNKNOWN PARAM TYPE, FIX px_generate_params.py"
+	if (param.attrib["type"] == "FLOAT"):
+		val_str = ".val.f = "
+	elif (param.attrib["type"] == "INT32"):
+		val_str = ".val.i = "
+	i+=1
+	src += """
 	{
 		"%s",
 		PARAM_TYPE_%s,

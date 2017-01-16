@@ -99,7 +99,7 @@ public:
 	 * (because it does not write an ADD_LOGGED_MSG message).
 	 * @param name topic name
 	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
-	 * @return 0 on success
+	 * @return -1 on error, file descriptor otherwise
 	 */
 	int add_topic(const char *name, unsigned interval);
 
@@ -222,7 +222,7 @@ private:
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
-#ifdef __PX4_POSIX_EAGLE
+#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 	static constexpr const char	*LOG_ROOT = PX4_ROOTFSDIR"/log";
 #else
 	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";

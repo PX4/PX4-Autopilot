@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -243,9 +243,13 @@ HelicopterMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	int idx = (thrust_cmd / 0.25f);
 
 	/* Make sure idx is in range */
-	if (idx < 0) { idx = 0; }
+	if (idx < 0) {
+		idx = 0;
 
-	if (idx > HELI_CURVES_NR_POINTS - 1) { idx = HELI_CURVES_NR_POINTS - 1; }
+	} else if (idx > HELI_CURVES_NR_POINTS - 2) {
+		/* We access idx + 1 below, so max legal index is (size - 2) */
+		idx = HELI_CURVES_NR_POINTS - 2;
+	}
 
 	/* Local throttle curve gradient and offset */
 	float tg = (_mixer_info.throttle_curve[idx + 1] - _mixer_info.throttle_curve[idx]) / 0.25f;

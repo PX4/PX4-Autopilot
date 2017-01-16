@@ -449,6 +449,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		return ERROR;
 	}
 
+#if !defined(__PX4_QURT_EXCELSIOR) && !defined(__PX4_POSIX_EXCELSIOR)
 	/*
 	 * if the write is successful, send the data over the Multi-ORB link
 	 */
@@ -462,6 +463,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		}
 	}
 
+#endif
 	return PX4_OK;
 }
 
@@ -488,6 +490,28 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 
 	return PX4_OK;
 }
+
+int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta, int priority)
+{
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+
+	if (ch != nullptr && meta != nullptr) {
+		return ch->topic_advertised(meta->o_name);
+	}
+
+	return -1;
+}
+/*
+//TODO: Check if we need this since we only unadvertise when things all shutdown and it doesn't actually remove the device
+int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta, int priority)
+{
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+	if (ch != nullptr && meta != nullptr) {
+		return ch->topic_unadvertised(meta->o_name);
+	}
+	return -1;
+}
+*/
 
 pollevent_t
 uORB::DeviceNode::poll_state(device::file_t *filp)

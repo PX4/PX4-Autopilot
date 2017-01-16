@@ -48,7 +48,6 @@ declare -a appsproc_strings_absent=(
 
 # List of expected strings from the DSP
 declare -a dsp_strings_present=(
-   "EKF alignment complete"
    "AdspCoreSvc: Started successfully"
    "loading BLSP configuration"
    )
@@ -143,16 +142,16 @@ installpx4() {
    # Copy binaries to the target
    if [ $mode == 0 ]; then
       # copy default binaries
-      adb push $workspace/build_qurt_eagle_legacy_driver_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_legacy_driver_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_legacy_driver_default/src/firmware/posix/px4 /home/linaro
+      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build_posix_eagle_default/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/flight/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/flight/mainapp.config /home/linaro
    else
       # copy legacy binaries
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_legacy_driver_default/src/firmware/posix/px4 /home/linaro   
+      adb push $workspace/build_qurt_eagle_legacy/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build_qurt_eagle_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build_posix_eagle_legacy/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/200qx/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/200qx/mainapp.config /home/linaro
    fi

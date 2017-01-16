@@ -5,6 +5,11 @@
 # @type Helicopter
 #
 # @maintainer Bart Slinger <bartslinger@gmail.com>
+# @output MAIN1 main motor
+# @output MAIN2 front swashplate servo
+# @output MAIN3 right swashplate servo
+# @output MAIN4 left swashplate servo
+# @output MAIN5 tail-rotor servo
 #
 
 sh /etc/init.d/rc.mc_defaults

@@ -22,12 +22,6 @@ include(toolchain/Toolchain-qurt)
 include(qurt_flags)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
-add_definitions(
-   -D__USING_SNAPDRAGON_LEGACY_DRIVER
-   -D__PX4_QURT
-   -D__PX4_QURT_EAGLE
-   )
-
 set(config_module_list
 	#
 	# Board support modules

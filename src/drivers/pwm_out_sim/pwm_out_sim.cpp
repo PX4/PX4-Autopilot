@@ -793,9 +793,10 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				if (_mixers == nullptr)
+				if (_mixers == nullptr) {
 					_mixers = new MixerGroup(control_callback,
 								 (uintptr_t)&_controls);
+				}
 
 				_mixers->add_mixer(mixer);
 				_mixers->groups_required(_groups_required);

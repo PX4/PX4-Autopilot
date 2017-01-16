@@ -131,11 +131,17 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ERROR;
 	}
 
-#ifdef __PX4_NUTTX
+#if __PX4_NUTTX
 	struct stat buffer;
 	return stat(path, &buffer);
 #else
-	return px4_access(path, F_OK);
+	ret = px4_access(path, F_OK);
+
+	if (ret == -1 && meta != nullptr && _remote_topics.size() > 0) {
+		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : ERROR;
+	}
+
+	return ret;
 #endif
 }
 
@@ -169,13 +175,11 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	int result, fd;
 	orb_advert_t advertiser;
 
-	//warnx("orb_advertise_multi meta = %p\n", meta);
-
 	/* open the node as an advertiser */
 	fd = node_open(PUBSUB, meta, data, true, instance, priority);
 
 	if (fd == ERROR) {
-		warnx("node_open as advertiser failed.");
+		PX4_WARN("node_open as advertiser failed.");
 		return nullptr;
 	}
 
@@ -193,15 +197,18 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	px4_close(fd);
 
 	if (result == ERROR) {
-		warnx("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
+		PX4_WARN("px4_ioctl ORBIOCGADVERTISER  failed. fd = %d", fd);
 		return nullptr;
 	}
+
+	//For remote systems call over and inform them
+	uORB::DeviceNode::topic_advertised(meta, priority);
 
 	/* the advertiser must perform an initial publish to initialise the object */
 	result = orb_publish(meta, advertiser, data);
 
 	if (result == ERROR) {
-		warnx("orb_publish failed");
+		PX4_WARN("orb_publish failed");
 		return nullptr;
 	}
 
@@ -435,6 +442,22 @@ uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator(void)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
+{
+	int16_t rc = 0;
+
+	if (isAdvertisement) {
+		_remote_topics.insert(topic_name);
+
+	} else {
+		_remote_topics.erase(topic_name);
+	}
+
+	return rc;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 int16_t uORB::Manager::process_add_subscription(const char *messageName,
 		int32_t msgRateInHz)
 {
@@ -470,8 +493,6 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 int16_t uORB::Manager::process_remove_subscription(
 	const char *messageName)
 {
-	warnx("[posix-uORB::Manager::process_remove_subscription(%d)] Enter: name: %s",
-	      __LINE__, messageName);
 	int16_t rc = -1;
 	_remote_subscriber_topics.erase(messageName);
 	char nodepath[orb_maxpath];
@@ -501,8 +522,6 @@ int16_t uORB::Manager::process_remove_subscription(
 int16_t uORB::Manager::process_received_message(const char *messageName,
 		int32_t length, uint8_t *data)
 {
-	//warnx("[uORB::Manager::process_received_message(%d)] Enter name: %s", __LINE__, messageName );
-
 	int16_t rc = -1;
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);

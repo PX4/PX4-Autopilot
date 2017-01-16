@@ -49,10 +49,11 @@
 //#define SHMEM_DEBUG
 //#define PARAM_LOCK_DEBUG
 
+static atomic_word_t mem_lock;
+
 int mem_fd;
 unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
-static void *map_memory(off_t target);
 int get_shmem_lock(const char *caller_file_name, int caller_line_number);
 void release_shmem_lock(const char *caller_file_name, int caller_line_number);
 void init_shared_memory(void);
@@ -82,24 +83,16 @@ struct param_wbuf_s {
 };
 extern struct param_wbuf_s *param_find_changed(param_t param);
 
-static void *map_memory(off_t target)
-{
-
-	return (void *)(target + LOCK_SIZE);
-
-}
-
 int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
-	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
 	unsigned int i = 0;
 
 #ifdef PARAM_LOCK_DEBUG
-	PX4_INFO("lock value %d before get from %s, line: %d\n", *(unsigned int *)0xfbfc000, strrchr(caller_file_name, '/'),
+	PX4_INFO("lock value %d before get from %s, line: %d\n", mem_lock.value, strrchr(caller_file_name, '/'),
 		 caller_line_number);
 #endif
 
-	while (!atomic_compare_and_set(lock, 1, 0)) {
+	while (!atomic_compare_and_set(&mem_lock, 1, 0)) {
 		i++;
 		usleep(1000);
 
@@ -124,9 +117,7 @@ int get_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 void release_shmem_lock(const char *caller_file_name, int caller_line_number)
 {
-	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
-
-	*lock = 1;
+	atomic_set(&mem_lock, 1);
 
 #ifdef PARAM_LOCK_DEBUG
 	PX4_INFO("release lock, file name: %s, line number: %d.\n",
@@ -138,25 +129,31 @@ void release_shmem_lock(const char *caller_file_name, int caller_line_number)
 
 void init_shared_memory(void)
 {
-	//PX4_INFO("Value at lock address is %d\n", *(unsigned int*)0xfbfc000);
 	int i;
 
 	if (shmem_info_p) {
 		return;
 	}
 
-	virt_addr = map_memory(MAP_ADDRESS);
+	//virt_addr = map_memory(MAP_ADDRESS);
+	map_base = malloc(0x4000);  //16KB
+
+	if (map_base == NULL) {
+		PX4_INFO("adsp memory malloc failed\n");
+		return;
+	}
+
+	virt_addr = map_base;
 	shmem_info_p = (struct shmem_info *) virt_addr;
 
-	//init lock as 1
-	unsigned char *lock = (unsigned char *)(MAP_ADDRESS + LOCK_OFFSET);
-	*lock = 1;
+	atomic_init(&mem_lock, 1);
 
 	for (i = 0; i < MAX_SHMEM_PARAMS / 8 + 1; i++) {
 		shmem_info_p->krait_changed_index[i] = 0;
 	}
 
-	//PX4_INFO("adsp memory mapped\n");
+	PX4_INFO("adsp memory mapped\n");
+
 }
 
 void copy_params_to_shmem(struct param_info_s *param_info_base)

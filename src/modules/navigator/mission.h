@@ -120,7 +120,7 @@ private:
 	/**
 	 * Returns true if we need to do a takeoff at the current state
 	 */
-	bool do_need_takeoff();
+	bool do_need_vertical_takeoff();
 
 	/**
 	 * Returns true if we need to move to waypoint location before starting descent
@@ -181,7 +181,7 @@ private:
 	 * @return true if current mission item available
 	 */
 	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-		struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
+				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item

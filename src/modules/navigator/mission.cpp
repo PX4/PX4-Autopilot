@@ -289,6 +289,7 @@ Mission::find_offboard_land_start()
 	for (size_t i = 0; i < _offboard_mission.count; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(missionitem);
+
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return -1;
@@ -553,7 +554,8 @@ Mission::set_mission_items()
 		set_previous_pos_setpoint();
 
 		/* do takeoff before going to setpoint if needed and not already in takeoff */
-		if (do_need_takeoff() &&
+		/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
+		if (do_need_vertical_takeoff() &&
 		    _work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 		    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
@@ -579,7 +581,11 @@ Mission::set_mission_items()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 
-		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && _navigator->get_vstatus()->is_rotary_wing) {
+
 			/* if there is no need to do a takeoff but we have a takeoff item, treat is as waypoint */
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
@@ -590,7 +596,9 @@ Mission::set_mission_items()
 			 */
 			_mission_item.time_inside = 0.0f;
 
-		} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
+			   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+			   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 			if (_navigator->get_vstatus()->is_rotary_wing) {
 				/* haven't transitioned yet, trigger vtol takeoff logic below */
@@ -845,7 +853,7 @@ Mission::set_mission_items()
 }
 
 bool
-Mission::do_need_takeoff()
+Mission::do_need_vertical_takeoff()
 {
 	if (_navigator->get_vstatus()->is_rotary_wing) {
 
@@ -860,8 +868,8 @@ Mission::do_need_takeoff()
 			_need_takeoff = false;
 
 		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_acceptance_radius()
-			&& (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
-			    || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
+			   && (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
 			/* if in-air but below takeoff height and we have a takeoff item */
 			_need_takeoff = true;
 		}
@@ -1054,8 +1062,8 @@ Mission::altitude_sp_foh_update()
 	 * or if the previous altitude isn't from a position or loiter setpoint
 	 */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
-		|| !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-			pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
 		return;
 	}
@@ -1234,7 +1242,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if (*mission_index_ptr != (int)mission->count) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr,
-								 (int)mission->count);
+						     (int)mission->count);
 			}
 
 			return false;

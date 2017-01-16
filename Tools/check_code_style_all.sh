@@ -42,6 +42,7 @@ if [ ! -f $HOOK_FILE ] && [ "$CI" != "true" ]; then
 	read user_cmd
 	if [ "$user_cmd" == "y" ]; then
 		echo -e "copying ./Tools/pre-commit -> .git/hooks/pre-commit"
+		mkdir -p $DIR/../.git/hooks
 		cp $DIR/pre-commit $HOOK_FILE
 		echo -e "\033[94mGreat, hook installed!\033[0m (checking style now)"
 	else

@@ -177,7 +177,7 @@ static px4_sem_t g_sys_state_mutex;
 /* The data manager store file handle and file name */
 static int g_fd = -1;
 static int g_task_fd = -1;
-#ifdef __PX4_POSIX_EAGLE
+#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
 #else
 static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
@@ -453,10 +453,11 @@ _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, co
 	len = -1;
 
 	/* Seek to the right spot in the data manager file and write the data item */
-	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
+	if (lseek(g_task_fd, offset, SEEK_SET) == offset) {
 		if ((len = write(g_task_fd, buffer, count)) == count) {
 			fsync(g_task_fd);        /* Make sure data is written to physical media */
 		}
+	}
 
 	/* Make sure the write succeeded */
 	if (len != count) {

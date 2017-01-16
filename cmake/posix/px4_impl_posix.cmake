@@ -171,7 +171,6 @@ function(px4_os_add_flags)
         set(PX4_BASE )
         set(added_include_dirs
 		src/modules/systemlib
-                src/lib/eigen
                 src/platforms/posix/include
                 mavlink/include/mavlink
                 )
@@ -223,7 +222,7 @@ endif()
 set(added_exe_linker_flags)
 
 # This block sets added_c_flags (appends to others).
-if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
+if ("${BOARD}" STREQUAL "eagle")
 
 	if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 		message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
@@ -240,9 +239,35 @@ if ("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
 		)
 
 	list(APPEND added_exe_linker_flags
-		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib/arm-linux-gnueabihf
-		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/arm-linux-gnueabihf
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib
 		--sysroot=${HEXAGON_ARM_SYSROOT}
+		)
+# This block sets added_c_flags (appends to others).
+elseif ("${BOARD}" STREQUAL "excelsior")
+
+	if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
+		message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
+	else()
+		set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
+	endif()
+
+	# Add the toolchain specific flags
+
+        set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
+
+	list(APPEND added_cxx_flags
+		${POSIX_CMAKE_CXX_FLAGS}
+		--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
+
+		)
+
+	list(APPEND added_exe_linker_flags
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/usr/lib
+		-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/lib
+
+		--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
+
 		)
 elseif ("${BOARD}" STREQUAL "rpi" AND "$ENV{RPI_USE_CLANG}" STREQUAL "1")
 

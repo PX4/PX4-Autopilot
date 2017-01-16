@@ -227,19 +227,9 @@ param_find_changed(param_t param)
 	param_assert_locked();
 
 	if (param_values != NULL) {
-#if 0	/* utarray_find requires bsearch, not available */
 		struct param_wbuf_s key;
 		key.param = param;
 		s = utarray_find(param_values, &key, param_compare_values);
-#else
-
-		while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
-			if (s->param == param) {
-				break;
-			}
-		}
-
-#endif
 	}
 
 	return s;
@@ -271,17 +261,32 @@ param_notify_changes(bool is_saved)
 param_t
 param_find_internal(const char *name, bool notification)
 {
-	param_t param;
+	param_t middle;
+	param_t front = 0;
+	param_t last = get_param_info_count();
 
-	/* perform a linear search of the known parameters */
+	/* perform a binary search of the known parameters */
 
-	for (param = 0; handle_in_range(param); param++) {
-		if (!strcmp(param_info_base[param].name, name)) {
+	while (front <= last) {
+		middle = front + (last - front) / 2;
+		int ret = strcmp(name, param_info_base[middle].name);
+
+		if (ret == 0) {
 			if (notification) {
-				param_set_used_internal(param);
+				param_set_used_internal(middle);
 			}
 
-			return param;
+			return middle;
+
+		} else if (middle == front) {
+			/* An end point has been hit, but there has been no match */
+			break;
+
+		} else if (ret < 0) {
+			last = middle;
+
+		} else {
+			front = middle;
 		}
 	}
 

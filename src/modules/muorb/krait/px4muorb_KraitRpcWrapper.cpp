@@ -84,6 +84,10 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us);
 
 int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 {
+#if defined(__PX4_POSIX_EXCELSIOR)
+	*time_diff_us = 0;
+	return 0;
+#endif
 	int fd = open(DSP_TIMER_FILE, O_RDONLY);
 
 	if (fd < 0) {
@@ -276,6 +280,16 @@ bool px4muorb::KraitRpcWrapper::Terminate()
 
 	_Initialized = false;
 	return true;
+}
+
+int32_t px4muorb::KraitRpcWrapper::TopicAdvertised(const char *topic)
+{
+	return ((_Initialized) ? px4muorb_topic_advertised(topic) : -1);
+}
+
+int32_t px4muorb::KraitRpcWrapper::TopicUnadvertised(const char *topic)
+{
+	return ((_Initialized) ? px4muorb_topic_unadvertised(topic) : -1);
 }
 
 int32_t px4muorb::KraitRpcWrapper::AddSubscriber(const char *topic)

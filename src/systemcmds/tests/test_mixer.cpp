@@ -216,7 +216,9 @@ bool MixerTest::loadAllTest()
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
 				char buf[PATH_MAX];
-				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf));
+				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf) - 1);
+				/* enforce null termination */
+				buf[sizeof(buf) - 1] = '\0';
 				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], "/", 1);
 				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH) + 1], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH) - 1);
 
@@ -297,13 +299,13 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 	ut_compare("empty buffer load", empty_load, 0);
 
-	/* FIRST mark the mixer as invalid */
-	/* THEN actually delete it */
+	/* reset, load in chunks */
 	mixer_group.reset();
 	char mixer_text[PX4IO_MAX_MIXER_LENGHT];		/* large enough for one mixer */
-	unsigned mixer_text_length = 0;
 
+	unsigned mixer_text_length = 0;
 	unsigned transmitted = 0;
+	unsigned resid = 0;
 
 	while (transmitted < loaded) {
 
@@ -323,7 +325,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		//fprintf(stderr, "buflen %u, text:\n\"%s\"\n", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
-		unsigned resid = mixer_text_length;
+		resid = mixer_text_length;
 		mixer_group.load_from_buf(&mixer_text[0], resid);
 
 		/* if anything was parsed */
@@ -333,6 +335,8 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
 				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				/* enforce null termination */
+				mixer_text[resid] = '\0';
 			}
 
 			mixer_text_length = resid;
@@ -349,8 +353,10 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		PX4_INFO("chunked load: loaded %u mixers", mixer_group.count());
 	}
 
-	if (expected_count > 0) {
-		ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
+	if (expected_count > 0 && mixer_group.count() != expected_count) {
+		PX4_ERR("Load of mixer failed, last chunk: %s, transmitted: %u, text length: %u, resid: %u", mixer_text, transmitted,
+			mixer_text_length, resid);
+		ut_compare("check number of mixers loaded (chunk)", mixer_group.count(), expected_count);
 	}
 
 	return true;
@@ -595,7 +601,7 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 		return -1;
 	}
 
-	if (control_index > (sizeof(actuator_controls) / sizeof(actuator_controls[0]))) {
+	if (control_index >= (sizeof(actuator_controls) / sizeof(actuator_controls[0]))) {
 		return -1;
 	}
 
