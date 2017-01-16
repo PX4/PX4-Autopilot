@@ -158,7 +158,6 @@ ExternalProject_Add(optical_flow
 	CMAKE_CACHE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${PX4_BINARY_DIR}/install_optical_flow
 	BINARY_DIR ${PX4_BINARY_DIR}/build_optical_flow
 	INSTALL_DIR ${PX4_BINARY_DIR}/install_optical_flow
-	INSTALL_COMMAND "make install"
 	)
 
 # Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
