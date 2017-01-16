@@ -3049,25 +3049,45 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				break;
 			}
 
-			struct {		/** to send mixer parameter indicies and value in the same packet **/
+			struct {		/** to send mixer parameter indices and value in the same packet **/
 				uint16_t mix_index;
 				uint16_t param_index;
-				float param_value;
-			} mix_param_send;
+				union {
+					float 	 value;
+					uint32_t check_val;
+				} param;
+			} mix_param;
 
 			mixer_param_s *param = (mixer_param_s *)arg;
 
+			mix_param.mix_index = param->mix_index;
+			mix_param.param_index = param->param_index;
+			mix_param.param.value = param->value;
 
-			mix_param_send.mix_index = param->mix_index;
-			mix_param_send.param_index = param->param_index;
-			mix_param_send.param_value = param->value;
+			uint32_t check_val = mix_param.param.check_val;
 
-			ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param_send, 4);
+			ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 4);
 
 			if (ret != 0) {
 				ret = -EINVAL;
 				break;
 			}
+
+			ret = io_reg_get(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 4);
+
+			if (ret != 0) {
+				ret = -EINVAL;
+				break;
+			}
+
+			if ((mix_param.mix_index != param->mix_index) ||
+			    (mix_param.param_index != param->param_index) ||
+			    (mix_param.param.check_val != check_val)) {
+				ret = -EINVAL;
+				break;
+			}
+
+			_mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
 
 			ret = 0;
 			break;
