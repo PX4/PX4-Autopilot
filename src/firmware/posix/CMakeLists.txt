@@ -151,6 +151,14 @@ add_custom_target(run_config
 	)
 add_dependencies(run_config px4)
 
+# Add OpticalFlow as an external project
+ExternalProject_Add(optical_flow
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/OpticalFlow/
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
+	INSTALL_COMMAND ""
+	)
+
 # Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
 # NOTE: Changed from targetting sitl_gazebo to packages within the rotors_simulator repo
 # sitl_gazebo had a global CMakeLists.txt which built everything, while
@@ -165,6 +173,8 @@ ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
+# When rotors_simulator_rotors_gazebo_plugins is passed BUILD_OPTICAL_FLOW_PLUGIN=TRUE is depends on the OpticalFlow library.
+add_dependencies(rotors_simulator_rotors_gazebo_plugins optical_flow)
 set_target_properties(rotors_simulator_rotors_gazebo_plugins PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Add rotors_simulator/rotors_gazebo as a "external project" (part of the rotors_simulator repo)
