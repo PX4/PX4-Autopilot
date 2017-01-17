@@ -62,7 +62,7 @@ protected:
 
 	virtual bool _get_landed_state() override;
 
-	bool _get_ground_contact_state();
+	virtual bool  _get_ground_contact_state() override;
 
 	virtual bool _get_freefall_state() override;
 

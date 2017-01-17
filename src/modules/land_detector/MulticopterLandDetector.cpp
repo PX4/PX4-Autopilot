@@ -112,7 +112,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
-	_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f * _params.freefall_trigger_time);
+	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 }
 
 
