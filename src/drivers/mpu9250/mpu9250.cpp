@@ -1424,8 +1424,8 @@ MPU9250::measure()
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
-	/* Return class instance as a surrogate device ID */
-	arb.device_id = _accel_class_instance;
+	/* return device ID */
+	arb.device_id = _device_id.devid;
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
@@ -1460,8 +1460,8 @@ MPU9250::measure()
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
 
-	/* Use class instance as a surrogate hardware ID */
-	grb.device_id = _gyro->_gyro_class_instance;
+	/* return device ID */
+	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
