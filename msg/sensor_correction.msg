@@ -17,6 +17,6 @@ float32[3] accel_scale		# accelerometer XYZ scale factors in the sensor frame
 float32 baro_offset		# barometric pressure offsets in the sensor frame in m/s/s
 float32 baro_scale		# barometric pressure scale factors in the sensor frame
 
-uint8 gyro_select		# gyro uORB index for the voted sensor
-uint8 accel_select		# accelerometer uORB index for the voted sensor
-uint8 baro_select		# barometric pressure uORB index for the voted sensor
+uint8 selected_gyro_instance		# gyro uORB topic instance for the voted sensor
+uint8 selected_accel_instance		# accelerometer uORB topic instance for the voted sensor
+uint8 selected_baro_instance		# barometric pressure uORB topic instance for the voted sensor
