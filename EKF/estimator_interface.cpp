@@ -287,9 +287,10 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_optflow > _min_obs_interval_us) {
-		// check if enough integration time
+		// check if enough integration time and fail if integration time is less than 50%
+		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt;
-		bool delta_time_good = (delta_time >= 0.05f);
+		bool delta_time_good = (delta_time >= 5e-7f * (float)_min_obs_interval_us);
 
 		// check magnitude is within sensor limits
 		float flow_rate_magnitude;
