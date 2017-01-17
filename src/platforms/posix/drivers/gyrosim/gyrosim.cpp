@@ -1107,8 +1107,8 @@ GYROSIM::_measure()
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	/* Return orb instance as a surrogate device ID */
-	arb.device_id = _accel_orb_class_instance;
+	/* fake device ID */
+	arb.device_id = 6789478;
 
 	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
 	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
@@ -1132,8 +1132,8 @@ GYROSIM::_measure()
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
 
-	/* Return orb instance as a surrogate device ID */
-	grb.device_id = _gyro->_gyro_orb_class_instance;
+	/* fake device ID */
+	grb.device_id = 3467548;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
@@ -1312,7 +1312,7 @@ start(enum Rotation rotation)
 fail:
 
 	if (*g_dev_ptr != nullptr) {
-		delete(*g_dev_ptr);
+		delete *g_dev_ptr;
 		*g_dev_ptr = nullptr;
 	}
 
