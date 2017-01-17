@@ -689,15 +689,9 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_report.y_integral = gyro_val_integ(1);
 	gyro_report.z_integral = gyro_val_integ(2);
 
-	/* TODO return unique hardware ID */
-	gyro_report.device_id = 0;
-
 	accel_report.x_integral = accel_val_integ(0);
 	accel_report.y_integral = accel_val_integ(1);
 	accel_report.z_integral = accel_val_integ(2);
-
-	/* TODO return unique hardware ID */
-	accel_report.device_id = 0;
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
