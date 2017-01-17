@@ -1750,6 +1750,16 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp(1) = 0.0f;
 		}
 
+		/* if still or already on ground command a zero XY velocity */
+		if (_vehicle_land_detected.ground_contact) {
+			thrust_sp(0) = 0.0f;
+			thrust_sp(1) = 0.0f;
+			_vel_sp(0) = _vel(0);
+			_vel_sp(1) = _vel(1);
+			_pos_sp(0) = _pos(0);
+			_pos_sp(1) = _pos(1);
+		}
+
 		if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
 			thrust_sp(2) = 0.0f;
 		}
@@ -1818,6 +1828,10 @@ MulticopterPositionControl::control_position(float dt)
 				/* not on ground but with ground contact, stop position and velocity control */
 				thrust_sp(0) = 0.0f;
 				thrust_sp(1) = 0.0f;
+				_vel_sp(0) = _vel(0);
+				_vel_sp(1) = _vel(1);
+				_pos_sp(0) = _pos(0);
+				_pos_sp(1) = _pos(1);
 			}
 
 			/* once we assumed to have reached the ground always cut the thrust.
