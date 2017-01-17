@@ -276,9 +276,7 @@ private:
 	float _baro_offset[SENSOR_COUNT_MAX]; /**< offsets to be added to the raw baro pressure data after scale factor correction */
 	float _baro_scale[SENSOR_COUNT_MAX]; /**< scale factor corrections to be applied to the raw barp pressure data before offsets are added */
 
-	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in Pa */
-
+	static const double	_msl_pressure;	/** average sea-level pressure in kPa */
 };
 
 
