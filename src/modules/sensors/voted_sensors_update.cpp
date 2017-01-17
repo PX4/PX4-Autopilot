@@ -63,6 +63,26 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
 
+	// initialise the corrections
+	memset(&_corrections, 0, sizeof(_corrections));
+
+	for (unsigned i = 0; i < 3; i++) {
+		_corrections.gyro_scale[i] = 1.0f;
+		_corrections.accel_scale[i] = 1.0f;
+
+		for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
+			_accel_scale[j][i] = 1.0f;
+			_gyro_scale[j][i] = 1.0f;
+			_baro_scale[j] = 1.0f;
+		}
+	}
+
+	_corrections.baro_scale = 1.0f;
+
+	memset(&_accel_offset, 0, sizeof(_accel_offset));
+	memset(&_gyro_offset, 0, sizeof(_gyro_offset));
+	memset(&_baro_offset, 0, sizeof(_baro_offset));
+
 	_baro.voter.set_timeout(300000);
 	_mag.voter.set_timeout(300000);
 	_mag.voter.set_equal_value_threshold(1000);
@@ -77,31 +97,7 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 
 	initialize_sensors();
 
-	// get the parameter handles for the gyro temperature compensation parameters
-	sensors_temp_comp::initialize_parameter_handles(_thermal_correction_param_handles);
-
-	// ensure pointer to sensor corrections publiations is defined
-	_sensor_correction_pub = nullptr;
-
-	// initialise the corrections
-	memset(&_corrections, 0, sizeof(_corrections));
-	memset(&_accel_offset, 0, sizeof(_accel_offset));
-	memset(&_gyro_offset, 0, sizeof(_gyro_offset));
-	memset(&_baro_offset, 0, sizeof(_baro_offset));
-
-	for (unsigned i = 0; i < 3; i++) {
-		_corrections.gyro_scale[i] = 1.0f;
-		_corrections.accel_scale[i] = 1.0f;
-		_corrections.baro_scale = 1.0f;
-
-		for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
-			_accel_scale[j][i] = 1.0f;
-			_gyro_scale[j][i] = 1.0f;
-			_baro_scale[j] = 1.0f;
-		}
-	}
-
-	_msl_pressure = 101325.0f;
+	_corrections_changed = true; //make sure to initially publish the corrections topic
 
 	return 0;
 }
@@ -144,15 +140,14 @@ void VotedSensorsUpdate::parameters_update()
 
 	_board_rotation = board_rotation_offset * _board_rotation;
 
+	_temperature_compensation.parameters_update();
+
 	/* set offset parameters to new values */
 	bool failed;
 	char str[30];
 	unsigned mag_count = 0;
 	unsigned gyro_count = 0;
 	unsigned accel_count = 0;
-
-	/* get stored sensor hub temperature compensation parameters */
-	sensors_temp_comp::update_parameters(_thermal_correction_param_handles, _thermal_correction_param);
 
 	/* run through all gyro sensors */
 	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
@@ -165,6 +160,9 @@ void VotedSensorsUpdate::parameters_update()
 		if (!h.isValid()) {
 			continue;
 		}
+
+		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		_temperature_compensation.set_sensor_id_gyro(driver_device_id, s);
 
 		bool config_ok = false;
 
@@ -183,7 +181,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
+			if (device_id == driver_device_id) {
 				struct gyro_calibration_s gscale = {};
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -231,6 +229,9 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
+		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		_temperature_compensation.set_sensor_id_accel(driver_device_id, s);
+
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -248,7 +249,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
+			if (device_id == driver_device_id) {
 				struct accel_calibration_s ascale = {};
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
@@ -303,6 +304,8 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
+		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -325,7 +328,7 @@ void VotedSensorsUpdate::parameters_update()
 			// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == h.ioctl(DEVIOCGDEVICEID, 0)) {
+			if (device_id == driver_device_id) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -417,6 +420,22 @@ void VotedSensorsUpdate::parameters_update()
 			mag_count++;
 		}
 	}
+
+	/* run through all baro sensors */
+	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
+
+		(void)sprintf(str, "%s%u", BARO_BASE_DEVICE_PATH, s);
+
+		DevHandle h;
+		DevMgr::getHandle(str, h);
+
+		if (!h.isValid()) {
+			continue;
+		}
+
+		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		_temperature_compensation.set_sensor_id_baro(driver_device_id, s);
+	}
 }
 
 void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
@@ -456,27 +475,6 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				accel_data = math::Vector<3>(accel_report.x_integral * dt_inv , accel_report.y_integral * dt_inv ,
 							     accel_report.z_integral * dt_inv);
 
-				if (_thermal_correction_param.accel_tc_enable == 1) {
-					// search through the available compensation parameter sets looking for one with a matching sensor ID and corect data if found
-					for (unsigned param_index = 0; param_index < 3; param_index++) {
-						if (accel_report.device_id == _thermal_correction_param.accel_cal_data[param_index].ID) {
-							// get the offsets
-							sensors_temp_comp::calc_thermal_offsets_3D(_thermal_correction_param.accel_cal_data[param_index],
-									accel_report.temperature, _accel_offset[uorb_index]);
-
-							// get the scale factors and correct the data
-							for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-								_accel_scale[uorb_index][axis_index] = _thermal_correction_param.accel_cal_data[param_index].scale[axis_index];
-								accel_data(axis_index) = accel_data(axis_index) * _accel_scale[uorb_index][axis_index] +
-											 _accel_offset[uorb_index][axis_index];
-							}
-
-							break;
-
-						}
-					}
-				}
-
 				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt / 1.e6f;
 
 			} else {
@@ -486,36 +484,20 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
 				accel_data = math::Vector<3>(accel_report.x , accel_report.y , accel_report.z);
 
-				if (_thermal_correction_param.accel_tc_enable == 1) {
-					// search through the available compensation parameter sets looking for one with a matching sensor ID
-					for (unsigned param_index = 0; param_index < 3; param_index++) {
-						if (accel_report.device_id == _thermal_correction_param.accel_cal_data[param_index].ID) {
-							// get the offsets
-							sensors_temp_comp::calc_thermal_offsets_3D(_thermal_correction_param.accel_cal_data[param_index],
-									accel_report.temperature, _accel_offset[uorb_index]);
-
-							// get the scale factors and correct the data
-							for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-								_accel_scale[uorb_index][axis_index] = _thermal_correction_param.accel_cal_data[param_index].scale[axis_index];
-								accel_data(axis_index) = accel_data(axis_index) * _accel_scale[uorb_index][axis_index] +
-											 _accel_offset[uorb_index][axis_index];
-							}
-
-							break;
-
-						}
-					}
-				}
-
 				// handle the cse where this is our first output
 				if (_last_accel_timestamp[uorb_index] == 0) {
 					_last_accel_timestamp[uorb_index] = accel_report.timestamp - 1000;
 				}
 
 				// approximate the  delta time using the difference in accel data time stamps
-				// and write to uORB struct
 				_last_sensor_data[uorb_index].accelerometer_integral_dt =
 					(accel_report.timestamp - _last_accel_timestamp[uorb_index]) / 1.e6f;
+			}
+
+			// handle temperature compensation
+			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
+					_accel_offset[uorb_index], _accel_scale[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -538,8 +520,12 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 	// write the best sensor data to the output variables
 	if (best_index >= 0) {
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
-		_accel.last_best_vote = (uint8_t)best_index;
-		_corrections.selected_accel_instance = (uint8_t)best_index;
+
+		if (best_index != _accel.last_best_vote) {
+			_accel.last_best_vote = (uint8_t)best_index;
+			_corrections.selected_accel_instance = (uint8_t)best_index;
+			_corrections_changed = true;
+		}
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
@@ -586,27 +572,6 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				gyro_rate = math::Vector<3>(gyro_report.x_integral * dt_inv , gyro_report.y_integral * dt_inv ,
 							    gyro_report.z_integral * dt_inv);
 
-				if (_thermal_correction_param.gyro_tc_enable == 1) {
-					// search through the available compensation parameter sets looking for one with a matching sensor ID and correct data if found
-					for (unsigned param_index = 0; param_index < 3; param_index++) {
-						if (gyro_report.device_id == _thermal_correction_param.gyro_cal_data[param_index].ID) {
-							// get the offsets
-							sensors_temp_comp::calc_thermal_offsets_3D(_thermal_correction_param.gyro_cal_data[param_index],
-									gyro_report.temperature, _gyro_offset[uorb_index]);
-
-							// get the sensor scale factors and correct the data
-							for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-								_gyro_scale[uorb_index][axis_index] = _thermal_correction_param.gyro_cal_data[param_index].scale[axis_index];
-								gyro_rate(axis_index) = gyro_rate(axis_index) * _gyro_scale[uorb_index][axis_index] +
-											_gyro_offset[uorb_index][axis_index];
-							}
-
-							break;
-
-						}
-					}
-				}
-
 				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt / 1.e6f;
 
 			} else {
@@ -616,36 +581,20 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
 				gyro_rate = math::Vector<3>(gyro_report.x, gyro_report.y, gyro_report.z);
 
-				if (_thermal_correction_param.gyro_tc_enable == 1) {
-					// search through the available compensation parameter sets looking for one with a matching sensor ID
-					for (unsigned param_index = 0; param_index < 3; param_index++) {
-						if (gyro_report.device_id == _thermal_correction_param.gyro_cal_data[param_index].ID) {
-							// get the offsets
-							sensors_temp_comp::calc_thermal_offsets_3D(_thermal_correction_param.gyro_cal_data[param_index],
-									gyro_report.temperature, _gyro_offset[uorb_index]);
-
-							// get the sensor scale factors and correct the data
-							for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-								_gyro_scale[uorb_index][axis_index] = _thermal_correction_param.gyro_cal_data[param_index].scale[axis_index];
-								gyro_rate(axis_index) = gyro_rate(axis_index) * _gyro_scale[uorb_index][axis_index] +
-											_gyro_offset[uorb_index][axis_index];
-							}
-
-							break;
-
-						}
-					}
-				}
-
 				// handle the case where this is our first output
 				if (_last_sensor_data[uorb_index].timestamp == 0) {
 					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
 				}
 
 				// approximate the  delta time using the difference in gyro data time stamps
-				// and write to uORB struct
 				_last_sensor_data[uorb_index].gyro_integral_dt =
 					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp) / 1.e6f;
+			}
+
+			// handle temperature compensation
+			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
+					_gyro_offset[uorb_index], _gyro_scale[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -669,8 +618,12 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 	if (best_index >= 0) {
 		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 		raw.timestamp = _last_sensor_data[best_index].timestamp;
-		_gyro.last_best_vote = (uint8_t)best_index;
-		_corrections.selected_gyro_instance = (uint8_t)best_index;
+
+		if (_gyro.last_best_vote != best_index) {
+			_gyro.last_best_vote = (uint8_t)best_index;
+			_corrections.selected_gyro_instance = (uint8_t)best_index;
+			_corrections_changed = true;
+		}
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
@@ -746,24 +699,10 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			// Convert from millibar to Pa
 			float corrected_pressure = 100.0f * baro_report.pressure;
 
-			// Apply thermal compensation if available
-			if (_thermal_correction_param.baro_tc_enable == 1) {
-				// search through the available compensation parameter sets looking for one with a matching sensor ID and correct data if found
-				for (unsigned param_index = 0; param_index < 3; param_index++) {
-					if (baro_report.device_id == _thermal_correction_param.baro_cal_data[param_index].ID) {
-						// get the offsets
-						sensors_temp_comp::calc_thermal_offsets_1D(_thermal_correction_param.baro_cal_data[param_index],
-								baro_report.temperature, _baro_offset[uorb_index]);
-
-						// get the sensor scale factors and correct the data
-						// convert pressure reading from millibar to Pa
-						_baro_scale[uorb_index] = _thermal_correction_param.baro_cal_data[param_index].scale;
-						corrected_pressure = corrected_pressure * _baro_scale[uorb_index] + _baro_offset[uorb_index];
-
-						break;
-
-					}
-				}
+			// handle temperature compensation
+			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
+					&_baro_offset[uorb_index], &_baro_scale[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// First publication with data
@@ -793,8 +732,13 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 		if (best_index >= 0) {
 			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
 			_last_best_baro_pressure = _last_baro_pressure[best_index];
-			_baro.last_best_vote = (uint8_t)best_index;
-			_corrections.selected_baro_instance = (uint8_t)best_index;
+
+			if (_baro.last_best_vote != best_index) {
+				_baro.last_best_vote = (uint8_t)best_index;
+				_corrections.selected_baro_instance = (uint8_t)best_index;
+				_corrections_changed = true;
+			}
+
 			_corrections.baro_offset = _baro_offset[best_index];
 			_corrections.baro_scale = _baro_scale[best_index];
 
@@ -980,13 +924,19 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw)
 	mag_poll(raw);
 	baro_poll(raw);
 
-	// publish sensor corrections
-	if (_sensor_correction_pub == nullptr) {
-		_sensor_correction_pub = orb_advertise(ORB_ID(sensor_correction), &_corrections);
+	// publish sensor corrections if necessary
+	if (_corrections_changed) {
+		_corrections.timestamp = hrt_absolute_time();
 
-	} else {
-		orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
+		if (_sensor_correction_pub == nullptr) {
+			_sensor_correction_pub = orb_advertise(ORB_ID(sensor_correction), &_corrections);
 
+		} else {
+			orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
+
+		}
+
+		_corrections_changed = false;
 	}
 }
 
