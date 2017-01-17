@@ -121,13 +121,13 @@ void LandDetector::_cycle()
 
 	bool landDetected = (_state == LandDetectionState::LANDED);
 	bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	bool groundContactDetected = ( _state == LandDetectionState::GROUND_CONTACT);
+	bool groundContactDetected = (_state == LandDetectionState::GROUND_CONTACT);
 
 	// Only publish very first time or when the result has changed.
 	if ((_landDetectedPub == nullptr) ||
 	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.freefall != freefallDetected) ||
-		(_landDetected.ground_contact != groundContactDetected)) {
+	    (_landDetected.ground_contact != groundContactDetected)) {
 
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.landed = (_state == LandDetectionState::LANDED);
@@ -186,7 +186,7 @@ void LandDetector::_update_state()
 		/* need to set ground_contact_state to false */
 		_ground_contact_hysteresis.set_state_and_update(false);
 
-	} else if (_ground_contact_hysteresis.get_state()){
+	} else if (_ground_contact_hysteresis.get_state()) {
 		_state = LandDetectionState::GROUND_CONTACT;
 
 	} else {
