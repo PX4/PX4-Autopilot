@@ -536,6 +536,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_ts_opt_recovery = new TailsitterRecovery();
 	}
 
+	/* initialize _corrections to identity as we might not immediately get a topic update */
+	for (unsigned i = 0; i < 3; i++) {
+		_sensor_correction.gyro_scale[i] = 1.0f;
+		_sensor_correction.accel_scale[i] = 1.0f;
+	}
+
+	_sensor_correction.baro_scale = 1.0f;
+
 
 }
 
