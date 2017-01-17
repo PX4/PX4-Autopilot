@@ -744,7 +744,7 @@ LPS25H::collect()
 	new_report.altitude = alt;
 
 	/* TODO get device ID for sensor */
-	new_report.device_id = 0;
+	new_report.device_id = _device_id;
 
 	if (!(_pub_blocked)) {
 
