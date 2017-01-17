@@ -136,7 +136,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
 }
 
-bool MulticopterLandDetector::_get_landed_state()
+bool MulticopterLandDetector::_get_ground_contact_state()
 {
 	// Time base for this function
 	const uint64_t now = hrt_absolute_time();
@@ -217,6 +217,23 @@ bool MulticopterLandDetector::_get_landed_state()
 	// an accurate in-air indication.
 	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
 
+	if (!minimalThrust || verticalMovement) {
+		return false;
+	}
+
+	return true;
+}
+
+bool MulticopterLandDetector::_get_landed_state()
+{
+	float armThresholdFactor = 1.0f;
+
+	// Widen acceptance thresholds for landed state right after arming
+	// so that motor spool-up and other effects do not trigger false negatives.
+	if (hrt_elapsed_time(&_arming_time) < LAND_DETECTOR_ARM_PHASE_TIME_US) {
+		armThresholdFactor = 2.5f;
+	}
+
 	// Check if we are moving horizontally.
 	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
 					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
@@ -229,7 +246,7 @@ bool MulticopterLandDetector::_get_landed_state()
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
 
-	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
+	if (!_get_ground_contact_state() || rotating || horizontalMovement) {
 		// Sensed movement or thottle high, so reset the land detector.
 		return false;
 	}
