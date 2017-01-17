@@ -2031,7 +2031,7 @@ MPU6000::measure()
 	arb.temperature = _last_temperature;
 
 	/* return device ID */
-	arb.device_id = _device_id;
+	arb.device_id = _device_id.devid;
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
@@ -2067,7 +2067,7 @@ MPU6000::measure()
 	grb.temperature = _last_temperature;
 
 	/* return device ID */
-	grb.device_id = _gyro->_device_id;
+	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
