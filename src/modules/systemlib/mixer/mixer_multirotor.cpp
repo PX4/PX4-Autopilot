@@ -691,18 +691,4 @@ MultirotorMixer::set_parameter(uint16_t index, float value)
 	return 0;
 }
 
-uint32_t
-MultirotorMixer::calc_checksum(void)
-{
-	uint32_t sum = 0;
-	const uint8_t *pgeom = (uint8_t *) &_geometry;
-
-	sum = crc32(pgeom, sizeof(uint8_t));
-	sum = crc32part((uint8_t *) &_roll_scale, sizeof(_roll_scale), sum);
-	sum = crc32part((uint8_t *) &_pitch_scale, sizeof(_pitch_scale), sum);
-	sum = crc32part((uint8_t *) &_yaw_scale, sizeof(_yaw_scale), sum);
-	sum = crc32part((uint8_t *) &_idle_speed, sizeof(_idle_speed), sum);
-
-	return sum;
-}
 #endif //defined(MIXER_CONFIGURATION)

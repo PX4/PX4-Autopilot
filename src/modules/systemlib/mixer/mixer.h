@@ -596,7 +596,6 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
-	uint32_t                calc_checksum(void);
 #endif //defined(MIXER_CONFIGURATION)
 
 	/**
@@ -760,7 +759,6 @@ public:
 	MIXER_TYPES             get_mixer_type(void);
 	float                   get_parameter(uint16_t index);
 	int16_t                 set_parameter(uint16_t index, float value);
-	uint32_t                calc_checksum(void);
 #endif //defined(MIXER_CONFIGURATION)
 
 private:
