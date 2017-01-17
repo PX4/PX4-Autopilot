@@ -438,6 +438,8 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				_accel.priority[uorb_index] = (uint8_t)priority;
 			}
 
+			math::Vector<3> accel_data;
+
 			if (accel_report.integral_dt != 0) {
 				/*
 				 * Using data that has been integrated in the driver before downsampling is preferred
@@ -448,8 +450,8 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// convert the delta velocities to an equivalent acceleration before application of corrections
 				float dt_inv = 1.e6f / accel_report.integral_dt;
-				math::Vector<3> accel_data(accel_report.x_integral * dt_inv , accel_report.y_integral * dt_inv ,
-							   accel_report.z_integral * dt_inv);
+				accel_data = math::Vector<3>(accel_report.x_integral * dt_inv , accel_report.y_integral * dt_inv ,
+							     accel_report.z_integral * dt_inv);
 
 				if (_thermal_correction_param.accel_tc_enable == 1) {
 					// search through the available compensation parameter sets looking for one with a matching sensor ID and corect data if found
@@ -472,21 +474,14 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 					}
 				}
 
-				// rotate corrected measurements from sensor to body frame
-				accel_data = _board_rotation * accel_data;
-
-				// write corrected data to uORB struct
 				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt / 1.e6f;
-				_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
-				_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
-				_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
 
 			} else {
 				// using the value instead of the integral (the integral is the prefered choice)
 
 				// Correct each sensor for temperature effects
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				math::Vector<3> accel_data(accel_report.x , accel_report.y , accel_report.z);
+				accel_data = math::Vector<3>(accel_report.x , accel_report.y , accel_report.z);
 
 				if (_thermal_correction_param.accel_tc_enable == 1) {
 					// search through the available compensation parameter sets looking for one with a matching sensor ID
@@ -509,9 +504,6 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 					}
 				}
 
-				// rotate corrected measurements from sensor to body frame
-				accel_data = _board_rotation * accel_data;
-
 				// handle the cse where this is our first output
 				if (_last_accel_timestamp[uorb_index] == 0) {
 					_last_accel_timestamp[uorb_index] = accel_report.timestamp - 1000;
@@ -521,12 +513,14 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				// and write to uORB struct
 				_last_sensor_data[uorb_index].accelerometer_integral_dt =
 					(accel_report.timestamp - _last_accel_timestamp[uorb_index]) / 1.e6f;
-
-				// write corrected body frame acceleration to uORB struct
-				_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
-				_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
-				_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
 			}
+
+			// rotate corrected measurements from sensor to body frame
+			accel_data = _board_rotation * accel_data;
+
+			_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
+			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
+			_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
 
 			_last_accel_timestamp[uorb_index] = accel_report.timestamp;
 			_accel.voter.put(uorb_index, accel_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
@@ -574,6 +568,8 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				_gyro.priority[uorb_index] = (uint8_t)priority;
 			}
 
+			math::Vector<3> gyro_rate;
+
 			if (gyro_report.integral_dt != 0) {
 				/*
 				 * Using data that has been integrated in the driver before downsampling is preferred
@@ -584,8 +580,8 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 				// convert the delta angles to an equivalent angular rate before application of corrections
 				float dt_inv = 1.e6f / gyro_report.integral_dt;
-				math::Vector<3> gyro_rate(gyro_report.x_integral * dt_inv , gyro_report.y_integral * dt_inv ,
-							  gyro_report.z_integral * dt_inv);
+				gyro_rate = math::Vector<3>(gyro_report.x_integral * dt_inv , gyro_report.y_integral * dt_inv ,
+							    gyro_report.z_integral * dt_inv);
 
 				if (_thermal_correction_param.gyro_tc_enable == 1) {
 					// search through the available compensation parameter sets looking for one with a matching sensor ID and correct data if found
@@ -608,21 +604,14 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 					}
 				}
 
-				// rotate corrected measurements from sensor to body frame
-				gyro_rate = _board_rotation * gyro_rate;
-
-				// write to uORB struct
 				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt / 1.e6f;
-				_last_sensor_data[uorb_index].gyro_rad[0] = gyro_rate(0);
-				_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
-				_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 
 			} else {
 				//using the value instead of the integral (the integral is the prefered choice)
 
 				// Correct each sensor for temperature effects
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				math::Vector<3> gyro_rate(gyro_report.x, gyro_report.y, gyro_report.z);
+				gyro_rate = math::Vector<3>(gyro_report.x, gyro_report.y, gyro_report.z);
 
 				if (_thermal_correction_param.gyro_tc_enable == 1) {
 					// search through the available compensation parameter sets looking for one with a matching sensor ID
@@ -645,9 +634,6 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 					}
 				}
 
-				// rotate corrected measurements from sensor to body frame
-				gyro_rate = _board_rotation * gyro_rate;
-
 				// handle the case where this is our first output
 				if (_last_sensor_data[uorb_index].timestamp == 0) {
 					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
@@ -657,12 +643,14 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				// and write to uORB struct
 				_last_sensor_data[uorb_index].gyro_integral_dt =
 					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp) / 1.e6f;
-
-				// write corrected body frame rates to uORB struct
-				_last_sensor_data[uorb_index].gyro_rad[0] = gyro_rate(0);
-				_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
-				_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 			}
+
+			// rotate corrected measurements from sensor to body frame
+			gyro_rate = _board_rotation * gyro_rate;
+
+			_last_sensor_data[uorb_index].gyro_rad[0] = gyro_rate(0);
+			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
+			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 
 			_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp;
 			_gyro.voter.put(uorb_index, gyro_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
