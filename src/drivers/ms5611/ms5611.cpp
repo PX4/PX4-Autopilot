@@ -762,8 +762,8 @@ MS5611::collect()
 		report.temperature = _TEMP / 100.0f;
 		report.pressure = P / 100.0f;		/* convert to millibar */
 
-		/* TODO get device ID for sensor */
-		report.device_id = 0;
+		/* return device ID */
+		report.device_id = _device_id;
 
 		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
