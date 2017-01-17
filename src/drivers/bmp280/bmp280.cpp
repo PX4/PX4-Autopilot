@@ -544,7 +544,7 @@ BMP280::collect()
 	report.pressure = _P / 100.0f; // to mbar
 
 	/* TODO get device ID for sensor */
-	report.device_id = 0;
+	report.device_id = _device_id;
 
 	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
@@ -618,16 +618,16 @@ struct bmp280_bus_option {
 	BMP280 *dev;
 } bus_options[] = {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO , true , NULL },
+	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false , NULL },
+	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
 #endif
 #ifdef PX4_I2C_OBDEV_BMP280
 	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", nullptr, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_EXT_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280 , true , NULL },
+	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280, true, NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
