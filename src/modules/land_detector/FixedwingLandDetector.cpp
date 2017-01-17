@@ -97,7 +97,8 @@ bool FixedwingLandDetector::_get_freefall_state()
 	// TODO
 	return false;
 }
-bool FixedwingLandDetector::_get_ground_contact_state(){
+bool FixedwingLandDetector::_get_ground_contact_state()
+{
 
 	// TODO
 	return false;
