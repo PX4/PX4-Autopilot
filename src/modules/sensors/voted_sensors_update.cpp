@@ -542,7 +542,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 	if (best_index >= 0) {
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 		_accel.last_best_vote = (uint8_t)best_index;
-		_corrections.accel_select = (uint8_t)best_index;
+		_corrections.selected_accel_instance = (uint8_t)best_index;
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
@@ -679,7 +679,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 		raw.timestamp = _last_sensor_data[best_index].timestamp;
 		_gyro.last_best_vote = (uint8_t)best_index;
-		_corrections.gyro_select = (uint8_t)best_index;
+		_corrections.selected_gyro_instance = (uint8_t)best_index;
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
@@ -803,7 +803,7 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			raw.baro_temp_celcius = _last_sensor_data[best_index].baro_temp_celcius;
 			_last_best_baro_pressure = _last_baro_pressure[best_index];
 			_baro.last_best_vote = (uint8_t)best_index;
-			_corrections.baro_select = (uint8_t)best_index;
+			_corrections.selected_baro_instance = (uint8_t)best_index;
 			_corrections.baro_offset = _baro_offset[best_index];
 			_corrections.baro_scale = _baro_scale[best_index];
 

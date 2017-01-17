@@ -828,8 +828,8 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	}
 
 	/* update the latest gyro selection */
-	if (_sensor_correction.gyro_select <= sizeof(_sensor_gyro_sub) / sizeof(_sensor_gyro_sub[0])) {
-		_selected_gyro = _sensor_correction.gyro_select;
+	if (_sensor_correction.selected_gyro_instance <= sizeof(_sensor_gyro_sub) / sizeof(_sensor_gyro_sub[0])) {
+		_selected_gyro = _sensor_correction.selected_gyro_instance;
 	}
 }
 
