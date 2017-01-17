@@ -498,7 +498,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 							// get the scale factors and correct the data
 							for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-								_accel_scale[uorb_index][axis_index] = _thermal_correction_param.gyro_cal_data[param_index].scale[axis_index];
+								_accel_scale[uorb_index][axis_index] = _thermal_correction_param.accel_cal_data[param_index].scale[axis_index];
 								accel_data(axis_index) = accel_data(axis_index) * _accel_scale[uorb_index][axis_index] +
 											 _accel_offset[uorb_index][axis_index];
 							}
