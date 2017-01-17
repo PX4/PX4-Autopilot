@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -828,7 +828,9 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	}
 
 	/* update the latest gyro selection */
-	_selected_gyro = _sensor_correction.gyro_select;
+	if (_sensor_correction.gyro_select <= sizeof(_sensor_gyro_sub) / sizeof(_sensor_gyro_sub[0])) {
+		_selected_gyro = _sensor_correction.gyro_select;
+	}
 }
 
 /**
@@ -985,7 +987,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	// get the raw gyro data and correct for thermal errors
 	math::Vector<3> rates(_sensor_gyro.x * _sensor_correction.gyro_scale[0] + _sensor_correction.gyro_offset[0],
-			      _sensor_gyro.y * _sensor_correction.gyro_scale[1] + _sensor_correction.gyro_offset[1] ,
+			      _sensor_gyro.y * _sensor_correction.gyro_scale[1] + _sensor_correction.gyro_offset[1],
 			      _sensor_gyro.z * _sensor_correction.gyro_scale[2] + _sensor_correction.gyro_offset[2]);
 
 	// rotate corrected measurements from sensor to body frame
