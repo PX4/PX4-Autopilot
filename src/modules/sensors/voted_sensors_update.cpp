@@ -50,6 +50,9 @@
 using namespace sensors;
 using namespace DriverFramework;
 
+
+const double VotedSensorsUpdate::_msl_pressure = 101.325f;
+
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 	: _parameters(parameters)
 {
@@ -816,10 +819,10 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			const double R  = 287.05;	/* ideal gas constant in J/kg/K */
 
 			/* current pressure at MSL in kPa */
-			double p1 = _msl_pressure / 1000.0;
+			const double p1 = _msl_pressure;
 
 			/* measured pressure in kPa */
-			double p = 0.001f * _last_best_baro_pressure;
+			const double p = 0.001f * _last_best_baro_pressure;
 
 			/*
 			 * Solve:
