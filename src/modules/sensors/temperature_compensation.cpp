@@ -52,8 +52,7 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	char nbuf[16];
 
 	/* rate gyro calibration parameters */
-	sprintf(nbuf, "TC_G_ENABLE");
-	parameter_handles.gyro_tc_enable = param_find(nbuf);
+	parameter_handles.gyro_tc_enable = param_find("TC_G_ENABLE");
 
 	for (unsigned j = 0; j < 3; j++) {
 		sprintf(nbuf, "TC_G%d_ID", j);
@@ -81,8 +80,7 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	}
 
 	/* accelerometer calibration parameters */
-	sprintf(nbuf, "TC_A_ENABLE");
-	parameter_handles.accel_tc_enable = param_find(nbuf);
+	parameter_handles.accel_tc_enable = param_find("TC_A_ENABLE");
 
 	for (unsigned j = 0; j < 3; j++) {
 		sprintf(nbuf, "TC_A%d_ID", j);
@@ -110,8 +108,7 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	}
 
 	/* barometer calibration parameters */
-	sprintf(nbuf, "TC_B_ENABLE");
-	parameter_handles.baro_tc_enable = param_find(nbuf);
+	parameter_handles.baro_tc_enable = param_find("TC_B_ENABLE");
 
 	for (unsigned j = 0; j < 3; j++) {
 		sprintf(nbuf, "TC_B%d_ID", j);
