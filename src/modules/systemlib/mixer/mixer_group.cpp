@@ -50,7 +50,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <crc32.h>
 
 #include "mixer.h"
 
@@ -85,6 +84,7 @@ MixerGroup::add_mixer(Mixer *mixer)
 	mixer->_next = nullptr;
 }
 
+#if defined(MIXER_CONFIGURATION)
 void
 MixerGroup::add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo)
 {
@@ -112,6 +112,7 @@ MixerGroup::add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo)
 	}
 
 }
+#endif //MIXER_CONFIGURATION
 
 void
 MixerGroup::reset()

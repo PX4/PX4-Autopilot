@@ -397,6 +397,7 @@ public:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
+#if defined(MIXER_CONFIGURATION)
 	/**
 	 * @brief      Creates and adds a mixer based on type and mixer information
 	 *
@@ -404,6 +405,7 @@ public:
 	 * @param[in]  mixinfo      mixer information in structure according to mixer type.
 	 */
 	void            add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo);
+#endif //defined(MIXER_CONFIGURATION)
 
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer

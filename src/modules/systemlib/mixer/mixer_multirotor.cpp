@@ -50,7 +50,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <math.h>
-#include <crc32.h>
 
 #include <px4iofirmware/protocol.h>
 #include <drivers/drv_pwm_output.h>
