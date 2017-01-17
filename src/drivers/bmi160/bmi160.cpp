@@ -1289,7 +1289,7 @@ BMI160::measure()
 	arb.temperature = _last_temperature;
 
 	/* Return class instance as a surrogate device ID */
-	arb.device_id = _accel_class_instance;
+	arb.device_id = _device_id;
 
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
