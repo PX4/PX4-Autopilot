@@ -1076,7 +1076,7 @@ L3GD20::measure()
 	report.range_rad_s = _gyro_range_rad_s;
 
 	/* return device ID */
-	report.device_id = _device_id;
+	report.device_id = _device_id.devid;
 
 	_reports->force(&report);
 

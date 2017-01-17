@@ -763,7 +763,7 @@ MS5611::collect()
 		report.pressure = P / 100.0f;		/* convert to millibar */
 
 		/* return device ID */
-		report.device_id = _device_id;
+		report.device_id = _device_id.devid;
 
 		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
