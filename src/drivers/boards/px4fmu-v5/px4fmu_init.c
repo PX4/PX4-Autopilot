@@ -339,7 +339,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-#if defined(CONFIG_STM32_BBSRAM)
+#if defined(CONFIG_STM32F7_BBSRAM)
 
 	/* NB. the use of the console requires the hrt running
 	 * to poll the DMA
@@ -347,11 +347,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Using Battery Backed Up SRAM */
 
-	int filesizes[CONFIG_STM32_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
+	int filesizes[CONFIG_STM32F7_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
 
 	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
-#if defined(CONFIG_STM32_SAVE_CRASHDUMP)
+#if defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 
 	/* Panic Logging in Battery Backed Up Files */
 
@@ -468,8 +468,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		} // inner if
 	} // outer if
 
-#endif // CONFIG_STM32_SAVE_CRASHDUMP
-#endif // CONFIG_STM32_BBSRAM
+#endif // CONFIG_STM32F7_SAVE_CRASHDUMP
+#endif // CONFIG_STM32F7_BBSRAM
 
 	/* initial LED state */
 	drv_led_start();
