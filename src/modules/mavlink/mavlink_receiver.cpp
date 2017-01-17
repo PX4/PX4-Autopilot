@@ -1802,8 +1802,8 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		baro.altitude = imu.pressure_alt;
 		baro.temperature = imu.temperature;
 
-		/* TODO get device ID for sensor */
-		baro.device_id = 0;
+		/* fake device ID */
+		baro.device_id = 1234567;
 
 		if (_baro_pub == nullptr) {
 			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
