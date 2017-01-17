@@ -71,6 +71,11 @@ void VtolLandDetector::_update_topics()
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
 }
 
+bool VtolLandDetector::_get_ground_contact_state()
+{
+	return MulticopterLandDetector::_get_ground_contact_state();
+}
+
 bool VtolLandDetector::_get_landed_state()
 {
 	// this is returned from the mutlicopter land detector
