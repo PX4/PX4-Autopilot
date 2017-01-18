@@ -40,6 +40,8 @@
 #ifndef _DRV_GPIO_H
 #define _DRV_GPIO_H
 
+#include <px4_config.h>
+
 #include <sys/ioctl.h>
 
 /**
