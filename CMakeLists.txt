@@ -333,8 +333,8 @@ px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gtest PATH "unittests/gtest")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
-px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 #px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
+# TODO: Rename this from git_gazebo to git_rotors_simulator to follow convention?
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/rotors_simulator")
 px4_add_git_submodule(TARGET git_optical_flow PATH "Tools/OpticalFlow") # OpticalFlow is a dependency of the OpticalFlow plugin in rotors_simulator
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")

@@ -146,6 +146,7 @@ function(px4_add_git_submodule)
 		COMMAND touch ${PX4_BINARY_DIR}/git_init_${NAME}.stamp
 		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules
 		)
+	message(STATUS "Creating custom target with target name = ${TARGET}.")
 	add_custom_target(${TARGET}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 # todo:Not have 2 list of submodules one (see the end of Tools/check_submodules.sh and Firmware/CMakeLists.txt)
