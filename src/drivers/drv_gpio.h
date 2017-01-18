@@ -42,6 +42,12 @@
 
 #include <sys/ioctl.h>
 
+/**
+ * Device paths for devices that support the GPIO ioctl protocol.
+ */
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+#define PX4IO_DEVICE_PATH	"/dev/px4io"
+
 #ifdef CONFIG_ARCH_BOARD_AUAV_X21
 /*
  * PX4FMUv2 GPIO numbers.
