@@ -51,8 +51,6 @@ fi
 
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 # If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
 if [ "$#" != "0" ];
 then
