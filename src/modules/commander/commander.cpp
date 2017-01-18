@@ -3249,12 +3249,9 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
-	// XXX this should not be necessary any more, we should be able to
-	// just delete this and respond to mode switches
-	/* if offboard is set already by a mavlink command, abort */
-	if (status_flags.offboard_control_set_by_command) {
-		return main_state_transition(status_local, commander_state_s::MAIN_STATE_OFFBOARD, main_state_prev, &status_flags, &internal_state);
-	}
+	// Note: even if status_flags.offboard_control_set_by_command is set 
+	// we want to allow rc mode change to take precidence.  This is a safety
+	// feature, just in case offboard control goes crazy.
 
 	/* manual setpoint has not updated, do not re-evaluate it */
 	if (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
