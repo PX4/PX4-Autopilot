@@ -268,15 +268,16 @@ private:
 		uint32_t	alt;
 	};
 
+#if defined(BOARD_HAS_FMU_GPIO)
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
-
-	void		gpio_reset(void);
+#endif
 	void		sensor_reset(int ms);
 	void		peripheral_reset(int ms);
-	void		gpio_set_function(uint32_t gpios, int function);
-	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read(void);
+	int		gpio_reset(void);
+	int		gpio_set_function(uint32_t gpios, int function);
+	int		gpio_write(uint32_t gpios, int function);
+	int		gpio_read(uint32_t *value);
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
@@ -296,9 +297,11 @@ private:
 	void flash_safety_button(void);
 };
 
+#if defined(BOARD_HAS_FMU_GPIO)
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] =	BOARD_FMU_GPIO_TAB;
 
 const unsigned		PX4FMU::_ngpio = arraySize(PX4FMU::_gpio_tab);
+#endif
 pwm_limit_t		PX4FMU::_pwm_limit;
 actuator_armed_s	PX4FMU::_armed = {};
 
@@ -2434,9 +2437,13 @@ PX4FMU::peripheral_reset(int ms)
 	board_peripheral_reset(ms);
 }
 
-void
+int
 PX4FMU::gpio_reset(void)
 {
+#if !defined(BOARD_HAS_FMU_GPIO)
+	return -EINVAL;
+#else
+
 	/*
 	 * Setup default GPIO config - all pins as GPIOs, input if
 	 * possible otherwise output if possible.
@@ -2450,23 +2457,28 @@ PX4FMU::gpio_reset(void)
 		}
 	}
 
-#if defined(GPIO_GPIO_DIR)
+#  if defined(GPIO_GPIO_DIR)
 	/* if we have a GPIO direction control, set it to zero (input) */
 	px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
 	px4_arch_configgpio(GPIO_GPIO_DIR);
-#endif
+#  endif
+	return OK;
+#endif // !defined(BOARD_HAS_FMU_GPIO)
 }
 
-void
+int
 PX4FMU::gpio_set_function(uint32_t gpios, int function)
 {
-#if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
+#if !defined(BOARD_HAS_FMU_GPIO)
+	return -EINVAL;
+#else
+#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
 
 	/*
 	 * GPIOs 0 and 1 must have the same direction as they are buffered
 	 * by a shared 2-port driver.  Any attempt to set either sets both.
 	 */
-	if (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS) {
+	if ((gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
 		gpios |= BOARD_GPIO_SHARED_BUFFERED_BITS;
 
 		/* flip the buffer to output mode if required */
@@ -2477,7 +2489,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
-#endif
+#  endif
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
@@ -2521,40 +2533,56 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
-#if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
+#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
 
 	/* flip buffer to input mode if required */
 	if ((GPIO_SET_INPUT == function) && (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
 		px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
 	}
 
-#endif
+#  endif
+	return OK;
+#endif // !defined(BOARD_HAS_FMU_GPIO)
+
 }
 
-void
+int
 PX4FMU::gpio_write(uint32_t gpios, int function)
 {
+#if !defined(BOARD_HAS_FMU_GPIO)
+	return -EINVAL;
+#else
 	int value = (function == GPIO_SET) ? 1 : 0;
 
-	for (unsigned i = 0; i < _ngpio; i++)
+	for (unsigned i = 0; i < _ngpio; i++) {
 		if (gpios & (1 << i)) {
 			if (_gpio_tab[i].output) {
 				px4_arch_gpiowrite(_gpio_tab[i].output, value);
 			}
 		}
+	}
+
+	return OK;
+#endif
 }
 
-uint32_t
-PX4FMU::gpio_read(void)
+int
+PX4FMU::gpio_read(uint32_t *value)
 {
+#if !defined(BOARD_HAS_FMU_GPIO)
+	return -EINVAL;
+#else
 	uint32_t bits = 0;
 
-	for (unsigned i = 0; i < _ngpio; i++)
+	for (unsigned i = 0; i < _ngpio; i++) {
 		if (_gpio_tab[i].input != 0 && px4_arch_gpioread(_gpio_tab[i].input)) {
 			bits |= (1 << i);
 		}
+	}
 
-	return bits;
+	*value = bits;
+	return OK;
+#endif
 }
 
 int
@@ -2696,7 +2724,7 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case GPIO_RESET:
-		gpio_reset();
+		ret = gpio_reset();
 		break;
 
 	case GPIO_SENSOR_RAIL_RESET:
@@ -2712,11 +2740,7 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GPIO_SET_OUTPUT_HIGH:
 	case GPIO_SET_INPUT:
 	case GPIO_SET_ALT_1:
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-		ret = -EINVAL;
-#else
-		gpio_set_function(arg, cmd);
-#endif
+		ret = gpio_set_function(arg, cmd);
 		break;
 
 	case GPIO_SET_ALT_2:
@@ -2727,19 +2751,11 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GPIO_SET:
 	case GPIO_CLEAR:
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-		ret = -EINVAL;
-#else
-		gpio_write(arg, cmd);
-#endif
+		ret = gpio_write(arg, cmd);
 		break;
 
 	case GPIO_GET:
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-		ret = -EINVAL;
-#else
-		*(uint32_t *)arg = gpio_read();
-#endif
+		ret = gpio_read((uint32_t *)arg);
 		break;
 
 	default:

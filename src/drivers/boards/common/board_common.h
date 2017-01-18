@@ -132,6 +132,23 @@
 #  define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
 
+
+/* Conditional use of FMU GPIO
+ * If the board use the PX4FMU driver and the board provides
+ * BOARD_FMU_GPIO_TAB then we publish the logical BOARD_HAS_FMU_GPIO
+ */
+#if defined(BOARD_FMU_GPIO_TAB)
+#  define BOARD_HAS_FMU_GPIO
+#endif
+
+/* Conditional use of PX4 PIO is Used to determine if the board
+ * has a PX4PIO processor.
+ * We then publish the logical BOARD_USES_PX4PIO
+ */
+#if defined(PX4IO_SERIAL_DEVICE)
+#  define BOARD_USES_PX4PIO	1
+#endif
+
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
