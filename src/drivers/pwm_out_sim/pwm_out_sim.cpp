@@ -79,6 +79,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <systemlib/err.h>
 
@@ -121,6 +122,7 @@ private:
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
+	int		_param_sub;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -191,6 +193,7 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
+	_param_sub(-1),
 	_outputs_pub(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -386,6 +389,7 @@ PWMSim::task_main()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs = {};
@@ -548,7 +552,48 @@ PWMSim::task_main()
 			_failsafe = aa.force_failsafe;
 			_lockdown = aa.lockdown || aa.manual_lockdown;
 		}
+
+#if defined(MIXER_CONFIGURATION)
+		/* mixer parameters update? */
+		orb_check(_param_sub, &updated);
+
+		if (updated) {
+			int32_t mixer_group;
+			param_get(param_find("MIX_GROUP"), &mixer_group);
+
+			if (mixer_group == 0) {
+				int32_t mixer_action;
+				param_get(param_find("MIX_PARAM_ACTION"), &mixer_action);
+
+				if (mixer_action != -1) {
+					int32_t mixer_index;
+					int32_t mixer_param_index;
+					float mixer_param;
+					param_get(param_find("MIX_INDEX"), &mixer_index);
+					param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
+
+					if ((mixer_index != -1) && (mixer_param_index != -1)) {
+						switch (mixer_action) {
+						case 0:
+							param_get(param_find("MIX_PARAMETER"), &mixer_param);
+							_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param);
+							break;
+
+						case 1:
+							mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index);
+							param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
+							break;
+						}
+
+						mixer_action = -1;
+						param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);
+					}
+				}
+			}
+		}
 	}
+
+#endif //MIXER_CONFIGURATION
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] >= 0) {
