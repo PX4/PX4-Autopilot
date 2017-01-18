@@ -334,7 +334,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
-				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				memmove(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
 				/* enforce null termination */
 				mixer_text[resid] = '\0';
 			}
