@@ -2484,19 +2484,31 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (gpios & (1 << i)) {
 			switch (function) {
 			case GPIO_SET_INPUT:
-				px4_arch_configgpio(_gpio_tab[i].input);
+				if (_gpio_tab[i].input) {
+					px4_arch_configgpio(_gpio_tab[i].input);
+				}
+
 				break;
 
 			case GPIO_SET_OUTPUT:
-				px4_arch_configgpio(_gpio_tab[i].output);
+				if (_gpio_tab[i].output) {
+					px4_arch_configgpio(_gpio_tab[i].output);
+				}
+
 				break;
 
 			case GPIO_SET_OUTPUT_LOW:
-				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
+				if (_gpio_tab[i].output) {
+					px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_SET)) | GPIO_OUTPUT_CLEAR);
+				}
+
 				break;
 
 			case GPIO_SET_OUTPUT_HIGH:
-				px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
+				if (_gpio_tab[i].output) {
+					px4_arch_configgpio((_gpio_tab[i].output & ~(GPIO_OUTPUT_CLEAR)) | GPIO_OUTPUT_SET);
+				}
+
 				break;
 
 			case GPIO_SET_ALT_1:
@@ -2526,7 +2538,9 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 
 	for (unsigned i = 0; i < _ngpio; i++)
 		if (gpios & (1 << i)) {
-			px4_arch_gpiowrite(_gpio_tab[i].output, value);
+			if (_gpio_tab[i].output) {
+				px4_arch_gpiowrite(_gpio_tab[i].output, value);
+			}
 		}
 }
 
@@ -2536,7 +2550,7 @@ PX4FMU::gpio_read(void)
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (px4_arch_gpioread(_gpio_tab[i].input)) {
+		if (_gpio_tab[i].input != 0 && px4_arch_gpioread(_gpio_tab[i].input)) {
 			bits |= (1 << i);
 		}
 
