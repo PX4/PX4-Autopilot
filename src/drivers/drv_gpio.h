@@ -50,30 +50,6 @@
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 #define PX4IO_DEVICE_PATH	"/dev/px4io"
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-/*
- * PX4FMU GPIO numbers.
- *
- * For shared pins, alternate function 1 selects the non-GPIO mode
- * (USART2, CAN2, etc.)
- */
-# define GPIO_EXT_1		(1<<0)		/**< high-power GPIO 1 */
-# define GPIO_EXT_2		(1<<1)		/**< high-power GPIO 1 */
-# define GPIO_MULTI_1		(1<<2)		/**< USART2 CTS */
-# define GPIO_MULTI_2		(1<<3)		/**< USART2 RTS */
-# define GPIO_MULTI_3		(1<<4)		/**< USART2 TX */
-# define GPIO_MULTI_4		(1<<5)		/**< USART2 RX */
-# define GPIO_CAN_TX		(1<<6)		/**< CAN2 TX */
-# define GPIO_CAN_RX		(1<<7)		/**< CAN2 RX */
-
-/**
- * Device paths for things that support the GPIO ioctl protocol.
- */
-# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-# define PX4IO_DEVICE_PATH	"/dev/px4io"
-
-#endif
-
 #if  defined(CONFIG_ARCH_BOARD_MINDPX_V2)
 /*
  * MindPXv2 GPIO numbers.
@@ -167,7 +143,6 @@
 	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)            && \
 	!defined(CONFIG_ARCH_BOARD_MINDPX_V2)            && \
 	!defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
-	!defined(CONFIG_ARCH_BOARD_PX4FMU_V1)            && \
 	!defined(CONFIG_ARCH_BOARD_PX4IO_V1)             && \
 	!defined(CONFIG_ARCH_BOARD_PX4IO_V2)             && \
 	!defined(CONFIG_ARCH_BOARD_SITL)                 && \
