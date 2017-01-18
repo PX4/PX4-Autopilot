@@ -1,4 +1,4 @@
-
+message(STATUS "sitl_target.cmake called.")
 function(px4_add_sitl_app)
 px4_parse_function_args(
 			NAME px4_add_sitl_app
@@ -154,7 +154,7 @@ foreach(viewer ${viewers})
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
-				add_dependencies(${_targ_name} rotors_simulator_rotors_gazebo)
+				add_dependencies(${_targ_name} rotors_simulator_rotors_gazebo rotors_simulator_rotors_gazebo_plugins)
 				if (viewer STREQUAL "gazebo")
 					add_dependencies(${_targ_name} px4_${model})
 				endif()
