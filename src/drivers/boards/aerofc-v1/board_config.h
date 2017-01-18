@@ -129,6 +129,17 @@
 
 #define  FLASH_BASED_PARAMS
 
+/*
+ * The following defined is a workaround and replaces CONFIG_ARCH_BOARD_AEROFC_V1
+ * in the PX4 shared source code. #ifdef ONFIG_ARCH_BOARD_xxxx should never be added
+ * to the PX4 code base. Instead board_config.h should provide logical conditional
+ * compilation control based on features. I.E. BORD_HAS_xxxx
+ * See https://github.com/PX4/Firmware/pull/5893#pullrequestreview-9651688
+ * todo:This and TAP_ESC_NO_VERIFY_CONFIG needs to be removed from the code base
+ * when final HW is debugged to dermine the root cause of ignoring the verify
+ */
+#define TAP_ESC_NO_VERIFY_CONFIG /* This board can not tolerated verifying the tap esc got it's config */
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
