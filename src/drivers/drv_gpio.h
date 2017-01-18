@@ -94,14 +94,6 @@
 # define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-/*
- * AeroCore GPIO numbers and configuration.
- *
- */
-# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-#endif
-
 #ifdef CONFIG_ARCH_BOARD_CRAZYFLIE
 
 # define GPIO_SERVO_1			(1<<0)		/**< servo 1 output */
@@ -138,7 +130,6 @@
 #endif
 
 #if	!defined(BOARD_HAS_FMU_GPIO)                     && \
-	!defined(CONFIG_ARCH_BOARD_AEROCORE)             && \
 	!defined(CONFIG_ARCH_BOARD_AEROFC_V1)            && \
 	!defined(CONFIG_ARCH_BOARD_CRAZYFLIE)            && \
 	!defined(CONFIG_ARCH_BOARD_MINDPX_V2)            && \
