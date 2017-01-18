@@ -57,8 +57,10 @@ fi
 
 # kill process names that might stil
 # be running from last time
-pgrep gazebo && pkill gazebo
-pgrep px4 && pkill px4
+pkill -x gazebo || true
+pkill -x px4 || true
+pkill -x px4_$model || true
+
 jmavsim_pid=`ps aux | grep java | grep Simulator | cut -d" " -f1`
 if [ -n "$jmavsim_pid" ]
 then
