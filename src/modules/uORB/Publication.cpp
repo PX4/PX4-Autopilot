@@ -66,6 +66,14 @@ PublicationBase::PublicationBase(const struct orb_metadata *meta,
 {
 }
 
+void PublicationBase::setMeta(const struct orb_metadata *meta)
+{
+	if (_meta != meta) {
+		_handle = nullptr;
+		_meta = meta;
+	}
+}
+
 void PublicationBase::update(void *data)
 {
 	if (_handle != nullptr) {

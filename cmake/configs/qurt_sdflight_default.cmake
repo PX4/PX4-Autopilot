@@ -63,6 +63,7 @@ set(config_module_list
 	modules/uORB
 	modules/commander
 	modules/land_detector
+	modules/stick_mapper
 
 	#
 	# PX4 drivers

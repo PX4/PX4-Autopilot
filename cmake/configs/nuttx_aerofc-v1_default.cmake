@@ -54,6 +54,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	modules/land_detector
+	modules/stick_mapper
 
 	#
 	# Estimation modules (EKF/ SO3 / other filters)

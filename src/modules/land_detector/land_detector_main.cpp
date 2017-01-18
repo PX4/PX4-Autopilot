@@ -229,7 +229,7 @@ int land_detector_main(int argc, char *argv[])
 
 exiterr:
 	PX4_WARN("usage: land_detector {start|stop|status} [mode]");
-	PX4_WARN("mode can either be 'fixedwing' or 'multicopter'");
+	PX4_WARN("mode can either be 'fixedwing', 'multicopter', or 'vtol'");
 	return 1;
 }
 

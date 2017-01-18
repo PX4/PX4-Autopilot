@@ -96,6 +96,7 @@ set(config_module_list
 	#modules/gpio_led
 	modules/uavcan
 	modules/land_detector
+	modules/stick_mapper
 
 	#
 	# Estimation modules

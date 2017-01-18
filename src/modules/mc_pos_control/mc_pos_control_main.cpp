@@ -2258,17 +2258,17 @@ MulticopterPositionControl::task_main()
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
-		/* wait for up to 20ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
+		/* wait for up to 500ms for data */
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
-			// Go through the loop anyway to copy manual input at 50 Hz.
+			continue;
 		}
 
 		/* this is undesirable but not much we can do */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -2282,6 +2282,13 @@ MulticopterPositionControl::task_main()
 
 		// set dt for control blocks
 		setDt(dt);
+
+		// don't run without at least a climb rate enabled
+		if (_control_mode.flag_control_manual_enabled &&
+		    !_control_mode.flag_control_climb_rate_enabled) {
+
+			continue;
+		}
 
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
@@ -2305,7 +2312,6 @@ MulticopterPositionControl::task_main()
 		was_armed = _control_mode.flag_armed;
 
 		update_ref();
-
 
 		update_velocity_derivative();
 

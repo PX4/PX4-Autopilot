@@ -98,6 +98,7 @@ set(config_module_list
 	modules/events
 	modules/gpio_led
 	modules/land_detector
+	modules/stick_mapper
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
