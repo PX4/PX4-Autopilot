@@ -1,4 +1,4 @@
-message(STATUS "sitl_target.cmake called.")
+
 function(px4_add_sitl_app)
 px4_parse_function_args(
 			NAME px4_add_sitl_app
