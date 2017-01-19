@@ -74,7 +74,9 @@ __EXPORT void led_init()
 {
 	/* Configure LED1 GPIO for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		px4_arch_configgpio(g_ledmap[l]);
+		if (g_ledmap[l]) {
+			px4_arch_configgpio(g_ledmap[l]);
+		}
 	}
 }
 
