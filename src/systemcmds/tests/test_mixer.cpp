@@ -91,17 +91,14 @@ static bool should_prearm = false;
 #endif
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_PATH(_file) "/etc/mixers/"#_file
+#if defined(CONFIG_ARCH_BOARD_SITL)
+#define MIXER_PATH(_file)  "ROMFS/px4fmu_test/mixers/"#_file
+#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
 #else
-#define MIXER_PATH(_file) "ROMFS/px4fmu_test/mixers/"#_file
+#define MIXER_ONBOARD_PATH "/etc/mixers"
+#define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_ONBOARD_PATH "/etc/mixers"
-#else
-#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
-#endif
 
 #define MIXER_VERBOSE
 
