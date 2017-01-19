@@ -41,8 +41,8 @@
 
 #include "temperature_compensation.h"
 #include <systemlib/param/param.h>
-#include <stdio.h>
 #include <px4_defines.h>
+#include <px4_log.h>
 
 namespace sensors
 {
@@ -420,6 +420,46 @@ int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &s
 	}
 
 	return 1;
+}
+
+void TemperatureCompensation::print_status()
+{
+	PX4_INFO("Temperature Compensation:");
+	PX4_INFO(" gyro: enabled: %i", _parameters.gyro_tc_enable);
+
+	if (_parameters.gyro_tc_enable == 1) {
+		for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
+			uint8_t mapping = _gyro_data.device_mapping[i];
+
+			if (_gyro_data.device_mapping[i] != 255) {
+				PX4_INFO("  using device ID %i for topic instance %i", _parameters.gyro_cal_data[mapping].ID, i);
+			}
+		}
+	}
+
+	PX4_INFO(" accel: enabled: %i", _parameters.accel_tc_enable);
+
+	if (_parameters.accel_tc_enable == 1) {
+		for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
+			uint8_t mapping = _accel_data.device_mapping[i];
+
+			if (_accel_data.device_mapping[i] != 255) {
+				PX4_INFO("  using device ID %i for topic instance %i", _parameters.accel_cal_data[mapping].ID, i);
+			}
+		}
+	}
+
+	PX4_INFO(" baro: enabled: %i", _parameters.baro_tc_enable);
+
+	if (_parameters.baro_tc_enable == 1) {
+		for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
+			uint8_t mapping = _baro_data.device_mapping[i];
+
+			if (_baro_data.device_mapping[i] != 255) {
+				PX4_INFO("  using device ID %i for topic instance %i", _parameters.baro_cal_data[mapping].ID, i);
+			}
+		}
+	}
 }
 
 }

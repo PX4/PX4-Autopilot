@@ -91,6 +91,8 @@ public:
 	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
 				   float *offsets, float *scales);
 
+	/** output current configuration status to console */
+	void print_status();
 private:
 
 	/* Struct containing parameters used by the single axis 5th order temperature compensation algorithm
