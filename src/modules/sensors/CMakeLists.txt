@@ -43,6 +43,7 @@ px4_add_module(
 		sensors.cpp
 		sensors_init.cpp
 		parameters.cpp
+		temperature_compensation.cpp
 
 	DEPENDS
 		platforms__common

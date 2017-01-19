@@ -2030,6 +2030,9 @@ MPU6000::measure()
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
+	/* Return class instance as a surrogate device ID */
+	arb.device_id = _accel_class_instance;
+
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -2062,6 +2065,9 @@ MPU6000::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+
+	/* Return class instance as a surrogate device ID */
+	grb.device_id = _gyro->_gyro_class_instance;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);

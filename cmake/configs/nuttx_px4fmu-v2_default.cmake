@@ -50,7 +50,7 @@ set(config_module_list
 	drivers/bst
 ##TO FIT drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/iridiumsbd
+	#drivers/iridiumsbd
 	drivers/ulanding
 
 	#
