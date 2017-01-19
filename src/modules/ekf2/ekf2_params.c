@@ -991,25 +991,3 @@ PARAM_DEFINE_FLOAT(WEST_W_P_NOISE, 0.1f);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(WEST_TAS_P_NOISE, 0.00001f);
-
-/**
- * True airspeed measurement noise.
- *
- * @group EKF2
- * @min 0
- * @max 5
- * @unit m/s
- * @decimal 0.1
- */
-PARAM_DEFINE_FLOAT(WEST_TAS_NOISE, 1.4f);
-
-/**
- * Sideslip measurement noise.
- *
- * @group EKF2
- * @min 0
- * @max 0.1
- * @unit rad
- * @decimal 0.001
- */
-PARAM_DEFINE_FLOAT(WEST_BETA_NOISE, 0.01);
