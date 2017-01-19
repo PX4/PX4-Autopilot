@@ -315,16 +315,28 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(SensorCalData3D &coef, flo
 
 int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance)
 {
+	if (_parameters.gyro_tc_enable != 1) {
+		return 0;
+	}
+
 	return set_sensor_id(device_id, topic_instance, _gyro_data, _parameters.gyro_cal_data);
 }
 
 int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance)
 {
+	if (_parameters.accel_tc_enable != 1) {
+		return 0;
+	}
+
 	return set_sensor_id(device_id, topic_instance, _accel_data, _parameters.accel_cal_data);
 }
 
 int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance)
 {
+	if (_parameters.baro_tc_enable != 1) {
+		return 0;
+	}
+
 	return set_sensor_id(device_id, topic_instance, _baro_data, _parameters.baro_cal_data);
 }
 
@@ -346,10 +358,14 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
 		float *offsets, float *scales)
 {
+	if (_parameters.gyro_tc_enable != 1) {
+		return 0;
+	}
+
 	uint8_t mapping = _gyro_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || _parameters.gyro_tc_enable != 1) {
-		return 0;
+	if (mapping == 255) {
+		return -1;
 	}
 
 	calc_thermal_offsets_3D(_parameters.gyro_cal_data[mapping], temperature, offsets);
@@ -373,10 +389,14 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data,
 		float temperature, float *offsets, float *scales)
 {
+	if (_parameters.accel_tc_enable != 1) {
+		return 0;
+	}
+
 	uint8_t mapping = _accel_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || _parameters.accel_tc_enable != 1) {
-		return 0;
+	if (mapping == 255) {
+		return -1;
 	}
 
 	calc_thermal_offsets_3D(_parameters.accel_cal_data[mapping], temperature, offsets);
@@ -400,10 +420,14 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
 		float *offsets, float *scales)
 {
+	if (_parameters.baro_tc_enable != 1) {
+		return 0;
+	}
+
 	uint8_t mapping = _baro_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || _parameters.baro_tc_enable != 1) {
-		return 0;
+	if (mapping == 255) {
+		return -1;
 	}
 
 	calc_thermal_offsets_1D(_parameters.baro_cal_data[mapping], temperature, *offsets);

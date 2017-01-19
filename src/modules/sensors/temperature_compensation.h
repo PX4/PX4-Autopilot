@@ -78,7 +78,8 @@ public:
 	 * @param temperature measured current temperature
 	 * @param offsets returns offsets that were applied (length = 3, except for baro), depending on return value
 	 * @param scales returns scales that were applied (length = 3), depending on return value
-	 * @return 0: no changes (correction not enabled),
+	 * @return -1: error: correction enabled, but no sensor mapping set (@see set_sendor_id_gyro)
+	 *         0: no changes (correction not enabled),
 	 *         1: corrections applied but no changes to offsets & scales,
 	 *         2: corrections applied and offsets & scales updated
 	 */
