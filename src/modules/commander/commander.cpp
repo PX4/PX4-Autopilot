@@ -3978,6 +3978,10 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_gyro_calibration(&mavlink_log_pub);
 
+					} else if ((int)(cmd.param1) == 2) {
+						/* temperature calibration: handled in events module */
+						break;
+
 					} else if ((int)(cmd.param2) == 1) {
 						/* magnetometer calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
