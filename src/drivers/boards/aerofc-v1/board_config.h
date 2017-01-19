@@ -105,8 +105,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
 #define BOARD_HAS_PWM	0
 
-#define BOARD_FMU_GPIO_TAB {{0, 0, 0}}
-
 /* USB OTG FS
  *
  * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
