@@ -40,6 +40,7 @@
 #include <termios.h>
 #include <cmath>	// NAN
 
+#include <lib/mathlib/mathlib.h>
 #include <systemlib/px4_macros.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>
@@ -664,15 +665,14 @@ TAP_ESC::cycle()
 			for (unsigned i = 0; i < num_outputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
 				if (i < _outputs.noutputs &&
-				    PX4_ISFINITE(_outputs.output[i]) &&
-				    _outputs.output[i] >= -1.0f &&
-				    _outputs.output[i] <= 1.0f) {
-					/* scale for PWM output 1000 - 2000us */
-					_outputs.output[i] = 1600 + (350 * _outputs.output[i]);
+				    PX4_ISFINITE(_outputs.output[i])) {
+					/* scale for PWM output 1200 - 1900us */
+					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i]);
+					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
 
 				} else {
 					/*
-					 * Value is NaN, INF or out of band - set to the minimum value.
+					 * Value is NaN, INF - stop the motor.
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
 					 * spinning motors. It would be deadly in flight.
 					 */
