@@ -59,11 +59,10 @@
 #include <DevMgr.hpp>
 
 #include "temperature_compensation.h"
+#include "common.h"
 
 namespace sensors
 {
-
-static const int SENSOR_COUNT_MAX = 3;
 
 /**
  ** class VotedSensorsUpdate

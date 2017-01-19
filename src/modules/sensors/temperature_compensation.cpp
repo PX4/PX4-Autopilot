@@ -54,7 +54,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	/* rate gyro calibration parameters */
 	parameter_handles.gyro_tc_enable = param_find("TC_G_ENABLE");
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		sprintf(nbuf, "TC_G%d_ID", j);
 		parameter_handles.gyro_cal_handles[j].ID = param_find(nbuf);
 
@@ -82,7 +82,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	/* accelerometer calibration parameters */
 	parameter_handles.accel_tc_enable = param_find("TC_A_ENABLE");
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		sprintf(nbuf, "TC_A%d_ID", j);
 		parameter_handles.accel_cal_handles[j].ID = param_find(nbuf);
 
@@ -110,7 +110,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	/* barometer calibration parameters */
 	parameter_handles.baro_tc_enable = param_find("TC_B_ENABLE");
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		sprintf(nbuf, "TC_B%d_ID", j);
 		parameter_handles.baro_cal_handles[j].ID = param_find(nbuf);
 		sprintf(nbuf, "TC_B%d_X5", j);
@@ -152,7 +152,7 @@ int TemperatureCompensation::parameters_update()
 	/* rate gyro calibration parameters */
 	param_get(parameter_handles.gyro_tc_enable, &(_parameters.gyro_tc_enable));
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		if (param_get(parameter_handles.gyro_cal_handles[j].ID, &(_parameters.gyro_cal_data[j].ID)) == PX4_OK) {
 			param_get(parameter_handles.gyro_cal_handles[j].ref_temp, &(_parameters.gyro_cal_data[j].ref_temp));
 			param_get(parameter_handles.gyro_cal_handles[j].min_temp, &(_parameters.gyro_cal_data[j].min_temp));
@@ -183,7 +183,7 @@ int TemperatureCompensation::parameters_update()
 	/* accelerometer calibration parameters */
 	param_get(parameter_handles.accel_tc_enable, &(_parameters.accel_tc_enable));
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		if (param_get(parameter_handles.accel_cal_handles[j].ID, &(_parameters.accel_cal_data[j].ID)) == PX4_OK) {
 			param_get(parameter_handles.accel_cal_handles[j].ref_temp, &(_parameters.accel_cal_data[j].ref_temp));
 			param_get(parameter_handles.accel_cal_handles[j].min_temp, &(_parameters.accel_cal_data[j].min_temp));
@@ -214,7 +214,7 @@ int TemperatureCompensation::parameters_update()
 	/* barometer calibration parameters */
 	param_get(parameter_handles.baro_tc_enable, &(_parameters.baro_tc_enable));
 
-	for (unsigned j = 0; j < 3; j++) {
+	for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 		if (param_get(parameter_handles.baro_cal_handles[j].ID, &(_parameters.baro_cal_data[j].ID)) == PX4_OK) {
 			param_get(parameter_handles.baro_cal_handles[j].ref_temp, &(_parameters.baro_cal_data[j].ref_temp));
 			param_get(parameter_handles.baro_cal_handles[j].min_temp, &(_parameters.baro_cal_data[j].min_temp));
@@ -332,7 +332,7 @@ template<typename T>
 int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instance, PerSensorData &sensor_data,
 		const T *sensor_cal_data)
 {
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
 		if (device_id == sensor_cal_data[i].ID) {
 			sensor_data.device_mapping[topic_instance] = i;
 			return 0;

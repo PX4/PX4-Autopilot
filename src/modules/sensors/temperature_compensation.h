@@ -43,8 +43,14 @@
 #include <systemlib/param/param.h>
 #include <mathlib/mathlib.h>
 
+#include "common.h"
+
+
 namespace sensors
 {
+
+static_assert(SENSOR_COUNT_MAX == 3,
+	      "SENSOR_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
 
 /**
  ** class TemperatureCompensation
@@ -173,21 +179,21 @@ private:
 	// create a struct containing all thermal calibration parameters
 	struct Parameters {
 		int gyro_tc_enable;
-		SensorCalData3D gyro_cal_data[3];
+		SensorCalData3D gyro_cal_data[SENSOR_COUNT_MAX];
 		int accel_tc_enable;
-		SensorCalData3D accel_cal_data[3];
+		SensorCalData3D accel_cal_data[SENSOR_COUNT_MAX];
 		int baro_tc_enable;
-		SensorCalData1D baro_cal_data[3];
+		SensorCalData1D baro_cal_data[SENSOR_COUNT_MAX];
 	};
 
 	// create a struct containing the handles required to access all calibration parameters
 	struct ParameterHandles {
 		param_t gyro_tc_enable;
-		SensorCalHandles3D gyro_cal_handles[3];
+		SensorCalHandles3D gyro_cal_handles[SENSOR_COUNT_MAX];
 		param_t accel_tc_enable;
-		SensorCalHandles3D accel_cal_handles[3];
+		SensorCalHandles3D accel_cal_handles[SENSOR_COUNT_MAX];
 		param_t baro_tc_enable;
-		SensorCalHandles1D baro_cal_handles[3];
+		SensorCalHandles1D baro_cal_handles[SENSOR_COUNT_MAX];
 	};
 
 
@@ -243,9 +249,9 @@ private:
 	struct PerSensorData {
 		PerSensorData()
 		{
-			device_mapping[0] = device_mapping[1] = device_mapping[2] = 255;
+			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; }
 		}
-		uint8_t device_mapping[3]; /// map a topic instance to the parameters index
+		uint8_t device_mapping[SENSOR_COUNT_MAX]; /// map a topic instance to the parameters index
 		int8_t last_temperature = -100;
 	};
 	PerSensorData _gyro_data;
