@@ -73,6 +73,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
+	_paramHandle.hoverThrottleAuto = param_find("MPC_THR_HOVER");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
@@ -109,6 +110,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
+	param_get(_paramHandle.hoverThrottleAuto, &_params.hoverThrottleAuto);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
@@ -141,7 +143,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Time base for this function
 	const uint64_t now = hrt_absolute_time();
 
-	float sys_min_throttle = (_params.minThrottle + 0.2f);
+	// 10% of throttle range between min and hover
+	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottleAuto - _params.minThrottle) * 0.1f;
 
 	// Determine the system min throttle based on flight mode
 	if (!_control_mode.flag_control_altitude_enabled) {
