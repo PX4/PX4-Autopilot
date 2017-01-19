@@ -92,6 +92,12 @@
 #define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
 
+/* Provide an overridable default nop
+ * for BOARD_EEPROM_WP_CTRL
+ */
+#if !defined(BOARD_EEPROM_WP_CTRL)
+#  define BOARD_EEPROM_WP_CTRL(on_true)
+#endif
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
