@@ -155,8 +155,10 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 
 	baro_report.pressure = data.pressure_pa;
 	baro_report.temperature = data.temperature_c;
-
 	// TODO: verify this, it's just copied from the MS5611 driver.
+
+	/* TODO get device ID for sensor */
+	baro_report.device_id = 0;
 
 	// Constant for now
 	const double MSL_PRESSURE_KPA = 101325.0 / 1000.0;

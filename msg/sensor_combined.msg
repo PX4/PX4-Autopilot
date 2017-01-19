@@ -9,12 +9,12 @@ int32 RELATIVE_TIMESTAMP_INVALID = 2147483647 # (0x7fffffff) If one of the relat
 
 
 # gyro timstamp is equal to the timestamp of the message
-float32[3] gyro_rad				# delta angle in the NED body frame in rad
-float32 gyro_integral_dt			# delta time for gyro integral in s
+float32[3] gyro_rad			# average angular rate measured in the XYZ body frame in rad/s over the last gyro sampling period
+float32 gyro_integral_dt		# gyro measurement sampling period in s
 
 int32 accelerometer_timestamp_relative	# timestamp + accelerometer_timestamp_relative = Accelerometer timestamp
-float32[3] accelerometer_m_s2			# velocity in NED body frame, in m/s^2
-float32 accelerometer_integral_dt		# delta time for accel integral in s
+float32[3] accelerometer_m_s2		# average value acceleration measured in the XYZ body frame in m/s/s over the last accelerometer sampling period
+float32 accelerometer_integral_dt	# accelerometer measurement sampling period in s
 
 int32 magnetometer_timestamp_relative	# timestamp + magnetometer_timestamp_relative = Magnetometer timestamp
 float32[3] magnetometer_ga		# Magnetic field in NED body frame, in Gauss

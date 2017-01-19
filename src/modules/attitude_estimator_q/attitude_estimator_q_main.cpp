@@ -492,10 +492,13 @@ void AttitudeEstimatorQ::task_main()
 
 			/* attitude rates for control state */
 			ctrl_state.roll_rate = _rates(0);
-
 			ctrl_state.pitch_rate = _rates(1);
-
 			ctrl_state.yaw_rate = _rates(2);
+
+			/* TODO get bias estimates from estimator */
+			ctrl_state.roll_rate_bias = 0.0f;
+			ctrl_state.pitch_rate_bias = 0.0f;
+			ctrl_state.yaw_rate_bias = 0.0f;
 
 			ctrl_state.airspeed_valid = false;
 

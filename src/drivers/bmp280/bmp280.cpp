@@ -543,6 +543,8 @@ BMP280::collect()
 	report.temperature = _T;
 	report.pressure = _P / 100.0f; // to mbar
 
+	/* TODO get device ID for sensor */
+	report.device_id = 0;
 
 	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
