@@ -50,40 +50,6 @@
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 #define PX4IO_DEVICE_PATH	"/dev/px4io"
 
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-#endif
-
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-/* no GPIO driver on the PX4IOv1 board */
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
-/* no GPIO driver on the PX4IOv2 board */
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-/* no GPIO driver on the PX4_STM32F4DISCOVERY board */
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-/* no GPIO driver on the ASC board */
-# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_SITL
-/* no GPIO driver on the SITL configuration */
-#endif
-
-#if	!defined(BOARD_HAS_FMU_GPIO)                     && \
-	!defined(CONFIG_ARCH_BOARD_AEROFC_V1)            && \
-	!defined(CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY) && \
-	!defined(CONFIG_ARCH_BOARD_PX4IO_V1)             && \
-	!defined(CONFIG_ARCH_BOARD_PX4IO_V2)             && \
-	!defined(CONFIG_ARCH_BOARD_SITL)
-# error No CONFIG_ARCH_BOARD_xxxx set
-#endif
 /*
  * IOCTL definitions.
  *
