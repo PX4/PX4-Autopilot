@@ -43,7 +43,7 @@
 	url = https://github.com/ethz-asl/rotors_simulator
 [submodule "Tools/OpticalFlow"]
 	path = Tools/OpticalFlow
-	url = https://github.com/gbmhunter/OpticalFlow
+	url = https://github.com/PX4/OpticalFlow
 [submodule "Tools/mav_comm"]
 	path = Tools/mav_comm
 	url = https://github.com/ethz-asl/mav_comm
