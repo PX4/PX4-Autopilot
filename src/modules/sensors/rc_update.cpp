@@ -349,8 +349,8 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		int instance;
 		orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 
-		/* only publish manual control if the signal is still present */
-		if (!signal_lost) {
+		/* only publish manual control if the signal is still present and was present once */
+		if (!signal_lost && rc_input.timestamp_last_signal > 0) {
 
 			/* initialize manual setpoint */
 			struct manual_control_setpoint_s manual = {};
@@ -358,6 +358,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 			/* set the timestamp to the last signal time */
 			manual.timestamp = rc_input.timestamp_last_signal;
+			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
 			manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
@@ -425,7 +426,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 
 			/* publish manual_control_setpoint topic */
 			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
-					 ORB_PRIO_DEFAULT);
+					 ORB_PRIO_HIGH);
 
 			/* copy from mapped manual control to control group 3 */
 			struct actuator_controls_s actuator_group_3 = {};
