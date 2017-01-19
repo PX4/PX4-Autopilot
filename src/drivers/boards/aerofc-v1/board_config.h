@@ -102,6 +102,12 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL    1
 #define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
+/* Define Battery 1 Voltage Divider
+ * Use Default for A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV (9.0f)
+
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
 #define BOARD_HAS_PWM	0
 
