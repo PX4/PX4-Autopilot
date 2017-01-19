@@ -72,14 +72,6 @@
 using namespace DriverFramework;
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define AVIONICS_ERROR_VOLTAGE	3.75f
-#define AVIONICS_WARN_VOLTAGE	3.9f
-#else
-#define AVIONICS_ERROR_VOLTAGE	4.5f
-#define AVIONICS_WARN_VOLTAGE	4.9f
-#endif
-
 static const char reason_no_rc[] = "no RC";
 static const char reason_no_offboard[] = "no offboard";
 static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
