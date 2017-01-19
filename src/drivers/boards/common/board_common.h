@@ -132,6 +132,29 @@
 #  define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
 
+/* Define an overridable default of 0.0f V for batery v div
+ * This is done to ensure the missing default trips a low
+ * voltage lockdown
+ */
+#if !defined(BOARD_BATTERY1_V_DIV)
+#define BOARD_BATTERY1_V_DIV 0.0f
+#endif
+
+#if !defined(BOARD_BATTERY2_V_DIV)
+#define BOARD_BATTERY2_V_DIV 0.0f
+#endif
+
+/* Define an overridable default of 0.0f for A per V
+ * This is done to ensure the default leads to an
+ * unrealistic current value
+ */
+#if !defined(BOARD_BATTERY1_A_PER_V)
+#define BOARD_BATTERY1_A_PER_V 0.0f
+#endif
+
+#if !defined(BOARD_BATTERY2_A_PER_V)
+#define BOARD_BATTERY2_A_PER_V 0.0f
+#endif
 
 /* Conditional use of FMU GPIO
  * If the board use the PX4FMU driver and the board provides
