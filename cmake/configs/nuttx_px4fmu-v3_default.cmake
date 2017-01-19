@@ -95,6 +95,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/events
 	modules/gpio_led
 	modules/land_detector
 	modules/load_mon
