@@ -11,6 +11,11 @@ int8 MODE_SLOT_4 = 3			# mode slot 4 selected
 int8 MODE_SLOT_5 = 4			# mode slot 5 selected
 int8 MODE_SLOT_6 = 5			# mode slot 6 selected
 int8 MODE_SLOT_MAX = 6			# number of slots plus one
+uint8 SOURCE_RC = 1			# radio control
+uint8 SOURCE_MAVLINK_0 = 2		# mavlink instance 0
+uint8 SOURCE_MAVLINK_1 = 3		# mavlink instance 1
+uint8 SOURCE_MAVLINK_2 = 4		# mavlink instance 2
+uint8 SOURCE_MAVLINK_3 = 5		# mavlink instance 4
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
@@ -55,3 +60,4 @@ uint8 arm_switch		 # arm/disarm switch: _DISARMED_, ARMED
 uint8 transition_switch	 # VTOL transition switch: _HOVER, FORWARD_FLIGHT
 uint8 gear_switch	 # landing gear switch: _DOWN_, UP
 int8 mode_slot			 # the slot a specific model selector is in
+uint8 data_source		 # where this input is coming from
