@@ -667,7 +667,7 @@ TAP_ESC::cycle()
 				if (i < _outputs.noutputs &&
 				    PX4_ISFINITE(_outputs.output[i])) {
 					/* scale for PWM output 1200 - 1900us */
-					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i]);
+					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i];
 					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
 
 				} else {
