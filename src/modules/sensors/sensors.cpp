@@ -579,14 +579,16 @@ Sensors::task_main()
 		PX4_ERR("sensor initialization failed");
 	}
 
-	/* (re)load params and calibration */
-	parameter_update_poll(true);
-
 	struct sensor_combined_s raw = {};
-	_rc_update.init();
-	_voted_sensors_update.init(raw);
 
 	struct sensor_preflight_s preflt = {};
+
+	_rc_update.init();
+
+	_voted_sensors_update.init(raw);
+
+	/* (re)load params and calibration */
+	parameter_update_poll(true);
 
 	/*
 	 * do subscriptions
