@@ -324,10 +324,7 @@ private:
 
 	WindEstimator _wind_estimator;
 
-	control::BlockParamFloat _wind_p_noise;
 	control::BlockParamFloat _tas_scale_p_noise;
-	control::BlockParamFloat _tas_noise;
-	control::BlockParamFloat _beta_noise;
 
 	int update_subscriptions();
 
@@ -439,10 +436,7 @@ Ekf2::Ekf2():
 	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
 	_mag_bias_alpha(this, "EKF2_MAGB_K", false),
 	_wind_estimator(),
-	_wind_p_noise(this, "WEST_W_P_NOISE", false),
-	_tas_scale_p_noise(this, "WEST_TAS_P_NOISE", false),
-	_tas_noise(this, "WEST_TAS_NOISE", false),
-	_beta_noise(this, "WEST_BETA_NOISE", false)
+	_tas_scale_p_noise(this, "WEST_TAS_P_NOISE", false)
 {
 
 }
@@ -482,9 +476,9 @@ void Ekf2::task_main()
 	// initialise parameter cache
 	updateParams();
 
-	_wind_estimator.set_wind_p_noise(_wind_p_noise.get());
+	_wind_estimator.set_wind_p_noise(_wind_vel_p_noise.get());
 	_wind_estimator.set_tas_scale_p_noise(_tas_scale_p_noise.get());
-	_wind_estimator.set_tas_noise(_tas_noise.get());
+	_wind_estimator.set_tas_noise(_eas_noise.get());
 	_wind_estimator.set_beta_noise(_beta_noise.get());
 
 	// initialize data structures outside of loop
@@ -520,9 +514,9 @@ void Ekf2::task_main()
 			orb_copy(ORB_ID(parameter_update), params_sub, &update);
 			updateParams();
 
-			_wind_estimator.set_wind_p_noise(_wind_p_noise.get());
+			_wind_estimator.set_wind_p_noise(_wind_vel_p_noise.get());
 			_wind_estimator.set_tas_scale_p_noise(_tas_scale_p_noise.get());
-			_wind_estimator.set_tas_noise(_tas_noise.get());
+			_wind_estimator.set_tas_noise(_eas_noise.get());
 			_wind_estimator.set_beta_noise(_beta_noise.get());
 
 			// fetch sensor data in next loop
@@ -796,7 +790,7 @@ void Ekf2::task_main()
 		}
 
 		// update external wind estimator
-		if (!_vehicle_status.is_rotary_wing) {
+		if (!vehicle_status.is_rotary_wing) {
 			_wind_estimator.update(sensors.gyro_integral_dt);
 		}
 
@@ -904,7 +898,7 @@ void Ekf2::task_main()
 					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 				}
 
-				if (fuse_airspeed && !_vehicle_status.is_rotary_wing) {
+				if (fuse_airspeed && !vehicle_status.is_rotary_wing) {
 					_wind_estimator.fuse_beta(velocity, ctrl_state.q);
 				}
 			}
@@ -981,7 +975,7 @@ void Ekf2::task_main()
 			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
 			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
 
-			if (!_vehicle_status.is_rotary_wing && fuse_airspeed) {
+			if (!vehicle_status.is_rotary_wing && fuse_airspeed) {
 				float v_var[2] = {vel_var(0), vel_var(1)};
 				_wind_estimator.fuse_airspeed(airspeed.true_airspeed_m_s, velocity, v_var);
 			}
