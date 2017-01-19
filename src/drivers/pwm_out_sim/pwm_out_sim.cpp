@@ -558,42 +558,60 @@ PWMSim::task_main()
 		orb_check(_param_sub, &updated);
 
 		if (updated) {
-			int32_t mixer_group;
-			param_get(param_find("MIX_GROUP"), &mixer_group);
+			param_t mix_action_param = param_find("MIX_PARAM_ACTION");
+			int32_t mixer_action;
+			param_get(mix_action_param, &mixer_action);
 
-			if (mixer_group == 0) {
-				int32_t mixer_action;
-				param_get(param_find("MIX_PARAM_ACTION"), &mixer_action);
+			if (mixer_action > 0) {
+				int32_t mixer_group;
+				param_get(param_find("MIX_GROUP"), &mixer_group);
 
-				if (mixer_action != -1) {
-					int32_t mixer_index;
-					int32_t mixer_param_index;
-					float mixer_param;
-					param_get(param_find("MIX_INDEX"), &mixer_index);
-					param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
+				if (mixer_group == 0) {
+					if (mixer_action == 3) {
+						int32_t mixer_count;
+						mixer_count = _mixers->count();
+						param_set(param_find("MIX_COUNT"), (void *) &mixer_count);
 
-					if ((mixer_index != -1) && (mixer_param_index != -1)) {
-						switch (mixer_action) {
-						case 0:
-							param_get(param_find("MIX_PARAMETER"), &mixer_param);
-							_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param);
-							break;
+					} else {
+						int32_t mixer_index;
+						param_get(param_find("MIX_INDEX"), &mixer_index);
 
-						case 1:
-							mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index);
-							param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
-							break;
-						}
+						if (mixer_index != -1) {
+							if (mixer_action == 4) {
+								int32_t mixer_type;
+								mixer_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)mixer_index);
+								param_set(param_find("MIX_TYPE"), (void *) &mixer_type);
 
-						mixer_action = -1;
-						param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);
-					}
-				}
-			}
-		}
-	}
+							} else {
+								float mixer_param;
+								int32_t mixer_param_index;
+								param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
+
+								if (mixer_param_index != -1) {
+									switch (mixer_action) {
+									case 1:
+										param_get(param_find("MIX_PARAMETER"), &mixer_param);
+										_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param);
+										break;
+
+									case 2:
+										mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index);
+										param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
+										break;
+									}//case mixer_action
+								}//if param_index
+							}//if else mixer_action
+						}//if mixer_index
+					}//if else mixer_action
+
+					mixer_action = 0;
+					param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);
+				}//if mixer_group
+			}//if mixer_action
+		}// if updated
 
 #endif //MIXER_CONFIGURATION
+	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] >= 0) {

@@ -37,12 +37,10 @@
  * Parameters defined for mixer parameter access
  *
  * @author Matthew Coleman <uavflightdirector@gmail.com>
- * @author Julian Oes <julian@px4.io>
- * @author Thomas Gubler <thomas@px4.io>
  */
 
 /**
- * Mixer Group - Device
+ * Mixer Group - systemlib
  *
  * Mixer group for parameter access
  *
@@ -89,14 +87,33 @@ PARAM_DEFINE_INT32(MIX_PARAM_INDEX, -1);
 PARAM_DEFINE_FLOAT(MIX_PARAMETER, 0.0f);
 
 /**
+ * Count of mixers in group
+ *
+ * @min -1
+ * @group Mixer Parameters
+ */
+PARAM_DEFINE_INT32(MIX_COUNT, -1);
+
+/**
+ * Type of mixer in MIX_GROUP at MIX_INDEX
+ *
+ * @min -1
+ * @group Mixer Parameters
+ */
+PARAM_DEFINE_INT32(MIX_TYPE, -1);
+
+/**
  * Mixer parameter action
  *
  * @min -1
  * @max 1
- * @value -1 actions complete
- * @value 0 write
- * @value 1 read
- * @value 2 store (Future)
+ * @value -1 Action failed
+ * @value 0 No action / Action complete
+ * @value 1 Write
+ * @value 2 Read
+ * @value 3 Read mixer count
+ * @value 4 Read mixer type
+ * @value 100 Store (Future)
  * @group Mixer Parameters
  */
-PARAM_DEFINE_INT32(MIX_PARAM_ACTION, -1);
+PARAM_DEFINE_INT32(MIX_PARAM_ACTION, 0);
