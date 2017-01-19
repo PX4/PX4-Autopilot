@@ -798,7 +798,10 @@ then
 			then
 				set LOGGER_ARGS "-f"
 			fi
-
+			if param compare SDLOG_MODE 3
+			then
+				set LOGGER_ARGS "-f"
+			fi
 			if logger start -b 12 -t ${LOGGER_ARGS}
 			then
 			fi
