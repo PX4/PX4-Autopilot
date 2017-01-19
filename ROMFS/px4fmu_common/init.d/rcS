@@ -424,6 +424,10 @@ then
 	    commander start
 	fi
 
+	if send_event start_listening
+	then
+	fi
+
 	#
 	# Start CPU load monitor
 	#
