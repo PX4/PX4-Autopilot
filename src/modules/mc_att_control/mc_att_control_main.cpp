@@ -1089,7 +1089,7 @@ MulticopterAttitudeControl::task_main()
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
-	_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
 
 	for (unsigned s = 0; s < _gyro_count; s++) {
 		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
