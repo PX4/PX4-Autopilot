@@ -153,6 +153,12 @@
 #define ADC_RC_RSSI_CHANNEL		11
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV   (10.177939394f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
 /* User GPIOs
  *
  * GPIO0-7 are the PWM servo outputs.
