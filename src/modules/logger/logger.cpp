@@ -383,9 +383,11 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
 	_writer(backend, buffer_size, queue_size),
-	_log_interval(log_interval)
+	_log_interval(log_interval),
+	_sdlog_mode(0)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
+	_sdlog_mode_handle = param_find("SDLOG_MODE");
 }
 
 Logger::~Logger()
@@ -565,6 +567,15 @@ void Logger::add_default_topics()
 	add_topic("vehicle_land_detected");
 }
 
+void Logger::add_calibration_topics()
+{
+	// Note: try to avoid setting the interval where possible, as it increases RAM usage
+
+	add_topic("sensor_gyro", 100);
+	add_topic("sensor_accel", 100);
+	add_topic("sensor_baro", 100);
+}
+
 int Logger::add_topics_from_file(const char *fname)
 {
 	FILE		*fp;
@@ -671,7 +682,18 @@ void Logger::run()
 		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
 
 	} else {
-		add_default_topics();
+
+		/* get the logging mode */
+		if (_sdlog_mode_handle != PARAM_INVALID) {
+			param_get(_sdlog_mode_handle, &_sdlog_mode);
+		}
+
+		if (_sdlog_mode == 3) {
+			add_calibration_topics();
+
+		} else {
+			add_default_topics();
+		}
 	}
 
 	int vehicle_command_sub = -1;
