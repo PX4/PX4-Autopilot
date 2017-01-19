@@ -419,9 +419,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 		parameters.battery_v_div = BOARD_BATTERY1_V_DIV;
 
-#if defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
-		parameters.battery_v_div = 10.177939394f;
-#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
+#if defined (CONFIG_ARCH_BOARD_AEROCORE)
 		parameters.battery_v_div = 7.8196363636f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		parameters.battery_v_div = 5.7013919372f;
@@ -438,7 +436,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 		parameters.battery_a_per_v = BOARD_BATTERY1_A_PER_V;
 
-#if defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		/* current scaling for 3DR power brick */
 		parameters.battery_a_per_v = 15.391030303f;
 #endif
