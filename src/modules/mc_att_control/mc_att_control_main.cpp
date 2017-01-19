@@ -111,7 +111,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define AXIS_INDEX_YAW 2
 #define AXIS_COUNT 3
 
-#define MAX_GYRO_COUNT 1
+#define MAX_GYRO_COUNT 3
 
 class MulticopterAttitudeControl
 {
@@ -405,7 +405,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_sensor_correction_sub(-1),
 
 	/* gyro selection */
-	_gyro_count(MAX_GYRO_COUNT),
+	_gyro_count(1),
 	_selected_gyro(0),
 
 	/* publications */
