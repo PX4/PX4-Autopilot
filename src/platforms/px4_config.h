@@ -54,6 +54,9 @@
 #define CONFIG_SCHED_LPWORK 1
 #define CONFIG_ARCH_BOARD_SITL 1
 
+#define BOARD_BATTERY1_V_DIV   (10.177939394f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
 /** time in ms between checks for work in work queues **/
 #define CONFIG_SCHED_WORKPERIOD 50000
 
