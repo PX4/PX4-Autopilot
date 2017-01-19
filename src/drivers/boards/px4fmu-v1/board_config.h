@@ -126,6 +126,12 @@
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
 
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV   (5.7013919372f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
 /* User GPIOs
  *
  * GPIO0-1 are the buffered high-power GPIOs.
