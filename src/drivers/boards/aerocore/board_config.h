@@ -120,6 +120,12 @@
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
 
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV   (7.8196363636f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
 /* PWM
  *
  * Eight PWM outputs are configured.
