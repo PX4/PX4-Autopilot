@@ -140,7 +140,55 @@ void VotedSensorsUpdate::parameters_update()
 
 	_board_rotation = board_rotation_offset * _board_rotation;
 
+	/* Load & apply the sensor calibrations.
+	 * IMPORTANT: we assume all sensor drivers are running and published sensor data at this point
+	 */
+
+	/* temperature compensation */
 	_temperature_compensation.parameters_update();
+
+	for (unsigned topic_instance = 0; topic_instance < SENSOR_COUNT_MAX; ++topic_instance) {
+
+		/* gyro */
+		if (topic_instance < _gyro.subscription_count) {
+			// valid subscription, so get the driver id by getting the published sensor data
+			struct gyro_report report;
+
+			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
+				if (_temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance) < 0) {
+					PX4_ERR("gyro temp compensation init: failed to find device ID %u for instance %i",
+						report.device_id, topic_instance);
+				}
+			}
+		}
+
+		/* accel */
+		if (topic_instance < _accel.subscription_count) {
+			// valid subscription, so get the driver id by getting the published sensor data
+			struct accel_report report;
+
+			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
+				if (_temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance) < 0) {
+					PX4_ERR("accel temp compensation init: failed to find device ID %u for instance %i",
+						report.device_id, topic_instance);
+				}
+			}
+		}
+
+		/* baro */
+		if (topic_instance < _baro.subscription_count) {
+			// valid subscription, so get the driver id by getting the published sensor data
+			struct baro_report report;
+
+			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
+				if (_temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance) < 0) {
+					PX4_ERR("baro temp compensation init: failed to find device ID %u for instance %i",
+						report.device_id, topic_instance);
+				}
+			}
+		}
+	}
+
 
 	/* set offset parameters to new values */
 	bool failed;
@@ -162,8 +210,6 @@ void VotedSensorsUpdate::parameters_update()
 		}
 
 		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
-		_temperature_compensation.set_sensor_id_gyro(driver_device_id, s);
-
 		bool config_ok = false;
 
 		/* run through all stored calibrations that are applied at the driver level*/
@@ -230,8 +276,6 @@ void VotedSensorsUpdate::parameters_update()
 		}
 
 		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
-		_temperature_compensation.set_sensor_id_accel(driver_device_id, s);
-
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -305,7 +349,6 @@ void VotedSensorsUpdate::parameters_update()
 		}
 
 		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
-
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -421,21 +464,6 @@ void VotedSensorsUpdate::parameters_update()
 		}
 	}
 
-	/* run through all baro sensors */
-	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
-
-		(void)sprintf(str, "%s%u", BARO_BASE_DEVICE_PATH, s);
-
-		DevHandle h;
-		DevMgr::getHandle(str, h);
-
-		if (!h.isValid()) {
-			continue;
-		}
-
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
-		_temperature_compensation.set_sensor_id_baro(driver_device_id, s);
-	}
 }
 
 void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)

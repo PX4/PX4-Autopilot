@@ -100,7 +100,8 @@ public:
 	float baro_pressure() const { return _last_best_baro_pressure; }
 
 	/**
-	 * call this whenever parameters got updated
+	 * call this whenever parameters got updated. Make sure to have initialize_sensors() called at least
+	 * once before calling this.
 	 */
 	void parameters_update();
 
