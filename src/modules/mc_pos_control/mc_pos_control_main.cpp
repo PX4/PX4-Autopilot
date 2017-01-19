@@ -1923,7 +1923,7 @@ MulticopterPositionControl::control_position(float dt)
 		float thrust_body_z = F.dot(-R_z); /* recalculate because it might have changed */
 
 		/* limit max thrust */
-		if (thrust_body_z > thr_max) {
+		if (fabsf(thrust_body_z) > thr_max) {
 			if (thrust_sp(2) < 0.0f) {
 				if (-thrust_sp(2) > thr_max) {
 					/* thrust Z component is too large, limit it */
@@ -1946,8 +1946,8 @@ MulticopterPositionControl::control_position(float dt)
 				}
 
 			} else {
-				/* Z component is negative, going down, simply limit thrust vector */
-				float k = thr_max / thrust_body_z;
+				/* Z component is positive, going down (Z is positive down in NED), simply limit thrust vector */
+				float k = thr_max / fabsf(thrust_body_z);
 				thrust_sp *= k;
 				saturation_xy = true;
 				saturation_z = true;
@@ -1956,7 +1956,7 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_body_z = thr_max;
 		}
 
-		_att_sp.thrust = thrust_body_z;
+		_att_sp.thrust = math::max(thrust_body_z, thr_min);
 
 		/* update integrals */
 		if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
