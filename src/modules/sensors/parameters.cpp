@@ -427,8 +427,6 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		parameters.battery_v_div = 7.8196363636f;
 #elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
 		parameters.battery_v_div = 5.7013919372f;
-#elif defined (CONFIG_ARCH_BOARD_TAP_V1)
-		parameters.battery_v_div = 9.0f;
 #endif
 		param_set(parameter_handles.battery_v_div, &parameters.battery_v_div);
 	}

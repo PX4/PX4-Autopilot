@@ -133,6 +133,11 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL	10
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 
+/* Define Battery 1 Voltage Divider
+ * Use Default for A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV (9.0f)
 
 /* No User GPIOs
  *
