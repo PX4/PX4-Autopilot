@@ -40,7 +40,7 @@
  *
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
-
+#include <px4_config.h>
 #include <drivers/drv_rc_input.h>
 
 #include <systemlib/param/param.h>
