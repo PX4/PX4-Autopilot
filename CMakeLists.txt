@@ -336,7 +336,7 @@ px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
 #px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 # TODO: Rename this from git_gazebo to git_rotors_simulator to follow convention?
 px4_add_git_submodule(TARGET git_gazebo PATH "Tools/rotors_simulator")
-px4_add_git_submodule(TARGET git_gazebo PATH "Tools/mav_comm")			# mav_comm is a dependency of rotors_simulator
+px4_add_git_submodule(TARGET git_mav_comm PATH "Tools/mav_comm")			# mav_comm is a dependency of rotors_simulator
 px4_add_git_submodule(TARGET git_optical_flow PATH "Tools/OpticalFlow") # OpticalFlow is a dependency of the OpticalFlow plugin in rotors_simulator
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
