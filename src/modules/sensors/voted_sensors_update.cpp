@@ -873,6 +873,8 @@ void VotedSensorsUpdate::print_status()
 	_mag.voter.print();
 	PX4_INFO("baro status:");
 	_baro.voter.print();
+
+	_temperature_compensation.print_status();
 }
 
 bool
