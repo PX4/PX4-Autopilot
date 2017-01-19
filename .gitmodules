@@ -44,3 +44,6 @@
 [submodule "Tools/OpticalFlow"]
 	path = Tools/OpticalFlow
 	url = https://github.com/gbmhunter/OpticalFlow
+[submodule "Tools/mav_comm"]
+	path = Tools/mav_comm
+	url = https://github.com/ethz-asl/mav_comm
