@@ -86,7 +86,8 @@ mkdir -p $TEST_RESULT_TARGET_DIR
 if ! [ -d $SRC_DIR ]
 then
 	ln -s $ORIG_SRC $SRC_DIR
-	ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	#ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	ln -s $ORIG_SRC/Tools/rotors_simulation/rotors_gazebo_plugins ${CATKIN_DIR}/src/mavlink_sitl_gazebo
 fi
 cd $CATKIN_DIR
 catkin_make

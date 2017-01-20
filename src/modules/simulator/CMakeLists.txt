@@ -62,7 +62,7 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		git_jmavsim
-		git_gazebo
+		git_rotors_simulator
 	)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 
