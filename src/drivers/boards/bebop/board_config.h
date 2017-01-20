@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,20 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file px4_config.h
-   Configuration flags used in code.
+ * @file board_config.h
+ *
+ * BEBOP internal definitions
  */
 
 #pragma once
 
-#if defined(__PX4_NUTTX)
-
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
-#include <board_config.h>
-#include "px4_micro_hal.h"
-
-#elif defined (__PX4_POSIX)
-#  include <system_config.h>
-#  include <board_config.h>
-#endif
+#define BOARD_NAME "BEBOP"
+#define BOARD_BATTERY1_V_DIV   (10.177939394f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
