@@ -125,13 +125,6 @@
 #  endif
 #endif
 
-/* Provide an overridable default nop
- * for BOARD_EEPROM_WP_CTRL
- */
-#if !defined(BOARD_EEPROM_WP_CTRL)
-#  define BOARD_EEPROM_WP_CTRL(on_true)
-#endif
-
 /* Define an overridable default of 0.0f V for batery v div
  * This is done to ensure the missing default trips a low
  * voltage lockdown
@@ -183,6 +176,14 @@
 #    endif
 #  endif
 #endif
+
+/* Provide an overridable default nop
+ * for BOARD_EEPROM_WP_CTRL
+ */
+#if !defined(BOARD_EEPROM_WP_CTRL)
+#  define BOARD_EEPROM_WP_CTRL(on_true)
+#endif
+
 
 /************************************************************************************
  * Private Functions
