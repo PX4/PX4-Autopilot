@@ -53,6 +53,10 @@ set(msg_file_names
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
+	estimator_state.msg
+	estimator_state_std.msg
+	estimator_innov.msg
+	estimator_innov_std.msg
 	fence.msg
 	fence_vertex.msg
 	filtered_bottom_flow.msg

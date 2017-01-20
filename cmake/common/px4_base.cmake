@@ -673,7 +673,7 @@ function(px4_add_common_flags)
 		-Wno-unused-parameter
 		-Werror=format-security
 		-Werror=array-bounds
-		-Wfatal-errors
+		#-Wfatal-errors
 		-Werror=unused-variable
 		-Werror=reorder
 		-Werror=uninitialized

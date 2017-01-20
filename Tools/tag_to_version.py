@@ -11,8 +11,8 @@ os.chdir(args.root)
 p= subprocess.Popen(
     'git describe --always --tags'.split(),
     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-stdout, stderr = p.communicate()
-res = stdout.split('-')[0].split('.')
+out, err = p.communicate()
+res = out.split('-')[0].split('.')
 major = res[0].replace('v','')
 minor = res[1]
 patch = res[2]
