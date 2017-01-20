@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__boards__mindpx-v2
 	COMPILE_FLAGS
 	SRCS
+		../common/stm32/board_crashdump.c
 		../common/board_dma_alloc.c
 		mindpx_can.c
 		mindpx2_init.c
