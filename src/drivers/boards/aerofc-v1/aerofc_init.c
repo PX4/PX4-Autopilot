@@ -173,12 +173,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* configure the DMA allocator */
-
-	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
-	}
-
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
