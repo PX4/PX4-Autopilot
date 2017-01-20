@@ -43,6 +43,7 @@
 
 #pragma once
 
+#include <px4_config.h>
 #include <stdint.h>
 
 #define FREEZE_STR(s) #s
@@ -51,21 +52,9 @@
 /* The preferred method for publishing a board name is to
  * define it in board_config.h as BOARD_NAME
  */
-#if defined(CONFIG_ARCH_BOARD_SITL)
-# define BOARD_NAME "SITL"
-#elif defined(CONFIG_ARCH_BOARD_EAGLE)
-# define BOARD_NAME "EAGLE"
-#elif defined(CONFIG_ARCH_BOARD_EXCELSIOR)
-# define BOARD_NAME "EXCELSIOR"
-#elif defined(CONFIG_ARCH_BOARD_RPI)
-# define BOARD_NAME "RPI"
-#elif defined(CONFIG_ARCH_BOARD_BEBOP)
-# define BOARD_NAME "BEBOP"
-#else
-# include "board_config.h"
-# ifndef BOARD_NAME
+
+#ifndef BOARD_NAME
 #  error "board_config.h must define BOARD_NAME"
-# endif
 #endif
 
 
