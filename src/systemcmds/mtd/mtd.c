@@ -59,6 +59,7 @@
 
 #include <arch/board/board.h>
 
+#include "systemlib/px4_macros.h"
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"
 #include "systemlib/err.h"
@@ -76,6 +77,13 @@ int mtd_main(int argc, char *argv[])
 }
 
 #else
+
+#  if defined(BOARD_HAS_MTD_PARTITION_OVERRIDE)
+#    define MTD_PARTITION_TABLE  BOARD_HAS_MTD_PARTITION_OVERRIDE
+#  else
+#   define MTD_PARTITION_TABLE  {"/fs/mtd_params", "/fs/mtd_waypoints"}
+#  endif
+
 
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
@@ -107,8 +115,8 @@ static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
-static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
-static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
+static char *partition_names_default[] = MTD_PARTITION_TABLE;
+static const int n_partitions_default = arraySize(partition_names_default);
 
 static void
 mtd_status(void)
@@ -353,7 +361,7 @@ int mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigne
 	}
 
 	*blocksize = geo.blocksize;
-	*erasesize = geo.blocksize;
+	*erasesize = geo.erasesize;
 	*neraseblocks = geo.neraseblocks;
 
 	/* Determine the size of each partition.  Make each partition an even
