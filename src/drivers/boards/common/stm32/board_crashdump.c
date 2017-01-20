@@ -10,15 +10,18 @@
 
 #include <systemlib/hardfault_log.h>
 
+#if defined(CONFIG_STM32_SAVE_CRASHDUMP) || defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 {
 	while (size--) {
 		*dest++ = *src--;
 	}
 }
+#endif
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
+#if defined(CONFIG_STM32_SAVE_CRASHDUMP) || defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 	/* We need a chunk of ram to save the complete context in.
 	 * Since we are going to reboot we will use &_sdata
 	 * which is the lowest memory and the amount we will save
@@ -157,7 +160,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 
 		up_lowputc('!');
 	}
-
+#endif
 
 #if defined(CONFIG_BOARD_RESET_ON_CRASH)
 	px4_systemreset(false);
