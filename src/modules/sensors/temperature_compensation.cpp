@@ -285,19 +285,17 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(SensorCalData3D &coef, flo
 	float delta_temp;
 
 	if (measured_temp > coef.max_temp) {
-		delta_temp = coef.max_temp;
+		delta_temp = coef.max_temp - coef.ref_temp;
 		ret = false;
 
 	} else if (measured_temp < coef.min_temp) {
-		delta_temp = coef.min_temp;
+		delta_temp = coef.min_temp - coef.ref_temp;
 		ret = false;
 
 	} else {
-		delta_temp = measured_temp;
+		delta_temp = measured_temp - coef.ref_temp;
 
 	}
-
-	delta_temp -= coef.ref_temp;
 
 	// calulate the offsets
 	float delta_temp_2 = delta_temp * delta_temp;
@@ -371,7 +369,7 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 	// get the sensor scale factors and correct the data
 	for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 		scales[axis_index] = _parameters.gyro_cal_data[mapping].scale[axis_index];
-		sensor_data(axis_index) = sensor_data(axis_index) * scales[axis_index] + offsets[axis_index];
+		sensor_data(axis_index) = (sensor_data(axis_index) - offsets[axis_index]) * scales[axis_index];
 	}
 
 	int8_t temperaturei = (int8_t)temperature;
@@ -402,7 +400,7 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 	// get the sensor scale factors and correct the data
 	for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 		scales[axis_index] = _parameters.accel_cal_data[mapping].scale[axis_index];
-		sensor_data(axis_index) = sensor_data(axis_index) * scales[axis_index] + offsets[axis_index];
+		sensor_data(axis_index) = (sensor_data(axis_index) - offsets[axis_index]) * scales[axis_index];
 	}
 
 	int8_t temperaturei = (int8_t)temperature;
@@ -432,7 +430,7 @@ int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &s
 
 	// get the sensor scale factors and correct the data
 	*scales = _parameters.baro_cal_data[mapping].scale;
-	sensor_data = sensor_data * *scales + *offsets;
+	sensor_data = (sensor_data - *offsets) * *scales;
 
 	int8_t temperaturei = (int8_t)temperature;
 
