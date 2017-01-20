@@ -67,8 +67,12 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 	memset(&_corrections, 0, sizeof(_corrections));
 
 	for (unsigned i = 0; i < 3; i++) {
-		_corrections.gyro_scale[i] = 1.0f;
-		_corrections.accel_scale[i] = 1.0f;
+		_corrections.gyro_scale_0[i] = 1.0f;
+		_corrections.accel_scale_0[i] = 1.0f;
+		_corrections.gyro_scale_1[i] = 1.0f;
+		_corrections.accel_scale_1[i] = 1.0f;
+		_corrections.gyro_scale_2[i] = 1.0f;
+		_corrections.accel_scale_2[i] = 1.0f;
 
 		for (unsigned j = 0; j < SENSOR_COUNT_MAX; j++) {
 			_accel_scale[j][i] = 1.0f;
@@ -77,7 +81,9 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 		}
 	}
 
-	_corrections.baro_scale = 1.0f;
+	_corrections.baro_scale_0 = 1.0f;
+	_corrections.baro_scale_1 = 1.0f;
+	_corrections.baro_scale_2 = 1.0f;
 
 	memset(&_accel_offset, 0, sizeof(_accel_offset));
 	memset(&_gyro_offset, 0, sizeof(_gyro_offset));
@@ -593,8 +599,12 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
-			_corrections.accel_offset[axis_index] = _accel_offset[best_index][axis_index];
-			_corrections.accel_scale[axis_index] = _accel_scale[best_index][axis_index];
+			_corrections.accel_offset_0[axis_index] = _accel_offset[0][axis_index];
+			_corrections.accel_scale_0[axis_index] = _accel_scale[0][axis_index];
+			_corrections.accel_offset_1[axis_index] = _accel_offset[1][axis_index];
+			_corrections.accel_scale_1[axis_index] = _accel_scale[1][axis_index];
+			_corrections.accel_offset_2[axis_index] = _accel_offset[2][axis_index];
+			_corrections.accel_scale_2[axis_index] = _accel_scale[2][axis_index];
 		}
 	}
 }
@@ -691,8 +701,12 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
-			_corrections.gyro_offset[axis_index] = _gyro_offset[best_index][axis_index];
-			_corrections.gyro_scale[axis_index] = _gyro_scale[best_index][axis_index];
+			_corrections.gyro_offset_0[axis_index] = _gyro_offset[0][axis_index];
+			_corrections.gyro_scale_0[axis_index] = _gyro_scale[0][axis_index];
+			_corrections.gyro_offset_1[axis_index] = _gyro_offset[1][axis_index];
+			_corrections.gyro_scale_1[axis_index] = _gyro_scale[1][axis_index];
+			_corrections.gyro_offset_2[axis_index] = _gyro_offset[2][axis_index];
+			_corrections.gyro_scale_2[axis_index] = _gyro_scale[2][axis_index];
 		}
 	}
 }
@@ -803,8 +817,12 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_corrections_changed = true;
 			}
 
-			_corrections.baro_offset = _baro_offset[best_index];
-			_corrections.baro_scale = _baro_scale[best_index];
+			_corrections.baro_offset_0 = _baro_offset[0];
+			_corrections.baro_scale_0 = _baro_scale[0];
+			_corrections.baro_offset_1 = _baro_offset[1];
+			_corrections.baro_scale_1 = _baro_scale[1];
+			_corrections.baro_offset_2 = _baro_offset[2];
+			_corrections.baro_scale_2 = _baro_scale[2];
 
 			/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
