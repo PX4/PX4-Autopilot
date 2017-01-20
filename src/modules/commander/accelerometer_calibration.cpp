@@ -147,6 +147,7 @@
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/sensor_correction.h>
 
 static const char *sensor_name = "accel";
 
@@ -155,7 +156,7 @@ static int device_prio_max = 0;
 static int32_t device_id_primary = 0;
 
 calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub, float (&accel_offs)[max_accel_sens][3], float (&accel_T)[max_accel_sens][3][3], unsigned *active_sensors);
-calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
+calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
 calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref)[max_accel_sens][detect_orientation_side_count][3], float (&accel_T)[max_accel_sens][3][3], float (&accel_offs)[max_accel_sens][3], float g);
 
@@ -165,6 +166,7 @@ typedef struct  {
 	unsigned	done_count;
 	int		subs[max_accel_sens];
 	float		accel_ref[max_accel_sens][detect_orientation_side_count][3];
+	int		sensor_correction_sub;
 } accel_worker_data_t;
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
@@ -371,7 +373,7 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side", detect_orientation_str(orientation));
 
-	read_accelerometer_avg(worker_data->subs, worker_data->accel_ref, orientation, samples_num);
+	read_accelerometer_avg(worker_data->sensor_correction_sub, worker_data->subs, worker_data->accel_ref, orientation, samples_num);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%8.4f %8.4f %8.4f]", detect_orientation_str(orientation),
 				     (double)worker_data->accel_ref[0][orientation][0],
@@ -396,6 +398,10 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 	worker_data.done_count = 0;
 
 	bool data_collected[detect_orientation_side_count] = { false, false, false, false, false, false };
+
+	// Initialise sub to sensor thermal compensation data
+	worker_data.sensor_correction_sub = -1;
+	worker_data.sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 
 	// Initialize subs to error condition so we know which ones are open and which are not
 	for (size_t i=0; i<max_accel_sens; i++) {
@@ -458,6 +464,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			px4_close(worker_data.subs[i]);
 		}
 	}
+	orb_unsubscribe(worker_data.sensor_correction_sub);
 
 	if (result == calibrate_return_ok) {
 		/* calculate offsets and transform matrix */
@@ -477,7 +484,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 /*
  * Read specified number of accelerometer samples, calculate average and dispersion.
  */
-calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
+calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[max_accel_sens], float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
 {
 	/* get total sensor board rotation matrix */
 	param_t board_rotation_h = param_find("SENS_BOARD_ROT");
@@ -517,6 +524,18 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 
 	unsigned errcount = 0;
 
+	/* Define struct containing sensor thermal compensation data and set default values */
+	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+	memset(&sensor_correction, 0, sizeof(sensor_correction));
+	for (unsigned i=0; i<3; i++) {
+		sensor_correction.accel_scale_0[i] = 1.0f;
+		sensor_correction.accel_scale_1[i] = 1.0f;
+		sensor_correction.accel_scale_2[i] = 1.0f;
+	}
+
+	/* get latest thermal corrections */
+	orb_copy(ORB_ID(sensor_correction), sensor_correction_sub, &sensor_correction);
+
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
 		int poll_ret = px4_poll(&fds[0], max_accel_sens, 1000);
@@ -532,9 +551,24 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 					struct accel_report arp;
 					orb_copy(ORB_ID(sensor_accel), subs[s], &arp);
 
-					accel_sum[s][0] += arp.x;
-					accel_sum[s][1] += arp.y;
-					accel_sum[s][2] += arp.z;
+					// Apply thermal corrections
+					if (s == 0) {
+						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_0[0]) * sensor_correction.accel_scale_0[0];
+						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_0[1]) * sensor_correction.accel_scale_0[1];
+						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_0[2]) * sensor_correction.accel_scale_0[2];
+					} else if (s == 1) {
+						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_1[0]) * sensor_correction.accel_scale_1[0];
+						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_1[1]) * sensor_correction.accel_scale_1[1];
+						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_1[2]) * sensor_correction.accel_scale_1[2];
+					} else if (s == 2) {
+						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_2[0]) * sensor_correction.accel_scale_2[0];
+						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_2[1]) * sensor_correction.accel_scale_2[1];
+						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_2[2]) * sensor_correction.accel_scale_2[2];
+					} else {
+						accel_sum[s][0] += arp.x;
+						accel_sum[s][1] += arp.y;
+						accel_sum[s][2] += arp.z;
+					}
 
 					counts[s]++;
 				}
@@ -550,7 +584,7 @@ calibrate_return read_accelerometer_avg(int (&subs)[max_accel_sens], float (&acc
 		}
 	}
 
-	// rotate sensor measurements from body frame into sensor frame using board rotation matrix
+	// rotate sensor measurements from sensor to body frame using board rotation matrix
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		math::Vector<3> accel_sum_vec(&accel_sum[i][0]);
 		accel_sum_vec = board_rotation * accel_sum_vec;
