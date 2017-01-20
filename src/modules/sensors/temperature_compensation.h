@@ -108,7 +108,7 @@ private:
 
 	delta_temp = measured_temp - ref_temp
 	offset = x5 * delta_temp^5 + x4 * delta_temp^4 + x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
-	corrected_value = raw_value * scale + offset
+	corrected_value = (raw_value - offset) * scale
 
 	*/
 	struct SensorCalData1D {
@@ -152,7 +152,7 @@ private:
 
 	delta_temp = measured_temp - ref_temp
 	offset = x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
-	corrected_value = raw_value * scale + offset
+	corrected_value = (raw_value - offset) * scale
 
 	 */
 	struct SensorCalData3D {
