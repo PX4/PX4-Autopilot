@@ -1,0 +1,24 @@
+
+/*
+ * I2C busses
+ */
+#define PX4_I2C_BUS_ESC		1
+#define PX4_SIM_BUS_TEST	2
+#define PX4_I2C_BUS_EXPANSION	3
+#define PX4_I2C_BUS_LED		3
+
+#define PX4_I2C_OBDEV_LED	0x55
+
+#define STM32_SYSMEM_UID "SIMULATIONID"
+
+#define CONFIG_NFILE_STREAMS 1
+#define CONFIG_SCHED_WORKQUEUE 1
+#define CONFIG_SCHED_HPWORK 1
+#define CONFIG_SCHED_LPWORK 1
+#define CONFIG_ARCH_BOARD_SITL 1
+
+/** time in ms between checks for work in work queues **/
+#define CONFIG_SCHED_WORKPERIOD 50000
+
+#define CONFIG_SCHED_INSTRUMENTATION 1
+#define CONFIG_MAX_TASKS 32
