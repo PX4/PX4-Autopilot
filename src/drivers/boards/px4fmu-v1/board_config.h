@@ -54,6 +54,7 @@
 /* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+#define BOARD_USES_PX4IO_VERSION       1
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
 
 //#ifdef CONFIG_STM32_SPI2
