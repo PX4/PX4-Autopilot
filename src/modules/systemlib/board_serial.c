@@ -40,8 +40,8 @@
  *
  */
 
+#include <px4_config.h>
 #include "otp.h"
-#include "board_config.h"
 #include "board_serial.h"
 
 int get_board_serial(uint8_t *serialid)
