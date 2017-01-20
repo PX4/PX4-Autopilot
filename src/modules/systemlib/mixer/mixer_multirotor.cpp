@@ -309,6 +309,10 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		_saturation_status.flags.motor_pos = true;
 	}
 
+	// Thrust reduction is used to reduce the collective thrust if we hit
+	// the upper throttle limit
+	float thrust_reduction = 0.0f;
+
 	// mix again but now with thrust boost, scale roll/pitch and also add yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = (roll * _rotors[i].roll_scale +
@@ -330,8 +334,9 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 		} else if (out > 1.0f) {
 			// allow to reduce thrust to get some yaw response
-			float thrust_reduction = fminf(0.15f, out - 1.0f);
-			thrust -= thrust_reduction;
+			float prop_reduction = fminf(0.15f, out - 1.0f);
+			// keep the maximum requested reduction
+			thrust_reduction = fmaxf(thrust_reduction, prop_reduction);
 
 			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
 				yaw = 0.0f;
@@ -343,7 +348,10 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		}
 	}
 
-	/* add yaw and scale outputs to range idle_speed...1 */
+	// Apply collective thrust reduction, the maximum for one prop
+	thrust -= thrust_reduction;
+
+	// add yaw and scale outputs to range idle_speed...1
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] = (roll * _rotors[i].roll_scale +
 			      pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
