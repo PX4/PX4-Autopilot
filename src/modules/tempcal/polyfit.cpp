@@ -37,6 +37,13 @@ Author: Siddharth Bharat Purohit
 #include "polyfit.h"
 #include "matrix_alg.h"
 
+#define DEBUG 0
+#if DEBUG
+#define PF_DEBUG(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#else
+#define PF_DEBUG(fmt, ...)
+#endif
+
 int polyfitter::init(uint8_t order)
 {
 	_forder = order + 1;
@@ -66,15 +73,15 @@ void polyfitter::update(double x, double y)
 void polyfitter::update_VTY(double x, double y)
 {
 	double temp = 1.0f;
-	printf("O %.6f\n", (double)x);
+	PF_DEBUG("O %.6f\n", (double)x);
 
 	for (int8_t i = _forder - 1; i >= 0; i--) {
 		VTY[i] += y * temp;
 		temp *= x;
-		printf("%.6f ", (double)VTY[i]);
+		PF_DEBUG("%.6f ", (double)VTY[i]);
 	}
 
-	printf("\n");
+	PF_DEBUG("\n");
 }
 
 
@@ -85,10 +92,10 @@ void polyfitter::update_VTV(double x)
 
 	for (uint8_t i = 0; i < _forder; i++) {
 		for (int j = 0; j < _forder; j++) {
-			printf("%.10f ", (double)VTV[i * _forder + j]);
+			PF_DEBUG("%.10f ", (double)VTV[i * _forder + j]);
 		}
 
-		printf("\n");
+		PF_DEBUG("\n");
 	}
 
 	for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
@@ -121,10 +128,10 @@ bool polyfitter::fit(double res[])
 	if (inverse4x4(VTV, IVTV)) {
 		for (uint8_t i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
-				printf("%.10f ", (double)IVTV[i * _forder + j]);
+				PF_DEBUG("%.10f ", (double)IVTV[i * _forder + j]);
 			}
 
-			printf("\n");
+			PF_DEBUG("\n");
 		}
 
 		for (uint8_t i = 0; i < _forder; i++) {
@@ -134,7 +141,7 @@ bool polyfitter::fit(double res[])
 				res[i] += IVTV[i * _forder + j] * (double)VTY[j];
 			}
 
-			printf("%.10f ", res[i]);
+			PF_DEBUG("%.10f ", res[i]);
 		}
 
 		return true;
