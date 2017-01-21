@@ -216,6 +216,7 @@ private:
 	int add_topics_from_file(const char *fname);
 
 	void add_default_topics();
+	void add_calibration_topics();
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
 
@@ -255,6 +256,11 @@ private:
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
 	char						*_replay_file_name = nullptr;
+
+	// control
+	param_t _sdlog_mode_handle;
+	int32_t _sdlog_mode;
+
 };
 
 } //namespace logger
