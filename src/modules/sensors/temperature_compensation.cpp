@@ -262,8 +262,6 @@ bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, flo
 
 	}
 
-	delta_temp = measured_temp - coef.ref_temp;
-
 	// calulate the offset
 	offset = coef.x0 + coef.x1 * delta_temp;
 	delta_temp *= delta_temp;
