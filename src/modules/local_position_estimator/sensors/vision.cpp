@@ -4,15 +4,15 @@
 
 extern orb_advert_t mavlink_log_pub;
 
-// required number of samples for sensor
-// to initialize
-
-// this is a vision based position measurement so we assume as soon as we get one
-// measurement it is initialized, we also don't want to deinitialize it because
-// this will throw away a correction before it starts using the data so we
-// set the timeout to 10 seconds
+// required number of samples for sensor to initialize.
+// This is a vision based position measurement so we assume
+// as soon as we get one measurement it is initialized.
 static const uint32_t 		REQ_VISION_INIT_COUNT = 1;
-static const uint32_t 		VISION_TIMEOUT =    10000000;	// 10 s
+
+// We don't want to deinitialize it because
+// this will throw away a correction before it starts using the data so we
+// set the timeout to 0.5 seconds
+static const uint32_t 		VISION_TIMEOUT =    500000;	// 0.5 s
 
 void BlockLocalPositionEstimator::visionInit()
 {
@@ -37,9 +37,16 @@ void BlockLocalPositionEstimator::visionInit()
 		_sensorTimeout &= ~SENSOR_VISION;
 		_sensorFault &= ~SENSOR_VISION;
 
+		if (!_map_ref.init_done && _sub_vision_pos.get().xy_global) {
+			// initialize global origin using the visual estimator reference
+			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
+						     double(_sub_vision_pos.get().ref_lat), double(_sub_vision_pos.get().ref_lon), double(_sub_vision_pos.get().ref_alt));
+			map_projection_init(&_map_ref, _sub_vision_pos.get().ref_lat, _sub_vision_pos.get().ref_lon);
+		}
+
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
-			_altOrigin = 0;
+			_altOrigin = _sub_vision_pos.get().z_global ? _sub_vision_pos.get().ref_alt : 0.0f;
 		}
 	}
 }

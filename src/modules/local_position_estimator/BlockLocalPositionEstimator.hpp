@@ -316,6 +316,7 @@ private:
 	BlockParamFloat  _t_max_grade;
 
 	// init origin
+	BlockParamInt  	 _fake_origin;
 	BlockParamFloat  _init_origin_lat;
 	BlockParamFloat  _init_origin_lon;
 
