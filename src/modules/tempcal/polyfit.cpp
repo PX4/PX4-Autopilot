@@ -40,44 +40,56 @@ Author: Siddharth Bharat Purohit
 int polyfitter::init(uint8_t order)
 {
 	_forder = order + 1;
-	VTV = new float[_forder * _forder];
+	VTV = new double[_forder * _forder];
 
 	if (VTV == NULL) {
 		return -1;
 	}
 
-	VTY = new float[_forder];
+	VTY = new double[_forder];
 
 	if (VTY == NULL) {
 		return -1;
 	}
 
-	memset(VTV, 0, sizeof(float)*_forder * _forder);
-	memset(VTY, 0, sizeof(float)*_forder);
+	memset(VTV, 0, sizeof(double)*_forder * _forder);
+	memset(VTY, 0, sizeof(double)*_forder);
 	return 0;
 }
 
-void polyfitter::update(float x, float y)
+void polyfitter::update(double x, double y)
 {
 	update_VTV(x);
 	update_VTY(x, y);
 }
 
-void polyfitter::update_VTY(float x, float y)
+void polyfitter::update_VTY(double x, double y)
 {
-	float temp = 1.0f;
+	double temp = 1.0f;
+	printf("O %.6f\n", (double)x);
 
 	for (int8_t i = _forder - 1; i >= 0; i--) {
 		VTY[i] += y * temp;
 		temp *= x;
+		printf("%.6f ", (double)VTY[i]);
 	}
+
+	printf("\n");
 }
 
 
-void polyfitter::update_VTV(float x)
+void polyfitter::update_VTV(double x)
 {
-	float temp = 1.0f;
+	double temp = 1.0f;
 	int8_t z;
+
+	for (uint8_t i = 0; i < _forder; i++) {
+		for (int j = 0; j < _forder; j++) {
+			printf("%.10f ", (double)VTV[i * _forder + j]);
+		}
+
+		printf("\n");
+	}
 
 	for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
 		if (i < _forder) {
@@ -90,29 +102,39 @@ void polyfitter::update_VTV(float x)
 		for (int8_t j = i - z; j >= z; j--) {
 			uint8_t row = j;
 			uint8_t col = i - j;
-			VTV[row * _forder  + col] += temp;
+			VTV[row * _forder  + col] += (double)temp;
 		}
 
 		temp *= x;
 	}
 }
 
-bool polyfitter::fit(float res[])
+bool polyfitter::fit(double res[])
 {
 	//Do inverse of VTV
-	float *IVTV = new float[_forder * _forder];
+	double *IVTV = new double[_forder * _forder];
 
 	if (VTV == NULL) {
 		return false;
 	}
 
-	if (inverse(VTV, IVTV, _forder)) {
+	if (inverse4x4(VTV, IVTV)) {
+		for (uint8_t i = 0; i < _forder; i++) {
+			for (int j = 0; j < _forder; j++) {
+				printf("%.10f ", (double)IVTV[i * _forder + j]);
+			}
+
+			printf("\n");
+		}
+
 		for (uint8_t i = 0; i < _forder; i++) {
 			res[i] = 0.0f;
 
 			for (int j = 0; j < _forder; j++) {
-				res[i] += IVTV[i * _forder + j] * VTY[j];
+				res[i] += IVTV[i * _forder + j] * (double)VTY[j];
 			}
+
+			printf("%.10f ", res[i]);
 		}
 
 		return true;

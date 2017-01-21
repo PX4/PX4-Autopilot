@@ -65,13 +65,13 @@ public:
 			delete[] VTY;
 		}
 	}
-	void update(float x, float y);
+	void update(double x, double y);
 	int init(uint8_t order);
-	bool fit(float res[]);
+	bool fit(double res[]);
 private:
-	float *VTV;
-	float *VTY;
+	double *VTV;
+	double *VTY;
 	uint8_t _forder;
-	void update_VTV(float x);
-	void update_VTY(float x, float y);
+	void update_VTV(double x);
+	void update_VTY(double x, double y);
 };

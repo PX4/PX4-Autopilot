@@ -256,9 +256,9 @@ bool mat_inverse(float *A, float *inv, uint8_t n)
 	return ret;
 }
 
-bool inverse4x4(float m[], float invOut[])
+bool inverse4x4(double m[], double invOut[])
 {
-	float inv[16], det;
+	double inv[16], det;
 	uint8_t i;
 
 	inv[0] = m[5]  * m[10] * m[15] -
@@ -379,7 +379,7 @@ bool inverse4x4(float m[], float invOut[])
 		return false;
 	}
 
-	det = 1.0f / det;
+	det = 1.0 / det;
 
 	for (i = 0; i < 16; i++) {
 		invOut[i] = inv[i] * det;
@@ -390,14 +390,5 @@ bool inverse4x4(float m[], float invOut[])
 
 bool inverse(float *A, float *inv, uint8_t n)
 {
-	printf("Got Here!!\n");
-
-	if (n == 4) {
-		printf("Got Here4!!\n");
-		return inverse4x4(A, inv);
-
-	} else {
-		return mat_inverse(A, inv, n);
-	}
-
+	return mat_inverse(A, inv, n);
 }

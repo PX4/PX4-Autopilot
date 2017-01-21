@@ -53,7 +53,7 @@
 #include <poll.h>
 #include <time.h>
 #include <float.h>
-
+#include <vector>
 #include <arch/board/board.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -113,18 +113,17 @@ private:
 	int	_control_task = -1;		// task handle for task
 
 	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;
-	math::LowPassFilter2p _lp_pitch_rate;
-	math::LowPassFilter2p _lp_yaw_rate;
+	std::vector<math::LowPassFilter2p> _lp_roll_rate;
+	std::vector<math::LowPassFilter2p> _lp_pitch_rate;
+	std::vector<math::LowPassFilter2p> _lp_yaw_rate;
 };
 
 Tempcal::Tempcal():
-	SuperBlock(NULL, "EKF"),
-	_lp_roll_rate(250.0f, 1.0f),
-	_lp_pitch_rate(250.0f, 1.0f),
-	_lp_yaw_rate(250.0f, 1.0f)
+	SuperBlock(NULL, "Tempcal"),
+	_lp_roll_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
+	_lp_pitch_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
+	_lp_yaw_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f))
 {
-
 }
 
 Tempcal::~Tempcal()
@@ -150,8 +149,9 @@ void Tempcal::task_main()
 
 	bool _cold_soaked[SENSOR_COUNT_MAX] = {false};
 	bool _hot_soaked[SENSOR_COUNT_MAX] = {false};
-
-	float _low_temp[SENSOR_COUNT_MAX], _high_temp[SENSOR_COUNT_MAX];
+	bool _tempcal_complete[SENSOR_COUNT_MAX] = {false};
+	float _low_temp[SENSOR_COUNT_MAX];
+	float _high_temp[SENSOR_COUNT_MAX] = {0};
 
 	for (unsigned i = 0; i < num_gyro; i++) {
 		if (gyro_sub[i] < 0) {
@@ -171,6 +171,7 @@ void Tempcal::task_main()
 	// because they will else not always be
 	// properly populated
 	sensor_gyro_s gyro_data = {};
+	//uint16_t l = 0;
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -192,9 +193,10 @@ void Tempcal::task_main()
 
 			if (fds[i].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
-				gyro_sample_filt[i][0] = _lp_roll_rate.apply(gyro_data.x);
-				gyro_sample_filt[i][1] = _lp_roll_rate.apply(gyro_data.y);
-				gyro_sample_filt[i][2] = _lp_roll_rate.apply(gyro_data.z);
+
+				gyro_sample_filt[i][0] = _lp_roll_rate[i].apply(gyro_data.x);
+				gyro_sample_filt[i][1] = _lp_pitch_rate[i].apply(gyro_data.y);
+				gyro_sample_filt[i][2] = _lp_yaw_rate[i].apply(gyro_data.z);
 				gyro_sample_filt[i][3] = gyro_data.temperature;
 
 				if (!_cold_soaked[i]) {
@@ -206,60 +208,58 @@ void Tempcal::task_main()
 			}
 		}
 
-		bool _collection_complete = true;
 
-		for (uint8_t i = 0; i < num_gyro; i++) {
+		for (uint8_t i = 0; i < 1; i++) {
 			if (_hot_soaked[i]) {
 				continue;
-
-			} else {
-				_collection_complete = false;
 			}
 
-			if (num_samples[i] < 250) {
+			//if (num_samples[i] < 250) {
+			//	continue;
+			//}
+
+			if (gyro_sample_filt[i][3] > _high_temp[i]) {
+				_high_temp[i] = gyro_sample_filt[i][3];
+				_hot_soak_sat[i] = 0;
+
+			} else {
 				continue;
 			}
 
-			if (gyro_sample_filt[i][3] <= _low_temp[i]) {
-				//We are not hot soaking increment hot soak saturation count
-				_hot_soak_sat[i]++;
-			}
-
-			if (_hot_soak_sat[i] == 10) {
+			if (_hot_soak_sat[i] == 10 || (_high_temp[i] - _low_temp[i]) > 24.0f) {
 				_hot_soaked[i] = true;
-				_high_temp[i] = gyro_sample_filt[i][3];
 			}
 
-			printf("Got Here!! %.6f %.6f %.6f %.6f\n", (double)gyro_sample_filt[i][0], (double)gyro_sample_filt[i][1],
-			       (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3]);
+			if (i == 0) {
+				printf("%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n", (double)gyro_sample_filt[i][0], (double)gyro_sample_filt[i][1],
+				       (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)_low_temp[i], (double)_high_temp[i],
+				       (double)(_high_temp[i] - _low_temp[i]));
+			}
+
 			//update linear fit matrices
-			P[i][0].update(gyro_sample_filt[i][0], gyro_sample_filt[i][3]);
-			P[i][1].update(gyro_sample_filt[i][1], gyro_sample_filt[i][3]);
-			P[i][2].update(gyro_sample_filt[i][2], gyro_sample_filt[i][3]);
+			P[i][0].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][0]);
+			P[i][1].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][1]);
+			P[i][2].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][2]);
 			num_samples[i] = 0;
 		}
 
-		if (_collection_complete) {
-			for (uint8_t i = 0; i < num_gyro; i++) {
-				if (_high_temp[i] - _low_temp[i] > 20) {
-					PX4_WARN("Cal Failed for Gyro %d", i);
-
-				} else {
-					float res[4];
-					P[i][0].fit(res);
-					PX4_WARN("Result Gyro %d Axis 0: %.6f %.6f %.6f %.6f", i, (double)res[0], (double)res[1], (double)res[2],
-						 (double)res[3]);
-					P[i][1].fit(res);
-					PX4_WARN("Result Gyro %d Axis 1: %.6f %.6f %.6f %.6f", i, (double)res[0], (double)res[1], (double)res[2],
-						 (double)res[3]);
-					P[i][2].fit(res);
-					PX4_WARN("Result Gyro %d Axis 2: %.6f %.6f %.6f %.6f", i, (double)res[0], (double)res[1], (double)res[2],
-						 (double)res[3]);
-				}
+		for (uint8_t i = 0; i < 1; i++) {
+			if (_hot_soaked[i] && !_tempcal_complete[i]) {
+				double res[4];
+				P[i][0].fit(res);
+				PX4_WARN("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
+					 (double)res[3]);
+				P[i][1].fit(res);
+				PX4_WARN("Result Gyro %d Axis 1: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
+					 (double)res[3]);
+				P[i][2].fit(res);
+				PX4_WARN("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
+					 (double)res[3]);
+				_tempcal_complete[i] = true;
 			}
-
-			break; //complete temp cal
 		}
+
+		usleep(100);
 	}
 
 	for (uint8_t i = 0; i < num_gyro; i++) {
