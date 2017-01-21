@@ -378,8 +378,8 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 
 	int8_t temperaturei = (int8_t)temperature;
 
-	if (temperaturei != _gyro_data.last_temperature) {
-		_gyro_data.last_temperature = temperaturei;
+	if (temperaturei != _gyro_data.last_temperature[topic_instance]) {
+		_gyro_data.last_temperature[topic_instance] = temperaturei;
 		return 2;
 	}
 
@@ -409,8 +409,8 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 
 	int8_t temperaturei = (int8_t)temperature;
 
-	if (temperaturei != _accel_data.last_temperature) {
-		_accel_data.last_temperature = temperaturei;
+	if (temperaturei != _accel_data.last_temperature[topic_instance]) {
+		_accel_data.last_temperature[topic_instance] = temperaturei;
 		return 2;
 	}
 
@@ -438,8 +438,8 @@ int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &s
 
 	int8_t temperaturei = (int8_t)temperature;
 
-	if (temperaturei != _baro_data.last_temperature) {
-		_baro_data.last_temperature = temperaturei;
+	if (temperaturei != _baro_data.last_temperature[topic_instance]) {
+		_baro_data.last_temperature[topic_instance] = temperaturei;
 		return 2;
 	}
 
