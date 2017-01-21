@@ -384,9 +384,11 @@ PX4FMU::PX4FMU() :
 	// rc input, published to ORB
 	memset(&_rc_in, 0, sizeof(_rc_in));
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+
 	// initialize raw_rc values and count
-	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++)
+	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		raw_rc_values[i] = UINT16_MAX;
+	}
 
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
@@ -882,6 +884,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count_local,
 		if (raw_rc_values_local[i] != UINT16_MAX) {
 			valid_chans++;
 		}
+
 		// once filled, reset values back to default
 		raw_rc_values[i] = UINT16_MAX;
 	}
