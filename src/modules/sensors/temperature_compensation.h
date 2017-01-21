@@ -252,10 +252,10 @@ private:
 	struct PerSensorData {
 		PerSensorData()
 		{
-			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; }
+			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; last_temperature[i] = -100; }
 		}
 		uint8_t device_mapping[SENSOR_COUNT_MAX]; /// map a topic instance to the parameters index
-		int8_t last_temperature = -100;
+		int8_t last_temperature[SENSOR_COUNT_MAX];
 	};
 	PerSensorData _gyro_data;
 	PerSensorData _accel_data;
