@@ -56,7 +56,7 @@ __END_DECLS
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);
-        shmem_info_p = NULL;
+	shmem_info_p = NULL;
 	init_shared_memory();
 
 	// The uORB Manager needs to be initialized first up, otherwise the instance is nullptr.
