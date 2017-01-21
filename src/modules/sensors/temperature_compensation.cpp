@@ -399,10 +399,8 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 		sensor_data(axis_index) = (sensor_data(axis_index) - offsets[axis_index]) * scales[axis_index];
 	}
 
-	int8_t temperaturei = (int8_t)temperature;
-
-	if (temperaturei != _gyro_data.last_temperature[topic_instance]) {
-		_gyro_data.last_temperature[topic_instance] = temperaturei;
+	if (fabsf(temperature - _gyro_data.last_temperature[topic_instance]) > 1.0f) {
+		_gyro_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
 
@@ -430,10 +428,8 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 		sensor_data(axis_index) = (sensor_data(axis_index) - offsets[axis_index]) * scales[axis_index];
 	}
 
-	int8_t temperaturei = (int8_t)temperature;
-
-	if (temperaturei != _accel_data.last_temperature[topic_instance]) {
-		_accel_data.last_temperature[topic_instance] = temperaturei;
+	if (fabsf(temperature - _accel_data.last_temperature[topic_instance]) > 1.0f) {
+		_accel_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
 
@@ -459,10 +455,8 @@ int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &s
 	*scales = _parameters.baro_cal_data[mapping].scale;
 	sensor_data = (sensor_data - *offsets) * *scales;
 
-	int8_t temperaturei = (int8_t)temperature;
-
-	if (temperaturei != _baro_data.last_temperature[topic_instance]) {
-		_baro_data.last_temperature[topic_instance] = temperaturei;
+	if (fabsf(temperature - _baro_data.last_temperature[topic_instance]) > 1.0f) {
+		_baro_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
 
