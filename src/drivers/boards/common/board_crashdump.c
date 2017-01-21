@@ -6,7 +6,7 @@
 
 #include <nuttx/board.h>
 
-
+#include "up_internal.h"
 #include <systemlib/hardfault_log.h>
 
 static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
