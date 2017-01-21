@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__boards__auav-x21
 	COMPILE_FLAGS
 	SRCS
-		../common/stm32/board_crashdump.c
+		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		auav_can.c
 		auav_init.c

@@ -35,7 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Os
 	SRCS
-		../common/stm32/board_crashdump.c
+		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 #		WIP px4fmu_can.c
 		px4fmu_init.c
