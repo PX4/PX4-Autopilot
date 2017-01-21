@@ -67,6 +67,14 @@
 #include <uORB/topics/sensor_gyro.h>
 #include "polyfit.h"
 
+#define DEBUG 0
+#if DEBUG
+#define TC_DEBUG(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#else
+#define TC_DEBUG(fmt, ...)
+#endif
+
+
 #define SENSOR_COUNT_MAX		3
 
 extern "C" __EXPORT int tempcal_main(int argc, char *argv[]);
@@ -113,16 +121,16 @@ private:
 	int	_control_task = -1;		// task handle for task
 
 	/* Low pass filter for attitude rates */
-	std::vector<math::LowPassFilter2p> _lp_roll_rate;
-	std::vector<math::LowPassFilter2p> _lp_pitch_rate;
-	std::vector<math::LowPassFilter2p> _lp_yaw_rate;
+	//std::vector<math::LowPassFilter2p> _lp_roll_rate;
+	//std::vector<math::LowPassFilter2p> _lp_pitch_rate;
+	//std::vector<math::LowPassFilter2p> _lp_yaw_rate;
 };
 
 Tempcal::Tempcal():
-	SuperBlock(NULL, "Tempcal"),
-	_lp_roll_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
-	_lp_pitch_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
-	_lp_yaw_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f))
+	SuperBlock(NULL, "Tempcal")
+	//_lp_roll_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
+	//_lp_pitch_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
+	//_lp_yaw_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f))
 {
 }
 
@@ -152,6 +160,7 @@ void Tempcal::task_main()
 	bool _tempcal_complete[SENSOR_COUNT_MAX] = {false};
 	float _low_temp[SENSOR_COUNT_MAX];
 	float _high_temp[SENSOR_COUNT_MAX] = {0};
+	float _ref_temp[SENSOR_COUNT_MAX];
 
 	for (unsigned i = 0; i < num_gyro; i++) {
 		if (gyro_sub[i] < 0) {
@@ -194,14 +203,15 @@ void Tempcal::task_main()
 			if (fds[i].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 
-				gyro_sample_filt[i][0] = _lp_roll_rate[i].apply(gyro_data.x);
-				gyro_sample_filt[i][1] = _lp_pitch_rate[i].apply(gyro_data.y);
-				gyro_sample_filt[i][2] = _lp_yaw_rate[i].apply(gyro_data.z);
+				gyro_sample_filt[i][0] = gyro_data.x;
+				gyro_sample_filt[i][1] = gyro_data.y;
+				gyro_sample_filt[i][2] = gyro_data.z;
 				gyro_sample_filt[i][3] = gyro_data.temperature;
 
 				if (!_cold_soaked[i]) {
 					_cold_soaked[i] = true;
 					_low_temp[i] = gyro_data.temperature;	//Record the low temperature
+					_ref_temp[i] = gyro_data.temperature + 12.0f;
 				}
 
 				num_samples[i]++;
@@ -225,18 +235,19 @@ void Tempcal::task_main()
 			} else {
 				continue;
 			}
-
+			//TODO: Hot Soak Saturation
 			if (_hot_soak_sat[i] == 10 || (_high_temp[i] - _low_temp[i]) > 24.0f) {
 				_hot_soaked[i] = true;
 			}
 
 			if (i == 0) {
-				printf("%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n", (double)gyro_sample_filt[i][0], (double)gyro_sample_filt[i][1],
-				       (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)_low_temp[i], (double)_high_temp[i],
-				       (double)(_high_temp[i] - _low_temp[i]));
+				TC_DEBUG("%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n", (double)gyro_sample_filt[i][0], (double)gyro_sample_filt[i][1],
+					 (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)_low_temp[i], (double)_high_temp[i],
+					 (double)(_high_temp[i] - _low_temp[i]));
 			}
 
 			//update linear fit matrices
+			gyro_sample_filt[i][3] -= _ref_temp[i];
 			P[i][0].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][0]);
 			P[i][1].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][1]);
 			P[i][2].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][2]);
