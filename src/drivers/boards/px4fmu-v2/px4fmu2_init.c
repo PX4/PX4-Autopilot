@@ -477,10 +477,3 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	return OK;
 }
-
-static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
-{
-	while (size--) {
-		*dest++ = *src--;
-	}
-}
