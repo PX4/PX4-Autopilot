@@ -38,8 +38,6 @@ px4_add_module(
 	STACK_MAX 4000
 	SRCS
 	tempcal_main.cpp
-	polyfit.cpp
-	matrix_alg.cpp
 	DEPENDS
 	platforms__common
 )

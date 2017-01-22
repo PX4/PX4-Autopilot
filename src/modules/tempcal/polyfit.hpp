@@ -34,8 +34,24 @@
 Polygon linear fit
 Author: Siddharth Bharat Purohit
 */
-#include "polyfit.h"
-#include "matrix_alg.h"
+
+#pragma once
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <px4_time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <math.h>
+#include <poll.h>
+#include <time.h>
+#include <float.h>
+#include <matrix/math.hpp>
 
 #define DEBUG 0
 #if DEBUG
@@ -44,91 +60,28 @@ Author: Siddharth Bharat Purohit
 #define PF_DEBUG(fmt, ...)
 #endif
 
-int polyfitter::init(uint8_t order)
+template<size_t _forder>
+class polyfitter
 {
-	_forder = order + 1;
-	VTV = new double[_forder * _forder];
+public:
+	polyfitter() {}
 
-	if (VTV == NULL) {
-		return -1;
+	void update(double x, double y)
+	{
+		update_VTV(x);
+		update_VTY(x, y);
 	}
 
-	VTY = new double[_forder];
+	bool fit(double res[])
+	{
+		//Do inverse of VTV
+		matrix::SquareMatrix<double, _forder> IVTV;
 
-	if (VTY == NULL) {
-		return -1;
-	}
+		IVTV = VTV.I();
 
-	memset(VTV, 0, sizeof(double)*_forder * _forder);
-	memset(VTY, 0, sizeof(double)*_forder);
-	return 0;
-}
-
-void polyfitter::update(double x, double y)
-{
-	update_VTV(x);
-	update_VTY(x, y);
-}
-
-void polyfitter::update_VTY(double x, double y)
-{
-	double temp = 1.0f;
-	PF_DEBUG("O %.6f\n", (double)x);
-
-	for (int8_t i = _forder - 1; i >= 0; i--) {
-		VTY[i] += y * temp;
-		temp *= x;
-		PF_DEBUG("%.6f ", (double)VTY[i]);
-	}
-
-	PF_DEBUG("\n");
-}
-
-
-void polyfitter::update_VTV(double x)
-{
-	double temp = 1.0f;
-	int8_t z;
-
-	for (uint8_t i = 0; i < _forder; i++) {
-		for (int j = 0; j < _forder; j++) {
-			PF_DEBUG("%.10f ", (double)VTV[i * _forder + j]);
-		}
-
-		PF_DEBUG("\n");
-	}
-
-	for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
-		if (i < _forder) {
-			z = 0.0f;
-
-		} else {
-			z = i - _forder + 1;
-		}
-
-		for (int8_t j = i - z; j >= z; j--) {
-			uint8_t row = j;
-			uint8_t col = i - j;
-			VTV[row * _forder  + col] += (double)temp;
-		}
-
-		temp *= x;
-	}
-}
-
-bool polyfitter::fit(double res[])
-{
-	//Do inverse of VTV
-	double *IVTV = new double[_forder * _forder];
-
-	if (VTV == NULL) {
-		return false;
-	}
-
-	if (inverse4x4(VTV, IVTV)) {
 		for (uint8_t i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
-				PF_DEBUG("%.10f ", (double)IVTV[i * _forder + j]);
+				PF_DEBUG("%.10f ", (double)IVTV(i, j));
 			}
 
 			PF_DEBUG("\n");
@@ -138,7 +91,7 @@ bool polyfitter::fit(double res[])
 			res[i] = 0.0f;
 
 			for (int j = 0; j < _forder; j++) {
-				res[i] += IVTV[i * _forder + j] * (double)VTY[j];
+				res[i] += IVTV(i, j) * (double)VTY(j);
 			}
 
 			PF_DEBUG("%.10f ", res[i]);
@@ -147,5 +100,52 @@ bool polyfitter::fit(double res[])
 		return true;
 	}
 
-	return false;
-}
+private:
+	matrix::SquareMatrix<double, _forder> VTV;
+	matrix::Vector<double, _forder> VTY;
+
+	void update_VTY(double x, double y)
+	{
+		double temp = 1.0f;
+		PF_DEBUG("O %.6f\n", (double)x);
+
+		for (int8_t i = _forder - 1; i >= 0; i--) {
+			VTY(i) += y * temp;
+			temp *= x;
+			PF_DEBUG("%.6f ", (double)VTY(i));
+		}
+
+		PF_DEBUG("\n");
+	}
+
+	void update_VTV(double x)
+	{
+		double temp = 1.0f;
+		int8_t z;
+
+		for (uint8_t i = 0; i < _forder; i++) {
+			for (int j = 0; j < _forder; j++) {
+				PF_DEBUG("%.10f ", (double)VTV(i, j));
+			}
+
+			PF_DEBUG("\n");
+		}
+
+		for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
+			if (i < _forder) {
+				z = 0.0f;
+
+			} else {
+				z = i - _forder + 1;
+			}
+
+			for (int8_t j = i - z; j >= z; j--) {
+				uint8_t row = j;
+				uint8_t col = i - j;
+				VTV(row, col) += (double)temp;
+			}
+
+			temp *= x;
+		}
+	}
+};
