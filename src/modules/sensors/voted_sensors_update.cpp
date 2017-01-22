@@ -168,7 +168,7 @@ void VotedSensorsUpdate::parameters_update()
 					_corrections.gyro_mapping[topic_instance] =  0;
 
 				} else {
-					_corrections.accel_mapping[topic_instance] =  temp;
+					_corrections.gyro_mapping[topic_instance] =  temp;
 
 				}
 			}
