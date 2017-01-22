@@ -65,7 +65,7 @@
 #include <controllib/uorb/blocks.hpp>
 
 #include <uORB/topics/sensor_gyro.h>
-#include "polyfit.h"
+#include "polyfit.hpp"
 
 #define DEBUG 0
 #if DEBUG
@@ -149,7 +149,7 @@ void Tempcal::task_main()
 	// subscribe to relevant topics
 	int gyro_sub[SENSOR_COUNT_MAX];
 	float gyro_sample_filt[SENSOR_COUNT_MAX][4];
-	polyfitter P[SENSOR_COUNT_MAX][3];
+	polyfitter<4> P[SENSOR_COUNT_MAX][3];
 	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
 	uint8_t _hot_soak_sat[SENSOR_COUNT_MAX] = {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
@@ -171,9 +171,6 @@ void Tempcal::task_main()
 	for (uint8_t i = 0; i < num_gyro; i++) {
 		fds[i].fd = gyro_sub[i];
 		fds[i].events = POLLIN;
-		P[i][0].init(3);
-		P[i][1].init(3);
-		P[i][2].init(3);
 	}
 
 	// initialize data structures outside of loop
@@ -210,8 +207,8 @@ void Tempcal::task_main()
 
 				if (!_cold_soaked[i]) {
 					_cold_soaked[i] = true;
-					_low_temp[i] = gyro_data.temperature;	//Record the low temperature
-					_ref_temp[i] = gyro_data.temperature + 12.0f;
+					_low_temp[i] = gyro_sample_filt[i][3];	//Record the low temperature
+					_ref_temp[i] = gyro_sample_filt[i][3] + 12.0f;
 				}
 
 				num_samples[i]++;
@@ -235,6 +232,7 @@ void Tempcal::task_main()
 			} else {
 				continue;
 			}
+
 			//TODO: Hot Soak Saturation
 			if (_hot_soak_sat[i] == 10 || (_high_temp[i] - _low_temp[i]) > 24.0f) {
 				_hot_soaked[i] = true;
