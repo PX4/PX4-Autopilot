@@ -612,6 +612,7 @@ PWMSim::task_main()
 		}// if updated
 
 #endif //MIXER_CONFIGURATION
+
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {

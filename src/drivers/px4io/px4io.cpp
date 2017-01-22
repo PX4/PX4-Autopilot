@@ -1102,7 +1102,7 @@ PX4IO::task_main()
 					int32_t mixer_group;
 					param_get(param_find("MIX_GROUP"), &mixer_group);
 
-					if (mixer_group == 0) {
+					if (mixer_group == 1) {
 						if (mixer_action == 3) {
 							int32_t mixer_count;
 							mixer_count = _mixers->count();
