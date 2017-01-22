@@ -69,8 +69,8 @@ static int	load(const char *devname, const char *fname, bool append);
 #if defined(MIXER_CONFIGURATION)
 static int	save(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
-static int  mixer_param_list(const char *devname, int mix_index);
-static int  mixer_param_set(const char *devname, int mix_index, int param_index, float value);
+static int  mixer_param_list(const char *devname, int mix_index, int sub_index);
+static int  mixer_param_set(const char *devname, int mix_index, int sub_index, int param_index, float value);
 static int  mixer_show_config(const char *devname);
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -142,7 +142,15 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
-		int ret = mixer_param_list(argv[2], strtoul(argv[3], NULL, 0));
+		int ret;
+
+		if (argc == 4) {
+			ret = mixer_param_list(argv[2], strtoul(argv[3], NULL, 0), 0);
+
+		} else {
+			ret = mixer_param_list(argv[2], strtoul(argv[3], NULL, 0), strtoul(argv[4], NULL, 0));
+		}
+
 
 		if (ret != 0) {
 			warnx("failed to list parameters");
@@ -155,10 +163,20 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
-		int ret = mixer_param_set(argv[2],
-					  strtoul(argv[3], NULL, 0),
-					  strtoul(argv[4], NULL, 0),
-					  ((float) strtod(argv[5], 0)));
+		int ret;
+
+		if (argc == 6)
+			ret = mixer_param_set(argv[2],
+					      0,
+					      strtoul(argv[3], NULL, 0),
+					      strtoul(argv[4], NULL, 0),
+					      (float) strtod(argv[5], 0));
+		else
+			ret = mixer_param_set(argv[2],
+					      strtoul(argv[3], NULL, 0),
+					      strtoul(argv[4], NULL, 0),
+					      strtoul(argv[5], NULL, 0),
+					      (float) strtod(argv[6], 0));
 
 		if (ret != 0) {
 			warnx("failed to list parameters");
@@ -201,7 +219,9 @@ usage(const char *reason)
 	PX4_INFO("  mixer save <device> <filename>");
 	PX4_INFO("  mixer list <device>");
 	PX4_INFO("  mixer params <device> <mixer_index>");
+	PX4_INFO("  mixer params <device> <mixer_index> <sub_index>");
 	PX4_INFO("  mixer set <device> <mixer_index> <param_index> <value>");
+	PX4_INFO("  mixer set <device> <mixer_index> <sub_index> <param_index> <value>");
 	PX4_INFO("  mixer config <device>");
 #endif //defined(MIXER_CONFIGURATION)
 }
@@ -340,7 +360,7 @@ mixer_list(const char *devname)
 	}
 
 	unsigned mix_count;
-	mixer_type_e type;
+	mixer_type_s type;
 
 	/* Get the mixer count */
 	int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
@@ -354,10 +374,25 @@ mixer_list(const char *devname)
 
 	printf("Mixer count : %u \n", mix_count);
 
+	int submixer_count = 0;
+	int submixer = 0;
+
 	for (int index = 0; index < mix_count; index++) {
-		printf("mixer index %u : ", index);
+		printf("mixer:%u", index);
+
+		submixer_count = index;
+		ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&submixer_count);
+
+		if (ret != 0) {
+			warnx("can't get submixer count. Failure code %i", ret);
+			return 1;
+		}
+
+		printf(" submixers:%u ", submixer_count);
+
+		/* Get the mixer type*/
 		type.mix_index = index;
-		/* Get the mixer name at index*/
+		type.mix_sub_index = 0;
 		ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
 
 		if (ret < 0) {
@@ -367,6 +402,21 @@ mixer_list(const char *devname)
 
 		printf("type:%u id:%s", type.mix_type, MIXER_TYPE_ID[type.mix_type]);
 		printf("\n");
+
+		for (submixer = 1; submixer <= submixer_count; submixer++) {
+			/* Get the submixer type*/
+			type.mix_index = index;
+			type.mix_sub_index = submixer;
+			ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+
+			if (ret < 0) {
+				warnx("can't get submixer type");
+				return 1;
+			}
+
+			printf("mixer:%u  submixer:%u type:%u id:%s", index, submixer, type.mix_type, MIXER_TYPE_ID[type.mix_type]);
+			printf("\n");
+		}
 	}
 
 
@@ -375,7 +425,7 @@ mixer_list(const char *devname)
 
 
 static int
-mixer_param_list(const char *devname, int mix_index)
+mixer_param_list(const char *devname, int mix_index, int sub_index)
 {
 	int dev;
 
@@ -385,17 +435,18 @@ mixer_param_list(const char *devname, int mix_index)
 		return 1;
 	}
 
-	mixer_type_e mixer_type;
+	/* Get the mixer or submixer type*/
+	mixer_type_s mixer_type;
 	mixer_type.mix_index = mix_index;
-
-	/* Get the mixer paramer identifiers*/
+	mixer_type.mix_sub_index = sub_index;
 	int ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&mixer_type);
 
 	if (ret < 0) {
-		warnx("can't get mixer :%s type for mixer %u", devname, mix_index);
+		warnx("can't get mixer:%s type for mixer %u sub mixer:%u", devname, mix_index, sub_index);
 		return 1;
 	}
 
+	/* Get the mixer or submixer parameter count*/
 	unsigned param_count = MIXER_PARAMETER_COUNTS[mixer_type.mix_type];
 
 	if (param_count == 0) {
@@ -407,15 +458,18 @@ mixer_param_list(const char *devname, int mix_index)
 
 	for (int index = 0; index < param_count; index++) {
 		param.mix_index = mix_index;
+		param.mix_sub_index = sub_index;
 		param.param_index = index;
 		ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
-		printf("mixer:%u  param:%u id:%s value:%f\n", mix_index, index, MIXER_PARAMETER_TABLE[mixer_type.mix_type][index],
-		       (double) param.value);
-	}
 
-	if (ret < 0) {
-		warnx("can't get mixer id for:%s", devname);
-		return 1;
+		if (ret < 0) {
+			warnx("can't get submixer parameter");
+			return 1;
+		}
+
+		printf("mixer:%u  sub_mix:%u param:%u id:%s value:%.4f\n", mix_index, sub_index, index,
+		       MIXER_PARAMETER_TABLE[mixer_type.mix_type][index],
+		       (double) param.value);
 	}
 
 	return 0;
@@ -423,7 +477,7 @@ mixer_param_list(const char *devname, int mix_index)
 
 
 static int
-mixer_param_set(const char *devname, int mix_index, int param_index, float value)
+mixer_param_set(const char *devname, int mix_index, int sub_index, int param_index, float value)
 {
 	mixer_param_s param;
 
@@ -437,12 +491,15 @@ mixer_param_set(const char *devname, int mix_index, int param_index, float value
 
 	param.mix_index = mix_index;
 	param.param_index = param_index;
+	param.mix_sub_index = sub_index;
 	param.value = value;
 
 	int ret = px4_ioctl(dev, MIXERIOSETPARAM, (unsigned long)&param);
 
 	if (ret == 0) {
-		printf("mixer:%u param:%u value:%f set success\n", mix_index, param_index, (double) param.value);
+		printf("mixer:%u sub_mixer:%u param:%u value:%.4f set success\n", param.mix_index, param.mix_sub_index,
+		       param.param_index,
+		       (double) param.value);
 		return 0;
 
 	} else {

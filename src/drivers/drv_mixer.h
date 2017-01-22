@@ -120,16 +120,23 @@ struct mixer_simple_s {
 /**
  * Get the count of mixers in the group as (unsigned *)arg
  */
-#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(11)
+#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(10)
 
+
+/**
+ * Get the count of submixers mixers in the group mixer index
+ * mixer index as (signed *)arg, return as (signed *)arg
+ */
+#define   MIXERIOCGETSUBMIXERCOUNT         _MIXERIOC(11)
 
 /**
  * Get the parameter identifiers for a mixer at index (mixer_type_s *)arg
  * set the the mixer index in the union
  */
-union mixer_type_e {
-	unsigned        mix_index;
-	unsigned        mix_type;
+struct mixer_type_s {
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        mix_type;
 };
 #define   MIXERIOGETTYPE		_MIXERIOC(12)
 
@@ -139,8 +146,9 @@ union mixer_type_e {
  * return the value in the struct
  */
 struct mixer_param_s {
-	unsigned        mix_index;
-	unsigned        param_index;
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        param_index;
 	float           value;
 };
 #define   MIXERIOGETPARAM		_MIXERIOC(13)

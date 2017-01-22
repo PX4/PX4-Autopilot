@@ -196,6 +196,7 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
 #if defined(MIXER_CONFIGURATION)
 	[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX] = 0,
+	[PX4IO_P_SETUP_PARAMETER_MIXER_SUB_INDEX] = 0,
 	[PX4IO_P_SETUP_PARAMETER_INDEX] = 0,
 	[PX4IO_P_SETUP_PARAMETER] = 0,
 	[PX4IO_P_SETUP_PARAMETER_HIGH] = 0
@@ -740,9 +741,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_THERMAL:
 			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
 			break;
+
 #if defined(MIXER_CONFIGURATION)
 
 		case PX4IO_P_SETUP_PARAMETER_MIXER_INDEX:
+		case PX4IO_P_SETUP_PARAMETER_MIXER_SUB_INDEX:
 		case PX4IO_P_SETUP_PARAMETER_INDEX:
 		case PX4IO_P_SETUP_PARAMETER:
 			r_page_setup[offset] = value;

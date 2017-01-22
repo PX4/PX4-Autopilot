@@ -375,7 +375,8 @@ mixer_tick(void)
 
 		mixer_group.set_mixer_param(r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
 					    r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
-					    unpack.value);
+					    unpack.value,
+					    r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_SUB_INDEX]);
 		update_mixer_param = false;
 	}
 
@@ -628,7 +629,8 @@ mixer_set_failsafe()
 
 		mixer_group.set_mixer_param(r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_INDEX],
 					    r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
-					    unpack.value);
+					    unpack.value,
+					    r_page_setup[PX4IO_P_SETUP_PARAMETER_MIXER_SUB_INDEX]);
 		update_mixer_param = false;
 	}
 
