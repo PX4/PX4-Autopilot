@@ -573,36 +573,37 @@ PWMSim::task_main()
 						param_set(param_find("MIX_COUNT"), (void *) &mixer_count);
 
 					} else {
-						int32_t mixer_index;
+						int32_t mixer_index, mixer_sub_index;
 						param_get(param_find("MIX_INDEX"), &mixer_index);
+						param_get(param_find("MIX_SUB_INDEX"), &mixer_sub_index);
 
-						if (mixer_index != -1) {
-							if (mixer_action == 4) {
-								int32_t mixer_type;
-								mixer_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)mixer_index);
-								param_set(param_find("MIX_TYPE"), (void *) &mixer_type);
+						if (mixer_action == 4) {
+							int32_t mixer_type;
+							mixer_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)mixer_index, unsigned(mixer_sub_index));
+							param_set(param_find("MIX_TYPE"), (void *) &mixer_type);
 
-							} else {
-								float mixer_param;
-								int32_t mixer_param_index;
-								param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
+						} else if (mixer_action == 5) {
+							int32_t submixer_count = (int32_t) _mixers->count_submixers((unsigned)mixer_index);
+							param_set(param_find("MIX_COUNT"), (void *) &submixer_count);
 
-								if (mixer_param_index != -1) {
-									switch (mixer_action) {
-									case 1:
-										param_get(param_find("MIX_PARAMETER"), &mixer_param);
-										_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param);
-										break;
+						} else {
+							float mixer_param;
+							int32_t mixer_param_index;
+							param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
 
-									case 2:
-										mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index);
-										param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
-										break;
-									}//case mixer_action
-								}//if param_index
-							}//if else mixer_action
-						}//if mixer_index
-					}//if else mixer_action
+							switch (mixer_action) {
+							case 1:
+								param_get(param_find("MIX_PARAMETER"), &mixer_param);
+								_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param, (unsigned)mixer_sub_index);
+								break;
+
+							case 2:
+								mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, (unsigned)mixer_sub_index);
+								param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
+								break;
+							}//case mixer_action
+						}//if mixer_action
+					}//if mixer_action
 
 					mixer_action = 0;
 					param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);

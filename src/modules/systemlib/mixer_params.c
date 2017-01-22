@@ -45,36 +45,43 @@
  * Mixer group for parameter access
  *
  * @group Mixer Parameters
- * @min -1
+ * @min 0
  * @max 1
- * @value -1 default inactive
+ * @value 0 FMU
  * @value 0 FMU
  * @value 1 PX4io
  * @value 2 UAVCAN (Future)
  */
-PARAM_DEFINE_INT32(MIX_GROUP, -1);
+PARAM_DEFINE_INT32(MIX_GROUP, 0);
 
 /**
  * Mixer Index
  *
  * Index address of the mixer for parameter access
  *
- * @min -1
- * @value -1 default inactive
- *
+ * @min 0
  * @group Mixer Parameters
  */
-PARAM_DEFINE_INT32(MIX_INDEX, -1);
+PARAM_DEFINE_INT32(MIX_INDEX, 0);
+
+/**
+ * Submixer Index
+ *
+ * Index address of the submixer for parameter access
+ *
+ * @min 0
+ * @group Mixer Parameters
+ */
+PARAM_DEFINE_INT32(MIX_SUB_INDEX, 0);
 
 /**
  * Index address of the parameter in the mixer
  *
- * @min -1
- * @value -1 default inactive
+ * @min 0
  *
  * @group Mixer Parameters
  */
-PARAM_DEFINE_INT32(MIX_PARAM_INDEX, -1);
+PARAM_DEFINE_INT32(MIX_PARAM_INDEX, 0);
 
 /**
  * Mixer parameter value
@@ -87,32 +94,40 @@ PARAM_DEFINE_INT32(MIX_PARAM_INDEX, -1);
 PARAM_DEFINE_FLOAT(MIX_PARAMETER, 0.0f);
 
 /**
- * Count of mixers in group
+ * Count of mixers in group or submixers in mixer
  *
- * @min -1
+ * @min 0
  * @group Mixer Parameters
  */
-PARAM_DEFINE_INT32(MIX_COUNT, -1);
+PARAM_DEFINE_INT32(MIX_COUNT, 0);
 
 /**
  * Type of mixer in MIX_GROUP at MIX_INDEX
  *
- * @min -1
+ * @min 0
+ * @value 0 None
+ * @value 1 Null
+ * @value 2 Simple
+ * @value 3 Multirotor
+ * @value 4 Helicopter
+ * @value 5 Simple Input
+ * @value 6 Multicopter Rotor
  * @group Mixer Parameters
  */
-PARAM_DEFINE_INT32(MIX_TYPE, -1);
+PARAM_DEFINE_INT32(MIX_TYPE, 0);
 
 /**
  * Mixer parameter action
  *
  * @min -1
- * @max 1
+ * @max 5
  * @value -1 Action failed
  * @value 0 No action / Action complete
  * @value 1 Write
  * @value 2 Read
- * @value 3 Read mixer count
- * @value 4 Read mixer type
+ * @value 3 Read mixer count in a mixer group
+ * @value 4 Read mixer or submixer type
+ * @value 5 Read submixer count for a mixer in a mixer group
  * @value 100 Store (Future)
  * @group Mixer Parameters
  */
