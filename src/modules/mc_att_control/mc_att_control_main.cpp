@@ -995,15 +995,15 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	// get the raw gyro data and correct for thermal errors
 	math::Vector<3> rates;
-	if (_selected_gyro == 0) {
+	if (_sensor_correction.gyro_mapping[_selected_gyro] == 0) {
 		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[0]) * _sensor_correction.gyro_scale_0[0];
 		rates(1) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[1]) * _sensor_correction.gyro_scale_0[1];
 		rates(2) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[2]) * _sensor_correction.gyro_scale_0[2];
-	} else if (_selected_gyro == 1) {
+	} else if (_sensor_correction.gyro_mapping[_selected_gyro] == 1) {
 		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_1[0]) * _sensor_correction.gyro_scale_1[0];
 		rates(1) = (_sensor_gyro.x - _sensor_correction.gyro_offset_1[1]) * _sensor_correction.gyro_scale_1[1];
 		rates(2) = (_sensor_gyro.x - _sensor_correction.gyro_offset_1[2]) * _sensor_correction.gyro_scale_1[2];
-	} else if (_selected_gyro == 2) {
+	} else if (_sensor_correction.gyro_mapping[_selected_gyro] == 2) {
 		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_2[0]) * _sensor_correction.gyro_scale_2[0];
 		rates(1) = (_sensor_gyro.x - _sensor_correction.gyro_offset_2[1]) * _sensor_correction.gyro_scale_2[1];
 		rates(2) = (_sensor_gyro.x - _sensor_correction.gyro_offset_2[2]) * _sensor_correction.gyro_scale_2[2];
