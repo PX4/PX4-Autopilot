@@ -1090,6 +1090,120 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
+#if defined(MIXER_CONFIGURATION)
+
+			if (updated) {
+				param_t mix_action_param = param_find("MIX_PARAM_ACTION");
+				int32_t mixer_action;
+				param_get(mix_action_param, &mixer_action);
+
+				if ((mixer_action > 0) && (_mixers != nullptr)) {
+					updated = false;
+					int32_t mixer_group;
+					param_get(param_find("MIX_GROUP"), &mixer_group);
+
+					if (mixer_group == 0) {
+						if (mixer_action == 3) {
+							int32_t mixer_count;
+							mixer_count = _mixers->count();
+							param_set(param_find("MIX_COUNT"), (void *) &mixer_count);
+							mixer_action = 0;
+
+						} else {
+							int32_t mixer_index, mixer_sub_index;
+							param_get(param_find("MIX_INDEX"), &mixer_index);
+							param_get(param_find("MIX_SUB_INDEX"), &mixer_sub_index);
+
+							if (mixer_action == 4) {
+								int32_t mixer_type;
+								mixer_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)mixer_index, unsigned(mixer_sub_index));
+								param_set(param_find("MIX_TYPE"), (void *) &mixer_type);
+								mixer_action = 0;
+
+							} else if (mixer_action == 5) {
+								int32_t submixer_count = (int32_t) _mixers->count_submixers((unsigned)mixer_index);
+								param_set(param_find("MIX_COUNT"), (void *) &submixer_count);
+								mixer_action = 0;
+
+							} else {
+								float mixer_param;
+								int32_t mixer_param_index;
+								param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
+
+								switch (mixer_action) {
+								case 2:
+									mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, (unsigned)mixer_sub_index);
+									param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
+									mixer_action = 0;
+									break;
+
+								default:
+									mixer_action = -1;
+									break;
+
+								case 1:
+									param_get(param_find("MIX_PARAMETER"), &mixer_param);
+									struct __attribute__((
+												     packed)) {        /** to send mixer indices and value in the same packet order as px4io registers**/
+										uint16_t mix_index;
+										uint16_t mix_sub_index;
+										uint16_t param_index;
+										union {
+											float 	 value;
+											uint32_t check_val;     /** to compare integer value instead of float **/
+										} param;
+									} mix_param;
+
+									mix_param.mix_index = mixer_index;
+									mix_param.mix_sub_index = mixer_sub_index;
+									mix_param.param_index = mixer_param_index;
+									mix_param.param.value = mixer_param;
+
+									uint32_t check_val = mix_param.param.check_val;
+
+									ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
+
+									if (ret != 0) {
+										mixer_action = -1;
+										break;
+									}
+
+									memset((void *) &mix_param, 0xFF, sizeof(mix_param));
+
+									ret = io_reg_get(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
+
+									if (ret != 0) {
+										mixer_action = -1;
+										break;
+									}
+
+									/** Check readback values against original **/
+									if ((mix_param.mix_index != mixer_index) ||
+									    (mix_param.mix_sub_index != mixer_sub_index) ||
+									    (mix_param.param_index != mixer_param_index) ||
+									    (mix_param.param.check_val != check_val)
+									   ) {
+										mixer_action = -1;
+										break;
+									}
+
+//                                                                    _mixers->set_mixer_param(param->mix_index, param->param_index, param->value, param->mix_sub_index);
+									_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param, (unsigned)mixer_sub_index);
+
+									mixer_action = 0;
+									break;
+								}//case mixer_action
+							}//if mixer_action
+						}//if mixer_action
+
+						param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);
+					}//if mixer_group
+				}//if mixer_action
+
+			}
+
+#endif //MIXER_CONFIGURATION
+
 			if (updated || _param_update_force) {
 				_param_update_force = false;
 				parameter_update_s pupdate;
