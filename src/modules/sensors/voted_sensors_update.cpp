@@ -161,9 +161,15 @@ void VotedSensorsUpdate::parameters_update()
 			struct gyro_report report;
 
 			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
-				if (_temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance) < 0) {
+				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
+				if (temp) {
 					PX4_ERR("gyro temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
+					_corrections.gyro_mapping[topic_instance] =  0;
+
+				} else {
+					_corrections.accel_mapping[topic_instance] =  temp;
+
 				}
 			}
 		}
@@ -174,22 +180,33 @@ void VotedSensorsUpdate::parameters_update()
 			struct accel_report report;
 
 			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
-				if (_temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance) < 0) {
+				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
+				if (temp < 0) {
 					PX4_ERR("accel temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
+					_corrections.accel_mapping[topic_instance] =  0;
+
+				} else {
+					_corrections.accel_mapping[topic_instance] =  temp;
+
 				}
 			}
 		}
-
 		/* baro */
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
 			struct baro_report report;
 
 			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
-				if (_temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance) < 0) {
+				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
+				if (temp < 0) {
 					PX4_ERR("baro temp compensation init: failed to find device ID %u for instance %i",
 						report.device_id, topic_instance);
+					_corrections.baro_mapping[topic_instance] =  0;
+
+				} else {
+					_corrections.baro_mapping[topic_instance] =  temp;
+
 				}
 			}
 		}
