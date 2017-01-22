@@ -275,12 +275,12 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	get_rot_matrix(board_rotation_id, &board_rotation);
 	math::Matrix<3, 3> board_rotation_t = board_rotation.transposed();
 
-	for (unsigned i = 0; i < active_sensors; i++) {
+	for (unsigned uorb_index = 0; uorb_index < active_sensors; uorb_index++) {
 
 		/* handle individual sensors, one by one */
-		math::Vector<3> accel_offs_vec(accel_offs[i]);
+		math::Vector<3> accel_offs_vec(accel_offs[uorb_index]);
 		math::Vector<3> accel_offs_rotated = board_rotation_t * accel_offs_vec;
-		math::Matrix<3, 3> accel_T_mat(accel_T[i]);
+		math::Matrix<3, 3> accel_T_mat(accel_T[uorb_index]);
 		math::Matrix<3, 3> accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
@@ -295,38 +295,103 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
 
 
-		PX4_DEBUG("found offset %d: x: %.6f, y: %.6f, z: %.6f", i,
+		PX4_DEBUG("found offset %d: x: %.6f, y: %.6f, z: %.6f", uorb_index,
 				(double)accel_scale.x_offset,
 				(double)accel_scale.y_offset,
 				(double)accel_scale.z_offset);
-		PX4_DEBUG("found scale %d: x: %.6f, y: %.6f, z: %.6f", i,
+		PX4_DEBUG("found scale %d: x: %.6f, y: %.6f, z: %.6f", uorb_index,
 				(double)accel_scale.x_scale,
 				(double)accel_scale.y_scale,
 				(double)accel_scale.z_scale);
 
-		/* set parameters */
-		(void)sprintf(str, "CAL_ACC%u_XOFF", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
-		(void)sprintf(str, "CAL_ACC%u_YOFF", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
-		(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
-		(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
-		(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
-		(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
-		(void)sprintf(str, "CAL_ACC%u_ID", i);
-		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[i])));
+		/* check if thermal compensation is enabled */
+		int32_t tc_enabled_int;
+		param_get(param_find("TC_A_ENABLE"), &(tc_enabled_int));
+		if (tc_enabled_int == 1) {
+			/* Get struct containing sensor thermal compensation data */
+			struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+			memset(&sensor_correction, 0, sizeof(sensor_correction));
+			int sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
+			orb_copy(ORB_ID(sensor_correction), sensor_correction_sub, &sensor_correction);
+			orb_unsubscribe(sensor_correction_sub);
+
+			/* update the _X0_ terms to include the additional offset */
+			/* update the _SCL_ terms to include the additonal scale factor */
+			int32_t handle;
+			float val;
+			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+				handle = -1;
+				val = 0.0f;
+				(void)sprintf(str, "TC_A%u_X0_%u", sensor_correction.accel_mapping[uorb_index], axis_index);
+				handle = param_find(str);
+				param_get(handle, &(val));
+				if (axis_index == 0) {
+					val += accel_scale.x_offset;
+				} else if (axis_index == 1) {
+					val += accel_scale.y_offset;
+				} else if (axis_index == 2) {
+					val += accel_scale.z_offset;
+				}
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(val)));
+			}
+			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+				handle = -1;
+				val = 1.0f;
+				(void)sprintf(str, "TC_A%u_SCL_%u", sensor_correction.accel_mapping[uorb_index], axis_index);
+				handle = param_find(str);
+				param_get(handle, &(val));
+				if (axis_index == 0) {
+					val *= accel_scale.x_scale;
+				} else if (axis_index == 1) {
+					val *= accel_scale.y_scale;
+				} else if (axis_index == 2) {
+					val *= accel_scale.z_scale;
+				}
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(val)));
+			}
+
+			// Ensure the calibration values used the driver are at default settings
+			float driver_offset = 0.0f;
+			float driver_scale = 1.0f;
+			(void)sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
+			(void)sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
+			(void)sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
+			(void)sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
+			(void)sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
+			(void)sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
+			(void)sprintf(str, "CAL_ACC%u_ID", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
+
+		} else {
+			(void)sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
+			(void)sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
+			(void)sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
+			(void)sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
+			(void)sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
+			(void)sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
+			(void)sprintf(str, "CAL_ACC%u_ID", uorb_index);
+			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
+		}
 
 		if (failed) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, i);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, uorb_index);
 			return PX4_ERROR;
 		}
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
-		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, i);
+		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, uorb_index);
 		fd = px4_open(str, 0);
 
 		if (fd < 0) {
@@ -338,7 +403,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, i);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, uorb_index);
 		}
 #endif
 	}
@@ -552,15 +617,15 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 					orb_copy(ORB_ID(sensor_accel), subs[s], &arp);
 
 					// Apply thermal corrections
-					if (s == 0) {
+					if (sensor_correction.accel_mapping[s] == 0) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_0[0]) * sensor_correction.accel_scale_0[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_0[1]) * sensor_correction.accel_scale_0[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_0[2]) * sensor_correction.accel_scale_0[2];
-					} else if (s == 1) {
+					} else if (sensor_correction.accel_mapping[s] == 1) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_1[0]) * sensor_correction.accel_scale_1[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_1[1]) * sensor_correction.accel_scale_1[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_1[2]) * sensor_correction.accel_scale_1[2];
-					} else if (s == 2) {
+					} else if (sensor_correction.accel_mapping[s] == 2) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_2[0]) * sensor_correction.accel_scale_2[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_2[1]) * sensor_correction.accel_scale_2[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_2[2]) * sensor_correction.accel_scale_2[2];
