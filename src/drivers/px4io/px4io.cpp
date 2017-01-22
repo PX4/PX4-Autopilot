@@ -3158,7 +3158,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETTYPE: {
+	case MIXERIOCGETTYPE: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
@@ -3176,7 +3176,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETPARAM: {
+	case MIXERIOCGETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
@@ -3186,7 +3186,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOSETPARAM: {
+	case MIXERIOCSETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 				break;
@@ -3244,7 +3244,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETCONFIG: {
+	case MIXERIOCGETCONFIG: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}

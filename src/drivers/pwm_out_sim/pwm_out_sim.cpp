@@ -926,7 +926,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 
-	case MIXERIOGETTYPE: {
+	case MIXERIOCGETTYPE: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
@@ -944,7 +944,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETPARAM: {
+	case MIXERIOCGETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
@@ -954,7 +954,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOSETPARAM: {
+	case MIXERIOCSETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
@@ -964,7 +964,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOGETCONFIG: {
+	case MIXERIOCGETCONFIG: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}

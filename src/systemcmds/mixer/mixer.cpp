@@ -283,7 +283,7 @@ save(const char *devname, const char *fname)
 
 	char buf[2048];
 
-	int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
+	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
 
 	if (ret != 0) {
 		warnx("Could not get mixer config for %s\n", devname);
@@ -334,7 +334,7 @@ static int  mixer_show_config(const char *devname)
 	char buf[2048];
 
 	/* Pass the buffer to the device */
-	int ret = px4_ioctl(dev, MIXERIOGETCONFIG, (unsigned long)buf);
+	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
 
 	if (ret == 0) {
 		printf("%s", buf);
@@ -393,7 +393,7 @@ mixer_list(const char *devname)
 		/* Get the mixer type*/
 		type.mix_index = index;
 		type.mix_sub_index = 0;
-		ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+		ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
 
 		if (ret < 0) {
 			warnx("can't get mixer type. Failure code %i", ret);
@@ -407,7 +407,7 @@ mixer_list(const char *devname)
 			/* Get the submixer type*/
 			type.mix_index = index;
 			type.mix_sub_index = submixer;
-			ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&type);
+			ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
 
 			if (ret < 0) {
 				warnx("can't get submixer type");
@@ -439,7 +439,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 	mixer_type_s mixer_type;
 	mixer_type.mix_index = mix_index;
 	mixer_type.mix_sub_index = sub_index;
-	int ret = px4_ioctl(dev, MIXERIOGETTYPE, (unsigned long)&mixer_type);
+	int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&mixer_type);
 
 	if (ret < 0) {
 		warnx("can't get mixer:%s type for mixer %u sub mixer:%u", devname, mix_index, sub_index);
@@ -460,7 +460,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 		param.mix_index = mix_index;
 		param.mix_sub_index = sub_index;
 		param.param_index = index;
-		ret = px4_ioctl(dev, MIXERIOGETPARAM, (unsigned long)&param);
+		ret = px4_ioctl(dev, MIXERIOCGETPARAM, (unsigned long)&param);
 
 		if (ret < 0) {
 			warnx("can't get submixer parameter");
@@ -494,7 +494,7 @@ mixer_param_set(const char *devname, int mix_index, int sub_index, int param_ind
 	param.mix_sub_index = sub_index;
 	param.value = value;
 
-	int ret = px4_ioctl(dev, MIXERIOSETPARAM, (unsigned long)&param);
+	int ret = px4_ioctl(dev, MIXERIOCSETPARAM, (unsigned long)&param);
 
 	if (ret == 0) {
 		printf("mixer:%u sub_mixer:%u param:%u value:%.4f set success\n", param.mix_index, param.mix_sub_index,

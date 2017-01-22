@@ -138,7 +138,7 @@ struct mixer_type_s {
 	uint16_t        mix_sub_index;
 	uint16_t        mix_type;
 };
-#define   MIXERIOGETTYPE		_MIXERIOC(12)
+#define   MIXERIOCGETTYPE		_MIXERIOC(12)
 
 /**
  * Get the parameter at index for a mixer at index (mixer_param_s *)arg
@@ -151,7 +151,7 @@ struct mixer_param_s {
 	uint16_t        param_index;
 	float           value;
 };
-#define   MIXERIOGETPARAM		_MIXERIOC(13)
+#define   MIXERIOCGETPARAM		_MIXERIOC(13)
 
 
 /**
@@ -160,13 +160,13 @@ struct mixer_param_s {
  * return 0 if success, -1 if fail.  Fail can indicate out of range.
  * If failed then real value MAY be set in the mixer_param_s struct.
  */
-#define MIXERIOSETPARAM                 _MIXERIOC(14)
+#define MIXERIOCSETPARAM                 _MIXERIOC(14)
 
 
 /**
  * Get mixer configuration text for serialization
  */
-#define MIXERIOGETCONFIG               _MIXERIOC(15)
+#define MIXERIOCGETCONFIG               _MIXERIOC(15)
 
 
 
