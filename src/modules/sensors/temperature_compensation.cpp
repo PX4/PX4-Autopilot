@@ -309,7 +309,7 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(SensorCalData3D &coef, flo
 
 }
 
-int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_gyro(int32_t device_id, int topic_instance)
 {
 	if (_parameters.gyro_tc_enable != 1) {
 		return 0;
@@ -332,7 +332,7 @@ int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_in
 	}
 }
 
-int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_accel(int32_t device_id, int topic_instance)
 {
 	if (_parameters.accel_tc_enable != 1) {
 		return 0;
@@ -355,7 +355,7 @@ int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_i
 	}
 }
 
-int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_baro(int32_t device_id, int topic_instance)
 {
 	if (_parameters.baro_tc_enable != 1) {
 		return 0;
