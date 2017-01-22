@@ -335,15 +335,15 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 #endif //MIXER_REMOTE
 
 MIXER_TYPES
-MixerGroup::get_mixer_type_from_index(unsigned mix_index)
+MixerGroup::get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index)
 {
 	Mixer	*mixer = _first;
-	unsigned index = 0;
+	uint16_t index = 0;
 	MIXER_TYPES mix_type;
 
 	while ((mixer != nullptr)) {
 		if (mix_index == index) {
-			mix_type = mixer->get_mixer_type();
+			mix_type = mixer->get_mixer_type(submix_index);
 			return mix_type;
 		}
 
@@ -354,16 +354,34 @@ MixerGroup::get_mixer_type_from_index(unsigned mix_index)
 	return MIXER_TYPE_NONE;
 }
 
-
-float
-MixerGroup::get_mixer_param(unsigned mix_index, unsigned param_index)
+signed
+MixerGroup::count_submixers(uint16_t mix_index)
 {
 	Mixer	*mixer = _first;
-	unsigned index = 0;
+	uint16_t index = 0;
 
 	while ((mixer != nullptr)) {
 		if (mix_index == index) {
-			return mixer->get_parameter(param_index);
+			return mixer->count_submixers();
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return -1;
+}
+
+
+float
+MixerGroup::get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t submix_index)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->get_parameter(param_index, submix_index);
 		}
 
 		mixer = mixer->_next;
@@ -375,14 +393,14 @@ MixerGroup::get_mixer_param(unsigned mix_index, unsigned param_index)
 
 
 int
-MixerGroup::set_mixer_param(unsigned mix_index, unsigned param_index, float value)
+MixerGroup::set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index)
 {
 	Mixer	*mixer = _first;
-	unsigned index = 0;
+	uint16_t index = 0;
 
 	while ((mixer != nullptr)) {
 		if (mix_index == index) {
-			return mixer->set_parameter(param_index, value);
+			return mixer->set_parameter(param_index, value, submix_index);
 		}
 
 		mixer = mixer->_next;

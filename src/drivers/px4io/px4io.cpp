@@ -3033,13 +3033,24 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
+	case MIXERIOCGETSUBMIXERCOUNT:  {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			signed *count = (signed *)arg;
+			*count = _mixers->count_submixers(*count);
+
+			break;
+		}
+
 	case MIXERIOGETTYPE: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
 
-			mixer_type_e *mixer_type = (mixer_type_e *)arg;
-			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index);
+			mixer_type_s *mixer_type = (mixer_type_s *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
 
 			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
 				ret = -EINVAL;
@@ -3057,7 +3068,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			mixer_param_s *param = (mixer_param_s *)arg;
-			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index, param->mix_sub_index);
 			break;
 		}
 
@@ -3067,45 +3078,53 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				break;
 			}
 
-			struct {		/** to send mixer parameter indices and value in the same packet **/
+			struct __attribute__((
+						     packed)) {        /** to send mixer indices and value in the same packet order as px4io registers**/
 				uint16_t mix_index;
+				uint16_t mix_sub_index;
 				uint16_t param_index;
 				union {
 					float 	 value;
-					uint32_t check_val;
+					uint32_t check_val;     /** to compare integer value instead of float **/
 				} param;
 			} mix_param;
 
 			mixer_param_s *param = (mixer_param_s *)arg;
 
 			mix_param.mix_index = param->mix_index;
+			mix_param.mix_sub_index = param->mix_sub_index;
 			mix_param.param_index = param->param_index;
 			mix_param.param.value = param->value;
 
 			uint32_t check_val = mix_param.param.check_val;
 
-			ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 4);
+			ret = io_reg_set(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
 
 			if (ret != 0) {
 				ret = -EINVAL;
 				break;
 			}
 
-			ret = io_reg_get(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 4);
+			memset((void *) &mix_param, 0xFF, sizeof(mix_param));
+
+			ret = io_reg_get(PX4IO_PAGE_SETUP , PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
 
 			if (ret != 0) {
 				ret = -EINVAL;
 				break;
 			}
 
+			/** Check readback values against original **/
 			if ((mix_param.mix_index != param->mix_index) ||
+			    (mix_param.mix_sub_index != param->mix_sub_index) ||
 			    (mix_param.param_index != param->param_index) ||
-			    (mix_param.param.check_val != check_val)) {
+			    (mix_param.param.check_val != check_val)
+			   ) {
 				ret = -EINVAL;
 				break;
 			}
 
-			_mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+			_mixers->set_mixer_param(param->mix_index, param->param_index, param->value, param->mix_sub_index);
 
 			ret = 0;
 			break;

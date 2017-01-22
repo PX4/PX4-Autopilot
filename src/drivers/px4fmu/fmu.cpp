@@ -2387,13 +2387,42 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case MIXERIOCGETSUBMIXERCOUNT:  {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			signed *count = (signed *)arg;
+			*count = _mixers->count_submixers(*count);
+
+			break;
+		}
+
+	case MIXERIOGETTYPE: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_type_s *mixer_type = (mixer_type_s *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
+
+			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+				ret = -EINVAL;
+
+			} else {
+				ret = 0;
+			}
+
+			break;
+		}
+
 	case MIXERIOGETPARAM: {
 			if (_mixers == nullptr) {
 				ret = -EINVAL;
 			}
 
 			mixer_param_s *param = (mixer_param_s *)arg;
-			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index);
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index, param->mix_sub_index);
 			break;
 		}
 
@@ -2403,7 +2432,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			mixer_param_s *param = (mixer_param_s *)arg;
-			ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value);
+			ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value, param->mix_sub_index);
 			break;
 		}
 

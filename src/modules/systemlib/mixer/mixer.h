@@ -215,7 +215,7 @@ public:
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {};
-
+#if defined(MIXER_CONFIGURATION)
 	/**
 	 * Writes a description of the mixer configuration which can be read with from_text
 	 *
@@ -230,7 +230,14 @@ public:
 	 *
 	 * @return              A type enumeration for this mixer
 	 */
-	virtual MIXER_TYPES     get_mixer_type(void) {return MIXER_TYPE_NONE;}
+	virtual MIXER_TYPES     get_mixer_type(uint16_t submix_index) {return MIXER_TYPE_NONE;}
+
+	/**
+	 * Get list of Mixer parameters
+	 *
+	 * @return              A count of submixers for the mixer
+	 */
+	virtual int             count_submixers(void) {return 0;}
 
 	/**
 	 * gets a mixer parameter
@@ -238,7 +245,7 @@ public:
 	 * @param index         The index of the parameter
 	 * @return              The float value of the parameter
 	 */
-	virtual float       	get_parameter(uint16_t index) {return 0.0;}
+	virtual float       	get_parameter(uint16_t index, uint16_t submix_index) {return 0.0;}
 
 	/**
 	 * sets a mixer parameter
@@ -247,7 +254,8 @@ public:
 	 * @param value         The value of the parameter
 	 * @return              0 if set. -1 for error
 	 */
-	virtual int16_t         set_parameter(uint16_t index, float value) {return -1;}
+	virtual int16_t         set_parameter(uint16_t index, float value, uint16_t submix_index) {return -1;}
+#endif //defined(MIXER_CONFIGURATION)
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -453,29 +461,41 @@ public:
 	/**
 	 * Get the type of a mixer from its index
 	 *
-	 * @param mix_index index of the mixer to get the params from
-	 * @return			The type of the mixer.
+	* @param[in] mix_index     Index of the mixer to get the type
+	* @param[in] submix_index  Option index into submixers
+	* @return                  The type of the mixer.
 	 */
-	MIXER_TYPES         get_mixer_type_from_index(unsigned mix_index);
+	MIXER_TYPES         get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index);
+
+
+	/**
+	 * Get the count of submixers for a mixer at index
+	 *
+	 * @param[in] mix_index     Index of the mixer to get the submixer count
+	 * @return                  The count of submixers.
+	 */
+	signed              count_submixers(uint16_t mix_index);
 
 	/**
 	* @brief                   Get the value of a mixer parameter
 	 *
 	* @param[in] mix_index     index of the mixer to get the param from
 	* @param[in] param_index   index of the parameter to get the value from
+	* @param[in] submix_index  Option index into submixers
 	* @return                  Value of the parameter. Return 0.0 if index out of range.
 	 */
-	float get_mixer_param(unsigned mix_index, unsigned param_index);
+	float get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t submix_index);
 
 	/**
 	* @brief                       Set the value of a mixer parameter
 	 *
 	* @param[in]   mix_index       index of the mixer to get the param from
 	* @param[in]   param_index     index of the parameter to get the value from
-	* @param       value           value to set indexed parameter to
+	* @param[in]   value           value to set indexed parameter to
+	* @param[in]   submix_index    Option index into submixers
 	* @return                      Zero on success, -1 on failure.
 	 */
-	int set_mixer_param(unsigned mix_index, unsigned param_index, float value);
+	int set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index);
 
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -593,9 +613,10 @@ public:
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
 #endif //MIXER_REMOTE
-	MIXER_TYPES             get_mixer_type(void);
-	float                   get_parameter(uint16_t index);
-	int16_t                 set_parameter(uint16_t index, float value);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index);
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
 #endif //defined(MIXER_CONFIGURATION)
 
 	/**
@@ -756,9 +777,10 @@ public:
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
 #endif //MIXER_REMOTE
-	MIXER_TYPES             get_mixer_type(void);
-	float                   get_parameter(uint16_t index);
-	int16_t                 set_parameter(uint16_t index, float value);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index = 0);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index = 0);
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index = 0);
 #endif //defined(MIXER_CONFIGURATION)
 
 private:

@@ -633,39 +633,75 @@ uint16_t MultirotorMixer::get_saturation_status()
 
 #if defined(MIXER_CONFIGURATION)
 MIXER_TYPES
-MultirotorMixer::get_mixer_type(void)
+MultirotorMixer::get_mixer_type(uint16_t submix_index)
 {
-	return MIXER_TYPE_MULTIROTOR;
+	if (submix_index == 0) {
+		return MIXER_TYPE_MULTIROTOR;
+
+	} else if (submix_index <= _rotor_count) {
+		return MIXER_TYPE_ROTOR;
+
+	} else {
+		return MIXER_TYPE_NONE;
+	}
 }
 
+signed
+MultirotorMixer::count_submixers(void)
+{
+	return _rotor_count;
+}
 
 float
-MultirotorMixer::get_parameter(uint16_t index)
+MultirotorMixer::get_parameter(uint16_t index, uint16_t submix_index)
 {
-	switch (index) {
-	case 0:
-		return _roll_scale;
-		break;
+	if (submix_index == 0) {
+		switch (index) {
+		case 0:
+			return _roll_scale;
+			break;
 
-	case 1:
-		return _pitch_scale;
-		break;
+		case 1:
+			return _pitch_scale;
+			break;
 
-	case 2:
-		return _yaw_scale;
-		break;
+		case 2:
+			return _yaw_scale;
+			break;
 
-	case 3:
-		return _idle_speed;
-		break;
+		case 3:
+			return _idle_speed;
+			break;
+		}
+
+	} else if (submix_index <= _rotor_count) {
+		switch (index) {
+		case 0:
+			return _rotors[submix_index - 1].roll_scale;
+			break;
+
+		case 1:
+			return _rotors[submix_index - 1].pitch_scale;
+			break;
+
+		case 2:
+			return _rotors[submix_index - 1].yaw_scale;
+			break;
+
+		case 3:
+			return _rotors[submix_index - 1].out_scale;
+			break;
+		}
 	}
 
 	return 0.0;
 }
 
 int16_t
-MultirotorMixer::set_parameter(uint16_t index, float value)
+MultirotorMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
 {
+	if (submix_index != 0) { return -1; }
+
 	switch (index) {
 	case 0:
 		_roll_scale = value;

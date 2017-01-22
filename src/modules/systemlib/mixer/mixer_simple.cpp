@@ -429,66 +429,138 @@ SimpleMixer::check()
 
 #if defined(MIXER_CONFIGURATION)
 MIXER_TYPES
-SimpleMixer::get_mixer_type(void)
+SimpleMixer::get_mixer_type(uint16_t submix_index)
 {
-	return MIXER_TYPE_SIMPLE;
+	if (_pinfo == nullptr) { return MIXER_TYPE_NONE; }
+
+	if (submix_index == 0) {
+		return MIXER_TYPE_SIMPLE;
+
+	} else {
+		if (submix_index > _pinfo->control_count) { return MIXER_TYPE_NONE; }
+
+		return MIXER_TYPE_SIMPLE_INPUT;
+	}
+}
+
+
+signed
+SimpleMixer::count_submixers(void)
+{
+	if (_pinfo == nullptr) { return 0; }
+
+	return _pinfo->control_count;
 }
 
 float
-SimpleMixer::get_parameter(uint16_t index)
+SimpleMixer::get_parameter(uint16_t index, uint16_t submix_index)
 {
-	switch (index) {
-	case 0:
-		return _pinfo->output_scaler.negative_scale;
-		break;
+	if (_pinfo == nullptr) { return 0.0; }
 
-	case 1:
-		return _pinfo->output_scaler.positive_scale;
-		break;
+	if (submix_index == 0) {
+		switch (index) {
+		case 0:
+			return _pinfo->output_scaler.negative_scale;
+			break;
 
-	case 2:
-		return _pinfo->output_scaler.offset;
-		break;
+		case 1:
+			return _pinfo->output_scaler.positive_scale;
+			break;
 
-	case 3:
-		return _pinfo->output_scaler.min_output;
-		break;
+		case 2:
+			return _pinfo->output_scaler.offset;
+			break;
 
-	case 4:
-		return _pinfo->output_scaler.max_output;
-		break;
+		case 3:
+			return _pinfo->output_scaler.min_output;
+			break;
+
+		case 4:
+			return _pinfo->output_scaler.max_output;
+			break;
+		}
+
+	} else if (submix_index <= _pinfo->control_count) {
+		switch (index) {
+		case 0:
+			return _pinfo->controls[submix_index - 1].scaler.negative_scale;
+			break;
+
+		case 1:
+			return _pinfo->controls[submix_index - 1].scaler.positive_scale;
+			break;
+
+		case 2:
+			return _pinfo->controls[submix_index - 1].scaler.offset;
+			break;
+
+		case 3:
+			return _pinfo->controls[submix_index - 1].scaler.min_output;
+			break;
+
+		case 4:
+			return _pinfo->controls[submix_index - 1].scaler.max_output;
+			break;
+		}
 	}
 
 	return 0.0;
 }
 
 int16_t
-SimpleMixer::set_parameter(uint16_t index, float value)
+SimpleMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
 {
-	switch (index) {
-	case 0:
-		_pinfo->output_scaler.negative_scale = value;
-		break;
+	if (_pinfo == nullptr) { return -1; }
 
-	case 1:
-		_pinfo->output_scaler.positive_scale = value;
-		break;
+	if (submix_index == 0) {
+		switch (index) {
+		case 0:
+			_pinfo->output_scaler.negative_scale = value;
+			break;
 
-	case 2:
-		_pinfo->output_scaler.offset = value;
-		break;
+		case 1:
+			_pinfo->output_scaler.positive_scale = value;
+			break;
 
-	case 3:
-		_pinfo->output_scaler.min_output = value;
-		break;
+		case 2:
+			_pinfo->output_scaler.offset = value;
+			break;
 
-	case 4:
-		_pinfo->output_scaler.max_output = value;
-		break;
+		case 3:
+			_pinfo->output_scaler.min_output = value;
+			break;
 
-	default:
-		return -1;
-		break;
+		case 4:
+			_pinfo->output_scaler.max_output = value;
+			break;
+
+		default:
+			return -1;
+			break;
+		}
+
+	} else if (submix_index <= _pinfo->control_count) {
+		switch (index) {
+		case 0:
+			_pinfo->controls[submix_index - 1].scaler.negative_scale = value;
+			break;
+
+		case 1:
+			_pinfo->controls[submix_index - 1].scaler.positive_scale = value;
+			break;
+
+		case 2:
+			_pinfo->controls[submix_index - 1].scaler.offset = value;
+			break;
+
+		case 3:
+			_pinfo->controls[submix_index - 1].scaler.min_output = value;
+			break;
+
+		case 4:
+			_pinfo->controls[submix_index - 1].scaler.max_output = value;
+			break;
+		}
 	}
 
 	return 0;
