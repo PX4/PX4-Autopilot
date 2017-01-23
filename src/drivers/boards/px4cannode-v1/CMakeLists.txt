@@ -35,6 +35,7 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
+   ../common/stm32/board_reset.c
    px4cannode_can.c
    px4cannode_buttons.c
    px4cannode_init.c
