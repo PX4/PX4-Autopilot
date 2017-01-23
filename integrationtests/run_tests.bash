@@ -86,8 +86,12 @@ mkdir -p $TEST_RESULT_TARGET_DIR
 if ! [ -d $SRC_DIR ]
 then
 	ln -s $ORIG_SRC $SRC_DIR
+	# Symbolic links to catkin packages below. Note that submodules like
+	# rotors_simulator and mav_comm contain many catkin packages.
+	# Symbolic link for the rotors_simulation sub-module
 	#ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
-	ln -s $ORIG_SRC/Tools/rotors_simulation/rotors_gazebo_plugins ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	ln -s $ORIG_SRC/Tools/mav_comm/mav_msgs ${CATKIN_DIR}/src/mav_msgs
+	ln -s $ORIG_SRC/Tools/rotors_simulator/rotors_gazebo ${CATKIN_DIR}/src/rotors_gazebo
 fi
 cd $CATKIN_DIR
 catkin_make
