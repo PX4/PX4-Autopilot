@@ -36,6 +36,7 @@ px4_add_module(
 	SRCS
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/stm32/board_reset.c
 		px4fmu_can.c
 		px4fmu2_init.c
 		px4fmu_timer_config.c
