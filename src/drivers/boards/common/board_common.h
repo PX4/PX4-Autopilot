@@ -186,6 +186,14 @@
 
 
 /************************************************************************************
+ * Public Data
+ ************************************************************************************/
+typedef enum board_reset_e {
+	board_reset_normal     = 0,
+	board_reset_extended     = 1,
+	board_reset_enter_bootloader = 2
+} board_reset_e;
+/************************************************************************************
  * Private Functions
  ************************************************************************************/
 
@@ -240,4 +248,31 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
 #  if !defined(GPIO_SBUS_INV)
 __EXPORT void board_rc_input(bool invert_on);
 #  endif
+#endif
+
+/************************************************************************************
+ * Name: board_reset
+ *
+ * Description:
+ *   All boards my optionally provide this API to reset the board
+ *
+ ************************************************************************************/
+#if defined(BOARD_HAS_NO_RESET)
+#  define board_system_reset(status)
+#else
+__EXPORT void board_system_reset(int status) noreturn_function;
+#endif
+/************************************************************************************
+ * Name: board_set_bootload_mode
+ *
+ * Description:
+ *   All boards my optionally provide this API to enter configure the entry to
+ *   boot loade mode on the next system reset.
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_NO_BOOTLOADER)
+#  define board_set_bootload_mode(mode)
+#else
+__EXPORT int board_set_bootload_mode(board_reset_e mode);
 #endif
