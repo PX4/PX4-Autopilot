@@ -35,6 +35,7 @@ px4_add_module(
 	SRCS
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/stm32/board_reset.c
 		crazyflie_init.c
 		crazyflie_usb.c
 		crazyflie_led.c
