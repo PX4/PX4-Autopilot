@@ -252,7 +252,7 @@ bool MulticopterLandDetector::_get_landed_state()
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
 
-	if (!_get_ground_contact_state() || rotating || horizontalMovement) {
+	if (!_ground_contact_hysteresis.get_state() || rotating || horizontalMovement) {
 		// Sensed movement or thottle high, so reset the land detector.
 		return false;
 	}
