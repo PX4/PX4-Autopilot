@@ -36,6 +36,7 @@ px4_add_module(
 	SRCS
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/stm32/board_reset.c
 		auav_can.c
 		auav_init.c
 		auav_timer_config.c
