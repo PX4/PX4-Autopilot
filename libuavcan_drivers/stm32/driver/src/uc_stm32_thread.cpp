@@ -26,7 +26,7 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
     {
 # if (CH_KERNEL_MAJOR == 2)
         ret = sem_.waitTimeout(TIME_IMMEDIATE);
-# else // ChibiOS 3
+# else // ChibiOS 3+
         ret = sem_.wait(TIME_IMMEDIATE);
 # endif
     }
@@ -34,13 +34,13 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
     {
 # if (CH_KERNEL_MAJOR == 2)
         ret = sem_.waitTimeout((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
-# else // ChibiOS 3
+# else // ChibiOS 3+
         ret = sem_.wait((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
 # endif
     }
 # if (CH_KERNEL_MAJOR == 2)
     return ret == RDY_OK;
-# else // ChibiOS 3
+# else // ChibiOS 3+
     return ret == MSG_OK;
 # endif
 }
@@ -56,7 +56,7 @@ void BusEvent::signalFromInterrupt()
     chSysLockFromIsr();
     sem_.signalI();
     chSysUnlockFromIsr();
-# else // ChibiOS 3
+# else // ChibiOS 3+
     chSysLockFromISR();
     sem_.signalI();
     chSysUnlockFromISR();
@@ -75,7 +75,7 @@ void Mutex::unlock()
 {
 # if (CH_KERNEL_MAJOR == 2)
     chibios_rt::BaseThread::unlockMutex();
-# else // ChibiOS 3
+# else // ChibiOS 3+
     mtx_.unlock();
 # endif
 }

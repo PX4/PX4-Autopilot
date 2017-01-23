@@ -34,7 +34,7 @@
 # endif
 #endif
 
-#if (UAVCAN_STM32_CHIBIOS && CH_KERNEL_MAJOR == 3)
+#if (UAVCAN_STM32_CHIBIOS && (CH_KERNEL_MAJOR == 3 || CH_KERNEL_MAJOR == 4))
 #define CAN1_TX_IRQHandler      STM32_CAN1_TX_HANDLER
 #define CAN1_RX0_IRQHandler     STM32_CAN1_RX0_HANDLER
 #define CAN1_RX1_IRQHandler     STM32_CAN1_RX1_HANDLER
@@ -1084,7 +1084,15 @@ static int can2_irq(const int irq, void*)
 }
 
 # endif
+
 #else // UAVCAN_STM32_NUTTX
+
+#if !defined(CAN1_TX_IRQHandler) ||\
+    !defined(CAN1_RX0_IRQHandler) ||\
+    !defined(CAN1_RX1_IRQHandler)
+# error "Misconfigured build"
+#endif
+
 UAVCAN_STM32_IRQ_HANDLER(CAN1_TX_IRQHandler);
 UAVCAN_STM32_IRQ_HANDLER(CAN1_TX_IRQHandler)
 {
@@ -1110,6 +1118,12 @@ UAVCAN_STM32_IRQ_HANDLER(CAN1_RX1_IRQHandler)
 }
 
 # if UAVCAN_STM32_NUM_IFACES > 1
+
+#if !defined(CAN2_TX_IRQHandler) ||\
+    !defined(CAN2_RX0_IRQHandler) ||\
+    !defined(CAN2_RX1_IRQHandler)
+# error "Misconfigured build"
+#endif
 
 UAVCAN_STM32_IRQ_HANDLER(CAN2_TX_IRQHandler);
 UAVCAN_STM32_IRQ_HANDLER(CAN2_TX_IRQHandler)
