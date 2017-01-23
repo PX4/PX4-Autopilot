@@ -32,7 +32,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from jinja2 import Environment, FileSystemLoader
 import pyulog
 
 class Param(dict):
@@ -118,8 +117,6 @@ def process_file(log_path, out_path, template_path):
     for d in log.data_list:
         data['{:s}_{:d}'.format(d.name, d.multi_id)] = d.data
 
-    print(data.keys())
-
     params = {}
 
     # open file to save plots to PDF
@@ -127,66 +124,72 @@ def process_file(log_path, out_path, template_path):
     # output_plot_filename = ulog_file_name + ".pdf"
     # pp = PdfPages(output_plot_filename)
 
-    # process gyro data
-    plt.figure(figsize=(20, 13))
-    for d in log.data_list:
-        if d.name == 'sensor_gyro':
-            topic = '{:s}_{:d}'.format(d.name, d.multi_id)
-            print('found {:s} data'.format(topic))
-            fields = ['x', 'y', 'z']
-            units = 'rad/s'
-            label = 'TC_G{:d}'.format(d.multi_id)
-            params[topic] = {
-                'params': temp_calibration(
-                    data=d.data, topic=topic,
-                    fields=fields, units=units, label=label),
-                'label': label
-            }
-    plt.savefig('gyro_cal.pdf')
+    configs = [
+        {
+            'msg': 'sensor_gyro',
+            'fields': ['x', 'y', 'z'],
+            'units': 'rad/s',
+            'label': 'TC_G'
+        },
+        {
+            'msg': 'sensor_accel',
+            'fields': ['x', 'y', 'z'],
+            'units': 'm/s^2',
+            'label': 'TC_A'
+        },
+        {
+            'msg': 'sensor_baro',
+            'fields': ['pressure'],
+            'units': 'm',
+            'label': 'TC_B'
+        },
+    ]
 
-    # process accel data
-    plt.figure(figsize=(20, 13))
-    for d in log.data_list:
-        if d.name == 'sensor_accel':
-            topic = '{:s}_{:d}'.format(d.name, d.multi_id)
-            print('found {:s} data'.format(topic))
-            fields = ['x', 'y', 'z']
-            units = 'rad/s'
-            label = 'TC_G{:d}'.format(d.multi_id)
-            params[topic] = {
-                'params': temp_calibration(
-                    data=d.data, topic=topic,
-                    fields=fields, units=units, label=label),
-                'label': label
-            }
-    plt.savefig('accel_cal.pdf')
+    for config in configs:
+        for d in log.data_list:
+            if d.name == config['msg']:
+                plt.figure(figsize=(20, 13))
+                topic = '{:s}_{:d}'.format(d.name, d.multi_id)
+                print('found {:s} data'.format(topic))
+                label='{:s}{:d}'.format(
+                    config['label'], d.multi_id)
+                params[topic] = {
+                    'params': temp_calibration(
+                        data=d.data, topic=topic,
+                        fields=config['fields'],
+                        units=config['units'],
+                        label=label),
+                    'label': label
+                }
+                plt.savefig('{:s}_cal.pdf'.format(topic))
 
-    # process baro data
-    plt.figure(figsize=(20, 13))
-    for d in log.data_list:
-        if d.name == 'sensor_baro':
-            topic = '{:s}_{:d}'.format(d.name, d.multi_id)
-            print('found {:s} data'.format(topic))
-            fields = ['altitude']
-            units = 'm'
-            label = 'TC_B{:d}'.format(d.multi_id)
-            params[topic] = {
-                'params': temp_calibration(
-                    data=d.data, topic=topic,
-                    fields=fields, units=units, label=label),
-                'label': label
-            }
-    plt.savefig('baro_cal.pdf')
-
+    # JSON file generation
     # import json
     # print(json.dumps(params, indent=2))
 
-    # for jinja docs see: http://jinja.pocoo.org/docs/2.9/api/
-    env = Environment(
-        loader=FileSystemLoader(template_path))
-    template = env.get_template('sensor_cal.params.jinja')
-    with open(out_path, 'w') as fid:
-        fid.write(template.render(params=params))
+    body = ''
+    for sensor in sorted(params.keys()):
+        for param in sorted(params[sensor]['params'].keys()):
+            label = params[sensor]['label']
+            pdict = params[sensor]['params'] 
+            if pdict[param]['type'] == 'INT':
+                type_id = 6
+            elif pdict[param]['type'] == 'FLOAT':
+                type_id = 9
+            val = pdict[param]['val']
+            name = '{:s}_{:s}'.format(label, param)
+            body += "1\t1\t{name:20s}\t{val:15g}\t{type_id:5d}\n".format(**locals())
+
+    # simple template file output
+    text = """# Sensor thermal compensation parameters
+#
+# Vehicle-Id Component-Id Name Value Type
+{body:s}
+""".format(body=body)
+
+    with open(out_path, 'w') as f:
+        f.write(text)
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -198,6 +201,5 @@ if __name__ == "__main__":
         os.path.realpath(__file__)), 'templates')
     process_file(log_path=args.filename, out_path=ulog_file_name.replace('ulg', 'params'),
             template_path=template_path)
-    plt.show()
 
 #  vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : 
