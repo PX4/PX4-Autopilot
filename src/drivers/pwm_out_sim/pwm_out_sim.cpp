@@ -567,7 +567,7 @@ PWMSim::task_main()
 			_lockdown = aa.lockdown || aa.manual_lockdown;
 		}
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && defined(MIXER_CONFIG_BY_MAVLINK_PARAMS))
 		/* mixer parameters update? */
 		orb_check(_param_sub, &updated);
 
@@ -989,7 +989,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {

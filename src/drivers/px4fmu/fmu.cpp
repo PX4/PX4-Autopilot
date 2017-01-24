@@ -1313,7 +1313,7 @@ PX4FMU::cycle()
 
 	orb_check(_param_sub, &updated);
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && defined(MIXER_CONFIG_BY_MAVLINK_PARAMS))
 
 	if (updated) {
 		param_t mix_action_param = param_find("MIX_PARAM_ACTION");
@@ -2431,7 +2431,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {

@@ -1090,7 +1090,7 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && defined(MIXER_CONFIG_BY_MAVLINK_PARAMS))
 
 			if (updated) {
 				param_t mix_action_param = param_find("MIX_PARAM_ACTION");
@@ -3132,7 +3132,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-#if defined(MIXER_CONFIGURATION)
+#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			unsigned *count = (unsigned *)arg;
