@@ -6,7 +6,7 @@
 set -e
 
 # TODO move to docker image
-pip install px4tools pymavlink -q
+#pip install px4tools pymavlink -q
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -14,15 +14,17 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 # Initialize our own variables:
 do_clean=true
 gui=false
+verbose=false
 
-while getopts "h?og" opt; do
+while getopts "h?ogv" opt; do
     case "$opt" in
     h|\?)
 		echo """
-		$0 [-h] [-o] [-g]
+		$0 [-h] [-o] [-g] [-v]
 		-h show help
 		-o don't clean before building (to save time)
 		-g run gazebo gui
+		-v verbose output
 		"""
         exit 0
         ;;
@@ -31,8 +33,15 @@ while getopts "h?og" opt; do
         ;;
     g)  gui=true
         ;;
+    v)  verbose=true
+		;;
     esac
 done
+
+if $verbose 
+	then
+	echo "run_tests.bash called."
+fi
 
 
 # determine the directory of the source given the directory of this script
@@ -90,11 +99,17 @@ then
 	# rotors_simulator and mav_comm contain many catkin packages.
 	# Symbolic link for the rotors_simulation sub-module
 	#ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
-	ln -s $ORIG_SRC/Tools/mav_comm/mav_msgs ${CATKIN_DIR}/src/mav_msgs
 	ln -s $ORIG_SRC/Tools/rotors_simulator/rotors_gazebo ${CATKIN_DIR}/src/rotors_gazebo
+	ln -s $ORIG_SRC/Tools/rotors_simulator/rotors_gazebo_plugins ${CATKIN_DIR}/src/rotors_gazebo_plugins
+	ln -s $ORIG_SRC/Tools/mav_comm/mav_msgs ${CATKIN_DIR}/src/mav_msgs
+	
 fi
 cd $CATKIN_DIR
-catkin_make
+
+# These build parameters are used by the CMakeLists.txt in
+# rotors_gazebo_plugins.
+# TODO: Fix absolute path!
+catkin_make -DADDITIONAL_INCLUDE_DIRS=/catkin/src/mav_msgs/include/ -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=FALSE -DNO_ROS=TRUE
 . ./devel/setup.bash
 echo "<====="
 
@@ -113,13 +128,13 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 # however, stop executing tests after the first failure
 set +e
 echo "=====> run tests"
-test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui --text
 
 # commented out optical flow test for now since ci server has
 # an issue producing the simulated flow camera currently
 #test $? -eq 0 && rostest px4 mavros_posix_tests_iris_opt_flow.launch gui:=$gui
 
-test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui
+test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui  --text
 TEST_RESULT=$?
 echo "<====="
 
