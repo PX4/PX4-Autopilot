@@ -51,34 +51,21 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef CONFIG_ARCH_BOARD_SIM
-#define stm32_pwr_enablebkp(onoff)
-#else
-# if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
-#  include <stm32_pwr.h>
-# endif
-#endif
 
+#include <px4_log.h>
 #include <systemlib/systemlib.h>
 
-// Didn't seem right to include up_internal.h, so direct extern instead.
-extern void up_systemreset(void) noreturn_function;
 
 void
 px4_systemreset(bool to_bootloader)
 {
-	if (to_bootloader) {
-		stm32_pwr_enablebkp(true);
-
-		/* XXX wow, this is evil - write a magic number into backup register zero */
-		*(uint32_t *)0x40002850 = 0xb007b007;
-		stm32_pwr_enablebkp(false);
-	}
-
-	up_systemreset();
-
-	/* lock up here */
-	while (true);
+	board_set_bootload_mode(to_bootloader ? board_reset_enter_bootloader : board_reset_normal);
+	board_system_reset(to_bootloader ? 1 : 0);
+#if defined BOARD_HAS_NO_RESET
+	/* In case there is no HW support Just exit*/
+	PX4_WARN("System Reset Called");
+	exit(1);
+#endif
 }
 
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
