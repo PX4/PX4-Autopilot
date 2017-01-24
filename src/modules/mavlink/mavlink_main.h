@@ -66,6 +66,7 @@
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
 #include "mavlink_mission.h"
+#include "mavlink_mixers.h"
 #include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
@@ -482,6 +483,7 @@ private:
 
 	MavlinkMissionManager		*_mission_manager;
 	MavlinkParametersManager	*_parameters_manager;
+	MavlinkMixersManager    *_mixers_manager;
 	MavlinkFTP			*_mavlink_ftp;
 	MavlinkLogHandler		*_mavlink_log_handler;
 	MavlinkShell			*_mavlink_shell;

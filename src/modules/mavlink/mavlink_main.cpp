@@ -197,6 +197,7 @@ Mavlink::Mavlink() :
 	_streams(nullptr),
 	_mission_manager(nullptr),
 	_parameters_manager(nullptr),
+	_mixers_manager(nullptr),
 	_mavlink_ftp(nullptr),
 	_mavlink_log_handler(nullptr),
 	_mavlink_shell(nullptr),
@@ -1246,6 +1247,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 	/* handle packet with log component */
 	_mavlink_log_handler->handle_message(msg);
+
+	/* handle packet with mixer manager */
+	_mixers_manager->handle_message(msg);
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */

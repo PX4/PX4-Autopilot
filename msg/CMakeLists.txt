@@ -73,7 +73,10 @@ set(msg_file_names
 	mc_virtual_rates_setpoint.msg
 	mission.msg
 	mission_result.msg
-	multirotor_motor_limits.msg
+        mixer_data.msg
+        mixer_data_request.msg
+        mixer_parameter_set.msg
+        multirotor_motor_limits.msg
 	offboard_control_mode.msg
 	optical_flow.msg
 	output_pwm.msg
