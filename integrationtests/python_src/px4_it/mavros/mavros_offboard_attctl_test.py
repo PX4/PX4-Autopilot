@@ -94,8 +94,10 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         """Test offboard attitude control"""
 
         # FIXME: hack to wait for simulation to be ready
+        print("DEBUG: wait_until_ready() called.\n");
         while not self.has_global_pos:
             self.rate.sleep()
+        print("DEBUG: wait_until_ready() finished.\n");
 
         # set some attitude and thrust
         att = PoseStamped()

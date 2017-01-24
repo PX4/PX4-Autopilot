@@ -99,6 +99,8 @@ class MavrosMissionTest(unittest.TestCase):
     """
 
     def setUp(self):
+
+        print("DEBUG: MavrosMissionTest.setUp() called.\n");
         rospy.init_node('test_node', anonymous=True)
 
         self.rate = rospy.Rate(10) # 10hz
@@ -241,9 +243,12 @@ class MavrosMissionTest(unittest.TestCase):
                            1, 0, 0, 0, 0, 0, 0)
 
     def wait_until_ready(self):
+        print("DEBUG: wait_until_ready() called.\n");
         """FIXME: hack to wait for simulation to be ready"""
         while not self.has_global_pos:
             self.rate.sleep()
+
+        print("DEBUG: wait_until_ready() finished.\n");
 
     def wait_on_landing(self, timeout, index):
         """Wait for landed state"""
