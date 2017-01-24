@@ -41,8 +41,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
 #define HARDFAULT_FILENO 3
 #define HARDFAULT_PATH BBSRAM_PATH""STRINGIFY(HARDFAULT_FILENO)
 #define HARDFAULT_REBOOT_FILENO 0

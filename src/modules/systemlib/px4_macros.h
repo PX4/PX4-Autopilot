@@ -86,6 +86,14 @@
 #define CAT(a, b) _CAT(a, b)
 #endif
 
+#if !defined(FREEZE_STR)
+#  define FREEZE_STR(s) #s
+#endif
+
+#if !defined(STRINGIFY)
+#define STRINGIFY(s) FREEZE_STR(s)
+#endif
+
 #if !defined(CCASSERT)
 #if defined(static_assert)
 #		define CCASSERT(predicate) static_assert(predicate)
@@ -97,7 +105,12 @@
 #	endif
 #endif
 
-#define DO_PRAGMA(x) _Pragma (#x)
-#define TODO(x) DO_PRAGMA(message ("TODO - " #x))
+#if !defined(DO_PRAGMA)
+#  define DO_PRAGMA(x) _Pragma (#x)
+#endif
+
+#if !defined(TODO)
+#  define TODO(x) DO_PRAGMA(message ("TODO - " #x))
+#endif
 
 #endif /* _PX4_MACROS_H */
