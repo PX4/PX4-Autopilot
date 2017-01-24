@@ -109,16 +109,18 @@ __BEGIN_DECLS
 #    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-#    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
+#    define px4_savepanic(fileno, context, length)  stm32_bbsram_savepanic(fileno, context, length)
 
-#    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
-#    define px4_i2cbus_uninitialize(pdev)            stm32_i2cbus_uninitialize(pdev)
+#    define px4_spibus_initialize(port_1based)      stm32_spibus_initialize(port_1based)
 
-#    define px4_arch_configgpio(pinset)              stm32_configgpio(pinset)
-#    define px4_arch_unconfiggpio(pinset)            stm32_unconfiggpio(pinset)
-#    define px4_arch_gpioread(pinset)                stm32_gpioread(pinset)
-#    define px4_arch_gpiowrite(pinset, value)        stm32_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)   stm32_gpiosetevent(pinset,r,f, e,fp)
+#    define px4_i2cbus_initialize(bus_num_1based)   stm32_i2cbus_initialize(bus_num_1based)
+#    define px4_i2cbus_uninitialize(pdev)           stm32_i2cbus_uninitialize(pdev)
+
+#    define px4_arch_configgpio(pinset)             stm32_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
 #endif
 
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
@@ -132,6 +134,10 @@ __BEGIN_DECLS
 #    include <chip.h>
 #    include <kinetis_spi.h>
 #    include <kinetis_i2c.h>
+
+#    define kinetis_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
+
+#    define px4_savepanic(fileno, context, length)   kinetis_bbsram_savepanic(fileno, context, length)
 
 /* bus_num is zero based on kinetis and must be translated from the legacy one based */
 
