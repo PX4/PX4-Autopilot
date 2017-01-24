@@ -106,10 +106,14 @@ then
 fi
 cd $CATKIN_DIR
 
-# These build parameters are used by the CMakeLists.txt in
-# rotors_gazebo_plugins.
-# TODO: Fix absolute path!
-catkin_make -DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/ -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=FALSE -DNO_ROS=TRUE
+# These build parameters are used by the CMakeLists.txt in the
+# rotors_gazebo_plugins and rotors_gazebo packages.
+catkin_make 
+	-DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/ # This assumes mav_msgs has been symlinked to the catkin workspace as per above
+	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE 						# Build the MAVLink interface plugin for Gazebo
+	-DBUILD_OCTOMAP_PLUGIN=FALSE 								# Build the Octomap plugin for Gazebo
+	-DBUILD_OPTICAL_FLOW_PLUGIN=FALSE 							# Build the optical flow plugin for Gazebo
+	-DNO_ROS													# Instruct the Gazebo plugins to build without ROS dependencies. Note that even though ROS is used for these tests, PX4 uses the Gazebo plugins without any ROS dependencies.
 . ./devel/setup.bash
 echo "<====="
 
