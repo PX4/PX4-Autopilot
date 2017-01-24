@@ -109,7 +109,7 @@ cd $CATKIN_DIR
 # These build parameters are used by the CMakeLists.txt in
 # rotors_gazebo_plugins.
 # TODO: Fix absolute path!
-catkin_make -DADDITIONAL_INCLUDE_DIRS=/catkin/src/mav_msgs/include/ -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=FALSE -DNO_ROS=TRUE
+catkin_make -DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/ -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=FALSE -DNO_ROS=TRUE
 . ./devel/setup.bash
 echo "<====="
 
