@@ -144,7 +144,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 		pdump->info.flags |= eInvalidUserStackPtr;
 	}
 
-	int rv = stm32_bbsram_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
+	int rv = px4_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
 
 	/* Test if memory got wiped because of using _sdata */
 
