@@ -61,6 +61,7 @@ public:
 	~ECL_YawController() = default;
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
+	float control_euler_rate(const struct ECL_ControlData &ctl_data);
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
 	/* Additional setters */
@@ -84,8 +85,6 @@ protected:
 	float _max_rate;
 
 	int32_t _coordinated_method;
-
-	float control_bodyrate_impl(const struct ECL_ControlData &ctl_data);
 
 	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
 

@@ -79,8 +79,8 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.roll_rate) &&
-	      PX4_ISFINITE(ctl_data.yaw_rate) &&
+	      PX4_ISFINITE(ctl_data.body_x_rate) &&
+	      PX4_ISFINITE(ctl_data.body_z_rate) &&
 	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
 	      PX4_ISFINITE(ctl_data.airspeed_min) &&
 	      PX4_ISFINITE(ctl_data.airspeed_max) &&
@@ -100,11 +100,8 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 		lock_integrator = true;
 	}
 
-	/* Transform setpoint to body angular rates (jacobian) */
-	_bodyrate_setpoint = _rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
-
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - ctl_data.roll_rate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.body_x_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f) {
 
@@ -127,8 +124,7 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 
 	/* integrator limit */
 	//xxx: until start detection is available: integral part in control signal is limited here
-	float integrator_constrained = math::constrain(_integrator, -_integrator_max, _integrator_max);
-	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
+	float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
@@ -136,5 +132,14 @@ float ECL_RollController::control_bodyrate(const struct ECL_ControlData &ctl_dat
 		       + integrator_constrained;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
+}
+
+float ECL_RollController::control_euler_rate(const struct ECL_ControlData &ctl_data)
+{
+	/* Transform setpoint to body angular rates (jacobian) */
+	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
+
+	return control_bodyrate(ctl_data);
+
 }
 
