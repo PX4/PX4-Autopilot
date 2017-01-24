@@ -44,10 +44,8 @@
 #pragma once
 
 #include <px4_config.h>
+#include <systemlib/px4_macros.h>
 #include <stdint.h>
-
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
 
 /* The preferred method for publishing a board name is to
  * define it in board_config.h as BOARD_NAME
