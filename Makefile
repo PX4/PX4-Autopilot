@@ -209,6 +209,7 @@ misc_qgc_extra_firmware: \
 
 # Other NuttX firmware
 alt_firmware: \
+	check_nxphlite-v1_default \
 	check_px4-stm32f4discovery_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
