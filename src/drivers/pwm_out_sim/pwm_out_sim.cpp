@@ -80,6 +80,9 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/mixer_data_request.h>
+#include <uORB/topics/mixer_parameter_set.h>
+#include <uORB/topics/mixer_data.h>
 
 #include <systemlib/err.h>
 
@@ -123,6 +126,9 @@ private:
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
 	int		_param_sub;
+	int     _mixer_data_request_sub;
+	int     _mixer_parameter_set_sub;
+	orb_advert_t	_mixer_data_pub;
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -194,6 +200,9 @@ PWMSim::PWMSim() :
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_param_sub(-1),
+	_mixer_data_request_sub(-1),
+	_mixer_parameter_set_sub(-1),
+	_mixer_data_pub(0),
 	_outputs_pub(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -390,6 +399,11 @@ PWMSim::task_main()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+#if defined(MIXER_CONFIGURATION)
+	_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
+	_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
+#endif //MIXER_CONFIGURATION
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs = {};
@@ -613,6 +627,76 @@ PWMSim::task_main()
 
 #endif //MIXER_CONFIGURATION
 
+#if defined(MIXER_CONFIGURATION)
+		/* mixer data request */
+		orb_check(_mixer_data_request_sub, &updated);
+
+		if (updated) {
+			mixer_data_request_s req;
+			orb_copy(ORB_ID(mixer_data_request), _mixer_data_request_sub, &req);
+
+			if (req.mixer_group == 0) {
+				mixer_data_s data;
+				data.mixer_group = req.mixer_group;
+				data.mixer_index = req.mixer_index;
+				data.mixer_sub_index = req.mixer_sub_index;
+				data.mixer_data_type = req.mixer_data_type;
+
+				switch (req.mixer_data_type) {
+				case 0: {
+						//Mixer count
+						data.int_value = (int32_t) _mixers->count();
+						break;
+					}
+
+				case 1: {
+						//Submixer count
+						break;
+					}
+
+				case 2: {
+						//Mixer type
+						data.int_value = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
+								 (unsigned)data.mixer_sub_index);
+						data.real_value = 0.0;
+						break;
+					}
+
+				case 3: {
+						//Parameter
+						data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
+								  (unsigned)data.mixer_sub_index);
+						data.int_value = 0;
+						break;
+					}
+
+				default:
+					data.real_value = 0.0;
+					data.int_value = -1;
+					break;
+				} //case
+
+				if (_mixer_data_pub == 0) {
+					orb_advertise(ORB_ID(mixer_data), &data);
+
+				} else {
+					orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
+				}
+			} //mixer_group
+		} //updated
+
+		orb_check(_mixer_parameter_set_sub, &updated);
+
+		if (updated) {
+			mixer_parameter_set_s param;
+			orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
+			_mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
+						 (unsigned)param.mixer_sub_index);
+
+		}
+
+#endif //MIXER_CONFIGURATION
+
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -622,6 +706,10 @@ PWMSim::task_main()
 	}
 
 	orb_unsubscribe(_armed_sub);
+#if defined(MIXER_CONFIGURATION)
+	orb_unsubscribe(_mixer_data_request_sub);
+	orb_unsubscribe(_mixer_parameter_set_sub);
+#endif //MIXER_CONFIGURATION
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
