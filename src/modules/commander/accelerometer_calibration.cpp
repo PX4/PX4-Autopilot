@@ -465,7 +465,6 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 	bool data_collected[detect_orientation_side_count] = { false, false, false, false, false, false };
 
 	// Initialise sub to sensor thermal compensation data
-	worker_data.sensor_correction_sub = -1;
 	worker_data.sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 
 	// Initialize subs to error condition so we know which ones are open and which are not
@@ -588,18 +587,18 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	memset(accel_sum, 0, sizeof(accel_sum));
 
 	unsigned errcount = 0;
-
-	/* Define struct containing sensor thermal compensation data and set default values */
 	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
-	memset(&sensor_correction, 0, sizeof(sensor_correction));
-	for (unsigned i=0; i<3; i++) {
-		sensor_correction.accel_scale_0[i] = 1.0f;
-		sensor_correction.accel_scale_1[i] = 1.0f;
-		sensor_correction.accel_scale_2[i] = 1.0f;
-	}
 
-	/* get latest thermal corrections */
-	orb_copy(ORB_ID(sensor_correction), sensor_correction_sub, &sensor_correction);
+	/* try to get latest thermal corrections */
+	if (orb_copy(ORB_ID(sensor_correction), sensor_correction_sub, &sensor_correction) != 0) {
+		/* use default values */
+		memset(&sensor_correction, 0, sizeof(sensor_correction));
+		for (unsigned i = 0; i < 3; i++) {
+			sensor_correction.accel_scale_0[i] = 1.0f;
+			sensor_correction.accel_scale_1[i] = 1.0f;
+			sensor_correction.accel_scale_2[i] = 1.0f;
+		}
+	}
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
