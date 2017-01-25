@@ -95,8 +95,9 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
-	modules/uavcan
+	#modules/uavcan
 	modules/land_detector
+	modules/tempcal
 
 	#
 	# Estimation modules
@@ -196,10 +197,10 @@ set(config_io_board
 	px4io-v2
 	)
 
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
+#set(config_extra_libs
+#	uavcan
+#	uavcan_stm32_driver
+#	)
 
 set(config_io_extra_libs
 	)
