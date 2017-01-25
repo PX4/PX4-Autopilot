@@ -46,7 +46,7 @@ set(config_module_list
 # NOT Portable YET drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
+##TO FIT drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	drivers/bmp280
 #No External SPI drivers/bma180
@@ -146,6 +146,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
+	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
 
