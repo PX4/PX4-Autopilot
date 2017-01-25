@@ -3301,12 +3301,10 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "id")) {
-		uint8_t id[12];
-		(void)get_board_serial(id);
-
-		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
-		     (unsigned)id[0], (unsigned)id[1], (unsigned)id[2], (unsigned)id[3], (unsigned)id[4], (unsigned)id[5],
-		     (unsigned)id[6], (unsigned)id[7], (unsigned)id[8], (unsigned)id[9], (unsigned)id[10], (unsigned)id[11]);
+		char uid_fmt_buffer[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
+		board_get_uuid_formated32(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%0X", " ", &px4_legacy_word32_order);
+		printf("Board serial:\n %s\n", uid_fmt_buffer);
+		exit(0);
 	}
 
 	if (fmu_start() != OK) {
