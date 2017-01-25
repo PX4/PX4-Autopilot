@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__boards__nxphlite-v1
 	COMPILE_FLAGS
 	SRCS
+		../common/kinetis/board_identity.c
 		../common/kinetis/board_reset.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
