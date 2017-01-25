@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		aerofc_init.c
 		aerofc_spi.c
 		aerofc_usb.c
