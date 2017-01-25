@@ -213,7 +213,7 @@ void Tempcal::task_main()
 		}
 
 		//l++;
-		for (unsigned i = 0; i < 1; i++) {
+		for (unsigned i = 0; i < num_gyro; i++) {
 			if (_hot_soaked[i]) {
 				continue;
 			}
@@ -250,7 +250,7 @@ void Tempcal::task_main()
 			num_samples[i] = 0;
 		}
 
-		for (unsigned i = 0; i < 1; i++) {
+		for (unsigned i = 0; i < num_gyro; i++) {
 			if (_hot_soaked[i] && !_tempcal_complete[i]) {
 				double res[3][4] = {0.0f};
 				P[i][0].fit(res[0]);
@@ -279,7 +279,7 @@ void Tempcal::task_main()
 				}
 
 				for (unsigned j = 0; j < 3; j++) {
-					for (unsigned m = 0; m < 3; m++) {
+					for (unsigned m = 0; m <= 3; m++) {
 						sprintf(str, "TC_G%d_X%d_%d", i, m, j);
 						param = (float)res[j][m];
 						result = param_set(param_find(str), &param);
