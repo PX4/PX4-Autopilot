@@ -151,6 +151,7 @@ void Tempcal::task_main()
 	unsigned _hot_soak_sat[SENSOR_COUNT_MAX] = {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
+	uint32_t device_ids[SENSOR_COUNT_MAX] = {};
 
 	if (num_gyro > SENSOR_COUNT_MAX) {
 		num_gyro = SENSOR_COUNT_MAX;
@@ -195,6 +196,8 @@ void Tempcal::task_main()
 
 			if (fds[i].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
+
+				device_ids[i] = gyro_data.device_id;
 
 				gyro_sample_filt[i][0] = gyro_data.x;//dat[l].GX;
 				gyro_sample_filt[i][1] = gyro_data.y;//dat[l].GY;
@@ -265,13 +268,10 @@ void Tempcal::task_main()
 
 				char str[30];
 				float param = 0.0f;
-				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, i);
-				int fd = px4_open(str, O_RDONLY);
-				int32_t device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 				int result = PX4_OK;
 
 				sprintf(str, "TC_G%d_ID", i);
-				result = param_set(param_find(str), &device_id);
+				result = param_set(param_find(str), &device_ids[i]);
 
 				if (result != PX4_OK) {
 					PX4_ERR("unable to reset %s", str);
