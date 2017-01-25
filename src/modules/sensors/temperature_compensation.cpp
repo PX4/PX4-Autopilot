@@ -359,7 +359,7 @@ int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Ve
 
 	uint8_t mapping = _gyro_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || mapping > 2) {
+	if (mapping == 255) {
 		return -1;
 	}
 
@@ -388,7 +388,7 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 
 	uint8_t mapping = _accel_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || mapping > 2) {
+	if (mapping == 255) {
 		return -1;
 	}
 
@@ -417,7 +417,7 @@ int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &s
 
 	uint8_t mapping = _baro_data.device_mapping[topic_instance];
 
-	if (mapping == 255 || mapping > 2) {
+	if (mapping == 255) {
 		return -1;
 	}
 
