@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *         Author: David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,79 +32,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file version.h
+/*
+ * @file aerofc-v1_timer_config.c
  *
- * Tools for system version detection.
+ * Configuration data for the stm32 pwm_servo, input capture and pwm input driver.
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Note that these arrays must always be fully-sized.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <stdint.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+#include <stm32.h>
+#include <stm32_gpio.h>
+#include <stm32_tim.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+#include <drivers/drv_pwm_output.h>
+#include <drivers/stm32/drv_io_timer.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
-#define	HW_ARCH "PX4FMU_V4"
-#endif
+#include "board_config.h"
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
 
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define HW_ARCH "MINDPX_V2"
-#endif
+// Invalidate all timers (base == 0): we don't have any
+__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = { };
 
-#ifdef CONFIG_ARCH_BOARD_PX4_STM32F4DISCOVERY
-#define HW_ARCH "PX4_STM32F4DISCOVERY"
-#endif
+// Invalidate all channels (timer_channel == 0): we don't have any
+__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = { };
 
-#ifdef CONFIG_ARCH_BOARD_SITL
-#define	HW_ARCH "LINUXTEST"
-#endif
+// Invalidate all timers (base == 0): we don't have any
+__EXPORT const struct io_timers_t led_pwm_timers[1] = { };
 
-#ifdef CONFIG_ARCH_BOARD_EAGLE
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_RPI2
-#define	HW_ARCH "LINUXTEST"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRBRAIN_V51
-#define HW_ARCH "VRBRAIN_V51"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRBRAIN_V52
-#define HW_ARCH "VRBRAIN_V52"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRBRAIN_V54
-#define HW_ARCH "VRBRAIN_V54"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRUBRAIN_V51
-#define HW_ARCH "VRUBRAIN_V51"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRUBRAIN_V52
-#define HW_ARCH "VRUBRAIN_V52"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_VRCORE_V10
-#define HW_ARCH "VRCORE_V10"
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_AEROFC_V1
-#define HW_ARCH "AEROFC_V1"
-#endif
-
-#endif /* VERSION_H_ */
+// Invalidate all channels (timer_channel == 0): we don't have any
+__EXPORT const struct timer_io_channels_t led_pwm_channels[3] = { };

@@ -2701,6 +2701,11 @@ PX4FMU::peripheral_reset(int ms)
 void
 PX4FMU::gpio_reset(void)
 {
+#if defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+	// _ngpio == 0, triggering a compile error with -Werror=type-limits
+	return;
+#else
+
 	/*
 	 * Setup default GPIO config - all pins as GPIOs, input if
 	 * possible otherwise output if possible.
@@ -2719,11 +2724,16 @@ PX4FMU::gpio_reset(void)
 	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
 	stm32_configgpio(GPIO_GPIO_DIR);
 #endif
+#endif
 }
 
 void
 PX4FMU::gpio_set_function(uint32_t gpios, int function)
 {
+#if defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+	// _ngpio == 0, triggering a compile error with -Werror=type-limits
+	return;
+#else
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 
 	/*
@@ -2781,22 +2791,34 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 	}
 
 #endif
+#endif
 }
 
 void
 PX4FMU::gpio_write(uint32_t gpios, int function)
 {
+#if defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+	// _ngpio == 0, triggering a compile error with -Werror=type-limits
+	return;
+#else
+
 	int value = (function == GPIO_SET) ? 1 : 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
 		if (gpios & (1 << i)) {
 			stm32_gpiowrite(_gpio_tab[i].output, value);
 		}
+#endif
 }
 
 uint32_t
 PX4FMU::gpio_read(void)
 {
+#if defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+	// _ngpio == 0, triggering a compile error with -Werror=type-limits
+	return 0;
+#else
+
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
@@ -2805,6 +2827,7 @@ PX4FMU::gpio_read(void)
 		}
 
 	return bits;
+#endif
 }
 
 int
@@ -3645,6 +3668,8 @@ fmu_main(int argc, char *argv[])
 	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>\n");
 #elif defined(CONFIG_ARCH_BOARD_VRBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V52) || defined(CONFIG_ARCH_BOARD_VRBRAIN_V54) || defined(CONFIG_ARCH_BOARD_VRCORE_V10) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V51) || defined(CONFIG_ARCH_BOARD_VRUBRAIN_V52)
 	fprintf(stderr, "  mode_gpio, mode_pwm, test\n");
+#elif defined(CONFIG_ARCH_BOARD_AEROFC_V1)
+	fprintf(stderr, "  mode_rcin, test\n");
 #endif
 	exit(1);
 }
