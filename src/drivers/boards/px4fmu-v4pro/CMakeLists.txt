@@ -35,6 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		px4fmu_can.c
