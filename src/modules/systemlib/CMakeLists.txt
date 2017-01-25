@@ -45,7 +45,6 @@ set(SRCS
 	otp.c
 	board_serial.c
 	pwm_limit/pwm_limit.c
-	mcu_version.c
 	bson/tinybson.c
 	circuit_breaker.cpp
 	battery.cpp
