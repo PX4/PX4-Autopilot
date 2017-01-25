@@ -176,7 +176,7 @@ void Tempcal::task_main()
 	//uint16_t l = 0;
 
 	while (!_task_should_exit) {
-		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
+		int ret = px4_poll(fds, num_gyro, 1000);
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
@@ -316,7 +316,6 @@ void Tempcal::task_main()
 			}
 		}
 
-		usleep(100);
 	}
 
 	for (unsigned i = 0; i < num_gyro; i++) {
