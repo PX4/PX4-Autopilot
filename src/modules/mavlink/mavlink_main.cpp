@@ -71,7 +71,6 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/mcu_version.h>
 #include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
@@ -1308,8 +1307,8 @@ void Mavlink::send_autopilot_capabilites()
 #else
 		msg.product_id = 0;
 #endif
-		uint32_t uid[3];
-		mcu_unique_id(uid);
+		raw_uuid_uint32_t uid;
+		board_get_uuid_raw32(uid, NULL);
 		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
 
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
