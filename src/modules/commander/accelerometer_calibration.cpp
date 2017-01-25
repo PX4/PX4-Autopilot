@@ -349,39 +349,28 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			// Ensure the calibration values used the driver are at default settings
-			float driver_offset = 0.0f;
-			float driver_scale = 1.0f;
-			(void)sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
-			(void)sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
-			(void)sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_offset)));
-			(void)sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
-			(void)sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
-			(void)sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(driver_scale)));
-			(void)sprintf(str, "CAL_ACC%u_ID", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
-
-		} else {
-			(void)sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
-			(void)sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
-			(void)sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
-			(void)sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
-			(void)sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
-			(void)sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
-			(void)sprintf(str, "CAL_ACC%u_ID", uorb_index);
-			failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
+			accel_scale.x_offset = 0.f;
+			accel_scale.y_offset = 0.f;
+			accel_scale.z_offset = 0.f;
+			accel_scale.x_scale = 1.f;
+			accel_scale.y_scale = 1.f;
+			accel_scale.z_scale = 1.f;
 		}
+
+		(void)sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_offset)));
+		(void)sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_offset)));
+		(void)sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_offset)));
+		(void)sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.x_scale)));
+		(void)sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.y_scale)));
+		(void)sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(accel_scale.z_scale)));
+		(void)sprintf(str, "CAL_ACC%u_ID", uorb_index);
+		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
 
 		if (failed) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, uorb_index);
