@@ -40,6 +40,7 @@
 * @author Vladimir Kulla <ufon@kullaonline.net>
 */
 
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -189,12 +190,14 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
-				uint32_t uid[3];
 
-				mcu_unique_id(uid);
-
-				printf("UID: %X:%X:%X \n", uid[0], uid[1], uid[2]);
-
+#if defined(BOARD_OVERRIDE_UUID)
+				char *uid_fmt_buffer = BOARD_OVERRIDE_UUID;
+#else
+				char uid_fmt_buffer[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
+				board_get_uuid_formated32(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%X", ":", &px4_legacy_word32_order);
+#endif
+				printf("UID: %s \n", uid_fmt_buffer);
 				ret = 0;
 			}
 
