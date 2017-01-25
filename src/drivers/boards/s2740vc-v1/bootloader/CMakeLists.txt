@@ -48,6 +48,7 @@ px4_add_module(
 		-Os
 	SRCS
 		boot.c
+		../../common/stm32/board_identity.c
 		${px4_bootloader_base}src/uavcan/main.c
 		${px4_bootloader_base}src/common/boot_app_shared.c
 		${px4_bootloader_base}src/sched/timer.c
