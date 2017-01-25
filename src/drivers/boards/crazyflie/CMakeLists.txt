@@ -36,6 +36,7 @@ px4_add_module(
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		crazyflie_init.c
 		crazyflie_usb.c
 		crazyflie_led.c
