@@ -37,6 +37,7 @@ px4_add_module(
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		auav_can.c
 		auav_init.c
 		auav_timer_config.c
