@@ -15,6 +15,8 @@
 #define PX4_CPU_UUID_WORD32_LENGTH 3
 #define PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE  (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH))
 
+#define BOARD_OVERRIDE_CPU_VERSION (-1)
+#define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
 typedef unsigned char raw_uuid_byte_t[PX4_CPU_UUID_BYTE_LENGTH];
 typedef unsigned int raw_uuid_uint32_t[PX4_CPU_UUID_WORD32_LENGTH];
 
