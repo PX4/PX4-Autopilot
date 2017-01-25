@@ -36,6 +36,7 @@ px4_add_module(
 	SRCS
 		../common/board_dma_alloc.c
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		aerocore_init.c
 		aerocore_timer_config.c
 		aerocore_spi.c
