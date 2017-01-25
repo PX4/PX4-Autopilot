@@ -35,6 +35,8 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
 	param set MPC_XY_CRUISE 8
+
+	param set SYS_LOGGER 1
 fi
 
 tap_esc start -d /dev/ttyS0 -n 4
