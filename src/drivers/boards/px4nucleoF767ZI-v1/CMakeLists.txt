@@ -36,6 +36,7 @@ px4_add_module(
 		-Os
 	SRCS
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 #		WIP px4nucleo_can.c
