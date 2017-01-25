@@ -66,9 +66,9 @@ public:
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)
 	 *  @return index for compensation parameter entry containing matching device ID on success, <0 otherwise */
-	int set_sensor_id_gyro(int32_t device_id, int topic_instance);
-	int set_sensor_id_accel(int32_t device_id, int topic_instance);
-	int set_sensor_id_baro(int32_t device_id, int topic_instance);
+	int set_sensor_id_gyro(uint32_t device_id, int topic_instance);
+	int set_sensor_id_accel(uint32_t device_id, int topic_instance);
+	int set_sensor_id_baro(uint32_t device_id, int topic_instance);
 
 
 	/**
