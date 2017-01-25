@@ -239,6 +239,13 @@ int TemperatureCompensation::parameters_update()
 		}
 	}
 
+	/* the offsets & scales might have changed, so make sure to report that change later when applying the
+	 * next corrections
+	 */
+	_gyro_data.reset_temperature();
+	_accel_data.reset_temperature();
+	_baro_data.reset_temperature();
+
 	return ret;
 }
 

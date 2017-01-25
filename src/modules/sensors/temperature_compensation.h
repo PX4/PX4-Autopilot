@@ -254,6 +254,10 @@ private:
 		{
 			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; last_temperature[i] = -100.0f; }
 		}
+		void reset_temperature()
+		{
+			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { last_temperature[i] = -100.0f; }
+		}
 		uint8_t device_mapping[SENSOR_COUNT_MAX]; /// map a topic instance to the parameters index
 		float last_temperature[SENSOR_COUNT_MAX];
 	};
