@@ -46,7 +46,6 @@
 #include <string.h>
 #include <version/version.h>
 #include <systemlib/err.h>
-#include <systemlib/mcu_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -167,10 +166,11 @@ int ver_main(int argc, char *argv[])
 
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
-				char rev;
-				char *revstr;
+				char rev = ' ';
+				const char *revstr = NULL;
+				const char *errata = NULL;
 
-				int chip_version = mcu_version(&rev, &revstr);
+				int chip_version = board_mcu_version(&rev, &revstr, &errata);
 
 				if (chip_version < 0) {
 					printf("UNKNOWN MCU\n");
@@ -178,11 +178,11 @@ int ver_main(int argc, char *argv[])
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
 
-					if (chip_version < MCU_REV_STM32F4_REV_3) {
+					if (errata != NULL) {
 						printf("\nWARNING   WARNING   WARNING!\n"
-						       "Revision %c has a silicon errata\n"
-						       "This device can only utilize a maximum of 1MB flash safely!\n"
-						       "https://pixhawk.org/help/errata\n\n", rev);
+						       "Revision %c has a silicon errata:\n"
+						       "%s"
+						       "\nhttps://pixhawk.org/help/errata\n\n", rev, errata);
 					}
 				}
 
