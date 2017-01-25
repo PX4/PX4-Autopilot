@@ -37,6 +37,7 @@
  * Gyroscope calibration routine
  */
 
+#include <px4_config.h>
 #include "gyro_calibration.h"
 #include "calibration_messages.h"
 #include "calibration_routines.h"
@@ -57,7 +58,6 @@
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <systemlib/mcu_version.h>
 
 static const char *sensor_name = "gyro";
 
@@ -358,8 +358,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* store board ID */
-	uint32_t mcu_id[3];
-	mcu_unique_id(&mcu_id[0]);
+	raw_uuid_uint32_t mcu_id;
+	board_get_uuid_raw32(mcu_id, NULL);
 
 	/* store last 32bit number - not unique, but unique in a given set */
 	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
