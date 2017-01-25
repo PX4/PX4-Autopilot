@@ -37,6 +37,7 @@ px4_add_module(
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
 		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
 		mindpx_can.c
 		mindpx2_init.c
 		mindpx_timer_config.c
