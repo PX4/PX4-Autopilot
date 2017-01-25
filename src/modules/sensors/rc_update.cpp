@@ -161,16 +161,7 @@ RCUpdate::get_rc_value(uint8_t func, float min_value, float max_value)
 {
 	if (_rc.function[func] >= 0) {
 		float value = _rc.channels[_rc.function[func]];
-
-		if (value < min_value) {
-			return min_value;
-
-		} else if (value > max_value) {
-			return max_value;
-
-		} else {
-			return value;
-		}
+		return math::constrain(value, min_value, max_value);
 
 	} else {
 		return 0.0f;
