@@ -258,7 +258,7 @@ void UavcanNode::fill_node_info()
 	hwver.major = HW_VERSION_MAJOR;
 	hwver.minor = HW_VERSION_MINOR;
 
-	uint8_t udid[12] = {};  // Someone seems to love magic numbers
+	raw_uuid_byte_t udid = {};
 	get_board_serial(udid);
 	uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
 
