@@ -79,7 +79,7 @@ public:
 
 		IVTV = VTV.I();
 
-		for (uint8_t i = 0; i < _forder; i++) {
+		for (unsigned i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)IVTV(i, j));
 			}
@@ -87,7 +87,7 @@ public:
 			PF_DEBUG("\n");
 		}
 
-		for (uint8_t i = 0; i < _forder; i++) {
+		for (unsigned i = 0; i < _forder; i++) {
 			res[i] = 0.0f;
 
 			for (int j = 0; j < _forder; j++) {
@@ -123,7 +123,7 @@ private:
 		double temp = 1.0f;
 		int8_t z;
 
-		for (uint8_t i = 0; i < _forder; i++) {
+		for (unsigned i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)VTV(i, j));
 			}
@@ -139,9 +139,9 @@ private:
 				z = i - _forder + 1;
 			}
 
-			for (int8_t j = i - z; j >= z; j--) {
-				uint8_t row = j;
-				uint8_t col = i - j;
+			for (int j = i - z; j >= z; j--) {
+				unsigned row = j;
+				unsigned col = i - j;
 				VTV(row, col) += (double)temp;
 			}
 
