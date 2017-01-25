@@ -531,7 +531,6 @@ void Logger::add_default_topics()
 	add_topic("satellite_info");
 	add_topic("vehicle_attitude_setpoint", 20);
 	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("actuator_controls", 20);
 	add_topic("actuator_controls_0", 20);
 	add_topic("actuator_controls_1", 20);
 	add_topic("vehicle_local_position", 100);
