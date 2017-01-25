@@ -77,7 +77,7 @@ public:
 		//Do inverse of VTV
 		matrix::SquareMatrix<double, _forder> IVTV;
 
-		IVTV = VTV.I();
+		IVTV = _VTV.I();
 
 		for (unsigned i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
@@ -91,7 +91,7 @@ public:
 			res[i] = 0.0f;
 
 			for (int j = 0; j < _forder; j++) {
-				res[i] += IVTV(i, j) * (double)VTY(j);
+				res[i] += IVTV(i, j) * (double)_VTY(j);
 			}
 
 			PF_DEBUG("%.10f ", res[i]);
@@ -101,8 +101,8 @@ public:
 	}
 
 private:
-	matrix::SquareMatrix<double, _forder> VTV;
-	matrix::Vector<double, _forder> VTY;
+	matrix::SquareMatrix<double, _forder> _VTV;
+	matrix::Vector<double, _forder> _VTY;
 
 	void update_VTY(double x, double y)
 	{
@@ -110,9 +110,9 @@ private:
 		PF_DEBUG("O %.6f\n", (double)x);
 
 		for (int8_t i = _forder - 1; i >= 0; i--) {
-			VTY(i) += y * temp;
+			_VTY(i) += y * temp;
 			temp *= x;
-			PF_DEBUG("%.6f ", (double)VTY(i));
+			PF_DEBUG("%.6f ", (double)_VTY(i));
 		}
 
 		PF_DEBUG("\n");
@@ -125,7 +125,7 @@ private:
 
 		for (unsigned i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
-				PF_DEBUG("%.10f ", (double)VTV(i, j));
+				PF_DEBUG("%.10f ", (double)_VTV(i, j));
 			}
 
 			PF_DEBUG("\n");
@@ -142,7 +142,7 @@ private:
 			for (int j = i - z; j >= z; j--) {
 				unsigned row = j;
 				unsigned col = i - j;
-				VTV(row, col) += (double)temp;
+				_VTV(row, col) += (double)temp;
 			}
 
 			temp *= x;
