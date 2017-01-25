@@ -43,20 +43,27 @@ __BEGIN_DECLS
 #  define px4_leave_critical_section(flags)  leave_critical_section(flags)
 
 #  if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
+
 #    if defined(CONFIG_ARCH_CHIP_STM32)
 #      include <stm32.h>
-#      define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
-#      define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
 #      define PX4_FLASH_BASE  STM32_FLASH_BASE
+#      if defined(CONFIG_STM32_STM32F40XX)
+#        include <stm32_bbsram.h>
+#        define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
+#        define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
+#      endif
 #      define PX4_NUMBER_I2C_BUSES STM32_NI2C
 #    endif
+
 #    if defined(CONFIG_ARCH_CHIP_STM32F7)
 #      include <chip.h>
+#      include <stm32_bbsram.h>
 #      define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
 #      define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
 #      define PX4_FLASH_BASE  0x08000000
 #      define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
 #    endif
+
 #    include <stm32_tim.h>
 #    include <stm32_spi.h>
 #    include <stm32_i2c.h>
@@ -121,19 +128,56 @@ __BEGIN_DECLS
 #    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
-#endif
+#endif // defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
 
-#    define STM32_SYSMEM_UID         0x40048054 // Fixme: using board crtrl
+#    // Fixme: using ??
 #    define PX4_BBSRAM_SIZE          2048
 #    define PX4_BBSRAM_GETDESC_IOCTL 0
+
 #    define GPIO_OUTPUT_SET          GPIO_OUTPUT_ONE
 #    define GPIO_OUTPUT_CLEAR        GPIO_OUTPUT_ZER0
 
 #    include <chip.h>
 #    include <kinetis_spi.h>
 #    include <kinetis_i2c.h>
+#    include <kinetis_uid.h>
+
+/* Kinetis defines the 128 bit UUID as
+ *  init32_t[4] that can be read as words
+ *  init32_t[0] PX4_CPU_UUID_ADDRESS[0] bits 127:96 (offset 0)
+ *  init32_t[1] PX4_CPU_UUID_ADDRESS[1] bits 95:64  (offset 4)
+ *  init32_t[2] PX4_CPU_UUID_ADDRESS[1] bits 63:32  (offset 8)
+ *  init32_t[3] PX4_CPU_UUID_ADDRESS[3] bits 31:0   (offset C)
+ *
+ *  PX4 uses the words in bigendian order MSB to LSB
+ *   word  [0]    [1]    [2]   [3]
+ *   bits 127:96  95-64  63-32, 31-00,
+ */
+#    define PX4_CPU_UUID_BYTE_LENGTH                KINETIS_UID_SIZE
+#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
+
+/* The mfguid will be an array of bytes with
+ * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ *
+ * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ */
+#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
+
+/* define common formating accross all commands */
+
+#    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
+#    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
+
+#    define PX4_CPU_UUID_WORD32_UNIQUE_H            3 /* Least significant digits change the most */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_M            2 /* Middle High significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_L            1 /* Middle Low significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_N            0 /* Most significant digits change the least */
+
+/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
+#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
+#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
 #    define kinetis_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
 
