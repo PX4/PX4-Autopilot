@@ -278,7 +278,6 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
-	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -441,7 +440,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
-	control_vel_enabled_prev(false),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -1669,7 +1667,6 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp_prev(1) = _vel(1);
 		_vel_sp(0) = 0.0f;
 		_vel_sp(1) = 0.0f;
-		control_vel_enabled_prev = false;
 	}
 
 	if (!_control_mode.flag_control_climb_rate_enabled) {
@@ -1729,27 +1726,6 @@ MulticopterPositionControl::control_position(float dt)
 
 		/* velocity error */
 		math::Vector<3> vel_err = _vel_sp - _vel;
-
-		// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
-		// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
-		if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
-
-			matrix::Dcmf Rb = matrix::Quatf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
-
-			// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
-			// given by the last attitude setpoint
-			_vel_sp(0) = _vel(0) + (-Rb(0,
-						    2) * _att_sp.thrust - _thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
-			_vel_sp(1) = _vel(1) + (-Rb(1,
-						    2) * _att_sp.thrust - _thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
-			_vel_sp(2) = _vel(2) + (-Rb(2,
-						    2) * _att_sp.thrust - _thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
-			_vel_sp_prev = _vel_sp;
-			control_vel_enabled_prev = true;
-
-			// compute updated velocity error
-			vel_err = _vel_sp - _vel;
-		}
 
 		/* thrust vector in NED frame */
 		math::Vector<3> thrust_sp;
@@ -2291,7 +2267,6 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			_reset_int_z = true;
 			_reset_int_xy = true;
-			control_vel_enabled_prev = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;
