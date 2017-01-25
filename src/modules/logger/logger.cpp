@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_config.h>
 #include "logger.h"
 #include "messages.h"
 
@@ -1439,10 +1440,8 @@ void Logger::write_version()
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
-			uint32_t uuid[3];
-			mcu_unique_id(uuid);
-			char uuid_string[sizeof(uint32_t) * 3 * 2 + 1];
-			snprintf(uuid_string, sizeof(uuid_string), "%08x%08x%08x", uuid[0], uuid[1], uuid[2]);
+			char uuid_string[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
+			board_get_uuid_formated32(uuid_string, sizeof(uuid_string), "%08X", NULL, &px4_legacy_word32_order);
 			write_info("sys_uuid", uuid_string);
 		}
 	}
