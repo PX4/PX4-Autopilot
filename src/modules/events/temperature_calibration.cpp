@@ -326,7 +326,7 @@ void Tempcal::task_main()
 
 	delete tempcal::instance;
 	tempcal::instance = nullptr;
-	PX4_WARN("Tempcal process stopped");
+	PX4_INFO("Tempcal process stopped");
 }
 
 void Tempcal::do_temperature_calibration(int argc, char *argv[])
@@ -348,7 +348,7 @@ int Tempcal::start()
 	if (_control_task < 0) {
 		delete tempcal::instance;
 		tempcal::instance = nullptr;
-		PX4_WARN("start failed");
+		PX4_ERR("start failed");
 		return -errno;
 	}
 
@@ -361,7 +361,7 @@ int run_temperature_calibration()
 	tempcal::instance = new Tempcal();
 
 	if (tempcal::instance == nullptr) {
-		PX4_WARN("alloc failed");
+		PX4_ERR("alloc failed");
 		return 1;
 	}
 
