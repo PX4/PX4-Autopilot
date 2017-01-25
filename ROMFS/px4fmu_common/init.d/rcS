@@ -806,6 +806,10 @@ then
 			then
 				set LOGGER_ARGS "-f"
 			fi
+			if ver hwcmp AEROFC_V1
+			then
+				set LOGGER_ARGS "-m mavlink"
+			fi
 			if logger start -b 12 -t ${LOGGER_ARGS}
 			then
 			fi
