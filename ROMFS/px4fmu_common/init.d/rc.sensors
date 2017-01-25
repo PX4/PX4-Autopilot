@@ -316,15 +316,16 @@ then
 	then
 	fi
 
+	# Internal SPI bus
+	if lis3mdl -R 0 start
+	then
+	fi
+	
 	# Possible external compasses
 	if hmc5883 -X start
 	then
 	fi
 
-	# Internal SPI bus
-	if lis3mdl -R 2 start
-	then
-	fi
 fi
 
 if ver hwcmp PX4FMU_V5
