@@ -178,7 +178,11 @@ __BEGIN_DECLS
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
+<<<<<<< HEAD
 /* define common formating across all commands */
+=======
+/* define common formating accross all commands */
+>>>>>>> Adding Kinetis board common identity to micro hal
 
 #    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
 #    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
