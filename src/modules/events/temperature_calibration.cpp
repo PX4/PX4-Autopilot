@@ -121,18 +121,10 @@ public:
 private:
 	bool	_task_should_exit = false;
 	int	_control_task = -1;		// task handle for task
-
-	/* Low pass filter for attitude rates */
-	//std::vector<math::LowPassFilter2p> _lp_roll_rate;
-	//std::vector<math::LowPassFilter2p> _lp_pitch_rate;
-	//std::vector<math::LowPassFilter2p> _lp_yaw_rate;
 };
 
 Tempcal::Tempcal():
 	SuperBlock(NULL, "Tempcal")
-	//_lp_roll_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
-	//_lp_pitch_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f)),
-	//_lp_yaw_rate(SENSOR_COUNT_MAX, math::LowPassFilter2p(250.0f, 1.0f))
 {
 }
 
@@ -174,7 +166,6 @@ void Tempcal::task_main()
 	// because they will else not always be
 	// properly populated
 	sensor_gyro_s gyro_data = {};
-	//uint16_t l = 0;
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, num_gyro, 1000);
@@ -199,9 +190,9 @@ void Tempcal::task_main()
 
 				device_ids[i] = gyro_data.device_id;
 
-				gyro_sample_filt[i][0] = gyro_data.x;//dat[l].GX;
-				gyro_sample_filt[i][1] = gyro_data.y;//dat[l].GY;
-				gyro_sample_filt[i][2] = gyro_data.z;//dat[l].GZ;
+				gyro_sample_filt[i][0] = gyro_data.x;
+				gyro_sample_filt[i][1] = gyro_data.y;
+				gyro_sample_filt[i][2] = gyro_data.z;
 				gyro_sample_filt[i][3] = gyro_data.temperature;
 
 				if (!_cold_soaked[i]) {
@@ -214,15 +205,10 @@ void Tempcal::task_main()
 			}
 		}
 
-		//l++;
 		for (unsigned i = 0; i < num_gyro; i++) {
 			if (_hot_soaked[i]) {
 				continue;
 			}
-
-			//if (num_samples[i] < 250) {
-			//	continue;
-			//}
 
 			if (gyro_sample_filt[i][3] > _high_temp[i]) {
 				_high_temp[i] = gyro_sample_filt[i][3];
