@@ -375,3 +375,24 @@ __EXPORT int board_get_uuid_formated32(char *format_buffer, int size,
 				       const char *seperator,
 				       raw_uuid_uint32_reorder_t *optional_reorder);
 #endif // !defined(BOARD_OVERRIDE_UUID)
+
+/************************************************************************************
+ * Name: board_mcu_version
+ *
+ * Description:
+ *   All boards either provide a way to retrieve the cpu revision
+ *   Or define BOARD_OVERRIDE_CPU_VERSION
+ *
+ * rev    - The silicon revision character
+ * revstr - The full chip name string
+ * errata  -The eratta if any.
+ *
+ * return  - The silicon revision / version number as integer
+ *           or -1 on error and rev, revstr and errata will
+ *           not be set
+ */
+#if defined(BOARD_OVERRIDE_CPU_VERSION)
+#define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
+#else
+__EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
+#endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
