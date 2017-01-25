@@ -152,6 +152,10 @@ void Tempcal::task_main()
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
 
+	if (num_gyro > SENSOR_COUNT_MAX) {
+		num_gyro = SENSOR_COUNT_MAX;
+	}
+
 	bool _cold_soaked[SENSOR_COUNT_MAX] = {false};
 	bool _hot_soaked[SENSOR_COUNT_MAX] = {false};
 	bool _tempcal_complete[SENSOR_COUNT_MAX] = {false};
@@ -160,12 +164,7 @@ void Tempcal::task_main()
 	float _ref_temp[SENSOR_COUNT_MAX];
 
 	for (unsigned i = 0; i < num_gyro; i++) {
-		if (gyro_sub[i] < 0) {
-			gyro_sub[i] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
-		}
-	}
-
-	for (unsigned i = 0; i < num_gyro; i++) {
+		gyro_sub[i] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
 		fds[i].fd = gyro_sub[i];
 		fds[i].events = POLLIN;
 	}
