@@ -62,6 +62,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_gyro.h>
 #include <controllib/uorb/blocks.hpp>
 
 #include <uORB/topics/sensor_gyro.h>
@@ -147,9 +148,9 @@ void Tempcal::task_main()
 	float gyro_sample_filt[SENSOR_COUNT_MAX][4];
 	polyfitter<4> P[SENSOR_COUNT_MAX][3];
 	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
-	uint8_t _hot_soak_sat[SENSOR_COUNT_MAX] = {};
+	unsigned _hot_soak_sat[SENSOR_COUNT_MAX] = {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
-	uint16_t num_samples[SENSOR_COUNT_MAX] = {0};
+	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
 
 	bool _cold_soaked[SENSOR_COUNT_MAX] = {false};
 	bool _hot_soaked[SENSOR_COUNT_MAX] = {false};
@@ -164,7 +165,7 @@ void Tempcal::task_main()
 		}
 	}
 
-	for (uint8_t i = 0; i < num_gyro; i++) {
+	for (unsigned i = 0; i < num_gyro; i++) {
 		fds[i].fd = gyro_sub[i];
 		fds[i].events = POLLIN;
 	}
@@ -188,7 +189,7 @@ void Tempcal::task_main()
 			continue;
 		}
 
-		for (uint8_t i = 0; i < num_gyro; i++) {
+		for (unsigned i = 0; i < num_gyro; i++) {
 			if (_hot_soaked[i]) {
 				continue;
 			}
@@ -196,9 +197,9 @@ void Tempcal::task_main()
 			if (fds[i].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 
-				gyro_sample_filt[i][0] = gyro_data.x;
-				gyro_sample_filt[i][1] = gyro_data.y;
-				gyro_sample_filt[i][2] = gyro_data.z;
+				gyro_sample_filt[i][0] = gyro_data.x;//dat[l].GX;
+				gyro_sample_filt[i][1] = gyro_data.y;//dat[l].GY;
+				gyro_sample_filt[i][2] = gyro_data.z;//dat[l].GZ;
 				gyro_sample_filt[i][3] = gyro_data.temperature;
 
 				if (!_cold_soaked[i]) {
@@ -211,8 +212,8 @@ void Tempcal::task_main()
 			}
 		}
 
-
-		for (uint8_t i = 0; i < 1; i++) {
+		//l++;
+		for (unsigned i = 0; i < 1; i++) {
 			if (_hot_soaked[i]) {
 				continue;
 			}
@@ -235,7 +236,8 @@ void Tempcal::task_main()
 			}
 
 			if (i == 0) {
-				TC_DEBUG("%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n", (double)gyro_sample_filt[i][0], (double)gyro_sample_filt[i][1],
+				TC_DEBUG("\n%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)gyro_sample_filt[i][0],
+					 (double)gyro_sample_filt[i][1],
 					 (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)_low_temp[i], (double)_high_temp[i],
 					 (double)(_high_temp[i] - _low_temp[i]));
 			}
@@ -248,26 +250,77 @@ void Tempcal::task_main()
 			num_samples[i] = 0;
 		}
 
-		for (uint8_t i = 0; i < 1; i++) {
+		for (unsigned i = 0; i < 1; i++) {
 			if (_hot_soaked[i] && !_tempcal_complete[i]) {
-				double res[4];
-				P[i][0].fit(res);
-				PX4_WARN("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
-					 (double)res[3]);
-				P[i][1].fit(res);
-				PX4_WARN("Result Gyro %d Axis 1: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
-					 (double)res[3]);
-				P[i][2].fit(res);
-				PX4_WARN("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", i, (double)res[0], (double)res[1], (double)res[2],
-					 (double)res[3]);
+				double res[3][4] = {0.0f};
+				P[i][0].fit(res[0]);
+				PX4_WARN("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", i, (double)res[0][0], (double)res[0][1], (double)res[0][2],
+					 (double)res[0][3]);
+				P[i][1].fit(res[1]);
+				PX4_WARN("Result Gyro %d Axis 1: %.20f %.20f %.20f %.20f", i, (double)res[1][0], (double)res[1][1], (double)res[1][2],
+					 (double)res[1][3]);
+				P[i][2].fit(res[2]);
+				PX4_WARN("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", i, (double)res[2][0], (double)res[2][1], (double)res[2][2],
+					 (double)res[2][3]);
 				_tempcal_complete[i] = true;
+
+				char str[30];
+				float param = 0.0f;
+				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, i);
+				int fd = px4_open(str, O_RDONLY);
+				int32_t device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+				int result = PX4_OK;
+
+				sprintf(str, "TC_G%d_ID", i);
+				result = param_set(param_find(str), &device_id);
+
+				if (result != PX4_OK) {
+					PX4_ERR("unable to reset %s", str);
+				}
+
+				for (unsigned j = 0; j < 3; j++) {
+					for (unsigned m = 0; m < 3; m++) {
+						sprintf(str, "TC_G%d_X%d_%d", i, m, j);
+						param = (float)res[j][m];
+						result = param_set(param_find(str), &param);
+
+						if (result != PX4_OK) {
+							PX4_ERR("unable to reset %s", str);
+						}
+					}
+
+					sprintf(str, "TC_G%d_TMAX", i);
+					param = _high_temp[i];
+					result = param_set(param_find(str), &param);
+
+					if (result != PX4_OK) {
+						PX4_ERR("unable to reset %s", str);
+					}
+
+					sprintf(str, "TC_G%d_TMIN", i);
+					param = _low_temp[i];
+					result = param_set(param_find(str), &param);
+
+					if (result != PX4_OK) {
+						PX4_ERR("unable to reset %s", str);
+					}
+
+					sprintf(str, "TC_G%d_TREF", i);
+					param = _ref_temp[i];
+					result = param_set(param_find(str), &param);
+
+					if (result != PX4_OK) {
+						PX4_ERR("unable to reset %s", str);
+					}
+				}
+
 			}
 		}
 
 		usleep(100);
 	}
 
-	for (uint8_t i = 0; i < num_gyro; i++) {
+	for (unsigned i = 0; i < num_gyro; i++) {
 		orb_unsubscribe(gyro_sub[i]);
 	}
 
