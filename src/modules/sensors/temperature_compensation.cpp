@@ -315,24 +315,7 @@ int TemperatureCompensation::set_sensor_id_gyro(int32_t device_id, int topic_ins
 		return 0;
 	}
 
-	// search for a index in the calibration data with a matching device ID and record it against
-	// the uORB topic index containing data from that sensor
-	if (device_id == _parameters.gyro_cal_data[0].ID) {
-		_gyro_data.device_mapping[topic_instance] = 0;
-
-	} else if (device_id == _parameters.gyro_cal_data[1].ID) {
-		_gyro_data.device_mapping[topic_instance] = 1;
-
-	} else if (device_id == _parameters.gyro_cal_data[2].ID) {
-		_gyro_data.device_mapping[topic_instance] = 2;
-
-	} else {
-		return -1;
-
-	}
-
-	return _gyro_data.device_mapping[topic_instance];
-
+	return set_sensor_id(device_id, topic_instance, _gyro_data, _parameters.gyro_cal_data);
 }
 
 int TemperatureCompensation::set_sensor_id_accel(int32_t device_id, int topic_instance)
@@ -341,23 +324,7 @@ int TemperatureCompensation::set_sensor_id_accel(int32_t device_id, int topic_in
 		return 0;
 	}
 
-	// search for a index in the calibration data with a matching device ID and record it against
-	// the uORB topic index containing data from that sensor
-	if (device_id == _parameters.accel_cal_data[0].ID) {
-		_accel_data.device_mapping[topic_instance] = 0;
-
-	} else if (device_id == _parameters.accel_cal_data[1].ID) {
-		_accel_data.device_mapping[topic_instance] = 1;
-
-	} else if (device_id == _parameters.accel_cal_data[2].ID) {
-		_accel_data.device_mapping[topic_instance] = 2;
-
-	} else {
-		return -1;
-
-	}
-
-	return _accel_data.device_mapping[topic_instance];
+	return set_sensor_id(device_id, topic_instance, _accel_data, _parameters.accel_cal_data);
 }
 
 int TemperatureCompensation::set_sensor_id_baro(int32_t device_id, int topic_instance)
@@ -366,23 +333,21 @@ int TemperatureCompensation::set_sensor_id_baro(int32_t device_id, int topic_ins
 		return 0;
 	}
 
-	// search for a index in the calibration data with a matching device ID and record it against
-	// the uORB topic index containing data from that sensor
-	if (device_id == _parameters.baro_cal_data[0].ID) {
-		_baro_data.device_mapping[topic_instance] = 0;
+	return set_sensor_id(device_id, topic_instance, _baro_data, _parameters.baro_cal_data);
+}
 
-	} else if (device_id == _parameters.baro_cal_data[1].ID) {
-		_baro_data.device_mapping[topic_instance] = 1;
-
-	} else if (device_id == _parameters.baro_cal_data[2].ID) {
-		_baro_data.device_mapping[topic_instance] = 2;
-
-	} else {
-		return -1;
-
+template<typename T>
+int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instance, PerSensorData &sensor_data,
+		const T *sensor_cal_data)
+{
+	for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
+		if (device_id == sensor_cal_data[i].ID) {
+			sensor_data.device_mapping[topic_instance] = i;
+			return i;
+		}
 	}
 
-	return _baro_data.device_mapping[topic_instance];
+	return -1;
 }
 
 int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
