@@ -35,6 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		../common/kinetis/board_identity.c
+		../common/kinetis/board_mcu_version.c
 		../common/kinetis/board_reset.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
