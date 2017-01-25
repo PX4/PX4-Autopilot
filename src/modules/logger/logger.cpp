@@ -60,7 +60,6 @@
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
-#include <systemlib/mcu_version.h>
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -1423,10 +1422,10 @@ void Logger::write_version()
 	write_info("sys_toolchain", px4_toolchain_name());
 	write_info("sys_toolchain_ver", px4_toolchain_version());
 
-	char revision;
-	char *chip_name;
+	char revision = 'U';
+	const char *chip_name = nullptr;
 
-	if (mcu_version(&revision, &chip_name) >= 0) {
+	if (board_mcu_version(&revision, &chip_name, nullptr) >= 0) {
 		char mcu_ver[64];
 		snprintf(mcu_ver, sizeof(mcu_ver), "%s, rev. %c", chip_name, revision);
 		write_info("sys_mcu", mcu_ver);
