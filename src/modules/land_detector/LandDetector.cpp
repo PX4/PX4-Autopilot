@@ -56,7 +56,7 @@ LandDetector::LandDetector() :
 	_state{},
 	_freefall_hysteresis(false),
 	_landed_hysteresis(true),
-	_ground_contact_hysteresis(false),
+	_ground_contact_hysteresis(true),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
 	_work{}
@@ -100,8 +100,8 @@ void LandDetector::_cycle()
 	if (!_taskIsRunning) {
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.landed = false;
 		_landDetected.freefall = false;
+		_landDetected.landed = false;
 		_landDetected.ground_contact = false;
 
 		// Initialize uORB topics.
@@ -119,19 +119,20 @@ void LandDetector::_cycle()
 
 	_update_state();
 
-	bool landDetected = (_state == LandDetectionState::LANDED);
 	bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	bool groundContactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	bool landDetected = (_state == LandDetectionState::LANDED);
+	bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+
 
 	// Only publish very first time or when the result has changed.
 	if ((_landDetectedPub == nullptr) ||
-	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.freefall != freefallDetected) ||
-	    (_landDetected.ground_contact != groundContactDetected)) {
+	    (_landDetected.landed != landDetected) ||
+	    (_landDetected.ground_contact != ground_contactDetected)) {
 
 		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.landed = (_state == LandDetectionState::LANDED);
 		_landDetected.freefall = (_state == LandDetectionState::FREEFALL);
+		_landDetected.landed = (_state == LandDetectionState::LANDED);
 		_landDetected.ground_contact = (_state == LandDetectionState::GROUND_CONTACT);
 
 		int instance;
@@ -170,21 +171,19 @@ void LandDetector::_update_state()
 {
 	/* ground contact and landed can be true simultaneously but only one state can be true at a particular time
 	 * with higher priority for landed */
-	bool groundContact = _get_ground_contact_state();
-	bool landed = _get_landed_state();
 	bool freefall = _get_freefall_state();
+	bool landed = _get_landed_state();
+	bool groundContact = (landed || _get_ground_contact_state());
 
-	_ground_contact_hysteresis.set_state_and_update(groundContact);
-	_landed_hysteresis.set_state_and_update(landed);
 	_freefall_hysteresis.set_state_and_update(freefall);
+	_landed_hysteresis.set_state_and_update(landed);
+	_ground_contact_hysteresis.set_state_and_update(groundContact);
 
 	if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;
 
 	} else if (_landed_hysteresis.get_state()) {
 		_state = LandDetectionState::LANDED;
-		/* need to set ground_contact_state to false */
-		_ground_contact_hysteresis.set_state_and_update(false);
 
 	} else if (_ground_contact_hysteresis.get_state()) {
 		_state = LandDetectionState::GROUND_CONTACT;
