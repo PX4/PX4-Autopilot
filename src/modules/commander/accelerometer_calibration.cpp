@@ -320,11 +320,10 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			int32_t handle;
 			float val;
 			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-				handle = -1;
 				val = 0.0f;
 				(void)sprintf(str, "TC_A%u_X0_%u", sensor_correction.accel_mapping[uorb_index], axis_index);
 				handle = param_find(str);
-				param_get(handle, &(val));
+				param_get(handle, &val);
 				if (axis_index == 0) {
 					val += accel_scale.x_offset;
 				} else if (axis_index == 1) {
@@ -332,14 +331,13 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				} else if (axis_index == 2) {
 					val += accel_scale.z_offset;
 				}
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(val)));
+				failed |= (PX4_OK != param_set_no_notification(handle, &val));
 			}
 			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-				handle = -1;
 				val = 1.0f;
 				(void)sprintf(str, "TC_A%u_SCL_%u", sensor_correction.accel_mapping[uorb_index], axis_index);
 				handle = param_find(str);
-				param_get(handle, &(val));
+				param_get(handle, &val);
 				if (axis_index == 0) {
 					val *= accel_scale.x_scale;
 				} else if (axis_index == 1) {
@@ -347,7 +345,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				} else if (axis_index == 2) {
 					val *= accel_scale.z_scale;
 				}
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(val)));
+				failed |= (PX4_OK != param_set_no_notification(handle, &val));
 			}
 
 			// Ensure the calibration values used the driver are at default settings
