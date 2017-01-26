@@ -39,6 +39,7 @@
  */
 
 #include "matrix_alg.h"
+#include <px4_defines.h>
 
 /*
  *    Does matrix multiplication of two regular/square matrices
@@ -239,7 +240,7 @@ bool mat_inverse(float *A, float *inv, uint8_t n)
 	//check sanity of results
 	for (uint8_t i = 0; i < n; i++) {
 		for (uint8_t j = 0; j < n; j++) {
-			if (isnan(inv_pivoted[i * n + j]) || isinf(inv_pivoted[i * n + j])) {
+			if (!PX4_ISFINITE(inv_pivoted[i * n + j])) {
 				ret = false;
 			}
 		}
