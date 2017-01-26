@@ -48,7 +48,7 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-##TO FIT drivers/snapdragon_rc_pwm
+	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
 	#drivers/iridiumsbd
 	drivers/ulanding
@@ -98,7 +98,6 @@ set(config_module_list
 	modules/gpio_led
 	#modules/uavcan
 	modules/land_detector
-	#modules/tempcal
 
 	#
 	# Estimation modules
@@ -120,7 +119,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	#modules/logger
+	modules/logger
 	modules/sdlog2
 
 	#
