@@ -103,6 +103,18 @@
 #define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
 #define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
+#if defined(PX4_CPU_UUID_WORD32_FORMAT)
+#  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
+#else
+#  define CPU_UUID_FORMAT "%0X"
+#endif
+
+#if defined(PX4_CPU_UUID_WORD32_SEPARATOR)
+#  define CPU_UUID_SEPARATOR PX4_CPU_UUID_WORD32_SEPARATOR
+#else
+#  define CPU_UUID_SEPARATOR " "
+#endif
+
 /*
  * Define the various LED flash sequences for each system state.
  */
