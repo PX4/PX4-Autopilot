@@ -51,6 +51,7 @@
 #include <string.h>
 #include <poll.h>
 #include <cmath>
+#include <algorithm>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -598,17 +599,30 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	// Calculate calibration values for each mag
 
+	float sphere_x[max_mags];
+	float sphere_y[max_mags];
+	float sphere_z[max_mags];
+	std::fill_n(sphere_x, max_mags, 0.0f);
+	std::fill_n(sphere_y, max_mags, 0.0f);
+	std::fill_n(sphere_z, max_mags, 0.0f);
 
-	float sphere_x[max_mags] = {0.0f};
-	float sphere_y[max_mags] = {0.0f};
-	float sphere_z[max_mags] = {0.0f};
-	float sphere_radius[max_mags] = {0.2f};
-	float diag_x[max_mags] = {1.0f};
-	float diag_y[max_mags] = {1.0f};
-	float diag_z[max_mags] = {1.0f};
-	float offdiag_x[max_mags] = {0.0f};
-	float offdiag_y[max_mags] = {0.0f};
-	float offdiag_z[max_mags] = {0.0f};
+	float sphere_radius[max_mags];
+	std::fill_n(sphere_radius, max_mags, 0.2f);
+
+	float diag_x[max_mags];
+	float diag_y[max_mags];
+	float diag_z[max_mags];
+	std::fill_n(diag_x, max_mags, 1.0f);
+	std::fill_n(diag_y, max_mags, 1.0f);
+	std::fill_n(diag_z, max_mags, 1.0f);
+
+	float offdiag_x[max_mags];
+	float offdiag_y[max_mags];
+	float offdiag_z[max_mags];
+	std::fill_n(offdiag_x, max_mags, 0.0f);
+	std::fill_n(offdiag_y, max_mags, 0.0f);
+	std::fill_n(offdiag_z, max_mags, 0.0f);
+
 
 	// Sphere fit the data to get calibration values
 	if (result == calibrate_return_ok) {
