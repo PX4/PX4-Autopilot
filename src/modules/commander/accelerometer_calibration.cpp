@@ -603,15 +603,15 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 					orb_copy(ORB_ID(sensor_accel), subs[s], &arp);
 
 					// Apply thermal corrections
-					if (sensor_correction.accel_mapping[s] == 0) {
+					if (s == 0) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_0[0]) * sensor_correction.accel_scale_0[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_0[1]) * sensor_correction.accel_scale_0[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_0[2]) * sensor_correction.accel_scale_0[2];
-					} else if (sensor_correction.accel_mapping[s] == 1) {
+					} else if (s == 1) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_1[0]) * sensor_correction.accel_scale_1[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_1[1]) * sensor_correction.accel_scale_1[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_1[2]) * sensor_correction.accel_scale_1[2];
-					} else if (sensor_correction.accel_mapping[s] == 2) {
+					} else if (s == 2) {
 						accel_sum[s][0] += (arp.x - sensor_correction.accel_offset_2[0]) * sensor_correction.accel_scale_2[0];
 						accel_sum[s][1] += (arp.y - sensor_correction.accel_offset_2[1]) * sensor_correction.accel_scale_2[1];
 						accel_sum[s][2] += (arp.z - sensor_correction.accel_offset_2[2]) * sensor_correction.accel_scale_2[2];
