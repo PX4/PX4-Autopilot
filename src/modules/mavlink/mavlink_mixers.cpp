@@ -102,14 +102,10 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				data_request.mixer_data_type = req.data_type;
 
 				//PX4_ERR("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
-				req.mixer_group,
-				req.mixer_index,
-				req.mixer_sub_index,
-				req.parameter_index,
-				req.data_type);
+				//req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index,	req.data_type);
 
 				if (_mixer_data_request_pub == nullptr) {
-				_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
+					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
 
 				} else {
 					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &data_request);
