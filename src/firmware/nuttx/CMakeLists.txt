@@ -96,7 +96,7 @@ if(NOT ${BOARD} STREQUAL "sim")
 	endif()
 
 	set(fw_file
-		${CMAKE_CURRENT_BINARY_DIR}/${OS}-${BOARD}-${LABEL}.px4)
+		${CMAKE_CURRENT_BINARY_DIR}/${BOARD}_${LABEL}.px4)
 
 #
 # Bootloaders do not need .px4 or xml
