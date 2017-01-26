@@ -1970,6 +1970,11 @@ Mavlink::task_main(int argc, char *argv[])
 	_parameters_manager->set_interval(interval_from_rate(120.0f));
 	LL_APPEND(_streams, _parameters_manager);
 
+	/* MIXER_DATA stream */
+	_mixers_manager = (MavlinkMixersManager *) MavlinkMixersManager::new_instance(this);
+	_parameters_manager->set_interval(interval_from_rate(2.0f));
+	LL_APPEND(_streams, _mixers_manager);
+
 	/* MAVLINK_FTP stream */
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
 	_mavlink_ftp->set_interval(interval_from_rate(80.0f));

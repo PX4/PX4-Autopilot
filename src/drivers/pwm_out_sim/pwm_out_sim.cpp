@@ -202,7 +202,7 @@ PWMSim::PWMSim() :
 	_param_sub(-1),
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
-	_mixer_data_pub(0),
+	_mixer_data_pub(nullptr),
 	_outputs_pub(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -640,25 +640,32 @@ PWMSim::task_main()
 				data.mixer_group = req.mixer_group;
 				data.mixer_index = req.mixer_index;
 				data.mixer_sub_index = req.mixer_sub_index;
+				data.parameter_index = req.parameter_index;
 				data.mixer_data_type = req.mixer_data_type;
 
 				switch (req.mixer_data_type) {
 				case 0: {
 						//Mixer count
-						data.int_value = (int32_t) _mixers->count();
+						data.param_type = (int16_t) _mixers->count();
+						data.real_value = 0.0;
+						data.int_value = (int32_t) data.param_type;
 						break;
 					}
 
 				case 1: {
 						//Submixer count
+						data.param_type = (int32_t) _mixers->count_submixers((unsigned)data.mixer_index);
+						data.real_value = 0.0;
+						data.int_value = data.param_type;
 						break;
 					}
 
 				case 2: {
 						//Mixer type
-						data.int_value = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
-								 (unsigned)data.mixer_sub_index);
+						data.param_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
+								  (unsigned)data.mixer_sub_index);
 						data.real_value = 0.0;
+						data.int_value = data.param_type;
 						break;
 					}
 
@@ -667,6 +674,7 @@ PWMSim::task_main()
 						data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
 								  (unsigned)data.mixer_sub_index);
 						data.int_value = 0;
+						data.param_type = 9;    //FLOAT32
 						break;
 					}
 
@@ -677,7 +685,7 @@ PWMSim::task_main()
 				} //case
 
 				if (_mixer_data_pub == 0) {
-					orb_advertise(ORB_ID(mixer_data), &data);
+					_mixer_data_pub = orb_advertise(ORB_ID(mixer_data), &data);
 
 				} else {
 					orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
@@ -708,7 +716,9 @@ PWMSim::task_main()
 	orb_unsubscribe(_armed_sub);
 #if defined(MIXER_CONFIGURATION)
 	orb_unsubscribe(_mixer_data_request_sub);
+	_mixer_data_request_sub = -1;
 	orb_unsubscribe(_mixer_parameter_set_sub);
+	_mixer_parameter_set_sub = -1;
 #endif //MIXER_CONFIGURATION
 
 	/* make sure servos are off */

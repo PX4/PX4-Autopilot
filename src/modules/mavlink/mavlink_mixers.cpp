@@ -101,8 +101,15 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				data_request.parameter_index = req.parameter_index;
 				data_request.mixer_data_type = req.data_type;
 
+				//PX4_ERR("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
+				req.mixer_group,
+				req.mixer_index,
+				req.mixer_sub_index,
+				req.parameter_index,
+				req.data_type);
+
 				if (_mixer_data_request_pub == nullptr) {
-					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
+				_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
 
 				} else {
 					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &data_request);
@@ -172,7 +179,11 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		struct mixer_data_s mixer_data;
 		orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
 
+		//PX4_ERR("_mixer_data_sub has data ready and with data type:%u", mixer_data.mixer_data_type);
+
 		mavlink_mixer_data_t msg;
+		msg.target_system = mavlink_system.sysid;
+		msg.target_component = 0;
 		msg.mixer_group = mixer_data.mixer_group;
 		msg.mixer_index = mixer_data.mixer_index;
 		msg.mixer_sub_index = mixer_data.mixer_sub_index;
@@ -180,29 +191,20 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		msg.data_type = mixer_data.mixer_data_type;
 		msg.param_type = mixer_data.param_type;
 
-		if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {
-			msg.param_type = MAVLINK_TYPE_FLOAT;
-			msg.param_value = mixer_data.real_value;
+		if (msg.data_type == MIXER_DATA_TYPE_PARAMETER) {
+			if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {
+				msg.param_type = MAVLINK_TYPE_FLOAT;
+				msg.param_value = mixer_data.real_value;
 
-		} else {
-			int32_t val;
-			val = (int32_t)mixer_data.int_value;
-			memcpy(&msg.param_value, &val, sizeof(int32_t));
-			msg.param_type = MAVLINK_TYPE_INT32_T;
+			} else {
+				int32_t val;
+				val = (int32_t)mixer_data.int_value;
+				memcpy(&msg.param_value, &val, sizeof(int32_t));
+				msg.param_type = MAVLINK_TYPE_INT32_T;
+			}
 		}
 
-		/* default component ID */
+		/* Send with default component ID */
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
-
-//        if (component_id < 0) {
-//            mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
-
-//        } else {
-
-//            // Re-pack the message with a different component ID
-//            mavlink_message_t mavlink_packet;
-//            mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink->get_channel(), &mavlink_packet, &msg);
-//            _mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
-//        }
 	}
 }
