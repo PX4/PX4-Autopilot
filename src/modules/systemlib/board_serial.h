@@ -46,6 +46,6 @@
 
 __BEGIN_DECLS
 
-__EXPORT int get_board_serial(raw_uuid_byte_t serialid);
+__EXPORT int get_board_serial(uuid_byte_t serialid);
 
 __END_DECLS

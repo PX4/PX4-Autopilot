@@ -44,14 +44,12 @@
 #include <string.h>
 #include "board_serial.h"
 
-int get_board_serial(raw_uuid_byte_t serialid)
+int get_board_serial(uuid_byte_t serialid)
 {
 #if defined(BOARD_OVERRIDE_UUID)
 	memcpy(serialid, BOARD_OVERRIDE_UUID, PX4_CPU_UUID_BYTE_LENGTH);
 #else
-	uuid_uint8_reorder_t odering = {3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8};
-	/* Copy the serial from the chips non-write memory and swap endianess */
-	board_get_uuid(serialid, odering);
+	board_get_uuid(serialid);
 #endif
 	return 0;
 }
