@@ -55,13 +55,19 @@ ORIG_SRC=$(dirname $SCRIPTPATH)
 # =============================================================================================== #
 echo "=====> Building/installing OpticalFlow"
 
+# OpticalFlow is not a catkin package, so we just use a standard CMake build/install
+# procedure for it, before passing a modified CMAKE_MODULE_PATH to catkin
+
+OPTICAL_FLOW_BUILD_DIR=/OpticalFlow_build/
+OPTICAL_FLOW_INSTALL_DIR=/OpticalFlow_install/
+
 # Create new directory for OpticalFlow build output
-mkdir -p /OpticalFlow_build/
-cd /OpticalFlow_build/
+mkdir -p $OPTICAL_FLOW_BUILD_DIR
+cd $OPTICAL_FLOW_BUILD_DIR
 
 # Generate Makefiles and FindOpticalFlow.cmake, specifying a custom install directory
 # (so it doesn't pollute the system space and install to /usr/local/)
-cmake $ORIG_SRC/Tools/OpticalFlow -DCMAKE_INSTALL_PREFIX=/OpticalFlow_install/
+cmake $ORIG_SRC/Tools/OpticalFlow -DCMAKE_INSTALL_PREFIX=$OPTICAL_FLOW_INSTALL_DIR
 
 # Build OpticalFlow
 make
@@ -70,7 +76,7 @@ make
 make install
 
 # debug
-exit 0
+#exit 0
 
 # =============================================================================================== #
 # ======================================== ROS/catkin Setup ===================================== #
@@ -140,7 +146,8 @@ cd $CATKIN_DIR
 # BUILD_OCTOMAP_PLUGIN=FALSE				Do not build the Octomap plugin for Gazebo
 # BUILD_OPTICAL_FLOW_PLUGIN=TRUE			Build the optical flow plugin for Gazebo
 # NO_ROS=TRUE 								Instruct the Gazebo plugins to build without ROS dependencies. Note that even though ROS is used for these tests, PX4 uses the Gazebo plugins without any ROS dependencies.
-catkin_make -DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE								
+# CMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR		Tell catkin where to find the OpticalFlow installation, so find(OpticalFlow) works.
+catkin_make -DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE  -DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR							
 
 . ./devel/setup.bash
 echo "<====="
