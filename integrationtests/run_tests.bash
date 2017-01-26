@@ -58,8 +58,15 @@ echo "=====> Building/installing OpticalFlow"
 # OpticalFlow is not a catkin package, so we just use a standard CMake build/install
 # procedure for it, before passing a modified CMAKE_MODULE_PATH to catkin
 
-OPTICAL_FLOW_BUILD_DIR=/OpticalFlow_build/
-OPTICAL_FLOW_INSTALL_DIR=/OpticalFlow_install/
+OPTICAL_FLOW_BUILD_DIR=$HOME/OpticalFlow_build/
+OPTICAL_FLOW_INSTALL_DIR=$HOME/OpticalFlow_install/
+
+if $do_clean
+then
+	echo "Deleting OpticalFlow build and install directories..."
+	rm -rf $OPTICAL_FLOW_BUILD_DIR
+	rm -rf $OPTICAL_FLOW_INSTALL_DIR
+fi
 
 # Create new directory for OpticalFlow build output
 mkdir -p $OPTICAL_FLOW_BUILD_DIR
@@ -151,7 +158,7 @@ catkin_make \
 	-DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	\
 	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE \
 	-DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE \
-	-DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR							
+	-DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR
 
 . ./devel/setup.bash
 echo "<====="
