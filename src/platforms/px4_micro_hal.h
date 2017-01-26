@@ -63,26 +63,59 @@ __BEGIN_DECLS
  *  init32_t[1] PX4_CPU_UUID_ADDRESS[1] bits 63:32 (offset 4)
  *  init32_t[2] PX4_CPU_UUID_ADDRESS[3] bits 96:64 (offset 8)
  *
- *  PX4 uses the legacy uint32 ordering
- *   word  [0]    [1]   [2]
- *   bits 31-00, 63-32, 95-64
+ * The original PX4 stm32 (legacy) based implementation **displayed** the
+ * UUID as: ABCD EFGH IJKL
+ * Where:
+ *       A was bit 31 and D was bit 0
+ *       E was bit 63 and H was bit 32
+ *       I was bit 95 and L was bit 64
+ *
+ * Since the string was used by some manufactures to identify the units
+ * it must be preserved.
+ *
+ * For new targets moving forward we will use
+ *      IJKL EFGH ABCD
  */
 #    define PX4_CPU_UUID_BYTE_LENGTH                12
 #    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
-#    define PX4_CPU_UUID_WORD32_LEGACY_FORMAT_ORDER {0,1,2}
-#    define PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE  (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH))
+
+/* The mfguid will be an array of bytes with
+ * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ *
+ * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ */
+#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
+
+/* By not defining PX4_CPU_UUID_CORRECT_CORRELATION the following maintains the legacy incorrect order
+ * used for selection of significant digits of the UUID in the PX4 code base.
+ * This is done to avoid the ripple effects changing the IDs used on STM32 base platforms
+ */
+#  if defined(PX4_CPU_UUID_CORRECT_CORRELATION)
+#    define PX4_CPU_UUID_WORD32_UNIQUE_H            0 /* Least significant digits change the most */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Middle significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_L            2 /* Most significant digits change the least */
+#  else
+/* Legacy incorrect ordering */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_H            2 /* Most significant digits change the least */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Middle significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_L            0 /* Least significant digits change the most */
+#  endif
+
+/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
+#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
+#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
 #    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
 #    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)
 #    define px4_i2cbus_uninitialize(pdev)            stm32_i2cbus_uninitialize(pdev)
 
-#    define px4_arch_configgpio(pinset)             stm32_configgpio(pinset)
-#    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
-#    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
-#    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
-#  endif
+#    define px4_arch_configgpio(pinset)              stm32_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)            stm32_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)                stm32_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)        stm32_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)   stm32_gpiosetevent(pinset,r,f, e,fp)
+#endif
 #include <arch/board/board.h>
 __END_DECLS
 #endif
