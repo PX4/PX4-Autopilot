@@ -6,7 +6,7 @@
 set -e
 
 # TODO move to docker image
-#pip install px4tools pymavlink -q
+pip install px4tools pymavlink -q
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -50,6 +50,31 @@ SCRIPTPATH=`pwd`
 popd > /dev/null
 ORIG_SRC=$(dirname $SCRIPTPATH)
 
+# =============================================================================================== #
+# =================================== Install/build OpticalFlow ================================= #
+# =============================================================================================== #
+echo "=====> Building/installing OpticalFlow"
+
+# Create new directory for OpticalFlow build output
+mkdir -p /OpticalFlow_build/
+cd /OpticalFlow_build/
+
+# Generate Makefiles and FindOpticalFlow.cmake, specifying a custom install directory
+# (so it doesn't pollute the system space and install to /usr/local/)
+cmake $ORIG_SRC/Tools/OpticalFlow -DCMAKE_INSTALL_PREFIX=/OpticalFlow_install/
+
+# Build OpticalFlow
+make
+
+# Install OpticalFlow
+make install
+
+# debug
+exit 0
+
+# =============================================================================================== #
+# ======================================== ROS/catkin Setup ===================================== #
+# =============================================================================================== #
 # set paths
 JOB_DIR=$(dirname $ORIG_SRC)
 CATKIN_DIR=$JOB_DIR/catkin
@@ -87,6 +112,8 @@ then
 else
 	echo skipping clean step
 fi
+
+
 
 echo "=====> compile ($SRC_DIR)"
 mkdir -p $ROS_HOME
