@@ -144,6 +144,8 @@ void Tempcal::task_main()
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
 	uint32_t device_ids[SENSOR_COUNT_MAX] = {};
+	int result;
+	int num_completed = 0; // number of completed gyros
 
 	if (num_gyro > SENSOR_COUNT_MAX) {
 		num_gyro = SENSOR_COUNT_MAX;
@@ -251,13 +253,13 @@ void Tempcal::task_main()
 				PX4_WARN("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", i, (double)res[2][0], (double)res[2][1], (double)res[2][2],
 					 (double)res[2][3]);
 				_tempcal_complete[i] = true;
+				++num_completed;
 
 				char str[30];
 				float param = 0.0f;
-				int result = PX4_OK;
 
 				sprintf(str, "TC_G%d_ID", i);
-				result = param_set(param_find(str), &device_ids[i]);
+				result = param_set_no_notification(param_find(str), &device_ids[i]);
 
 				if (result != PX4_OK) {
 					PX4_ERR("unable to reset %s", str);
@@ -267,41 +269,54 @@ void Tempcal::task_main()
 					for (unsigned m = 0; m <= 3; m++) {
 						sprintf(str, "TC_G%d_X%d_%d", i, m, j);
 						param = (float)res[j][m];
-						result = param_set(param_find(str), &param);
+						result = param_set_no_notification(param_find(str), &param);
 
 						if (result != PX4_OK) {
 							PX4_ERR("unable to reset %s", str);
 						}
 					}
 
-					sprintf(str, "TC_G%d_TMAX", i);
-					param = _high_temp[i];
-					result = param_set(param_find(str), &param);
+				}
 
-					if (result != PX4_OK) {
-						PX4_ERR("unable to reset %s", str);
-					}
+				sprintf(str, "TC_G%d_TMAX", i);
+				param = _high_temp[i];
+				result = param_set_no_notification(param_find(str), &param);
 
-					sprintf(str, "TC_G%d_TMIN", i);
-					param = _low_temp[i];
-					result = param_set(param_find(str), &param);
+				if (result != PX4_OK) {
+					PX4_ERR("unable to reset %s", str);
+				}
 
-					if (result != PX4_OK) {
-						PX4_ERR("unable to reset %s", str);
-					}
+				sprintf(str, "TC_G%d_TMIN", i);
+				param = _low_temp[i];
+				result = param_set_no_notification(param_find(str), &param);
 
-					sprintf(str, "TC_G%d_TREF", i);
-					param = _ref_temp[i];
-					result = param_set(param_find(str), &param);
+				if (result != PX4_OK) {
+					PX4_ERR("unable to reset %s", str);
+				}
 
-					if (result != PX4_OK) {
-						PX4_ERR("unable to reset %s", str);
-					}
+				sprintf(str, "TC_G%d_TREF", i);
+				param = _ref_temp[i];
+				result = param_set_no_notification(param_find(str), &param);
+
+				if (result != PX4_OK) {
+					PX4_ERR("unable to reset %s", str);
 				}
 
 			}
 		}
 
+
+		if (num_completed == num_gyro) {
+			/* all gyros are done */
+			int32_t enabled = 1;
+			result = param_set(param_find("TC_G_ENABLE"), &enabled);
+
+			if (result != PX4_OK) {
+				PX4_ERR("unable to reset TC_G_ENABLE");
+			}
+
+			break;
+		}
 	}
 
 	for (unsigned i = 0; i < num_gyro; i++) {
@@ -310,7 +325,7 @@ void Tempcal::task_main()
 
 	delete tempcal::instance;
 	tempcal::instance = nullptr;
-	PX4_INFO("Tempcal process stopped");
+	PX4_INFO("Tempcal process exited");
 }
 
 void Tempcal::do_temperature_calibration(int argc, char *argv[])
