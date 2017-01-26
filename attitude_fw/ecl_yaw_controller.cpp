@@ -90,12 +90,14 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 	}
 
 	float constrained_roll;
+	bool inverted = false;
 	/* roll is used as feedforward term and inverted flight needs to be considered */
 	if (fabsf(ctl_data.roll) < math::radians(90.0f)) {
 		/* not inverted, but numerically still potentially close to infinity */
 		constrained_roll = math::constrain(ctl_data.roll, math::radians(-80.0f), math::radians(80.0f));
 
 	} else {
+		inverted = true;
 		 // inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity
 		 //note: the ranges are extended by 10 deg here to avoid numeric resolution effects
 		if (ctl_data.roll > 0.0f) {
@@ -108,9 +110,13 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 		}
 	}
 
+	constrained_roll = math::constrain(constrained_roll, -ctl_data.roll_setpoint, ctl_data.roll_setpoint);
 
-	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
-	_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * 9.81f / (ctl_data.airspeed < ctl_data.airspeed_min ? ctl_data.airspeed_min : ctl_data.airspeed);
+
+	if (!inverted) {
+		/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
+		_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * 9.81f / (ctl_data.airspeed < ctl_data.airspeed_min ? ctl_data.airspeed_min : ctl_data.airspeed);
+	}
 
 	/* limit the rate */ //XXX: move to body angluar rates
 	if (_max_rate > 0.01f) {
@@ -166,7 +172,7 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 	}
 
 	/* Calculate body angular rate error */
-	_rate_error = _bodyrate_setpoint - ctl_data.body_z_rate; //body angular rate error
+	_rate_error = _bodyrate_setpoint - ctl_data.body_z_rate; // body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * ctl_data.airspeed_min) {
 
