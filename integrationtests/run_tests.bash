@@ -147,7 +147,11 @@ cd $CATKIN_DIR
 # BUILD_OPTICAL_FLOW_PLUGIN=TRUE			Build the optical flow plugin for Gazebo
 # NO_ROS=TRUE 								Instruct the Gazebo plugins to build without ROS dependencies. Note that even though ROS is used for these tests, PX4 uses the Gazebo plugins without any ROS dependencies.
 # CMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR		Tell catkin where to find the OpticalFlow installation, so find(OpticalFlow) works.
-catkin_make -DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE  -DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR							
+catkin_make \
+	-DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	\
+	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OCTOMAP_PLUGIN=FALSE \
+	-DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE \
+	-DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR							
 
 . ./devel/setup.bash
 echo "<====="
