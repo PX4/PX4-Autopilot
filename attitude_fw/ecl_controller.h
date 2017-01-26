@@ -78,7 +78,6 @@ struct ECL_ControlData {
 	float groundspeed;
 	float groundspeed_scaler;
 	bool lock_integrator;
-	bool do_turn_compensation;
 };
 
 class __EXPORT ECL_Controller
