@@ -325,11 +325,11 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				handle = param_find(str);
 				param_get(handle, &val);
 				if (axis_index == 0) {
-					val -= accel_scale.x_offset;
+					val += accel_scale.x_offset;
 				} else if (axis_index == 1) {
-					val -= accel_scale.y_offset;
+					val += accel_scale.y_offset;
 				} else if (axis_index == 2) {
-					val -= accel_scale.z_offset;
+					val += accel_scale.z_offset;
 				}
 				failed |= (PX4_OK != param_set_no_notification(handle, &val));
 			}
