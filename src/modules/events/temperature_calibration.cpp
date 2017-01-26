@@ -140,7 +140,7 @@ void Tempcal::task_main()
 	float gyro_sample_filt[SENSOR_COUNT_MAX][4];
 	polyfitter<4> P[SENSOR_COUNT_MAX][3];
 	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
-	unsigned _hot_soak_sat[SENSOR_COUNT_MAX] = {};
+	unsigned hot_soak_sat[SENSOR_COUNT_MAX] = {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
 	uint32_t device_ids[SENSOR_COUNT_MAX] = {};
@@ -151,12 +151,12 @@ void Tempcal::task_main()
 		num_gyro = SENSOR_COUNT_MAX;
 	}
 
-	bool _cold_soaked[SENSOR_COUNT_MAX] = {false};
-	bool _hot_soaked[SENSOR_COUNT_MAX] = {false};
-	bool _tempcal_complete[SENSOR_COUNT_MAX] = {false};
-	float _low_temp[SENSOR_COUNT_MAX];
-	float _high_temp[SENSOR_COUNT_MAX] = {0};
-	float _ref_temp[SENSOR_COUNT_MAX];
+	bool cold_soaked[SENSOR_COUNT_MAX] = {};
+	bool hot_soaked[SENSOR_COUNT_MAX] = {};
+	bool tempcal_complete[SENSOR_COUNT_MAX] = {};
+	float low_temp[SENSOR_COUNT_MAX];
+	float high_temp[SENSOR_COUNT_MAX] = {};
+	float ref_temp[SENSOR_COUNT_MAX];
 
 	for (unsigned i = 0; i < num_gyro; i++) {
 		gyro_sub[i] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
@@ -183,7 +183,7 @@ void Tempcal::task_main()
 		}
 
 		for (unsigned i = 0; i < num_gyro; i++) {
-			if (_hot_soaked[i]) {
+			if (hot_soaked[i]) {
 				continue;
 			}
 
@@ -197,10 +197,10 @@ void Tempcal::task_main()
 				gyro_sample_filt[i][2] = gyro_data.z;
 				gyro_sample_filt[i][3] = gyro_data.temperature;
 
-				if (!_cold_soaked[i]) {
-					_cold_soaked[i] = true;
-					_low_temp[i] = gyro_sample_filt[i][3];	//Record the low temperature
-					_ref_temp[i] = gyro_sample_filt[i][3] + 12.0f;
+				if (!cold_soaked[i]) {
+					cold_soaked[i] = true;
+					low_temp[i] = gyro_sample_filt[i][3];	//Record the low temperature
+					ref_temp[i] = gyro_sample_filt[i][3] + 12.0f;
 				}
 
 				num_samples[i]++;
@@ -208,32 +208,32 @@ void Tempcal::task_main()
 		}
 
 		for (unsigned i = 0; i < num_gyro; i++) {
-			if (_hot_soaked[i]) {
+			if (hot_soaked[i]) {
 				continue;
 			}
 
-			if (gyro_sample_filt[i][3] > _high_temp[i]) {
-				_high_temp[i] = gyro_sample_filt[i][3];
-				_hot_soak_sat[i] = 0;
+			if (gyro_sample_filt[i][3] > high_temp[i]) {
+				high_temp[i] = gyro_sample_filt[i][3];
+				hot_soak_sat[i] = 0;
 
 			} else {
 				continue;
 			}
 
 			//TODO: Hot Soak Saturation
-			if (_hot_soak_sat[i] == 10 || (_high_temp[i] - _low_temp[i]) > 24.0f) {
-				_hot_soaked[i] = true;
+			if (hot_soak_sat[i] == 10 || (high_temp[i] - low_temp[i]) > 24.0f) {
+				hot_soaked[i] = true;
 			}
 
 			if (i == 0) {
 				TC_DEBUG("\n%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)gyro_sample_filt[i][0],
 					 (double)gyro_sample_filt[i][1],
-					 (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)_low_temp[i], (double)_high_temp[i],
-					 (double)(_high_temp[i] - _low_temp[i]));
+					 (double)gyro_sample_filt[i][2], (double)gyro_sample_filt[i][3], (double)low_temp[i], (double)high_temp[i],
+					 (double)(high_temp[i] - low_temp[i]));
 			}
 
 			//update linear fit matrices
-			gyro_sample_filt[i][3] -= _ref_temp[i];
+			gyro_sample_filt[i][3] -= ref_temp[i];
 			P[i][0].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][0]);
 			P[i][1].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][1]);
 			P[i][2].update((double)gyro_sample_filt[i][3], (double)gyro_sample_filt[i][2]);
@@ -241,7 +241,7 @@ void Tempcal::task_main()
 		}
 
 		for (unsigned i = 0; i < num_gyro; i++) {
-			if (_hot_soaked[i] && !_tempcal_complete[i]) {
+			if (hot_soaked[i] && !tempcal_complete[i]) {
 				double res[3][4] = {0.0f};
 				P[i][0].fit(res[0]);
 				PX4_WARN("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", i, (double)res[0][0], (double)res[0][1], (double)res[0][2],
@@ -252,7 +252,7 @@ void Tempcal::task_main()
 				P[i][2].fit(res[2]);
 				PX4_WARN("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", i, (double)res[2][0], (double)res[2][1], (double)res[2][2],
 					 (double)res[2][3]);
-				_tempcal_complete[i] = true;
+				tempcal_complete[i] = true;
 				++num_completed;
 
 				char str[30];
@@ -279,7 +279,7 @@ void Tempcal::task_main()
 				}
 
 				sprintf(str, "TC_G%d_TMAX", i);
-				param = _high_temp[i];
+				param = high_temp[i];
 				result = param_set_no_notification(param_find(str), &param);
 
 				if (result != PX4_OK) {
@@ -287,7 +287,7 @@ void Tempcal::task_main()
 				}
 
 				sprintf(str, "TC_G%d_TMIN", i);
-				param = _low_temp[i];
+				param = low_temp[i];
 				result = param_set_no_notification(param_find(str), &param);
 
 				if (result != PX4_OK) {
@@ -295,7 +295,7 @@ void Tempcal::task_main()
 				}
 
 				sprintf(str, "TC_G%d_TREF", i);
-				param = _ref_temp[i];
+				param = ref_temp[i];
 				result = param_set_no_notification(param_find(str), &param);
 
 				if (result != PX4_OK) {
