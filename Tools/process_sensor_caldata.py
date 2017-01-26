@@ -71,8 +71,7 @@ def temp_calibration(data, topic, fields, units, label):
             'type': 'FLOAT',
         }
 
-    # curve fit the data for corrections - note
-    #   corrections have oppsite sign to sensor bias
+    # curve fit the data for corrections - note corrections have same sign as sensor bias and will need to be subtracted from the raw reading to remove the bias
     try:
         params['ID']['val'] = int(np.median(data['device_id']))
     except:
@@ -90,7 +89,7 @@ def temp_calibration(data, topic, fields, units, label):
     temp_resample = temp_rel_resample + params['TREF']['val']
 
     for i, field in enumerate(fields):
-        coef = np.polyfit(temp_rel, -data[field], 3)
+	coef = np.polyfit(temp_rel, data[field], 3)
         for j in range(3):
             params['X{:d}_{:d}'.format(3-j, i)]['val'] = float(coef[j])
         fit_coef = np.poly1d(coef)
@@ -99,7 +98,7 @@ def temp_calibration(data, topic, fields, units, label):
         # draw plots
         plt.subplot(len(fields), 1, i + 1)
         plt.plot(data['temperature'], data[field], 'b')
-        plt.plot(temp_resample, -resample, 'r')
+	plt.plot(temp_resample, resample, 'r')
         plt.title('{:s} Bias vs Temperature'.format(topic))
         plt.ylabel('{:s} bias {:s}'.format(field, units))
         plt.xlabel('temperature (degC)')
