@@ -1307,9 +1307,9 @@ void Mavlink::send_autopilot_capabilites()
 #else
 		msg.product_id = 0;
 #endif
-		raw_uuid_uint32_t uid;
-		board_get_uuid_raw32(uid, NULL);
-		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
+		uuid_uint32_t uid;
+		board_get_uuid32(uid);
+		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
 	}
