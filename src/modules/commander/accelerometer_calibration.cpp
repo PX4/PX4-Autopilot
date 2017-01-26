@@ -345,7 +345,11 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				} else if (axis_index == 2) {
 					val *= accel_scale.z_scale;
 				}
-				failed |= (PX4_OK != param_set_no_notification(handle, &val));
+				if (axis_index == 2) { //notify the system about the change, but only once, for the last one
+					failed |= (PX4_OK != param_set(handle, &val));
+				} else {
+					failed |= (PX4_OK != param_set_no_notification(handle, &val));
+				}
 			}
 
 			// Ensure the calibration values used the driver are at default settings
