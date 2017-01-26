@@ -1438,8 +1438,8 @@ void Logger::write_version()
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
-			char uuid_string[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
-			board_get_uuid_formated32(uuid_string, sizeof(uuid_string), "%08X", NULL, &px4_legacy_word32_order);
+			char uuid_string[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
+			board_get_uuid32_formated(uuid_string, sizeof(uuid_string), "%08X", NULL);
 			write_info("sys_uuid", uuid_string);
 		}
 	}
