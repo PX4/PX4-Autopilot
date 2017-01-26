@@ -110,7 +110,7 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 		}
 	}
 
-	constrained_roll = math::constrain(constrained_roll, -ctl_data.roll_setpoint, ctl_data.roll_setpoint);
+	constrained_roll = math::constrain(constrained_roll, -fabsf(ctl_data.roll_setpoint), fabsf(ctl_data.roll_setpoint));
 
 
 	if (!inverted) {
