@@ -364,23 +364,55 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
-		for (unsigned s = 0; s < max_gyros; s++) {
-			if (worker_data.device_id[s] != 0) {
+		for (unsigned uorb_index = 0; uorb_index < max_gyros; uorb_index++) {
+			if (worker_data.device_id[uorb_index] != 0) {
 				char str[30];
 
-				(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].x_offset)));
-				(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].y_offset)));
-				(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[s].z_offset)));
+				/* check if thermal compensation is enabled */
+				int32_t tc_enabled_int;
+				param_get(param_find("TC_G_ENABLE"), &(tc_enabled_int));
+				if (tc_enabled_int == 1) {
+					/* Get struct containing sensor thermal compensation data */
+					struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+					memset(&sensor_correction, 0, sizeof(sensor_correction));
+					orb_copy(ORB_ID(sensor_correction), worker_data.sensor_correction_sub, &sensor_correction);
 
-				(void)sprintf(str, "CAL_GYRO%u_ID", s);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[s])));
+					/* update the _X0_ terms to include the additional offset */
+					int32_t handle;
+					float val;
+					for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+						val = 0.0f;
+						(void)sprintf(str, "TC_G%u_X0_%u", sensor_correction.gyro_mapping[uorb_index], axis_index);
+						handle = param_find(str);
+						param_get(handle, &val);
+						if (axis_index == 0) {
+							val += worker_data.gyro_scale[uorb_index].x_offset;
+						} else if (axis_index == 1) {
+							val += worker_data.gyro_scale[uorb_index].y_offset;
+						} else if (axis_index == 2) {
+							val += worker_data.gyro_scale[uorb_index].z_offset;
+						}
+						failed |= (PX4_OK != param_set_no_notification(handle, &val));
+					}
+					// Ensure the calibration values used the driver are at default settings
+					worker_data.gyro_scale[uorb_index].x_offset = 0.f;
+					worker_data.gyro_scale[uorb_index].y_offset = 0.f;
+					worker_data.gyro_scale[uorb_index].z_offset = 0.f;
+				}
+
+				(void)sprintf(str, "CAL_GYRO%u_XOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].x_offset)));
+				(void)sprintf(str, "CAL_GYRO%u_YOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].y_offset)));
+				(void)sprintf(str, "CAL_GYRO%u_ZOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].z_offset)));
+
+				(void)sprintf(str, "CAL_GYRO%u_ID", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[uorb_index])));
 
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
 				/* apply new scaling and offsets */
-				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, uorb_index);
 				int fd = px4_open(str, 0);
 
 				if (fd < 0) {
@@ -388,7 +420,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 					continue;
 				}
 
-				res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&worker_data.gyro_scale[s]);
+				res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&worker_data.gyro_scale[uorb_index]);
 				px4_close(fd);
 
 				if (res != PX4_OK) {
