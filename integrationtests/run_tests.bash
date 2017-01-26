@@ -176,15 +176,17 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 
 # don't exit on error anymore (because single tests or exports might fail)
 # however, stop executing tests after the first failure
+# --text can be added to display more debug info to the rostest command, although it
+#			affects performance and should not be enabled in production build!
 set +e
 echo "=====> run tests"
-test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui --text
+test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui
 
 # commented out optical flow test for now since ci server has
 # an issue producing the simulated flow camera currently
 #test $? -eq 0 && rostest px4 mavros_posix_tests_iris_opt_flow.launch gui:=$gui
 
-test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui  --text
+test $? -eq 0 && rostest px4 mavros_posix_tests_standard_vtol.launch gui:=$gui
 TEST_RESULT=$?
 echo "<====="
 
