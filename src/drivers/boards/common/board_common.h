@@ -483,7 +483,6 @@ __EXPORT int board_get_hw_revision(void);
  *   BOARD_OVERRIDE_UUID as an array of bytes that is PX4_CPU_UUID_BYTE_LENGTH
  *
  ************************************************************************************/
-
 __EXPORT void board_get_uuid(uuid_byte_t uuid_bytes);
 
 /************************************************************************************
