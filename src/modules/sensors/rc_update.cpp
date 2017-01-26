@@ -50,7 +50,11 @@
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
-	: _parameters(parameters)
+	: _parameters(parameters),
+	  _filter_roll(0, 0),
+	  _filter_pitch(0, 0),
+	  _filter_yaw(0, 0),
+	  _filter_throttle(0, 0)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
@@ -352,10 +356,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
-			manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
-			manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
-			manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
-			manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+			manual.y = _filter_roll.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0));
+			manual.x = _filter_pitch.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0));
+			manual.r = _filter_yaw.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0));
+			manual.z = _filter_throttle.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0));
 			manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
 			manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
 			manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
