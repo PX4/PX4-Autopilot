@@ -126,9 +126,11 @@ private:
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
 	int		_param_sub;
+#if defined(MIXER_CONFIGURATION)
 	int     _mixer_data_request_sub;
 	int     _mixer_parameter_set_sub;
 	orb_advert_t	_mixer_data_pub;
+#endif // MIXER_CONFIGURATION
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -200,9 +202,11 @@ PWMSim::PWMSim() :
 	_poll_fds_num(0),
 	_armed_sub(-1),
 	_param_sub(-1),
+#if defined(MIXER_CONFIGURATION)
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
 	_mixer_data_pub(nullptr),
+#endif // MIXER_CONFIGURATION
 	_outputs_pub(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -742,6 +746,8 @@ PWMSim::task_main()
 	_mixer_data_request_sub = -1;
 	orb_unsubscribe(_mixer_parameter_set_sub);
 	_mixer_parameter_set_sub = -1;
+	orb_unadvertise(_mixer_data_pub);
+	_mixer_data_pub = nullptr;
 #endif //MIXER_CONFIGURATION
 
 	/* make sure servos are off */

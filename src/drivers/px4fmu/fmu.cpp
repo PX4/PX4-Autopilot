@@ -90,6 +90,11 @@
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 
+#include <uORB/topics/mixer_data.h>
+#include <uORB/topics/mixer_data_request.h>
+#include <uORB/topics/mixer_parameter_set.h>
+
+
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
@@ -192,6 +197,11 @@ private:
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
+#if defined(MIXER_CONFIGURATION)
+	int             _mixer_data_request_sub;
+	int             _mixer_parameter_set_sub;
+	orb_advert_t	_mixer_data_pub;
+#endif // MIXER_CONFIGURATION
 	struct rc_input_values	_rc_in;
 	float		_analog_rc_rssi_volt;
 	bool		_analog_rc_rssi_stable;
@@ -321,7 +331,12 @@ PX4FMU::PX4FMU() :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
-	_rc_in{},
+#if defined(MIXER_CONFIGURATION)
+	_mixer_data_request_sub(-1),
+	_mixer_parameter_set_sub(-1),
+	_mixer_data_pub(nullptr),
+#endif // MIXER_CONFIGURATION
+	_rc_in {},
 	_analog_rc_rssi_volt(-1.0f),
 	_analog_rc_rssi_stable(false),
 	_to_input_rc(nullptr),
@@ -967,6 +982,11 @@ PX4FMU::cycle()
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 		_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
+#if defined(MIXER_CONFIGURATION)
+		_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
+		_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
+#endif //MIXER_CONFIGURATION
+
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
 
@@ -1313,6 +1333,40 @@ PX4FMU::cycle()
 
 	orb_check(_param_sub, &updated);
 
+	if (updated) {
+		parameter_update_s pupdate;
+		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+
+		update_pwm_rev_mask();
+		update_pwm_trims();
+
+		int32_t dsm_bind_val;
+		param_t param_handle;
+
+		/* see if bind parameter has been set, and reset it to -1 */
+		param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
+
+		if (dsm_bind_val > -1) {
+			dsm_bind_ioctl(dsm_bind_val);
+			dsm_bind_val = -1;
+			param_set(param_handle, &dsm_bind_val);
+		}
+
+		// maximum motor slew rate parameter
+		param_handle = param_find("MOT_SLEW_MAX");
+
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &_mot_t_max);
+		}
+
+		// thrust to pwm modelling factor
+		param_handle = param_find("THR_MDL_FAC");
+
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &_thr_mdl_fac);
+		}
+	}
+
 #if (defined(MIXER_CONFIGURATION) && defined(MIXER_CONFIG_BY_MAVLINK_PARAMS))
 
 	if (updated) {
@@ -1371,39 +1425,106 @@ PX4FMU::cycle()
 
 #endif //MIXER_CONFIGURATION
 
+#if defined(MIXER_CONFIGURATION)
+	/* mixer data request */
+	orb_check(_mixer_data_request_sub, &updated);
+
 	if (updated) {
-		parameter_update_s pupdate;
-		orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+		mixer_data_request_s req;
+		orb_copy(ORB_ID(mixer_data_request), _mixer_data_request_sub, &req);
 
-		update_pwm_rev_mask();
-		update_pwm_trims();
+		if (req.mixer_group == 0) {
+			mixer_data_s data;
+			data.mixer_group = req.mixer_group;
+			data.mixer_index = req.mixer_index;
+			data.mixer_sub_index = req.mixer_sub_index;
+			data.parameter_index = req.parameter_index;
+			data.mixer_data_type = req.mixer_data_type;
 
-		int32_t dsm_bind_val;
-		param_t param_handle;
+			switch (req.mixer_data_type) {
+			case 0: {
+					//Mixer count
+					data.param_type = (int16_t) _mixers->count();
+					data.real_value = 0.0;
+					data.int_value = (int32_t) data.param_type;
+					break;
+				}
 
-		/* see if bind parameter has been set, and reset it to -1 */
-		param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
+			case 1: {
+					//Submixer count
+					data.param_type = (int32_t) _mixers->count_submixers((unsigned)data.mixer_index);
+					data.real_value = 0.0;
+					data.int_value = data.param_type;
+					break;
+				}
 
-		if (dsm_bind_val > -1) {
-			dsm_bind_ioctl(dsm_bind_val);
-			dsm_bind_val = -1;
-			param_set(param_handle, &dsm_bind_val);
+			case 2: {
+					//Mixer type
+					data.param_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
+							  (unsigned)data.mixer_sub_index);
+					data.real_value = 0.0;
+					data.int_value = data.param_type;
+					break;
+				}
+
+			case 3: {
+					//Parameter
+					data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
+							  (unsigned)data.mixer_sub_index);
+					data.int_value = 0;
+					data.param_type = 9;    //FLOAT32
+					break;
+				}
+
+			default:
+				data.real_value = 0.0;
+				data.int_value = -1;
+				break;
+			} //case
+
+			if (_mixer_data_pub == 0) {
+				_mixer_data_pub = orb_advertise(ORB_ID(mixer_data), &data);
+
+			} else {
+				orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
+			}
+		} //mixer_group
+	} //updated
+
+	orb_check(_mixer_parameter_set_sub, &updated);
+
+	if (updated) {
+		mixer_parameter_set_s param;
+		orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
+		ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
+					       (unsigned)param.mixer_sub_index);
+
+		mixer_data_s data;
+		data.mixer_group = param.mixer_group;
+		data.mixer_index = param.mixer_index;
+		data.mixer_sub_index = param.mixer_sub_index;
+		data.parameter_index = param.parameter_index;
+		data.mixer_data_type = 3;   //Parameter
+		data.int_value = 0;
+
+		if (ret == 0) {
+			data.real_value = param.real_value;
+
+		} else {
+			data.real_value = 0;
 		}
 
-		// maximum motor slew rate parameter
-		param_handle = param_find("MOT_SLEW_MAX");
+		data.param_type = 9;    //FLOAT
 
-		if (param_handle != PARAM_INVALID) {
-			param_get(param_handle, &_mot_t_max);
-		}
+		if (_mixer_data_pub == 0) {
+			_mixer_data_pub = orb_advertise(ORB_ID(mixer_data), &data);
 
-		// thrust to pwm modelling factor
-		param_handle = param_find("THR_MDL_FAC");
-
-		if (param_handle != PARAM_INVALID) {
-			param_get(param_handle, &_thr_mdl_fac);
+		} else {
+			orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
 		}
 	}
+
+#endif //MIXER_CONFIGURATION
 
 	/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
@@ -1690,6 +1811,15 @@ void PX4FMU::work_stop()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+
+#if defined(MIXER_CONFIGURATION)
+	orb_unsubscribe(_mixer_data_request_sub);
+	_mixer_data_request_sub = -1;
+	orb_unsubscribe(_mixer_parameter_set_sub);
+	_mixer_parameter_set_sub = -1;
+	orb_unadvertise(_mixer_data_pub);
+	_mixer_data_pub = nullptr;
+#endif //MIXER_CONFIGURATION
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
