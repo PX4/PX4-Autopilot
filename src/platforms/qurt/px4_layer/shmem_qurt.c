@@ -142,6 +142,7 @@ void init_shared_memory(void)
 		PX4_INFO("adsp memory malloc failed\n");
 		return;
 	}
+
 	virt_addr = map_base;
 	shmem_info_p = (struct shmem_info *) virt_addr;
 
