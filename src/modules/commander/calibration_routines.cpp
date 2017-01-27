@@ -372,7 +372,7 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 
 	//--------------------Levenberg-Marquardt-part-ends-here--------------------------------//
 
-	if (!isnan(fitness) && fitness < _fitness) {
+	if (PX4_ISFINITE(fitness) && fitness < _fitness) {
 		_fitness = fitness;
 		*sphere_radius = fit1_params[0];
 		*offset_x = fit1_params[1];
@@ -507,7 +507,7 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 	}
 
 	//--------------------Levenberg-Marquardt-part-ends-here--------------------------------//
-	if (!isnan(fitness) && fitness < _fitness) {
+	if (PX4_ISFINITE(fitness) && fitness < _fitness) {
 		_fitness = fitness;
 		*offset_x = fit1_params[0];
 		*offset_y = fit1_params[1];
