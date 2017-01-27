@@ -103,6 +103,9 @@ private:
 
 	int _battery_orb_class_instance;
 
+	// map for bebop motor index to PX4 motor index
+	const uint8_t _esc_map[4] = {0, 2, 3, 1};
+
 	int _publish(struct bebop_state_data &data);
 };
 
@@ -203,20 +206,16 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 
 	esc_status_s esc_status = {};
 
-	for (int i = 0; i < 4; i++) {
-		esc_status.timestamp = hrt_absolute_time();
-		esc_status.esc_count = 4;
-		esc_status.esc[i].timestamp = esc_status.timestamp;
-		esc_status.esc[i].esc_rpm = data.rpm[i];
-	}
-
-	// write desired motor rpm
 	uint16_t esc_speed_setpoint_rpm[4] = {};
 	BebopBus::_get_esc_speed_setpoint(esc_speed_setpoint_rpm);
-	esc_status.esc[0].esc_setpoint_raw = esc_speed_setpoint_rpm[1];
-	esc_status.esc[1].esc_setpoint_raw = esc_speed_setpoint_rpm[3];
-	esc_status.esc[2].esc_setpoint_raw = esc_speed_setpoint_rpm[0];
-	esc_status.esc[3].esc_setpoint_raw = esc_speed_setpoint_rpm[2];
+	esc_status.timestamp = hrt_absolute_time();
+	esc_status.esc_count = 4;
+
+	for (int i = 0; i < 4; i++) {
+		esc_status.esc[_esc_map[i]].timestamp = esc_status.timestamp;
+		esc_status.esc[_esc_map[i]].esc_rpm = data.rpm[i];
+		esc_status.esc[_esc_map[i]].esc_setpoint_raw = esc_speed_setpoint_rpm[i];
+	}
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
