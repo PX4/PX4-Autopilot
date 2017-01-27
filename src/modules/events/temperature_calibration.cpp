@@ -266,7 +266,7 @@ void Tempcal::task_main()
 
 				for (unsigned j = 0; j < 3; j++) {
 					for (unsigned m = 0; m <= 3; m++) {
-						sprintf(str, "TC_G%d_X%d_%d", i, m, j);
+						sprintf(str, "TC_G%d_X%d_%d", i, 3 - m, j);
 						param = (float)res[j][m];
 						result = param_set_no_notification(param_find(str), &param);
 
