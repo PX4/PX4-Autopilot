@@ -47,14 +47,17 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
+#define RC_SAMPLING_RATE 33.3f
+#define RC_FILTER_LP_CUTOFF 5.0f
+
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
 	: _parameters(parameters),
-	  _filter_roll(0, 0),
-	  _filter_pitch(0, 0),
-	  _filter_yaw(0, 0),
-	  _filter_throttle(0, 0)
+	  _filter_roll(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
+	  _filter_pitch(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
+	  _filter_yaw(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
+	  _filter_throttle(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
