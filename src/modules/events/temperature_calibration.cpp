@@ -53,7 +53,6 @@
 #include <poll.h>
 #include <time.h>
 #include <float.h>
-#include <vector>
 #include <arch/board/board.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
