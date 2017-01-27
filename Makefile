@@ -231,7 +231,7 @@ check_%:
 
 Firmware.zip:
 	@rm -rf Firmware.zip
-	@zip --junk-paths Firmware.zip `find . -name nuttx-\*.px4`
+	@zip --junk-paths Firmware.zip `find . -name \*.px4`
 
 s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
