@@ -201,12 +201,12 @@ typedef enum uavcan_general_t {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
 #pragma GCC diagnostic ignored "-Wpacked"
-typedef struct packed_struct can_id_t {
+typedef begin_packed_struct struct can_id_t {
 	union {
 		uint32_t  u32;
 		uint8_t   b[sizeof(uint32_t)];
 	};
-} can_id_t;
+} end_packed_struct can_id_t;
 
 /* UAVCAN CAN ID Usage: Message definition */
 
@@ -258,11 +258,11 @@ uint32_t      priority                : LengthUavCanServicePriority;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
-typedef struct packed_struct can_tail_t {
+typedef begin_packed_struct struct can_tail_t {
 	union {
 		uint8_t   u8;
 	};
-} can_tail_t;
+} end_packed_struct can_tail_t;
 #pragma GCC diagnostic pop
 
 /* UAVCAN Tail Byte definitions */
@@ -447,7 +447,7 @@ typedef enum uavcan_error_t {
  *
  */
 
-typedef struct packed_struct uavcan_protocol_t {
+typedef begin_packed_struct struct uavcan_protocol_t {
 	union {
 		can_id_t  id;
 		uavcan_message_t           msg;
@@ -458,7 +458,7 @@ typedef struct packed_struct uavcan_protocol_t {
 		can_tail_t     tail_init;
 		uavcan_tail_t  tail;
 	};
-} uavcan_protocol_t;
+} end_packed_struct uavcan_protocol_t;
 
 
 /*
@@ -487,7 +487,7 @@ typedef enum uavcan_NodeStatusConsts_t {
 	MODE_OFFLINE          = 7,
 } uavcan_NodeStatusConsts_t;
 
-typedef struct packed_struct uavcan_NodeStatus_t {
+typedef begin_packed_struct struct uavcan_NodeStatus_t {
 	uint32_t uptime_sec;
 	union {
 		uint8_t u8;
@@ -498,7 +498,7 @@ uint8_t health  : LengthNodeStatushealth;
 		};
 	};
 	uint16_t vendor_specific_status_code;
-} uavcan_NodeStatus_t;
+} end_packed_struct uavcan_NodeStatus_t;
 
 /****************************************
  * Uavcan GetNodeInfo composition
@@ -510,25 +510,25 @@ typedef enum uavcan_SoftwareVersionConsts_t {
 	OPTIONAL_FIELD_FLAG_IMAGE_CRC  = 2,
 } uavcan_SoftwareVersionConsts_t;
 
-typedef struct packed_struct uavcan_SoftwareVersion_t {
+typedef begin_packed_struct struct uavcan_SoftwareVersion_t {
 	uint8_t major;
 	uint8_t minor;
 	uint8_t optional_field_flags;
 	uint32_t vcs_commit;
 	uint64_t image_crc;
-} uavcan_SoftwareVersion_t;
+} end_packed_struct uavcan_SoftwareVersion_t;
 
 CCASSERT(PackedSizeSoftwareVersion == sizeof(uavcan_SoftwareVersion_t));
 
 /* HardwareVersion */
 
-typedef struct packed_struct uavcan_HardwareVersion_t {
+typedef begin_packed_struct struct uavcan_HardwareVersion_t {
 	uint8_t major;
 	uint8_t minor;
 	uint8_t unique_id[PayloadLengthHardwareVersionunique_id];
 	uint8_t certificate_of_authenticity_length;
 	uint8_t certificate_of_authenticity[PayloadLengthHardwareVersioncertificate_of_authenticity];
-} uavcan_HardwareVersion_t;
+} end_packed_struct uavcan_HardwareVersion_t;
 
 typedef enum uavcan_HardwareVersionConsts_t {
 	FixedSizeHardwareVersion = sizeof_member(uavcan_HardwareVersion_t, major) + \
@@ -537,13 +537,13 @@ typedef enum uavcan_HardwareVersionConsts_t {
 				   sizeof_member(uavcan_HardwareVersion_t, certificate_of_authenticity_length),
 } uavcan_HardwareVersionConsts_t;
 
-typedef struct packed_struct uavcan_GetNodeInfo_request_t {
+typedef begin_packed_struct struct uavcan_GetNodeInfo_request_t {
 	uint8_t empty[CanPayloadLength];
-} uavcan_GetNodeInfo_request_t;
+} end_packed_struct uavcan_GetNodeInfo_request_t;
 
 /* GetNodeInfo Response */
 
-typedef struct packed_struct uavcan_GetNodeInfo_response_t {
+typedef begin_packed_struct struct uavcan_GetNodeInfo_response_t {
 
 	uavcan_NodeStatus_t nodes_status;;
 	uavcan_SoftwareVersion_t software_version;
@@ -551,7 +551,7 @@ typedef struct packed_struct uavcan_GetNodeInfo_response_t {
 
 	uint8_t name[PayloadLengthGetNodeInfoname];
 	uint8_t name_length;
-} uavcan_GetNodeInfo_response_t;
+} end_packed_struct uavcan_GetNodeInfo_response_t;
 
 typedef enum uavcan_GetNodeInfoConsts_t {
 	FixedSizeGetNodeInfo = PackedSizeMsgNodeStatus + PackedSizeSoftwareVersion +  FixedSizeHardwareVersion,
@@ -569,14 +569,13 @@ typedef enum uavcan_LogMessageConsts_t {
 	LOGMESSAGE_LEVELERROR                 = 3,
 } uavcan_LogMessageConsts_t;
 
-typedef struct packed_struct uavcan_LogMessage_t {
+typedef begin_packed_struct struct uavcan_LogMessage_t {
 	uint8_t level;
 	uint8_t source[uavcan_byte_count(LogMessage, source)];
 	uint8_t text[uavcan_byte_count(LogMessage, text)];
-} uavcan_LogMessage_t;
+} end_packed_struct uavcan_LogMessage_t;
 
 CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeMsgLogMessage);
-
 
 /****************************************
  * Uavcan Allocation
@@ -593,10 +592,10 @@ typedef enum uavcan_AllocationConsts_t {
 	PriorityAllocation                    = UavcanPriorityMin - 1,
 } uavcan_AllocationConsts_t;
 
-typedef struct packed_struct uavcan_Allocation_t {
+typedef begin_packed_struct struct uavcan_Allocation_t {
 	uint8_t node_id; /* bottom bit is the first part flag */
 	uint8_t unique_id[PayloadLengthAllocationunique_id];
-} uavcan_Allocation_t;
+} end_packed_struct uavcan_Allocation_t;
 
 
 /****************************************
@@ -604,13 +603,13 @@ typedef struct packed_struct uavcan_Allocation_t {
  ****************************************/
 
 
-typedef struct packed_struct uavcan_Path_t {
+typedef begin_packed_struct struct uavcan_Path_t {
 	uint8_t u8[PayloadLengthPathpath];
 } uavcan_Path_t;
 
 typedef enum uavcan_PathConst_t {
 	SEPARATOR                 = '/',
-} uavcan_PathConst_t;
+} end_packed_struct uavcan_PathConst_t;
 
 /****************************************
  * Uavcan GetInfo Composition
@@ -629,9 +628,9 @@ typedef enum uavcan_ErrorConst_t {
 	FILE_ERROR_NOT_IMPLEMENTED   = 38,
 } uavcan_ErrorConst_t;
 
-typedef struct packed_struct uavcan_Error_t {
+typedef begin_packed_struct struct uavcan_Error_t {
 	uint16_t value;
-} uavcan_Error_t;
+} end_packed_struct uavcan_Error_t;
 
 typedef enum uavcan_EntryTypeConst_t {
 	ENTRY_TYPE_FLAG_FILE      = 1,
@@ -641,9 +640,9 @@ typedef enum uavcan_EntryTypeConst_t {
 	ENTRY_TYPE_FLAG_WRITEABLE = 16,
 } uavcan_EntryTypeConst_t;
 
-typedef struct packed_struct uavcan_EntryType_t {
+typedef begin_packed_struct struct uavcan_EntryType_t {
 	uint8_t flags;
-} uavcan_EntryType_t;
+} end_packed_struct uavcan_EntryType_t;
 
 
 /****************************************
@@ -657,14 +656,14 @@ typedef enum uavcan_BeginFirmwareUpdateConst_t {
 	ERROR_UNKNOWN          = 255,
 } uavcan_BeginFirmwareUpdateConst_t;
 
-typedef struct packed_struct uavcan_BeginFirmwareUpdate_request {
+typedef begin_packed_struct struct uavcan_BeginFirmwareUpdate_request {
 	uint8_t source_node_id;
 	uavcan_Path_t image_file_remote_path;
-} uavcan_BeginFirmwareUpdate_request;
+} end_packed_struct uavcan_BeginFirmwareUpdate_request;
 
-typedef struct packed_struct uavcan_BeginFirmwareUpdate_response {
+typedef begin_packed_struct struct uavcan_BeginFirmwareUpdate_response {
 	uint8_t error;
-} uavcan_BeginFirmwareUpdate_response;
+} end_packed_struct uavcan_BeginFirmwareUpdate_response;
 
 
 
@@ -672,31 +671,31 @@ typedef struct packed_struct uavcan_BeginFirmwareUpdate_response {
  * Uavcan GetInfo
  ****************************************/
 
-typedef struct packed_struct uavcan_GetInfo_request_t {
+typedef begin_packed_struct struct uavcan_GetInfo_request_t {
 	uavcan_Path_t path;
 } uavcan_GetInfo_request_t;
 typedef enum uavcan_GetInfo_requestConst_t {
 	FixedSizeGetInfoRequest = 0,
 
-} uavcan_GetInfo_requestConst_t;
+} end_packed_struct uavcan_GetInfo_requestConst_t;
 
-typedef struct packed_struct uavcan_GetInfo_response_t {
+typedef begin_packed_struct struct uavcan_GetInfo_response_t {
 	uint32_t                size;
 	uint8_t                 msbsize;
 	uavcan_Error_t          error;
 	uavcan_EntryType_t      entry_type;
-} uavcan_GetInfo_response_t;
+} end_packed_struct uavcan_GetInfo_response_t;
 
 
 /****************************************
  * Uavcan Read Composition
  ****************************************/
 
-typedef struct packed_struct uavcan_Read_request_t {
+typedef begin_packed_struct struct uavcan_Read_request_t {
 	uint32_t offset;
 	uint8_t msboffset;
 	uavcan_Path_t path;
-} uavcan_Read_request_t;
+} end_packed_struct uavcan_Read_request_t;
 
 
 typedef enum uavcan_ReadRequestConsts_t {
@@ -705,10 +704,10 @@ typedef enum uavcan_ReadRequestConsts_t {
 } uavcan_ReadRequestConsts_t;
 
 
-typedef struct packed_struct uavcan_Read_response_t {
+typedef begin_packed_struct struct uavcan_Read_response_t {
 	uavcan_Error_t error;
 	uint8_t data[PayloadLengthReaddata];
-} uavcan_Read_response_t;
+} end_packed_struct uavcan_Read_response_t;
 
 /****************************************************************************
  * Global Variables
