@@ -202,6 +202,7 @@ private:
 		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
+		param_t xy_vel_man_expo;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -228,6 +229,7 @@ private:
 		float acc_down_max;
 		float vel_max_up;
 		float vel_max_down;
+		float xy_vel_man_expo;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -523,6 +525,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
+	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -638,6 +641,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
 		_params.acc_down_max = v;
+		param_get(_params_handles.xy_vel_man_expo, &v);
+		_params.xy_vel_man_expo = v;
+
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
@@ -944,8 +950,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp(0) = _manual.x;
-		req_vel_sp(1) = _manual.y;
+		req_vel_sp(0) = math::expo(_manual.x, _params.xy_vel_man_expo);
+		req_vel_sp(1) = math::expo(_manual.y, _params.xy_vel_man_expo);
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
