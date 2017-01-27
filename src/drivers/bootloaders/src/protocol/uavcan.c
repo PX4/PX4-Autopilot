@@ -66,14 +66,14 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-typedef struct packed_struct dsdl_t {
+typedef begin_packed_struct struct dsdl_t {
 	uavcan_protocol_t prototype;
 	uint16_t signature_crc16;
 	uint8_t intail;
 	uint8_t outtail;
 	uint8_t mailbox : 2;
 	uint8_t fifo : 2;
-} dsdl_t;
+} end_packed_struct dsdl_t;
 
 /* Values used in filter initialization */
 
