@@ -836,8 +836,12 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 		uint32_t flags = sensor.voter.failover_state();
 
 		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
-			//we switched due to a non-critical reason. No need to panic.
-			PX4_INFO("%s sensor switch from #%i", sensor_name, sensor.voter.failover_index());
+			int failover_index = sensor.voter.failover_index();
+
+			if (failover_index != -1) {
+				//we switched due to a non-critical reason. No need to panic.
+				PX4_INFO("%s sensor switch from #%i", sensor_name, failover_index);
+			}
 
 		} else {
 			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
