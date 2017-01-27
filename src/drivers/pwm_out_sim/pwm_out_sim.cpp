@@ -743,11 +743,8 @@ PWMSim::task_main()
 	orb_unsubscribe(_armed_sub);
 #if defined(MIXER_CONFIGURATION)
 	orb_unsubscribe(_mixer_data_request_sub);
-	_mixer_data_request_sub = -1;
 	orb_unsubscribe(_mixer_parameter_set_sub);
-	_mixer_parameter_set_sub = -1;
 	orb_unadvertise(_mixer_data_pub);
-	_mixer_data_pub = nullptr;
 #endif //MIXER_CONFIGURATION
 
 	/* make sure servos are off */

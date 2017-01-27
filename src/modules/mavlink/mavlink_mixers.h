@@ -48,7 +48,7 @@
 //#include <uORB/topics/mixer_data.h>
 //#include <uORB/topics/mixer_data_request.h>
 //#include <uORB/topics/mixer_parameter_set.h>
-
+#if defined(MIXER_CONFIGURATION)
 class MavlinkMixersManager : public MavlinkStream
 {
 public:
@@ -95,3 +95,4 @@ protected:
 	orb_advert_t _mixer_parameter_set_pub;
 	int _mixer_data_sub;
 };
+#endif //MIXER_CONFIGURATION

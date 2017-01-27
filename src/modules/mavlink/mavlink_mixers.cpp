@@ -38,6 +38,8 @@
  * @author Matthew Coleman <uavflightdirector@gmail.com>
  */
 
+#if defined(MIXER_CONFIGURATION)
+
 #include <stdio.h>
 
 #include <uORB/topics/mixer_data_request.h>
@@ -204,3 +206,4 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
 	}
 }
+#endif //MIXER_CONFIGURATION
