@@ -104,8 +104,6 @@ add_definitions(-DMIXER_CONFIGURATION=1)
 set(MIXER_CONFIGURATION ON)
 #add_definitions(-DMIXER_CONFIG_NO_NSH=1)
 #set(MIXER_CONFIG_NO_NSH ON)
-set(MIXER_CONFIG_BY_MAVLINK_PARAMS ON)
-add_definitions(-DMIXER_CONFIG_BY_MAVLINK_PARAMS=1)
 
 # Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
 # for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,

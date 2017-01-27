@@ -571,66 +571,6 @@ PWMSim::task_main()
 			_lockdown = aa.lockdown || aa.manual_lockdown;
 		}
 
-#if (defined(MIXER_CONFIGURATION) && defined(MIXER_CONFIG_BY_MAVLINK_PARAMS))
-		/* mixer parameters update? */
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			param_t mix_action_param = param_find("MIX_PARAM_ACTION");
-			int32_t mixer_action;
-			param_get(mix_action_param, &mixer_action);
-
-			if (mixer_action > 0) {
-				int32_t mixer_group;
-				param_get(param_find("MIX_GROUP"), &mixer_group);
-
-				if (mixer_group == 0) {
-					if (mixer_action == 3) {
-						int32_t mixer_count;
-						mixer_count = _mixers->count();
-						param_set(param_find("MIX_COUNT"), (void *) &mixer_count);
-
-					} else {
-						int32_t mixer_index, mixer_sub_index;
-						param_get(param_find("MIX_INDEX"), &mixer_index);
-						param_get(param_find("MIX_SUB_INDEX"), &mixer_sub_index);
-
-						if (mixer_action == 4) {
-							int32_t mixer_type;
-							mixer_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)mixer_index, unsigned(mixer_sub_index));
-							param_set(param_find("MIX_TYPE"), (void *) &mixer_type);
-
-						} else if (mixer_action == 5) {
-							int32_t submixer_count = (int32_t) _mixers->count_submixers((unsigned)mixer_index);
-							param_set(param_find("MIX_COUNT"), (void *) &submixer_count);
-
-						} else {
-							float mixer_param;
-							int32_t mixer_param_index;
-							param_get(param_find("MIX_PARAM_INDEX"), &mixer_param_index);
-
-							switch (mixer_action) {
-							case 1:
-								param_get(param_find("MIX_PARAMETER"), &mixer_param);
-								_mixers->set_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, mixer_param, (unsigned)mixer_sub_index);
-								break;
-
-							case 2:
-								mixer_param = _mixers->get_mixer_param((unsigned)mixer_index, (unsigned)mixer_param_index, (unsigned)mixer_sub_index);
-								param_set(param_find("MIX_PARAMETER"), (void *) &mixer_param);
-								break;
-							}//case mixer_action
-						}//if mixer_action
-					}//if mixer_action
-
-					mixer_action = 0;
-					param_set(param_find("MIX_PARAM_ACTION"), (void *) &mixer_action);
-				}//if mixer_group
-			}//if mixer_action
-		}// if updated
-
-#endif //MIXER_CONFIGURATION
-
 #if defined(MIXER_CONFIGURATION)
 		/* mixer data request */
 		orb_check(_mixer_data_request_sub, &updated);
