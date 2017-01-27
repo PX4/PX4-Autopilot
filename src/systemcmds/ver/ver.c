@@ -82,7 +82,7 @@ int ver_main(int argc, char *argv[])
 				if (argc >= 3 && argv[2] != NULL) {
 					/* compare 3rd parameter with px4_board_name() string, in case of match, return 0 */
 					const char *board_name = px4_board_name();
-					ret = strncmp(board_name, argv[2], strlen(board_name));
+					ret = strcmp(board_name, argv[2]);
 
 					if (ret == 0) {
 						PX4_INFO("match: %s", board_name);
