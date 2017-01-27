@@ -27,7 +27,7 @@ set(config_module_list
 	drivers/ms5611
 	#drivers/mb12xx
 	#drivers/srf02
-	drivers/sf0x
+##TO FIT	drivers/sf0x
 	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -208,8 +208,8 @@ add_definitions(-DMIXER_CONFIGURATION=1)
 set(MIXER_CONFIGURATION ON)
 #add_definitions(-DMIXER_CONFIG_NO_NSH=1)
 #set(MIXER_CONFIG_NO_NSH ON)
-set(MIXER_CONFIG_BY_MAVLINK_PARAMS ON)
-add_definitions(-DMIXER_CONFIG_BY_MAVLINK_PARAMS=1)
+#set(MIXER_CONFIG_BY_MAVLINK_PARAMS ON)
+#add_definitions(-DMIXER_CONFIG_BY_MAVLINK_PARAMS=1)
 
 
 add_custom_target(sercon)
