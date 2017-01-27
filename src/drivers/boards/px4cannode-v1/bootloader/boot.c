@@ -187,12 +187,12 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
  ****************************************************************************/
 #define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
 
-typedef struct packed_struct led_t {
+typedef begin_packed_struct struct led_t {
 	uint16_t red    :       5;
 	uint16_t green  :       6;
 	uint16_t blue   :       5;
 	uint8_t hz;
-} led_t;
+} end_packed_struct led_t;
 
 static const  led_t i2l[] = {
 
