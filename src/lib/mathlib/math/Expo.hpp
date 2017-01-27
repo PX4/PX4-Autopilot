@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,25 @@
  ****************************************************************************/
 
 /**
- * @file mathlib.h
+ * @file Expo.hpp
  *
- * Common header for mathlib exports.
+ * So called exponential curve function implementation.
+ * It's essentially a linear combination between a linear and a cubic function.
  */
 
 #pragma once
 
-#ifdef __cplusplus
+#include <platforms/px4_defines.h>
+#include <stdint.h>
 
-#include "math/Vector.hpp"
-#include "math/Matrix.hpp"
-#include "math/Quaternion.hpp"
-#include "math/Limits.hpp"
-#include "math/Expo.hpp"
-#include "math/matrix_alg.h"
+namespace math
+{
 
-#endif
+template<typename _Tp>
+inline const _Tp expo(const _Tp &value, const _Tp &e)
+{
+	_Tp x = constrain(value ,(_Tp)-1, (_Tp)1);
+	return (1-e)*x + e*x*x*x;
+}
+
+}
