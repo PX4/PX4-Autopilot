@@ -91,7 +91,7 @@ typedef enum  flash_flags_t {
  */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
-typedef struct packed_struct flash_entry_header_t {
+typedef begin_packed_struct struct flash_entry_header_t {
 	h_magic_t            magic;           /* Used to ID files*/
 	h_flag_t             flag;            /* Used to erase this entry */
 	uint32_t             crc;             /* Calculated over the size - end of data */
@@ -99,7 +99,7 @@ typedef struct packed_struct flash_entry_header_t {
                                                * Will result the offset of the next active file or
                                                * free space. */
 	flash_file_token_t   file_token;      /* file token type - essentially the name/type */
-} flash_entry_header_t;
+} end_packed_struct flash_entry_header_t;
 #pragma GCC diagnostic pop
 
 /****************************************************************************
