@@ -342,7 +342,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) ,
+	float theta = atan2f(sin(d_lon) * cos(lat_next_rad),
 			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
 	theta = _wrap_pi(theta);
