@@ -238,6 +238,24 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 {
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
+
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
+
+	switch (_device_type) {
+	default:
+
+	/* fall through */
+	case MS5611_DEVICE:
+		_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
+		break;
+
+	case MS5607_DEVICE:
+		_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
+		break;
+	}
 }
 
 MS5611::~MS5611()
