@@ -103,6 +103,7 @@ void LandDetector::_cycle()
 		_landDetected.freefall = false;
 		_landDetected.landed = false;
 		_landDetected.ground_contact = false;
+		_p_total_flight_time = param_find("LND_FLIGHT_TIME");
 
 		// Initialize uORB topics.
 		_initialize_topics();
@@ -116,6 +117,8 @@ void LandDetector::_cycle()
 	_check_params(false);
 
 	_update_topics();
+
+	hrt_abstime now = hrt_absolute_time();
 
 	_update_state();
 
@@ -134,6 +137,16 @@ void LandDetector::_cycle()
 		_landDetected.freefall = (_state == LandDetectionState::FREEFALL);
 		_landDetected.landed = (_state == LandDetectionState::LANDED);
 		_landDetected.ground_contact = (_state == LandDetectionState::GROUND_CONTACT);
+
+		// We did take off
+		if (landDetected && !_landDetected.landed) {
+			_takeoff_time = now;
+
+		} else if (_takeoff_time != 0 && !landDetected && _landDetected.landed) {
+			_total_flight_time = now - _takeoff_time;
+			_takeoff_time = 0;
+			param_set(_p_total_flight_time, &_total_flight_time);
+		}
 
 		int instance;
 		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected,
@@ -164,6 +177,7 @@ void LandDetector::_check_params(const bool force)
 
 	if (updated || force) {
 		_update_params();
+		param_get(_p_total_flight_time, &_total_flight_time);
 	}
 }
 
@@ -191,8 +205,6 @@ void LandDetector::_update_state()
 	} else {
 		_state = LandDetectionState::FLYING;
 	}
-
-	return;
 }
 
 bool LandDetector::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)

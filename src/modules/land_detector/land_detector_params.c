@@ -174,3 +174,14 @@ PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_TIME, 0);
