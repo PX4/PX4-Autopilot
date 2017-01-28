@@ -500,7 +500,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// convert the delta velocities to an equivalent acceleration before application of corrections
 				float dt_inv = 1.e6f / accel_report.integral_dt;
-				accel_data = math::Vector<3>(accel_report.x_integral * dt_inv , accel_report.y_integral * dt_inv ,
+				accel_data = math::Vector<3>(accel_report.x_integral * dt_inv, accel_report.y_integral * dt_inv,
 							     accel_report.z_integral * dt_inv);
 
 				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt / 1.e6f;
@@ -510,7 +510,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// Correct each sensor for temperature effects
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				accel_data = math::Vector<3>(accel_report.x , accel_report.y , accel_report.z);
+				accel_data = math::Vector<3>(accel_report.x, accel_report.y, accel_report.z);
 
 				// handle the cse where this is our first output
 				if (_last_accel_timestamp[uorb_index] == 0) {
@@ -597,7 +597,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 				// convert the delta angles to an equivalent angular rate before application of corrections
 				float dt_inv = 1.e6f / gyro_report.integral_dt;
-				gyro_rate = math::Vector<3>(gyro_report.x_integral * dt_inv , gyro_report.y_integral * dt_inv ,
+				gyro_rate = math::Vector<3>(gyro_report.x_integral * dt_inv, gyro_report.y_integral * dt_inv,
 							    gyro_report.z_integral * dt_inv);
 
 				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt / 1.e6f;
