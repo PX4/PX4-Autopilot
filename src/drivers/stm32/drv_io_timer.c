@@ -106,7 +106,7 @@
 #define CCMR_C1_PWMIN_INIT 0 // TBD
 
 //												 				  NotUsed   PWMOut  PWMIn Capture
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0  ,  0   ,  0 };
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
@@ -162,7 +162,7 @@ static int io_timer_handler(uint16_t timer_index)
 				if (channel_handlers[chan_index].callback) {
 					channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
 									      chan_index, &timer_io_channels[chan_index],
-									      now , count);
+									      now, count);
 				}
 			}
 
