@@ -13,19 +13,19 @@ from pyulog import *
 Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature
 Data can be gathered using the following sequence:
 
-1) Set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
+1) Power up the board and set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
 2) Set all CAL_GYR and CAL_ACC parameters to defaults
 3) Set the SYS_LOGGER parameter to 1 to use the new system logger
 4) Set the SDLOG_MODE parameter to 3 to enable logging of sensor data for calibration and power off
 5) Cold soak the board for 30 minutes
-6) Move to a warm dry environment.
+6) Move to a warm dry, still air, constant pressure environment.
 7) Apply power for 45 minutes, keeping the board still.
 8) Remove power and extract the .ulog file
-9) Open a terminal window in the script file directory
-10) Run the script file 'python process_sensor_caldata.py <full path name to .ulog file>
-11) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
-12) After parameters have finsihsed loading, set SDLOG_MODE to 1 to re-enable normal logging and depower.
-13) Power the board and perform a normal gyro and accelerometer sensor calibration using QGC.
+9) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python process_sensor_caldata.py <full path name to .ulog file>
+10) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
+11) TODO - we need a way for user to reliably tell when parameters have all been changed and saved.
+12) After parameters have finished loading, set SDLOG_MODE to 1 to re-enable normal logging and remove power.
+13) Power the board and perform a normal gyro and accelerometer sensor calibration using QGC. The board must be repowered after this step before flying due to large parameter changes and the thermal compensation parameters only being read on startup.
 
 Outputs thermal compensation parameters in a file named <inputfilename>.params which can be loaded onto the board using QGroundControl
 Outputs summary plots in a pdf file named <inputfilename>.pdf
