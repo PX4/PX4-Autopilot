@@ -65,6 +65,7 @@ ExternalProject_Add(optical_flow
 	BINARY_DIR ${PX4_BINARY_DIR}/build_optical_flow
 	INSTALL_DIR ${PX4_BINARY_DIR}/install_optical_flow
 	)
+set_target_properties(optical_flow PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
 message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_MODULE_PATH.")
