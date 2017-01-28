@@ -364,6 +364,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
+		bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
+
 		for (unsigned uorb_index = 0; uorb_index < max_gyros; uorb_index++) {
 			if (worker_data.device_id[uorb_index] != 0) {
 				char str[30];
@@ -377,27 +379,38 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 					memset(&sensor_correction, 0, sizeof(sensor_correction));
 					orb_copy(ORB_ID(sensor_correction), worker_data.sensor_correction_sub, &sensor_correction);
 
-					/* update the _X0_ terms to include the additional offset */
-					int32_t handle;
-					float val;
-					for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-						val = 0.0f;
-						(void)sprintf(str, "TC_G%u_X0_%u", sensor_correction.gyro_mapping[uorb_index], axis_index);
-						handle = param_find(str);
-						param_get(handle, &val);
-						if (axis_index == 0) {
-							val += worker_data.gyro_scale[uorb_index].x_offset;
-						} else if (axis_index == 1) {
-							val += worker_data.gyro_scale[uorb_index].y_offset;
-						} else if (axis_index == 2) {
-							val += worker_data.gyro_scale[uorb_index].z_offset;
-						}
-						if (axis_index == 2) { //notify the system about the change, but only once, for the last one
-							failed |= (PX4_OK != param_set(handle, &val));
-						} else {
-							failed |= (PX4_OK != param_set_no_notification(handle, &val));
+					/* don't allow a parameter instance to be calibrated again by another uORB instance */
+					if (!tc_locked[sensor_correction.gyro_mapping[uorb_index]]) {
+						tc_locked[sensor_correction.gyro_mapping[uorb_index]] = true;
+
+						/* update the _X0_ terms to include the additional offset */
+						int32_t handle;
+						float val;
+						for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+							val = 0.0f;
+							(void)sprintf(str, "TC_G%u_X0_%u", sensor_correction.gyro_mapping[uorb_index], axis_index);
+							handle = param_find(str);
+							param_get(handle, &val);
+							if (axis_index == 0) {
+								val += worker_data.gyro_scale[uorb_index].x_offset;
+
+							} else if (axis_index == 1) {
+								val += worker_data.gyro_scale[uorb_index].y_offset;
+
+							} else if (axis_index == 2) {
+								val += worker_data.gyro_scale[uorb_index].z_offset;
+
+							}
+							if (axis_index == 2) { //notify the system about the change, but only once, for the last one
+								failed |= (PX4_OK != param_set(handle, &val));
+
+							} else {
+								failed |= (PX4_OK != param_set_no_notification(handle, &val));
+
+							}
 						}
 					}
+
 					// Ensure the calibration values used the driver are at default settings
 					worker_data.gyro_scale[uorb_index].x_offset = 0.f;
 					worker_data.gyro_scale[uorb_index].y_offset = 0.f;
