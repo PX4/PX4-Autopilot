@@ -303,15 +303,15 @@ GPS::~GPS()
 	}
 
 	if (_sat_info) {
-		delete(_sat_info);
+		delete (_sat_info);
 	}
 
 	if (_dump_to_device) {
-		delete(_dump_to_device);
+		delete (_dump_to_device);
 	}
 
 	if (_dump_from_device) {
-		delete(_dump_from_device);
+		delete (_dump_from_device);
 	}
 
 }
@@ -710,7 +710,7 @@ GPS::task_main()
 		} else {
 
 			if (_helper != nullptr) {
-				delete(_helper);
+				delete (_helper);
 				/* set to zero to ensure parser is not used while not instantiated */
 				_helper = nullptr;
 			}
