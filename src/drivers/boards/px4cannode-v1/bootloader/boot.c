@@ -163,7 +163,7 @@ uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
 
 size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
 {
-	memset(hw_version, 0 , sizeof(uavcan_HardwareVersion_t));
+	memset(hw_version, 0, sizeof(uavcan_HardwareVersion_t));
 
 	hw_version->major = HW_VERSION_MAJOR;
 	hw_version->minor = HW_VERSION_MINOR;
