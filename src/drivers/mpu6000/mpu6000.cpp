@@ -530,6 +530,11 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	// disable debug() calls
 	_debug_enabled = false;
 
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
+
 	switch (_device_type) {
 
 	default:
