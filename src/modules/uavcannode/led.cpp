@@ -41,7 +41,7 @@
 
 #include "led.hpp"
 
-void rgb_led(int r, int g , int b, int freqs)
+void rgb_led(int r, int g, int b, int freqs)
 {
 
 	long fosc = 72000000;
