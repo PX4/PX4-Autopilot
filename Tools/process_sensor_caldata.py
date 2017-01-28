@@ -13,16 +13,19 @@ from pyulog import *
 Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature
 Data can be gathered using the following sequence:
 
-1) Set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 0 to thermal compensation and reboot
-2) Perform a gyro and accel cal
-2) Set the SYS_LOGGER parameter to 1 to use the new system logger
-3) Set the SDLOG_MODE parameter to 3 to enable logging of sensor data for calibration and power off
-4) Cold soak the board for 30 minutes
-5) Move to a warm dry environment.
-6) Apply power for 45 minutes, keeping the board still.
-7) Remove power and extract the .ulog file
-8) Open a terminal window in the script file directory
-9) Run the script file 'python process_sensor_caldata.py <full path name to .ulog file>
+1) Set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
+2) Set all CAL_GYR and CAL_ACC parameters to defaults
+3) Set the SYS_LOGGER parameter to 1 to use the new system logger
+4) Set the SDLOG_MODE parameter to 3 to enable logging of sensor data for calibration and power off
+5) Cold soak the board for 30 minutes
+6) Move to a warm dry environment.
+7) Apply power for 45 minutes, keeping the board still.
+8) Remove power and extract the .ulog file
+9) Open a terminal window in the script file directory
+10) Run the script file 'python process_sensor_caldata.py <full path name to .ulog file>
+11) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
+12) After parameters have finsihsed loading, set SDLOG_MODE to 1 to re-enable normal logging and depower.
+13) Power the board and perform a normal gyro and accelerometer sensor calibration using QGC.
 
 Outputs thermal compensation parameters in a file named <inputfilename>.params which can be loaded onto the board using QGroundControl
 Outputs summary plots in a pdf file named <inputfilename>.pdf
