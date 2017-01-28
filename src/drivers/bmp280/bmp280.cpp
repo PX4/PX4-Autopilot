@@ -163,6 +163,8 @@ BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "bmp280_buffer_overflows"))
 {
+	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_BMP280;
+
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
