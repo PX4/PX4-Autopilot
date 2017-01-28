@@ -262,9 +262,9 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 				uint16_t check_msg_len = strlen(messageName);
 
 				if (header->_MsgNameLen != (check_msg_len + 1)) {
-					PX4_ERR("Error: Packing error.  Sent Msg Len. of[%d] but strlen returned:[%d]", header->_MsgNameLen , check_msg_len);
+					PX4_ERR("Error: Packing error.  Sent Msg Len. of[%d] but strlen returned:[%d]", header->_MsgNameLen, check_msg_len);
 					PX4_ERR("Error: NumTopics: %d processing topic: %d msgLen[%d] dataLen[%d] data_len[%d] bytes processed: %d",
-						num_topics, i, header->_MsgNameLen, header->_DataLen , data_length, bytes_processed);
+						num_topics, i, header->_MsgNameLen, header->_DataLen, data_length, bytes_processed);
 					DumpData(data, data_length, num_topics);
 					break;
 				}
