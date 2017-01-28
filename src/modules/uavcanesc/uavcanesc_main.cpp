@@ -79,7 +79,7 @@ boot_app_shared_section app_descriptor_t AppDescriptor = {
 	.vcs_commit = 0,
 	.major_version = APP_VERSION_MAJOR,
 	.minor_version = APP_VERSION_MINOR,
-	.reserved = {0xff , 0xff , 0xff , 0xff , 0xff , 0xff }
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
 };
 
 /*
@@ -261,7 +261,7 @@ void UavcanEsc::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uavc
 			shared.bus_speed = active_bitrate;
 			shared.node_id = _node.getNodeID().get();
 			bootloader_app_shared_write(&shared, App);
-			rgb_led(255, 128 , 0 , 5);
+			rgb_led(255, 128, 0, 5);
 			_reset_timer.setCallback(cb_reboot);
 			_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
 			rsp.error = rsp.ERROR_OK;
