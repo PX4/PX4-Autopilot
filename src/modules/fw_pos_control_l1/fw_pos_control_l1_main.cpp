@@ -1102,7 +1102,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 
 	if (flag_init) {
 		// on init set previous waypoint HDG_HOLD_SET_BACK_DIST meters behind us
-		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading + 180.0f * M_DEG_TO_RAD_F ,
+		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading + 180.0f * M_DEG_TO_RAD_F,
 						   HDG_HOLD_SET_BACK_DIST,
 						   &temp_prev.lat, &temp_prev.lon);
 
