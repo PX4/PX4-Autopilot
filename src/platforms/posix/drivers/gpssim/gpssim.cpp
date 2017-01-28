@@ -187,7 +187,7 @@ GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
-		_Sat_Info = new(GPS_Sat_Info);
+		_Sat_Info = new (GPS_Sat_Info);
 		_p_report_sat_info = &_Sat_Info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
