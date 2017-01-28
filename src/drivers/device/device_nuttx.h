@@ -130,29 +130,34 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
-	/**
-	 * Return the bus ID the device is connected to.
-	 *
-	 * @return The bus ID
-	 */
-	virtual uint8_t get_device_bus() {return _device_id.devid_s.bus;};
-
-	/**
-	 * Return the bus address of the device.
-	 *
-	 * @return The bus address
-	 */
-	virtual uint8_t get_device_address() {return _device_id.devid_s.address;};
-
-	/*
-	  device bus types for DEVID
-	 */
+	/** Device bus types for DEVID */
 	enum DeviceBusType {
 		DeviceBusType_UNKNOWN = 0,
 		DeviceBusType_I2C     = 1,
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 	};
+
+	/**
+	 * Return the bus ID the device is connected to.
+	 *
+	 * @return The bus ID
+	 */
+	virtual uint8_t get_device_bus() { return _device_id.devid_s.bus; }
+
+	/**
+	 * Return the bus type the device is connected to.
+	 *
+	 * @return The bus type
+	 */
+	virtual DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
+
+	/**
+	 * Return the bus address of the device.
+	 *
+	 * @return The bus address
+	 */
+	virtual uint8_t get_device_address() { return _device_id.devid_s.address; }
 
 	/*
 	  broken out device elements. The bitfields are used to keep
