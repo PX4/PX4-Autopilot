@@ -188,6 +188,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		msg.parameter_index = mixer_data.parameter_index;
 		msg.data_type = mixer_data.mixer_data_type;
 		msg.param_type = mixer_data.param_type;
+		msg.data_value = mixer_data.int_value;
 
 		if (msg.data_type == MIXER_DATA_TYPE_PARAMETER) {
 			if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {

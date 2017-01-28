@@ -600,7 +600,7 @@ PWMSim::task_main()
 						//Submixer count
 						data.param_type = (int32_t) _mixers->count_submixers((unsigned)data.mixer_index);
 						data.real_value = 0.0;
-						data.int_value = data.param_type;
+						data.int_value = (int32_t) data.param_type;
 						break;
 					}
 
@@ -609,7 +609,7 @@ PWMSim::task_main()
 						data.param_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
 								  (unsigned)data.mixer_sub_index);
 						data.real_value = 0.0;
-						data.int_value = data.param_type;
+						data.int_value = (int32_t) data.param_type;
 						break;
 					}
 
@@ -617,7 +617,7 @@ PWMSim::task_main()
 						//Parameter
 						data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
 								  (unsigned)data.mixer_sub_index);
-						data.int_value = 0;
+						data.int_value = 9;
 						data.param_type = 9;    //FLOAT32
 						break;
 					}
