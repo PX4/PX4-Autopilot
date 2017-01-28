@@ -257,6 +257,7 @@ TAP_ESC::init()
 				ESC_CHANNEL_MAP_RUNNING_DIRECTION;
 	}
 
+	config.controlMode = 2;
 	config.maxChannelValue = RPMMAX;
 	config.minChannelValue = RPMMIN;
 
