@@ -954,14 +954,6 @@ MPU6500::gyro_self_test()
 		return 1;
 	}
 
-	/* check if all scales are zero */
-	if ((fabsf(_gyro_scale.x_offset) < 0.000001f) &&
-	    (fabsf(_gyro_scale.y_offset) < 0.000001f) &&
-	    (fabsf(_gyro_scale.z_offset) < 0.000001f)) {
-		/* if all are zero, this device is not calibrated */
-		return 1;
-	}
-
 	return 0;
 }
 
