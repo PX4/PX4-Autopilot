@@ -415,7 +415,7 @@ int TemperatureCompensation::apply_corrections_accel(int topic_instance, math::V
 	return 1;
 }
 
-int TemperatureCompensation::apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
+int TemperatureCompensation::apply_corrections_baro(int topic_instance, float sensor_data, float temperature,
 		float *offsets, float *scales)
 {
 	if (_parameters.baro_tc_enable != 1) {

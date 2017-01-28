@@ -89,7 +89,7 @@ public:
 	int apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data, float temperature,
 				    float *offsets, float *scales);
 
-	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
+	int apply_corrections_baro(int topic_instance, float sensor_data, float temperature,
 				   float *offsets, float *scales);
 
 	/** output current configuration status to console */
