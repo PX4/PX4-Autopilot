@@ -358,7 +358,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			if (arg == 0) {
 				if (sd->update_interval) {
-					delete(sd->update_interval);
+					delete (sd->update_interval);
 					sd->update_interval = nullptr;
 				}
 

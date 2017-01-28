@@ -207,7 +207,7 @@ private:
 #endif
 	};
 	struct SubscriberData {
-		~SubscriberData() { if (update_interval) { delete(update_interval); } }
+		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
 		unsigned  generation; /**< last generation the subscriber has seen */
 		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
