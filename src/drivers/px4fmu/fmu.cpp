@@ -494,13 +494,16 @@ PX4FMU::init()
 		return ret;
 	}
 
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
+	if (_mode != MODE_NONE) {
+		/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+		_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* lets not be too verbose */
-	} else if (_class_instance < 0) {
-		warnx("FAILED registering class device");
+		if (_class_instance == CLASS_DEVICE_PRIMARY) {
+			/* lets not be too verbose */
+		} else if (_class_instance < 0) {
+			warnx("FAILED registering class device");
+
+		}
 	}
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
@@ -928,10 +931,12 @@ void PX4FMU::rc_io_invert(bool invert)
 {
 	INVERT_RC_INPUT(invert);
 
+#ifdef GPIO_RC_OUT
 	if (!invert) {
 		// set FMU_RC_OUTPUT high to pull RC_INPUT up
 		stm32_gpiowrite(GPIO_RC_OUT, 1);
 	}
+#endif
 }
 #endif
 
@@ -995,7 +1000,9 @@ PX4FMU::cycle()
 		// assume SBUS input
 		sbus_config(_rcs_fd, false);
 		// disable CPPM input by mapping it away from the timer capture input
+#ifdef GPIO_PPM_IN
 		stm32_unconfiggpio(GPIO_PPM_IN);
+#endif
 #endif
 
 		_initialized = true;
@@ -3525,6 +3532,9 @@ fmu_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "mode_gpio")) {
 		new_mode = PORT_FULL_GPIO;
+
+	} else if (!strcmp(verb, "mode_rcin")) {
+		exit(0);
 
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
