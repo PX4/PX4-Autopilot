@@ -505,7 +505,7 @@ MK::task_main()
 	/* loop until killed */
 	while (!_task_should_exit) {
 
-		param_get(_param_indicate_esc , &param_mkblctrl_test);
+		param_get(_param_indicate_esc, &param_mkblctrl_test);
 
 		if (param_mkblctrl_test > 0) {
 			_indicate_esc = true;
