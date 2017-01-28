@@ -3302,13 +3302,6 @@ fmu_main(int argc, char *argv[])
 		errx(0, "FMU driver stopped");
 	}
 
-	if (!strcmp(verb, "id")) {
-		char uid_fmt_buffer[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
-		board_get_uuid_formated32(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%0X", " ", &px4_legacy_word32_order);
-		printf("Board serial:\n %s\n", uid_fmt_buffer);
-		exit(0);
-	}
-
 	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
 	}
