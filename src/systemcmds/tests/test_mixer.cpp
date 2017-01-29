@@ -105,7 +105,7 @@ static bool should_prearm = false;
 class MixerTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 	MixerTest();
 
 private:
@@ -128,7 +128,7 @@ MixerTest::MixerTest() : UnitTest(),
 {
 }
 
-bool MixerTest::run_tests(void)
+bool MixerTest::run_tests()
 {
 	ut_run_test(loadIOPass);
 	ut_run_test(loadQuadTest);
