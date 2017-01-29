@@ -385,7 +385,7 @@ MulticopterPositionControl	*g_control;
 }
 
 MulticopterPositionControl::MulticopterPositionControl() :
-	SuperBlock(NULL, "MPC"),
+	SuperBlock(nullptr, "MPC"),
 	_task_should_exit(false),
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
@@ -405,7 +405,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
-	_attitude_setpoint_id(0),
+	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
 	_ctrl_state{},

@@ -55,7 +55,7 @@ using namespace simulator;
 
 static px4_task_t g_sim_task = -1;
 
-Simulator *Simulator::_instance = NULL;
+Simulator *Simulator::_instance = nullptr;
 
 Simulator *Simulator::getInstance()
 {

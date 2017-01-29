@@ -64,7 +64,7 @@ static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
 
 //-------------------------------------------------------------------
 static bool
-stat_file(const char *file, time_t *date = 0, uint32_t *size = 0)
+stat_file(const char *file, time_t *date = nullptr, uint32_t *size = nullptr)
 {
 	struct stat st;
 
@@ -89,7 +89,7 @@ MavlinkLogHandler::new_instance(Mavlink *mavlink)
 //-------------------------------------------------------------------
 MavlinkLogHandler::MavlinkLogHandler(Mavlink *mavlink)
 	: MavlinkStream(mavlink)
-	, _pLogHandlerHelper(0)
+	, _pLogHandlerHelper(nullptr)
 {
 
 }
@@ -184,7 +184,7 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 		//-- Is this a new request?
 		if ((request.end - request.start) > _pLogHandlerHelper->log_count) {
 			delete _pLogHandlerHelper;
-			_pLogHandlerHelper = NULL;
+			_pLogHandlerHelper = nullptr;
 		}
 	}
 
@@ -269,7 +269,7 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 	*/
 	if (_pLogHandlerHelper) {
 		delete _pLogHandlerHelper;
-		_pLogHandlerHelper = 0;
+		_pLogHandlerHelper = nullptr;
 	}
 
 	//-- Delete all logs
@@ -305,7 +305,7 @@ MavlinkLogHandler::_log_request_end(const mavlink_message_t * /*msg*/)
 
 	if (_pLogHandlerHelper) {
 		delete _pLogHandlerHelper;
-		_pLogHandlerHelper = 0;
+		_pLogHandlerHelper = nullptr;
 	}
 }
 
@@ -378,7 +378,7 @@ LogListHelper::LogListHelper()
 	, current_log_size(0)
 	, current_log_data_offset(0)
 	, current_log_data_remaining(0)
-	, current_log_filep(0)
+	, current_log_filep(nullptr)
 {
 	_init();
 }
@@ -435,7 +435,7 @@ LogListHelper::open_for_transmit()
 {
 	if (current_log_filep) {
 		::fclose(current_log_filep);
-		current_log_filep = 0;
+		current_log_filep = nullptr;
 	}
 
 	current_log_filep = ::fopen(current_log_filename, "rb");
@@ -605,7 +605,7 @@ LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &da
 				if (sscanf(&file[3], "%u", &u) == 1) {
 					date += (u * 60);
 
-					if (stat_file(path, 0, &size)) {
+					if (stat_file(path, nullptr, &size)) {
 						return true;
 					}
 				}

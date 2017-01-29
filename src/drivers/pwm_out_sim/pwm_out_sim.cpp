@@ -191,7 +191,7 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
-	_outputs_pub(0),
+	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_groups_required(0),
@@ -487,7 +487,7 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
+			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, nullptr);
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
@@ -957,13 +957,13 @@ fake(int argc, char *argv[])
 
 	actuator_controls_s ac;
 
-	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
+	ac.control[0] = strtol(argv[1], nullptr, 0) / 100.0f;
 
-	ac.control[1] = strtol(argv[2], 0, 0) / 100.0f;
+	ac.control[1] = strtol(argv[2], nullptr, 0) / 100.0f;
 
-	ac.control[2] = strtol(argv[3], 0, 0) / 100.0f;
+	ac.control[2] = strtol(argv[3], nullptr, 0) / 100.0f;
 
-	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
+	ac.control[3] = strtol(argv[4], nullptr, 0) / 100.0f;
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 

@@ -388,7 +388,7 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		// Get data from the simulator
 		Simulator *sim = Simulator::getInstance();
 
-		if (sim == NULL) {
+		if (sim == nullptr) {
 			return ENODEV;
 		}
 
@@ -1159,7 +1159,7 @@ accelsim_main(int argc, char *argv[])
 	enum Rotation rotation = ROTATION_NONE;
 	int ret;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {

@@ -1,5 +1,7 @@
-Checks:          '-*,readability-braces-around-statements'
-WarningsAsErrors: readability-braces-around-statements
+Checks:          '-*,readability-braces-around-statements,
+		     modernize-use-nullptr'
+WarningsAsErrors: 'readability-braces-around-statements,
+		   modernize-use-nullptr'
 HeaderFilterRegex: '*.h, *.hpp'
 AnalyzeTemporaryDtors: false
 CheckOptions:

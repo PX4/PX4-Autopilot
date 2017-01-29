@@ -157,7 +157,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define HIL_ID_MAX 1999
 
 /* Mavlink log uORB handle */
-static orb_advert_t mavlink_log_pub = 0;
+static orb_advert_t mavlink_log_pub = nullptr;
 
 /* System autostart ID */
 static int autostart_id;
@@ -1714,7 +1714,7 @@ int commander_thread_main(int argc, char *argv[])
 	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
 #endif
 
-	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
+	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, nullptr);
 	pthread_attr_destroy(&commander_low_prio_attr);
 
 	while (!thread_should_exit) {
@@ -3075,7 +3075,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	ret = pthread_join(commander_low_prio_thread, NULL);
+	ret = pthread_join(commander_low_prio_thread, nullptr);
 
 	if (ret) {
 		warn("join failed: %d", ret);
@@ -4169,5 +4169,5 @@ void *commander_low_prio_loop(void *arg)
 
 	px4_close(cmd_sub);
 
-	return NULL;
+	return nullptr;
 }
