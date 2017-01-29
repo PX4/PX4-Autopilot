@@ -159,6 +159,13 @@ public:
 	 */
 	virtual uint8_t get_device_address() { return _device_id.devid_s.address; }
 
+	/**
+	 * Set the device type
+	 *
+	 * @return The device type
+	 */
+	virtual void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
+
 	/*
 	  broken out device elements. The bitfields are used to keep
 	  the overall value small enough to fit in a float accurately,
