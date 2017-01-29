@@ -196,6 +196,8 @@ void VotedSensorsUpdate::parameters_update()
 	unsigned mag_count = 0;
 	unsigned gyro_count = 0;
 	unsigned accel_count = 0;
+	unsigned gyro_cal_found_count = 0;
+	unsigned accel_cal_found_count = 0;
 
 	/* run through all gyro sensors */
 	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
@@ -224,6 +226,10 @@ void VotedSensorsUpdate::parameters_update()
 			if (failed) {
 				DevMgr::releaseHandle(h);
 				continue;
+			}
+
+			if (s == 0 && device_id > 0) {
+				gyro_cal_found_count++;
 			}
 
 			/* if the calibration is for this device, apply it */
@@ -263,6 +269,19 @@ void VotedSensorsUpdate::parameters_update()
 		}
 	}
 
+	// There are less gyros than calibrations
+	// reset the board calibration and fail the initial load
+	if (gyro_count < gyro_cal_found_count) {
+
+		// run through all stored calibrations and reset them
+		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+
+			int device_id = 0;
+			(void)sprintf(str, "CAL_GYRO%u_ID", i);
+			(void)param_set(param_find(str), &device_id);
+		}
+	}
+
 	/* run through all accel sensors */
 	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
 
@@ -290,6 +309,10 @@ void VotedSensorsUpdate::parameters_update()
 			if (failed) {
 				DevMgr::releaseHandle(h);
 				continue;
+			}
+
+			if (s == 0 && device_id > 0) {
+				accel_cal_found_count++;
 			}
 
 			/* if the calibration is for this device, apply it */
@@ -326,6 +349,19 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (config_ok) {
 			accel_count++;
+		}
+	}
+
+	// There are less accels than calibrations
+	// reset the board calibration and fail the initial load
+	if (accel_count < accel_cal_found_count) {
+
+		// run through all stored calibrations and reset them
+		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+
+			int device_id = 0;
+			(void)sprintf(str, "CAL_ACC%u_ID", i);
+			(void)param_set(param_find(str), &device_id);
 		}
 	}
 
