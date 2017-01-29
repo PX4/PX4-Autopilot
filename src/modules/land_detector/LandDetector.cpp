@@ -143,7 +143,7 @@ void LandDetector::_cycle()
 			_takeoff_time = now;
 
 		} else if (_takeoff_time != 0 && !landDetected && _landDetected.landed) {
-			_total_flight_time = now - _takeoff_time;
+			_total_flight_time += now - _takeoff_time;
 			_takeoff_time = 0;
 			param_set(_p_total_flight_time, &_total_flight_time);
 		}
