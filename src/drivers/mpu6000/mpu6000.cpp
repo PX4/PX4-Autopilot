@@ -567,6 +567,9 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 		break;
 	}
 
+	// copy device type to interface
+	_interface->set_device_type(_device_id.devid_s.devtype);
+
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
 	_accel_scale.x_scale  = 1.0f;
@@ -1523,9 +1526,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGEXTERNAL:
 		return _interface->ioctl(cmd, dummy);
 
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -1608,9 +1608,6 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return gyro_self_test();
 
 	case GYROIOCGEXTERNAL:
-		return _interface->ioctl(cmd, dummy);
-
-	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
 
 	default:
