@@ -76,10 +76,7 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
 
-#include <lib/rc/sbus.h>
-#include <lib/rc/dsm.h>
-#include <lib/rc/st24.h>
-#include <lib/rc/sumd.h>
+#include <lib/rc/rc.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -200,7 +197,8 @@ private:
 	unsigned	_num_outputs;
 	int		_class_instance;
 	int		_rcs_fd;
-	uint8_t _rcs_buf[SBUS_BUFFER_SIZE];
+	uint8_t _rc_rx_buf[rc_rx_buf_size()];
+	uint8_t _rc_decode_buf[rc_decode_buf_size()];
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -1409,7 +1407,7 @@ PX4FMU::cycle()
 	}
 
 	// read all available data from the serial RC input UART
-	int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
+	int newBytes = ::read(_rcs_fd, &_rc_rx_buf[0], SBUS_BUFFER_SIZE);
 
 	switch (_rc_scan_state) {
 	case RC_SCAN_SBUS:
@@ -1424,7 +1422,7 @@ PX4FMU::cycle()
 
 			// parse new data
 			if (newBytes > 0) {
-				rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
+				rc_updated = sbus_parse(_cycle_timestamp, &_rc_rx_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
 							&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
@@ -1455,7 +1453,7 @@ PX4FMU::cycle()
 
 			if (newBytes > 0) {
 				// parse new data
-				rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
+				rc_updated = dsm_parse(_cycle_timestamp, &_rc_rx_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
 						       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 				if (rc_updated) {
@@ -1493,7 +1491,7 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					st24_rssi = RC_INPUT_RSSI_MAX;
-					rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
+					rc_updated = (OK == st24_decode(_rc_rx_buf[i], &st24_rssi, &lost_count,
 									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 				}
 
@@ -1536,7 +1534,7 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 					/* set updated flag if one complete packet was parsed */
 					sumd_rssi = RC_INPUT_RSSI_MAX;
-					rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
+					rc_updated = (OK == sumd_decode(_rc_rx_buf[i], &sumd_rssi, &rx_count,
 									&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
 				}
 

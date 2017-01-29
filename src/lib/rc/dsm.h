@@ -51,16 +51,18 @@ __BEGIN_DECLS
 #define DSM_FRAME_SIZE		16		/**< DSM frame size in bytes */
 #define DSM_FRAME_CHANNELS	7		/**< Max supported DSM channels per frame */
 #define DSM_MAX_CHANNEL_COUNT   18  /**< Max channel count of any DSM RC */
-#define DSM_BUFFER_SIZE		(DSM_FRAME_SIZE + DSM_FRAME_SIZE / 2)
+#define DSM_RX_BUFFER_SIZE		(DSM_FRAME_SIZE + DSM_FRAME_SIZE / 2)
+#define DSM_DECODE_BUFFER_SIZE	(DSM_FRAME_SIZE * 2)
 
 __EXPORT int	dsm_init(const char *device);
 __EXPORT void	dsm_deinit(void);
 __EXPORT void	dsm_proto_init(void);
 __EXPORT int	dsm_config(int dsm_fd);
-__EXPORT bool	dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes,
+__EXPORT bool	dsm_input(int dsm_fd, uint8_t *decode_buf, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit,
+			  uint8_t *n_bytes,
 			  uint8_t **bytes, unsigned max_values);
 
-__EXPORT bool	dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
+__EXPORT bool	dsm_parse(uint8_t *decode_buf, uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 			  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, uint16_t max_channels);
 
 #ifdef GPIO_SPEKTRUM_PWR_EN

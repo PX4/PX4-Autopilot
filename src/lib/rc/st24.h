@@ -138,6 +138,8 @@ typedef struct {
 
 #pragma pack(pop)
 
+#define ST24_DECODE_BUFFER_SIZE sizeof(ReceiverFcPacket)
+
 /**
  * CRC8 implementation for ST24 protocol
  *
@@ -157,7 +159,7 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
  * @param max_chan_count maximum channels to decode - if more channels are decoded, the last n are skipped and success (0) is returned
  * @return 0 for success (a decoded packet), 1 for no packet yet (accumulating), 2 for unknown packet, 3 for out of sync, 4 for checksum error
  */
-__EXPORT int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count,
+__EXPORT int st24_decode(uint8_t *decode_buf, uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count,
 			 uint16_t *channels, uint16_t max_chan_count);
 
 __END_DECLS

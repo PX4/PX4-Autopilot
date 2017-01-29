@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *	Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *	Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file sbus.h
+ * @file rc.h
  *
- * RC protocol definition for S.BUS
+ * RC protocol definition
  *
  * @author Lorenz Meier <lorenz@px4.io>
  */
@@ -42,46 +42,51 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <px4_config.h>
+#include <board_config.h>
+#include <px4_defines.h>
+
+#include "dsm.h"
+#include "sbus.h"
+#include "st24.h"
+#include "sumd.h"
 
 __BEGIN_DECLS
 
-#define SBUS_FRAME_SIZE			25
-#define SBUS_RX_BUFFER_SIZE		(SBUS_FRAME_SIZE + SBUS_FRAME_SIZE / 2)
-#define SBUS_DECODE_BUFFER_SIZE	(SBUS_FRAME_SIZE)
+__EXPORT int	rc_rx_buf_size()
+{
+	int size = DSM_RX_BUFFER_SIZE;
 
-__EXPORT int	sbus_init(const char *device, bool singlewire);
+	if (SBUS_RX_BUFFER_SIZE > size) {
+		size = SBUS_RX_BUFFER_SIZE;
+	}
 
-/**
- * Parse serial bytes on the S.BUS bus
- *
- * The S.bus protocol doesn't provide reliable framing,
- * so we detect frame boundaries by the inter-frame delay.
- *
- * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
- * frame transmission time is ~2ms.
- *
- * If an interval of more than 4ms (7 ms frame spacing plus margin)
- * passes between calls, the first byte we read will be the first
- * byte of a frame.
- *
- * In the case where byte(s) are dropped from a frame, this also
- * provides a degree of protection. Of course, it would be better
- * if we didn't drop bytes...
- */
-__EXPORT int	sbus_config(int sbus_fd, bool singlewire);
-__EXPORT bool	sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
-			   bool *sbus_frame_drop,
-			   uint16_t max_channels);
-__EXPORT bool	sbus_parse(uint8_t *decode_buf, uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
-			   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels);
-__EXPORT void	sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values);
-__EXPORT void	sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values);
-__EXPORT void	sbus1_set_output_rate_hz(uint16_t rate_hz);
+	if (ST24_RX_BUFFER_SIZE > size) {
+		size = ST24_RX_BUFFER_SIZE;
+	}
 
-/**
- * The number of incomplete frames we encountered
- */
-__EXPORT unsigned	sbus_dropped_frames(void);
+	if (SUMD_RX_BUFFER_SIZE > size) {
+		size = SUMD_RX_BUFFER_SIZE;
+	}
 
-__END_DECLS
+	return size;
+}
+
+__EXPORT int	rc_decode_buf_size()
+{
+	int size = DSM_DECODE_BUFFER_SIZE;
+
+	if (SBUS_DECODE_BUFFER_SIZE > size) {
+		size = SBUS_RX_BUFFER_SIZE;
+	}
+
+	if (ST24_DECODE_BUFFER_SIZE > size) {
+		size = ST24_RX_BUFFER_SIZE;
+	}
+
+	if (SUMD_DECODE_BUFFER_SIZE > size) {
+		size = SUMD_RX_BUFFER_SIZE;
+	}
+
+	return size;
+}

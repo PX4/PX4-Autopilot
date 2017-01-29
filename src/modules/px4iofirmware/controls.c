@@ -44,10 +44,7 @@
 #include <drivers/drv_rc_input.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
-#include <rc/st24.h>
-#include <rc/sumd.h>
-#include <rc/sbus.h>
-#include <rc/dsm.h>
+#include <rc/rc.h>
 
 #include "px4io.h"
 
@@ -60,6 +57,9 @@ static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
 static perf_counter_t c_gather_ppm;
+
+static uint8_t rx_buf[rc_rx_buf_size()];
+static uint8_t decode_buf[rc_decode_buf_size()];
 
 static int _dsm_fd = -1;
 int _sbus_fd = -1;
@@ -104,7 +104,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	for (unsigned i = 0; i < n_bytes; i++) {
 		/* set updated flag if one complete packet was parsed */
 		st24_rssi = RC_INPUT_RSSI_MAX;
-		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
+		*st24_updated |= (OK == st24_decode(&decode_buf[0], bytes[i], &st24_rssi, &lost_count,
 						    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 	}
 
