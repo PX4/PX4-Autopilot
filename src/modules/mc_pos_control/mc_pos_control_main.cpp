@@ -805,7 +805,11 @@ MulticopterPositionControl::scale_control(float ctl, float end, float dz, float 
 		return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
 
 	} else {
-		return ctl * (dy / dz);
+		if (dz < FLT_EPSILON) {
+			return 0;
+		} else {
+			return ctl * (dy / dz);
+		}
 	}
 }
 
