@@ -69,7 +69,7 @@ private:
 
 	volatile bool _task_should_exit = false;
 	volatile bool _task_is_running = false;
-	struct work_s _work;
+	struct work_s _work = {};
 	int _vehicle_command_sub = -1;
 	orb_advert_t _command_ack_pub = nullptr;
 };
