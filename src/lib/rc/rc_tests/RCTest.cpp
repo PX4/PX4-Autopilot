@@ -103,7 +103,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 					&dsm_11_bit, &dsm_frame_drops, max_channels);
 
 		if (result) {
-			ut_test(num_values == expected_chancount);
+			ut_compare("num_values == expected_chancount", num_values, expected_chancount);
 
 			ut_test(abs((int)chan0 - (int)rc_values[0]) < 30);
 
