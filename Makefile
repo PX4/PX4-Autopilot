@@ -296,6 +296,11 @@ clang-check:
 clang-tidy:
 	rm -rf $(SRC_DIR)/build_posix_sitl_default
 	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
+	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
+
+clang-tidy-parallel:
+	rm -rf $(SRC_DIR)/build_posix_sitl_default
+	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
 	@run-clang-tidy.py -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
 
 clang-tidy-fix:
