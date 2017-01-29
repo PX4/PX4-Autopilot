@@ -1097,8 +1097,10 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 #ifdef __PX4_QURT //QuRT has no poll()
 	int num_runs = 0;
 #else
+	const int stdin_fileno = 0;
+
 	struct pollfd fds;
-	fds.fd = 0; /* stdin */
+	fds.fd = stdin_fileno;
 	fds.events = POLLIN;
 #endif
 	bool quit = false;
@@ -1123,7 +1125,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			if (ret > 0) {
 
-				ret = read(0, &c, 1);
+				ret = ::read(stdin_fileno, &c, 1);
 
 				if (ret) {
 					quit = true;
