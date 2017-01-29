@@ -108,6 +108,13 @@
  */
 #define MPU6000_TIMER_REDUCTION				200
 
+enum MPU_DEVICE_TYPE {
+	MPU_DEVICE_TYPE_MPU6000	= 6000,
+	MPU_DEVICE_TYPE_ICM20602 = 20602,
+	MPU_DEVICE_TYPE_ICM20608 = 20608,
+	MPU_DEVICE_TYPE_ICM20689 = 20689
+};
+
 enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
 	MPU6000_BUS_I2C_INTERNAL,
@@ -257,11 +264,11 @@ private:
 	/**
 	 * is_icm_device
 	 */
-	bool 		is_icm_device() { return !is_mpu_device();}
+	bool 		is_icm_device() { return !is_mpu_device(); }
 	/**
 	 * is_mpu_device
 	 */
-	bool 		is_mpu_device() { return _device_type == 6000;}
+	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
 
 
 #if defined(USE_I2C)
@@ -523,11 +530,42 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	// disable debug() calls
 	_debug_enabled = false;
 
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
 
-	/* Prime _gyro with parents devid. */
-	_gyro->_device_id.devid = _device_id.devid;
-	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
+	switch (_device_type) {
+
+	default:
+	case MPU_DEVICE_TYPE_MPU6000:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20602:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20602;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20602;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20608:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20608;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20608;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20689:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20689;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20689;
+		break;
+	}
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -786,19 +824,19 @@ MPU6000::probe()
 	switch (_device_type) {
 
 	default:
-	case 6000:
+	case MPU_DEVICE_TYPE_MPU6000:
 		expected = MPU_WHOAMI_6000;
 		break;
 
-	case 20602:
+	case MPU_DEVICE_TYPE_ICM20602:
 		expected = ICM_WHOAMI_20602;
 		break;
 
-	case 20608:
+	case MPU_DEVICE_TYPE_ICM20608:
 		expected = ICM_WHOAMI_20608;
 		break;
 
-	case 20689:
+	case MPU_DEVICE_TYPE_ICM20689:
 		expected = ICM_WHOAMI_20689;
 		break;
 	}
@@ -2607,7 +2645,7 @@ int
 mpu6000_main(int argc, char *argv[])
 {
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
-	int device_type = 6000;
+	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = 8;
