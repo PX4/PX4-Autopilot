@@ -1357,7 +1357,6 @@ MulticopterAttitudeControl::task_main()
 	}
 
 	_control_task = -1;
-	return;
 }
 
 int

@@ -119,7 +119,6 @@ static void usage(const char *reason)
 	}
 
 	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n");
-	return;
 }
 
 /**

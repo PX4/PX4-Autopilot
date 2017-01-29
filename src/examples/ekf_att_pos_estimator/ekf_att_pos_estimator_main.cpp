@@ -740,7 +740,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	_task_running = false;
 
 	_estimator_task = -1;
-	return;
 }
 
 void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,

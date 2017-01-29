@@ -317,10 +317,10 @@ int main(int argc, char **argv)
 	set_cpu_scaling();
 
 	int index = 1;
-	string  commands_file = "";
+	string  commands_file;
 	int positional_arg_count = 0;
-	string data_path = "";
-	string node_name = "";
+	string data_path;
+	string node_name;
 
 	// parse arguments
 	while (index < argc) {
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!daemon_mode) {
-		string mystr = "";
+		string mystr;
 		string string_buffer[CMD_BUFF_SIZE];
 		int buf_ptr_write = 0;
 		int buf_ptr_read = 0;

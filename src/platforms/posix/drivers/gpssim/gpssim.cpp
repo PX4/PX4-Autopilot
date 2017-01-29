@@ -375,7 +375,6 @@ GPSSIM::task_main()
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	return;
 }
 
 
