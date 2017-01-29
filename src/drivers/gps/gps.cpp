@@ -1036,7 +1036,6 @@ void
 reset()
 {
 	PX4_ERR("GPS reset not supported");
-	return;
 }
 
 /**
@@ -1056,7 +1055,6 @@ info()
 		g_dev[1]->print_info();
 	}
 
-	return;
 }
 
 void print_usage()

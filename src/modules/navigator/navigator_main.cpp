@@ -695,7 +695,6 @@ Navigator::task_main()
 	PX4_INFO("exiting");
 
 	_navigator_task = -1;
-	return;
 }
 
 int

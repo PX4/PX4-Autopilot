@@ -836,7 +836,6 @@ void VtolAttitudeControl::task_main()
 
 	warnx("exit");
 	_control_task = -1;
-	return;
 }
 
 int

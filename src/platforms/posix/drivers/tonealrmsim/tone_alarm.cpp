@@ -594,7 +594,6 @@ tune_end:
 		_default_tune_number = 0;
 	}
 
-	return;
 }
 
 int

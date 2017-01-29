@@ -493,7 +493,6 @@ int create_log_dir()
 
 			/* dir exists already */
 			dir_number++;
-			continue;
 		}
 
 		if (dir_number >= MAX_NO_LOGFOLDER) {
