@@ -183,9 +183,12 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	/* Prime _mag with parents devid. */
 	_mag->_device_id.devid = _device_id.devid;
 	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
+	_mag->_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_mag->_device_id.devid_s.bus = _interface->get_device_bus();
+	_mag->_device_id.devid_s.address = _interface->get_device_address();
 
 	/* For an independent mag, ensure that it is connected to the i2c bus */
-
+	_interface->set_device_type(_device_id.devid_s.devtype);
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
