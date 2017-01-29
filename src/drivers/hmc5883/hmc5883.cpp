@@ -762,9 +762,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSTEMPCOMP:
 		return set_temperature_compensation(arg);
 
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
