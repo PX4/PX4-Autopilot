@@ -414,7 +414,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	_delta_out_max = 0.0f;
 
 	// Notify saturation status
-	if (status_reg != NULL) {
+	if (status_reg != nullptr) {
 		(*status_reg) = _saturation_status.value;
 	}
 

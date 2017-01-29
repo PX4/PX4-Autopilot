@@ -320,7 +320,7 @@ int GPS::init()
 {
 
 	char gps_num[2] = {(char)('0' + _gps_num), 0};
-	char *const args[2] = { gps_num, NULL };
+	char *const args[2] = { gps_num, nullptr };
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,

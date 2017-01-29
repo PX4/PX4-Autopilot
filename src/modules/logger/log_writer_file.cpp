@@ -136,7 +136,7 @@ void LogWriterFile::thread_stop()
 	notify();
 
 	// wait for thread to complete
-	int ret = pthread_join(_thread, NULL);
+	int ret = pthread_join(_thread, nullptr);
 
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);

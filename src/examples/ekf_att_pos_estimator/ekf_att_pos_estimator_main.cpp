@@ -121,7 +121,7 @@ AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
-	SuperBlock(NULL, "PE"),
+	SuperBlock(nullptr, "PE"),
 	_task_should_exit(false),
 	_task_running(false),
 	_estimator_task(-1),
@@ -396,7 +396,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char *const feedback[] = { 0,
+	const char *const feedback[] = { nullptr,
 					 "NaN in states, resetting",
 					 "stale sensor data, resetting",
 					 "got initial position lock",
@@ -1721,7 +1721,7 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "debug")) {
-		int debug = strtoul(argv[2], NULL, 10);
+		int debug = strtoul(argv[2], nullptr, 10);
 		int ret = estimator::g_estimator->set_debuglevel(debug);
 
 		return ret;
