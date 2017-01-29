@@ -91,7 +91,7 @@ int		baro_init();
 
 
 int
-sensors_init(void)
+sensors_init()
 {
 	int ret;
 	int ret_combined = 0;

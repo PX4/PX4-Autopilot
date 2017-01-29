@@ -67,9 +67,9 @@ __END_DECLS
 namespace px4
 {
 
-void init_once(void);
+void init_once();
 
-void init_once(void)
+void init_once()
 {
 	_shell_task_id = pthread_self();
 	//printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);

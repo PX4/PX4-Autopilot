@@ -119,21 +119,21 @@ MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 
 //-------------------------------------------------------------------
 const char *
-MavlinkLogHandler::get_name(void) const
+MavlinkLogHandler::get_name() const
 {
 	return "MAVLINK_LOG_HANDLER";
 }
 
 //-------------------------------------------------------------------
 uint16_t
-MavlinkLogHandler::get_id(void)
+MavlinkLogHandler::get_id()
 {
 	return MAVLINK_MSG_ID_LOG_ENTRY;
 }
 
 //-------------------------------------------------------------------
 unsigned
-MavlinkLogHandler::get_size(void)
+MavlinkLogHandler::get_size()
 {
 	//-- Sending Log Entries
 	if (_pLogHandlerHelper && _pLogHandlerHelper->current_status == LogListHelper::LOG_HANDLER_LISTING) {

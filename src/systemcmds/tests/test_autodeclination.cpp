@@ -15,20 +15,20 @@
 class AutoDeclinationTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool autodeclination_check();
 };
 
-bool AutoDeclinationTest::autodeclination_check(void)
+bool AutoDeclinationTest::autodeclination_check()
 {
 	ut_assert("declination differs more than 1 degree", get_mag_declination(47.0, 8.0) - 0.6f < 0.5f);
 
 	return true;
 }
 
-bool AutoDeclinationTest::run_tests(void)
+bool AutoDeclinationTest::run_tests()
 {
 	ut_run_test(autodeclination_check);
 

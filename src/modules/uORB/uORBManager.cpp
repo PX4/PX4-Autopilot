@@ -435,7 +435,7 @@ void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 	}
 }
 
-uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator(void)
+uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
 {
 	return _comm_channel;
 }

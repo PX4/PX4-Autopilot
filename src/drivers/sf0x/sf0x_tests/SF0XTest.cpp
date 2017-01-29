@@ -12,20 +12,20 @@ extern "C" __EXPORT int sf0x_tests_main(int argc, char *argv[]);
 class SF0XTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool sf0xTest();
 };
 
-bool SF0XTest::run_tests(void)
+bool SF0XTest::run_tests()
 {
 	ut_run_test(sf0xTest);
 
 	return (_tests_failed == 0);
 }
 
-bool SF0XTest::sf0xTest(void)
+bool SF0XTest::sf0xTest()
 {
 	const char _LINE_MAX = 20;
 	//char _linebuf[_LINE_MAX];

@@ -1154,7 +1154,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 }
 
 
-void MavlinkMissionManager::check_active_mission(void)
+void MavlinkMissionManager::check_active_mission()
 {
 	if (!(_my_dataman_id == _dataman_id)) {
 		if (_verbose) { warnx("WPM: New mission detected (possibly over different Mavlink instance) Updating"); }

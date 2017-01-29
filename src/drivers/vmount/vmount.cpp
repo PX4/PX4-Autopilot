@@ -115,7 +115,7 @@ struct ParameterHandles {
 
 
 /* functions */
-static void usage(void);
+static void usage();
 static void update_params(ParameterHandles &param_handles, Parameters &params, bool &got_changes);
 static bool get_params(ParameterHandles &param_handles, Parameters &params);
 
