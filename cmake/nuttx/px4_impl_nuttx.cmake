@@ -256,15 +256,15 @@ function(px4_nuttx_add_export)
 	# copy
 	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
 	file(RELATIVE_PATH nuttx_cp_src ${PX4_BINARY_DIR} ${PX4_SOURCE_DIR}/NuttX)
-	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${nuttx_src}
 		COMMAND rsync -a --delete --exclude=.git ${nuttx_cp_src}/ ${CONFIG}/NuttX/
-		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
+		COMMAND ${TOUCH} ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches} ${nuttx_all_files}
 		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		)
-	add_custom_target(nuttx_copy_${CONFIG} DEPENDS nuttx_copy_${CONFIG}.stamp)
+	add_custom_target(nuttx_copy_${CONFIG} DEPENDS ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp)
 
 	# patch
 	add_custom_target(nuttx_patch_${CONFIG})
