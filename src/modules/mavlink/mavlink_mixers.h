@@ -46,9 +46,13 @@
 #include "mavlink_stream.h"
 #include <uORB/uORB.h>
 //#include <uORB/topics/mixer_data.h>
-//#include <uORB/topics/mixer_data_request.h>
+#include <uORB/topics/mixer_data_request.h>
 //#include <uORB/topics/mixer_parameter_set.h>
+
+
 #if defined(MIXER_CONFIGURATION)
+#define MAVLINK_MIXER_STATE_WAITING -1
+
 class MavlinkMixersManager : public MavlinkStream
 {
 public:
@@ -79,7 +83,27 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 private:
-	bool	_request_pending;
+//    enum MAVLINK_MIXER_STATES {
+//        MAVLINK_MIXER_STOPPED     = 0,
+//        MAVLINK_MIXER_COUNT,
+//        MAVLINK_MIXER_SUB_COUNT,
+//        MAVLINK_MIXER_TYPE,
+//        MAVLINK_MIXER_PARAM
+//    };
+
+	bool        _request_pending;
+	bool        _send_all;
+
+	/**For tracking data when sending or streaming*/
+	mixer_data_request_s _mixer_data_req;
+	uint16_t    _mixer_group;
+	uint16_t    _mixer_count;
+	uint16_t    _mixer_sub_count;
+	uint16_t    _mixer_type;
+	uint16_t    _mixer_param_count;
+	int16_t    _mavlink_mixer_state;
+
+	void        _send_mixer_count();
 
 	/* do not allow top copying this class */
 	MavlinkMixersManager(MavlinkMixersManager &);

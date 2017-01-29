@@ -54,6 +54,8 @@
 #if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
 #include <systemlib/mixer/mixer_parameters.h>
 #include <systemlib/mixer/mixer_type_id.h>
+static const char *mixer_parameter_table[][MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_TABLE;
+static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 #endif //defined(MIXER_CONFIGURATION)
 
 /**
@@ -447,7 +449,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 	}
 
 	/* Get the mixer or submixer parameter count*/
-	unsigned param_count = MIXER_PARAMETER_COUNTS[mixer_type.mix_type];
+	unsigned param_count = mixer_parameter_count[mixer_type.mix_type];
 
 	if (param_count == 0) {
 		printf("mixer:%u  parameter list empty\n", mix_index);
@@ -468,7 +470,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 		}
 
 		printf("mixer:%u  sub_mix:%u param:%u id:%s value:%.4f\n", mix_index, sub_index, index,
-		       MIXER_PARAMETER_TABLE[mixer_type.mix_type][index],
+		       mixer_parameter_table[mixer_type.mix_type][index],
 		       (double) param.value);
 	}
 
