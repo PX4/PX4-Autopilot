@@ -50,6 +50,7 @@
 #include "mavlink_main.h"
 
 MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
+	_request_pending(false),
 	_mixer_data_request_pub(nullptr),
 	_mixer_parameter_set_pub(nullptr),
 	_mixer_data_sub(-1)
@@ -94,6 +95,8 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 			if (req.target_system == mavlink_system.sysid &&
 			    (req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
 
+				_request_pending = true;
+
 				// publish mixer data request to uORB
 				mixer_data_request_s data_request;
 
@@ -103,8 +106,8 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				data_request.parameter_index = req.parameter_index;
 				data_request.mixer_data_type = req.data_type;
 
-				//PX4_ERR("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
-				//req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index,	req.data_type);
+				PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
+					 req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index,	req.data_type);
 
 				if (_mixer_data_request_pub == nullptr) {
 					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
@@ -124,6 +127,8 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 			if (set.target_system == mavlink_system.sysid &&
 			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
+
+				_request_pending = true;
 
 				// publish set mixer parameter request to uORB
 				mixer_parameter_set_s param_set;
@@ -173,11 +178,9 @@ MavlinkMixersManager::send(const hrt_abstime t)
 	bool mixer_data_ready;
 	orb_check(_mixer_data_sub, &mixer_data_ready);
 
-	if (space_available && mixer_data_ready) {
+	if (space_available && mixer_data_ready && _request_pending) {
 		struct mixer_data_s mixer_data;
 		orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
-
-		//PX4_ERR("_mixer_data_sub has data ready and with data type:%u", mixer_data.mixer_data_type);
 
 		mavlink_mixer_data_t msg;
 		msg.target_system = mavlink_system.sysid;
@@ -202,6 +205,16 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				msg.param_type = MAVLINK_TYPE_INT32_T;
 			}
 		}
+
+//        PX4_INFO("mavlink mixer_data send with group:%u index:%u sub:%u param:%u type:%u data:%u",
+//                 msg.mixer_group,
+//                 msg.mixer_index,
+//                 msg.mixer_sub_index,
+//                 msg.parameter_index,
+//                 mixer_data.mixer_data_type,
+//                 msg.data_value);
+
+		_request_pending = false;
 
 		/* Send with default component ID */
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);

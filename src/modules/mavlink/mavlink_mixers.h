@@ -79,7 +79,7 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 private:
-	int		_send_all_index;
+	bool	_request_pending;
 
 	/* do not allow top copying this class */
 	MavlinkMixersManager(MavlinkMixersManager &);
