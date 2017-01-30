@@ -47,17 +47,14 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
-#define RC_SAMPLING_RATE 33.3f
-#define RC_FILTER_LP_CUTOFF 5.0f
-
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
 	: _parameters(parameters),
-	  _filter_roll(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
-	  _filter_pitch(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
-	  _filter_yaw(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF),
-	  _filter_throttle(RC_SAMPLING_RATE, RC_FILTER_LP_CUTOFF)
+	  _filter_roll(50.0f, 10.f), /* get replaced by parameter */
+	  _filter_pitch(50.0f, 10.f),
+	  _filter_yaw(50.0f, 10.f),
+	  _filter_throttle(50.0f, 10.f)
 {
 	memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
@@ -124,6 +121,10 @@ void RCUpdate::update_rc_functions()
 	_filter_pitch.set_cutoff_frequency(_parameters.rc_flt_smp_rate, _parameters.rc_flt_cutoff);
 	_filter_yaw.set_cutoff_frequency(_parameters.rc_flt_smp_rate, _parameters.rc_flt_cutoff);
 	_filter_throttle.set_cutoff_frequency(_parameters.rc_flt_smp_rate, _parameters.rc_flt_cutoff);
+	_filter_roll.reset(0.f);
+	_filter_pitch.reset(0.f);
+	_filter_yaw.reset(0.f);
+	_filter_throttle.reset(0.f);
 }
 
 void
@@ -365,16 +366,22 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
-			manual.y = _filter_roll.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0));
-			manual.x = _filter_pitch.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0));
-			manual.r = _filter_yaw.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0));
-			manual.z = _filter_throttle.apply(get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0));
+			manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+			manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+			manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+			manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
 			manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
 			manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
 			manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
 			manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
 			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+
+			/* filter controls */
+			manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
+			manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
+			manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
+			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_parameters.rc_map_flightmode > 0) {
 
