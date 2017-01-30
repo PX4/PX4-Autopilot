@@ -135,7 +135,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
-		
+
 	case PX4_SPIDEV_EEPROM:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
@@ -143,7 +143,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, !selected);
-		break;		
+		break;
 
 	default:
 		break;
@@ -225,7 +225,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 0);
-	
+
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
 	stm32_configgpio(GPIO_SPI1_MOSI_OFF);

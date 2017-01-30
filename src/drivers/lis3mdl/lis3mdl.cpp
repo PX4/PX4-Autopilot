@@ -132,7 +132,7 @@ public:
 	 * Stop the automatic measurement state machine.
 	 */
 	void			stop();
-	
+
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
@@ -810,8 +810,8 @@ LIS3MDL::cycle()
 {
 	if (_measure_ticks == 0) {
 		return;
-	}	
-	
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -849,7 +849,7 @@ LIS3MDL::cycle()
 
 	/* next phase is collection */
 	_collect_phase = true;
-		   
+
 	if (_measure_ticks > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
 		work_queue(HPWORK,
@@ -857,7 +857,7 @@ LIS3MDL::cycle()
 			   (worker_t)&LIS3MDL::cycle_trampoline,
 			   this,
 			   USEC2TICK(LIS3MDL_CONVERSION_INTERVAL));
-	}		   
+	}
 }
 
 int
@@ -947,8 +947,8 @@ LIS3MDL::collect()
 
 	/* the LIS3MDL mag on Pixhawk Pro by Drotek has x pointing towards,
 	 * y pointing to the right, and z down, therefore no switch needed,
-	 * it is better to have no artificial rotation inside the 
-	 * driver and then use the startup script with -R command with the 
+	 * it is better to have no artificial rotation inside the
+	 * driver and then use the startup script with -R command with the
 	 * real rotation between the sensor and body frame */
 	xraw_f = report.x;
 	yraw_f = report.y;
@@ -1025,7 +1025,7 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	}
 
 	usleep(20000);
-	
+
 	// discard 10 samples to let the sensor settle
 	for (uint8_t i = 0; i < 10; i++) {
 		struct pollfd fds;
@@ -1075,14 +1075,14 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 
 		sum_non_excited[0] += report.x;
 		sum_non_excited[1] += report.y;
-		sum_non_excited[2] += report.z;	
+		sum_non_excited[2] += report.z;
 	}
-	
+
 	sum_non_excited[0] /= 10.0f;
 	sum_non_excited[1] /= 10.0f;
 	sum_non_excited[2] /= 10.0f;
-	
-	
+
+
 	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
 		warnx("FAILED: MAGIOCEXSTRAP 1");
 		ret = 1;
@@ -1090,7 +1090,7 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 	}
 
 	usleep(60000);
-	
+
 	// discard 10 samples to let the sensor settle
 	for (uint8_t i = 0; i < 10; i++) {
 		struct pollfd fds;
@@ -1140,20 +1140,19 @@ int LIS3MDL::calibrate(struct file *filp, unsigned enable)
 
 		sum_excited[0] += report.x;
 		sum_excited[1] += report.y;
-		sum_excited[2] += report.z;	
+		sum_excited[2] += report.z;
 	}
-	
+
 	sum_excited[0] /= 10.0f;
 	sum_excited[1] /= 10.0f;
-	sum_excited[2] /= 10.0f;	
+	sum_excited[2] /= 10.0f;
 
 	if (1.0f < fabsf(sum_excited[0] - sum_non_excited[0]) && fabsf(sum_excited[0] - sum_non_excited[0]) < 3.0f &&
-		1.0f < fabsf(sum_excited[1] - sum_non_excited[1]) && fabsf(sum_excited[1] - sum_non_excited[1]) < 3.0f &&
-		0.1f < fabsf(sum_excited[2] - sum_non_excited[2]) && fabsf(sum_excited[2] - sum_non_excited[2]) < 1.0f){
-		ret = OK;	
-	}
-	else
-	{
+	    1.0f < fabsf(sum_excited[1] - sum_non_excited[1]) && fabsf(sum_excited[1] - sum_non_excited[1]) < 3.0f &&
+	    0.1f < fabsf(sum_excited[2] - sum_non_excited[2]) && fabsf(sum_excited[2] - sum_non_excited[2]) < 1.0f) {
+		ret = OK;
+
+	} else {
 		ret = -EIO;
 		goto out;
 	}
@@ -1167,7 +1166,7 @@ out:
 	if (OK != ::ioctl(fd, MAGIOCSRANGE, 4)) {
 		warnx("FAILED: MAGIOCSRANGE 4 Ga");
 	}
-	
+
 	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
 		warnx("FAILED: MAGIOCEXSTRAP 0");
 	}
@@ -1548,7 +1547,7 @@ test(enum LIS3MDL_BUS busid)
 /**
  * Self test check.
  *
- * Unlike HMC5883, self test feature cannot be used to calculate 
+ * Unlike HMC5883, self test feature cannot be used to calculate
  * scale.
  *
  * SELF TEST OPERATION
@@ -1557,7 +1556,7 @@ test(enum LIS3MDL_BUS busid)
  * (bias field) to be measured. To implement self test, the least significant bits
  * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias).
  * A few measurements are taken and stored with and without the additional magnetic
- * field. According to ST datasheet, those values must stay between thresholds in order 
+ * field. According to ST datasheet, those values must stay between thresholds in order
  * to pass the self test.
  */
 int calibrate(enum LIS3MDL_BUS busid)
@@ -1690,11 +1689,11 @@ lis3mdl_main(int argc, char *argv[])
 
 	/*
 	 * Stop the driver.
-	 */	
+	 */
 	if (!strcmp(verb, "stop")) {
 		return lis3mdl::stop();
 	}
-	
+
 	/*
 	 * Test the driver/device.
 	 */
