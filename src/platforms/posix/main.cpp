@@ -226,7 +226,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 			}
 		}
 
-	} else if (command.compare("help") == 0) {
+	} else if (command == "help") {
 		list_builtins(apps);
 
 	} else if (command.length() == 0 || command[0] == '#') {
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 
 	cout << "commands file: " << commands_file << endl;
 
-	if (commands_file.size() < 1) {
+	if (commands_file.empty()) {
 		PX4_ERR("Error commands file not specified");
 		return -1;
 	}
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
 	px4::init(argc, argv, "px4");
 
 	// if commandfile is present, process the commands from the file
-	if (commands_file.size() != 0) {
+	if (!commands_file.empty()) {
 		ifstream infile(commands_file.c_str());
 
 		if (infile.is_open()) {
