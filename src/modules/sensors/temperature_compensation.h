@@ -243,7 +243,7 @@ private:
 	Boolean true if the measured temperature is inside the valid range for the compensation
 
 	*/
-	bool calc_thermal_offsets_3D(SensorCalData3D &coef, float measured_temp, float offset[]);
+	bool calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[]);
 
 
 	Parameters _parameters;

@@ -285,7 +285,7 @@ bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, flo
 
 }
 
-bool TemperatureCompensation::calc_thermal_offsets_3D(SensorCalData3D &coef, float measured_temp, float offset[])
+bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[])
 {
 	bool ret = true;
 
