@@ -289,11 +289,6 @@ then
 	then
 	fi
 
-	# Internal compass
-	if hmc5883 -I -R 4 start
-	then
-	fi
-
 	# Possible external compasses
 	if hmc5883 -X start
 	then
@@ -351,6 +346,11 @@ then
 	fi
 
 	if aerofc_adc start
+	then
+	fi
+
+	# Internal compass
+	if hmc5883 -I -R 4 start
 	then
 	fi
 fi
