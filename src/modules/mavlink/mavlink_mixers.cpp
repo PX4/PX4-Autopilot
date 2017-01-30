@@ -109,21 +109,20 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				_request_pending = true;
 
 				// publish mixer data request to uORB
-				mixer_data_request_s data_request;
-				data_request.mixer_group = req.mixer_group;
+				_mixer_data_req.mixer_group = req.mixer_group;
 
 				if (req.data_type == 100) { //MIXER_ACTION_SEND_ALL
-					data_request.mixer_index = 0;
-					data_request.mixer_sub_index = 0;
-					data_request.parameter_index = 0;
+					_mixer_data_req.mixer_index = 0;
+					_mixer_data_req.mixer_sub_index = 0;
+					_mixer_data_req.parameter_index = 0;
+					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
 					_send_all = true;
-					data_request.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
 
 				} else {
-					data_request.mixer_index = req.mixer_index;
-					data_request.mixer_sub_index = req.mixer_sub_index;
-					data_request.parameter_index = req.parameter_index;
-					data_request.mixer_data_type = req.data_type;
+					_mixer_data_req.mixer_index = req.mixer_index;
+					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
+					_mixer_data_req.parameter_index = req.parameter_index;
+					_mixer_data_req.mixer_data_type = req.data_type;
 					_send_all = false;
 				}
 
@@ -132,10 +131,10 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 					 req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index, req.data_type);
 
 				if (_mixer_data_request_pub == nullptr) {
-					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &data_request);
+					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
 
 				} else {
-					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &data_request);
+					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
 				}
 			}
 
@@ -306,6 +305,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 				if (_mixer_data_req.mixer_sub_index > _mixer_sub_count) {   /**Check if submixer index has exceeded count*/
 					_mixer_data_req.mixer_sub_index = 0;
+					_mixer_data_req.parameter_index = 0;
 //                   PX4_INFO("MIXER send all - next mixer");
 					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_SUBMIXER_COUNT;
 					_mixer_data_req.mixer_index++;
