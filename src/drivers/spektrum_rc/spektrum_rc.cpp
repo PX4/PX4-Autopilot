@@ -89,6 +89,8 @@ void task_main(int argc, char *argv[])
 	uint8_t rx_buf[2 * DSM_BUFFER_SIZE];
 
 	_is_running = true;
+	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	uint16_t raw_rc_count = 0;
 
 	// Main loop
 	while (!_task_should_exit) {
@@ -108,8 +110,6 @@ void task_main(int argc, char *argv[])
 
 		bool dsm_11_bit;
 		unsigned frame_drops;
-		uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
-		uint16_t raw_rc_count;
 
 		// parse new data
 		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
