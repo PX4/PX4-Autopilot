@@ -332,14 +332,14 @@ Geofence::loadFromFile(const char *filename)
 	/* open the mixer definition file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
-	if (fp == NULL) {
+	if (fp == nullptr) {
 		return PX4_ERROR;
 	}
 
 	/* create geofence points from valid lines and store in DM */
 	for (;;) {
 		/* get a line, bail on error/EOF */
-		if (fgets(line, sizeof(line), fp) == NULL) {
+		if (fgets(line, sizeof(line), fp) == nullptr) {
 			break;
 		}
 

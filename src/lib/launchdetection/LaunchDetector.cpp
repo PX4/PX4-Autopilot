@@ -45,7 +45,7 @@ namespace launchdetection
 {
 
 LaunchDetector::LaunchDetector() :
-	SuperBlock(NULL, "LAUN"),
+	SuperBlock(nullptr, "LAUN"),
 	activeLaunchDetectionMethodIndex(-1),
 	launchdetection_on(this, "ALL_ON"),
 	throttlePreTakeoff(nullptr, "FW_THR_IDLE")

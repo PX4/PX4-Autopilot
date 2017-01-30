@@ -641,16 +641,16 @@ rgbledsim_main(int argc, char *argv[])
 
 	/* jump over start/off/etc and look at options first */
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			rgbledadr = strtol(myoptarg, NULL, 0);
+			rgbledadr = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'b':
-			i2cdevice = strtol(myoptarg, NULL, 0);
+			i2cdevice = strtol(myoptarg, nullptr, 0);
 			break;
 
 		default:
@@ -783,9 +783,9 @@ rgbledsim_main(int argc, char *argv[])
 		}
 
 		rgbled_rgbset_t v;
-		v.red   = strtol(argv[2], NULL, 0);
-		v.green = strtol(argv[3], NULL, 0);
-		v.blue  = strtol(argv[4], NULL, 0);
+		v.red   = strtol(argv[2], nullptr, 0);
+		v.green = strtol(argv[3], nullptr, 0);
+		v.blue  = strtol(argv[4], nullptr, 0);
 		ret = h.ioctl(RGBLED_SET_RGB, (unsigned long)&v);
 		ret = h.ioctl(RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_ON);
 		DevMgr::releaseHandle(h);

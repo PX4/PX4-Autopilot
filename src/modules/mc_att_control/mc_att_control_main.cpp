@@ -412,8 +412,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_rates_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 	_controller_status_pub(nullptr),
-	_rates_sp_id(0),
-	_actuators_id(0),
+	_rates_sp_id(nullptr),
+	_actuators_id(nullptr),
 
 	_actuators_0_circuit_breaker_enabled(false),
 

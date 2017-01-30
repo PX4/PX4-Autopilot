@@ -399,7 +399,7 @@ bool MixerTest::mixerTest()
 
 	/* mix */
 	should_prearm = true;
-	mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+	mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 	pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 		       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -440,7 +440,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US + 2 * sleep_quantum_us) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -484,7 +484,7 @@ bool MixerTest::mixerTest()
 		}
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -512,7 +512,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < 600000) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -549,7 +549,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);

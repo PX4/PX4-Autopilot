@@ -425,7 +425,7 @@ AirspeedSim::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, uns
 		// this is equivalent to the collect phase
 		Simulator *sim = Simulator::getInstance();
 
-		if (sim == NULL) {
+		if (sim == nullptr) {
 			PX4_ERR("Error BARO_SIM::transfer no simulator");
 			return -ENODEV;
 		}
