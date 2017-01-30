@@ -44,6 +44,7 @@
 #include <drivers/drv_rc_input.h>
 
 #include <systemlib/param/param.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/rc_parameter_map.h>
 
@@ -125,6 +126,9 @@ struct Parameters {
 	bool rc_trans_inv;
 	bool rc_gear_inv;
 
+	float rc_flt_smp_rate;
+	float rc_flt_cutoff;
+
 	float battery_voltage_scaling;
 	float battery_current_scaling;
 	float battery_current_offset;
@@ -195,6 +199,9 @@ struct ParameterHandles {
 	param_t rc_armswitch_th;
 	param_t rc_trans_th;
 	param_t rc_gear_th;
+
+	param_t rc_flt_smp_rate;
+	param_t rc_flt_cutoff;
 
 	param_t battery_voltage_scaling;
 	param_t battery_current_scaling;
