@@ -125,6 +125,10 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
 	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
 
+	/* RC low pass filter configuration */
+	parameter_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
+	parameter_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
+
 	/* Differential pressure offset */
 	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
@@ -380,6 +384,11 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_gear_th, &(parameters.rc_gear_th));
 	parameters.rc_gear_inv = (parameters.rc_gear_th < 0);
 	parameters.rc_gear_th = fabs(parameters.rc_gear_th);
+
+	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
+	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);
+	param_get(parameter_handles.rc_flt_cutoff, &(parameters.rc_flt_cutoff));
+	parameters.rc_flt_cutoff = math::max(1.0f, parameters.rc_flt_cutoff);
 
 	/* Airspeed offset */
 	param_get(parameter_handles.diff_pres_offset_pa, &(parameters.diff_pres_offset_pa));
