@@ -37,6 +37,9 @@ then
 	param set MPC_XY_CRUISE 8
 
 	param set SYS_LOGGER 1
+
+	# ULog streaming requires Mavlink 2
+	param set MAV_PROTO_VER 2
 fi
 
 tap_esc start -d /dev/ttyS0 -n 4
