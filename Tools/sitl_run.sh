@@ -86,8 +86,6 @@ then
 		# Set the plugin path so Gazebo finds our model and sim
 		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
 
-		# Modified to point to the new worlds folder after sitl_gazebo was replaced with rotors_simulator
-		#gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
 		gzserver --verbose ${src_path}/Tools/rotors_simulator/rotors_gazebo/worlds/${model}.world &
 
 		SIM_PID=`echo $!`
