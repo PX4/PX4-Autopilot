@@ -278,6 +278,7 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
+	float _thrust_threshold_z;
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -486,6 +487,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
+
+	_thrust_threshold_z = 2.0f * _params.thr_min;
 
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
@@ -1732,15 +1735,15 @@ MulticopterPositionControl::control_position(float dt)
 			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
 				    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
 
-			/* at low thrust in z direction while position hold is engaged, we set thrust in xy to 0
-			 * until thrust in z again reaches large enough thrust. this helps to prevent the jerk when
-			 * flying upward while position hold is engaged
+			/* at low thrust in z direction, we adjust thrust in xy such that the desired
+			 * attitude corresponds to attitude with thrust thrust_threshold_z
 			 */
-			bool set_thrust_xy_to_0 = _pos_hold_engaged && _alt_hold_engaged && (-thrust_sp(2) < 2.0f * _params.thr_min);
-
-			if (set_thrust_xy_to_0) {
-				thrust_sp(0) = 0.0f;
-				thrust_sp(1) = 0.0f;
+			if (-thrust_sp(2) < _thrust_threshold_z) {
+				float thrust_xy_old = sqrtf(thrust_sp(0) * thrust_sp(0) + thrust_sp(1) * thrust_sp(1));
+				float thrust_xy_new = thrust_sp(2) * thrust_xy_old / _thrust_threshold_z;
+				float thrust_mag_new = sqrtf(thrust_sp(2) * thrust_sp(2) + thrust_xy_new * thrust_xy_new);
+				thrust_sp(2) = _thrust_threshold_z;
+				thrust_sp = thrust_sp.normalized() * thrust_mag_new;
 			}
 		}
 
