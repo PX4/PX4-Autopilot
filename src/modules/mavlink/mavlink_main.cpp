@@ -1977,7 +1977,7 @@ Mavlink::task_main(int argc, char *argv[])
 #if defined(MIXER_CONFIGURATION)
 	/* MIXER_DATA stream */
 	_mixers_manager = (MavlinkMixersManager *) MavlinkMixersManager::new_instance(this);
-	_parameters_manager->set_interval(interval_from_rate(2.0f));
+//    _parameters_manager->set_interval(interval_from_rate(40.0f));
 	LL_APPEND(_streams, _mixers_manager);
 #endif //MIXER_CONFIGURATION
 

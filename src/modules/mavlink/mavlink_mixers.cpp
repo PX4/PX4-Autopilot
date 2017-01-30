@@ -47,10 +47,9 @@
 #include <uORB/topics/mixer_parameter_set.h>
 
 #include <systemlib/mixer/mixer_parameters.h>
-//static const char *const mixer_parameter_table[][MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_TABLE;
-static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
-
 #include "mavlink_main.h"
+
+static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 
 MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_request_pending(false),
@@ -66,6 +65,7 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_mixer_parameter_set_pub(nullptr),
 	_mixer_data_sub(-1)
 {
+	_interval = 100000;
 }
 MavlinkMixersManager::~MavlinkMixersManager()
 {
@@ -111,7 +111,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				// publish mixer data request to uORB
 				_mixer_data_req.mixer_group = req.mixer_group;
 
-				if (req.data_type == 100) { //MIXER_ACTION_SEND_ALL
+				if (req.data_type == 100) {     //MIXER_ACTION_SEND_ALL
 					_mixer_data_req.mixer_index = 0;
 					_mixer_data_req.mixer_sub_index = 0;
 					_mixer_data_req.parameter_index = 0;
@@ -256,6 +256,9 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 		/* Send with default component ID */
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
+
+	} else if (!space_available && mixer_data_ready && _request_pending) {
+		PX4_WARN("Space not avialable in buffer to stream mixer data");
 	}
 
 	if (_send_all && !_request_pending) {
@@ -266,7 +269,6 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			_mixer_data_req.parameter_index = 0;
 			_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_SUBMIXER_COUNT;
 
-//            _mavlink_mixer_state = MIXER_DATA_TYPE_SUBMIXER_COUNT;
 			if (_mixer_data_request_pub != nullptr) {
 				orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
 			};
@@ -285,7 +287,6 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			break;
 
 		case MIXER_DATA_TYPE_MIXTYPE:
-//            PX4_INFO("MIXER send all - got mixtype count");
 			_mixer_data_req.parameter_index = 0;
 			_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_PARAMETER;
 
@@ -296,7 +297,6 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			break;
 
 		case MIXER_DATA_TYPE_PARAMETER:
-//           PX4_INFO("MIXER send all - got parameter");
 			_mixer_data_req.parameter_index++;
 
 			if (_mixer_data_req.parameter_index >= _mixer_param_count) {    /**Check if parameter index has exceeded count*/
@@ -306,13 +306,11 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				if (_mixer_data_req.mixer_sub_index > _mixer_sub_count) {   /**Check if submixer index has exceeded count*/
 					_mixer_data_req.mixer_sub_index = 0;
 					_mixer_data_req.parameter_index = 0;
-//                   PX4_INFO("MIXER send all - next mixer");
 					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_SUBMIXER_COUNT;
 					_mixer_data_req.mixer_index++;
 				}
 
 				if (_mixer_data_req.mixer_index < _mixer_count) {           /**Check if mixer index has exceeded count*/
-//                   PX4_INFO("MIXER send all - request mixer type");
 					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXTYPE;
 
 					if (_mixer_data_request_pub != nullptr) {

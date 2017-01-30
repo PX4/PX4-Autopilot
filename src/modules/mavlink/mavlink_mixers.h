@@ -82,14 +82,7 @@ public:
 
 	void handle_message(const mavlink_message_t *msg);
 
-private:
-//    enum MAVLINK_MIXER_STATES {
-//        MAVLINK_MIXER_STOPPED     = 0,
-//        MAVLINK_MIXER_COUNT,
-//        MAVLINK_MIXER_SUB_COUNT,
-//        MAVLINK_MIXER_TYPE,
-//        MAVLINK_MIXER_PARAM
-//    };
+	bool const_rate() { return true; };
 
 	bool        _request_pending;
 	bool        _send_all;
