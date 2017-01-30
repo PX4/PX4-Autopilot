@@ -58,7 +58,7 @@ script:
     elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make tests';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy';
+      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy-parallel';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi

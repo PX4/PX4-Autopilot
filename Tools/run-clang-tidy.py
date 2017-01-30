@@ -46,6 +46,8 @@ import sys
 import tempfile
 import threading
 
+tidy_failures = 0
+
 
 def find_compilation_database(path):
   """Adjusts the directory until a compilation database is found."""
@@ -102,8 +104,15 @@ def run_tidy(args, tmpdir, build_path, queue):
     invocation = get_tidy_invocation(name, args.clang_tidy_binary, args.checks,
                                      tmpdir, build_path, args.header_filter,
                                      args.extra_arg, args.extra_arg_before)
-    sys.stdout.write(' '.join(invocation) + '\n')
-    subprocess.call(invocation)
+
+    try:
+      subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError, e:
+      sys.stdout.write(' '.join(invocation) + '\n')
+      subprocess.call(invocation)
+      global tidy_failures
+      tidy_failures = tidy_failures + 1
+
     queue.task_done()
 
 
@@ -207,6 +216,11 @@ def main():
   if args.fix:
     print 'Applying fixes ...'
     apply_fixes(args, tmpdir)
+
+  global tidy_failures
+  if tidy_failures > 0:
+    print >>sys.stderr, "clang-tidy errors: ", tidy_failures
+    sys.exit(1)
 
 if __name__ == '__main__':
   main()
