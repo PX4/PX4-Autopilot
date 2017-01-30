@@ -1,35 +1,91 @@
-Checks:          'clang-diagnostic-*,-*,
-		clang-analyzer-optin.performance.Padding,
-		clang-analyzer-unix.cstring.*,
+---
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
+		## reorder fw_pos_ctrl and reenable # clang-analyzer-optin.performance.Padding,
+		## evaluate # clang-analyzer-unix.cstring.*,
+		#clang-analyzer-security.*,
 		clang-analyzer-unix.StdCLibraryFunctions,
+		misc-argument-comment,
+		misc-assert-side-effect,
+		misc-bool-pointer-implicit-conversion,
+		misc-dangling-handle,
+		misc-definitions-in-headers,
+		misc-fold-init-type,
+		misc-forward-declaration-namespace,
+		misc-inaccurate-erase,
+		#misc-incorrect-roundings,
+		misc-inefficient-algorithm,
+		#misc-macro-parentheses,
+		misc-macro-repeated-side-effects,
+		misc-misplaced-const,
+		#misc-misplaced-widening-cast,
+		misc-move-const-arg,
+		misc-move-constructor-init,
+		misc-move-forwarding-reference,
+		misc-multiple-statement-macro,
+		misc-new-delete-overloads,
+		misc-noexcept-move-constructor,
+		misc-non-copyable-objects,
+		misc-redundant-expression,
+		misc-sizeof-container,
+		misc-sizeof-expression,
+		misc-static-assert,
+		misc-string-compare,
+		misc-string-constructor,
+		misc-string-integer-assignment,
+		misc-string-literal-with-embedded-nul,
+		misc-suspicious-enum-usage,
+		#misc-suspicious-missing-comma,
+		misc-suspicious-semicolon,
+		misc-suspicious-string-compare,
+		misc-swapped-arguments,
+		misc-throw-by-value-catch-by-reference,
+		misc-unconventional-assign-operator,
+		misc-undelegated-constructor,
+		misc-uniqueptr-reset-release,
+		misc-unused-alias-decls,
+		#misc-unused-parameters,
+		misc-unused-raii,
+		misc-unused-using-decls,
+		misc-use-after-move,
+		misc-virtual-near-miss,
 		misc-unused-raii,
 		misc-virtual-near-miss,
+		## fix code and enable # modernize-use-default-member-init,
+		## fix code and enable # modernize-use-emplace,
+		## fix code and enable # modernize-use-equals-default,
+		modernize-use-transparent-functors,
 		modernize-redundant-void-arg,
 		modernize-use-nullptr,
+		performance-faster-string-find,
+		performance-for-range-copy,
+		performance-implicit-cast-in-loop,
+		## fix code and enable # performance-inefficient-string-concatenation,
+		#performance-type-promotion-in-math-fn,
+		## fix code and enable # performance-unnecessary-copy-initialization,
+		## fix code and enable # performance-unnecessary-value-param,
+		## fix code and enable # readability-avoid-const-params-in-decls,
 		readability-braces-around-statements,
+		readability-container-size-empty,
 		readability-delete-null-pointer,
 		readability-deleted-default,
+		readability-function-size,
 		readability-identifier-naming,
+		#readability-inconsistent-declaration-parameter-name,
+		readability-misplaced-array-index,
+		## fix code and enable # readability-named-parameter,
+		#readability-non-const-parameter,
 		readability-redundant-control-flow,
 		readability-redundant-function-ptr-dereference,
+		## fix code and enable # readability-redundant-member-init,
+		readability-redundant-smartptr-get,
 		readability-redundant-string-cstr,
 		readability-redundant-string-init,
+		## fix code and enable # readability-simplify-boolean-expr,
+		#readability-static-definition-in-anonymous-namespace,
+		readability-uniqueptr-delete-release,
 		'
-WarningsAsErrors: '
-		misc-unused-raii,
-		misc-virtual-near-miss,
-		modernize-redundant-void-arg,
-		modernize-use-nullptr,
-		readability-braces-around-statements,
-		readability-delete-null-pointer,
-		readability-deleted-default,
-		readability-identifier-naming,
-		readability-redundant-control-flow,
-		readability-redundant-function-ptr-dereference,
-		readability-redundant-string-cstr,
-		readability-redundant-string-init,
-		'
-HeaderFilterRegex: '*.h, *.hpp'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '*.h, *.hpp, *.hh, *.hxx'
 AnalyzeTemporaryDtors: false
 CheckOptions:
   - key:             google-readability-braces-around-statements.ShortStatementLines
@@ -40,6 +96,40 @@ CheckOptions:
     value:           '10'
   - key:             google-readability-namespace-comments.SpacesBeforeComments
     value:           '2'
+  - key:             misc-argument-comment.StrictMode
+    value:           '0'
+  - key:             misc-assert-side-effect.AssertMacros
+    value:           assert
+  - key:             misc-assert-side-effect.CheckFunctionCalls
+    value:           '0'
+  - key:             misc-dangling-handle.HandleClasses
+    value:           'std::basic_string_view;std::experimental::basic_string_view'
+  - key:             misc-definitions-in-headers.HeaderFileExtensions
+    value:           ',h,hh,hpp,hxx'
+  - key:             misc-definitions-in-headers.UseHeaderFileExtension
+    value:           '1'
+  - key:             misc-move-constructor-init.IncludeStyle
+    value:           llvm
+  - key:             misc-sizeof-expression.WarnOnSizeOfCompareToConstant
+    value:           '1'
+  - key:             misc-sizeof-expression.WarnOnSizeOfConstant
+    value:           '1'
+  - key:             misc-sizeof-expression.WarnOnSizeOfThis
+    value:           '1'
+  - key:             misc-string-constructor.LargeLengthThreshold
+    value:           '8388608'
+  - key:             misc-string-constructor.WarnOnLargeLength
+    value:           '1'
+  - key:             misc-suspicious-enum-usage.StrictMode
+    value:           '0'
+  - key:             misc-suspicious-string-compare.StringCompareLikeFunctions
+    value:           ''
+  - key:             misc-suspicious-string-compare.WarnOnImplicitComparison
+    value:           '1'
+  - key:             misc-suspicious-string-compare.WarnOnLogicalNotComparison
+    value:           '0'
+  - key:             misc-throw-by-value-catch-by-reference.CheckThrowTemporaries
+    value:           '1'
   - key:             modernize-loop-convert.MaxCopySize
     value:           '16'
   - key:             modernize-loop-convert.MinConfidence
@@ -52,8 +142,22 @@ CheckOptions:
     value:           llvm
   - key:             modernize-use-nullptr.NullMacros
     value:           'NULL'
+  - key:             modernize-use-transparent-functors.SafeMode
+    value:           '0'
+  - key:             performance-faster-string-find.StringLikeClasses
+    value:           'std::basic_string'
+  - key:             performance-for-range-copy.WarnOnAllAutoCopies
+    value:           '0'
+  - key:             performance-inefficient-string-concatenation.StrictMode
+    value:           '0'
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           '1'
+  - key:             readability-function-size.BranchThreshold
+    value:           '600'
+  - key:             readability-function-size.LineThreshold
+    value:           '3000'
+  - key:             readability-function-size.StatementThreshold
+    value:           '3400'
   - key:             readability-identifier-naming.AbstractClassCase
     value:           aNy_CasE
   - key:             readability-identifier-naming.AbstractClassPrefix
@@ -320,3 +424,4 @@ CheckOptions:
     value:           ''
   - key:             readability-identifier-naming.VirtualMethodSuffix
     value:           ''
+...
