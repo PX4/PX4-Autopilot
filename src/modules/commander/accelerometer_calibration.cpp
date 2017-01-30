@@ -336,11 +336,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 					} else if (axis_index == 2) {
 						val += accel_scale.z_offset;
 					}
-					if (axis_index == 2) { //notify the system about the change, but only once, for the last one
-						failed |= (PX4_OK != param_set(handle, &val));
-					} else {
-						failed |= (PX4_OK != param_set_no_notification(handle, &val));
-					}
+					failed |= (PX4_OK != param_set_no_notification(handle, &val));
 				}
 
 				/* update the _SCL_ terms to include the scale factor */
