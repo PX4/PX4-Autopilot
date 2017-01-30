@@ -117,6 +117,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/brkpoint.h>
+#include <uORB/topics/dose_status.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -212,7 +214,6 @@ static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setp
 
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
-
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
@@ -1626,6 +1627,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
+	int dose_status_sub = orb_subscribe(ORB_ID(dose_status));
+	struct dose_status_s dose_status;
+	memset(&dose_status, 0, sizeof(dose_status));
+
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
@@ -2210,6 +2215,29 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(cpuload), cpuload_sub, &cpuload);
+		}
+
+		orb_check(dose_status_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(dose_status), dose_status_sub, &dose_status);
+
+			if (dose_status.warning == dose_status_s::DOSE_WARNING_LOW) {
+				mavlink_log_critical(&mavlink_log_pub, "LOW DOSE");
+
+			} else if (dose_status.warning == dose_status_s::DOSE_WARNING_CRITICAL) {
+				struct brkpoint_s bp = {};
+				bp.lon = 3.12345678;
+				bp.lat = 5.12345678;
+				bp.alt = 1.234567;
+
+				strncpy(bp.time, "2016-12-22 11:20", 17);
+				dm_write(DM_KEY_BRKPOINT, 0, DM_PERSIST_POWER_ON_RESET, &bp, sizeof(brkpoint_s));
+
+				//if (dm_read(DM_KEY_BRKPOINT, 0, &bp, sizeof(brkpoint_s)) == sizeof(brkpoint_s)) {
+				//	warnx("[cmd] brkpoint: %.6f %.6f %.2f %s", bp.lon, bp.lat, (double)bp.alt, bp.time);
+				//}
+			}
 		}
 
 		/* update battery status */

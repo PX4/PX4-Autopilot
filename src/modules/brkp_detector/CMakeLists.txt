@@ -31,27 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	STACK_MAIN 1300
+	MODULE modules__brkp_detector
+	MAIN brkp_detector
+	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		datalinkloss.cpp
-		rcloss.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
-		rtbk.cpp
+		brkp_detector.cpp
 	DEPENDS
 		platforms__common
 	)
