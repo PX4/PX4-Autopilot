@@ -68,8 +68,8 @@ static enum DSM_DECODE_STATE {
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
 static hrt_abstime dsm_last_rx_time;            /**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
-static uint8_t dsm_frame[DSM_BUFFER_SIZE];	/**< DSM dsm frame receive buffer */
-static uint8_t dsm_buf[DSM_FRAME_SIZE * 2];
+static uint8_t *dsm_frame;	/**< DSM dsm frame receive buffer */
+static uint8_t *dsm_buf;
 static uint16_t dsm_chan_buf[DSM_MAX_CHANNEL_COUNT];
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
@@ -77,7 +77,8 @@ static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
 static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
 
 static bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values);
+dsm_decode(uint8_t *decode_buf, hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit,
+	   unsigned max_values);
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -286,12 +287,14 @@ dsm_proto_init()
  * @param[in] device Device name of DSM UART
  */
 int
-dsm_init(const char *device)
+dsm_init(const char *device, uint8_t *rx_buf)
 {
 
 	if (dsm_fd < 0) {
 		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
 	}
+
+	dsm_buf = rx_buf;
 
 	dsm_proto_init();
 
@@ -381,7 +384,8 @@ dsm_bind(uint16_t cmd, int pulses)
  * @return true=DSM frame successfully decoded, false=no update
  */
 bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values)
+dsm_decode(uint8_t *decode_buf, hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit,
+	   unsigned max_values)
 {
 	/*
 	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
@@ -548,7 +552,8 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
-dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
+dsm_input(int fd, uint8_t *decode_buf, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes,
+	  uint8_t **bytes,
 	  unsigned max_values)
 {
 	int		ret = 1;
@@ -590,13 +595,14 @@ dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint
 	/*
 	 * Try to decode something with what we got
 	 */
-	return dsm_parse(now, &dsm_buf[0], ret, values, num_values, dsm_11_bit, &dsm_frame_drops, max_values);
+	return dsm_parse(decode_buf, now, &dsm_buf[0], ret, values, num_values, dsm_11_bit, &dsm_frame_drops, max_values);
 }
 
 bool
-dsm_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
+dsm_parse(uint8_t *decode_buf, uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, uint16_t max_channels)
 {
+	dsm_chan_buf = decode_buf;
 
 	/* this is set by the decoding state machine and will default to false
 	 * once everything that was decodable has been decoded.

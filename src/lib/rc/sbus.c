@@ -225,7 +225,8 @@ sbus2_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 }
 
 bool
-sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
+sbus_input(int sbus_fd, uint8_t *decode_buf, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe,
+	   bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
 	int		ret = 1;
@@ -265,7 +266,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	/*
 	 * Try to decode something with what we got
 	 */
-	if (sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
+	if (sbus_parse(uint8_t *decode_buf, now, &buf[0], ret, values, num_values, sbus_failsafe,
 		       sbus_frame_drop, &sbus_frame_drops, max_channels)) {
 
 		sbus_decoded = true;
@@ -275,10 +276,11 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 }
 
 bool
-sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
+sbus_parse(uint8_t *decode_buf, uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels)
 {
 
+	sbus_frame = decode_buf;
 	last_rx_time = now;
 
 	/* this is set by the decoding state machine and will default to false

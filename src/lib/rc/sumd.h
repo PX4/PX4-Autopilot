@@ -68,6 +68,7 @@ typedef struct {
 } ReceiverFcPacketHoTT;
 #pragma pack(pop)
 
+#define SUMD_DECODE_BUFFER_SIZE sizeof(ReceiverFcPacketHoTT)
 
 /**
  * CRC16 implementation for SUMD protocol
