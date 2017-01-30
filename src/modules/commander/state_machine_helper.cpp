@@ -133,8 +133,9 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		hrt_abstime time_since_boot)
 {
 	// Double check that our static arrays are still valid
-	ASSERT(vehicle_status_s::ARMING_STATE_INIT == 0);
-	ASSERT(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1);
+	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
+	static_assert(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1,
+		      "ARMING_STATE_IN_AIR_RESTORE = ARMING_STATE_MAX - 1");
 
 	transition_result_t ret = TRANSITION_DENIED;
 	arming_state_t current_arming_state = status->arming_state;
