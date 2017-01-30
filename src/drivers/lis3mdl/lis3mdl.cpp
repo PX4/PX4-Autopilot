@@ -1182,16 +1182,16 @@ out:
 
 int LIS3MDL::check_scale()
 {
-	bool scale_valid;
+	int scale_valid;
 
 	if ((-FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < FLT_EPSILON + 1.0f) &&
 	    (-FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < FLT_EPSILON + 1.0f) &&
 	    (-FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < FLT_EPSILON + 1.0f)) {
 		/* scale is one */
-		scale_valid = false;
+		scale_valid = 0;
 
 	} else {
-		scale_valid = true;
+		scale_valid = 1;
 	}
 
 	/* return 0 if calibrated, 1 else */
@@ -1200,16 +1200,16 @@ int LIS3MDL::check_scale()
 
 int LIS3MDL::check_offset()
 {
-	bool offset_valid;
+	int offset_valid;
 
 	if ((-0.6f < _scale.x_offset && _scale.x_offset < 0.6f) &&
 	    (-0.6f < _scale.y_offset && _scale.y_offset < 0.6f) &&
 	    (-0.6f < _scale.z_offset && _scale.z_offset < 0.6f)) {
 		/* offset is zero */
-		offset_valid = false;
+		offset_valid = 0;
 
 	} else {
-		offset_valid = true;
+		offset_valid = 1;
 	}
 
 	/* return 0 if calibrated, 1 else */
@@ -1228,7 +1228,12 @@ int LIS3MDL::check_calibration()
 	}
 
 	/* return 0 if calibrated, 1 else */
-	return (!_calibrated);
+	if (!_calibrated) {
+		return 0;
+
+	} else {
+		return 1;
+	}
 }
 
 int LIS3MDL::set_excitement(unsigned enable)
