@@ -518,7 +518,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 #ifdef DSM_DEBUG
 			printf("DSM: VALUE RANGE FAIL: %d: %d\n", (int)i, (int)values[i]);
 #endif
-			dsm_chan_count = 0;
+			*num_values = 0;
 			return false;
 		}
 	}
@@ -682,8 +682,6 @@ dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t
 #endif
 			decode_ret = false;
 		}
-
-
 	}
 
 	if (frame_drops) {
