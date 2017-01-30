@@ -390,6 +390,8 @@ PX4FMU::PX4FMU() :
 		raw_rc_values[i] = UINT16_MAX;
 	}
 
+	raw_rc_count = 0;
+
 #ifdef GPIO_SBUS_INV
 	// this board has a GPIO to control SBUS inversion
 	px4_arch_configgpio(GPIO_SBUS_INV);
