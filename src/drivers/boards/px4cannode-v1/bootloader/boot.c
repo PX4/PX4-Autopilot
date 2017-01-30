@@ -168,8 +168,7 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
 	hw_version->major = HW_VERSION_MAJOR;
 	hw_version->minor = HW_VERSION_MINOR;
 
-	board_get_uuid_raw((raw_uuid_byte_t *) hw_version->unique_id);
-	return PX4_CPU_UUID_BYTE_LENGTH;
+	return board_get_mfguid(*(mfguid_t *) hw_version->unique_id);
 }
 
 /****************************************************************************
