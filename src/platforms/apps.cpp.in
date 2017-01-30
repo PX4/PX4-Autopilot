@@ -39,9 +39,9 @@ ${builtin_apps_string}
 
 void list_builtins(apps_map_type &apps)
 {
-	PX4_INFO("Builtin Commands:\n");
+	printf("Builtin Commands:\n");
 	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it) {
-		PX4_INFO("%s : 0x%x\n", it->first.c_str(), it->second);
+		printf("  %s\n", it->first.c_str());
 	}
 }
 
