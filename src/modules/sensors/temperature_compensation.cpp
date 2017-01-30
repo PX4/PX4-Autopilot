@@ -351,12 +351,11 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 	for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
 		if (device_id == sensor_cal_data[i].ID) {
 			sensor_data.device_mapping[topic_instance] = i;
-			return 0;
+			return i;
 		}
 	}
 
 	return -1;
-
 }
 
 int TemperatureCompensation::apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
