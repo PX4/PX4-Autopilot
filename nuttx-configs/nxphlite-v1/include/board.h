@@ -132,7 +132,7 @@
  * SD normal mode (4-bit): Optimal 20MHz, Actual 120MHz / (2 * 3) = 20 MHz (no DMA)
  */
 
-#ifdef CONFIG_SDIO_DMA
+#ifdef CONFIG_STM32_SDIO_DMA
 #  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
 #  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(3)
 #else
