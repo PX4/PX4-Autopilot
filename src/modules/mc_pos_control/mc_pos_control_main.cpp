@@ -119,8 +119,8 @@ public:
 	 */
 	int		start();
 
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+	bool		cross_sphere_line(const math::Vector<3> &sphere_c, const float sphere_r,
+					  const math::Vector<3> &line_a, const math::Vector<3> &line_b, math::Vector<3> &res);
 
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -1311,8 +1311,8 @@ MulticopterPositionControl::limit_acceleration(float dt)
 }
 
 bool
-MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
+MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, const float sphere_r,
+		const math::Vector<3> &line_a, const math::Vector<3> &line_b, math::Vector<3> &res)
 {
 	/* project center of sphere on line */
 	/* normalized AB */
