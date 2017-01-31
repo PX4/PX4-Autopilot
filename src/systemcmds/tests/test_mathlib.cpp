@@ -87,7 +87,7 @@ bool MathlibTest::testVector2()
 		Vector<2> v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
 		TEST_OP("Constructor Vector<2>()", Vector<2> v3);
-		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v3(v1));
+		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<2>(float[])", Vector<2> v3(data));
 		TEST_OP("Constructor Vector<2>(float, float)", Vector<2> v3(1.0f, 2.0f));
 		TEST_OP("Vector<2> = Vector<2>", v = v1);
@@ -110,7 +110,7 @@ bool MathlibTest::testVector3()
 		Vector<3> v2(1.0f, -1.0f, 2.0f);
 		float data[3] = {1.0f, 2.0f, 3.0f};
 		TEST_OP("Constructor Vector<3>()", Vector<3> v3);
-		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v3(v1));
+		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<3>(float[])", Vector<3> v3(data));
 		TEST_OP("Constructor Vector<3>(float, float, float)", Vector<3> v3(1.0f, 2.0f, 3.0f));
 		TEST_OP("Vector<3> = Vector<3>", v = v1);
@@ -147,7 +147,7 @@ bool MathlibTest::testVector4()
 		Vector<4> v2(1.0f, -1.0f, 2.0f, 0.0f);
 		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
 		TEST_OP("Constructor Vector<4>()", Vector<4> v3);
-		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v3(v1));
+		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<4>(float[])", Vector<4> v3(data));
 		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector<4> v3(1.0f, 2.0f, 3.0f, 4.0f));
 		TEST_OP("Vector<4> = Vector<4>", v = v1);
@@ -167,7 +167,7 @@ bool MathlibTest::testVector10()
 		v1.zero();
 		float data[10];
 		TEST_OP("Constructor Vector<10>()", Vector<10> v3);
-		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v3(v1));
+		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<10>(float[])", Vector<10> v3(data));
 	}
 	return true;
