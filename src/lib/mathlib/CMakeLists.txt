@@ -36,6 +36,7 @@ px4_add_module(
 	SRCS
 		math/test/test.cpp
 		math/Limits.cpp
+		math/matrix_alg.cpp
 	DEPENDS
 		platforms__common
 	)
