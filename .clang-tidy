@@ -188,7 +188,7 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		readability-redundant-string-cstr,
 		readability-redundant-string-init,
 		## TODO: fix code and enable # readability-simplify-boolean-expr,
-		#readability-static-definition-in-anonymous-namespace,
+		readability-static-definition-in-anonymous-namespace,
 		readability-uniqueptr-delete-release,
 		'
 WarningsAsErrors: '*'
