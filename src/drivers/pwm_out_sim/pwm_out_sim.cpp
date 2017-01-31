@@ -862,7 +862,7 @@ enum PortMode {
 	PORT2_16PWM,
 };
 
-static PortMode g_port_mode = PORT_MODE_UNDEFINED;
+PortMode g_port_mode = PORT_MODE_UNDEFINED;
 
 int
 hil_new_mode(PortMode new_mode)
