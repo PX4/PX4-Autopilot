@@ -65,7 +65,7 @@ public:
 
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)
-	 *  @return 0 on success, <0 otherwise */
+	 *  @return index for compensation parameter entry containing matching device ID on success, <0 otherwise */
 	int set_sensor_id_gyro(uint32_t device_id, int topic_instance);
 	int set_sensor_id_accel(uint32_t device_id, int topic_instance);
 	int set_sensor_id_baro(uint32_t device_id, int topic_instance);
@@ -89,7 +89,7 @@ public:
 	int apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data, float temperature,
 				    float *offsets, float *scales);
 
-	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
+	int apply_corrections_baro(int topic_instance, float sensor_data, float temperature,
 				   float *offsets, float *scales);
 
 	/** output current configuration status to console */
@@ -108,7 +108,7 @@ private:
 
 	delta_temp = measured_temp - ref_temp
 	offset = x5 * delta_temp^5 + x4 * delta_temp^4 + x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
-	corrected_value = raw_value * scale + offset
+	corrected_value = (raw_value - offset) * scale
 
 	*/
 	struct SensorCalData1D {
@@ -152,7 +152,7 @@ private:
 
 	delta_temp = measured_temp - ref_temp
 	offset = x3 * delta_temp^3 + x2 * delta_temp^2 + x1 * delta_temp + x0
-	corrected_value = raw_value * scale + offset
+	corrected_value = (raw_value - offset) * scale
 
 	 */
 	struct SensorCalData3D {
@@ -252,10 +252,14 @@ private:
 	struct PerSensorData {
 		PerSensorData()
 		{
-			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; last_temperature[i] = -100; }
+			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { device_mapping[i] = 255; last_temperature[i] = -100.0f; }
+		}
+		void reset_temperature()
+		{
+			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) { last_temperature[i] = -100.0f; }
 		}
 		uint8_t device_mapping[SENSOR_COUNT_MAX]; /// map a topic instance to the parameters index
-		int8_t last_temperature[SENSOR_COUNT_MAX];
+		float last_temperature[SENSOR_COUNT_MAX];
 	};
 	PerSensorData _gyro_data;
 	PerSensorData _accel_data;

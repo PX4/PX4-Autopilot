@@ -536,14 +536,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_ts_opt_recovery = new TailsitterRecovery();
 	}
 
-	/* initialize _corrections to identity as we might not immediately get a topic update */
+	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
 	for (unsigned i = 0; i < 3; i++) {
-		_sensor_correction.gyro_scale[i] = 1.0f;
-		_sensor_correction.accel_scale[i] = 1.0f;
+		// used scale factors to unity
+		_sensor_correction.gyro_scale_0[i] = 1.0f;
+		_sensor_correction.gyro_scale_1[i] = 1.0f;
+		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
-
-	_sensor_correction.baro_scale = 1.0f;
-
 
 }
 
@@ -994,9 +993,28 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_board_rotation = board_rotation_offset * _board_rotation;
 
 	// get the raw gyro data and correct for thermal errors
-	math::Vector<3> rates(_sensor_gyro.x * _sensor_correction.gyro_scale[0] + _sensor_correction.gyro_offset[0],
-			      _sensor_gyro.y * _sensor_correction.gyro_scale[1] + _sensor_correction.gyro_offset[1],
-			      _sensor_gyro.z * _sensor_correction.gyro_scale[2] + _sensor_correction.gyro_offset[2]);
+	math::Vector<3> rates;
+
+	if (_selected_gyro == 0) {
+		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[0]) * _sensor_correction.gyro_scale_0[0];
+		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_0[1]) * _sensor_correction.gyro_scale_0[1];
+		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_0[2]) * _sensor_correction.gyro_scale_0[2];
+
+	} else if (_selected_gyro == 1) {
+		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_1[0]) * _sensor_correction.gyro_scale_1[0];
+		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_1[1]) * _sensor_correction.gyro_scale_1[1];
+		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_1[2]) * _sensor_correction.gyro_scale_1[2];
+
+	} else if (_selected_gyro == 2) {
+		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_2[0]) * _sensor_correction.gyro_scale_2[0];
+		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_2[1]) * _sensor_correction.gyro_scale_2[1];
+		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_2[2]) * _sensor_correction.gyro_scale_2[2];
+
+	} else {
+		rates(0) = _sensor_gyro.x;
+		rates(1) = _sensor_gyro.y;
+		rates(2) = _sensor_gyro.z;
+	}
 
 	// rotate corrected measurements from sensor to body frame
 	rates = _board_rotation * rates;
