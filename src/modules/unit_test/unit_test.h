@@ -110,7 +110,7 @@ protected:
 /// @brief To assert specifically to true.
 #define ut_assert_true(test)						\
 	do {									\
-		if (test != true) {							\
+		if ((test) != true) {							\
 			_print_assert("result not true", #test, __FILE__, __LINE__);	\
 			return false;						\
 		} else {							\
@@ -121,7 +121,7 @@ protected:
 /// @brief To assert specifically to true.
 #define ut_assert_false(test)						\
 	do {									\
-		if (test != false) {							\
+		if ((test) != false) {							\
 			_print_assert("result not false", #test, __FILE__, __LINE__);	\
 			return false;						\
 		} else {							\
