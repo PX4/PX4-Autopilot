@@ -132,7 +132,7 @@
  * SD normal mode (4-bit): Optimal 20MHz, Actual 120MHz / (2 * 3) = 20 MHz (no DMA)
  */
 
-#ifdef CONFIG_STM32_SDIO_DMA
+#ifdef CONFIG_KINETIS_SDHC_DMA
 #  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
 #  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(3)
 #else
@@ -327,7 +327,7 @@ extern "C"
  * Name: kinetis_boardinitialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
+ *   All kinetis architectures must provide the following entry point.  This entry point
  *   is called early in the intitialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
