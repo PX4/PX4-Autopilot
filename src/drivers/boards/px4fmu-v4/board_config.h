@@ -130,7 +130,7 @@
 #define PX4_SPIDEV_LIS			7
 #define PX4_SPIDEV_BMI			8
 #define PX4_SPIDEV_BMA			9
-#define PX4_SPIDEV_ICM_20602	10
+#define PX4_SPIDEV_ICM_20608	10
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
