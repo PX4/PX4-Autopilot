@@ -126,7 +126,7 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		misc-string-integer-assignment,
 		misc-string-literal-with-embedded-nul,
 		misc-suspicious-enum-usage,
-		#misc-suspicious-missing-comma,
+		misc-suspicious-missing-comma,
 		misc-suspicious-semicolon,
 		misc-suspicious-string-compare,
 		misc-swapped-arguments,
@@ -247,6 +247,12 @@ CheckOptions:
     value:           '1'
   - key:             misc-suspicious-enum-usage.StrictMode
     value:           '0'
+  - key:             misc-suspicious-missing-comma.MaxConcatenatedTokens
+    value:           '5'
+  - key:             misc-suspicious-missing-comma.RatioThreshold
+    value:           '0.200000'
+  - key:             misc-suspicious-missing-comma.SizeThreshold
+    value:           '5'
   - key:             misc-suspicious-string-compare.StringCompareLikeFunctions
     value:           ''
   - key:             misc-suspicious-string-compare.WarnOnImplicitComparison

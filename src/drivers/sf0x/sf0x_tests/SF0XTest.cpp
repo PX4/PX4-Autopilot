@@ -43,7 +43,7 @@ bool SF0XTest::sf0xTest()
 			       "\n",
 			       "0",
 			       "3\r",
-			       "\n"
+			       "\n",
 			       "\r\n",
 			       "0.06",
 			       "\r\n"
