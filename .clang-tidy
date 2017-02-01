@@ -212,7 +212,7 @@ CheckOptions:
   - key:             google-readability-function-size.BranchThreshold
     value:           '600'
   - key:             google-readability-function-size.LineThreshold
-    value:           '3000'
+    value:           '4000'
   - key:             google-readability-function-size.StatementThreshold
     value:           '4000'
   - key:             google-readability-namespace-comments.ShortNamespaceLines
@@ -286,7 +286,7 @@ CheckOptions:
   - key:             readability-function-size.BranchThreshold
     value:           '600'
   - key:             readability-function-size.LineThreshold
-    value:           '3000'
+    value:           '4000'
   - key:             readability-function-size.StatementThreshold
     value:           '4000'
   - key:             readability-identifier-naming.AbstractClassCase
