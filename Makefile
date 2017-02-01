@@ -166,6 +166,7 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: \
+	check_auav-x21_default \
 	check_aerofc-v1_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
@@ -179,7 +180,6 @@ qgc_firmware: \
 
 # Other NuttX firmware
 alt_firmware: \
-	check_auav-x21_default \
 	check_px4-stm32f4discovery_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
