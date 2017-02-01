@@ -29,13 +29,13 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import os
+#import json
 
 import pandas
 from numpy.polynomial import Polynomial
 import numpy as np
 import pyulog
 from jinja2 import Environment, FileSystemLoader
-
 
 # pylint: disable=invalid-name
 
@@ -133,9 +133,8 @@ def temperature_calibration(ulog_filename, do_plot):
             else:
                 continue
 
-            # resample at 10 second interval using mean of sample
-            # won't significantly impact coefficients,
-            # but will save time and make plots smaller more readable
+            # get data and fill in empty (NaN) values with forward fill, followed by
+            # backward fill
             data = r[topic][multi_id].ffill().bfill()
 
             x = data.temperature
@@ -174,7 +173,6 @@ def temperature_calibration(ulog_filename, do_plot):
 
     pdf.close()
 
-    # import json
     # print(json.dumps(coeffs, indent=2, sort_keys=True))
 
     params = {}
