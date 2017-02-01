@@ -214,7 +214,7 @@ CheckOptions:
   - key:             google-readability-function-size.LineThreshold
     value:           '3000'
   - key:             google-readability-function-size.StatementThreshold
-    value:           '3400'
+    value:           '4000'
   - key:             google-readability-namespace-comments.ShortNamespaceLines
     value:           '10'
   - key:             google-readability-namespace-comments.SpacesBeforeComments
@@ -288,7 +288,7 @@ CheckOptions:
   - key:             readability-function-size.LineThreshold
     value:           '3000'
   - key:             readability-function-size.StatementThreshold
-    value:           '3400'
+    value:           '4000'
   - key:             readability-identifier-naming.AbstractClassCase
     value:           aNy_CasE
   - key:             readability-identifier-naming.AbstractClassPrefix
