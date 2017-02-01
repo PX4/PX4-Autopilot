@@ -198,6 +198,8 @@ private:
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
+		param_t acc_up_max;
+		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
 
@@ -222,6 +224,8 @@ private:
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
+		float acc_up_max;
+		float acc_down_max;
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
@@ -354,7 +358,7 @@ private:
 
 	void control_position(float dt);
 
-	void limit_acceleration(float dt);
+	void vel_sp_slewrate(float dt);
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
@@ -515,6 +519,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
+	_params_handles.acc_up_max = param_find("MPC_ACC_UP_MAX");
+	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
@@ -628,6 +634,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.acc_hor_max, &v);
 		_params.acc_hor_max = v;
+		param_get(_params_handles.acc_up_max, &v);
+		_params.acc_up_max = v;
+		param_get(_params_handles.acc_down_max, &v);
+		_params.acc_down_max = v;
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
@@ -1283,29 +1293,30 @@ MulticopterPositionControl::control_offboard(float dt)
 }
 
 void
-MulticopterPositionControl::limit_acceleration(float dt)
+MulticopterPositionControl::vel_sp_slewrate(float dt)
 {
-	// limit total horizontal acceleration
+	/* limit total horizontal acceleration */
 	math::Vector<2> acc_hor;
 	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
 	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
 
 	if (acc_hor.length() > _params.acc_hor_max) {
-		acc_hor.normalize();
-		acc_hor *= _params.acc_hor_max;
-		math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
-		math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
-		_vel_sp(0) = vel_sp_hor(0);
-		_vel_sp(1) = vel_sp_hor(1);
+		acc_hor = acc_hor.normalized() * _params.acc_hor_max;
+		_vel_sp(0) = acc_hor(0) * dt + _vel_sp_prev(0);
+		_vel_sp(1) = acc_hor(1) * dt + _vel_sp_prev(1);
 	}
 
-	// limit vertical acceleration
+	/* limit vertical acceleration */
 	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 
-	// TODO: vertical acceleration is not just 2 * horizontal acceleration
-	if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
-		acc_v /= fabsf(acc_v);
-		_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
+	/* accelerate up */
+	if (acc_v < 0.0f && fabsf(acc_v) > _params.acc_up_max) {
+		_vel_sp(2) = -_params.acc_up_max * dt + _vel_sp_prev(2);
+	}
+
+	/*accelerate down */
+	if (acc_v >= 0.0f && fabsf(acc_v) > _params.acc_down_max) {
+		_vel_sp(2) = _params.acc_down_max * dt + _vel_sp_prev(2);
 	}
 
 }
@@ -1688,7 +1699,7 @@ MulticopterPositionControl::control_position(float dt)
 		_takeoff_thrust_sp = 0.0f;
 	}
 
-	limit_acceleration(dt);
+	vel_sp_slewrate(dt);
 
 	_vel_sp_prev = _vel_sp;
 
