@@ -133,20 +133,21 @@ void LandDetector::_cycle()
 	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.ground_contact != ground_contactDetected)) {
 
-		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.freefall = (_state == LandDetectionState::FREEFALL);
-		_landDetected.landed = (_state == LandDetectionState::LANDED);
-		_landDetected.ground_contact = (_state == LandDetectionState::GROUND_CONTACT);
-
-		// We did take off
-		if (landDetected && !_landDetected.landed) {
+		if (!landDetected && _landDetected.landed) {
+			// We did take off
 			_takeoff_time = now;
 
-		} else if (_takeoff_time != 0 && !landDetected && _landDetected.landed) {
+		} else if (_takeoff_time != 0 && landDetected && !_landDetected.landed) {
+			// We landed
 			_total_flight_time += now - _takeoff_time;
 			_takeoff_time = 0;
 			param_set(_p_total_flight_time, &_total_flight_time);
 		}
+
+		_landDetected.timestamp = hrt_absolute_time();
+		_landDetected.freefall = (_state == LandDetectionState::FREEFALL);
+		_landDetected.landed = (_state == LandDetectionState::LANDED);
+		_landDetected.ground_contact = (_state == LandDetectionState::GROUND_CONTACT);
 
 		int instance;
 		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected,
