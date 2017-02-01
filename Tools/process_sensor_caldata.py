@@ -116,6 +116,7 @@ def temperature_calibration(ulog_filename, do_plot):
                 'offset': lambda y: float(0),
                 'save_plot': True,
                 'plot_interval': '5 s',
+                'scale': 1,
             }
 
             if topic == 'sensor_baro':
@@ -123,6 +124,7 @@ def temperature_calibration(ulog_filename, do_plot):
                 config['ylabel'] = 'pressure, Pa'
                 config['offset'] = lambda y: np.median(y)
                 config['poly_deg'] = 5
+                config['scale'] = 100
             elif topic == 'sensor_gyro':
                 config['fields'] = ['x', 'y', 'z']
                 config['ylabel'] = 'gyro, rad/s'
@@ -166,7 +168,7 @@ def temperature_calibration(ulog_filename, do_plot):
                     mask = np.logical_and(data.temperature > temp_start,
                         data.temperature < temp_start + temp_step)
                     x += [np.median(temp[mask])]
-                    y += [np.median(data[field][mask]) - y_offset]
+                    y += [config['scale']*np.median(data[field][mask]) - y_offset]
                 x = np.array(x)
                 y = np.array(y)
 
