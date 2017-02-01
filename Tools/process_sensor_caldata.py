@@ -136,7 +136,6 @@ def temperature_calibration(ulog_filename, do_plot):
             # get data and fill in empty (NaN) values with forward fill, followed by
             # backward fill
             data = r[topic][multi_id].ffill().bfill()
-
             x = data.temperature
 
             try:
@@ -151,7 +150,7 @@ def temperature_calibration(ulog_filename, do_plot):
                 'T_min': config['min'](x),
                 'T_max': config['max'](x),
                 'T_ref': config['ref'](x),
-                'id': device_id
+                'device_id': device_id
             }
             name = '{:s}_{:d}'.format(topic, multi_id)
 
@@ -175,11 +174,30 @@ def temperature_calibration(ulog_filename, do_plot):
 
     # print(json.dumps(coeffs, indent=2, sort_keys=True))
 
+    # create param dict from coeff dict
     params = {}
     for topic in coeffs.keys():
         for mult_id in coeffs[topic].keys():
             data = coeffs[topic][multi_id]
-            p = {}
+
+            # common params
+            p = {
+                'ID': qgc_param(data['device_id'], 'int'),
+                'TMIN': qgc_param(data['T_min'], 'float'),
+                'TMAX': qgc_param(data['T_max'], 'float'),
+                'TREF': qgc_param(data['T_ref'], 'float'),
+                'SCL_0': qgc_param(1.0, 'float'),
+                'SCL_1': qgc_param(1.0, 'float'),
+                'SCL_2': qgc_param(1.0, 'float'),
+            }
+
+            # poly coeffs
+            for i_field, field in enumerate(data['poly'].keys()):
+                for i_c, c in enumerate(data['poly'][field]):
+                    p['X{:d}_{:d}'.format(i_c, i_field)] = \
+                        qgc_param(data['poly'][field][i_c], 'float')
+
+            # naming
             if topic == 'sensor_gyro':
                 name = 'TC_G{:d}'.format(mult_id)
                 params[name + '_ID'] = qgc_param(mult_id, 'int')
@@ -187,20 +205,8 @@ def temperature_calibration(ulog_filename, do_plot):
                 name = 'TC_B{:d}'.format(mult_id)
             elif topic == 'sensor_accel':
                 name = 'TC_A{:d}'.format(mult_id)
-            p.update({
-                'ID': qgc_param(mult_id, 'int'),
-                'TMIN': qgc_param(data['T_min'], 'float'),
-                'TMAX': qgc_param(data['T_max'], 'float'),
-                'TREF': qgc_param(data['T_ref'], 'float'),
-                'SCL_0': qgc_param(1.0, 'float'),
-                'SCL_1': qgc_param(1.0, 'float'),
-                'SCL_2': qgc_param(1.0, 'float'),
-            })
-            for i_field, field in enumerate(data['poly'].keys()):
-                for i_c, c in enumerate(data['poly'][field]):
-                    p['X{:d}_{:d}'.format(i_c, i_field)] = \
-                        qgc_param(data['poly'][field][i_c], 'float')
 
+            # prepend name to params and save in params dict
             params.update({ '{:s}_{:s}'.format(name, key): val 
                 for key, val in p.iteritems() })
 
