@@ -59,8 +59,8 @@ def fitPlot(x, y, f_poly, name, field, config):
     A temperature calibration fit plot.
     """
     # pylint: disable=too-many-arguments
-    x = x.resample(config['plot_interval']).mean()
-    y = y.resample(config['plot_interval']).mean()
+    # x = x.resample(config['plot_interval']).mean()
+    # y = y.resample(config['plot_interval']).mean()
     plt.plot(x, y, '.', label=field)
     x_resample = np.linspace(x.min(), x.max())
     plt.plot(x_resample, f_poly(x_resample), '-',  label='{:s} fit'.format(field))
@@ -121,7 +121,7 @@ def temperature_calibration(ulog_filename, do_plot):
             if topic == 'sensor_baro':
                 config['fields'] = ['pressure']
                 config['ylabel'] = 'pressure, Pa'
-                config['offset'] = lambda y: y.median()
+                config['offset'] = lambda y: np.median(y)
                 config['poly_deg'] = 5
             elif topic == 'sensor_gyro':
                 config['fields'] = ['x', 'y', 'z']
@@ -129,14 +129,14 @@ def temperature_calibration(ulog_filename, do_plot):
             elif topic == 'sensor_accel':
                 config['fields'] = ['x', 'y', 'z']
                 config['ylabel'] = 'accel, m/s^2'
-                config['offset'] = lambda y: y.median()
+                config['offset'] = lambda y: np.median(y)
             else:
                 continue
 
             # get data and fill in empty (NaN) values with forward fill, followed by
             # backward fill
             data = r[topic][multi_id].ffill().bfill()
-            x = data.temperature
+            temp = data.temperature
 
             try:
                 device_id = int(np.median(r[topic][multi_id]['device_id']))
@@ -147,9 +147,9 @@ def temperature_calibration(ulog_filename, do_plot):
             # default for coefficients
             coeffs[topic][multi_id] = {
                 'poly': {},
-                'T_min': config['min'](x),
-                'T_max': config['max'](x),
-                'T_ref': config['ref'](x),
+                'T_min': config['min'](temp),
+                'T_max': config['max'](temp),
+                'T_ref': config['ref'](temp),
                 'device_id': device_id
             }
             name = '{:s}_{:d}'.format(topic, multi_id)
@@ -157,7 +157,20 @@ def temperature_calibration(ulog_filename, do_plot):
             plt.figure()
 
             for i, field in enumerate(config['fields']):
-                y = data[field]
+                # temperature based resampling
+                x = []
+                y = []
+                temp_step = 1
+                y_offset = config['offset'](data[field])
+                for temp_start in range(temp.min(), temp.max(), temp_step):
+                    mask = np.logical_and(data.temperature > temp_start,
+                        data.temperature < temp_start + temp_step)
+                    x += [np.median(temp[mask])]
+                    y += [np.median(data[field][mask]) - y_offset]
+                x = np.array(x)
+                y = np.array(y)
+
+                # y = data[field]
                 y -= config['offset'](y)
                 f_poly = Polynomial.fit(x, y, config['poly_deg'])
                 coeffs[topic][multi_id]['poly'][field] = list(np.array(
