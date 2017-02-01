@@ -123,7 +123,23 @@ void SendEvent::process_commands()
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 		if ((int)(cmd.param1) == 2) { //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
 
-			if (run_temperature_calibration() == 0) {
+			if (run_temperature_gyro_calibration() == 0) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+		} else if  ((int)(cmd.param1) == 3) { //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
+
+			if (run_temperature_accel_calibration() == 0) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
+		} else if  ((int)(cmd.param1) == 4) { //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
+
+			if (run_temperature_baro_calibration() == 0) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else {
@@ -170,7 +186,7 @@ static void print_usage(const char *reason = nullptr)
 
 	PX4_INFO("usage: send_event {start_listening|stop_listening|status|temperature_calibration}\n"
 		 "\tstart_listening: start background task to listen to events\n"
-		 "\ttemperature_calibration: start temperature calibration task\n"
+		 "\tstart_temp_gyro_cal: start gyro temperature calibration task\n"
 		);
 }
 
@@ -216,7 +232,7 @@ int send_event_main(int argc, char *argv[])
 			PX4_INFO("not running");
 		}
 
-	} else if (!strcmp(argv[1], "temperature_calibration")) {
+	} else if (!strcmp(argv[1], "start_temp_gyro_cal")) {
 
 		if (!send_event_obj) {
 			PX4_ERR("background task not running");
