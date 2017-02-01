@@ -29,7 +29,7 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import os
-#import json
+# import json
 
 import pandas
 from numpy.polynomial import Polynomial
@@ -160,7 +160,8 @@ def temperature_calibration(ulog_filename, do_plot):
                 y = data[field]
                 y -= config['offset'](y)
                 f_poly = Polynomial.fit(x, y, config['poly_deg'])
-                coeffs[topic][multi_id]['poly'][field] = list(f_poly.coef)
+                coeffs[topic][multi_id]['poly'][field] = list(np.array(
+                    f_poly.coef, dtype=np.float))
 
                 if do_plot:
                     fitPlot(
@@ -177,7 +178,7 @@ def temperature_calibration(ulog_filename, do_plot):
     # create param dict from coeff dict
     params = {}
     for topic in coeffs.keys():
-        for mult_id in coeffs[topic].keys():
+        for multi_id in coeffs[topic].keys():
             data = coeffs[topic][multi_id]
 
             # common params
@@ -195,16 +196,16 @@ def temperature_calibration(ulog_filename, do_plot):
             for i_field, field in enumerate(data['poly'].keys()):
                 for i_c, c in enumerate(data['poly'][field]):
                     p['X{:d}_{:d}'.format(i_c, i_field)] = \
-                        qgc_param(data['poly'][field][i_c], 'float')
+                        qgc_param(float(data['poly'][field][i_c]), 'float')
 
             # naming
             if topic == 'sensor_gyro':
-                name = 'TC_G{:d}'.format(mult_id)
-                params[name + '_ID'] = qgc_param(mult_id, 'int')
+                name = 'TC_G{:d}'.format(multi_id)
+                params[name + '_ID'] = qgc_param(multi_id, 'int')
             elif topic == 'sensor_baro':
-                name = 'TC_B{:d}'.format(mult_id)
+                name = 'TC_B{:d}'.format(multi_id)
             elif topic == 'sensor_accel':
-                name = 'TC_A{:d}'.format(mult_id)
+                name = 'TC_A{:d}'.format(multi_id)
 
             # prepend name to params and save in params dict
             params.update({ '{:s}_{:s}'.format(name, key): val 
