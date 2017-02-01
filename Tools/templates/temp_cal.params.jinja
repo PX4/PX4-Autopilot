@@ -1,0 +1,8 @@
+{# jinja syntax: http://jinja.pocoo.org/docs/2.9/templates/ #}
+# Temperature calibration parameters
+#
+# Vehicle-Id Component-Id Name Value Type
+{% for name, param in params.iteritems() | sort -%}
+1	1	{{ name }}	{{ param['value'] }}	{{ param['type'] }}
+{% endfor -%}
+{# vim: set noet ft=jinja fenc=utf-8 ff=unix sts=4 sw=4 ts=4 : #}
