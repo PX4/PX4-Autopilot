@@ -166,8 +166,9 @@ private:
 	bool _taskShouldExit;
 	bool _taskIsRunning;
 
-	param_t _p_total_flight_time;
-	int32_t _total_flight_time;
+	param_t _p_total_flight_time_high;
+	param_t _p_total_flight_time_low;
+	uint64_t _total_flight_time; ///< in microseconds
 	hrt_abstime _takeoff_time;
 
 	struct work_s	_work;

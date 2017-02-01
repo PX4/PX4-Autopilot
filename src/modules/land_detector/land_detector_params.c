@@ -178,10 +178,23 @@ PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
 /**
  * Total flight time in microseconds
  *
- * Total flight time of this autopilot.
+ * Total flight time of this autopilot. Higher 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
  *
  * @min 0
  * @group Land Detector
  *
  */
-PARAM_DEFINE_INT32(LND_FLIGHT_TIME, 0);
+PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot. Lower 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);

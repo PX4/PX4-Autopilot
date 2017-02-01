@@ -103,7 +103,8 @@ void LandDetector::_cycle()
 		_landDetected.freefall = false;
 		_landDetected.landed = false;
 		_landDetected.ground_contact = false;
-		_p_total_flight_time = param_find("LND_FLIGHT_TIME");
+		_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
+		_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
 
 		// Initialize uORB topics.
 		_initialize_topics();
@@ -141,7 +142,10 @@ void LandDetector::_cycle()
 			// We landed
 			_total_flight_time += now - _takeoff_time;
 			_takeoff_time = 0;
-			param_set(_p_total_flight_time, &_total_flight_time);
+			int32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
+			param_set_no_notification(_p_total_flight_time_high, &flight_time);
+			flight_time = _total_flight_time & 0xffffffff;
+			param_set_no_notification(_p_total_flight_time_low, &flight_time);
 		}
 
 		_landDetected.timestamp = hrt_absolute_time();
@@ -178,7 +182,11 @@ void LandDetector::_check_params(const bool force)
 
 	if (updated || force) {
 		_update_params();
-		param_get(_p_total_flight_time, &_total_flight_time);
+		int32_t flight_time;
+		param_get(_p_total_flight_time_high, &flight_time);
+		_total_flight_time = ((uint64_t)flight_time) << 32;
+		param_get(_p_total_flight_time_low, &flight_time);
+		_total_flight_time |= flight_time;
 	}
 }
 
