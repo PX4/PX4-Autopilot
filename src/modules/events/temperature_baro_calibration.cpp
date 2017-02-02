@@ -172,6 +172,10 @@ void Tempcalbaro::task_main()
 	char param_str[30];
 	int num_completed = 0; // number of completed sensors
 
+	// get required temperature swing
+	int32_t min_temp_rise = 24;
+	param_get(param_find("SYS_CAL_TEMP"), &min_temp_rise);
+
 	while (!_force_task_exit) {
 		int ret = px4_poll(fds, num_baro, 1000);
 
@@ -201,7 +205,7 @@ void Tempcalbaro::task_main()
 				if (!cold_soaked[uorb_index]) {
 					cold_soaked[uorb_index] = true;
 					low_temp[uorb_index] = baro_sample_filt[uorb_index][1];	//Record the low temperature
-					ref_temp[uorb_index] = baro_sample_filt[uorb_index][1] + 12.0f;
+					ref_temp[uorb_index] = baro_sample_filt[uorb_index][1] + 0.5f * (float)min_temp_rise;
 				}
 
 				num_samples[uorb_index]++;
@@ -221,8 +225,8 @@ void Tempcalbaro::task_main()
 				continue;
 			}
 
-			//TODO: Hot Soak Saturation
-			if (hot_soak_sat[sensor_index] == 10 || (high_temp[sensor_index] - low_temp[sensor_index]) > 24.0f) {
+			//TODO: Detect when temperature has stopped rising for more than TBD seconds
+			if (hot_soak_sat[sensor_index] == 10 || (high_temp[sensor_index] - low_temp[sensor_index]) > (float)min_temp_rise) {
 				hot_soaked[sensor_index] = true;
 			}
 
