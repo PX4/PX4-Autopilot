@@ -120,27 +120,32 @@ void SendEvent::process_commands()
 
 	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
-	bool got_temperature_calibration_command = false;
+	bool got_temperature_calibration_command = false, accel = false, baro = false, gyro = false;
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 		if ((int)(cmd.param1) == 2) { //TODO: this (and the others) needs to be specified in mavlink...
-			run_temperature_gyro_calibration();
+			gyro = true;
 			got_temperature_calibration_command = true;
 		}
 
 		if ((int)(cmd.param5) == 2) {
-			run_temperature_accel_calibration();
+			accel = true;
 			got_temperature_calibration_command = true;
 		}
 
 		if ((int)(cmd.param7) == 2) {
-			run_temperature_baro_calibration();
+			baro = true;
 			got_temperature_calibration_command = true;
 		}
 
 		if (got_temperature_calibration_command) {
-			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			if (run_temperature_calibration(accel, baro, gyro) == 0) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+			}
 		}
 
 		break;

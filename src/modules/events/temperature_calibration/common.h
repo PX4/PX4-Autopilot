@@ -33,8 +33,69 @@
 
 #pragma once
 
+#define TC_PRINT_DEBUG 0
+#if TC_PRINT_DEBUG
+#define TC_DEBUG(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#else
+#define TC_DEBUG(fmt, ...)
+#endif
 
-/** start temperature calibration in a new task for one or multiple sensors
- * @return 0 on success, <0 error otherwise  */
-int run_temperature_calibration(bool accel, bool baro, bool gyro);
+#include <px4_log.h>
+
+#define SENSOR_COUNT_MAX		3
+
+/**
+ * Base class for temperature calibration types (for all different sensor types)
+ */
+class TemperatureCalibrationBase
+{
+public:
+	TemperatureCalibrationBase(float min_temperature_rise)
+		: _min_temperature_rise(min_temperature_rise) {}
+
+	virtual ~TemperatureCalibrationBase() {}
+
+	/**
+	 * check & update new sensor data.
+	 * @return progress in range [0, 100], 110 when finished, <0 on error
+	 */
+	virtual int update() = 0;
+
+	/**
+	 * do final fitting & write the parameters. Call this exactly once after update() returned 110
+	 * @return 0 on success, <0 otherwise
+	 */
+	virtual int finish() = 0;
+
+	/** reset all driver-level calibration parameters */
+	virtual void reset_calibration() = 0;
+
+protected:
+
+	/**
+	 * set a system parameter (without system notification) and print an error if it fails
+	 * @param format_str for example "CAL_GYRO%u_XOFF"
+	 * @param index which index (will replace %u in format_str)
+	 * @param value
+	 * @return 0 on success
+	 */
+	inline int set_parameter(const char *format_str, unsigned index, const void *value);
+
+	float _min_temperature_rise; ///< minimum difference in temperature before the process finishes
+};
+
+
+
+int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value)
+{
+	char param_str[30];
+	(void)sprintf(param_str, format_str, index);
+	int result = param_set_no_notification(param_find(param_str), value);
+
+	if (result != 0) {
+		PX4_ERR("unable to reset %s (%i)", param_str, result);
+	}
+
+	return result;
+}
 

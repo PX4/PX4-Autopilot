@@ -38,9 +38,10 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		send_event.cpp
-		temperature_calibration/gyro.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
+		temperature_calibration/gyro.cpp
+		temperature_calibration/task.cpp
 	DEPENDS
 		platforms__common
 		modules__uORB

@@ -33,8 +33,55 @@
 
 #pragma once
 
+#include "common.h"
+#include "polyfit.hpp"
 
-/** start temperature calibration in a new task for one or multiple sensors
- * @return 0 on success, <0 error otherwise  */
-int run_temperature_calibration(bool accel, bool baro, bool gyro);
+class TemperatureCalibrationGyro : public TemperatureCalibrationBase
+{
+public:
+	TemperatureCalibrationGyro(float min_temperature_rise, int gyro_subs[], int num_gyros);
+	virtual ~TemperatureCalibrationGyro() {}
 
+	/**
+	 * @see TemperatureCalibrationBase::update()
+	 */
+	int update();
+
+	/**
+	 * @see TemperatureCalibrationBase::finish()
+	 */
+	int finish();
+
+	/**
+	 * @see TemperatureCalibrationBase::reset_calibration()
+	 */
+	void reset_calibration();
+
+private:
+
+	struct PerSensorData {
+		float sensor_sample_filt[4];
+		polyfitter<4> P[3];
+		unsigned hot_soak_sat = 0;
+		uint32_t device_id = 0;
+		bool cold_soaked = false;
+		bool hot_soaked = false;
+		bool tempcal_complete = false;
+		float low_temp = 0.f;
+		float high_temp = 0.f;
+		float ref_temp = 0.f;
+	};
+
+	PerSensorData _data[SENSOR_COUNT_MAX];
+
+	/**
+	 * update a single sensor instance
+	 * @return 0 when done, 1 not finished yet
+	 */
+	inline int update_sensor_instance(PerSensorData &data, int sensor_sub);
+
+	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
+
+	int _num_sensor_instances;
+	int *_sensor_subs;
+};
