@@ -17,6 +17,7 @@ exec find src \
     -path src/lib/external_lgpl -prune -o \
     -path src/lib/mathlib -prune -o \
     -path src/lib/matrix -prune -o \
+    -path src/lib/HashMap -prune -o \
     -path src/modules/commander -prune -o \
     -path src/modules/sdlog2 -prune -o \
     -path src/modules/systemlib/uthash -prune -o \
