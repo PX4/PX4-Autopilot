@@ -32,381 +32,197 @@
  ****************************************************************************/
 
 /**
- * @file temperature_accel_calibration.cpp
- * Implementation of the Temperature Calibration for onboard accelerometer sensors.
+ * @file accel.cpp
+ * Implementation of the Accel Temperature Calibration for onboard sensors.
  *
  * @author Siddharth Bharat Purohit
  * @author Paul Riseborough
+ * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <px4_time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <float.h>
-#include <arch/board/board.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <platforms/px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <controllib/uorb/blocks.hpp>
-
+#include "accel.h"
 #include <uORB/topics/sensor_accel.h>
-#include "polyfit.hpp"
-#include "temperature_calibration.h"
+#include <mathlib/mathlib.h>
 
-#define TC_PRINT_DEBUG 0
-#if TC_PRINT_DEBUG
-#define TC_DEBUG(fmt, ...) printf(fmt, ##__VA_ARGS__);
-#else
-#define TC_DEBUG(fmt, ...)
-#endif
-
-
-#define SENSOR_COUNT_MAX		3
-
-extern "C" __EXPORT int tempcal_main(int argc, char *argv[]);
-
-
-class Tempcalaccel;
-
-namespace tempcalaccel
-{
-Tempcalaccel *instance = nullptr;
-}
-
-
-class Tempcalaccel : public control::SuperBlock
-{
-public:
-	/**
-	 * Constructor
-	 */
-	Tempcalaccel();
-
-	/**
-	 * Destructor, also kills task.
-	 */
-	~Tempcalaccel();
-
-	/**
-	 * Start task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
-
-	static void do_temperature_accel_calibration(int argc, char *argv[]);
-
-	void		task_main();
-
-	void print_status();
-
-	void exit() { _force_task_exit = true; }
-
-private:
-	bool	_force_task_exit = false;
-	int	_control_task = -1;		// task handle for task
-};
-
-Tempcalaccel::Tempcalaccel():
-	SuperBlock(NULL, "Tempcalaccel")
-{
-}
-
-Tempcalaccel::~Tempcalaccel()
+TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise)
+	: TemperatureCalibrationBase(min_temperature_rise)
 {
 
-}
+	//init subscriptions
+	_num_sensor_instances = orb_group_count(ORB_ID(sensor_accel));
 
-void Tempcalaccel::task_main()
-{
-	// subscribe to relevant topics
-	int accel_sub[SENSOR_COUNT_MAX];
-	float accel_sample_filt[SENSOR_COUNT_MAX][4];
-	polyfitter<4> P[SENSOR_COUNT_MAX][3];
-	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
-	unsigned hot_soak_sat[SENSOR_COUNT_MAX] = {};
-	unsigned num_accel = orb_group_count(ORB_ID(sensor_accel));
-	unsigned num_samples[SENSOR_COUNT_MAX] = {0};
-	uint32_t device_ids[SENSOR_COUNT_MAX] = {};
-	int param_set_result = PX4_OK;
-	char param_str[30];
-	int num_completed = 0; // number of completed sensors
-
-	if (num_accel > SENSOR_COUNT_MAX) {
-		num_accel = SENSOR_COUNT_MAX;
+	if (_num_sensor_instances > SENSOR_COUNT_MAX) {
+		_num_sensor_instances = SENSOR_COUNT_MAX;
 	}
 
-	bool cold_soaked[SENSOR_COUNT_MAX] = {false};
-	bool hot_soaked[SENSOR_COUNT_MAX] = {false};
-	bool tempcal_complete[SENSOR_COUNT_MAX] = {false};
-	float low_temp[SENSOR_COUNT_MAX];
-	float high_temp[SENSOR_COUNT_MAX] = {0};
-	float ref_temp[SENSOR_COUNT_MAX];
-
-	for (unsigned i = 0; i < num_accel; i++) {
-		accel_sub[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
-		fds[i].fd = accel_sub[i];
-		fds[i].events = POLLIN;
+	for (unsigned i = 0; i < _num_sensor_instances; i++) {
+		_sensor_subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
 	}
+}
 
-	// initialize data structures outside of loop
-	// because they will else not always be
-	// properly populated
-	sensor_accel_s accel_data = {};
-
+void TemperatureCalibrationAccel::reset_calibration()
+{
 	/* reset all driver level calibrations */
 	float offset = 0.0f;
 	float scale = 1.0f;
-	for (unsigned s = 0; s < num_accel; s++) {
-		(void)sprintf(param_str, "CAL_ACC%u_XOFF", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &offset);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
-		(void)sprintf(param_str, "CAL_ACC%u_YOFF", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &offset);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
-		(void)sprintf(param_str, "CAL_ACC%u_ZOFF", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &offset);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
-		(void)sprintf(param_str, "CAL_ACC%u_XSCALE", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &scale);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
-		(void)sprintf(param_str, "CAL_ACC%u_YSCALE", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &scale);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
-		(void)sprintf(param_str, "CAL_ACC%u_ZSCALE", s);
-		param_set_result = param_set_no_notification(param_find(param_str), &scale);
-		if (param_set_result != PX4_OK) {
-			PX4_ERR("unable to reset %s", param_str);
-		}
+
+	for (unsigned s = 0; s < 3; s++) {
+		set_parameter("CAL_ACC%u_XOFF", s, &offset);
+		set_parameter("CAL_ACC%u_YOFF", s, &offset);
+		set_parameter("CAL_ACC%u_ZOFF", s, &offset);
+		set_parameter("CAL_ACC%u_XSCALE", s, &scale);
+		set_parameter("CAL_ACC%u_YSCALE", s, &scale);
+		set_parameter("CAL_ACC%u_ZSCALE", s, &scale);
 	}
-
-	// get required temperature swing
-	int32_t min_temp_rise = 24;
-	param_get(param_find("SYS_CAL_TEMP"), &min_temp_rise);
-
-	while (!_force_task_exit) {
-		int ret = px4_poll(fds, num_accel, 1000);
-
-		if (ret < 0) {
-			// Poll error, sleep and try again
-			usleep(10000);
-			continue;
-
-		} else if (ret == 0) {
-			// Poll timeout or no new data, do nothing
-			continue;
-		}
-
-		for (unsigned uorb_index = 0; uorb_index < num_accel; uorb_index++) {
-			if (hot_soaked[uorb_index]) {
-				continue;
-			}
-
-			if (fds[uorb_index].revents & POLLIN) {
-				orb_copy(ORB_ID(sensor_accel), accel_sub[uorb_index], &accel_data);
-
-				device_ids[uorb_index] = accel_data.device_id;
-
-				accel_sample_filt[uorb_index][0] = accel_data.x;
-				accel_sample_filt[uorb_index][1] = accel_data.y;
-				accel_sample_filt[uorb_index][2] = accel_data.z;
-				accel_sample_filt[uorb_index][3] = accel_data.temperature;
-
-				if (!cold_soaked[uorb_index]) {
-					cold_soaked[uorb_index] = true;
-					low_temp[uorb_index] = accel_sample_filt[uorb_index][3];	//Record the low temperature
-					ref_temp[uorb_index] = accel_sample_filt[uorb_index][3] + 0.5f * (float)min_temp_rise;
-				}
-
-				num_samples[uorb_index]++;
-			}
-		}
-
-		for (unsigned sensor_index = 0; sensor_index < num_accel; sensor_index++) {
-			if (hot_soaked[sensor_index]) {
-				continue;
-			}
-
-			if (accel_sample_filt[sensor_index][3] > high_temp[sensor_index]) {
-				high_temp[sensor_index] = accel_sample_filt[sensor_index][3];
-				hot_soak_sat[sensor_index] = 0;
-
-			} else {
-				continue;
-			}
-
-			//TODO: Detect when temperature has stopped rising for more than TBD seconds
-			if (hot_soak_sat[sensor_index] == 10 || (high_temp[sensor_index] - low_temp[sensor_index]) > float(min_temp_rise)) {
-				hot_soaked[sensor_index] = true;
-			}
-
-			if (sensor_index == 0) {
-				TC_DEBUG("\n%.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)accel_sample_filt[sensor_index][0],
-					 (double)accel_sample_filt[sensor_index][1],
-					 (double)accel_sample_filt[sensor_index][2], (double)accel_sample_filt[sensor_index][3], (double)low_temp[sensor_index], (double)high_temp[sensor_index],
-					 (double)(high_temp[sensor_index] - low_temp[sensor_index]));
-			}
-
-			//update linear fit matrices
-			accel_sample_filt[sensor_index][3] -= ref_temp[sensor_index];
-			P[sensor_index][0].update((double)accel_sample_filt[sensor_index][3], (double)accel_sample_filt[sensor_index][0]);
-			P[sensor_index][1].update((double)accel_sample_filt[sensor_index][3], (double)accel_sample_filt[sensor_index][1]);
-			P[sensor_index][2].update((double)accel_sample_filt[sensor_index][3], (double)accel_sample_filt[sensor_index][2]);
-			num_samples[sensor_index] = 0;
-		}
-
-		for (unsigned sensor_index = 0; sensor_index < num_accel; sensor_index++) {
-			if (hot_soaked[sensor_index] && !tempcal_complete[sensor_index]) {
-				double res[3][4] = {0.0f};
-				P[sensor_index][0].fit(res[0]);
-				res[0][3] = 0.0; // normalise the correction to be zero at the reference temperature
-				PX4_WARN("Result Accel %u Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1], (double)res[0][2],
-					 (double)res[0][3]);
-				P[sensor_index][1].fit(res[1]);
-				res[1][3] = 0.0; // normalise the correction to be zero at the reference temperature
-				PX4_WARN("Result Accel %u Axis 1: %.20f %.20f %.20f %.20f", sensor_index, (double)res[1][0], (double)res[1][1], (double)res[1][2],
-					 (double)res[1][3]);
-				P[sensor_index][2].fit(res[2]);
-				res[2][3] = 0.0; // normalise the correction to be zero at the reference temperature
-				PX4_WARN("Result Accel %u Axis 2: %.20f %.20f %.20f %.20f", sensor_index, (double)res[2][0], (double)res[2][1], (double)res[2][2],
-					 (double)res[2][3]);
-				tempcal_complete[sensor_index] = true;
-				++num_completed;
-
-				float param = 0.0f;
-
-				sprintf(param_str, "TC_A%d_ID", sensor_index);
-				param_set_result = param_set_no_notification(param_find(param_str), &device_ids[sensor_index]);
-
-				if (param_set_result != PX4_OK) {
-					PX4_ERR("unable to reset %s", param_str);
-				}
-
-				for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-					for (unsigned coef_index = 0; coef_index <= 3; coef_index++) {
-						sprintf(param_str, "TC_A%d_X%d_%d", sensor_index, (3-coef_index), axis_index);
-						param = (float)res[axis_index][coef_index];
-						param_set_result = param_set_no_notification(param_find(param_str), &param);
-
-						if (param_set_result != PX4_OK) {
-							PX4_ERR("unable to reset %s", param_str);
-						}
-					}
-
-					sprintf(param_str, "TC_A%d_TMAX", sensor_index);
-					param = high_temp[sensor_index];
-					param_set_result = param_set_no_notification(param_find(param_str), &param);
-
-					if (param_set_result != PX4_OK) {
-						PX4_ERR("unable to reset %s", param_str);
-					}
-
-					sprintf(param_str, "TC_A%d_TMIN", sensor_index);
-					param = low_temp[sensor_index];
-					param_set_result = param_set_no_notification(param_find(param_str), &param);
-
-					if (param_set_result != PX4_OK) {
-						PX4_ERR("unable to reset %s", param_str);
-					}
-
-					sprintf(param_str, "TC_A%d_TREF", sensor_index);
-					param = ref_temp[sensor_index];
-					param_set_result = param_set_no_notification(param_find(param_str), &param);
-
-					if (param_set_result != PX4_OK) {
-						PX4_ERR("unable to reset %s", param_str);
-					}
-				}
-
-			}
-		}
-
-		// Check if completed and enable use of the thermal compensation
-		if (num_completed >= num_accel) {
-			sprintf(param_str, "TC_A_ENABLE");
-			int32_t enabled = 1;
-			param_set_result = param_set(param_find(param_str), &enabled);
-
-			if (param_set_result != PX4_OK) {
-				PX4_ERR("unable to reset %s", param_str);
-			}
-
-			// exit the while loop
-			break;
-
-		}
-	}
-
-	for (unsigned i = 0; i < num_accel; i++) {
-		orb_unsubscribe(accel_sub[i]);
-	}
-
-	delete tempcalaccel::instance;
-	tempcalaccel::instance = nullptr;
-	PX4_INFO("Exiting accel temperature calibration task");
 }
 
-void Tempcalaccel::do_temperature_accel_calibration(int argc, char *argv[])
+int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
-	tempcalaccel::instance->task_main();
-}
-
-int Tempcalaccel::start()
-{
-
-	ASSERT(_control_task == -1);
-	_control_task = px4_task_spawn_cmd("accel_temp_calib",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
-					   5800,
-					   (px4_main_t)&Tempcalaccel::do_temperature_accel_calibration,
-					   nullptr);
-
-	if (_control_task < 0) {
-		delete tempcalaccel::instance;
-		tempcalaccel::instance = nullptr;
-		PX4_ERR("start failed");
-		return -errno;
+	if (data.hot_soaked) {
+		// already done
+		return 0;
 	}
 
-	return 0;
-}
+	bool updated;
+	orb_check(sensor_sub, &updated);
 
-int run_temperature_accel_calibration()
-{
-	PX4_INFO("Starting accel temperature calibration task");
-	tempcalaccel::instance = new Tempcalaccel();
-
-	if (tempcalaccel::instance == nullptr) {
-		PX4_ERR("alloc failed");
+	if (!updated) {
 		return 1;
 	}
 
-	return tempcalaccel::instance->start();
+	sensor_accel_s accel_data;
+	orb_copy(ORB_ID(sensor_accel), sensor_sub, &accel_data);
+
+	data.device_id = accel_data.device_id;
+
+	data.sensor_sample_filt[0] = accel_data.x;
+	data.sensor_sample_filt[1] = accel_data.y;
+	data.sensor_sample_filt[2] = accel_data.z;
+	data.sensor_sample_filt[3] = accel_data.temperature;
+
+	if (!data.cold_soaked) {
+		data.cold_soaked = true;
+		data.low_temp = data.sensor_sample_filt[3];	//Record the low temperature
+		data.ref_temp = data.sensor_sample_filt[3] + 0.5f * _min_temperature_rise;
+	}
+
+	// check if temperature increased
+	if (data.sensor_sample_filt[3] > data.high_temp) {
+		data.high_temp = data.sensor_sample_filt[3];
+		data.hot_soak_sat = 0;
+
+	} else {
+		return 1;
+	}
+
+	//TODO: Detect when temperature has stopped rising for more than TBD seconds
+	if (data.hot_soak_sat == 10 || (data.high_temp - data.low_temp) > _min_temperature_rise) {
+		data.hot_soaked = true;
+	}
+
+	if (sensor_sub == _sensor_subs[0]) { // debug output, but only for the first sensor
+		TC_DEBUG("\nAccel: %.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)data.sensor_sample_filt[0],
+			 (double)data.sensor_sample_filt[1],
+			 (double)data.sensor_sample_filt[2], (double)data.sensor_sample_filt[3], (double)data.low_temp, (double)data.high_temp,
+			 (double)(data.high_temp - data.low_temp));
+	}
+
+	//update linear fit matrices
+	data.sensor_sample_filt[3] -= data.ref_temp;
+	data.P[0].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[0]);
+	data.P[1].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[1]);
+	data.P[2].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[2]);
+
+	return 1;
+}
+
+int TemperatureCalibrationAccel::update()
+{
+
+	int num_not_complete = 0;
+
+	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
+		num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
+	}
+
+	if (num_not_complete > 0) {
+		// calculate progress
+		float min_diff = _min_temperature_rise;
+
+		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
+			float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
+
+			if (cur_diff < min_diff) {
+				min_diff = cur_diff;
+			}
+		}
+
+		return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
+	}
+
+	return 110;
+}
+
+int TemperatureCalibrationAccel::finish()
+{
+	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
+		finish_sensor_instance(_data[uorb_index], uorb_index);
+	}
+
+	int32_t enabled = 1;
+	int result = param_set_no_notification(param_find("TC_A_ENABLE"), &enabled);
+
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset TC_A_ENABLE (%i)", result);
+	}
+
+	return result;
+}
+
+int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int sensor_index)
+{
+	if (!data.hot_soaked || data.tempcal_complete) {
+		return 0;
+	}
+
+	double res[3][4] = {0.0f};
+	data.P[0].fit(res[0]);
+	res[0][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	PX4_INFO("Result Accel %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
+		 (double)res[0][2],
+		 (double)res[0][3]);
+	data.P[1].fit(res[1]);
+	res[1][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	PX4_INFO("Result Accel %d Axis 1: %.20f %.20f %.20f %.20f", sensor_index, (double)res[1][0], (double)res[1][1],
+		 (double)res[1][2],
+		 (double)res[1][3]);
+	data.P[2].fit(res[2]);
+	res[2][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	PX4_INFO("Result Accel %d Axis 2: %.20f %.20f %.20f %.20f", sensor_index, (double)res[2][0], (double)res[2][1],
+		 (double)res[2][2],
+		 (double)res[2][3]);
+	data.tempcal_complete = true;
+
+	char str[30];
+	float param = 0.0f;
+	int result = PX4_OK;
+
+	set_parameter("TC_A%d_ID", sensor_index, &data.device_id);
+
+	for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+		for (unsigned coef_index = 0; coef_index <= 3; coef_index++) {
+			sprintf(str, "TC_A%d_X%d_%d", sensor_index, 3 - coef_index, axis_index);
+			param = (float)res[axis_index][coef_index];
+			result = param_set_no_notification(param_find(str), &param);
+
+			if (result != PX4_OK) {
+				PX4_ERR("unable to reset %s", str);
+			}
+		}
+	}
+
+	set_parameter("TC_A%d_TMAX", sensor_index, &data.high_temp);
+	set_parameter("TC_A%d_TMIN", sensor_index, &data.low_temp);
+	set_parameter("TC_A%d_TREF", sensor_index, &data.ref_temp);
+	return 0;
 }
