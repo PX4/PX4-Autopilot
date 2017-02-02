@@ -1302,30 +1302,21 @@ MulticopterPositionControl::control_offboard(float dt)
 void
 MulticopterPositionControl::vel_sp_slewrate(float dt)
 {
-	/* limit total horizontal acceleration */
-	math::Vector<2> acc_hor;
-	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
-	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
+	math::Vector<3> acc = (_vel_sp - _vel_sp_prev) / dt;
+	float acc_xy_mag = sqrtf(acc(0) * acc(0) + acc(1) * acc(1));
 
-	if (acc_hor.length() > _params.acc_hor_max) {
-		acc_hor = acc_hor.normalized() * _params.acc_hor_max;
-		_vel_sp(0) = acc_hor(0) * dt + _vel_sp_prev(0);
-		_vel_sp(1) = acc_hor(1) * dt + _vel_sp_prev(1);
+	/* limit total horizontal acceleration */
+	if (acc_xy_mag > _params.acc_hor_max) {
+		_vel_sp(0) = _params.acc_hor_max * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
+		_vel_sp(1) = _params.acc_hor_max * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
 	}
 
 	/* limit vertical acceleration */
-	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+	float max_acc_z = acc(2) < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
 
-	/* accelerate up */
-	if (acc_v < 0.0f && fabsf(acc_v) > _params.acc_up_max) {
-		_vel_sp(2) = -_params.acc_up_max * dt + _vel_sp_prev(2);
+	if (fabsf(acc(2)) > fabsf(max_acc_z)) {
+		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
 	}
-
-	/*accelerate down */
-	if (acc_v >= 0.0f && fabsf(acc_v) > _params.acc_down_max) {
-		_vel_sp(2) = _params.acc_down_max * dt + _vel_sp_prev(2);
-	}
-
 }
 
 bool
