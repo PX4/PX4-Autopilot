@@ -768,7 +768,7 @@ void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, f
 	// return the airspeed fusion innovation test ratio
 	*tas = sqrtf(_tas_test_ratio);
 	// return the terrain height innovation test ratio
-	*hagl = sqrt(_terr_test_ratio);
+	*hagl = sqrtf(_terr_test_ratio);
 }
 
 // return a bitmask integer that describes which state estimates are valid
@@ -912,7 +912,7 @@ Vector3f Ekf::calcRotVecVariances()
 		q3 = -_state.quat_nominal(3);
 	}
 	float t2 = q0*q0;
-	float t3 = acos(q0);
+	float t3 = acosf(q0);
 	float t4 = -t2+1.0f;
 	float t5 = t2-1.0f;
 	if ((t4 > 1e-9f) && (t5 < -1e-9f)) {
