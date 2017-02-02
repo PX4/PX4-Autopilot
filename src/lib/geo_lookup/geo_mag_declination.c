@@ -34,9 +34,10 @@
 /**
 * @file geo_mag_declination.c
 *
-* Calculation / lookup table for earth magnetic field declination.
+* Calculation / lookup table for Earth's magnetic field declination.
 *
-* Lookup table from Scott Ferguson <scottfromscott@gmail.com>
+* Lookup table from Scott Ferguson <scottfromscott@gmail.com> and
+* Stephan Brown <stephan.brown.07@gmail.com>
 *
 * XXX Lookup table currently too coarse in resolution (only full degrees)
 * and lat/lon res - needs extension medium term.
@@ -52,6 +53,8 @@
 #define SAMPLING_MAX_LAT	60.0f
 #define SAMPLING_MIN_LON	-180.0f
 #define SAMPLING_MAX_LON	180.0f
+
+#define constrain(val, min, max) (val < min) ? min : ((val > max) ? max : val)
 
 static const int8_t declination_table[13][37] = \
 {
@@ -71,24 +74,24 @@ static const int8_t declination_table[13][37] = \
 };
 
 static float get_lookup_table_val(unsigned lat, unsigned lon);
-static unsigned get_lookup_table_index(float val, float min, float max);
+static unsigned get_lookup_table_index(float* val, float min, float max);
 
-unsigned get_lookup_table_index(float val, float min, float max)
+unsigned get_lookup_table_index(float* val, float min, float max)
 {
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
 	 */
 	/* limit to table bounds - required for maxima even when table spans full globe range */
-	if (val <= min) {
-		val = min;
+	if (*val < min) {
+		*val = min;
 	}
 
 	/* limit to (table bounds - 1) because bilinear interpolation requires checking (index + 1) */
-	if (val >= max) {
-		val = max - SAMPLING_RES;
+	if (*val > max) {
+		*val = max - SAMPLING_RES;
 	}
 
-	return (-(min) + val)  / SAMPLING_RES;
+	return (-(min) + *val)  / SAMPLING_RES;
 }
 
 __EXPORT float get_mag_declination(float lat, float lon)
@@ -108,8 +111,8 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	float min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
 
 	/* find index of nearest low sampling point */
-	unsigned min_lat_index = get_lookup_table_index(min_lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
-	unsigned min_lon_index = get_lookup_table_index(min_lon, SAMPLING_MIN_LON, SAMPLING_MAX_LON);
+	unsigned min_lat_index = get_lookup_table_index(&min_lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
+	unsigned min_lon_index = get_lookup_table_index(&min_lon, SAMPLING_MIN_LON, SAMPLING_MAX_LON);
 
 	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index);
 	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);
@@ -117,11 +120,13 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	float declination_nw = get_lookup_table_val(min_lat_index + 1, min_lon_index);
 
 	/* perform bilinear interpolation on the four grid corners */
+	float lat_scale = constrain((lat - min_lat) / SAMPLING_RES, 0.0f, 1.0f);
+	float lon_scale = constrain((lon - min_lon) / SAMPLING_RES, 0.0f, 1.0f);
 
-	float declination_min = ((lon - min_lon) / SAMPLING_RES) * (declination_se - declination_sw) + declination_sw;
-	float declination_max = ((lon - min_lon) / SAMPLING_RES) * (declination_ne - declination_nw) + declination_nw;
+	float declination_min = lon_scale * (declination_se - declination_sw) + declination_sw;
+	float declination_max = lon_scale * (declination_ne - declination_nw) + declination_nw;
 
-	return ((lat - min_lat) / SAMPLING_RES) * (declination_max - declination_min) + declination_min;
+	return lat_scale * (declination_max - declination_min) + declination_min;
 }
 
 float get_lookup_table_val(unsigned lat_index, unsigned lon_index)
