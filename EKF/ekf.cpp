@@ -237,12 +237,7 @@ bool Ekf::update()
 	}
 
 	// We don't have valid data to output until tilt and yaw alignment is complete
-	if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
-		return true;
-
-	} else {
-		return false;
-	}
+	return _control_status.flags.tilt_align && _control_status.flags.yaw_align;
 }
 
 bool Ekf::initialiseFilter()

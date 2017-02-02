@@ -98,12 +98,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
-	if (_NED_origin_initialised && gps->fix_type >= 3) {
-		return true;
-
-	} else {
-		return false;
-	}
+	return _NED_origin_initialised && (gps->fix_type >= 3);
 
 	return false;
 }
@@ -239,10 +234,6 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	}
 
 	// continuous period without fail of 10 seconds required to return a healthy status
-	if (_time_last_imu - _last_gps_fail_us > 1e7) {
-		return true;
-	}
-
-	return false;
+	return (_time_last_imu - _last_gps_fail_us > 1e7);
 }
 
