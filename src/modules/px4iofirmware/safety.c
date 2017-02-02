@@ -54,27 +54,29 @@ static struct hrt_call failsafe_call;
 static unsigned counter = 0;
 
 /*
+ * needed to support different arming / disarming debounce delays
+ * 0: waiting for switch pressed
+ * 1: waiting for switch release
+ */
+static unsigned safety_button_active = 0;
+
+/*
  * Define the various LED flash sequences for each system state.
  */
 #define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
-#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 	0x5555		/**< fast blinking			*/
 #define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
 #define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
 #define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 static unsigned blink_counter = 0;
 
-/*
- * IMPORTANT: The arming state machine critically
- * 	      depends on using the same threshold
- *            for arming and disarming. Since disarming
- *            is quite deadly for the system, a similar
- *            length can be justified.
- */
 #define ARM_COUNTER_THRESHOLD	10
+#define DISARM_COUNTER_THRESHOLD	2
 
 static bool safety_button_pressed;
 
+static bool debounce(bool pressed, int debounce_thresh);
 static void safety_check_button(void *arg);
 static void failsafe_blink(void *arg);
 
@@ -92,6 +94,26 @@ failsafe_led_init(void)
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
 }
 
+bool debounce(bool pressed, int debounce_thresh)
+{
+	bool result = false;
+
+	if (!pressed) {
+		counter = 0;
+
+	} else {
+		if (counter < debounce_thresh) {
+			counter++;
+
+		} else if (counter >= debounce_thresh) {
+			result = true;
+			counter++;
+		}
+	}
+
+	return result;
+}
+
 static void
 safety_check_button(void *arg)
 {
@@ -102,38 +124,32 @@ safety_check_button(void *arg)
 	safety_button_pressed = BUTTON_SAFETY;
 
 	/*
-	 * Keep pressed for a while to arm.
-	 *
-	 * Note that the counting sequence has to be same length
-	 * for arming / disarming in order to end up as proper
-	 * state machine, keep ARM_COUNTER_THRESHOLD the same
-	 * length in all cases of the if/else struct below.
+	 * Keep pressed for a while to arm/disarm.
 	 */
-	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
-	    (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
+	if (safety_button_active == 0) {	// waiting for switch pressed for > threshold
 
-		if (counter < ARM_COUNTER_THRESHOLD) {
-			counter++;
+		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
+		    (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {	// disarmed
 
-		} else if (counter == ARM_COUNTER_THRESHOLD) {
-			/* switch to armed state */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
-			counter++;
+			if (debounce(safety_button_pressed, ARM_COUNTER_THRESHOLD)) {	// use arm delay
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;	// arm
+				safety_button_active = 1;
+			}
+
+		} else if (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) { // armed
+
+			if (debounce(safety_button_pressed, DISARM_COUNTER_THRESHOLD)) {	// use disarm delay
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;	// disarm
+				safety_button_active = 1;
+			}
 		}
 
-	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
+	} else if (safety_button_active == 1) {	// waiting for switch released
 
-		if (counter < ARM_COUNTER_THRESHOLD) {
-			counter++;
-
-		} else if (counter == ARM_COUNTER_THRESHOLD) {
-			/* change to disarmed state and notify the FMU */
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
-			counter++;
+		if (!safety_button_pressed) {
+			debounce(safety_button_pressed, DISARM_COUNTER_THRESHOLD);
+			safety_button_active = 0;
 		}
-
-	} else {
-		counter = 0;
 	}
 
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
