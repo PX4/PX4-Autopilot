@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include "send_event.h"
-#include "temperature_calibration.h"
+#include "temperature_calibration/temperature_calibration.h"
 
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
@@ -129,7 +129,9 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
-		} else if  ((int)(cmd.param1) == 3) { //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
+
+		} else if ((int)(cmd.param1) ==
+			   3) {  //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
 
 			if (run_temperature_accel_calibration() == 0) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -137,7 +139,9 @@ void SendEvent::process_commands()
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 			}
-		} else if  ((int)(cmd.param1) == 4) { //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
+
+		} else if ((int)(cmd.param1) ==
+			   4) {  //TODO: this needs to be specified in mavlink (and adjust commander accordingly)...
 
 			if (run_temperature_baro_calibration() == 0) {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
