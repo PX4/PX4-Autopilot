@@ -43,7 +43,8 @@
 *
 */
 
-#include <geo/geo.h>
+#include <stdint.h>
+#include "geo_mag_declination.h"
 
 /** set this always to the sampling in degrees for the table below */
 #define SAMPLING_RES		10.0f
@@ -70,6 +71,25 @@ static const int8_t declination_table[13][37] = \
 };
 
 static float get_lookup_table_val(unsigned lat, unsigned lon);
+static unsigned get_lookup_table_index(float val, float min, float max);
+
+unsigned get_lookup_table_index(float val, float min, float max)
+{
+	/* for the rare case of hitting the bounds exactly
+	 * the rounding logic wouldn't fit, so enforce it.
+	 */
+	/* limit to table bounds - required for maxima even when table spans full globe range */
+	if (val <= min) {
+		val = min;
+	}
+
+	/* limit to (table bounds - 1) because bilinear interpolation requires checking (index + 1) */
+	if (val >= max) {
+		val = max - SAMPLING_RES;
+	}
+
+	return (-(min) + val)  / SAMPLING_RES;
+}
 
 __EXPORT float get_mag_declination(float lat, float lon)
 {
@@ -84,33 +104,12 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	/* round down to nearest sampling resolution */
-	int min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
-	int min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
-
-	/* for the rare case of hitting the bounds exactly
-	 * the rounding logic wouldn't fit, so enforce it.
-	 */
-
-	/* limit to table bounds - required for maxima even when table spans full globe range */
-	if (lat <= SAMPLING_MIN_LAT) {
-		min_lat = SAMPLING_MIN_LAT;
-	}
-
-	if (lat >= SAMPLING_MAX_LAT) {
-		min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
-	}
-
-	if (lon <= SAMPLING_MIN_LON) {
-		min_lon = SAMPLING_MIN_LON;
-	}
-
-	if (lon >= SAMPLING_MAX_LON) {
-		min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
-	}
+	float min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
+	float min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
 
 	/* find index of nearest low sampling point */
-	unsigned min_lat_index = (-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES;
-	unsigned min_lon_index = (-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES;
+	unsigned min_lat_index = get_lookup_table_index(min_lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
+	unsigned min_lon_index = get_lookup_table_index(min_lon, SAMPLING_MIN_LON, SAMPLING_MAX_LON);
 
 	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index);
 	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);
