@@ -510,6 +510,7 @@ function(px4_add_upload)
 	set(serial_ports)
 	if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 		list(APPEND serial_ports
+			/dev/serial/by-id/*_PX4_*
 			/dev/serial/by-id/usb-3D_Robotics*
 			/dev/serial/by-id/usb-The_Autopilot*
 			/dev/serial/by-id/usb-Bitcraze*
