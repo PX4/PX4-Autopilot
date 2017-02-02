@@ -2238,6 +2238,8 @@ int commander_thread_main(int argc, char *argv[])
 
 					if (!armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+						usleep(200000);
+						board_pwr(false);
 
 					} else {
 						if (low_bat_action == 1) {
