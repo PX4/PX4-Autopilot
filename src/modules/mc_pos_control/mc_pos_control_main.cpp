@@ -994,8 +994,6 @@ MulticopterPositionControl::control_manual(float dt)
 
 	bool smooth_pos_transition = do_pos_hold && !_pos_hold_engaged;
 
-
-
 	/* update hold flags */
 	_alt_hold_engaged = do_alt_hold;
 	_pos_hold_engaged = do_pos_hold;
@@ -1017,12 +1015,26 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* reset position setpoints when in smooth transition for position*/
 	if (smooth_pos_transition) {
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
+		/* time to travel from current velocity to zero velocity */
+		float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _params.acc_hor_max;
+
+		/* p pos_sp in xy from max acceleration and current velocity */
+		math::Vector<2> pos(_pos(0), _pos(1));
+		math::Vector<2> vel(_vel(0), _vel(1));
+		math::Vector<2> pos_sp = pos + vel * delta_t -  vel.normalized() * 0.5f * _params.acc_hor_max * delta_t *delta_t;
+		_pos_sp(0) = pos_sp(0);
+		_pos_sp(1) = pos_sp(1);
 	}
 
 	if (smooth_alt_transition) {
-		_pos_sp(2) = _pos(2);
+		/* get max acceleration */
+		float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
+
+		/* time to travel from current velocity to zero velocity */
+		float delta_t = -_vel(2) / max_acc_z;
+
+		/* set desired position setpoint assuming max acceleraiton */
+		_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
 	}
 
 	if (_vehicle_land_detected.landed) {
@@ -1743,17 +1755,6 @@ MulticopterPositionControl::control_position(float dt)
 		} else {
 			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
 				    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
-
-			/* at low thrust in z direction while position hold is engaged, we set thrust in xy to 0
-			 * until thrust in z again reaches large enough thrust. this helps to prevent the jerk when
-			 * flying upward while position hold is engaged
-			 */
-			bool set_thrust_xy_to_0 = _pos_hold_engaged && _alt_hold_engaged && (-thrust_sp(2) < 2.0f * _params.thr_min);
-
-			if (set_thrust_xy_to_0) {
-				thrust_sp(0) = 0.0f;
-				thrust_sp(1) = 0.0f;
-			}
 		}
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
