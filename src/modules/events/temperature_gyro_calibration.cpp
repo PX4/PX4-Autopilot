@@ -365,7 +365,7 @@ void Tempcalgyro::task_main()
 
 	delete tempcalgyro::instance;
 	tempcalgyro::instance = nullptr;
-	PX4_INFO("Tempcalgyro process exited");
+	PX4_INFO("Exiting gyro temperature calibration task");
 }
 
 void Tempcalgyro::do_temperature_calibration(int argc, char *argv[])
@@ -396,7 +396,7 @@ int Tempcalgyro::start()
 
 int run_temperature_gyro_calibration()
 {
-	PX4_INFO("Starting Temperature calibration task");
+	PX4_INFO("Starting gyro temperature calibration task");
 	tempcalgyro::instance = new Tempcalgyro();
 
 	if (tempcalgyro::instance == nullptr) {

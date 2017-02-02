@@ -369,7 +369,7 @@ void Tempcalaccel::task_main()
 
 	delete tempcalaccel::instance;
 	tempcalaccel::instance = nullptr;
-	PX4_INFO("Tempcalaccel process stopped");
+	PX4_INFO("Exiting accel temperature calibration task");
 }
 
 void Tempcalaccel::do_temperature_accel_calibration(int argc, char *argv[])
@@ -400,7 +400,7 @@ int Tempcalaccel::start()
 
 int run_temperature_accel_calibration()
 {
-	PX4_INFO("Starting accel thermal calibration task");
+	PX4_INFO("Starting accel temperature calibration task");
 	tempcalaccel::instance = new Tempcalaccel();
 
 	if (tempcalaccel::instance == nullptr) {

@@ -317,7 +317,7 @@ void Tempcalbaro::task_main()
 
 	delete tempcalbaro::instance;
 	tempcalbaro::instance = nullptr;
-	PX4_INFO("Tempcalbaro process stopped");
+	PX4_INFO("Exiting baro temperature calibration task");
 }
 
 void Tempcalbaro::do_temperature_baro_calibration(int argc, char *argv[])
@@ -348,7 +348,7 @@ int Tempcalbaro::start()
 
 int run_temperature_baro_calibration()
 {
-	PX4_INFO("Starting baro thermal calibration task");
+	PX4_INFO("Starting baro temperature calibration task");
 	tempcalbaro::instance = new Tempcalbaro();
 
 	if (tempcalbaro::instance == nullptr) {
