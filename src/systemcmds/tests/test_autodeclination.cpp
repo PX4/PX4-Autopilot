@@ -23,7 +23,7 @@ private:
 
 bool AutoDeclinationTest::autodeclination_check()
 {
-	ut_assert("declination differs more than 1 degree", get_mag_declination(47.0, 8.0) - 0.6f < 0.5f);
+	ut_assert("declination differs more than 1 degree", get_mag_declination(47.0, 8.0) - 1.6f < 0.5f);
 
 	return true;
 }
