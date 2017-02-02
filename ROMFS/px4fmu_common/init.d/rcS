@@ -1058,6 +1058,26 @@ then
 
 	fi
 
+	#
+	# Check if we should start a thermal calibration
+	# TODO move further up and don't start unnecessary services if we are calibrating
+	#
+	if param compare SYS_CAL_GYRO 1
+	then
+		send_event start_temp_gyro_cal
+		param set SYS_CAL_GYRO 0
+	fi
+	if param compare SYS_CAL_ACCEL 1
+	then
+		send_event start_temp_accel_cal
+		param set SYS_CAL_ACCEL 0
+	fi
+	if param compare SYS_CAL_BARO 1
+	then
+		send_event start_temp_baro_cal
+		param set SYS_CAL_BARO 0
+	fi
+
 # End of autostart
 fi
 
