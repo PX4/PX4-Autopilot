@@ -202,25 +202,41 @@ def temperature_calibration(ulog_filename, do_plot):
                 'TMIN': qgc_param(data['T_min'], 'float'),
                 'TMAX': qgc_param(data['T_max'], 'float'),
                 'TREF': qgc_param(data['T_ref'], 'float'),
-                'SCL_0': qgc_param(1.0, 'float'),
-                'SCL_1': qgc_param(1.0, 'float'),
-                'SCL_2': qgc_param(1.0, 'float'),
             }
 
             # poly coeffs
             for i_field, field in enumerate(data['poly'].keys()):
                 for i_c, c in enumerate(data['poly'][field]):
-                    p['X{:d}_{:d}'.format(i_c, i_field)] = \
-                        qgc_param(float(data['poly'][field][i_c]), 'float')
+                    if len(data['poly'].keys()) > 1:
+                        p['X{:d}_{:d}'.format(i_c, i_field)] = \
+                            qgc_param(float(data['poly'][field][i_c]), 'float')
+                    else:
+                        p['X{:d}'.format(i_c)] = \
+                            qgc_param(float(data['poly'][field][i_c]), 'float')
 
             # naming
             if topic == 'sensor_gyro':
                 name = 'TC_G{:d}'.format(multi_id)
                 params[name + '_ID'] = qgc_param(multi_id, 'int')
+                p.update({
+                    'SCL_0': qgc_param(1.0, 'float'),
+                    'SCL_1': qgc_param(1.0, 'float'),
+                    'SCL_2': qgc_param(1.0, 'float'),
+                })
             elif topic == 'sensor_baro':
                 name = 'TC_B{:d}'.format(multi_id)
+                p.update({
+                    'SCL': qgc_param(1.0, 'float'),
+                })
+
             elif topic == 'sensor_accel':
                 name = 'TC_A{:d}'.format(multi_id)
+                p.update({
+                    'SCL_0': qgc_param(1.0, 'float'),
+                    'SCL_1': qgc_param(1.0, 'float'),
+                    'SCL_2': qgc_param(1.0, 'float'),
+                })
+
 
             # prepend name to params and save in params dict
             params.update({ '{:s}_{:s}'.format(name, key): val 
