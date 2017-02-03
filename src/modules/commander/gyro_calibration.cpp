@@ -242,35 +242,36 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		}
 #else
 		(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
-		res = param_set(param_find(str), &gyro_scale_zero.x_offset);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
-		res = param_set(param_find(str), &gyro_scale_zero.y_offset);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.y_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
-		res = param_set(param_find(str), &gyro_scale_zero.z_offset);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_XSCALE", s);
-		res = param_set(param_find(str), &gyro_scale_zero.x_scale);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_YSCALE", s);
-		res = param_set(param_find(str), &gyro_scale_zero.y_scale);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.y_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", s);
-		res = param_set(param_find(str), &gyro_scale_zero.z_scale);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
+		param_notify_changes();
 #endif
 
 	}
@@ -401,14 +402,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 								val += worker_data.gyro_scale[uorb_index].z_offset;
 
 							}
-							if (axis_index == 2) { //notify the system about the change, but only once, for the last one
-								failed |= (PX4_OK != param_set(handle, &val));
-
-							} else {
-								failed |= (PX4_OK != param_set_no_notification(handle, &val));
-
-							}
+							failed |= (PX4_OK != param_set_no_notification(handle, &val));
 						}
+						param_notify_changes();
 					}
 
 					// Ensure the calibration values used the driver are at default settings
