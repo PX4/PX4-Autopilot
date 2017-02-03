@@ -60,6 +60,13 @@ TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_ris
 	}
 }
 
+TemperatureCalibrationBaro::~TemperatureCalibrationBaro()
+{
+	for (unsigned i = 0; i < _num_sensor_instances; i++) {
+		orb_unsubscribe(_sensor_subs[i]);
+	}
+}
+
 void TemperatureCalibrationBaro::reset_calibration()
 {
 	//nothing to do
