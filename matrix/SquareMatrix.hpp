@@ -232,9 +232,8 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
             // divide by the factor
             // on current
             // term to be solved
-            if(fabsf(U(i,i)) < 1e-8f) {
-                return false;
-            }
+            //
+            // we know that U(i, i) != 0 from above
             P(i, c) /= U(i, i);
         }
     }

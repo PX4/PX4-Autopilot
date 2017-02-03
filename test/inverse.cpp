@@ -82,7 +82,30 @@ int main()
     SquareMatrix<float, 3> A3(data3);
     SquareMatrix<float, 3> A3_I = inv(A3);
     SquareMatrix<float, 3> A3_I_check(data3_check);
-    TEST((A3_I - A3_I_check).abs().max() < 1e-5);
+    TEST(isEqual(inv(A3), A3_I_check));
+    TEST(isEqual(A3_I, A3_I_check));
+    TEST(A3.I(A3_I));
+    TEST(isEqual(A3_I, A3_I_check));
+
+    // cover singular matrices
+    A3(0, 0) = 0;
+    A3(0, 1) = 0;
+    A3(0, 2) = 0;
+    A3_I = inv(A3);
+    SquareMatrix<float, 3>  Z3 = zeros<float, 3, 3>();
+    TEST(!A3.I(A3_I));
+    TEST(!Z3.I(A3_I));
+    TEST(isEqual(A3_I, Z3));
+    TEST(isEqual(A3.I(), Z3));
+
+    // cover NaN
+    A3(0, 0) = NAN;
+    A3(0, 1) = 0;
+    A3(0, 2) = 0;
+    A3_I = inv(A3);
+    TEST(isEqual(A3_I, Z3));
+    TEST(isEqual(A3.I(), Z3));
+
     return 0;
 }
 
