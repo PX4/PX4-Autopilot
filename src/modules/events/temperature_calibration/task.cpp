@@ -127,6 +127,7 @@ void TemperatureCalibration::task_main()
 
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];
+	bool error_reported[3] = {};
 	int num_calibrators = 0;
 
 	if (_accel) {
@@ -200,7 +201,10 @@ void TemperatureCalibration::task_main()
 			ret = calibrators[i]->update();
 
 			if (ret < 0) {
-				PX4_ERR("Calibration update step failed (%i)", ret);
+				if (!error_reported[i]) {
+					PX4_ERR("Calibration update step failed (%i)", ret);
+					error_reported[i] = true;
+				}
 
 			} else if (ret < min_progress) {
 				min_progress = ret;
@@ -219,6 +223,8 @@ void TemperatureCalibration::task_main()
 			next_progress_output = now + 1e6;
 		}
 	}
+
+	PX4_INFO("Sensor Measurments completed");
 
 	// do final calculations & parameter storage
 	for (int i = 0; i < num_calibrators; ++i) {
