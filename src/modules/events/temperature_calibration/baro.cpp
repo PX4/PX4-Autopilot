@@ -67,20 +67,22 @@ void TemperatureCalibrationBaro::reset_calibration()
 
 int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
-	if (data.hot_soaked) {
-		// already done
-		return 0;
-	}
+	bool finished = data.hot_soaked;
 
 	bool updated;
 	orb_check(sensor_sub, &updated);
 
 	if (!updated) {
-		return 1;
+		return finished ? 0 : 1;
 	}
 
 	sensor_baro_s baro_data;
 	orb_copy(ORB_ID(sensor_baro), sensor_sub, &baro_data);
+
+	if (finished) {
+		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
 
 	data.device_id = baro_data.device_id;
 
