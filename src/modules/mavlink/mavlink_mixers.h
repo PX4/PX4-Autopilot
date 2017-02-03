@@ -84,6 +84,18 @@ public:
 
 	bool const_rate() { return true; };
 
+	/* do not allow top copying this class */
+	MavlinkMixersManager(MavlinkMixersManager &);
+	MavlinkMixersManager &operator = (const MavlinkMixersManager &);
+
+protected:
+	explicit MavlinkMixersManager(Mavlink *mavlink);
+	~MavlinkMixersManager();
+
+	void send(const hrt_abstime t);
+
+	void        _send_mixer_count();
+
 	bool        _request_pending;
 	bool        _send_all;
 
@@ -94,19 +106,8 @@ public:
 	uint16_t    _mixer_sub_count;
 	uint16_t    _mixer_type;
 	uint16_t    _mixer_param_count;
-	int16_t    _mavlink_mixer_state;
-
-	void        _send_mixer_count();
-
-	/* do not allow top copying this class */
-	MavlinkMixersManager(MavlinkMixersManager &);
-	MavlinkMixersManager &operator = (const MavlinkMixersManager &);
-
-protected:
-	explicit MavlinkMixersManager(Mavlink *mavlink);
-	~MavlinkMixersManager();
-
-	void send(const hrt_abstime t);
+	int16_t     _mavlink_mixer_state;
+	char       *_p_mixer_save_buffer;
 
 	orb_advert_t _mixer_data_request_pub;
 	orb_advert_t _mixer_parameter_set_pub;

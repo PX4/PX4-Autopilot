@@ -40,14 +40,19 @@
 
 #if defined(MIXER_CONFIGURATION)
 
+#include <sys/ioctl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <uORB/topics/mixer_data_request.h>
 #include <uORB/topics/mixer_data.h>
 #include <uORB/topics/mixer_parameter_set.h>
 
 #include <systemlib/mixer/mixer_parameters.h>
+#include <drivers/drv_mixer.h>
 #include "mavlink_main.h"
+
+
 
 static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 
@@ -61,6 +66,7 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_mixer_type(0),
 	_mixer_param_count(0),
 	_mavlink_mixer_state(MAVLINK_MIXER_STATE_WAITING),
+	_p_mixer_save_buffer(nullptr),
 	_mixer_data_request_pub(nullptr),
 	_mixer_parameter_set_pub(nullptr),
 	_mixer_data_sub(-1)
@@ -117,6 +123,25 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 					_mixer_data_req.parameter_index = 0;
 					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
 					_send_all = true;
+
+				} else if (req.data_type == 112) { //MIXER_ACTION_SAVE_GROUP
+					PX4_INFO("Saving mixer from group:%u", req.mixer_group);
+
+					if (_p_mixer_save_buffer == nullptr) {
+						_p_mixer_save_buffer = (char *) malloc(2048);
+						PX4_INFO("Saving mixer allocating buffer");
+					}
+
+					if (_p_mixer_save_buffer == nullptr) {
+						PX4_ERR("Could not allocate buffer for mixer save");
+					}
+
+					_mixer_data_req.mixer_index = req.mixer_index;
+					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
+					_mixer_data_req.parameter_index = req.parameter_index;
+					_mixer_data_req.mixer_data_type = req.data_type;
+					_mixer_data_req.dataref = (unsigned long) &_p_mixer_save_buffer;
+					_send_all = false;
 
 				} else {
 					_mixer_data_req.mixer_index = req.mixer_index;
@@ -243,6 +268,15 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				msg.param_type = MAVLINK_TYPE_INT32_T;
 			}
 		}
+
+		if (msg.data_type == 112) {
+			if (_p_mixer_save_buffer != nullptr) {
+				free(_p_mixer_save_buffer);
+				_p_mixer_save_buffer = nullptr;
+				PX4_INFO("Saving mixer freeing buffer");
+			}
+		}
+
 
 		PX4_INFO("mavlink mixer_data send with group:%u index:%u sub:%u param:%u type:%u data:%u",
 			 msg.mixer_group,
