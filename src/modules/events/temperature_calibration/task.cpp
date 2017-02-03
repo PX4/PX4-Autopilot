@@ -46,6 +46,8 @@
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
 
+#include <unistd.h>
+
 #include "common.h"
 #include "temperature_calibration.h"
 #include "accel.h"
@@ -167,6 +169,11 @@ void TemperatureCalibration::task_main()
 	for (int i = 0; i < num_calibrators; ++i) {
 		calibrators[i]->reset_calibration();
 	}
+
+	// make sure the system updates the changed parameters
+	param_notify_changes();
+
+	usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
