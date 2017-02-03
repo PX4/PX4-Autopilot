@@ -40,7 +40,7 @@ class TemperatureCalibrationAccel : public TemperatureCalibrationBase
 {
 public:
 	TemperatureCalibrationAccel(float min_temperature_rise);
-	virtual ~TemperatureCalibrationAccel() {}
+	virtual ~TemperatureCalibrationAccel();
 
 	/**
 	 * @see TemperatureCalibrationBase::update()

@@ -60,6 +60,13 @@ TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_r
 	}
 }
 
+TemperatureCalibrationAccel::~TemperatureCalibrationAccel()
+{
+	for (unsigned i = 0; i < _num_sensor_instances; i++) {
+		orb_unsubscribe(_sensor_subs[i]);
+	}
+}
+
 void TemperatureCalibrationAccel::reset_calibration()
 {
 	/* reset all driver level calibrations */

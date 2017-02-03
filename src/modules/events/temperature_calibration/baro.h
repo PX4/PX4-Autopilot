@@ -43,7 +43,7 @@ class TemperatureCalibrationBaro : public TemperatureCalibrationBase
 {
 public:
 	TemperatureCalibrationBaro(float min_temperature_rise);
-	virtual ~TemperatureCalibrationBaro() {}
+	virtual ~TemperatureCalibrationBaro();
 
 	/**
 	 * @see TemperatureCalibrationBase::update()
