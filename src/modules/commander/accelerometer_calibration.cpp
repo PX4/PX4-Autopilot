@@ -210,35 +210,36 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 #else
 		(void)sprintf(str, "CAL_ACC%u_XOFF", s);
-		res = param_set(param_find(str), &accel_scale.x_offset);
+		res = param_set_no_notification(param_find(str), &accel_scale.x_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_YOFF", s);
-		res = param_set(param_find(str), &accel_scale.y_offset);
+		res = param_set_no_notification(param_find(str), &accel_scale.y_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_ZOFF", s);
-		res = param_set(param_find(str), &accel_scale.z_offset);
+		res = param_set_no_notification(param_find(str), &accel_scale.z_offset);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_XSCALE", s);
-		res = param_set(param_find(str), &accel_scale.x_scale);
+		res = param_set_no_notification(param_find(str), &accel_scale.x_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_YSCALE", s);
-		res = param_set(param_find(str), &accel_scale.y_scale);
+		res = param_set_no_notification(param_find(str), &accel_scale.y_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
 		(void)sprintf(str, "CAL_ACC%u_ZSCALE", s);
-		res = param_set(param_find(str), &accel_scale.z_scale);
+		res = param_set_no_notification(param_find(str), &accel_scale.z_scale);
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
 		}
+		param_notify_changes();
 #endif
 	}
 
@@ -351,12 +352,9 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 					} else if (axis_index == 2) {
 						val = accel_scale.z_scale;
 					}
-					if (axis_index == 2) { //notify the system about the change, but only once, for the last one
-						failed |= (PX4_OK != param_set(handle, &val));
-					} else {
-						failed |= (PX4_OK != param_set_no_notification(handle, &val));
-					}
+					failed |= (PX4_OK != param_set_no_notification(handle, &val));
 				}
+				param_notify_changes();
 			}
 
 			// Ensure the calibration values used by the driver are at default settings when we are using thermal calibration data
@@ -752,8 +750,9 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub) {
 	}
 
 	float zero = 0.0f;
-	param_set(roll_offset_handle, &zero);
-	param_set(pitch_offset_handle, &zero);
+	param_set_no_notification(roll_offset_handle, &zero);
+	param_set_no_notification(pitch_offset_handle, &zero);
+	param_notify_changes();
 
 	px4_pollfd_struct_t fds[1];
 
@@ -808,8 +807,9 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub) {
 	} else {
 		roll_mean *= (float)M_RAD_TO_DEG;
 		pitch_mean *= (float)M_RAD_TO_DEG;
-		param_set(roll_offset_handle, &roll_mean);
-		param_set(pitch_offset_handle, &pitch_mean);
+		param_set_no_notification(roll_offset_handle, &roll_mean);
+		param_set_no_notification(pitch_offset_handle, &pitch_mean);
+		param_notify_changes();
 		success = true;
 	}
 
@@ -819,8 +819,9 @@ out:
 		return 0;
 	} else {
 		// set old parameters
-		param_set(roll_offset_handle, &roll_offset_current);
-		param_set(pitch_offset_handle, &pitch_offset_current);
+		param_set_no_notification(roll_offset_handle, &roll_offset_current);
+		param_set_no_notification(pitch_offset_handle, &pitch_offset_current);
+		param_notify_changes();
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
 		return 1;
 	}
