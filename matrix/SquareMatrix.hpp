@@ -241,7 +241,7 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     //check sanity of results
     for (size_t i = 0; i < M; i++) {
         for (size_t j = 0; j < M; j++) {
-            if (!isfinite(P(i,j))) {
+            if (!is_finite(P(i,j))) {
                 return false;
             }
         }

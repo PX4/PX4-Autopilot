@@ -13,4 +13,3 @@
 #include "Scalar.hpp"
 #include "Quaternion.hpp"
 #include "AxisAngle.hpp"
-#include "helper_functions.hpp"
