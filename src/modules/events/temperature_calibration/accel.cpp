@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise)
-	: TemperatureCalibrationBase(min_temperature_rise)
+	: TemperatureCalibrationCommon(min_temperature_rise)
 {
 
 	//init subscriptions
@@ -143,33 +143,6 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	data.P[2].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[2]);
 
 	return 1;
-}
-
-int TemperatureCalibrationAccel::update()
-{
-
-	int num_not_complete = 0;
-
-	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-		num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
-	}
-
-	if (num_not_complete > 0) {
-		// calculate progress
-		float min_diff = _min_temperature_rise;
-
-		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-			float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
-
-			if (cur_diff < min_diff) {
-				min_diff = cur_diff;
-			}
-		}
-
-		return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
-	}
-
-	return 110;
 }
 
 int TemperatureCalibrationAccel::finish()

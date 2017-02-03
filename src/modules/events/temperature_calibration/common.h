@@ -41,11 +41,14 @@
 #endif
 
 #include <px4_log.h>
+#include <mathlib/mathlib.h>
+
+#include "polyfit.hpp"
 
 #define SENSOR_COUNT_MAX		3
 
 /**
- * Base class for temperature calibration types (for all different sensor types)
+ * Base class for temperature calibration types with abstract methods (for all different sensor types)
  */
 class TemperatureCalibrationBase
 {
@@ -99,3 +102,71 @@ int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned i
 	return result;
 }
 
+/**
+ ** class TemperatureCalibrationCommon
+ * Common base class for all sensor types, contains shared code & data.
+ */
+template <int Dim, int PolyfitOrder>
+class TemperatureCalibrationCommon : public TemperatureCalibrationBase
+{
+public:
+	TemperatureCalibrationCommon(float min_temperature_rise)
+		: TemperatureCalibrationBase(min_temperature_rise) {}
+
+	virtual ~TemperatureCalibrationCommon() {}
+
+	/**
+	 * @see TemperatureCalibrationBase::update()
+	 */
+	int update()
+	{
+		int num_not_complete = 0;
+
+		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
+			num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
+		}
+
+		if (num_not_complete > 0) {
+			// calculate progress
+			float min_diff = _min_temperature_rise;
+
+			for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
+				float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
+
+				if (cur_diff < min_diff) {
+					min_diff = cur_diff;
+				}
+			}
+
+			return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
+		}
+
+		return 110;
+	}
+
+protected:
+
+	struct PerSensorData {
+		float sensor_sample_filt[Dim + 1]; ///< last value is the temperature
+		polyfitter < PolyfitOrder + 1 > P[Dim];
+		unsigned hot_soak_sat = 0;
+		uint32_t device_id = 0;
+		bool cold_soaked = false;
+		bool hot_soaked = false;
+		bool tempcal_complete = false;
+		float low_temp = 0.f;
+		float high_temp = 0.f;
+		float ref_temp = 0.f;
+	};
+
+	PerSensorData _data[SENSOR_COUNT_MAX];
+
+	/**
+	 * update a single sensor instance
+	 * @return 0 when done, 1 not finished yet
+	 */
+	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
+
+	int _num_sensor_instances;
+	int _sensor_subs[SENSOR_COUNT_MAX];
+};
