@@ -15,7 +15,7 @@ echo "builddir = ${builddir}, tool = ${tool}"
 
 case "${builddir}" in
   "build_posix_rpi_cross")
-    CXX_INC=$(cd ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/arm-linux-gnueabihf/include/c++/*; pwd)
+    CXX_INC=$(cd ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/arm-linux-gnueabihf/include/c++/*; pwd)
     EXTRA_ARG1=-I${CXX_INC}
     EXTRA_ARG2=-I${CXX_INC}/arm-linux-gnueabihf
     EXTRA_ARG3=-I${CXX_INC}/backward

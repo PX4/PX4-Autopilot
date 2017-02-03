@@ -15,7 +15,7 @@ set(CMAKE_SYSTEM_VERSION 1)
 # specify the cross compiler
 # requires a symbolic link typically from /usr/bin/clang
 find_program(C_COMPILER clang
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -25,7 +25,7 @@ endif()
 cmake_force_c_compiler(${C_COMPILER} Clang)
 
 find_program(CXX_COMPILER clang++
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -38,7 +38,7 @@ cmake_force_cxx_compiler(${CXX_COMPILER} Clang)
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-linux-gnueabihf-${tool}
-		PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+		PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
