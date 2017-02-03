@@ -237,6 +237,12 @@ __EXPORT int		param_set_no_autosave(param_t param, const void *val);
 __EXPORT int		param_set_no_notification(param_t param, const void *val);
 
 /**
+ * Notify the system about parameter changes. Can be used for example after several calls to
+ * param_set_no_notification() to avoid unnecessary system notifications.
+ */
+__EXPORT void param_notify_changes(void);
+
+/**
  * Reset a parameter to its default value.
  *
  * This function frees any storage used by struct parameters, and returns the parameter
