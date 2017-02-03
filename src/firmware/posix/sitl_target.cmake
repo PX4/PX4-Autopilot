@@ -70,11 +70,8 @@ set_target_properties(optical_flow PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
 message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_MODULE_PATH.")
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
-message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
-
 message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_PREFIX_PATH.")
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
-message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
 
 # Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
 # NOTE: Changed from targetting sitl_gazebo to packages within the rotors_simulator repo
@@ -87,7 +84,7 @@ ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
 	# MAVLINK_INTERFACE will build with gazebo_mavlink_interface
 	# BUILD_OPTICAL_FLOW_PLUGIN will build the optical flow plugin
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE
-	CMAKE_CACHE_ARGS -DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH} -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH} -DADDITIONAL_INCLUDE_DIRS:PATH=${PX4_SOURCE_DIR}/Tools/mav_comm/mav_msgs/include/
+	CMAKE_CACHE_ARGS -DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH} -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH} -DADDITIONAL_INCLUDE_DIRS:PATH=${PX4_SOURCE_DIR}/Tools/mav_comm/mav_msgs/include/ -DMAVLINK_HEADER_DIR:PATH=${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
