@@ -15,6 +15,7 @@
 #include <math.h>
 
 #include "math.hpp"
+#include "helper_functions.hpp"
 
 namespace matrix
 {
