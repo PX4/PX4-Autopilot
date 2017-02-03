@@ -280,16 +280,18 @@ save(const char *devname, const char *fname)
 	/* open the device */
 	if ((dev = px4_open(devname, 0)) < 0) {
 		warnx("can't open %s\n", devname);
-		return 1;
+		return -1;
 	}
 
 	char buf[2048];
 
 	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
 
+	px4_close(dev);
+
 	if (ret != 0) {
 		warnx("Could not get mixer config for %s\n", devname);
-		return 1;
+		return -1;
 	}
 
 	/* Create the mixer definition file */
@@ -298,7 +300,6 @@ save(const char *devname, const char *fname)
 #else
 	int fd = open(fname, O_CREAT | O_WRONLY | O_DSYNC, PX4_O_MODE_666);
 #endif
-
 
 	if (fd < 0) {
 		warnx("not able to create file %s", fname);
