@@ -239,9 +239,9 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     }
 
     //check sanity of results
-    for (uint8_t i = 0; i < M; i++) {
-        for (uint8_t j = 0; j < M; j++) {
-            if (!PX4_ISFINITE(P(i,j))) {
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < M; j++) {
+            if (!isfinite(P(i,j))) {
                 return false;
             }
         }

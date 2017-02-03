@@ -14,13 +14,18 @@ namespace matrix
 {
 
 template<typename Type>
+bool isfinite(Type x) {
+#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
+    return PX4_ISFINITE(x);
+#else
+    return std::isfinite(x);
+#endif
+}
+
+template<typename Type>
 Type wrap_pi(Type x)
 {
-#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
     if (!isfinite(x)) {
-#else
-    if (!std::isfinite(x)) {
-#endif
         return x;
     }
 
