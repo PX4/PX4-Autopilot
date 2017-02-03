@@ -265,18 +265,9 @@ void LoadMon::_stack_usage()
 		sched_lock();
 
 		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
-			unsigned stack_size = (uintptr_t)system_load.tasks[task_index].tcb->adj_stack_ptr -
-					      (uintptr_t)system_load.tasks[task_index].tcb->stack_alloc_ptr;
 
-			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[task_index].tcb->stack_alloc_ptr;
+			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
 
-			while (stack_free < stack_size) {
-				if (*stack_sweeper++ != 0xff) {
-					break;
-				}
-
-				stack_free++;
-			}
 
 			checked_task = true;
 		}
