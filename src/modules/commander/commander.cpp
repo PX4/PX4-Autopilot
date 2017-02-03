@@ -2230,6 +2230,7 @@ int commander_thread_main(int argc, char *argv[])
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, TAKEOFF DISCOURAGED");
 					}
 
+					status_changed = true;
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
 					   !critical_battery_voltage_actions_done) {
@@ -3208,7 +3209,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			}
 		} else {
 			led_off(LED_GREEN);
-			
+
 			/* armed, solid */
 			led_on(LED_BLUE);
 		}
@@ -3249,7 +3250,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
-	// Note: even if status_flags.offboard_control_set_by_command is set 
+	// Note: even if status_flags.offboard_control_set_by_command is set
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
