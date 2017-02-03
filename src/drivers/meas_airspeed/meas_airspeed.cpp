@@ -186,15 +186,19 @@ MEASAirspeed::collect()
 
 	switch (status) {
 	case 0:
+		// Normal Operation. Good Data Packet
 		break;
 
 	case 1:
+		// Reserved
+		return -EAGAIN;
 
-	/* fallthrough */
 	case 2:
+		// Stale Data. Data has been fetched since last measurement cycle.
+		return -EAGAIN;
 
-	/* fallthrough */
 	case 3:
+		// Fault Detected
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return -EAGAIN;
