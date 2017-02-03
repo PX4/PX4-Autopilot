@@ -99,12 +99,12 @@ int main()
     // dcm renormalize
     Dcmf A = eye<float, 3>();
     Dcmf R(euler_check);
-    for (int i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < 1000; i++) {
         A = R * A;
     }
     A.renormalize();
     float err = 0.0f;
-    for (int row = 0; row < 3; row++) {
+    for (size_t row = 0; row < 3; row++) {
         matrix::Vector3f rvec(A._data[row]);
         err += fabsf(1.0f - rvec.length());
     }
@@ -179,12 +179,18 @@ int main()
     Quatf q_from_m(m4);
     TEST(isEqual(q_from_m, m4));
 
-    // quaternion derivate
+    // quaternion derivative in frame 1
     Quatf q1(0, 1, 0, 0);
-    Vector<float, 4> q1_dot = q1.derivative(Vector3f(1, 2, 3));
-    float data_q_dot_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
-    Vector<float, 4> q1_dot_check(data_q_dot_check);
-    TEST(isEqual(q1_dot, q1_dot_check));
+    Vector<float, 4> q1_dot1 = q1.derivative1(Vector3f(1, 2, 3));
+    float data_q_dot1_check[] = { -0.5f, 0.0f, 1.5f, -1.0f};
+    Vector<float, 4> q1_dot1_check(data_q_dot1_check);
+    TEST(isEqual(q1_dot1, q1_dot1_check));
+
+    // quaternion derivative in frame 2
+    Vector<float, 4> q1_dot2 = q1.derivative2(Vector3f(1, 2, 3));
+    float data_q_dot2_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
+    Vector<float, 4> q1_dot2_check(data_q_dot2_check);
+    TEST(isEqual(q1_dot2, q1_dot2_check));
 
     // quaternion product
     Quatf q_prod_check(
@@ -220,8 +226,12 @@ int main()
     TEST(fabsf(q_check(2) + q(2)) < eps);
     TEST(fabsf(q_check(3) + q(3)) < eps);
 
-    // rotate quaternion (nonzero rotation)
+    // non-unit quaternion invese
     Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
+    Quatf q_nonunit(0.1f, 0.2f, 0.3f, 0.4f);
+    TEST(isEqual(qI, q_nonunit*q_nonunit.inversed()));
+
+    // rotate quaternion (nonzero rotation)
     Vector<float, 3> rot;
     rot(0) = 1.0f;
     rot(1) = rot(2) = 0.0f;
@@ -270,7 +280,7 @@ int main()
     float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
     Quaternion<float>q_from_array(q_array);
 
-    for (int i = 0; i < 4; i++) {
+    for (size_t i = 0; i < 4; i++) {
         TEST(fabsf(q_from_array(i) - q_array[i]) < eps);
     }
 
@@ -333,6 +343,6 @@ int main()
     q = Quatf(0,0,0,1); // 180 degree rotation around the z axis
     R = Dcmf(q);
     TEST(isEqual(q, Quatf(R)));
-};
+}
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

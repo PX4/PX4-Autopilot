@@ -106,6 +106,26 @@ int main()
     TEST(isEqual(A3_I, Z3));
     TEST(isEqual(A3.I(), Z3));
 
+    float data4[9] = {
+        1.33471626f,  0.74946721f, -0.0531679f,
+        0.74946721f,  1.07519593f,  0.08036323f,
+        -0.0531679f,  0.08036323f,  1.01618474f
+    };
+    SquareMatrix<float, 3> A4(data4);
+
+    float data4_cholesky[9] = {
+        1.15529921f,  0.f,  0.f,
+        0.6487213f ,  0.80892311f,  0.f,
+        -0.04602089f,  0.13625271f,  0.99774847f
+    };
+    SquareMatrix<float, 3> A4_cholesky_check(data4_cholesky);
+    SquareMatrix<float, 3> A4_cholesky = cholesky(A4);
+    TEST(isEqual(A4_cholesky_check, A4_cholesky));
+
+    SquareMatrix<float, 3> I3;
+    I3.setIdentity();
+    TEST(isEqual(choleskyInv(A4)*A4, I3));
+    TEST(isEqual(cholesky(Z3), Z3));
     return 0;
 }
 

@@ -29,13 +29,13 @@ Type wrap_pi(Type x)
         return x;
     }
 
-    while (x >= (Type)M_PI) {
-        x -= (Type)(2.0 * M_PI);
+    while (x >= Type(M_PI)) {
+        x -= Type(2.0 * M_PI);
 
     }
 
-    while (x < (Type)(-M_PI)) {
-        x += (Type)(2.0 * M_PI);
+    while (x < Type(-M_PI)) {
+        x += Type(2.0 * M_PI);
 
     }
 
@@ -43,4 +43,4 @@ Type wrap_pi(Type x)
 }
 
 
-};
+}

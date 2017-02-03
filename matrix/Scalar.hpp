@@ -44,11 +44,6 @@ public:
         return _value;
     }
 
-    operator Type const &() const
-    {
-        return _value;
-    }
-
     operator Matrix<Type, 1, 1>() const {
         Matrix<Type, 1, 1> m;
         m(0, 0) = _value;

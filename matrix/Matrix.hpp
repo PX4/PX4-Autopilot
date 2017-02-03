@@ -282,7 +282,7 @@ public:
         const Matrix<Type, M, N> &self = *this;
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                snprintf(buf + strlen(buf), n - strlen(buf), "\t%g", double(self(i, j))); // directly append to the string buffer
+                snprintf(buf + strlen(buf), n - strlen(buf), "\t%8.2g", double(self(i, j))); // directly append to the string buffer
             }
             snprintf(buf + strlen(buf), n - strlen(buf), "\n");
         }
@@ -290,9 +290,11 @@ public:
 
     void print() const
     {
-        char buf[200];
-        write_string(buf, 200);
+        static const size_t n = 10*N*M;
+        char * buf = new char[n];
+        write_string(buf, n);
         printf("%s\n", buf);
+        delete[] buf;
     }
 
     Matrix<Type, N, M> transpose() const
@@ -499,11 +501,13 @@ bool isEqual(const Matrix<Type, M, N> &x,
 
 
     if (!equal) {
-        char buf_x[100];
-        char buf_y[100];
-        x.write_string(buf_x, 100);
-        y.write_string(buf_y, 100);
-        printf("not equal\nx:\n%s\ny:\n%s\n", buf_x, buf_y);
+        static const size_t n = 10*N*M;
+        char * buf = new char[n];
+        x.write_string(buf, n);
+        printf("not equal\nx:\n%s\n", buf);
+        y.write_string(buf, n);
+        printf("y:\n%s\n", buf);
+        delete[] buf;
     }
     return equal;
 }

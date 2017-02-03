@@ -101,10 +101,8 @@ int main()
 
     Scalar<float> s;
     s = 1;
-    float const & s_float = (const Scalar<float>)s;
     const Vector<float, 1> & s_vect = s;
     TEST(fabs(s - 1) < 1e-5);
-    TEST(fabs(s_float - 1.0f) < 1e-5);
     TEST(fabs(s_vect(0) - 1.0f) < 1e-5);
 
     Matrix<float, 1, 1> m5 = s;

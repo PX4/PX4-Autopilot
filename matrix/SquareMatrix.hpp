@@ -265,6 +265,58 @@ SquareMatrix<Type, M> inv(const SquareMatrix<Type, M> & A)
         return i;
     }
 }
+
+/**
+ * cholesky decomposition
+ *
+ * Note: A must be positive definite
+ */
+template<typename Type, size_t M>
+SquareMatrix <Type, M> cholesky(const SquareMatrix<Type, M> & A)
+{
+    SquareMatrix<Type, M> L;
+    for (size_t j = 0; j < M; j++) {
+        for (size_t i = j; i < M; i++) {
+            if (i==j) {
+                float sum = 0;
+                for (size_t k = 0; k < j; k++) {
+                    sum += L(j, k)*L(j, k);
+                }
+                Type res = A(j, j) - sum;
+                if (res <= 0) {
+                    L(j, j) = 0;
+                } else {
+                    L(j, j) = sqrtf(res);
+                }
+            } else {
+                float sum = 0;
+                for (size_t k = 0; k < j; k++) {
+                    sum += L(i, k)*L(j, k);
+                }
+                if (L(j, j) <= 0) {
+                    L(i, j) = 0;
+                } else {
+                    L(i, j) = (A(i, j) - sum)/L(j, j);
+                }
+            }
+        }
+    }
+    return L;
+}
+
+/**
+ * cholesky inverse
+ *
+ * TODO: Check if gaussian elimination jumps straight to back-substitution
+ * for L or we need to do it manually. Will impact speed otherwise.
+ */
+template<typename Type, size_t M>
+SquareMatrix <Type, M> choleskyInv(const SquareMatrix<Type, M> & A)
+{
+    SquareMatrix<Type, M> L_inv = inv(cholesky(A));
+    return L_inv.T()*L_inv;
+}
+
 typedef SquareMatrix<float, 3> Matrix3f;
 
 } // namespace matrix
