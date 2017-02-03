@@ -317,14 +317,18 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 		JTJ2(i,i) += _sphere_lambda / lma_damping;
 	}
 
-	IJTJ = JTJ.I();
+	if(!JTJ.I(JTJ)) {
+		return -1;
+	}
 
-	IJTJ2 = JTJ2.I();
+	if(!JTJ2.I(JTJ2)) {
+		return -1;
+	}
 
 	for (uint8_t row = 0; row < 4; row++) {
 		for (uint8_t col = 0; col < 4; col++) {
-			fit1_params[row] -= JTFI[col] * IJTJ(row, col);
-			fit2_params[row] -= JTFI[col] * IJTJ2(row, col);
+			fit1_params[row] -= JTFI[col] * JTJ(row, col);
+			fit2_params[row] -= JTFI[col] * JTJ2(row, col);
 		}
 	}
 
@@ -447,14 +451,19 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 	}
 
 
-	IJTJ = JTJ.I();
 
-	IJTJ2 = JTJ2.I();
+	if(!JTJ.I(JTJ)) {
+		return -1;
+	}
+
+	if(!JTJ2.I(JTJ2)) {
+		return -1;
+	}
 
 	for (uint8_t row = 0; row < 9; row++) {
 		for (uint8_t col = 0; col < 9; col++) {
-			fit1_params[row] -= JTFI[col] * IJTJ(row,col);
-			fit2_params[row] -= JTFI[col] * IJTJ2(row,col);
+			fit1_params[row] -= JTFI[col] * JTJ(row,col);
+			fit2_params[row] -= JTFI[col] * JTJ2(row,col);
 		}
 	}
 
