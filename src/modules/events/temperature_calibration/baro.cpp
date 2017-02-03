@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 
 TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise)
-	: TemperatureCalibrationBase(min_temperature_rise)
+	: TemperatureCalibrationCommon(min_temperature_rise)
 {
 
 	//init subscriptions
@@ -124,36 +124,9 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 
 	//update linear fit matrices
 	data.sensor_sample_filt[1] -= data.ref_temp;
-	data.P.update((double)data.sensor_sample_filt[1], (double)data.sensor_sample_filt[0]);
+	data.P[0].update((double)data.sensor_sample_filt[1], (double)data.sensor_sample_filt[0]);
 
 	return 1;
-}
-
-int TemperatureCalibrationBaro::update()
-{
-
-	int num_not_complete = 0;
-
-	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-		num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
-	}
-
-	if (num_not_complete > 0) {
-		// calculate progress
-		float min_diff = _min_temperature_rise;
-
-		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-			float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
-
-			if (cur_diff < min_diff) {
-				min_diff = cur_diff;
-			}
-		}
-
-		return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
-	}
-
-	return 110;
 }
 
 int TemperatureCalibrationBaro::finish()
@@ -179,7 +152,7 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 	}
 
 	double res[POLYFIT_ORDER + 1] = {};
-	data.P.fit(res);
+	data.P[0].fit(res);
 	res[POLYFIT_ORDER] =
 		0.0; // normalise the correction to be zero at the reference temperature by setting the X^0 coefficient to zero
 	PX4_INFO("Result baro %u %.20f %.20f %.20f %.20f %.20f %.20f", sensor_index, (double)res[0],

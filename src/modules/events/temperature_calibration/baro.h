@@ -39,16 +39,11 @@
 #define POLYFIT_ORDER			5
 
 
-class TemperatureCalibrationBaro : public TemperatureCalibrationBase
+class TemperatureCalibrationBaro : public TemperatureCalibrationCommon<1, POLYFIT_ORDER>
 {
 public:
 	TemperatureCalibrationBaro(float min_temperature_rise);
 	virtual ~TemperatureCalibrationBaro();
-
-	/**
-	 * @see TemperatureCalibrationBase::update()
-	 */
-	int update();
 
 	/**
 	 * @see TemperatureCalibrationBase::finish()
@@ -62,29 +57,7 @@ public:
 
 private:
 
-	struct PerSensorData {
-		float sensor_sample_filt[2];
-		polyfitter < POLYFIT_ORDER + 1 > P;
-		unsigned hot_soak_sat = 0;
-		uint32_t device_id = 0;
-		bool cold_soaked = false;
-		bool hot_soaked = false;
-		bool tempcal_complete = false;
-		float low_temp = 0.f;
-		float high_temp = 0.f;
-		float ref_temp = 0.f;
-	};
-
-	PerSensorData _data[SENSOR_COUNT_MAX];
-
-	/**
-	 * update a single sensor instance
-	 * @return 0 when done, 1 not finished yet
-	 */
-	inline int update_sensor_instance(PerSensorData &data, int sensor_sub);
+	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub);
 
 	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
-
-	int _num_sensor_instances;
-	int _sensor_subs[SENSOR_COUNT_MAX];
 };
