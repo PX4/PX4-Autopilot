@@ -857,6 +857,13 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						break;
 					}
 
+                    // Make sure we do not takeoff as a fixed wing when the vehicle type is VTOL
+                    if (status_local->is_vtol && !status_local->is_rotary_wing) {
+                    	mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Cannot Takeoff as a Fixed-Wing when vehicle type is VTOL");
+                    	cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+                    	break;
+                    }
+
 					// Refuse to arm if in manual with non-zero throttle
 					if (cmd_arms
 						&& (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
