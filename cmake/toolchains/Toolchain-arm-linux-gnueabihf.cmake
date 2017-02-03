@@ -30,7 +30,7 @@ set(CMAKE_SYSTEM_VERSION 1)
 
 # specify the cross compiler
 find_program(C_COMPILER arm-linux-gnueabihf-gcc
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -40,7 +40,7 @@ endif()
 cmake_force_c_compiler(${C_COMPILER} GNU)
 
 find_program(CXX_COMPILER arm-linux-gnueabihf-g++
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -53,7 +53,7 @@ cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-linux-gnueabihf-${tool}
-		PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin
+		PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
