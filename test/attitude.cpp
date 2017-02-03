@@ -170,13 +170,13 @@ int main()
     // quaternion derivative in frame 1
     Quatf q1(0, 1, 0, 0);
     Vector<float, 4> q1_dot1 = q1.derivative1(Vector3f(1, 2, 3));
-    float data_q_dot1_check[] = { -0.5f, 0.0f, 1.5f, -1.0f};
+    float data_q_dot1_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
     Vector<float, 4> q1_dot1_check(data_q_dot1_check);
     TEST(isEqual(q1_dot1, q1_dot1_check));
 
     // quaternion derivative in frame 2
     Vector<float, 4> q1_dot2 = q1.derivative2(Vector3f(1, 2, 3));
-    float data_q_dot2_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
+    float data_q_dot2_check[] = { -0.5f, 0.0f, 1.5f, -1.0f};
     Vector<float, 4> q1_dot2_check(data_q_dot2_check);
     TEST(isEqual(q1_dot2, q1_dot2_check));
 
@@ -296,8 +296,8 @@ int main()
 
     // conjugate
     Vector3f v1(1.5f, 2.2f, 3.2f);
-    TEST(isEqual(q.conjugate_inversed(v1), Dcmf(q)*v1));
-    TEST(isEqual(q.conjugate(v1), Dcmf(q).T()*v1));
+    TEST(isEqual(q.conjugate_inversed(v1), Dcmf(q).T()*v1));
+    TEST(isEqual(q.conjugate(v1), Dcmf(q)*v1));
 
     AxisAnglef aa_q_init(q);
     TEST(isEqual(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f)));
@@ -319,7 +319,7 @@ int main()
     Dcmf dcm3(Eulerf(1, 2, 3));
     Dcmf dcm4(Eulerf(4, 5, 6));
     Dcmf dcm34 = dcm3 * dcm4;
-    TEST(isEqual(Eulerf(Quatf(dcm4)*Quatf(dcm3)), Eulerf(dcm34)));
+    TEST(isEqual(Eulerf(Quatf(dcm3)*Quatf(dcm4)), Eulerf(dcm34)));
 
     // check corner cases of matrix to quaternion conversion
     q = Quatf(0,1,0,0); // 180 degree rotation around the x axis
