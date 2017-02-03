@@ -246,7 +246,7 @@ param_find_changed(param_t param)
 	return s;
 }
 
-void
+static void
 _param_notify_changes(bool is_saved)
 {
 	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved };
