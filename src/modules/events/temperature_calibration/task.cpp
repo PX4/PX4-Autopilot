@@ -242,6 +242,13 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
+	param_notify_changes();
+	int ret = param_save_default();
+
+	if (ret != 0) {
+		PX4_ERR("Failed to save params (%i)", ret);
+	}
+
 
 	for (int i = 0; i < num_calibrators; ++i) {
 		delete calibrators[i];
