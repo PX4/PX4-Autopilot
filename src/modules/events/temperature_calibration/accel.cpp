@@ -78,20 +78,22 @@ void TemperatureCalibrationAccel::reset_calibration()
 
 int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
-	if (data.hot_soaked) {
-		// already done
-		return 0;
-	}
+	bool finished = data.hot_soaked;
 
 	bool updated;
 	orb_check(sensor_sub, &updated);
 
 	if (!updated) {
-		return 1;
+		return finished ? 0 : 1;
 	}
 
 	sensor_accel_s accel_data;
 	orb_copy(ORB_ID(sensor_accel), sensor_sub, &accel_data);
+
+	if (finished) {
+		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
 
 	data.device_id = accel_data.device_id;
 
