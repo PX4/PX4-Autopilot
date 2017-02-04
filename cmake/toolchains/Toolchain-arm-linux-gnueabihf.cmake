@@ -70,10 +70,6 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 	endif()
 endforeach()
 
-add_definitions(
-	-D __DF_RPI
-	)
-
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
 set(CMAKE_C_FLAGS ${C_FLAGS})
