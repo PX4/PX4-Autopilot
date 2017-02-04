@@ -622,19 +622,24 @@ PWMSim::task_main()
 						break;
 					}
 
-
-				case 112: {     //MIXER_ACTION_SAVE_GROUP
+				//MIXER_ACTION_SAVE_GROUP
+				case 112: {
 						PX4_INFO("Saving mixers for pwm_out_sim group");
 
 						char **ppbuf = (char **) req.dataref;
 						unsigned buf_length = 2048;
 
-						if (_mixers->save_to_buf(*ppbuf, buf_length) < 0) {
-							PX4_ERR("Could not get mixer config");
-							data.int_value = -1;
+						if (*ppbuf != nullptr) {
+							if (_mixers->save_to_buf(*ppbuf, buf_length) < 0) {
+								PX4_ERR("Could not get mixer config");
+								data.int_value = -1;
+
+							} else {
+								data.int_value = strlen(*ppbuf);
+							}
 
 						} else {
-							data.int_value = strlen(*ppbuf);
+							data.int_value = -1;
 						}
 
 						break;

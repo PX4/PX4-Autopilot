@@ -123,14 +123,14 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				// publish mixer data request to uORB
 				_mixer_data_req.mixer_group = req.mixer_group;
 
-				if (req.data_type == 100) {     //MIXER_ACTION_SEND_ALL
+				if (req.data_type == 100) {                                 // MIXER_ACTION_SEND_ALL
 					_mixer_data_req.mixer_index = 0;
 					_mixer_data_req.mixer_sub_index = 0;
 					_mixer_data_req.parameter_index = 0;
 					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
 					_send_all = true;
 
-				} else if (req.data_type == 112) { //MIXER_ACTION_SAVE_GROUP
+				} else if (req.data_type == 112) {                          // MIXER_ACTION_SAVE_GROUP
 					PX4_INFO("Saving mixer from group:%u", req.mixer_group);
 
 					if (_p_mixer_save_buffer == nullptr) {
@@ -149,7 +149,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 					_mixer_data_req.dataref = (unsigned long) &_p_mixer_save_buffer;
 					_send_all = false;
 
-				} else {
+				} else {                                                    // MIXER_DATA_REQUEST
 					_mixer_data_req.mixer_index = req.mixer_index;
 					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
 					_mixer_data_req.parameter_index = req.parameter_index;
