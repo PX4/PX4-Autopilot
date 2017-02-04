@@ -52,7 +52,13 @@
 #include <drivers/drv_mixer.h>
 #include "mavlink_main.h"
 
+#define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
 
+static const char *kMixerLocalData    = MOUNTPOINT "/mixer.local.mix";
+static const char *kMixerFailsafeData = MOUNTPOINT "/mixer.failsafe.mix";
+static const char *kMixerDefaultData = MOUNTPOINT "/mixer.default.mix";
+//static const char *kMixerLocalDataBak    = MOUNTPOINT "/mixer.local.bak";
+//static const char *kMixerFailsafeDataBak = MOUNTPOINT "/mixer.failsafe.bak";
 
 static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 
@@ -270,6 +276,50 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		}
 
 		if (msg.data_type == 112) {
+			if ((_p_mixer_save_buffer != nullptr) || (mixer_data.int_value != -1)) {
+				const char *fname = nullptr;
+
+				switch (mixer_data.mixer_group) {
+				case 0:
+					fname = kMixerLocalData;
+					break;
+
+				case 1:
+					fname = kMixerFailsafeData;
+					break;
+
+				default:
+					fname = kMixerDefaultData;
+					break;
+				}
+
+				/* Create the mixer definition file */
+				FILE *f = ::fopen(fname, "w");
+
+				if (f != nullptr) {
+					/* Write the buffer to the file*/
+					signed err = fputs(_p_mixer_save_buffer, f);
+
+					if (err <= 0) {
+						PX4_ERR("Mixer file write error: %s ", fname);
+						msg.data_value = -1;
+
+					} else {
+						PX4_INFO("Wrote mixer group:%u to file %s\n", mixer_data.mixer_group, fname);
+					}
+
+#ifdef __PX4_NUTTX
+					fsync(fileno(f));
+#endif
+					fclose(f);
+
+				} else {
+					PX4_ERR("not able to create mixer file %s", fname);
+					msg.data_value = -1;
+				}
+
+			}
+
 			if (_p_mixer_save_buffer != nullptr) {
 				free(_p_mixer_save_buffer);
 				_p_mixer_save_buffer = nullptr;
