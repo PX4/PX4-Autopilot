@@ -34,7 +34,7 @@ adb shell mount -o remount,rw /
 adb shell touch /home/root/parameters
 adb shell mkdir -p /data/ftp/internal_000/fs/microsd
 
-${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-strip \
+${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-strip \
   -R .comment -R .gnu.version \
   ../build_posix_bebop_default/src/firmware/posix/px4
 

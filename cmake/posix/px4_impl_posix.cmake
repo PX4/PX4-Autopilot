@@ -274,7 +274,7 @@ elseif ("${BOARD}" STREQUAL "rpi" AND "$ENV{RPI_USE_CLANG}" STREQUAL "1")
 		-m32
 		--target=arm-linux-gnueabihf
 		-ccc-gcc-name arm-linux-gnueabihf
-		--sysroot=${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/arm-linux-gnueabihf/libc/)
+		--sysroot=${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/arm-linux-gnueabihf/libc/)
 
 	set(added_c_flags ${POSIX_CMAKE_C_FLAGS} ${clang_added_flags})
 	list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${clang_added_flags})

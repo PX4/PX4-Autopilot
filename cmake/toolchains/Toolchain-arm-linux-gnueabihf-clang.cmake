@@ -1,9 +1,9 @@
 include(CMakeForceCompiler)
 
-if ($ENV{RPI_TOOLCHAIN_DIR} STREQUAL "")
-        message(FATAL_ERROR "RPI_TOOLCHAIN_DIR not set")
+if ($ENV{PX4_TOOLCHAIN_DIR} STREQUAL "")
+        message(FATAL_ERROR "PX4_TOOLCHAIN_DIR not set")
 else()
-        set(RPI_TOOLCHAIN_DIR $ENV{RPI_TOOLCHAIN_DIR})
+        set(PX4_TOOLCHAIN_DIR $ENV{PX4_TOOLCHAIN_DIR})
 endif()
 
 # this one is important
@@ -15,7 +15,7 @@ set(CMAKE_SYSTEM_VERSION 1)
 # specify the cross compiler
 # requires a symbolic link typically from /usr/bin/clang
 find_program(C_COMPILER clang
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
+	PATHS ${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -25,7 +25,7 @@ endif()
 cmake_force_c_compiler(${C_COMPILER} Clang)
 
 find_program(CXX_COMPILER clang++
-	PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
+	PATHS ${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -38,7 +38,7 @@ cmake_force_cxx_compiler(${CXX_COMPILER} Clang)
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} arm-linux-gnueabihf-${tool}
-		PATHS ${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
+		PATHS ${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin
 		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
