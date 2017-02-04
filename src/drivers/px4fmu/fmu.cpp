@@ -466,9 +466,10 @@ PX4FMU::init()
 
 bool PX4FMU::debounce(bool pressed, int debounce_thresh)
 {
+	bool result = false;
+
 #ifdef GPIO_BTN_SAFETY
 	static int counter = 0;
-	bool result = false;
 
 	if (!pressed) {
 		counter = 0;
@@ -483,9 +484,9 @@ bool PX4FMU::debounce(bool pressed, int debounce_thresh)
 		}
 	}
 
-	return result;
-
 #endif
+
+	return result;
 }
 
 void
