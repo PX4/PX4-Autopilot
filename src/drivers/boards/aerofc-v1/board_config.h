@@ -110,7 +110,6 @@
 
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
 #define BOARD_HAS_PWM	0
-#define BOARD_HAS_POWER_CONTROL	1
 
 /* USB OTG FS
  *
@@ -185,38 +184,6 @@ extern void stm32_usbinitialize(void);
  ************************************************************************************/
 
 extern int board_sdio_initialize(void);
-
-/************************************************************************************
- * Name: board_pwr_init()
- *
- * Description:
- *   Called to configure power control for the tap-v1 board.
- *
- * Input Parameters:
- *   stage- 0 for boot, 1 for board init
- *
- ************************************************************************************/
-
-void board_pwr_init(int stage);
-
-/****************************************************************************
- * Name: board_pwr_button_down
- *
- * Description:
- *   Called to Read the logical state of the power button
- ****************************************************************************/
-
-bool board_pwr_button_down(void);
-
-/****************************************************************************
- * Name: board_pwr
- *
- * Description:
- *   Called to turn on or off the TAP
- *
- ****************************************************************************/
-
-void board_pwr(bool on_not_off);
 
 #include "../common/board_common.h"
 
