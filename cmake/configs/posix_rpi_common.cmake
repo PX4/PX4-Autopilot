@@ -8,6 +8,7 @@ include(posix/px4_impl_posix)
 add_definitions(
 	-D__PX4_POSIX_RPI
 	-D__DF_LINUX # For DriverFramework
+	-D__DF_RPI # For DriverFramework
 )
 
 
