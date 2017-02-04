@@ -53,7 +53,7 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 {
 	char fullname[blockNameLengthMax];
 
-	if (parent == NULL) {
+	if (parent == nullptr) {
 		strncpy(fullname, name, blockNameLengthMax);
 
 	} else {

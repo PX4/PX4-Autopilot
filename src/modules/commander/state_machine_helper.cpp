@@ -72,14 +72,6 @@
 using namespace DriverFramework;
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_MINDPX_V2
-#define AVIONICS_ERROR_VOLTAGE	3.75f
-#define AVIONICS_WARN_VOLTAGE	3.9f
-#else
-#define AVIONICS_ERROR_VOLTAGE	4.5f
-#define AVIONICS_WARN_VOLTAGE	4.9f
-#endif
-
 static const char reason_no_rc[] = "no RC";
 static const char reason_no_offboard[] = "no offboard";
 static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
@@ -141,8 +133,9 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		hrt_abstime time_since_boot)
 {
 	// Double check that our static arrays are still valid
-	ASSERT(vehicle_status_s::ARMING_STATE_INIT == 0);
-	ASSERT(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1);
+	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
+	static_assert(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1,
+		      "ARMING_STATE_IN_AIR_RESTORE = ARMING_STATE_MAX - 1");
 
 	transition_result_t ret = TRANSITION_DENIED;
 	arming_state_t current_arming_state = status->arming_state;
@@ -572,7 +565,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				for (;;) {
 					devname = px4_get_device_names(&handle);
 
-					if (devname == NULL) {
+					if (devname == nullptr) {
 						break;
 					}
 

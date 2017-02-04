@@ -201,7 +201,7 @@ start(unsigned  channels)
 fail:
 
 	if (g_test != nullptr) {
-		delete(g_test);
+		delete (g_test);
 		g_test = nullptr;
 	}
 

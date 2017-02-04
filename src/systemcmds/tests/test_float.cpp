@@ -22,14 +22,14 @@ typedef union {
 class FloatTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool singlePrecisionTests();
 	bool doublePrecisionTests();
 };
 
-bool FloatTest::singlePrecisionTests(void)
+bool FloatTest::singlePrecisionTests()
 {
 	float sinf_zero = sinf(0.0f);
 	float sinf_one = sinf(1.0f);
@@ -83,7 +83,7 @@ bool FloatTest::singlePrecisionTests(void)
 }
 
 
-bool FloatTest::doublePrecisionTests(void)
+bool FloatTest::doublePrecisionTests()
 {
 	float f1 = 1.55f;
 
@@ -138,7 +138,7 @@ bool FloatTest::doublePrecisionTests(void)
 	return true;
 }
 
-bool FloatTest::run_tests(void)
+bool FloatTest::run_tests()
 {
 	ut_run_test(singlePrecisionTests);
 	ut_run_test(doublePrecisionTests);

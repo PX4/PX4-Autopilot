@@ -40,12 +40,12 @@
 * @author Vladimir Kulla <ufon@kullaonline.net>
 */
 
+#include <px4_config.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
 #include <systemlib/err.h>
-#include <systemlib/mcu_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -82,7 +82,7 @@ int ver_main(int argc, char *argv[])
 				if (argc >= 3 && argv[2] != NULL) {
 					/* compare 3rd parameter with px4_board_name() string, in case of match, return 0 */
 					const char *board_name = px4_board_name();
-					ret = strncmp(board_name, argv[2], strlen(board_name));
+					ret = strcmp(board_name, argv[2]);
 
 					if (ret == 0) {
 						PX4_INFO("match: %s", board_name);
@@ -166,10 +166,11 @@ int ver_main(int argc, char *argv[])
 
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
-				char rev;
-				char *revstr;
+				char rev = ' ';
+				const char *revstr = NULL;
+				const char *errata = NULL;
 
-				int chip_version = mcu_version(&rev, &revstr);
+				int chip_version = board_mcu_version(&rev, &revstr, &errata);
 
 				if (chip_version < 0) {
 					printf("UNKNOWN MCU\n");
@@ -177,11 +178,11 @@ int ver_main(int argc, char *argv[])
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
 
-					if (chip_version < MCU_REV_STM32F4_REV_3) {
+					if (errata != NULL) {
 						printf("\nWARNING   WARNING   WARNING!\n"
-						       "Revision %c has a silicon errata\n"
-						       "This device can only utilize a maximum of 1MB flash safely!\n"
-						       "https://pixhawk.org/help/errata\n\n", rev);
+						       "Revision %c has a silicon errata:\n"
+						       "%s"
+						       "\nhttps://pixhawk.org/help/errata\n\n", rev, errata);
 					}
 				}
 
@@ -189,12 +190,14 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
-				uint32_t uid[3];
 
-				mcu_unique_id(uid);
-
-				printf("UID: %X:%X:%X \n", uid[0], uid[1], uid[2]);
-
+#if defined(BOARD_OVERRIDE_UUID)
+				char *uid_fmt_buffer = BOARD_OVERRIDE_UUID;
+#else
+				char uid_fmt_buffer[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
+				board_get_uuid_formated32(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%X", ":", &px4_legacy_word32_order);
+#endif
+				printf("UID: %s \n", uid_fmt_buffer);
 				ret = 0;
 			}
 

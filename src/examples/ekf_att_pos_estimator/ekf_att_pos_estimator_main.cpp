@@ -121,7 +121,7 @@ AttitudePositionEstimatorEKF	*g_estimator = nullptr;
 }
 
 AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
-	SuperBlock(NULL, "PE"),
+	SuperBlock(nullptr, "PE"),
 	_task_should_exit(false),
 	_task_running(false),
 	_estimator_task(-1),
@@ -396,7 +396,7 @@ int AttitudePositionEstimatorEKF::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char *const feedback[] = { 0,
+	const char *const feedback[] = { nullptr,
 					 "NaN in states, resetting",
 					 "stale sensor data, resetting",
 					 "got initial position lock",
@@ -740,7 +740,6 @@ void AttitudePositionEstimatorEKF::task_main()
 	_task_running = false;
 
 	_estimator_task = -1;
-	return;
 }
 
 void AttitudePositionEstimatorEKF::initReferencePosition(hrt_abstime timestamp,
@@ -908,6 +907,11 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
 	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
 	_ctrl_state.yaw_rate = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
+
+	/* Gyro bias estimates */
+	_ctrl_state.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
+	_ctrl_state.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
+	_ctrl_state.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* Guard from bad data */
 	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
@@ -1716,7 +1720,7 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "debug")) {
-		int debug = strtoul(argv[2], NULL, 10);
+		int debug = strtoul(argv[2], nullptr, 10);
 		int ret = estimator::g_estimator->set_debuglevel(debug);
 
 		return ret;

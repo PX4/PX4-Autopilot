@@ -233,7 +233,7 @@ CameraTrigger::CameraTrigger() :
 {
 	//Initiate Camera interface basedon camera_interface_mode
 	if (_camera_interface != nullptr) {
-		delete(_camera_interface);
+		delete (_camera_interface);
 		/* set to zero to ensure parser is not used while not instantiated */
 		_camera_interface = nullptr;
 	}
@@ -273,7 +273,7 @@ CameraTrigger::CameraTrigger() :
 
 CameraTrigger::~CameraTrigger()
 {
-	delete(_camera_interface);
+	delete (_camera_interface);
 
 	camera_trigger::g_camera_trigger = nullptr;
 }
@@ -383,7 +383,7 @@ CameraTrigger::stop()
 	hrt_cancel(&_keepalivecall_down);
 
 	if (camera_trigger::g_camera_trigger != nullptr) {
-		delete(camera_trigger::g_camera_trigger);
+		delete (camera_trigger::g_camera_trigger);
 	}
 }
 

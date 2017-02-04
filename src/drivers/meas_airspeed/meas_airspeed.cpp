@@ -186,15 +186,19 @@ MEASAirspeed::collect()
 
 	switch (status) {
 	case 0:
+		// Normal Operation. Good Data Packet
 		break;
 
 	case 1:
+		// Reserved
+		return -EAGAIN;
 
-	/* fallthrough */
 	case 2:
+		// Stale Data. Data has been fetched since last measurement cycle.
+		return -EAGAIN;
 
-	/* fallthrough */
 	case 3:
+		// Fault Detected
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return -EAGAIN;
@@ -335,8 +339,7 @@ MEASAirspeed::cycle()
 void
 MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4) \
-	|| defined(CONFIG_ARCH_BOARD_MINDPX_V2)
+#if defined(ADC_SCALED_V5_SENSE)
 
 	if (_t_system_power == -1) {
 		_t_system_power = orb_subscribe(ORB_ID(system_power));
@@ -390,7 +393,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	}
 
 	temperature -= voltage_diff * temp_slope;
-#endif // defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
+#endif // defined(ADC_SCALED_V5_SENSE)
 }
 
 /**

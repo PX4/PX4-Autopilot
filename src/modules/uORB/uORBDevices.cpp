@@ -358,7 +358,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			if (arg == 0) {
 				if (sd->update_interval) {
-					delete(sd->update_interval);
+					delete (sd->update_interval);
 					sd->update_interval = nullptr;
 				}
 
@@ -449,7 +449,6 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		return ERROR;
 	}
 
-#if !defined(__PX4_QURT_EXCELSIOR) && !defined(__PX4_POSIX_EXCELSIOR)
 	/*
 	 * if the write is successful, send the data over the Multi-ORB link
 	 */
@@ -463,7 +462,6 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		}
 	}
 
-#endif
 	return PX4_OK;
 }
 
@@ -1099,8 +1097,10 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 #ifdef __PX4_QURT //QuRT has no poll()
 	int num_runs = 0;
 #else
+	const int stdin_fileno = 0;
+
 	struct pollfd fds;
-	fds.fd = 0; /* stdin */
+	fds.fd = stdin_fileno;
 	fds.events = POLLIN;
 #endif
 	bool quit = false;
@@ -1125,7 +1125,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			if (ret > 0) {
 
-				ret = read(0, &c, 1);
+				ret = ::read(stdin_fileno, &c, 1);
 
 				if (ret) {
 					quit = true;

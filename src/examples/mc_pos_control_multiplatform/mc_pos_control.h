@@ -214,8 +214,8 @@ protected:
 	 */
 	void		control_offboard(float dt);
 
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+	bool		cross_sphere_line(const math::Vector<3> &sphere_c, const float sphere_r,
+					  const math::Vector<3> &line_a, const math::Vector<3> &line_b, math::Vector<3> &res);
 
 	/**
 	 * Set position setpoint for AUTO

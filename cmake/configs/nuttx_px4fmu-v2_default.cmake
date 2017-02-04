@@ -48,9 +48,9 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-##TO FIT drivers/snapdragon_rc_pwm
+	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/iridiumsbd
+	#drivers/iridiumsbd
 	drivers/ulanding
 
 	#
@@ -91,11 +91,12 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/events
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
 	modules/gpio_led
-	modules/uavcan
+	#modules/uavcan
 	modules/land_detector
 
 	#
@@ -118,7 +119,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	#modules/logger
+	modules/logger
 	modules/sdlog2
 
 	#
@@ -196,10 +197,10 @@ set(config_io_board
 	px4io-v2
 	)
 
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
+#set(config_extra_libs
+#	uavcan
+#	uavcan_stm32_driver
+#	)
 
 set(config_io_extra_libs
 	)

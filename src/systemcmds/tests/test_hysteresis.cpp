@@ -5,7 +5,7 @@
 class HysteresisTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool _init_false();

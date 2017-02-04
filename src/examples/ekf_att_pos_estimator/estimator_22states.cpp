@@ -2854,7 +2854,7 @@ bool AttPosEKF::FilterHealthy()
     return true;
 }
 
-void AttPosEKF::ResetPosition(void)
+void AttPosEKF::ResetPosition()
 {
     if (staticMode) {
         states[7] = 0;
@@ -2877,7 +2877,7 @@ void AttPosEKF::ResetPosition(void)
     P[8][8]   = P[7][7];    
 }
 
-void AttPosEKF::ResetHeight(void)
+void AttPosEKF::ResetHeight()
 {
     // write to the state vector
     states[9]   = -hgtMea;
@@ -2892,7 +2892,7 @@ void AttPosEKF::ResetHeight(void)
     P[6][6] = sq(0.7f);
 }
 
-void AttPosEKF::ResetVelocity(void)
+void AttPosEKF::ResetVelocity()
 {
     if (staticMode) {
         states[4] = 0.0f;

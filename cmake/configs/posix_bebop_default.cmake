@@ -26,6 +26,8 @@ set(config_module_list
 	platforms/posix/drivers/df_mpu6050_wrapper
 	platforms/posix/drivers/df_ak8963_wrapper
 	platforms/posix/drivers/df_bebop_bus_wrapper
+	platforms/posix/drivers/df_bebop_rangefinder_wrapper
+	platforms/posix/drivers/bebop_flow
 
 	#
 	# System commands
@@ -105,4 +107,6 @@ set(config_df_driver_list
 	mpu6050
 	ak8963
 	bebop_bus
+	bebop_rangefinder
+	mt9v117
 )

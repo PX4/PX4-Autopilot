@@ -91,24 +91,21 @@ static bool should_prearm = false;
 #endif
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_PATH(_file) "/etc/mixers/"#_file
+#if defined(CONFIG_ARCH_BOARD_SITL)
+#define MIXER_PATH(_file)  "ROMFS/px4fmu_test/mixers/"#_file
+#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
 #else
-#define MIXER_PATH(_file) "ROMFS/px4fmu_test/mixers/"#_file
+#define MIXER_ONBOARD_PATH "/etc/mixers"
+#define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
 #endif
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_ONBOARD_PATH "/etc/mixers"
-#else
-#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
-#endif
 
 #define MIXER_VERBOSE
 
 class MixerTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 	MixerTest();
 
 private:
@@ -131,7 +128,7 @@ MixerTest::MixerTest() : UnitTest(),
 {
 }
 
-bool MixerTest::run_tests(void)
+bool MixerTest::run_tests()
 {
 	ut_run_test(loadIOPass);
 	ut_run_test(loadQuadTest);
@@ -334,7 +331,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
-				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+				memmove(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
 				/* enforce null termination */
 				mixer_text[resid] = '\0';
 			}
@@ -402,7 +399,7 @@ bool MixerTest::mixerTest()
 
 	/* mix */
 	should_prearm = true;
-	mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+	mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 	pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 		       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -443,7 +440,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US + 2 * sleep_quantum_us) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -487,7 +484,7 @@ bool MixerTest::mixerTest()
 		}
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -515,7 +512,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < 600000) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -552,7 +549,7 @@ bool MixerTest::mixerTest()
 	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max, NULL);
+		mixed = mixer_group.mix(&outputs[0], output_max, nullptr);
 
 		pwm_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			       r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);

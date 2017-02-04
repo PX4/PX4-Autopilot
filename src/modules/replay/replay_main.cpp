@@ -805,7 +805,7 @@ int Replay::start(bool quiet, bool apply_params_only)
 			ret = -1;
 		}
 
-		delete(r);
+		delete (r);
 
 	} else {
 

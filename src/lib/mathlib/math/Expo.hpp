@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,26 @@
  *
  ****************************************************************************/
 
+/**
+ * @file Expo.hpp
+ *
+ * So called exponential curve function implementation.
+ * It's essentially a linear combination between a linear and a cubic function.
+ */
+
 #pragma once
 
+#include <platforms/px4_defines.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
+namespace math
+{
 
-/* magic numbers from reference manual */
-enum MCU_REV {
-	MCU_REV_STM32F4_REV_A = 0x1000,
-	MCU_REV_STM32F4_REV_Z = 0x1001,
-	MCU_REV_STM32F4_REV_Y = 0x1003,
-	MCU_REV_STM32F4_REV_1 = 0x1007,
-	MCU_REV_STM32F4_REV_3 = 0x2001
-};
+template<typename _Tp>
+inline const _Tp expo(const _Tp &value, const _Tp &e)
+{
+	_Tp x = constrain(value ,(_Tp)-1, (_Tp)1);
+	return (1-e)*x + e*x*x*x;
+}
 
-
-/**
- * Reports the microcontroller unique id.
- *
- * This ID is guaranteed to be unique for every mcu.
- * @param uid_96_bit A uint32_t[3] array to copy the data to.
- */
-__EXPORT void mcu_unique_id(uint32_t *uid_96_bit);
-
-/**
- * Reports the microcontroller version of the main CPU.
- *
- * @param rev The silicon revision character
- * @param revstr The full chip name string
- * @return The silicon revision / version number as integer. -1 on error (rev and revstr will not be set)
- */
-__EXPORT int mcu_version(char *rev, char **revstr);
-
-__END_DECLS
+}

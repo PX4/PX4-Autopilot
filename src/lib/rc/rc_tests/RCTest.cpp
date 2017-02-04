@@ -24,7 +24,7 @@ extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
 class RCTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0);
@@ -35,7 +35,7 @@ private:
 	bool sumdTest();
 };
 
-bool RCTest::run_tests(void)
+bool RCTest::run_tests()
 {
 	ut_run_test(dsmTest10Ch);
 	ut_run_test(dsmTest12Ch);
@@ -103,7 +103,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 					&dsm_11_bit, &dsm_frame_drops, max_channels);
 
 		if (result) {
-			ut_test(num_values == expected_chancount);
+			ut_compare("num_values == expected_chancount", num_values, expected_chancount);
 
 			ut_test(abs((int)chan0 - (int)rc_values[0]) < 30);
 
@@ -131,7 +131,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 	return true;
 }
 
-bool RCTest::sbus2Test(void)
+bool RCTest::sbus2Test()
 {
 	const char *filepath = TEST_DATA_PATH "sbus2_r7008SB.txt";
 
@@ -212,7 +212,7 @@ bool RCTest::sbus2Test(void)
 	return true;
 }
 
-bool RCTest::st24Test(void)
+bool RCTest::st24Test()
 {
 	const char *filepath = TEST_DATA_PATH "st24_data.txt";
 
@@ -273,7 +273,7 @@ bool RCTest::st24Test(void)
 	return true;
 }
 
-bool RCTest::sumdTest(void)
+bool RCTest::sumdTest()
 {
 	const char *filepath = TEST_DATA_PATH "sumd_data.txt";
 

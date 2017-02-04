@@ -177,7 +177,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 					      SCHED_PRIORITY_MAX - 5,
 					      7000,
 					      attitude_estimator_ekf_thread_main,
-					      (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
+					      (argv) ? (char * const *)&argv[2] : (char * const *)nullptr);
 		return 0;
 	}
 

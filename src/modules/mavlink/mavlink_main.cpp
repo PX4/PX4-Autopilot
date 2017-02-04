@@ -71,7 +71,6 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/mcu_version.h>
 #include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
@@ -171,7 +170,7 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 	}
 }
 
-static void usage(void);
+static void usage();
 
 bool Mavlink::_boot_complete = false;
 bool Mavlink::_config_link_on = false;
@@ -557,7 +556,7 @@ Mavlink::get_channel()
 	return _channel;
 }
 
-void Mavlink::mavlink_update_system(void)
+void Mavlink::mavlink_update_system()
 {
 	if (!_param_initialized) {
 		_param_system_id = param_find("MAV_SYS_ID");
@@ -1066,7 +1065,7 @@ Mavlink::find_broadcast_address()
 #else
 	// On Linux, we can determine the required size of the
 	// buffer first by providing NULL to ifc_req.
-	ifconf.ifc_req = NULL;
+	ifconf.ifc_req = nullptr;
 	ifconf.ifc_len = 0;
 
 	ret = ioctl(_socket_fd, SIOCGIFCONF, &ifconf);
@@ -1316,8 +1315,8 @@ void Mavlink::send_autopilot_capabilites()
 #else
 		msg.product_id = 0;
 #endif
-		uint32_t uid[3];
-		mcu_unique_id(uid);
+		raw_uuid_uint32_t uid;
+		board_get_uuid_raw32(uid, NULL);
 		msg.uid = (((uint64_t)uid[1]) << 32) | uid[2];
 
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
@@ -1464,7 +1463,7 @@ Mavlink::message_buffer_init(int size)
 
 	int ret;
 
-	if (_message_buffer.data == 0) {
+	if (_message_buffer.data == nullptr) {
 		ret = PX4_ERROR;
 		_message_buffer.size = 0;
 
@@ -1727,7 +1726,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 #ifdef __PX4_POSIX
 	char *eptr;
 	int temp_int_arg;
@@ -1736,7 +1735,7 @@ Mavlink::task_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
-			_baudrate = strtoul(myoptarg, NULL, 10);
+			_baudrate = strtoul(myoptarg, nullptr, 10);
 
 			if (_baudrate < 9600 || _baudrate > 3000000) {
 				warnx("invalid baud rate '%s'", myoptarg);
@@ -1746,7 +1745,7 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'r':
-			_datarate = strtoul(myoptarg, NULL, 10);
+			_datarate = strtoul(myoptarg, nullptr, 10);
 
 			if (_datarate < 10 || _datarate > MAX_DATA_RATE) {
 				warnx("invalid data rate '%s'", myoptarg);
@@ -1914,7 +1913,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* initialize send mutex */
-	pthread_mutex_init(&_send_mutex, NULL);
+	pthread_mutex_init(&_send_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on || _ftp_on) {
@@ -1928,7 +1927,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* initialize message buffer mutex */
-		pthread_mutex_init(&_message_buffer_mutex, NULL);
+		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
 	/* Initialize system properties */
@@ -2382,7 +2381,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* first wait for threads to complete before tearing down anything */
-	pthread_join(_receive_thread, NULL);
+	pthread_join(_receive_thread, nullptr);
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;

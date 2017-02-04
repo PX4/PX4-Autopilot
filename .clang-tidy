@@ -1,7 +1,558 @@
-Checks:          '-*,readability-braces-around-statements'
-WarningsAsErrors: readability-braces-around-statements
-HeaderFilterRegex: '*.h, *.hpp'
+---
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
+		cert-dcl03-c,
+		#cert-dcl50-cpp,
+		cert-dcl54-cpp,
+		cert-dcl59-cpp,
+		cert-env33-c,
+		cert-err09-cpp,
+		## TODO: fix code and enable # cert-err34-c,
+		cert-err52-cpp,
+		#cert-err58-cpp,
+		cert-err60-cpp,
+		cert-err61-cpp,
+		cert-fio38-c,
+		## TODO: fix code and enable # cert-flp30-c,
+		cert-msc30-c,
+		cert-msc50-cpp,
+		cert-oop11-cpp,
+		clang-analyzer-apiModeling.google.GTest,
+		clang-analyzer-core.builtin.BuiltinFunctions,
+		clang-analyzer-core.builtin.NoReturnFunctions,
+		## TODO: fix code and enable # clang-analyzer-core.CallAndMessage,
+		clang-analyzer-core.DivideZero,
+		clang-analyzer-core.DynamicTypePropagation,
+		clang-analyzer-core.NonNullParamChecker,
+		## TODO: fix code and enable # clang-analyzer-core.NullDereference,
+		clang-analyzer-core.StackAddressEscape,
+		#clang-analyzer-core.UndefinedBinaryOperatorResult,
+		clang-analyzer-core.uninitialized.ArraySubscript,
+		## TODO: fix code and enable # clang-analyzer-core.uninitialized.Assign,
+		clang-analyzer-core.uninitialized.Branch,
+		clang-analyzer-core.uninitialized.CapturedBlockVariable,
+		clang-analyzer-core.uninitialized.UndefReturn,
+		## TODO: fix code and enable # clang-analyzer-core.VLASize,
+		clang-analyzer-cplusplus.NewDelete,
+		## TODO: fix code and enable # clang-analyzer-cplusplus.NewDeleteLeaks,
+		clang-analyzer-cplusplus.SelfAssignment,
+		#clang-analyzer-deadcode.DeadStores,
+		clang-analyzer-llvm.Conventions,
+		clang-analyzer-nullability.NullableDereferenced,
+		clang-analyzer-nullability.NullablePassedToNonnull,
+		clang-analyzer-nullability.NullableReturnedFromNonnull,
+		clang-analyzer-nullability.NullPassedToNonnull,
+		clang-analyzer-nullability.NullReturnedFromNonnull,
+		## evaluate # clang-analyzer-optin.cplusplus.VirtualCall,
+		## TODO: fix code and enable #  clang-analyzer-optin.performance.Padding,
+		## TODO: fix code and enable # clang-analyzer-security.FloatLoopCounter,
+		clang-analyzer-security.insecureAPI.getpw,
+		clang-analyzer-security.insecureAPI.gets,
+		clang-analyzer-security.insecureAPI.mkstemp,
+		clang-analyzer-security.insecureAPI.mktemp,
+		clang-analyzer-security.insecureAPI.rand,
+		## evaluate # clang-analyzer-security.insecureAPI.strcpy,
+		clang-analyzer-security.insecureAPI.UncheckedReturn,
+		clang-analyzer-security.insecureAPI.vfork,
+		## TODO: fix code and enable # clang-analyzer-unix.API,
+		## TODO: fix code and enable # clang-analyzer-unix.Malloc,
+		## TODO: fix code and enable # clang-analyzer-unix.MallocSizeof,
+		clang-analyzer-unix.MismatchedDeallocator,
+		clang-analyzer-unix.StdCLibraryFunctions,
+		clang-analyzer-unix.Vfork,
+		## evaluate # clang-analyzer-unix.cstring.BadSizeArg,
+		## evaluate # clang-analyzer-unix.cstring.NullArg,
+		cppcoreguidelines-c-copy-assignment-signature,
+		#cppcoreguidelines-interfaces-global-init,
+		#cppcoreguidelines-no-malloc,
+		#cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+		#cppcoreguidelines-pro-bounds-constant-array-index,
+		#cppcoreguidelines-pro-bounds-pointer-arithmetic,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-const-cast,
+		#cppcoreguidelines-pro-type-cstyle-cast,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-member-init,
+		#cppcoreguidelines-pro-type-reinterpret-cast,
+		cppcoreguidelines-pro-type-static-cast-downcast,
+		#cppcoreguidelines-pro-type-union-access,
+		#cppcoreguidelines-pro-type-vararg,
+		cppcoreguidelines-slicing,
+		## TODO: fix code and enable # cppcoreguidelines-special-member-functions,
+		google-build-explicit-make-pair,
+		google-build-namespaces,
+		# evaluate # google-build-using-namespace,
+		google-default-arguments,
+		## TODO: fix code and enable # google-explicit-constructor,
+		google-global-names-in-headers,
+		google-readability-braces-around-statements,
+		#google-readability-casting,
+		google-readability-function-size,
+		#google-readability-namespace-comments,
+		google-readability-redundant-smartptr-get,
+		#google-readability-todo,
+		#google-runtime-int,
+		google-runtime-member-string-references,
+		google-runtime-memset,
+		google-runtime-operator,
+		## evaluate # google-runtime-references,
+		llvm-header-guard,
+		## evaluate # llvm-include-order,
+		#llvm-namespace-comment,
+		misc-argument-comment,
+		misc-assert-side-effect,
+		misc-bool-pointer-implicit-conversion,
+		misc-dangling-handle,
+		misc-definitions-in-headers,
+		misc-fold-init-type,
+		misc-forward-declaration-namespace,
+		misc-inaccurate-erase,
+		#misc-incorrect-roundings,
+		misc-inefficient-algorithm,
+		#misc-macro-parentheses,
+		misc-macro-repeated-side-effects,
+		misc-misplaced-const,
+		#misc-misplaced-widening-cast,
+		misc-move-const-arg,
+		misc-move-constructor-init,
+		misc-move-forwarding-reference,
+		misc-multiple-statement-macro,
+		misc-new-delete-overloads,
+		misc-noexcept-move-constructor,
+		misc-non-copyable-objects,
+		misc-redundant-expression,
+		misc-sizeof-container,
+		misc-sizeof-expression,
+		misc-static-assert,
+		misc-string-compare,
+		misc-string-constructor,
+		misc-string-integer-assignment,
+		misc-string-literal-with-embedded-nul,
+		misc-suspicious-enum-usage,
+		misc-suspicious-missing-comma,
+		misc-suspicious-semicolon,
+		misc-suspicious-string-compare,
+		misc-swapped-arguments,
+		misc-throw-by-value-catch-by-reference,
+		misc-unconventional-assign-operator,
+		misc-undelegated-constructor,
+		misc-uniqueptr-reset-release,
+		misc-unused-alias-decls,
+		#misc-unused-parameters,
+		misc-unused-raii,
+		misc-unused-using-decls,
+		misc-use-after-move,
+		misc-virtual-near-miss,
+		modernize-avoid-bind,
+		## TODO: fix code and enable # modernize-deprecated-headers,
+		#modernize-loop-convert,
+		modernize-make-shared,
+		modernize-make-unique,
+		modernize-pass-by-value,
+		modernize-raw-string-literal,
+		modernize-redundant-void-arg,
+		modernize-replace-auto-ptr,
+		modernize-shrink-to-fit,
+		#modernize-use-auto,
+		#modernize-use-bool-literals,
+		## TODO: fix code and enable # modernize-use-default-member-init,
+		## TODO: fix code and enable # modernize-use-emplace,
+		## TODO: fix code and enable # modernize-use-equals-default,
+		## TODO: fix code and enable # modernize-use-equals-delete,
+		modernize-use-nullptr,
+		## evaluate # modernize-use-override,
+		modernize-use-transparent-functors,
+		## evaluate # modernize-use-using,
+		performance-faster-string-find,
+		performance-for-range-copy,
+		performance-implicit-cast-in-loop,
+		## TODO: fix code and enable # performance-inefficient-string-concatenation,
+		## TODO: fix code and enable # performance-type-promotion-in-math-fn,
+		performance-unnecessary-copy-initialization,
+		performance-unnecessary-value-param,
+		#readability-avoid-const-params-in-decls,
+		readability-braces-around-statements,
+		readability-container-size-empty,
+		readability-delete-null-pointer,
+		readability-deleted-default,
+		#readability-else-after-return,
+		readability-function-size,
+		readability-identifier-naming,
+		## evaluate # readability-implicit-bool-cast,
+		#readability-inconsistent-declaration-parameter-name,
+		readability-misplaced-array-index,
+		#readability-named-parameter,
+		#readability-non-const-parameter,
+		readability-redundant-control-flow,
+		#readability-redundant-declaration,
+		readability-redundant-function-ptr-dereference,
+		## TODO: fix code and enable # readability-redundant-member-init,
+		readability-redundant-smartptr-get,
+		readability-redundant-string-cstr,
+		readability-redundant-string-init,
+		## TODO: fix code and enable # readability-simplify-boolean-expr,
+		readability-static-definition-in-anonymous-namespace,
+		readability-uniqueptr-delete-release,
+		'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '*.h, *.hpp, *.hh, *.hxx'
 AnalyzeTemporaryDtors: false
 CheckOptions:
+  - key:             cert-dcl59-cpp.HeaderFileExtensions
+    value:           h,hh,hpp,hxx
+  - key:             cert-err09-cpp.CheckThrowTemporaries
+    value:           '1'
+  - key:             cert-err61-cpp.CheckThrowTemporaries
+    value:           '1'
+  - key:             cert-oop11-cpp.IncludeStyle
+    value:           llvm
+  - key:             google-build-namespaces.HeaderFileExtensions
+    value:           h,hh,hpp,hxx
+  - key:             google-global-names-in-headers.HeaderFileExtensions
+    value:           h
+  - key:             google-readability-braces-around-statements.ShortStatementLines
+    value:           '1'
+  - key:             google-readability-function-size.BranchThreshold
+    value:           '600'
+  - key:             google-readability-function-size.LineThreshold
+    value:           '4000'
+  - key:             google-readability-function-size.StatementThreshold
+    value:           '4000'
+  - key:             google-readability-namespace-comments.ShortNamespaceLines
+    value:           '10'
+  - key:             google-readability-namespace-comments.SpacesBeforeComments
+    value:           '2'
+  - key:             llvm-header-guard.HeaderFileExtensions
+    value:           ',h,hh,hpp,hxx'
+  - key:             misc-argument-comment.StrictMode
+    value:           '0'
+  - key:             misc-assert-side-effect.AssertMacros
+    value:           assert
+  - key:             misc-assert-side-effect.CheckFunctionCalls
+    value:           '0'
+  - key:             misc-dangling-handle.HandleClasses
+    value:           'std::basic_string_view;std::experimental::basic_string_view'
+  - key:             misc-definitions-in-headers.HeaderFileExtensions
+    value:           ',h,hh,hpp,hxx'
+  - key:             misc-definitions-in-headers.UseHeaderFileExtension
+    value:           '1'
+  - key:             misc-move-constructor-init.IncludeStyle
+    value:           llvm
+  - key:             misc-sizeof-expression.WarnOnSizeOfCompareToConstant
+    value:           '1'
+  - key:             misc-sizeof-expression.WarnOnSizeOfConstant
+    value:           '1'
+  - key:             misc-sizeof-expression.WarnOnSizeOfThis
+    value:           '1'
+  - key:             misc-string-constructor.LargeLengthThreshold
+    value:           '80'
+  - key:             misc-string-constructor.WarnOnLargeLength
+    value:           '1'
+  - key:             misc-suspicious-enum-usage.StrictMode
+    value:           '0'
+  - key:             misc-suspicious-missing-comma.MaxConcatenatedTokens
+    value:           '5'
+  - key:             misc-suspicious-missing-comma.RatioThreshold
+    value:           '0.200000'
+  - key:             misc-suspicious-missing-comma.SizeThreshold
+    value:           '5'
+  - key:             misc-suspicious-string-compare.StringCompareLikeFunctions
+    value:           ''
+  - key:             misc-suspicious-string-compare.WarnOnImplicitComparison
+    value:           '1'
+  - key:             misc-suspicious-string-compare.WarnOnLogicalNotComparison
+    value:           '0'
+  - key:             misc-throw-by-value-catch-by-reference.CheckThrowTemporaries
+    value:           '1'
+  - key:             modernize-loop-convert.MaxCopySize
+    value:           '16'
+  - key:             modernize-loop-convert.MinConfidence
+    value:           safe
+  - key:             modernize-loop-convert.NamingStyle
+    value:           CamelCase
+  - key:             modernize-pass-by-value.IncludeStyle
+    value:           llvm
+  - key:             modernize-pass-by-value.ValuesOnly
+    value:           '0'
+  - key:             modernize-replace-auto-ptr.IncludeStyle
+    value:           llvm
+  - key:             modernize-use-nullptr.NullMacros
+    value:           'NULL'
+  - key:             modernize-use-transparent-functors.SafeMode
+    value:           '0'
+  - key:             performance-faster-string-find.StringLikeClasses
+    value:           'std::basic_string'
+  - key:             performance-for-range-copy.WarnOnAllAutoCopies
+    value:           '0'
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           '1'
+  - key:             readability-function-size.BranchThreshold
+    value:           '600'
+  - key:             readability-function-size.LineThreshold
+    value:           '4000'
+  - key:             readability-function-size.StatementThreshold
+    value:           '4000'
+  - key:             readability-identifier-naming.AbstractClassCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.AbstractClassPrefix
+    value:           ''
+  - key:             readability-identifier-naming.AbstractClassSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ClassCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ClassConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ClassConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ClassConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ClassMemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ClassMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ClassMemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ClassMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ClassMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ClassMethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ClassPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ClassSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstantMemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstantMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantMemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstantParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprFunctionCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstexprFunctionPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprFunctionSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstexprMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprMethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprVariableCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ConstexprVariablePrefix
+    value:           ''
+  - key:             readability-identifier-naming.ConstexprVariableSuffix
+    value:           ''
+  - key:             readability-identifier-naming.EnumCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.EnumConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.EnumConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.EnumConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.EnumPrefix
+    value:           ''
+  - key:             readability-identifier-naming.EnumSuffix
+    value:           ''
+  - key:             readability-identifier-naming.FunctionCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.FunctionPrefix
+    value:           ''
+  - key:             readability-identifier-naming.FunctionSuffix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.GlobalConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalFunctionCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.GlobalFunctionPrefix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalFunctionSuffix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalVariableCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.GlobalVariablePrefix
+    value:           ''
+  - key:             readability-identifier-naming.GlobalVariableSuffix
+    value:           ''
+  - key:             readability-identifier-naming.IgnoreFailedSplit
+    value:           '0'
+  - key:             readability-identifier-naming.InlineNamespaceCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.InlineNamespacePrefix
+    value:           ''
+  - key:             readability-identifier-naming.InlineNamespaceSuffix
+    value:           ''
+  - key:             readability-identifier-naming.LocalConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.LocalConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.LocalConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.LocalVariableCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.LocalVariablePrefix
+    value:           ''
+  - key:             readability-identifier-naming.LocalVariableSuffix
+    value:           ''
+  - key:             readability-identifier-naming.MacroDefinitionCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.MacroDefinitionPrefix
+    value:           ''
+  - key:             readability-identifier-naming.MacroDefinitionSuffix
+    value:           ''
+  - key:             readability-identifier-naming.MemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.MemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.MemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.MethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.MethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.MethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.NamespaceCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.NamespacePrefix
+    value:           ''
+  - key:             readability-identifier-naming.NamespaceSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ParameterPackCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ParameterPackPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ParameterPackSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.PrivateMemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.PrivateMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.PrivateMemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.PrivateMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.PrivateMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.PrivateMethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ProtectedMemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ProtectedMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ProtectedMemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ProtectedMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ProtectedMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ProtectedMethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.PublicMemberCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.PublicMemberPrefix
+    value:           ''
+  - key:             readability-identifier-naming.PublicMemberSuffix
+    value:           ''
+  - key:             readability-identifier-naming.PublicMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.PublicMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.PublicMethodSuffix
+    value:           ''
+  - key:             readability-identifier-naming.StaticConstantCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.StaticConstantPrefix
+    value:           ''
+  - key:             readability-identifier-naming.StaticConstantSuffix
+    value:           ''
+  - key:             readability-identifier-naming.StaticVariableCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.StaticVariablePrefix
+    value:           ''
+  - key:             readability-identifier-naming.StaticVariableSuffix
+    value:           ''
+  - key:             readability-identifier-naming.StructCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.StructPrefix
+    value:           ''
+  - key:             readability-identifier-naming.StructSuffix
+    value:           ''
+  - key:             readability-identifier-naming.TemplateParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.TemplateParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.TemplateParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.TemplateTemplateParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.TemplateTemplateParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.TemplateTemplateParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.TypeAliasCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.TypeAliasPrefix
+    value:           ''
+  - key:             readability-identifier-naming.TypeAliasSuffix
+    value:           ''
+  - key:             readability-identifier-naming.TypeTemplateParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.TypeTemplateParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.TypeTemplateParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.TypedefCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.TypedefPrefix
+    value:           ''
+  - key:             readability-identifier-naming.TypedefSuffix
+    value:           ''
+  - key:             readability-identifier-naming.UnionCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.UnionPrefix
+    value:           ''
+  - key:             readability-identifier-naming.UnionSuffix
+    value:           ''
+  - key:             readability-identifier-naming.ValueTemplateParameterCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.ValueTemplateParameterPrefix
+    value:           ''
+  - key:             readability-identifier-naming.ValueTemplateParameterSuffix
+    value:           ''
+  - key:             readability-identifier-naming.VariableCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.VariablePrefix
+    value:           ''
+  - key:             readability-identifier-naming.VariableSuffix
+    value:           ''
+  - key:             readability-identifier-naming.VirtualMethodCase
+    value:           aNy_CasE
+  - key:             readability-identifier-naming.VirtualMethodPrefix
+    value:           ''
+  - key:             readability-identifier-naming.VirtualMethodSuffix
+    value:           ''
+...

@@ -158,7 +158,66 @@ PARAM_DEFINE_INT32(SYS_LOGGER, 0);
 /**
  * Enable stack checking
  *
- * @min 0
+ * @boolean
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_STCK_EN, 0);
+PARAM_DEFINE_INT32(SYS_STCK_EN, 1);
+
+/**
+ * Enable auto start of rate gyro thermal calibration at the next power up.
+ *
+ * 0 : Set to 0 to do nothing
+ * 1 : Set to 1 to start a calibration at next boot
+ * This parameter is reset to zero when the the temperature calibration starts.
+ *
+ * default (0, no calibration)
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(SYS_CAL_GYRO, 0);
+
+/**
+ * Enable auto start of accelerometer thermal calibration at the next power up.
+ *
+ * 0 : Set to 0 to do nothing
+ * 1 : Set to 1 to start a calibration at next boot
+ * This parameter is reset to zero when the the temperature calibration starts.
+ *
+ * default (0, no calibration)
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(SYS_CAL_ACCEL, 0);
+
+/**
+ * Enable auto start of barometer thermal calibration at the next power up.
+ *
+ * 0 : Set to 0 to do nothing
+ * 1 : Set to 1 to start a calibration at next boot
+ * This parameter is reset to zero when the the temperature calibration starts.
+ *
+ * default (0, no calibration)
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
+
+/**
+ * Required temperature rise during thermal calibration
+ *
+ * A temperature increase greater than this value is required during calibration performed by the setting of SYS_TEMP_CAL.
+ * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds SYS_TEMP_RISE.
+ * If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
+ *
+ * @unit deg C
+ * @min 10
+ * @max 50
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_CAL_TEMP, 24);

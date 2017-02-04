@@ -89,6 +89,22 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
 
 /**
+ * Multicopter sub-hover throttle scaling
+ *
+ * The range between throttle_min and throttle_hover is scaled
+ * by this parameter to define how close to minimum throttle
+ * the current throttle value needs to be in order to get
+ * accepted as landed.
+ *
+ * @min 0.05
+ * @max 0.5
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_THR_RANGE, 0.1f);
+
+/**
  * Multicopter free-fall trigger time
  *
  * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
@@ -158,3 +174,27 @@ PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot. Higher 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot. Lower 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);

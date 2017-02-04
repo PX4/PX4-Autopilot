@@ -130,7 +130,7 @@
 #define PX4_SPIDEV_LIS			7
 #define PX4_SPIDEV_BMI			8
 #define PX4_SPIDEV_BMA			9
-#define PX4_SPIDEV_ICM_20602	10
+#define PX4_SPIDEV_ICM_20608	10
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
@@ -165,6 +165,13 @@
 #define ADC_BATTERY_CURRENT_CHANNEL		3
 #define ADC_5V_RAIL_SENSE				4
 #define ADC_RC_RSSI_CHANNEL				11
+
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV (13.653333333f)
+#define BOARD_BATTERY1_A_PER_V (36.367515152f)
+
 
 /* User GPIOs
  *
@@ -290,6 +297,21 @@
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
 		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
 		{GPIO_VDD_BRICK_VALID,   0,                       0}, }
+
+/*
+ * PX4FMUv4 GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+#define GPIO_SERVO_1           (1<<0)  /**< servo 1 output */
+#define GPIO_SERVO_2           (1<<1)  /**< servo 2 output */
+#define GPIO_SERVO_3           (1<<2)  /**< servo 3 output */
+#define GPIO_SERVO_4           (1<<3)  /**< servo 4 output */
+#define GPIO_SERVO_5           (1<<4)  /**< servo 5 output */
+#define GPIO_SERVO_6           (1<<5)  /**< servo 6 output */
+
+#define GPIO_3V3_SENSORS_EN    (1<<7)  /**< PE3 - VDD_3V3_SENSORS_EN */
+#define GPIO_BRICK_VALID       (1<<8)  /**< PB5 - !VDD_BRICK_VALID */
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

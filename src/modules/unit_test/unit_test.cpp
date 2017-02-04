@@ -48,7 +48,7 @@ UnitTest::~UnitTest()
 {
 }
 
-void UnitTest::print_results(void)
+void UnitTest::print_results()
 {
 	if (_tests_failed) {
 		PX4_ERR("SOME TESTS FAILED");

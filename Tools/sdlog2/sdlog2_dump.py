@@ -142,9 +142,13 @@ class SDLog2Parser:
                     self.__parseMsgDescr()
                 else:
                     # parse data message
-                    msg_descr = self.__msg_descrs[msg_type]
+                    msg_descr = self.__msg_descrs.get(msg_type, None)
                     if msg_descr == None:
-                        raise Exception("Unknown msg type: %i" % msg_type)
+                        if self.__correct_errors:
+                            self.__ptr += 1
+                            continue
+                        else:
+                            raise Exception("Unknown msg type: %i" % msg_type)
                     msg_length = msg_descr[0]
                     if self.__bytesLeft() < msg_length:
                         break

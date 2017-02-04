@@ -23,7 +23,12 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=clang-tidy PX4_DOCKER_REPO=px4io/px4-dev-clang
+      env: BUILD_TARGET=tests_linux
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=clang-tidy
     - os: osx
       sudo: true
       osx_image: xcode8
@@ -50,8 +55,10 @@ script:
       ./Tools/docker_run.sh 'make qgc_firmware';
     elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       ./Tools/docker_run.sh 'make check_format';
+    elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+      ./Tools/docker_run.sh 'make tests';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy';
+      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy-parallel';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi

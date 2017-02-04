@@ -144,7 +144,7 @@ int VCDevNode::open(device::file_t *handlep)
 
 int VCDevNode::close(device::file_t *handlep)
 {
-	delete(PrivData *)handlep->priv;
+	delete (PrivData *)handlep->priv;
 	handlep->priv = nullptr;
 	VDev::close(handlep);
 

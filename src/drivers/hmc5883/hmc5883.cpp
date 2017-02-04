@@ -370,6 +370,10 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 
 	// enable debug() calls
@@ -757,9 +761,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSTEMPCOMP:
 		return set_temperature_compensation(arg);
-
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
 
 	default:
 		/* give it to the superclass */

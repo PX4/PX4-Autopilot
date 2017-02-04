@@ -10,7 +10,7 @@ using namespace matrix;
 class MatrixTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool attitudeTests();
@@ -32,7 +32,7 @@ private:
 	bool dcmRenormTests();
 };
 
-bool MatrixTest::run_tests(void)
+bool MatrixTest::run_tests()
 {
 	ut_run_test(attitudeTests);
 	ut_run_test(filterTests);
@@ -63,7 +63,7 @@ template class matrix::Quaternion<float>;
 template class matrix::Euler<float>;
 template class matrix::Dcm<float>;
 
-bool MatrixTest::attitudeTests(void)
+bool MatrixTest::attitudeTests()
 {
 	double eps = 1e-6;
 
@@ -292,7 +292,7 @@ bool MatrixTest::attitudeTests(void)
 	return true;
 }
 
-bool MatrixTest::filterTests(void)
+bool MatrixTest::filterTests()
 {
 	const size_t n_x = 6;
 	const size_t n_y = 5;
@@ -315,7 +315,7 @@ bool MatrixTest::filterTests(void)
 	return true;
 }
 
-bool MatrixTest::helperTests(void)
+bool MatrixTest::helperTests()
 {
 	ut_test(fabs(wrap_pi(4.0) - (4.0 - 2 * M_PI)) < 1e-5);
 	ut_test(fabs(wrap_pi(-4.0) - (-4.0 + 2 * M_PI)) < 1e-5);
@@ -338,7 +338,7 @@ Vector<float, 6> f(float t, const Matrix<float, 6, 1> &y, const Matrix<float, 3,
 	return v * ones<float, 6, 1>();
 }
 
-bool MatrixTest::integrationTests(void)
+bool MatrixTest::integrationTests()
 {
 	Vector<float, 6> y = ones<float, 6, 1>();
 	Vector<float, 3> u = ones<float, 3, 1>();
@@ -354,7 +354,7 @@ bool MatrixTest::integrationTests(void)
 
 template class matrix::SquareMatrix<float, 3>;
 
-bool MatrixTest::inverseTests(void)
+bool MatrixTest::inverseTests()
 {
 	float data[9] = {0, 2, 3,
 			 4, 5, 6,
@@ -380,7 +380,7 @@ bool MatrixTest::inverseTests(void)
 	return true;
 }
 
-bool MatrixTest::matrixAssignmentTests(void)
+bool MatrixTest::matrixAssignmentTests()
 {
 	Matrix3f m;
 	m.setZero();
@@ -461,7 +461,7 @@ bool MatrixTest::matrixAssignmentTests(void)
 	return true;
 }
 
-bool MatrixTest::matrixMultTests(void)
+bool MatrixTest::matrixMultTests()
 {
 	float data[9] = {1, 0, 0, 0, 1, 0, 1, 0, 1};
 	Matrix3f A(data);
@@ -485,7 +485,7 @@ bool MatrixTest::matrixMultTests(void)
 	return true;
 }
 
-bool MatrixTest::matrixScalarMultTests(void)
+bool MatrixTest::matrixScalarMultTests()
 {
 	float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 	Matrix3f A(data);
@@ -500,7 +500,7 @@ bool MatrixTest::matrixScalarMultTests(void)
 
 template class matrix::Matrix<float, 3, 3>;
 
-bool MatrixTest::setIdentityTests(void)
+bool MatrixTest::setIdentityTests()
 {
 	Matrix3f A;
 	A.setIdentity();
@@ -519,7 +519,7 @@ bool MatrixTest::setIdentityTests(void)
 	return true;
 }
 
-bool MatrixTest::sliceTests(void)
+bool MatrixTest::sliceTests()
 {
 	float data[9] = {0, 2, 3,
 			 4, 5, 6,
@@ -554,7 +554,7 @@ bool MatrixTest::sliceTests(void)
 }
 
 
-bool MatrixTest::squareMatrixTests(void)
+bool MatrixTest::squareMatrixTests()
 {
 	float data[9] = {1, 2, 3,
 			 4, 5, 6,
@@ -581,7 +581,7 @@ bool MatrixTest::squareMatrixTests(void)
 	return true;
 }
 
-bool MatrixTest::transposeTests(void)
+bool MatrixTest::transposeTests()
 {
 	float data[6] = {1, 2, 3, 4, 5, 6};
 	Matrix<float, 2, 3> A(data);
@@ -593,7 +593,7 @@ bool MatrixTest::transposeTests(void)
 	return true;
 }
 
-bool MatrixTest::vectorTests(void)
+bool MatrixTest::vectorTests()
 {
 	float data1[] = {1, 2, 3, 4, 5};
 	float data2[] = {6, 7, 8, 9, 10};
@@ -611,7 +611,7 @@ bool MatrixTest::vectorTests(void)
 	return true;
 }
 
-bool MatrixTest::vector2Tests(void)
+bool MatrixTest::vector2Tests()
 {
 	Vector2f a(1, 0);
 	Vector2f b(0, 1);
@@ -636,7 +636,7 @@ bool MatrixTest::vector2Tests(void)
 	return true;
 }
 
-bool MatrixTest::vector3Tests(void)
+bool MatrixTest::vector3Tests()
 {
 	Vector3f a(1, 0, 0);
 	Vector3f b(0, 1, 0);
@@ -653,7 +653,7 @@ bool MatrixTest::vector3Tests(void)
 	return true;
 }
 
-bool MatrixTest::vectorAssignmentTests(void)
+bool MatrixTest::vectorAssignmentTests()
 {
 	Vector3f v;
 	v(0) = 1;
@@ -680,7 +680,7 @@ bool MatrixTest::vectorAssignmentTests(void)
 	return true;
 }
 
-bool MatrixTest::dcmRenormTests(void)
+bool MatrixTest::dcmRenormTests()
 {
 	bool verbose = true;
 

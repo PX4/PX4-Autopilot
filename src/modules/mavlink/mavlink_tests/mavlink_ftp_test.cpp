@@ -71,17 +71,17 @@ MavlinkFtpTest::~MavlinkFtpTest()
 }
 
 /// @brief Called before every test to initialize the FTP Server.
-void MavlinkFtpTest::_init(void)
+void MavlinkFtpTest::_init()
 {
 	_expected_seq_number = 0;
-	_ftp_server = new MavlinkFTP(NULL);
+	_ftp_server = new MavlinkFTP(nullptr);
 	_ftp_server->set_unittest_worker(MavlinkFtpTest::receive_message_handler_generic, this);
 
 	_cleanup_microsd();
 }
 
 /// @brief Called after every test to take down the FTP Server.
-void MavlinkFtpTest::_cleanup(void)
+void MavlinkFtpTest::_cleanup()
 {
 	delete _ftp_server;
 
@@ -89,7 +89,7 @@ void MavlinkFtpTest::_cleanup(void)
 }
 
 /// @brief Tests for correct behavior of an Ack response.
-bool MavlinkFtpTest::_ack_test(void)
+bool MavlinkFtpTest::_ack_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -112,7 +112,7 @@ bool MavlinkFtpTest::_ack_test(void)
 }
 
 /// @brief Tests for correct response to an invalid opcpde.
-bool MavlinkFtpTest::_bad_opcode_test(void)
+bool MavlinkFtpTest::_bad_opcode_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -136,7 +136,7 @@ bool MavlinkFtpTest::_bad_opcode_test(void)
 }
 
 /// @brief Tests for correct reponse to a payload which an invalid data size field.
-bool MavlinkFtpTest::_bad_datasize_test(void)
+bool MavlinkFtpTest::_bad_datasize_test()
 {
 	mavlink_message_t			msg;
 	MavlinkFTP::PayloadHeader		payload;
@@ -163,7 +163,7 @@ bool MavlinkFtpTest::_bad_datasize_test(void)
 	return true;
 }
 
-bool MavlinkFtpTest::_list_test(void)
+bool MavlinkFtpTest::_list_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -244,7 +244,7 @@ bool MavlinkFtpTest::_list_test(void)
 
 /// @brief Tests for correct response to a List command on a valid directory, but with an offset that
 /// is beyond the last directory entry.
-bool MavlinkFtpTest::_list_eof_test(void)
+bool MavlinkFtpTest::_list_eof_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -270,7 +270,7 @@ bool MavlinkFtpTest::_list_eof_test(void)
 }
 
 /// @brief Tests for correct response to an Open command on a file which does not exist.
-bool MavlinkFtpTest::_open_badfile_test(void)
+bool MavlinkFtpTest::_open_badfile_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -296,7 +296,7 @@ bool MavlinkFtpTest::_open_badfile_test(void)
 }
 
 /// @brief Tests for correct reponse to an Open command on a file, followed by Terminate
-bool MavlinkFtpTest::_open_terminate_test(void)
+bool MavlinkFtpTest::_open_terminate_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -345,7 +345,7 @@ bool MavlinkFtpTest::_open_terminate_test(void)
 }
 
 /// @brief Tests for correct reponse to a Terminate command on an invalid session.
-bool MavlinkFtpTest::_terminate_badsession_test(void)
+bool MavlinkFtpTest::_terminate_badsession_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -386,7 +386,7 @@ bool MavlinkFtpTest::_terminate_badsession_test(void)
 }
 
 /// @brief Tests for correct reponse to a Read command on an open session.
-bool MavlinkFtpTest::_read_test(void)
+bool MavlinkFtpTest::_read_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -497,7 +497,7 @@ bool MavlinkFtpTest::_read_test(void)
 }
 
 /// @brief Tests for correct reponse to a Read command on an open session.
-bool MavlinkFtpTest::_burst_test(void)
+bool MavlinkFtpTest::_burst_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -584,7 +584,7 @@ bool MavlinkFtpTest::_burst_test(void)
 }
 
 /// @brief Tests for correct reponse to a Read command on an invalid session.
-bool MavlinkFtpTest::_read_badsession_test(void)
+bool MavlinkFtpTest::_read_badsession_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -624,7 +624,7 @@ bool MavlinkFtpTest::_read_badsession_test(void)
 	return true;
 }
 
-bool MavlinkFtpTest::_removedirectory_test(void)
+bool MavlinkFtpTest::_removedirectory_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -680,7 +680,7 @@ bool MavlinkFtpTest::_removedirectory_test(void)
 	return true;
 }
 
-bool MavlinkFtpTest::_createdirectory_test(void)
+bool MavlinkFtpTest::_createdirectory_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -725,7 +725,7 @@ bool MavlinkFtpTest::_createdirectory_test(void)
 	return true;
 }
 
-bool MavlinkFtpTest::_removefile_test(void)
+bool MavlinkFtpTest::_removefile_test()
 {
 	MavlinkFTP::PayloadHeader		payload;
 	const MavlinkFTP::PayloadHeader		*reply;
@@ -916,14 +916,14 @@ bool MavlinkFtpTest::_send_receive_msg(MavlinkFTP::PayloadHeader	*payload_header
 }
 
 /// @brief Cleans up an files created on microsd during testing
-void MavlinkFtpTest::_cleanup_microsd(void)
+void MavlinkFtpTest::_cleanup_microsd()
 {
 	::unlink(_unittest_microsd_file);
 	::rmdir(_unittest_microsd_dir);
 }
 
 /// @brief Runs all the unit tests
-bool MavlinkFtpTest::run_tests(void)
+bool MavlinkFtpTest::run_tests()
 {
 	ut_run_test(_ack_test);
 	ut_run_test(_bad_opcode_test);

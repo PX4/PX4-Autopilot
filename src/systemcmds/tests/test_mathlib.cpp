@@ -59,7 +59,7 @@
 class MathlibTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool testVector2();
@@ -79,7 +79,7 @@ private:
 
 using namespace math;
 
-bool MathlibTest::testVector2(void)
+bool MathlibTest::testVector2()
 {
 	{
 		Vector<2> v;
@@ -87,7 +87,7 @@ bool MathlibTest::testVector2(void)
 		Vector<2> v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
 		TEST_OP("Constructor Vector<2>()", Vector<2> v3);
-		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v3(v1));
+		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<2>(float[])", Vector<2> v3(data));
 		TEST_OP("Constructor Vector<2>(float, float)", Vector<2> v3(1.0f, 2.0f));
 		TEST_OP("Vector<2> = Vector<2>", v = v1);
@@ -101,7 +101,7 @@ bool MathlibTest::testVector2(void)
 	return true;
 }
 
-bool MathlibTest::testVector3(void)
+bool MathlibTest::testVector3()
 {
 
 	{
@@ -110,7 +110,7 @@ bool MathlibTest::testVector3(void)
 		Vector<3> v2(1.0f, -1.0f, 2.0f);
 		float data[3] = {1.0f, 2.0f, 3.0f};
 		TEST_OP("Constructor Vector<3>()", Vector<3> v3);
-		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v3(v1));
+		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<3>(float[])", Vector<3> v3(data));
 		TEST_OP("Constructor Vector<3>(float, float, float)", Vector<3> v3(1.0f, 2.0f, 3.0f));
 		TEST_OP("Vector<3> = Vector<3>", v = v1);
@@ -139,7 +139,7 @@ bool MathlibTest::testVector3(void)
 	return true;
 }
 
-bool MathlibTest::testVector4(void)
+bool MathlibTest::testVector4()
 {
 	{
 		Vector<4> v;
@@ -147,7 +147,7 @@ bool MathlibTest::testVector4(void)
 		Vector<4> v2(1.0f, -1.0f, 2.0f, 0.0f);
 		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
 		TEST_OP("Constructor Vector<4>()", Vector<4> v3);
-		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v3(v1));
+		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<4>(float[])", Vector<4> v3(data));
 		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector<4> v3(1.0f, 2.0f, 3.0f, 4.0f));
 		TEST_OP("Vector<4> = Vector<4>", v = v1);
@@ -160,20 +160,20 @@ bool MathlibTest::testVector4(void)
 	return true;
 }
 
-bool MathlibTest::testVector10(void)
+bool MathlibTest::testVector10()
 {
 	{
 		Vector<10> v1;
 		v1.zero();
 		float data[10];
 		TEST_OP("Constructor Vector<10>()", Vector<10> v3);
-		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v3(v1));
+		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor Vector<10>(float[])", Vector<10> v3(data));
 	}
 	return true;
 }
 
-bool MathlibTest::testMatrix3x3(void)
+bool MathlibTest::testMatrix3x3()
 {
 	{
 		Matrix<3, 3> m1;
@@ -188,7 +188,7 @@ bool MathlibTest::testMatrix3x3(void)
 	return true;
 }
 
-bool MathlibTest::testMatrix10x10(void)
+bool MathlibTest::testMatrix10x10()
 {
 	{
 		Matrix<10, 10> m1;
@@ -204,7 +204,7 @@ bool MathlibTest::testMatrix10x10(void)
 	return true;
 }
 
-bool MathlibTest::testMatrixNonsymmetric(void)
+bool MathlibTest::testMatrixNonsymmetric()
 {
 	int rc = true;
 	{
@@ -268,7 +268,7 @@ bool MathlibTest::testMatrixNonsymmetric(void)
 	return rc;
 }
 
-bool MathlibTest::testRotationMatrixQuaternion(void)
+bool MathlibTest::testRotationMatrixQuaternion()
 {
 	// test conversion rotation matrix to quaternion and back
 	math::Matrix<3, 3> R_orig;
@@ -299,7 +299,7 @@ bool MathlibTest::testRotationMatrixQuaternion(void)
 }
 
 
-bool MathlibTest::testQuaternionfrom_dcm(void)
+bool MathlibTest::testQuaternionfrom_dcm()
 {
 	// test against some known values
 	float tol = 0.0001f;
@@ -318,7 +318,7 @@ bool MathlibTest::testQuaternionfrom_dcm(void)
 	return true;
 }
 
-bool MathlibTest::testQuaternionfrom_euler(void)
+bool MathlibTest::testQuaternionfrom_euler()
 {
 	float tol = 0.0001f;
 	math::Quaternion q_true = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -353,7 +353,7 @@ bool MathlibTest::testQuaternionfrom_euler(void)
 	return true;
 }
 
-bool MathlibTest::testQuaternionRotate(void)
+bool MathlibTest::testQuaternionRotate()
 {
 	// test quaternion method "rotate" (rotate vector by quaternion)
 	Vector<3> vector = {1.0f, 1.0f, 1.0f};
@@ -419,7 +419,7 @@ bool MathlibTest::testQuaternionRotate(void)
 	return true;
 }
 
-bool MathlibTest::run_tests(void)
+bool MathlibTest::run_tests()
 {
 	ut_run_test(testVector2);
 	ut_run_test(testVector3);

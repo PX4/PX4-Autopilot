@@ -33,7 +33,11 @@
 px4_add_module(
 	MODULE drivers__boards__crazyflie
 	SRCS
+		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
+		../common/stm32/board_mcu_version.c
 		crazyflie_init.c
 		crazyflie_usb.c
 		crazyflie_led.c

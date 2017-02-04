@@ -54,14 +54,15 @@
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/sensor_correction.h>
 
 #include <DevMgr.hpp>
 
+#include "temperature_compensation.h"
+#include "common.h"
 
 namespace sensors
 {
-
-static const int SENSOR_COUNT_MAX = 3;
 
 /**
  ** class VotedSensorsUpdate
@@ -99,7 +100,8 @@ public:
 	float baro_pressure() const { return _last_best_baro_pressure; }
 
 	/**
-	 * call this whenever parameters got updated
+	 * call this whenever parameters got updated. Make sure to have initialize_sensors() called at least
+	 * once before calling this.
 	 */
 	void parameters_update();
 
@@ -261,6 +263,13 @@ private:
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
 
+	/* sensor thermal compensation */
+	TemperatureCompensation _temperature_compensation;
+	struct sensor_correction_s _corrections; /**< struct containing the sensor corrections to be published to the uORB*/
+	orb_advert_t _sensor_correction_pub = nullptr; /**< handle to the sensor correction uORB topic */
+	bool _corrections_changed = false;
+
+	static const double	_msl_pressure;	/** average sea-level pressure in kPa */
 };
 
 

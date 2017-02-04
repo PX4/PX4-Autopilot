@@ -236,7 +236,7 @@ param_find_changed(param_t param)
 }
 
 static void
-param_notify_changes(bool is_saved)
+_param_notify_changes(bool is_saved)
 {
 #if !defined(PARAM_NO_ORB)
 	struct parameter_update_s pup = {
@@ -256,6 +256,12 @@ param_notify_changes(bool is_saved)
 	}
 
 #endif
+}
+
+void
+param_notify_changes(void)
+{
+	_param_notify_changes(true);
 }
 
 param_t
@@ -601,7 +607,7 @@ out:
 	 * a thing has been set.
 	 */
 	if (params_changed && notify_changes) {
-		param_notify_changes(is_saved);
+		_param_notify_changes(is_saved);
 	}
 
 	return result;
@@ -687,7 +693,7 @@ param_reset(param_t param)
 	param_unlock();
 
 	if (s != NULL) {
-		param_notify_changes(false);
+		_param_notify_changes(false);
 	}
 
 	return (!param_found);
@@ -707,7 +713,7 @@ param_reset_all(void)
 
 	param_unlock();
 
-	param_notify_changes(false);
+	_param_notify_changes(false);
 }
 
 void
@@ -739,7 +745,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	param_unlock();
 
-	param_notify_changes(false);
+	_param_notify_changes(false);
 }
 
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";

@@ -260,7 +260,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 {
-	RawGPSData gps;
+	RawGPSData gps = {};
 	gps.lat = gps_sim->lat;
 	gps.lon = gps_sim->lon;
 	gps.alt = gps_sim->alt;
@@ -744,7 +744,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
-	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, NULL);
+	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
 
 	mavlink_status_t udp_status = {};

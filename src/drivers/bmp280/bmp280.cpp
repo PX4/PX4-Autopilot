@@ -163,6 +163,8 @@ BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "bmp280_buffer_overflows"))
 {
+	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_BMP280;
+
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
@@ -543,6 +545,8 @@ BMP280::collect()
 	report.temperature = _T;
 	report.pressure = _P / 100.0f; // to mbar
 
+	/* Get device ID */
+	report.device_id = _device_id.devid;
 
 	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
@@ -616,16 +620,16 @@ struct bmp280_bus_option {
 	BMP280 *dev;
 } bus_options[] = {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO , true , NULL },
+	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false , NULL },
+	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
 #endif
 #ifdef PX4_I2C_OBDEV_BMP280
 	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", nullptr, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_EXT_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280 , true , NULL },
+	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280, true, NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))

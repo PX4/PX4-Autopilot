@@ -149,12 +149,12 @@ public:
 	 */
 	struct DeviceStructure {
 		enum DeviceBusType bus_type : 3;
-			uint8_t bus: 5;    // which instance of the bus type
-			uint8_t address;   // address on the bus (eg. I2C address)
-			uint8_t devtype;   // device class specific device type
-		};
+		uint8_t bus: 5;    // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
 
-		union DeviceId {
+	union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};

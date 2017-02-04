@@ -165,14 +165,13 @@ uint8_t board_get_product_name(uint8_t *product_name, size_t maxlen)
 
 size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
 {
-	size_t length = 12;
-	memset(hw_version, 0 , sizeof(uavcan_HardwareVersion_t));
+	memset(hw_version, 0, sizeof(uavcan_HardwareVersion_t));
 
 	hw_version->major = HW_VERSION_MAJOR;
 	hw_version->minor = HW_VERSION_MINOR;
 
-	memcpy(hw_version->unique_id, (void *) STM32_SYSMEM_UID, length);
-	return length;
+	board_get_uuid_raw((raw_uuid_byte_t *) hw_version->unique_id);
+	return PX4_CPU_UUID_BYTE_LENGTH;
 }
 
 /****************************************************************************

@@ -160,7 +160,7 @@ private:
 	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
 	 */
-	void task_main(void);
+	void task_main();
 
 	/**
 	 * Set the baudrate of the UART to the GPS
@@ -303,15 +303,15 @@ GPS::~GPS()
 	}
 
 	if (_sat_info) {
-		delete(_sat_info);
+		delete (_sat_info);
 	}
 
 	if (_dump_to_device) {
-		delete(_dump_to_device);
+		delete (_dump_to_device);
 	}
 
 	if (_dump_from_device) {
-		delete(_dump_from_device);
+		delete (_dump_from_device);
 	}
 
 }
@@ -320,7 +320,7 @@ int GPS::init()
 {
 
 	char gps_num[2] = {(char)('0' + _gps_num), 0};
-	char *const args[2] = { gps_num, NULL };
+	char *const args[2] = { gps_num, nullptr };
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
@@ -710,7 +710,7 @@ GPS::task_main()
 		} else {
 
 			if (_helper != nullptr) {
-				delete(_helper);
+				delete (_helper);
 				/* set to zero to ensure parser is not used while not instantiated */
 				_helper = nullptr;
 			}
@@ -1036,7 +1036,6 @@ void
 reset()
 {
 	PX4_ERR("GPS reset not supported");
-	return;
 }
 
 /**
@@ -1056,7 +1055,6 @@ info()
 		g_dev[1]->print_info();
 	}
 
-	return;
 }
 
 void print_usage()

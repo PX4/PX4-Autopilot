@@ -459,6 +459,30 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
+ * Maximum vertical acceleration in velocity controlled modes upward
+ *
+ * @unit m/s/s
+ * @min 2.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
+
+/**
+ * Maximum vertical acceleration in velocity controlled modes down
+ *
+ * @unit m/s/s
+ * @min 2.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 5.0f);
+
+/**
  * Altitude control mode, note mode 1 only tested with LPE
  *
  * @min 0
@@ -468,3 +492,18 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
+
+/**
+ * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
+ *
+ * The higher the value the less sensitivity the stick has around zero
+ * while still reaching the maximum value with full stick deflection.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Purely linear input curve (default)
+ * @value 1 Purely cubic input curve
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);

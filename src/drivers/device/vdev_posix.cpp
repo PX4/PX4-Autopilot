@@ -67,7 +67,7 @@ extern "C" {
 	inline bool valid_fd(int fd)
 	{
 		pthread_mutex_lock(&filemutex);
-		bool ret = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+		bool ret = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != nullptr);
 		pthread_mutex_unlock(&filemutex);
 		return ret;
 	}
@@ -75,7 +75,7 @@ extern "C" {
 	inline VDev *get_vdev(int fd)
 	{
 		pthread_mutex_lock(&filemutex);
-		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != NULL);
+		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd] != nullptr);
 		VDev *dev;
 
 		if (valid) {
@@ -115,7 +115,7 @@ extern "C" {
 			pthread_mutex_lock(&filemutex);
 
 			for (i = 0; i < PX4_MAX_FD; ++i) {
-				if (filemap[i] == 0) {
+				if (filemap[i] == nullptr) {
 					filemap[i] = new device::file_t(flags, dev, i);
 					break;
 				}
@@ -290,7 +290,7 @@ extern "C" {
 		for (i = 0; i < nfds; ++i) {
 			fds[i].sem     = &sem;
 			fds[i].revents = 0;
-			fds[i].priv    = NULL;
+			fds[i].priv    = nullptr;
 
 			VDev *dev = get_vdev(fds[i].fd);
 
