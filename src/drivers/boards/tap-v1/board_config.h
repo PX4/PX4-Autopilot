@@ -221,6 +221,7 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
+#define BOARD_HAS_POWER_CONTROL	1
 
 /* This board provides a DMA pool and APIs */
 
