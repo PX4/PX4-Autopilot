@@ -167,7 +167,7 @@ int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int
 		return 0;
 	}
 
-	double res[3][4] = {0.0f};
+	double res[3][4] = {};
 	data.P[0].fit(res[0]);
 	res[0][3] = 0.0; // normalise the correction to be zero at the reference temperature
 	PX4_INFO("Result Accel %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
