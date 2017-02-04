@@ -273,6 +273,7 @@ if (CATKIN_DEVEL_PREFIX)
 endif()
 
 find_package(PythonInterp REQUIRED)
+px4_find_python_module(jinja2 REQUIRED)
 
 #=============================================================================
 # cmake testing
@@ -401,7 +402,7 @@ px4_generate_messages(TARGET msg_gen
 	)
 px4_generate_parameters_xml(OUT parameters.xml 
 	BOARD ${BOARD}
-	SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
+	MODULES ${config_module_list}
 	OVERRIDES ${PARAM_DEFAULT_OVERRIDES})
 px4_generate_airframes_xml(OUT airframes.xml BOARD ${BOARD})
 add_custom_target(xml_gen
