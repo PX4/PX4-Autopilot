@@ -9,7 +9,7 @@ add_definitions(
 	)
 
 set(CMAKE_PROGRAM_PATH
-	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin"
+	"${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin"
 	${CMAKE_PROGRAM_PATH}
 	)
 
