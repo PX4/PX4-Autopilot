@@ -245,7 +245,7 @@ int send_event_main(int argc, char *argv[])
 		bool calib_all = true;
 		int myoptind = 1;
 		int ch;
-		const char *myoptarg = NULL;
+		const char *myoptarg = nullptr;
 
 		while ((ch = px4_getopt(argc, argv, "abg", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
