@@ -74,9 +74,9 @@ static const int8_t declination_table[13][37] = \
 };
 
 static float get_lookup_table_val(unsigned lat, unsigned lon);
-static unsigned get_lookup_table_index(float* val, float min, float max);
+static unsigned get_lookup_table_index(float *val, float min, float max);
 
-unsigned get_lookup_table_index(float* val, float min, float max)
+unsigned get_lookup_table_index(float *val, float min, float max)
 {
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
