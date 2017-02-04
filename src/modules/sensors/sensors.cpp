@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -579,14 +579,16 @@ Sensors::task_main()
 		PX4_ERR("sensor initialization failed");
 	}
 
-	/* (re)load params and calibration */
-	parameter_update_poll(true);
-
 	struct sensor_combined_s raw = {};
-	_rc_update.init();
-	_voted_sensors_update.init(raw);
 
 	struct sensor_preflight_s preflt = {};
+
+	_rc_update.init();
+
+	_voted_sensors_update.init(raw);
+
+	/* (re)load params and calibration */
+	parameter_update_poll(true);
 
 	/*
 	 * do subscriptions
@@ -731,7 +733,7 @@ Sensors::start()
 	_sensors_task = px4_task_spawn_cmd("sensors",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
-					   1700,
+					   2000,
 					   (px4_main_t)&Sensors::task_main_trampoline,
 					   nullptr);
 

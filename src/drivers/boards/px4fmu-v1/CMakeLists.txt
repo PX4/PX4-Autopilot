@@ -34,6 +34,9 @@ px4_add_module(
 	MODULE drivers__boards__px4fmu-v1
 	COMPILE_FLAGS
 	SRCS
+		../common/stm32/board_reset.c
+		../common/stm32/board_identity.c
+		../common/stm32/board_mcu_version.c
 		px4fmu_can.c
 		px4fmu_init.c
 		px4fmu_timer_config.c

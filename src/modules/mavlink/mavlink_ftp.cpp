@@ -64,19 +64,19 @@ MavlinkFTP::~MavlinkFTP()
 }
 
 const char *
-MavlinkFTP::get_name(void) const
+MavlinkFTP::get_name() const
 {
 	return "MAVLINK_FTP";
 }
 
 uint16_t
-MavlinkFTP::get_id(void)
+MavlinkFTP::get_id()
 {
 	return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL;
 }
 
 unsigned
-MavlinkFTP::get_size(void)
+MavlinkFTP::get_size()
 {
 	if (_session_info.stream_download) {
 		return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -102,7 +102,7 @@ MavlinkFTP::set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_da
 #endif
 
 uint8_t
-MavlinkFTP::_getServerSystemId(void)
+MavlinkFTP::_getServerSystemId()
 {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing
@@ -114,7 +114,7 @@ MavlinkFTP::_getServerSystemId(void)
 }
 
 uint8_t
-MavlinkFTP::_getServerComponentId(void)
+MavlinkFTP::_getServerComponentId()
 {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing
@@ -126,7 +126,7 @@ MavlinkFTP::_getServerComponentId(void)
 }
 
 uint8_t
-MavlinkFTP::_getServerChannel(void)
+MavlinkFTP::_getServerChannel()
 {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing

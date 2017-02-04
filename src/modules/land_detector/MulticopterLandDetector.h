@@ -71,6 +71,8 @@ protected:
 
 	virtual bool _get_landed_state() override;
 
+	virtual bool _get_ground_contact_state() override;
+
 	virtual bool _get_freefall_state() override;
 private:
 
@@ -82,6 +84,8 @@ private:
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t minThrottle;
+		param_t hoverThrottle;
+		param_t throttleRange;
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
@@ -92,6 +96,8 @@ private:
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float minThrottle;
+		float hoverThrottle;
+		float throttleRange;
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
@@ -117,7 +123,10 @@ private:
 	uint64_t _arming_time;
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
-	float get_takeoff_throttle();
+	float _get_takeoff_throttle();
+	bool _get_position_lock_available();
+	bool _get_manual_control_present();
+	bool _get_minimal_thrust();
 };
 
 

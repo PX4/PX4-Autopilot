@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -eu
 
-ASTYLE_VER_REQUIRED="Artistic Style Version 2.05.1"
+ASTYLE_VER_REQUIRED="Artistic Style Version 2.06"
 astyle_ver() {
 	echo "PX4 requires ${ASTYLE_VER_REQUIRED}"
-	echo "You can get the correct version here: https://github.com/PX4/astyle/releases/tag/2.05.1"
+	echo "You can get the correct version here: https://sourceforge.net/projects/astyle/files/astyle/astyle%202.06/"
 }
 
 # check if astyle is installed

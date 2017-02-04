@@ -88,7 +88,7 @@ typedef struct timer_io_channels_t {
 
 typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint32_t chan_index,
 				  const timer_io_channels_t *chan,
-				  hrt_abstime isrs_time , uint16_t isrs_rcnt);
+				  hrt_abstime isrs_time, uint16_t isrs_rcnt);
 
 
 /* supplied by board-specific code */

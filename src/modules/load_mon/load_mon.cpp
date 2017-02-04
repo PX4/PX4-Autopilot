@@ -57,10 +57,11 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/low_stack.h>
+#include <uORB/topics/task_stack_info.h>
 
 extern struct system_load_s system_load;
 
+#define STACK_LOW_WARNING_THRESHOLD 300 ///< if free stack space falls below this, print a warning
 
 namespace load_mon
 {
@@ -105,9 +106,9 @@ private:
 	/* Calculate stack usage */
 	void _stack_usage();
 
-	struct low_stack_s _low_stack;
+	struct task_stack_info_s _task_stack_info;
 	int _stack_task_index;
-	orb_advert_t _low_stack_pub;
+	orb_advert_t _task_stack_info_pub;
 #endif
 
 	bool _taskShouldExit;
@@ -123,9 +124,9 @@ private:
 
 LoadMon::LoadMon() :
 #ifdef __PX4_NUTTX
-	_low_stack {},
+	_task_stack_info {},
 	_stack_task_index(0),
-	_low_stack_pub(nullptr),
+	_task_stack_info_pub(nullptr),
 #endif
 	_taskShouldExit(false),
 	_taskIsRunning(false),
@@ -255,8 +256,10 @@ void LoadMon::_stack_usage()
 {
 	int task_index = 0;
 
-	/* Scan maximum 3 tasks per cycle to reduce load. */
-	for (int i = _stack_task_index; i < _stack_task_index + 3; i++) {
+	/* Scan maximum num_tasks_per_cycle tasks to reduce load. */
+	const int num_tasks_per_cycle = 2;
+
+	for (int i = _stack_task_index; i < _stack_task_index + num_tasks_per_cycle; i++) {
 		task_index = i % CONFIG_MAX_TASKS;
 		unsigned stack_free = 0;
 		bool checked_task = false;
@@ -265,18 +268,11 @@ void LoadMon::_stack_usage()
 		sched_lock();
 
 		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
-			unsigned stack_size = (uintptr_t)system_load.tasks[task_index].tcb->adj_stack_ptr -
-					      (uintptr_t)system_load.tasks[task_index].tcb->stack_alloc_ptr;
 
-			uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[task_index].tcb->stack_alloc_ptr;
+			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
 
-			while (stack_free < stack_size) {
-				if (*stack_sweeper++ != 0xff) {
-					break;
-				}
-
-				stack_free++;
-			}
+			strncpy((char *)_task_stack_info.task_name, system_load.tasks[task_index].tcb->name,
+				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
 
 			checked_task = true;
 		}
@@ -285,20 +281,22 @@ void LoadMon::_stack_usage()
 		perf_end(_stack_perf);
 
 		if (checked_task) {
+
+			_task_stack_info.stack_free = stack_free;
+			_task_stack_info.timestamp = hrt_absolute_time();
+
+			if (_task_stack_info_pub == nullptr) {
+				_task_stack_info_pub = orb_advertise_queue(ORB_ID(task_stack_info), &_task_stack_info, num_tasks_per_cycle);
+
+			} else {
+				orb_publish(ORB_ID(task_stack_info), _task_stack_info_pub, &_task_stack_info);
+			}
+
 			/*
 			 * Found task low on stack, report and exit. Continue here in next cycle.
 			 */
-			if (stack_free < 300) {
-				strncpy((char *)_low_stack.task_name, system_load.tasks[task_index].tcb->name, low_stack_s::MAX_REPORT_TASK_NAME_LEN);
-				_low_stack.stack_free = stack_free;
-
-				if (_low_stack_pub == nullptr) {
-					_low_stack_pub = orb_advertise(ORB_ID(low_stack), &_low_stack);
-
-				} else {
-					orb_publish(ORB_ID(low_stack), _low_stack_pub, &_low_stack);
-				}
-
+			if (stack_free < STACK_LOW_WARNING_THRESHOLD) {
+				PX4_WARN("%s low on stack! (%i bytes left)", _task_stack_info.task_name, stack_free);
 				break;
 			}
 

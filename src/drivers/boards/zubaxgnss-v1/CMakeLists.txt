@@ -37,6 +37,7 @@ include_directories(../../bootloaders/include)
 
 set(SRCS)
 list(APPEND SRCS
+    ../common/stm32/board_reset.c
     zubax_gnss_init.c
     zubax_gnss_led.c
    ../../../drivers/bootloaders/src/common/boot_app_shared.c

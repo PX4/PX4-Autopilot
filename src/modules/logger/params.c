@@ -60,9 +60,10 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
+ * @value 3 from boot until shutdown - IMU and Baro data only (used for thermal calibration)
  *
  * @min 0
- * @max 2
+ * @max 3
  * @reboot_required true
  * @group SD Logging
  */

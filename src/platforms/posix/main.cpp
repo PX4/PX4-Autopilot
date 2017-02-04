@@ -56,7 +56,7 @@
 
 namespace px4
 {
-void init_once(void);
+void init_once();
 }
 
 using namespace std;
@@ -159,7 +159,7 @@ static int mkpath(const char *path, mode_t mode)
 	status = 0;
 	pp = copypath;
 
-	while (status == 0 && (sp = strchr(pp, '/')) != 0) {
+	while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
 		if (sp != pp) {
 			/* Neither root nor double slash in path */
 			*sp = '\0';
@@ -214,7 +214,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 			++i;
 		}
 
-		arg[i] = (char *)0;
+		arg[i] = (char *)nullptr;
 
 		int retval = apps[command](i, (char **)arg);
 
@@ -226,7 +226,7 @@ static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silen
 			}
 		}
 
-	} else if (command.compare("help") == 0) {
+	} else if (command == "help") {
 		list_builtins(apps);
 
 	} else if (command.length() == 0 || command[0] == '#') {
@@ -260,7 +260,7 @@ static void process_line(string &line, bool exit_on_fail)
 	run_cmd(appargs, exit_on_fail);
 }
 
-static void restore_term(void)
+static void restore_term()
 {
 	cout << "Restoring terminal\n";
 	tcsetattr(0, TCSANOW, &orig_term);
@@ -310,17 +310,17 @@ int main(int argc, char **argv)
 	sig_fpe.sa_handler = _SigFpeHandler;
 	sig_fpe.sa_flags = 0;// not SA_RESTART!;
 
-	sigaction(SIGINT, &sig_int, NULL);
+	sigaction(SIGINT, &sig_int, nullptr);
 	//sigaction(SIGTERM, &sig_int, NULL);
-	sigaction(SIGFPE, &sig_fpe, NULL);
+	sigaction(SIGFPE, &sig_fpe, nullptr);
 
 	set_cpu_scaling();
 
 	int index = 1;
-	string  commands_file = "";
+	string  commands_file;
 	int positional_arg_count = 0;
-	string data_path = "";
-	string node_name = "";
+	string data_path;
+	string node_name;
 
 	// parse arguments
 	while (index < argc) {
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 
 	cout << "commands file: " << commands_file << endl;
 
-	if (commands_file.size() < 1) {
+	if (commands_file.empty()) {
 		PX4_ERR("Error commands file not specified");
 		return -1;
 	}
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
 	px4::init(argc, argv, "px4");
 
 	// if commandfile is present, process the commands from the file
-	if (commands_file.size() != 0) {
+	if (!commands_file.empty()) {
 		ifstream infile(commands_file.c_str());
 
 		if (infile.is_open()) {
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!daemon_mode) {
-		string mystr = "";
+		string mystr;
 		string string_buffer[CMD_BUFF_SIZE];
 		int buf_ptr_write = 0;
 		int buf_ptr_read = 0;
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
 		term.c_lflag &= ~ICANON;
 		term.c_lflag &= ~ECHO;
 		tcsetattr(0, TCSANOW, &term);
-		setbuf(stdin, NULL);
+		setbuf(stdin, nullptr);
 
 		while (!_ExitFlag) {
 

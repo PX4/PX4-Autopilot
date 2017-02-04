@@ -42,7 +42,7 @@
 #include "battery.h"
 
 Battery::Battery() :
-	SuperBlock(NULL, "BAT"),
+	SuperBlock(nullptr, "BAT"),
 	_param_v_empty(this, "V_EMPTY"),
 	_param_v_full(this, "V_CHARGED"),
 	_param_n_cells(this, "N_CELLS"),

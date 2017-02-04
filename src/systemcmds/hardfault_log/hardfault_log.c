@@ -147,7 +147,7 @@ static int format_fault_time(char *format, struct timespec *ts, char *buffer, un
 			time_t time_sec = ts->tv_sec + (ts->tv_nsec / 1e9);
 			gmtime_r(&time_sec, &tt);
 
-			if (TIME_FMT_LEN == strftime(buffer, maxsz, format , &tt)) {
+			if (TIME_FMT_LEN == strftime(buffer, maxsz, format, &tt)) {
 				ret = OK;
 			}
 		}
@@ -176,7 +176,7 @@ static int format_fault_file_name(struct timespec *ts, char *buffer, unsigned in
 			int rv = format_fault_time(TIME_FMT, ts, fmtbuff, arraySize(fmtbuff));
 
 			if (rv == OK) {
-				int n = snprintf(&buffer[plen], maxsz , LOG_NAME_FMT, fmtbuff);
+				int n = snprintf(&buffer[plen], maxsz, LOG_NAME_FMT, fmtbuff);
 
 				if (n == (int) LOG_NAME_LEN + TIME_FMT_LEN) {
 					ret = OK;
@@ -394,7 +394,7 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 /****************************************************************************
  * write_registers_info
  ****************************************************************************/
-static int write_registers_info(int fdout, info_s *pi , char *buffer, int sz)
+static int write_registers_info(int fdout, info_s *pi, char *buffer, int sz)
 {
 	int ret = ENOENT;
 

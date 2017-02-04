@@ -119,7 +119,6 @@ static void usage(const char *reason)
 	}
 
 	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n");
-	return;
 }
 
 /**
@@ -153,7 +152,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
-					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
+					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) nullptr);
 		return 0;
 	}
 
@@ -385,7 +384,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = NULL;
+	orb_advert_t vehicle_global_position_pub = nullptr;
 
 	struct position_estimator_inav_params params;
 	memset(&params, 0, sizeof(params));
@@ -1383,7 +1382,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				global_pos.pressure_alt = sensor.baro_alt_meter;
 
-				if (vehicle_global_position_pub == NULL) {
+				if (vehicle_global_position_pub == nullptr) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 
 				} else {

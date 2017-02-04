@@ -1,7 +1,7 @@
 #! /bin/bash
 
 if [ -z "$PX4_DOCKER_REPO" ]; then
-	PX4_DOCKER_REPO=px4io/px4-dev-nuttx:2017-01-14
+	PX4_DOCKER_REPO=px4io/px4-dev-nuttx:2017-01-28
 fi
 
 PWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )

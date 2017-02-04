@@ -657,8 +657,8 @@ typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
 
-	/** multirotor mixer info */
-	struct mixer_multi_s {
+/** multirotor mixer info */
+struct mixer_multi_s {
 	float   roll_scale;
 	float   pitch_scale;
 	float   yaw_scale;
@@ -697,7 +697,7 @@ public:
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
-	* @param yaw_scale		Scaling factor applied to yaw inputs compared
+	 * @param yaw_scale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
 	 * @param idle_speed		Minimum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the

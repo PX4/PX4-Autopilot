@@ -166,6 +166,7 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: \
+	check_auav-x21_default \
 	check_aerofc-v1_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
@@ -179,7 +180,6 @@ qgc_firmware: \
 
 # Other NuttX firmware
 alt_firmware: \
-	check_auav-x21_default \
 	check_px4-stm32f4discovery_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
@@ -231,7 +231,7 @@ check_%:
 
 Firmware.zip:
 	@rm -rf Firmware.zip
-	@zip --junk-paths Firmware.zip `find . -name nuttx-\*.px4`
+	@zip --junk-paths Firmware.zip `find . -name \*.px4`
 
 s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
@@ -296,7 +296,12 @@ clang-check:
 clang-tidy:
 	rm -rf $(SRC_DIR)/build_posix_sitl_default
 	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@run-clang-tidy.py -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
+	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
+
+clang-tidy-parallel:
+	rm -rf $(SRC_DIR)/build_posix_sitl_default
+	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
+	@$(SRC_DIR)/Tools/run-clang-tidy.py -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
 
 clang-tidy-fix:
 	rm -rf $(SRC_DIR)/build_posix_sitl_default

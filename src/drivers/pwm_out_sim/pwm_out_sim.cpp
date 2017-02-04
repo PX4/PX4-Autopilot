@@ -79,10 +79,11 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/parameter_update.h>
+#if defined(MIXER_CONFIGURATION)
 #include <uORB/topics/mixer_data_request.h>
 #include <uORB/topics/mixer_parameter_set.h>
 #include <uORB/topics/mixer_data.h>
+#endif // MIXER_CONFIGURATION
 
 #include <systemlib/err.h>
 
@@ -125,7 +126,6 @@ private:
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
-	int		_param_sub;
 #if defined(MIXER_CONFIGURATION)
 	int     _mixer_data_request_sub;
 	int     _mixer_parameter_set_sub;
@@ -168,10 +168,10 @@ private:
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
 
-	void		gpio_reset(void);
+	void		gpio_reset();
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read(void);
+	uint32_t	gpio_read();
 	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 };
@@ -201,13 +201,12 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
-	_param_sub(-1),
 #if defined(MIXER_CONFIGURATION)
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
 	_mixer_data_pub(nullptr),
 #endif // MIXER_CONFIGURATION
-	_outputs_pub(0),
+	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_groups_required(0),
@@ -402,7 +401,6 @@ PWMSim::task_main()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 #if defined(MIXER_CONFIGURATION)
 	_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
@@ -509,7 +507,7 @@ PWMSim::task_main()
 			}
 
 			/* do mixing */
-			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, NULL);
+			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, nullptr);
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
@@ -1090,7 +1088,7 @@ enum PortMode {
 	PORT2_16PWM,
 };
 
-static PortMode g_port_mode = PORT_MODE_UNDEFINED;
+PortMode g_port_mode = PORT_MODE_UNDEFINED;
 
 int
 hil_new_mode(PortMode new_mode)
@@ -1156,7 +1154,7 @@ hil_new_mode(PortMode new_mode)
 }
 
 int
-test(void)
+test()
 {
 	int	fd;
 
@@ -1185,13 +1183,13 @@ fake(int argc, char *argv[])
 
 	actuator_controls_s ac;
 
-	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
+	ac.control[0] = strtol(argv[1], nullptr, 0) / 100.0f;
 
-	ac.control[1] = strtol(argv[2], 0, 0) / 100.0f;
+	ac.control[1] = strtol(argv[2], nullptr, 0) / 100.0f;
 
-	ac.control[2] = strtol(argv[3], 0, 0) / 100.0f;
+	ac.control[2] = strtol(argv[3], nullptr, 0) / 100.0f;
 
-	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
+	ac.control[3] = strtol(argv[4], nullptr, 0) / 100.0f;
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 

@@ -288,7 +288,7 @@ private:
 };
 
 Ekf2::Ekf2():
-	SuperBlock(NULL, "EKF"),
+	SuperBlock(nullptr, "EKF"),
 	_replay_mode(false),
 	_publish_replay_mode(0),
 	_att_pub(nullptr),
@@ -711,6 +711,9 @@ void Ekf2::task_main()
 				ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
 				ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
 				ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
+				ctrl_state.roll_rate_bias = gyro_bias[0];
+				ctrl_state.pitch_rate_bias = gyro_bias[1];
+				ctrl_state.yaw_rate_bias = gyro_bias[2];
 
 				// Velocity in body frame
 				Vector3f v_n(velocity);

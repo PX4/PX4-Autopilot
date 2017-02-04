@@ -13,8 +13,7 @@ filename=${1}
 
 if [ -f ${filename} ]; then
 	base_file_name=`basename $filename`
-	short_file_name=${base_file_name#nuttx-}
-	s3cmd --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} put ${filename} s3://${AWS_S3_BUCKET}/${short_file_name}
+	s3cmd --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} put ${filename} s3://${AWS_S3_BUCKET}/${base_file_name}
 else
 	echo "ERROR: ${file} doesn't exist"
 	exit 1

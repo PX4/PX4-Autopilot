@@ -108,6 +108,13 @@
  */
 #define MPU6000_TIMER_REDUCTION				200
 
+enum MPU_DEVICE_TYPE {
+	MPU_DEVICE_TYPE_MPU6000	= 6000,
+	MPU_DEVICE_TYPE_ICM20602 = 20602,
+	MPU_DEVICE_TYPE_ICM20608 = 20608,
+	MPU_DEVICE_TYPE_ICM20689 = 20689
+};
+
 enum MPU6000_BUS {
 	MPU6000_BUS_ALL = 0,
 	MPU6000_BUS_I2C_INTERNAL,
@@ -257,11 +264,11 @@ private:
 	/**
 	 * is_icm_device
 	 */
-	bool 		is_icm_device() { return !is_mpu_device();}
+	bool 		is_icm_device() { return !is_mpu_device(); }
 	/**
 	 * is_mpu_device
 	 */
-	bool 		is_mpu_device() { return _device_type == 6000;}
+	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
 
 
 #if defined(USE_I2C)
@@ -523,11 +530,45 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	// disable debug() calls
 	_debug_enabled = false;
 
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
 
-	/* Prime _gyro with parents devid. */
-	_gyro->_device_id.devid = _device_id.devid;
-	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
+	switch (_device_type) {
+
+	default:
+	case MPU_DEVICE_TYPE_MPU6000:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU6000;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20602:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20602;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20602;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20608:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20608;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20608;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20689:
+		_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ICM20689;
+		/* Prime _gyro with parents devid. */
+		_gyro->_device_id.devid = _device_id.devid;
+		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ICM20689;
+		break;
+	}
+
+	// copy device type to interface
+	_interface->set_device_type(_device_id.devid_s.devtype);
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -786,19 +827,19 @@ MPU6000::probe()
 	switch (_device_type) {
 
 	default:
-	case 6000:
+	case MPU_DEVICE_TYPE_MPU6000:
 		expected = MPU_WHOAMI_6000;
 		break;
 
-	case 20602:
+	case MPU_DEVICE_TYPE_ICM20602:
 		expected = ICM_WHOAMI_20602;
 		break;
 
-	case 20608:
+	case MPU_DEVICE_TYPE_ICM20608:
 		expected = ICM_WHOAMI_20608;
 		break;
 
-	case 20689:
+	case MPU_DEVICE_TYPE_ICM20689:
 		expected = ICM_WHOAMI_20689;
 		break;
 	}
@@ -1011,31 +1052,6 @@ MPU6000::accel_self_test()
 		return 1;
 	}
 
-	/* inspect accel offsets */
-	if (fabsf(_accel_scale.x_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.y_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.z_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
 	return 0;
 }
 
@@ -1086,14 +1102,6 @@ MPU6000::gyro_self_test()
 	}
 
 	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale) {
-		return 1;
-	}
-
-	/* check if all scales are zero */
-	if ((fabsf(_gyro_scale.x_offset) < 0.000001f) &&
-	    (fabsf(_gyro_scale.y_offset) < 0.000001f) &&
-	    (fabsf(_gyro_scale.z_offset) < 0.000001f)) {
-		/* if all are zero, this device is not calibrated */
 		return 1;
 	}
 
@@ -1485,9 +1493,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCGEXTERNAL:
 		return _interface->ioctl(cmd, dummy);
 
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -1570,9 +1575,6 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return gyro_self_test();
 
 	case GYROIOCGEXTERNAL:
-		return _interface->ioctl(cmd, dummy);
-
-	case DEVIOCGDEVICEID:
 		return _interface->ioctl(cmd, dummy);
 
 	default:
@@ -2030,6 +2032,9 @@ MPU6000::measure()
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
+	/* return device ID */
+	arb.device_id = _device_id.devid;
+
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -2062,6 +2067,9 @@ MPU6000::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+
+	/* return device ID */
+	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
@@ -2212,6 +2220,7 @@ namespace mpu6000
 
 struct mpu6000_bus_option {
 	enum MPU6000_BUS busid;
+	MPU_DEVICE_TYPE device_type;
 	const char *accelpath;
 	const char *gyropath;
 	MPU6000_constructor interface_constructor;
@@ -2221,27 +2230,30 @@ struct mpu6000_bus_option {
 } bus_options[] = {
 #if defined (USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
+	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
 #  endif
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
 #  endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20602
-	{ MPU6000_BUS_SPI_INTERNAL1, ICM20602_DEVICE_PATH_ACCEL, ICM20602_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH_ACCEL, ICM20602_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+#endif
+#ifdef PX4_SPIDEV_ICM_20608
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20608, ICM20608_DEVICE_PATH_ACCEL, ICM20608_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20689
-	{ MPU6000_BUS_SPI_INTERNAL2, ICM20689_DEVICE_PATH_ACCEL, ICM20689_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_ICM20689, ICM20689_DEVICE_PATH_ACCEL, ICM20689_DEVICE_PATH_GYRO, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXTERNAL)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
-	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
 #endif
 };
 
@@ -2339,7 +2351,7 @@ fail:
 	}
 
 	if (bus.dev != nullptr) {
-		delete(bus.dev);
+		delete bus.dev;
 		bus.dev = nullptr;
 	}
 
@@ -2365,6 +2377,11 @@ start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type
 		}
 
 		if (busid != MPU6000_BUS_ALL && bus_options[i].busid != busid) {
+			// not the one that is asked for
+			continue;
+		}
+
+		if (bus_options[i].device_type != device_type) {
 			// not the one that is asked for
 			continue;
 		}
@@ -2601,7 +2618,7 @@ int
 mpu6000_main(int argc, char *argv[])
 {
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
-	int device_type = 6000;
+	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = 8;

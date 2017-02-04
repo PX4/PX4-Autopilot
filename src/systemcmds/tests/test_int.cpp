@@ -20,14 +20,14 @@ typedef union {
 class IntTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool math64bitTests();
 	bool math3264MixedMathTests();
 };
 
-bool IntTest::math64bitTests(void)
+bool IntTest::math64bitTests()
 {
 	int64_t large = 354156329598;
 	int64_t calc = large * 5;
@@ -37,7 +37,7 @@ bool IntTest::math64bitTests(void)
 	return true;
 }
 
-bool IntTest::math3264MixedMathTests(void)
+bool IntTest::math3264MixedMathTests()
 {
 	int32_t small = 50;
 	int32_t large_int = 2147483647; // MAX INT value
@@ -50,7 +50,7 @@ bool IntTest::math3264MixedMathTests(void)
 }
 
 
-bool IntTest::run_tests(void)
+bool IntTest::run_tests()
 {
 	ut_run_test(math64bitTests);
 	ut_run_test(math3264MixedMathTests);

@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -117,22 +117,18 @@
 #
 #=============================================================================
 
-if("${CMAKE_VERSION}" VERSION_LESS 2.8.0)
+if("${CMAKE_VERSION}" VERSION_LESS 3.1.0)
 	message("Not a valid CMake version")
-	message("On Ubuntu 16.04, install or upgrade via:")
+	message("On Ubuntu >= 16.04, install or upgrade via:")
 	message("	sudo apt-get install cmake")
 	message("")
-	message("Official website:")
-	message("	wget https://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.sh")
-	message("	chmod +x cmake-3.4.3-Linux-x86_64.sh")
-	message("	sudo mkdir /opt/cmake-3.4.3")
-	message("	sudo ./cmake-3.4.3-Linux-x86_64.sh --prefix=/opt/cmake-3.4.3 --exclude-subdir")
-	message("	export PATH=/opt/cmake-3.4.3/bin:$$PATH")
+	message("Official website: https://cmake.org/download/")
+	message(FATAL_ERROR "Update CMake and try again" )
 endif()
 
 # Warning: Changing this modifies CMake's internal workings
 # and leads to wrong toolchain detection
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
@@ -150,10 +146,11 @@ set(CMAKE_BUILD_TYPE "" CACHE STRING "build type")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 	STRINGS ";Debug;Release;RelWithDebInfo;MinSizeRel")
 set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
+
 file(GLOB_RECURSE configs RELATIVE cmake/configs "cmake/configs/*.cmake")
 set_property(CACHE CONFIG PROPERTY STRINGS ${configs})
-set(THREADS "4" CACHE STRING
-	"number of threads to use for external build processes")
+
+set(THREADS "4" CACHE STRING "number of threads to use for external build processes")
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
@@ -244,17 +241,19 @@ endif()
 set(BUILD_SHARED_LIBS OFF)
 
 #=============================================================================
+# ccache
+#
+option(CCACHE "Use ccache if available" OFF)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE AND CCACHE_PROGRAM)
+	message(STATUS "Enabled ccache: ${CCACHE_PROGRAM}")
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
+#=============================================================================
 # project definition
 #
 project(px4 CXX C ASM)
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.0.0)
-	cmake_policy(SET CMP0045 NEW) # error on non-existent target in get prop
-	cmake_policy(SET CMP0046 NEW) # no non-existent targets as dependencies
-	cmake_policy(SET CMP0025 OLD) # still report AppleClang as Clang
-endif()
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.1.0)
-	cmake_policy(SET CMP0054 NEW) # don't dereference quoted variables
-endif()
 
 set(package-contact "px4users@googlegroups.com")
 
@@ -289,6 +288,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #=============================================================================
 # check required toolchain variables
 #
+
+# PX4 requires c++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# PX4 requires c99
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
 set(required_variables
 	CMAKE_C_COMPILER_ID
 	)
@@ -495,7 +503,7 @@ endif()
 #=============================================================================
 # generate git version
 #
-px4_create_git_hash_header(OUT ${PX4_BINARY_DIR}/build_git_version.h)
+px4_create_git_hash_header()
 
 #=============================================================================
 # packaging

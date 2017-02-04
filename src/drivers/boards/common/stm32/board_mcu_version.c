@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +33,32 @@
  ****************************************************************************/
 
 /**
- * @file mcu_version.c
- *
- * Read out the microcontroller version from the board
- *
- * @author Lorenz Meier <lorenz@px4.io>
- *
+ * @file board_mcu_version.c
+ * Implementation of STM32 based SoC version API
  */
-
-#include "mcu_version.h"
 
 #include <px4_config.h>
 #include <px4_defines.h>
 
-#if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
+/* magic numbers from reference manual */
+
+enum MCU_REV {
+	MCU_REV_STM32F4_REV_A = 0x1000,
+	MCU_REV_STM32F4_REV_Z = 0x1001,
+	MCU_REV_STM32F4_REV_Y = 0x1003,
+	MCU_REV_STM32F4_REV_1 = 0x1007,
+	MCU_REV_STM32F4_REV_3 = 0x2001
+};
+
+/* Define any issues with the Silicon as lines separated by \n
+ * omitting the last \n
+ */
+#define STM32_F4_ERRATA "This device can only utilize a maximum of 1MB flash safely!"
+
 
 //STM DocID018909 Rev 8 Sect 38.18 and DocID026670 Rev 5 40.6.1 (MCU device ID code)
 # define REVID_MASK    0xFFFF0000
 # define DEVID_MASK    0xFFF
-
 
 # define STM32F74xxx_75xxx  0x449
 # define STM32F76xxx_77xxx  0x451
@@ -62,29 +70,14 @@
 # define STM32F103_XLD      0x430
 # define STM32F103_CON      0x418
 
-#endif
 
-/** Copy the 96bit MCU Unique ID into the provided pointer */
-void mcu_unique_id(uint32_t *uid_96_bit)
+int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
-#ifdef __PX4_NUTTX
-	uid_96_bit[0] = getreg32(STM32_SYSMEM_UID);
-	uid_96_bit[1] = getreg32(STM32_SYSMEM_UID + 4);
-	uid_96_bit[2] = getreg32(STM32_SYSMEM_UID + 8);
-#else
-	uid_96_bit[0] = 0;
-	uid_96_bit[1] = 1;
-	uid_96_bit[2] = 2;
-#endif
-}
-
-int mcu_version(char *rev, char **revstr)
-{
-#ifdef __PX4_NUTTX
 	uint32_t abc = getreg32(STM32_DEBUGMCU_BASE);
 
 	int32_t chip_version = abc & DEVID_MASK;
 	enum MCU_REV revid = (abc & REVID_MASK) >> 16;
+	const char *chip_errata = NULL;
 
 	switch (chip_version) {
 
@@ -98,6 +91,8 @@ int mcu_version(char *rev, char **revstr)
 
 	case STM32F42x_43x:
 		*revstr = "STM32F42x";
+		/* Set possible errata */
+		chip_errata = STM32_F4_ERRATA;
 		break;
 
 	case STM32F103_LD:
@@ -145,6 +140,7 @@ int mcu_version(char *rev, char **revstr)
 
 	case MCU_REV_STM32F4_REV_3:
 		*rev = '3';
+		chip_errata = NULL;
 		break;
 
 	default:
@@ -154,8 +150,9 @@ int mcu_version(char *rev, char **revstr)
 		break;
 	}
 
+	if (errata) {
+		*errata = chip_errata;
+	}
+
 	return revid;
-#else
-	return -1;
-#endif
 }

@@ -102,10 +102,14 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL    1
 #define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
+/* Define Battery 1 Voltage Divider
+ * Use Default for A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV (9.0f)
+
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
 #define BOARD_HAS_PWM	0
-
-#define BOARD_FMU_GPIO_TAB {{0, 0, 0}}
 
 /* USB OTG FS
  *
@@ -128,6 +132,17 @@
 #define	BOARD_NAME "AEROFC_V1"
 
 #define  FLASH_BASED_PARAMS
+
+/*
+ * The following defined is a workaround and replaces CONFIG_ARCH_BOARD_AEROFC_V1
+ * in the PX4 shared source code. #ifdef ONFIG_ARCH_BOARD_xxxx should never be added
+ * to the PX4 code base. Instead board_config.h should provide logical conditional
+ * compilation control based on features. I.E. BORD_HAS_xxxx
+ * See https://github.com/PX4/Firmware/pull/5893#pullrequestreview-9651688
+ * todo:This and TAP_ESC_NO_VERIFY_CONFIG needs to be removed from the code base
+ * when final HW is debugged to dermine the root cause of ignoring the verify
+ */
+#define TAP_ESC_NO_VERIFY_CONFIG /* This board can not tolerated verifying the tap esc got it's config */
 
 __BEGIN_DECLS
 

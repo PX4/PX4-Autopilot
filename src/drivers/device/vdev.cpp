@@ -139,7 +139,7 @@ VDev::register_driver(const char *name, void *data)
 	PX4_DEBUG("VDev::register_driver %s", name);
 	int ret = -ENOSPC;
 
-	if (name == NULL || data == NULL) {
+	if (name == nullptr || data == nullptr) {
 		return -EINVAL;
 	}
 
@@ -156,7 +156,7 @@ VDev::register_driver(const char *name, void *data)
 	}
 
 	for (int i = 0; i < PX4_MAX_DEV; ++i) {
-		if (devmap[i] == NULL) {
+		if (devmap[i] == nullptr) {
 			devmap[i] = new px4_dev_t(name, (void *)data);
 			PX4_DEBUG("Registered DEV %s", name);
 			ret = PX4_OK;
@@ -179,7 +179,7 @@ VDev::unregister_driver(const char *name)
 	PX4_DEBUG("VDev::unregister_driver %s", name);
 	int ret = -EINVAL;
 
-	if (name == NULL) {
+	if (name == nullptr) {
 		return -EINVAL;
 	}
 
@@ -188,7 +188,7 @@ VDev::unregister_driver(const char *name)
 	for (int i = 0; i < PX4_MAX_DEV; ++i) {
 		if (devmap[i] && (strcmp(name, devmap[i]->name) == 0)) {
 			delete devmap[i];
-			devmap[i] = NULL;
+			devmap[i] = nullptr;
 			PX4_DEBUG("Unregistered DEV %s", name);
 			ret = PX4_OK;
 			break;
@@ -213,7 +213,7 @@ VDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 		if (devmap[i] && strcmp(devmap[i]->name, name) == 0) {
 			delete devmap[i];
 			PX4_DEBUG("Unregistered class DEV %s", name);
-			devmap[i] = NULL;
+			devmap[i] = nullptr;
 			pthread_mutex_unlock(&devmutex);
 			return PX4_OK;
 		}
@@ -551,7 +551,7 @@ VDev *VDev::getDev(const char *path)
 
 	pthread_mutex_unlock(&devmutex);
 
-	return NULL;
+	return nullptr;
 }
 
 void VDev::showDevices()
@@ -628,7 +628,7 @@ const char *VDev::topicList(unsigned int *next)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 const char *VDev::devList(unsigned int *next)
@@ -639,7 +639,7 @@ const char *VDev::devList(unsigned int *next)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 } // namespace device

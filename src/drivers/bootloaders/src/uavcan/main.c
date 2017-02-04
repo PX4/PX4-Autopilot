@@ -890,7 +890,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path,
 			*(uint32_t *)data = 0xffffffff;
 		}
 
-		flash_status = bl_flash_write(flash_address + request.offset ,
+		flash_status = bl_flash_write(flash_address + request.offset,
 					      data,
 					      length + (length & 1));
 
@@ -1413,7 +1413,7 @@ failure:
 
 	bootloader.health = HEALTH_CRITICAL;
 
-	bl_timer_id tmr = timer_allocate(modeTimeout | modeStarted , OPT_RESTART_TIMEOUT_MS, 0);
+	bl_timer_id tmr = timer_allocate(modeTimeout | modeStarted, OPT_RESTART_TIMEOUT_MS, 0);
 
 	while (!timer_expired(tmr)) {
 		;

@@ -191,7 +191,7 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 			; // All other values of px4_board_name() resolve to zero
 		}
 
-		uint8_t udid[12] = {};  // Someone seems to love magic numbers
+		raw_uuid_byte_t udid = {};
 		get_board_serial(udid);
 		uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
 		rv = 0;

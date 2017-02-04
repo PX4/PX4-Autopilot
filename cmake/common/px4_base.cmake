@@ -510,6 +510,7 @@ function(px4_add_upload)
 	set(serial_ports)
 	if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 		list(APPEND serial_ports
+			/dev/serial/by-id/*_PX4_*
 			/dev/serial/by-id/usb-3D_Robotics*
 			/dev/serial/by-id/usb-The_Autopilot*
 			/dev/serial/by-id/usb-Bitcraze*
@@ -826,14 +827,14 @@ function(px4_add_common_flags)
 		-g
 		-fno-exceptions
 		-fno-rtti
-		-std=gnu++0x
+		-std=gnu++11
 		-fno-threadsafe-statics
 		-DCONFIG_WCHAR_BUILTIN
 		-D__CUSTOM_FILE_IO__
 		)
 
-	# clang
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	# regular Clang or AppleClang
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		# force color for clang (needed for clang + ccache)
 		list(APPEND _optimization_flags
 			-fcolor-diagnostics
@@ -973,29 +974,27 @@ endfunction()
 #	Create a header file containing the git hash of the current tree
 #
 #	Usage:
-#		px4_create_git_hash_header(HEADER ${CMAKE_BUILD_DIR}/git_hash.h)
-#
-#	Input:
-#		HEADER 		: path of the header file to generate
+#		px4_create_git_hash_header()
 #
 #	Example:
-#		px4_create_git_hash_header(HEADER ${CMAKE_BUILD_DIR}/git_hash.h)
+#		px4_create_git_hash_header()
 #
 function(px4_create_git_hash_header)
 	px4_parse_function_args(
 		NAME px4_create_git_hash_header
-		ONE_VALUE OUT
-		REQUIRED OUT
 		ARGN ${ARGN})
-	file(WRITE ${OUT} "")
+
+	set(px4_git_ver_header ${PX4_BINARY_DIR}/build_git_version.h)
+
 	add_custom_command(
-		OUTPUT __fake
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${OUT} > ${PX4_BINARY_DIR}/git_header.log
+		OUTPUT ${px4_git_ver_header}
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${px4_git_ver_header} > ${PX4_BINARY_DIR}/git_header.log
+		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${PX4_SOURCE_DIR}/.git/index ${PX4_SOURCE_DIR}/.git/HEAD
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating git hash header"
 		)
-	add_custom_target(ver_gen ALL
-		DEPENDS ${OUT} __fake)
+	set_source_files_properties(${px4_git_ver_header} PROPERTIES GENERATED TRUE)
+	add_custom_target(ver_gen ALL DEPENDS ${px4_git_ver_header})
 endfunction()
 
 #=============================================================================

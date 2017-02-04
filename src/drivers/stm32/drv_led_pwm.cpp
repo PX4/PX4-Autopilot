@@ -167,33 +167,37 @@ static void led_pwm_timer_init_timer(unsigned timer)
 static void
 led_pwm_channel_init(unsigned channel)
 {
-	unsigned timer = led_pwm_channels[channel].timer_index;
+	/* Only initialize used channels */
 
-	/* configure the GPIO first */
+	if (led_pwm_channels[channel].timer_channel) {
 
-	px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
+		unsigned timer = led_pwm_channels[channel].timer_index;
 
-	/* configure the channel */
-	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		rCCER(timer) |= GTIM_CCER_CC1E;
-		break;
+		/* configure the GPIO first */
+		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
-	case 2:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		rCCER(timer) |= GTIM_CCER_CC2E;
-		break;
+		/* configure the channel */
+		switch (led_pwm_channels[channel].timer_channel) {
+		case 1:
+			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
+			rCCER(timer) |= GTIM_CCER_CC1E;
+			break;
 
-	case 3:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		rCCER(timer) |= GTIM_CCER_CC3E;
-		break;
+		case 2:
+			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
+			rCCER(timer) |= GTIM_CCER_CC2E;
+			break;
 
-	case 4:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		rCCER(timer) |= GTIM_CCER_CC4E;
-		break;
+		case 3:
+			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
+			rCCER(timer) |= GTIM_CCER_CC3E;
+			break;
+
+		case 4:
+			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
+			rCCER(timer) |= GTIM_CCER_CC4E;
+			break;
+		}
 	}
 }
 

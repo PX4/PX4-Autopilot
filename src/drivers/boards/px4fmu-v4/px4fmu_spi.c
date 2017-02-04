@@ -97,7 +97,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	case PX4_SPIDEV_ICM:
 
 	/* intended fallthrough */
-	case PX4_SPIDEV_ICM_20602:
+	case PX4_SPIDEV_ICM_20608:
 		/* Making sure the other peripherals are not selected */
 		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);

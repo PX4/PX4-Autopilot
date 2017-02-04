@@ -111,7 +111,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/low_stack.h>
+#include <uORB/topics/task_stack_info.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -493,7 +493,6 @@ int create_log_dir()
 
 			/* dir exists already */
 			dir_number++;
-			continue;
 		}
 
 		if (dir_number >= MAX_NO_LOGFOLDER) {
@@ -1215,7 +1214,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_land_detected_s land_detected;
 		struct cpuload_s cpuload;
 		struct vehicle_gps_position_s dual_gps_pos;
-		struct low_stack_s low_stack;
+		struct task_stack_info_s task_stack_info;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1329,7 +1328,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int commander_state_sub;
 		int cpuload_sub;
 		int diff_pres_sub;
-		int low_stack_sub;
+		int task_stack_info_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1373,7 +1372,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.commander_state_sub = -1;
 	subs.cpuload_sub = -1;
 	subs.diff_pres_sub = -1;
-	subs.low_stack_sub = -1;
+	subs.task_stack_info_sub = -1;
 
 	/* add new topics HERE */
 
@@ -2319,10 +2318,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- STACK --- */
-		if (copy_if_updated(ORB_ID(low_stack), &subs.low_stack_sub, &buf.low_stack)) {
+		if (copy_if_updated(ORB_ID(task_stack_info), &subs.task_stack_info_sub, &buf.task_stack_info)) {
 			log_msg.msg_type = LOG_STCK_MSG;
-			log_msg.body.log_STCK.stack_free = buf.low_stack.stack_free;
-			strncpy(log_msg.body.log_STCK.task_name, (char*)buf.low_stack.task_name, sizeof(log_msg.body.log_STCK.task_name));
+			log_msg.body.log_STCK.stack_free = buf.task_stack_info.stack_free;
+			strncpy(log_msg.body.log_STCK.task_name, (char*)buf.task_stack_info.task_name,
+					sizeof(log_msg.body.log_STCK.task_name));
 			LOGBUFFER_WRITE_AND_COUNT(STCK);
 		}
 

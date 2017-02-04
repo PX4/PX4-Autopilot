@@ -171,7 +171,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 	_update_speed_last_usec = now;
 }
 
-void TECS::_update_speed_demand(void)
+void TECS::_update_speed_demand()
 {
 	// Set the airspeed demand to the minimum value if an underspeed condition exists
 	// or a bad descent condition exists
@@ -276,7 +276,7 @@ void TECS::_update_height_demand(float demand, float state)
 	//warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
 }
 
-void TECS::_detect_underspeed(void)
+void TECS::_detect_underspeed()
 {
 	if (!_detect_underspeed_enabled) {
 		_underspeed = false;
@@ -291,7 +291,7 @@ void TECS::_detect_underspeed(void)
 	}
 }
 
-void TECS::_update_energies(void)
+void TECS::_update_energies()
 {
 	// Calculate specific energy demands
 	_SPE_dem = _hgt_dem_adj * CONSTANTS_ONE_G;
@@ -393,7 +393,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 	}
 }
 
-void TECS::_detect_bad_descent(void)
+void TECS::_detect_bad_descent()
 {
 	// Detect a demanded airspeed too high for the aircraft to achieve. This will be
 	// evident by the the following conditions:
@@ -421,7 +421,7 @@ void TECS::_detect_bad_descent(void)
 	_badDescent = false;
 }
 
-void TECS::_update_pitch(void)
+void TECS::_update_pitch()
 {
 	// Calculate Speed/Height Control Weighting
 	// This is used to determine how the pitch control prioritises speed and height control
@@ -544,7 +544,7 @@ void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_alt
 	_states_initalized = true;
 }
 
-void TECS::_update_STE_rate_lim(void)
+void TECS::_update_STE_rate_lim()
 {
 	// Calculate Specific Total Energy Rate Limits
 	// This is a trivial calculation at the moment but will get bigger once we start adding altitude effects

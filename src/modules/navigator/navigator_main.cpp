@@ -100,7 +100,7 @@ Navigator	*g_navigator;
 }
 
 Navigator::Navigator() :
-	SuperBlock(NULL, "NAV"),
+	SuperBlock(nullptr, "NAV"),
 	_task_should_exit(false),
 	_navigator_task(-1),
 	_mavlink_log_pub(nullptr),
@@ -695,7 +695,6 @@ Navigator::task_main()
 	PX4_INFO("exiting");
 
 	_navigator_task = -1;
-	return;
 }
 
 int

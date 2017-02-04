@@ -56,6 +56,22 @@ __BEGIN_DECLS
 #    include <stm32_tim.h>
 #    include <stm32_spi.h>
 #    include <stm32_i2c.h>
+
+/* STM32/32F7 defines the 96 bit UUID as
+ *  init32_t[3] that can be read as bytes/half-words/words
+ *  init32_t[0] PX4_CPU_UUID_ADDRESS[0] bits 31:0  (offset 0)
+ *  init32_t[1] PX4_CPU_UUID_ADDRESS[1] bits 63:32 (offset 4)
+ *  init32_t[2] PX4_CPU_UUID_ADDRESS[3] bits 96:64 (offset 8)
+ *
+ *  PX4 uses the legacy uint32 ordering
+ *   word  [0]    [1]   [2]
+ *   bits 31-00, 63-32, 95-64
+ */
+#    define PX4_CPU_UUID_BYTE_LENGTH                12
+#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
+#    define PX4_CPU_UUID_WORD32_LEGACY_FORMAT_ORDER {0,1,2}
+#    define PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE  (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH))
+
 #    define px4_spibus_initialize(port_1based)       stm32_spibus_initialize(port_1based)
 
 #    define px4_i2cbus_initialize(bus_num_1based)    stm32_i2cbus_initialize(bus_num_1based)

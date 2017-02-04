@@ -256,15 +256,15 @@ function(px4_nuttx_add_export)
 	# copy
 	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
 	file(RELATIVE_PATH nuttx_cp_src ${PX4_BINARY_DIR} ${PX4_SOURCE_DIR}/NuttX)
-	add_custom_command(OUTPUT nuttx_copy_${CONFIG}.stamp
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp
 		COMMAND ${MKDIR} -p ${nuttx_src}
 		COMMAND rsync -a --delete --exclude=.git ${nuttx_cp_src}/ ${CONFIG}/NuttX/
-		COMMAND ${TOUCH} nuttx_copy_${CONFIG}.stamp
+		COMMAND ${TOUCH} ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp
 		DEPENDS ${DEPENDS} ${nuttx_patches} ${nuttx_all_files}
 		COMMENT "Copying NuttX for ${CONFIG} with ${config_nuttx_config}"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		)
-	add_custom_target(nuttx_copy_${CONFIG} DEPENDS nuttx_copy_${CONFIG}.stamp)
+	add_custom_target(nuttx_copy_${CONFIG} DEPENDS ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp)
 
 	# patch
 	add_custom_target(nuttx_patch_${CONFIG})
@@ -304,14 +304,23 @@ function(px4_nuttx_add_export)
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
 
-	# manual reconfigure helper
-	add_custom_target(reconfigure_nuttx_${CONFIG}
+	# manual reconfigure helpers
+	add_custom_target(oldconfig_${CONFIG}
 		COMMAND cd ${nuttx_src}/nuttx
 		COMMAND ${MAKE} -C ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
+		COMMAND ${CP} ${nuttx_src}/nuttx/.config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+		COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+		DEPENDS ${nuttx_src}/nuttx/.config
+		COMMENT "Running NuttX make oldconfig for ${CONFIG} with ${config_nuttx_config}"
+		USES_TERMINAL)
+
+	add_custom_target(menuconfig_${CONFIG}
+		COMMAND cd ${nuttx_src}/nuttx
 		COMMAND ${MAKE} -C ${nuttx_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
 		COMMAND ${CP} ${nuttx_src}/nuttx/.config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
+		COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
 		DEPENDS ${nuttx_src}/nuttx/.config
-		COMMENT "Reconfiguring NuttX for ${CONFIG} with ${config_nuttx_config}"
+		COMMENT "Running NuttX make menuconfig for ${CONFIG} with ${config_nuttx_config}"
 		USES_TERMINAL)
 
 	# build and export

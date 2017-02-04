@@ -3343,3 +3343,25 @@ PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
+/**
+ * Sample rate of the remote control values for the low pass filter on roll,pitch, yaw and throttle
+ *
+ * Has an influence on the cutoff frequency precision.
+ *
+ * @min 1.0
+ * @unit Hz
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
+
+/**
+ * Cutoff frequency for the low pass filter on roll,pitch, yaw and throttle
+ *
+ * Does not get set unless below RC_FLT_SMP_RATE/2 because of filter instability characteristics.
+ *
+ * @min 0.1
+ * @unit Hz
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);

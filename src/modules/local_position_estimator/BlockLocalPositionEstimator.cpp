@@ -20,7 +20,7 @@ static const char *msg_label = "[lpe] ";  // rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
-	SuperBlock(NULL, "LPE"),
+	SuperBlock(nullptr, "LPE"),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
@@ -44,8 +44,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
 	_sub_dist3(ORB_ID(distance_sensor), 1000 / 10, 3, &getSubscriptions()),
 	_dist_subs(),
-	_sub_lidar(NULL),
-	_sub_sonar(NULL),
+	_sub_lidar(nullptr),
+	_sub_sonar(nullptr),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -223,7 +223,7 @@ void BlockLocalPositionEstimator::update()
 	// auto-detect connected rangefinders while not armed
 	bool armedState = _sub_armed.get().armed;
 
-	if (!armedState && (_sub_lidar == NULL || _sub_sonar == NULL)) {
+	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
 
 		// detect distance sensors
 		for (int i = 0; i < N_DIST_SUBS; i++) {
@@ -238,13 +238,13 @@ void BlockLocalPositionEstimator::update()
 
 				if (s->get().type == \
 				    distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
-				    _sub_lidar == NULL) {
+				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
 					mavlink_and_console_log_info(&mavlink_log_pub, "%sLidar detected with ID %i", msg_label, i);
 
 				} else if (s->get().type == \
 					   distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
-					   _sub_sonar == NULL) {
+					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
 					mavlink_and_console_log_info(&mavlink_log_pub, "%sSonar detected with ID %i", msg_label, i);
 				}
@@ -302,8 +302,8 @@ void BlockLocalPositionEstimator::update()
 	bool gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
 	bool visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
-	bool lidarUpdated = (_sub_lidar != NULL) && _sub_lidar->updated();
-	bool sonarUpdated = (_sub_sonar != NULL) && _sub_sonar->updated();
+	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
+	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	bool landUpdated = landed()
 			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
 

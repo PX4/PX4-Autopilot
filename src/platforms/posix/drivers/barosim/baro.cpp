@@ -620,7 +620,7 @@ BAROSIM::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigne
 		/* read requested */
 		Simulator *sim = Simulator::getInstance();
 
-		if (sim == NULL) {
+		if (sim == nullptr) {
 			PX4_ERR("Error BAROSIM_DEV::transfer no simulator");
 			return -ENODEV;
 		}
@@ -679,6 +679,9 @@ BAROSIM::collect()
 		report.pressure = raw_baro.pressure;
 		report.altitude = raw_baro.altitude;
 		report.temperature = raw_baro.temperature;
+
+		/* fake device ID */
+		report.device_id = 478459;
 
 		/* publish it */
 		if (!(m_pub_blocked)) {
@@ -782,7 +785,7 @@ start()
 
 	if (g_barosim != nullptr && OK != g_barosim->init()) {
 		delete g_barosim;
-		g_barosim = NULL;
+		g_barosim = nullptr;
 		PX4_ERR("bus init failed");
 		return false;
 	}

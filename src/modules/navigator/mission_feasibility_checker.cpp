@@ -318,7 +318,7 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 					return false;
 				}
 
-				float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat , missionitem_previous.lon, missionitem.lat,
+				float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon, missionitem.lat,
 						    missionitem.lon);
 				float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
 						      _fw_pos_ctrl_status.landing_horizontal_slope_displacement, _fw_pos_ctrl_status.landing_slope_angle_rad);

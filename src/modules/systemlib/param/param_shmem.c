@@ -247,7 +247,7 @@ param_find_changed(param_t param)
 }
 
 static void
-param_notify_changes(bool is_saved)
+_param_notify_changes(bool is_saved)
 {
 	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .saved = is_saved };
 
@@ -262,6 +262,13 @@ param_notify_changes(bool is_saved)
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
 }
+
+void
+param_notify_changes(void)
+{
+	_param_notify_changes(true);
+}
+
 
 param_t
 param_find_internal(const char *name, bool notification)
@@ -643,7 +650,7 @@ out:
 	if (!param_import_done) { notify_changes = 0; }
 
 	if (params_changed && notify_changes) {
-		param_notify_changes(is_saved);
+		_param_notify_changes(is_saved);
 	}
 
 	if (result == 0 && !set_called_from_get) {
@@ -740,7 +747,7 @@ param_reset(param_t param)
 	param_unlock();
 
 	if (s != NULL) {
-		param_notify_changes(false);
+		_param_notify_changes(false);
 	}
 
 	return (!param_found);
@@ -760,7 +767,7 @@ param_reset_all(void)
 
 	param_unlock();
 
-	param_notify_changes(false);
+	_param_notify_changes(false);
 }
 
 void
@@ -792,7 +799,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	param_unlock();
 
-	param_notify_changes(false);
+	_param_notify_changes(false);
 }
 
 #ifdef __PX4_QURT

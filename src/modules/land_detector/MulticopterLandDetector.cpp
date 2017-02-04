@@ -72,7 +72,9 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.throttleRange = param_find("LNDMC_THR_RANGE");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
+	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
@@ -109,10 +111,12 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
+	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
+	param_get(_paramHandle.throttleRange, &_params.throttleRange);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
-	_freefall_hysteresis.set_hysteresis_time_from(false, 1e6f * _params.freefall_trigger_time);
+	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 }
 
 
@@ -136,60 +140,81 @@ bool MulticopterLandDetector::_get_freefall_state()
 	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
 }
 
-bool MulticopterLandDetector::_get_landed_state()
+bool MulticopterLandDetector::_get_ground_contact_state()
 {
 	// Time base for this function
 	const uint64_t now = hrt_absolute_time();
 
-	float sys_min_throttle = (_params.minThrottle + 0.2f);
-
-	// Determine the system min throttle based on flight mode
-	if (!_control_mode.flag_control_altitude_enabled) {
-		sys_min_throttle = (_params.minManThrottle + 0.01f);
-	}
-
-	// Check if thrust output is less than the minimum auto throttle param.
-	bool minimalThrust = (_actuators.control[3] <= sys_min_throttle);
-
-	if (minimalThrust && _min_trust_start == 0) {
-		_min_trust_start = now;
-
-
-	} else if (!minimalThrust) {
-		_min_trust_start = 0;
-	}
-
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		_arming_time = 0;
-
 		return true;
 
 	} else if (_arming_time == 0) {
 		_arming_time = now;
 	}
 
-	const bool manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+	// If in manual flight mode never report landed if the user has more than idle throttle
+	// Check if user commands throttle and if so, report no ground contact based on
+	// the user intent to take off (even if the system might physically still have
+	// ground contact at this point).
+	const bool manual_control_move_down = _get_manual_control_present() && _manual.z < 0.05f;
 
-	// If we control manually and are still landed, we want to stay idle until the pilot rises the throttle
-	if (_state == LandDetectionState::LANDED && manual_control_present && _manual.z < get_takeoff_throttle()) {
+	// Widen acceptance thresholds for landed state right after arming
+	// so that motor spool-up and other effects do not trigger false negatives.
+	float armThresholdFactor = 1.0f;
+
+	if (hrt_elapsed_time(&_arming_time) < LAND_DETECTOR_ARM_PHASE_TIME_US) {
+		armThresholdFactor = 2.5f;
+	}
+
+	// Check if we are moving vertically - this might see a spike after arming due to
+	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
+	// an accurate in-air indication.
+	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
+
+	// If pilots commands fully down or already below minimal thrust because of auto land and we do not move down we assume ground contact
+	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
+	if ((manual_control_move_down || _get_minimal_thrust()) &&
+	    (!verticalMovement || !_get_position_lock_available())) {
 		return true;
 	}
 
-	// If in manual flight mode never report landed if the user has more than idle throttle
-	// Check if user commands throttle and if so, report not landed based on
-	// the user intent to take off (even if the system might physically still have
-	// ground contact at this point).
-	if (manual_control_present && _manual.z > 0.15f) {
-		return false;
+	return false;
+}
+
+bool MulticopterLandDetector::_get_landed_state()
+{
+	// Time base for this function
+	const uint64_t now = hrt_absolute_time();
+
+	// only trigger flight conditions if we are armed
+	if (!_arming.armed) {
+		return true;
+	}
+
+	// If we control manually and are still landed, we want to stay idle until the pilot rises the throttle for takeoff
+	if (_state == LandDetectionState::LANDED && _get_manual_control_present()) {
+		if (_manual.z < _get_takeoff_throttle()) {
+			return true;
+
+		} else {
+			// Pilot wants to take off, assume no groundcontact anymore and therefore allow thrust
+			_ground_contact_hysteresis.set_state_and_update(false);
+		}
+	}
+
+	if (_get_minimal_thrust()) {
+		if (_min_trust_start == 0) {
+			_min_trust_start = now;
+		}
+
+	} else {
+		_min_trust_start = 0;
 	}
 
 	// Return status based on armed state and throttle if no position lock is available.
-	if (_vehicleLocalPosition.timestamp == 0 ||
-	    hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
-	    !_vehicleLocalPosition.xy_valid ||
-	    !_vehicleLocalPosition.z_valid) {
-
+	if (!_get_position_lock_available()) {
 		// The system has minimum trust set (manual or in failsafe)
 		// if this persists for 8 seconds AND the drone is not
 		// falling consider it to be landed. This should even sustain
@@ -212,11 +237,6 @@ bool MulticopterLandDetector::_get_landed_state()
 		armThresholdFactor = 2.5f;
 	}
 
-	// Check if we are moving vertically - this might see a spike after arming due to
-	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-	// an accurate in-air indication.
-	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
-
 	// Check if we are moving horizontally.
 	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
 					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
@@ -228,16 +248,15 @@ bool MulticopterLandDetector::_get_landed_state()
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
-
-	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
-		// Sensed movement or thottle high, so reset the land detector.
-		return false;
+	if (_ground_contact_hysteresis.get_state() && _get_minimal_thrust() && !rotating && !horizontalMovement) {
+		// Ground contact, no thrust and no movement -> landed
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
-float MulticopterLandDetector::get_takeoff_throttle()
+float MulticopterLandDetector::_get_takeoff_throttle()
 {
 	/* Position mode */
 	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
@@ -255,6 +274,33 @@ float MulticopterLandDetector::get_takeoff_throttle()
 
 	/* As default for example in acro mode we do not want to stay landed. */
 	return 0.0f;
+}
+
+bool MulticopterLandDetector::_get_position_lock_available()
+{
+	return !(_vehicleLocalPosition.timestamp == 0 ||
+		 hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
+		 !_vehicleLocalPosition.xy_valid ||
+		 !_vehicleLocalPosition.z_valid);
+}
+
+bool MulticopterLandDetector::_get_manual_control_present()
+{
+	return _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+}
+
+bool MulticopterLandDetector::_get_minimal_thrust()
+{
+	// 10% of throttle range between min and hover
+	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * _params.throttleRange;
+
+	// Determine the system min throttle based on flight mode
+	if (!_control_mode.flag_control_altitude_enabled) {
+		sys_min_throttle = (_params.minManThrottle + 0.01f);
+	}
+
+	// Check if thrust output is less than the minimum auto throttle param.
+	return _actuators.control[3] <= sys_min_throttle;
 }
 
 
