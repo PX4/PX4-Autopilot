@@ -121,6 +121,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_pos_sp_triplet_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
+	_vision_attitude_pub(nullptr),
 	_telemetry_status_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
@@ -133,6 +134,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
+	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_last_frame(0),
@@ -144,7 +146,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_offboard_control_mode{},
 	_att_sp{},
 	_rates_sp{},
-	_time_offset_avg_alpha(0.6),
+	_time_offset_avg_alpha(0.8),
 	_time_offset(0),
 	_orb_class_instance(-1),
 	_mom_switch_pos{},
@@ -214,6 +216,18 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ATTITUDE_QUATERNION_COV:
+		handle_message_attitude_quaternion_cov(msg);
+		break;
+
+	case MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV:
+		handle_message_local_position_ned_cov(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
+		handle_message_gps_global_origin(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -1046,45 +1060,123 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 }
 
 void
+MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
+{
+	mavlink_gps_global_origin_t origin;
+	mavlink_msg_gps_global_origin_decode(msg, &origin);
+
+	if (!globallocalconverter_initialized()) {
+		/* Set reference point conversion of local coordiantes <--> global coordinates */
+		globallocalconverter_init((double)origin.latitude * 1.0e-7, (double)origin.longitude * 1.0e-7,
+					  (float)origin.altitude * 1.0e-3f, hrt_absolute_time());
+		_global_ref_timestamp = hrt_absolute_time();
+
+	}
+}
+
+void
+MavlinkReceiver::handle_message_attitude_quaternion_cov(mavlink_message_t *msg)
+{
+	mavlink_attitude_quaternion_cov_t att;
+	mavlink_msg_attitude_quaternion_cov_decode(msg, &att);
+
+	struct vehicle_attitude_s vision_attitude = {};
+
+	vision_attitude.timestamp = sync_stamp(att.time_usec);
+
+	vision_attitude.q[0] = att.q[0];
+	vision_attitude.q[1] = att.q[1];
+	vision_attitude.q[2] = att.q[2];
+	vision_attitude.q[3] = att.q[3];
+
+	vision_attitude.rollspeed = att.rollspeed;
+	vision_attitude.pitchspeed = att.pitchspeed;
+	vision_attitude.yawspeed = att.yawspeed;
+
+	// TODO : full covariance matrix
+
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id, ORB_PRIO_HIGH);
+
+}
+
+void
+MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
+{
+	mavlink_local_position_ned_cov_t pos;
+	mavlink_msg_local_position_ned_cov_decode(msg, &pos);
+
+	struct vehicle_local_position_s vision_position = {};
+
+	vision_position.timestamp = sync_stamp(pos.time_usec);
+
+	// Use the estimator type to identify the external estimate
+	vision_position.estimator_type = pos.estimator_type;
+
+	vision_position.xy_valid = true;
+	vision_position.z_valid = true;
+	vision_position.v_xy_valid = true;
+	vision_position.v_z_valid = true;
+
+	vision_position.x = pos.x;
+	vision_position.y = pos.y;
+	vision_position.z = pos.z;
+
+	vision_position.vx = pos.vx;
+	vision_position.vy = pos.vy;
+	vision_position.vz = pos.vz;
+
+	vision_position.ax = pos.ax;
+	vision_position.ay = pos.ay;
+	vision_position.az = pos.az;
+
+	// Low risk change for now. TODO : full covariance matrix
+	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
+	vision_position.epv = sqrtf(pos.covariance[17]);
+
+	vision_position.xy_global = globallocalconverter_initialized();
+	vision_position.z_global = globallocalconverter_initialized();
+	vision_position.ref_timestamp = _global_ref_timestamp;
+	globallocalconverter_getref(&vision_position.ref_lat, &vision_position.ref_lon, &vision_position.ref_alt);
+
+	vision_position.dist_bottom_valid = false;
+
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id, ORB_PRIO_HIGH);
+
+}
+
+void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
 	mavlink_vision_position_estimate_t pos;
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	struct vision_position_estimate_s vision_position = {};
+	struct vehicle_local_position_s vision_position = {};
 
-	// Use the component ID to identify the vision sensor
-	vision_position.id = msg->compid;
+	// Use the estimator type to identify the simple vision estimate
+	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 	vision_position.timestamp = sync_stamp(pos.usec);
-	vision_position.timestamp_received = hrt_absolute_time();
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
-	// XXX fix this
-	vision_position.vx = 0.0f;
-	vision_position.vy = 0.0f;
-	vision_position.vz = 0.0f;
+	struct vehicle_attitude_s vision_attitude = {};
 
 	math::Quaternion q;
 	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
-	vision_position.q[0] = q(0);
-	vision_position.q[1] = q(1);
-	vision_position.q[2] = q(2);
-	vision_position.q[3] = q(3);
+	vision_attitude.q[0] = q(0);
+	vision_attitude.q[1] = q(1);
+	vision_attitude.q[2] = q(2);
+	vision_attitude.q[3] = q(3);
 
-	// TODO fix this
-	vision_position.pos_err = 0.0f;
-	vision_position.ang_err = 0.0f;
-
-	if (_vision_position_pub == nullptr) {
-		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
-
-	} else {
-		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
-	}
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id,
+			 ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id,
+			 ORB_PRIO_DEFAULT);
 }
 
 void
@@ -2411,9 +2503,8 @@ uint64_t MavlinkReceiver::sync_stamp(uint64_t usec)
 
 void MavlinkReceiver::smooth_time_offset(int64_t offset_ns)
 {
-	/* alpha = 0.6 fixed for now. The closer alpha is to 1.0,
-	 * the faster the moving average updates in response to
-	 * new offset samples.
+	/* The closer alpha is to 1.0, the faster the moving
+	 * average updates in response to new offset samples.
 	 */
 
 	_time_offset = (_time_offset_avg_alpha * offset_ns) + (1.0 - _time_offset_avg_alpha) * _time_offset;

@@ -219,7 +219,9 @@ PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
 
 /**
- * Vision delay compensaton
+ * Vision delay compensaton.
+ *
+ * Set to zero to enable automatic compensation from measurement timestamps
  *
  * @group Local Position Estimator
  * @unit sec
@@ -334,6 +336,16 @@ PARAM_DEFINE_FLOAT(LPE_T_MAX_GRADE, 1.0f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
+
+/**
+ * Enable publishing of a fake global position (e.g for AUTO missions using Optical Flow)
+ * by initializing the estimator to the LPE_LAT/LON parameters when global information is unavailable
+ *
+ * @group Local Position Estimator
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(LPE_FAKE_ORIGIN, 1);
 
 /**
  * Local origin latitude for nav w/o GPS
