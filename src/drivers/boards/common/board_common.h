@@ -377,7 +377,7 @@ __EXPORT int board_get_uuid_formated32(char *format_buffer, int size,
 #endif // !defined(BOARD_OVERRIDE_UUID)
 
 #if !defined(BOARD_HAS_POWER_CONTROL)
-#define board_pwr(switch_on) { do {} while(0); }
+#define px4_board_pwr(switch_on) { do {} while(0); }
 #endif
 
 /************************************************************************************
