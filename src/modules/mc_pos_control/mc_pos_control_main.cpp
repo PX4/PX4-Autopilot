@@ -846,6 +846,16 @@ MulticopterPositionControl::poll_subscriptions()
 
 		} else if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE) {
 
+
+			PX4_WARN("param1 (radius) %.3f", (double)_vehicle_command.param1);
+			PX4_WARN("param2 (velocity) %.3f", (double)_vehicle_command.param2);
+			PX4_WARN("param3 (altitude) %.3f", (double)_vehicle_command.param3);
+			PX4_WARN("param4 %.3f", (double)_vehicle_command.param4);
+			PX4_WARN("param5 (lat) %.3f", (double)_vehicle_command.param5);
+			PX4_WARN("param6 (lon) %.3f", (double)_vehicle_command.param6);
+			PX4_WARN("param7 %.3f", (double)_vehicle_command.param7);
+
+
 			_posctrl_sub_mode = MODE_CIRCLE;
 
 			// circle radius
@@ -859,7 +869,7 @@ MulticopterPositionControl::poll_subscriptions()
 			_R_circle = math::constrain(_R_circle, CIRCLE_RADIUS_DEFAULT, CIRCLE_RADIUS_MAX);
 
 
-			// tanential velocity
+			// tangential velocity
 			// if tangential velocity is non-finite then manual control inputs from RC will be used to generate tangential velocity
 			if (PX4_ISFINITE(_vehicle_command.param2)) {
 				_v_tang_circle_sp = math::constrain(_vehicle_command.param2, -_params.vel_cruise(0), _params.vel_cruise(0));
@@ -868,14 +878,15 @@ MulticopterPositionControl::poll_subscriptions()
 				_v_tang_circle_sp = _params.vel_cruise(0);
 			}
 
-			// altitude
+			// param3 optional altitude
 			if (PX4_ISFINITE(_vehicle_command.param3)) {
 				_pos_sp(2) = -_vehicle_command.param3;
 			}
 
+			// param5 lat
+			// param6 lon
 			if (PX4_ISFINITE(_vehicle_command.param5) && PX4_ISFINITE(_vehicle_command.param6)) {
-				map_projection_project(&_ref_pos,
-						       _vehicle_command.param5, _vehicle_command.param6,
+				map_projection_project(&_ref_pos, _vehicle_command.param5, _vehicle_command.param6,
 						       &_circle_orig.data[0], &_circle_orig.data[1]);
 
 			} else {

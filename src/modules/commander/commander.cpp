@@ -524,7 +524,7 @@ int commander_main(int argc, char *argv[])
 				cmd.target_system = status.system_id;
 				cmd.target_component = status.component_id;
 				cmd.command = vehicle_command_s::VEHICLE_CMD_POSCTRL_MODE_CIRCLE;
-				cmd.param1 = 50.0f;
+				cmd.param1 = 20.0f;
 				cmd.param2 = NAN;
 				cmd.param3 = NAN;
 				cmd.param4 = NAN;
