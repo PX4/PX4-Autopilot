@@ -139,7 +139,7 @@ public:
 	}
 	inline bool getLanded() const
 	{
-		return _landed && (getAgl() < 0.5f);
+		return _landed && (!getTerrainValid() || (getAgl() < 0.5f));
 	}
 	inline bool getAttitudeValid() const
 	{
@@ -161,6 +161,7 @@ public:
 
 	inline bool getPositionXYValid() const
 	{
+		// only require velocity valid for missions
 		return _origin.xyInitialized()
 		       && ((_P(Xe::vel_N, Xe::vel_N)
 			    + _P(Xe::vel_E, Xe::vel_E)) < 2.0f);
@@ -356,4 +357,5 @@ private:
 	float _pn_vz_nd;
 	float _pn_rot_nd;
 	float _pn_t_asl_nd;
+	float _pn_t_asl_s_nd;
 };

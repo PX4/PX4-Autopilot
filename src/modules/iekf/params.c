@@ -363,7 +363,7 @@ PARAM_DEFINE_FLOAT(IEKF_PN_VZ_ND, 1e-1f);
 PARAM_DEFINE_FLOAT(IEKF_PN_ROT_ND, 1e-3f);
 
 /**
- * Process noise terrain asl
+ * Process noise terrain asl, const term
  *
  * @group IEKF
  * @unit (m/s) / sqrt(Hz)
@@ -371,7 +371,20 @@ PARAM_DEFINE_FLOAT(IEKF_PN_ROT_ND, 1e-3f);
  * @max 1e0
  * @decimal 5
  */
-PARAM_DEFINE_FLOAT(IEKF_PN_T_ASL_ND, 1e-1f);
+PARAM_DEFINE_FLOAT(IEKF_PN_T_ND, 1e-1f);
+
+/**
+ * Process noise terrain asl, speed term
+ *
+ * @group IEKF
+ * @unit (m/s^2) / sqrt(Hz)
+ * @min 0
+ * @max 1e0
+ * @decimal 5
+ */
+PARAM_DEFINE_FLOAT(IEKF_PN_TS_ND, 1e-1f);
+
+
 
 /**
  * Accel max rate

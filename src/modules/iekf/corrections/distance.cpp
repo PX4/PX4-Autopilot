@@ -69,15 +69,16 @@ void IEKF::correctDistance(const distance_sensor_s *msg)
 		return;
 	}
 
-	// if above max distance/ <= 0, out of range
-	if (msg->current_distance > msg->max_distance ||
-	    msg->current_distance < msg->min_distance) {
+	// if above max distance
+	if (msg->current_distance > msg->max_distance) {
 		return;
 	}
 
-	// if below 0, don't correct and warn
-	if (msg->current_distance < 0) {
-		ROS_WARN("distance below 0");
+	// if below small number, don't correct
+	// 0 is error code, so we treat 0 < x < min distance
+	// as valid, better than treating as no
+	// measurement
+	if (msg->current_distance < 1e-8f) {
 		return;
 	}
 

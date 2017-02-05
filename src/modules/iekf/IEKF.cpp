@@ -133,8 +133,8 @@ IEKF::IEKF() :
 	_pn_z_nd(0),
 	_pn_vz_nd(0),
 	_pn_rot_nd(0),
-	_pn_t_asl_nd(0)
-
+	_pn_t_asl_nd(0),
+	_pn_t_asl_s_nd(0)
 {
 	// for quaterinons we bound at 2
 	// so it has a chance to
@@ -191,22 +191,22 @@ IEKF::IEKF() :
 	setX(_x0);
 
 	// initialize covariance
-	_P0Diag(Xe::rot_N) = 2;
-	_P0Diag(Xe::rot_E) = 2;
-	_P0Diag(Xe::rot_D) = 2;
-	_P0Diag(Xe::vel_N) = 2;
-	_P0Diag(Xe::vel_E) = 2;
-	_P0Diag(Xe::vel_D) = 2;
+	_P0Diag(Xe::rot_N) = 0;
+	_P0Diag(Xe::rot_E) = 0;
+	_P0Diag(Xe::rot_D) = 0;
+	_P0Diag(Xe::vel_N) = 0;
+	_P0Diag(Xe::vel_E) = 0;
+	_P0Diag(Xe::vel_D) = 0;
 	_P0Diag(Xe::gyro_bias_N) = 1e-6;
 	_P0Diag(Xe::gyro_bias_E) = 1e-6;
 	_P0Diag(Xe::gyro_bias_D) = 1e-6;
 	_P0Diag(Xe::accel_bias_N) = 1e-6;
 	_P0Diag(Xe::accel_bias_E) = 1e-6;
 	_P0Diag(Xe::accel_bias_D) = 1e-6;
-	_P0Diag(Xe::pos_N) = 2;
-	_P0Diag(Xe::pos_E) = 2;
-	_P0Diag(Xe::asl) = 2;
-	_P0Diag(Xe::terrain_asl) = 2;
+	_P0Diag(Xe::pos_N) = 0;
+	_P0Diag(Xe::pos_E) = 0;
+	_P0Diag(Xe::asl) = 0;
+	_P0Diag(Xe::terrain_asl) = 0;
 	_P0Diag(Xe::baro_bias) = 0;
 	//_P0Diag(Xe::wind_N) = 0;
 	//_P0Diag(Xe::wind_E) = 0;
@@ -430,7 +430,8 @@ void IEKF::updateParams()
 	_nh.getParam("IEKF_PN_Z_ND", _pn_z_nd);
 	_nh.getParam("IEKF_PN_VZ_ND", _pn_vz_nd);
 	_nh.getParam("IEKF_PN_ROT_ND", _pn_rot_nd);
-	_nh.getParam("IEKF_PN_T_ASL_ND", _pn_t_asl_nd);
+	_nh.getParam("IEKF_PN_T_ND", _pn_t_asl_nd);
+	_nh.getParam("IEKF_PN_TS_ND", _pn_t_asl_s_nd);
 
 
 	_nh.getParam("IEKF_RATE_ACCEL", _sensorAccel.getRateMax());
@@ -833,12 +834,10 @@ void IEKF::publish()
 	{
 		vehicle_local_position_s msg = {};
 		msg.timestamp = now.toNSec() / 1e3;
-		//msg.xy_valid = getPositionXYValid();
-		// only require velocity valid for missions
-		msg.xy_valid = true; //getVelocityXYValid();
-		msg.z_valid = true; //getAltitudeValid();
-		msg.v_xy_valid = true; //getVelocityXYValid();
-		msg.v_z_valid = true; //getVelocityZValid();
+		msg.xy_valid = getPositionXYValid();
+		msg.z_valid = getAltitudeValid();
+		msg.v_xy_valid = getVelocityXYValid();
+		msg.v_z_valid = getVelocityZValid();
 		msg.x = _x(X::pos_N);
 		msg.y = _x(X::pos_E);
 		msg.z = -getAltAboveOrigin();
@@ -861,7 +860,7 @@ void IEKF::publish()
 		msg.ref_timestamp = _origin.getXYTimestamp();
 		msg.ref_lat = _origin.getLatDeg();
 		msg.ref_lon = _origin.getLonDeg();
-		msg.ref_alt = _origin.getAlt(); //_x(X::terrain_asl);
+		msg.ref_alt = _x(X::terrain_asl);
 		msg.dist_bottom = getAgl();
 		msg.dist_bottom_rate = -_x(X::vel_D);
 		msg.surface_bottom_timestamp = now.toNSec() / 1e3;
@@ -1112,7 +1111,8 @@ void IEKF::stateSpaceParamUpdate()
 		float vel_var_z = _accel_nd * _accel_nd + \
 				  _pn_vz_nd * _pn_vz_nd;
 		float groundSpeedSq = getGroundVelocity().dot(getGroundVelocity());
-		float terrain_var_asl = _pn_t_asl_nd * _pn_t_asl_nd * groundSpeedSq;
+		float terrain_var_asl = _pn_t_asl_s_nd * _pn_t_asl_s_nd * groundSpeedSq
+			+ _pn_t_asl_nd * _pn_t_asl_nd ;
 
 		_Q(Xe::rot_N, Xe::rot_N) = rot_var;
 		_Q(Xe::rot_E, Xe::rot_E) = rot_var;
