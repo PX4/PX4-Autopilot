@@ -54,12 +54,12 @@ ECL_WheelController::ECL_WheelController() :
 
 float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
-    /* Do not calculate control signal with bad inputs */
-    if (!(PX4_ISFINITE(ctl_data.body_z_rate) &&
-          PX4_ISFINITE(ctl_data.groundspeed) &&
-          PX4_ISFINITE(ctl_data.groundspeed_scaler))) {
-        return math::constrain(_last_output, -1.0f, 1.0f);
-    }
+	/* Do not calculate control signal with bad inputs */
+	if (!(PX4_ISFINITE(ctl_data.body_z_rate) &&
+	      PX4_ISFINITE(ctl_data.groundspeed) &&
+	      PX4_ISFINITE(ctl_data.groundspeed_scaler))) {
+		return math::constrain(_last_output, -1.0f, 1.0f);
+	}
 
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
@@ -76,8 +76,8 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	/* input conditioning */
 	float min_speed = 1.0f;
 
-    /* Calculate body angular rate error */
-    _rate_error = _rate_setpoint - ctl_data.body_z_rate; //body angular rate error
+	/* Calculate body angular rate error */
+	_rate_error = _rate_setpoint - ctl_data.body_z_rate; //body angular rate error
 
 	if (!lock_integrator && _k_i > 0.0f && ctl_data.groundspeed > min_speed) {
 
@@ -102,9 +102,9 @@ float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	//xxx: until start detection is available: integral part in control signal is limited here
 	float integrator_constrained = math::constrain(_integrator, -_integrator_max, _integrator_max);
 
-    /* Apply PI rate controller and store non-limited output */
-    _last_output = _rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
-             ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler * (_rate_error * _k_p + integrator_constrained);
+	/* Apply PI rate controller and store non-limited output */
+	_last_output = _rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
+		       ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler * (_rate_error * _k_p + integrator_constrained);
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
@@ -118,10 +118,10 @@ float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_da
 		return _rate_setpoint;
 	}
 
-    /* Calculate the error */
-    float yaw_error = ctl_data.yaw_setpoint - ctl_data.yaw;
-    /* shortest angle (wrap around) */
-    yaw_error = (float)fmod((float)fmod((yaw_error + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
+	/* Calculate the error */
+	float yaw_error = ctl_data.yaw_setpoint - ctl_data.yaw;
+	/* shortest angle (wrap around) */
+	yaw_error = (float)fmod((float)fmod((yaw_error + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
 
 	/*  Apply P controller: rate setpoint from current error and time constant */
 	_rate_setpoint =  yaw_error / _tc;
