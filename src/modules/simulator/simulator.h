@@ -278,10 +278,12 @@ private:
 			_actuator_outputs_sub[i] = -1;
 		}
 	}
-	~Simulator() {
+	~Simulator()
+	{
 		if (_instance != nullptr) {
 			delete _instance;
 		}
+
 		_instance = NULL;
 	}
 
