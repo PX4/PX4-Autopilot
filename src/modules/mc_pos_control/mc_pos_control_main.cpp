@@ -284,6 +284,7 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
+	float _thrust_threshold_z;
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -492,6 +493,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
+
+	_thrust_threshold_z = 2.0f * _params.thr_min;
 
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
@@ -977,69 +980,58 @@ MulticopterPositionControl::control_manual(float dt)
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
+
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
 
+	/* vertical axis */
+	bool do_alt_hold = _control_mode.flag_control_altitude_enabled &&
+			   fabsf(req_vel_sp(2)) < FLT_EPSILON &&
+			   (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
+
+	bool smooth_alt_transition = do_alt_hold && !_alt_hold_engaged;
+
+
+
 	/* horizontal axes */
-	if (_control_mode.flag_control_position_enabled) {
-		/* check for pos. hold */
-		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
-			if (!_pos_hold_engaged) {
+	float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+	bool do_pos_hold = _control_mode.flag_control_position_enabled &&
+			   (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) &&
+			   (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
 
-				float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+	bool smooth_pos_transition = do_pos_hold && !_pos_hold_engaged;
 
-				if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
-					/* reset position setpoint to have smooth transition from velocity control to position control */
-					_pos_hold_engaged = true;
-					_pos_sp(0) = _pos(0);
-					_pos_sp(1) = _pos(1);
 
-				} else {
-					_pos_hold_engaged = false;
-				}
-			}
 
-		} else {
-			_pos_hold_engaged = false;
-		}
+	/* update hold flags */
+	_alt_hold_engaged = do_alt_hold;
+	_pos_hold_engaged = do_pos_hold;
 
-		/* set requested velocity setpoint */
-		if (!_pos_hold_engaged) {
-			_pos_sp(0) = _pos(0);
-			_pos_sp(1) = _pos(1);
-			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-			_vel_sp(0) = req_vel_sp_scaled(0);
-			_vel_sp(1) = req_vel_sp_scaled(1);
-		}
+	/* set requested velocity setpoitns */
+	if (!_alt_hold_engaged) {
+		_pos_sp(2) = _pos(2);
+		_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
+		_vel_sp(2) = req_vel_sp_scaled(2);
 	}
 
-	/* vertical axis */
-	if (_control_mode.flag_control_altitude_enabled) {
-		/* check for pos. hold */
-		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
-			if (!_alt_hold_engaged) {
-				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
-					/* reset position setpoint to have smooth transition from velocity control to position control */
-					_alt_hold_engaged = true;
-					_pos_sp(2) = _pos(2);
+	if (!_pos_hold_engaged) {
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
+		_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+		_vel_sp(0) = req_vel_sp_scaled(0);
+		_vel_sp(1) = req_vel_sp_scaled(1);
+	}
 
-				} else {
-					_alt_hold_engaged = false;
-				}
-			}
+	/* reset position setpoints when in smooth transition for position*/
+	if (smooth_pos_transition) {
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
+	}
 
-		} else {
-			_alt_hold_engaged = false;
-			_pos_sp(2) = _pos(2);
-		}
-
-		/* set requested velocity setpoint */
-		if (!_alt_hold_engaged) {
-			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
-			_vel_sp(2) = req_vel_sp_scaled(2);
-		}
+	if (smooth_alt_transition) {
+		_pos_sp(2) = _pos(2);
 	}
 
 	if (_vehicle_land_detected.landed) {
@@ -1648,6 +1640,7 @@ void
 MulticopterPositionControl::control_position(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
+
 	if (_run_pos_control) {
 		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
@@ -1656,6 +1649,7 @@ MulticopterPositionControl::control_position(float dt)
 	if (_run_alt_control) {
 		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 	}
+
 
 	/* make sure velocity setpoint is saturated in xy*/
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
@@ -1729,7 +1723,6 @@ MulticopterPositionControl::control_position(float dt)
 			if (_reset_int_z) {
 				_reset_int_z = false;
 				_thrust_int(2) = 0.0f;
-
 			}
 
 		} else {
@@ -1759,6 +1752,17 @@ MulticopterPositionControl::control_position(float dt)
 		} else {
 			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
 				    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
+
+			/* at low thrust in z direction, we adjust thrust in xy such that the desired
+			 * attitude corresponds to attitude with thrust thrust_threshold_z
+			 */
+			if (-thrust_sp(2) < _thrust_threshold_z) {
+				float thrust_xy_old = sqrtf(thrust_sp(0) * thrust_sp(0) + thrust_sp(1) * thrust_sp(1));
+				float thrust_xy_new = thrust_sp(2) * thrust_xy_old / _thrust_threshold_z;
+				float thrust_mag_new = sqrtf(thrust_sp(2) * thrust_sp(2) + thrust_xy_new * thrust_xy_new);
+				thrust_sp(2) = _thrust_threshold_z;
+				thrust_sp = thrust_sp.normalized() * thrust_mag_new;
+			}
 		}
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
