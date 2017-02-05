@@ -339,6 +339,8 @@ static int  mixer_show_config(const char *devname)
 	/* Pass the buffer to the device */
 	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
 
+	px4_close(dev);
+
 	if (ret == 0) {
 		printf("%s", buf);
 
@@ -388,6 +390,7 @@ mixer_list(const char *devname)
 
 		if (ret != 0) {
 			warnx("can't get submixer count. Failure code %i", ret);
+			px4_close(dev);
 			return 1;
 		}
 
@@ -400,6 +403,7 @@ mixer_list(const char *devname)
 
 		if (ret < 0) {
 			warnx("can't get mixer type. Failure code %i", ret);
+			px4_close(dev);
 			return 1;
 		}
 
@@ -414,6 +418,7 @@ mixer_list(const char *devname)
 
 			if (ret < 0) {
 				warnx("can't get submixer type");
+				px4_close(dev);
 				return 1;
 			}
 
@@ -422,6 +427,7 @@ mixer_list(const char *devname)
 		}
 	}
 
+	px4_close(dev);
 
 	return 0;
 }
@@ -446,6 +452,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 
 	if (ret < 0) {
 		warnx("can't get mixer:%s type for mixer %u sub mixer:%u", devname, mix_index, sub_index);
+		px4_close(dev);
 		return 1;
 	}
 
@@ -454,6 +461,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 
 	if (param_count == 0) {
 		printf("mixer:%u  parameter list empty\n", mix_index);
+		px4_close(dev);
 		return 1;
 	}
 
@@ -467,6 +475,7 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 
 		if (ret < 0) {
 			warnx("can't get submixer parameter");
+			px4_close(dev);
 			return 1;
 		}
 
@@ -475,6 +484,8 @@ mixer_param_list(const char *devname, int mix_index, int sub_index)
 		       (double) param.value);
 	}
 
+
+	px4_close(dev);
 	return 0;
 }
 
@@ -499,6 +510,8 @@ mixer_param_set(const char *devname, int mix_index, int sub_index, int param_ind
 
 	int ret = px4_ioctl(dev, MIXERIOCSETPARAM, (unsigned long)&param);
 
+	px4_close(dev);
+
 	if (ret == 0) {
 		printf("mixer:%u sub_mixer:%u param:%u value:%.4f set success\n", param.mix_index, param.mix_sub_index,
 		       param.param_index,
@@ -510,4 +523,5 @@ mixer_param_set(const char *devname, int mix_index, int sub_index, int param_ind
 		return -1;
 	}
 }
+
 #endif //defined(MIXER_CONFIGURATION)
