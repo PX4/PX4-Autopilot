@@ -1112,7 +1112,7 @@ void IEKF::stateSpaceParamUpdate()
 				  _pn_vz_nd * _pn_vz_nd;
 		float groundSpeedSq = getGroundVelocity().dot(getGroundVelocity());
 		float terrain_var_asl = _pn_t_asl_s_nd * _pn_t_asl_s_nd * groundSpeedSq
-			+ _pn_t_asl_nd * _pn_t_asl_nd ;
+					+ _pn_t_asl_nd * _pn_t_asl_nd ;
 
 		_Q(Xe::rot_N, Xe::rot_N) = rot_var;
 		_Q(Xe::rot_E, Xe::rot_E) = rot_var;

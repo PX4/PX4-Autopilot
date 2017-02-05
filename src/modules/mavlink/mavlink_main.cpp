@@ -2002,10 +2002,10 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream("GLOBAL_POSITION_INT", 5.0f);
 		configure_stream("LOCAL_POSITION_NED", 1.0f);
-		configure_stream("ESTIMATOR_STATE", 1.0f);
-		configure_stream("ESTIMATOR_STATE_STD", 1.0f);
-		configure_stream("ESTIMATOR_INNOV", 1.0f);
-		configure_stream("ESTIMATOR_INNOV_STD", 1.0f);
+		configure_stream("ESTIMATOR_STATE", 0.1f);
+		configure_stream("ESTIMATOR_STATE_STD", 0.1f);
+		configure_stream("ESTIMATOR_INNOV", 0.1f);
+		configure_stream("ESTIMATOR_INNOV_STD", 0.1f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.5f);
 		configure_stream("ATTITUDE_TARGET", 2.0f);
 		configure_stream("HOME_POSITION", 0.5f);
