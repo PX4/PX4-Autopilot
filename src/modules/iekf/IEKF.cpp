@@ -341,26 +341,32 @@ void IEKF::callbackImu(const sensor_combined_s *msg)
 	if (_attitudeInitialized) {
 
 		// predict driven by gyro callback
-		// deadline is 100 hz
-		uint64_t deadline = _stateTimestamp * 1e3 + 1e9 / 100;
+		// deadline is 200 hz
+		uint64_t deadline = _stateTimestamp * 1e3 + 1e9 / 200;
 
 		predictState(msg);
 
 		// set correciton deadline to 250 hz
 
-		// max update rate of innert loops, 10 hz
-		int lowRateCount = 25;
+		// max update rate of innert loops, 125 hz
+		int lowRateCount = 5;
 
 		// check if sensors are ready using row late cycle
-		if (_imuLowRateIndex % 2 == 0) {
+		if (_imuLowRateIndex % lowRateCount == 0) {
 			predictCovariance(msg);
 
 		} else if (_imuLowRateIndex % lowRateCount == 1) {
+			stateSpaceStateUpdate();
+
+		} else if (_imuLowRateIndex % lowRateCount == 2) {
 			correctAccel(msg);
+
+		} else if (_imuLowRateIndex % lowRateCount == 3) {
 			correctMag(msg);
+
+		} else if (_imuLowRateIndex % lowRateCount == 4) {
 			correctBaro(msg);
 			correctLand(msg->timestamp);
-			stateSpaceStateUpdate();
 		}
 
 		float overrunMillis = int32_t(ros::Time::now().toNSec() - deadline) / 1.0e6f;
@@ -638,8 +644,8 @@ void IEKF::correctionLogic(Vector<float, X::n> &dx) const
 {
 
 	if (getLanded()) {
-		//ROS_INFO("not updating position, landed, agl: %10.4f, landed: %d",
-		//	double(getAgl()), _landed);
+		ROS_INFO("not updating position, landed, agl: %10.4f, landed: %d",
+			 double(getAgl()), _landed);
 		dx(X::pos_N) = 0;
 		dx(X::pos_E) = 0;
 	}

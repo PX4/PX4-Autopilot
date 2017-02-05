@@ -141,27 +141,27 @@ int iekf_main(int argc, char *argv[])
 
 int iekf_thread_main(int argc, char *argv[])
 {
-	//ros::init(argc, argv, "iekf");
+	ros::init(argc, argv, "iekf");
 
-	//ROS_INFO("started");
+	ROS_INFO("started");
 
-	//if (est == NULL) {
-		//est = new IEKF();
+	if (est == NULL) {
+		est = new IEKF();
 
-	//} else {
+	} else {
 
-		//ROS_INFO("already running");
-		//return -1;
-	//}
+		ROS_INFO("already running");
+		return -1;
+	}
 
-	//while (est->ok()) {
-		//// uses polling
-		//est->update();
-	//}
+	while (est->ok()) {
+		// uses polling
+		est->update();
+	}
 
-	//ros::shutdown();
-	//delete est;
-	//est = NULL;
-	//ROS_INFO("stopped");
+	ros::shutdown();
+	delete est;
+	est = NULL;
+	ROS_INFO("stopped");
 	return 0;
 }

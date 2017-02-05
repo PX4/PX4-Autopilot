@@ -233,7 +233,7 @@ PARAM_DEFINE_FLOAT(IEKF_GPS_VZ_ND, 4e-1f);
  * @max 1e0
  * @decimal 5
  */
-PARAM_DEFINE_FLOAT(IEKF_FLOW_ND, 1e-2f);
+PARAM_DEFINE_FLOAT(IEKF_FLOW_ND, 1e-3f);
 
 /*================================================================*/
 /* Lidar */
