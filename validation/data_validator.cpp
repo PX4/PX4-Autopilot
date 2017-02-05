@@ -63,11 +63,6 @@ DataValidator::DataValidator(DataValidator *prev_sibling) :
 
 }
 
-DataValidator::~DataValidator()
-{
-
-}
-
 void
 DataValidator::put(uint64_t timestamp, float val, uint64_t error_count_in, int priority_in)
 {

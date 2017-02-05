@@ -146,10 +146,6 @@ Ekf::Ekf():
 	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
 }
 
-Ekf::~Ekf()
-{
-}
-
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);

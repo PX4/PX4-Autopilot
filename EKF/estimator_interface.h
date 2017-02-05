@@ -52,7 +52,7 @@ class EstimatorInterface
 
 public:
 	EstimatorInterface();
-	~EstimatorInterface();
+	~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
 	virtual bool update() = 0;
@@ -328,7 +328,7 @@ protected:
 	float _tas_test_ratio;		// tas innovation consistency check ratio
 	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
 	float _beta_test_ratio;			// sideslip innovation consistency check ratio
-	innovation_fault_status_u _innov_check_fail_status;
+	innovation_fault_status_u _innov_check_fail_status{};
 
 	// IMU vibration monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
@@ -358,7 +358,7 @@ protected:
 	uint64_t _time_last_ext_vision; // timestamp of last external vision measurement in microseconds
 	uint64_t _time_last_optflow;
 
-	fault_status_u _fault_status;
+	fault_status_u _fault_status{};
 
 	// allocate data buffers and intialise interface variables
 	bool initialise_interface(uint64_t timestamp);
@@ -370,10 +370,10 @@ protected:
 	float _mag_declination_to_save_deg; // magnetic declination to save to EKF2_MAG_DECL (deg)
 
 	// this is the current status of the filter control modes
-	filter_control_status_u _control_status;
+	filter_control_status_u _control_status{};
 
 	// this is the previous status of the filter control modes - used to detect mode transitions
-	filter_control_status_u _control_status_prev;
+	filter_control_status_u _control_status_prev{};
 
 	// perform a vector cross product
 	Vector3f cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2);

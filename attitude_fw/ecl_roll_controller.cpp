@@ -52,10 +52,6 @@ ECL_RollController::ECL_RollController() :
 {
 }
 
-ECL_RollController::~ECL_RollController()
-{
-}
-
 float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */

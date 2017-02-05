@@ -54,10 +54,6 @@ ECL_PitchController::ECL_PitchController() :
 {
 }
 
-ECL_PitchController::~ECL_PitchController()
-{
-}
-
 float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 
@@ -124,6 +120,7 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	/* flying inverted (wings upside down)*/
 	bool inverted = false;
 	float constrained_roll;
+
 	/* roll is used as feedforward term and inverted flight needs to be considered */
 	if (fabsf(ctl_data.roll) < math::radians(90.0f)) {
 		/* not inverted, but numerically still potentially close to infinity */
@@ -132,6 +129,7 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	} else {
 		/* inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity */
 		inverted = true;
+
 		/* note: the ranges are extended by 10 deg here to avoid numeric resolution effects */
 		if (ctl_data.roll > 0.0f) {
 			/* right hemisphere */
@@ -148,10 +146,10 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 
 	/* Calculate desired body fixed y-axis angular rate needed to compensate for roll angle.
 	   For reference see Automatic Control of Aircraft and Missiles by John H. Blakelock, pg. 175
-	   Availible on google books 8/11/2015: 
+	   Availible on google books 8/11/2015:
 	   https://books.google.com/books?id=ubcczZUDCsMC&pg=PA175#v=onepage&q&f=false*/
 	float body_fixed_turn_offset = (fabsf((CONSTANTS_ONE_G / airspeed) *
-				  		tanf(constrained_roll) * sinf(constrained_roll)));
+					      tanf(constrained_roll) * sinf(constrained_roll)));
 
 	if (inverted) {
 		body_fixed_turn_offset = -body_fixed_turn_offset;

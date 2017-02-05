@@ -49,7 +49,7 @@ public:
 	static const unsigned dimensions = 3;
 
 	DataValidator(DataValidator *prev_sibling = nullptr);
-	virtual ~DataValidator();
+	virtual ~DataValidator() = default;
 
 	/**
 	 * Put an item into the validator.

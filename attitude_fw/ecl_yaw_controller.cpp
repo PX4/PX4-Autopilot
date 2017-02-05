@@ -55,10 +55,6 @@ ECL_YawController::ECL_YawController() :
 {
 }
 
-ECL_YawController::~ECL_YawController()
-{
-}
-
 float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	switch (_coordinated_method) {

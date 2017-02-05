@@ -84,8 +84,7 @@ class __EXPORT ECL_Controller
 {
 public:
 	ECL_Controller(const char *name);
-
-	~ECL_Controller();
+	~ECL_Controller() = default;
 
 	virtual float control_attitude(const struct ECL_ControlData &ctl_data) = 0;
 	virtual float control_bodyrate(const struct ECL_ControlData &ctl_data) = 0;

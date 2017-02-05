@@ -99,8 +99,6 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
 	return _NED_origin_initialised && (gps->fix_type >= 3);
-
-	return false;
 }
 
 /*

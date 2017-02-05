@@ -89,11 +89,6 @@ EstimatorInterface::EstimatorInterface():
 	_delta_vel_prev.setZero();
 }
 
-EstimatorInterface::~EstimatorInterface()
-{
-
-}
-
 // Accumulate imu data and store to buffer at desired rate
 void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3],
 				    float (&delta_vel)[3])
@@ -227,7 +222,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_baro > _min_obs_interval_us) {
 
-		baroSample baro_sample_new;
+		baroSample baro_sample_new{};
 		baro_sample_new.hgt = data;
 		baro_sample_new.time_us = time_usec - _params.baro_delay_ms * 1000;
 
@@ -248,7 +243,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_airspeed > _min_obs_interval_us) {
-		airspeedSample airspeed_sample_new;
+		airspeedSample airspeed_sample_new{};
 		airspeed_sample_new.true_airspeed = true_airspeed;
 		airspeed_sample_new.eas2tas = eas2tas;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;

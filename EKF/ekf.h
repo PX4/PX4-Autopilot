@@ -48,7 +48,7 @@ class Ekf : public EstimatorInterface
 public:
 
 	Ekf();
-	~Ekf();
+	~Ekf() = default;
 
 	// initialise variables to sane values (also interface class)
 	bool init(uint64_t timestamp);
@@ -245,13 +245,13 @@ private:
 
 	matrix::Dcm<float> _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
 
-	float P[_k_num_states][_k_num_states];	// state covariance matrix
+	float P[_k_num_states][_k_num_states]{};	// state covariance matrix
 
-	float _vel_pos_innov[6];	// innovations: 0-2 vel,  3-5 pos
-	float _vel_pos_innov_var[6];	// innovation variances: 0-2 vel, 3-5 pos
+	float _vel_pos_innov[6]{};	// innovations: 0-2 vel,  3-5 pos
+	float _vel_pos_innov_var[6]{};	// innovation variances: 0-2 vel, 3-5 pos
 
-	float _mag_innov[3];		// earth magnetic field innovations
-	float _mag_innov_var[3];	// earth magnetic field innovation variance
+	float _mag_innov[3]{};		// earth magnetic field innovations
+	float _mag_innov_var[3]{};	// earth magnetic field innovation variance
 
 	float _airspeed_innov;		// airspeed measurement innovation
 	float _airspeed_innov_var;	// airspeed measurement innovation variance
@@ -263,8 +263,8 @@ private:
 	float _heading_innov_var;	// heading measurement innovation variance
 
 	// optical flow processing
-	float _flow_innov[2];		// flow measurement innovation
-	float _flow_innov_var[2];	// flow innovation variance
+	float _flow_innov[2]{};		// flow measurement innovation
+	float _flow_innov_var[2]{};	// flow innovation variance
 	Vector3f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
 	Vector3f _imu_del_ang_of;	// bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates
 	float _delta_time_of;		// time in sec that _imu_del_ang_of was accumulated over
@@ -277,7 +277,7 @@ private:
 	Quaternion _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
 	Vector3f _vel_err_integ;	// integral of velocity tracking error
 	Vector3f _pos_err_integ;	// integral of position tracking error
-	float _output_tracking_error[3];// contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
+	float _output_tracking_error[3]{};// contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	// variables used for the GPS quality checks
 	float _gpsDriftVelN;		// GPS north position derivative (m/s)
@@ -306,7 +306,7 @@ private:
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD; // last vertical position when the in_air status was false (m)
 
-	gps_check_fail_status_u _gps_check_fail_status;
+	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// Terrain height state estimation
 	float _terrain_vpos;		// estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
