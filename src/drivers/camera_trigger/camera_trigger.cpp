@@ -49,9 +49,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <mathlib/mathlib.h>
-#include <nuttx/clock.h>
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -67,6 +65,7 @@
 #include <drivers/drv_hrt.h>
 #include <board_config.h>
 
+#include "interfaces/src/camera_interface.h"
 #include "interfaces/src/pwm.h"
 #include "interfaces/src/relay.h"
 
@@ -74,7 +73,7 @@
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
-typedef enum {
+typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_RELAY,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM
@@ -254,15 +253,20 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_interface, &_camera_interface_mode);
 
 	switch (_camera_interface_mode) {
+#ifdef __PX4_NUTTX
+
 	case CAMERA_INTERFACE_MODE_RELAY:
-		_camera_interface = new CameraInterfaceRelay;
+		_camera_interface = new CameraInterfaceRelay();
 		break;
 
 	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:
-		_camera_interface = new CameraInterfacePWM;
+		_camera_interface = new CameraInterfacePWM();
 		break;
 
+#endif
+
 	default:
+		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
 		break;
 	}
 
