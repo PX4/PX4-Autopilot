@@ -39,9 +39,6 @@
  * @author Andreas Bircher <andreas@wingtra.com>
  */
 
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
-
 /**
 * Camera trigger Interface
 *
