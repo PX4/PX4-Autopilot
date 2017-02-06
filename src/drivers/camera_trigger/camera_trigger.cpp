@@ -124,9 +124,9 @@ public:
 	void		stop();
 
 	/**
-	 * Display info.
+	 * Display status.
 	 */
-	void		info();
+	void		status();
 
 	/**
 	 * Trigger one image
@@ -581,7 +581,7 @@ CameraTrigger::keep_alive_down(void *arg)
 }
 
 void
-CameraTrigger::info()
+CameraTrigger::status()
 {
 	PX4_INFO("state : %s", _trigger_enabled ? "enabled" : "disabled");
 	PX4_INFO("mode : %i", _mode);
@@ -593,7 +593,7 @@ CameraTrigger::info()
 
 static int usage()
 {
-	PX4_ERR("usage: camera_trigger {start|stop|info|test}\n");
+	PX4_INFO("usage: camera_trigger {start|stop|status|test}\n");
 	return 1;
 }
 
@@ -628,8 +628,8 @@ int camera_trigger_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "stop")) {
 		camera_trigger::g_camera_trigger->stop();
 
-	} else if (!strcmp(argv[1], "info")) {
-		camera_trigger::g_camera_trigger->info();
+	} else if (!strcmp(argv[1], "status")) {
+		camera_trigger::g_camera_trigger->status();
 
 	} else if (!strcmp(argv[1], "enable")) {
 		camera_trigger::g_camera_trigger->control(true);
