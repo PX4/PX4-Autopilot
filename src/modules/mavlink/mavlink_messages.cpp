@@ -1420,6 +1420,23 @@ protected:
 			/* ensure that only active trigger events are sent */
 			if (trigger.timestamp > 0) {
 				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
+
+				/* send MAV_CMD_IMAGE_START_CAPTURE */
+				mavlink_command_long_t msg_cmd;
+
+				msg_cmd.target_system = mavlink_system.sysid;
+				msg_cmd.target_component = MAV_COMP_ID_CAMERA;
+				msg_cmd.command = MAV_CMD_IMAGE_START_CAPTURE;
+				msg_cmd.confirmation = 0;
+				msg_cmd.param1 = 0;
+				msg_cmd.param2 = 1;
+				msg_cmd.param3 = 0;
+				msg_cmd.param4 = NAN;
+				msg_cmd.param5 = NAN;
+				msg_cmd.param6 = NAN;
+				msg_cmd.param7 = NAN;
+
+				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg_cmd);
 			}
 		}
 	}
