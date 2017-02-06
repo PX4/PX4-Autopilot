@@ -76,7 +76,8 @@ extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_RELAY,
-	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM
+	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
+	CAMERA_INTERFACE_MODE_MAVLINK
 } camera_interface_mode_t;
 
 class CameraTrigger
@@ -264,6 +265,11 @@ CameraTrigger::CameraTrigger() :
 		break;
 
 #endif
+
+	case CAMERA_INTERFACE_MODE_MAVLINK:
+		/* start an interface that does nothing. Instead mavlink will listen to the camera_trigger uORB message */
+		_camera_interface = new CameraInterface();
+		break;
 
 	default:
 		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
