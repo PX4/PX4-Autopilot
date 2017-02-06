@@ -428,11 +428,19 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 	case commander_state_s::MAIN_STATE_AUTO_RTL:
-	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
 		/* need global position and home position */
 		if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
+	case commander_state_s::MAIN_STATE_AUTO_LAND:
+
+		/* need local position */
+		if (status_flags->condition_local_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -937,8 +945,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->gps_failure || (!status_flags->condition_global_position_valid ||
-				!status_flags->condition_home_position_valid)) {
+		} else if (status_flags->gps_failure || !status_flags->condition_local_position_valid) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
 			if (status_flags->condition_local_position_valid) {
@@ -964,8 +971,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->gps_failure || (!status_flags->condition_global_position_valid ||
-				!status_flags->condition_home_position_valid)) {
+		} else if (status_flags->gps_failure || !status_flags->condition_local_position_valid) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
 			if (status_flags->condition_local_altitude_valid) {

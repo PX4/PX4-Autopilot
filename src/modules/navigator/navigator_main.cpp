@@ -105,6 +105,7 @@ Navigator::Navigator() :
 	_navigator_task(-1),
 	_mavlink_log_pub(nullptr),
 	_global_pos_sub(-1),
+	_local_pos_sub(-1),
 	_gps_pos_sub(-1),
 	_sensor_combined_sub(-1),
 	_home_pos_sub(-1),
@@ -213,6 +214,12 @@ Navigator::global_position_update()
 }
 
 void
+Navigator::local_position_update()
+{
+	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+}
+
+void
 Navigator::gps_position_update()
 {
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
@@ -301,6 +308,7 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
@@ -318,6 +326,7 @@ Navigator::task_main()
 	vehicle_land_detected_update();
 	vehicle_control_mode_update();
 	global_position_update();
+	local_position_update();
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
@@ -380,6 +389,13 @@ Navigator::task_main()
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 				have_geofence_position_data = true;
 			}
+		}
+
+		/* local position updated */
+		orb_check(_local_pos_sub, &updated);
+
+		if (updated) {
+			local_position_update();
 		}
 
 		/* sensors combined updated */
@@ -492,7 +508,13 @@ Navigator::task_main()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
-				rep->current.yaw = cmd.param4;
+				if (home_position_valid()) {
+					rep->current.yaw = cmd.param4;
+					rep->previous.valid = true;
+				} else {
+					rep->current.yaw = get_local_position()->yaw;
+					rep->previous.valid = false;
+				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
@@ -506,7 +528,6 @@ Navigator::task_main()
 
 				rep->current.alt = cmd.param7;
 
-				rep->previous.valid = true;
 				rep->current.valid = true;
 				rep->next.valid = false;
 
