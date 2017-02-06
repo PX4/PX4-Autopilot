@@ -420,7 +420,7 @@ accel_0_params = {
 }
 
 # curve fit the data for accel 0 corrections
-if num_accel >= 1:
+if num_accels >= 1:
 	accel_0_params['TC_A0_ID'] = int(np.median(sensor_accel_0['device_id']))
 
 	# find the min, max and reference temperature
@@ -519,7 +519,7 @@ accel_1_params = {
 }
 
 # curve fit the data for accel 1 corrections
-if num_accel >= 2:
+if num_accels >= 2:
 	accel_1_params['TC_A1_ID'] = int(np.median(sensor_accel_1['device_id']))
 
 	# find the min, max and reference temperature
