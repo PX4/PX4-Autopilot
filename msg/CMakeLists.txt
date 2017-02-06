@@ -63,6 +63,7 @@ set(msg_files
 	home_position.msg
 	input_rc.msg
 	led_control.msg
+	irlock_report.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
