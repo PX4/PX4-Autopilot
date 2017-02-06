@@ -508,9 +508,11 @@ Navigator::task_main()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
 				if (home_position_valid()) {
 					rep->current.yaw = cmd.param4;
 					rep->previous.valid = true;
+
 				} else {
 					rep->current.yaw = get_local_position()->yaw;
 					rep->previous.valid = false;
