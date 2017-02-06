@@ -52,12 +52,11 @@ void IEKF::correctAccel(const sensor_combined_s *msg)
 		msg->accelerometer_m_s2[2]);
 
 	// expected measurement
-	// TODO, expected measurement should depend on dynamic model
-	Vector3f acc_n(0, 0, 0);
 	Dcmf C_nb = Quatf(_x(X_q_nb_0), _x(X_q_nb_1),
 			  _x(X_q_nb_2), _x(X_q_nb_3));
-	Vector3f acc_bias_b(_x(X_accel_bias_bX), _x(X_accel_bias_bY), _x(X_accel_bias_bZ));
-	Vector3f yh_n = acc_n - C_nb * acc_bias_b + _g_n;
+	Vector3f a_n = C_nb * transAccelFrameB(); // F/m
+	Vector3f a_bias_b(_x(X_accel_bias_bX), _x(X_accel_bias_bY), _x(X_accel_bias_bZ));
+	Vector3f yh_n = a_n - C_nb * a_bias_b + _g_n;
 
 	// calculate residual in navigation frame
 	// since it is invariant
@@ -75,7 +74,6 @@ void IEKF::correctAccel(const sensor_combined_s *msg)
 	Matrix3f tmp = yh_n.hat() * 2;
 
 	for (size_t i = 0; i < 3; i++) {
-		//H(Y_accel_acc_N + i, Xe_acc_N + i) = 1;
 		H(Y_accel_acc_N + i, Xe_accel_bias_N + i) = 1;
 
 		for (size_t j = 0; j < 3; j++) {
