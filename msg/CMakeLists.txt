@@ -122,6 +122,7 @@ set(msg_files
 	vehicle_status_flags.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	precland_beacon_relpos.msg
 	)
 
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
