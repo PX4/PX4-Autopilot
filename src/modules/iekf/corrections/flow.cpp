@@ -76,9 +76,9 @@ void IEKF::correctFlow(const optical_flow_s *msg)
 	Dcmf C_nb = computeDcmNB();
 	Vector3f angVelNB = getAngularVelocityNBFrameB();
 
-	float vel_N = _x(X::vel_N);
-	float vel_E = _x(X::vel_E);
-	float vel_D = _x(X::vel_D);
+	float vel_N = _x(X_vel_N);
+	float vel_E = _x(X_vel_E);
+	float vel_D = _x(X_vel_D);
 	float omega_bx = angVelNB(0);
 	float omega_by = angVelNB(1);
 	float rotRate = angVelNB.norm();
@@ -96,7 +96,7 @@ void IEKF::correctFlow(const optical_flow_s *msg)
 	}
 
 	// expected measurement
-	Vector<float, Y_flow::n> yh;
+	Vector<float, Y_flow_n> yh;
 	{
 		float x0 = agl;
 		float x1 = 1 / x0;
@@ -118,21 +118,21 @@ void IEKF::correctFlow(const optical_flow_s *msg)
 	//ROS_INFO("vel N %10.4f E %10.4f", double(vel_N), double(vel_E));
 
 	// residual
-	Vector<float, Y_flow::n> r = y - yh;
+	Vector<float, Y_flow_n> r = y - yh;
 
 	//ROS_INFO("flow: (%10g, %10g)", double(y(0)), double(y(1)));
 	//ROS_INFO("float dt: %10.4f", double(dt));
 
 	// define R
-	SquareMatrix<float, Y_flow::n> R;
+	SquareMatrix<float, Y_flow_n> R;
 	float flow_var = _flow_nd * _flow_nd / dt;
-	R(Y_flow::flowX, Y_flow::flowX) = flow_var;
-	R(Y_flow::flowY, Y_flow::flowY) = flow_var;
+	R(Y_flow_flowX, Y_flow_flowX) = flow_var;
+	R(Y_flow_flowY, Y_flow_flowY) = flow_var;
 
 	// define H
 	// Note: this measurement is not invariant due to
 	// rotation matrix
-	Matrix<float, Y_flow::n, Xe::n> H;
+	Matrix<float, Y_flow_n, Xe_n> H;
 	{
 		float x0 = agl;
 		float x1 = 1 / x0;
@@ -164,45 +164,45 @@ void IEKF::correctFlow(const optical_flow_s *msg)
 		float x27 = x22 * x7;
 		float x28 = x10 * x23;
 		float x29 = x24 * (x26 + x27 + x28);
-		H(Y_flow::flowX, Xe::rot_N) = x1 * (-x11 * x6 + x12 * x14 - x13 * x2 - x2 * x5 - x2 * x8);
-		H(Y_flow::flowX, Xe::rot_E) = x15 * (-x12 * x18 + x13 * x16 + x16 * x5 + x16 * x8 + x17 * x3);
-		H(Y_flow::flowX, Xe::rot_D) = -x19 * (x3 * x7 - x4 * x6);
-		H(Y_flow::flowX, Xe::vel_N) = -x20 * x3;
-		H(Y_flow::flowX, Xe::vel_E) = -x20 * x6;
-		H(Y_flow::flowX, Xe::vel_D) = -x12 * x20;
-		H(Y_flow::flowX, Xe::gyro_bias_N) = x21;
-		H(Y_flow::flowX, Xe::gyro_bias_E) = x22;
-		H(Y_flow::flowX, Xe::gyro_bias_D) = x23;
-		H(Y_flow::flowX, Xe::asl) = x25;
-		H(Y_flow::flowX, Xe::terrain_asl) = -x25;
-		H(Y_flow::flowY, Xe::rot_N) = x1 * (-x11 * x22 + x14 * x23 - x2 * x26 - x2 * x27 - x2 * x28);
-		H(Y_flow::flowY, Xe::rot_E) = x15 * (x16 * x26 + x16 * x27 + x16 * x28 + x17 * x21 - x18 * x23);
-		H(Y_flow::flowY, Xe::rot_D) = -x19 * (x21 * x7 - x22 * x4);
-		H(Y_flow::flowY, Xe::vel_N) = -x20 * x21;
-		H(Y_flow::flowY, Xe::vel_E) = -x20 * x22;
-		H(Y_flow::flowY, Xe::vel_D) = -x20 * x23;
-		H(Y_flow::flowY, Xe::gyro_bias_N) = -x3;
-		H(Y_flow::flowY, Xe::gyro_bias_E) = -x6;
-		H(Y_flow::flowY, Xe::gyro_bias_D) = -x12;
-		H(Y_flow::flowY, Xe::asl) = x29;
-		H(Y_flow::flowY, Xe::terrain_asl) = -x29;
+		H(Y_flow_flowX, Xe_rot_N) = x1 * (-x11 * x6 + x12 * x14 - x13 * x2 - x2 * x5 - x2 * x8);
+		H(Y_flow_flowX, Xe_rot_E) = x15 * (-x12 * x18 + x13 * x16 + x16 * x5 + x16 * x8 + x17 * x3);
+		H(Y_flow_flowX, Xe_rot_D) = -x19 * (x3 * x7 - x4 * x6);
+		H(Y_flow_flowX, Xe_vel_N) = -x20 * x3;
+		H(Y_flow_flowX, Xe_vel_E) = -x20 * x6;
+		H(Y_flow_flowX, Xe_vel_D) = -x12 * x20;
+		H(Y_flow_flowX, Xe_gyro_bias_N) = x21;
+		H(Y_flow_flowX, Xe_gyro_bias_E) = x22;
+		H(Y_flow_flowX, Xe_gyro_bias_D) = x23;
+		H(Y_flow_flowX, Xe_asl) = x25;
+		H(Y_flow_flowX, Xe_terrain_asl) = -x25;
+		H(Y_flow_flowY, Xe_rot_N) = x1 * (-x11 * x22 + x14 * x23 - x2 * x26 - x2 * x27 - x2 * x28);
+		H(Y_flow_flowY, Xe_rot_E) = x15 * (x16 * x26 + x16 * x27 + x16 * x28 + x17 * x21 - x18 * x23);
+		H(Y_flow_flowY, Xe_rot_D) = -x19 * (x21 * x7 - x22 * x4);
+		H(Y_flow_flowY, Xe_vel_N) = -x20 * x21;
+		H(Y_flow_flowY, Xe_vel_E) = -x20 * x22;
+		H(Y_flow_flowY, Xe_vel_D) = -x20 * x23;
+		H(Y_flow_flowY, Xe_gyro_bias_N) = -x3;
+		H(Y_flow_flowY, Xe_gyro_bias_E) = -x6;
+		H(Y_flow_flowY, Xe_gyro_bias_D) = -x12;
+		H(Y_flow_flowY, Xe_asl) = x29;
+		H(Y_flow_flowY, Xe_terrain_asl) = -x29;
 	}
 
 	// kalman correction
-	SquareMatrix<float, Y_flow::n> S;
+	SquareMatrix<float, Y_flow_n> S;
 	_sensorFlow.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
-	_innov(Innov::FLOW_flow_X) = r(0);
-	_innov(Innov::FLOW_flow_Y) = r(1);
-	_innovStd(Innov::FLOW_flow_X) = sqrtf(S(0, 0));
-	_innovStd(Innov::FLOW_flow_Y) = sqrtf(S(1, 1));
+	_innov(Innov_FLOW_flow_X) = r(0);
+	_innov(Innov_FLOW_flow_Y) = r(1);
+	_innovStd(Innov_FLOW_flow_X) = sqrtf(S(0, 0));
+	_innovStd(Innov_FLOW_flow_Y) = sqrtf(S(1, 1));
 
 	if (_sensorFlow.shouldCorrect()) {
 		//ROS_INFO("correct flow");
 		// don't allow attitude correction
 		nullAttitudeCorrection(_dxe);
-		Vector<float, X::n> dx = computeErrorCorrection(_dxe);
+		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);
 	}

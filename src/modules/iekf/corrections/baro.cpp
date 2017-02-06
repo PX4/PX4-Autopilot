@@ -49,61 +49,61 @@ void IEKF::correctBaro(const sensor_combined_s *msg)
 	if (!_origin.altInitialized()) {
 		ROS_INFO("baro origin init alt %12.2f m", double(msg->baro_alt_meter));
 		_origin.altInitialize(msg->baro_alt_meter, msg->timestamp);
-		_x(X::baro_bias) = 0;
+		_x(X_baro_bias) = 0;
 		_baroOffset = 0;
 		float alt_m = msg->baro_alt_meter;
-		_x(X::asl) = alt_m;
+		_x(X_asl) = alt_m;
 		// initial terrain guess
 		_baroOffset = 0;
-		_x(X::asl) = alt_m;
+		_x(X_asl) = alt_m;
 
 		// if we have no terrain data, guess we are on the ground
 		if (!getTerrainValid()) {
-			_x(X::terrain_asl) = alt_m;
+			_x(X_terrain_asl) = alt_m;
 		}
 	}
 
 	// calculate residual
-	Vector<float, Y_baro::n> y;
-	y(Y_baro::asl) = msg->baro_alt_meter;
-	Vector<float, Y_baro::n> yh;
-	yh(Y_baro::asl)	= _x(X::asl) + _x(X::baro_bias) + _baroOffset;
-	Vector<float, Y_baro::n> r = y - yh;
+	Vector<float, Y_baro_n> y;
+	y(Y_baro_asl) = msg->baro_alt_meter;
+	Vector<float, Y_baro_n> yh;
+	yh(Y_baro_asl)	= _x(X_asl) + _x(X_baro_bias) + _baroOffset;
+	Vector<float, Y_baro_n> r = y - yh;
 
 	//ROS_INFO("asl: %10g, bias: %10g, offset: %10g, r: %10g",
-	//double(_x(X::asl)), double(_x(X::baro_bias)), double(_baroOffset),
+	//double(_x(X_asl)), double(_x(X_baro_bias)), double(_baroOffset),
 	//double(r(0)));
 
 	// save pressure altitude info
 	_baroAsl = y(0);
 
 	// define R
-	SquareMatrix<float, Y_baro::n> R;
-	R(Y_baro::asl, Y_baro::asl) = _baro_nd * _baro_nd / dt;
+	SquareMatrix<float, Y_baro_n> R;
+	R(Y_baro_asl, Y_baro_asl) = _baro_nd * _baro_nd / dt;
 	//ROS_INFO("baro dt: %10.4f, variance: %10.4f", double(dt), double(sqrtf(R(0, 0))));
 
 	// define H
-	Matrix<float, Y_baro::n, Xe::n> H;
-	H(Y_baro::asl, Xe::asl) = 1;
-	H(Y_baro::asl, Xe::baro_bias) = 1;
+	Matrix<float, Y_baro_n, Xe_n> H;
+	H(Y_baro_asl, Xe_asl) = 1;
+	H(Y_baro_asl, Xe_baro_bias) = 1;
 
 	// kalman correction
-	SquareMatrix<float, Y_baro::n> S;
+	SquareMatrix<float, Y_baro_n> S;
 	_sensorBaro.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
-	_innov(Innov::BARO_asl) = r(0);
-	_innovStd(Innov::BARO_asl) = sqrtf(S(0, 0));
+	_innov(Innov_BARO_asl) = r(0);
+	_innovStd(Innov_BARO_asl) = sqrtf(S(0, 0));
 
 	if (_sensorBaro.shouldCorrect()) {
 		nullAttitudeCorrection(_dxe);
 		// don't allow position correction in north/ east
-		_dxe(Xe::pos_N) = 0;
-		_dxe(Xe::pos_E) = 0;
-		_dxe(Xe::vel_N) = 0;
-		_dxe(Xe::vel_E) = 0;
+		_dxe(Xe_pos_N) = 0;
+		_dxe(Xe_pos_E) = 0;
+		_dxe(Xe_vel_N) = 0;
+		_dxe(Xe_vel_E) = 0;
 
-		Vector<float, X::n> dx = computeErrorCorrection(_dxe);
+		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);
 	}

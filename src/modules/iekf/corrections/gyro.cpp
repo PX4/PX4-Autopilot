@@ -33,54 +33,65 @@
 
 #include "../IEKF.hpp"
 
-void IEKF::correctMag(const sensor_combined_s *msg)
+void IEKF::correctGyro(const sensor_combined_s *msg)
 {
 	// return if no new data
 	float dt = 0;
-	uint64_t timestamp = msg->timestamp + msg->magnetometer_timestamp_relative;
 
-	if (!_sensorMag.ready(timestamp, dt)) {
+	if (!_sensorGyro.ready(msg->timestamp, dt)) {
 		return;
 	}
 
-	//ROS_INFO("correct mag");
+	//ROS_INFO("correct gyro");
 
 	// calculate residual
-	Quatf q_nb(_x(X_q_nb_0), _x(X_q_nb_1),
-		   _x(X_q_nb_2), _x(X_q_nb_3));
-	Vector3f y_b = Vector3f(
-			       msg->magnetometer_ga[0],
-			       msg->magnetometer_ga[1],
-			       msg->magnetometer_ga[2]).unit();
-	Vector3f y_n = q_nb.conjugate(y_b);
-	y_n(2) = 0;
-	Vector3f yh_n = Dcmf(Eulerf(
-				     0, 0, deg2radf * _mag_decl_deg)).T() * Vector3f(1, 0, 0);
-	Vector<float, 1> r;
-	r(0) = asinf(y_n.cross(yh_n)(2)) / y_n.norm() / yh_n.norm();
-	//ROS_INFO("mag r: %10.4f\n", double(r(0)));
+	Dcmf C_nb(Quatf(_x(X_q_nb_0), _x(X_q_nb_1),
+			_x(X_q_nb_2), _x(X_q_nb_3)));
+	Vector3f yh_n = C_nb * Vector3f(
+				_x(X_angvel_bX),
+				_x(X_angvel_bY),
+				_x(X_angvel_bZ));
+	Vector3f y_n = C_nb * Vector3f(
+			       msg->gyro_rad[0],
+			       msg->gyro_rad[1],
+			       msg->gyro_rad[2]);
+
+	// calculate residual in navigation frame
+	// since it is invariant
+	Vector<float, Y_gyro_n> r = y_n - yh_n;
 
 	// define R
-	SquareMatrix<float, Y_mag_n> R;
-	R(Y_mag_hdg, Y_mag_hdg) = _mag_nd * _mag_nd / dt;
+	SquareMatrix<float, Y_gyro_n> R;
+	float gyro_var = _gyro_nd * _gyro_nd / dt;
+	R(Y_gyro_angvel_N, Y_gyro_angvel_N) = gyro_var;
+	R(Y_gyro_angvel_E, Y_gyro_angvel_E) = gyro_var;
+	R(Y_gyro_angvel_D, Y_gyro_angvel_D) = gyro_var;
 
 	// define H
-	Matrix<float, Y_mag_n, Xe_n> H;
-	H(Y_mag_hdg, Xe_rot_D) = 1;
+	Matrix<float, Y_gyro_n, Xe_n> H;
+	Matrix3f tmp = yh_n.hat() * 2;
+
+	for (int i = 0; i < 3; i++) {
+		H(Y_gyro_angvel_N + i, Xe_angvel_N + i) = 1;
+		H(Y_gyro_angvel_N + i, Xe_gyro_bias_N + i) = 1;
+
+		for (size_t j = 0; j < 3; j++) {
+			H(Y_gyro_angvel_N + i, Xe_rot_N + j) = tmp(i, j);
+		}
+	};
 
 	// kalman correction
-	SquareMatrix<float, Y_mag_n> S;
-	_sensorMag.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
+	SquareMatrix<float, Y_gyro_n> S;
+
+	_sensorGyro.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
-	_innov(Innov_MAG_mag_hdg) = r(0);
-	_innovStd(Innov_MAG_mag_hdg) = sqrtf(S(0, 0));
+	for (int i = 0; i < 3; i++) {
+		_innov(Innov_GYRO_angvel_N + i) = r(i);
+		_innovStd(Innov_GYRO_angvel_N + i) = sqrtf(S(i, i));
+	}
 
-	if (_sensorMag.shouldCorrect()) {
-		// don't allow correction of roll/ pitch
-		_dxe(Xe_rot_N) = 0;
-		_dxe(Xe_rot_E) = 0;
-		nullPositionCorrection(_dxe);
+	if (_sensorGyro.shouldCorrect()) {
 		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);

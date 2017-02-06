@@ -41,6 +41,7 @@ px4_add_module(
 		corrections/accel.cpp
 		corrections/airspeed.cpp
 		corrections/baro.cpp
+		corrections/gyro.cpp
 		corrections/flow.cpp
 		corrections/gps.cpp
 		corrections/distance.cpp

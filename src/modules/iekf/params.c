@@ -39,6 +39,18 @@ PARAM_DEFINE_FLOAT(IEKF_GYRO_RW_ND, 1.2e-5f);
  */
 PARAM_DEFINE_FLOAT(IEKF_GYRO_RW_CT, 1e3);
 
+/**
+ * Gyro max correction rate
+ *
+ * @group IEKF
+ * @unit Hz
+ * @min 0
+ * @max 1e3
+ * @decimal 0
+ */
+PARAM_DEFINE_FLOAT(IEKF_RATE_GYRO, 1e3);
+
+
 /*================================================================*/
 /* Accelerometer*/
 /*================================================================*/

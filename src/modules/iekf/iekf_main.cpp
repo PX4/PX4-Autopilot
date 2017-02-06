@@ -106,7 +106,7 @@ int iekf_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("iekf",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
-						 10000,
+						 20000,
 						 iekf_thread_main,
 						 (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
 		return 0;

@@ -82,18 +82,20 @@ public:
 	// methods
 	//
 	void update();
-	Vector<float, X::n> dynamics(
-		float t, const Vector<float, X::n> &x,
-		const Vector<float, U::n> &u) const;
+	Vector<float, X_n> dynamics(
+		float t, const Vector<float, X_n> &x,
+		const Vector<float, U_n> &u) const;
+	Vector3f transAccelFrameB() const;
+	Vector3f rotAccelFrameB() const;
 	void callbackImu(const sensor_combined_s *msg);
 	void updateParams();
 	void callbackParamUpdate(const parameter_update_s *msg);
 	void initializeAttitude(const sensor_combined_s *msg);
-	void predictState(const sensor_combined_s *msg);
-	void predictCovariance(const sensor_combined_s *msg);
+	void predictState(const actuator_controls_s *msg);
+	void predictCovariance(uint64_t timestamp);
 	void reconstructPosiiveP();
-	Vector<float, X::n> computeErrorCorrection(const Vector<float, Xe::n> &d_xe) const;
-	void correctionLogic(Vector<float, X::n> &dx) const;
+	Vector<float, X_n> computeErrorCorrection(const Vector<float, Xe_n> &d_xe) const;
+	void correctionLogic(Vector<float, X_n> &dx) const;
 	void boundP();
 	void boundX();
 	void publish();
@@ -105,6 +107,7 @@ public:
 	void correctAccel(const sensor_combined_s *msg);
 	void correctMag(const sensor_combined_s *msg);
 	void correctBaro(const sensor_combined_s *msg);
+	void correctGyro(const sensor_combined_s *msg);
 	void correctGps(const vehicle_gps_position_s *msg);
 	void correctAirspeed(const airspeed_s *msg);
 	void correctFlow(const optical_flow_s *msg);
@@ -116,22 +119,22 @@ public:
 
 	// getters/ setters
 	bool ok() { return _nh.ok(); }
-	void setP(const SquareMatrix<float, Xe::n> &P)
+	void setP(const SquareMatrix<float, Xe_n> &P)
 	{
 		_P = P;
 		boundP();
 	}
-	inline void incrementP(const SquareMatrix<float, Xe::n> &dP)
+	inline void incrementP(const SquareMatrix<float, Xe_n> &dP)
 	{
 		_P += dP;
 		boundP();
 	}
-	void setX(const Vector<float, X::n> &x)
+	void setX(const Vector<float, X_n> &x)
 	{
 		_x = x;
 		boundX();
 	}
-	void incrementX(Vector<float, X::n> &dx)
+	void incrementX(Vector<float, X_n> &dx)
 	{
 		correctionLogic(dx);
 		_x += dx;
@@ -144,50 +147,50 @@ public:
 	inline bool getAttitudeValid() const
 	{
 		return _attitudeInitialized &&
-		       ((_P(Xe::rot_N, Xe::rot_N)
-			 + _P(Xe::rot_E, Xe::rot_E)
-			 + _P(Xe::rot_D, Xe::rot_D)) < 1.0f);
+		       ((_P(Xe_rot_N, Xe_rot_N)
+			 + _P(Xe_rot_E, Xe_rot_E)
+			 + _P(Xe_rot_D, Xe_rot_D)) < 1.0f);
 
 	};
 	inline bool getVelocityXYValid() const
 	{
-		return ((_P(Xe::vel_N, Xe::vel_N)
-			 + _P(Xe::vel_E, Xe::vel_E)) < 0.2f);
+		return ((_P(Xe_vel_N, Xe_vel_N)
+			 + _P(Xe_vel_E, Xe_vel_E)) < 0.2f);
 	};
 	inline bool getVelocityZValid() const
 	{
-		return _P(Xe::vel_D, Xe::vel_D) < 1.0f;
+		return _P(Xe_vel_D, Xe_vel_D) < 1.0f;
 	};
 
 	inline bool getPositionXYValid() const
 	{
 		// only require velocity valid for missions
 		return _origin.xyInitialized()
-		       && ((_P(Xe::vel_N, Xe::vel_N)
-			    + _P(Xe::vel_E, Xe::vel_E)) < 2.0f);
+		       && ((_P(Xe_vel_N, Xe_vel_N)
+			    + _P(Xe_vel_E, Xe_vel_E)) < 2.0f);
 	};
 	inline bool getAltitudeValid() const
 	{
 		return _origin.altInitialized()
-		       && (_P(Xe::asl, Xe::asl) < 1.0f);
+		       && (_P(Xe_asl, Xe_asl) < 1.0f);
 	};
 	inline bool getAglValid() const
 	{
 		return _origin.altInitialized()
-		       && (_P(Xe::asl, Xe::asl) < 1.0f)
-		       && (_P(Xe::terrain_asl, Xe::terrain_asl) < 1.0f);
+		       && (_P(Xe_asl, Xe_asl) < 1.0f)
+		       && (_P(Xe_terrain_asl, Xe_terrain_asl) < 1.0f);
 	};
 	inline bool getTerrainValid() const
 	{
-		return (_P(Xe::terrain_asl, Xe::terrain_asl) < 1.0f);
+		return (_P(Xe_terrain_asl, Xe_terrain_asl) < 1.0f);
 	};
 	inline float getAgl() const
 	{
-		return _x(X::asl) - _x(X::terrain_asl);
+		return _x(X_asl) - _x(X_terrain_asl);
 	}
 	inline float getAltAboveOrigin() const
 	{
-		return _x(X::asl) - _origin.getAlt();
+		return _x(X_asl) - _origin.getAlt();
 	};
 	inline bool getGyroSaturated() const
 	{
@@ -199,8 +202,8 @@ public:
 	}
 	inline Quatf getQuaternionNB() const
 	{
-		return Quatf(_x(X::q_nb_0), _x(X::q_nb_1),
-			     _x(X::q_nb_2), _x(X::q_nb_3));
+		return Quatf(_x(X_q_nb_0), _x(X_q_nb_1),
+			     _x(X_q_nb_2), _x(X_q_nb_3));
 	}
 	inline Dcmf computeDcmNB() const
 	{
@@ -208,11 +211,11 @@ public:
 	}
 	inline Vector3f getGyroBiasFrameB() const
 	{
-		return Vector3f(_x(X::gyro_bias_bX), _x(X::gyro_bias_bY), _x(X::gyro_bias_bZ));
+		return Vector3f(_x(X_gyro_bias_bX), _x(X_gyro_bias_bY), _x(X_gyro_bias_bZ));
 	}
 	inline Vector3f getGyroRawFrameB() const
 	{
-		return Vector3f(_u(U::omega_nb_bX), _u(U::omega_nb_bY), _u(U::omega_nb_bZ));
+		return Vector3f(_u(U_omega_nb_bX), _u(U_omega_nb_bY), _u(U_omega_nb_bZ));
 	}
 	inline Vector3f getAngularVelocityNBFrameB() const
 	{
@@ -220,35 +223,35 @@ public:
 	}
 	inline Vector3f getGroundVelocity() const
 	{
-		return Vector3f(_x(X::vel_N), _x(X::vel_E), _x(X::vel_D));
+		return Vector3f(_x(X_vel_N), _x(X_vel_E), _x(X_vel_D));
 	}
 	inline Vector3f getAccelerationFrameB() const
 	{
-		Vector3f a_b(_u(U::accel_bX), _u(U::accel_bY), _u(U::accel_bZ));
-		Vector3f a_bias_b(_x(X::accel_bias_bX), _x(X::accel_bias_bY), _x(X::accel_bias_bZ));
+		Vector3f a_b(_u(U_accel_bX), _u(U_accel_bY), _u(U_accel_bZ));
+		Vector3f a_bias_b(_x(X_accel_bias_bX), _x(X_accel_bias_bY), _x(X_accel_bias_bZ));
 		return a_b - a_bias_b;
 	}
-	inline void nullPositionCorrection(Vector<float, Xe::n> &dxe)
+	inline void nullPositionCorrection(Vector<float, Xe_n> &dxe)
 	{
-		dxe(Xe::vel_N) = 0;
-		dxe(Xe::vel_E) = 0;
-		dxe(Xe::vel_D) = 0;
-		dxe(Xe::pos_N) = 0;
-		dxe(Xe::pos_E) = 0;
-		dxe(Xe::asl) = 0;
-		dxe(Xe::terrain_asl) = 0;
-		dxe(Xe::accel_bias_N) = 0;
-		dxe(Xe::accel_bias_E) = 0;
-		dxe(Xe::accel_bias_D) = 0;
+		dxe(Xe_vel_N) = 0;
+		dxe(Xe_vel_E) = 0;
+		dxe(Xe_vel_D) = 0;
+		dxe(Xe_pos_N) = 0;
+		dxe(Xe_pos_E) = 0;
+		dxe(Xe_asl) = 0;
+		dxe(Xe_terrain_asl) = 0;
+		dxe(Xe_accel_bias_N) = 0;
+		dxe(Xe_accel_bias_E) = 0;
+		dxe(Xe_accel_bias_D) = 0;
 	}
-	inline void nullAttitudeCorrection(Vector<float, Xe::n> &dxe)
+	inline void nullAttitudeCorrection(Vector<float, Xe_n> &dxe)
 	{
-		dxe(Xe::rot_N) = 0;
-		dxe(Xe::rot_E) = 0;
-		dxe(Xe::rot_D) = 0;
-		dxe(Xe::gyro_bias_N) = 0;
-		dxe(Xe::gyro_bias_E) = 0;
-		dxe(Xe::gyro_bias_D) = 0;
+		dxe(Xe_rot_N) = 0;
+		dxe(Xe_rot_E) = 0;
+		dxe(Xe_rot_D) = 0;
+		dxe(Xe_gyro_bias_N) = 0;
+		dxe(Xe_gyro_bias_E) = 0;
+		dxe(Xe_gyro_bias_D) = 0;
 	}
 
 private:
@@ -259,6 +262,7 @@ private:
 	// sensors
 	Sensor _sensorAccel;
 	Sensor _sensorMag;
+	Sensor _sensorGyro;
 	Sensor _sensorBaro;
 	Sensor _sensorGps;
 	Sensor _sensorAirspeed;
@@ -279,6 +283,7 @@ private:
 	ros::Subscriber _subMocap;
 	ros::Subscriber _subLand;
 	ros::Subscriber _subParamUpdate;
+	ros::Subscriber _subActuatorControls;
 
 	// publishers
 	ros::Publisher _pubAttitude;
@@ -294,13 +299,13 @@ private:
 
 
 	// data
-	Vector<float, X::n> _x0; 		// initial state vector
-	Vector<float, X::n> _xMin; 		// lower bound vector
-	Vector<float, X::n> _xMax; 		// upper bound vector
-	Vector<float, Xe::n> _P0Diag; 	// initial state diagonal
-	Vector<float, X::n> _x; 		// state vector
-	SquareMatrix<float, Xe::n> _P; 	// covariance matrix
-	Vector<float, U::n> _u; 		// input vector
+	Vector<float, X_n> _x0; 		// initial state vector
+	Vector<float, X_n> _xMin; 		// lower bound vector
+	Vector<float, X_n> _xMax; 		// upper bound vector
+	Vector<float, Xe_n> _P0Diag; 	// initial state diagonal
+	Vector<float, X_n> _x; 		// state vector
+	SquareMatrix<float, Xe_n> _P; 	// covariance matrix
+	Vector<float, U_n> _u; 		// input vector
 	Vector3f _g_n; 					// expected gravity in navigation frame
 	Origin _origin; 				// origin of local coordinate system
 	float _baroAsl; 				// pressure altitude from baro
@@ -310,22 +315,25 @@ private:
 	uint64_t _gpsUSec; 				// gps internal timestamp
 	bool _attitudeInitialized;		// attitude initializtion complete
 	uint64_t _stateTimestamp;		// state prediction timestamp
+	uint64_t _imuTimestamp;			// imu combined sensor timestamp
 	uint64_t _covarianceTimestamp;; // covariance prediction timestamp
 	int _imuLowRateIndex;
+	int _predictLowRateIndex;
 	bool _accelSaturated;
 	bool _gyroSaturated;
-	SquareMatrix<float, Xe::n> _A;
-	SquareMatrix<float, Xe::n> _Q;
-	Vector<float, Xe::n> _dxe; 		// 	error vector
-	SquareMatrix<float, Xe::n> _dP; 	// change in covariance matrix used for checking
-	Vector<float, Innov::n>  _innov;
-	Vector<float, Innov::n>  _innovStd;
+	SquareMatrix<float, Xe_n> _A;
+	SquareMatrix<float, Xe_n> _Q;
+	Vector<float, Xe_n> _dxe; 		// 	error vector
+	SquareMatrix<float, Xe_n> _dP; 	// change in covariance matrix used for checking
+	Vector<float, Innov_n>  _innov;
+	Vector<float, Innov_n>  _innovStd;
 	enum {
 		COV_STEP_AP = 0,
 		COV_STEP_PAT = 1,
 		COV_STEP_Q = 2,
 	};
-	uint16_t _overruns;
+	uint16_t _imuOverruns;
+	uint16_t _predictOverruns;
 
 	// params
 	float _gyro_nd;

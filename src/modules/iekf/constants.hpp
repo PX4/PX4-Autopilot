@@ -49,42 +49,53 @@ const float rad2degf = 180 / M_PI_F;
 /**
  * State enum
  */
-struct X {
-	static const uint8_t q_nb_0 = 0;
-	static const uint8_t q_nb_1 = 1;
-	static const uint8_t q_nb_2 = 2;
-	static const uint8_t q_nb_3 = 3;
-	static const uint8_t vel_N = 4;
-	static const uint8_t vel_E = 5;
-	static const uint8_t vel_D = 6;
-	static const uint8_t gyro_bias_bX = 7;
-	static const uint8_t gyro_bias_bY = 8;
-	static const uint8_t gyro_bias_bZ = 9;
-	static const uint8_t accel_bias_bX = 10;
-	static const uint8_t accel_bias_bY = 11;
-	static const uint8_t accel_bias_bZ = 12;
-	static const uint8_t pos_N = 13;
-	static const uint8_t pos_E = 14;
-	static const uint8_t asl = 15;
-	static const uint8_t terrain_asl = 16;
-	static const uint8_t baro_bias = 17;
-	//static const uint8_t wind_N = 18;
-	//static const uint8_t wind_E = 19;
-	//static const uint8_t wind_D = 20;
-	static const uint8_t n = 18;
+enum : uint8_t {
+	X_q_nb_0 = 0,
+	X_q_nb_1,
+	X_q_nb_2,
+	X_q_nb_3,
+	X_angvel_bX,
+	X_angvel_bY,
+	X_angvel_bZ,
+	X_vel_N,
+	X_vel_E,
+	X_vel_D,
+	X_gyro_bias_bX,
+	X_gyro_bias_bY,
+	X_gyro_bias_bZ,
+	X_accel_bias_bX,
+	X_accel_bias_bY,
+	X_accel_bias_bZ,
+	X_pos_N,
+	X_pos_E,
+	X_asl,
+	X_terrain_asl,
+	X_baro_bias,
+	//X_wind_N,
+	//X_wind_E,
+	//X_wind_D,
+	X_n,
 };
 
 // mavlink sensor type for states
-const uint8_t XSensors[X::n] = {
+const uint8_t XSensors[X_n] = {
 	// q
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
-	// vel
+	// angular velocity
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
+	// velocity
+	MAV_SENSOR_TYPE_NONE,
+	MAV_SENSOR_TYPE_NONE,
+	MAV_SENSOR_TYPE_NONE,
+	// acceleration
+	//MAV_SENSOR_TYPE_NONE,
+	//MAV_SENSOR_TYPE_NONE,
+	//MAV_SENSOR_TYPE_NONE,
 	// gyro bias
 	MAV_SENSOR_TYPE_GYRO,
 	MAV_SENSOR_TYPE_GYRO,
@@ -105,12 +116,17 @@ const uint8_t XSensors[X::n] = {
 };
 
 // mavlink fields types for states
-const uint8_t  XIDs[X::n] = {
+const uint8_t  XIDs[X_n] = {
 	// q
 	MAV_FIELD_Q0,
 	MAV_FIELD_Q1,
 	MAV_FIELD_Q2,
 	MAV_FIELD_Q3,
+	// angular velocity
+	// XXX is actually in nav frame, need to add to mavlink
+	MAV_FIELD_ANGVEL_X,
+	MAV_FIELD_ANGVEL_Y,
+	MAV_FIELD_ANGVEL_Z,
 	// vel
 	MAV_FIELD_VEL_N,
 	MAV_FIELD_VEL_E,
@@ -140,33 +156,40 @@ const uint8_t  XIDs[X::n] = {
  *
  * Note gyro bias in navigation frame
  */
-struct Xe {
-	static const uint8_t rot_N = 0;
-	static const uint8_t rot_E = 1;
-	static const uint8_t rot_D = 2;
-	static const uint8_t vel_N = 3;
-	static const uint8_t vel_E = 4;
-	static const uint8_t vel_D = 5;
-	static const uint8_t gyro_bias_N = 6;
-	static const uint8_t gyro_bias_E = 7;
-	static const uint8_t gyro_bias_D = 8;
-	static const uint8_t accel_bias_N = 9;
-	static const uint8_t accel_bias_E = 10;
-	static const uint8_t accel_bias_D = 11;
-	static const uint8_t pos_N = 12;
-	static const uint8_t pos_E = 13;
-	static const uint8_t asl = 14;
-	static const uint8_t terrain_asl = 15;
-	static const uint8_t baro_bias = 16;
-	//static const uint8_t wind_N = 17;
-	//static const uint8_t wind_E = 18;
-	//static const uint8_t wind_D = 19;
-	static const uint8_t n = 17;
+enum : uint8_t {
+	Xe_rot_N = 0,
+	Xe_rot_E,
+	Xe_rot_D,
+	Xe_angvel_N,
+	Xe_angvel_E,
+	Xe_angvel_D,
+	Xe_vel_N,
+	Xe_vel_E,
+	Xe_vel_D,
+	Xe_gyro_bias_N,
+	Xe_gyro_bias_E,
+	Xe_gyro_bias_D,
+	Xe_accel_bias_N,
+	Xe_accel_bias_E,
+	Xe_accel_bias_D,
+	Xe_pos_N,
+	Xe_pos_E,
+	Xe_asl,
+	Xe_terrain_asl,
+	Xe_baro_bias,
+	//Xe_wind_N,
+	//Xe_wind_E,
+	//Xe_wind_D,
+	Xe_n,
 };
 
 // mavlink sensor type for error states
-const uint8_t XeSensors[Xe::n] = {
+const uint8_t XeSensors[Xe_n] = {
 	// rot
+	MAV_SENSOR_TYPE_NONE,
+	MAV_SENSOR_TYPE_NONE,
+	MAV_SENSOR_TYPE_NONE,
+	// angular velocity
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
@@ -174,6 +197,10 @@ const uint8_t XeSensors[Xe::n] = {
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
 	MAV_SENSOR_TYPE_NONE,
+	// acc
+	//MAV_SENSOR_TYPE_NONE,
+	//MAV_SENSOR_TYPE_NONE,
+	//MAV_SENSOR_TYPE_NONE,
 	// gyro bias
 	MAV_SENSOR_TYPE_GYRO,
 	MAV_SENSOR_TYPE_GYRO,
@@ -194,11 +221,16 @@ const uint8_t XeSensors[Xe::n] = {
 };
 
 // mavlink fields types for error states
-const uint8_t XeIDs[Xe::n] = {
+const uint8_t XeIDs[Xe_n] = {
 	// rot
 	MAV_FIELD_ROLL,
 	MAV_FIELD_PITCH,
 	MAV_FIELD_YAW,
+	// angular velocity
+	// XXX is actually in nav frame, need to add to mavlink
+	MAV_FIELD_ANGVEL_X,
+	MAV_FIELD_ANGVEL_Y,
+	MAV_FIELD_ANGVEL_Z,
 	// vel
 	MAV_FIELD_VEL_N,
 	MAV_FIELD_VEL_E,
@@ -225,160 +257,170 @@ const uint8_t XeIDs[Xe::n] = {
 /**
  * Input enum
  */
-struct U {
-	static const uint8_t omega_nb_bX = 0;
-	static const uint8_t omega_nb_bY = 1;
-	static const uint8_t omega_nb_bZ = 2;
-	static const uint8_t accel_bX = 3;
-	static const uint8_t accel_bY = 4;
-	static const uint8_t accel_bZ = 5;
-	static const uint8_t n = 6;
+enum : uint8_t {
+	U_omega_nb_bX = 0,
+	U_omega_nb_bY,
+	U_omega_nb_bZ,
+	U_accel_bX,
+	U_accel_bY,
+	U_accel_bZ,
+	U_n,
 };
 
 /**
  * Accel measurement enum
  */
-struct Y_accel {
-	static const uint8_t accel_bX = 0;
-	static const uint8_t accel_bY = 1;
-	static const uint8_t accel_bZ = 2;
-	static const uint8_t n = 3;
+enum : uint8_t {
+	Y_accel_acc_N = 0,
+	Y_accel_acc_E,
+	Y_accel_acc_D,
+	Y_accel_n,
 };
 
 /**
  * Land enum
  */
-struct Y_land {
-	static const uint8_t vel_N = 0;
-	static const uint8_t vel_E = 1;
-	static const uint8_t vel_D = 2;
-	static const uint8_t agl = 3;
-	static const uint8_t n = 4;
+enum : uint8_t {
+	Y_land_vel_N = 0,
+	Y_land_vel_E,
+	Y_land_vel_D,
+	Y_land_agl,
+	Y_land_n,
 };
 
 /**
  * GPS measurement
  */
-struct Y_gps {
-	static const uint8_t pos_N = 0;
-	static const uint8_t pos_E = 1;
-	static const uint8_t asl = 2;
-	static const uint8_t vel_N = 3;
-	static const uint8_t vel_E = 4;
-	static const uint8_t vel_D = 5;
-	static const uint8_t n = 6;
+enum : uint8_t {
+	Y_gps_pos_N = 0,
+	Y_gps_pos_E,
+	Y_gps_asl,
+	Y_gps_vel_N,
+	Y_gps_vel_E,
+	Y_gps_vel_D,
+	Y_gps_n,
 };
 
 /**
  * Baro measurement
  */
-struct Y_baro {
-	static const uint8_t asl = 0;
-	static const uint8_t n = 1;
+enum : uint8_t {
+	Y_baro_asl = 0,
+	Y_baro_n,
 };
 
 /**
  * Magnetometer measurement
- *
- * The filter treats the error
- * in the navigation frame
- * (north, east, down) even though the
- * field is measured in the body
- * frame.
  */
-struct Y_mag {
-	static const uint8_t hdg = 0;
-	//static const uint8_t mag_E = 1;
-	//static const uint8_t mag_D = 2;
-	static const uint8_t n = 1;
+enum : uint8_t {
+	Y_mag_hdg = 0,
+	Y_mag_n,
+};
+
+/**
+ * Gyroscope measurement
+ */
+enum : uint8_t {
+	Y_gyro_angvel_N = 0,
+	Y_gyro_angvel_E,
+	Y_gyro_angvel_D,
+	Y_gyro_n,
 };
 
 /**
  * Airspeed measurement
  */
-struct Y_airspeed {
-	static const uint8_t airspeed = 0;
-	static const uint8_t n = 1;
+enum : uint8_t {
+	Y_airspeed_airspeed = 0,
+	Y_airspeed_n,
 };
 
 /**
  * Optical flow measurement
  */
-struct Y_flow {
-	static const uint8_t flowX = 0;
-	static const uint8_t flowY = 1;
-	static const uint8_t n = 2;
+enum : uint8_t {
+	Y_flow_flowX = 0,
+	Y_flow_flowY,
+	Y_flow_n,
 };
 
 /**
  * Distance down measurement
  */
-struct Y_distance_down {
-	static const uint8_t d = 0;
-	static const uint8_t n = 1;
+enum : uint8_t {
+	Y_distance_down_d = 0,
+	Y_distance_down_n,
 };
 
 /**
  * Innovation enum
  */
-struct Innov {
+enum : uint8_t {
 	// flow
-	static const uint8_t FLOW_flow_X = 0;
-	static const uint8_t FLOW_flow_Y = 1;
+	Innov_FLOW_flow_X = 0,
+	Innov_FLOW_flow_Y,
+	// gyro
+	Innov_GYRO_angvel_N,
+	Innov_GYRO_angvel_E,
+	Innov_GYRO_angvel_D,
 	// gps
-	static const uint8_t GPS_vel_N = 2;
-	static const uint8_t GPS_vel_E = 3;
-	static const uint8_t GPS_vel_D = 4;
-	static const uint8_t GPS_pos_N = 5;
-	static const uint8_t GPS_pos_E = 6;
-	static const uint8_t GPS_asl = 7;
+	Innov_GPS_vel_N,
+	Innov_GPS_vel_E,
+	Innov_GPS_vel_D,
+	Innov_GPS_pos_N,
+	Innov_GPS_pos_E,
+	Innov_GPS_asl,
 	// baro
-	static const uint8_t BARO_asl = 8;
+	Innov_BARO_asl,
 	// accel
-	static const uint8_t ACCEL_acc_X = 9;
-	static const uint8_t ACCEL_acc_Y = 10;
-	static const uint8_t ACCEL_acc_Z = 11;
+	Innov_ACCEL_acc_N,
+	Innov_ACCEL_acc_E,
+	Innov_ACCEL_acc_D,
 	// mag
-	static const uint8_t MAG_mag_hdg = 12;
+	Innov_MAG_mag_hdg,
 	// lidar
-	static const uint8_t LIDAR_dist_bottom = 13;
+	Innov_LIDAR_dist_bottom,
 	// sonar
-	static const uint8_t SONAR_dist_bottom = 14;
+	Innov_SONAR_dist_bottom,
 	// land
-	static const uint8_t LAND_vel_N = 15;
-	static const uint8_t LAND_vel_E = 16;
-	static const uint8_t LAND_vel_D = 17;
-	static const uint8_t LAND_agl = 18;
+	Innov_LAND_vel_N,
+	Innov_LAND_vel_E,
+	Innov_LAND_vel_D,
+	Innov_LAND_agl,
 	// airspeed
-	static const uint8_t PITOT_airspeed = 19;
+	Innov_PITOT_airspeed,
 	// vision
-	static const uint8_t VISION_vel_N = 20;
-	static const uint8_t VISION_vel_E = 21;
-	static const uint8_t VISION_vel_D = 22;
-	static const uint8_t VISION_pos_N = 23;
-	static const uint8_t VISION_pos_E = 24;
-	static const uint8_t VISION_pos_D = 25;
-	static const uint8_t VISION_rot_N = 26;
-	static const uint8_t VISION_rot_E = 27;
-	static const uint8_t VISION_rot_D = 28;
+	//Innov_VISION_vel_N,
+	//Innov_VISION_vel_E,
+	//Innov_VISION_vel_D,
+	//Innov_VISION_pos_N,
+	//Innov_VISION_pos_E,
+	//Innov_VISION_pos_D,
+	//Innov_VISION_rot_N,
+	//Innov_VISION_rot_E,
+	//Innov_VISION_rot_D,
 	// mocap
-	static const uint8_t MOCAP_vel_N = 29;
-	static const uint8_t MOCAP_vel_E = 30;
-	static const uint8_t MOCAP_vel_D = 31;
-	static const uint8_t MOCAP_pos_N = 32;
-	static const uint8_t MOCAP_pos_E = 33;
-	static const uint8_t MOCAP_pos_D = 34;
-	static const uint8_t MOCAP_rot_N = 35;
-	static const uint8_t MOCAP_rot_E = 36;
-	static const uint8_t MOCAP_rot_D = 37;
-	static const uint8_t n = 38;
+	//Innov_MOCAP_vel_N,
+	//Innov_MOCAP_vel_E,
+	//Innov_MOCAP_vel_D,
+	//Innov_MOCAP_pos_N,
+	//Innov_MOCAP_pos_E,
+	//Innov_MOCAP_pos_D,
+	//Innov_MOCAP_rot_N,
+	//Innov_MOCAP_rot_E,
+	//Innov_MOCAP_rot_D,
+	Innov_n,
 };
 
 // innovation sensors
-const uint8_t InnovSensors[Innov::n] = {
+const uint8_t InnovSensors[Innov_n] = {
 	// flow
 	MAV_SENSOR_TYPE_FLOW,
 	MAV_SENSOR_TYPE_FLOW,
+	// gyro
+	MAV_SENSOR_TYPE_GYRO,
+	MAV_SENSOR_TYPE_GYRO,
+	MAV_SENSOR_TYPE_GYRO,
 	// gps
 	MAV_SENSOR_TYPE_GPS,
 	MAV_SENSOR_TYPE_GPS,
@@ -406,32 +448,36 @@ const uint8_t InnovSensors[Innov::n] = {
 	// airspeed
 	MAV_SENSOR_TYPE_PITOT,
 	// vision
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
-	MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
+	//MAV_SENSOR_TYPE_VISION,
 	// mocap
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
-	MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
+	//MAV_SENSOR_TYPE_MOCAP,
 };
 
 // innovation fields
-const uint8_t InnovIDs[Innov::n] = {
+const uint8_t InnovIDs[Innov_n] = {
 	// flow
 	MAV_FIELD_FLOW_X,
 	MAV_FIELD_FLOW_Y,
+	// gyro // XXX actually in nav frame, but  need to add to mavlink
+	MAV_FIELD_ANGVEL_X,
+	MAV_FIELD_ANGVEL_Y,
+	MAV_FIELD_ANGVEL_Z,
 	// gps
 	MAV_FIELD_VEL_N,
 	MAV_FIELD_VEL_E,
@@ -442,9 +488,9 @@ const uint8_t InnovIDs[Innov::n] = {
 	// baro
 	MAV_FIELD_ASL,
 	// accel
-	MAV_FIELD_ACC_X,
-	MAV_FIELD_ACC_Y,
-	MAV_FIELD_ACC_Z,
+	MAV_FIELD_ACC_N,
+	MAV_FIELD_ACC_E,
+	MAV_FIELD_ACC_D,
 	// mag
 	MAV_FIELD_MAG_HDG,
 	// lidar
@@ -459,25 +505,25 @@ const uint8_t InnovIDs[Innov::n] = {
 	// airspeed
 	MAV_FIELD_AIRSPEED,
 	// vision
-	MAV_FIELD_VEL_N,
-	MAV_FIELD_VEL_E,
-	MAV_FIELD_VEL_D,
-	MAV_FIELD_POS_N,
-	MAV_FIELD_POS_E,
-	MAV_FIELD_POS_D,
-	MAV_FIELD_ROLL,
-	MAV_FIELD_PITCH,
-	MAV_FIELD_YAW,
+	//MAV_FIELD_VEL_N,
+	//MAV_FIELD_VEL_E,
+	//MAV_FIELD_VEL_D,
+	//MAV_FIELD_POS_N,
+	//MAV_FIELD_POS_E,
+	//MAV_FIELD_POS_D,
+	//MAV_FIELD_ROLL,
+	//MAV_FIELD_PITCH,
+	//MAV_FIELD_YAW,
 	// mocap
-	MAV_FIELD_VEL_N,
-	MAV_FIELD_VEL_E,
-	MAV_FIELD_VEL_D,
-	MAV_FIELD_POS_N,
-	MAV_FIELD_POS_E,
-	MAV_FIELD_POS_D,
-	MAV_FIELD_ROLL,
-	MAV_FIELD_PITCH,
-	MAV_FIELD_YAW,
+	//MAV_FIELD_VEL_N,
+	//MAV_FIELD_VEL_E,
+	//MAV_FIELD_VEL_D,
+	//MAV_FIELD_POS_N,
+	//MAV_FIELD_POS_E,
+	//MAV_FIELD_POS_D,
+	//MAV_FIELD_ROLL,
+	//MAV_FIELD_PITCH,
+	//MAV_FIELD_YAW,
 };
 
 static const float BETA_TABLE[] = {

@@ -114,6 +114,11 @@ Node::Node() :
 	_topicDict.put("estimator_innov", ORB_ID(estimator_innov));
 	_topicDict.put("estimator_innov_std", ORB_ID(estimator_innov_std));
 	_topicDict.put("parameter_update", ORB_ID(parameter_update));
+	_topicDict.put("actuator_controls", ORB_ID(actuator_controls));
+	_topicDict.put("actuator_controls_0", ORB_ID(actuator_controls_0));
+	_topicDict.put("actuator_controls_1", ORB_ID(actuator_controls_1));
+	_topicDict.put("actuator_controls_2", ORB_ID(actuator_controls_2));
+	_topicDict.put("actuator_controls_3", ORB_ID(actuator_controls_3));
 }
 
 Node::~Node()

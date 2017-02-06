@@ -78,6 +78,7 @@ mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_dc.main.mix
 mavlink start -u 14556 -r 4000000
 mavlink start -u 14557 -r 4000000 -m onboard -o 14540
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
+mavlink stream -r 50 -s POSITION_TARGET_GLOBAL_INT -u 14556
 mavlink stream -r 50 -s ESTIMATOR_STATE -u 14556
 mavlink stream -r 50 -s ESTIMATOR_STATE_STD -u 14556
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u 14556
@@ -87,12 +88,12 @@ mavlink stream -r 50 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
-mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-mavlink stream -r 10 -s ESTIMATOR_STATE -u 14556
-mavlink stream -r 10 -s ESTIMATOR_STATE_STD -u 14556
-mavlink stream -r 10 -s ESTIMATOR_INNOV -u 14556
-mavlink stream -r 10 -s ESTIMATOR_INNOV_STD -u 14556
-
+mavlink stream -r 50 -s OPTICAL_FLOW_RAD -u 14556
+mavlink stream -r 20 -s ESTIMATOR_STATE -u 14556
+mavlink stream -r 20 -s ESTIMATOR_STATE_STD -u 14556
+mavlink stream -r 20 -s ESTIMATOR_INNOV -u 14556
+mavlink stream -r 20 -s ESTIMATOR_INNOV_STD -u 14556
+mavlink stream -r 10 -s HOME_POSITION -u 14556
 logger start -e -t
 mavlink boot_complete
 replay trystart

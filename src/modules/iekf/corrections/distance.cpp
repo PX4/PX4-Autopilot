@@ -84,8 +84,8 @@ void IEKF::correctDistance(const distance_sensor_s *msg)
 
 	// attitude info
 	Dcmf C_nb = Quaternion<float>(
-			    _x(X::q_nb_0), _x(X::q_nb_1),
-			    _x(X::q_nb_2), _x(X::q_nb_3));
+			    _x(X_q_nb_0), _x(X_q_nb_1),
+			    _x(X_q_nb_2), _x(X_q_nb_3));
 
 	// abort if too large of an angle
 	if (C_nb(2, 2) < 1e-1f) {
@@ -97,8 +97,8 @@ void IEKF::correctDistance(const distance_sensor_s *msg)
 	//if (!_origin.altInitialized()) {
 	//ROS_INFO("dist bottom  origin init alt %12.2f m", double(msg->current_distance));
 	//_origin.altInitialize(msg->current_distance, msg->timestamp);
-	//_x(X::asl) = msg->current_distance;
-	//_x(X::terrain_asl) = 0;
+	//_x(X_asl) = msg->current_distance;
+	//_x(X_terrain_asl) = 0;
 	//}
 
 	// expected measurement
@@ -115,32 +115,32 @@ void IEKF::correctDistance(const distance_sensor_s *msg)
 	r(0) = y - yh;
 
 	// define R
-	SquareMatrix<float, Y_distance_down::n> R;
-	R(Y_distance_down::d, Y_distance_down::d) = d_nd * d_nd / dt;
+	SquareMatrix<float, Y_distance_down_n> R;
+	R(Y_distance_down_d, Y_distance_down_d) = d_nd * d_nd / dt;
 
 	// define H
 	// Note: this measurement is not invariant due to
 	// rotation matrix
-	Matrix<float, Y_distance_down::n, Xe::n> H;
+	Matrix<float, Y_distance_down_n, Xe_n> H;
 	float x0 = 2 * agl / C_nb(2, 2) / C_nb(2, 2);
 	float x1 = 1 / C_nb(2, 2);
-	H(Y_distance_down::d, Xe::rot_N) = -C_nb(1, 2) * x0;
-	H(Y_distance_down::d, Xe::rot_E) = C_nb(0, 2) * x0;
-	H(Y_distance_down::d, Xe::asl) = x1;
-	H(Y_distance_down::d, Xe::terrain_asl) = -x1;
+	H(Y_distance_down_d, Xe_rot_N) = -C_nb(1, 2) * x0;
+	H(Y_distance_down_d, Xe_rot_E) = C_nb(0, 2) * x0;
+	H(Y_distance_down_d, Xe_asl) = x1;
+	H(Y_distance_down_d, Xe_terrain_asl) = -x1;
 
 	// kalman correction
-	SquareMatrix<float, Y_distance_down::n> S;
+	SquareMatrix<float, Y_distance_down_n> S;
 	sensor->kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
 	if (msg->type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND) {
-		_innov(Innov::SONAR_dist_bottom) = r(0);
-		_innovStd(Innov::SONAR_dist_bottom) = sqrtf(S(0, 0));
+		_innov(Innov_SONAR_dist_bottom) = r(0);
+		_innovStd(Innov_SONAR_dist_bottom) = sqrtf(S(0, 0));
 
 	} else if (msg->type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER) {
-		_innov(Innov::LIDAR_dist_bottom) = r(0);
-		_innovStd(Innov::LIDAR_dist_bottom) = sqrtf(S(0, 0));
+		_innov(Innov_LIDAR_dist_bottom) = r(0);
+		_innovStd(Innov_LIDAR_dist_bottom) = sqrtf(S(0, 0));
 	}
 
 	if (sensor->shouldCorrect()) {
@@ -148,11 +148,11 @@ void IEKF::correctDistance(const distance_sensor_s *msg)
 		// don't allow attitude correction
 		nullAttitudeCorrection(_dxe);
 		// don't allow position correction in north/ east
-		_dxe(Xe::pos_N) = 0;
-		_dxe(Xe::pos_E) = 0;
-		_dxe(Xe::vel_N) = 0;
-		_dxe(Xe::vel_E) = 0;
-		Vector<float, X::n> dx = computeErrorCorrection(_dxe);
+		_dxe(Xe_pos_N) = 0;
+		_dxe(Xe_pos_E) = 0;
+		_dxe(Xe_vel_N) = 0;
+		_dxe(Xe_vel_E) = 0;
+		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);
 

@@ -74,66 +74,66 @@ void IEKF::correctLand(uint64_t timestamp)
 	}
 
 	// calculate residual
-	Vector<float, Y_land::n> y;
-	y(Y_land::vel_N) = 0;
-	y(Y_land::vel_E) = 0;
-	y(Y_land::vel_D) = 0;
-	y(Y_land::agl) = 0;
+	Vector<float, Y_land_n> y;
+	y(Y_land_vel_N) = 0;
+	y(Y_land_vel_E) = 0;
+	y(Y_land_vel_D) = 0;
+	y(Y_land_agl) = 0;
 
 	//ROS_INFO("y");
 	//y.print();
 
-	Vector<float, Y_land::n> yh;
-	yh(Y_land::vel_N) = _x(X::vel_N);
-	yh(Y_land::vel_E) = _x(X::vel_E);
-	yh(Y_land::vel_D) = _x(X::vel_D);
-	yh(Y_land::agl) = getAgl();
+	Vector<float, Y_land_n> yh;
+	yh(Y_land_vel_N) = _x(X_vel_N);
+	yh(Y_land_vel_E) = _x(X_vel_E);
+	yh(Y_land_vel_D) = _x(X_vel_D);
+	yh(Y_land_agl) = getAgl();
 
 	//ROS_INFO("yh");
 	//yh.print();
 
-	//ROS_INFO("terrain %10.4f", double(_x(X::terrain_asl)));
-	//ROS_INFO("asl %10.4f", double(_x(X::asl)));
+	//ROS_INFO("terrain %10.4f", double(_x(X_terrain_asl)));
+	//ROS_INFO("asl %10.4f", double(_x(X_asl)));
 
-	Vector<float, Y_land::n> r = y - yh;
+	Vector<float, Y_land_n> r = y - yh;
 
 	// define R
-	SquareMatrix<float, Y_land::n> R;
+	SquareMatrix<float, Y_land_n> R;
 	float var_vxy = _land_vxy_nd * _land_vxy_nd / dt;
 	float var_vz = _land_vz_nd * _land_vz_nd / dt;
 	float var_agl = _land_agl_nd * _land_agl_nd / dt;
 
-	R(Y_land::vel_N, Y_land::vel_N) = var_vxy;
-	R(Y_land::vel_E, Y_land::vel_E) = var_vxy;
-	R(Y_land::vel_D, Y_land::vel_D) = var_vz;
-	R(Y_land::agl, Y_land::agl) = var_agl;
+	R(Y_land_vel_N, Y_land_vel_N) = var_vxy;
+	R(Y_land_vel_E, Y_land_vel_E) = var_vxy;
+	R(Y_land_vel_D, Y_land_vel_D) = var_vz;
+	R(Y_land_agl, Y_land_agl) = var_agl;
 
 	// define H
-	Matrix<float, Y_land::n, Xe::n> H;
-	H(Y_land::vel_N, Xe::vel_N) = 1;
-	H(Y_land::vel_E, Xe::vel_E) = 1;
-	H(Y_land::vel_D, Xe::vel_D) = 1;
-	H(Y_land::agl, Xe::asl) = 1;
-	H(Y_land::agl, Xe::terrain_asl) = -1;
+	Matrix<float, Y_land_n, Xe_n> H;
+	H(Y_land_vel_N, Xe_vel_N) = 1;
+	H(Y_land_vel_E, Xe_vel_E) = 1;
+	H(Y_land_vel_D, Xe_vel_D) = 1;
+	H(Y_land_agl, Xe_asl) = 1;
+	H(Y_land_agl, Xe_terrain_asl) = -1;
 
 	// kalman correction
-	SquareMatrix<float, Y_land::n> S;
+	SquareMatrix<float, Y_land_n> S;
 	_sensorLand.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
-	_innov(Innov::LAND_vel_N) = r(0);
-	_innov(Innov::LAND_vel_E) = r(1);
-	_innov(Innov::LAND_vel_D) = r(2);
-	_innov(Innov::LAND_agl) = r(3);
-	_innovStd(Innov::LAND_vel_N) = sqrtf(S(0, 0));
-	_innovStd(Innov::LAND_vel_E) = sqrtf(S(1, 1));
-	_innovStd(Innov::LAND_vel_D) = sqrtf(S(2, 2));
-	_innovStd(Innov::LAND_agl) = sqrtf(S(3, 3));
+	_innov(Innov_LAND_vel_N) = r(0);
+	_innov(Innov_LAND_vel_E) = r(1);
+	_innov(Innov_LAND_vel_D) = r(2);
+	_innov(Innov_LAND_agl) = r(3);
+	_innovStd(Innov_LAND_vel_N) = sqrtf(S(0, 0));
+	_innovStd(Innov_LAND_vel_E) = sqrtf(S(1, 1));
+	_innovStd(Innov_LAND_vel_D) = sqrtf(S(2, 2));
+	_innovStd(Innov_LAND_agl) = sqrtf(S(3, 3));
 
 	if (_sensorLand.shouldCorrect()) {
 		// don't allow attitude correction
 		nullAttitudeCorrection(_dxe);
-		Vector<float, X::n> dx = computeErrorCorrection(_dxe);
+		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);
 	}

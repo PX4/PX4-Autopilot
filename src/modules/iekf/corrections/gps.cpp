@@ -64,14 +64,14 @@ void IEKF::correctGps(const vehicle_gps_position_s *msg)
 		_origin.altInitialize(alt_m, msg->timestamp);
 		float deltaAlt = alt_m - _baroAsl;
 		_baroOffset -= deltaAlt;
-		_x(X::asl) = alt_m;
+		_x(X_asl) = alt_m;
 
 		// if we have no terrain data, guess we are on the ground
 		if (!getTerrainValid()) {
-			_x(X::terrain_asl) = alt_m;
+			_x(X_terrain_asl) = alt_m;
 
 		} else {
-			_x(X::terrain_asl) += deltaAlt;
+			_x(X_terrain_asl) += deltaAlt;
 		}
 
 	}
@@ -81,29 +81,29 @@ void IEKF::correctGps(const vehicle_gps_position_s *msg)
 	float gps_pos_E = 0;
 	_origin.globalToLocalXY(lat_deg, lon_deg, gps_pos_N, gps_pos_E);
 
-	Vector<float, Y_gps::n> y;
-	y(Y_gps::pos_N) = gps_pos_N;
-	y(Y_gps::pos_E) = gps_pos_E;
-	y(Y_gps::asl) = alt_m;
-	y(Y_gps::vel_N) = msg->vel_n_m_s;
-	y(Y_gps::vel_E) = msg->vel_e_m_s;
-	y(Y_gps::vel_D) = msg->vel_d_m_s;
+	Vector<float, Y_gps_n> y;
+	y(Y_gps_pos_N) = gps_pos_N;
+	y(Y_gps_pos_E) = gps_pos_E;
+	y(Y_gps_asl) = alt_m;
+	y(Y_gps_vel_N) = msg->vel_n_m_s;
+	y(Y_gps_vel_E) = msg->vel_e_m_s;
+	y(Y_gps_vel_D) = msg->vel_d_m_s;
 
 	//ROS_INFO("gps vx: %10.4f , iekf vx: %10.4f",
-	//double(msg->vel_n_m_s), double(_x(X::vel_N)));
+	//double(msg->vel_n_m_s), double(_x(X_vel_N)));
 
-	Vector<float, Y_gps::n> yh;
-	yh(Y_gps::pos_N) = _x(X::pos_N);
-	yh(Y_gps::pos_E) = _x(X::pos_E);
-	yh(Y_gps::asl) = _x(X::asl);
-	yh(Y_gps::vel_N) = _x(X::vel_N);
-	yh(Y_gps::vel_E) = _x(X::vel_E);
-	yh(Y_gps::vel_D) = _x(X::vel_D);
+	Vector<float, Y_gps_n> yh;
+	yh(Y_gps_pos_N) = _x(X_pos_N);
+	yh(Y_gps_pos_E) = _x(X_pos_E);
+	yh(Y_gps_asl) = _x(X_asl);
+	yh(Y_gps_vel_N) = _x(X_vel_N);
+	yh(Y_gps_vel_E) = _x(X_vel_E);
+	yh(Y_gps_vel_D) = _x(X_vel_D);
 
-	Vector<float, Y_gps::n> r = y - yh;
+	Vector<float, Y_gps_n> r = y - yh;
 
 	// define R
-	Matrix<float, Y_gps::n, Y_gps::n> R;
+	Matrix<float, Y_gps_n, Y_gps_n> R;
 
 	// variances
 	float gps_xy_var = _gps_xy_nd * _gps_xy_nd / dt;
@@ -111,44 +111,44 @@ void IEKF::correctGps(const vehicle_gps_position_s *msg)
 	float gps_vxy_var = _gps_vxy_nd * _gps_vxy_nd;
 	float gps_vz_var = _gps_vz_nd * _gps_vz_nd;
 
-	R(Y_gps::pos_N, Y_gps::pos_N) = gps_xy_var;
-	R(Y_gps::pos_E, Y_gps::pos_E) = gps_xy_var;
-	R(Y_gps::asl, Y_gps::asl) = gps_z_var;
-	R(Y_gps::vel_N, Y_gps::vel_N) = gps_vxy_var;
-	R(Y_gps::vel_E, Y_gps::vel_E) = gps_vxy_var;
-	R(Y_gps::vel_D, Y_gps::vel_D) = gps_vz_var;
+	R(Y_gps_pos_N, Y_gps_pos_N) = gps_xy_var;
+	R(Y_gps_pos_E, Y_gps_pos_E) = gps_xy_var;
+	R(Y_gps_asl, Y_gps_asl) = gps_z_var;
+	R(Y_gps_vel_N, Y_gps_vel_N) = gps_vxy_var;
+	R(Y_gps_vel_E, Y_gps_vel_E) = gps_vxy_var;
+	R(Y_gps_vel_D, Y_gps_vel_D) = gps_vz_var;
 
 	// define H
-	Matrix<float, Y_gps::n, Xe::n> H;
-	H(Y_gps::pos_N, Xe::pos_N) = 1;
-	H(Y_gps::pos_E, Xe::pos_E) = 1;
-	H(Y_gps::asl, Xe::asl) = 1;
-	H(Y_gps::vel_N, Xe::vel_N) = 1;
-	H(Y_gps::vel_E, Xe::vel_E) = 1;
-	H(Y_gps::vel_D, Xe::vel_D) = 1;
+	Matrix<float, Y_gps_n, Xe_n> H;
+	H(Y_gps_pos_N, Xe_pos_N) = 1;
+	H(Y_gps_pos_E, Xe_pos_E) = 1;
+	H(Y_gps_asl, Xe_asl) = 1;
+	H(Y_gps_vel_N, Xe_vel_N) = 1;
+	H(Y_gps_vel_E, Xe_vel_E) = 1;
+	H(Y_gps_vel_D, Xe_vel_D) = 1;
 
 	// kalman correction
-	SquareMatrix<float, Y_gps::n> S;
+	SquareMatrix<float, Y_gps_n> S;
 	_sensorGps.kalmanCorrectCond(_P, H, R, r, _dxe, _dP, S);
 
 	// store innovation
-	_innov(Innov::GPS_vel_N) = r(0);
-	_innov(Innov::GPS_vel_E) = r(1);
-	_innov(Innov::GPS_vel_D) = r(2);
-	_innov(Innov::GPS_pos_N) = r(3);
-	_innov(Innov::GPS_pos_E) = r(4);
-	_innov(Innov::GPS_asl) = r(5);
-	_innovStd(Innov::GPS_vel_N) = sqrtf(S(0, 0));
-	_innovStd(Innov::GPS_vel_E) = sqrtf(S(1, 1));
-	_innovStd(Innov::GPS_vel_D) = sqrtf(S(2, 2));
-	_innovStd(Innov::GPS_pos_N) = sqrtf(S(3, 3));
-	_innovStd(Innov::GPS_pos_N) = sqrtf(S(4, 4));
-	_innovStd(Innov::GPS_asl) = sqrtf(S(5, 5));
+	_innov(Innov_GPS_vel_N) = r(0);
+	_innov(Innov_GPS_vel_E) = r(1);
+	_innov(Innov_GPS_vel_D) = r(2);
+	_innov(Innov_GPS_pos_N) = r(3);
+	_innov(Innov_GPS_pos_E) = r(4);
+	_innov(Innov_GPS_asl) = r(5);
+	_innovStd(Innov_GPS_vel_N) = sqrtf(S(0, 0));
+	_innovStd(Innov_GPS_vel_E) = sqrtf(S(1, 1));
+	_innovStd(Innov_GPS_vel_D) = sqrtf(S(2, 2));
+	_innovStd(Innov_GPS_pos_N) = sqrtf(S(3, 3));
+	_innovStd(Innov_GPS_pos_N) = sqrtf(S(4, 4));
+	_innovStd(Innov_GPS_asl) = sqrtf(S(5, 5));
 
 	if (_sensorGps.shouldCorrect()) {
 		// don't allow attitude correction
 		nullAttitudeCorrection(_dxe);
-		Vector<float, X::n> dx = computeErrorCorrection(_dxe);
+		Vector<float, X_n> dx = computeErrorCorrection(_dxe);
 		incrementX(dx);
 		incrementP(_dP);
 	}
