@@ -433,7 +433,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "takeoff")) {
 
 		/* see if we got a home position */
-		if (status_flags.condition_home_position_valid) {
+		if (status_flags.condition_local_position_valid) {
 
 			if (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "command line")) {
 
