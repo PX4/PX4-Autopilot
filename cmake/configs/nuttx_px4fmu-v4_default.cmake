@@ -51,6 +51,7 @@ set(config_module_list
 	drivers/bmp280
 	drivers/bma180
 	drivers/bmi160
+	drivers/bmi055
 	drivers/tap_esc
 	drivers/iridiumsbd
 
