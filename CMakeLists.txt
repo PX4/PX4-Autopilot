@@ -272,7 +272,7 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
-find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 2.7 REQUIRED)
 
 #=============================================================================
 # cmake testing
