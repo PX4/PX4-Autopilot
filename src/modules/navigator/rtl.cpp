@@ -62,6 +62,7 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	_rtl_state(RTL_STATE_NONE),
 	_rtl_start_lock(false),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
+	_param_min_loiter_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
 	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
@@ -94,11 +95,6 @@ RTL::on_activation()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
-	/* check if we are pretty close to home already */
-	float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-			  _navigator->get_home_position()->lon,
-			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
 	/* decide where to enter the RTL procedure when we switch into it */
 	if (_rtl_state == RTL_STATE_NONE) {
 		/* for safety reasons don't go into RTL if landed */
@@ -108,9 +104,8 @@ RTL::on_activation()
 
 			/* if lower than return altitude, climb up first */
 
-		} else if (home_dist > _param_rtl_min_dist.get()
-			   && _navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-			   + _param_return_alt.get()) {
+		} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
+			   + _param_return_alt.get())) {
 			_rtl_state = RTL_STATE_CLIMB;
 
 			/* otherwise go straight to return */
@@ -152,7 +147,19 @@ RTL::set_rtl_item()
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
+
+			// check if we are pretty close to home already
+			float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
+				_navigator->get_home_position()->lon,
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+			// if we are close to home we do not climb as high, otherwise we climb to return alt
 			float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
+
+			// we are close to home, limit climb to min
+			if (home_dist < _param_rtl_min_dist.get()) {
+				climb_alt = _navigator->get_home_position()->alt + _param_min_loiter_alt.get();
+			}
 
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
