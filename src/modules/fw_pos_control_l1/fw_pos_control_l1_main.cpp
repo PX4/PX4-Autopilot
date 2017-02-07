@@ -446,7 +446,7 @@ private:
 	 * Control position.
 	 */
 	bool		control_position(const math::Vector<2> &curr_pos,
-					 const math::Vector<3> &ground_speed,
+					 const math::Vector<2> &ground_speed,
 					 const struct position_setpoint_s &pos_sp_prev,
 					 const struct position_setpoint_s &pos_sp_curr);
 
@@ -455,7 +455,7 @@ private:
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed_2d,
+	void		calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 			const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr);
 
 	/**
@@ -906,7 +906,7 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 
 void
 FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos,
-		const math::Vector<2> &ground_speed_2d,
+		const math::Vector<2> &ground_speed,
 		const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr)
 {
 
@@ -915,7 +915,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
-		float ground_speed_body = yaw_vector * ground_speed_2d;
+		float ground_speed_body = yaw_vector * ground_speed;
 
 		/* The minimum desired ground speed is the minimum airspeed projected on to the ground using the altitude and horizontal difference between the waypoints if available*/
 		float distance = 0.0f;
@@ -1110,7 +1110,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 }
 
 bool
-FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<3> &ground_speed,
+FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
 		const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
@@ -1157,24 +1157,22 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
 			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 
-	math::Vector<2> ground_speed_2d{ground_speed(0), ground_speed(1)};
-
-	calculate_gndspeed_undershoot(curr_pos, ground_speed_2d, pos_sp_prev, pos_sp_curr);
+	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 	// l1 navigation logic breaks down when wind speed exceeds max airspeed
 	// compute 2D groundspeed from airspeed-heading projection
 	math::Vector<2> air_speed_2d{_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
 	math::Vector<2> nav_speed_2d{0.0f, 0.0f};
 
-	// angle between air_speed_2d and ground_speed_2d
-	float air_gnd_angle = acosf((air_speed_2d * ground_speed_2d) / (air_speed_2d.length() * ground_speed_2d.length()));
+	// angle between air_speed_2d and ground_speed
+	float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
 
 	// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-	if ((fabsf(air_gnd_angle) > M_PI_F) || (ground_speed_2d.length() < 3.0f)) {
+	if ((fabsf(air_gnd_angle) > M_PI_F) || (ground_speed.length() < 3.0f)) {
 		nav_speed_2d = air_speed_2d;
 
 	} else {
-		nav_speed_2d = ground_speed_2d;
+		nav_speed_2d = ground_speed;
 	}
 
 	/* define altitude error */
@@ -1525,7 +1523,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				 * if current position is below the slope continue at previous wp altitude
 				 * until the intersection with slope
 				 * */
-				float altitude_desired_rel;
+				float altitude_desired_rel{0.0f};
 
 				if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 					/* stay on slope */
@@ -1563,7 +1561,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
 					Eulerf euler(Quatf(_ctrl_state.q));
-					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon);
+					_runway_takeoff.init(euler.psi(), _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1645,9 +1643,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 					 * full throttle, otherwise we use the preTakeOff Throttle */
-					float takeoff_throttle = _launch_detection_state !=
-								 LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
-								 _launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
+					float takeoff_throttle = _parameters.throttle_max;
+
+					if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+						takeoff_throttle = _launchDetector.getThrottlePreTakeoff();
+					}
 
 					/* select maximum pitch: the launchdetector may impose another limit for the pitch
 					 * depending on the state of the launch */
@@ -1769,7 +1769,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 					   throttle_max,
 					   _parameters.throttle_cruise,
 					   climbout_requested,
-					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
+					   climbout_requested ? radians(10.0f) : pitch_limit_min,
 					   _global_pos.alt,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
@@ -1813,7 +1813,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				math::Vector<2> curr_wp{(float)_hdg_hold_curr_wp.lat, (float)_hdg_hold_curr_wp.lon};
 
 				/* populate l1 control setpoint */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed_2d);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
 
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
@@ -1859,7 +1859,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground
 		* and set limit to pitch angle to prevent stearing into ground
 		*/
-		float pitch_limit_min;
+		float pitch_limit_min{0.0f};
 		do_takeoff_help(&_hold_alt, &pitch_limit_min);
 
 		/* throttle limiting */
@@ -1878,7 +1878,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 					   throttle_max,
 					   _parameters.throttle_cruise,
 					   climbout_requested,
-					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
+					   climbout_requested ? radians(10.0f) : pitch_limit_min,
 					   _global_pos.alt,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
@@ -2114,12 +2114,12 @@ FixedwingPositionControl::task_main()
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
 			control_state_poll();
+			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
 			sensor_combined_poll();
-			manual_control_setpoint_poll();
 
-			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
+			math::Vector<2> ground_speed(_global_pos.vel_n, _global_pos.vel_e);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
