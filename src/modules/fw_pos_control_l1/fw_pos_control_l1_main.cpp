@@ -115,6 +115,11 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
 #define ALTHOLD_EPV_RESET_THRESH 5.0f
 
+using math::constrain;
+using math::max;
+using math::min;
+using math::radians;
+
 using matrix::Eulerf;
 using matrix::Quatf;
 
@@ -736,13 +741,13 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
-	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
+	_parameters.man_roll_max_rad = radians(_parameters.man_roll_max_rad);
 	param_get(_parameter_handles.man_pitch_max_deg, &_parameters.man_pitch_max_rad);
-	_parameters.man_pitch_max_rad = math::radians(_parameters.man_pitch_max_rad);
+	_parameters.man_pitch_max_rad = radians(_parameters.man_pitch_max_rad);
 	param_get(_parameter_handles.rollsp_offset_deg, &_parameters.rollsp_offset_rad);
-	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_rad);
+	_parameters.rollsp_offset_rad = radians(_parameters.rollsp_offset_rad);
 	param_get(_parameter_handles.pitchsp_offset_deg, &_parameters.pitchsp_offset_rad);
-	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_rad);
+	_parameters.pitchsp_offset_rad = radians(_parameters.pitchsp_offset_rad);
 
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
@@ -784,7 +789,7 @@ FixedwingPositionControl::parameters_update()
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
-	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
+	_l1_control.set_l1_roll_limit(radians(_parameters.roll_limit));
 
 	_tecs.set_time_const(_parameters.time_const);
 	_tecs.set_time_const_throt(_parameters.time_const_throt);
@@ -817,7 +822,7 @@ FixedwingPositionControl::parameters_update()
 	}
 
 	/* Update the landing slope */
-	_landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
+	_landingslope.update(radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
 			     _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
 
 	/* Update and publish the navigation capabilities */
@@ -1022,12 +1027,8 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 	/* add minimum ground speed undershoot (only non-zero in presence of sufficient wind) */
 	target_airspeed += _groundspeed_undershoot;
 
-	if (0/* throttle nudging enabled */) {
-		//target_airspeed += nudge term.
-	}
-
 	/* sanity check: limit to range */
-	target_airspeed = math::constrain(target_airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
+	target_airspeed = constrain(target_airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
 
 	/* plain airspeed error */
 	_airspeed_error = target_airspeed - airspeed;
@@ -1064,7 +1065,6 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 
 		float ground_speed_desired = _parameters.airspeed_min * cosf(atan2f(delta_altitude, distance));
 
-
 		/*
 		 * Ground speed undershoot is the amount of ground velocity not reached
 		 * by the plane. Consequently it is zero if airspeed is >= min ground speed
@@ -1074,7 +1074,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away.
 		 */
-		_groundspeed_undershoot = math::max(ground_speed_desired - ground_speed_body, 0.0f);
+		_groundspeed_undershoot = max(ground_speed_desired - ground_speed_body, 0.0f);
 
 	} else {
 		_groundspeed_undershoot = 0;
@@ -1231,7 +1231,7 @@ void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitc
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
-		*pitch_limit_min = math::radians(10.0f);
+		*pitch_limit_min = radians(10.0f);
 
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
@@ -1260,6 +1260,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
+
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
@@ -1400,9 +1401,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
-						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+						   radians(_parameters.pitch_limit_min), radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+						   false, radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -1415,8 +1416,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float alt_sp = pos_sp_triplet.current.alt;
 
 			if (in_takeoff_situation()) {
-				alt_sp = math::max(alt_sp, _takeoff_ground_alt + _parameters.climbout_diff);
-				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-5.0f), math::radians(5.0f));
+				alt_sp = max(alt_sp, _takeoff_ground_alt + _parameters.climbout_diff);
+				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-5.0f), radians(5.0f));
 			}
 
 			if (_fw_pos_ctrl_status.abort_landing) {
@@ -1433,13 +1434,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			tecs_update_pitch_throttle(alt_sp,
 						   calculate_target_airspeed(mission_airspeed),
 						   eas2tas,
-						   math::radians(_parameters.pitch_limit_min),
-						   math::radians(_parameters.pitch_limit_max),
+						   radians(_parameters.pitch_limit_min),
+						   radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min,
 						   _parameters.throttle_max,
 						   _parameters.throttle_cruise,
 						   false,
-						   math::radians(_parameters.pitch_limit_min),
+						   radians(_parameters.pitch_limit_min),
 						   _global_pos.alt,
 						   ground_speed);
 
@@ -1467,7 +1468,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 			float wp_distance_save = wp_distance;
 
-			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= math::radians(90.0f)) {
+			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= radians(90.0f)) {
 				wp_distance_save = 0.0f;
 			}
 
@@ -1514,7 +1515,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (_land_noreturn_horizontal) {
 				/* limit roll motion to prevent wings from touching the ground first */
-				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
+				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-10.0f), radians(10.0f));
 			}
 
 			/* Vertical landing control */
@@ -1599,13 +1600,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				}
 
 				if (_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt() || _land_motor_lim) {
-					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
+					throttle_max = min(throttle_max, _parameters.throttle_land_max);
 
 					if (!_land_motor_lim) {
 						_land_motor_lim  = true;
 						mavlink_log_info(&_mavlink_log_pub, "#Landing, limiting throttle");
 					}
-
 				}
 
 				float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
@@ -1620,14 +1620,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 							   calculate_target_airspeed(airspeed_land),
 							   eas2tas,
-							   math::radians(_parameters.land_flare_pitch_min_deg),
-							   math::radians(_parameters.land_flare_pitch_max_deg),
+							   radians(_parameters.land_flare_pitch_min_deg),
+							   radians(_parameters.land_flare_pitch_max_deg),
 							   0.0f,
 							   throttle_max,
 							   throttle_land,
 							   false,
-							   _land_motor_lim ? math::radians(_parameters.land_flare_pitch_min_deg)
-							   : math::radians(_parameters.pitch_limit_min),
+							   _land_motor_lim ? radians(_parameters.land_flare_pitch_min_deg) : radians(_parameters.pitch_limit_min),
 							   _global_pos.alt,
 							   ground_speed,
 							   _land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
@@ -1641,11 +1640,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				} else {
 					if (_global_pos.vel_d > 0.1f) {
-						_att_sp.pitch_body = math::radians(_parameters.land_flare_pitch_min_deg) *
-								     math::constrain((_flare_height - (_global_pos.alt - terrain_alt)) / _flare_height, 0.0f, 1.0f);
-
-					} else {
-						_att_sp.pitch_body = _att_sp.pitch_body;
+						_att_sp.pitch_body = radians(_parameters.land_flare_pitch_min_deg) *
+								     constrain((_flare_height - (_global_pos.alt - terrain_alt)) / _flare_height, 0.0f, 1.0f);
 					}
 				}
 
@@ -1675,19 +1671,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				} else {
 					/* continue horizontally */
-					altitude_desired_rel =  pos_sp_triplet.previous.valid ? L_altitude_rel :
-								_global_pos.alt - terrain_alt;
+					altitude_desired_rel = pos_sp_triplet.previous.valid ? L_altitude_rel :
+							       _global_pos.alt - terrain_alt;
 				}
 
 				tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
 							   calculate_target_airspeed(airspeed_approach), eas2tas,
-							   math::radians(_parameters.pitch_limit_min),
-							   math::radians(_parameters.pitch_limit_max),
+							   radians(_parameters.pitch_limit_min),
+							   radians(_parameters.pitch_limit_max),
 							   _parameters.throttle_min,
 							   _parameters.throttle_max,
 							   _parameters.throttle_cruise,
 							   false,
-							   math::radians(_parameters.pitch_limit_min),
+							   radians(_parameters.pitch_limit_min),
 							   _global_pos.alt,
 							   ground_speed);
 			}
@@ -1725,22 +1721,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				// update tecs
 				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
-				float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
+				float takeoff_pitch_max_rad = radians(takeoff_pitch_max_deg);
 
 				tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
-							   calculate_target_airspeed(
-								   _runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
+							   calculate_target_airspeed(_runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
 							   eas2tas,
-							   math::radians(_parameters.pitch_limit_min),
+							   radians(_parameters.pitch_limit_min),
 							   takeoff_pitch_max_rad,
 							   _parameters.throttle_min,
 							   _parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
 							   _parameters.throttle_cruise,
 							   _runway_takeoff.climbout(),
-							   math::radians(_runway_takeoff.getMinPitch(
-									   pos_sp_triplet.current.pitch_min,
-									   10.0f,
-									   _parameters.pitch_limit_min)),
+							   radians(_runway_takeoff.getMinPitch(pos_sp_triplet.current.pitch_min, 10.0f, _parameters.pitch_limit_min)),
 							   _global_pos.alt,
 							   ground_speed,
 							   tecs_status_s::TECS_MODE_TAKEOFF);
@@ -1754,9 +1746,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				// reset integrals except yaw (which also counts for the wheel controller)
 				_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
 				_att_sp.pitch_reset_integral = _runway_takeoff.resetIntegrators();
-
-				/*warnx("yaw: %.4f, roll: %.4f, pitch: %.4f", (double)_att_sp.yaw_body,
-					(double)_att_sp.roll_body, (double)_att_sp.pitch_body);*/
 
 			} else {
 				/* Perform launch detection */
@@ -1798,7 +1787,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					/* select maximum pitch: the launchdetector may impose another limit for the pitch
 					 * depending on the state of the launch */
 					float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_parameters.pitch_limit_max);
-					float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
+					float takeoff_pitch_max_rad = radians(takeoff_pitch_max_deg);
 
 					/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
 					 * meters */
@@ -1807,32 +1796,30 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
 									   calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 									   eas2tas,
-									   math::radians(_parameters.pitch_limit_min),
+									   radians(_parameters.pitch_limit_min),
 									   takeoff_pitch_max_rad,
 									   _parameters.throttle_min, takeoff_throttle,
 									   _parameters.throttle_cruise,
 									   true,
-									   math::max(math::radians(pos_sp_triplet.current.pitch_min),
-										     math::radians(10.0f)),
+									   max(radians(pos_sp_triplet.current.pitch_min), radians(10.0f)),
 									   _global_pos.alt,
 									   ground_speed,
 									   tecs_status_s::TECS_MODE_TAKEOFF);
 
 						/* limit roll motion to ensure enough lift */
-						_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
-										    math::radians(15.0f));
+						_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-15.0f), radians(15.0f));
 
 					} else {
 						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
 									   calculate_target_airspeed(mission_airspeed),
 									   eas2tas,
-									   math::radians(_parameters.pitch_limit_min),
-									   math::radians(_parameters.pitch_limit_max),
+									   radians(_parameters.pitch_limit_min),
+									   radians(_parameters.pitch_limit_max),
 									   _parameters.throttle_min,
 									   takeoff_throttle,
 									   _parameters.throttle_cruise,
 									   false,
-									   math::radians(_parameters.pitch_limit_min),
+									   radians(_parameters.pitch_limit_min),
 									   _global_pos.alt,
 									   ground_speed);
 					}
@@ -1846,8 +1833,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 					/* Set default roll and pitch setpoints during detection phase */
 					_att_sp.roll_body = 0.0f;
-					_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min),
-								       math::radians(10.0f));
+					_att_sp.pitch_body = max(radians(pos_sp_triplet.current.pitch_min), radians(10.0f));
 				}
 			}
 
@@ -1905,7 +1891,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		float pitch_limit_min;
 		do_takeoff_help(&_hold_alt, &pitch_limit_min);
 
-
 		/* throttle limiting */
 		throttle_max = _parameters.throttle_max;
 
@@ -1916,13 +1901,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		tecs_update_pitch_throttle(_hold_alt,
 					   altctrl_airspeed,
 					   eas2tas,
-					   math::radians(_parameters.pitch_limit_min),
-					   math::radians(_parameters.pitch_limit_max),
+					   radians(_parameters.pitch_limit_min),
+					   radians(_parameters.pitch_limit_max),
 					   _parameters.throttle_min,
 					   throttle_max,
 					   _parameters.throttle_cruise,
 					   climbout_requested,
-					   ((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
+					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
 					   _global_pos.alt,
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
@@ -1978,11 +1963,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				if (in_takeoff_situation()) {
 					/* limit roll motion to ensure enough lift */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
-									    math::radians(15.0f));
+					_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-15.0f), radians(15.0f));
 				}
 			}
-
 		}
 
 		if (!_yaw_lock_engaged || fabsf(_manual.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
@@ -2031,13 +2014,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		tecs_update_pitch_throttle(_hold_alt,
 					   altctrl_airspeed,
 					   eas2tas,
-					   math::radians(_parameters.pitch_limit_min),
-					   math::radians(_parameters.pitch_limit_max),
+					   radians(_parameters.pitch_limit_min),
+					   radians(_parameters.pitch_limit_max),
 					   _parameters.throttle_min,
 					   throttle_max,
 					   _parameters.throttle_cruise,
 					   climbout_requested,
-					   ((climbout_requested) ? math::radians(10.0f) : pitch_limit_min),
+					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
 					   _global_pos.alt,
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
@@ -2079,26 +2062,24 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
-		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
+		_att_sp.thrust = _runway_takeoff.getThrottle(min(get_tecs_thrust(), throttle_max));
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_att_sp.thrust = 0.0f;
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
+		_att_sp.thrust = min(_att_sp.thrust, _parameters.throttle_max);
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		if (_vehicle_land_detected.landed) {
 			// when we are landed state we want the motor to spin at idle speed
-			_att_sp.thrust = math::min(_parameters.throttle_idle, throttle_max);
+			_att_sp.thrust = min(_parameters.throttle_idle, throttle_max);
 
 		} else {
-			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
+			_att_sp.thrust = min(get_tecs_thrust(), throttle_max);
 		}
-
-
 	}
 
 	// decide when to use pitch setpoint from TECS because in some cases pitch
@@ -2128,7 +2109,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	} else {
 		_last_manual = true;
 	}
-
 
 	return setpoint;
 }
@@ -2179,7 +2159,6 @@ FixedwingPositionControl::handle_command()
 void
 FixedwingPositionControl::task_main()
 {
-
 	/*
 	 * do subscriptions
 	 */
@@ -2311,8 +2290,8 @@ FixedwingPositionControl::task_main()
 				_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
 
 				if (_control_mode.flag_control_manual_enabled) {
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
+					_att_sp.roll_body = constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
+					_att_sp.pitch_body = constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
 				}
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
@@ -2356,12 +2335,10 @@ FixedwingPositionControl::task_main()
 
 					fw_pos_ctrl_status_publish();
 				}
-
 			}
 
 			perf_end(_loop_perf);
 		}
-
 	}
 
 	_task_running = false;
@@ -2397,7 +2374,6 @@ void FixedwingPositionControl::reset_landing_state()
 
 		_fw_pos_ctrl_status.abort_landing = false;
 	}
-
 }
 
 void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
@@ -2438,7 +2414,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 			_asp_after_transition = _ctrl_state.airspeed;
 		}
 
-		_asp_after_transition = math::constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
+		_asp_after_transition = constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
 
 	} else if (_was_in_transition) {
 		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
