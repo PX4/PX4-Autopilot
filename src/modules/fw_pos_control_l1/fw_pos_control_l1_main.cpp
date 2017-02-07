@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -211,7 +211,6 @@ private:
 	bool _land_stayonground;
 	bool _land_motor_lim;
 	bool _land_onslope;
-	bool _land_useterrain;
 
 	Landingslope _landingslope;
 
@@ -592,7 +591,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_land_stayonground(false),
 	_land_motor_lim(false),
 	_land_onslope(false),
-	_land_useterrain(false),
 	_landingslope(),
 	_time_started_landing(0),
 	_t_alt_prev_valid(0),
@@ -1135,28 +1133,6 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 	waypoint_prev = temp_prev;
 	waypoint_next = temp_next;
 	waypoint_next.alt = _hold_alt;
-}
-
-float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt,
-		const struct vehicle_global_position_s &global_pos)
-{
-	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
-		return land_setpoint_alt;
-	}
-
-	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
-	 * for the whole landing */
-	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
-		if (!_land_useterrain) {
-			mavlink_log_info(&_mavlink_log_pub, "Landing, using terrain estimate");
-			_land_useterrain = true;
-		}
-
-		return global_pos.terrain_alt;
-
-	} else {
-		return land_setpoint_alt;
-	}
 }
 
 float FixedwingPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
@@ -2416,7 +2392,6 @@ void FixedwingPositionControl::reset_landing_state()
 	_land_stayonground = false;
 	_land_motor_lim = false;
 	_land_onslope = false;
-	_land_useterrain = false;
 
 	// reset abort land, unless loitering after an abort
 	if (_fw_pos_ctrl_status.abort_landing == true
