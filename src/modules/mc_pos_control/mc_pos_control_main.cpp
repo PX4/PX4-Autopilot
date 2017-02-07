@@ -160,6 +160,7 @@ private:
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
+	control::BlockParamFloat _manual_land_alt;
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -420,6 +421,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
+	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -1636,7 +1638,17 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp(2) = -1.0f * _params.vel_max_up;
 	}
 
-	if (_vel_sp(2) >  _params.vel_max_down) {
+	/*
+	 * Make sure downward velocity (positive Z) is limited close to ground.
+	 * for now we use the home altitude and assume that our Z coordinate
+	 * is initialized close to home.
+	 */
+	bool close_to_ground = -_pos(2) < _manual_land_alt.get();
+
+	if (close_to_ground && (_vel_sp(2) > _params.land_speed)) {
+		_vel_sp(2) = _params.land_speed;
+
+	} else if (_vel_sp(2) >  _params.vel_max_down) {
 		_vel_sp(2) = _params.vel_max_down;
 	}
 
