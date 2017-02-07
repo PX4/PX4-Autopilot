@@ -489,7 +489,6 @@ private:
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
 					float altitude,
-					const math::Vector<3> &ground_speed,
 					unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
@@ -1276,7 +1275,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
 						   radians(_parameters.pitch_limit_min), radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-						   false, radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+						   false, radians(_parameters.pitch_limit_min), _global_pos.alt);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -1314,8 +1313,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						   _parameters.throttle_cruise,
 						   false,
 						   radians(_parameters.pitch_limit_min),
-						   _global_pos.alt,
-						   ground_speed);
+						   _global_pos.alt);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
@@ -1501,7 +1499,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   false,
 							   _land_motor_lim ? radians(_parameters.land_flare_pitch_min_deg) : radians(_parameters.pitch_limit_min),
 							   _global_pos.alt,
-							   ground_speed,
 							   _land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!_land_noreturn_vertical) {
@@ -1557,8 +1554,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   _parameters.throttle_cruise,
 							   false,
 							   radians(_parameters.pitch_limit_min),
-							   _global_pos.alt,
-							   ground_speed);
+							   _global_pos.alt);
 			}
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
@@ -1606,7 +1602,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   _runway_takeoff.climbout(),
 							   radians(_runway_takeoff.getMinPitch(pos_sp_triplet.current.pitch_min, 10.0f, _parameters.pitch_limit_min)),
 							   _global_pos.alt,
-							   ground_speed,
 							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				// assign values
@@ -1676,7 +1671,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 									   true,
 									   max(radians(pos_sp_triplet.current.pitch_min), radians(10.0f)),
 									   _global_pos.alt,
-									   ground_speed,
 									   tecs_status_s::TECS_MODE_TAKEOFF);
 
 						/* limit roll motion to ensure enough lift */
@@ -1693,8 +1687,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 									   _parameters.throttle_cruise,
 									   false,
 									   radians(_parameters.pitch_limit_min),
-									   _global_pos.alt,
-									   ground_speed);
+									   _global_pos.alt);
 					}
 
 				} else {
@@ -1781,7 +1774,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   climbout_requested,
 					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
 					   _global_pos.alt,
-					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
 		/* heading control */
@@ -1894,7 +1886,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   climbout_requested,
 					   ((climbout_requested) ? radians(10.0f) : pitch_limit_min),
 					   _global_pos.alt,
-					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
 		_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
@@ -2243,7 +2234,6 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
-		const math::Vector<3> &ground_speed,
 		unsigned mode)
 {
 	float dt = 0.01f; // prevent division with 0
