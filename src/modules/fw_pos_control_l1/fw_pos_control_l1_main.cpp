@@ -115,6 +115,9 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
 #define ALTHOLD_EPV_RESET_THRESH 5.0f
 
+using matrix::Eulerf;
+using matrix::Quatf;
+
 /**
  * L1 control app start / stop handling function
  *
@@ -2338,6 +2341,13 @@ FixedwingPositionControl::task_main()
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
 					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
 				}
+
+				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+				_att_sp.q_d[0] = q(0);
+				_att_sp.q_d[1] = q(1);
+				_att_sp.q_d[2] = q(2);
+				_att_sp.q_d[3] = q(3);
+				_att_sp.q_d_valid = true;
 
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {
