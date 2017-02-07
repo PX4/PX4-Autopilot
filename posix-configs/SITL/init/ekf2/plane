@@ -28,10 +28,26 @@ param set NAV_ACC_RAD 15.0
 param set NAV_LOITER_RAD 50
 param set MIS_LTRMIN_ALT 30
 param set MIS_TAKEOFF_ALT 30
-param set FW_THR_IDLE 0.8
+
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
+
+param set FW_THR_IDLE 0.15
+param set FW_LND_ANG 8
+
+param set FW_R_TC 0.7
+param set FW_RR_FF 0.20
+param set FW_RR_I 0.02
+param set FW_RR_P 0.22
+
+param set FW_P_TC 0.5
+param set FW_PR_FF 0.40
+param set FW_PR_I 0.05
+param set FW_PR_P 0.05
+
+param set RWTO_TKOFF 1
+
 replay tryapplyparams
 simulator start -s
 rgbledsim start
@@ -63,6 +79,6 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-sdlog2 start -r 200 -e -t -a
+logger start -e -t
 mavlink boot_complete
 replay trystart
