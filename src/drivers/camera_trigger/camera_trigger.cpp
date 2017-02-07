@@ -144,8 +144,6 @@ private:
 
 	static struct work_s	_work;
 
-	int 			_gpio_fd;
-
 	int			_mode;
 	float			_activation_time;
 	float			_interval;
@@ -164,7 +162,6 @@ private:
 	param_t			_p_activation_time;
 	param_t			_p_interval;
 	param_t			_p_distance;
-	param_t			_p_pin;
 	param_t			_p_interface;
 
 	camera_interface_mode_t	_camera_interface_mode;
@@ -216,7 +213,6 @@ CameraTrigger::CameraTrigger() :
 	_disengage_turn_on_off_call {},
 	_keepalivecall_up {},
 	_keepalivecall_down {},
-	_gpio_fd(-1),
 	_mode(0),
 	_activation_time(0.5f /* ms */),
 	_interval(100.0f /* ms */),
