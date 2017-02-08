@@ -64,6 +64,7 @@
 #include <errno.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
+#include <matrix/matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
@@ -77,6 +78,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
+#include <wind_estimator/wind_estimator.h>
 
 #include <conversion/rotation.h>
 
@@ -88,6 +90,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/wind_estimate.h>
 
 #include <DevMgr.hpp>
 
@@ -171,12 +174,14 @@ private:
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_control_state_sub;		/**< control state subscription handle */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
+	orb_advert_t 	_wind_est_pub;			/**< wind estimate topic */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -185,6 +190,8 @@ private:
 	struct battery_status_s _battery_status;	/**< battery status */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
+	struct control_state_s _control_state;		/**< control state */
+	struct wind_estimate_s _wind_est;		/**< wind estimate */
 
 	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
 
@@ -193,6 +200,12 @@ private:
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+	WindEstimator _wind_estimator;
+
+	hrt_abstime
+	_time_last_airspeed_fused;		/* timestamp of when last time airspeed measurement was fused into wind estimator */
+	hrt_abstime _time_last_beta_fused;		/* timestamp of when last time sideslip measurement was fused into wind estimator */
 
 
 	/**
@@ -222,6 +235,11 @@ private:
 	 * Check for changes in parameters.
 	 */
 	void 		parameter_update_poll(bool forced = false);
+
+	/**
+	 * Check for changes in control state.
+	 */
+	void 		control_state_poll();
 
 	/**
 	 * Poll the ADC and update readings to suit.
@@ -260,6 +278,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_diff_pres_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
+	_control_state_sub(-1),
 
 	/* publications */
 	_sensor_pub(nullptr),
@@ -272,10 +291,14 @@ Sensors::Sensors(bool hil_enabled) :
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 
 	_rc_update(_parameters),
-	_voted_sensors_update(_parameters, hil_enabled)
+	_voted_sensors_update(_parameters, hil_enabled),
+	_wind_estimator(),
+	_time_last_airspeed_fused(0),
+	_time_last_beta_fused(0)
 {
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
+	memset(&_control_state, 0, sizeof(_control_state));
 
 	initialize_parameter_handles(_parameter_handles);
 
@@ -396,9 +419,55 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
+	}
+
+	// update wind and airspeed estimator
+	_wind_estimator.update(raw.gyro_integral_dt);
+
+	bool fuse_airspeed = updated && hrt_elapsed_time(&_control_state.timestamp) < 1e6
+			     && (hrt_elapsed_time(&_time_last_beta_fused) > 5e4);
+	bool fuse_beta = updated && hrt_elapsed_time(&_control_state.timestamp) < 1e6
+			 && (hrt_elapsed_time(&_time_last_airspeed_fused) > 5e4);
+
+	if (fuse_beta || fuse_airspeed) {
+		matrix::Dcmf R_to_earth(matrix::Quatf(_control_state.q));
+		matrix::Vector3f vI(_control_state.x_vel, _control_state.y_vel, _control_state.z_vel);
+		vI = R_to_earth * vI;
+
+		if (fuse_beta) {
+			_wind_estimator.fuse_beta(&vI._data[0][0], _control_state.q);
+			_time_last_beta_fused = hrt_absolute_time();
+		}
+
+		if (fuse_airspeed) {
+			matrix::Vector3f vel_var(_control_state.vel_variance);
+			vel_var = R_to_earth * vel_var;
+			_wind_estimator.fuse_airspeed(_airspeed.indicated_airspeed_m_s, &vI._data[0][0], &vel_var._data[0][0]);
+			_time_last_airspeed_fused = hrt_absolute_time();
+		}
+	}
+
+	if (updated) {
+		_airspeed.scale = _wind_estimator.get_tas_scale();
 
 		int instance;
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
+
+		_wind_est.timestamp = _airspeed.timestamp;
+		float wind[2];
+		_wind_estimator.get_wind(wind);
+		_wind_est.windspeed_north = wind[0];
+		_wind_est.windspeed_east = wind[1];
+		float wind_cov[2];
+		_wind_estimator.get_wind_var(wind_cov);
+		_wind_est.covariance_north = wind_cov[0];
+		_wind_est.covariance_east = wind_cov[1];
+		_wind_est.tas_innov = _wind_estimator.get_tas_innov();
+		_wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
+		_wind_est.beta_innov = _wind_estimator.get_beta_innov();
+		_wind_est.beta_innov_var = _wind_estimator.get_beta_innov_var();
+
+		orb_publish_auto(ORB_ID(wind_estimate), &_wind_est_pub, &_wind_est, &instance, ORB_PRIO_DEFAULT);
 	}
 }
 
@@ -432,6 +501,12 @@ Sensors::parameter_update_poll(bool forced)
 
 		parameters_update();
 
+		// update wind & airspeed scale estimator parameters
+		_wind_estimator.set_wind_p_noise(_parameters.wind_p_noise);
+		_wind_estimator.set_tas_scale_p_noise(_parameters.tas_scale_p_noise);
+		_wind_estimator.set_tas_noise(_parameters.tas_noise);
+		_wind_estimator.set_beta_noise(_parameters.beta_noise);
+
 		/* update airspeed scale */
 		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
@@ -450,6 +525,17 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 		_battery.updateParams();
+	}
+}
+
+void Sensors::control_state_poll()
+{
+	bool updated;
+
+	orb_check(_control_state_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(control_state), _control_state_sub, &_control_state);
 	}
 }
 
@@ -579,6 +665,8 @@ Sensors::task_main()
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
+	_control_state_sub = orb_subscribe(ORB_ID(control_state));
+
 	_battery.reset(&_battery_status);
 
 	/* get a set of initial values */
@@ -685,6 +773,10 @@ Sensors::task_main()
 
 		/* Look for new r/c input data */
 		_rc_update.rc_poll(_parameter_handles);
+
+		control_state_poll();
+
+		diff_pres_poll(raw);
 
 		perf_end(_loop_perf);
 	}
