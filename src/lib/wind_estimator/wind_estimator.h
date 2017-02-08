@@ -61,9 +61,19 @@ public:
 
 	float get_tas_scale() {return _state(tas);}
 
-	float get_tas_innov() {return _beta_innov;}
+	float get_tas_innov() {return _tas_innov;}
 
-	float get_tas_innov_var() {return _beta_innov_var;}
+	float get_tas_innov_var() {return _tas_innov_var;}
+
+	float get_beta_innov() {return _beta_innov;}
+
+	float get_beta_innov_var() {return _beta_innov_var;}
+
+	void get_wind_var(float wind_var[2])
+	{
+		wind_var[0] = _P(0, 0);
+		wind_var[1] = _P(1, 1);
+	}
 
 	void set_wind_p_noise(float wind_sigma) {_wind_p_var = wind_sigma * wind_sigma;}
 
