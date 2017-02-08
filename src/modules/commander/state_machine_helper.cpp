@@ -383,6 +383,8 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_ACRO:
 	case commander_state_s::MAIN_STATE_RATTITUDE:
+
+		/* ACRO and RATTITUDE only implemented in MC */
 		if (status->is_rotary_wing) {
 			ret = TRANSITION_CHANGED;
 		}
@@ -419,6 +421,14 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
+
+		/* FOLLOW only implemented in MC */
+		if (status->is_rotary_wing) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 	case commander_state_s::MAIN_STATE_AUTO_RTL:
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
@@ -433,8 +443,12 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
-		/* need offboard signal */
-		if (!status_flags->offboard_control_signal_lost) {
+		/* need offboard signal
+		 * OFFBOARD only implemented in MC
+		 */
+		if (!status_flags->offboard_control_signal_lost
+		    && status->is_rotary_wing) {
+
 			ret = TRANSITION_CHANGED;
 		}
 
