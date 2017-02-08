@@ -63,7 +63,6 @@
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <controllib/uorb/blocks.hpp>
-#include <wind_estimator/wind_estimator.h>
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -456,11 +455,6 @@ void Ekf2::task_main()
 	// initialise parameter cache
 	updateParams();
 
-	_wind_estimator.set_wind_p_noise(_wind_vel_p_noise.get());
-	_wind_estimator.set_tas_scale_p_noise(_tas_scale_p_noise.get());
-	_wind_estimator.set_tas_noise(_eas_noise.get());
-	_wind_estimator.set_beta_noise(_beta_noise.get());
-
 	// initialize data structures outside of loop
 	// because they will else not always be
 	// properly populated
@@ -493,11 +487,6 @@ void Ekf2::task_main()
 			struct parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), params_sub, &update);
 			updateParams();
-
-			_wind_estimator.set_wind_p_noise(_wind_vel_p_noise.get());
-			_wind_estimator.set_tas_scale_p_noise(_tas_scale_p_noise.get());
-			_wind_estimator.set_tas_noise(_eas_noise.get());
-			_wind_estimator.set_beta_noise(_beta_noise.get());
 
 			// fetch sensor data in next loop
 			continue;
@@ -714,7 +703,6 @@ void Ekf2::task_main()
 		bool fuse_airspeed = airspeed_updated && !vehicle_status.is_rotary_wing
 				     && _arspFusionThreshold.get() <= airspeed.true_airspeed_m_s && _arspFusionThreshold.get() >= 0.1f;
 
-
 		if (fuse_airspeed) {
 			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 			_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
@@ -767,11 +755,6 @@ void Ekf2::task_main()
 		if (vehicle_land_detected_updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), vehicle_land_detected_sub, &vehicle_land_detected);
 			_ekf.set_in_air_status(!vehicle_land_detected.landed);
-		}
-
-		// update external wind estimator
-		if (!vehicle_status.is_rotary_wing) {
-			_wind_estimator.update(sensors.gyro_integral_dt);
 		}
 
 		// run the EKF update and output
@@ -866,10 +849,6 @@ void Ekf2::task_main()
 				} else {
 					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 				}
-
-				if (fuse_airspeed && !vehicle_status.is_rotary_wing) {
-					_wind_estimator.fuse_beta(velocity, ctrl_state.q);
-				}
 			}
 
 
@@ -942,11 +921,6 @@ void Ekf2::task_main()
 			_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
 			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
 			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
-
-			if (!vehicle_status.is_rotary_wing && fuse_airspeed) {
-				float v_var[2] = {vel_var(0), vel_var(1)};
-				_wind_estimator.fuse_airspeed(airspeed.true_airspeed_m_s, velocity, v_var);
-			}
 
 			// publish vehicle local position data
 			if (_lpos_pub == nullptr) {
