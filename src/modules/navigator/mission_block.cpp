@@ -145,8 +145,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_land_detected()->landed == false)
-	    && !_waypoint_position_reached) {
+	if ((!_navigator->get_land_detected()->landed) && !_waypoint_position_reached) {
 
 		float dist = -1.0f;
 		float dist_xy = -1.0f;
@@ -175,6 +174,7 @@ MissionBlock::is_mission_item_reached()
 
 				/* SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER */
 				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+
 					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					curr_sp->loiter_radius = _navigator->get_loiter_radius();
 					curr_sp->loiter_direction = 1;
@@ -196,8 +196,7 @@ MissionBlock::is_mission_item_reached()
 			}
 		}
 
-		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
-		    && _navigator->get_vstatus()->is_rotary_wing) {
+		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 
 			/* We want to avoid the edge case where the acceptance radius is bigger or equal than
 			 * the altitude of the takeoff waypoint above home. Otherwise, we do not really follow
@@ -214,16 +213,8 @@ MissionBlock::is_mission_item_reached()
 				altitude_acceptance_radius = takeoff_alt / 2.0f;
 			}
 
-			/* require only altitude for takeoff for multicopter */
-			if (_navigator->get_global_position()->alt >
-			    altitude_amsl - altitude_acceptance_radius) {
-				_waypoint_position_reached = true;
-			}
-
-		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
-			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
+			/* require only altitude for takeoff */
+			if (_navigator->get_global_position()->alt > altitude_amsl - altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
