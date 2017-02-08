@@ -51,6 +51,8 @@
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
+#include <nuttx/progmem.h>
+
 
 #define BL_FILE_SIZE_LIMIT	16384
 
@@ -114,63 +116,29 @@ bl_update_main(int argc, char *argv[])
 	/* prevent other tasks from running while we do this */
 	sched_lock();
 
-	/* unlock the control register */
-	volatile uint32_t *keyr = (volatile uint32_t *)0x40023c04;
-	*keyr = 0x45670123U;
-	*keyr = 0xcdef89abU;
+	const size_t page = 0;
+	uint8_t *base = (uint8_t *) STM32_FLASH_BASE;
 
-	volatile uint32_t *sr = (volatile uint32_t *)0x40023c0c;
-	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
-	volatile uint8_t *base = (volatile uint8_t *)0x08000000;
+	ssize_t size = up_progmem_erasepage(page);
 
-	/* check the control register */
-	if (*cr & 0x80000000) {
-		warnx("WARNING: flash unlock failed, flash aborted");
-		goto flash_end;
-	}
-
-	/* erase the bootloader sector */
-	*cr = 0x2;
-	*cr = 0x10002;
-
-	/* wait for the operation to complete */
-	while (*sr & 0x1000) {
-	}
-
-	if (*sr & 0xf2) {
-		warnx("WARNING: erase error 0x%02x", *sr);
-		goto flash_end;
-	}
-
-	/* verify the erase */
-	for (int i = 0; i < s.st_size; i++) {
-		if (base[i] != 0xff) {
-			warnx("WARNING: erase failed at %d - retry update, DO NOT reboot", i);
-			goto flash_end;
-		}
+	if (size != BL_FILE_SIZE_LIMIT) {
+		warnx("WARNING: erase error at 0x%08x", &base[size]);
 	}
 
 	warnx("flashing...");
 
 	/* now program the bootloader - speed is not critical so use x8 mode */
-	for (int i = 0; i < s.st_size; i++) {
 
-		/* program a byte */
-		*cr = 1;
-		base[i] = buf[i];
+	size = up_progmem_write((size_t) base, buf, s.st_size);
 
-		/* wait for the operation to complete */
-		while (*sr & 0x1000) {
-		}
-
-		if (*sr & 0xf2) {
-			warnx("WARNING: program error 0x%02x", *sr);
-			goto flash_end;
-		}
+	if (size != s.st_size) {
+		warnx("WARNING: program error at 0x%0x8",  &base[size]);
+		goto flash_end;
 	}
 
 	/* re-lock the flash control register */
-	*cr = 0x80000000;
+
+	stm32_flash_lock();
 
 	warnx("verifying...");
 
