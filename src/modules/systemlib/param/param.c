@@ -178,9 +178,10 @@ param_assert_locked(void)
 
 /**
  * Test whether a param_t is value.
+ * 测试param_t是否有效
  *
- * @param param			The parameter handle to test.
- * @return			True if the handle is valid.
+ * @param 	  The parameter handle to test.
+ * @return	  True if the handle is valid.
  */
 static bool
 handle_in_range(param_t param)
@@ -455,6 +456,7 @@ param_size(param_t param)
 
 /**
  * Obtain a pointer to the storage allocated for a parameter.
+ * 获得为参数分配的存储空间的指针
  *
  * @param param			The parameter whose storage is sought.
  * @return			A pointer to the parameter value, or NULL
@@ -501,7 +503,7 @@ param_get(param_t param, void *val)
 
 	param_lock(); // lock和unlock主要就是通过sem信号量控制对某一数据的互斥访问
 
-	const void *v = param_get_value_ptr(param);
+	const void *v = param_get_value_ptr(param); // 获得存储该参数的空间的指针
 
 	if (val != NULL) {
 		memcpy(val, v, param_size(param));

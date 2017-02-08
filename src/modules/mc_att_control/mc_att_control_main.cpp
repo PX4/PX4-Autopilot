@@ -57,7 +57,7 @@
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
  * 控制器不用欧拉角工作，欧拉角只是用来更加人性化的控制与记录，因为欧拉角很直观，与生活相近
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
- * 如果旋转矩阵设点无效，将用欧拉角生成矩阵，以兼容旧的位置控制器
+ * 如果旋转矩阵设定值无效，将用欧拉角生成矩阵，以兼容旧的位置控制器
  */
 
 #include <px4_config.h>
@@ -651,7 +651,7 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
  */
 
 // x,y轴与z轴分开控制，目的是为了解耦控制行为
-// 分别执行较快相应的动作和较慢响应的动作
+// 分别执行较快响应的动作和较慢响应的动作
 // 误差矩阵 = 转动矩阵 * 倾斜矩阵   Re = Rtorsion * Rtilt  
 // 先Rtilt使当前姿态的Z轴和目标姿态的Z轴对齐，然后再进行Rtorsion旋转对齐XY轴
 void
@@ -862,9 +862,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
     * attitude_control 输入是体轴矩阵 R 和期望的体轴矩阵 Rsp，角度环只是一个 P 控
 	* 制，算出来之后输出的是期望的角速度值 rate_sp（这一段已经完成了所需要的角度变
 	* 化，并将角度的变化值转换到了需要的角速度值）。并且把加速度值直接输出给 
-	* attitude rate control，再经过角速度环的 pid 控制，输出值直接就给 mixer，然后控制电机输出了
+	* attitude rate control，再经过角速度环的 pd 控制，输出值直接就给 mixer，然后控制电机输出了
 	*
-	* 其实attitude control 输出是需要达到这个误差角度时所需要的角速度值，用这个值与当前的角
+	* 其实attitude control 输出是需要得到达到这个误差角度时所需要的角速度值，用这个值与当前的角
 	* 速度值做差，求出现在需要的角速度值而已。这个就是为什么控制角速度的原因，进而达
 	* 到控制角度的效果。
     */

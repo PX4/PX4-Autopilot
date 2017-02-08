@@ -34,6 +34,16 @@
 /**
  * @file ekf2_main.cpp
  * Implementation of the attitude and position estimator.
+ * 姿态和位置估计的实现
+ * 24维
+ * Quaternion defining the rotation from earth to body frame      4
+ * Velocity at the IMU North,East,Down (m/s)					  3 
+ * Position at the IMU North,East,Down (m)						  3
+ * IMU delta angle bias estimates X,Y,Z (rad) 					  3
+ * IMU delta velocity bias estimates X,Y,Z(m/s)				  	  3
+ * Earth Magnetic field components North, East,Down (gauss)       3
+ * Vehicle body frame magnetic field bias X,Y,Z (gauss)			  3
+ * Wind velocity North,East (m/s)								  2
  *
  * @author Roman Bapst
  */

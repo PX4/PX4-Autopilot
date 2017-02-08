@@ -5,4 +5,4 @@ uint8 GF_ACTION_RTL = 3                     # switch to AUTO|RTL
 uint8 GF_ACTION_TERMINATE = 4               # flight termination
 
 bool geofence_violated		# true if the geofence is violated
-uint8 geofence_action       # action to take when geofence is violated
+uint8 geofence_action       # action to take when geofence is violated 当围栏被违反时采取的措施

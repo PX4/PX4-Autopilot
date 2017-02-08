@@ -1,3 +1,4 @@
+
 /****************************************************************************
  *
  *   Copyright (c) 2013 - 2016 PX4 Development Team. All rights reserved.
@@ -34,29 +35,29 @@
 /**
  * @file mc_pos_control_main.cpp
  * Multicopter position controller.
- * ¶àĞıÒíÎ»ÖÃ¿ØÖÆ
+ * å¤šæ—‹ç¿¼ä½ç½®æ§åˆ¶
  *
  * Original publication for the desired attitude generation:
- * Ä¿±ê×ËÌ¬µÄ²úÉúµÄÀ´Ô´
+ * ç›®æ ‡å§¿æ€çš„äº§ç”Ÿçš„æ¥æº
  * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
- * ²Î¿¼ÎÄÏ×£º Minimum Snap Trajectory Generation and Control for Quadrotors.
+ * å‚è€ƒæ–‡çŒ®ï¼š Minimum Snap Trajectory Generation and Control for Quadrotors.
  * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011
  *
  * Also inspired by https://pixhawk.org/firmware/apps/fw_pos_control_l1
- * Í¬Ê±Ê¹ÓÃÁËL1µ¼º½
+ * åŒæ—¶ä½¿ç”¨äº†L1å¯¼èˆª
  *
  * The controller has two loops: P loop for position error and PID loop for velocity error.
  * Output of velocity controller is thrust vector that splitted to thrust direction
  * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- * ¸Ã¿ØÖÆÆ÷ÓĞÁ½¸ö»ØÂ·£ºÎ»ÖÃÎó²îµÄP»ØÂ·ÒÔ¼°ËÙ¶ÈÎó²îµÄPID»ØÂ·¡£
- * ËÙ¶È¿ØÖÆÆ÷µÄÊä³öÊÇ·Ö¸îµ½ÍÆÁ¦·½ÏòµÄÍÆÁ¦ÏòÁ¿£¨ÀıÈç£¬¶àĞıÒí·½Î»µÄĞı×ª¾ØÕó£©ÒÔ¼°ÍÆÁ¦Ä£¿é£¨ÀıÈç¶àĞıÒíÍÆÁ¦×ÔÉí£©
- * ¸ÃÎ»ÖÃ¿ØÖÆÆ÷Ã»ÓĞÊ¹ÓÃÅ·À­½Ç£¬Å·À­½ÇÖ»ÊÇÎªÁË¸üÎªÈËĞÔ»¯µÄ¿ØÖÆÓë¼ÇÂ¼ÈÕÖ¾
+ * è¯¥æ§åˆ¶å™¨æœ‰ä¸¤ä¸ªå›è·¯ï¼šä½ç½®è¯¯å·®çš„På›è·¯ä»¥åŠé€Ÿåº¦è¯¯å·®çš„PIDå›è·¯ã€‚
+ * é€Ÿåº¦æ§åˆ¶å™¨çš„è¾“å‡ºæ˜¯åˆ†å‰²åˆ°æ¨åŠ›æ–¹å‘çš„æ¨åŠ›å‘é‡ï¼ˆä¾‹å¦‚ï¼Œå¤šæ—‹ç¿¼æ–¹ä½çš„æ—‹è½¬çŸ©é˜µï¼‰ä»¥åŠæ¨åŠ›æ¨¡å—ï¼ˆä¾‹å¦‚å¤šæ—‹ç¿¼æ¨åŠ›è‡ªèº«ï¼‰
+ * è¯¥ä½ç½®æ§åˆ¶å™¨æ²¡æœ‰ä½¿ç”¨æ¬§æ‹‰è§’ï¼Œæ¬§æ‹‰è§’åªæ˜¯ä¸ºäº†æ›´ä¸ºäººæ€§åŒ–çš„æ§åˆ¶ä¸è®°å½•æ—¥å¿—
 
- * ÔÚÕâ¸öÎÄ¼şÖĞ position | pos ÕâÀïÎ»ÖÃÖ¸µÄÊÇ Ë®Æ½Ãæ£¬x y
- * Altitude Ö¸µÄ¾ÍÊÇ´¹Ö±·½Ïò z
- * ÅÀÉıÂÊÖ¸µÄÊÇ´¹Ö±·½ÏòzµÄËÙ¶È
- * VelocityÕâ¸öËÙ¶ÈÖ¸µÄÊÇ Ë®Æ½ÃæÉÏx yµÄËÙ¶È
+ * åœ¨è¿™ä¸ªæ–‡ä»¶ä¸­ position | pos è¿™é‡Œä½ç½®æŒ‡çš„æ˜¯ æ°´å¹³é¢ï¼Œx y
+ * Altitude æŒ‡çš„å°±æ˜¯å‚ç›´æ–¹å‘ z
+ * çˆ¬å‡ç‡æŒ‡çš„æ˜¯å‚ç›´æ–¹å‘zçš„é€Ÿåº¦
+ * Velocityè¿™ä¸ªé€Ÿåº¦æŒ‡çš„æ˜¯ æ°´å¹³é¢ä¸Šx yçš„é€Ÿåº¦
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
@@ -108,7 +109,7 @@
 
 /**
  * Multicopter position control app start / stop handling function
- * ¶àĞıÒíÎ»ÖÃ¿ØÖÆµÄÓ¦ÓÃ³ÌĞò¿ªÊ¼/½áÊø´¦Àíº¯Êı
+ * å¤šæ—‹ç¿¼ä½ç½®æ§åˆ¶çš„åº”ç”¨ç¨‹åºå¼€å§‹/ç»“æŸå¤„ç†å‡½æ•°
  * 
  * @ingroup apps
  */
@@ -118,19 +119,19 @@ class MulticopterPositionControl : public control::SuperBlock
 public:
 	/**
 	 * Constructor
-	 * ¹¹Ôìº¯Êı
+	 * æ„é€ å‡½æ•°
 	 */
 	MulticopterPositionControl();
 
 	/**
 	 * Destructor, also kills task.
-	 * ¹¹Ôìº¯Êı£¬Í¬Ê±É±ËÀÈÎÎñ
+	 * æ„é€ å‡½æ•°ï¼ŒåŒæ—¶æ€æ­»ä»»åŠ¡
 	 */
 	~MulticopterPositionControl();
 
 	/**
 	 * Start task.
-	 * ¿ªÊ¼ÈÎÎñ
+	 * å¼€å§‹ä»»åŠ¡
 	 *
 	 * @return		OK on success.
 	 */
@@ -252,7 +253,7 @@ private:
 		math::Vector<3> sp_offs_max;
 	}		_params;
 
-	struct map_projection_reference_s _ref_pos; // ¾­Î³¶Èµ¥Î»Îª»¡¶È
+	struct map_projection_reference_s _ref_pos; // ç»çº¬åº¦å•ä½ä¸ºå¼§åº¦
 	float _ref_alt;
 	hrt_abstime _ref_timestamp;
 
@@ -265,25 +266,25 @@ private:
 	bool _run_alt_control;
 
 	math::Vector<3> _pos;
-	math::Vector<3> _pos_sp; // Î»ÖÃÉè¶¨Öµ£¬µØÃæ×ø±êÏµÉÏx,y£¬z·½ÏòÎ»ÖÃ
+	math::Vector<3> _pos_sp; // ä½ç½®è®¾å®šå€¼ï¼Œåœ°é¢åæ ‡ç³»ä¸Šx,yï¼Œzæ–¹å‘ä½ç½®
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
-	math::Vector<3> _vel_err_d;		/**< derivative of current velocity µ±Ç°ËÙ¶ÈµÄÎ¢·Ö */
+	math::Vector<3> _vel_err_d;		/**< derivative of current velocity å½“å‰é€Ÿåº¦çš„å¾®åˆ† */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	bool _in_landing;		/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
-								// ÅĞ¶ÏÒÑ¾­×ÅÂ½
+								// åˆ¤æ–­å·²ç»ç€é™†
 	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
 	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
-										//  ËÙ¶È¿ØÖÆÄ£Ê½ÖĞµÄÉÏÒ»¸öÑ­»·(control_state.flag_control_velocity_enabled)
+										//  é€Ÿåº¦æ§åˆ¶æ¨¡å¼ä¸­çš„ä¸Šä¸€ä¸ªå¾ªç¯(control_state.flag_control_velocity_enabled)
 
 	/**
 	 * Update our local parameter cache.
@@ -297,7 +298,7 @@ private:
 
 	/**
 	 * Check for changes in subscribed topics.
-	 * ¼ì²â¶©ÔÄµÄ»°ÌâÊÇ·ñ¸üĞÂ
+	 * æ£€æµ‹è®¢é˜…çš„è¯é¢˜æ˜¯å¦æ›´æ–°
 	 */
 	void		poll_subscriptions();
 
@@ -306,50 +307,50 @@ private:
 
 	/**
 	 * Update reference for local position projection
-	 * ¸üĞÂ²Î¿¼ÏµÓÃÓÚ±¾µØÎ»ÖÃµÄÍ¶Ó°
+	 * æ›´æ–°å‚è€ƒç³»ç”¨äºæœ¬åœ°ä½ç½®çš„æŠ•å½±
 	 */
 	void		update_ref();
 	/**
 	 * Reset position setpoint to current position.
-	 * ÖØÖÃÎ»ÖÃÉè¶¨Öµµ½µ±Ç°Î»ÖÃ
+	 * é‡ç½®ä½ç½®è®¾å®šå€¼åˆ°å½“å‰ä½ç½®
 	 *
 	 * This reset will only occur if the _reset_pos_sp flag has been set.
 	 * The general logic is to first "activate" the flag in the flight
 	 * regime where a switch to a position control mode should hold the
 	 * very last position. Once switching to a position control mode
 	 * the last position is stored once.
-	 * ½öµ±_reset_pos_sp±êÖ¾Î»ÖÃÎ»Ê±½øĞĞÎ»ÖÃÉè¶¨Öµ¸´Î»¡£
-	 * Ò»°ãÂß¼­ÊÇÊ×ÏÈÔÚ·ÉĞĞ×´Ì¬ÖĞ"¼¤»î"´Ë±êÖ¾Î»£¬µ±ÇĞ»»µ½Î»ÖÃ¿ØÖÆÄ£Ê½Ó¦¸Ã±£³ÖÉÏÒ»¿ÌµÄÎ»ÖÃ
-	 * Ò»µ©ÇĞ»»µ½Î»ÖÃ¿ØÖÆÄ£Ê½£¬ÉÏÒ»¿ÌµÄÎ»ÖÃ¾ÍÁ¢¼´´¢´æÆğÀ´
+	 * ä»…å½“_reset_pos_spæ ‡å¿—ä½ç½®ä½æ—¶è¿›è¡Œä½ç½®è®¾å®šå€¼å¤ä½ã€‚
+	 * ä¸€èˆ¬é€»è¾‘æ˜¯é¦–å…ˆåœ¨é£è¡ŒçŠ¶æ€ä¸­"æ¿€æ´»"æ­¤æ ‡å¿—ä½ï¼Œå½“åˆ‡æ¢åˆ°ä½ç½®æ§åˆ¶æ¨¡å¼åº”è¯¥ä¿æŒä¸Šä¸€åˆ»çš„ä½ç½®
+	 * ä¸€æ—¦åˆ‡æ¢åˆ°ä½ç½®æ§åˆ¶æ¨¡å¼ï¼Œä¸Šä¸€åˆ»çš„ä½ç½®å°±ç«‹å³å‚¨å­˜èµ·æ¥
 	 */
 	void		reset_pos_sp();
 
 	/**
 	 * Reset altitude setpoint to current altitude.
-	 * ½«¸ß¶ÈÉè¶¨Öµ¸´Î»µ½µ±Ç°¸ß¶È
+	 * å°†é«˜åº¦è®¾å®šå€¼å¤ä½åˆ°å½“å‰é«˜åº¦
 	 *
 	 * This reset will only occur if the _reset_alt_sp flag has been set.
 	 * The general logic follows the reset_pos_sp() architecture.
-	 * ½öµ± _reset_alt_sp±êÖ¾Î»ÖÃÎ»Ê±²Å»á·¢Éú¡£
-	 * Ò»°ãÂß¼­ÊÇÕâ»á·¢ÉúÔÚreset_pos_sp()Ö®ºó
+	 * ä»…å½“ _reset_alt_spæ ‡å¿—ä½ç½®ä½æ—¶æ‰ä¼šå‘ç”Ÿã€‚
+	 * ä¸€èˆ¬é€»è¾‘æ˜¯è¿™ä¼šå‘ç”Ÿåœ¨reset_pos_sp()ä¹‹å
 	 */
 	void		reset_alt_sp();
 
 	/**
 	 * Check if position setpoint is too far from current position and adjust it if needed.
-	 * ¼ì²âÎ»ÖÃÉè¶¨ÖµÊÇ·ñ¾àÀëµ±Ç°Î»ÖÃÌ«Ô¶£¬²¢ÔÚĞèÒªÊ±½øĞĞµ÷½Ú
+	 * æ£€æµ‹ä½ç½®è®¾å®šå€¼æ˜¯å¦è·ç¦»å½“å‰ä½ç½®å¤ªè¿œï¼Œå¹¶åœ¨éœ€è¦æ—¶è¿›è¡Œè°ƒèŠ‚
 	 */
 	void		limit_pos_sp_offset();
 
 	/**
 	 * Set position setpoint using manual control
-	 * Ê¹ÓÃÊÖ¶¯¿ØÖÆÄ£Ê½ÉèÖÃÎ»ÖÃÉè¶¨Öµ
+	 * ä½¿ç”¨æ‰‹åŠ¨æ§åˆ¶æ¨¡å¼è®¾ç½®ä½ç½®è®¾å®šå€¼
 	 */
 	void		control_manual(float dt);
 
 	/**
 	 * Set position setpoint using offboard control
-	 * Ê¹ÓÃÍâ²¿¿ØÖÆÄ£Ê½ÉèÖÃÎ»ÖÃÉè¶¨Öµ
+	 * ä½¿ç”¨å¤–éƒ¨æ§åˆ¶æ¨¡å¼è®¾ç½®ä½ç½®è®¾å®šå€¼
 	 */
 	void		control_offboard(float dt);
 
@@ -358,13 +359,13 @@ private:
 
 	/**
 	 * Set position setpoint for AUTO
-	 * ÉèÖÃAUTOÄ£Ê½µÄÎ»ÖÃÉè¶¨Öµ
+	 * è®¾ç½®AUTOæ¨¡å¼çš„ä½ç½®è®¾å®šå€¼
 	 */
 	void		control_auto(float dt);
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
-	 * Ğı×ªÊ¹ÓÃÆøÑ¹¼Æ¸ß¶È»òAMSL(Æ½¾ùº£Æ½ÃæÒÔÉÏ)¸ß¶È
+	 * æ—‹è½¬ä½¿ç”¨æ°”å‹è®¡é«˜åº¦æˆ–AMSL(å¹³å‡æµ·å¹³é¢ä»¥ä¸Š)é«˜åº¦
 	 */
 	void		select_alt(bool global);
 
@@ -386,8 +387,8 @@ MulticopterPositionControl	*g_control;
 }
 
 
-// ³õÊ¼»¯²ÎÊıÁĞ±í
-//¹¹Ôìº¯Êı£¬¸³³õÖµ
+// åˆå§‹åŒ–å‚æ•°åˆ—è¡¨
+//æ„é€ å‡½æ•°ï¼Œèµ‹åˆå€¼
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(NULL, "MPC"),
 	_task_should_exit(false),
@@ -482,7 +483,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
 
-	// ¹ı¶ÉÖ§³Å
+	// è¿‡æ¸¡æ”¯æ’‘
 	// transitional support: Copy param values from max to down
 	// param so that max param can be renamed in 1-2 releases
 	// (currently at 1.3.0)
@@ -522,7 +523,7 @@ MulticopterPositionControl::~MulticopterPositionControl()
 {
 	if (_control_task != -1) {
 		/* task wakes up every 100ms or so at the longest */
-		// ÈÎÎñÃ¿100ms»½ĞÑÒ»´Î
+		// ä»»åŠ¡æ¯100mså”¤é†’ä¸€æ¬¡
 		_task_should_exit = true;
 
 		/* wait for a second for the task to quit at our request */
@@ -549,7 +550,7 @@ MulticopterPositionControl::parameters_update(bool force)
 	bool updated;
 	struct parameter_update_s param_upd;
 
-	orb_check(_params_sub, &updated); //¼ì²â¶©ÔÄµÄ»°ÌâÊÇ·ñ¸üĞÂ
+	orb_check(_params_sub, &updated); //æ£€æµ‹è®¢é˜…çš„è¯é¢˜æ˜¯å¦æ›´æ–°
 
 	if (updated) {
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
@@ -560,7 +561,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		updateParams();
 
 		/* update legacy C interface params */
-		param_get(_params_handles.thr_min, &_params.thr_min); //½«param_handleµÄµØÖ·×÷Îª²ÎÊıµÄµØÖ·
+		param_get(_params_handles.thr_min, &_params.thr_min); //å°†param_handleçš„åœ°å€ä½œä¸ºå‚æ•°çš„åœ°å€
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
 		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
@@ -570,11 +571,11 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.tko_speed, &_params.tko_speed);
 		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
-		_params.tilt_max_land = math::radians(_params.tilt_max_land); //½«½Ç¶È×ª»»Îª»¡¶È
+		_params.tilt_max_land = math::radians(_params.tilt_max_land); //å°†è§’åº¦è½¬æ¢ä¸ºå¼§åº¦
 
 		float v;
 		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);  // Î»ÖÃËÙ¶ÈPID
+		param_get(_params_handles.xy_p, &v);  // ä½ç½®é€Ÿåº¦PID
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
 		param_get(_params_handles.z_p, &v);
@@ -605,7 +606,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise(0) = v;
 		_params.vel_cruise(1) = v;
-		/* using Z max up for now  ÔİÊ±Ê¹ÓÃ×î´óZÖáÏòÉÏËÙ¶È*/
+		/* using Z max up for now  æš‚æ—¶ä½¿ç”¨æœ€å¤§Zè½´å‘ä¸Šé€Ÿåº¦*/
 		param_get(_params_handles.z_vel_max_up, &v);
 		_params.vel_cruise(2) = v;
 		param_get(_params_handles.xy_ff, &v);
@@ -628,7 +629,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
 		 */
-		 // Ôö¼Ó×î´óµÄË®Æ½¼ÓËÙ¶È£¬ÕâÑùµÄ»°ÉĞ¿ÉÄÜÔÚ1ÃëÄÚÁî·É»ú´Ó×î´óËÙ¶ÈÍ£ÏÂÀ´
+		 // å¢åŠ æœ€å¤§çš„æ°´å¹³åŠ é€Ÿåº¦ï¼Œè¿™æ ·çš„è¯å°šå¯èƒ½åœ¨1ç§’å†…ä»¤é£æœºä»æœ€å¤§é€Ÿåº¦åœä¸‹æ¥
 		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
@@ -641,8 +642,8 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		/* mc attitude control parameters*/
 		/* manual control scale */
-		// ¶àĞıÒí×ËÌ¬¿ØÖÆ²ÎÊı
-		// ÊÖ¶¯¿ØÖÆÄ£Ê½ÏÂµÄÏŞ·ù
+		// å¤šæ—‹ç¿¼å§¿æ€æ§åˆ¶å‚æ•°
+		// æ‰‹åŠ¨æ§åˆ¶æ¨¡å¼ä¸‹çš„é™å¹…
 		param_get(_params_handles.man_roll_max, &_params.man_roll_max);
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
@@ -656,7 +657,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.mc_att_yaw_p = v;
 
 		/* takeoff and land velocities should not exceed maximum */
-		// Æğ·ÉÒÔ¼°×ÅÂ½µÄËÙ¶È²»ÒË³¬¹ı×î´óÉè¶¨Öµ
+		// èµ·é£ä»¥åŠç€é™†çš„é€Ÿåº¦ä¸å®œè¶…è¿‡æœ€å¤§è®¾å®šå€¼
 		_params.tko_speed = fminf(_params.tko_speed, _params.vel_max_up);
 		_params.land_speed = fminf(_params.land_speed, _params.vel_max_down);
 	}
@@ -669,13 +670,13 @@ MulticopterPositionControl::poll_subscriptions()
 {
 	bool updated;
 
-	orb_check(_vehicle_status_sub, &updated); //·ÉĞĞÆ÷µÄÕûÌåĞÔÄÜ_vehicle_status_sub.»úĞÍ¡¢×´Ì¬¡­¡­
+	orb_check(_vehicle_status_sub, &updated); //é£è¡Œå™¨çš„æ•´ä½“æ€§èƒ½_vehicle_status_sub.æœºå‹ã€çŠ¶æ€â€¦â€¦
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-	 	// ¸ù¾İ·ÉĞĞÆ÷ÊÇ·ñÎªVTOLÉèÖÃÕıÈ·µÄuORB_IDÖ÷Ìâ
+	 	// æ ¹æ®é£è¡Œå™¨æ˜¯å¦ä¸ºVTOLè®¾ç½®æ­£ç¡®çš„uORB_IDä¸»é¢˜
 		if (!_attitude_setpoint_id) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
@@ -692,18 +693,18 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
-	orb_check(_ctrl_state_sub, &updated); // ¿ØÖÆ×´Ì¬ control_state.ËÄÔªÊı¡¢ÈıÖá¼ÓËÙ¶È¡¢ËÙ¶È¡¢Î»ÖÃ¡¢½ÇËÙ¶È¡­¡­
+	orb_check(_ctrl_state_sub, &updated); // æ§åˆ¶çŠ¶æ€ control_state.å››å…ƒæ•°ã€ä¸‰è½´åŠ é€Ÿåº¦ã€é€Ÿåº¦ã€ä½ç½®ã€è§’é€Ÿåº¦â€¦â€¦
 
 	if (updated) {
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		// ´Ó¿ØÖÆ×´Ì¬ËÄÔªÊıÖĞ»ñµÃµ±Ç°Ğı×ª¾ØÕóºÍÅ·À­½Ç
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]); //ÓÉ×ËÌ¬½âËã¹ı³Ì»ñµÃ
+		// ä»æ§åˆ¶çŠ¶æ€å››å…ƒæ•°ä¸­è·å¾—å½“å‰æ—‹è½¬çŸ©é˜µå’Œæ¬§æ‹‰è§’
+		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]); //ç”±å§¿æ€è§£ç®—è¿‡ç¨‹è·å¾—
 		_R = q_att.to_dcm();
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
-		_yaw = euler_angles(2); //µ¥¶ÀÌá³öÁËÆ«º½½Ç
+		_yaw = euler_angles(2); //å•ç‹¬æå‡ºäº†åèˆªè§’
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -712,13 +713,13 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
 
-	orb_check(_control_mode_sub, &updated); //·ÉĞĞÄ£Ê½control_mode.×ÔÎÈ¡¢¶¨¸ß¡­¡­
+	orb_check(_control_mode_sub, &updated); //é£è¡Œæ¨¡å¼control_mode.è‡ªç¨³ã€å®šé«˜â€¦â€¦
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 
-	orb_check(_manual_sub, &updated); //ÊÖ¶¯¿ØÖÆ manual_control_setpoint.Ò£¿ØÆ÷Êä³ö£¬Ä£Ê½ÇĞ»»
+	orb_check(_manual_sub, &updated); //æ‰‹åŠ¨æ§åˆ¶ manual_control_setpoint.é¥æ§å™¨è¾“å‡ºï¼Œæ¨¡å¼åˆ‡æ¢
 
 	if (updated) {
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
@@ -771,32 +772,32 @@ MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 }
 
 
-// ÕâÖÖ·½Ê½½«Î»ÖÃ×ª»»Îª¾­Î³¶ÈºÍ¸ß¶È£¬ 
-// È»ºóÓÃÎ»ÖÃ¹À¼Æ²ÎÊıÀ´¸üĞÂ¾­Î³¶ÈºÍ¸ß¶È£¬½Ó×Å×ª»»»ØÎ»ÖÃ²Î¿¼µã
-// GPSÊı¾İ×ª»»µÄ·½Ê½
+// è¿™ç§æ–¹å¼å°†ä½ç½®è½¬æ¢ä¸ºç»çº¬åº¦å’Œé«˜åº¦ï¼Œ 
+// ç„¶åç”¨ä½ç½®ä¼°è®¡å‚æ•°æ¥æ›´æ–°ç»çº¬åº¦å’Œé«˜åº¦ï¼Œæ¥ç€è½¬æ¢å›ä½ç½®å‚è€ƒç‚¹
+// GPSæ•°æ®è½¬æ¢çš„æ–¹å¼
 void
 MulticopterPositionControl::update_ref()
 {
-	if (_local_pos.ref_timestamp != _ref_timestamp) {//²Î¿¼Ê±¼äÖ¡¸Ä±äÔò¸üĞÂ²Î¿¼
-		double lat_sp, lon_sp; // µ¥Î»Îª¶È
+	if (_local_pos.ref_timestamp != _ref_timestamp) {//å‚è€ƒæ—¶é—´å¸§æ”¹å˜åˆ™æ›´æ–°å‚è€ƒ
+		double lat_sp, lon_sp; // å•ä½ä¸ºåº¦
 		float alt_sp = 0.0f;
 
-		if (_ref_timestamp != 0) { //»ñÈ¡µ±Ç°µÄÎ»ÖÃºÍ¸ß¶È²Î¿¼ÊıÖµ
+		if (_ref_timestamp != 0) { //è·å–å½“å‰çš„ä½ç½®å’Œé«˜åº¦å‚è€ƒæ•°å€¼
 			/* calculate current position setpoint in global frame */
-			// ¼ÆËãÈ«Çò×ø±êÏµ(GPS²âµÃÖµ)ÖĞµÄµ±Ç°Î»ÖÃÉè¶¨Öµ£¬¾­Î³¶ÈÓÃ½Ç¶È±íÊ¾
+			// è®¡ç®—å…¨çƒåæ ‡ç³»(GPSæµ‹å¾—å€¼)ä¸­çš„å½“å‰ä½ç½®è®¾å®šå€¼ï¼Œç»çº¬åº¦ç”¨è§’åº¦è¡¨ç¤º
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
-			alt_sp = _ref_alt - _pos_sp(2); //¸ß¶ÈÉè¶¨Öµ
+			alt_sp = _ref_alt - _pos_sp(2); //é«˜åº¦è®¾å®šå€¼
 		}
 
 		/* update local projection reference */
-		// ¸üĞÂ±¾µØÍ¶Ó°µÄ²Î¿¼Æ½Ãæ  
-		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon); // ¶È×ª»»³É»¡¶È £¬¸üĞÂÊ±¼ä´Á
-		_ref_alt = _local_pos.ref_alt; // ²Î¿¼¸ß¶È¸³Öµ
+		// æ›´æ–°æœ¬åœ°æŠ•å½±çš„å‚è€ƒå¹³é¢  
+		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon); // åº¦è½¬æ¢æˆå¼§åº¦ ï¼Œæ›´æ–°æ—¶é—´æˆ³
+		_ref_alt = _local_pos.ref_alt; // å‚è€ƒé«˜åº¦èµ‹å€¼
 
 		if (_ref_timestamp != 0) {
 			/* reproject position setpoint to new reference */
-			// ½«map_projection_reproject()ÖĞËãµÃµÄlat_sp¡¢lon_spÍ¶Ó°µ½ĞÂ²Î¿¼Æ½ÃæÖĞ
-			// ½«È«Çò×ø±êÏµÖĞµÄ×ø±ê(ÉÏÃæ¼ÆËãµÄÎ»ÖÃÉè¶¨Öµ)Í¶Ó°µ½ĞÂµÄ²Î¿¼Æ½Ãæ(±¾µØ²Î¿¼Ïµ)ÖĞ 
+			// å°†map_projection_reproject()ä¸­ç®—å¾—çš„lat_spã€lon_spæŠ•å½±åˆ°æ–°å‚è€ƒå¹³é¢ä¸­
+			// å°†å…¨çƒåæ ‡ç³»ä¸­çš„åæ ‡(ä¸Šé¢è®¡ç®—çš„ä½ç½®è®¾å®šå€¼)æŠ•å½±åˆ°æ–°çš„å‚è€ƒå¹³é¢(æœ¬åœ°å‚è€ƒç³»)ä¸­ 
 			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
 			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
@@ -814,9 +815,9 @@ MulticopterPositionControl::reset_pos_sp()
 		// we have logic in the main function which chooses the velocity setpoint such that the attitude setpoint is
 		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
 		// position in a special way. In position control mode the position will be reset anyway until the vehicle has reduced speed.
-		// ÎÒÃÇÔÚÖ÷º¯ÊıÖĞÉèÖÃÁËÒ»ÖÖÂß¼­£ºÑ¡ÔñËÙ¶ÈÉè¶¨Öµ£¬Òò´ËÔÚÇĞ»»µ½ËÙ¶È¿ØÖÆÄ£Ê½Ê±×ËÌ¬Éè¶¨ÖµÊÇ³ÖĞøµÄ£¬
-		// Òò´ËÎÒÃÇ²»ĞèÒªÊ¹ÓÃºÜÌØ±ğµÄ·½·¨È¥¶Ô¸ß¶È½øĞĞ¸´Î».
-		// ÔÚÎ»ÖÃ¿ØÖÆÄ£Ê½ÖĞ£¬³ı·Ç·ÉĞĞÆ÷¼õËÙ£¬·ñÔòÎŞÂÛÈçºÎ£¬Î»ÖÃ¶¼½«»á¸´Î»
+		// æˆ‘ä»¬åœ¨ä¸»å‡½æ•°ä¸­è®¾ç½®äº†ä¸€ç§é€»è¾‘ï¼šé€‰æ‹©é€Ÿåº¦è®¾å®šå€¼ï¼Œå› æ­¤åœ¨åˆ‡æ¢åˆ°é€Ÿåº¦æ§åˆ¶æ¨¡å¼æ—¶å§¿æ€è®¾å®šå€¼æ˜¯æŒç»­çš„ï¼Œ
+		// å› æ­¤æˆ‘ä»¬ä¸éœ€è¦ä½¿ç”¨å¾ˆç‰¹åˆ«çš„æ–¹æ³•å»å¯¹é«˜åº¦è¿›è¡Œå¤ä½.
+		// åœ¨ä½ç½®æ§åˆ¶æ¨¡å¼ä¸­ï¼Œé™¤éé£è¡Œå™¨å‡é€Ÿï¼Œå¦åˆ™æ— è®ºå¦‚ä½•ï¼Œä½ç½®éƒ½å°†ä¼šå¤ä½
 		_pos_sp(0) = _pos(0);
 		_pos_sp(1) = _pos(1);
 	}
@@ -831,8 +832,8 @@ MulticopterPositionControl::reset_alt_sp()
 		// we have logic in the main function which choosed the velocity setpoint such that the attitude setpoint is
 		// continuous when switching into velocity controlled mode, therefore, we don't need to bother about resetting
 		// altitude in a special way
-		// ÎÒÃÇÔÚÖ÷º¯ÊıÖĞÉèÖÃÁËÒ»ÖÖÂß¼­£ºÑ¡ÔñËÙ¶ÈÉè¶¨Öµ£¬Òò´ËÔÚÇĞ»»µ½ËÙ¶È¿ØÖÆÄ£Ê½Ê±×ËÌ¬Éè¶¨ÖµÊÇ³ÖĞøµÄ£¬
-		// Òò´ËÎÒÃÇ²»ĞèÒªÊ¹ÓÃºÜÌØ±ğµÄ·½·¨È¥¶Ô¸ß¶È½øĞĞ¸´Î»
+		// æˆ‘ä»¬åœ¨ä¸»å‡½æ•°ä¸­è®¾ç½®äº†ä¸€ç§é€»è¾‘ï¼šé€‰æ‹©é€Ÿåº¦è®¾å®šå€¼ï¼Œå› æ­¤åœ¨åˆ‡æ¢åˆ°é€Ÿåº¦æ§åˆ¶æ¨¡å¼æ—¶å§¿æ€è®¾å®šå€¼æ˜¯æŒç»­çš„ï¼Œ
+		// å› æ­¤æˆ‘ä»¬ä¸éœ€è¦ä½¿ç”¨å¾ˆç‰¹åˆ«çš„æ–¹æ³•å»å¯¹é«˜åº¦è¿›è¡Œå¤ä½
 		_pos_sp(2) = _pos(2);
 	}
 }
@@ -860,65 +861,65 @@ MulticopterPositionControl::limit_pos_sp_offset()
 	}
 }
 
-1void
+void
 MulticopterPositionControl::control_manual(float dt)
 {
 	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
-								 // X,YÔÚ±¾µØ×ø±êÏµ£¬ZÔÚÈ«Çò×ø±êÏµ£¨DÖ¸ÏòÏÂ£© ·¶Î§ÔÚ[-1,1]
+								 // X,Yåœ¨æœ¬åœ°åæ ‡ç³»ï¼ŒZåœ¨å…¨çƒåæ ‡ç³»ï¼ˆDæŒ‡å‘ä¸‹ï¼‰ èŒƒå›´åœ¨[-1,1]
 	req_vel_sp.zero();
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		/* ½«×ÔÎÈÄ£Ê½µÄÓÍÃÅ¸Ë×ª»»³É¿ØÖÆ´¹Ö±ËÙ¶ÈÉè¶¨Öµ(ÒÔÖĞ¼äËÙ¶ÈÎª0£¬
-		 * ÍùÉÏ²¦ËÙ¶ÈÏòÉÏ£¬ÍùÏÂ²¦ËÙ¶ÈÏòÏÂ£¬ËÙ¶È´óĞ¡Óë²¦¶¯·ù¶È³ÉÕı±È) 
+		/* å°†è‡ªç¨³æ¨¡å¼çš„æ²¹é—¨æ†è½¬æ¢æˆæ§åˆ¶å‚ç›´é€Ÿåº¦è®¾å®šå€¼(ä»¥ä¸­é—´é€Ÿåº¦ä¸º0ï¼Œ
+		 * å¾€ä¸Šæ‹¨é€Ÿåº¦å‘ä¸Šï¼Œå¾€ä¸‹æ‹¨é€Ÿåº¦å‘ä¸‹ï¼Œé€Ÿåº¦å¤§å°ä¸æ‹¨åŠ¨å¹…åº¦æˆæ­£æ¯”) 
 		 */ 
 		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
-	}//³ß¶È¿ØÖÆÆ÷£¨½«0-1×ª»»Îª-1¡ª¡ª1£©
+	}//å°ºåº¦æ§åˆ¶å™¨ï¼ˆå°†0-1è½¬æ¢ä¸º-1â€”â€”1ï¼‰
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		// ¸ù¾İºá¹ö/¸©ÑöÒ£¸ËÉèÖÃË®Æ½ËÙ¶ÈÉè¶¨Öµ
+		// æ ¹æ®æ¨ªæ»š/ä¿¯ä»°é¥æ†è®¾ç½®æ°´å¹³é€Ÿåº¦è®¾å®šå€¼
 		req_vel_sp(0) = _manual.x;
 		req_vel_sp(1) = _manual.y;
 	}
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* reset alt setpoint to current altitude if needed */
-		// ĞèÒªÊ±£¬½«¸ß¶ÈÉè¶¨Öµ¸´Î»µ½µ±Ç°¸ß¶È
-		reset_alt_sp();//¸´Î»¸ß¶ÈÉè¶¨Öµ  
+		// éœ€è¦æ—¶ï¼Œå°†é«˜åº¦è®¾å®šå€¼å¤ä½åˆ°å½“å‰é«˜åº¦
+		reset_alt_sp();//å¤ä½é«˜åº¦è®¾å®šå€¼  
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* reset position setpoint to current position if needed */
-		// ĞèÒªÊ±£¬½«Î»ÖÃÉè¶¨Öµ¸´Î»µ½µ±Ç°Î»ÖÃ
+		// éœ€è¦æ—¶ï¼Œå°†ä½ç½®è®¾å®šå€¼å¤ä½åˆ°å½“å‰ä½ç½®
 		reset_pos_sp();
 	}
 
 	/* limit velocity setpoint */
-	// ÏŞÖÆËÙ¶ÈÉè¶¨Öµ
-	float req_vel_sp_norm = req_vel_sp.length();//ËÙ¶ÈÏòÁ¿µÄ³¤¶È
+	// é™åˆ¶é€Ÿåº¦è®¾å®šå€¼
+	float req_vel_sp_norm = req_vel_sp.length();//é€Ÿåº¦å‘é‡çš„é•¿åº¦
 
 	if (req_vel_sp_norm > 1.0f) {
-		req_vel_sp /= req_vel_sp_norm;  //ËÙ¶ÈµÄ±£·½Ïò
+		req_vel_sp /= req_vel_sp_norm;  //é€Ÿåº¦çš„ä¿æ–¹å‘
 	}
 
 	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
-	// ½«_req_vel_spËõ·Åµ½0~1Ö®¼ä£¬Ëõ·Åµ½×î´óµÄËÙ¶È²¢ÈÆÆ«º½ÖáĞı×ª
+	// å°†_req_vel_spç¼©æ”¾åˆ°0~1ä¹‹é—´ï¼Œç¼©æ”¾åˆ°æœ€å¤§çš„é€Ÿåº¦å¹¶ç»•åèˆªè½´æ—‹è½¬
 	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body); //½öÈÆÆ«º½ÖáĞı×ªµÄDCM
+	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body); //ä»…ç»•åèˆªè½´æ—‹è½¬çš„DCM
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
-								 // ÔÚNED×ø±êÏµÏÂ£¬»¹Ô­µ½ÕæÊµµÄËÙ¶È  
+								 // åœ¨NEDåæ ‡ç³»ä¸‹ï¼Œè¿˜åŸåˆ°çœŸå®çš„é€Ÿåº¦  
 
 	/*
-	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
+	 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
-	 // ¸¨ÖúËÙ¶ÈÄ£Ê½:ÓÃ»§¿ØÖÆËÙ¶È£¬µ«ÊÇÈç¹ûËÙ¶È×ã¹»Ğ¡£¬Î»ÖÃ±£³Ö(¶¨µã)±»¼¤»îÓÃÓÚÏàÓ¦µÄÖá
+	 // è¾…åŠ©é€Ÿåº¦æ¨¡å¼:ç”¨æˆ·æ§åˆ¶é€Ÿåº¦ï¼Œä½†æ˜¯å¦‚æœé€Ÿåº¦è¶³å¤Ÿå°ï¼Œä½ç½®ä¿æŒ(å®šç‚¹)è¢«æ¿€æ´»ç”¨äºç›¸åº”çš„è½´
 
-////////////ÒÔÏÂÎªË®Æ½·½ÏòÉÏµÄ¸¨ÖúËÙ¶ÈÄ£Ê½£ºÓÃ»§¿ØÖÆËÙ¶È£¬µ«ÊÇÈç¹ûËÙ¶ÈºÜĞ¡£¬ÄÇÃ´ÏàÓ¦ÖáÉÏµÄÎ»ÖÃ±£³Ö²»±ä/////////////////  
+////////////ä»¥ä¸‹ä¸ºæ°´å¹³æ–¹å‘ä¸Šçš„è¾…åŠ©é€Ÿåº¦æ¨¡å¼ï¼šç”¨æˆ·æ§åˆ¶é€Ÿåº¦ï¼Œä½†æ˜¯å¦‚æœé€Ÿåº¦å¾ˆå°ï¼Œé‚£ä¹ˆç›¸åº”è½´ä¸Šçš„ä½ç½®ä¿æŒä¸å˜/////////////////  
 	/* horizontal axes */
-	// Ë®Æ½Öá
+	// æ°´å¹³è½´
 	if (_control_mode.flag_control_position_enabled) {
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
@@ -927,28 +928,28 @@ MulticopterPositionControl::control_manual(float dt)
 						&& fabsf(_vel(1)) < _params.hold_max_xy)) {
 					_pos_hold_engaged = true;
 
-				} else { // Î´¼¤»îÎ»ÖÃ±£³ÖÄ£Ê½
-					_pos_hold_engaged = false;
+				} else { // æ¿€æ´»ä½ç½®ä¿æŒæ¨¡å¼
+					_pos_hold_engaged = false; // æ ‡å¿—ä½æ›´æ–° 
 				}
 			}
 
-		} else { //x,yÖáµÄËÙ¶ÈÉèÖÃ³¬¹ıËÀÇø
+		} else { //x,yè½´çš„é€Ÿåº¦è®¾ç½®è¶…è¿‡æ­»åŒº
 			_pos_hold_engaged = false;
 		}
 
 		/* set requested velocity setpoint */
-		if (!_pos_hold_engaged) {//²»ĞèÒªÎ»ÖÃ±£³Ö(¸¨ÖúËÙ¶ÈÄ£Ê½)  
+		if (!_pos_hold_engaged) {//ä¸éœ€è¦ä½ç½®ä¿æŒ(è¾…åŠ©é€Ÿåº¦æ¨¡å¼)  
 			_pos_sp(0) = _pos(0);
 			_pos_sp(1) = _pos(1);
 			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-									  /* ÓÃÓÚËÙ¶ÈÉè¶¨¶ø²»ÊÇÎ»ÖÃÉè¶¨ */  
-			_vel_sp(0) = req_vel_sp_scaled(0);//NEDÏµÏÂµÄÕæÊµËÙ¶È
+									  /* ç”¨äºé€Ÿåº¦è®¾å®šè€Œä¸æ˜¯ä½ç½®è®¾å®š */  
+			_vel_sp(0) = req_vel_sp_scaled(0);//NEDç³»ä¸‹çš„çœŸå®é€Ÿåº¦
 			_vel_sp(1) = req_vel_sp_scaled(1);
 		}
 	}
 
 	/* vertical axis */
-////////////ÒÔÏÂÎª´¹Ö±Öá¸¨ÖúËÙ¶ÈÄ£Ê½£ºÓÃ»§¿ØÖÆËÙ¶È£¬µ«ÊÇÈç¹ûËÙ¶ÈºÜĞ¡£¬ÄÇÃ´ÏàÓ¦ÖáÉÏµÄÎ»ÖÃ±£³Ö²»±ä/////////////////  
+////////////ä»¥ä¸‹ä¸ºå‚ç›´è½´è¾…åŠ©é€Ÿåº¦æ¨¡å¼ï¼šç”¨æˆ·æ§åˆ¶é€Ÿåº¦ï¼Œä½†æ˜¯å¦‚æœé€Ÿåº¦å¾ˆå°ï¼Œé‚£ä¹ˆç›¸åº”è½´ä¸Šçš„ä½ç½®ä¿æŒä¸å˜/////////////////  
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* check for pos. hold */
 		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
@@ -979,7 +980,7 @@ void
 MulticopterPositionControl::control_offboard(float dt)
 {
 	bool updated;
-	orb_check(_pos_sp_triplet_sub, &updated); //Ö®Ç°¡¢ÏÖÔÚ¡¢ÏÂÒ»¿ÌµÄÎ»ÖÃ
+	orb_check(_pos_sp_triplet_sub, &updated); //ä¹‹å‰ã€ç°åœ¨ã€ä¸‹ä¸€åˆ»çš„ä½ç½®
 
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
@@ -988,53 +989,53 @@ MulticopterPositionControl::control_offboard(float dt)
 	if (_pos_sp_triplet.current.valid) {
 		if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
 			/* control position */
-			//Î»ÖÃ¿ØÖÆÊ¹ÄÜ&&µ±Ç°Î»ÖÃÉè¶¨ÖµÓĞĞ§£¬ÄÇÃ´½øĞĞÎ»ÖÃ¿ØÖÆ
+			//ä½ç½®æ§åˆ¶ä½¿èƒ½&&å½“å‰ä½ç½®è®¾å®šå€¼æœ‰æ•ˆï¼Œé‚£ä¹ˆè¿›è¡Œä½ç½®æ§åˆ¶
 			_pos_sp(0) = _pos_sp_triplet.current.x;
 			_pos_sp(1) = _pos_sp_triplet.current.y;
 
 		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* control velocity */
 			/* reset position setpoint to current position if needed */
-			// ËÙ¶È¿ØÖÆÊ¹ÄÜ&&µ±Ç°ËÙ¶ÈÓĞĞ§£¬ÄÇÃ´½øĞĞËÙ¶È¿ØÖÆ
-			// ĞèÒªÊ±½«Î»ÖÃÉè¶¨Öµ¸´Î»µ½µ±Ç°Î»ÖÃ
+			// é€Ÿåº¦æ§åˆ¶ä½¿èƒ½&&å½“å‰é€Ÿåº¦æœ‰æ•ˆï¼Œé‚£ä¹ˆè¿›è¡Œé€Ÿåº¦æ§åˆ¶
+			// éœ€è¦æ—¶å°†ä½ç½®è®¾å®šå€¼å¤ä½åˆ°å½“å‰ä½ç½®
 			reset_pos_sp();
 
 			/* set position setpoint move rate */
-			// ¸üĞÂË®Æ½·½ÏòµÄËÙ¶ÈÉè¶¨Öµ
+			// æ›´æ–°æ°´å¹³æ–¹å‘çš„é€Ÿåº¦è®¾å®šå€¼
 			_vel_sp(0) = _pos_sp_triplet.current.vx;
 			_vel_sp(1) = _pos_sp_triplet.current.vy;
 
 			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-									  // ĞèÒªÊ¹ÓÃµÄËÙ¶ÈÉè¶¨Öµ£¬¶ø²»ÊÇÎ»ÖÃÉè¶¨Öµ
+									  // éœ€è¦ä½¿ç”¨çš„é€Ÿåº¦è®¾å®šå€¼ï¼Œè€Œä¸æ˜¯ä½ç½®è®¾å®šå€¼
 		}
-////////////yaw×ËÌ¬Éè¶¨///////////  
+////////////yawå§¿æ€è®¾å®š///////////  
 		if (_pos_sp_triplet.current.yaw_valid) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;//Ê¹ÓÃÆ«º½½ÇËÙ¶È¸üĞÂ»úÌåµÄÆ«º½½Ç¶È
+			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;//ä½¿ç”¨åèˆªè§’é€Ÿåº¦æ›´æ–°æœºä½“çš„åèˆªè§’åº¦
 		}
-/////////////´¹Ö±·½ÏòÎ»ÖÃµÄÉè¶¨/////////// 
+/////////////å‚ç›´æ–¹å‘ä½ç½®çš„è®¾å®š/////////// 
 		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.position_valid) {
 			/* Control altitude */
-			// ¸ß¶È¿ØÖÆÊ¹ÄÜ && µ±Ç°Î»ÖÃÓĞĞ§£¬Ôò½øĞĞ¸ß¶È¿ØÖÆ
+			// é«˜åº¦æ§åˆ¶ä½¿èƒ½ && å½“å‰ä½ç½®æœ‰æ•ˆï¼Œåˆ™è¿›è¡Œé«˜åº¦æ§åˆ¶
 			_pos_sp(2) = _pos_sp_triplet.current.z;
 
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* reset alt setpoint to current altitude if needed */
-			// ÅÀÉıËÙ¶È¿ØÖÆÊ¹ÄÜ && µ±Ç°ËÙ¶ÈÓĞĞ§
-			// ĞèÒªÊ±½«¸ß¶ÈÉè¶¨Öµ¸´Î»µ½µ±Ç°¸ß¶È
+			// çˆ¬å‡é€Ÿåº¦æ§åˆ¶ä½¿èƒ½ && å½“å‰é€Ÿåº¦æœ‰æ•ˆ
+			// éœ€è¦æ—¶å°†é«˜åº¦è®¾å®šå€¼å¤ä½åˆ°å½“å‰é«˜åº¦
 			reset_alt_sp();
 
 			/* set altitude setpoint move rate */
-			// ¸üĞÂ´¹Ö±·½ÏòµÄËÙ¶ÈÉè¶¨Öµ
+			// æ›´æ–°å‚ç›´æ–¹å‘çš„é€Ÿåº¦è®¾å®šå€¼
 			_vel_sp(2) = _pos_sp_triplet.current.vz;
 
 			_run_alt_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-									  // ĞèÒªÊ¹ÓÃµÄËÙ¶ÈÉè¶¨Öµ£¬¶ø²»ÊÇÎ»ÖÃÉè¶¨Öµ
+									  // éœ€è¦ä½¿ç”¨çš„é€Ÿåº¦è®¾å®šå€¼ï¼Œè€Œä¸æ˜¯ä½ç½®è®¾å®šå€¼
 		}
 
-	} else {//µ±Ç°µÄº½µãĞÅÏ¢²»¿ÉÓÃ
+	} else {//å½“å‰çš„èˆªç‚¹ä¿¡æ¯ä¸å¯ç”¨
 		reset_pos_sp();
 		reset_alt_sp();
 	}
@@ -1046,7 +1047,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 {
 	/* project center of sphere on line */
 	/* normalized AB */
-	// ½«ÇòÌåµÄÖĞĞÄÍ¶Ó°µ½ÏßÉÏ  ¹éÒ»»¯AB
+	// å°†çƒä½“çš„ä¸­å¿ƒæŠ•å½±åˆ°çº¿ä¸Š  å½’ä¸€åŒ–AB
 	math::Vector<3> ab_norm = line_b - line_a;
 	ab_norm.normalize();
 	math::Vector<3> d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
@@ -1055,7 +1056,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 	/* we have triangle CDX with known CD and CX = R, find DX */
 	if (sphere_r > cd_len) {
 		/* have two roots, select one in A->B direction from D */
-		// µÃµ½Á½¸ö¸ù£¬´ÓDÖĞÑ¡ÔñA-B·½ÏòµÄÕâÒ»¸ö
+		// å¾—åˆ°ä¸¤ä¸ªæ ¹ï¼Œä»Dä¸­é€‰æ‹©A-Bæ–¹å‘çš„è¿™ä¸€ä¸ª
 		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
 		res = d + ab_norm * dx_len;
 		return true;
@@ -1070,7 +1071,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 void MulticopterPositionControl::control_auto(float dt)
 {
 	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
-	// ×Ô¶¯Ä£Ê½±»¼¤»î»òÕß²»ÔÚÊÖ¶¯¿ØÖÆÄ£Ê½ÏÂÊ±£¬¸´Î»Î»ÖÃÉè¶¨Öµ
+	// è‡ªåŠ¨æ¨¡å¼è¢«æ¿€æ´»æˆ–è€…ä¸åœ¨æ‰‹åŠ¨æ§åˆ¶æ¨¡å¼ä¸‹æ—¶ï¼Œå¤ä½ä½ç½®è®¾å®šå€¼
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
@@ -1083,9 +1084,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		reset_alt_sp();
 	}
 
-//////////////////»ñÈ¡ÈıÖØÎ»ÖÃÉè¶¨Öµ(previous  current  next)////////////////// 
+//////////////////è·å–ä¸‰é‡ä½ç½®è®¾å®šå€¼(previous  current  next)////////////////// 
 	//Poll position setpoint
-	// ÂÖÑ¯Î»ÖÃÉè¶¨Öµ
+	// è½®è¯¢ä½ç½®è®¾å®šå€¼
 	bool updated;
 	orb_check(_pos_sp_triplet_sub, &updated);
 
@@ -1093,7 +1094,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
 		//Make sure that the position setpoint is valid
-		//±£Ö¤Î»ÖÃÉè¶¨ÖµÓĞĞ§
+		//ä¿è¯ä½ç½®è®¾å®šå€¼æœ‰æ•ˆ
 		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
 		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
 		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
@@ -1101,16 +1102,16 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-	bool current_setpoint_valid = false;//³õÊ¼»¯±êÖ¾Î»
+	bool current_setpoint_valid = false;//åˆå§‹åŒ–æ ‡å¿—ä½
 	bool previous_setpoint_valid = false;
 
 	math::Vector<3> prev_sp;
 	math::Vector<3> curr_sp;
 
 	if (_pos_sp_triplet.current.valid) {
-//////////////Èç¹ûµ±Ç°º½µãĞÅÏ¢ÓĞĞ§,½«Î»ÖÃÉè¶¨Öµ¾­Î³¶ÈºÍ¸ß¶È×ª»»³ÉµØ×ø±êÏµµÄxyzÖµ////////////  
+//////////////å¦‚æœå½“å‰èˆªç‚¹ä¿¡æ¯æœ‰æ•ˆ,å°†ä½ç½®è®¾å®šå€¼ç»çº¬åº¦å’Œé«˜åº¦è½¬æ¢æˆåœ°åæ ‡ç³»çš„xyzå€¼////////////  
 		/* project setpoint to local frame */
-		// ½«Éè¶¨ÖµÍ¶Ó°µ½±¾µØ×ø±êÏµ
+		// å°†è®¾å®šå€¼æŠ•å½±åˆ°æœ¬åœ°åæ ‡ç³»
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 				       &curr_sp.data[0], &curr_sp.data[1]);
@@ -1124,7 +1125,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
-//////////////Èç¹ûÖ®Ç°µÄº½µãĞÅÏ¢ÓĞĞ§,½«Î»ÖÃÉè¶¨Öµ¾­Î³¶ÈºÍ¸ß¶È×ª»»³ÉµØ×ø±êÏµµÄxyzÖµ////////////  
+//////////////å¦‚æœä¹‹å‰çš„èˆªç‚¹ä¿¡æ¯æœ‰æ•ˆ,å°†ä½ç½®è®¾å®šå€¼ç»çº¬åº¦å’Œé«˜åº¦è½¬æ¢æˆåœ°åæ ‡ç³»çš„xyzå€¼////////////  
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
 				       &prev_sp.data[0], &prev_sp.data[1]);
@@ -1137,10 +1138,10 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-/*********************  ÏÂ²¿·ÖÖ»ÊÇ½«Éè¶¨Öµ½øĞĞ±ÈÀı±ä»»£¬ËõĞ¡½øÒ»¸öÇø¼ä   ******************/  
+/*********************  ä¸‹éƒ¨åˆ†åªæ˜¯å°†è®¾å®šå€¼è¿›è¡Œæ¯”ä¾‹å˜æ¢ï¼Œç¼©å°è¿›ä¸€ä¸ªåŒºé—´   ******************/  
 	if (current_setpoint_valid) {
 		/* scaled space: 1 == position error resulting max allowed speed */
-		// scaled space: 1 == Î»ÖÃ´íÎóµ¼ÖÂ²úÉú×î´óµÄÔÊĞíËÙ¶È     ±ÈÀı¿Õ¼ä£¿
+		// scaled space: 1 == ä½ç½®é”™è¯¯å¯¼è‡´äº§ç”Ÿæœ€å¤§çš„å…è®¸é€Ÿåº¦     æ¯”ä¾‹ç©ºé—´ï¼Ÿ
 		math::Vector<3> cruising_speed = _params.vel_cruise;
 
 		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
@@ -1149,14 +1150,14 @@ void MulticopterPositionControl::control_auto(float dt)
 			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
 		}
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);//Ë®Æ½Î»ÖÃÎó²îµÄ±ÈÀıÔöÒæpos_p / ×Ô¶¯Ä£Ê½ÏÂµÄÒ»°ãË®Æ½ËÙ¶Ècruising_speed
+		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);//æ°´å¹³ä½ç½®è¯¯å·®çš„æ¯”ä¾‹å¢ç›Špos_p / è‡ªåŠ¨æ¨¡å¼ä¸‹çš„ä¸€èˆ¬æ°´å¹³é€Ÿåº¦cruising_speed
 
 		/* convert current setpoint to scaled space */
-		// ½«µ±Ç°Éè¶¨Öµ×ª»»µ½±ÈÀı¿Õ¼ä
+		// å°†å½“å‰è®¾å®šå€¼è½¬æ¢åˆ°æ¯”ä¾‹ç©ºé—´
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
 
 		/* by default use current setpoint as is */
-		// Ä¬ÈÏÇé¿öÏÂ¾ÍÊ¹ÓÃµ±Ç°µÄÉè¶¨Öµ
+		// é»˜è®¤æƒ…å†µä¸‹å°±ä½¿ç”¨å½“å‰çš„è®¾å®šå€¼
 		math::Vector<3> pos_sp_s = curr_sp_s;
 
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
@@ -1164,22 +1165,22 @@ void MulticopterPositionControl::control_auto(float dt)
 		    previous_setpoint_valid) {
 
 			/* follow "previous - current" line */
-			// ÑØ×Å "Ö®Ç° -> ÏÖÔÚ" ÏßÂ·
+			// æ²¿ç€ "ä¹‹å‰ -> ç°åœ¨" çº¿è·¯
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
 
 				/* find X - cross point of unit sphere and trajectory */
-				// µ¥ÔªÇòÌåÓëÓë¹ì¼£µÄ½»µã
+				// å•å…ƒçƒä½“ä¸ä¸è½¨è¿¹çš„äº¤ç‚¹
 				math::Vector<3> pos_s = _pos.emult(scale);
 				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
 				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
 				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
 				float curr_pos_s_len = curr_pos_s.length();
-/////////////////¸ù¾İ·ÉĞĞÆ÷Î»ÖÃ¾àÀëµ±Ç°Î»ÖÃÉè¶¨µãµÄ¾àÀë·Ö2ÖÖÇé¿ö£ºĞ¡ÓÚµ¥Î»°ë¾¶ºÍ²»Ğ¡ÓÚµ¥Î»°ë¾¶////////////////////  
+/////////////////æ ¹æ®é£è¡Œå™¨ä½ç½®è·ç¦»å½“å‰ä½ç½®è®¾å®šç‚¹çš„è·ç¦»åˆ†2ç§æƒ…å†µï¼šå°äºå•ä½åŠå¾„å’Œä¸å°äºå•ä½åŠå¾„////////////////////  
 				if (curr_pos_s_len < 1.0f) {
 					/* copter is closer to waypoint than unit radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
-					// ·ÉĞĞÆ÷¾àº½µãµÄÎ»ÖÃĞ¡ÓÚµ¥Î»°ë¾¶
-					// ¼ì²âÏÂÒ»¸öº½µãµÄÎ»ÖÃ²¢Ê¹ÓÃËüÀ´·ÀÖ¹·ÉĞĞÆ÷¾­¹ıÒ»¸öº½µãÊ±¼õËÙ
+					// é£è¡Œå™¨è·èˆªç‚¹çš„ä½ç½®å°äºå•ä½åŠå¾„
+					// æ£€æµ‹ä¸‹ä¸€ä¸ªèˆªç‚¹çš„ä½ç½®å¹¶ä½¿ç”¨å®ƒæ¥é˜²æ­¢é£è¡Œå™¨ç»è¿‡ä¸€ä¸ªèˆªç‚¹æ—¶å‡é€Ÿ
 					if (_pos_sp_triplet.next.valid) {
 						math::Vector<3> next_sp;
 						map_projection_project(&_ref_pos,
@@ -1191,20 +1192,20 @@ void MulticopterPositionControl::control_auto(float dt)
 							math::Vector<3> next_sp_s = next_sp.emult(scale);
 
 							/* calculate angle prev - curr - next */
-							// ¼ÆËã½Ç¶È   Ö®Ç° -> ÏÖÔÚ -> ÏÂÒ»¿Ì
+							// è®¡ç®—è§’åº¦   ä¹‹å‰ -> ç°åœ¨ -> ä¸‹ä¸€åˆ»
 							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
 							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
 
 							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
-							// cos(a)*curr_next£¬a±íÊ¾µ±Ç°Â·ÏßºÍÏÂÒ»¶Î¹ì¼£¼äµÄ¼Ğ½Ç
-							/* prev_curr_s_normÊÇµ¥Î»ÏòÁ¿(µ±Ç°Î»ÖÃÉè¶¨ - Ç°Ò»´ÎÎ»ÖÃÉè¶¨)£¬curr_next_sÊÇÁíÒ»¸öÏòÁ¿(ÏÂÒ»´ÎÎ»ÖÃÉè¶¨ - µ±Ç°Î»ÖÃÉè¶¨)*/  
-							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;// ÏòÁ¿µã³Ë
+							// cos(a)*curr_nextï¼Œaè¡¨ç¤ºå½“å‰è·¯çº¿å’Œä¸‹ä¸€æ®µè½¨è¿¹é—´çš„å¤¹è§’
+							/* prev_curr_s_normæ˜¯å•ä½å‘é‡(å½“å‰ä½ç½®è®¾å®š - å‰ä¸€æ¬¡ä½ç½®è®¾å®š)ï¼Œcurr_next_sæ˜¯å¦ä¸€ä¸ªå‘é‡(ä¸‹ä¸€æ¬¡ä½ç½®è®¾å®š - å½“å‰ä½ç½®è®¾å®š)*/  
+							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;// å‘é‡ç‚¹ä¹˜
 
 							/* cos(b), b = angle pos - curr_sp - prev_sp */
-							/* curr_pos_sÊÇÏòÁ¿µ±Ç°Î»ÖÃÖ¸ÏòÊµ¼ÊÎ»ÖÃ(Êµ¼ÊÎ»ÖÃ - µ±Ç°Î»ÖÃÉè¶¨) 
-                             * prev_curr_s_normÊÇÇ°Ò»´ÎÎ»ÖÃÉè¶¨Ö¸Ïòµ±Ç°Î»ÖÃÉè¶¨µÄµ¥Î»ÏòÁ¿(µ±Ç°Î»ÖÃÉè¶¨-Ç°Ò»´ÎÎ»ÖÃÉè¶¨) 
-                             * curr_pos_s_lenÊÇµ±Ç°Î»ÖÃÉè¶¨ÓëÊµ¼ÊÎ»ÖÃÖ®¼ä³¤¶È 
-                             * ËùÒÔcos_b¾ÍÊÇpos - curr_sp - prev_spÈıµãÁ¬ÏßµÄ½Ç¶ÈµÄÓàÏÒÖµ??
+							/* curr_pos_sæ˜¯å‘é‡å½“å‰ä½ç½®æŒ‡å‘å®é™…ä½ç½®(å®é™…ä½ç½® - å½“å‰ä½ç½®è®¾å®š) 
+                             * prev_curr_s_normæ˜¯å‰ä¸€æ¬¡ä½ç½®è®¾å®šæŒ‡å‘å½“å‰ä½ç½®è®¾å®šçš„å•ä½å‘é‡(å½“å‰ä½ç½®è®¾å®š-å‰ä¸€æ¬¡ä½ç½®è®¾å®š) 
+                             * curr_pos_s_lenæ˜¯å½“å‰ä½ç½®è®¾å®šä¸å®é™…ä½ç½®ä¹‹é—´é•¿åº¦ 
+                             * æ‰€ä»¥cos_bå°±æ˜¯pos - curr_sp - prev_spä¸‰ç‚¹è¿çº¿çš„è§’åº¦çš„ä½™å¼¦å€¼??
                              */  
 							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
 
@@ -1212,13 +1213,13 @@ void MulticopterPositionControl::control_auto(float dt)
 								float curr_next_s_len = curr_next_s.length();
 
 								/* if curr - next distance is larger than unit radius, limit it */
-								// Èç¹û µ±Ç° -> ÏÂÒ»¿Ì  ¾àÀë´óÓÚµ¥Î»°ë¾¶£¬ÏŞÖÆµ½µ¥Î»°ë¾¶ÄÚ
+								// å¦‚æœ å½“å‰ -> ä¸‹ä¸€åˆ»  è·ç¦»å¤§äºå•ä½åŠå¾„ï¼Œé™åˆ¶åˆ°å•ä½åŠå¾„å†…
 								if (curr_next_s_len > 1.0f) {
 									cos_a_curr_next /= curr_next_s_len;
 								}
 
 								/* feed forward position setpoint offset */
-								// Ç°À¡Î»ÖÃÉè¶¨ÖµÆ«ÒÆ
+								// å‰é¦ˆä½ç½®è®¾å®šå€¼åç§»
 								math::Vector<3> pos_ff = prev_curr_s_norm *
 											 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
 											 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
@@ -1227,24 +1228,24 @@ void MulticopterPositionControl::control_auto(float dt)
 						}
 					}
 
-				} else {//²»Ğ¡ÓÚµ¥Î»°ë¾¶
+				} else {//ä¸å°äºå•ä½åŠå¾„
 					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 
 					if (near) {
 						/* unit sphere crosses trajectory */
-						// µ¥Î»Çò¾­¹ıÁË¹ì¼£
+						// å•ä½çƒç»è¿‡äº†è½¨è¿¹
 					} else {
 						/* copter is too far from trajectory */
 						/* if copter is behind prev waypoint, go directly to prev waypoint */
-						// ·ÉĞĞÆ÷¾àÀë¹ì¼£Ì«Ô¶
-						// Èç¹û·ÉĞĞÆ÷ÔÚÉÏÒ»¸öº½µãºóÃæ£¬Ö±½ÓÈ¥ÉÏÒ»¸öº½µã
-						// ½Çpos_sp - prev_sp - curr_sp´óÓÚ90¡ã 
+						// é£è¡Œå™¨è·ç¦»è½¨è¿¹å¤ªè¿œ
+						// å¦‚æœé£è¡Œå™¨åœ¨ä¸Šä¸€ä¸ªèˆªç‚¹åé¢ï¼Œç›´æ¥å»ä¸Šä¸€ä¸ªèˆªç‚¹
+						// è§’pos_sp - prev_sp - curr_spå¤§äº90Â° 
 						if ((pos_sp_s - prev_sp_s) * prev_curr_s < 0.0f) {
 							pos_sp_s = prev_sp_s;
 						}
 
 						/* if copter is in front of curr waypoint, go directly to curr waypoint */
-						// Èç¹û·ÉĞĞÆ÷ÔÚµ±Ç°º½µãÖ®Ç°£¬Ö±½Ó»Øµ±Ç°º½µã
+						// å¦‚æœé£è¡Œå™¨åœ¨å½“å‰èˆªç‚¹ä¹‹å‰ï¼Œç›´æ¥å›å½“å‰èˆªç‚¹
 						if ((pos_sp_s - curr_sp_s) * prev_curr_s > 0.0f) {
 							pos_sp_s = curr_sp_s;
 						}
@@ -1254,20 +1255,20 @@ void MulticopterPositionControl::control_auto(float dt)
 				}
 			}
 		}
-/* ÓÉÉÏÊö³ÌĞò´ó¸Å¾Í¿ÉÒÔ¿´³ö¿ØÖÆÂß¼­ 
- * ÏÈ¸ù¾İÈÎÎñÉè¶¨Ç°Ò»¸ö¡¢µ±Ç°¡¢ÏÂÒ»¸öÎ»ÖÃ±ê¶¨(prev_sp_s¡¢curr_sp_s¡¢next_sp_s)£¬ÓÃÓÚ¿ØÖÆ·ÉĞĞÆ÷°´ÕÕ´Ë¹ì¼£·ÉĞĞ 
- * pos_sp_sÊÇÊµÊ±Î»ÖÃÉè¶¨Öµ£¬ÓÃÓÚÖ¸µ¼·ÉĞĞÆ÷¾ßÌåÈçºÎÒ»¸öµãÒ»¸öµãµÄ¿¿½ü¹ì¼£±ê¶¨Öµ(prev_sp_s¡¢curr_sp_s¡¢next_sp_s) 
- * pos_sÊÇ·ÉĞĞÆ÷ÊµÊ±Î»ÖÃ 
- * ´øÁË_sµÄ¶¼ÊÇ¾­¹ı´óĞ¡±ÈÀıËõ·ÅµÄ£¬²»ÊÇÊµ¼ÊÖµ 
+/* ç”±ä¸Šè¿°ç¨‹åºå¤§æ¦‚å°±å¯ä»¥çœ‹å‡ºæ§åˆ¶é€»è¾‘ 
+ * å…ˆæ ¹æ®ä»»åŠ¡è®¾å®šå‰ä¸€ä¸ªã€å½“å‰ã€ä¸‹ä¸€ä¸ªä½ç½®æ ‡å®š(prev_sp_sã€curr_sp_sã€next_sp_s)ï¼Œç”¨äºæ§åˆ¶é£è¡Œå™¨æŒ‰ç…§æ­¤è½¨è¿¹é£è¡Œ 
+ * pos_sp_sæ˜¯å®æ—¶ä½ç½®è®¾å®šå€¼ï¼Œç”¨äºæŒ‡å¯¼é£è¡Œå™¨å…·ä½“å¦‚ä½•ä¸€ä¸ªç‚¹ä¸€ä¸ªç‚¹çš„é è¿‘è½¨è¿¹æ ‡å®šå€¼(prev_sp_sã€curr_sp_sã€next_sp_s) 
+ * pos_sæ˜¯é£è¡Œå™¨å®æ—¶ä½ç½® 
+ * å¸¦äº†_sçš„éƒ½æ˜¯ç»è¿‡å¤§å°æ¯”ä¾‹ç¼©æ”¾çš„ï¼Œä¸æ˜¯å®é™…å€¼ 
  */ 
 
-		////////////////ÒÔÏÂ²¿·ÖÊÇÏŞËÙÓÃµÄ//////////////  
+		////////////////ä»¥ä¸‹éƒ¨åˆ†æ˜¯é™é€Ÿç”¨çš„//////////////  
 		/* move setpoint not faster than max allowed speed */
-		// ÉèÖÃµãµÄÒÆ¶¯ËÙ¶ÈĞ¡ÓÚ×î´óÔÊĞíËÙ¶È
+		// è®¾ç½®ç‚¹çš„ç§»åŠ¨é€Ÿåº¦å°äºæœ€å¤§å…è®¸é€Ÿåº¦
 		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
 
 		/* difference between current and desired position setpoints, 1 = max speed */
-		// µ±Ç°Î»ÖÃÓëÄ¿±êÎ»ÖÃÉè¶¨ÖµÖ®¼ä¾àÀë£¬  1=×î´óËÙ¶È
+		// å½“å‰ä½ç½®ä¸ç›®æ ‡ä½ç½®è®¾å®šå€¼ä¹‹é—´è·ç¦»ï¼Œ  1=æœ€å¤§é€Ÿåº¦
 		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
 		float d_pos_m_len = d_pos_m.length();
 
@@ -1277,10 +1278,10 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* scale result back to normal space */
 		_pos_sp = pos_sp_s.edivide(scale);
-		////////////////ÒÔÉÏ²¿·ÖÊÇÏŞËÙÓÃµÄ//////////////  
+		////////////////ä»¥ä¸Šéƒ¨åˆ†æ˜¯é™é€Ÿç”¨çš„//////////////  
 
 		/* update yaw setpoint if needed */
-		// ĞèÒªÊ±¸üĞÂÆ«º½×ËÌ¬Éè¶¨Öµ
+		// éœ€è¦æ—¶æ›´æ–°åèˆªå§¿æ€è®¾å®šå€¼
 		if (_pos_sp_triplet.current.yawspeed_valid
 		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
@@ -1293,19 +1294,19 @@ void MulticopterPositionControl::control_auto(float dt)
 		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
 		 * this makes the takeoff finish smoothly.
 		 */
-		 // Èç¹ûÒÑ¾­½Ó½üµ±Ç°µÄÆğ·Éµã£¬Îª·ÀÖ¹½ÓÏÂÀ´ÇĞ»»µ½¶¨µãÄ£Ê½£¬²»Òª½øĞĞ¸´Î»
-		 // Õâ»áÊ¹µÃÆğ·É¹ı³ÌÄÜÆ½»ºµÄÍê³É
+		 // å¦‚æœå·²ç»æ¥è¿‘å½“å‰çš„èµ·é£ç‚¹ï¼Œä¸ºé˜²æ­¢æ¥ä¸‹æ¥åˆ‡æ¢åˆ°å®šç‚¹æ¨¡å¼ï¼Œä¸è¦è¿›è¡Œå¤ä½
+		 // è¿™ä¼šä½¿å¾—èµ·é£è¿‡ç¨‹èƒ½å¹³ç¼“çš„å®Œæˆ
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 		     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)
 		    && _pos_sp_triplet.current.acceptance_radius > 0.0f
 		    /* need to detect we're close a bit before the navigator switches from takeoff to next waypoint */
-		    // ÔÚnavigator´ÓÆğ·ÉÇĞ»»µ½ÏÂÒ»¸öº½µãÖ®Ç° ĞèÒª¼ì²â·É»úÊÇ·ñÔÚ³¯×ÅÏÂÒ»¸öº½µãµÄ·½Ïò¿¿½ü
+		    // åœ¨navigatorä»èµ·é£åˆ‡æ¢åˆ°ä¸‹ä¸€ä¸ªèˆªç‚¹ä¹‹å‰ éœ€è¦æ£€æµ‹é£æœºæ˜¯å¦åœ¨æœç€ä¸‹ä¸€ä¸ªèˆªç‚¹çš„æ–¹å‘é è¿‘
 		    && (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
 			_reset_pos_sp = false;
 			_reset_alt_sp = false;
 
 			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
-			// ·ñÔò£ºÎª·ÀÖ¹ÈÎÎñÖĞ¶Ï£¬²»ÒªÈ¥ÏÂÒ»¸öº½µã£¬Í£ÔÚµ±Ç°Î»ÖÃ
+			// å¦åˆ™ï¼šä¸ºé˜²æ­¢ä»»åŠ¡ä¸­æ–­ï¼Œä¸è¦å»ä¸‹ä¸€ä¸ªèˆªç‚¹ï¼Œåœåœ¨å½“å‰ä½ç½®
 
 		} else {
 			_reset_pos_sp = true;
@@ -1314,7 +1315,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
-		// Ã»ÓĞº½µã£¬Ê²Ã´¶¼²»ÓÃ×ö£¬Éè¶¨ÖµÒÑ¾­¸´Î»ÁË
+		// æ²¡æœ‰èˆªç‚¹ï¼Œä»€ä¹ˆéƒ½ä¸ç”¨åšï¼Œè®¾å®šå€¼å·²ç»å¤ä½äº†
 	}
 }
 
@@ -1324,7 +1325,7 @@ MulticopterPositionControl::task_main()
 
 	/*
 	 * do subscriptions
-	 * Ö÷Ìâ¶©ÔÄ
+	 * ä¸»é¢˜è®¢é˜…
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -1340,14 +1341,14 @@ MulticopterPositionControl::task_main()
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 
 
-	parameters_update(true); //²ÎÊı³õÊ¼»¯£¬Îªtrue->Ç¿ÖÆ¸üĞÂ
+	parameters_update(true); //å‚æ•°åˆå§‹åŒ–ï¼Œä¸ºtrue->å¼ºåˆ¶æ›´æ–°
 
 	/* initialize values of critical structs until first regular update */
-	// µÚÒ»´Î¸üĞÂÇ°³õÊ¼»¯¹Ø¼ü½á¹¹ÌåµÄ³ÉÔ±Öµ
-	_arming.armed = false; // ²»½âËø
+	// ç¬¬ä¸€æ¬¡æ›´æ–°å‰åˆå§‹åŒ–å…³é”®ç»“æ„ä½“çš„æˆå‘˜å€¼
+	_arming.armed = false; // ä¸è§£é”
 
 	/* get an initial update for all sensor and status data */
-	poll_subscriptions(); // Ö÷ÌâÊı¾İ³õÊ¼»¯£¬¶Ô¶©ÔÄµÄÖ÷Ìâ½øĞĞÊı¾İ»ñÈ¡ check&copy
+	poll_subscriptions(); // ä¸»é¢˜æ•°æ®åˆå§‹åŒ–ï¼Œå¯¹è®¢é˜…çš„ä¸»é¢˜è¿›è¡Œæ•°æ®è·å– check&copy
 
 	bool reset_int_z = true;
 	bool reset_int_z_manual = false;
@@ -1372,13 +1373,13 @@ MulticopterPositionControl::task_main()
 
 	while (!_task_should_exit) {
 		/* wait for up to 20ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20); //ÆµÂÊ50Hz
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20); //é¢‘ç‡50Hz
 
 		/* timed out - periodic check for _task_should_exit */
-	    // ³¬Ê± - ÖÜÆÚĞÔ¼ì²â _task_should_exit
+	    // è¶…æ—¶ - å‘¨æœŸæ€§æ£€æµ‹ _task_should_exit
 		if (pret == 0) {
 			// Go through the loop anyway to copy manual input at 50 Hz.
-			// ÒÔ50HzÆµÂÊ½ÓÊÕÊÖ¶¯ÊäÈë
+			// ä»¥50Hzé¢‘ç‡æ¥æ”¶æ‰‹åŠ¨è¾“å…¥
 		}
 
 		/* this is undesirable but not much we can do */
@@ -1397,7 +1398,7 @@ MulticopterPositionControl::task_main()
 
 		// set dt for control blocks
 		setDt(dt);
-/////////////////////¶Ô½âËø×´Ì¬½øĞĞÅĞ¶ÏÖ®ºó¸´Î»Î»ÖÃºÍ¸ß¶ÈÉèÖÃ/////////////////  
+/////////////////////å¯¹è§£é”çŠ¶æ€è¿›è¡Œåˆ¤æ–­ä¹‹åå¤ä½ä½ç½®å’Œé«˜åº¦è®¾ç½®/////////////////  
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
@@ -1407,9 +1408,9 @@ MulticopterPositionControl::task_main()
 			reset_int_xy = true;
 			reset_yaw_sp = true;
 		}
-////////////////¹Ì¶¨ÒíÄ£Ê½Îª´¹Ö±Æğ½µ¿ØÖÆ,¸´Î»yawºÍ¸ß¶ÈÉèÖÃ/////////////////////////
+////////////////å›ºå®šç¿¼æ¨¡å¼ä¸ºå‚ç›´èµ·é™æ§åˆ¶,å¤ä½yawå’Œé«˜åº¦è®¾ç½®/////////////////////////
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
-		// ¶ÔÓÚ¹Ì¶¨ÒíÄ£Ê½ÏÂµÄVTOL£¬¸´Î»Æ«º½ÒÔ¼°¸ß¶ÈÉè¶¨Öµ
+		// å¯¹äºå›ºå®šç¿¼æ¨¡å¼ä¸‹çš„VTOLï¼Œå¤ä½åèˆªä»¥åŠé«˜åº¦è®¾å®šå€¼
 		if (_vehicle_status.is_vtol) {
 			if (!_vehicle_status.is_rotary_wing) {
 				reset_yaw_sp = true;
@@ -1418,16 +1419,16 @@ MulticopterPositionControl::task_main()
 		}
 
 		//Update previous arming state
-		// ¸üĞÂÉÏÒ»¿ÌµÄ½âËø×´Ì¬
+		// æ›´æ–°ä¸Šä¸€åˆ»çš„è§£é”çŠ¶æ€
 		was_armed = _control_mode.flag_armed;
 
-		update_ref(); //ÓÃÎ»ÖÃ¹À¼ÆµÄ²ÎÊıÀ´¸üĞÂµ±Ç°Î»ÖÃ²Î¿¼µã 
+		update_ref(); //ç”¨ä½ç½®ä¼°è®¡çš„å‚æ•°æ¥æ›´æ–°å½“å‰ä½ç½®å‚è€ƒç‚¹ 
 
 		/*
 		 * Update velocity derivative,
 		 * independent of the current flight mode
 		 */ 
-		//¶ÀÁ¢ÓÚµ±Ç°Ä£Ê½¸üĞÂ¼ÓËÙ¶È
+		//ç‹¬ç«‹äºå½“å‰æ¨¡å¼æ›´æ–°åŠ é€Ÿåº¦
 		if (_local_pos.timestamp > 0) {
 
 			if (PX4_ISFINITE(_local_pos.x) &&
@@ -1437,7 +1438,7 @@ MulticopterPositionControl::task_main()
 				_pos(0) = _local_pos.x;
 				_pos(1) = _local_pos.y;
 
-				if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {//ÉùÄÅÓĞĞ§£¿
+				if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {//å£°å‘æœ‰æ•ˆï¼Ÿ
 					_pos(2) = -_local_pos.dist_bottom;
 
 				} else {
@@ -1459,17 +1460,17 @@ MulticopterPositionControl::task_main()
 					_vel(2) = _local_pos.vz;
 				}
 			}
-			//»ñÈ¡ËÙ¶ÈµÄÎ¢·ÖÁ¿£¬Ò»¸öµÍÍ¨ÂË²¨Æ÷µÄÊµÏÖ
-			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0)); //µ±Ç°ËÙ¶ÈµÄÎ¢·Ö
+			//è·å–é€Ÿåº¦çš„å¾®åˆ†é‡ï¼Œä¸€ä¸ªä½é€šæ»¤æ³¢å™¨çš„å®ç°
+			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0)); //å½“å‰é€Ÿåº¦çš„å¾®åˆ†
 			_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 		}
 
 
-////////////ÒÔÏÂµÄ_control_mode.xxxxxx¾ùÀ´×Ôcommander.cpp///////////////////////  
+////////////ä»¥ä¸‹çš„_control_mode.xxxxxxå‡æ¥è‡ªcommander.cpp///////////////////////  
 		// reset the horizontal and vertical position hold flags for non-manual modes
 		// or if position / altitude is not controlled
-		// ½«Ë®Æ½ºÍ´¹Ö±Î»ÖÃ±£³Ö±êÖ¾¸´Î»ÓÃÓÚ·ÇÊÖ¶¯Ä£Ê½»òÕßÎ»ÖÃ/¸ß¶È²»¿É¿ØµÄÇé¿ö
+		// å°†æ°´å¹³å’Œå‚ç›´ä½ç½®ä¿æŒæ ‡å¿—å¤ä½ç”¨äºéæ‰‹åŠ¨æ¨¡å¼æˆ–è€…ä½ç½®/é«˜åº¦ä¸å¯æ§çš„æƒ…å†µ
 		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
 			_pos_hold_engaged = false;
 		}
@@ -1477,8 +1478,8 @@ MulticopterPositionControl::task_main()
 		if (!_control_mode.flag_control_altitude_enabled || !_control_mode.flag_control_manual_enabled) {
 			_alt_hold_engaged = false;
 		}
-/*****************Î»ÖÃ¿ØÖÆÂß¼­µÄ¼¯ÖĞÌåÏÖ*****************/  
-////////¸ß¶È¿ØÖÆ¡¢Î»ÖÃ¿ØÖÆ¡¢ÅÀÉıËÙÂÊ(ÊúÖ±·½Ïò)¿ØÖÆ¡¢ËÙ¶È(Ë®Æ½·½Ïò)¿ØÖÆÈÎÒâÒ»¸öÊ¹ÄÜÔò½øÈëÒÔÏÂÕâ¶Î³ÌĞò////////// 
+/*****************ä½ç½®æ§åˆ¶é€»è¾‘çš„é›†ä¸­ä½“ç°*****************/  
+////////é«˜åº¦æ§åˆ¶ã€ä½ç½®æ§åˆ¶ã€çˆ¬å‡é€Ÿç‡(ç«–ç›´æ–¹å‘)æ§åˆ¶ã€é€Ÿåº¦(æ°´å¹³æ–¹å‘)æ§åˆ¶ä»»æ„ä¸€ä¸ªä½¿èƒ½åˆ™è¿›å…¥ä»¥ä¸‹è¿™æ®µç¨‹åº////////// 
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
@@ -1489,49 +1490,49 @@ MulticopterPositionControl::task_main()
 
 			/* by default, run position/altitude controller. the control_* functions
 			 * can disable this and run velocity controllers directly in this cycle */
-			// Ä¬ÈÏÇé¿öÏÂ£¬ÔËĞĞÎ»ÖÃ/¸ß¶È¿ØÖÆÆ÷£¬Ò²¿ÉÒÔÖ±½ÓÔËĞĞËÙ¶È¿ØÖÆÆ÷¡£control_* º¯Êı¿ÉÒÔ½ûÓÃ´ËÏî²¢Ö±½ÓÔÚÑ­»·ÖĞÔËĞĞËÙ¶È¿ØÖÆÆ÷
+			// é»˜è®¤æƒ…å†µä¸‹ï¼Œè¿è¡Œä½ç½®/é«˜åº¦æ§åˆ¶å™¨ï¼Œä¹Ÿå¯ä»¥ç›´æ¥è¿è¡Œé€Ÿåº¦æ§åˆ¶å™¨ã€‚control_* å‡½æ•°å¯ä»¥ç¦ç”¨æ­¤é¡¹å¹¶ç›´æ¥åœ¨å¾ªç¯ä¸­è¿è¡Œé€Ÿåº¦æ§åˆ¶å™¨
 			_run_pos_control = true;
 			_run_alt_control = true;
 
-/*****************µÚÒ»²½£º²úÉúÎ»ÖÃ/ËÙ¶ÈÉè¶¨Öµ(ÆÚÍûÖµ)*****************/  
-////////////Ñ¡Ôñ¿ØÖÆÔ´ÊÇÊÖ¶¯¡¢Íâ²¿(offboard)¡¢»òÕß×Ô¶¯¿ØÖÆ£¬²úÉúÎ»ÖÃ/ËÙ¶ÈÉè¶¨Öµ(ÆÚÍûÖµ)//////////////////  
-////////////Õâ²¿·ÖµÄÈı¸öº¯Êı¾ßÌå»áÔÚÏÂÃæÕ¹¿ª/////////////////////  
+/*****************ç¬¬ä¸€æ­¥ï¼šäº§ç”Ÿä½ç½®/é€Ÿåº¦è®¾å®šå€¼(æœŸæœ›å€¼)*****************/  
+////////////é€‰æ‹©æ§åˆ¶æºæ˜¯æ‰‹åŠ¨ã€å¤–éƒ¨(offboard)ã€æˆ–è€…è‡ªåŠ¨æ§åˆ¶ï¼Œäº§ç”Ÿä½ç½®/é€Ÿåº¦è®¾å®šå€¼(æœŸæœ›å€¼)//////////////////  
+////////////è¿™éƒ¨åˆ†çš„ä¸‰ä¸ªå‡½æ•°å…·ä½“ä¼šåœ¨ä¸‹é¢å±•å¼€/////////////////////  
 			/* select control source */
-			// Ñ¡Ôñ¿ØÖÆÔ´£¬·ÉĞĞÄ£Ê½
+			// é€‰æ‹©æ§åˆ¶æºï¼Œé£è¡Œæ¨¡å¼
 			if (_control_mode.flag_control_manual_enabled) {
-				/* manual control ÊÖ¶¯Ä£Ê½*/
+				/* manual control æ‰‹åŠ¨æ¨¡å¼*/
 				control_manual(dt);
 				_mode_auto = false;
 
 			} else if (_control_mode.flag_control_offboard_enabled) {
-				/* offboard control Íâ²¿¿ØÖÆÄ£Ê½*/
+				/* offboard control å¤–éƒ¨æ§åˆ¶æ¨¡å¼*/
 				control_offboard(dt);
 				_mode_auto = false;
 
 			} else {
-				/* AUTO  ×Ô¶¯Ä£Ê½*/
+				/* AUTO  è‡ªåŠ¨æ¨¡å¼*/
 				control_auto(dt);
 			}
 
-/*****************µÚ¶ş²½£º²úÉú×ËÌ¬Éè¶¨Öµ(ÆÚÍûÖµ)*****************/  
-////////////////////vtol²»ÓÃ¹Ü£¬ËüÊÇÓÃÓÚ¹Ì¶¨ÒíµÄ/////////////////// 
+/*****************ç¬¬äºŒæ­¥ï¼šäº§ç”Ÿå§¿æ€è®¾å®šå€¼(æœŸæœ›å€¼)*****************/  
+////////////////////vtolä¸ç”¨ç®¡ï¼Œå®ƒæ˜¯ç”¨äºå›ºå®šç¿¼çš„/////////////////// 
 			/* weather-vane mode for vtol: disable yaw control */
-			// disable_mc_yaw_control½öÓÃÓÚVTOLµÄ·çÏò±êÄ£Ê½
+			// disable_mc_yaw_controlä»…ç”¨äºVTOLçš„é£å‘æ ‡æ¨¡å¼
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.disable_mc_yaw_control == true) {
 				_att_sp.disable_mc_yaw_control = true;
 
 			} else {
 				/* reset in case of setpoint updates */
-				// ÍòÒ»Éè¶¨Öµ¸üĞÂ£¬ÏÈ½øĞĞ¸´Î»
+				// ä¸‡ä¸€è®¾å®šå€¼æ›´æ–°ï¼Œå…ˆè¿›è¡Œå¤ä½
 				_att_sp.disable_mc_yaw_control = false;
 			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 			    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
-				// ¿ÕÏĞ×´Ì¬£¬²»ÔËĞĞ¿ØÖÆÆ÷²¢½«ÍÆÁ¦ÖÃ0
+				// ç©ºé—²çŠ¶æ€ï¼Œä¸è¿è¡Œæ§åˆ¶å™¨å¹¶å°†æ¨åŠ›ç½®0
 				R.identity();
-				//½«×ËÌ¬Éè¶¨ÖµµÄR_body[9]Êı×é¸´ÖÆµ½R¾ØÕóÖĞ  
+				//å°†å§¿æ€è®¾å®šå€¼çš„R_body[9]æ•°ç»„å¤åˆ¶åˆ°RçŸ©é˜µä¸­  
 				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 				_att_sp.R_valid = true;
 
@@ -1543,11 +1544,11 @@ MulticopterPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
-				//¡¡·¢²¼×ËÌ¬Éè¶¨Öµ
-//////////////////////´Ë´¦·¢²¼µÄ×ËÌ¬Éè¶¨Öµ²»ÊÇÕı³£Ê¹ÓÃµÄ£¬¶¼±»ÖÃÎª0ÁË//////////////////////////  
+				//ã€€å‘å¸ƒå§¿æ€è®¾å®šå€¼
+//////////////////////æ­¤å¤„å‘å¸ƒçš„å§¿æ€è®¾å®šå€¼ä¸æ˜¯æ­£å¸¸ä½¿ç”¨çš„ï¼Œéƒ½è¢«ç½®ä¸º0äº†//////////////////////////  
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-				// ¾ä±úÎª¿ÕÊ±£¬ÏÈ¹«¸æ¸Ã»°Ìâ
+				// å¥æŸ„ä¸ºç©ºæ—¶ï¼Œå…ˆå…¬å‘Šè¯¥è¯é¢˜
 				} else if (_attitude_setpoint_id) {
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
@@ -1555,7 +1556,7 @@ MulticopterPositionControl::task_main()
 			} else if (_control_mode.flag_control_manual_enabled
 				   && _vehicle_land_detected.landed) {
 				/* don't run controller when landed */
-				// ×ÅÂ½Ê±²»ÔËĞĞ¿ØÖÆÆ÷(ËùÒÔÎ»ÖÃºÍ¸ß¶ÈÉè¶¨ÖµµÈ¸´Î»)
+				// ç€é™†æ—¶ä¸è¿è¡Œæ§åˆ¶å™¨(æ‰€ä»¥ä½ç½®å’Œé«˜åº¦è®¾å®šå€¼ç­‰å¤ä½)
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
 				_mode_auto = false;
@@ -1563,7 +1564,7 @@ MulticopterPositionControl::task_main()
 				reset_int_xy = true;
 
 				R.identity();
-				//½«×ËÌ¬Éè¶¨ÖµµÄR_body[9]Êı×é¸´ÖÆµ½R¾ØÕóÖĞ  
+				//å°†å§¿æ€è®¾å®šå€¼çš„R_body[9]æ•°ç»„å¤åˆ¶åˆ°RçŸ©é˜µä¸­  
 				memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 				_att_sp.R_valid = true;
 
@@ -1575,8 +1576,8 @@ MulticopterPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
-				// ·¢²¼×ËÌ¬Éè¶¨Öµ
-//////////////////ÕâÀï·¢²¼µÄ×ËÌ¬Éè¶¨ÖµÊÇºÍ×ÅÂ½Ä£Ê½ÓĞ¹ØµÄ£¬²¢²»ÊÇ·ÉĞĞµÄ×ËÌ¬Éè¶¨Öµ///////////////  
+				// å‘å¸ƒå§¿æ€è®¾å®šå€¼
+//////////////////è¿™é‡Œå‘å¸ƒçš„å§¿æ€è®¾å®šå€¼æ˜¯å’Œç€é™†æ¨¡å¼æœ‰å…³çš„ï¼Œå¹¶ä¸æ˜¯é£è¡Œçš„å§¿æ€è®¾å®šå€¼///////////////  
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
@@ -1585,37 +1586,37 @@ MulticopterPositionControl::task_main()
 				}
 
 			} 
-/*****************ÖØµã£º²úÉú×ËÌ¬Éè¶¨Öµ(ÆÚÍûÖµ)*****************/  
-/////////////////Õâ¶Î³ÌĞòÓ¦¸Ã²ÅÊÇ·¢²¼Õı³£·ÉĞĞ×´Ì¬µÄ×ËÌ¬Éè¶¨Öµ//////////////////  
-/////////////////ÔËĞĞÎ»ÖÃºÍ¸ß¶È¿ØÖÆÆ÷(·ñÔò²ÉÓÃÒÑ¾­¼ÆËã³öÀ´µÄËÙ¶ÈÉè¶¨Öµ)//////////////  
+/*****************é‡ç‚¹ï¼šäº§ç”Ÿå§¿æ€è®¾å®šå€¼(æœŸæœ›å€¼)*****************/  
+/////////////////è¿™æ®µç¨‹åºåº”è¯¥æ‰æ˜¯å‘å¸ƒæ­£å¸¸é£è¡ŒçŠ¶æ€çš„å§¿æ€è®¾å®šå€¼//////////////////  
+/////////////////è¿è¡Œä½ç½®å’Œé«˜åº¦æ§åˆ¶å™¨(å¦åˆ™é‡‡ç”¨å·²ç»è®¡ç®—å‡ºæ¥çš„é€Ÿåº¦è®¾å®šå€¼)//////////////  
 			else {
-/****************ÖØµã(1):²úÉú¿ÉÀûÓÃµÄËÙ¶ÈÉè¶¨Öµ(ÆÚÍûÖµ)*******************/  
+/****************é‡ç‚¹(1):äº§ç”Ÿå¯åˆ©ç”¨çš„é€Ÿåº¦è®¾å®šå€¼(æœŸæœ›å€¼)*******************/  
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-				// Ê¹ÄÜÇé¿öÏÂ£¬ÔËĞĞÎ»ÖÃ&×ËÌ¬¿ØÖÆÆ÷¡£·ñÔòÊ¹ÓÃÖ®Ç°¼ÆËãµÃµ½µÄËÙ¶ÈÉè¶¨Öµ
+				// ä½¿èƒ½æƒ…å†µä¸‹ï¼Œè¿è¡Œä½ç½®&å§¿æ€æ§åˆ¶å™¨ã€‚å¦åˆ™ä½¿ç”¨ä¹‹å‰è®¡ç®—å¾—åˆ°çš„é€Ÿåº¦è®¾å®šå€¼
 				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0); //Î»ÖÃ¿ØÖÆÍâ»·½öÊ¹ÓÃP¿ØÖÆ
+					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0); //ä½ç½®æ§åˆ¶å¤–ç¯ä»…ä½¿ç”¨Pæ§åˆ¶
 					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 				}
             /*  
-             *  _run_pos_control = true;//±êÖ¾Î» 
-             *  _run_alt_control = true;//±êÖ¾Î» 
+             *  _run_pos_control = true;//æ ‡å¿—ä½ 
+             *  _run_alt_control = true;//æ ‡å¿—ä½ 
              * 
-             *  _pos(n)¾ÍÊÇÖ®Ç°orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos); 
+             *  _pos(n)å°±æ˜¯ä¹‹å‰orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos); 
              *  _pos(0) = _local_pos.x; 
              *  _pos(1) = _local_pos.y; 
              *  _pos(2) = _local_pos.z; 
              * 
-             *  _pos_sp¾ÍÊÇÖ®Ç°control_manual(dt);control_offboard(dt);control_auto(dt);µÄÊä³öÖµ->Ä¿±êÎ»ÖÃ
+             *  _pos_spå°±æ˜¯ä¹‹å‰control_manual(dt);control_offboard(dt);control_auto(dt);çš„è¾“å‡ºå€¼->ç›®æ ‡ä½ç½®
              */  
 				
 				// guard against any bad velocity values
-				// ·ÀÖ¹ÓĞÎÊÌâµÄËÙ¶ÈÖµÔì³ÉÓ°Ïì
+				// é˜²æ­¢æœ‰é—®é¢˜çš„é€Ÿåº¦å€¼é€ æˆå½±å“
 				bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
 						      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
 						      _pos_sp_triplet.current.velocity_valid;
 
 				// do not go slower than the follow target velocity when position tracking is active (set to valid)
-				// µ±¼¤»î¹ì¼£×·×ÙÊ±£¬·É»úµÄËÙ¶È²»ÄÜ±È×·ËæÄ¿±êËÙ¶ÈÂı
+				// å½“æ¿€æ´»è½¨è¿¹è¿½è¸ªæ—¶ï¼Œé£æœºçš„é€Ÿåº¦ä¸èƒ½æ¯”è¿½éšç›®æ ‡é€Ÿåº¦æ…¢
 				if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 				    velocity_valid &&
 				    _pos_sp_triplet.current.position_valid) {
@@ -1626,22 +1627,22 @@ MulticopterPositionControl::task_main()
 
 					// only override velocity set points when uav is traveling in same direction as target and vector component
 					// is greater than calculated position set point velocity component
-					// Î¨Ò»µÄËÙ¶ÈÉè¶¨Öµ³¬ËÙÊÇÔÚ·ÉĞĞÆ÷³¯×ÅÓëÄ¿±êÏàÍ¬µÄ·½Ïò·ÉĞĞÊ±£¬ÏòÁ¿²¿·Ö±ÈËãµÃµÄÎ»ÖÃÉè¶¨ËÙ¶È´ó
+					// å”¯ä¸€çš„é€Ÿåº¦è®¾å®šå€¼è¶…é€Ÿæ˜¯åœ¨é£è¡Œå™¨æœç€ä¸ç›®æ ‡ç›¸åŒçš„æ–¹å‘é£è¡Œæ—¶ï¼Œå‘é‡éƒ¨åˆ†æ¯”ç®—å¾—çš„ä½ç½®è®¾å®šé€Ÿåº¦å¤§
 					if (cos_ratio > 0) {
 						ft_vel *= (cos_ratio);
 						// min speed a little faster than target vel
-						// ×îĞ¡ËÙ¶È£¬ÉÔÎ¢±ÈÄ¿±êËÙ¶È¿ì
+						// æœ€å°é€Ÿåº¦ï¼Œç¨å¾®æ¯”ç›®æ ‡é€Ÿåº¦å¿«
 						ft_vel += ft_vel.normalized() * 1.5f;
 
 					} else { // cos_ratio<=0
 						ft_vel.zero();
 					}
 
-					_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0); // ËÙ¶ÈÉè¶¨ÖµÑ¡È¡Ïà¶Ô´óµÄÖµ
+					_vel_sp(0) = fabs(ft_vel(0)) > fabs(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0); // é€Ÿåº¦è®¾å®šå€¼é€‰å–ç›¸å¯¹å¤§çš„å€¼
 					_vel_sp(1) = fabs(ft_vel(1)) > fabs(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
 
 					// track target using velocity only
-					// ½öÊ¹ÓÃË®Æ½·½ÏòµÄËÙ¶È¸úËæÄ¿±ê
+					// ä»…ä½¿ç”¨æ°´å¹³æ–¹å‘çš„é€Ÿåº¦è·Ÿéšç›®æ ‡
 				} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 					   velocity_valid) {
 
@@ -1650,30 +1651,30 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (_run_alt_control) {
-					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);//¸ß¶È¿ØÖÆÍâ»·½öÊ¹ÓÃP¿ØÖÆ
+					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);//é«˜åº¦æ§åˆ¶å¤–ç¯ä»…ä½¿ç”¨Pæ§åˆ¶
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
-				// È·±£ËÙ¶ÈÉè¶¨ÖµÔÚxy·½ÏòÉÏ±¥ºÍ
+				// ç¡®ä¿é€Ÿåº¦è®¾å®šå€¼åœ¨xyæ–¹å‘ä¸Šé¥±å’Œ
 				float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
 							  _vel_sp(1) * _vel_sp(1));
 
 				if (vel_norm_xy > _params.vel_max(0)) {
 					/* note assumes vel_max(0) == vel_max(1) */
-					// ¼Ù¶¨xºÍy·½ÏòÉÏ×î´óËÙ¶ÈÏàÍ¬
-					_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy; //±£·½ÏòµÄ±¥ºÍ
+					// å‡å®šxå’Œyæ–¹å‘ä¸Šæœ€å¤§é€Ÿåº¦ç›¸åŒ
+					_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy; //ä¿æ–¹å‘çš„é¥±å’Œ
 					_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
 				}
 
-				 //////////////////ÒÔÏÂÊÇÉè¶¨´¹Ö±ËÙ¶È/////////////// 
+				 //////////////////ä»¥ä¸‹æ˜¯è®¾å®šå‚ç›´é€Ÿåº¦/////////////// 
 				/* make sure velocity setpoint is saturated in z*/
-				// È·±£ËÙ¶ÈÉè¶¨ÖµÔÚZ·½ÏòÉÏ±¥ºÍ
-				if (_vel_sp(2) < -1.0f * _params.vel_max_up) { // zÖáÏòÏÂ
-					_vel_sp(2) = -1.0f * _params.vel_max_up; //×î´óÏòÉÏËÙ¶È
+				// ç¡®ä¿é€Ÿåº¦è®¾å®šå€¼åœ¨Zæ–¹å‘ä¸Šé¥±å’Œ
+				if (_vel_sp(2) < -1.0f * _params.vel_max_up) { // zè½´å‘ä¸‹
+					_vel_sp(2) = -1.0f * _params.vel_max_up; //æœ€å¤§å‘ä¸Šé€Ÿåº¦
 				}
 
 				if (_vel_sp(2) >  _params.vel_max_down) {
-					_vel_sp(2) = _params.vel_max_down;		 //×î´óÏòÏÂËÙ¶È
+					_vel_sp(2) = _params.vel_max_down;		 //æœ€å¤§å‘ä¸‹é€Ÿåº¦
 				}
 
 				if (!_control_mode.flag_control_position_enabled) {
@@ -1695,39 +1696,39 @@ MulticopterPositionControl::task_main()
 				if (!_control_mode.flag_control_climb_rate_enabled) {
 					_vel_sp(2) = 0.0f;
 				}
-				/////////////////ÒÔÏÂÊÇÆğ·ÉµÄ´¹Ö±ËÙ¶ÈÉè¶¨///////////////// 
+				/////////////////ä»¥ä¸‹æ˜¯èµ·é£çš„å‚ç›´é€Ÿåº¦è®¾å®š///////////////// 
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				// ½µÂäÊ±Ê¹ÓÃ¹Ì¶¨µÄÏÂ½µËÙ¶È£¬ºöÂÔ¸ß¶ÈÉè¶¨Öµ
+				// é™è½æ—¶ä½¿ç”¨å›ºå®šçš„ä¸‹é™é€Ÿåº¦ï¼Œå¿½ç•¥é«˜åº¦è®¾å®šå€¼
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
 				/* special thrust setpoint generation for takeoff from ground */
-				// ´ÓµØÃæÆğ·ÉÊ±ÌØ¶¨µÄÍÆÁ¦Éè¶¨Öµ
+				// ä»åœ°é¢èµ·é£æ—¶ç‰¹å®šçš„æ¨åŠ›è®¾å®šå€¼
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid
 				    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 				    && _control_mode.flag_armed) {
 
 					// check if we are not already in air.
 					// if yes then we don't need a jumped takeoff anymore
-					// ¼ì²â·ÉĞĞÆ÷ÊÇ·ñÒÑ¾­ÔÚ¿ÕÖĞÁË£¬Èç¹ûÔÚ¿ÕÖĞÁË£¬¾Í²»ĞèÒªÒ»¸öjumped takeoffÁË
+					// æ£€æµ‹é£è¡Œå™¨æ˜¯å¦å·²ç»åœ¨ç©ºä¸­äº†ï¼Œå¦‚æœåœ¨ç©ºä¸­äº†ï¼Œå°±ä¸éœ€è¦ä¸€ä¸ªjumped takeoffäº†
 					if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-						_takeoff_jumped = true;//½øĞĞtakeoff_jump
+						_takeoff_jumped = true;//è¿›è¡Œtakeoff_jump
 					}
 
 					if (!_takeoff_jumped) {
 						// ramp thrust setpoint up
-						// ÏòÉÏµÄÇãĞ±ÍÆÁ¦Éè¶¨Öµ
+						// å‘ä¸Šçš„å€¾æ–œæ¨åŠ›è®¾å®šå€¼
 						if (_vel(2) > -(_params.tko_speed / 2.0f)) {
 							_takeoff_thrust_sp += 0.5f * dt;
 							_vel_sp.zero();
 							_vel_prev.zero();
 
-						} else { //takeoff_jumpĞ§¹û
+						} else { //takeoff_jumpæ•ˆæœ
 							// copter has reached our takeoff speed. split the thrust setpoint up
 							// into an integral part and into a P part
-							// ·ÉĞĞÆ÷ÒÑ¾­´ïµ½ÁËÆğ·ÉËÙ¶È¡£½«ÏòÉÏµÄÍÆÁ¦Éè¶¨Öµ·ÖÎªP²¿·ÖºÍI²¿·Ö
+							// é£è¡Œå™¨å·²ç»è¾¾åˆ°äº†èµ·é£é€Ÿåº¦ã€‚å°†å‘ä¸Šçš„æ¨åŠ›è®¾å®šå€¼åˆ†ä¸ºPéƒ¨åˆ†å’ŒIéƒ¨åˆ†
 							thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
 							thrust_int(2) = -math::constrain(thrust_int(2), _params.thr_min, _params.thr_max);
 							_vel_sp_prev(2) = -_params.tko_speed;
@@ -1744,40 +1745,40 @@ MulticopterPositionControl::task_main()
 					_takeoff_jumped = false;
 					_takeoff_thrust_sp = 0.0f;
 				}
- 				 ///////////////ÒÔÉÏÊÇÆğ·É´¹Ö±ËÙ¶ÈÉè¶¨///////////////////// 
+ 				 ///////////////ä»¥ä¸Šæ˜¯èµ·é£å‚ç›´é€Ÿåº¦è®¾å®š///////////////////// 
 
 				// limit total horizontal acceleration
-				// ÏŞÖÆ×ÜµÄË®Æ½¼ÓËÙ¶È
+				// é™åˆ¶æ€»çš„æ°´å¹³åŠ é€Ÿåº¦
 				math::Vector<2> acc_hor;
 				acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
 				acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
 
 				if (acc_hor.length() > _params.acc_hor_max) {
 					acc_hor.normalize();
-					acc_hor *= _params.acc_hor_max;//ÏŞ·ù
+					acc_hor *= _params.acc_hor_max;//é™å¹…
 					math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
 					math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
-					_vel_sp(0) = vel_sp_hor(0);//ĞŞ¸ÄÏŞ·ùºóµÄË®Æ½x·½ÏòËÙ¶ÈÉè¶¨Öµ	 
-					_vel_sp(1) = vel_sp_hor(1);//ĞŞ¸ÄÏŞ·ùºóµÄË®Æ½y·½ÏòËÙ¶ÈÉè¶¨Öµ
+					_vel_sp(0) = vel_sp_hor(0);//ä¿®æ”¹é™å¹…åçš„æ°´å¹³xæ–¹å‘é€Ÿåº¦è®¾å®šå€¼	 
+					_vel_sp(1) = vel_sp_hor(1);//ä¿®æ”¹é™å¹…åçš„æ°´å¹³yæ–¹å‘é€Ÿåº¦è®¾å®šå€¼
 				}
 
 				// limit vertical acceleration
-				// ÏŞÖÆ´¹Ö±·½ÏòµÄ¼ÓËÙ¶È
+				// é™åˆ¶å‚ç›´æ–¹å‘çš„åŠ é€Ÿåº¦
 				float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
 
-				if (fabsf(acc_v) > 2 * _params.acc_hor_max) { // ´¹Ö±¼ÓËÙ¶È´óÓÚ10
-					acc_v /= fabsf(acc_v); // ±äÎªµ¥Î»´óĞ¡£¬·½Ïò²»±ä
-					_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);//¸üĞÂ´¹Ö±·½ÏòËÙ¶ÈÉè¶¨Öµ
+				if (fabsf(acc_v) > 2 * _params.acc_hor_max) { // å‚ç›´åŠ é€Ÿåº¦å¤§äº10
+					acc_v /= fabsf(acc_v); // å˜ä¸ºå•ä½å¤§å°ï¼Œæ–¹å‘ä¸å˜
+					_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);//æ›´æ–°å‚ç›´æ–¹å‘é€Ÿåº¦è®¾å®šå€¼
 				}
 
 				_vel_sp_prev = _vel_sp;
 
-				_global_vel_sp.vx = _vel_sp(0); // ¸üĞÂÈ«ÇòËÙ¶ÈÉè¶¨Öµ
+				_global_vel_sp.vx = _vel_sp(0); // æ›´æ–°å…¨çƒé€Ÿåº¦è®¾å®šå€¼
 				_global_vel_sp.vy = _vel_sp(1);
 				_global_vel_sp.vz = _vel_sp(2);
 
 				/* publish velocity setpoint */
-				// ·¢²¼ËÙ¶ÈÉè¶¨Öµ
+				// å‘å¸ƒé€Ÿåº¦è®¾å®šå€¼
 				if (_global_vel_sp_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
@@ -1786,18 +1787,18 @@ MulticopterPositionControl::task_main()
 				}
 		/************************************************************************************************ 
          * orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet); 
-         * ¾­¹ıcontrol_manual(dt);control_offboard(dt);control_auto(dt);Êä³öpos_sp 
-         * ¾­¹ıÉÏ²¿·ÖÊä³ö_vel_sp 
-         * ·¢²¼_global_vel_sp 
+         * ç»è¿‡control_manual(dt);control_offboard(dt);control_auto(dt);è¾“å‡ºpos_sp 
+         * ç»è¿‡ä¸Šéƒ¨åˆ†è¾“å‡º_vel_sp 
+         * å‘å¸ƒ_global_vel_sp 
          ************************************************************************************************/  
 
- /****************ÖØµã(2):²úÉú¿ÉÀûÓÃµÄÍÆÁ¦¶¨Öµ(ÆÚÍûÖµ)*******************/  
-////////////////////ÅÀÉıËÙÂÊ¿ØÖÆÊ¹ÄÜ||Ë®Æ½ËÙ¶È¿ØÖÆÊ¹ÄÜ///////////////////////  
+ /****************é‡ç‚¹(2):äº§ç”Ÿå¯åˆ©ç”¨çš„æ¨åŠ›å®šå€¼(æœŸæœ›å€¼)*******************/  
+////////////////////çˆ¬å‡é€Ÿç‡æ§åˆ¶ä½¿èƒ½||æ°´å¹³é€Ÿåº¦æ§åˆ¶ä½¿èƒ½///////////////////////  
 				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_acceleration_enabled) {
 					/* reset integrals if needed */
-					// ĞèÒªÊ±ÖØÖÃ»ı·Ö
-					if (_control_mode.flag_control_climb_rate_enabled) { //ÅÀÉıËÙÂÊ¿ØÖÆÊ¹ÄÜ  
+					// éœ€è¦æ—¶é‡ç½®ç§¯åˆ†
+					if (_control_mode.flag_control_climb_rate_enabled) { //çˆ¬å‡é€Ÿç‡æ§åˆ¶ä½¿èƒ½  
 						if (reset_int_z) {
 							reset_int_z = false;
 							float i = _params.thr_min;
@@ -1809,18 +1810,18 @@ MulticopterPositionControl::task_main()
 									i = _params.thr_min;
 
 								} else if (i > _params.thr_max) {
-									i = _params.thr_max;//ÏŞ·ù
+									i = _params.thr_max;//é™å¹…
 								}
 							}
 
-							thrust_int(2) = -i; //¸³Öµ
+							thrust_int(2) = -i; //èµ‹å€¼
 						}
 
 					} else {
 						reset_int_z = true;
 					}
 
-					if (_control_mode.flag_control_velocity_enabled) {//Ë®Æ½ËÙ¶È¿ØÖÆÊ¹ÄÜ  
+					if (_control_mode.flag_control_velocity_enabled) {//æ°´å¹³é€Ÿåº¦æ§åˆ¶ä½¿èƒ½  
 						if (reset_int_xy) {
 							reset_int_xy = false;
 							thrust_int(0) = 0.0f;
@@ -1832,9 +1833,9 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* velocity error */
-					// ËÙ¶ÈÎó²î
+					// é€Ÿåº¦è¯¯å·®
 					math::Vector<3> vel_err = _vel_sp - _vel;
-					/*  _velÊÇÊµ¼Ê·ÉĞĞÆ÷µÄËÙ¶È 
+					/*  _velæ˜¯å®é™…é£è¡Œå™¨çš„é€Ÿåº¦ 
                      *  _vel(0) = _local_pos.vx; 
                      *  _vel(1) = _local_pos.vy; 
                      *  _vel(2) = _local_pos.vz; 
@@ -1844,15 +1845,15 @@ MulticopterPositionControl::task_main()
                      
 					// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
 					// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
-					// ¼ì²éÊÇ·ñ´Ó·ÇËÙ¶È¿ØÖÆÄ£Ê½ÇĞ»»µ½ÁËËÙ¶È¿ØÖÆÄ£Ê½
-					// Èç¹ûÊÇµÄ£¬ÄÇÃ´¾ÍÒªĞ£Õıxy·½ÏòµÄËÙ¶È£¬ÕâÑù×ËÌ¬Éè¶¨Öµ¾ÍÊÇÁ¬¹áµÄÁË
+					// æ£€æŸ¥æ˜¯å¦ä»éé€Ÿåº¦æ§åˆ¶æ¨¡å¼åˆ‡æ¢åˆ°äº†é€Ÿåº¦æ§åˆ¶æ¨¡å¼
+					// å¦‚æœæ˜¯çš„ï¼Œé‚£ä¹ˆå°±è¦æ ¡æ­£xyæ–¹å‘çš„é€Ÿåº¦ï¼Œè¿™æ ·å§¿æ€è®¾å®šå€¼å°±æ˜¯è¿è´¯çš„äº†
 					if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
 
 						// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
 						// given by the last attitude setpoint
-						// Ñ¡Ôñxyz·½ÏòµÄËÙ¶ÈÉè¶¨Öµ£¬ÕâÑù×îÖÕµÄÍÆÁ¦Éè¶¨Öµ·½Ïò¾ÍÓÉÉÏÒ»¸ö×ËÌ¬Éè¶¨Öµ¾ö¶¨
+						// é€‰æ‹©xyzæ–¹å‘çš„é€Ÿåº¦è®¾å®šå€¼ï¼Œè¿™æ ·æœ€ç»ˆçš„æ¨åŠ›è®¾å®šå€¼æ–¹å‘å°±ç”±ä¸Šä¸€ä¸ªå§¿æ€è®¾å®šå€¼å†³å®š
 						_vel_sp(0) = _vel(0) + (-PX4_R(_att_sp.R_body, 0,
-									       2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0); //PID¿ØÖÆ
+									       2) * _att_sp.thrust - thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0); //PIDæ§åˆ¶
 						_vel_sp(1) = _vel(1) + (-PX4_R(_att_sp.R_body, 1,
 									       2) * _att_sp.thrust - thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
 						_vel_sp(2) = _vel(2) + (-PX4_R(_att_sp.R_body, 2,
@@ -1863,53 +1864,53 @@ MulticopterPositionControl::task_main()
 						control_vel_enabled_prev = true;
 
 						// compute updated velocity error
-						// ¸üĞÂËÙ¶ÈÎó²î
+						// æ›´æ–°é€Ÿåº¦è¯¯å·®
 						vel_err = _vel_sp - _vel;
 					}
 
 					/* thrust vector in NED frame */
-					// NEDÏµÖĞµÄÍÆÁ¦ÏòÁ¿
+					// NEDç³»ä¸­çš„æ¨åŠ›å‘é‡
 					math::Vector<3> thrust_sp;
-					//ÍÆÁ¦Éè¶¨Öµ(ÈıÎ¬)=ËÙ¶È²î*P+ËÙ¶È²îµÄ²î*D+»ı·Ö  
+					//æ¨åŠ›è®¾å®šå€¼(ä¸‰ç»´)=é€Ÿåº¦å·®*P+é€Ÿåº¦å·®çš„å·®*D+ç§¯åˆ†  
         	/********************************************************* 
-         	****************½«Éè¶¨ËÙ¶È×ª±ä³ÉÉè¶¨ÍÆÁ¦******************
+         	****************å°†è®¾å®šé€Ÿåº¦è½¬å˜æˆè®¾å®šæ¨åŠ›******************
          	*********************************************************/   
 					if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
 						thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
-						// ÍÆÁ¦ºÃ±ÈÒ»¸öËÙ¶ÈµÄ±ä»¯Á¿--¼ÓËÙ¶È
-					} else {// ¼ÓËÙ¶ÈÎ´Öª£¬Ê¹ÓÃËÙ¶È±ä»¯ÂÊ¼ÆËãÍÆÁ¦Éè¶¨Öµ
-						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;//PID¿ØÖÆ
+						// æ¨åŠ›å¥½æ¯”ä¸€ä¸ªé€Ÿåº¦çš„å˜åŒ–é‡--åŠ é€Ÿåº¦
+					} else {// åŠ é€Ÿåº¦æœªçŸ¥ï¼Œä½¿ç”¨é€Ÿåº¦å˜åŒ–ç‡è®¡ç®—æ¨åŠ›è®¾å®šå€¼
+						thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;//PIDæ§åˆ¶
 					}
 					 
 					if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 					    && !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
 						// for jumped takeoffs use special thrust setpoint calculated above
-						// ¶ÔÓÚjump-takeoff Ê¹ÓÃÉÏÃæ¼ÆËãµÃµ½µÄÍÆÁ¦Éè¶¨Öµ
+						// å¯¹äºjump-takeoff ä½¿ç”¨ä¸Šé¢è®¡ç®—å¾—åˆ°çš„æ¨åŠ›è®¾å®šå€¼
 						thrust_sp.zero();
 						thrust_sp(2) = -_takeoff_thrust_sp;
 					}
 
 					if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
-						thrust_sp(0) = 0.0f; // ·Ç(¼Ó)ËÙ¶È¿ØÖÆÄ£Ê½ÏÂË®Æ½·½ÏòÍÆÁ¦Éè¶¨Öµ
+						thrust_sp(0) = 0.0f; // é(åŠ )é€Ÿåº¦æ§åˆ¶æ¨¡å¼ä¸‹æ°´å¹³æ–¹å‘æ¨åŠ›è®¾å®šå€¼
 						thrust_sp(1) = 0.0f;
 					}
 
 					if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
-						thrust_sp(2) = 0.0f; // ·Ç¼ÓËÙ¶È¿ØÖÆÄ£Ê½ÏÂ´¹Ö±·½ÏòÍÆÁ¦Éè¶¨Öµ
+						thrust_sp(2) = 0.0f; // éåŠ é€Ÿåº¦æ§åˆ¶æ¨¡å¼ä¸‹å‚ç›´æ–¹å‘æ¨åŠ›è®¾å®šå€¼
 					}
 
 					/* limit thrust vector and check for saturation */
-					// ÏŞÖÆÍÆÁ¦ÏòÁ¿²¢¼ì²âÊÇ·ñ±¥ºÍ
+					// é™åˆ¶æ¨åŠ›å‘é‡å¹¶æ£€æµ‹æ˜¯å¦é¥±å’Œ
 					bool saturation_xy = false;
 					bool saturation_z = false;
 
 					/* limit min lift */
-					// ÏŞÖÆ×îĞ¡ÉıÁ¦
+					// é™åˆ¶æœ€å°å‡åŠ›
 					float thr_min = _params.thr_min;
 
 					if (!_control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
 						/* don't allow downside thrust direction in manual attitude mode */
-						// ÔÚÊÖ¶¯¸ß¶ÈÄ£Ê½ÏÂ£¬²»ÔÊĞíÍÆÁ¦·½ÏòÏòÏÂ
+						// åœ¨æ‰‹åŠ¨é«˜åº¦æ¨¡å¼ä¸‹ï¼Œä¸å…è®¸æ¨åŠ›æ–¹å‘å‘ä¸‹
 						thr_min = 0.0f;
 					}
 
@@ -1917,17 +1918,17 @@ MulticopterPositionControl::task_main()
 					float tilt_max = _params.tilt_max_air;
 					float thr_max = _params.thr_max;
 					/* filter vel_z over 1/8sec */
-					_vel_z_lp = _vel_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * _vel(2);//´¹Ö±ËÙ¶ÈµÍÍ¨ÂË²¨  
+					_vel_z_lp = _vel_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * _vel(2);//å‚ç›´é€Ÿåº¦ä½é€šæ»¤æ³¢  
 					/* filter vel_z_change over 1/8sec */
 					float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
-					_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;//´¹Ö±¼ÓËÙ¶ÈµÍÍ¨ÂË²¨  
+					_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;//å‚ç›´åŠ é€Ÿåº¦ä½é€šæ»¤æ³¢  
 
 					/* adjust limits for landing mode */
-					/***********************×ÅÂ½´¦Àí************************/ 
+					/***********************ç€é™†å¤„ç†************************/ 
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 					    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
-						// ½µÂäÊ±ÏŞÖÆ×î´óµÄÇãĞ±ºÍ×îĞ¡µÄÉıÁ¦
+						// é™è½æ—¶é™åˆ¶æœ€å¤§çš„å€¾æ–œå’Œæœ€å°çš„å‡åŠ›
 						tilt_max = _params.tilt_max_land;
 
 						if (thr_min < 0.0f) {
@@ -1935,7 +1936,7 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* descend stabilized, we're landing */
-						// ÎÈ¶¨½µÂäing
+						// ç¨³å®šé™è½ing
 						if (!_in_landing && !_lnd_reached_ground
 						    && (float)fabs(_acc_z_lp) < 0.1f
 						    && _vel_z_lp > 0.5f * _params.land_speed) {
@@ -1943,7 +1944,7 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* assume ground, cut thrust */
-						// ¼Ù¶¨ÒÑ×ÅÂ½£¬ÇĞ¶ÏÍÆÁ¦
+						// å‡å®šå·²ç€é™†ï¼Œåˆ‡æ–­æ¨åŠ›
 						if (_in_landing
 						    && _vel_z_lp < 0.1f) {
 							thr_max = 0.0f;
@@ -1954,19 +1955,19 @@ MulticopterPositionControl::task_main()
 						/* once we assumed to have reached the ground always cut the thrust.
 							Only free fall detection below can revoke this
 						*/
-						// Ò»µ©¼Ù¶¨ÒÑ¾­×ÅÂ½£¬±ãÇĞ¶ÏÍÆÁ¦£¡¡£Ö»ÓĞ¼ì²âµ½·É»ú×ÔÓÉÂäÌå²ÅÄÜ³·ÏúÕâ¸ö
+						// ä¸€æ—¦å‡å®šå·²ç»ç€é™†ï¼Œä¾¿åˆ‡æ–­æ¨åŠ›ï¼ã€‚åªæœ‰æ£€æµ‹åˆ°é£æœºè‡ªç”±è½ä½“æ‰èƒ½æ’¤é”€è¿™ä¸ª
 						if (!_in_landing && _lnd_reached_ground) {
 							thr_max = 0.0f;
 						}
 
 						/* if we suddenly fall, reset landing logic and remove thrust limit */
-						// Èç¹ûÍ»È»µôÂä£¬¸´Î»½µÂäÂß¼­²¢ÒÆ³ıÍÆÁ¦ÏŞÖÆ
+						// å¦‚æœçªç„¶æ‰è½ï¼Œå¤ä½é™è½é€»è¾‘å¹¶ç§»é™¤æ¨åŠ›é™åˆ¶
 						if (_lnd_reached_ground
 						    /* XXX: magic value, assuming free fall above 4m/s2 acceleration */
-							// ¼Ù¶¨×ÔÓÉÂäÌå¼ÓËÙ¶È³¬¹ıÁË4m/s^2»òÕßËÙ¶È´óÓÚ1m/s
+							// å‡å®šè‡ªç”±è½ä½“åŠ é€Ÿåº¦è¶…è¿‡äº†4m/s^2æˆ–è€…é€Ÿåº¦å¤§äº1m/s
 						    && (_acc_z_lp > 4.0f
 							|| _vel_z_lp > 2.0f * _params.land_speed)) {
-							thr_max = _params.thr_max; //Í»È»ÉÏ´ÜµÄÔ­Òòå
+							thr_max = _params.thr_max; //çªç„¶ä¸Šçªœçš„åŸå› ?
 							_in_landing = false;
 							_lnd_reached_ground = false;
 						}
@@ -1975,10 +1976,10 @@ MulticopterPositionControl::task_main()
 						_in_landing = false;
 						_lnd_reached_ground = false;
 					}
-					/***********************×ÅÂ½´¦ÀíÍê±Ï************************/  
+					/***********************ç€é™†å¤„ç†å®Œæ¯•************************/  
 					
 					/* limit min lift */
-					// ÏŞÖÆ×îĞ¡ÉıÁ¦
+					// é™åˆ¶æœ€å°å‡åŠ›
 					if (-thrust_sp(2) < thr_min) {
 						thrust_sp(2) = -thr_min;
 						saturation_z = true;
@@ -1987,15 +1988,15 @@ MulticopterPositionControl::task_main()
 					if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 
 						/* limit max tilt */
-						// ÏŞÖÆ×î´óÇã½Ç(xy·½ÏòÍÆÁ¦ÏŞ·ù)  
+						// é™åˆ¶æœ€å¤§å€¾è§’(xyæ–¹å‘æ¨åŠ›é™å¹…)  
 						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 							/* absolute horizontal thrust */
-							// ¾ø¶ÔË®Æ½ÍÆÁ¦
+							// ç»å¯¹æ°´å¹³æ¨åŠ›
 							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
 
 							if (thrust_sp_xy_len > 0.01f) {
 								/* max horizontal thrust for given vertical thrust*/
-								// ¶ÔÓÚ¸ø¶¨µÄ´¹Ö±ÍÆÁ¦Ëù»ñµÃµÄ×î´óË®Æ½ÍÆÁ¦ 
+								// å¯¹äºç»™å®šçš„å‚ç›´æ¨åŠ›æ‰€è·å¾—çš„æœ€å¤§æ°´å¹³æ¨åŠ› 
 								float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max); // tan(pi/4)=1
 
 								if (thrust_sp_xy_len > thrust_xy_max) {
@@ -2010,7 +2011,7 @@ MulticopterPositionControl::task_main()
 
 					if (_control_mode.flag_control_altitude_enabled) {
 						/* thrust compensation for altitude only control modes */
-						// ½öÓÃÓÚ¸ß¶È¿ØÖÆÄ£Ê½µÄÍÆÁ¦²¹³¥
+						// ä»…ç”¨äºé«˜åº¦æ§åˆ¶æ¨¡å¼çš„æ¨åŠ›è¡¥å¿
 						float att_comp;
 
 						if (_R(2, 2) > TILT_COS_MAX) {
@@ -2029,14 +2030,14 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* limit max thrust */
-					// ÏŞÖÆ×î´óÍÆÁ¦
+					// é™åˆ¶æœ€å¤§æ¨åŠ›
 					thrust_abs = thrust_sp.length(); /* recalculate because it might have changed */
-													 // ÒòÎª¿ÉÄÜÒÑ¾­¸Ä±äÁË£¬ËùÒÔÒªÖØĞÂ¼ÆËã
+													 // å› ä¸ºå¯èƒ½å·²ç»æ”¹å˜äº†ï¼Œæ‰€ä»¥è¦é‡æ–°è®¡ç®—
 					if (thrust_abs > thr_max) {
 						if (thrust_sp(2) < 0.0f) {
 							if (-thrust_sp(2) > thr_max) {
 								/* thrust Z component is too large, limit it */
-								// ÍÆÁ¦µÄzÖá·ÖÁ¿Ì«´ó
+								// æ¨åŠ›çš„zè½´åˆ†é‡å¤ªå¤§
 								thrust_sp(0) = 0.0f;
 								thrust_sp(1) = 0.0f;
 								thrust_sp(2) = -thr_max;
@@ -2045,7 +2046,7 @@ MulticopterPositionControl::task_main()
 
 							} else {
 								/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
-								// ±£ÁôzÖáµÄÍÆÁ¦·ÖÁ¿²¢½µµÍXYÖáÉÏµÄÖµ£¬±£³Ö¸ß¶È±È±£³ÖÎ»ÖÃÖØÒª
+								// ä¿ç•™zè½´çš„æ¨åŠ›åˆ†é‡å¹¶é™ä½XYè½´ä¸Šçš„å€¼ï¼Œä¿æŒé«˜åº¦æ¯”ä¿æŒä½ç½®é‡è¦
 								float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
 								float thrust_xy_abs = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
 								float k = thrust_xy_max / thrust_xy_abs;
@@ -2056,7 +2057,7 @@ MulticopterPositionControl::task_main()
 
 						} else {
 							/* Z component is negative, going down, simply limit thrust vector */
-							// z·½ÏòµÄ·ÖÁ¿ÊÇ¸ºÖµ£¬ÏÂ½µ£¬¼òµ¥µÄÏŞÖÆÍÆÁ¦ÏòÁ¿´óĞ¡
+							// zæ–¹å‘çš„åˆ†é‡æ˜¯è´Ÿå€¼ï¼Œä¸‹é™ï¼Œç®€å•çš„é™åˆ¶æ¨åŠ›å‘é‡å¤§å°
 							float k = thr_max / thrust_abs;
 							thrust_sp *= k;
 							saturation_xy = true;
@@ -2067,54 +2068,54 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* update integrals */
-					// ¸üĞÂ»ı·Ö
+					// æ›´æ–°ç§¯åˆ†
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-						thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt; // Ë®Æ½·½ÏòI¿ØÖÆ
+						thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt; // æ°´å¹³æ–¹å‘Iæ§åˆ¶
 						thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
 					}
 
 					if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
-						thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt; // ´¹Ö±·½ÏòI¿ØÖÆ
+						thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt; // å‚ç›´æ–¹å‘Iæ§åˆ¶
 
 						/* protection against flipping on ground when landing */
-						// ×ÅÂ½Ê±·ÀÖ¹»ÓÎè
+						// ç€é™†æ—¶é˜²æ­¢æŒ¥èˆ
 						if (thrust_int(2) > 0.0f) {
 							thrust_int(2) = 0.0f;
 						}
 					}
 
-			/*********************ÖØµã(3)£º¸ù¾İÍÆÁ¦ÏòÁ¿¼ÆËã×ËÌ¬Éè¶¨Öµ(ÆÚÍû×ËÌ¬)***********************/  
-            /*********************×îºóÊ¹ÓÃÓÃÓÚ¿ØÖÆµÄËÄÔªÊı±í´ïµÄĞı×ª¾ØÕó(Ğı×ª¾ØÕó¾ÍÊÇ×ËÌ¬)***********************/
+			/*********************é‡ç‚¹(3)ï¼šæ ¹æ®æ¨åŠ›å‘é‡è®¡ç®—å§¿æ€è®¾å®šå€¼(æœŸæœ›å§¿æ€)***********************/  
+            /*********************æœ€åä½¿ç”¨ç”¨äºæ§åˆ¶çš„å››å…ƒæ•°è¡¨è¾¾çš„æ—‹è½¬çŸ©é˜µ(æ—‹è½¬çŸ©é˜µå°±æ˜¯å§¿æ€)***********************/
 					/* calculate attitude setpoint from thrust vector */
 					if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 						/* desired body_z axis = -normalize(thrust_vector) */
-						/*************ÏÈÇó³öbody_x¡¢body_y¡¢body_z*****************/  
-                        ///////////body_x¡¢body_y¡¢body_zÓ¦¸ÃÊÇ·½ÏòÓàÏÒ¾ØÕóµÄÈı¸öÁĞÏòÁ¿//////////////  
+						/*************å…ˆæ±‚å‡ºbody_xã€body_yã€body_z*****************/  
+                        ///////////body_xã€body_yã€body_zåº”è¯¥æ˜¯æ–¹å‘ä½™å¼¦çŸ©é˜µçš„ä¸‰ä¸ªåˆ—å‘é‡//////////////  
 						math::Vector<3> body_x;
 						math::Vector<3> body_y;
 						math::Vector<3> body_z;
 
 						if (thrust_abs > SIGMA) { // SIGMA = 0.000001f 
-							body_z = -thrust_sp / thrust_abs;//body_z¾ØÕóÊÇÍÆÁ¦Éè¶¨Öµ¾ØÕóµÄ±ê×¼»¯
+							body_z = -thrust_sp / thrust_abs;//body_zçŸ©é˜µæ˜¯æ¨åŠ›è®¾å®šå€¼çŸ©é˜µçš„æ ‡å‡†åŒ–
 
 						} else {
 							/* no thrust, set Z axis to safe value */
-							// ÎŞÍÆÁ¦£¬½«ZÖáÉèÖÃµ½Ò»¸ö°²È«Öµ
+							// æ— æ¨åŠ›ï¼Œå°†Zè½´è®¾ç½®åˆ°ä¸€ä¸ªå®‰å…¨å€¼
 							body_z.zero();
 							body_z(2) = 1.0f;
 						}
 
 						/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-						// XYÆ½ÃæÉÏµÄÆÚÍûÆ«º½·½ÏòÏòÁ¿£¬Ğı×ªÁËPI/2
+						// XYå¹³é¢ä¸Šçš„æœŸæœ›åèˆªæ–¹å‘å‘é‡ï¼Œæ—‹è½¬äº†PI/2
 						math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
-						//y_CÏàµ±ÓÚÊÇĞı×ª¾ØÕóµÄyÁĞÏòÁ¿ 
+						//y_Cç›¸å½“äºæ˜¯æ—‹è½¬çŸ©é˜µçš„yåˆ—å‘é‡ 
 						if (fabsf(body_z(2)) > SIGMA) {
 							/* desired body_x axis, orthogonal to body_z */
-							// ÆÚÍûµÄbody_xÖá£¬Óëbody_z´¹Ö±
+							// æœŸæœ›çš„body_xè½´ï¼Œä¸body_zå‚ç›´
 							body_x = y_C % body_z;
 
 							/* keep nose to front while inverted upside down */
-							// ·­×ªÊ±±£³ÖxÖ¸ÏòÇ°
+							// ç¿»è½¬æ—¶ä¿æŒxæŒ‡å‘å‰
 							if (body_z(2) < 0.0f) {
 								body_x = -body_x;
 							}
@@ -2124,18 +2125,18 @@ MulticopterPositionControl::task_main()
 						} else {
 							/* desired thrust is in XY plane, set X downside to construct correct matrix,
 							 * but yaw component will not be used actually */
-							 // XYÆ½ÃæÉÏµÄÆÚÍûÍÆÁ¦£¬½«XÖ¸ÏòÏÂÒÔ¹¹ÔìÕıÈ·µÄ¾ØÕó
-							 // µ«ÊÇÆ«º½²¿·ÖÊµ¼ÊÉÏ²»»á±»Ê¹ÓÃ
+							 // XYå¹³é¢ä¸Šçš„æœŸæœ›æ¨åŠ›ï¼Œå°†XæŒ‡å‘ä¸‹ä»¥æ„é€ æ­£ç¡®çš„çŸ©é˜µ
+							 // ä½†æ˜¯åèˆªéƒ¨åˆ†å®é™…ä¸Šä¸ä¼šè¢«ä½¿ç”¨
 							body_x.zero();
 							body_x(2) = 1.0f;
 						}
 
 						/* desired body_y axis */
-						// ÆÚÍûµÄbodyÖá
+						// æœŸæœ›çš„bodyè½´
 						body_y = body_z % body_x;
 
 						/* fill rotation matrix */
-						// ²¹³äĞı×ª¾ØÕó
+						// è¡¥å……æ—‹è½¬çŸ©é˜µ
 						for (int i = 0; i < 3; i++) {
 							R(i, 0) = body_x(i);
 							R(i, 1) = body_y(i);
@@ -2143,51 +2144,51 @@ MulticopterPositionControl::task_main()
 						}
 
 						/* copy rotation matrix to attitude setpoint topic */
-						// ½«Ğı×ª¾ØÕó¸´ÖÆµ½×ËÌ¬Éè¶¨Öµ»°ÌâÖĞ
+						// å°†æ—‹è½¬çŸ©é˜µå¤åˆ¶åˆ°å§¿æ€è®¾å®šå€¼è¯é¢˜ä¸­
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						// ½«ËÄÔªÊıÉè¶¨Öµ¸´ÖÆµ½×ËÌ¬Éè¶¨Öµ»°ÌâÖĞ
+						// å°†å››å…ƒæ•°è®¾å®šå€¼å¤åˆ¶åˆ°å§¿æ€è®¾å®šå€¼è¯é¢˜ä¸­
 						math::Quaternion q_sp;
 						q_sp.from_dcm(R);
 						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
 						/* calculate euler angles, for logging only, must not be used for control */
-						/****************ÓÉĞı×ª¾ØÕóRµÃµ½×ËÌ¬ÉèÖÃÅ·À­½Ç£¬Ö»ÊÇlogµ÷ÊÔÓÃ£¬²»ÊÇ¸ø¿ØÖÆÓÃµÄ****************/  
+						/****************ç”±æ—‹è½¬çŸ©é˜µRå¾—åˆ°å§¿æ€è®¾ç½®æ¬§æ‹‰è§’ï¼Œåªæ˜¯logè°ƒè¯•ç”¨ï¼Œä¸æ˜¯ç»™æ§åˆ¶ç”¨çš„****************/  
 						math::Vector<3> euler = R.to_euler();
 						_att_sp.roll_body = euler(0);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
-						// Æ«º½ÒÑ¾­±»ÓÃÀ´¹¹ÔìĞı×ª¾ØÕó£¬µ«ÊÇÊµ¼ÊÉÏÔÚÆæµã¸½½üĞı×ª¾ØÕó»áÓĞ²»Í¬µÄÆ«º½
+						// åèˆªå·²ç»è¢«ç”¨æ¥æ„é€ æ—‹è½¬çŸ©é˜µï¼Œä½†æ˜¯å®é™…ä¸Šåœ¨å¥‡ç‚¹é™„è¿‘æ—‹è½¬çŸ©é˜µä¼šæœ‰ä¸åŒçš„åèˆª
 					} 
-					else if (!_control_mode.flag_control_manual_enabled) { //ÊÖ¶¯¿ØÖÆÎ´Ê¹ÄÜ
+					else if (!_control_mode.flag_control_manual_enabled) { //æ‰‹åŠ¨æ§åˆ¶æœªä½¿èƒ½
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
-						 // ÔÚÃ»ÓĞÎ»ÖÃ¿ØÖÆµÄÇé¿öÏÂ×Ô¶¯¿ØÖÆ¸ß¶È(Ê§¿Ø±£»¤½µÂä)£¬Ç¿ÖÆË®Æ½×ËÌ¬£¬¹Ì¶¨Æ«º½½Ç
+						 // åœ¨æ²¡æœ‰ä½ç½®æ§åˆ¶çš„æƒ…å†µä¸‹è‡ªåŠ¨æ§åˆ¶é«˜åº¦(å¤±æ§ä¿æŠ¤é™è½)ï¼Œå¼ºåˆ¶æ°´å¹³å§¿æ€ï¼Œå›ºå®šåèˆªè§’
 						R.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 
 						/* copy rotation matrix to attitude setpoint topic */
-						// ½«Ğı×ª¾ØÕó¸´ÖÆµ½×ËÌ¬Éè¶¨Öµ»°ÌâÖĞ
+						// å°†æ—‹è½¬çŸ©é˜µå¤åˆ¶åˆ°å§¿æ€è®¾å®šå€¼è¯é¢˜ä¸­
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
 						_att_sp.R_valid = true;
 
 						/* copy quaternion setpoint to attitude setpoint topic */
-						// ½«ËÄÔªÊıÉè¶¨Öµ¸´ÖÆµ½×ËÌ¬Éè¶¨Öµ»°ÌâÖĞ
+						// å°†å››å…ƒæ•°è®¾å®šå€¼å¤åˆ¶åˆ°å§¿æ€è®¾å®šå€¼è¯é¢˜ä¸­
 						math::Quaternion q_sp;
 						q_sp.from_dcm(R);
 						memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
 
-						_att_sp.roll_body = 0.0f;  //ÆÚÍûºá¹ö¡¢¸©Ñö¶¼Îª0£¬±£³ÖË®Æ½
+						_att_sp.roll_body = 0.0f;  //æœŸæœ›æ¨ªæ»šã€ä¿¯ä»°éƒ½ä¸º0ï¼Œä¿æŒæ°´å¹³
 						_att_sp.pitch_body = 0.0f;
 					}
 
 					_att_sp.thrust = thrust_abs;
-					 //ÍÆÁ¦ÏòÁ¿µÄ³¤¶È¸³Öµ¸ø×ËÌ¬ÍÆÁ¦Éè¶¨Öµ(att_sp.thrust)£¬ÕâÑù²Å¹»¸÷¸ö·½ÏòÁ¦¶È·ÖÅä  
+					 //æ¨åŠ›å‘é‡çš„é•¿åº¦èµ‹å€¼ç»™å§¿æ€æ¨åŠ›è®¾å®šå€¼(att_sp.thrust)ï¼Œè¿™æ ·æ‰å¤Ÿå„ä¸ªæ–¹å‘åŠ›åº¦åˆ†é…  
 					 
 					/* save thrust setpoint for logging */
-					 //ÓÃÓÚlog£¬·½±ãµ÷ÊÔ
-					_local_pos_sp.acc_x = thrust_sp(0) * ONE_G; // ONE_GÖØÁ¦¼ÓËÙ¶È 9.8066
+					 //ç”¨äºlogï¼Œæ–¹ä¾¿è°ƒè¯•
+					_local_pos_sp.acc_x = thrust_sp(0) * ONE_G; // ONE_Gé‡åŠ›åŠ é€Ÿåº¦ 9.8066
 					_local_pos_sp.acc_y = thrust_sp(1) * ONE_G;
 					_local_pos_sp.acc_z = thrust_sp(2) * ONE_G;
 
@@ -2199,20 +2200,20 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
- /*********************×îºó£º½«Ö®Ç°³ÌĞòµÃµ½µÄ¸÷ÖÖĞÅÏ¢Ìî³ä_local_pos_sp½á¹¹Ìå£¬²¢·¢²¼³öÈ¥***********************/  
+ /*********************æœ€åï¼šå°†ä¹‹å‰ç¨‹åºå¾—åˆ°çš„å„ç§ä¿¡æ¯å¡«å……_local_pos_spç»“æ„ä½“ï¼Œå¹¶å‘å¸ƒå‡ºå»***********************/  
 			/* fill local position, velocity and thrust setpoint */
- 			// Ìî³äµ¼º½×ø±êĞÅÏ¢:Î»ÖÃ¡¢ËÙ¶È¡¢ÍÆÁ¦Éè¶¨Öµ
+ 			// å¡«å……å¯¼èˆªåæ ‡ä¿¡æ¯:ä½ç½®ã€é€Ÿåº¦ã€æ¨åŠ›è®¾å®šå€¼
 			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _pos_sp(0); // Î»ÖÃÉè¶¨Öµ
+			_local_pos_sp.x = _pos_sp(0); // ä½ç½®è®¾å®šå€¼
 			_local_pos_sp.y = _pos_sp(1);
 			_local_pos_sp.z = _pos_sp(2);
 			_local_pos_sp.yaw = _att_sp.yaw_body;
-			_local_pos_sp.vx = _vel_sp(0); //ËÙ¶ÈÉè¶¨Öµ
+			_local_pos_sp.vx = _vel_sp(0); //é€Ÿåº¦è®¾å®šå€¼
 			_local_pos_sp.vy = _vel_sp(1);
 			_local_pos_sp.vz = _vel_sp(2);
 
 			/* publish local position setpoint */
-			// ·¢²¼µ¼º½Î»ÖÃÉè¶¨Öµ
+			// å‘å¸ƒå¯¼èˆªä½ç½®è®¾å®šå€¼
 			if (_local_pos_sp_pub != nullptr) {
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
@@ -2221,11 +2222,11 @@ MulticopterPositionControl::task_main()
 			}
 
 		}
-////////¸ß¶È¿ØÖÆ¡¢Î»ÖÃ¿ØÖÆ¡¢ÅÀÉıËÙÂÊ¿ØÖÆ¡¢ËÙ¶È¿ØÖÆµÄÏà¹Ø³ÌĞò½áÊø//////////  
-//////////////ÆäËûÇé¿ö(Î»ÖÃ¿ØÖÆÊ§ÄÜ)¾Í¸´Î»¸÷ÖÖÉè¶¨Öµ////////////  
+////////é«˜åº¦æ§åˆ¶ã€ä½ç½®æ§åˆ¶ã€çˆ¬å‡é€Ÿç‡æ§åˆ¶ã€é€Ÿåº¦æ§åˆ¶çš„ç›¸å…³ç¨‹åºç»“æŸ//////////  
+//////////////å…¶ä»–æƒ…å†µ(ä½ç½®æ§åˆ¶å¤±èƒ½)å°±å¤ä½å„ç§è®¾å®šå€¼////////////  
 		else {
 			/* position controller disabled, reset setpoints */
-			// Î»ÖÃ¿ØÖÆÆ÷Ê§Ğ§£¬¸´Î»ÏÂÁĞÉè¶¨Öµ
+			// ä½ç½®æ§åˆ¶å™¨å¤±æ•ˆï¼Œå¤ä½ä¸‹åˆ—è®¾å®šå€¼
 			_reset_alt_sp = true;
 			_reset_pos_sp = true;
 			_mode_auto = false;
@@ -2234,39 +2235,39 @@ MulticopterPositionControl::task_main()
 			control_vel_enabled_prev = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
-			// ´¢´æÉÏÒ»¿ÌµÄËÙ¶È£¬·ÀÖ¹·ÉĞĞÄ£Ê½±»ÇĞ»»µ½Î»ÖÃ¿ØÖÆ
+			// å‚¨å­˜ä¸Šä¸€åˆ»çš„é€Ÿåº¦ï¼Œé˜²æ­¢é£è¡Œæ¨¡å¼è¢«åˆ‡æ¢åˆ°ä½ç½®æ§åˆ¶
 			_vel_sp_prev = _vel;
 		}
 
 		/* generate attitude setpoint from manual controls */
-		// ¸ù¾İÊÖ¶¯¿ØÖÆµÄÊäÈë²úÉú×ËÌ¬Éè¶¨Öµ
+		// æ ¹æ®æ‰‹åŠ¨æ§åˆ¶çš„è¾“å…¥äº§ç”Ÿå§¿æ€è®¾å®šå€¼
 		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
 			/* reset yaw setpoint to current position if needed */
-			// ĞèÒªÊ±ÖØÖÃÆ«º½Éè¶¨Öµµ½µ±Ç°µÄÎ»ÖÃ
+			// éœ€è¦æ—¶é‡ç½®åèˆªè®¾å®šå€¼åˆ°å½“å‰çš„ä½ç½®
 			if (reset_yaw_sp) {
 				reset_yaw_sp = false;
 				_att_sp.yaw_body = _yaw;
 			}
 
 			/* do not move yaw while sitting on the ground */
-			//·É»úÔÚµØÃæÉÏÊ±²»½øĞĞÆ«º½²Ù×÷
+			//é£æœºåœ¨åœ°é¢ä¸Šæ—¶ä¸è¿›è¡Œåèˆªæ“ä½œ
 			else if (!_vehicle_land_detected.landed &&
 				 !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
 
 				/* we want to know the real constraint, and global overrides manual */
-				// ÏëÒªÖªµÀÕæÕıµÄÏŞÖÆ£¬globalÓÅÓÚmanual
+				// æƒ³è¦çŸ¥é“çœŸæ­£çš„é™åˆ¶ï¼Œglobalä¼˜äºmanual
 				const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
-							   _params.global_yaw_max;  // Ğı×ª½ÏĞ¡µÄ¿ØÖÆÁ¿
+							   _params.global_yaw_max;  // æ—‹è½¬è¾ƒå°çš„æ§åˆ¶é‡
 				const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
-				_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max; // manual.rÎªÆ«º½µÄÒ£¸Ë£¬½«Æä³ËÒÔ×î´óÆ«º½ËÙ¶ÈÒÔµÃµ½ÆÚÍûµÄÆ«º½ÒÆ¶¯ËÙ¶È
-				float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);//Ä¿±êÆ«º½½Ç¶ÈÏŞÖÆÔÚ-pi~pi
-				float yaw_offs = _wrap_pi(yaw_target - _yaw);// Æ«º½µÄÆ«ÒÆ
+				_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max; // manual.rä¸ºåèˆªçš„é¥æ†ï¼Œå°†å…¶ä¹˜ä»¥æœ€å¤§åèˆªé€Ÿåº¦ä»¥å¾—åˆ°æœŸæœ›çš„åèˆªç§»åŠ¨é€Ÿåº¦
+				float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);//ç›®æ ‡åèˆªè§’åº¦é™åˆ¶åœ¨-pi~pi
+				float yaw_offs = _wrap_pi(yaw_target - _yaw);// åèˆªçš„åç§»
 
 				// If the yaw offset became too big for the system to track stop
 				// shifting it, only allow if it would make the offset smaller again.
-				// Èç¹ûÆ«º½µÄÆ«ÒÆÌ«´ó£¬½öÔÚ¿ÉÄÜÊ¹Æ«º½Æ«ÒÆÔÙ´Î±äĞ¡Ê±Ê¹ÄÜÆ«º½ÔË¶¯
+				// å¦‚æœåèˆªçš„åç§»å¤ªå¤§ï¼Œä»…åœ¨å¯èƒ½ä½¿åèˆªåç§»å†æ¬¡å˜å°æ—¶ä½¿èƒ½åèˆªè¿åŠ¨
 				if (fabsf(yaw_offs) < yaw_offset_max ||
 				    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
 				    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
@@ -2275,14 +2276,14 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* control throttle directly if no climb rate controller is active */
-			// Èç¹ûÎ´¼¤»îÅÀÉıËÙ¶È¿ØÖÆÆ÷Ê±£¬Ö±½Ó¿ØÖÆÓÍÃÅ
+			// å¦‚æœæœªæ¿€æ´»çˆ¬å‡é€Ÿåº¦æ§åˆ¶å™¨æ—¶ï¼Œç›´æ¥æ§åˆ¶æ²¹é—¨
 			if (!_control_mode.flag_control_climb_rate_enabled) {
-				//ÊÖ¶¯ÍÆÁ¦µÄ×ª»»£¬ÒÔ±ã¿ØÖÆÆ÷Êä³ö¿ØÖÆÍÆÁ¦Á¦¶È  
-				float thr_val = throttle_curve(_manual.z, _params.thr_hover); //ÊÖ¶¯ÓÍÃÅ
-				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());  // ÆÚÍûÍÆÁ¦
+				//æ‰‹åŠ¨æ¨åŠ›çš„è½¬æ¢ï¼Œä»¥ä¾¿æ§åˆ¶å™¨è¾“å‡ºæ§åˆ¶æ¨åŠ›åŠ›åº¦  
+				float thr_val = throttle_curve(_manual.z, _params.thr_hover); //æ‰‹åŠ¨æ²¹é—¨
+				_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());  // æœŸæœ›æ¨åŠ›
 
 				/* enforce minimum throttle if not landed */
-				// Èç¹ûÃ»ÓĞ×ÅÂ½£¬ÔòĞèÒªÏŞÖÆ×îĞ¡ÍÆÁ¦
+				// å¦‚æœæ²¡æœ‰ç€é™†ï¼Œåˆ™éœ€è¦é™åˆ¶æœ€å°æ¨åŠ›
 				if (!_vehicle_land_detected.landed) {
 					_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 				}
@@ -2290,7 +2291,7 @@ MulticopterPositionControl::task_main()
 
 			/* control roll and pitch directly if no aiding velocity controller is active
 			 * and only if optimal recovery is not used */
-			 // µ±ÇÒ½öµ±Ã»ÓĞÊ¹ÓÃoptimal recoveryÊ±£¬Èç¹ûÎ´¼¤»î¸¨ÖúËÙ¶È¿ØÖÆÆ÷£¬Ö±½Ó¿ØÖÆºá¹öºÍ¸©Ñö
+			 // å½“ä¸”ä»…å½“æ²¡æœ‰ä½¿ç”¨optimal recoveryæ—¶ï¼Œå¦‚æœæœªæ¿€æ´»è¾…åŠ©é€Ÿåº¦æ§åˆ¶å™¨ï¼Œç›´æ¥æ§åˆ¶æ¨ªæ»šå’Œä¿¯ä»°
 			if (!_control_mode.flag_control_velocity_enabled
 			    && _params.opt_recover <= 0) {
 				math::Matrix<3, 3> R_sp;
@@ -2303,20 +2304,20 @@ MulticopterPositionControl::task_main()
 				// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
 				// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
 				// heading of the vehicle.
-				// ¹¹Ôì×ËÌ¬Éè¶¨ÖµĞı×ª¾ØÕó¡£ĞŞ¸Äroll¡¢pitchµÄÉè¶¨Öµ£¬ÕâÑù¼´Ê¹´æÔÚÆ«º½Îó²î(yaw_sp-yaw)£¬·ÉÊÖµÄÊä³öÒ²ÄÜÕı³£Ó³Éä¡£
-				// ³öÏÖÆ«º½Îó²îÊ±£¬ÔÚ·ÉÊÖµÄ½Ç¶È¿´À´£¬ÓÉÓÚÅ·À­½ÇË³ĞòÊ¹ÓÃµÄÊÇÆ«º½Éè¶¨Öµ¶ø²»ÊÇ·ÉĞĞÆ÷µ±Ç°µÄ³¯Ïò£¬
-				// ´¿´â´ÓÅ·À­½ÇÉè¶¨Öµ¹¹ÔìµÄĞı×ª¾ØÕó½«µ¼ÖÂ×ËÌ¬ĞĞÎª²»¿ÉÔ¤ÆÚ£¬
+				// æ„é€ å§¿æ€è®¾å®šå€¼æ—‹è½¬çŸ©é˜µã€‚ä¿®æ”¹rollã€pitchçš„è®¾å®šå€¼ï¼Œè¿™æ ·å³ä½¿å­˜åœ¨åèˆªè¯¯å·®(yaw_sp-yaw)ï¼Œé£æ‰‹çš„è¾“å‡ºä¹Ÿèƒ½æ­£å¸¸æ˜ å°„ã€‚
+				// å‡ºç°åèˆªè¯¯å·®æ—¶ï¼Œåœ¨é£æ‰‹çš„è§’åº¦çœ‹æ¥ï¼Œç”±äºæ¬§æ‹‰è§’é¡ºåºä½¿ç”¨çš„æ˜¯åèˆªè®¾å®šå€¼è€Œä¸æ˜¯é£è¡Œå™¨å½“å‰çš„æœå‘ï¼Œ
+				// çº¯ç²¹ä»æ¬§æ‹‰è§’è®¾å®šå€¼æ„é€ çš„æ—‹è½¬çŸ©é˜µå°†å¯¼è‡´å§¿æ€è¡Œä¸ºä¸å¯é¢„æœŸï¼Œ
 
 				// calculate our current yaw error
-				// ¼ÆËãµ±Ç°µÄÆ«º½Îó²î
+				// è®¡ç®—å½“å‰çš„åèˆªè¯¯å·®
 				float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
 
 				// compute the vector obtained by rotating a z unit vector by the rotation
 				// given by the roll and pitch commands of the user
-				// ÏÈ¸ù¾İ·ÉÊÖÊä³öµÄºá¹öºÍ¸©ÑöÉè¶¨ÖµÖ¸Áî¹¹ÔìĞı×ª¾ØÕó
-				// ¼ÆËãµ¥Î»ÏòÁ¿z¾­´ËĞı×ª¾ØÕó×ª¶¯ºóµÄÏòÁ¿
+				// å…ˆæ ¹æ®é£æ‰‹è¾“å‡ºçš„æ¨ªæ»šå’Œä¿¯ä»°è®¾å®šå€¼æŒ‡ä»¤æ„é€ æ—‹è½¬çŸ©é˜µ
+				// è®¡ç®—å•ä½å‘é‡zç»æ­¤æ—‹è½¬çŸ©é˜µè½¬åŠ¨åçš„å‘é‡
 				math::Vector<3> zB = {0, 0, 1};
-				math::Matrix<3, 3> R_sp_roll_pitch; // µ¥¶ÀÓÉroll¡¢pitch¹¹ÔìµÄĞı×ª¾ØÕó
+				math::Matrix<3, 3> R_sp_roll_pitch; // å•ç‹¬ç”±rollã€pitchæ„é€ çš„æ—‹è½¬çŸ©é˜µ
 				R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
 				math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
@@ -2324,26 +2325,26 @@ MulticopterPositionControl::task_main()
 				// transform the vector into a new frame which is rotated around the z axis
 				// by the current yaw error. this vector defines the desired tilt when we look
 				// into the direction of the desired heading
-				// ½«ÏòÁ¿×ªÒÆµ½Ò»¸öĞÂµÄ×ø±êÏµ£¬¸Ã×ø±êÏµÊÇÈÆzÖá×ª¶¯ÁËÆ«º½Îó²îÁ¿µÄ×ø±êÏµ
-				// µ±ÑØ×ÅÆÚÍû³¯ÏòµÄ¼ıÍ··½Ïò¿´Ê±£¬¸ÃÏòÁ¿¶¨ÒåÁËÆÚÍûµÄÇãĞ±
+				// å°†å‘é‡è½¬ç§»åˆ°ä¸€ä¸ªæ–°çš„åæ ‡ç³»ï¼Œè¯¥åæ ‡ç³»æ˜¯ç»•zè½´è½¬åŠ¨äº†åèˆªè¯¯å·®é‡çš„åæ ‡ç³»
+				// å½“æ²¿ç€æœŸæœ›æœå‘çš„ç®­å¤´æ–¹å‘çœ‹æ—¶ï¼Œè¯¥å‘é‡å®šä¹‰äº†æœŸæœ›çš„å€¾æ–œ
 				math::Matrix<3, 3> R_yaw_correction;
-				R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error); // µ¥¶ÀÓÉ¸ºµÄÆ«º½Îó²î¹¹ÔìµÄĞı×ªÕó
-				z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp; //  ĞÂµÄzÖáÉè¶¨Öµ
+				R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error); // å•ç‹¬ç”±è´Ÿçš„åèˆªè¯¯å·®æ„é€ çš„æ—‹è½¬é˜µ
+				z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp; //  æ–°çš„zè½´è®¾å®šå€¼
 
 				// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
 				// to calculate the new desired roll and pitch angles
 				// R_tilt can be written as a function of the new desired roll and pitch
 				// angles. we get three equations and have to solve for 2 unknowns
-				// Ê¹ÓÃz_roll_pitch_sp = R_tilt * [0;0;1]Õâ¸ö¹«Ê½À´¼ÆËãĞÂµÄÄ¿±êroll¡¢pitch
-				// R_tilt¿ÉÒÔĞ´³ÉĞÂµÄÄ¿±êrollºÍpitchµÄº¯Êı£¬Èı¸öµÈÊ½Á½¸öÎ´ÖªÊı
+				// ä½¿ç”¨z_roll_pitch_sp = R_tilt * [0;0;1]è¿™ä¸ªå…¬å¼æ¥è®¡ç®—æ–°çš„ç›®æ ‡rollã€pitch
+				// R_tiltå¯ä»¥å†™æˆæ–°çš„ç›®æ ‡rollå’Œpitchçš„å‡½æ•°ï¼Œä¸‰ä¸ªç­‰å¼ä¸¤ä¸ªæœªçŸ¥æ•°
 				float pitch_new = asinf(z_roll_pitch_sp(0));
 				float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
-				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);  // ¹¹ÔìÄ¿±êĞı×ª¾ØÕó
+				R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);  // æ„é€ ç›®æ ‡æ—‹è½¬çŸ©é˜µ
 				memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body)); 
 
 				/* copy quaternion setpoint to attitude setpoint topic */
-				// ½«ËÄÔªÊıÉè¶¨Öµ¸´ÖÆµ½×ËÌ¬Éè¶¨Öµ»°ÌâÖĞ
+				// å°†å››å…ƒæ•°è®¾å®šå€¼å¤åˆ¶åˆ°å§¿æ€è®¾å®šå€¼è¯é¢˜ä¸­
 				math::Quaternion q_sp;
 				q_sp.from_dcm(R_sp);
 				memcpy(&_att_sp.q_d[0], &q_sp.data[0], sizeof(_att_sp.q_d));
@@ -2352,15 +2353,15 @@ MulticopterPositionControl::task_main()
 			_att_sp.timestamp = hrt_absolute_time();
 
 		} 
-///////////////ÊÖ¶¯¿ØÖÆ²¿·Ö½áÊø///////////////////////  
-///////////////ÊÖ¶¯¿ØÖÆÊ§ÄÜ///////////////  
+///////////////æ‰‹åŠ¨æ§åˆ¶éƒ¨åˆ†ç»“æŸ///////////////////////  
+///////////////æ‰‹åŠ¨æ§åˆ¶å¤±èƒ½///////////////  
 		else {
 			reset_yaw_sp = true;
-			_att_sp.yaw_sp_move_rate = 0.0f; //·ÅÆúÆ«º½
+			_att_sp.yaw_sp_move_rate = 0.0f; //æ”¾å¼ƒåèˆª
 		}
 
 		/* update previous velocity for velocity controller D part */
-		//¸üĞÂÇ°Ò»¸öÊ±¿ÌµÄËÙ¶ÈÓÃÓÚD²¿·Ö(DÓ¦¸ÃÊÇPIDµÄD)
+		//æ›´æ–°å‰ä¸€ä¸ªæ—¶åˆ»çš„é€Ÿåº¦ç”¨äºDéƒ¨åˆ†(Dåº”è¯¥æ˜¯PIDçš„D)
 		_vel_prev = _vel;
 
 		/* publish attitude setpoint
@@ -2369,15 +2370,15 @@ MulticopterPositionControl::task_main()
 		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 		 * attitude setpoints for the transition).
 		 */
-		// ·¢²¼×ËÌ¬Éè¶¨Öµ
-		// Èç¹ûÎ»ÖÃ/ËÙ¶ÈÊ§ÄÜ¶øÍâ²¿Ä£Ê½(offboard)Ê¹ÄÜ£¬Ôò²»·¢²¼×ËÌ¬Éè¶¨Öµ 
-		// ÒòÎªÕâÖÖÇé¿ö×ËÌ¬Éè¶¨ÖµÊÇÍ¨¹ımavlinkÓ¦ÓÃ·¢²¼µÄ 
-		// Èç¹û·É»úÊÇ´¹Ö±Æğ½µ»úĞÍ»òÕßÖ»ÊÇÔÚ×öÒ»¸ö¹ı¶É£¬Ò²²»·¢²¼×ËÌ¬Éè¶¨Öµ
-		// ÒòÎª´ËÊ±µÄ×ËÌ¬Éè¶¨ÖµÓÉ´¹Ö±Æğ½µ¿ØÖÆ²¿·Ö·¢²¼ 
+		// å‘å¸ƒå§¿æ€è®¾å®šå€¼
+		// å¦‚æœä½ç½®/é€Ÿåº¦å¤±èƒ½è€Œå¤–éƒ¨æ¨¡å¼(offboard)ä½¿èƒ½ï¼Œåˆ™ä¸å‘å¸ƒå§¿æ€è®¾å®šå€¼ 
+		// å› ä¸ºè¿™ç§æƒ…å†µå§¿æ€è®¾å®šå€¼æ˜¯é€šè¿‡mavlinkåº”ç”¨å‘å¸ƒçš„ 
+		// å¦‚æœé£æœºæ˜¯å‚ç›´èµ·é™æœºå‹æˆ–è€…åªæ˜¯åœ¨åšä¸€ä¸ªè¿‡æ¸¡ï¼Œä¹Ÿä¸å‘å¸ƒå§¿æ€è®¾å®šå€¼
+		// å› ä¸ºæ­¤æ—¶çš„å§¿æ€è®¾å®šå€¼ç”±å‚ç›´èµ·é™æ§åˆ¶éƒ¨åˆ†å‘å¸ƒ 
 		if (!(_control_mode.flag_control_offboard_enabled &&
 		      !(_control_mode.flag_control_position_enabled ||
 			_control_mode.flag_control_velocity_enabled ||
-			_control_mode.flag_control_acceleration_enabled))) {//²»ÊÇ"ûÎ»ÖÃ/ËÙ¶ÈÊ§ÄÜ¶øÍâ²¿Ä£Ê½(offboard)Ê¹ÄÜ"ÕâÖÖÇé¿öµÄ»°
+			_control_mode.flag_control_acceleration_enabled))) {//ä¸æ˜¯é€Ÿåº¦ä½¿èƒ½è€Œå¤–éƒ¨æ¨¡å¼(offboard)ä½¿èƒ½"è¿™ç§æƒ…å†µçš„è¯
 
 			if (_att_sp_pub != nullptr) {
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
@@ -2388,7 +2389,7 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
-		//ÊÖ¶¯¿ØÖÆºó¸´Î»¸ß¶È¿ØÖÆµÄ»ı·Ö(ĞüÍ£ÓÍÃÅ)£¬ÒÔ±ã¸üºÃµÄ×ª±äÎªÊÖ¶¯Ä£Ê½
+		//æ‰‹åŠ¨æ§åˆ¶åå¤ä½é«˜åº¦æ§åˆ¶çš„ç§¯åˆ†(æ‚¬åœæ²¹é—¨)ï¼Œä»¥ä¾¿æ›´å¥½çš„è½¬å˜ä¸ºæ‰‹åŠ¨æ¨¡å¼
 		reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled
 				     && !_control_mode.flag_control_climb_rate_enabled;
 	}

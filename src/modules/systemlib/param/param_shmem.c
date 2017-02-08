@@ -269,6 +269,7 @@ param_find_internal(const char *name, bool notification)
 	param_t param;
 
 	/* perform a linear search of the known parameters */
+	// 对已知参数执行线性搜索
 	for (param = 0; handle_in_range(param); param++) {
 		if (!strcmp(param_info_base[param].name, name)) {
 			if (notification) {

@@ -646,6 +646,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 
 /**
  * Check failsafe and main status and set navigation status for navigator accordingly
+ * 检查失效保护和主状态，然后根据具体情况为navigator设置导航状态
  */
 bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *internal_state,
 		   const bool data_link_loss_enabled, const bool mission_finished,
@@ -659,6 +660,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
+	// 评估主状态以决定正常（非失效保护）模式
 	switch (internal_state->main_state) {
 	case commander_state_s::MAIN_STATE_ACRO:
 	case commander_state_s::MAIN_STATE_MANUAL:
@@ -667,23 +669,28 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
 		/* require RC for all manual modes */
+		// 所有模式都需要遥控操作
 		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
 			status->failsafe = true;
+			// 遥控信号丢失，进入失控保护模式
 
 			if (status_flags->condition_global_position_valid && status_flags->condition_home_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER; 
+				// GPS位置有效，飞行器进入遥控恢复模式?
 
 			} else if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+				// 导航坐标系中的位置有效，飞行器进入自动降落模式
 
 			} else if (status_flags->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+				// 导航坐标系高度有效，飞行器进入下降模式（无位置控制）
 
 			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION; // 否则，终止飞行
 			}
 
-		} else {
+		} else { // 遥控器正常
 			switch (internal_state->main_state) {
 			case commander_state_s::MAIN_STATE_ACRO:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ACRO;
@@ -706,7 +713,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 				break;
 
 			default:
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL; // 默认进入手动控制模式
 				break;
 			}
 		}
@@ -716,44 +723,49 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_POSCTL: {
 			const bool rc_lost = rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd);
 
-			if (rc_lost && armed) {
-				status->failsafe = true;
+			if (rc_lost && armed) { // 解锁情况下遥控器信号丢失
+				status->failsafe = true; // 进入失控保护模式
 
 				if (status_flags->condition_global_position_valid &&
 				    status_flags->condition_home_position_valid &&
 				    !status_flags->gps_failure) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
+				// GPS位置有效，飞行器进入遥控恢复模式?
 
 				} else if (status_flags->condition_local_position_valid &&
 					   !status_flags->gps_failure) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+				// 导航坐标系位置有效并且GPS有效，飞行器进入自动降落模式
 
 				} else if (status_flags->condition_local_altitude_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+				// 导航坐标系高度有效，飞行器进入下降模式（无位置控制）
 
 				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION; //否则终止飞行
 				}
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
+				// 只要有遥控信号，就可以切换到定高或者自稳模式
+				// 对于多旋翼来说，有导航位置估计就足以进行定点控制，使用光流可以进入定点模式
 
 			} else if (((status->is_rotary_wing && !status_flags->condition_local_position_valid) ||
 				    (!status->is_rotary_wing && !status_flags->condition_global_position_valid))
-				   && armed) {
-				status->failsafe = true;
+				   && armed) { // 旋翼机，导航位置无效；或者非旋翼机，GPS位置无效
+				status->failsafe = true; // 进入失控保护
 
 				if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL; // 定高
 
 				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB; // 自稳
 				}
 
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+			} else { // 非失效保护状态
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL; // 定点
 			}
 		}
 		break;
@@ -765,41 +777,52 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		 * - if we have an engine failure
 		 * - if we have vtol transition failure
 		 * - depending on datalink, RC and if the mission is finished */
+		/* 进入失效保护模式
+		 * - 如果命令要求
+		 * - 如果存在电机故障
+		 * - 如果垂直起降机型变形失败
+		 * - 取决于数据链、遥控信号以及任务是否完成
+		 */
 
 		/* first look at the commands */
-		if (status->engine_failure_cmd) {
+		// 首先检查命令
+		if (status->engine_failure_cmd) { // 电机故障
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->data_link_lost_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
+		} else if (status_flags->data_link_lost_cmd) { // 数据链丢失
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS; // 自动返回地面站
 
-		} else if (status_flags->gps_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+		} else if (status_flags->gps_failure_cmd) { // GPS故障
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND; 
 			status->failsafe = true;
 
-		} else if (status_flags->rc_signal_lost_cmd) {
+		} else if (status_flags->rc_signal_lost_cmd) { // 遥控信号丢失
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
-		} else if (status_flags->vtol_transition_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		} else if (status_flags->vtol_transition_failure_cmd) { // 变形失败
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;// 返航
 
 			/* finished handling commands which have priority, now handle failures */
+			// 结束对高优先级的命令的处理，进行失效保护
 
-		} else if (status_flags->gps_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+		} else if (status_flags->gps_failure) { // GPS失效
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND; // 降落
 			status->failsafe = true;
 
-		} else if (status->engine_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (status->engine_failure) { // 电机故障
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL; // 降落
 
-		} else if (status_flags->vtol_transition_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		} else if (status_flags->vtol_transition_failure) { // 变形失败
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;  // 返航
 
-		} else if (status->mission_failure) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		} else if (status->mission_failure) { // 任务失败
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;  // 返航
 
 			/* datalink loss enabled:
 			 * check for datalink lost: this should always trigger RTGS */
+			/* 使能数据链丢失模式：
+			 * 检查数据链是否丢失：这将触发飞行器自动返回地面站
+			 */
 
 		} else if (data_link_loss_enabled && status->data_link_lost) {
 			status->failsafe = true;
@@ -820,6 +843,10 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			/* datalink loss disabled:
 			 * check if both, RC and datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
+			/* 使能数据链丢失模式：
+			 * 检查任务过程中数据链和遥控信号是否丢失
+			 * 或者在任务结束后飞行器还在空中时所有链路都丢失了：这应该触发RCRECOVER模式
+			 */
 
 		} else if (!data_link_loss_enabled && status->rc_signal_lost && status->data_link_lost && !landed && mission_finished) {
 			status->failsafe = true;
@@ -856,6 +883,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			status->failsafe = true;
 
 			/* also go into failsafe if just datalink is lost */
+			// 如果仅有数据链丢失也进入失效保护
 
 		} else if (status->data_link_lost && data_link_loss_enabled) {
 			status->failsafe = true;
@@ -874,6 +902,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			}
 
 			/* go into failsafe if RC is lost and datalink loss is not set up */
+			// 如果遥控信号丢失并且数据链丢失未设置，也进入失效保护
 
 		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
 			status->failsafe = true;
@@ -892,6 +921,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			}
 
 			/* don't bother if RC is lost if datalink is connected */
+			// 在数据链连上的情况下遥控信号丢失不做任何操作
 
 		} else if (status->rc_signal_lost) {
 
@@ -939,6 +969,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 
 		/* require global position and home */
+		// 需要GPS位置以及起飞点位置
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -965,6 +996,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
 
 		/* require global position and home */
+		// 需要GPS位置以及起飞点位置
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -992,6 +1024,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
 		/* require global position and home */
+		// 需要GPS位置以及起飞点位置
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;

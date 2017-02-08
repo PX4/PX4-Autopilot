@@ -72,6 +72,7 @@ PARAM_DEFINE_INT32(MAV_RADIO_ID, 0);
 
 /**
  * MAVLink airframe type
+ * MAVLink »úÐÍ
  *
  * @min 1
  * @group MAVLink

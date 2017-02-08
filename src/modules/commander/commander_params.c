@@ -144,8 +144,10 @@ PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
 
 /**
  * Engine Failure Current/Throttle Threshold
+ * 电机故障 电流/油门 阈值
  *
  * Engine failure triggers only below this current value
+ * 仅当低于此电流值时触发电机故障
  *
  * @group Commander
  * @min 0.0
@@ -187,8 +189,10 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
 /**
  * Home set horizontal threshold
+ * 起飞点设置水平阈值
  *
  * The home position will be set if the estimated positioning accuracy is below the threshold.
+ * 如果估计位置精度低于此阈值那么起飞点位置将置位
  *
  * @group Commander
  * @unit m
@@ -244,8 +248,10 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
 /**
  * RC input arm/disarm command duration
+ * 遥控器输入解锁/上锁命令持续时间
  *
  * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
+ * 默认值为1000，需要摇杆保持在解锁或者上锁的位置1秒
  *
  * @group Commander
  * @min 100

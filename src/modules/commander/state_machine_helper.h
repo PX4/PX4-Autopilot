@@ -61,7 +61,7 @@ typedef enum {
 struct status_flags_s {
 	bool condition_calibration_enabled;
 	bool condition_system_sensors_initialized;
-	bool condition_system_prearm_error_reported;	// true if errors have already been reported
+	bool condition_system_prearm_error_reported;	// true if errors have already been reported 当错误已经报告时为真
 	bool condition_system_hotplug_timeout;		// true if the hotplug sensor search is over
 	bool condition_system_returned_to_home;
 	bool condition_auto_mission_available;
@@ -85,7 +85,7 @@ struct status_flags_s {
 	bool offboard_control_loss_timeout;		// true if offboard is lost for a certain amount of time
 	bool rc_signal_found_once;
 	bool rc_signal_lost_cmd;			// true if RC lost mode is commanded
-	bool rc_input_blocked;				// set if RC input should be ignored temporarily
+	bool rc_input_blocked;				// set if RC input should be ignored temporarily 如果需要暂时忽略遥控输入，则置位
 	bool data_link_lost_cmd;			// datalink to GCS lost mode commanded
 	bool vtol_transition_failure;			// Set to true if vtol transition failed
 	bool vtol_transition_failure_cmd;		// Set to true if vtol transition failure mode is commanded

@@ -34,7 +34,7 @@
 /**
  * @file mc_mixer.cpp
  * Dummy multicopter mixer for rotors simulator (gazebo)
- * 用于电机仿真的虚拟多旋翼混控器 (眺望台)
+ * 用于电机仿真的虚拟多旋翼混控器 (gazebo)
  * @author Roman Bapst <romanbapst@yahoo.de>
 */
 #include <ros/ros.h>

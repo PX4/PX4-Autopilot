@@ -237,6 +237,7 @@ void tune_neutral(bool use_buzzer)
 
 /**
  * Blink red LED and play negative tune (if use_buzzer == true).
+ * 闪红灯并且播放'拒绝'音乐
  */
 void tune_negative(bool use_buzzer)
 {

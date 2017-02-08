@@ -21,27 +21,27 @@ int8 MODE_SLOT_MAX = 6			# number of slots plus one
 # the MANUAL_CONTROL mavlink message is defined from -1000 to 1000)
 
 float32 x			 # stick position in x direction -1..1
-				 # in general corresponds to forward/back motion or pitch of vehicle,
+				 # in general corresponds to forward/back motion or pitch of vehicle, 前后运动
 				 # in general a positive value means forward or negative pitch and
 				 # a negative value means backward or positive pitch
 float32 y			 # stick position in y direction -1..1
-				 # in general corresponds to right/left motion or roll of vehicle,
-				 # in general a positive value means right or positive roll and
+				 # in general corresponds to right/left motion or roll of vehicle,  左右运动
+				 # in general a positive value means right or positive roll and 
 				 # a negative value means left or negative roll
 float32 z			 # throttle stick position 0..1
 				 # in general corresponds to up/down motion or thrust of vehicle,
-				 # in general the value corresponds to the demanded throttle by the user,
+				 # in general the value corresponds to the demanded throttle by the user, 上下运动
 				 # if the input is used for setting the setpoint of a vertical position
 				 # controller any value > 0.5 means up and any value < 0.5 means down
 float32 r			 # yaw stick/twist position, -1..1
-				 # in general corresponds to the righthand rotation around the vertical
+				 # in general corresponds to the righthand rotation around the vertical  偏航运动
 				 # (downwards) axis of the vehicle
-float32 flaps			 # flap position
-float32 aux1			 # default function: camera yaw / azimuth
-float32 aux2			 # default function: camera pitch / tilt
-float32 aux3			 # default function: camera trigger
-float32 aux4			 # default function: camera roll
-float32 aux5			 # default function: payload drop
+float32 flaps			 # flap position						  襟翼位置
+float32 aux1			 # default function: camera yaw / azimuth 辅助通道1 -> 默认功能：相机偏航
+float32 aux2			 # default function: camera pitch / tilt  辅助通道2 -> 默认功能：相机俯仰
+float32 aux3			 # default function: camera trigger	 	  辅助通道3 -> 默认功能：相机快门
+float32 aux4			 # default function: camera roll		  辅助通道4 -> 默认功能：相机横滚
+float32 aux5			 # default function: payload drop		  辅助通道5 -> 默认功能：有效载荷下降
 
 uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
 uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL
