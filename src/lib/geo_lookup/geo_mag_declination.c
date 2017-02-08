@@ -34,7 +34,7 @@
 /**
 * @file geo_mag_declination.c
 *
-* Calculation / lookup table for Earth's magnetic field declination.
+* Calculation / lookup table for Earth's magnetic field declination and inclination.
 *
 * Lookup table from Scott Ferguson <scottfromscott@gmail.com> and
 * Stephan Brown <stephan.brown.07@gmail.com>
@@ -73,8 +73,27 @@ static const int8_t declination_table[13][37] = \
 	{ 3, 8, 13, 16, 19, 20, 19, 14, 4, -7, -18, -24, -26, -24, -21, -16, -11, -6, -2, 2, 6, 10, 13, 15, 17, 16, 13, 7, 0, -7, -13, -15, -14, -11, -6, -1, 3 },
 };
 
-static float get_lookup_table_val(unsigned lat, unsigned lon);
-static unsigned get_lookup_table_index(float *val, float min, float max);
+static const int8_t inclination_table[13][37] = \
+{
+	{ -77, -75, -73, -71, -69, -67, -65, -62, -60, -57, -55, -54, -54, -54, -56, -57, -58, -58, -58, -58, -59, -59, -61, -63, -66, -69, -72, -76, -79, -82, -85, -87, -86, -84, -81, -79, -77 },
+	{ -71, -69, -67, -66, -64, -62, -59, -57, -54, -51, -48, -47, -48, -51, -54, -57, -59, -61, -61, -60, -59, -59, -60, -62, -65, -68, -72, -75, -78, -79, -80, -80, -79, -77, -75, -73, -71 },
+	{ -64, -62, -60, -58, -56, -54, -52, -50, -47, -43, -41, -40, -42, -46, -52, -57, -61, -64, -65, -65, -63, -61, -61, -62, -64, -67, -70, -72, -73, -73, -73, -72, -71, -69, -68, -66, -64 },
+	{ -54, -52, -50, -48, -46, -44, -42, -39, -36, -33, -30, -30, -33, -40, -47, -54, -59, -63, -66, -67, -65, -63, -60, -60, -61, -63, -65, -66, -65, -64, -63, -62, -61, -60, -59, -57, -54 },
+	{ -42, -39, -37, -35, -32, -30, -27, -25, -22, -17, -14, -15, -20, -29, -39, -47, -53, -58, -61, -62, -61, -58, -54, -53, -53, -54, -55, -55, -54, -52, -51, -50, -50, -48, -46, -44, -42 },
+	{ -25, -22, -19, -17, -15, -12, -9, -7, -3, 0, 3, 2, -4, -14, -26, -36, -43, -47, -49, -49, -48, -44, -40, -38, -38, -38, -39, -39, -38, -36, -35, -35, -34, -33, -31, -28, -25 },
+	{ -4, -1, 0, 2, 5, 7, 9, 12, 16, 19, 21, 19, 13, 2, -8, -19, -25, -28, -29, -29, -27, -23, -19, -17, -16, -17, -18, -18, -17, -16, -15, -16, -16, -14, -12, -8, -4 },
+	{ 14, 18, 20, 22, 24, 26, 28, 30, 33, 36, 36, 34, 29, 20, 11, 2, -2, -4, -4, -3, -1, 1, 5, 7, 7, 7, 6, 5, 6, 6, 6, 5, 5, 5, 7, 10, 14 },
+	{ 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 49, 46, 42, 36, 29, 24, 20, 19, 20, 21, 22, 25, 27, 29, 29, 29, 29, 28, 28, 28, 27, 26, 25, 24, 25, 28, 31 },
+	{ 43, 45, 47, 48, 50, 52, 54, 56, 58, 59, 58, 56, 53, 49, 45, 42, 40, 39, 40, 41, 42, 44, 45, 46, 47, 46, 46, 46, 46, 46, 45, 43, 41, 40, 40, 41, 43 },
+	{ 53, 54, 55, 57, 59, 61, 63, 65, 67, 67, 67, 65, 62, 59, 57, 55, 54, 54, 54, 55, 56, 57, 58, 59, 59, 59, 60, 60, 60, 59, 58, 56, 54, 53, 52, 52, 53 },
+	{ 61, 62, 63, 65, 67, 69, 71, 73, 74, 75, 74, 72, 70, 68, 66, 65, 65, 64, 65, 65, 66, 66, 67, 68, 68, 69, 69, 70, 70, 69, 68, 66, 64, 63, 62, 61, 61 },
+	{ 70, 70, 71, 73, 74, 76, 78, 80, 81, 81, 80, 79, 77, 75, 74, 73, 72, 72, 72, 72, 73, 73, 74, 74, 75, 76, 77, 78, 78, 77, 76, 74, 73, 71, 70, 70, 70 },
+};
+
+static unsigned get_lookup_table_index(float* val, float min, float max);
+static float get_magnetic_field_info(float lat, float lon, float(*get_lookup_table_val)(unsigned, unsigned));
+static float get_declination_table_val(unsigned lat_index, unsigned lon_index);
+static float get_inclination_table_val(unsigned lat_index, unsigned lon_index);
 
 unsigned get_lookup_table_index(float *val, float min, float max)
 {
@@ -95,6 +114,16 @@ unsigned get_lookup_table_index(float *val, float min, float max)
 }
 
 __EXPORT float get_mag_declination(float lat, float lon)
+{
+	return get_magnetic_field_info(lat, lon, get_declination_table_val);
+}
+
+__EXPORT float get_mag_inclination(float lat, float lon)
+{
+	return get_magnetic_field_info(lat, lon, get_inclination_table_val);
+}
+
+float get_magnetic_field_info(float lat, float lon, float(*get_lookup_table_val)(unsigned, unsigned))
 {
 	/*
 	 * If the values exceed valid ranges, return zero as default
@@ -129,7 +158,12 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	return lat_scale * (declination_max - declination_min) + declination_min;
 }
 
-float get_lookup_table_val(unsigned lat_index, unsigned lon_index)
+float get_declination_table_val(unsigned lat_index, unsigned lon_index)
 {
 	return declination_table[lat_index][lon_index];
+}
+
+float get_inclination_table_val(unsigned lat_index, unsigned lon_index)
+{
+	return inclination_table[lat_index][lon_index];
 }

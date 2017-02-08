@@ -34,7 +34,7 @@
 /**
 * @file geo_mag_declination.h
 *
-* Calculation / lookup table for earth magnetic field declination.
+* Calculation / lookup table for Earth's magnetic field declination and inclination.
 *
 */
 
@@ -43,5 +43,6 @@
 __BEGIN_DECLS
 
 __EXPORT float get_mag_declination(float lat, float lon);
+__EXPORT float get_mag_inclination(float lat, float lon);
 
 __END_DECLS
