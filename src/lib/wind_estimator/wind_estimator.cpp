@@ -135,6 +135,10 @@ void WindEstimator::update(float dt)
 
 void WindEstimator::fuse_airspeed(float true_airspeed, float velI[3], float velIvar[2])
 {
+	velIvar[0] = velIvar[0] < 0.01f ? 0.01f : velIvar[0];
+	velIvar[1] = velIvar[1] < 0.01f ? 0.01f : velIvar[1];
+
+
 	if (!_initialised) {
 		// try to initialise
 		_initialised =	initialise(velI, velIvar, true_airspeed);
