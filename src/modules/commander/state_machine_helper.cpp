@@ -360,12 +360,7 @@ bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safet
 	// 2) Armed, but in software lockdown (HIL)
 	// 3) Safety switch is present AND engaged -> actuators locked
     const bool lockdown = (armed->lockdown || armed->manual_lockdown);
-    if (!armed->armed || (armed->armed && lockdown) || (safety->safety_switch_available && !safety->safety_off)) {
-		return true;
-
-	} else {
-		return false;
-	}
+    return !armed->armed || (armed->armed && lockdown) || (safety->safety_switch_available && !safety->safety_off);
 }
 
 transition_result_t
@@ -645,7 +640,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 void enable_failsafe(struct vehicle_status_s *status,
 		bool old_failsafe,
 		orb_advert_t *mavlink_log_pub, const char *reason) {
-	if (old_failsafe == false) {
+	if (!old_failsafe) {
 		mavlink_and_console_log_info(mavlink_log_pub, reason);
 	}
 	status->failsafe = true;

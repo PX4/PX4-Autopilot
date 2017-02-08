@@ -1084,7 +1084,7 @@ MulticopterPositionControl::control_non_manual(float dt)
 	}
 
 	/* weather-vane mode for vtol: disable yaw control */
-	if (_pos_sp_triplet.current.disable_mc_yaw_control == true) {
+	if (_pos_sp_triplet.current.disable_mc_yaw_control) {
 		_att_sp.disable_mc_yaw_control = true;
 
 	} else {

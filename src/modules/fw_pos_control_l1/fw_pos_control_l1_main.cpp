@@ -1238,13 +1238,8 @@ bool FixedwingPositionControl::in_takeoff_situation()
 	// in air for < 10s
 	const hrt_abstime delta_takeoff = 10000000;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
-	    && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
-
-		return true;
-	}
-
-	return false;
+	return hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
+	       && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff;
 }
 
 void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
@@ -2410,7 +2405,7 @@ void FixedwingPositionControl::reset_landing_state()
 	_land_useterrain = false;
 
 	// reset abort land, unless loitering after an abort
-	if (_fw_pos_ctrl_status.abort_landing == true
+	if (_fw_pos_ctrl_status.abort_landing
 	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 		_fw_pos_ctrl_status.abort_landing = false;

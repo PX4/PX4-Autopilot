@@ -448,21 +448,14 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 bool
 MissionFeasibilityChecker::isPositionCommand(unsigned cmd)
 {
-	if (cmd == NAV_CMD_WAYPOINT ||
-	    cmd == NAV_CMD_LOITER_UNLIMITED ||
-	    cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	    cmd == NAV_CMD_LAND ||
-	    cmd == NAV_CMD_TAKEOFF ||
-	    cmd == NAV_CMD_LOITER_TO_ALT ||
-	    cmd == NAV_CMD_VTOL_TAKEOFF ||
-	    cmd == NAV_CMD_VTOL_LAND) {
-
-		return true;
-
-	} else {
-		return false;
-
-	}
+	return cmd == NAV_CMD_WAYPOINT ||
+	       cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	       cmd == NAV_CMD_LAND ||
+	       cmd == NAV_CMD_TAKEOFF ||
+	       cmd == NAV_CMD_LOITER_TO_ALT ||
+	       cmd == NAV_CMD_VTOL_TAKEOFF ||
+	       cmd == NAV_CMD_VTOL_LAND;
 }
 
 void MissionFeasibilityChecker::updateNavigationCapabilities()
