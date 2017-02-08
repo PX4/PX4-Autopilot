@@ -302,10 +302,6 @@ private:
 	_mag_bias_saved_variance; // Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
 	control::BlockParamFloat _mag_bias_alpha; // maximum fraction of the learned bias that is applied each disarm
 
-	WindEstimator _wind_estimator;
-
-	control::BlockParamFloat _tas_scale_p_noise;
-
 	int update_subscriptions();
 
 };
@@ -413,9 +409,8 @@ Ekf2::Ekf2():
 	_mag_bias_z(this, "EKF2_MAGBIAS_Z", false),
 	_mag_bias_id(this, "EKF2_MAGBIAS_ID", false),
 	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
-	_mag_bias_alpha(this, "EKF2_MAGB_K", false),
-	_wind_estimator(),
-	_tas_scale_p_noise(this, "WEST_TAS_P_NOISE", false)
+	_mag_bias_alpha(this, "EKF2_MAGB_K", false)
+
 {
 
 }
@@ -1075,19 +1070,19 @@ void Ekf2::task_main()
 				}
 
 				// Publish wind estimate
-				struct wind_estimate_s wind_estimate = {};
-				wind_estimate.timestamp = now;
-				wind_estimate.windspeed_north = status.states[22];
-				wind_estimate.windspeed_east = status.states[23];
-				wind_estimate.covariance_north = status.covariances[22];
-				wind_estimate.covariance_east = status.covariances[23];
+				// struct wind_estimate_s wind_estimate = {};
+				// wind_estimate.timestamp = now;
+				// wind_estimate.windspeed_north = status.states[22];
+				// wind_estimate.windspeed_east = status.states[23];
+				// wind_estimate.covariance_north = status.covariances[22];
+				// wind_estimate.covariance_east = status.covariances[23];
 
-				if (_wind_pub == nullptr) {
-					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+				// if (_wind_pub == nullptr) {
+				// 	_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
 
-				} else {
-					orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-				}
+				// } else {
+				// 	orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				// }
 			}
 
 			// publish estimator innovation data
