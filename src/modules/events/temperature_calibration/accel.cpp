@@ -43,6 +43,7 @@
 #include "accel.h"
 #include <uORB/topics/sensor_accel.h>
 #include <mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
 	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
@@ -109,16 +110,27 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	data.sensor_sample_filt[2] = accel_data.z;
 	data.sensor_sample_filt[3] = accel_data.temperature;
 
-
 	// wait for min start temp to be reached before starting calibration
 	if (data.sensor_sample_filt[3] < _min_start_temperature) {
 		return 1;
 	}
 
 	if (!data.cold_soaked) {
-		data.cold_soaked = true;
-		data.low_temp = data.sensor_sample_filt[3];	//Record the low temperature
-		data.ref_temp = data.sensor_sample_filt[3] + 0.5f * _min_temperature_rise;
+		// allow time for sensors and filters to settle
+		if (hrt_absolute_time() > 10E6) {
+			// If intial temperature exceeds maximum declare an error condition and exit
+			if (data.sensor_sample_filt[3] > _max_start_temperature) {
+				return -110;
+			} else {
+				data.cold_soaked = true;
+				data.low_temp = data.sensor_sample_filt[3]; // Record the low temperature
+				data.high_temp = data.low_temp; // Initialise the high temperature to the initial temperature
+				data.ref_temp = data.sensor_sample_filt[3] + 0.5f * _min_temperature_rise;
+				return 1;
+			}
+		} else {
+			return 1;
+		}
 	}
 
 	// check if temperature increased
@@ -143,10 +155,10 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	}
 
 	//update linear fit matrices
-	data.sensor_sample_filt[3] -= data.ref_temp;
-	data.P[0].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[0]);
-	data.P[1].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[1]);
-	data.P[2].update((double)data.sensor_sample_filt[3], (double)data.sensor_sample_filt[2]);
+	double relative_temperature = data.sensor_sample_filt[3] - data.ref_temp;
+	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
+	data.P[1].update(relative_temperature, (double)data.sensor_sample_filt[1]);
+	data.P[2].update(relative_temperature, (double)data.sensor_sample_filt[2]);
 
 	return 1;
 }
