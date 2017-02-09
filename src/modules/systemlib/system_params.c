@@ -220,7 +220,7 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * @min 10
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_CAL_DELT, 24);
+PARAM_DEFINE_INT32(SYS_CAL_TDEL, 24);
 
 /**
  * Minimum starting temperature for thermal calibration
