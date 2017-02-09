@@ -110,8 +110,13 @@ if(NOT ${BOARD} STREQUAL "sim")
 			${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
 		)
 
-	px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
-		BUNDLE ${fw_file})
+	if ("${BOARD}" STREQUAL "aerofc-v1")
+		px4_add_upload_aero(OUT upload OS ${OS} BOARD ${BOARD}
+			BUNDLE ${fw_file})
+	else()
+		px4_add_upload(OUT upload OS ${OS} BOARD ${BOARD}
+			BUNDLE ${fw_file})
+	endif()
 endif()
 
 install(FILES ${fw_file} DESTINATION .)
