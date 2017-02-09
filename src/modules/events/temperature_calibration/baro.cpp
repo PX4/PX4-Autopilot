@@ -96,6 +96,12 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 	data.sensor_sample_filt[0] = 100.0f * baro_data.pressure; // convert from hPA to Pa
 	data.sensor_sample_filt[1] = baro_data.temperature;
 
+
+	// wait for min start temp to be reached before starting calibration
+	if (data.sensor_sample_filt[1] < _min_start_temperature) {
+		return 1;
+	}
+
 	if (!data.cold_soaked) {
 		data.cold_soaked = true;
 		data.low_temp = data.sensor_sample_filt[1];	//Record the low temperature
