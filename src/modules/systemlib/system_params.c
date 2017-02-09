@@ -221,3 +221,13 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_DELT, 24);
+
+/**
+ * Minimum starting temperature for thermal calibration
+ *
+ * Temperature calibration for each sensor will ignore data if the temperature is lower than the value set by SYS_CAL_TMIN.
+ *
+ * @unit deg C
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);

@@ -53,8 +53,8 @@
 class TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationBase(float min_temperature_rise)
-		: _min_temperature_rise(min_temperature_rise) {}
+	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature)
+		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature) {}
 
 	virtual ~TemperatureCalibrationBase() {}
 
@@ -85,6 +85,7 @@ protected:
 	inline int set_parameter(const char *format_str, unsigned index, const void *value);
 
 	float _min_temperature_rise; ///< minimum difference in temperature before the process finishes
+	float _min_start_temperature; ///< minimum temperature before the process starts
 };
 
 
@@ -110,8 +111,8 @@ template <int Dim, int PolyfitOrder>
 class TemperatureCalibrationCommon : public TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationCommon(float min_temperature_rise)
-		: TemperatureCalibrationBase(min_temperature_rise) {}
+	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature)
+		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature) {}
 
 	virtual ~TemperatureCalibrationCommon() {}
 
