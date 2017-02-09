@@ -158,7 +158,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if user commands throttle and if so, report no ground contact based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	const bool manual_control_move_down = _get_manual_control_present() && _manual.z < 0.05f;
+	const bool manual_control_move_down = _has_manual_control_present() && _manual.z < 0.05f;
 
 	// Widen acceptance thresholds for landed state right after arming
 	// so that motor spool-up and other effects do not trigger false negatives.
@@ -175,8 +175,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// If pilots commands fully down or already below minimal thrust because of auto land and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if (((manual_control_move_down || !_control_mode.flag_control_manual_enabled) && _get_minimal_thrust()) &&
-	    (!verticalMovement || !_get_position_lock_available())) {
+	if (((manual_control_move_down || !_control_mode.flag_control_manual_enabled) && _has_minimal_thrust()) &&
+	    (!verticalMovement || !_has_position_lock())) {
 		return true;
 	}
 
@@ -194,7 +194,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	}
 
 	// If we control manually and are still landed, we want to stay idle until the pilot rises the throttle for takeoff
-	if (_state == LandDetectionState::LANDED && _get_manual_control_present()) {
+	if (_state == LandDetectionState::LANDED && _has_manual_control_present()) {
 		if (_manual.z < _get_takeoff_throttle()) {
 			return true;
 
@@ -204,7 +204,7 @@ bool MulticopterLandDetector::_get_landed_state()
 		}
 	}
 
-	if (_get_minimal_thrust()) {
+	if (_has_minimal_thrust()) {
 		if (_min_trust_start == 0) {
 			_min_trust_start = now;
 		}
@@ -214,7 +214,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	}
 
 	// Return status based on armed state and throttle if no position lock is available.
-	if (!_get_position_lock_available()) {
+	if (!_has_position_lock()) {
 		// The system has minimum trust set (manual or in failsafe)
 		// if this persists for 8 seconds AND the drone is not
 		// falling consider it to be landed. This should even sustain
@@ -248,7 +248,7 @@ bool MulticopterLandDetector::_get_landed_state()
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
-	if (_ground_contact_hysteresis.get_state() && _get_minimal_thrust() && !rotating && !horizontalMovement) {
+	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating && !horizontalMovement) {
 		// Ground contact, no thrust and no movement -> landed
 		return true;
 	}
@@ -276,7 +276,7 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 	return 0.0f;
 }
 
-bool MulticopterLandDetector::_get_position_lock_available()
+bool MulticopterLandDetector::_has_position_lock()
 {
 	return !(_vehicleLocalPosition.timestamp == 0 ||
 		 hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
@@ -284,12 +284,12 @@ bool MulticopterLandDetector::_get_position_lock_available()
 		 !_vehicleLocalPosition.z_valid);
 }
 
-bool MulticopterLandDetector::_get_manual_control_present()
+bool MulticopterLandDetector::_has_manual_control_present()
 {
 	return _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
 }
 
-bool MulticopterLandDetector::_get_minimal_thrust()
+bool MulticopterLandDetector::_has_minimal_thrust()
 {
 	// 10% of throttle range between min and hover
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * _params.throttleRange;
