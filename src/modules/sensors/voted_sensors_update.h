@@ -146,10 +146,10 @@ public:
 private:
 
 	struct SensorData {
-		SensorData()
+		SensorData(DataValidatorGroup::data_type_t type = DataValidatorGroup::STANDARD)
 			: last_best_vote(0),
 			  subscription_count(0),
-			  voter(1),
+			  voter(1, type),
 			  last_failover_count(0)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {

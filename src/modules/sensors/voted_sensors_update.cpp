@@ -53,8 +53,9 @@ using namespace DriverFramework;
 
 const double VotedSensorsUpdate::_msl_pressure = 101.325f;
 
-VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
-	: _parameters(parameters)
+VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters) :
+	_mag(DataValidatorGroup::MAGNETOMETER),
+	_parameters(parameters)
 {
 	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
@@ -568,7 +569,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
 				accel_data = math::Vector<3>(accel_report.x, accel_report.y, accel_report.z);
 
-				// handle the cse where this is our first output
+				// handle the case where this is our first output
 				if (_last_accel_timestamp[uorb_index] == 0) {
 					_last_accel_timestamp[uorb_index] = accel_report.timestamp - 1000;
 				}
