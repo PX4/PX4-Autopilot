@@ -383,6 +383,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		/* push data into validator */
 		_airspeed_validator.put(_airspeed.timestamp, _diff_pres.differential_pressure_raw_pa, _diff_pres.error_count,
 					ORB_PRIO_HIGH);
+
 		_airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 
 		/* don't risk to feed negative airspeed into the system */
@@ -390,11 +391,12 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 						   calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa));
 
 		_airspeed.true_airspeed_m_s = math::max(0.0f,
-							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + _voted_sensors_update.baro_pressure() * 1e2f,
-									_voted_sensors_update.baro_pressure() * 1e2f, air_temperature_celsius));
+							calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + _voted_sensors_update.baro_pressure(),
+									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
+
 		_airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure() * 1e2f,
-						   _voted_sensors_update.baro_pressure() * 1e2f, air_temperature_celsius));
+				calc_true_airspeed(_diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
+						   _voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
 		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
