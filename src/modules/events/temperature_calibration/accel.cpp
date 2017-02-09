@@ -109,6 +109,12 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	data.sensor_sample_filt[2] = accel_data.z;
 	data.sensor_sample_filt[3] = accel_data.temperature;
 
+
+	// wait for min start temp to be reached before starting calibration
+	if (data.sensor_sample_filt[3] < _min_start_temperature) {
+		return 1;
+	}
+
 	if (!data.cold_soaked) {
 		data.cold_soaked = true;
 		data.low_temp = data.sensor_sample_filt[3];	//Record the low temperature
