@@ -130,13 +130,16 @@ void TemperatureCalibration::task_main()
 	int32_t min_start_temp = 5;
 	param_get(param_find("SYS_CAL_TMIN"), &min_start_temp);
 
+	int32_t max_start_temp = 10;
+	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
+
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];
 	bool error_reported[3] = {};
 	int num_calibrators = 0;
 
 	if (_accel) {
-		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise,min_start_temp);
+		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -147,7 +150,7 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_baro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationBaro(min_temp_rise, min_start_temp);
+		calibrators[num_calibrators] = new TemperatureCalibrationBaro(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -158,7 +161,7 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_gyro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, gyro_sub, num_gyro);
+		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub, num_gyro);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;

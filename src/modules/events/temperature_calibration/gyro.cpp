@@ -43,8 +43,8 @@
 #include <uORB/topics/sensor_gyro.h>
 #include "gyro.h"
 
-TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_rise, float min_start_temperature, int gyro_subs[], int num_gyros)
-	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature)
+TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_rise, float min_start_temperature, float max_start_temperature, int gyro_subs[], int num_gyros)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
 {
 	for (int i = 0; i < num_gyros; ++i) {
 		_sensor_subs[i] = gyro_subs[i];
