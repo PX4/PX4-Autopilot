@@ -183,6 +183,7 @@ void TemperatureCalibration::task_main()
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
+	bool abort_calibration = false;
 	while (!_force_task_exit) {
 		/* we poll on the gyro(s), since this is the sensor with the highest update rate.
 		 * Each individual sensor will then check on its own if there's new data.
@@ -212,19 +213,22 @@ void TemperatureCalibration::task_main()
 
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
-
-			if (ret < 0) {
-				if (!error_reported[i]) {
-					PX4_ERR("Calibration update step failed (%i)", ret);
-					error_reported[i] = true;
-				}
-
+			if (ret == -110) {
+				abort_calibration = true;
+				PX4_ERR("Calibration won't start - sensor temperature too high");
+				_force_task_exit = true;
+				break;
+			} else if (ret < 0 && !error_reported[i]) {
+				// temperature has decreased so calibration is not being updated
+				error_reported[i] = true;
+				PX4_ERR("Calibration update step failed (%i)", ret);
 			} else if (ret < min_progress) {
+				// temperature is stable or increasing
 				min_progress = ret;
 			}
 		}
 
-		if (min_progress == 110) {
+		if (min_progress == 110 || abort_calibration) {
 			break; // we are done
 		}
 
@@ -237,24 +241,25 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
-	PX4_INFO("Sensor Measurments completed");
+	if (!abort_calibration) {
+		PX4_INFO("Sensor Measurments completed");
 
-	// do final calculations & parameter storage
-	for (int i = 0; i < num_calibrators; ++i) {
-		int ret = calibrators[i]->finish();
+		// do final calculations & parameter storage
+		for (int i = 0; i < num_calibrators; ++i) {
+			int ret = calibrators[i]->finish();
 
-		if (ret < 0) {
-			PX4_ERR("Failed to finish calibration process (%i)", ret);
+			if (ret < 0) {
+				PX4_ERR("Failed to finish calibration process (%i)", ret);
+			}
+		}
+
+		param_notify_changes();
+		int ret = param_save_default();
+
+		if (ret != 0) {
+			PX4_ERR("Failed to save params (%i)", ret);
 		}
 	}
-
-	param_notify_changes();
-	int ret = param_save_default();
-
-	if (ret != 0) {
-		PX4_ERR("Failed to save params (%i)", ret);
-	}
-
 
 	for (int i = 0; i < num_calibrators; ++i) {
 		delete calibrators[i];
