@@ -231,3 +231,13 @@ PARAM_DEFINE_INT32(SYS_CAL_TDEL, 24);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
+
+/**
+ * Maximum starting temperature for thermal calibration
+ *
+ * Temperature calibration will not start if the temperature of any sensor is higher than the value set by SYS_CAL_TMAX.
+ *
+ * @unit deg C
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);

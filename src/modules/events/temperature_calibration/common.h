@@ -53,8 +53,8 @@
 class TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature)
-		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature) {}
+	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature), _max_start_temperature(max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationBase() {}
 
@@ -86,6 +86,7 @@ protected:
 
 	float _min_temperature_rise; ///< minimum difference in temperature before the process finishes
 	float _min_start_temperature; ///< minimum temperature before the process starts
+	float _max_start_temperature; ///< maximum temperature above which the process does not start and an error is declared
 };
 
 
@@ -111,8 +112,8 @@ template <int Dim, int PolyfitOrder>
 class TemperatureCalibrationCommon : public TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature)
-		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature) {}
+	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature, max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationCommon() {}
 
@@ -164,7 +165,7 @@ protected:
 
 	/**
 	 * update a single sensor instance
-	 * @return 0 when done, 1 not finished yet
+	 * @return 0 when done, 1 not finished yet, -1 for an error that requires the test to be repeated
 	 */
 	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
 
