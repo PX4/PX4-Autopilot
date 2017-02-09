@@ -158,7 +158,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if user commands throttle and if so, report no ground contact based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	const bool manual_control_move_down = _has_manual_control_present() && _manual.z < 0.05f;
+	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < 0.05f);
+	const bool manual_control_idle_or_auto = manual_control_idle || !_control_mode.flag_control_manual_enabled;
 
 	// Widen acceptance thresholds for landed state right after arming
 	// so that motor spool-up and other effects do not trigger false negatives.
@@ -173,9 +174,9 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// an accurate in-air indication.
 	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
 
-	// If pilots commands fully down or already below minimal thrust because of auto land and we do not move down we assume ground contact
+	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if (((manual_control_move_down || !_control_mode.flag_control_manual_enabled) && _has_minimal_thrust()) &&
+	if (manual_control_idle_or_auto && _has_minimal_thrust() &&
 	    (!verticalMovement || !_has_position_lock())) {
 		return true;
 	}
