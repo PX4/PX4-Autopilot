@@ -124,7 +124,7 @@ void TemperatureCalibration::task_main()
 	}
 
 	int32_t min_temp_rise = 24;
-	param_get(param_find("SYS_CAL_TEMP"), &min_temp_rise);
+	param_get(param_find("SYS_CAL_TDEL"), &min_temp_rise);
 	PX4_INFO("Waiting for %i degrees difference in sensor temperature", min_temp_rise);
 
 	//init calibrators
