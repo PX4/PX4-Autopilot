@@ -44,8 +44,8 @@
 #include <uORB/topics/sensor_accel.h>
 #include <mathlib/mathlib.h>
 
-TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise)
-	: TemperatureCalibrationCommon(min_temperature_rise)
+TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature)
 {
 
 	//init subscriptions

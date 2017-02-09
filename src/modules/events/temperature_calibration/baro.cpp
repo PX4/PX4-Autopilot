@@ -44,8 +44,8 @@
 #include <uORB/topics/sensor_baro.h>
 #include <mathlib/mathlib.h>
 
-TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise)
-	: TemperatureCalibrationCommon(min_temperature_rise)
+TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise, float min_start_temperature)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature)
 {
 
 	//init subscriptions
