@@ -97,6 +97,7 @@ set(srcs
 	../../drivers/stm32/drv_pwm_servo.c
 	../../drivers/boards/${config_io_board}/px4io_init.c
 	../../drivers/boards/${config_io_board}/px4io_timer_config.c
+	../systemlib/clang.c
 	)
 
 if(${config_io_board} STREQUAL "px4io-v1")
@@ -144,4 +145,4 @@ add_custom_target(fw_io
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin)
 
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
