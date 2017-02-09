@@ -221,6 +221,10 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("UAVCAN_ENABLE");
 	(void)param_find("SYS_MC_EST_GROUP");
 
+	// Parameters controlling the on-board sensor thermal calibrator
+	(void)param_find("SYS_CAL_TDEL");
+	(void)param_find("SYS_CAL_TMAX");
+	(void)param_find("SYS_CAL_TMIN");
 
 	return 0;
 }
