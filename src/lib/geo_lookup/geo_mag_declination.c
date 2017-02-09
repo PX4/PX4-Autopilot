@@ -90,7 +90,7 @@ static const int8_t inclination_table[13][37] = \
 	{ 70, 70, 71, 73, 74, 76, 78, 80, 81, 81, 80, 79, 77, 75, 74, 73, 72, 72, 72, 72, 73, 73, 74, 74, 75, 76, 77, 78, 78, 77, 76, 74, 73, 71, 70, 70, 70 },
 };
 
-static unsigned get_lookup_table_index(float* val, float min, float max);
+static unsigned get_lookup_table_index(float *val, float min, float max);
 static float get_magnetic_field_info(float lat, float lon, float(*get_lookup_table_val)(unsigned, unsigned));
 static float get_declination_table_val(unsigned lat_index, unsigned lon_index);
 static float get_inclination_table_val(unsigned lat_index, unsigned lon_index);
