@@ -119,9 +119,7 @@ float ECL_WheelController::control_attitude(const struct ECL_ControlData &ctl_da
 	}
 
 	/* Calculate the error */
-	float yaw_error = ctl_data.yaw_setpoint - ctl_data.yaw;
-	/* shortest angle (wrap around) */
-	yaw_error = (float)fmod((float)fmod((yaw_error + M_PI_F), M_TWOPI_F) + M_TWOPI_F, M_TWOPI_F) - M_PI_F;
+	float yaw_error = _wrap_pi(ctl_data.yaw_setpoint - ctl_data.yaw);
 
 	/*  Apply P controller: rate setpoint from current error and time constant */
 	_rate_setpoint =  yaw_error / _tc;
