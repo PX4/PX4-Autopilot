@@ -104,6 +104,7 @@ set(msg_files
 	test_motor.msg
 	time_offset.msg
 	transponder_report.msg
+	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg
