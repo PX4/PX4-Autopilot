@@ -54,7 +54,8 @@ class TemperatureCalibrationBase
 {
 public:
 	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
-		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature), _max_start_temperature(max_start_temperature) {}
+		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature),
+		  _max_start_temperature(max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationBase() {}
 
@@ -126,11 +127,14 @@ public:
 
 		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 			int status = update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
+
 			if (status == -1) {
 				return -1;
+
 			} else if (status == -110) {
 				return -110;
 			}
+
 			num_not_complete += status;
 		}
 
@@ -159,12 +163,14 @@ protected:
 		polyfitter < PolyfitOrder + 1 > P[Dim];
 		unsigned hot_soak_sat = 0; // counter that increments every time the sensor temperature reduces from the last reading
 		uint32_t device_id = 0; // ID for the sensor being calibrated
-		bool cold_soaked = false; // true when the sensor cold soak starting temperature condition had been verified and the starting temperature set
+		bool cold_soaked =
+			false; // true when the sensor cold soak starting temperature condition had been verified and the starting temperature set
 		bool hot_soaked = false; // true when the sensor has achieved the specified temperature increase
 		bool tempcal_complete = false; // true when the calibration has been completed
 		float low_temp = 0.f; // low temperature recorded at start of calibration (deg C)
 		float high_temp = 0.f; // highest temperature recorded during calibration (deg C)
-		float ref_temp = 0.f; // calibration reference temperature, nominally in the middle of the calibration temperature range (deg C)
+		float ref_temp =
+			0.f; // calibration reference temperature, nominally in the middle of the calibration temperature range (deg C)
 	};
 
 	PerSensorData _data[SENSOR_COUNT_MAX];

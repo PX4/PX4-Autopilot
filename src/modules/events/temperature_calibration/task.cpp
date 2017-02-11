@@ -161,7 +161,8 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_gyro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub, num_gyro);
+		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub,
+				num_gyro);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -184,6 +185,7 @@ void TemperatureCalibration::task_main()
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
 	bool abort_calibration = false;
+
 	while (!_force_task_exit) {
 		/* we poll on the gyro(s), since this is the sensor with the highest update rate.
 		 * Each individual sensor will then check on its own if there's new data.
@@ -213,15 +215,18 @@ void TemperatureCalibration::task_main()
 
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
+
 			if (ret == -110) {
 				abort_calibration = true;
 				PX4_ERR("Calibration won't start - sensor temperature too high");
 				_force_task_exit = true;
 				break;
+
 			} else if (ret < 0 && !error_reported[i]) {
 				// temperature has decreased so calibration is not being updated
 				error_reported[i] = true;
 				PX4_ERR("Calibration update step failed (%i)", ret);
+
 			} else if (ret < min_progress) {
 				// temperature is stable or increasing
 				min_progress = ret;
