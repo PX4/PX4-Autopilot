@@ -45,7 +45,8 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 
-TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise, float min_start_temperature,
+		float max_start_temperature)
 	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
 {
 
@@ -109,6 +110,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 			// If intial temperature exceeds maximum declare an error condition and exit
 			if (data.sensor_sample_filt[1] > _max_start_temperature) {
 				return -110;
+
 			} else {
 				data.cold_soaked = true;
 				data.low_temp = data.sensor_sample_filt[1]; // Record the low temperature
@@ -116,6 +118,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 				data.ref_temp = data.sensor_sample_filt[1] + 0.5f * _min_temperature_rise;
 				return 1;
 			}
+
 		} else {
 			return 1;
 		}
