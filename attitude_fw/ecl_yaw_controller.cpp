@@ -81,9 +81,6 @@ float ECL_YawController::control_attitude_impl_openloop(const struct ECL_Control
 	/* Do not calculate control signal with bad inputs */
 	if (!(PX4_ISFINITE(ctl_data.roll) &&
 	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.speed_body_u) &&
-	      PX4_ISFINITE(ctl_data.speed_body_v) &&
-	      PX4_ISFINITE(ctl_data.speed_body_w) &&
 	      PX4_ISFINITE(ctl_data.roll_rate_setpoint) &&
 	      PX4_ISFINITE(ctl_data.pitch_rate_setpoint))) {
 		return _rate_setpoint;

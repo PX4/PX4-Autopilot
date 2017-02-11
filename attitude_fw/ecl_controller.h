@@ -59,12 +59,6 @@ struct ECL_ControlData {
 	float body_x_rate;
 	float body_y_rate;
 	float body_z_rate;
-	float speed_body_u;
-	float speed_body_v;
-	float speed_body_w;
-	float acc_body_x;
-	float acc_body_y;
-	float acc_body_z;
 	float roll_setpoint;
 	float pitch_setpoint;
 	float yaw_setpoint;
