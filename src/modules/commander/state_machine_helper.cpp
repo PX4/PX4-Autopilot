@@ -376,9 +376,6 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	switch (new_main_state) {
 	case commander_state_s::MAIN_STATE_MANUAL:
 	case commander_state_s::MAIN_STATE_STAB:
-		ret = TRANSITION_CHANGED;
-		break;
-
 	case commander_state_s::MAIN_STATE_ACRO:
 		ret = TRANSITION_CHANGED;
 		break;
