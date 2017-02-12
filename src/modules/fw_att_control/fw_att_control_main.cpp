@@ -171,7 +171,6 @@ private:
 		float r_rmax;
 		float y_p;
 		float y_i;
-		float y_d;
 		float y_ff;
 		float y_integrator_max;
 		float y_coordinated_min_speed;
@@ -231,7 +230,6 @@ private:
 		param_t r_rmax;
 		param_t y_p;
 		param_t y_i;
-		param_t y_d;
 		param_t y_ff;
 		param_t y_integrator_max;
 		param_t y_coordinated_min_speed;
