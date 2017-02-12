@@ -404,7 +404,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 
 		{ "transition: MANUAL to ACRO - not rotary",
 			MTT_ALL_NOT_VALID,
-			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ACRO, TRANSITION_DENIED },
+			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ACRO, TRANSITION_CHANGED },
 
 		{ "no transition: MANUAL to AUTO_MISSION - global position not valid",
 			MTT_ALL_NOT_VALID,
