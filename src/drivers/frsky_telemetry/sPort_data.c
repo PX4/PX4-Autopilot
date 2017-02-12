@@ -270,7 +270,8 @@ void sPort_send_GPS_LON(int uart)
 	/* send longitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	/* precision is approximately 0.1m */
-	uint32_t iLon = 6E5 * fabs(gps_position->lon);
+	uint32_t iLon =  6E-2 * fabs(gps_position->lon);
+
 	iLon |= (1 << 31);
 
 	if (gps_position->lon < 0) { iLon |= (1 << 30); }
@@ -282,7 +283,7 @@ void sPort_send_GPS_LAT(int uart)
 {
 	/* send latitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
-	uint32_t iLat = 6E5 * fabs(gps_position->lat);
+	uint32_t iLat = 6E-2 * fabs(gps_position->lat);
 
 	if (gps_position->lat < 0) { iLat |= (1 << 30); }
 
@@ -292,8 +293,7 @@ void sPort_send_GPS_LAT(int uart)
 void sPort_send_GPS_ALT(int uart)
 {
 	/* send altitude */
-	/* convert to 100 * m/sec */
-	uint32_t iAlt = 100 * gps_position->alt;
+	uint32_t iAlt = gps_position->alt / 10;
 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
 }
 
