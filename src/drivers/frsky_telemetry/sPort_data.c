@@ -52,8 +52,10 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+
 
 #include <drivers/drv_hrt.h>
 
@@ -61,12 +63,14 @@
 
 static int sensor_sub = -1;
 static int global_position_sub = -1;
+static int local_position_sub = -1;
 static int battery_status_sub = -1;
 static int vehicle_status_sub = -1;
 static int gps_position_sub = -1;
 
 static struct sensor_combined_s *sensor_combined;
 static struct vehicle_global_position_s *global_pos;
+static struct vehicle_local_position_s *local_pos;
 static struct battery_status_s *battery_status;
 static struct vehicle_status_s *vehicle_status;
 static struct vehicle_gps_position_s *gps_position;
@@ -80,12 +84,13 @@ bool sPort_init()
 
 	sensor_combined = malloc(sizeof(struct sensor_combined_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
+	local_pos = malloc(sizeof(struct vehicle_local_position_s));
 	battery_status = malloc(sizeof(struct battery_status_s));
 	vehicle_status = malloc(sizeof(struct vehicle_status_s));
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 
 
-	if (sensor_combined == NULL || global_pos == NULL || battery_status == NULL || vehicle_status == NULL
+	if (sensor_combined == NULL || global_pos == NULL || local_pos == NULL || battery_status == NULL || vehicle_status == NULL
 	    || gps_position == NULL) {
 		return false;
 	}
@@ -93,6 +98,7 @@ bool sPort_init()
 
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -104,6 +110,7 @@ void sPort_deinit()
 {
 	free(sensor_combined);
 	free(global_pos);
+	free(local_pos);
 	free(battery_status);
 	free(vehicle_status);
 	free(gps_position);
@@ -133,6 +140,13 @@ void sPort_update_topics()
 		orb_copy(ORB_ID(vehicle_global_position), global_position_sub, global_pos);
 	}
 
+	/* get a local copy of the local position data */
+	orb_check(local_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position), local_position_sub, local_pos);
+	}
+
 	/* get a local copy of the vehicle status data */
 	orb_check(vehicle_status_sub, &updated);
 
@@ -146,6 +160,7 @@ void sPort_update_topics()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_gps_position), gps_position_sub, gps_position);
 	}
+
 }
 
 
@@ -302,7 +317,9 @@ void sPort_send_GPS_CRS(int uart)
 	/* send course */
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
-	uint32_t iYaw = 100 * global_pos->yaw;
+	int32_t iYaw = local_pos->yaw * 18000.0f / M_PI_F;
+	if (iYaw < 0) iYaw += 36000;
+
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
 
