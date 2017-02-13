@@ -139,9 +139,5 @@ drv_led_start(void)
 {
 	if (gLED == nullptr) {
 		gLED = new LED;
-
-		if (gLED != nullptr) {
-			gLED->init();
-		}
 	}
 }
