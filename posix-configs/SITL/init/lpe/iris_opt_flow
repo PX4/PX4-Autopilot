@@ -97,3 +97,5 @@ mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 logger start -e -t
 mavlink boot_complete
 replay trystart
+
+# vim: set ft=sh noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : 

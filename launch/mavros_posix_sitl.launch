@@ -6,12 +6,14 @@
     <arg name="z" default="0"/>
     <arg name="R" default="0"/>
     <arg name="P" default="0"/>
-    <arg name="Y" default="0"/>
+    <arg name="Y" default="1.5708"/>
 
 
-    <arg name="est" default="lpe"/>
+    <arg name="est" default="iekf"/>
     <arg name="vehicle" default="iris"/>
-    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+
+    <arg name="world" default="worlds/uneven.world"/>
+
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
 
     <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
@@ -22,6 +24,7 @@
     <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
 
     <arg name="debug" default="false"/>
+    <arg name="px4_launch_prefix" default=""/>
     <arg name="verbose" default="false"/>
     <arg name="paused" default="false"/>
 
@@ -45,6 +48,7 @@
         <arg name="debug" value="$(arg debug)"/>
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
+        <arg name="px4_launch_prefix" value="$(arg px4_launch_prefix)"/>
     </include>
 
     <include file="$(find px4)/launch/mavros.launch">

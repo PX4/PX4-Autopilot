@@ -517,6 +517,13 @@ void Logger::add_default_topics()
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
+
+	// topics required for imu calibration
+	add_topic("sensor_gyro");
+	add_topic("sensor_mag");
+	add_topic("sensor_accel");
+	add_topic("sensor_baro");
+
 #endif
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
@@ -549,8 +556,12 @@ void Logger::add_default_topics()
 	add_topic("differential_pressure", 50);
 	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
-	add_topic("estimator_status", 50); //this one is large
-	add_topic("ekf2_innovations", 20);
+	//add_topic("estimator_status", 50); //this one is large
+	//add_topic("ekf2_innovations", 20);
+	add_topic("estimator_state", 20);
+	add_topic("estimator_state_std", 20);
+	add_topic("estimator_innov", 20);
+	add_topic("estimator_std", 20);
 	add_topic("tecs_status", 20);
 	add_topic("wind_estimate", 100);
 	add_topic("control_state", 20);
@@ -560,7 +571,7 @@ void Logger::add_default_topics()
 	add_topic("sensor_preflight");
 	add_topic("task_stack_info");
 
-	/* for estimator replay (need to be at full rate) */
+	// for estimator replay (need to be at full rate)
 	add_topic("sensor_combined");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");

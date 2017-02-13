@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
  * @value 1 Always use version 1
  * @value 2 Always use version 2
  */
-PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
+PARAM_DEFINE_INT32(MAV_PROTO_VER, 2);
 
 /**
  * MAVLink Radio ID

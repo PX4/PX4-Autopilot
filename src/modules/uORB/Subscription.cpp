@@ -121,7 +121,7 @@ SubscriptionBase::~SubscriptionBase()
 template <class T>
 Subscription<T>::Subscription(const struct orb_metadata *meta,
 			      unsigned interval,
-			      int instance,
+			      unsigned instance,
 			      List<SubscriptionNode *> *list) :
 	SubscriptionNode(meta, interval, instance, list),
 	_data() // initialize data structure to zero
