@@ -63,45 +63,57 @@ __END_DECLS
 
 __EXPORT void led_init(void)
 {
-	/* Configure LED1-2 GPIOs for output */
+	/* Configure LED0-3 GPIOs for output */
 
+	stm32_configgpio(GPIO_LED0);
 	stm32_configgpio(GPIO_LED1);
 	stm32_configgpio(GPIO_LED2);
+	stm32_configgpio(GPIO_LED3);
+}
+
+static uint32_t _led_param_get(int led)
+{
+	switch (led) {
+	case 0:
+		return GPIO_LED0;
+
+	case 1:
+		return GPIO_LED1;
+
+	case 2:
+		return GPIO_LED2;
+
+	case 3:
+		return GPIO_LED3;
+
+	}
+
+	return 0;
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 0) {
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED1, false);
-	}
+	const uint32_t param = _led_param_get(led);
 
-	if (led == 1) {
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED2, false);
+	if (param) {
+		stm32_gpiowrite(param, false);
 	}
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 0) {
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED1, true);
-	}
+	const uint32_t param = _led_param_get(led);
 
-	if (led == 1) {
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED2, true);
+	if (param) {
+		stm32_gpiowrite(param, true);
 	}
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 0) {
-		stm32_gpiowrite(GPIO_LED1, !stm32_gpioread(GPIO_LED1));
-	}
+	const uint32_t param = _led_param_get(led);
 
-	if (led == 1) {
-		stm32_gpiowrite(GPIO_LED2, !stm32_gpioread(GPIO_LED2));
+	if (param) {
+		stm32_gpiowrite(param, !stm32_gpioread(param));
 	}
 }
