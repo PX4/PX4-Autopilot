@@ -29,21 +29,6 @@ index aa259c9..f2b0640 100644
  #else
  int      mallinfo(FAR struct mallinfo *info);
  #endif
-diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
-index 3f2658b..41c8604 100644
---- NuttX/nuttx/include/sys/stat.h
-+++ NuttX/nuttx/include/sys/stat.h
-@@ -131,7 +131,10 @@ extern "C"
- 
- int mkdir(FAR const char *pathname, mode_t mode);
- int mkfifo(FAR const char *pathname, mode_t mode);
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wshadow"
- int stat(const char *path, FAR struct stat *buf);
-+#pragma GCC diagnostic pop
- #if 0 /* Not yet supported */
- int fstat(int fd, FAR struct stat *buf);
- #endif
 diff --git NuttX/nuttx/include/sys/statfs.h NuttX/nuttx/include/sys/statfs.h
 index 1d1786a..12f802b 100644
 --- NuttX/nuttx/include/sys/statfs.h
@@ -60,3 +45,20 @@ index 1d1786a..12f802b 100644
  
  #undef EXTERN
  #if defined(__cplusplus)
+diff --git NuttX/nuttx/include/sys/stat.h NuttX/nuttx/include/sys/stat.h
+index 4d82f62..4d35fcb 100644
+--- NuttX/nuttx/include/sys/stat.h
++++ NuttX/nuttx/include/sys/stat.h
+@@ -154,9 +154,11 @@ extern "C"
+ 
+ int mkdir(FAR const char *pathname, mode_t mode);
+ int mkfifo(FAR const char *pathname, mode_t mode);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ int stat(const char *path, FAR struct stat *buf);
+ int fstat(int fd, FAR struct stat *buf);
+-
++#pragma GCC diagnostic pop
+ #undef EXTERN
+ #if defined(__cplusplus)
+ }
