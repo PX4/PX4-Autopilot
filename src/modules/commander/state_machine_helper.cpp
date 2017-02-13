@@ -77,6 +77,7 @@ static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static const char reason_no_gps[] = "no gps";
 static const char reason_no_gps_cmd[] = "no gps cmd";
 static const char reason_no_home[] = "no home";
+static const char reason_no_local_position[] = "no local position";
 static const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
@@ -940,13 +941,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
 
-		/* require global position and home */
+		/* require local position */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->gps_failure || !status_flags->condition_local_position_valid) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
+		} else if (!status_flags->condition_local_position_valid) {
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
 
 			if (status_flags->condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
@@ -966,13 +967,13 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
-		/* require global position and home */
+		/* require local position */
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags->gps_failure || !status_flags->condition_local_position_valid) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
+		} else if (!status_flags->condition_local_position_valid) {
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
 
 			if (status_flags->condition_local_altitude_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
