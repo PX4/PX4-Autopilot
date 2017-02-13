@@ -96,6 +96,11 @@ void Ekf::runTerrainEstimator()
 		if (_range_data_ready) {
 			fuseHagl();
 
+			// update range sensor angle parameters in case they have changed
+			// we do this here to avoid doing those calculations at a high rate
+			_sin_tilt_rng = sinf(_params.rng_sens_pitch);
+			_cos_tilt_rng = cosf(_params.rng_sens_pitch);
+
 		}
 	}
 }
