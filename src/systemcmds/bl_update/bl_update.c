@@ -58,43 +58,57 @@
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
+#if defined (CONFIG_STM32_STM32F40XX)
 static void setopt(void);
+#endif
 
 int
 bl_update_main(int argc, char *argv[])
 {
-	if (argc != 2) {
+#if !defined (CONFIG_STM32_STM32F40XX)
+	errx(1, "Not supportedon this HW");
+}
+#else
+
+	if (argc != 2)
+	{
 		errx(1, "missing firmware filename or command");
 	}
 
-	if (!strcmp(argv[1], "setopt")) {
+	if (!strcmp(argv[1], "setopt"))
+	{
 		setopt();
 	}
 
 	int fd = open(argv[1], O_RDONLY);
 
-	if (fd < 0) {
+	if (fd < 0)
+	{
 		err(1, "open %s", argv[1]);
 	}
 
 	struct stat s;
 
-	if (stat(argv[1], &s) != 0) {
+	if (stat(argv[1], &s) != 0)
+	{
 		err(1, "stat %s", argv[1]);
 	}
 
 	/* sanity-check file size */
-	if (s.st_size > BL_FILE_SIZE_LIMIT) {
+	if (s.st_size > BL_FILE_SIZE_LIMIT)
+	{
 		errx(1, "%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
 	}
 
 	uint8_t *buf = malloc(s.st_size);
 
-	if (buf == NULL) {
+	if (buf == NULL)
+	{
 		errx(1, "failed to allocate %u bytes for firmware buffer", s.st_size);
 	}
 
-	if (read(fd, buf, s.st_size) != s.st_size) {
+	if (read(fd, buf, s.st_size) != s.st_size)
+	{
 		err(1, "firmware read error");
 	}
 
@@ -105,7 +119,8 @@ bl_update_main(int argc, char *argv[])
 	if ((hdr[0] < 0x20000000) ||			/* stack not below RAM */
 	    (hdr[0] > (0x20000000 + (128 * 1024))) ||	/* stack not above RAM */
 	    (hdr[1] < PX4_FLASH_BASE) ||			/* entrypoint not below flash */
-	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT)) {		/* entrypoint not outside bootloader */
+	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT))  		/* entrypoint not outside bootloader */
+	{
 		free(buf);
 		errx(1, "not a bootloader image");
 	}
@@ -121,7 +136,8 @@ bl_update_main(int argc, char *argv[])
 
 	ssize_t size = up_progmem_erasepage(page);
 
-	if (size != BL_FILE_SIZE_LIMIT) {
+	if (size != BL_FILE_SIZE_LIMIT)
+	{
 		warnx("WARNING: erase error at 0x%08x", &base[size]);
 	}
 
@@ -131,7 +147,8 @@ bl_update_main(int argc, char *argv[])
 
 	size = up_progmem_write((size_t) base, buf, s.st_size);
 
-	if (size != s.st_size) {
+	if (size != s.st_size)
+	{
 		warnx("WARNING: program error at 0x%0x8",  &base[size]);
 		goto flash_end;
 	}
@@ -143,7 +160,8 @@ bl_update_main(int argc, char *argv[])
 	warnx("verifying...");
 
 	/* now run a verify pass */
-	for (int i = 0; i < s.st_size; i++) {
+	for (int i = 0; i < s.st_size; i++)
+	{
 		if (base[i] != buf[i]) {
 			warnx("WARNING: verify failed at %u - retry update, DO NOT reboot", i);
 			goto flash_end;
@@ -193,3 +211,4 @@ setopt(void)
 	errx(1, "option bits setting failed; readback 0x%04x", *optcr);
 
 }
+#endif // CONFIG_STM32_STM32F40XX
