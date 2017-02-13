@@ -4,7 +4,7 @@
     <arg name="ns" default="/"/>
     <arg name="headless" default="true"/>
     <arg name="gui" default="false"/>
-    <arg name="est" default="lpe"/>
+    <arg name="est" default="iekf"/>
 
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
         <arg name="ns" value="$(arg ns)"/>

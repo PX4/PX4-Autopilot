@@ -1,9 +1,9 @@
 [submodule "mavlink/include/mavlink/v1.0"]
 	path = mavlink/include/mavlink/v1.0
-	url = https://github.com/mavlink/c_library_v1.git
+	url = https://github.com/jgoppert/c_library_v1.git
 [submodule "mavlink/include/mavlink/v2.0"]
 	path = mavlink/include/mavlink/v2.0
-	url = https://github.com/mavlink/c_library_v2.git
+	url = https://github.com/jgoppert/c_library_v2.git
 [submodule "NuttX"]
 	path = NuttX
 	url = https://github.com/PX4/PX4NuttX.git
@@ -41,3 +41,9 @@
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
+[submodule "src/lib/HashMap"]
+	path = src/lib/HashMap
+	url = https://github.com/jgoppert/HashMap.git
+[submodule "Tools/fla_description"]
+	path = Tools/fla_description
+	url = https://github.com/dronecrew/fla_description.git

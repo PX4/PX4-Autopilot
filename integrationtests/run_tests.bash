@@ -5,9 +5,6 @@
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 set -e
 
-# TODO move to docker image
-pip install px4tools pymavlink -q
-
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
@@ -87,6 +84,7 @@ if ! [ -d $SRC_DIR ]
 then
 	ln -s $ORIG_SRC $SRC_DIR
 	ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	ln -s $ORIG_SRC/Tools/fla_description ${CATKIN_DIR}/src/fla_description
 fi
 cd $CATKIN_DIR
 catkin_make

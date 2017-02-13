@@ -135,7 +135,7 @@ public:
 	 */
 	SubscriptionNode(const struct orb_metadata *meta,
 			 unsigned interval = 0,
-			 int instance = 0,
+			 unsigned instance = 0,
 			 List<SubscriptionNode *> *list = nullptr) :
 		SubscriptionBase(meta, interval, instance)
 	{
@@ -170,7 +170,7 @@ public:
 	 */
 	Subscription(const struct orb_metadata *meta,
 		     unsigned interval = 0,
-		     int instance = 0,
+		     unsigned instance = 0,
 		     List<SubscriptionNode *> *list = nullptr);
 
 	Subscription(const Subscription &);

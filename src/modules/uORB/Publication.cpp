@@ -66,7 +66,7 @@ PublicationBase::PublicationBase(const struct orb_metadata *meta,
 {
 }
 
-void PublicationBase::update(void *data)
+void PublicationBase::update(const void *data)
 {
 	if (_handle != nullptr) {
 		int ret = orb_publish(getMeta(), getHandle(), data);

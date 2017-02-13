@@ -70,7 +70,7 @@ public:
 	 * Update the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	void update(void *data);
+	void update(const void *data);
 
 	/**
 	 * Deconstructor
@@ -168,7 +168,7 @@ public:
 	 */
 	void update()
 	{
-		PublicationBase::update((void *)(&_data));
+		PublicationBase::update((const void *)(&_data));
 	}
 private:
 	T _data;

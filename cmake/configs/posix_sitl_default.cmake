@@ -38,6 +38,7 @@ set(config_module_list
 	modules/commander
 	modules/dataman
 	modules/ekf2
+	modules/iekf
 	modules/events
 	modules/fw_att_control
 	modules/fw_pos_control_l1
@@ -59,6 +60,7 @@ set(config_module_list
 	modules/uORB
 	modules/vtol_att_control
 
+	lib/ros
 	lib/controllib
 	lib/conversion
 	lib/DriverFramework/framework
@@ -102,11 +104,10 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-# Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
-# for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
-# which are based on posix_sitl_default.
+# Default config_sitl_rcS_dir, this is overwritten later
+# for other config which are based on posix_sitl_default.
 set(config_sitl_rcS_dir
-	posix-configs/SITL/init/ekf2
+	posix-configs/SITL/init/iekf
 	CACHE INTERNAL "init script dir for sitl"
 	)
 
