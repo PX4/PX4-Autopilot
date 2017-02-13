@@ -444,7 +444,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		 * OFFBOARD only implemented in MC
 		 */
 		if (!status_flags->offboard_control_signal_lost
-		    && status->is_rotary_wing) {
+		    && (status->is_rotary_wing || status->is_fixed_wing) {
 
 			ret = TRANSITION_CHANGED;
 		}
