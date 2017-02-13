@@ -104,8 +104,8 @@ bl_update_main(int argc, char *argv[])
 
 	if ((hdr[0] < 0x20000000) ||			/* stack not below RAM */
 	    (hdr[0] > (0x20000000 + (128 * 1024))) ||	/* stack not above RAM */
-	    (hdr[1] < 0x08000000) ||			/* entrypoint not below flash */
-	    ((hdr[1] - 0x08000000) > 16384)) {		/* entrypoint not outside bootloader */
+	    (hdr[1] < PX4_FLASH_BASE) ||			/* entrypoint not below flash */
+	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT)) {		/* entrypoint not outside bootloader */
 		free(buf);
 		errx(1, "not a bootloader image");
 	}
@@ -117,7 +117,7 @@ bl_update_main(int argc, char *argv[])
 	sched_lock();
 
 	const size_t page = 0;
-	uint8_t *base = (uint8_t *) STM32_FLASH_BASE;
+	uint8_t *base = (uint8_t *) PX4_FLASH_BASE;
 
 	ssize_t size = up_progmem_erasepage(page);
 
