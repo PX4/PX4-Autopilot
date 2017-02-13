@@ -5,5 +5,4 @@ param set SYS_RESTART_TYPE 0
 
 dataman start
 
-rgbledsim start
 tone_alarm start
