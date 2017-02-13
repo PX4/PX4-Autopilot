@@ -41,7 +41,6 @@
 
 #include "ekf.h"
 #include "mathlib.h"
-#include <drivers/drv_hrt.h>
 
 bool Ekf::initHagl()
 {
