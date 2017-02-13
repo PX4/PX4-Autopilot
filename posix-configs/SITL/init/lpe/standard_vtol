@@ -56,7 +56,6 @@ param set COM_DISARM_LAND 5
 param set MPC_ACC_HOR_MAX 2
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start

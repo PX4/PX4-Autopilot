@@ -17,7 +17,6 @@ set(config_module_list
 	platforms/posix/drivers/gpssim
 	platforms/posix/drivers/gyrosim
 	platforms/posix/drivers/ledsim
-	platforms/posix/drivers/rgbledsim
 	platforms/posix/drivers/tonealrmsim
 
 	#
