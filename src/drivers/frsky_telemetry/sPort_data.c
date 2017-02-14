@@ -325,7 +325,23 @@ void sPort_send_GPS_CRS(int uart)
 
 void sPort_send_GPS_TIME(int uart)
 {
-	sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, gps_position->time_utc_usec);
+	static int date = 0;
+
+	/* send formatted frame */
+	time_t time_gps = gps_position->time_utc_usec / 1000000ULL;
+	struct tm *tm_gps = gmtime(&time_gps);
+
+	if(date){
+
+		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, (uint32_t) 0xff | (tm_gps->tm_mday << 8 ) | ((tm_gps->tm_mon + 1) << 16 ) | ((tm_gps->tm_year -100) << 24 ) );
+		date = 0;
+
+	} else {
+
+		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, (uint32_t) 0x00 | (tm_gps->tm_sec << 8 ) | (tm_gps->tm_min  << 16 ) | (tm_gps->tm_hour << 24 ));
+		date = 1;
+
+	}
 }
 
 void sPort_send_GPS_SPD(int uart)
