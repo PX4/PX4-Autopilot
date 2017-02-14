@@ -94,7 +94,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	switch (devid) {
 
-	case PX4_SPIDEV_ICM:
+	case PX4_SPIDEV_ICM_20608:
 		/* Making sure the other peripherals are not selected */
 		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);

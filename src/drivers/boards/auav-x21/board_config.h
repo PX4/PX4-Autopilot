@@ -102,7 +102,7 @@
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_ICM       1
+#define PX4_SPIDEV_ICM_20608 1
 #define PX4_SPIDEV_BARO      2
 #define PX4_SPIDEV_MPU       3
 
