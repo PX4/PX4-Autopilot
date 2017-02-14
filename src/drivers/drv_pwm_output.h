@@ -313,7 +313,7 @@ struct pwm_output_rc_config {
  *			as GPIOs or as another function.
  * @return		OK on success.
  */
-__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
+__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask, bool oneshot);
 
 /**
  * De-initialise the PWM servo outputs.
@@ -331,7 +331,7 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
  */
-__EXPORT extern void	up_pwm_servo_arm(bool armed);
+__EXPORT extern void	up_pwm_servo_arm(bool armed, bool oneshot);
 
 /**
  * Set the servo update rate for all rate groups.
@@ -359,6 +359,13 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Force update of all timer channels in group.
+ *
+ * @param group		The rate group to update.
+ */
+__EXPORT extern void up_pwm_force_update(unsigned group);
 
 /**
  * Set the current output value for a channel.

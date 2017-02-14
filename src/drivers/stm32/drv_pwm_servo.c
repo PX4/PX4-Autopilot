@@ -73,10 +73,17 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 	return io_channel_get_ccr(channel);
 }
 
-int up_pwm_servo_init(uint32_t channel_mask)
+int up_pwm_servo_init(uint32_t channel_mask, bool oneshot)
 {
 	/* Init channels */
-	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
+	io_timer_channel_mode_t chmode = IOTimerChanMode_PWMOut;
+
+	if (oneshot) {
+		PX4_INFO("servo_init: mask: %d, oneshot: %d", channel_mask, oneshot);
+		chmode = IOTimerChanMode_OneShot;
+	}
+
+	uint32_t current = io_timer_get_mode_channels(chmode);
 
 	// First free the current set of PWMs
 
@@ -98,7 +105,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
+			io_timer_channel_init(channel, chmode, NULL, NULL);
 			channel_mask &= ~(1 << channel);
 		}
 	}
@@ -109,7 +116,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 void up_pwm_servo_deinit(void)
 {
 	/* disable the timers */
-	up_pwm_servo_arm(false);
+	up_pwm_servo_arm(false, true);
 }
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
@@ -132,6 +139,11 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	return OK;
 }
 
+void up_pwm_force_update(unsigned group)
+{
+	io_timer_force_update(group);
+}
+
 int up_pwm_servo_set_rate(unsigned rate)
 {
 	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
@@ -147,7 +159,11 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 }
 
 void
-up_pwm_servo_arm(bool armed)
+up_pwm_servo_arm(bool armed, bool oneshot)
 {
-	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	if (oneshot) {
+		io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
+	} else {
+		io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	}
 }

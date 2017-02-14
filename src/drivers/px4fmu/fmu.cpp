@@ -965,12 +965,12 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_servo_init(_pwm_mask);
+		up_pwm_servo_init(_pwm_mask, true);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
 	}
 
-	up_pwm_servo_arm(on);
+	up_pwm_servo_arm(on, true);
 }
 
 void
@@ -1122,10 +1122,11 @@ PX4FMU::cycle()
 				_pwm_limit.state = PWM_LIMIT_STATE_ON;
 			}
 		}
-	} // poll_fds
 
-	/* run the mixers on every cycle */
-	{
+//	} // poll_fds
+//
+//	/* run the mixers on every cycle */
+//	{
 		/* can we mix? */
 		if (_mixers != nullptr) {
 
@@ -1237,11 +1238,15 @@ PX4FMU::cycle()
 				pwm_output_set(i, pwm_limited[i]);
 			}
 
+			// TODO: the required groups depend on board config; this should depend on oneshot mode
+			up_pwm_force_update(0);
+
 			publish_pwm_outputs(pwm_limited, num_outputs);
 			perf_end(_ctl_latency);
 		}
-	}
-//	} // poll_fds
+
+//	}
+	} // poll_fds
 
 	_cycle_timestamp = hrt_absolute_time();
 
@@ -3154,18 +3159,18 @@ test(void)
 			}
 		}
 
-		/* readback servo values */
-		for (unsigned i = 0; i < servo_count; i++) {
-			servo_position_t value;
-
-			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %d", i);
-			}
-
-			if (value != servos[i]) {
-				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
-			}
-		}
+//		/* readback servo values */
+//		for (unsigned i = 0; i < servo_count; i++) {
+//			servo_position_t value;
+//
+//			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
+//				err(1, "error reading PWM servo %d", i);
+//			}
+//
+//			if (value != servos[i]) {
+//				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+//			}
+//		}
 
 		if (capture_count != 0 && (++rate_limit % 500 == 0)) {
 			for (unsigned i = 0; i < capture_count; i++) {
