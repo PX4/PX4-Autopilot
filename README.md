@@ -17,12 +17,12 @@ This repository holds the [PX4 Pro](http://px4.io) flight control solution for d
 
 The PX4 Dev Team syncs up on its weekly dev call (connect via [Mumble](http://mumble.info) client).
 
-  * TIME: 19:00h Zurich time, 1 p.m. Eastern Time, 10 a.m. Pacific Standard Time
+  * When: Tuesday 17:00 Central European Time, 11:00 Eastern Time, 08:00 Pacific Standard Time
   * Server: sitl01.dronetest.io
   * Port: 64738
   * Password: px4
   * The agenda is announced in advance on the [PX4 Discuss](http://discuss.px4.io/c/weekly-dev-call)
-  * Issues and PRs may be labelled "devcall" to flag them for discussion### Users ###
+  * Issues and PRs may be labelled "devcall" to flag them for discussion
 
 Please refer to the [user documentation](http://px4.io/user-guide/) and [user forum](http://discuss.px4.io) for flying drones with the PX4 flight stack.
 
@@ -31,6 +31,7 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * [Developer Forum](http://discuss.px4.io)
   * [Guide for Contributions](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
   * [Developer guide](http://dev.px4.io)
+  * [Build instructions](https://dev.px4.io/starting-building.html)
 
 ## Maintenance Team
 
