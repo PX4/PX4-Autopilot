@@ -405,11 +405,17 @@ then
 		gps start
 	fi
 
+	set DATAMAN_OPT ""
+	if ver hwcmp AEROFC_V1
+	then
+		set DATAMAN_OPT -r
+	fi
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
-	if dataman start
+	if dataman start $DATAMAN_OPT
 	then
 	fi
+	unset DATAMAN_OPT
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
