@@ -61,6 +61,7 @@
 #include "systemlib/err.h"
 #include "systemlib/param/param.h"
 #include "drivers/drv_pwm_output.h"
+#include "drivers/stm32/drv_io_timer.h"
 
 static void	usage(const char *reason);
 __EXPORT int	pwm_main(int argc, char *argv[]);
@@ -617,6 +618,7 @@ pwm_main(int argc, char *argv[])
 		warnx("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
+
 			for (unsigned i = 0; i < servo_count; i++) {
 				if (set_mask & 1 << i) {
 					ret = px4_ioctl(fd, PWM_SERVO_SET(i), pwm_value);
@@ -654,7 +656,7 @@ pwm_main(int argc, char *argv[])
 				}
 			}
 
-			usleep(2000);
+			usleep(2500);
 		}
 
 		return 0;

@@ -75,6 +75,9 @@ static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
+static bool new_fmu_data = false;
+static uint64_t last_fmu_update = 0;
+
 extern int _sbus_fd;
 
 /* selected control values and count for mixing */
@@ -133,6 +136,11 @@ mixer_tick(void)
 
 		/* this flag is never cleared once OK */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
+
+		if (system_state.fmu_data_received_time > last_fmu_update) {
+			new_fmu_data = true;
+			last_fmu_update = system_state.fmu_data_received_time;
+		}
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -301,6 +309,15 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
+
+		if (new_fmu_data) {
+			new_fmu_data = false;
+
+			if (up_pwm_get_oneshot_mode()) {
+				up_pwm_force_update();
+			}
+		}
+
 	}
 
 	/* set arming */
