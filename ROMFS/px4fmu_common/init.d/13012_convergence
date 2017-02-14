@@ -4,8 +4,8 @@
 # @type VTOL Tiltrotor
 # @maintainer Andreas Antener <andreas@uaventure.com>
 # @output MAIN1 Motor right
-# @output MAIN2 Motor back
-# @output MAIN3 Motor left
+# @output MAIN2 Motor left
+# @output MAIN3 Motor back
 # @output MAIN4 empty
 # @output MAIN5 Tilt servo right
 # @output MAIN6 Tilt servo left
