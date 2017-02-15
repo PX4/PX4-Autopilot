@@ -1032,8 +1032,12 @@ FixedwingAttitudeControl::task_main()
 					_wheel_ctrl.reset_integrator();
 				}
 
-				/* If the aircraft is on ground reset the integrators */
-				if (_vehicle_land_detected.landed || _vehicle_status.is_rotary_wing) {
+				/* Reset integrators if the aircraft is on ground
+				 * or a multicopter (but not transitioning VTOL)
+				 */
+				if (_vehicle_land_detected.landed
+				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
+
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
