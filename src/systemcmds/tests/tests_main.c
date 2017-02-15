@@ -104,7 +104,7 @@ const struct {
 	{"autodeclination",	test_autodeclination,	0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
-	//{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST}, // Enable for by hand testing
+	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},
 	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
