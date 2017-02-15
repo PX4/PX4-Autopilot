@@ -260,7 +260,7 @@ bool MulticopterLandDetector::_get_landed_state()
 float MulticopterLandDetector::_get_takeoff_throttle()
 {
 	/* Position mode */
-	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
+	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
 		/* Should be above 0.5 because below that we do not gain altitude and won't take off.
 		 * Also it should be quite high such that we don't accidentally take off when using
 		 * a spring loaded throttle and have a useful vertical speed to start with. */
