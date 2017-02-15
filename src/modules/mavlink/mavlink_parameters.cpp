@@ -51,6 +51,9 @@
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1),
+	_uavcan_open_request_list(nullptr),
+	_uavcan_waiting_for_request_response(false),
+	_uavcan_queued_request_items(0),
 	_rc_param_map_pub(nullptr),
 	_rc_param_map(),
 	_uavcan_parameter_request_pub(nullptr),
@@ -258,12 +261,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				strncpy(req.param_id, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1);
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				// Enque the request and forward the first to the uavcan node
+				enque_uavcan_request(&req);
+				request_next_uavcan_parameter();
 			}
 
 			break;
@@ -332,6 +332,13 @@ MavlinkParametersManager::send(const hrt_abstime t)
 	if (space_available && param_value_ready) {
 		struct uavcan_parameter_value_s value;
 		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
+
+		// Check if we received a matching parameter, drop it from the list and request the next
+		if (value.param_index == _uavcan_open_request_list->req.param_index
+		    && value.node_id == _uavcan_open_request_list->req.node_id) {
+			dequeue_uavcan_request();
+			request_next_uavcan_parameter();
+		}
 
 		mavlink_param_value_t msg;
 		msg.param_count = value.param_count;
@@ -476,4 +483,62 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	}
 
 	return 0;
+}
+
+void MavlinkParametersManager::request_next_uavcan_parameter()
+{
+	// Request a parameter if we are not already waiting on a response and if the list is not empty
+	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
+		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
+
+		if (_uavcan_parameter_request_pub == nullptr) {
+			_uavcan_parameter_request_pub = orb_advertise_queue(ORB_ID(uavcan_parameter_request), &req, 5);
+
+		} else {
+			orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
+		}
+
+		_uavcan_waiting_for_request_response = true;
+	}
+}
+
+void MavlinkParametersManager::enque_uavcan_request(uavcan_parameter_request_s *req)
+{
+	// We store at max 10 requests to keep memory consumption low.
+	// Dropped requests will be repeated by the ground station
+	if (_uavcan_queued_request_items >= 10) {
+		return;
+	}
+
+	_uavcan_open_request_list_item *new_reqest = new _uavcan_open_request_list_item;
+	new_reqest->req = *req;
+	new_reqest->next = nullptr;
+
+	_uavcan_open_request_list_item *item = _uavcan_open_request_list;
+	++_uavcan_queued_request_items;
+
+	if (item == nullptr) {
+		// Add the first item to the list
+		_uavcan_open_request_list = new_reqest;
+
+	} else {
+		// Find the last item and add the new request at the end
+		while (item->next != nullptr) {
+			item = item->next;
+		}
+
+		item->next = new_reqest;
+	}
+}
+
+void MavlinkParametersManager::dequeue_uavcan_request()
+{
+	if (_uavcan_open_request_list != nullptr) {
+		// Drop the first item in the list and free the used memory
+		_uavcan_open_request_list_item *first = _uavcan_open_request_list;
+		_uavcan_open_request_list = first->next;
+		--_uavcan_queued_request_items;
+		delete first;
+		_uavcan_waiting_for_request_response = false;
+	}
 }
