@@ -735,7 +735,6 @@ MulticopterPositionControl::poll_subscriptions()
 				_att_sp.yaw_body += delta_euler(2);
 			}
 		}
-
 	}
 
 	orb_check(_att_sp_sub, &updated);
@@ -1102,22 +1101,19 @@ MulticopterPositionControl::control_non_manual(float dt)
 	}
 
 	/* weather-vane mode for vtol: disable yaw control */
-	if (_pos_sp_triplet.current.disable_mc_yaw_control == true) {
-		_att_sp.disable_mc_yaw_control = true;
+	if (_vehicle_status.is_vtol) {
+		_att_sp.disable_mc_yaw_control = _pos_sp_triplet.current.disable_mc_yaw_control;
 
 	} else {
-		/* reset in case of setpoint updates */
 		_att_sp.disable_mc_yaw_control = false;
 	}
 
 	// guard against any bad velocity values
-
 	bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
 			      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
 			      _pos_sp_triplet.current.velocity_valid;
 
 	// do not go slower than the follow target velocity when position tracking is active (set to valid)
-
 	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 	    velocity_valid &&
 	    _pos_sp_triplet.current.position_valid) {
@@ -2295,10 +2291,14 @@ MulticopterPositionControl::task_main()
 			_yaw_takeoff = _yaw;
 		}
 
-		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
+		/* reset setpoints and integrators VTOL in FW mode */
 		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-			_reset_yaw_sp = true;
 			_reset_alt_sp = true;
+			_reset_int_xy = true;
+			_reset_int_z = true;
+			_reset_pos_sp = true;
+			_reset_yaw_sp = true;
+			_vel_sp_prev = _vel;
 		}
 
 		//Update previous arming state
