@@ -15,8 +15,10 @@ namespace matrix
 
 template<typename Type>
 bool is_finite(Type x) {
-#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
+#if defined (__PX4_NUTTX)
     return PX4_ISFINITE(x);
+#elif defined (__PX4_QURT)
+    return __builtin_isfinite(x);
 #else
     return std::isfinite(x);
 #endif
