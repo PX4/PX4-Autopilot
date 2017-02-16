@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,6 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
-#include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -111,7 +110,6 @@ private:
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle */
 
-	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_battery_status_sub;		/**< battery status subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
@@ -131,7 +129,6 @@ private:
 	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
 	orb_id_t _attitude_setpoint_id;
 
-	struct accel_report				_accel;			/**< body frame accelerations */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
 	struct battery_status_s				_battery_status;	/**< battery status */
@@ -304,11 +301,6 @@ private:
 	void		vehicle_manual_poll();
 
 	/**
-	 * Check for accel updates.
-	 */
-	void		vehicle_accel_poll();
-
-	/**
 	 * Check for set triplet updates.
 	 */
 	void		vehicle_setpoint_poll();
@@ -357,7 +349,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_control_task(-1),
 
 	/* subscriptions */
-	_accel_sub(-1),
 	_att_sp_sub(-1),
 	_battery_status_sub(-1),
 	_ctrl_state_sub(-1),
@@ -397,7 +388,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_yaw(0.0f)
 {
 	/* safely initialize structs */
-	_accel = {};
 	_actuators = {};
 	_actuators_airframe = {};
 	_att_sp = {};
@@ -634,18 +624,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_accel_poll()
-{
-	/* check if there is a new position */
-	bool accel_updated;
-	orb_check(_accel_sub, &accel_updated);
-
-	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -734,7 +712,6 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
-	_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -747,7 +724,6 @@ FixedwingAttitudeControl::task_main()
 
 	/* get an initial update for all sensor and status data */
 	vehicle_setpoint_poll();
-	vehicle_accel_poll();
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
 	vehicle_status_poll();
@@ -867,8 +843,6 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			vehicle_setpoint_poll();
-
-			vehicle_accel_poll();
 
 			vehicle_control_mode_poll();
 
