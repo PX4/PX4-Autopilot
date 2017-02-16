@@ -916,7 +916,7 @@ param_export(int fd, bool only_unsaved)
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32: {
-				param_get(s->param, &i);
+				i = s->val.i;
 				const char *name = param_name(s->param);
 
 				/* lock as short as possible */
@@ -932,7 +932,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT: {
 
-				param_get(s->param, &f);
+				f = s->val.f;
 				const char *name = param_name(s->param);
 
 				/* lock as short as possible */
