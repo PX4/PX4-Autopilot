@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -543,10 +543,10 @@ PWMSim::task_main()
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &aa);
-			/* do not obey the lockdown value, as lockdown is for PWMSim */
+			/* do not obey the lockdown value, as lockdown is for PWMSim. Only obey manual lockdown */
 			_armed = aa.armed;
 			_failsafe = aa.force_failsafe;
-			_lockdown = aa.lockdown || aa.manual_lockdown;
+			_lockdown = aa.manual_lockdown;
 		}
 	}
 
