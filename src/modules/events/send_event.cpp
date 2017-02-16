@@ -124,17 +124,17 @@ void SendEvent::process_commands()
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
-		if ((int)(cmd.param1) == 2) { //TODO: this (and the others) needs to be specified in mavlink...
+		if ((int)(cmd.param1) == 3) { //TODO: this (and the others) needs to be specified in mavlink...
 			gyro = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param5) == 2) {
+		if ((int)(cmd.param5) == 3) {
 			accel = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param7) == 2) {
+		if ((int)(cmd.param7) == 3) {
 			baro = true;
 			got_temperature_calibration_command = true;
 		}
