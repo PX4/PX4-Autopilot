@@ -803,7 +803,9 @@ param_save_default(void)
 
 	PARAM_CLOSE(fd);
 #else
+	param_lock();
 	res = flash_param_save();
+	param_unlock();
 #endif
 	return res;
 }
@@ -814,7 +816,8 @@ param_save_default(void)
 int
 param_load_default(void)
 {
-	warnx("param_load_default\n");
+	int res = 0;
+#if !defined(FLASH_BASED_PARAMS)
 	int fd_load = PARAM_OPEN(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
@@ -835,7 +838,11 @@ param_load_default(void)
 		return -2;
 	}
 
-	return 0;
+#else
+	// no need for locking
+	res = flash_param_load();
+#endif
+	return res;
 }
 
 static void
@@ -1134,7 +1141,13 @@ out:
 int
 param_import(int fd)
 {
+#if !defined(FLASH_BASED_PARAMS)
 	return param_import_internal(fd, false);
+#else
+	(void)fd; // unused
+	// no need for locking here
+	return flash_param_import();
+#endif
 }
 
 int
