@@ -30,6 +30,48 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/*
+Considering Polynomial Form:
+y = a0 + a1.x + a2.x^2 + a3.x^3 + .... + an.x^n
+
+and model for m number of samples will be
+yi = a0 + a1.xi + a2.xi^2 + a3.xi^3 + .... + an.xi^n + ei where i =[0,m]
+yi are the effect of cause xi and ei random fit error
+
+in Vector Form:
+Y = V.A + E
+where V is Vandermonde matrix in x https://en.wikipedia.org/wiki/Vandermonde_matrix
+
+so by Ordinary Least Squares derivation by minimising ∑(i=0..m)ei^2 here: http://www2.warwick.ac.uk/fac/soc/economics/staff/vetroeger/teaching/po906_week567.pdf
+
+we get A = inv(transpose(V)*V)*(transpose(V)*Y)
+
+we accumulate VTV and VTY as they are of fixed size and can be recursed upon
+we can write VTV as
+ __                                                                                                                        __
+|      m                      x0+x1+...+xn                   x0^2+x1^2+...+xn^3   ..........  x0^m+x1^m+...+xn^m             |
+|x0+x1+...+xn              x0^2+x1^2+...+xn^3                x0^3+x1^3+...+xn^3   ..........  x0^(m+1)+x1^(m+1)+...+xn^(m+1) |
+|      .                            .                                  .                             .                       |
+|      .                            .                                  .                             .                       |
+|      .                            .                                  .                             .                       |
+|x0^m+x1^m+...+xn^m     x0^(m+1)+x1^(m+1)+...+xn^(m+1)  x0^(m+2)+x1^(m+2)+...+xn^(m+2) ....  x0^(2m)+x1^(2m)+...+xn^(2m)     |
+|__                                                                                                                        __|
+
+
+and for VTY
+ __            __
+|  ∑(i=0..m)yi   |
+| ∑(i=0..m)yi*xi |
+|       .        |
+|       .        |
+|       .        |
+|∑(i=0..m)yi*xi^n|
+|__            __|
+
+for more on expansion refer https://github.com/jgoppert/iekf_analysis/blob/master/Temperature%20Calibration.ipynb
+*/
+
 /*
 Polygon linear fit
 Author: Siddharth Bharat Purohit
