@@ -70,6 +70,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
+using matrix::Eulerf;
+using matrix::Quatf;
+
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -980,6 +983,14 @@ FixedwingAttitudeControl::task_main()
 					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
 					_att_sp.yaw_body = 0.0f;
 					_att_sp.thrust = _manual.z;
+
+					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+					_att_sp.q_d[0] = q(0);
+					_att_sp.q_d[1] = q(1);
+					_att_sp.q_d[2] = q(2);
+					_att_sp.q_d[3] = q(3);
+					_att_sp.q_d_valid = true;
+
 					int instance;
 					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
 				}
