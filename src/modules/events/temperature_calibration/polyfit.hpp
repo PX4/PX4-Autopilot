@@ -32,34 +32,45 @@
  ****************************************************************************/
 
 /*
-Considering Polynomial Form:
-y = a0 + a1.x + a2.x^2 + a3.x^3 + .... + an.x^n
 
-and model for m number of samples will be
-yi = a0 + a1.xi + a2.xi^2 + a3.xi^3 + .... + an.xi^n + ei where i =[0,m]
-yi are the effect of cause xi and ei random fit error
+This algorithm performs a curve fit of m x,y data points using a polynomial
+equation of the following form:
 
-in Vector Form:
-Y = V.A + E
-where V is Vandermonde matrix in x https://en.wikipedia.org/wiki/Vandermonde_matrix
+yi = a0 + a1.xi + a2.xi^2 + a3.xi^3 + .... + an.xi^n + ei , where:
 
-so by Ordinary Least Squares derivation by minimising ∑(i=0..m)ei^2 here: http://www2.warwick.ac.uk/fac/soc/economics/staff/vetroeger/teaching/po906_week567.pdf
+i = [0,m]
+xi is the x coordinate (independant variable) of the i'th measurement
+yi is the y coordinate (dependant variable) of the i'th measurement
+ei is a random fit error being the difference between the i'th y coordinate
+   and the value predicted by the polynomial.
 
-we get A = inv(transpose(V)*V)*(transpose(V)*Y)
+In vector form this is represented as:
 
-we accumulate VTV and VTY as they are of fixed size and can be recursed upon
-we can write VTV as
+Y = V.A + E , where:
+
+V is Vandermonde matrix in x -> https://en.wikipedia.org/wiki/Vandermonde_matrix
+Y is a vector of length m containing the y measurements
+E is a vector of length m containing the fit errors for each measurement
+
+Use an Ordinary Least Squares derivation to minimise ∑(i=0..m)ei^2 -> https://en.wikipedia.org/wiki/Ordinary_least_squares
+
+Note: In the wikipedia reference, the X matrix in reference is equivalent to our V matrix and the Beta matrix is equivalent to our A matrix
+
+A = inv(transpose(V)*V)*(transpose(V)*Y)
+
+We can accumulate VTV and VTY recursively as they are of fixed size, where:
+
+VTV = transpose(V)*V =
  __                                                                                                                        __
-|      m                      x0+x1+...+xn                   x0^2+x1^2+...+xn^3   ..........  x0^m+x1^m+...+xn^m             |
-|x0+x1+...+xn              x0^2+x1^2+...+xn^3                x0^3+x1^3+...+xn^3   ..........  x0^(m+1)+x1^(m+1)+...+xn^(m+1) |
+|      n                      x0+x1+...+xm                   x0^2+x1^2+...+xm^3   ..........  x0^n+x1^n+...+xn^n             |
+|x0+x1+...+xn              x0^2+x1^2+...+xm^3                x0^3+x1^3+...+xm^3   ..........  x0^(n+1)+x1^(n+1)+...+xm^(n+1) |
 |      .                            .                                  .                             .                       |
 |      .                            .                                  .                             .                       |
 |      .                            .                                  .                             .                       |
-|x0^m+x1^m+...+xn^m     x0^(m+1)+x1^(m+1)+...+xn^(m+1)  x0^(m+2)+x1^(m+2)+...+xn^(m+2) ....  x0^(2m)+x1^(2m)+...+xn^(2m)     |
+|x0^n+x1^n+...+xm^n     x0^(n+1)+x1^(n+1)+...+xm^(n+1)  x0^(n+2)+x1^(n+2)+...+xm^(n+2) ....  x0^(2n)+x1^(2n)+...+xm^(2n)     |
 |__                                                                                                                        __|
 
-
-and for VTY
+and VTY = transpose(V)*Y =
  __            __
 |  ∑(i=0..m)yi   |
 | ∑(i=0..m)yi*xi |
@@ -69,7 +80,6 @@ and for VTY
 |∑(i=0..m)yi*xi^n|
 |__            __|
 
-for more on expansion refer https://github.com/jgoppert/iekf_analysis/blob/master/Temperature%20Calibration.ipynb
 */
 
 /*
