@@ -63,11 +63,15 @@
 
 #include <stm32_tim.h>
 
+/* pwm_oneshot_mode true implies all servo outputs are oneshot */
 static bool pwm_oneshot_mode = false;
 
-void up_pwm_set_oneshot_mode(bool on)
+/* this is a bitfield: if bit N is set, that timer is used for oneshot only */
+static uint8_t oneshot_timers;
+
+void up_pwm_set_oneshot_mode(bool value)
 {
-	pwm_oneshot_mode = on;
+	pwm_oneshot_mode = value;
 }
 
 bool up_pwm_get_oneshot_mode()
@@ -104,6 +108,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 			current &= ~(1 << channel);
 		}
 	}
+	oneshot_timers = 0;
 
 	// Now allocate the new set
 
@@ -118,6 +123,11 @@ int up_pwm_servo_init(uint32_t channel_mask)
 
 			io_timer_channel_init(channel, chmode, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+
+			if (pwm_oneshot_mode) {
+				// update the oneshot_timers bitfield
+				oneshot_timers |= (1 << timer_io_channels[channel].timer_index);
+			}
 		}
 	}
 
@@ -150,9 +160,13 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	return OK;
 }
 
-void up_pwm_force_update(unsigned group)
+void up_pwm_force_update(void)
 {
-	io_timer_force_update(group);
+	for (unsigned i=0; i<8; i++) {
+		if (oneshot_timers & (1 << i)) {
+			io_timer_force_update(i);
+		}
+	}
 }
 
 int up_pwm_servo_set_rate(unsigned rate)

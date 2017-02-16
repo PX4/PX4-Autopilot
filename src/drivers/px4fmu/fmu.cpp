@@ -1241,7 +1241,7 @@ PX4FMU::cycle()
 
 			// TODO: the required groups depend on board config; this should depend on oneshot mode
 			if (up_pwm_get_oneshot_mode()) {
-				up_pwm_force_update(0);
+				up_pwm_force_update();
 			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);

@@ -326,9 +326,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
 		if (up_pwm_get_oneshot_mode()) {
-			up_pwm_force_update(0);
+			up_pwm_force_update();
 		}
-
 		break;
 
 	/* handle setup for servo failsafe values */

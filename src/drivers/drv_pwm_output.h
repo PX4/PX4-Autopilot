@@ -368,7 +368,7 @@ __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned 
  *
  * @param group		The rate group to update.
  */
-__EXPORT extern void up_pwm_force_update(unsigned group);
+__EXPORT extern void up_pwm_force_update(void);
 
 /**
  * Set the current output value for a channel.

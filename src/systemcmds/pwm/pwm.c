@@ -623,7 +623,7 @@ pwm_main(int argc, char *argv[])
 				}
 			}
 
-			usleep(250);
+			usleep(2500);
 		}
 
 		exit(0);
