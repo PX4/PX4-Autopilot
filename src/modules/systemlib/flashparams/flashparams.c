@@ -342,11 +342,6 @@ int flash_param_save(void)
 }
 
 
-int flash_param_save_default(void)
-{
-	return param_export_internal(false);
-}
-
 
 int flash_param_load(void)
 {
@@ -356,5 +351,5 @@ int flash_param_load(void)
 
 int flash_param_import(void)
 {
-	return 0;
+	return -1;
 }

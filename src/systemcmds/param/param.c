@@ -236,31 +236,26 @@ param_main(int argc, char *argv[])
 }
 
 #if defined(FLASH_BASED_PARAMS)
-/* If flash based parameters are uses we call out
- * to the following set of flash routines
+/* If flash based parameters are uses we have to change some of the calls to the
+ * default param calls, which will in turn take care of locking and calling to the
+ * flash backend.
  */
 static int
-
 do_save(const char *param_file_name)
 {
-	return flash_param_save();
-}
-static int
-do_save_default(void)
-{
-	return flash_param_save_default();
+	return param_save_default();
 }
 
 static int
 do_load(const char *param_file_name)
 {
-	return flash_param_load();
+	return param_load_default();
 }
 
 static int
 do_import(const char *param_file_name)
 {
-	return flash_param_import();
+	return param_import(-1);
 }
 #else
 
@@ -287,12 +282,6 @@ do_save(const char *param_file_name)
 	}
 
 	return 0;
-}
-
-static int
-do_save_default(void)
-{
-	return param_save_default();
 }
 
 static int
@@ -337,6 +326,12 @@ do_import(const char *param_file_name)
 	return 0;
 }
 #endif
+
+static int
+do_save_default(void)
+{
+	return param_save_default();
+}
 
 static int
 do_show(const char *search_string)
