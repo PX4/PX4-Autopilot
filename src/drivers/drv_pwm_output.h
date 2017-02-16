@@ -305,6 +305,9 @@ struct pwm_output_rc_config {
  * This is the low-level API to the platform-specific PWM driver.
  */
 
+__EXPORT extern void up_pwm_set_oneshot_mode(bool on);
+__EXPORT extern bool up_pwm_get_oneshot_mode(void);
+
 /**
  * Intialise the PWM servo outputs using the specified configuration.
  *
@@ -313,7 +316,7 @@ struct pwm_output_rc_config {
  *			as GPIOs or as another function.
  * @return		OK on success.
  */
-__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask, bool oneshot);
+__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
 
 /**
  * De-initialise the PWM servo outputs.
@@ -331,7 +334,7 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
  */
-__EXPORT extern void	up_pwm_servo_arm(bool armed, bool oneshot);
+__EXPORT extern void	up_pwm_servo_arm(bool armed);
 
 /**
  * Set the servo update rate for all rate groups.

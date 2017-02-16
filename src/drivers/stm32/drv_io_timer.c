@@ -442,8 +442,8 @@ int io_timer_init_timer(unsigned timer)
 			rBDTR(timer) = ATIM_BDTR_MOE;
 		}
 
-		/* If not in oneshot mode, configure the timer to free-run at 1MHz.
-		 * For oneshot, set frequency to 8MHz.
+		/* If in oneshot mode, configure the prescaler for 8MHz output.
+		 * else set prescaler for 1MHz.
 		 */
 
 		if (timer_freq[timer] == 8) {
@@ -452,15 +452,9 @@ int io_timer_init_timer(unsigned timer)
 //			/* set one pulse mode */
 //			rCR1(timer) |= 1 << 3;
 
-			// this moved to io_timer_channel_init() to be general
-			//			// PWM mode 2, channels 1,2
-//			rCCMR1(timer) = 0b0011100000111000;
-
 		} else {
 			rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
 		}
-
-		PX4_INFO("timer: %d freq %d MHz", timer, timer_freq[timer]);
 
 		/*
 		 * Note we do the Standard PWM Out init here
@@ -513,22 +507,19 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	uint32_t ccer_setbits = GTIM_CCER_CC1E;
 	uint32_t dier_setbits = GTIM_DIER_CC1IE;
 
-	PX4_INFO("channel_init: channel: %d, mode: %d", channel, mode);
-
 	/* figure out the GPIO config first */
 
 	switch (mode) {
+
+	case IOTimerChanMode_OneShot:
+		io_timer_set_oneshot_mode(timer_io_channels[channel].timer_index);
+
+	// intentional fallthrough
+
 	case IOTimerChanMode_PWMOut:
 		ccer_setbits = 0;
 		dier_setbits = 0;
 		setbits = CCMR_C1_PWMOUT_INIT;
-		break;
-
-	case IOTimerChanMode_OneShot:
-		io_timer_set_oneshot_mode(timer_io_channels[channel].timer_index);
-		ccer_setbits = 0;
-		dier_setbits = 0;
-		setbits = CCMR_C1_ONESHOT_INIT;
 		break;
 
 	case IOTimerChanMode_PWMIn:
@@ -606,15 +597,10 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		rvalue |=  setbits;
 		rCCER(timer) = rvalue;
 
-		/* select PWM mode 2 for timer channels 1,2; also preload enable */
-//		REG(timer, STM32_GTIM_CCMR1_OFFSET) = 0b0111100001111000; // 0x7878
-
 		channel_handlers[channel].callback = channel_handler;
 		channel_handlers[channel].context = context;
 		rDIER(timer) |= dier_setbits << shifts;
 		px4_leave_critical_section(flags);
-
-		PX4_INFO("ccmr_offset: 0x%x, ccmr value: 0x%x", ccmr_offset, REG(timer, ccmr_offset));
 	}
 
 	return rv;

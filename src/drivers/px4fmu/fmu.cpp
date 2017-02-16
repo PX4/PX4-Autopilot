@@ -965,12 +965,13 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_servo_init(_pwm_mask, true);
+		up_pwm_set_oneshot_mode(true);
+		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
 	}
 
-	up_pwm_servo_arm(on, true);
+	up_pwm_servo_arm(on);
 }
 
 void
@@ -1239,7 +1240,9 @@ PX4FMU::cycle()
 			}
 
 			// TODO: the required groups depend on board config; this should depend on oneshot mode
-			up_pwm_force_update(0);
+			if (up_pwm_get_oneshot_mode()) {
+				up_pwm_force_update(0);
+			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
 			perf_end(_ctl_latency);

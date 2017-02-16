@@ -63,6 +63,18 @@
 
 #include <stm32_tim.h>
 
+static bool pwm_oneshot_mode = false;
+
+void up_pwm_set_oneshot_mode(bool on)
+{
+	pwm_oneshot_mode = on;
+}
+
+bool up_pwm_get_oneshot_mode()
+{
+	return pwm_oneshot_mode;
+}
+
 int up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
 	return io_timer_set_ccr(channel, value);
@@ -73,13 +85,12 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 	return io_channel_get_ccr(channel);
 }
 
-int up_pwm_servo_init(uint32_t channel_mask, bool oneshot)
+int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
 	io_timer_channel_mode_t chmode = IOTimerChanMode_PWMOut;
 
-	if (oneshot) {
-		PX4_INFO("servo_init: mask: %d, oneshot: %d", channel_mask, oneshot);
+	if (pwm_oneshot_mode) {
 		chmode = IOTimerChanMode_OneShot;
 	}
 
@@ -116,7 +127,7 @@ int up_pwm_servo_init(uint32_t channel_mask, bool oneshot)
 void up_pwm_servo_deinit(void)
 {
 	/* disable the timers */
-	up_pwm_servo_arm(false, true);
+	up_pwm_servo_arm(false);
 }
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
@@ -159,10 +170,11 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 }
 
 void
-up_pwm_servo_arm(bool armed, bool oneshot)
+up_pwm_servo_arm(bool armed)
 {
-	if (oneshot) {
+	if (pwm_oneshot_mode) {
 		io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
+
 	} else {
 		io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
 	}
