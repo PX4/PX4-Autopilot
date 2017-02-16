@@ -207,6 +207,8 @@ private:
 		float flaps_scale;				/**< Scale factor for flaps */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
+		float rattitude_thres;
+
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int bat_scale_en;			/**< Battery scaling enabled */
@@ -263,6 +265,8 @@ private:
 
 		param_t flaps_scale;
 		param_t flaperon_scale;
+
+		param_t rattitude_thres;
 
 		param_t vtol_type;
 
@@ -457,6 +461,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
 	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
 
+	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
+
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
@@ -557,6 +563,8 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
+
+	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -928,6 +936,14 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				_flaperons_applied = flaperon_control;
+			}
+
+			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
+			if (_vcontrol_mode.flag_control_rattitude_enabled) {
+				if (fabsf(_manual.y) > _parameters.rattitude_thres ||
+				    fabsf(_manual.x) > _parameters.rattitude_thres) {
+					_vcontrol_mode.flag_control_attitude_enabled = false;
+				}
 			}
 
 			/* decide if in stabilized or full manual control */
