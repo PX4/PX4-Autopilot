@@ -54,6 +54,7 @@ public:
 	Tunes(unsigned tempo, unsigned octave, unsigned note_length, NoteMode mode);
 	~Tunes() = default;
 	int parse_cmd(tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence);
+	int parse_string(const char *string, unsigned &frequency, unsigned &duration, unsigned &silence);
 
 private:
 	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
