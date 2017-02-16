@@ -70,30 +70,12 @@ struct param_wbuf_s {
 	bool                    unsaved;
 };
 
-
-/** lock the parameter store */
-static void
-param_lock(void)
-{
-	//do {} while (sem_wait(&param_sem) != 0);
-}
-
-/** unlock the parameter store */
-static void
-param_unlock(void)
-{
-	//sem_post(&param_sem);
-}
-
-
 static int
 param_export_internal(bool only_unsaved)
 {
 	struct param_wbuf_s *s = NULL;
 	struct bson_encoder_s encoder;
 	int     result = -1;
-
-	param_lock();
 
 	/* Use realloc */
 
@@ -165,7 +147,6 @@ param_export_internal(bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
 
 	if (result == 0) {
 
