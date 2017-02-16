@@ -134,7 +134,7 @@ typedef union dataman_max_size_t {
 __EXPORT ssize_t
 dm_read(
 	dm_item_t item,			/* The item type to retrieve */
-	unsigned char index,		/* The index of the item */
+	unsigned index,			/* The index of the item */
 	void *buffer,			/* Pointer to caller data buffer */
 	size_t buflen			/* Length in bytes of data to retrieve */
 );
@@ -143,7 +143,7 @@ dm_read(
 __EXPORT ssize_t
 dm_write(
 	dm_item_t  item,		/* The item type to store */
-	unsigned char index,		/* The index of the item */
+	unsigned index,			/* The index of the item */
 	dm_persitence_t persistence,	/* The persistence level of this item */
 	const void *buffer,		/* Pointer to caller data buffer */
 	size_t buflen			/* Length in bytes of data to retrieve */

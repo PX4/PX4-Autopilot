@@ -1,3 +1,5 @@
+#ifdef __PX4_NUTTX
+
 #include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 
@@ -146,3 +148,5 @@ void CameraInterfacePWM::info()
 {
 	warnx("PWM - interface, pin config: %d,%d,%d", _pins[0] + 1, _pins[1] + 1, _pins[2] + 1);
 }
+
+#endif /* ifdef __PX4_NUTTX */

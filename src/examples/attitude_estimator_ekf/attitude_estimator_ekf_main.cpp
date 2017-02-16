@@ -63,7 +63,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 #include <drivers/drv_hrt.h>
 
@@ -298,7 +297,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* subscribe to vision estimate */
-	int vision_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	int vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
 
 	/* subscribe to mocap data */
 	int mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
@@ -332,7 +331,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
 
-	struct vision_position_estimate_s vision {};
+	struct vehicle_attitude_s vision {};
 	struct att_pos_mocap_s mocap {};
 
 	/* register the perf counter */
@@ -492,7 +491,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					orb_check(mocap_sub, &mocap_updated);
 
 					if (vision_updated) {
-						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
+						orb_copy(ORB_ID(vehicle_vision_attitude), vision_sub, &vision);
 					}
 
 					if (mocap_updated) {

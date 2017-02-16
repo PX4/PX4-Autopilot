@@ -1,3 +1,4 @@
+#ifdef __PX4_NUTTX
 #include "relay.h"
 
 constexpr uint32_t CameraInterfaceRelay::_gpios[6];
@@ -75,3 +76,5 @@ void CameraInterfaceRelay::info()
 	warnx("Relay - camera triggering, pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 }
+
+#endif /* ifdef __PX4_NUTTX */

@@ -711,7 +711,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = _navigator->get_global_position()->lat;
 		item->lon = _navigator->get_global_position()->lon;
-		item->yaw = _navigator->get_global_position()->yaw;
+		item->yaw = _navigator->get_local_position()->yaw;
 
 		/* use home position */
 

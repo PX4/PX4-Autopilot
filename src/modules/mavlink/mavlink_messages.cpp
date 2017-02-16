@@ -86,7 +86,6 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/mount_orientation.h>
@@ -1420,6 +1419,23 @@ protected:
 			/* ensure that only active trigger events are sent */
 			if (trigger.timestamp > 0) {
 				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
+
+				/* send MAV_CMD_IMAGE_START_CAPTURE */
+				mavlink_command_long_t msg_cmd;
+
+				msg_cmd.target_system = mavlink_system.sysid;
+				msg_cmd.target_component = MAV_COMP_ID_CAMERA;
+				msg_cmd.command = MAV_CMD_IMAGE_START_CAPTURE;
+				msg_cmd.confirmation = 0;
+				msg_cmd.param1 = 0;
+				msg_cmd.param2 = 1;
+				msg_cmd.param3 = 0;
+				msg_cmd.param4 = NAN;
+				msg_cmd.param5 = NAN;
+				msg_cmd.param6 = NAN;
+				msg_cmd.param7 = NAN;
+
+				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg_cmd);
 			}
 		}
 	}
@@ -1503,17 +1519,17 @@ protected:
 	}
 };
 
-class MavlinkStreamVisionPositionNED : public MavlinkStream
+class MavlinkStreamVisionPositionEstimate : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamVisionPositionNED::get_name_static();
+		return MavlinkStreamVisionPositionEstimate::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "VISION_POSITION_NED";
+		return "VISION_POSITION_ESTIMATE";
 	}
 
 	static uint16_t get_id_static()
@@ -1528,7 +1544,7 @@ public:
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamVisionPositionNED(mavlink);
+		return new MavlinkStreamVisionPositionEstimate(mavlink);
 	}
 
 	unsigned get_size()
@@ -1540,28 +1556,36 @@ private:
 	MavlinkOrbSubscription *_pos_sub;
 	uint64_t _pos_time;
 
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
+
 	/* do not allow top copying this class */
-	MavlinkStreamVisionPositionNED(MavlinkStreamVisionPositionNED &);
-	MavlinkStreamVisionPositionNED &operator = (const MavlinkStreamVisionPositionNED &);
+	MavlinkStreamVisionPositionEstimate(MavlinkStreamVisionPositionEstimate &);
+	MavlinkStreamVisionPositionEstimate &operator = (const MavlinkStreamVisionPositionEstimate &);
 
 protected:
-	explicit MavlinkStreamVisionPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vision_position_estimate))),
-		_pos_time(0)
+	explicit MavlinkStreamVisionPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_vision_position))),
+		_pos_time(0),
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_vision_attitude))),
+		_att_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
-		struct vision_position_estimate_s vpos;
-		memset(&vpos, 0, sizeof(vpos));
+		struct vehicle_local_position_s vpos = {};
+		struct vehicle_attitude_s vatt = {};
 
-		if (_pos_sub->update(&_pos_time, &vpos)) {
+		bool att_updated = _att_sub->update(&_att_time, &vatt);
+		bool pos_updated = _pos_sub->update(&_pos_time, &vpos);
+
+		if (pos_updated || att_updated) {
 			mavlink_vision_position_estimate_t vmsg;
 			vmsg.usec = vpos.timestamp;
 			vmsg.x = vpos.x;
 			vmsg.y = vpos.y;
 			vmsg.z = vpos.z;
-			math::Quaternion q(vpos.q);
+			math::Quaternion q(vatt.q);
 			math::Vector<3> rpy = q.to_euler();
 			vmsg.roll = rpy(0);
 			vmsg.pitch = rpy(1);
@@ -3917,7 +3941,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static, &MavlinkStreamTimesync::get_id_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
-	new StreamListItem(&MavlinkStreamVisionPositionNED::new_instance, &MavlinkStreamVisionPositionNED::get_name_static, &MavlinkStreamVisionPositionNED::get_id_static),
+	new StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNEDCOV::new_instance, &MavlinkStreamLocalPositionNEDCOV::get_name_static, &MavlinkStreamLocalPositionNEDCOV::get_id_static),
 	new StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	new StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),

@@ -246,7 +246,7 @@ private:
 	orb_advert_t	_mavlink_log_pub = nullptr;
 
 	float _last_baro_pressure[SENSOR_COUNT_MAX]; /**< pressure from last baro sensors */
-	float _last_best_baro_pressure = 0.f; /**< pressure from last best baro */
+	float _last_best_baro_pressure = 0.0f; /**< pressure from last best baro */
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
 	uint64_t _last_accel_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
 	uint64_t _last_mag_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */

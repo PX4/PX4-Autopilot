@@ -71,8 +71,9 @@
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {
-	MS5611_DEVICE	= 0,
-	MS5607_DEVICE	= 1
+	MS56XX_DEVICE   = 0,
+	MS5611_DEVICE	= 5611,
+	MS5607_DEVICE	= 5607,
 };
 
 enum MS5611_BUS {
@@ -244,18 +245,8 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_device_id.devid_s.bus = _interface->get_device_bus();
 	_device_id.devid_s.address = _interface->get_device_address();
 
-	switch (_device_type) {
-	default:
-
-	/* fall through */
-	case MS5611_DEVICE:
-		_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
-		break;
-
-	case MS5607_DEVICE:
-		_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
-		break;
-	}
+	/* set later on init */
+	_device_id.devid_s.devtype = 0;
 }
 
 MS5611::~MS5611()
@@ -285,6 +276,7 @@ int
 MS5611::init()
 {
 	int ret;
+	bool autodetect = false;
 
 	ret = CDev::init();
 
@@ -310,8 +302,13 @@ MS5611::init()
 	_measure_phase = 0;
 	_reports->flush();
 
-	/* this do..while is goto without goto */
-	do {
+	if (_device_type == MS56XX_DEVICE) {
+		autodetect = true;
+		/* try first with MS5611 and fallback to MS5607 */
+		_device_type = MS5611_DEVICE;
+	}
+
+	while (true) {
 		/* do temperature first */
 		if (OK != measure()) {
 			ret = -EIO;
@@ -341,17 +338,54 @@ MS5611::init()
 		/* state machine will have generated a report, copy it out */
 		_reports->get(&brp);
 
+		// DEVICE_LOG("altitude (%u) = %.2f", _device_type, (double)brp.altitude);
+
+		if (autodetect) {
+			if (_device_type == MS5611_DEVICE) {
+				if (brp.altitude > 5300.f) {
+					/* This is likely not this device, try again */
+					_device_type = MS5607_DEVICE;
+					_measure_phase = 0;
+
+					continue;
+				}
+
+			} else if (_device_type == MS5607_DEVICE) {
+				if (brp.altitude > 5300.f) {
+					/* Both devices returned very high altitude;
+					 * have fun on Everest using MS5611 */
+					_device_type = MS5611_DEVICE;
+				}
+			}
+		}
+
+		switch (_device_type) {
+		default:
+
+		/* fall through */
+		case MS5611_DEVICE:
+			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
+			break;
+
+		case MS5607_DEVICE:
+			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
+			break;
+		}
+
+		/* ensure correct devid */
+		brp.device_id = _device_id.devid;
+
 		ret = OK;
 
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
 						  &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
-
 		if (_baro_topic == nullptr) {
 			warnx("failed to create sensor_baro publication");
 		}
 
-	} while (0);
+		break;
+	}
 
 out:
 	return ret;
@@ -850,6 +884,7 @@ MS5611::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
+	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
 	printf("TEMP:           %d\n", _TEMP);
 	printf("SENS:           %lld\n", _SENS);
 	printf("OFF:            %lld\n", _OFF);
@@ -1254,6 +1289,7 @@ usage()
 	warnx("    -S    (external SPI bus)");
 	warnx("    -s    (internal SPI bus)");
 	warnx("    -T    5611|5607 (default 5611)");
+	warnx("    -T    0 (autodetect version)");
 
 }
 
@@ -1263,7 +1299,7 @@ int
 ms5611_main(int argc, char *argv[])
 {
 	enum MS5611_BUS busid = MS5611_BUS_ALL;
-	int device_type = 5611; // Default to MS5611
+	enum MS56XX_DEVICE_TYPES device_type = MS5611_DEVICE;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -1287,11 +1323,21 @@ ms5611_main(int argc, char *argv[])
 			busid = MS5611_BUS_SPI_INTERNAL;
 			break;
 
-		case 'T':
-			device_type = atoi(myoptarg);
+		case 'T': {
+				int val = atoi(myoptarg);
 
-			if (device_type == 5611 || device_type == 5607) {
-				break;
+				if (val == 5611) {
+					device_type = MS5611_DEVICE;
+					break;
+
+				} else if (val == 5607) {
+					device_type = MS5607_DEVICE;
+					break;
+
+				} else if (val == 0) {
+					device_type = MS56XX_DEVICE;
+					break;
+				}
 			}
 
 		//no break
@@ -1301,14 +1347,13 @@ ms5611_main(int argc, char *argv[])
 		}
 	}
 
-
 	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		ms5611::start(busid, device_type == 5607 ? MS5607_DEVICE : MS5611_DEVICE);
+		ms5611::start(busid, device_type);
 	}
 
 	/*

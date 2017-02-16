@@ -150,7 +150,7 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 
 		for (unsigned i = 0; i < 16; i++) {
 			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
-				if (i != 3) {
+				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 

@@ -39,9 +39,6 @@
  * @author Andreas Bircher <andreas@wingtra.com>
  */
 
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
-
 /**
 * Camera trigger Interface
 *
@@ -49,6 +46,7 @@
 *
 * @value 1 GPIO
 * @value 2 Seagull MAP2 (PWM)
+* @value 3 MAVLink (forward via MAV_CMD_IMAGE_START_CAPTURE)
 *
 * @reboot_required true
 *
