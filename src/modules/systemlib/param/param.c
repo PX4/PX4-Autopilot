@@ -54,7 +54,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
-#include <semaphore.h>
+#include <px4_sem.h>
 #include <math.h>
 
 #include <sys/stat.h>
@@ -117,7 +117,7 @@ struct param_wbuf_s {
 };
 
 
-uint8_t  *param_changed_storage = 0;
+uint8_t  *param_changed_storage = NULL;
 int size_param_changed_storage_bytes = 0;
 const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
@@ -127,6 +127,7 @@ get_param_info_count(void)
 {
 	/* Singleton creation of and array of bits to track changed values */
 	if (!param_changed_storage) {
+		/* Note that we have a (highly unlikely) race condition here: in the worst case the allocation is done twice */
 		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
 		param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
 
@@ -156,18 +157,20 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
+static px4_sem_t param_sem;
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	//do {} while (px4_sem_wait(&param_sem) != 0);
+	do {} while (px4_sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	//px4_sem_post(&param_sem);
+	px4_sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
@@ -175,6 +178,12 @@ static void
 param_assert_locked(void)
 {
 	/* XXX */
+}
+
+void
+param_init(void)
+{
+	px4_sem_init(&param_sem, 0, 1);
 }
 
 /**
@@ -425,15 +434,22 @@ param_name(param_t param)
 bool
 param_value_is_default(param_t param)
 {
-	return param_find_changed(param) ? false : true;
+	struct param_wbuf_s *s;
+	param_lock();
+	s = param_find_changed(param);
+	param_unlock();
+	return s ? false : true;
 }
 
 bool
 param_value_unsaved(param_t param)
 {
-	static struct param_wbuf_s *s;
+	struct param_wbuf_s *s;
+	param_lock();
 	s = param_find_changed(param);
-	return (s && s->unsaved) ? true : false;
+	bool ret = s && s->unsaved;
+	param_unlock();
+	return ret;
 }
 
 enum param_type_e
@@ -719,8 +735,6 @@ param_reset_all(void)
 void
 param_reset_excludes(const char *excludes[], int num_excludes)
 {
-	param_lock();
-
 	param_t	param;
 
 	for (param = 0; handle_in_range(param); param++) {
@@ -743,8 +757,6 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 		}
 	}
 
-	param_unlock();
-
 	_param_notify_changes(false);
 }
 
@@ -755,6 +767,7 @@ int
 param_set_default_file(const char *filename)
 {
 	if (param_user_file != NULL) {
+		// we assume this is not in use by some other thread
 		free(param_user_file);
 		param_user_file = NULL;
 	}

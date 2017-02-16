@@ -88,6 +88,11 @@ typedef uintptr_t	param_t;
 #define PARAM_HASH      ((uintptr_t)INT32_MAX)
 
 /**
+ * Initialize the param backend. Call this on startup before calling any other methods.
+ */
+__EXPORT void		param_init(void);
+
+/**
  * Look up a parameter by name.
  *
  * @param name		The canonical name of the parameter being looked up.
