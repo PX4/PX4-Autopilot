@@ -107,7 +107,7 @@ param_export_internal(bool only_unsaved)
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32:
-			param_get(s->param, &i);
+			i = s->val.i;
 
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
@@ -117,7 +117,7 @@ param_export_internal(bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			param_get(s->param, &f);
+			f = s->val.f;
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
