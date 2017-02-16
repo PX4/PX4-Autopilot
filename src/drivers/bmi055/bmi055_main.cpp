@@ -136,7 +136,7 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 fail_accel:
 
 	if (*g_dev_acc_ptr != nullptr) {
-		delete(*g_dev_acc_ptr);
+		delete (*g_dev_acc_ptr);
 		*g_dev_acc_ptr = nullptr;
 	}
 
@@ -145,7 +145,7 @@ fail_accel:
 fail_gyro:
 
 	if (*g_dev_gyr_ptr != nullptr) {
-		delete(*g_dev_gyr_ptr);
+		delete (*g_dev_gyr_ptr);
 		*g_dev_gyr_ptr = nullptr;
 	}
 
