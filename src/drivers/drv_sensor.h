@@ -86,6 +86,8 @@
 #define DRV_BARO_DEVTYPE_MS5607		0x3E
 #define DRV_BARO_DEVTYPE_BMP280		0x3F
 #define DRV_BARO_DEVTYPE_LPS25H		0x40
+#define DRV_ACC_DEVTYPE_BMI055		0x41
+#define DRV_GYR_DEVTYPE_BMI055		0x42
 
 /*
  * ioctl() definitions

@@ -1,46 +1,3 @@
-/**
- * Copyright (C) 2015 - 2016 Bosch Sensortec GmbH
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * Neither the name of the copyright holder nor the names of the
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDER
- * OR CONTRIBUTORS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
- * OR CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
- *
- * The information provided is believed to be accurate and reliable.
- * The copyright holder assumes no responsibility
- * for the consequences of use
- * of such information nor for any infringement of patents or
- * other rights of third parties which may result from its use.
- * No license is granted by implication or otherwise under any patent or
- * patent rights of the copyright holder.
- *
-*/
-
 #include "bmi055.hpp"
 
 /** driver 'main' command */
@@ -49,6 +6,12 @@ extern "C" { __EXPORT int bmi055_main(int argc, char *argv[]); }
 /**
  * Local functions in support of the shell command.
  */
+
+enum sensor_type {
+	BMI055_NONE = 0,
+	BMI055_ACCEL = 1,
+	BMI055_GYRO
+};
 
 
 namespace bmi055
@@ -60,13 +23,13 @@ BMI055_gyro     *g_gyr_dev_int; // on internal bus (gyro)
 BMI055_gyro     *g_gyr_dev_ext; // on external bus (gyro)
 
 
-void    start(bool, enum Rotation);
-void    stop(bool);
-void    test(bool);
-void    reset(bool);
-void    info(bool);
-void    regdump(bool);
-void    testerror(bool);
+void    start(bool, enum Rotation, enum sensor_type);
+void    stop(bool, enum sensor_type);
+void    test(bool, enum sensor_type);
+void    reset(bool, enum sensor_type);
+void    info(bool, enum sensor_type);
+void    regdump(bool, enum sensor_type);
+void    testerror(bool, enum sensor_type);
 void    usage();
 
 
@@ -77,142 +40,148 @@ void    usage();
  * or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation)
+start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 {
-    int fd_acc;
-    int fd_gyr;
-    BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-    BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
-    const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
-    const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
+
+	int fd_acc, fd_gyr;
+	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
+	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
+	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
 
 
-    if (*g_dev_acc_ptr != nullptr)
-        /* if already started, the still command succeeded */
-    {
-        errx(0, "already started");
-    }
+	if (sensor == BMI055_ACCEL) {
+		if (*g_dev_acc_ptr != nullptr)
+			/* if already started, the still command succeeded */
+		{
+			errx(0, "bmi055 accel sensor already started");
+		}
 
-    /* create the driver */
-    if (external_bus) {
+		/* create the driver */
+		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-        *g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
+			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
 #else
-        errx(0, "External SPI not available");
+			errx(0, "External SPI not available");
 #endif
 
-    } else {
-        *g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_SENSORS, path_accel, (spi_dev_e)PX4_SPIDEV_BMI055_ACC, rotation);
-    }
+		} else {
+			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_SENSORS, path_accel, (spi_dev_e)PX4_SPIDEV_BMI055_ACC, rotation);
+		}
 
-    if (*g_dev_acc_ptr == nullptr) {
-        goto fail_accel;
-    }
+		if (*g_dev_acc_ptr == nullptr) {
+			goto fail_accel;
+		}
 
-    if (OK != (*g_dev_acc_ptr)->init()) {
-        warnx("error 2");
-        goto fail_accel;
-    }
+		if (OK != (*g_dev_acc_ptr)->init()) {
+			goto fail_accel;
+		}
 
-    /* set the poll rate to default, starts automatic data collection */
-    fd_acc = open(path_accel, O_RDONLY);
+		/* set the poll rate to default, starts automatic data collection */
+		fd_acc = open(path_accel, O_RDONLY);
 
-    if (fd_acc < 0) {
-        goto fail_accel;
-    }
+		if (fd_acc < 0) {
+			goto fail_accel;
+		}
 
-    if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        warnx("error 4");
-        goto fail_accel;
-    }
+		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			goto fail_accel;
+		}
 
-    close(fd_acc);
+		close(fd_acc);
+	}
 
-    if (*g_dev_gyr_ptr != nullptr)
-        /* if already started, the still command succeeded */
-    {
-        errx(0, "gyro sensor already started");
-    }
+	if (sensor == BMI055_GYRO) {
 
-    /* create the driver */
-    if (external_bus) {
+		if (*g_dev_gyr_ptr != nullptr) {
+			errx(0, "bmi055 gyro sensor already started");
+		}
+
+		/* create the driver */
+		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-        *g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
+			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
 #else
-        errx(0, "External SPI not available");
+			errx(0, "External SPI not available");
 #endif
 
-    } else {
-        *g_dev_gyr_ptr = new BMI055_gyro(PX4_SPI_BUS_SENSORS, path_gyro, (spi_dev_e)PX4_SPIDEV_BMI055_GYR, rotation);
-    }
+		} else {
+			*g_dev_gyr_ptr = new BMI055_gyro(PX4_SPI_BUS_SENSORS, path_gyro, (spi_dev_e)PX4_SPIDEV_BMI055_GYR, rotation);
+		}
 
-    if (*g_dev_gyr_ptr == nullptr) {
-        goto fail_gyro;
-    }
+		if (*g_dev_gyr_ptr == nullptr) {
+			goto fail_gyro;
+		}
 
-    if (OK != (*g_dev_gyr_ptr)->init()) {
-        goto fail_gyro;
-    }
+		if (OK != (*g_dev_gyr_ptr)->init()) {
+			goto fail_gyro;
+		}
 
-    /* set the poll rate to default, starts automatic data collection */
-    fd_gyr = open(path_gyro, O_RDONLY);
+		/* set the poll rate to default, starts automatic data collection */
+		fd_gyr = open(path_gyro, O_RDONLY);
 
-    if (fd_gyr < 0) {
-        goto fail_gyro;
-    }
+		if (fd_gyr < 0) {
+			goto fail_gyro;
+		}
 
-    if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        goto fail_gyro;
-    }
+		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			goto fail_gyro;
+		}
 
-    close(fd_gyr);
-    exit(0);
+		close(fd_gyr);
+	}
+
+	exit(0);
 
 fail_accel:
 
-    if (*g_dev_acc_ptr != nullptr) {
-        delete(*g_dev_acc_ptr);
-        *g_dev_acc_ptr = nullptr;
-    }
+	if (*g_dev_acc_ptr != nullptr) {
+		delete(*g_dev_acc_ptr);
+		*g_dev_acc_ptr = nullptr;
+	}
 
-    errx(1, "accel driver start failed");
+	errx(1, "bmi055 accel driver start failed");
 
 fail_gyro:
 
-    if (*g_dev_gyr_ptr != nullptr) {
-        delete(*g_dev_gyr_ptr);
-        *g_dev_gyr_ptr = nullptr;
-    }
+	if (*g_dev_gyr_ptr != nullptr) {
+		delete(*g_dev_gyr_ptr);
+		*g_dev_gyr_ptr = nullptr;
+	}
 
-    errx(1, "gyro driver start failed");
+	errx(1, "bmi055 gyro driver start failed");
 
 }
 
 void
-stop(bool external_bus)
+stop(bool external_bus, enum sensor_type sensor)
 {
-    BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-    BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
+	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 
-    if (*g_dev_acc_ptr != nullptr) {
-        delete *g_dev_acc_ptr;
-        *g_dev_acc_ptr = nullptr;
+	if (sensor == BMI055_ACCEL) {
+		if (*g_dev_acc_ptr != nullptr) {
+			delete *g_dev_acc_ptr;
+			*g_dev_acc_ptr = nullptr;
 
-    } else {
-        /* warn, but not an error */
-        warnx("accel sensor already stopped.");
-    }
+		} else {
+			/* warn, but not an error */
+			warnx("bmi055 accel sensor already stopped.");
+		}
+	}
 
-    if (*g_dev_gyr_ptr != nullptr) {
-        delete *g_dev_gyr_ptr;
-        *g_dev_gyr_ptr = nullptr;
+	if (sensor == BMI055_GYRO) {
+		if (*g_dev_gyr_ptr != nullptr) {
+			delete *g_dev_gyr_ptr;
+			*g_dev_gyr_ptr = nullptr;
 
-    } else {
-        /* warn, but not an error */
-        warnx("gyro sensor already stopped.");
-    }
+		} else {
+			/* warn, but not an error */
+			warnx("bmi055 gyro sensor already stopped.");
+		}
+	}
 
-    exit(0);
+	exit(0);
 
 }
 
@@ -222,96 +191,106 @@ stop(bool external_bus)
  * and automatic modes.
  */
 void
-test(bool external_bus)
+test(bool external_bus, enum sensor_type sensor)
 {
-    const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
-    const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
-    accel_report a_report;
-    gyro_report g_report;
-    ssize_t sz;
+	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
+	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
+	accel_report a_report;
+	gyro_report g_report;
+	ssize_t sz;
 
-    /* get the accel driver */
-    int fd_acc = open(path_accel, O_RDONLY);
+	if (sensor == BMI055_ACCEL) {
+		/* get the accel driver */
+		int fd_acc = open(path_accel, O_RDONLY);
 
-    if (fd_acc < 0)
-        err(1, "%s open failed (try 'bmi055 start')",
-            path_accel);
-
-    /* get the gyro driver */
-    int fd_gyr = open(path_gyro, O_RDONLY);
-
-    if (fd_gyr < 0) {
-        err(1, "%s gyro open failed", path_gyro);
-    }
-
-    /* reset to manual polling */
-    if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-        err(1, "accel reset to manual polling");
-    }
-
-    /* do a simple demand read */
-    sz = read(fd_acc, &a_report, sizeof(a_report));
-
-    if (sz != sizeof(a_report)) {
-        warnx("ret: %d, expected: %d", sz, sizeof(a_report));
-        err(1, "immediate accel read failed");
-    }
-
-    warnx("single read");
-    warnx("time:     %lld", a_report.timestamp);
-    warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
-    warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
-    warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-    warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-    warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-    warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-    warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-          (double)(a_report.range_m_s2 / BMI055_ONE_G));
-    warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-    warnx("temp:  \t%d\traw 0x%0x", (short)g_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+		if (fd_acc < 0)
+			err(1, "%s Accel file open failed (try 'bmi055 -A start')",
+			    path_accel);
 
 
-    /* reset to default polling */
-    if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        err(1, "accel reset to default polling");
-    }
+		/* reset to manual polling */
+		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
+			err(1, "accel reset to manual polling");
+		}
 
-    close(fd_acc);
+		/* do a simple demand read */
+		sz = read(fd_acc, &a_report, sizeof(a_report));
 
-    /* reset to manual polling */
-    if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-        err(1, "gyro reset to manual polling");
-    }
+		if (sz != sizeof(a_report)) {
+			warnx("ret: %d, expected: %d", sz, sizeof(a_report));
+			err(1, "immediate accel read failed");
+		}
 
-
-    /* do a simple demand read */
-    sz = read(fd_gyr, &g_report, sizeof(g_report));
-
-    if (sz != sizeof(g_report)) {
-        warnx("ret: %d, expected: %d", sz, sizeof(g_report));
-        err(1, "immediate gyro read failed");
-    }
-
-    warnx("gyr x: \t% 9.5f\trad/s", (double)g_report.x);
-    warnx("gyr y: \t% 9.5f\trad/s", (double)g_report.y);
-    warnx("gyr z: \t% 9.5f\trad/s", (double)g_report.z);
-    warnx("gyr x: \t%d\traw", (int)g_report.x_raw);
-    warnx("gyr y: \t%d\traw", (int)g_report.y_raw);
-    warnx("gyr z: \t%d\traw", (int)g_report.z_raw);
-    warnx("gyr range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-          (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
+		warnx("single read");
+		warnx("time:     %lld", a_report.timestamp);
+		warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+		warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+		warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+		warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+		warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+		warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+		warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+		      (double)(a_report.range_m_s2 / BMI055_ONE_G));
+		warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+		warnx("temp:  \t%d\traw 0x%0x", (short)g_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 
-    /* reset to default polling */
-    if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        err(1, "gyro reset to default polling");
-    }
+		/* reset to default polling */
+		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			err(1, "accel reset to default polling");
+		}
 
-    close(fd_gyr);
+		close(fd_acc);
+	}
 
-    /* XXX add poll-rate tests here too */
-    reset(external_bus);
-    errx(0, "PASS");
+	if (sensor == BMI055_GYRO) {
+
+		/* get the gyro driver */
+		int fd_gyr = open(path_gyro, O_RDONLY);
+
+		if (fd_gyr < 0) {
+			err(1, "%s Gyro file open failed (try 'bmi055 -G start')", path_gyro);
+		}
+
+		/* reset to manual polling */
+		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
+			err(1, "gyro reset to manual polling");
+		}
+
+
+		/* do a simple demand read */
+		sz = read(fd_gyr, &g_report, sizeof(g_report));
+
+		if (sz != sizeof(g_report)) {
+			warnx("ret: %d, expected: %d", sz, sizeof(g_report));
+			err(1, "immediate gyro read failed");
+		}
+
+		warnx("gyr x: \t% 9.5f\trad/s", (double)g_report.x);
+		warnx("gyr y: \t% 9.5f\trad/s", (double)g_report.y);
+		warnx("gyr z: \t% 9.5f\trad/s", (double)g_report.z);
+		warnx("gyr x: \t%d\traw", (int)g_report.x_raw);
+		warnx("gyr y: \t%d\traw", (int)g_report.y_raw);
+		warnx("gyr z: \t%d\traw", (int)g_report.z_raw);
+		warnx("gyr range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
+		      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
+
+
+		/* reset to default polling */
+		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			err(1, "gyro reset to default polling");
+		}
+
+		close(fd_gyr);
+
+	}
+
+	if ((sensor == BMI055_ACCEL) || (sensor == BMI055_GYRO)) {
+		/* XXX add poll-rate tests here too */
+		reset(external_bus, sensor);
+	}
+
+	errx(0, "PASS");
 
 }
 
@@ -319,45 +298,49 @@ test(bool external_bus)
  * Reset the driver.
  */
 void
-reset(bool external_bus)
+reset(bool external_bus, enum sensor_type sensor)
 {
-    const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
-    const char *path_gyro = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
+	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
+	const char *path_gyro = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
 
-    int fd_acc = open(path_accel, O_RDONLY);
+	if (sensor == BMI055_ACCEL) {
+		int fd_acc = open(path_accel, O_RDONLY);
 
-    if (fd_acc < 0) {
-        err(1, "Opening accel file failed ");
-    }
+		if (fd_acc < 0) {
+			err(1, "Opening accel file failed ");
+		}
 
-    int fd_gyr = open(path_gyro, O_RDONLY);
-
-    if (fd_gyr < 0) {
-        err(1, "Opening gyro file failed ");
-    }
-
-    if (ioctl(fd_acc, SENSORIOCRESET, 0) < 0) {
-        err(1, "accel driver reset failed");
-    }
+		if (ioctl(fd_acc, SENSORIOCRESET, 0) < 0) {
+			err(1, "accel driver reset failed");
+		}
 
 
-    if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        err(1, "accel driver poll restart failed");
-    }
+		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			err(1, "accel driver poll restart failed");
+		}
 
-    close(fd_acc);
+		close(fd_acc);
+	}
 
-    if (ioctl(fd_gyr, SENSORIOCRESET, 0) < 0) {
-        err(1, "gyro driver reset failed");
-    }
+	if (sensor == BMI055_GYRO) {
+		int fd_gyr = open(path_gyro, O_RDONLY);
 
-    if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-        err(1, "gyro driver poll restart failed");
-    }
+		if (fd_gyr < 0) {
+			err(1, "Opening gyro file failed ");
+		}
 
-    close(fd_gyr);
+		if (ioctl(fd_gyr, SENSORIOCRESET, 0) < 0) {
+			err(1, "gyro driver reset failed");
+		}
 
-    exit(0);
+		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			err(1, "gyro driver poll restart failed");
+		}
+
+		close(fd_gyr);
+	}
+
+	exit(0);
 }
 
 
@@ -365,53 +348,60 @@ reset(bool external_bus)
  * Print a little info about the driver.
  */
 void
-info(bool external_bus)
+info(bool external_bus, enum sensor_type sensor)
 {
-    BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-    BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
+	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 
-    if (*g_dev_acc_ptr == nullptr) {
-        errx(1, "accel driver not running");
-    }
+	if (sensor == BMI055_ACCEL) {
+		if (*g_dev_acc_ptr == nullptr) {
+			errx(1, "bmi055 accel driver not running");
+		}
 
-    if (*g_dev_gyr_ptr == nullptr) {
-        errx(1, "gyro driver not running");
-    }
+		printf("state @ %p\n", *g_dev_acc_ptr);
+		(*g_dev_acc_ptr)->print_info();
+	}
 
-    printf("state @ %p\n", *g_dev_acc_ptr);
-    (*g_dev_acc_ptr)->print_info();
+	if (sensor == BMI055_GYRO) {
+		if (*g_dev_gyr_ptr == nullptr) {
+			errx(1, "bmi055 gyro driver not running");
+		}
 
-    printf("state @ %p\n", *g_dev_gyr_ptr);
-    (*g_dev_gyr_ptr)->print_info();
+		printf("state @ %p\n", *g_dev_gyr_ptr);
+		(*g_dev_gyr_ptr)->print_info();
+	}
 
-    exit(0);
+	exit(0);
 }
 
 /**
  * Dump the register information
  */
 void
-regdump(bool external_bus)
+regdump(bool external_bus, enum sensor_type sensor)
 {
-    BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-    BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
+	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 
+	if (sensor == BMI055_ACCEL) {
+		if (*g_dev_acc_ptr == nullptr) {
+			errx(1, "bmi055 accel driver not running");
+		}
 
-    if (*g_dev_acc_ptr == nullptr) {
-        errx(1, "accel driver not running");
-    }
+		printf("regdump @ %p\n", *g_dev_acc_ptr);
+		(*g_dev_acc_ptr)->print_registers();
+	}
 
-    if (*g_dev_gyr_ptr == nullptr) {
-        errx(1, "gyro driver not running");
-    }
+	if (sensor == BMI055_GYRO) {
+		if (*g_dev_gyr_ptr == nullptr) {
+			errx(1, "bmi055 gyro driver not running");
+		}
 
-    printf("regdump @ %p\n", *g_dev_acc_ptr);
-    (*g_dev_acc_ptr)->print_registers();
+		printf("regdump @ %p\n", *g_dev_gyr_ptr);
+		(*g_dev_gyr_ptr)->print_registers();
+	}
 
-    printf("regdump @ %p\n", *g_dev_gyr_ptr);
-    (*g_dev_gyr_ptr)->print_registers();
-
-    exit(0);
+	exit(0);
 }
 
 
@@ -419,109 +409,203 @@ regdump(bool external_bus)
  * deliberately produce an error to test recovery
  */
 void
-testerror(bool external_bus)
+testerror(bool external_bus, enum sensor_type sensor)
 {
-    BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-    BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
+	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 
-    if (*g_dev_acc_ptr == nullptr) {
-        errx(1, "accel driver not running");
-    }
+	if (sensor == BMI055_ACCEL) {
+		if (*g_dev_acc_ptr == nullptr) {
+			errx(1, "bmi055 accel driver not running");
+		}
 
-    if (*g_dev_gyr_ptr == nullptr) {
-        errx(1, "gyro driver not running");
-    }
+		(*g_dev_acc_ptr)->test_error();
+	}
 
-    (*g_dev_acc_ptr)->test_error();
-    (*g_dev_gyr_ptr)->test_error();
+	if (sensor == BMI055_GYRO) {
+		if (*g_dev_gyr_ptr == nullptr) {
+			errx(1, "bmi055 gyro driver not running");
+		}
 
-    exit(0);
+		(*g_dev_gyr_ptr)->test_error();
+	}
 
+	exit(0);
 }
 
 void
 usage()
 {
-    warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
-    warnx("options:");
-    warnx("    -X    (external bus)");
-    warnx("    -R rotation");
+	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+	warnx("    -R    rotation");
+	warnx("    -A    (Enable Accelerometer)");
+	warnx("    -G    (Enable Gyroscope)");
+
 }
 
-}//namespace
+}//namespace ends
+
+
+BMI055::BMI055(const char *name, const char *devname, int bus, enum spi_dev_e device, enum spi_mode_e mode,
+	       uint32_t frequency, enum Rotation rotation):
+	SPI(name, devname, bus, device, mode, frequency),
+	_whoami(0),
+	_call{},
+	_call_interval(0),
+	_dlpf_freq(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_bad_transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, "bmi055_bad_registers")),
+	_good_transfers(perf_alloc(PC_COUNT, "bmi055_good_transfers")),
+	_reset_retries(perf_alloc(PC_COUNT, "bmi055_reset_retries")),
+	_duplicates(perf_alloc(PC_COUNT, "bmi055_duplicates")),
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
+	_register_wait(0),
+	_reset_wait(0),
+	_rotation(rotation),
+	_checked_next(0)
+{
+
+}
+
+
+
+BMI055::~BMI055()
+{
+	/* delete the perf counter */
+	perf_free(_sample_perf);
+	perf_free(_bad_transfers);
+	perf_free(_bad_registers);
+	perf_free(_good_transfers);
+	perf_free(_reset_retries);
+	perf_free(_duplicates);
+
+}
+
+uint8_t
+BMI055::read_reg(unsigned reg)
+{
+	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return cmd[1];
+
+}
+
+uint16_t
+BMI055::read_reg16(unsigned reg)
+{
+	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return (uint16_t)(cmd[1] << 8) | cmd[2];
+}
+
+
+void
+BMI055::write_reg(unsigned reg, uint8_t value)
+{
+	uint8_t cmd[2];
+
+	cmd[0] = reg | DIR_WRITE;
+	cmd[1] = value;
+
+	transfer(cmd, nullptr, sizeof(cmd));
+}
+
 
 
 int
 bmi055_main(int argc, char *argv[])
 {
-    bool external_bus = false;
-    int ch;
-    enum Rotation rotation = ROTATION_NONE;
+	bool external_bus = false;
+	int ch;
+	enum Rotation rotation = ROTATION_NONE;
+	enum sensor_type sensor = BMI055_NONE;
 
-    /* jump over start/off/etc and look at options first */
-    while ((ch = getopt(argc, argv, "XR:")) != EOF) {
-        switch (ch) {
-        case 'X':
-            external_bus = true;
-            break;
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "XR:AG")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
 
-        case 'R':
-            rotation = (enum Rotation)atoi(optarg);
-            break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
+			break;
 
-        default:
-            bmi055::usage();
-            exit(0);
-        }
-    }
+		case 'A':
+			sensor = BMI055_ACCEL;
+			break;
 
-    const char *verb = argv[optind];
+		case 'G':
+			sensor = BMI055_GYRO;
+			break;
 
-    /*
-     * Start/load the driver.
+		default:
+			bmi055::usage();
+			exit(0);
+		}
+	}
 
-     */
-    if (!strcmp(verb, "start")) {
-        bmi055::start(external_bus, rotation);
-    }
+	const char *verb = argv[optind];
 
-    if (!strcmp(verb, "stop")) {
-        bmi055::stop(external_bus);
-    }
+	if (sensor == BMI055_NONE) {
+		bmi055::usage();
+		exit(0);
+	}
 
-    /*
-     * Test the driver/device.
-     */
-    if (!strcmp(verb, "test")) {
-        bmi055::test(external_bus);
-    }
+	/*
+	 * Start/load the driver.
+	 */
+	if (!strcmp(verb, "start")) {
+		bmi055::start(external_bus, rotation, sensor);
+	}
 
-    /*
-     * Reset the driver.
-     */
-    if (!strcmp(verb, "reset")) {
-        bmi055::reset(external_bus);
-    }
+	/*
+	 * Stop the driver.
+	 */
+	if (!strcmp(verb, "stop")) {
+		bmi055::stop(external_bus, sensor);
+	}
 
-    /*
-     * Print driver information.
-     */
-    if (!strcmp(verb, "info")) {
-        bmi055::info(external_bus);
-    }
+	/*
+	 * Test the driver/device.
+	 */
+	if (!strcmp(verb, "test")) {
+		bmi055::test(external_bus, sensor);
+	}
 
-    /*
-     * Print register information.
-     */
-    if (!strcmp(verb, "regdump")) {
-        bmi055::regdump(external_bus);
-    }
+	/*
+	 * Reset the driver.
+	 */
+	if (!strcmp(verb, "reset")) {
+		bmi055::reset(external_bus, sensor);
+	}
 
-    if (!strcmp(verb, "testerror")) {
-        bmi055::testerror(external_bus);
-    }
+	/*
+	 * Print driver information.
+	 */
+	if (!strcmp(verb, "info")) {
+		bmi055::info(external_bus, sensor);
+	}
 
-    bmi055::usage();
-    exit(1);
+	/*
+	 * Print register information.
+	 */
+	if (!strcmp(verb, "regdump")) {
+		bmi055::regdump(external_bus, sensor);
+	}
+
+	if (!strcmp(verb, "testerror")) {
+		bmi055::testerror(external_bus, sensor);
+	}
+
+	bmi055::usage();
+	exit(1);
 }
 
