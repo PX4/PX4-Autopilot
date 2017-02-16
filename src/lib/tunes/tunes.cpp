@@ -140,6 +140,17 @@ int Tunes::parse_cmd(struct tune_control_s &tune_control, unsigned &frequency, u
 	return continue_sequnece;
 }
 
+int Tunes::parse_string(const char *string, unsigned &frequency, unsigned &duration, unsigned &silence)
+{
+	// set tune string the first time
+	if (_tune == nullptr) {
+		_tune = string;
+		_next = _tune;
+	}
+
+	return next_note(frequency, duration, silence);
+}
+
 unsigned Tunes::note_to_frequency(unsigned note)
 {
 	// compute the frequency (Hz)
