@@ -4,6 +4,7 @@
 #include <matrix/math.hpp>
 #include <matrix/filter.hpp>
 #include <matrix/integration.hpp>
+#include <matrix/Quaternion.hpp>
 
 using namespace matrix;
 
@@ -58,10 +59,10 @@ bool MatrixTest::run_tests()
 
 ut_declare_test_c(test_matrix, MatrixTest)
 
-
-template class matrix::Quaternion<float>;
-template class matrix::Euler<float>;
-template class matrix::Dcm<float>;
+using matrix::Dcmf;
+using matrix::Quatf;
+using matrix::Eulerf;
+using matrix::Vector3f;
 
 bool MatrixTest::attitudeTests()
 {
@@ -207,11 +208,10 @@ bool MatrixTest::attitudeTests()
 	ut_test(isEqual(q_from_m, m4));
 
 	// quaternion derivate
-	Vector<float, 4> q_dot = q.derivative(Vector3f(1, 2, 3));
+	Vector<float, 4> q_dot = q.derivative1(Vector3f(1, 2, 3));
 
 	// quaternion product
-	Quatf q_prod_check(
-		0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
+	Quatf q_prod_check(0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
 	ut_test(isEqual(q_prod_check, q_check * q_check));
 	q_check *= q_check;
 	ut_test(isEqual(q_prod_check, q_check));
