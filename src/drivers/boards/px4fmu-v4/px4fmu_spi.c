@@ -174,25 +174,27 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		break;
 
 	case PX4_SPIDEV_BMI055_ACC:
-	    /* Making sure the other peripherals are not selected */
-        px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, !selected);
-        break;
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, !selected);
+		break;
+
 	case PX4_SPIDEV_BMI055_GYR:
-        /* Making sure the other peripherals are not selected */
-        px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-        px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, !selected);
-	    break;
+		/* Making sure the other peripherals are not selected */
+		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, !selected);
+		break;
+
 	default:
 		break;
 	}
