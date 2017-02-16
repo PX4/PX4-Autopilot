@@ -230,7 +230,7 @@ static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was
 static float avionics_power_rail_voltage;		// voltage of the avionics power rail
 
 static bool can_arm_without_gps = false;
-static bool position_lock_gained = false;
+static bool _last_condition_global_position_valid = false;
 
 
 /**
@@ -2733,6 +2733,9 @@ int commander_thread_main(int argc, char *argv[])
 			bool first_rc_eval = (_last_sp_man.timestamp == 0) && (sp_man.timestamp > 0);
 			transition_result_t main_res = set_main_state_rc(&status);
 
+			/* store last position lock state */
+			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
+
 			/* play tune on mode change only if armed, blink LED always */
 			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
 				tune_positive(armed.armed);
@@ -2964,17 +2967,13 @@ int commander_thread_main(int argc, char *argv[])
 		/* First time home position update - but only if disarmed */
 		if (!status_flags.condition_home_position_valid && !armed.armed) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
-			position_lock_gained = true;
 		}
 
 		/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 		else if (((!was_armed && armed.armed) || (was_landed && !land_detector.landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
-			position_lock_gained = false;
 
-		} else {
-			position_lock_gained = false;
 		}
 
 		was_armed = armed.armed;
@@ -3312,7 +3311,9 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	// feature, just in case offboard control goes crazy.
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if ((((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
+	if (!(!_last_condition_global_position_valid &&
+		status_flags.condition_global_position_valid)
+		&& (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
 		 (_last_sp_man.return_switch == sp_man.return_switch) &&
 		 (_last_sp_man.mode_switch == sp_man.mode_switch) &&
@@ -3320,8 +3321,7 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
-		 (_last_sp_man.mode_slot == sp_man.mode_slot)))
-		&& !position_lock_gained) {
+		 (_last_sp_man.mode_slot == sp_man.mode_slot)))) {
 
 		// update these fields for the geofence system
 
