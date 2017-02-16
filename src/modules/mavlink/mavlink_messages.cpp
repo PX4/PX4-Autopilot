@@ -1576,7 +1576,10 @@ protected:
 		struct vehicle_local_position_s vpos = {};
 		struct vehicle_attitude_s vatt = {};
 
-		if (_pos_sub->update(&_pos_time, &vpos) || _att_sub->update(&_att_time, &vatt)) {
+		bool att_updated = _att_sub->update(&_att_time, &vatt);
+		bool pos_updated = _pos_sub->update(&_pos_time, &vpos);
+
+		if (pos_updated || att_updated) {
 			mavlink_vision_position_estimate_t vmsg;
 			vmsg.usec = vpos.timestamp;
 			vmsg.x = vpos.x;
