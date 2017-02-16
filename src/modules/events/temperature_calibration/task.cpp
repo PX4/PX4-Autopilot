@@ -124,8 +124,14 @@ void TemperatureCalibration::task_main()
 	}
 
 	int32_t min_temp_rise = 24;
-	param_get(param_find("SYS_CAL_TEMP"), &min_temp_rise);
+	param_get(param_find("SYS_CAL_TDEL"), &min_temp_rise);
 	PX4_INFO("Waiting for %i degrees difference in sensor temperature", min_temp_rise);
+
+	int32_t min_start_temp = 5;
+	param_get(param_find("SYS_CAL_TMIN"), &min_start_temp);
+
+	int32_t max_start_temp = 10;
+	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
 
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];
@@ -133,7 +139,7 @@ void TemperatureCalibration::task_main()
 	int num_calibrators = 0;
 
 	if (_accel) {
-		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise);
+		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -144,7 +150,7 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_baro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationBaro(min_temp_rise);
+		calibrators[num_calibrators] = new TemperatureCalibrationBaro(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -155,7 +161,8 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_gyro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, gyro_sub, num_gyro);
+		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub,
+				num_gyro);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -176,6 +183,8 @@ void TemperatureCalibration::task_main()
 	usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
+
+	bool abort_calibration = false;
 
 	while (!_force_task_exit) {
 		/* we poll on the gyro(s), since this is the sensor with the highest update rate.
@@ -207,18 +216,24 @@ void TemperatureCalibration::task_main()
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
 
-			if (ret < 0) {
-				if (!error_reported[i]) {
-					PX4_ERR("Calibration update step failed (%i)", ret);
-					error_reported[i] = true;
-				}
+			if (ret == -110) {
+				abort_calibration = true;
+				PX4_ERR("Calibration won't start - sensor temperature too high");
+				_force_task_exit = true;
+				break;
+
+			} else if (ret < 0 && !error_reported[i]) {
+				// temperature has decreased so calibration is not being updated
+				error_reported[i] = true;
+				PX4_ERR("Calibration update step failed (%i)", ret);
 
 			} else if (ret < min_progress) {
+				// temperature is stable or increasing
 				min_progress = ret;
 			}
 		}
 
-		if (min_progress == 110) {
+		if (min_progress == 110 || abort_calibration) {
 			break; // we are done
 		}
 
@@ -231,24 +246,25 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
-	PX4_INFO("Sensor Measurments completed");
+	if (!abort_calibration) {
+		PX4_INFO("Sensor Measurments completed");
 
-	// do final calculations & parameter storage
-	for (int i = 0; i < num_calibrators; ++i) {
-		int ret = calibrators[i]->finish();
+		// do final calculations & parameter storage
+		for (int i = 0; i < num_calibrators; ++i) {
+			int ret = calibrators[i]->finish();
 
-		if (ret < 0) {
-			PX4_ERR("Failed to finish calibration process (%i)", ret);
+			if (ret < 0) {
+				PX4_ERR("Failed to finish calibration process (%i)", ret);
+			}
+		}
+
+		param_notify_changes();
+		int ret = param_save_default();
+
+		if (ret != 0) {
+			PX4_ERR("Failed to save params (%i)", ret);
 		}
 	}
-
-	param_notify_changes();
-	int ret = param_save_default();
-
-	if (ret != 0) {
-		PX4_ERR("Failed to save params (%i)", ret);
-	}
-
 
 	for (int i = 0; i < num_calibrators; ++i) {
 		delete calibrators[i];

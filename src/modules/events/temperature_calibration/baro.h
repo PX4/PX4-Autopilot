@@ -42,7 +42,7 @@
 class TemperatureCalibrationBaro : public TemperatureCalibrationCommon<1, POLYFIT_ORDER>
 {
 public:
-	TemperatureCalibrationBaro(float min_temperature_rise);
+	TemperatureCalibrationBaro(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
 	virtual ~TemperatureCalibrationBaro();
 
 	/**

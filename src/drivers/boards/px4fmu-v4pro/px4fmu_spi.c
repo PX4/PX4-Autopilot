@@ -76,6 +76,7 @@ __EXPORT void stm32_spiinitialize(void)
 	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_configgpio(GPIO_DRDY_MPU9250);
 	stm32_configgpio(GPIO_DRDY_LIS3MDL);
@@ -105,6 +106,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
 	case PX4_SPIDEV_BARO:
@@ -113,6 +115,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
 	case PX4_SPIDEV_LIS:
@@ -121,6 +124,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
 	case PX4_SPIDEV_MPU:
@@ -129,6 +133,16 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
+		break;
+
+	case PX4_SPIDEV_EEPROM:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, !selected);
 		break;
 
 	default:
@@ -204,11 +218,13 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_OFF_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_LIS3MDL, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 0);
 
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
@@ -248,6 +264,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
 	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);

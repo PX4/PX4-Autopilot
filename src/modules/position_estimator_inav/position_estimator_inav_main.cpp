@@ -59,7 +59,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -358,7 +357,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vision_position_estimate_s vision;
+	struct vehicle_local_position_s vision;
 	memset(&vision, 0, sizeof(vision));
 	struct att_pos_mocap_s mocap;
 	memset(&mocap, 0, sizeof(mocap));
@@ -377,7 +376,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
 	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -743,10 +742,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* check no vision circuit breaker is set */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
 				/* vehicle vision position */
-				orb_check(vision_position_estimate_sub, &updated);
+				orb_check(vision_position_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
+					orb_copy(ORB_ID(vehicle_vision_position), vision_position_sub, &vision);
 
 					static float last_vision_x = 0.0f;
 					static float last_vision_y = 0.0f;

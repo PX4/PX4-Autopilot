@@ -67,8 +67,8 @@
  */
 
 __EXPORT int dataman_main(int argc, char *argv[]);
-__EXPORT ssize_t dm_read(dm_item_t item, unsigned char index, void *buffer, size_t buflen);
-__EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t persistence, const void *buffer,
+__EXPORT ssize_t dm_read(dm_item_t item, unsigned index, void *buffer, size_t buflen);
+__EXPORT ssize_t dm_write(dm_item_t  item, unsigned index, dm_persitence_t persistence, const void *buffer,
 			  size_t buflen);
 __EXPORT int dm_clear(dm_item_t item);
 __EXPORT void dm_lock(dm_item_t item);
@@ -76,22 +76,22 @@ __EXPORT void dm_unlock(dm_item_t item);
 __EXPORT int dm_restart(dm_reset_reason restart_type);
 
 /* Private File based Operations */
-static ssize_t _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf,
+static ssize_t _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
 			   size_t count);
-static ssize_t _file_read(dm_item_t item, unsigned char index, void *buf, size_t count);
+static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _file_clear(dm_item_t item);
 static int  _file_restart(dm_reset_reason reason);
 
 /* Private Ram based Operations */
-static ssize_t _ram_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf,
+static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
 			  size_t count);
-static ssize_t _ram_read(dm_item_t item, unsigned char index, void *buf, size_t count);
+static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _ram_clear(dm_item_t item);
 static int  _ram_restart(dm_reset_reason reason);
 
 typedef struct dm_operations_t {
-	ssize_t (*write)(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count);
-	ssize_t (*read)(dm_item_t item, unsigned char index, void *buf, size_t count);
+	ssize_t (*write)(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count);
+	ssize_t (*read)(dm_item_t item, unsigned index, void *buf, size_t count);
 	int (*clear)(dm_item_t item);
 	int (*restart)(dm_reset_reason reason);
 } dm_operations_t;
@@ -131,14 +131,14 @@ typedef struct {
 	union {
 		struct {
 			dm_item_t item;
-			unsigned char index;
+			unsigned index;
 			dm_persitence_t persistence;
 			const void *buf;
 			size_t count;
 		} write_params;
 		struct {
 			dm_item_t item;
-			unsigned char index;
+			unsigned index;
 			void *buf;
 			size_t count;
 		} read_params;
@@ -351,7 +351,7 @@ static bool is_running(void)
 }
 /* Calculate the offset in file of specific item */
 static int
-calculate_offset(dm_item_t item, unsigned char index)
+calculate_offset(dm_item_t item, unsigned index)
 {
 
 	/* Make sure the item type is valid */
@@ -380,7 +380,7 @@ calculate_offset(dm_item_t item, unsigned char index)
  */
 
 /* write to the data manager RAM buffer  */
-static ssize_t _ram_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf,
+static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
 			  size_t count)
 {
 
@@ -419,7 +419,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned char index, dm_persitence_t p
 
 /* write to the data manager file */
 static ssize_t
-_file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
+_file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
 	unsigned char buffer[k_sector_size];
 	size_t len;
@@ -469,7 +469,7 @@ _file_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, co
 }
 
 /* Retrieve from the data manager RAM buffer*/
-static ssize_t _ram_read(dm_item_t item, unsigned char index, void *buf, size_t count)
+static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
@@ -509,7 +509,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned char index, void *buf, size_t 
 
 /* Retrieve from the data manager file */
 static ssize_t
-_file_read(dm_item_t item, unsigned char index, void *buf, size_t count)
+_file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
 	unsigned char buffer[k_sector_size];
 	int len, offset;
@@ -756,7 +756,7 @@ _file_restart(dm_reset_reason reason)
 
 /** Write to the data manager file */
 __EXPORT ssize_t
-dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
+dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
 	work_q_item_t *work;
 
@@ -783,7 +783,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 
 /** Retrieve from the data manager file */
 __EXPORT ssize_t
-dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
+dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
 	work_q_item_t *work;
 

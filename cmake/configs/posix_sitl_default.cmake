@@ -4,6 +4,7 @@ set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cma
 
 set(config_module_list
 	drivers/boards/sitl
+	drivers/camera_trigger
 	drivers/device
 	drivers/gps
 	drivers/pwm_out_sim

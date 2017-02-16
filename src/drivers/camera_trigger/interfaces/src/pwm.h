@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#ifdef __PX4_NUTTX
+
 #include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 
@@ -33,3 +35,5 @@ private:
 	bool _camera_is_on;
 
 };
+
+#endif /* ifdef __PX4_NUTTX */

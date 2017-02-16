@@ -34,8 +34,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_manual(ORB_ID(manual_control_setpoint), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
-	// vision 30 hz
-	_sub_vision_pos(ORB_ID(vision_position_estimate), 1000 / 30, 0, &getSubscriptions()),
+	// vision 50 hz
+	_sub_vision_pos(ORB_ID(vehicle_vision_position), 1000 / 50, 0, &getSubscriptions()),
 	// mocap 50 hz
 	_sub_mocap(ORB_ID(att_pos_mocap), 1000 / 50, 0, &getSubscriptions()),
 	// all distance sensors, 10 hz
@@ -94,6 +94,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_t_max_grade(this, "T_MAX_GRADE"),
 
 	// init origin
+	_fake_origin(this, "FAKE_ORIGIN"),
 	_init_origin_lat(this, "LAT"),
 	_init_origin_lon(this, "LON"),
 
@@ -374,11 +375,15 @@ void BlockLocalPositionEstimator::update()
 	// check timeouts
 	checkTimeouts();
 
-	// if we have no lat, lon initialize projection at 0,0
-	if ((_estimatorInitialized & EST_XY) && !_map_ref.init_done) {
+	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
+	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _fake_origin.get()) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
+
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
+					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
+
 	}
 
 	// reinitialize x if necessary
@@ -520,7 +525,7 @@ void BlockLocalPositionEstimator::update()
 		publishEstimatorStatus();
 		_pub_innov.update();
 
-		if ((_estimatorInitialized & EST_XY)) {
+		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
 			publishGlobalPos();
 		}
 	}
