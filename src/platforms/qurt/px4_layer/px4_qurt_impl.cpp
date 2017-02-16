@@ -48,7 +48,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include "systemlib/param/param.h"
+#include <systemlib/param/param.h>
 #include "hrt_work.h"
 #include "px4_log.h"
 
@@ -106,6 +106,7 @@ void init_once(void)
 	work_queues_init();
 	hrt_work_queue_init();
 	hrt_init();
+	param_init();
 
 	/* Shared memory param sync*/
 	init_params();

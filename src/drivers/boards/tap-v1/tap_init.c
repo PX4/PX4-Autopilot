@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 #include <systemlib/hardfault_log.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <systemlib/flashparams/flashfs.h>
@@ -199,6 +200,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	param_init();
 
 	/* configure the DMA allocator */
 
