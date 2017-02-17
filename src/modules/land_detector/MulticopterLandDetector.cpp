@@ -72,6 +72,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.maxDownRate = param_find("MPC_Z_VEL_MAX");
 	_paramHandle.throttleRange = param_find("LNDMC_THR_RANGE");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
@@ -107,6 +108,7 @@ void MulticopterLandDetector::_update_topics()
 void MulticopterLandDetector::_update_params()
 {
 	param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
+	param_get(_paramHandle.maxDownRate, &_params.maxDownRate);
 	param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
 	param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
@@ -180,7 +182,17 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	    (!verticalMovement || !_has_position_lock())) {
 		return true;
 	}
+	// Check if we are moving vertically - here only check in Position control mode or Alt mode
+	if(_manual.z >= _params.hoverThrottle *0.8f )
+		return false;
+	//if _vehicleLocalPosition.vz  <   50% * ( Command velocity )  ,there are 50% margin to command velocity ,but need vertical velocity much accurately
+	verticalMovement = fabsf(_vehicleLocalPosition.vz) > (_params.hoverThrottle-_manual.z)*_params.maxDownRate * armThresholdFactor;
 
+	// only check  we are landing in mannul mode
+	if ((_state == LandDetectionState::FLYING || _state == LandDetectionState::GROUND_CONTACT) && _has_manual_control_present() && 
+	    _control_mode.flag_control_climb_rate_enabled && (!verticalMovement)) {
+		return true;
+	}
 	return false;
 }
 
