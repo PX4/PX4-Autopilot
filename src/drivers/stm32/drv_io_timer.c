@@ -246,7 +246,7 @@ static uint32_t get_timer_channels(unsigned timer)
 
 	if (validate_timer_index(timer) == 0) {
 		const io_timers_t *tmr = &io_timers[timer];
-		/* Gather the channel bit that belong to the timer */
+		/* Gather the channel bits that belong to the timer */
 
 		for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
 			channels |= 1 << chan_index;
@@ -376,32 +376,42 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 	return rv;
 }
 
-void io_timer_set_oneshot_mode(unsigned timer)
-{
-	timer_freq[timer] = 8;
-}
-
-extern void io_timer_force_update(unsigned timer)
-{
-	// force update of channel compare register
-	rEGR(timer) |= GTIM_EGR_UG;
-}
-
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
 
 	/* configure the timer to update at the desired rate */
-	if (timer_freq[timer] == 8) {
-		rARR(timer) = 0xFFFF;
-
-	} else {
-		rARR(timer) = 1000000 / rate;
-	}
+	rARR(timer) = timer_freq[timer] * 1000000 / rate;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;
 
 	return 0;
+}
+
+#define FAKE_ONESHOT
+void io_timer_set_oneshot_mode(unsigned timer)
+{
+	timer_freq[timer] = 8;
+
+#ifdef FAKE_ONESHOT
+	// to eliminate jitter with max additional latency of 500usec, set PWM rate to 2KHz.
+	// Note that the FMU mixer jitter is on the order of 2msec.
+	timer_set_rate(timer, 2000);
+#else
+	// set rate to 125Hz (lowest possible at 8MHz is ~122Hz)
+	// io_timer_set_ccr() must be called at > 125Hz to minimize latency
+	timer_set_rate(timer, 125);
+#endif
+}
+
+extern void io_timer_force_update(unsigned timer)
+{
+#ifdef FAKE_ONESHOT
+	// let's not and say we did
+#else
+	// force update of channel compare register
+	rEGR(timer) |= GTIM_EGR_UG;
+#endif
 }
 
 int io_timer_init_timer(unsigned timer)
@@ -481,7 +491,7 @@ int io_timer_init_timer(unsigned timer)
 
 int io_timer_set_rate(unsigned timer, unsigned rate)
 {
-	/* Gather the channel bit that belong to the timer */
+	/* Gather the channel bits that belong to the timer */
 
 	uint32_t channels = get_timer_channels(timer);
 

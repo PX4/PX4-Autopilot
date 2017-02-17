@@ -108,6 +108,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 			current &= ~(1 << channel);
 		}
 	}
+
 	oneshot_timers = 0;
 
 	// Now allocate the new set
@@ -162,7 +163,7 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 
 void up_pwm_force_update(void)
 {
-	for (unsigned i=0; i<8; i++) {
+	for (unsigned i = 0; i < 8; i++) {
 		if (oneshot_timers & (1 << i)) {
 			io_timer_force_update(i);
 		}

@@ -1076,10 +1076,12 @@ PX4FMU::cycle()
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
+		unsigned n_updates = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
+					n_updates++;
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
 #if defined(DEBUG_BUILD)
@@ -1124,12 +1126,8 @@ PX4FMU::cycle()
 			}
 		}
 
-//	} // poll_fds
-//
-//	/* run the mixers on every cycle */
-//	{
-		/* can we mix? */
-		if (_mixers != nullptr) {
+		// only mix if we have a new actuator_controls message
+		if ((n_updates > 0) && (_mixers != nullptr)) {
 
 			size_t num_outputs;
 
@@ -1239,16 +1237,15 @@ PX4FMU::cycle()
 				pwm_output_set(i, pwm_limited[i]);
 			}
 
-			// TODO: the required groups depend on board config; this should depend on oneshot mode
+			// force an update if in oneshot mode
 			if (up_pwm_get_oneshot_mode()) {
 				up_pwm_force_update();
 			}
 
 			publish_pwm_outputs(pwm_limited, num_outputs);
 			perf_end(_ctl_latency);
-		}
+		} // new actuator_controls message
 
-//	}
 	} // poll_fds
 
 	_cycle_timestamp = hrt_absolute_time();

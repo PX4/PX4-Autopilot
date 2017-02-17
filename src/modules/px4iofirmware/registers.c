@@ -328,6 +328,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		if (up_pwm_get_oneshot_mode()) {
 			up_pwm_force_update();
 		}
+
 		break;
 
 	/* handle setup for servo failsafe values */
