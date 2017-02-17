@@ -18,5 +18,5 @@ uint8 HOME_SET = 15
 
 uint8 tune_id
 uint16 frequency
-uint16 duration   # in ms
+uint32 duration   # in us
 uint8 strength    # value between 0-100 if supported by backend
