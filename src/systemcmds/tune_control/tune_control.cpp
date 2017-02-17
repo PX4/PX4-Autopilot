@@ -48,6 +48,8 @@
 
 #include <drivers/drv_hrt.h>
 
+#define MAX_NOTE_ITERATION 50
+
 static void	usage(void);
 
 static orb_advert_t tune_control_pub = nullptr;
@@ -202,6 +204,7 @@ tune_control_main(int argc, char *argv[])
 	}
 
 	unsigned frequency, duration, silence;
+	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
 		if (string_input) {
@@ -213,9 +216,15 @@ tune_control_main(int argc, char *argv[])
 				tune_control.duration = (uint32_t)duration;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
+				exit_counter++;
+
+				// exit if the loop is doing more thatn 50 iteration
+				if (exit_counter > MAX_NOTE_ITERATION) {
+					break;
+				}
 			}
 
-			PX4_INFO("Playback finished.")
+			PX4_INFO("Playback finished.");
 
 		} else {
 			if (tune_control.tune_id == 0) {
@@ -230,6 +239,12 @@ tune_control_main(int argc, char *argv[])
 		while (tunes.parse_cmd(tune_control, frequency, duration, silence) > 0) {
 			PX4_INFO("frequency: %d, duration %d, silence %d", frequency, duration, silence);
 			usleep(500000);
+			exit_counter++;
+
+			// exit if the loop is doing more thatn 50 iteration
+			if (exit_counter > MAX_NOTE_ITERATION) {
+				break;
+			}
 		}
 
 	} else {
