@@ -216,6 +216,21 @@ then
 	if bmi160 start
 	then
 	fi
+
+	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
+	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+	# will prevent the incorrect driver from a successful initialization.
+
+	# Internal SPI bus BMI055_ACC
+	if bmi055 -A start
+	then
+	fi
+	
+	# Internal SPI bus BMI055_GYR
+	if bmi055 -G start
+	then
+	fi
+	
 fi
 
 if ver hwcmp PX4FMU_V1
