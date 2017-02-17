@@ -254,7 +254,7 @@ unsigned Tunes::next_dots()
 
 int Tunes::next_note(unsigned &frequency, unsigned &duration, unsigned &silence)
 {
-	// make sure we still have a tune - may be removed by the write / ioctl handler
+	// make sure we still have a tune
 	if ((_next == nullptr) || (_tune == nullptr)) {
 		return TUNE_ERROR;
 	}
@@ -263,7 +263,6 @@ int Tunes::next_note(unsigned &frequency, unsigned &duration, unsigned &silence)
 	unsigned note = 0;
 	unsigned note_length = _note_length;
 
-	// NOTE: is this while loop necessary?
 	while (note == 0) {
 		// we always need at least one character from the string
 		int c = next_char();
@@ -441,7 +440,6 @@ tune_end:
 		return TUNE_CONTINUE;
 
 	} else {
-		_default_tune_number = 0;
 		return TUNE_STOP;
 	}
 }
