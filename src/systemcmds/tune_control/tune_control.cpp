@@ -127,16 +127,33 @@ int
 tune_control_main(int argc, char *argv[])
 {
 	output::Tunes tunes;
+	bool string_input = false;
+	const char *tune_string  = NULL;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = NULL;
 	uint8_t value;
 	tune_control_s tune_control = {};
-	tune_control.tune_id = tune_control_s::STARTUP;
+	tune_control.tune_id = 0;
 	tune_control.strength = 40;
 
-	while ((ch = px4_getopt(argc, argv, "t:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "f:d:t:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'f':
+			if ((uint16_t)(strtol(myoptarg, NULL, 0)) > 0 && (uint16_t)(strtol(myoptarg, NULL, 0)) < 22000) {
+				tune_control.frequency = (uint16_t)(strtol(myoptarg, NULL, 0));
+
+			} else {
+				usage();
+				return 1;
+			}
+
+			break;
+
+		case 'd':
+			tune_control.duration = (uint16_t)(strtol(myoptarg, NULL, 0));
+			break;
+
 		case 't':
 			value = (uint8_t)(strtol(myoptarg, NULL, 0));
 
@@ -150,23 +167,12 @@ tune_control_main(int argc, char *argv[])
 
 			break;
 
-		case 'l':
-			// led_control.led_mask = 1 << strtol(myoptarg, NULL, 0);
-			break;
-
-		case 'n':
-			// led_control.num_blinks = strtol(myoptarg, NULL, 0);
-			break;
-
 		case 's':
-			if (!strcmp(myoptarg, "fast")) {
-				// blink_speed = led_control_s::MODE_BLINK_FAST;
+			string_input = true;
 
-			} else if (!strcmp(myoptarg, "normal")) {
-				// blink_speed = led_control_s::MODE_BLINK_NORMAL;
-
-			} else if (!strcmp(myoptarg, "slow")) {
-				// blink_speed = led_control_s::MODE_BLINK_SLOW;
+			// TODO: check if the string is a valid tune sequence
+			if (1) {
+				tune_string  = myoptarg;
 
 			} else {
 				usage();
@@ -195,26 +201,36 @@ tune_control_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[myoptind], "test")) {
-		PX4_INFO("Publishing standard tune %d", tune_control.tune_id);
-		publish_tune_control(tune_control);
+	unsigned frequency, duration, silence;
+
+	if (!strcmp(argv[myoptind], "play")) {
+		if (string_input) {
+			PX4_INFO("Start playback...");
+
+			while (tunes.parse_string(tune_string, frequency, duration, silence) > 0) {
+				tune_control.tune_id = 0;
+				tune_control.frequency = (uint16_t)frequency;
+				tune_control.duration = (uint32_t)duration;
+				publish_tune_control(tune_control);
+				usleep(duration + silence);
+			}
+
+			PX4_INFO("Playback finished.")
+
+		} else {
+			if (tune_control.tune_id == 0) {
+				tune_control.tune_id = 1;
+			}
+
+			PX4_INFO("Publishing standard tune %d", tune_control.tune_id);
+			publish_tune_control(tune_control);
+		}
 
 	} else if (!strcmp(argv[myoptind], "libtest")) {
-		unsigned frequency, duration, silence;
-
 		while (tunes.parse_cmd(tune_control, frequency, duration, silence) > 0) {
 			PX4_INFO("frequency: %d, duration %d, silence %d", frequency, duration, silence);
 			usleep(500000);
 		}
-
-		/*} else if (!strcmp(argv[myoptind], "off")) {
-			led_control.mode = led_control_s::MODE_OFF;
-
-		} else if (!strcmp(argv[myoptind], "reset")) {
-			led_control.mode = led_control_s::MODE_DISABLED;
-
-		} else if (!strcmp(argv[myoptind], "blink")) {
-			led_control.mode = blink_speed;*/
 
 	} else {
 		usage();
