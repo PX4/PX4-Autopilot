@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012-2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -198,8 +198,24 @@ class uploader(object):
                         self.port.close()
 
         def open(self):
-                if self.port is not None and not self.port.is_open:
-                    self.port.open()
+                timeout = time.time() + 0.2
+
+                # Attempt to open the port while it exists and until timeout occurs
+                while self.port is not None:
+                    portopen = True
+                    try:
+                        portopen = self.port.is_open
+                    except AttributeError:
+                        portopen = self.port.isOpen()
+
+                    if not portopen and time.time() < timeout:
+                        try:
+                            self.port.open()
+                        except OSError:
+                            # wait for the port to be ready
+                            time.sleep(0.04)
+                    else:
+                        break
 
         def __send(self, c):
                 # print("send " + binascii.hexlify(c))
@@ -640,10 +656,13 @@ try:
                                         break
 
                                     # wait for the reboot, without we might run into Serial I/O Error 5
-                                    time.sleep(0.5)
+                                    time.sleep(0.25)
 
                                     # always close the port
                                     up.close()
+
+                                    # wait for the close, without we might run into Serial I/O Error 6
+                                    time.sleep(0.3)
 
                     if not found_bootloader:
                         # Go to the next port
