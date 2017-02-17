@@ -81,6 +81,7 @@ private:
 	**/
 	struct {
 		param_t maxClimbRate;
+		param_t maxDownRate;
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t minThrottle;
@@ -93,6 +94,7 @@ private:
 
 	struct {
 		float maxClimbRate;
+		float maxDownRate;
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float minThrottle;
