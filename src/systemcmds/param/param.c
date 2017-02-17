@@ -43,6 +43,7 @@
 #include <px4_posix.h>
 
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -78,7 +79,7 @@ static int 	do_save(const char *param_file_name);
 static int	do_save_default(void);
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
-static int	do_show(const char *search_string);
+static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
@@ -138,10 +139,21 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "show")) {
 			if (argc >= 3) {
-				return do_show(argv[2]);
+				// optional argument -c to show only non-default params
+				if (!strcmp(argv[2], "-c")) {
+					if (argc >= 4) {
+						return do_show(argv[3], true);
+
+					} else {
+						return do_show(NULL, true);
+					}
+
+				} else {
+					return do_show(argv[2], false);
+				}
 
 			} else {
-				return do_show(NULL);
+				return do_show(NULL, false);
 			}
 		}
 
@@ -231,7 +243,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("expected a command, try 'load', 'import', 'show', 'set', 'compare',\n'index', 'index_used', 'find', 'greater', 'select', 'save', or 'reset' ");
+	PX4_INFO("expected a command, try 'load', 'import', 'show [-c] [<filter>]', 'set <param> <value>', 'compare',\n'index', 'index_used', 'find', 'greater', 'select', 'save', or 'reset' ");
 	return 1;
 }
 
@@ -334,10 +346,10 @@ do_save_default(void)
 }
 
 static int
-do_show(const char *search_string)
+do_show(const char *search_string, bool only_changed)
 {
 	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
-	param_foreach(do_show_print, (char *)search_string, false, false);
+	param_foreach(do_show_print, (char *)search_string, only_changed, false);
 	PARAM_PRINT("\n %u parameters total, %u used.\n", param_count(), param_count_used());
 
 	return 0;
@@ -422,7 +434,8 @@ do_show_print(void *arg, param_t param)
 		/* XXX this comparison is only ok for trailing wildcards */
 		while (*ss != '\0' && *pp != '\0') {
 
-			if (*ss == *pp) {
+			// case insensitive comparison (param_name is always upper case)
+			if (toupper(*ss) == *pp) {
 				ss++;
 				pp++;
 
