@@ -53,45 +53,66 @@ public:
 	Tunes();
 	Tunes(unsigned tempo, unsigned octave, unsigned note_length, NoteMode mode);
 	~Tunes() = default;
+
+	/**
+	 * parse a tune_control_s in frequency(Hz), duration(us) and silence(us).
+	 *
+	 * @param  tune_control struct containig the uORB message
+	 * @param  frequency    return frequency value (Hz)
+	 * @param  duration     return duration of the tone (us)
+	 * @param  silence      return silance duration (us)
+	 * @return              -1 for error, 0 for play one tone and 1 for continue a sequence
+	 */
 	int parse_cmd(tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence);
+
+	/**
+	 * parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic, in frequency(Hz),
+	 * duration(us) and silence(us).
+	 *
+	 * @param  string    tune input string
+	 * @param  frequency return frequency value (Hz)
+	 * @param  duration  return duration of the tone (us)
+	 * @param  silence   return silance duration (us)
+	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
+	 */
 	int parse_string(const char *string, unsigned &frequency, unsigned &duration, unsigned &silence);
 
 private:
-	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
-	static const char		 *_default_tunes[TONE_NUMBER_OF_TUNES];
-	static const char		 *_tune_names[TONE_NUMBER_OF_TUNES];
-	static const uint8_t	_note_tab[];
+	static const char *_default_tunes[TONE_NUMBER_OF_TUNES];
+	static const uint8_t _note_tab[];
+	bool _repeat;	// if true, tune restarts at end
 
-	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
+	const char *_tune = nullptr; // current tune string
+	const char *_next = nullptr; // next note in the string
 
-	const char		*_user_tune;
+	unsigned _tempo;
+	unsigned _note_length;
+	NoteMode _note_mode;
+	unsigned _octave;
 
-	const char		*_tune = nullptr;		// current tune string
-	const char		*_next = nullptr;		// next note in the string
-
-	unsigned		_tempo;
-	unsigned		_note_length;
-	NoteMode 		_note_mode;
-	unsigned		_octave;
-	unsigned		_default_tempo = 120;
-	unsigned		_default_note_length = 4;
-	NoteMode		_default_mode = NoteMode::MODE_NORMAL;
-	unsigned		_default_octave = 4;
-	// unsigned		_silence_length; // if nonzero, silence before next note
-	bool			_repeat;	// if true, tune restarts at end
-	int				_cbrk;	//if true, no audio output
+	unsigned _default_tempo = 120;
+	unsigned _default_note_length = 4;
+	NoteMode _default_mode = NoteMode::MODE_NORMAL;
+	unsigned _default_octave = 4;
 
 	/**
 	 * Convert note to frequency
-	 * @param  note
-	 * @return      frequency
+	 *
+	 * @param  note unsigned value of the semitone from C
+	 * @return      frequency (Hz)
 	 */
 	uint32_t note_to_frequency(unsigned note);
 
-	// Calculate the duration in microseconds of play and silence for a
-	// note given the current tempo, length and mode and the number of
-	// dots following in the play string.
-	//
+	/**
+	 * Calculate the duration in microseconds of play and silence for a
+	 * note given the current tempo, length and mode and the number of
+	 * dots following in the play string.
+	 *
+	 * @param  silence     return silence duration (us)
+	 * @param  note_length note length
+	 * @param  dots        extention of the note length
+	 * @return             duration of the note (us)
+	 */
 	unsigned note_duration(unsigned &silence, unsigned note_length, unsigned dots);
 
 	// Calculate the duration in microseconds of a rest corresponding to
@@ -99,7 +120,7 @@ private:
 	//
 	unsigned rest_duration(unsigned rest_length, unsigned dots);
 
-	// Parse the next note out of the string and play it
+	// Parse the next note out of the string
 	//
 	int next_note(unsigned &frequency, unsigned &duration, unsigned &silence);
 
