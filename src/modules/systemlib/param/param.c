@@ -157,7 +157,7 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
-static px4_sem_t param_sem;
+static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
 
 /** lock the parameter store */
 static void
