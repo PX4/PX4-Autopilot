@@ -1102,7 +1102,10 @@ PX4FMU::task_main()
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
-						n_updates++;
+						if (i == 0) {
+							n_updates++;
+						}
+
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
 #if defined(DEBUG_BUILD)
