@@ -72,6 +72,7 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/scheduling_priorities.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
@@ -252,7 +253,6 @@ private:
 
 	static void	cycle_trampoline(void *arg);
 	void		cycle();
-	void		work_start();
 	void		work_stop();
 
 	static int	control_callback(uintptr_t handle,
@@ -262,8 +262,8 @@ private:
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		subscribe();
-	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
+	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
 	void		update_pwm_out_state(bool on);
@@ -462,11 +462,10 @@ PX4FMU::init()
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
-//	work_start();
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("fmuservo",
 				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_MAX,
+				   SCHED_PRIORITY_FAST_DRIVER - 1,
 				   1200,
 				   (main_t)&PX4FMU::task_main_trampoline,
 				   nullptr);
@@ -861,13 +860,6 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 	}
 }
 
-
-//void
-//PX4FMU::work_start()
-//{
-//	/* schedule a cycle to start things */
-//	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, 0);
-//}
 
 void
 PX4FMU::cycle_trampoline(void *arg)
@@ -1660,18 +1652,11 @@ PX4FMU::task_main()
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1000 * 1000)) {
 			_rc_scan_locked = false;
 		}
-
-		/*
-		 * schedule next cycle
-		 */
-//	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
-//		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 	}
 }
 
 void PX4FMU::work_stop()
 {
-//	work_cancel(HPWORK, &_work);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
