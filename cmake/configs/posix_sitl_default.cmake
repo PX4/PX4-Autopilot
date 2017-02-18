@@ -33,7 +33,7 @@ set(config_module_list
 	#systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
-	#systemcmds/pwm
+	systemcmds/pwm
 	systemcmds/reboot
 	systemcmds/sd_bench
 	systemcmds/top
