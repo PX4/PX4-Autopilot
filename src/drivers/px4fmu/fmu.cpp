@@ -466,7 +466,7 @@ PX4FMU::init()
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("fmuservo",
 				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_DEFAULT,
+				   SCHED_PRIORITY_MAX,
 				   1200,
 				   (main_t)&PX4FMU::task_main_trampoline,
 				   nullptr);

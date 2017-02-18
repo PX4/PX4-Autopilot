@@ -388,7 +388,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 	return 0;
 }
 
-#define FAKE_ONESHOT
+//#define FAKE_ONESHOT
 void io_timer_set_oneshot_mode(unsigned timer)
 {
 	timer_freq[timer] = 8;
