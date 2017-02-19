@@ -378,8 +378,9 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-
 	/* configure the timer to update at the desired rate */
+	timer_freq[timer] = 1;
+	rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
 	rARR(timer) = timer_freq[timer] * 1000000 / rate;
 
 	/* generate an update event; reloads the counter and all registers */
@@ -388,30 +389,29 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 	return 0;
 }
 
-//#define FAKE_ONESHOT
 void io_timer_set_oneshot_mode(unsigned timer)
 {
 	timer_freq[timer] = 8;
+	rPSC(timer) = (io_timers[timer].clock_freq / 8000000) - 1;
 
-#ifdef FAKE_ONESHOT
-	// to eliminate jitter with max additional latency of 500usec, set PWM rate to 2KHz.
-	// Note that the FMU mixer jitter is on the order of 2msec.
-	timer_set_rate(timer, 2000);
-#else
 	// set rate to 125Hz (lowest possible at 8MHz is ~122Hz)
 	// io_timer_set_ccr() must be called at > 125Hz to minimize latency
-	timer_set_rate(timer, 125);
-#endif
+	rARR(timer) = timer_freq[timer] * 1000000 / 125;
 }
 
-extern void io_timer_force_update(unsigned timer)
+uint8_t io_timer_get_freq(unsigned timer)
 {
-#ifdef FAKE_ONESHOT
-	// let's not and say we did
-#else
-	// force update of channel compare register
-	rEGR(timer) |= GTIM_EGR_UG;
-#endif
+	return timer_freq[timer];
+}
+
+void io_timer_force_update()
+{
+	for (int i = 0; i < MAX_IO_TIMERS; i++) {
+		if (timer_freq[i] == 8) {
+			// force update of channel compare register
+			rEGR(i) |= GTIM_EGR_UG;
+		}
+	}
 }
 
 int io_timer_init_timer(unsigned timer)

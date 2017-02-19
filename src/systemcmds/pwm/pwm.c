@@ -327,14 +327,15 @@ pwm_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "rate")) {
 
 		/* change alternate PWM rate */
-		if (alt_rate > 0) {
+//		if (alt_rate > 0) {
 			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
-			if (ret != OK) {
-				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
-				return error_on_warn;
-			}
+		if (ret != OK) {
+			PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+			return error_on_warn;
 		}
+
+//		}
 
 		/* directly supplied channel mask */
 		if (set_mask > 0) {
