@@ -378,7 +378,10 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-	/* configure the timer to update at the desired rate */
+	/* Configure the timer to run at 1MHz (other system code _assumes_ that timers run at 1MHz).
+	 * If you want to hack this to achieve a different frequency, alter the value of
+	 * .clock_freq in the relevant driver/boards/xxxx/xxx_timer_config.c file.
+	 */
 	timer_freq[timer] = 1;
 	rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
 	rARR(timer) = timer_freq[timer] * 1000000 / rate;
@@ -391,6 +394,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 
 void io_timer_set_oneshot_mode(unsigned timer)
 {
+	/* This timer MUST run at 8MHz */
 	timer_freq[timer] = 8;
 	rPSC(timer) = (io_timers[timer].clock_freq / 8000000) - 1;
 
@@ -450,20 +454,6 @@ int io_timer_init_timer(unsigned timer)
 			/* master output enable = on */
 
 			rBDTR(timer) = ATIM_BDTR_MOE;
-		}
-
-		/* If in oneshot mode, configure the prescaler for 8MHz output.
-		 * else set prescaler for 1MHz.
-		 */
-
-		if (timer_freq[timer] == 8) {
-			rPSC(timer) = (io_timers[timer].clock_freq / 8000000) - 1;
-			// can't find a way to trigger in this mode
-//			/* set one pulse mode */
-//			rCR1(timer) |= 1 << 3;
-
-		} else {
-			rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
 		}
 
 		/*
