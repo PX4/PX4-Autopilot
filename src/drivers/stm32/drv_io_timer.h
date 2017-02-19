@@ -134,6 +134,7 @@ __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
  *
  * @param timer	The timer to force.
  */
-__EXPORT extern void io_timer_force_update(unsigned timer);
+__EXPORT extern void io_timer_force_update(void);
+__EXPORT extern uint8_t io_timer_get_freq(unsigned timer);
 
 __END_DECLS

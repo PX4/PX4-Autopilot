@@ -313,9 +313,7 @@ mixer_tick(void)
 		if (new_fmu_data) {
 			new_fmu_data = false;
 
-			if (up_pwm_get_oneshot_mode()) {
-				up_pwm_force_update();
-			}
+			up_pwm_force_update();
 		}
 
 	}
