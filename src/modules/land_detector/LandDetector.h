@@ -44,6 +44,7 @@ Land detector interface for multicopter, fixedwing and VTOL implementations.
 
 #include <px4_workqueue.h>
 #include <systemlib/hysteresis/hysteresis.h>
+#include <systemlib/param/param.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
