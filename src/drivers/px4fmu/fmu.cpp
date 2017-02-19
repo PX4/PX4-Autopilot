@@ -184,6 +184,7 @@ private:
 	static const unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode;
+	bool		_oneshot_mode;
 	unsigned	_pwm_default_rate;
 	unsigned	_pwm_alt_rate;
 	uint32_t	_pwm_alt_rate_channels;
@@ -322,6 +323,7 @@ PX4FMU	*g_fmu;
 PX4FMU::PX4FMU() :
 	CDev("fmu", PX4FMU_DEVICE_PATH),
 	_mode(MODE_NONE),
+	_oneshot_mode(false),
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),
 	_pwm_alt_rate_channels(0),
@@ -466,7 +468,7 @@ PX4FMU::init()
 	_task = px4_task_spawn_cmd("fmuservo",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_FAST_DRIVER - 1,
-				   1200,
+				   1280,
 				   (main_t)&PX4FMU::task_main_trampoline,
 				   nullptr);
 
@@ -693,6 +695,11 @@ PX4FMU::set_mode(Mode mode)
 	return OK;
 }
 
+/* This routine is called from two IOCTLs: PWM_SERVO_SET_UPDATE_RATE and PWM_SERVO_SET_SELECT_UPDATE_RATE
+ * In the first case, it is intended to set the "alternate" PWM rate, which may be [25,400]Hz.
+ * In the second case, it specifies which channels are set at the alternate rate, with all others
+ * implicitly set to the default rate.
+ */
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
@@ -714,7 +721,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
-					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
+					PX4_WARN("rate group %u mask %x bad overlap %x", group, mask, alt);
 					// not a legal map, bail
 					return -EINVAL;
 				}
@@ -722,14 +729,14 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
-						warn("rate group set alt failed");
+					if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
+						PX4_WARN("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
-						warn("rate group set default failed");
+					if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
+						PX4_WARN("rate group set default failed");
 						return -EINVAL;
 					}
 				}
@@ -984,7 +991,6 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_set_oneshot_mode(true);
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
@@ -1045,40 +1051,6 @@ PX4FMU::task_main()
 			_groups_subscribed = _groups_required;
 			/* force setting update rate */
 			_current_update_rate = 0;
-		}
-
-		/*
-		 * Adjust actuator topic update rate to keep up with
-		 * the highest servo update rate configured.
-		 *
-		 * We always mix at max rate; some channels may update slower.
-		 */
-		unsigned max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
-
-		if (_current_update_rate != max_rate) {
-			_current_update_rate = max_rate;
-			int update_rate_in_ms = int(1000 / _current_update_rate);
-
-			/* reject faster than 500 Hz updates */
-			if (update_rate_in_ms < 2) {
-				update_rate_in_ms = 2;
-			}
-
-			/* reject slower than 10 Hz updates */
-			if (update_rate_in_ms > 100) {
-				update_rate_in_ms = 100;
-			}
-
-			PX4_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
-
-			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
-					orb_set_interval(_control_subs[i], update_rate_in_ms);
-				}
-			}
-
-			// set to current max rate, even if we are actually checking slower/faster
-			_current_update_rate = max_rate;
 		}
 
 		/* wait for an update */
@@ -1261,10 +1233,8 @@ PX4FMU::task_main()
 					pwm_output_set(i, pwm_limited[i]);
 				}
 
-				// force an update if in oneshot mode
-				if (up_pwm_get_oneshot_mode()) {
-					up_pwm_force_update();
-				}
+				// force an update of oneshot channels
+				up_pwm_force_update();
 
 				publish_pwm_outputs(pwm_limited, num_outputs);
 				perf_end(_ctl_latency);

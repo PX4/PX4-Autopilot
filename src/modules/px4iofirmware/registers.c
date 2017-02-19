@@ -325,9 +325,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
-		if (up_pwm_get_oneshot_mode()) {
-			up_pwm_force_update();
-		}
+		up_pwm_force_update();
 
 		break;
 
@@ -632,12 +630,17 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 25) {
-				value = 25;
-			}
 
-			if (value > 400) {
-				value = 400;
+			/* a rate of zero implies oneshot mode */
+			if (value != 0) {
+				/* constrain normal PWM to [25,400]Hz */
+				if (value < 25) {
+					value = 25;
+				}
+
+				if (value > 400) {
+					value = 400;
+				}
 			}
 
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
