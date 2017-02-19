@@ -24,14 +24,19 @@ param set SENS_DPRES_OFF 0.001
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 2
-param set NAV_ACC_RAD 15.0
-param set NAV_LOITER_RAD 50
-param set MIS_LTRMIN_ALT 30
-param set MIS_TAKEOFF_ALT 30
-param set FW_THR_IDLE 0.8
+param set NAV_ACC_RAD 2.0
+param set NAV_LOITER_RAD 10
+param set MIS_LTRMIN_ALT 0.01
+param set MIS_TAKEOFF_ALT 0.01
+param set FW_THR_IDLE 0.0
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
+param set FW_AIRSPD_MIN 0
+param set FW_AIRSPD_TRIM 6
+param set FW_AIRSPD_MAX 8
+param set FW_PR_I 0.0
+param set FW_RR_I 0.0
 replay tryapplyparams
 simulator start -s
 tone_alarm start

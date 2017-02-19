@@ -41,6 +41,7 @@ px4_add_module(
 		MulticopterLandDetector.cpp
 		FixedwingLandDetector.cpp
 		VtolLandDetector.cpp
+		RoverLandDetector.cpp
 	DEPENDS
 		platforms__common
 	)
