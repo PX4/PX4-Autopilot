@@ -690,6 +690,17 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_GET_TRIM_PWM: {
+			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
+
+			for (unsigned i = 0; i < _num_outputs; i++) {
+				pwm->values[i] = 1500;
+			}
+
+			pwm->channel_count = _num_outputs;
+			break;
+		}
+
 	case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
