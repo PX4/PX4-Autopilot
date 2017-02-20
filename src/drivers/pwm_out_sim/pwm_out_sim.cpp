@@ -577,8 +577,6 @@ PWMSim::task_main()
 			mixer_data_request_s req;
 			orb_copy(ORB_ID(mixer_data_request), _mixer_data_request_sub, &req);
 
-			PX4_INFO("pwm_out_sim got mixer data request");
-
 			if (req.mixer_group == 0) {
 				mixer_data_s data;
 				data.mixer_group = req.mixer_group;

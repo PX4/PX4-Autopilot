@@ -114,8 +114,6 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 	mavlink_command_long_t cmd;
 	mavlink_msg_command_long_decode(msg, &cmd);
 
-	PX4_INFO("Mavlink mixers got command long with cmd:%u", cmd.command);
-
 	switch (cmd.command) {
 	case MAV_CMD_REQUEST_MIXER_DATA:
 		_mixer_data_req.mixer_group = cmd.param1;
@@ -139,6 +137,40 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 		break;
 
+	case MAV_CMD_SET_MIXER_PARAMETER:
+		// publish set mixer parameter request to uORB
+		mixer_parameter_set_s param_set;
+
+		param_set.mixer_group = cmd.param1;
+		param_set.mixer_index = cmd.param2;
+		param_set.mixer_sub_index = cmd.param3;
+		param_set.parameter_index = cmd.param4;
+		_send_all = false;
+		_request_pending = true;
+
+		//No non real parameter support for now.
+//        if (int(cmd.param6) == MAV_PARAM_TYPE_REAL32) {
+//			param_set.param_type = MAV_PARAM_TYPE_REAL32;
+//            param_set.real_value = cmd.param_value;
+
+//		} else {
+//			int32_t val;
+//			memcpy(&val, &param_set.int_value, sizeof(int32_t));
+//			param_set.param_type = MAV_PARAM_TYPE_INT32;
+//			param_set.int_value = val;
+//		}
+
+		param_set.param_type = MAV_PARAM_TYPE_REAL32;
+		param_set.real_value = cmd.param5;
+		param_set.int_value = -1;
+
+		if (_mixer_parameter_set_pub == nullptr) {
+			_mixer_parameter_set_pub = orb_advertise(ORB_ID(mixer_parameter_set), &param_set);
+
+		} else {
+			orb_publish(ORB_ID(mixer_parameter_set), _mixer_parameter_set_pub, &param_set);
+		}
+
 	default:
 		return;
 	}
@@ -148,6 +180,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 //    switch (msg->msgid) {
 //	case MAVLINK_MSG_ID_MIXER_DATA_REQUEST: {
 //			/* set mixer parameter */
+
 //			mavlink_mixer_data_request_t req;
 //			mavlink_msg_mixer_data_request_decode(msg, &req);
 
