@@ -656,7 +656,7 @@ pwm_main(int argc, char *argv[])
 
 			if (ret > 0) {
 
-				read(0, &c, 1);
+				ret = read(0, &c, 1);
 
 				if (c == 0x03 || c == 0x63 || c == 'q') {
 					/* reset output to the last value */
