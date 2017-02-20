@@ -78,53 +78,6 @@ static void publish_tune_control(tune_control_s &tune_control)
 	}
 }
 
-// static void run_led_test1()
-// {
-// 	PX4_INFO("generating LED pattern...");
-//
-// 	led_control_s led_control = {};
-// 	led_control.led_mask = 0xff;
-// 	led_control.mode = led_control_s::MODE_OFF;
-// 	led_control.priority = led_control_s::MAX_PRIORITY;
-// 	publish_led_control(led_control);
-//
-// 	usleep(200 * 1000);
-//
-// 	// generate some pattern
-// 	for (int round = led_control_s::COLOR_RED; round <= led_control_s::COLOR_WHITE; ++round) {
-// 		for (int led = 0; led < BOARD_MAX_LEDS; ++led) {
-// 			led_control.led_mask = 1 << led;
-// 			led_control.mode = led_control_s::MODE_ON;
-// 			led_control.color = round;
-// 			publish_led_control(led_control);
-// 			usleep(80 * 1000);
-// 		}
-//
-// 		usleep(100 * 1000);
-// 		led_control.led_mask = 0xff;
-//
-// 		for (int i = 0; i < 3; ++i) {
-// 			led_control.mode = led_control_s::MODE_ON;
-// 			publish_led_control(led_control);
-// 			usleep(100 * 1000);
-// 			led_control.mode = led_control_s::MODE_OFF;
-// 			publish_led_control(led_control);
-// 			usleep(100 * 1000);
-// 		}
-//
-// 		usleep(200 * 1000);
-// 	}
-//
-// 	usleep(500 * 1000);
-//
-// 	// reset
-// 	led_control.led_mask = 0xff;
-// 	led_control.mode = led_control_s::MODE_DISABLED;
-// 	publish_led_control(led_control);
-//
-// 	PX4_INFO("Done");
-// }
-
 int
 tune_control_main(int argc, char *argv[])
 {
@@ -183,20 +136,12 @@ tune_control_main(int argc, char *argv[])
 
 			break;
 
-		case 'p':
-			// led_control.priority = strtol(myoptarg, NULL, 0);
-			break;
-
 		default:
 			usage();
 			return -1;
 			break;
 		}
 	}
-
-	// if (led_control.priority > led_control_s::MAX_PRIORITY) {
-	// 	led_control.priority = led_control_s::MAX_PRIORITY;
-	// }
 
 	if (myoptind >= argc) {
 		usage();
@@ -251,10 +196,6 @@ tune_control_main(int argc, char *argv[])
 		usage();
 		return 1;
 	}
-
-	// if (led_control.mode != 0xff) {
-	// 	publish_led_control(led_control);
-	// }
 
 	return 0;
 }
