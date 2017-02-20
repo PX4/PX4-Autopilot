@@ -171,6 +171,25 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 			orb_publish(ORB_ID(mixer_parameter_set), _mixer_parameter_set_pub, &param_set);
 		}
 
+		break;
+
+	case MAV_CMD_REQUEST_MIXER_SEND_ALL:
+		param_set.mixer_group = cmd.param1;
+		_mixer_data_req.mixer_index = 0;
+		_mixer_data_req.mixer_sub_index = 0;
+		_mixer_data_req.parameter_index = 0;
+		_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
+		_send_all = true;
+
+		if (_mixer_data_request_pub == nullptr) {
+			_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
+
+		} else {
+			orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+		}
+
+		break;
+
 	default:
 		return;
 	}
