@@ -63,6 +63,13 @@ usage()
 {
 	PX4_INFO(
 		"External tune control for testing. Usage:\n"
+		"tune_control play [-t <default tunes>] [-f <frequency>] [-d <duration>] [-s <strength>] [-m < melody>]\n"
+		"\n"
+		"\t-t <defualt tunes>\tPlay the default (1...15) (default=1)\n"
+		"\t-f <frequency>\t\tFrequency from 0-20kHz\n"
+		"\t-d <duration>\t\tDuration of the tone in us\n"
+		"\t-s <strength>\t\tStrenght of the tone between 0-100\n"
+		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
 	);
 }
 
@@ -71,7 +78,7 @@ static void publish_tune_control(tune_control_s &tune_control)
 	tune_control.timestamp = hrt_absolute_time();
 
 	if (tune_control_pub == nullptr) {
-		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 1);
+		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -92,7 +99,7 @@ tune_control_main(int argc, char *argv[])
 	tune_control.tune_id = 0;
 	tune_control.strength = 40;
 
-	while ((ch = px4_getopt(argc, argv, "f:d:t:s:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'f':
 			if ((uint16_t)(strtol(myoptarg, NULL, 0)) > 0 && (uint16_t)(strtol(myoptarg, NULL, 0)) < 22000) {
@@ -106,7 +113,7 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 'd':
-			tune_control.duration = (uint16_t)(strtol(myoptarg, NULL, 0));
+			tune_control.duration = (uint32_t)(strtol(myoptarg, NULL, 0));
 			break;
 
 		case 't':
@@ -122,18 +129,20 @@ tune_control_main(int argc, char *argv[])
 
 			break;
 
-		case 's':
+		case 'm':
 			string_input = true;
+			tune_string  = myoptarg;
 
-			// TODO: check if the string is a valid tune sequence
-			if (1) {
-				tune_string  = myoptarg;
-
-			} else {
+			// check if string is a valid melody string
+			if (tune_string[0] != 'M') {
 				usage();
 				return 1;
 			}
 
+			break;
+
+		case 's':
+			tune_control.strength = (uint16_t)(strtol(myoptarg, NULL, 0));
 			break;
 
 		default:
