@@ -3147,18 +3147,18 @@ test(void)
 			}
 		}
 
-//		/* readback servo values */
-//		for (unsigned i = 0; i < servo_count; i++) {
-//			servo_position_t value;
-//
-//			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-//				err(1, "error reading PWM servo %d", i);
-//			}
-//
-//			if (value != servos[i]) {
-//				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
-//			}
-//		}
+		/* readback servo values */
+		for (unsigned i = 0; i < servo_count; i++) {
+			servo_position_t value;
+
+			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
+				err(1, "error reading PWM servo %d", i);
+			}
+
+			if (value != servos[i]) {
+				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+			}
+		}
 
 		if (capture_count != 0 && (++rate_limit % 500 == 0)) {
 			for (unsigned i = 0; i < capture_count; i++) {
