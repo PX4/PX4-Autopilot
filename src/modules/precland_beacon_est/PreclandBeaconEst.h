@@ -33,15 +33,15 @@
 
 /*
  * @file PreclandBeaconEst.h
-Land detector interface for multicopter, fixedwing and VTOL implementations.
+ * Precision land beacon position estimator
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Julian Oes <julian@oes.ch>
+ * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
 #pragma once
 
 #include <px4_workqueue.h>
+#include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -52,11 +52,11 @@ Land detector interface for multicopter, fixedwing and VTOL implementations.
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
+#include "KalmanFilter.h"
 
 
 namespace precland_beacon_est
 {
-
 
 class PreclandBeaconEst
 {
@@ -108,6 +108,8 @@ protected:
 
 	/* Run main land detector loop at this rate in Hz. */
 	static constexpr uint32_t PRECLAND_BEACON_EST_UPDATE_RATE_HZ = 50;
+	/* timeout after which filter is reset if beacon not seen */
+	static constexpr uint32_t PRECLAND_BEACON_EST_TIMEOUT_US = 2000000;
 
 	orb_advert_t _preclandBeaconRelposPub;
 	struct precland_beacon_relpos_s _preclandBeaconRelpos;
@@ -129,6 +131,9 @@ private:
 	bool _new_irlockReport;
 
 	matrix::Dcm<float> _R_att;
+	KalmanFilter _kalman_filter_x;
+	KalmanFilter _kalman_filter_y;
+	hrt_abstime _last_update;
 
 	static void _cycle_trampoline(void *arg);
 

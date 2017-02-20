@@ -38,6 +38,7 @@ px4_add_module(
 	SRCS
 		precland_beacon_est_main.cpp
 		PreclandBeaconEst.cpp
+		KalmanFilter.cpp
 	DEPENDS
 		platforms__common
 	)

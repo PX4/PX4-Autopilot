@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,8 +34,7 @@
 /*
  * @file PreclandBeaconEst.cpp
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Julian Oes <julian@oes.ch>
+ * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
 #include <px4_config.h>
@@ -44,16 +43,18 @@
 
 #include "PreclandBeaconEst.h"
 
+#define SEC2USEC 1000000.0f
+
 
 namespace precland_beacon_est
 {
-
 
 PreclandBeaconEst::PreclandBeaconEst() :
 	_preclandBeaconRelposPub(nullptr),
 	_new_vehicleLocalPosition(false),
 	_new_vehicleAttitude(false),
 	_new_irlockReport(false),
+	_last_update(0),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
 	_work{}
@@ -123,7 +124,7 @@ void PreclandBeaconEst::_cycle()
 		sensor_ray = _R_att * sensor_ray;
 
 		if (std::abs(sensor_ray(2)) < 1e-6) {
-			PX4_WARN("z component unsafe: %f %f %f", sensor_ray(0), sensor_ray(1), sensor_ray(2));
+			PX4_WARN("z component unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1), (double)sensor_ray(2));
 		}
 
 		// scale the ray s.t. the z component has length of HAGL
@@ -133,18 +134,56 @@ void PreclandBeaconEst::_cycle()
 		rel_pos(1) = sensor_ray(1) / sensor_ray(2);
 		rel_pos(2) = _vehicleLocalPosition.dist_bottom;
 
-		// TODO filter this in a simple EKF
-		_preclandBeaconRelpos.timestamp = hrt_absolute_time();
-		_preclandBeaconRelpos.x = rel_pos(0);
-		_preclandBeaconRelpos.y = rel_pos(1);
+		hrt_abstime dt = hrt_absolute_time() - _last_update;
 
-		if (_preclandBeaconRelposPub == nullptr) {
-			_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
+		if (dt > PRECLAND_BEACON_EST_TIMEOUT_US) {
+			// have not gotten a measurement for too long, reset filter
+			PX4_WARN("Precland beacon est init");
+			// TODO what whould these be?
+			double covInit00 = 1;
+			double covInit11 = 10;
+			_kalman_filter_x.init(rel_pos(0), 0, covInit00, covInit11);
+			_kalman_filter_y.init(rel_pos(1), 0, covInit00, covInit11);
+
 		} else {
-			orb_publish(ORB_ID(precland_beacon_relpos), _preclandBeaconRelposPub, &_preclandBeaconRelpos);
+			// predict
+			double process_noise00 = 1 * dt / SEC2USEC; // Process noise for position TODO what should this be?
+			double process_noise11 = 1 * dt / SEC2USEC; // Process noise for velocity TODO what should this be?
+			_kalman_filter_x.predict(dt / SEC2USEC, process_noise00, process_noise11);
+			_kalman_filter_y.predict(dt / SEC2USEC, process_noise00, process_noise11);
+
+			// update
+			double measUnc = 0.1; // TODO what should this be?
+			_kalman_filter_x.update(rel_pos(0), measUnc);
+			_kalman_filter_y.update(rel_pos(1), measUnc);
+
+			_preclandBeaconRelpos.timestamp = hrt_absolute_time();
+			double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+			_kalman_filter_x.getState(x, xvel);
+			_kalman_filter_y.getState(y, yvel);
+			_kalman_filter_x.getCovariance(covx, covx_v);
+			_kalman_filter_y.getCovariance(covy, covy_v);
+
+			_preclandBeaconRelpos.x = x;
+			_preclandBeaconRelpos.y = y;
+			_preclandBeaconRelpos.x_unfilt = rel_pos(0);
+			_preclandBeaconRelpos.y_unfilt = rel_pos(1);
+			_preclandBeaconRelpos.vx = xvel;
+			_preclandBeaconRelpos.vy = yvel;
+			_preclandBeaconRelpos.covx = covx;
+			_preclandBeaconRelpos.covy = covy;
+
+			if (_preclandBeaconRelposPub == nullptr) {
+				_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
+
+			} else {
+				orb_publish(ORB_ID(precland_beacon_relpos), _preclandBeaconRelposPub, &_preclandBeaconRelpos);
+			}
 		}
 
 		_new_irlockReport = false;
+
+		_last_update = hrt_absolute_time();
 	}
 
 	if (!_taskShouldExit) {
@@ -184,10 +223,12 @@ void PreclandBeaconEst::_initialize_topics()
 
 void PreclandBeaconEst::_update_topics()
 {
-	_new_vehicleLocalPosition = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
+	_new_vehicleLocalPosition = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
+						&_vehicleLocalPosition);
 	_new_vehicleAttitude = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
 }
+
 
 bool PreclandBeaconEst::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {

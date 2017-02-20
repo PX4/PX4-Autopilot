@@ -33,9 +33,9 @@
 
 /**
  * @file precland_beacon_est_main.cpp
- * Land detection algorithm
+ * Precision land beacon position estimator
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
 #include <px4_config.h>
