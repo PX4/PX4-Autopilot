@@ -109,113 +109,149 @@ MavlinkMixersManager::get_size_avg()
 void
 MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 {
-	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_MIXER_DATA_REQUEST: {
-			/* set mixer parameter */
-			mavlink_mixer_data_request_t req;
-			mavlink_msg_mixer_data_request_decode(msg, &req);
+	if (msg->msgid != MAVLINK_MSG_ID_COMMAND_LONG) { return; }
 
-			if (req.target_system == mavlink_system.sysid &&
-			    (req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
+	mavlink_command_long_t cmd;
+	mavlink_msg_command_long_decode(msg, &cmd);
 
-				_request_pending = true;
+	PX4_INFO("Mavlink mixers got command long with cmd:%u", cmd.command);
 
-				// publish mixer data request to uORB
-				_mixer_data_req.mixer_group = req.mixer_group;
+	switch (cmd.command) {
+	case MAV_CMD_REQUEST_MIXER_DATA:
+		_mixer_data_req.mixer_group = cmd.param1;
+		_mixer_data_req.mixer_index = cmd.param2;
+		_mixer_data_req.mixer_sub_index = cmd.param3;
+		_mixer_data_req.parameter_index = cmd.param4;
+		_mixer_data_req.mixer_data_type = cmd.param5;
+		_send_all = false;
+		_request_pending = true;
 
-				if (req.data_type == MIXER_ACTION_SEND_ALL) {                                 // MIXER_ACTION_SEND_ALL
-					_mixer_data_req.mixer_index = 0;
-					_mixer_data_req.mixer_sub_index = 0;
-					_mixer_data_req.parameter_index = 0;
-					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
-					_send_all = true;
+		PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
+			 _mixer_data_req.mixer_group,  _mixer_data_req.mixer_index, _mixer_data_req.mixer_sub_index,
+			 _mixer_data_req.parameter_index, _mixer_data_req.mixer_data_type);
 
-				} else if (req.data_type == MIXER_ACTION_SAVE_GROUP) {                          // MIXER_ACTION_SAVE_GROUP
-					PX4_INFO("Saving mixer from group:%u", req.mixer_group);
+		if (_mixer_data_request_pub == nullptr) {
+			_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
 
-					if (_p_mixer_save_buffer == nullptr) {
-						_p_mixer_save_buffer = (char *) malloc(2048);
-						PX4_INFO("Saving mixer allocating buffer");
-					}
-
-					if (_p_mixer_save_buffer == nullptr) {
-						PX4_ERR("Could not allocate buffer for mixer save");
-					}
-
-					_mixer_data_req.mixer_index = req.mixer_index;
-					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
-					_mixer_data_req.parameter_index = req.parameter_index;
-					_mixer_data_req.mixer_data_type = req.data_type;
-					_mixer_data_req.dataref = (unsigned long) &_p_mixer_save_buffer;
-					_send_all = false;
-
-				} else {                                                    // MIXER_DATA_REQUEST
-					_mixer_data_req.mixer_index = req.mixer_index;
-					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
-					_mixer_data_req.parameter_index = req.parameter_index;
-					_mixer_data_req.mixer_data_type = req.data_type;
-					_send_all = false;
-				}
-
-
-				PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
-					 req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index, req.data_type);
-
-				if (_mixer_data_request_pub == nullptr) {
-					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
-
-				} else {
-					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
-				}
-			}
-
-			break;
+		} else {
+			orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
 		}
 
-	case MAVLINK_MSG_ID_MIXER_PARAMETER_SET: {
-			/* set mixer parameter */
-			mavlink_mixer_parameter_set_t set;
-			mavlink_msg_mixer_parameter_set_decode(msg, &set);
-
-			if (set.target_system == mavlink_system.sysid &&
-			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
-
-				_request_pending = true;
-
-				// publish set mixer parameter request to uORB
-				mixer_parameter_set_s param_set;
-
-				if (set.param_type == MAV_PARAM_TYPE_REAL32) {
-					param_set.param_type = MAV_PARAM_TYPE_REAL32;
-					param_set.real_value = set.param_value;
-
-				} else {
-					int32_t val;
-					memcpy(&val, &param_set.int_value, sizeof(int32_t));
-					param_set.param_type = MAV_PARAM_TYPE_INT32;
-					param_set.int_value = val;
-				}
-
-				param_set.mixer_group = set.mixer_group;
-				param_set.mixer_index = set.mixer_index;
-				param_set.mixer_sub_index = set.mixer_sub_index;
-				param_set.parameter_index = set.parameter_index;
-
-				if (_mixer_parameter_set_pub == nullptr) {
-					_mixer_parameter_set_pub = orb_advertise(ORB_ID(mixer_parameter_set), &param_set);
-
-				} else {
-					orb_publish(ORB_ID(mixer_parameter_set), _mixer_parameter_set_pub, &param_set);
-				}
-			}
-
-			break;
-		}
+		break;
 
 	default:
-		break;
+		return;
 	}
+
 }
+
+//    switch (msg->msgid) {
+//	case MAVLINK_MSG_ID_MIXER_DATA_REQUEST: {
+//			/* set mixer parameter */
+//			mavlink_mixer_data_request_t req;
+//			mavlink_msg_mixer_data_request_decode(msg, &req);
+
+//			if (req.target_system == mavlink_system.sysid &&
+//			    (req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
+
+//				_request_pending = true;
+
+//				// publish mixer data request to uORB
+//				_mixer_data_req.mixer_group = req.mixer_group;
+
+//				if (req.data_type == MIXER_ACTION_SEND_ALL) {                                 // MIXER_ACTION_SEND_ALL
+//					_mixer_data_req.mixer_index = 0;
+//					_mixer_data_req.mixer_sub_index = 0;
+//					_mixer_data_req.parameter_index = 0;
+//					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
+//					_send_all = true;
+
+//				} else if (req.data_type == MIXER_ACTION_SAVE_GROUP) {                          // MIXER_ACTION_SAVE_GROUP
+//					PX4_INFO("Saving mixer from group:%u", req.mixer_group);
+
+//					if (_p_mixer_save_buffer == nullptr) {
+//						_p_mixer_save_buffer = (char *) malloc(2048);
+//						PX4_INFO("Saving mixer allocating buffer");
+//					}
+
+//					if (_p_mixer_save_buffer == nullptr) {
+//						PX4_ERR("Could not allocate buffer for mixer save");
+//					}
+
+//					_mixer_data_req.mixer_index = req.mixer_index;
+//					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
+//					_mixer_data_req.parameter_index = req.parameter_index;
+//					_mixer_data_req.mixer_data_type = req.data_type;
+//					_mixer_data_req.dataref = (unsigned long) &_p_mixer_save_buffer;
+//					_send_all = false;
+
+//				} else {                                                    // MIXER_DATA_REQUEST
+//					_mixer_data_req.mixer_index = req.mixer_index;
+//					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
+//					_mixer_data_req.parameter_index = req.parameter_index;
+//					_mixer_data_req.mixer_data_type = req.data_type;
+//					_send_all = false;
+//				}
+
+
+//				PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
+//					 req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index, req.data_type);
+
+//				if (_mixer_data_request_pub == nullptr) {
+//					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
+
+//				} else {
+//					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+//				}
+//			}
+
+//			break;
+//		}
+
+//	case MAVLINK_MSG_ID_MIXER_PARAMETER_SET: {
+//			/* set mixer parameter */
+//			mavlink_mixer_parameter_set_t set;
+//			mavlink_msg_mixer_parameter_set_decode(msg, &set);
+
+//			if (set.target_system == mavlink_system.sysid &&
+//			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
+
+//				_request_pending = true;
+
+//				// publish set mixer parameter request to uORB
+//				mixer_parameter_set_s param_set;
+
+//				if (set.param_type == MAV_PARAM_TYPE_REAL32) {
+//					param_set.param_type = MAV_PARAM_TYPE_REAL32;
+//					param_set.real_value = set.param_value;
+
+//				} else {
+//					int32_t val;
+//					memcpy(&val, &param_set.int_value, sizeof(int32_t));
+//					param_set.param_type = MAV_PARAM_TYPE_INT32;
+//					param_set.int_value = val;
+//				}
+
+//				param_set.mixer_group = set.mixer_group;
+//				param_set.mixer_index = set.mixer_index;
+//				param_set.mixer_sub_index = set.mixer_sub_index;
+//				param_set.parameter_index = set.parameter_index;
+
+//				if (_mixer_parameter_set_pub == nullptr) {
+//					_mixer_parameter_set_pub = orb_advertise(ORB_ID(mixer_parameter_set), &param_set);
+
+//				} else {
+//					orb_publish(ORB_ID(mixer_parameter_set), _mixer_parameter_set_pub, &param_set);
+//				}
+//			}
+
+//			break;
+//		}
+
+//	default:
+//		break;
+//	}
+//}
 
 void
 MavlinkMixersManager::send(const hrt_abstime t)
@@ -235,8 +271,8 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
 
 		mavlink_mixer_data_t msg;
-		msg.target_system = mavlink_system.sysid;
-		msg.target_component = 0;
+//		msg.target_system = mavlink_system.sysid;
+//		msg.target_component = 0;
 		msg.mixer_group = mixer_data.mixer_group;
 		msg.mixer_index = mixer_data.mixer_index;
 		msg.mixer_sub_index = mixer_data.mixer_sub_index;

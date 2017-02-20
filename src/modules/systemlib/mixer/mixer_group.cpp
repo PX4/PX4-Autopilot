@@ -84,36 +84,6 @@ MixerGroup::add_mixer(Mixer *mixer)
 	mixer->_next = nullptr;
 }
 
-#if defined(MIXER_CONFIGURATION)
-void
-MixerGroup::add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo)
-{
-	Mixer *m = nullptr;
-
-	switch (static_cast<int>(mixtype)) {
-	case static_cast<int>(MIXER_TYPE_NULL):
-		break;
-
-	case static_cast<int>(MIXER_TYPE_SIMPLE):
-		m = (Mixer *) new SimpleMixer(_control_cb, _cb_handle, (mixer_simple_s *) mixinfo);
-		break;
-
-	case static_cast<int>(MIXER_TYPE_MULTIROTOR):
-		m = (Mixer *) new MultirotorMixer(_control_cb, _cb_handle, (mixer_multi_s *) mixinfo);
-		break;
-
-	case static_cast<int>(MIXER_TYPE_HELICOPTER):
-		m = (Mixer *) new HelicopterMixer(_control_cb, _cb_handle, (mixer_heli_s *) mixinfo);
-		break;
-	}
-
-	if (m != nullptr) {
-		add_mixer(m);
-	}
-
-}
-#endif //MIXER_CONFIGURATION
-
 void
 MixerGroup::reset()
 {
@@ -332,7 +302,6 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 
 	return 0;
 }
-#endif //MIXER_REMOTE
 
 MIXER_TYPES
 MixerGroup::get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index)
@@ -351,7 +320,7 @@ MixerGroup::get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index)
 		index++;
 	}
 
-	return MIXER_TYPE_NONE;
+	return MIXER_TYPES_NONE;
 }
 
 signed
@@ -391,6 +360,7 @@ MixerGroup::get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t s
 	return 0.0;
 }
 
+#endif //MIXER_REMOTE
 
 int
 MixerGroup::set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index)

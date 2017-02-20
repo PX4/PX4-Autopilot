@@ -230,7 +230,7 @@ public:
 	 *
 	 * @return              A type enumeration for this mixer
 	 */
-	virtual MIXER_TYPES     get_mixer_type(uint16_t submix_index) {return MIXER_TYPE_NONE;}
+	virtual MIXER_TYPES     get_mixer_type(uint16_t submix_index) {return MIXER_TYPES_NONE;}
 
 	/**
 	 * Get list of Mixer parameters
@@ -405,16 +405,6 @@ public:
 	 */
 	int				load_from_buf(const char *buf, unsigned &buflen);
 
-#if defined(MIXER_CONFIGURATION)
-	/**
-	 * @brief      Creates and adds a mixer based on type and mixer information
-	 *
-	 * @param[in]  mixer_type   mixer type from enumeration
-	 * @param[in]  mixinfo      mixer information in structure according to mixer type.
-	 */
-	void            add_mixer_from_data(MIXER_TYPES mixtype, void *mixinfo);
-#endif //defined(MIXER_CONFIGURATION)
-
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
 	 *             the maximum allowed change of the output values per cycle.
@@ -542,6 +532,15 @@ public:
 		return 0;
 	}
 
+#if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index);
+#endif //MIXER_REMOTE
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
+#endif //defined(MIXER_CONFIGURATION)
 };
 
 /**
@@ -612,10 +611,10 @@ public:
 #if defined(MIXER_CONFIGURATION)
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
-#endif //MIXER_REMOTE
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index);
+#endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -776,10 +775,10 @@ public:
 #if defined(MIXER_CONFIGURATION)
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
-#endif //MIXER_REMOTE
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index = 0);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index = 0);
+#endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index = 0);
 #endif //defined(MIXER_CONFIGURATION)
 

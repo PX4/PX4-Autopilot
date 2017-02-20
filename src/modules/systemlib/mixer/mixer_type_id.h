@@ -43,8 +43,8 @@
 
 #include "mixer_types.h"
 
-extern const char *const MIXER_TYPE_ID[MIXER_TYPE_COUNT];
-const char *const MIXER_TYPE_ID[MIXER_TYPE_COUNT] = {
+extern const char *const MIXER_TYPE_ID[MIXER_TYPES_COUNT];
+const char *const MIXER_TYPE_ID[MIXER_TYPES_COUNT] = {
 	"NONE",
 	"NULL",
 	"SIMPLE",

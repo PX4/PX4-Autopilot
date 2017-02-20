@@ -428,18 +428,20 @@ SimpleMixer::check()
 }
 
 #if defined(MIXER_CONFIGURATION)
+#if !defined(MIXER_REMOTE)
+
 MIXER_TYPES
 SimpleMixer::get_mixer_type(uint16_t submix_index)
 {
-	if (_pinfo == nullptr) { return MIXER_TYPE_NONE; }
+	if (_pinfo == nullptr) { return MIXER_TYPES_NONE; }
 
 	if (submix_index == 0) {
-		return MIXER_TYPE_SIMPLE;
+		return MIXER_TYPES_SIMPLE;
 
 	} else {
-		if (submix_index > _pinfo->control_count) { return MIXER_TYPE_NONE; }
+		if (submix_index > _pinfo->control_count) { return MIXER_TYPES_NONE; }
 
-		return MIXER_TYPE_SIMPLE_INPUT;
+		return MIXER_TYPES_SIMPLE_INPUT;
 	}
 }
 
@@ -506,6 +508,8 @@ SimpleMixer::get_parameter(uint16_t index, uint16_t submix_index)
 
 	return 0.0;
 }
+
+#endif //MIXER_REMOTE
 
 int16_t
 SimpleMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)

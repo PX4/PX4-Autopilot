@@ -577,6 +577,8 @@ PWMSim::task_main()
 			mixer_data_request_s req;
 			orb_copy(ORB_ID(mixer_data_request), _mixer_data_request_sub, &req);
 
+			PX4_INFO("pwm_out_sim got mixer data request");
+
 			if (req.mixer_group == 0) {
 				mixer_data_s data;
 				data.mixer_group = req.mixer_group;
@@ -1019,7 +1021,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			mixer_type_s *mixer_type = (mixer_type_s *)arg;
 			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
 
-			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+			if (mixer_type->mix_type == MIXER_TYPES_NONE) {
 				ret = -EINVAL;
 
 			} else {

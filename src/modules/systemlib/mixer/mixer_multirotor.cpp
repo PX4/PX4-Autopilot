@@ -644,13 +644,13 @@ MIXER_TYPES
 MultirotorMixer::get_mixer_type(uint16_t submix_index)
 {
 	if (submix_index == 0) {
-		return MIXER_TYPE_MULTIROTOR;
+		return MIXER_TYPES_MULTIROTOR;
 
 	} else if (submix_index <= _rotor_count) {
-		return MIXER_TYPE_ROTOR;
+		return MIXER_TYPES_ROTOR;
 
 	} else {
-		return MIXER_TYPE_NONE;
+		return MIXER_TYPES_NONE;
 	}
 }
 
