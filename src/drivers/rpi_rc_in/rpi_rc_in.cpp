@@ -36,16 +36,18 @@
 
 using namespace rpi_rc_in;
 //---------------------------------------------------------------------------------------------------------//
-int RcInput::rpi_rc_init() {
+int RcInput::rpi_rc_init()
+{
 	int i;
+
 	//--------------初始化共享内存映射----------------------------//
 	if ((this->shmid = shmget(this->key, sizeof(int) * this->_channels, 0666))
-			< 0) {
+	    < 0) {
 		PX4_WARN("无法访问共享内存");
 		return -1;
 	}
 
-	if ((this->mem = (int*) shmat(this->shmid, NULL, 0)) == (void *) -1) {
+	if ((this->mem = (int *) shmat(this->shmid, NULL, 0)) == (void *) - 1) {
 		PX4_WARN("无法映射共享内存");
 		return -1;
 	}
@@ -65,7 +67,8 @@ int RcInput::rpi_rc_init() {
 	return 0;
 }
 //---------------------------------------------------------------------------------------------------------//
-int RcInput::start() {
+int RcInput::start()
+{
 	int result = 0;
 
 	result = rpi_rc_init();
@@ -77,7 +80,7 @@ int RcInput::start() {
 
 	_isRunning = true;
 	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline,
-			this, 0);
+			    this, 0);
 
 	if (result == -1) {
 		_isRunning = false;
@@ -86,30 +89,35 @@ int RcInput::start() {
 	return result;
 }
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::stop() {
+void RcInput::stop()
+{
 	_shouldExit = true;
 }
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::cycle_trampoline(void *arg) {
+void RcInput::cycle_trampoline(void *arg)
+{
 	RcInput *dev = reinterpret_cast<RcInput *>(arg);
 	dev->_cycle();
 }
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::_cycle() {
+void RcInput::_cycle()
+{
 	_measure();
 
 	if (!_shouldExit) {
 		work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this,
-				USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
 	}
 }
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::_measure(void) {
+void RcInput::_measure(void)
+{
 	uint64_t ts;
 	// PWM  数据发布
-	int i=0;
-	for(i=0;i<_channels;++i){
-		_data.values[i] = *(this->mem+i);
+	int i = 0;
+
+	for (i = 0; i < _channels; ++i) {
+		_data.values[i] = *(this->mem + i);
 	}
 
 	ts = hrt_absolute_time();
@@ -131,14 +139,17 @@ void RcInput::_measure(void) {
  * Print the correct usage.
  */
 
-static void rpi_rc_in::usage(const char *reason) {
+static void rpi_rc_in::usage(const char *reason)
+{
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
+
 	PX4_INFO("用法: rpi_rc_in {start|stop|status}");
 }
 //---------------------------------------------------------------------------------------------------------//
-int rpi_rc_in_main(int argc, char **argv) {
+int rpi_rc_in_main(int argc, char **argv)
+{
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
