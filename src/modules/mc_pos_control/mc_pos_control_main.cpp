@@ -240,8 +240,7 @@ private:
 		math::Vector<3> vel_d;
 		math::Vector<3> vel_ff;
 		math::Vector<3> vel_max;
-		math::Vector<3> vel_cruise;
-		math::Vector<3> sp_offs_max;
+		math::Vector<2> vel_cruise;
 	}		_params;
 
 	struct map_projection_reference_s _ref_pos;
@@ -335,11 +334,6 @@ private:
 	 * The general logic follows the reset_pos_sp() architecture.
 	 */
 	void		reset_alt_sp();
-
-	/**
-	 * Check if position setpoint is too far from current position and adjust it if needed.
-	 */
-	void		limit_pos_sp_offset();
 
 	/**
 	 * Set position setpoint using manual control
@@ -464,7 +458,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params.vel_max.zero();
 	_params.vel_cruise.zero();
 	_params.vel_ff.zero();
-	_params.sp_offs_max.zero();
 
 	_pos.zero();
 	_pos_sp.zero();
@@ -618,9 +611,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise(0) = v;
 		_params.vel_cruise(1) = v;
-		/* using Z max up for now */
-		param_get(_params_handles.z_vel_max_up, &v);
-		_params.vel_cruise(2) = v;
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -655,8 +645,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		int i;
 		param_get(_params_handles.opt_recover, &i);
 		_params.opt_recover = i;
-
-		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
 		/* mc attitude control parameters*/
 		/* manual control scale */
@@ -903,28 +891,7 @@ MulticopterPositionControl::reset_alt_sp()
 	}
 }
 
-void
-MulticopterPositionControl::limit_pos_sp_offset()
-{
-	math::Vector<3> pos_sp_offs;
-	pos_sp_offs.zero();
 
-	if (_control_mode.flag_control_position_enabled) {
-		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
-		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
-	}
-
-	if (_control_mode.flag_control_altitude_enabled) {
-		pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
-	}
-
-	float pos_sp_offs_norm = pos_sp_offs.length();
-
-	if (pos_sp_offs_norm > 1.0f) {
-		pos_sp_offs /= pos_sp_offs_norm;
-		_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
-	}
-}
 
 void
 MulticopterPositionControl::control_manual(float dt)
@@ -940,43 +907,43 @@ MulticopterPositionControl::control_manual(float dt)
 		}
 	}
 
-	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
-	req_vel_sp.zero();
+
+	/*
+	* Map from stick input to velocity setpoint
+	* xy in local frame, z in global frame
+	*/
+
+	/*  setpoint in normalized range [-1,1]  */
+	math::Vector<2> req_vel_sp_xy;
+	req_vel_sp_xy.zero();
+	float req_vel_sp_z = 0.0f;
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
-	}
+		req_vel_sp_z = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
 
-	if (_control_mode.flag_control_position_enabled) {
-		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp(0) = math::expo(_manual.x, _params.xy_vel_man_expo);
-		req_vel_sp(1) = math::expo(_manual.y, _params.xy_vel_man_expo);
-	}
-
-	if (_control_mode.flag_control_altitude_enabled) {
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
+		/* set horizontal velocity setpoint with roll/pitch stick */
+		req_vel_sp_xy(0) = math::expo(_manual.x, _params.xy_vel_man_expo);
+		req_vel_sp_xy(1) = math::expo(_manual.y, _params.xy_vel_man_expo);
+
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
 	}
 
-	/* limit velocity setpoint */
-	float req_vel_sp_norm = req_vel_sp.length();
-
-	if (req_vel_sp_norm > 1.0f) {
-		req_vel_sp /= req_vel_sp_norm;
-	}
-
-	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
+	/* scale requested velocity setpoint to cruisespeed and rotate around yaw */
+	math::Vector<3> vel_cruise(_params.vel_cruise(0),
+				   _params.vel_cruise(1),
+				   (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
+	math::Vector<3> req_vel_sp_scaled(req_vel_sp_xy(0), req_vel_sp_xy(1), req_vel_sp_z);
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_cruise); // in NED and scaled to actual velocity
-
+	req_vel_sp_scaled = R_yaw_sp * req_vel_sp_scaled.emult(
+				    vel_cruise); // in NED and scaled to actual velocity;
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
@@ -985,7 +952,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* vertical axis */
 	bool do_alt_hold = _control_mode.flag_control_altitude_enabled &&
-			   fabsf(req_vel_sp(2)) < FLT_EPSILON &&
+			   fabsf(req_vel_sp_z) < FLT_EPSILON &&
 			   (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
 
 	bool smooth_alt_transition = do_alt_hold && !_alt_hold_engaged;
@@ -995,7 +962,7 @@ MulticopterPositionControl::control_manual(float dt)
 	/* horizontal axes */
 	float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
 	bool do_pos_hold = _control_mode.flag_control_position_enabled &&
-			   (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) &&
+			   (fabsf(req_vel_sp_xy(0)) < _params.hold_xy_dz && fabsf(req_vel_sp_xy(1)) < _params.hold_xy_dz) &&
 			   (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
 
 	bool smooth_pos_transition = do_pos_hold && !_pos_hold_engaged;
@@ -1418,7 +1385,9 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		/* scaled space: 1 == position error resulting max allowed speed */
 
-		math::Vector<3> cruising_speed = _params.vel_cruise;
+		math::Vector<3> cruising_speed(_params.vel_cruise(0),
+					       _params.vel_cruise(1),
+					       _params.vel_max_up);
 
 		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
 		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
