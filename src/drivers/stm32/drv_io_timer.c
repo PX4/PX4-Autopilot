@@ -412,8 +412,12 @@ void io_timer_force_update()
 {
 	for (int i = 0; i < MAX_IO_TIMERS; i++) {
 		if (timer_freq[i] == 8) {
-			// force update of channel compare register
-			rEGR(i) |= GTIM_EGR_UG;
+			int rv = io_timer_validate_channel_index(i);
+
+			if (rv == 0) {
+				// force update of channel compare register
+				rEGR(i) |= GTIM_EGR_UG;
+			}
 		}
 	}
 }
