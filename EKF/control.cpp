@@ -279,15 +279,21 @@ void Ekf::controlOpticalFlowFusion()
 						_state.pos(0) = 0.0f;
 						_state.pos(1) = 0.0f;
 
-						// reset the corresponding covariances
-						// we are by definition at the origin at commencement so variances are also zeroed
-						zeroRows(P,7,8);
-						zeroCols(P,7,8);
-
-						// align the output observer to the EKF states
-						alignOutputFilter();
+					} else {
+						// set to the last known position
+						_state.pos(0) = _last_known_posNE(0);
+						_state.pos(1) = _last_known_posNE(1);
 
 					}
+
+					// reset the corresponding covariances
+					// we are by definition at the origin at commencement so variances are also zeroed
+					zeroRows(P,7,8);
+					zeroCols(P,7,8);
+
+					// align the output observer to the EKF states
+					alignOutputFilter();
+
 				}
 			}
 

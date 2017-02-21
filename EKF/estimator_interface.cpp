@@ -282,9 +282,10 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 	// limit data rate to prevent data being lost
 	if (time_usec - _time_last_optflow > _min_obs_interval_us) {
-		// check if enough integration time
+		// check if enough integration time and fail if integration time is less than 50%
+		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt;
-		bool delta_time_good = (delta_time >= 0.05f);
+		bool delta_time_good = (delta_time >= 5e-7f * (float)_min_obs_interval_us);
 
 		// check magnitude is within sensor limits
 		float flow_rate_magnitude;
@@ -298,7 +299,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// check quality metric
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
 
-		if (delta_time_good && flow_magnitude_good && flow_quality_good) {
+		if (delta_time_good && flow_magnitude_good && (flow_quality_good || !_control_status.flags.in_air)) {
 			flowSample optflow_sample_new;
 			// calculate the system time-stamp for the mid point of the integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000 - flow->dt / 2;
@@ -306,8 +307,16 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			optflow_sample_new.quality = flow->quality;
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate is produced by a RH rotation of the image about the sensor axis.
 			// copy the optical and gyro measured delta angles
-			optflow_sample_new.flowRadXY = - flow->flowdata;
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
+			if (flow_quality_good) {
+				optflow_sample_new.flowRadXY = - flow->flowdata;
+
+			} else {
+				// when on the ground with poor flow quality, assume zero ground relative velocity
+				optflow_sample_new.flowRadXY(0) = + flow->gyrodata(0);
+				optflow_sample_new.flowRadXY(1) = + flow->gyrodata(1);
+
+			}
 			// compensate for body motion to give a LOS rate
 			optflow_sample_new.flowRadXYcomp(0) = optflow_sample_new.flowRadXY(0) - optflow_sample_new.gyroXYZ(0);
 			optflow_sample_new.flowRadXYcomp(1) = optflow_sample_new.flowRadXY(1) - optflow_sample_new.gyroXYZ(1);
