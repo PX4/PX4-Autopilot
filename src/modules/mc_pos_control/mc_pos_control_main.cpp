@@ -278,6 +278,7 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
+	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
 	bool _takeoff_jumped;
@@ -437,6 +438,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_pos_control(true),
 	_run_alt_control(true),
 	_yaw(0.0f),
+	_yaw_takeoff(0.0f),
 	_in_landing(false),
 	_lnd_reached_ground(false),
 	_takeoff_jumped(false),
@@ -943,9 +945,19 @@ MulticopterPositionControl::control_manual(float dt)
 				   _params.vel_cruise(1),
 				   (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 	math::Vector<3> req_vel_sp_scaled(req_vel_sp_xy(0), req_vel_sp_xy(1), req_vel_sp_z);
-	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	req_vel_sp_scaled = R_yaw_sp * req_vel_sp_scaled.emult(
+
+	/* scale velocity setpoint to cruise speed (m/s) and rotate around yaw to NED frame */
+	math::Matrix<3, 3> R_input_fame;
+
+	if (_control_mode.flag_control_fixed_hdg_enabled) {
+		R_input_fame.from_euler(0.0f, 0.0f, _yaw_takeoff);
+
+	} else {
+		R_input_fame.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+
+	}
+
+	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(
 				    vel_cruise); // in NED and scaled to actual velocity;
 
 	/*
