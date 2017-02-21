@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,6 +124,7 @@ public:
 
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
+	bool		_gear_state_initialized;	///< true if the gear state has been initialized
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
@@ -139,7 +140,6 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
-
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
@@ -387,6 +387,7 @@ MulticopterPositionControl	*g_control;
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	_task_should_exit(false),
+	_gear_state_initialized(false),
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
 
@@ -2128,12 +2129,18 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		_att_sp.q_d_valid = true;
 	}
 
-	if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+	// Only switch the landing gear up if we are not landed and if
+	// the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized &&
 	    !_vehicle_land_detected.landed) {
 		_att_sp.landing_gear = 1.0f;
 
 	} else if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 		_att_sp.landing_gear = -1.0f;
+		// Switching the gear off does put it into a safe defined state
+		_gear_state_initialized = true;
 	}
 
 	_att_sp.timestamp = hrt_absolute_time();
