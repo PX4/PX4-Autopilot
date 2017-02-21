@@ -45,9 +45,7 @@
 #include "mavlink_bridge_header.h"
 #include "mavlink_stream.h"
 #include <uORB/uORB.h>
-//#include <uORB/topics/mixer_data.h>
 #include <uORB/topics/mixer_data_request.h>
-//#include <uORB/topics/mixer_parameter_set.h>
 
 
 #if defined(MIXER_CONFIGURATION)
@@ -98,9 +96,11 @@ protected:
 
 	bool        _request_pending;
 	bool        _send_all;
+	bool        _send_data_immediate;
 
 	/**For tracking data when sending or streaming*/
-	mixer_data_request_s _mixer_data_req;
+	mixer_data_request_s    _mixer_data_req;
+	mavlink_mixer_data_t    _msg_mixer_data_immediate;
 	uint16_t    _mixer_group;
 	uint16_t    _mixer_count;
 	uint16_t    _mixer_sub_count;

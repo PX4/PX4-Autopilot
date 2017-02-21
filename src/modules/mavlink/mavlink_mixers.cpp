@@ -40,6 +40,8 @@
 
 #if defined(MIXER_CONFIGURATION)
 
+#include "mavlink_main.h"
+
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +52,6 @@
 
 #include <systemlib/mixer/mixer_parameters.h>
 #include <drivers/drv_mixer.h>
-#include "mavlink_main.h"
 
 #define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
 
@@ -65,6 +66,7 @@ static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] =
 MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_request_pending(false),
 	_send_all(false),
+	_send_data_immediate(false),
 	_mixer_data_req(),
 	_mixer_group(0),
 	_mixer_count(0),
@@ -190,120 +192,32 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 		break;
 
+	case MAV_CMD_REQUEST_MIXER_TYPE_COUNT: {
+			PX4_INFO("Got mavlink mixer type count request");
+			bool space_available = _mavlink->get_free_tx_buf() >= get_size();
+
+			if (!space_available) { return; }
+
+			//Fill the immediate data message with the mixer type count
+			_msg_mixer_data_immediate.mixer_group = cmd.param1;
+			_msg_mixer_data_immediate.mixer_index = 0;
+			_msg_mixer_data_immediate.mixer_sub_index = 0;
+			_msg_mixer_data_immediate.parameter_index = 0;
+			_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_MIXERTYPE_COUNT;
+			_msg_mixer_data_immediate.param_type = 0;
+			_msg_mixer_data_immediate.param_value = 0.0;
+			_msg_mixer_data_immediate.data_value = MIXER_PARAMETERS_MIXER_TYPE_COUNT;
+			_send_data_immediate = true;
+
+			break;
+		}
+
 	default:
 		return;
 	}
 
 }
 
-//    switch (msg->msgid) {
-//	case MAVLINK_MSG_ID_MIXER_DATA_REQUEST: {
-//			/* set mixer parameter */
-
-//			mavlink_mixer_data_request_t req;
-//			mavlink_msg_mixer_data_request_decode(msg, &req);
-
-//			if (req.target_system == mavlink_system.sysid &&
-//			    (req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
-
-//				_request_pending = true;
-
-//				// publish mixer data request to uORB
-//				_mixer_data_req.mixer_group = req.mixer_group;
-
-//				if (req.data_type == MIXER_ACTION_SEND_ALL) {                                 // MIXER_ACTION_SEND_ALL
-//					_mixer_data_req.mixer_index = 0;
-//					_mixer_data_req.mixer_sub_index = 0;
-//					_mixer_data_req.parameter_index = 0;
-//					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
-//					_send_all = true;
-
-//				} else if (req.data_type == MIXER_ACTION_SAVE_GROUP) {                          // MIXER_ACTION_SAVE_GROUP
-//					PX4_INFO("Saving mixer from group:%u", req.mixer_group);
-
-//					if (_p_mixer_save_buffer == nullptr) {
-//						_p_mixer_save_buffer = (char *) malloc(2048);
-//						PX4_INFO("Saving mixer allocating buffer");
-//					}
-
-//					if (_p_mixer_save_buffer == nullptr) {
-//						PX4_ERR("Could not allocate buffer for mixer save");
-//					}
-
-//					_mixer_data_req.mixer_index = req.mixer_index;
-//					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
-//					_mixer_data_req.parameter_index = req.parameter_index;
-//					_mixer_data_req.mixer_data_type = req.data_type;
-//					_mixer_data_req.dataref = (unsigned long) &_p_mixer_save_buffer;
-//					_send_all = false;
-
-//				} else {                                                    // MIXER_DATA_REQUEST
-//					_mixer_data_req.mixer_index = req.mixer_index;
-//					_mixer_data_req.mixer_sub_index = req.mixer_sub_index;
-//					_mixer_data_req.parameter_index = req.parameter_index;
-//					_mixer_data_req.mixer_data_type = req.data_type;
-//					_send_all = false;
-//				}
-
-
-//				PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
-//					 req.mixer_group, req.mixer_index, req.mixer_sub_index, req.parameter_index, req.data_type);
-
-//				if (_mixer_data_request_pub == nullptr) {
-//					_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
-
-//				} else {
-//					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
-//				}
-//			}
-
-//			break;
-//		}
-
-//	case MAVLINK_MSG_ID_MIXER_PARAMETER_SET: {
-//			/* set mixer parameter */
-//			mavlink_mixer_parameter_set_t set;
-//			mavlink_msg_mixer_parameter_set_decode(msg, &set);
-
-//			if (set.target_system == mavlink_system.sysid &&
-//			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
-
-//				_request_pending = true;
-
-//				// publish set mixer parameter request to uORB
-//				mixer_parameter_set_s param_set;
-
-//				if (set.param_type == MAV_PARAM_TYPE_REAL32) {
-//					param_set.param_type = MAV_PARAM_TYPE_REAL32;
-//					param_set.real_value = set.param_value;
-
-//				} else {
-//					int32_t val;
-//					memcpy(&val, &param_set.int_value, sizeof(int32_t));
-//					param_set.param_type = MAV_PARAM_TYPE_INT32;
-//					param_set.int_value = val;
-//				}
-
-//				param_set.mixer_group = set.mixer_group;
-//				param_set.mixer_index = set.mixer_index;
-//				param_set.mixer_sub_index = set.mixer_sub_index;
-//				param_set.parameter_index = set.parameter_index;
-
-//				if (_mixer_parameter_set_pub == nullptr) {
-//					_mixer_parameter_set_pub = orb_advertise(ORB_ID(mixer_parameter_set), &param_set);
-
-//				} else {
-//					orb_publish(ORB_ID(mixer_parameter_set), _mixer_parameter_set_pub, &param_set);
-//				}
-//			}
-
-//			break;
-//		}
-
-//	default:
-//		break;
-//	}
-//}
 
 void
 MavlinkMixersManager::send(const hrt_abstime t)
@@ -313,6 +227,14 @@ MavlinkMixersManager::send(const hrt_abstime t)
 	/* Send parameter values received from the UAVCAN topic */
 	if (_mixer_data_sub < 0) {
 		_mixer_data_sub = orb_subscribe(ORB_ID(mixer_data));
+	}
+
+	if (_send_data_immediate && space_available) {
+		/* Send with default component ID */
+		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+
+		_send_data_immediate = false;
+		return;
 	}
 
 	bool mixer_data_ready;
@@ -433,6 +355,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		PX4_WARN("Space not avialable in buffer to stream mixer data");
 	}
 
+	// Request the next piece of data for send all
 	if (_send_all && !_request_pending) {
 		switch (_mixer_data_req.mixer_data_type) {
 		case MIXER_DATA_TYPE_MIXER_COUNT:
