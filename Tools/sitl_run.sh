@@ -136,7 +136,10 @@ then
 	ddd --debugger gdb --args $sitl_command
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind $sitl_command
+	valgrind --track-origins=yes --leak-check=full -v $sitl_command
+elif [ "$debugger" == "callgrind" ]
+then
+	valgrind --tool=callgrind -v $sitl_command
 elif [ "$debugger" == "ide" ]
 then
 	echo "######################################################################"

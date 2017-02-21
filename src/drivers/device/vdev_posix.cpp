@@ -168,6 +168,11 @@ extern "C" {
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
 			ret = dev->close(filemap[fd]);
+
+			if (filemap[fd] != nullptr) {
+				delete filemap[fd];
+			}
+
 			filemap[fd] = nullptr;
 			pthread_mutex_unlock(&filemutex);
 			PX4_DEBUG("px4_close fd = %d", fd);

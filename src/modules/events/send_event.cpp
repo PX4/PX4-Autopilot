@@ -124,17 +124,17 @@ void SendEvent::process_commands()
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
-		if ((int)(cmd.param1) == 3) { //TODO: this (and the others) needs to be specified in mavlink...
+		if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			gyro = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param5) == 3) {
+		if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			accel = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param7) == 3) {
+		if ((int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			baro = true;
 			got_temperature_calibration_command = true;
 		}
@@ -275,13 +275,13 @@ int send_event_main(int argc, char *argv[])
 		cmd.target_component = -1;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
-		cmd.param1 = (gyro_calib || calib_all) ? 2 : NAN;
+		cmd.param1 = (gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 		cmd.param2 = NAN;
 		cmd.param3 = NAN;
 		cmd.param4 = NAN;
-		cmd.param5 = (accel_calib || calib_all) ? 2 : NAN;
+		cmd.param5 = (accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 		cmd.param6 = NAN;
-		cmd.param7 = (baro_calib || calib_all) ? 2 : NAN;
+		cmd.param7 = (baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);

@@ -3321,7 +3321,9 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
-		 (_last_sp_man.mode_slot == sp_man.mode_slot)))) {
+		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
+		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
+		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
 
 		// update these fields for the geofence system
 
@@ -3519,31 +3521,65 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		break;
 
 	case manual_control_setpoint_s::SWITCH_POS_OFF:		// MANUAL
-		if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-
-			/* manual mode is stabilized already for multirotors, so switch to acro
-			 * for any non-manual mode
+		if (sp_man.stab_switch == manual_control_setpoint_s::SWITCH_POS_NONE &&
+			sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_NONE) {
+			/*
+			 * Legacy mode:
+			 * Acro switch being used as stabilized switch in FW.
 			 */
-			// XXX: put ACRO and STAB on separate switches
-			if (status.is_rotary_wing && !status.is_vtol) {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
-			} else if (!status.is_rotary_wing) {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+			if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* manual mode is stabilized already for multirotors, so switch to acro
+				 * for any non-manual mode
+				 */
+				if (status.is_rotary_wing && !status.is_vtol) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
+
+				} else if (!status.is_rotary_wing) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+
+				} else {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+				}
+
+			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* Similar to acro transitions for multirotors.  FW aircraft don't need a
+				 * rattitude mode.*/
+				if (status.is_rotary_wing) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags, &internal_state);
+
+				} else {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+				}
+
 			} else {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
 			}
 
-		}
-		else if(sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
-			/* Similar to acro transitions for multirotors.  FW aircraft don't need a
-			 * rattitude mode.*/
-			if (status.is_rotary_wing) {
+		} else {
+			/* New mode:
+			 * - Acro is Acro
+			 * - Manual is not default anymore when the manaul switch is assigned
+			 */
+			if (sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.stab_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_NONE) {
+				// default to MANUAL when no manual switch is set
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+
 			} else {
+				// default to STAB when the manual switch is assigned (but off)
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 			}
-		}else {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
 		}
 
 		// TRANSITION_DENIED is not possible here
@@ -3658,7 +3694,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -4037,7 +4073,9 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_gyro_calibration(&mavlink_log_pub);
 
-					} else if ((int)(cmd.param1) == 3 || (int)(cmd.param5) == 3 || (int)(cmd.param7) == 3) {
+					} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							(int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							(int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 						/* temperature calibration: handled in events module */
 						break;
 

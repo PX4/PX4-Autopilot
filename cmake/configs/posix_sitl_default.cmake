@@ -33,6 +33,7 @@ set(config_module_list
 	systemcmds/ver
 	systemcmds/top
 	systemcmds/motor_ramp
+	systemcmds/pwm
 
 	modules/attitude_estimator_q
 	modules/commander

@@ -70,6 +70,8 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tiltrotor.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles_tiltrotor.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_tiltrotor.diff_thrust = param_find("VT_FW_DIFTHR_EN");
+	_params_handles_tiltrotor.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 }
 
 Tiltrotor::~Tiltrotor()
@@ -134,6 +136,11 @@ Tiltrotor::parameters_update()
 	/* airspeed mode */
 	param_get(_params_handles_tiltrotor.airspeed_mode, &l);
 	_params_tiltrotor.airspeed_mode = math::constrain(l, 0, 2);
+
+	param_get(_params_handles_tiltrotor.diff_thrust, &_params_tiltrotor.diff_thrust);
+
+	param_get(_params_handles_tiltrotor.diff_thrust_scale, &v);
+	_params_tiltrotor.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 }
 
 int Tiltrotor::get_motor_off_channels(int channels)
@@ -424,6 +431,12 @@ void Tiltrotor::fill_actuator_outputs()
 	if (_vtol_schedule.flight_mode == FW_MODE) {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+
+		/* allow differential thrust if enabled */
+		if (_params_tiltrotor.diff_thrust == 1) {
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
+				_actuators_fw_in->control[actuator_controls_s::INDEX_YAW] * _params_tiltrotor.diff_thrust_scale;
+		}
 
 	} else {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =

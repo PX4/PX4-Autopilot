@@ -25,7 +25,8 @@
 			[
 				".settings",
 				"nuttx/arch/arm/src/board",
-				"nuttx/arch/arm/src/chip"
+				"nuttx/arch/arm/src/chip",
+				"build_*"
 			]
 		}
 	],
