@@ -2522,8 +2522,7 @@ int commander_thread_main(int argc, char *argv[])
 		// abort landing or auto or loiter if sticks are moved significantly
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
-			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL) {
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
 				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
