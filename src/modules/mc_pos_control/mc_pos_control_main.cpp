@@ -196,6 +196,7 @@ private:
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
 		param_t hold_xy_dz;
+		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
@@ -223,6 +224,7 @@ private:
 		float global_yaw_max;
 		float mc_att_yaw_p;
 		float hold_xy_dz;
+		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
@@ -516,6 +518,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
+	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
@@ -626,6 +629,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.hold_xy_dz, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.hold_xy_dz = v;
+		param_get(_params_handles.hold_z_dz, &v);
+		v = math::constrain(v, 0.0f, 1.0f);
+		_params.hold_z_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -965,26 +971,69 @@ MulticopterPositionControl::control_manual(float dt)
 	 * hold is activated for the corresponding axis
 	 */
 
-	/* vertical axis */
-	bool do_alt_hold = _control_mode.flag_control_altitude_enabled &&
-			   fabsf(req_vel_sp_z) < FLT_EPSILON &&
-			   (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
 
-	bool smooth_alt_transition = do_alt_hold && !_alt_hold_engaged;
+	/* check vertical hold engaged flag */
+	if (_alt_hold_engaged) {
 
+		/* only switch back to velocity control if user moves stick */
+		_alt_hold_engaged = _control_mode.flag_control_altitude_enabled && (fabsf(req_vel_sp_z) < _params.hold_z_dz);
 
+	} else {
 
-	/* horizontal axes */
-	float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-	bool do_pos_hold = _control_mode.flag_control_position_enabled &&
-			   (fabsf(req_vel_sp_xy(0)) < _params.hold_xy_dz && fabsf(req_vel_sp_xy(1)) < _params.hold_xy_dz) &&
-			   (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
+		/* check if we switch to alt_hold_engaged */
+		bool smooth_alt_transition = _control_mode.flag_control_altitude_enabled &&
+					     fabsf(req_vel_sp_z) < FLT_EPSILON &&
+					     (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
 
-	bool smooth_pos_transition = do_pos_hold && !_pos_hold_engaged;
+		/* during transition predict setpoint forward */
+		if (smooth_alt_transition) {
 
-	/* update hold flags */
-	_alt_hold_engaged = do_alt_hold;
-	_pos_hold_engaged = do_pos_hold;
+			/* get max acceleration */
+			float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
+
+			/* time to travel from current velocity to zero velocity */
+			float delta_t = -_vel(2) / max_acc_z;
+
+			/* set desired position setpoint assuming max acceleraiton */
+			_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
+
+			_alt_hold_engaged = true;
+		}
+
+	}
+
+	/* check horizontal hold engaged flag */
+	if (_pos_hold_engaged) {
+
+		/* only switch back to velocity control if user moves stick */
+		_pos_hold_engaged = _control_mode.flag_control_position_enabled && (fabsf(req_vel_sp_xy(0)) < _params.hold_xy_dz)
+				    && (fabsf(req_vel_sp_xy(1)) < _params.hold_xy_dz);
+
+	} else {
+
+		/* check if we switch to pos_hold_engaged */
+		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+		bool smooth_pos_transition = _control_mode.flag_control_position_enabled &&
+					     (fabsf(req_vel_sp_xy(0)) < _params.hold_xy_dz && fabsf(req_vel_sp_xy(1)) < _params.hold_xy_dz) &&
+					     (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
+
+		/* during transition predict setpoint forward */
+		if (smooth_pos_transition) {
+			/* time to travel from current velocity to zero velocity */
+			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _params.acc_hor_max;
+
+			/* p pos_sp in xy from max acceleration and current velocity */
+			math::Vector<2> pos(_pos(0), _pos(1));
+			math::Vector<2> vel(_vel(0), _vel(1));
+			math::Vector<2> pos_sp = pos + vel * delta_t -  vel.normalized() * 0.5f * _params.acc_hor_max * delta_t *delta_t;
+			_pos_sp(0) = pos_sp(0);
+			_pos_sp(1) = pos_sp(1);
+
+			_pos_hold_engaged = true;
+		}
+
+	}
+
 
 	/* set requested velocity setpoitns */
 	if (!_alt_hold_engaged) {
@@ -999,30 +1048,6 @@ MulticopterPositionControl::control_manual(float dt)
 		_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
 		_vel_sp(0) = req_vel_sp_scaled(0);
 		_vel_sp(1) = req_vel_sp_scaled(1);
-	}
-
-	/* reset position setpoints when in smooth transition for position*/
-	if (smooth_pos_transition) {
-		/* time to travel from current velocity to zero velocity */
-		float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _params.acc_hor_max;
-
-		/* p pos_sp in xy from max acceleration and current velocity */
-		math::Vector<2> pos(_pos(0), _pos(1));
-		math::Vector<2> vel(_vel(0), _vel(1));
-		math::Vector<2> pos_sp = pos + vel * delta_t -  vel.normalized() * 0.5f * _params.acc_hor_max * delta_t *delta_t;
-		_pos_sp(0) = pos_sp(0);
-		_pos_sp(1) = pos_sp(1);
-	}
-
-	if (smooth_alt_transition) {
-		/* get max acceleration */
-		float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
-
-		/* time to travel from current velocity to zero velocity */
-		float delta_t = -_vel(2) / max_acc_z;
-
-		/* set desired position setpoint assuming max acceleraiton */
-		_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
 	}
 
 	if (_vehicle_land_detected.landed) {
