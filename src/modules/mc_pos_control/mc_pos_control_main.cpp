@@ -928,8 +928,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp_xy(0) = math::expo(_manual.x, _params.xy_vel_man_expo);
-		req_vel_sp_xy(1) = math::expo(_manual.y, _params.xy_vel_man_expo);
+		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_xy_dz);
+		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_xy_dz);
 
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
@@ -962,7 +962,7 @@ MulticopterPositionControl::control_manual(float dt)
 	/* horizontal axes */
 	float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
 	bool do_pos_hold = _control_mode.flag_control_position_enabled &&
-			   (fabsf(req_vel_sp_xy(0)) < _params.hold_xy_dz && fabsf(req_vel_sp_xy(1)) < _params.hold_xy_dz) &&
+			   (fabsf(req_vel_sp_xy(0)) < FLT_EPSILON && fabsf(req_vel_sp_xy(1)) < FLT_EPSILON) &&
 			   (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
 
 	bool smooth_pos_transition = do_pos_hold && !_pos_hold_engaged;
