@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  *
  * Sets the threshold when the battery will be reported as critically low.
  * This has to be lower than the low threshold. This threshold commonly
- * will trigger RTL or landing.
+ * will trigger RTL.
  *
  * @group Battery Calibration
  * @unit norm
@@ -100,6 +100,22 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
+
+/**
+ * Emergency threshold
+ *
+ * Sets the threshold when the battery will be reported as dangerously low.
+ * This has to be lower than the critical threshold. This threshold commonly
+ * will trigger landing.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.03
+ * @max 0.07
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
 
 /**
  * Voltage drop per cell on full throttle
