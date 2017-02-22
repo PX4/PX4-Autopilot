@@ -218,11 +218,10 @@ mixer_main(int argc, char *argv[])
 			warnx("failed to get connection or connection invalid");
 			return 1;
 		}
-	}
 
 #endif //defined(MIXER_CONFIGURATION)
 
-	else {
+	} else {
 		usage("Unknown command");
 		return 1;
 	}
