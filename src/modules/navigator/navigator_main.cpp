@@ -342,6 +342,9 @@ Navigator::task_main()
 
 	bool global_pos_available_once = false;
 
+	/* rate-limit global pos subscription to 20 Hz / 50 ms */
+	orb_set_interval(_global_pos_sub, 49);
+
 	while (!_task_should_exit) {
 
 		/* wait for up to 200ms for data */
