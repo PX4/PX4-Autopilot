@@ -158,7 +158,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if user commands throttle and if so, report no ground contact based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < 0.05f);
+	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < 0.15f);
 	const bool manual_control_idle_or_auto = manual_control_idle || !_control_mode.flag_control_manual_enabled;
 
 	// Widen acceptance thresholds for landed state right after arming
