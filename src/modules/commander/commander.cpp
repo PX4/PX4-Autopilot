@@ -2126,13 +2126,20 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
 		}
 
-		// record pass/fail of position and velocity consistency checks
+		// Record pass/fail of position and velocity consistency checks
+		// Both position and velocity have to pass to record a pass
+		// Both position and velocity have to fail to record a fail
 		bool gps_is_inconsistent = (estimator_status.control_mode_flags & (1<<2)) // the EKF is using GPS
 				&& (estimator_status.pos_test_ratio > 1.0f) // position innovations are excessive
 				&& (estimator_status.vel_test_ratio > 1.0f); // velocity innovations are excessive
+
+		bool gps_is_consistent = (estimator_status.control_mode_flags & (1<<2)) // the EKF is using GPS
+				&& (estimator_status.pos_test_ratio <= 1.0f) // position innovations are excessive
+				&& (estimator_status.vel_test_ratio <= 1.0f); // velocity innovations are excessive
+
 		if (gps_is_inconsistent && run_quality_checks) {
 			last_velpos_fail_time = hrt_absolute_time();
-		} else {
+		} else if (gps_is_consistent || !run_quality_checks) {
 			last_velpos_pass_time = hrt_absolute_time();
 		}
 
