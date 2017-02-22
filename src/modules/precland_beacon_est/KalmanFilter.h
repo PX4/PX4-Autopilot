@@ -89,36 +89,12 @@ public:
 	void init(double initial0, double initial1, double covInit00, double covInit11);
 
 	/**
-	 * Predict the state with a constant velocity model
-	 * @param dt            Time delta in seconds since last state change
-	 * @param process_noise Process noise variance
-	 */
-	void predictConst(double dt, matrix::Matrix<float, 2, 2> process_noise);
-
-	/**
-	 * Predict the state with a constant velocity model
-	 * @param dt              Time delta in seconds since last state change
-	 * @param process_noise00 Process noise variance for first state
-	 * @param process_noise11 Process noise variance for second state
-	 */
-	void predictConst(double dt, double process_noise00, double process_noise11);
-
-	/**
 	 * Predict the state with an external acceleration estimate
 	 * @param dt            Time delta in seconds since last state change
 	 * @param acc           Acceleration estimate
-	 * @param process_noise Process noise
+	 * @param acc_unc       Variance of acceleration estimate
 	 */
-	void predict(double dt, double acc, matrix::Matrix<float, 2, 2> process_noise);
-
-	/**
-	 * Predict the state with an external acceleration estimate
-	 * @param dt              Time delta in seconds since last state change
-	 * @param acc             Acceleration estimate
-	 * @param process_noise00 Process noise variance for first state
-	 * @param process_noise11 Process noise variance for second state
-	 */
-	void predict(double dt, double acc, double process_noise00, double process_noise11);
+	void predict(double dt, double acc, double acc_unc);
 
 	/**
 	 * Update the state estimate with a measurement

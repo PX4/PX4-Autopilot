@@ -121,19 +121,24 @@ private:
 	int _attitudeSub;
 	int _irlockReportSub;
 
-	struct vehicle_local_position_s		_vehicleLocalPosition;
+	struct vehicle_local_position_s		_vehicleLocalPosition,
+			      _vehicleLocalPosition_last; // store two most recent to compute acceleration
 	struct vehicle_attitude_s			_vehicleAttitude;
 	struct irlock_report_s				_irlockReport;
 
 	// keep track of which topics we have received
-	bool _new_vehicleLocalPosition;
-	bool _new_vehicleAttitude;
+	bool _vehicleLocalPosition_valid;
+	bool _vehicleLocalPosition_last_valid;
+	bool _vehicleAttitude_valid;
 	bool _new_irlockReport;
+	bool _estimator_initialized;
 
 	matrix::Dcm<float> _R_att;
+	matrix::Vector<float, 2> _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
-	hrt_abstime _last_update;
+	hrt_abstime _last_predict; // timestamp of last filter prediction
+	hrt_abstime _last_update; // timestamp of last filter update (used to check timeout)
 
 	static void _cycle_trampoline(void *arg);
 

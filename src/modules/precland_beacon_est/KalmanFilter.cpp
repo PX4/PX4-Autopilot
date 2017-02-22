@@ -65,30 +65,9 @@ void KalmanFilter::init(double initial0, double initial1, double covInit00, doub
 	init(initial, covInit);
 }
 
-void KalmanFilter::predictConst(double dt, matrix::Matrix<float, 2, 2> process_noise)
+void KalmanFilter::predict(double dt, double acc, double acc_unc)
 {
-	_x(0) += _x(1) * dt;
-
-	matrix::Matrix<float, 2, 2> A; // propagation matrix
-	A(0, 0) = 1;
-	A(1, 1) = 1;
-	A(0, 1) = dt;
-
-	_covariance = A * _covariance * A.transpose() + process_noise;
-}
-
-void KalmanFilter::predictConst(double dt, double process_noise00, double process_noise11)
-{
-	matrix::Matrix<float, 2, 2> process_noise;
-	process_noise(0, 0) = process_noise00;
-	process_noise(1, 1) = process_noise11;
-
-	predictConst(dt, process_noise);
-}
-
-void KalmanFilter::predict(double dt, double acc, matrix::Matrix<float, 2, 2> process_noise)
-{
-	_x(0) += _x(1) * dt;
+	_x(0) += _x(1) * dt + dt * dt / 2 * acc;
 	_x(1) += acc * dt;
 
 	matrix::Matrix<float, 2, 2> A; // propagation matrix
@@ -96,16 +75,13 @@ void KalmanFilter::predict(double dt, double acc, matrix::Matrix<float, 2, 2> pr
 	A(1, 1) = 1;
 	A(0, 1) = dt;
 
+	matrix::Matrix<float, 2, 1> G; // noise model
+	G(0, 0) = dt * dt / 2;
+	G(1, 0) = dt;
+
+	matrix::Matrix<float, 2, 2> process_noise = G * G.transpose() * acc_unc;
+
 	_covariance = A * _covariance * A.transpose() + process_noise;
-}
-
-void KalmanFilter::predict(double dt, double acc, double process_noise00, double process_noise11)
-{
-	matrix::Matrix<float, 2, 2> process_noise;
-	process_noise(0, 0) = process_noise00;
-	process_noise(1, 1) = process_noise11;
-
-	predict(dt, acc, process_noise);
 }
 
 void KalmanFilter::update(double meas, double measUnc)

@@ -51,9 +51,11 @@ namespace precland_beacon_est
 
 PreclandBeaconEst::PreclandBeaconEst() :
 	_preclandBeaconRelposPub(nullptr),
-	_new_vehicleLocalPosition(false),
-	_new_vehicleAttitude(false),
+	_vehicleLocalPosition_valid(false),
+	_vehicleAttitude_valid(false),
 	_new_irlockReport(false),
+	_estimator_initialized(false),
+	_last_predict(0),
 	_last_update(0),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
@@ -93,9 +95,6 @@ PreclandBeaconEst::_cycle_trampoline(void *arg)
 void PreclandBeaconEst::_cycle()
 {
 	if (!_taskIsRunning) {
-		// Advertise the first land detected uORB.
-		// _landDetected.timestamp = hrt_absolute_time();
-
 		// Initialize uORB topics.
 		_initialize_topics();
 
@@ -109,14 +108,46 @@ void PreclandBeaconEst::_cycle()
 
 	_update_topics();
 
-	if (_new_irlockReport && _new_vehicleAttitude && _new_vehicleLocalPosition) {
+	if (_estimator_initialized) {
+		/* predict */
+		// only run prediction if filter has been initialized
+		// use the best estimate of the vehicle acceleration to predict the beacon position
+		// TODO this is only valid if the beacon is stationary
 
-		matrix::Vector<float, 3> sensor_ray; // ray pointing towards beacon in sensor frame
-		sensor_ray(0) = _irlockReport.pos_x;
-		sensor_ray(1) = _irlockReport.pos_y;
+		if (hrt_absolute_time() - _last_update > PRECLAND_BEACON_EST_TIMEOUT_US) {
+			PX4_WARN("Timeout");
+			_estimator_initialized = false;
+
+		} else if (_vehicleLocalPosition_valid
+			   && _vehicleLocalPosition_last_valid
+			   && _vehicleLocalPosition.v_xy_valid
+			   && _vehicleLocalPosition_last.v_xy_valid) {
+			double dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+			double dt_vehicleLocalPosition = (_vehicleLocalPosition.timestamp - _vehicleLocalPosition_last.timestamp) / SEC2USEC;
+			double acc_x = (_vehicleLocalPosition.vx - _vehicleLocalPosition_last.vx) / dt_vehicleLocalPosition;
+			double acc_y = (_vehicleLocalPosition.vy - _vehicleLocalPosition_last.vy) / dt_vehicleLocalPosition;
+			double acc_unc = 10; // Variance of acceleration [(m/s^2)^2] TODO what should this be?
+			_kalman_filter_x.predict(dt, -acc_x, acc_unc);
+			_kalman_filter_y.predict(dt, -acc_y, acc_unc);
+
+			_last_predict = hrt_absolute_time();
+		}
+	}
+
+	if (_new_irlockReport
+	    && _vehicleAttitude_valid
+	    && _vehicleLocalPosition_valid
+	    && _vehicleLocalPosition.xy_valid
+	    && _vehicleLocalPosition.v_xy_valid
+	    && _vehicleLocalPosition.dist_bottom_valid) {
+
+		// TODO account for sensor orientation as set by parameter
+		// default orientation has camera x pointing in body y, camera y in body -x
+
+		matrix::Vector<float, 3> sensor_ray; // ray pointing towards beacon in body frame
+		sensor_ray(0) = -_irlockReport.pos_y;//_irlockReport.pos_x; // forward
+		sensor_ray(1) = _irlockReport.pos_x;//_irlockReport.pos_y; // right
 		sensor_ray(2) = 1.0f;
-
-		// TODO account for sensor orientation
 
 		// rotate the unit ray into the navigation frame, assume sensor frame = body frame
 		matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
@@ -124,66 +155,68 @@ void PreclandBeaconEst::_cycle()
 		sensor_ray = _R_att * sensor_ray;
 
 		if (std::abs(sensor_ray(2)) < 1e-6) {
-			PX4_WARN("z component unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1), (double)sensor_ray(2));
-		}
-
-		// scale the ray s.t. the z component has length of HAGL
-		// TODO check for dist_bottom_valid
-		matrix::Vector<float, 3> rel_pos;
-		rel_pos(0) = sensor_ray(0) / sensor_ray(2);
-		rel_pos(1) = sensor_ray(1) / sensor_ray(2);
-		rel_pos(2) = _vehicleLocalPosition.dist_bottom;
-
-		hrt_abstime dt = hrt_absolute_time() - _last_update;
-
-		if (dt > PRECLAND_BEACON_EST_TIMEOUT_US) {
-			// have not gotten a measurement for too long, reset filter
-			PX4_WARN("Precland beacon est init");
-			// TODO what whould these be?
-			double covInit00 = 1;
-			double covInit11 = 10;
-			_kalman_filter_x.init(rel_pos(0), 0, covInit00, covInit11);
-			_kalman_filter_y.init(rel_pos(1), 0, covInit00, covInit11);
+			PX4_WARN("z component of measurement unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1),
+				 (double)sensor_ray(2));
 
 		} else {
-			// predict
-			double process_noise00 = 1 * dt / SEC2USEC; // Process noise for position TODO what should this be?
-			double process_noise11 = 1 * dt / SEC2USEC; // Process noise for velocity TODO what should this be?
-			_kalman_filter_x.predict(dt / SEC2USEC, process_noise00, process_noise11);
-			_kalman_filter_y.predict(dt / SEC2USEC, process_noise00, process_noise11);
+			// scale the ray s.t. the z component has length of HAGL
+			_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * _vehicleLocalPosition.dist_bottom;
+			_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * _vehicleLocalPosition.dist_bottom;
 
-			// update
-			double measUnc = 0.1; // TODO what should this be?
-			_kalman_filter_x.update(rel_pos(0), measUnc);
-			_kalman_filter_y.update(rel_pos(1), measUnc);
+			if (!_estimator_initialized) {
+				// too long since last measurement, reset filter
+				PX4_WARN("Init");
+				// TODO what whould these be?
+				double covInit00 = 0.01; // initial variance of position [m^2]
+				double covInit11 = 1; // initial variance of velocity [(m/2)^2]
+				_kalman_filter_x.init(_rel_pos(0), 0, covInit00, covInit11);
+				_kalman_filter_y.init(_rel_pos(1), 0, covInit00, covInit11);
 
-			_preclandBeaconRelpos.timestamp = hrt_absolute_time();
-			double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
-			_kalman_filter_x.getState(x, xvel);
-			_kalman_filter_y.getState(y, yvel);
-			_kalman_filter_x.getCovariance(covx, covx_v);
-			_kalman_filter_y.getCovariance(covy, covy_v);
-
-			_preclandBeaconRelpos.x = x;
-			_preclandBeaconRelpos.y = y;
-			_preclandBeaconRelpos.x_unfilt = rel_pos(0);
-			_preclandBeaconRelpos.y_unfilt = rel_pos(1);
-			_preclandBeaconRelpos.vx = xvel;
-			_preclandBeaconRelpos.vy = yvel;
-			_preclandBeaconRelpos.covx = covx;
-			_preclandBeaconRelpos.covy = covy;
-
-			if (_preclandBeaconRelposPub == nullptr) {
-				_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
+				_estimator_initialized = true;
+				_last_predict = hrt_absolute_time();
 
 			} else {
-				orb_publish(ORB_ID(precland_beacon_relpos), _preclandBeaconRelposPub, &_preclandBeaconRelpos);
+				// update
+				double measUnc = 0.01; // measurement variance [m^2] TODO what should this be?
+				_kalman_filter_x.update(_rel_pos(0), measUnc);
+				_kalman_filter_y.update(_rel_pos(1), measUnc);
 			}
+
+			_last_update = hrt_absolute_time();
 		}
 
 		_new_irlockReport = false;
 
-		_last_update = hrt_absolute_time();
+	}
+
+	if (_estimator_initialized) {
+		// always publish, even if only predicted, unless timeout was exceeded
+		_preclandBeaconRelpos.timestamp = hrt_absolute_time();
+		double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+		_kalman_filter_x.getState(x, xvel);
+		_kalman_filter_x.getCovariance(covx, covx_v);
+
+		_kalman_filter_y.getState(y, yvel);
+		_kalman_filter_y.getCovariance(covy, covy_v);
+
+		_preclandBeaconRelpos.x = x;
+		_preclandBeaconRelpos.vx = xvel;
+		_preclandBeaconRelpos.x_unfilt = _rel_pos(0);
+		_preclandBeaconRelpos.covx = covx;
+		_preclandBeaconRelpos.x_lpos = x + _vehicleLocalPosition.x;
+
+		_preclandBeaconRelpos.y = y;
+		_preclandBeaconRelpos.vy = yvel;
+		_preclandBeaconRelpos.y_unfilt = _rel_pos(1);
+		_preclandBeaconRelpos.covy = covy;
+		_preclandBeaconRelpos.y_lpos = y + _vehicleLocalPosition.y;
+
+		if (_preclandBeaconRelposPub == nullptr) {
+			_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
+
+		} else {
+			orb_publish(ORB_ID(precland_beacon_relpos), _preclandBeaconRelposPub, &_preclandBeaconRelpos);
+		}
 	}
 
 	if (!_taskShouldExit) {
@@ -223,9 +256,15 @@ void PreclandBeaconEst::_initialize_topics()
 
 void PreclandBeaconEst::_update_topics()
 {
-	_new_vehicleLocalPosition = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
-						&_vehicleLocalPosition);
-	_new_vehicleAttitude = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
+	if (_vehicleLocalPosition_valid) {
+		_vehicleLocalPosition_last = _vehicleLocalPosition;
+		_vehicleLocalPosition_last_valid = true;
+	}
+
+	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
+				      &_vehicleLocalPosition);
+	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
+
 	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
 }
 
