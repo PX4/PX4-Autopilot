@@ -895,3 +895,14 @@ PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
+
+/**
+ * Range sensor pitch offset.
+ *
+ * @group EKF2
+ * @min -0.75
+ * @max 0.75
+ * @unit rad
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
