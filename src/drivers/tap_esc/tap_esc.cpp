@@ -1096,7 +1096,7 @@ void start()
 	_task_handle = px4_task_spawn_cmd("tap_esc_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
-					  1000,
+					  1100,
 					  (px4_main_t)&task_main_trampoline,
 					  nullptr);
 
