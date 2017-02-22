@@ -1061,6 +1061,19 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	case MIXERIOCGETIOCONNECTION: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_connection_s *conn = (mixer_connection_s *)arg;
+
+			conn->connection = _mixers->get_connection(conn->mix_index, conn->mix_sub_index, conn->connection_type,
+					   conn->connection_index, &conn->connection_group);
+			ret = 0;
+			break;
+		}
+
 #endif //defined(MIXER_CONFIGURATION)
 
 	default:

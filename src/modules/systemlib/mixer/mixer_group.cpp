@@ -360,6 +360,28 @@ MixerGroup::get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t s
 	return 0.0;
 }
 
+
+int16_t
+MixerGroup::get_connection(uint16_t mix_index, uint16_t submix_index, bool input, uint16_t conn_index,
+			   uint16_t *conn_group)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->get_connection(submix_index, input, conn_index, conn_group);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	// Out of mixer range
+	*conn_group = 0;
+	return -1;
+}
+
 #endif //MIXER_REMOTE
 
 int
@@ -379,5 +401,6 @@ MixerGroup::set_mixer_param(uint16_t mix_index, uint16_t param_index, float valu
 
 	return -1;
 }
+
 
 #endif //defined(MIXER_CONFIGURATION)

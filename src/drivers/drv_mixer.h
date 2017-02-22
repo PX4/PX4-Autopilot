@@ -168,6 +168,21 @@ struct mixer_param_s {
  */
 #define MIXERIOCGETCONFIG               _MIXERIOC(15)
 
+/**
+ * Get detail of a single mixer connection at index (mixer_connection_s*)arg
+ * Set mix_index, mix_sub_index, connection_type, connection_index and connection_group
+ * return value in connection. -1 if failed or out of range
+ */
+struct mixer_connection_s {
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        connection_type;
+	uint16_t        connection_index;
+	uint16_t        connection_group;
+	uint16_t        connection;
+};
+#define MIXERIOCGETIOCONNECTION         _MIXERIOC(16)
+
 
 
 #endif /* _DRV_ACCEL_H */

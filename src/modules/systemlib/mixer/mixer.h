@@ -229,7 +229,8 @@ public:
 	 * Get list of Mixer parameters
 	 *
 	 * @return              A type enumeration for this mixer
-	 */
+	* @param submix_index  The index of the submixer. 0 if main mixer.
+	*/
 	virtual MIXER_TYPES     get_mixer_type(uint16_t submix_index) {return MIXER_TYPES_NONE;}
 
 	/**
@@ -242,8 +243,9 @@ public:
 	/**
 	 * gets a mixer parameter
 	 *
-	 * @param index         The index of the parameter
-	 * @return              The float value of the parameter
+	* @param index         The index of the parameter
+	* @param submix_index  The index of the submixer. 0 if main mixer.
+	* @return              The float value of the parameter
 	 */
 	virtual float       	get_parameter(uint16_t index, uint16_t submix_index) {return 0.0;}
 
@@ -251,10 +253,23 @@ public:
 	 * sets a mixer parameter
 	 *
 	 * @param index         The index of the parameter
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
 	 * @param value         The value of the parameter
 	 * @return              0 if set. -1 for error
 	 */
 	virtual int16_t         set_parameter(uint16_t index, float value, uint16_t submix_index) {return -1;}
+
+	/**
+	 * gets a mixer connection
+	 *
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
+	 * @param conn_input    Get input or output connection. false=output,true=input
+	 * @param conn_index    Index into the mixer connections
+	 * @param conn_group    Return the data group for the connection
+	 * @return              Mixer connection. -1 for error
+	 */
+	virtual int16_t         get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+					       uint16_t *conn_group) {return -1;}
 #endif //defined(MIXER_CONFIGURATION)
 
 protected:
@@ -487,6 +502,18 @@ public:
 	 */
 	int set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index);
 
+	/**
+	 * gets a mixer connection
+	 *
+	 * @param mix_index     The index of the mixer
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
+	 * @param conn_input    Get input or output connection. false=output,true=input
+	 * @param conn_index    Index into the mixer connections
+	 * @param conn_group    Return the data group for the connection
+	 * @return              Mixer connection. -1 for error
+	 */
+	int16_t         get_connection(uint16_t mix_index, uint16_t submix_index, bool input, uint16_t conn_index,
+				       uint16_t *conn_group);
 #endif //defined(MIXER_CONFIGURATION)
 
 private:
@@ -778,6 +805,8 @@ public:
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index = 0);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index = 0);
+	int16_t                 get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+					       uint16_t *conn_group);
 #endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index = 0);
 #endif //defined(MIXER_CONFIGURATION)
