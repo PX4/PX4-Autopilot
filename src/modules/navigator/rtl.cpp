@@ -136,9 +136,6 @@ RTL::set_rtl_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* make sure we have the latest params */
-	updateParams();
-
 	if (!_rtl_start_lock) {
 		set_previous_pos_setpoint();
 	}

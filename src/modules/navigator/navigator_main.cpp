@@ -278,6 +278,11 @@ Navigator::params_update()
 {
 	parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
+	updateParams();
+
+	if (_navigation_mode) {
+		_navigation_mode->updateParams();
+	}
 }
 
 void
@@ -410,7 +415,6 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
-			updateParams();
 		}
 
 		/* vehicle control mode updated */
