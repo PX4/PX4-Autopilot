@@ -510,7 +510,7 @@ SimpleMixer::get_parameter(uint16_t index, uint16_t submix_index)
 }
 
 int16_t
-SimpleMixer::get_connection(uint16_t submix_index, bool input, uint16_t conn_index, uint16_t *conn_group)
+SimpleMixer::get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index, uint16_t *conn_group)
 {
 	*conn_group = 0;
 	PX4_INFO("multirotor mixer get connection submix:%i", submix_index);
@@ -519,7 +519,7 @@ SimpleMixer::get_connection(uint16_t submix_index, bool input, uint16_t conn_ind
 	if (submix_index == 0) { return -1; }
 
 	//Submixer case
-	if (input && (submix_index <= _pinfo->control_count)) {
+	if ((conn_type == 1) && (submix_index <= _pinfo->control_count)) {
 		*conn_group = _pinfo->controls[submix_index - 1].control_group;
 		return _pinfo->controls[submix_index - 1].control_index;
 	}

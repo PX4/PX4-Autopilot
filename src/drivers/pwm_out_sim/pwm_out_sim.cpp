@@ -583,6 +583,8 @@ PWMSim::task_main()
 				data.mixer_index = req.mixer_index;
 				data.mixer_sub_index = req.mixer_sub_index;
 				data.parameter_index = req.parameter_index;
+				data.connection_type = req.connection_type;
+				data.connection_group = 0;
 				data.mixer_data_type = req.mixer_data_type;
 
 				switch (req.mixer_data_type) {
@@ -615,8 +617,22 @@ PWMSim::task_main()
 						//Parameter
 						data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
 								  (unsigned)data.mixer_sub_index);
-						data.int_value = 9;
+						data.int_value = 0;
 						data.param_type = 9;    //FLOAT32
+						break;
+					}
+
+				case 4: {
+						//Connection
+						uint16_t conn_group;
+						data.int_value = _mixers->get_connection((uint16_t) data.mixer_index,
+								 (uint16_t) data.mixer_sub_index,
+								 (uint16_t) data.connection_type,
+								 (uint16_t) data.parameter_index,
+								 &conn_group);
+						data.connection_group = conn_group;
+						data.real_value = 0.0;
+						data.param_type = 0;    //FLOAT32
 						break;
 					}
 

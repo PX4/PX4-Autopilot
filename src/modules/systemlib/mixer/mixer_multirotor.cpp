@@ -707,14 +707,13 @@ MultirotorMixer::get_parameter(uint16_t index, uint16_t submix_index)
 }
 
 int16_t
-MultirotorMixer::get_connection(uint16_t submix_index, bool input, uint16_t conn_index, uint16_t *conn_group)
+MultirotorMixer::get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index, uint16_t *conn_group)
 {
 	*conn_group = 0;
-	PX4_INFO("multirotor mixer get connection submix:%i", submix_index);
 
 	// Case for the main mixer
 	if (submix_index == 0) {
-		if (input) {
+		if (conn_type == 1) {
 			if (conn_index < 4) {
 				return conn_index;
 
@@ -725,11 +724,11 @@ MultirotorMixer::get_connection(uint16_t submix_index, bool input, uint16_t conn
 		}
 	}
 
-	//case for rotor submixers
-	if (input) { return -1; }
-
-	if (conn_index == 0) {
-		return submix_index - 1;
+	//case for rotor submixers of output type
+	if (conn_type == 0) {
+		if (conn_index == 0) {
+			return submix_index - 1;
+		}
 	}
 
 	return -1;

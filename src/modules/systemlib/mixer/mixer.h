@@ -268,7 +268,7 @@ public:
 	 * @param conn_group    Return the data group for the connection
 	 * @return              Mixer connection. -1 for error
 	 */
-	virtual int16_t         get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+	virtual int16_t         get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
 					       uint16_t *conn_group) {return -1;}
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -512,7 +512,7 @@ public:
 	 * @param conn_group    Return the data group for the connection
 	 * @return              Mixer connection. -1 for error
 	 */
-	int16_t         get_connection(uint16_t mix_index, uint16_t submix_index, bool input, uint16_t conn_index,
+	int16_t         get_connection(uint16_t mix_index, uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
 				       uint16_t *conn_group);
 #endif //defined(MIXER_CONFIGURATION)
 
@@ -641,7 +641,7 @@ public:
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index);
-	int16_t                 get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+	int16_t                 get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
 					       uint16_t *conn_group);
 #endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
@@ -807,7 +807,7 @@ public:
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index = 0);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index = 0);
-	int16_t                 get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+	int16_t                 get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
 					       uint16_t *conn_group);
 #endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index = 0);
