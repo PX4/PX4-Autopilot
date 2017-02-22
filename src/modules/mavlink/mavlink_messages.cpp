@@ -3137,7 +3137,7 @@ protected:
 
 		mavlink_command_long_t msg = {};
 
-		msg.target_system = mavlink_system.sysid;
+		msg.target_system = 0;
 		msg.target_component = MAV_COMP_ID_ALL;
 		msg.command = MAV_CMD_DO_CONTROL_VIDEO;
 		msg.confirmation = 0;
