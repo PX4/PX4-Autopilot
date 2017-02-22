@@ -509,6 +509,24 @@ SimpleMixer::get_parameter(uint16_t index, uint16_t submix_index)
 	return 0.0;
 }
 
+int16_t
+SimpleMixer::get_connection(uint16_t submix_index, bool input, uint16_t conn_index, uint16_t *conn_group)
+{
+	*conn_group = 0;
+	PX4_INFO("multirotor mixer get connection submix:%i", submix_index);
+
+	// Should never get case for main mixer. Handled by group.
+	if (submix_index == 0) { return -1; }
+
+	//Submixer case
+	if (input && (submix_index <= _pinfo->control_count)) {
+		*conn_group = _pinfo->controls[submix_index - 1].control_group;
+		return _pinfo->controls[submix_index - 1].control_index;
+	}
+
+	return -1;
+}
+
 #endif //MIXER_REMOTE
 
 int16_t

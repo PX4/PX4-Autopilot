@@ -641,6 +641,8 @@ public:
 	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
 	signed                  count_submixers(void);
 	float                   get_parameter(uint16_t index, uint16_t submix_index);
+	int16_t                 get_connection(uint16_t submix_index, bool input, uint16_t conn_index,
+					       uint16_t *conn_group);
 #endif //MIXER_REMOTE
 	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
 #endif //defined(MIXER_CONFIGURATION)

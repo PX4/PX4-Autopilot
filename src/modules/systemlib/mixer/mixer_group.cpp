@@ -367,9 +367,19 @@ MixerGroup::get_connection(uint16_t mix_index, uint16_t submix_index, bool input
 {
 	Mixer	*mixer = _first;
 	uint16_t index = 0;
+	*conn_group = 0;
 
 	while ((mixer != nullptr)) {
 		if (mix_index == index) {
+			// Special case for SimpleMixer since it doesn't know its output connection
+			if (mixer->get_mixer_type(submix_index) == MIXER_TYPES_SIMPLE) {
+				if (input) { return -1; }
+
+				if (conn_index == 0) { return index; }
+
+				return -1;
+			}
+
 			return mixer->get_connection(submix_index, input, conn_index, conn_group);
 		}
 
@@ -378,7 +388,6 @@ MixerGroup::get_connection(uint16_t mix_index, uint16_t submix_index, bool input
 	}
 
 	// Out of mixer range
-	*conn_group = 0;
 	return -1;
 }
 
