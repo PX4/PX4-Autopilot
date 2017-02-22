@@ -1525,16 +1525,21 @@ void MulticopterPositionControl::control_auto(float dt)
 			_do_reset_alt_pos_flag = true;
 		}
 
+		// Handle the landing gear based on the manual landing alt
+		const bool high_enough_for_landing_gear = (_pos(2) < _manual_land_alt.get() * 2.0f);
+
 		// During a mission or in loiter it's safe to retract the landing gear.
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
 		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
-		    !_vehicle_land_detected.landed) {
+		    !_vehicle_land_detected.landed &&
+		    high_enough_for_landing_gear) {
 			_att_sp.landing_gear = 1.0f;
 
 			// During takeoff and landing, we better put it down again.
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
-			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND ||
+			   !high_enough_for_landing_gear) {
 			_att_sp.landing_gear = -1.0f;
 
 		} else {
@@ -2250,6 +2255,7 @@ MulticopterPositionControl::task_main()
 			_reset_int_z = true;
 			_reset_int_xy = true;
 			_reset_yaw_sp = true;
+			_yaw_takeoff = _yaw;
 		}
 
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
