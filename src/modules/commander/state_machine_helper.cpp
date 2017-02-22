@@ -78,6 +78,7 @@ static const char reason_no_gps[] = "no gps";
 static const char reason_no_gps_cmd[] = "no gps cmd";
 static const char reason_no_home[] = "no home";
 static const char reason_no_local_position[] = "no local position";
+static const char reason_no_global_position[] = "no global position";
 static const char reason_no_datalink[] = "no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
@@ -749,18 +750,10 @@ bool set_nav_state(struct vehicle_status_s *status,
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
 
-			} else if (((status->is_rotary_wing && !status_flags->condition_local_position_valid) ||
-				    (!status->is_rotary_wing && !status_flags->condition_global_position_valid))
-				   && is_armed) {
-				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-
-				if (status_flags->condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
-				}
-
+			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, true, !status->is_rotary_wing)) {
+				// nothing to do - everything done in check_invalid_pos_nav_state
+			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, true, status->is_rotary_wing)) {
+				// nothing to do - everything done in check_invalid_pos_nav_state
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			}
@@ -798,6 +791,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
@@ -846,6 +841,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 			/* also go into failsafe if just datalink is lost */
 
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
@@ -883,20 +880,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
-		} else if ((!status_flags->condition_global_position_valid ||
-			    !status_flags->condition_home_position_valid)) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_home);
-
-			if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
-
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		}
@@ -910,18 +895,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (!status_flags->condition_global_position_valid) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
-
-			if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
@@ -936,18 +911,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (!status_flags->condition_local_position_valid) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
-
-			if (status_flags->condition_local_position_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			} else if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
@@ -962,15 +927,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (!status_flags->condition_local_position_valid) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
-
-			if (status_flags->condition_local_altitude_valid) {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-			}
+		} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
@@ -1070,6 +1028,49 @@ void set_rc_loss_nav_state(struct vehicle_status_s *status,
 			   const link_loss_actions_t link_loss_act)
 {
 	set_link_loss_nav_state(status, armed, status_flags, link_loss_act, vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
+}
+
+bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
+			       bool old_failsafe,
+			       orb_advert_t *mavlink_log_pub,
+			       status_flags_s *status_flags,
+			       const bool use_rc, // true if we can fallback to a mode that uses RC inputs
+			       const bool using_global_pos) // true if the current flight mode requires a global position
+{
+	bool fallback_required = false;
+
+	if (using_global_pos && !status_flags->condition_global_position_valid) {
+		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_global_position);
+		fallback_required = true;
+	} else if (!using_global_pos && !status_flags->condition_local_position_valid) {
+		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
+		fallback_required = true;
+	}
+
+	if (fallback_required) {
+		if (use_rc) {
+			// fallback to a mode that gives the operator stick control
+			if (status->is_rotary_wing && status_flags->condition_local_position_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+			} else if (status_flags->condition_local_altitude_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
+			}
+		} else {
+			// go into a descent that does not require stick control
+			if (status_flags->condition_local_position_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			} else  if (status_flags->condition_local_altitude_valid) {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+			}
+		}
+	}
+
+	return fallback_required;
+
 }
 
 void set_data_link_loss_nav_state(struct vehicle_status_s *status,

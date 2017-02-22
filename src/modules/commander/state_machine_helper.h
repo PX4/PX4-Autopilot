@@ -146,6 +146,16 @@ void set_rc_loss_nav_state(struct vehicle_status_s *status,
 			   struct actuator_armed_s *armed,
 			   status_flags_s *status_flags,
 			   const link_loss_actions_t link_loss_act);
+/*
+ * Checks the validty of position data aaainst the requirements of the current navigation
+ * mode and switches mode if position data required is not available.
+ */
+bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
+			       bool old_failsafe,
+			       orb_advert_t *mavlink_log_pub,
+			       status_flags_s *status_flags,
+			       const bool use_rc, // true if a mode using RC control can be used as a fallback
+			       const bool using_global_pos); // true when the current mode requires a global position estimate
 
 void set_data_link_loss_nav_state(struct vehicle_status_s *status,
 				  struct actuator_armed_s *armed,
