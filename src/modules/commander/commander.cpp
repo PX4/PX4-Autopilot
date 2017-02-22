@@ -4108,7 +4108,8 @@ void *commander_low_prio_loop(void *arg)
 						// board offset calibration
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_level_calibration(&mavlink_log_pub);
-					} else if ((int)(cmd.param6) == 1) {
+					} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
+						// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 						/* airspeed calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_airspeed_calibration(&mavlink_log_pub);
