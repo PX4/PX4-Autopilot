@@ -169,3 +169,18 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
+
+/**
+ * Circuit breaker for position quality checks
+ *
+ * Setting this parameter to 201607 will disable the local and global
+ * position quality checks in the commander that use accuracy and
+ * innovation data from the EKF.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 201607
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_POS_CHK, 0);
