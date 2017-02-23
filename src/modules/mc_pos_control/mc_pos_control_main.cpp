@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/home_position.h>
 
 #include <float.h>
 #include <systemlib/mavlink_log.h>
@@ -140,6 +141,7 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int 	_home_pos_sub; 			/**< home position */
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
@@ -157,6 +159,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+	struct home_position_s					_home_pos; 				/**< home position */
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -405,6 +408,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+	_home_pos_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -422,6 +426,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_global_vel_sp{},
+	_home_pos{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
@@ -807,6 +812,12 @@ MulticopterPositionControl::poll_subscriptions()
 		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
+	}
+
+	orb_check(_home_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
 }
 
@@ -1685,7 +1696,7 @@ MulticopterPositionControl::control_position(float dt)
 	 * for now we use the home altitude and assume that our Z coordinate
 	 * is initialized close to home.
 	 */
-	bool close_to_ground = -_pos(2) < _manual_land_alt.get();
+	bool close_to_ground = (-_pos(2) - _home_pos.z)  < _manual_land_alt.get();
 
 	if (close_to_ground && (_vel_sp(2) > _params.land_speed)) {
 		_vel_sp(2) = _params.land_speed;
@@ -2219,6 +2230,7 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	parameters_update(true);
 
