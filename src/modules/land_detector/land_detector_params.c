@@ -120,6 +120,21 @@ PARAM_DEFINE_FLOAT(LNDMC_THR_RANGE, 0.1f);
 PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
 
 /**
+ * Manual flight stick down threshold for landing
+ *
+ * When controlling manually the throttle stick value (0 to 1)
+ * has to be bellow this threshold in order to pass the check for landing.
+ * So if set to 1 it's allowed to land with any stick position.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_MAN_DWNTHR, 0.15f);
+
+/**
  * Fixedwing max horizontal velocity
  *
  * Maximum horizontal velocity allowed in the landed state (m/s)
