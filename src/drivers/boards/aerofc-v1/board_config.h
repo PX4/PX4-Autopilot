@@ -146,6 +146,8 @@
  */
 #define TAP_ESC_NO_VERIFY_CONFIG /* This board can not tolerated verifying the tap esc got it's config */
 
+#define MEMORY_CONSTRAINED_SYSTEM
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
