@@ -199,17 +199,28 @@ void PreclandBeaconEst::_cycle()
 		_kalman_filter_y.getState(y, yvel);
 		_kalman_filter_y.getCovariance(covy, covy_v);
 
-		_preclandBeaconRelpos.x = x;
-		_preclandBeaconRelpos.vx = xvel;
+		_preclandBeaconRelpos.rel_valid = true;
+		_preclandBeaconRelpos.x_rel = x;
+		_preclandBeaconRelpos.y_rel = y;
+		_preclandBeaconRelpos.vx_rel = xvel;
+		_preclandBeaconRelpos.vy_rel = yvel;
 		_preclandBeaconRelpos.x_unfilt = _rel_pos(0);
-		_preclandBeaconRelpos.covx = covx;
-		_preclandBeaconRelpos.x_lpos = x + _vehicleLocalPosition.x;
-
-		_preclandBeaconRelpos.y = y;
-		_preclandBeaconRelpos.vy = yvel;
 		_preclandBeaconRelpos.y_unfilt = _rel_pos(1);
+
+		_preclandBeaconRelpos.covx = covx;
 		_preclandBeaconRelpos.covy = covy;
-		_preclandBeaconRelpos.y_lpos = y + _vehicleLocalPosition.y;
+
+		if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
+			_preclandBeaconRelpos.local_valid = true;
+			_preclandBeaconRelpos.x_local = x + _vehicleLocalPosition.x;
+			_preclandBeaconRelpos.vx_local = xvel + _vehicleLocalPosition.vx;
+
+			_preclandBeaconRelpos.y_local = y + _vehicleLocalPosition.y;
+			_preclandBeaconRelpos.vy_local = yvel + _vehicleLocalPosition.vy;
+
+		} else {
+			_preclandBeaconRelpos.local_valid = false;
+		}
 
 		if (_preclandBeaconRelposPub == nullptr) {
 			_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
