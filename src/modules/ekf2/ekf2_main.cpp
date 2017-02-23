@@ -851,6 +851,7 @@ void Ekf2::task_main()
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv, &dead_reckoning);
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -895,6 +896,8 @@ void Ekf2::task_main()
 				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+				global_pos.evh = lpos.evh;
+				global_pos.evv = lpos.evv;
 
 				if (lpos.dist_bottom_valid) {
 					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
