@@ -910,8 +910,7 @@ void Ekf2::task_main()
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
 
-				// TODO use innovatun consistency check timouts to set this
-				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
