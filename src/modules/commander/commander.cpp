@@ -2084,22 +2084,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			/* position changed */
-			vehicle_global_position_s gpos;
-			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &gpos);
-
-			/* copy to global struct if valid, with hysteresis */
-
-			// XXX consolidate this with local position handling and timeouts after release
-			// but we want a low-risk change now.
-			if (status_flags.condition_global_position_valid) {
-				if (gpos.eph < eph_threshold * 2.5f) {
-					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
-				}
-			} else {
-				if (gpos.eph < eph_threshold) {
-					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
-				}
-			}
+			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
 		}
 
 		/* update local position estimate */
@@ -2114,50 +2099,74 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(attitude_sub, &updated);
 
 		if (updated) {
-			/* position changed */
+			/* attitude changed */
 			orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &attitude);
 		}
 
-		//update condition_global_position_valid
-		//Global positions are only published by the estimators if they are valid
-		if (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT) {
-			//We have had no good fix for POSITION_TIMEOUT amount of time
+		/* Check validity of global and local position data */
+
+		// Check if quality checking of position accuracy and consistency is to be performed
+		bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
+
+		// Check position accuracy with hysteresis
+		bool global_pos_inaccurate = true;
+		bool local_pos_inaccurate = true;
+		if (run_quality_checks) {
+			// Check global position accuracy
 			if (status_flags.condition_global_position_valid) {
-				set_tune_override(TONE_GPS_WARNING_TUNE);
-				status_changed = true;
-				status_flags.condition_global_position_valid = false;
-			}
-		} else if (global_position.timestamp != 0) {
-			// Got good global position estimate
-			if (!status_flags.condition_global_position_valid) {
-				status_changed = true;
-				status_flags.condition_global_position_valid = true;
-			}
-		}
-
-		/* update condition_local_position_valid and condition_local_altitude_valid */
-		/* hysteresis for EPH */
-		bool local_eph_good;
-
-		if (status_flags.condition_local_position_valid) {
-			if (local_position.eph > eph_threshold * 2.5f) {
-				local_eph_good = false;
-
+				if (global_position.eph < eph_threshold * 2.5f) {
+					global_pos_inaccurate = false;
+				}
 			} else {
-				local_eph_good = true;
+				if (global_position.eph < eph_threshold) {
+					global_pos_inaccurate = false;
+				}
 			}
 
+			// Check local position accuracy
+			if (status_flags.condition_local_position_valid) {
+				if (local_position.eph < eph_threshold * 2.5f) {
+					local_pos_inaccurate = false;
+				}
+			} else {
+				if (local_position.eph < eph_threshold) {
+					local_pos_inaccurate = false;
+				}
+			}
 		} else {
-			if (local_position.eph < eph_threshold) {
-				local_eph_good = true;
-
-			} else {
-				local_eph_good = false;
-			}
+			global_pos_inaccurate = false;
+			local_pos_inaccurate = false;
 		}
 
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid
-			    && local_eph_good, &(status_flags.condition_local_position_valid), &status_changed);
+		// Set global position validity
+		bool global_pos_stale = (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_global_position_valid
+			   && (global_pos_stale || global_pos_inaccurate)) {
+			status_flags.condition_global_position_valid = false;
+			set_tune_override(TONE_GPS_WARNING_TUNE);
+			status_changed = true;
+		} else if (!status_flags.condition_global_position_valid
+			   && !global_pos_stale
+			   && !global_pos_inaccurate) {
+			status_flags.condition_global_position_valid = true;
+			status_changed = true;
+		}
+
+		// Set local position validity
+		bool local_pos_stale = (hrt_absolute_time() - local_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_local_position_valid
+			   && (local_pos_stale || !local_position.xy_valid || local_pos_inaccurate)) {
+			status_flags.condition_local_position_valid = false;
+			status_changed = true;
+		} else if (!status_flags.condition_local_position_valid
+			   && !local_pos_stale
+			   && !local_pos_inaccurate
+			   && local_position.xy_valid) {
+			status_flags.condition_local_position_valid = true;
+			status_changed = true;
+		}
+
+		/* update condition_local_altitude_valid */
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
@@ -2396,6 +2405,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
+			// Check fix type and data freshness
 			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
 				/* handle the case where gps was regained */
 				if (status_flags.gps_failure && !gpsIsNoisy) {
@@ -2411,6 +2421,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 				mavlink_log_critical(&mavlink_log_pub, "GPS fix lost");
 			}
+
 		}
 
 		/* start mission result check */
