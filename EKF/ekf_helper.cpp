@@ -748,6 +748,31 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
 }
 
+// get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
+void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
+{
+	// TODO - allow for baro drift in vertical position error
+	float hpos_err;
+	float vpos_err;
+	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	if (vel_pos_aiding && _NED_origin_initialised) {
+		hpos_err = sqrtf(P[7][7] + P[8][8]);
+		vpos_err = sqrtf(P[9][9]);
+
+	} else {
+		hpos_err = 0.0f;
+		vpos_err = 0.0f;
+
+	}
+
+	// report dead reckoning if it is more than a second since we fused in position measurements
+	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6);
+
+	memcpy(ekf_eph, &hpos_err, sizeof(float));
+	memcpy(ekf_epv, &vpos_err, sizeof(float));
+	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
+}
+
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.

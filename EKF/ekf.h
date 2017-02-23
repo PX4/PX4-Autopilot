@@ -120,6 +120,9 @@ public:
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning);
 
+	// get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
+	void get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning);
+
 	void get_vel_var(Vector3f &vel_var);
 
 	void get_pos_var(Vector3f &pos_var);
