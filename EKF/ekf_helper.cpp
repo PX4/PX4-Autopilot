@@ -792,6 +792,21 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckon
 	// report dead reckoning if it is more than a second since we fused in measurements that constrain velocity drift
 	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6) && (_time_last_imu - _time_last_vel_fuse > 1e6)  && (_time_last_imu - _time_last_of_fuse > 1e6);
 
+	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal velocity error
+	// The reason is that complete rejection of measurements is often be casued by heading misalignment or inertial sensing errors
+	// and using state variances for accuracy reporting provides an overly optimistic assessment in these situations
+	float vel_err_alt = 0.0f;
+	if (dead_reckoning) {
+		if (_control_status.flags.opt_flow) {
+			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
+			vel_err_alt = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * sqrtf(_flow_innov[0]*_flow_innov[0] + _flow_innov[1]*_flow_innov[1]);
+		}
+		if (_control_status.flags.gps || _control_status.flags.ev_pos) {
+			vel_err_alt = math::max(vel_err_alt, sqrtf(_vel_pos_innov[0]*_vel_pos_innov[0] + _vel_pos_innov[1]*_vel_pos_innov[1]));
+		}
+		hvel_err = math::max(hvel_err, vel_err_alt);
+	}
+
 	memcpy(ekf_evh, &hvel_err, sizeof(float));
 	memcpy(ekf_evv, &vvel_err, sizeof(float));
 	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
