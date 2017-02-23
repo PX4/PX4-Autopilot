@@ -117,6 +117,23 @@ protected:
 	int _parameterSub;
 
 private:
+	/**
+	* Handles for parameters
+	**/
+	struct {
+		param_t acc_unc;
+		param_t meas_unc;
+		param_t pos_unc_init;
+		param_t vel_unc_init;
+	} _paramHandle;
+
+	struct {
+		float acc_unc;
+		float meas_unc;
+		float pos_unc_init;
+		float vel_unc_init;
+	} _params;
+
 	int _vehicleLocalPositionSub;
 	int _attitudeSub;
 	int _irlockReportSub;

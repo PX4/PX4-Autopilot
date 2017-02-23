@@ -51,6 +51,7 @@ namespace precland_beacon_est
 
 PreclandBeaconEst::PreclandBeaconEst() :
 	_preclandBeaconRelposPub(nullptr),
+	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
 	_new_irlockReport(false),
@@ -61,6 +62,10 @@ PreclandBeaconEst::PreclandBeaconEst() :
 	_taskIsRunning(false),
 	_work{}
 {
+	_paramHandle.acc_unc = param_find("BEST_ACC_UNC");
+	_paramHandle.meas_unc = param_find("BEST_MEAS_UNC");
+	_paramHandle.pos_unc_init = param_find("BEST_POS_UNC_IN");
+	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
 }
 
 PreclandBeaconEst::~PreclandBeaconEst()
@@ -126,9 +131,8 @@ void PreclandBeaconEst::_cycle()
 			double dt_vehicleLocalPosition = (_vehicleLocalPosition.timestamp - _vehicleLocalPosition_last.timestamp) / SEC2USEC;
 			double acc_x = (_vehicleLocalPosition.vx - _vehicleLocalPosition_last.vx) / dt_vehicleLocalPosition;
 			double acc_y = (_vehicleLocalPosition.vy - _vehicleLocalPosition_last.vy) / dt_vehicleLocalPosition;
-			double acc_unc = 10; // Variance of acceleration [(m/s^2)^2] TODO what should this be?
-			_kalman_filter_x.predict(dt, -acc_x, acc_unc);
-			_kalman_filter_y.predict(dt, -acc_y, acc_unc);
+			_kalman_filter_x.predict(dt, -acc_x, _params.acc_unc);
+			_kalman_filter_y.predict(dt, -acc_y, _params.acc_unc);
 
 			_last_predict = hrt_absolute_time();
 		}
@@ -166,20 +170,16 @@ void PreclandBeaconEst::_cycle()
 			if (!_estimator_initialized) {
 				// too long since last measurement, reset filter
 				PX4_WARN("Init");
-				// TODO what whould these be?
-				double covInit00 = 0.01; // initial variance of position [m^2]
-				double covInit11 = 1; // initial variance of velocity [(m/2)^2]
-				_kalman_filter_x.init(_rel_pos(0), 0, covInit00, covInit11);
-				_kalman_filter_y.init(_rel_pos(1), 0, covInit00, covInit11);
+				_kalman_filter_x.init(_rel_pos(0), 0, _params.pos_unc_init, _params.vel_unc_init);
+				_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
 
 				_estimator_initialized = true;
 				_last_predict = hrt_absolute_time();
 
 			} else {
 				// update
-				double measUnc = 0.01; // measurement variance [m^2] TODO what should this be?
-				_kalman_filter_x.update(_rel_pos(0), measUnc);
-				_kalman_filter_y.update(_rel_pos(1), measUnc);
+				_kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
+				_kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 			}
 
 			_last_update = hrt_absolute_time();
@@ -252,6 +252,7 @@ void PreclandBeaconEst::_initialize_topics()
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));
+	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 }
 
 void PreclandBeaconEst::_update_topics()
@@ -291,7 +292,10 @@ bool PreclandBeaconEst::_orb_update(const struct orb_metadata *meta, int handle,
 
 void PreclandBeaconEst::_update_params()
 {
-
+	param_get(_paramHandle.acc_unc, &_params.acc_unc);
+	param_get(_paramHandle.meas_unc, &_params.meas_unc);
+	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
+	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
 }
 
 
