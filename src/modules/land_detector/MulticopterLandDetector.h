@@ -89,6 +89,7 @@ private:
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
+		param_t manual_stick_down_threshold;
 	} _paramHandle;
 
 	struct {
@@ -101,6 +102,7 @@ private:
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
+		float manual_stick_down_threshold;
 	} _params;
 
 	int _vehicleLocalPositionSub;
