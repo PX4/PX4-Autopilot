@@ -97,8 +97,11 @@ set(srcs
 	../../drivers/stm32/drv_pwm_servo.c
 	../../drivers/boards/${config_io_board}/px4io_init.c
 	../../drivers/boards/${config_io_board}/px4io_timer_config.c
-	../systemlib/clang.c
 	)
+
+if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*" OR ${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
+	list(APPEND srcs ../systemlib/clang.c)
+endif()
 
 if(${config_io_board} STREQUAL "px4io-v1")
 	list(APPEND srcs

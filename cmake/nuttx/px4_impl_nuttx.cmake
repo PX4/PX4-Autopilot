@@ -535,18 +535,6 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/libs
 		)
 
-	if (${config_nuttx_hw} STREQUAL "m4")
-		set(APPEND added_link_dirs
-			/home/miguel/gcc-arm-none-eabi-5_4-2016q2/lib/gcc/arm-none-eabi/5.4.1/armv7e-m/fpu/
-			/home/miguel/gcc-arm-none-eabi-5_4-2016q2/arm-none-eabi/lib
-			)
-	elseif (${config_nuttx_hw} STREQUAL "m3")
-		set(APPEND added_link_dirs
-			/home/miguel/gcc-arm-none-eabi-5_4-2016q2/lib/gcc/arm-none-eabi/5.4.1/armv7-m
-			/home/miguel/gcc-arm-none-eabi-5_4-2016q2/arm-none-eabi/lib
-			)
-	endif()
-
 	set(added_definitions
 		-D__PX4_NUTTX
 		)
@@ -563,7 +551,7 @@ function(px4_os_add_flags)
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
 		list(APPEND gcc_c_flags ${added_c_flags})
 
-		set(APPEND added_c_flags
+		list(APPEND added_c_flags
 			-nostdinc
 			)
 	endif()
@@ -574,7 +562,7 @@ function(px4_os_add_flags)
 		)
 
 	if (${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
-		set(APPEND added_cxx_flags
+		list(APPEND added_cxx_flags
 			-nostdinc
 			)
 	endif()
@@ -611,72 +599,56 @@ function(px4_os_add_flags)
 			-mfpu=fpv4-sp-d16
 			-mfloat-abi=hard
 			)
-
-
-			if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-				list(APPEND gcc_c_flags ${cpu_flags})
-				list(APPEND cpu_flags
-				-m32
-				-target arm-none-eabi
-				-fno-builtin
-				)
-
-				set(clang_c_flags
-					#TODO: How to get these values?
-					-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/lib/gcc/arm-none-eabi/5.4.1/include
-					-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/arm-none-eabi/include
-				)
-			endif()
-
-			if (${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
-				list(APPEND cpu_flags
-					-m32
-					-target arm-none-eabi
-					-fno-builtin
-				)
-
-				set(clang_cxx_flags
-					-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/bin/../lib/gcc/arm-none-eabi/5.4.1/../../../../arm-none-eabi/include/c++/5.4.1
-					-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/bin/../lib/gcc/arm-none-eabi/5.4.1/../../../../arm-none-eabi/include/c++/5.4.1/arm-none-eabi/armv7e-m/fpu
-					)
-			endif()
-
 	elseif (${config_nuttx_hw} STREQUAL "m3")
 		set(cpu_flags
 			-mcpu=cortex-m3
 			-mthumb
 			-march=armv7-m
 			)
+	endif()
 
+	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*" OR ${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
+		set(gcc_paths ${PX4_SOURCE_DIR}/cmake/nuttx/gcc_paths.py)
+		set(gcc_cpu_flags ${cpu_flags})
+		string(REPLACE ";" "\ " gcc_cpu_flags "${cpu_flags}")
 
-		if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-			list(APPEND gcc_c_flags ${cpu_flags})
-			list(APPEND cpu_flags
-				-m32
-				-target arm-none-eabi
-				-fno-builtin
+		execute_process(COMMAND ${PYTHON_EXECUTABLE} ${gcc_paths}
+			--c_flags ${gcc_cpu_flags}
+			--c_compiler arm-none-eabi-gcc
+			--lib_paths
+			OUTPUT_VARIABLE gcc_link_dirs
+		)
+
+		execute_process(COMMAND ${PYTHON_EXECUTABLE} ${gcc_paths}
+				--c_flags ${gcc_cpu_flags}
+				--c_compiler arm-none-eabi-gcc
+				--inc_paths
+				OUTPUT_VARIABLE gcc_c_inc_dirs
 			)
-
-			set(clang_c_flags
-				-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/lib/gcc/arm-none-eabi/5.4.1/include
-				-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/arm-none-eabi/include
-				)
-		endif()
 
 		if (${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
-			list(APPEND cpu_flags
-				-m32
-				-target arm-none-eabi
-				-fno-builtin
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${gcc_paths}
+				--c_flags ${gcc_cpu_flags}
+				--c_compiler arm-none-eabi-gcc
+				--inc_paths
+				--cxx
+				OUTPUT_VARIABLE gcc_cxx_inc_dirs
 			)
-
-			set(clang_cxx_flags
-				-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/bin/../lib/gcc/arm-none-eabi/5.4.1/../../../../arm-none-eabi/include/c++/5.4.1
-				-isystem /home/miguel/gcc-arm-none-eabi-5_4-2016q2/bin/../lib/gcc/arm-none-eabi/5.4.1/../../../../arm-none-eabi/include/c++/5.4.1/arm-none-eabi/armv7-m
-				)
 		endif()
 
+		list(APPEND gcc_c_flags ${cpu_flags})
+		list(APPEND cpu_flags
+			-m32
+			-target arm-none-eabi
+			-fno-builtin
+		)
+
+		set(clang_c_flags ${gcc_c_inc_dirs})
+		set(clang_cxx_flags ${gcc_cxx_inc_dirs})
+		string(REPLACE " " ";" gcc_link_dirs_list "${gcc_link_dirs}")
+		list(APPEND added_link_dirs ${gcc_link_dirs_list})
 	endif()
+
 	list(APPEND c_flags ${cpu_flags} ${clang_c_flags})
 	list(APPEND cxx_flags ${cpu_flags} ${clang_cxx_flags} ${clang_c_flags})
 
