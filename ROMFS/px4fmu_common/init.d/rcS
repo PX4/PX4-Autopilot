@@ -781,8 +781,12 @@ then
 		px4flow start &
 	fi
 
-	# Start MAVLink
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	if ver hwcmp AEROFC_V1
+	then
+	else
+		# Start MAVLink
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	fi
 
 	#
 	# Logging
