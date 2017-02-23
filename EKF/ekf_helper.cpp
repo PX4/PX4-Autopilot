@@ -773,6 +773,30 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
 }
 
+// get the 1-sigma horizontal and vertical velocity uncertainty
+void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckoning)
+{
+	float hvel_err;
+	float vvel_err;
+	bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.opt_flow || _control_status.flags.ev_pos);
+	if (vel_pos_aiding && _NED_origin_initialised) {
+		hvel_err = sqrtf(P[4][4] + P[5][5]);
+		vvel_err = sqrtf(P[6][6]);
+
+	} else {
+		hvel_err = 0.0f;
+		vvel_err = 0.0f;
+
+	}
+
+	// report dead reckoning if it is more than a second since we fused in measurements that constrain velocity drift
+	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6) && (_time_last_imu - _time_last_vel_fuse > 1e6)  && (_time_last_imu - _time_last_of_fuse > 1e6);
+
+	memcpy(ekf_evh, &hvel_err, sizeof(float));
+	memcpy(ekf_evv, &vvel_err, sizeof(float));
+	memcpy(dead_reckoning, &is_dead_reckoning, sizeof(bool));
+}
+
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.

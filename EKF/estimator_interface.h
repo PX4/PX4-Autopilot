@@ -135,6 +135,9 @@ public:
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
 	virtual void get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
 
+	// get the 1-sigma horizontal and vertical velocity uncertainty
+	virtual void get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckoning) = 0;
+
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }
 
