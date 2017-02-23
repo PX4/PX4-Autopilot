@@ -722,7 +722,7 @@ void Ekf::get_imu_vibe_metrics(float vibe[3])
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
+void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 {
 	// report absolute accuracy taking into account the uncertainty in location of the origin
 	// If not aiding, return 0 for horizontal position estimate as no estimate is available

@@ -130,7 +130,7 @@ public:
 	virtual bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-	virtual void get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
+	virtual void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning) = 0;
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(uint64_t time_usec, struct gps_message *gps) { return true; }

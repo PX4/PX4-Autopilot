@@ -118,7 +118,7 @@ public:
 	bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-	void get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning);
+	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning);
 
 	void get_vel_var(Vector3f &vel_var);
 
