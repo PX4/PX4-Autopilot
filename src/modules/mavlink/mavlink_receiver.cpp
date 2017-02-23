@@ -1164,6 +1164,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	struct vehicle_attitude_s vision_attitude = {};
 
+	vision_attitude.timestamp = sync_stamp(pos.usec);
+
 	math::Quaternion q;
 	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
