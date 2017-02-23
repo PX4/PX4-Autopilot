@@ -141,7 +141,7 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
-	int 	_home_pos_sub; 			/**< home position */
+	int		_home_pos_sub; 			/**< home position */
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
@@ -159,7 +159,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
-	struct home_position_s					_home_pos; 				/**< home position */
+	struct home_position_s				_home_pos; 				/**< home position */
 
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
@@ -1696,7 +1696,7 @@ MulticopterPositionControl::control_position(float dt)
 	 * for now we use the home altitude and assume that our Z coordinate
 	 * is initialized close to home.
 	 */
-	bool close_to_ground = (-_pos(2) - _home_pos.z)  < _manual_land_alt.get();
+	bool close_to_ground = (-_pos(2) + _home_pos.z)  < _manual_land_alt.get();
 
 	if (close_to_ground && (_vel_sp(2) > _params.land_speed)) {
 		_vel_sp(2) = _params.land_speed;
