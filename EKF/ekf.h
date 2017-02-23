@@ -139,6 +139,9 @@ public:
 	// return true if the global position estimate is valid
 	bool global_position_is_valid();
 
+	// return true if the EKF is dead reckoning the position using inertial data only
+	bool inertial_dead_reckoning();
+
 	// return true if the etimate is valid
 	// return the estimated terrain vertical position relative to the NED origin
 	bool get_terrain_vert_pos(float *ret);

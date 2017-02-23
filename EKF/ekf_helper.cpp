@@ -741,7 +741,7 @@ void Ekf::get_ekf_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_reckoning)
 	}
 
 	// report dead reckoning if it is more than a second since we fused in position measurements
-	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6) && vel_pos_aiding;
+	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6);
 
 	memcpy(ekf_eph, &hpos_err, sizeof(float));
 	memcpy(ekf_epv, &vpos_err, sizeof(float));
@@ -855,6 +855,16 @@ bool Ekf::global_position_is_valid()
 	// return true if the position estimate is valid
 	// TODO implement proper check based on published GPS accuracy, innovation consistency checks and timeout status
 	return (_NED_origin_initialised && ((_time_last_imu - _time_last_gps) < 5e6) && _control_status.flags.gps);
+}
+
+// return true if we are totally reliant on inertial dead-reckoning for position
+bool Ekf::inertial_dead_reckoning()
+{
+	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos) && ((_time_last_imu - _time_last_pos_fuse <= 1E6) || (_time_last_imu - _time_last_vel_fuse <= 1E6));
+	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= 1E6);
+	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= 1E6);
+
+	return !velPosAiding && !optFlowAiding && !airDataAiding;
 }
 
 // perform a vector cross product
