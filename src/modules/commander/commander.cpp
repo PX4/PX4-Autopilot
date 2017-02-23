@@ -2148,7 +2148,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool optical_flow_data_good = !(estimator_status.innovation_check_flags & (1<<9)) // X axis flow data has been accepted
 				&& !(estimator_status.innovation_check_flags & (1<<10)); // Y axis flow data has been accepted
 		if (using_optical_flow && (optical_flow_data_good || !run_quality_checks)) {
-			last_velpos_pass_time = hrt_absolute_time();
+			last_optflow_fail_time = hrt_absolute_time();
 		} else {
 			last_optflow_fail_time = hrt_absolute_time();
 		}
