@@ -52,7 +52,7 @@
 
 #pragma once
 
-namespace precland_beacon_est
+namespace beacon_position_estimator
 {
 class KalmanFilter
 {
@@ -134,4 +134,4 @@ private:
 
 	matrix::Matrix<float, 2, 2> _covariance; // state covariance
 };
-} // namespace precland_beacon_est
+} // namespace beacon_position_estimator

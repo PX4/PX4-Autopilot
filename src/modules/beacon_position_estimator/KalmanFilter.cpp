@@ -40,7 +40,7 @@
 
 #include "KalmanFilter.h"
 
-namespace precland_beacon_est
+namespace beacon_position_estimator
 {
 KalmanFilter::KalmanFilter(matrix::Vector<float, 2> initial, matrix::Matrix<float, 2, 2> covInit)
 {
@@ -135,4 +135,4 @@ void KalmanFilter::getCovariance(double &cov00, double &cov11)
 	cov11 = _covariance(1, 1);
 }
 
-} // namespace precland_beacon_est
+} // namespace beacon_position_estimator

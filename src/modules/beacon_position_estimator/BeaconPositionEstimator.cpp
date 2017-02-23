@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file PreclandBeaconEst.cpp
+ * @file BeaconPositionEstimator.cpp
  *
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
@@ -41,16 +41,16 @@
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "PreclandBeaconEst.h"
+#include "BeaconPositionEstimator.h"
 
 #define SEC2USEC 1000000.0f
 
 
-namespace precland_beacon_est
+namespace beacon_position_estimator
 {
 
-PreclandBeaconEst::PreclandBeaconEst() :
-	_preclandBeaconRelposPub(nullptr),
+BeaconPositionEstimator::BeaconPositionEstimator() :
+	_beaconPositionPub(nullptr),
 	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
@@ -68,36 +68,36 @@ PreclandBeaconEst::PreclandBeaconEst() :
 	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
 }
 
-PreclandBeaconEst::~PreclandBeaconEst()
+BeaconPositionEstimator::~BeaconPositionEstimator()
 {
 	work_cancel(HPWORK, &_work);
 	_taskShouldExit = true;
 }
 
-int PreclandBeaconEst::start()
+int BeaconPositionEstimator::start()
 {
 	_taskShouldExit = false;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&PreclandBeaconEst::_cycle_trampoline, this, 0);
+	work_queue(HPWORK, &_work, (worker_t)&BeaconPositionEstimator::_cycle_trampoline, this, 0);
 
 	return 0;
 }
 
-void PreclandBeaconEst::stop()
+void BeaconPositionEstimator::stop()
 {
 	_taskShouldExit = true;
 }
 
 void
-PreclandBeaconEst::_cycle_trampoline(void *arg)
+BeaconPositionEstimator::_cycle_trampoline(void *arg)
 {
-	PreclandBeaconEst *dev = reinterpret_cast<PreclandBeaconEst *>(arg);
+	BeaconPositionEstimator *dev = reinterpret_cast<BeaconPositionEstimator *>(arg);
 
 	dev->_cycle();
 }
 
-void PreclandBeaconEst::_cycle()
+void BeaconPositionEstimator::_cycle()
 {
 	if (!_taskIsRunning) {
 		// Initialize uORB topics.
@@ -119,7 +119,7 @@ void PreclandBeaconEst::_cycle()
 		// use the best estimate of the vehicle acceleration to predict the beacon position
 		// TODO this is only valid if the beacon is stationary
 
-		if (hrt_absolute_time() - _last_update > PRECLAND_BEACON_EST_TIMEOUT_US) {
+		if (hrt_absolute_time() - _last_update > beacon_position_estimator_TIMEOUT_US) {
 			PX4_WARN("Timeout");
 			_estimator_initialized = false;
 
@@ -191,7 +191,7 @@ void PreclandBeaconEst::_cycle()
 
 	if (_estimator_initialized) {
 		// always publish, even if only predicted, unless timeout was exceeded
-		_preclandBeaconRelpos.timestamp = hrt_absolute_time();
+		_beacon_position.timestamp = hrt_absolute_time();
 		double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
 		_kalman_filter_x.getState(x, xvel);
 		_kalman_filter_x.getCovariance(covx, covx_v);
@@ -199,49 +199,49 @@ void PreclandBeaconEst::_cycle()
 		_kalman_filter_y.getState(y, yvel);
 		_kalman_filter_y.getCovariance(covy, covy_v);
 
-		_preclandBeaconRelpos.rel_valid = true;
-		_preclandBeaconRelpos.x_rel = x;
-		_preclandBeaconRelpos.y_rel = y;
-		_preclandBeaconRelpos.vx_rel = xvel;
-		_preclandBeaconRelpos.vy_rel = yvel;
-		_preclandBeaconRelpos.x_unfilt = _rel_pos(0);
-		_preclandBeaconRelpos.y_unfilt = _rel_pos(1);
+		_beacon_position.rel_valid = true;
+		_beacon_position.x_rel = x;
+		_beacon_position.y_rel = y;
+		_beacon_position.vx_rel = xvel;
+		_beacon_position.vy_rel = yvel;
+		_beacon_position.x_unfilt = _rel_pos(0);
+		_beacon_position.y_unfilt = _rel_pos(1);
 
-		_preclandBeaconRelpos.covx = covx;
-		_preclandBeaconRelpos.covy = covy;
+		_beacon_position.covx = covx;
+		_beacon_position.covy = covy;
 
 		if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
-			_preclandBeaconRelpos.local_valid = true;
-			_preclandBeaconRelpos.x_local = x + _vehicleLocalPosition.x;
-			_preclandBeaconRelpos.vx_local = xvel + _vehicleLocalPosition.vx;
+			_beacon_position.local_valid = true;
+			_beacon_position.x_local = x + _vehicleLocalPosition.x;
+			_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
 
-			_preclandBeaconRelpos.y_local = y + _vehicleLocalPosition.y;
-			_preclandBeaconRelpos.vy_local = yvel + _vehicleLocalPosition.vy;
+			_beacon_position.y_local = y + _vehicleLocalPosition.y;
+			_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
 
 		} else {
-			_preclandBeaconRelpos.local_valid = false;
+			_beacon_position.local_valid = false;
 		}
 
-		if (_preclandBeaconRelposPub == nullptr) {
-			_preclandBeaconRelposPub = orb_advertise(ORB_ID(precland_beacon_relpos), &_preclandBeaconRelpos);
+		if (_beaconPositionPub == nullptr) {
+			_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
 
 		} else {
-			orb_publish(ORB_ID(precland_beacon_relpos), _preclandBeaconRelposPub, &_preclandBeaconRelpos);
+			orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
 		}
 	}
 
 	if (!_taskShouldExit) {
 
 		// Schedule next cycle.
-		work_queue(HPWORK, &_work, (worker_t)&PreclandBeaconEst::_cycle_trampoline, this,
-			   USEC2TICK(1000000 / PRECLAND_BEACON_EST_UPDATE_RATE_HZ));
+		work_queue(HPWORK, &_work, (worker_t)&BeaconPositionEstimator::_cycle_trampoline, this,
+			   USEC2TICK(1000000 / beacon_position_estimator_UPDATE_RATE_HZ));
 
 	} else {
 		_taskIsRunning = false;
 	}
 }
 
-void PreclandBeaconEst::_check_params(const bool force)
+void BeaconPositionEstimator::_check_params(const bool force)
 {
 	bool updated;
 	parameter_update_s paramUpdate;
@@ -257,7 +257,7 @@ void PreclandBeaconEst::_check_params(const bool force)
 	}
 }
 
-void PreclandBeaconEst::_initialize_topics()
+void BeaconPositionEstimator::_initialize_topics()
 {
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -266,7 +266,7 @@ void PreclandBeaconEst::_initialize_topics()
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 }
 
-void PreclandBeaconEst::_update_topics()
+void BeaconPositionEstimator::_update_topics()
 {
 	if (_vehicleLocalPosition_valid) {
 		_vehicleLocalPosition_last = _vehicleLocalPosition;
@@ -281,7 +281,7 @@ void PreclandBeaconEst::_update_topics()
 }
 
 
-bool PreclandBeaconEst::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
+bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {
 	bool newData = false;
 
@@ -301,7 +301,7 @@ bool PreclandBeaconEst::_orb_update(const struct orb_metadata *meta, int handle,
 	return true;
 }
 
-void PreclandBeaconEst::_update_params()
+void BeaconPositionEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
@@ -310,4 +310,4 @@ void PreclandBeaconEst::_update_params()
 }
 
 
-} // namespace precland_beacon_est
+} // namespace beacon_position_estimator

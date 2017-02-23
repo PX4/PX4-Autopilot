@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file precland_beacon_est_params.c
+ * @file beacon_position_estimator_params.c
  * Beacon estimator algorithm parameters.
  *
  * @author Nicolas de Palezieux <ndepal@gmail.com>

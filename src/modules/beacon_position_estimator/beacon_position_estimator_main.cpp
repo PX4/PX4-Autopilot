@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file precland_beacon_est_main.cpp
- * Precision land beacon position estimator
+ * @file beacon_position_estimator_main.cpp
+ * Beacon position estimator. Filter and publish the position of a ground beacon as observed by an onboard sensor.
  *
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
@@ -51,37 +51,37 @@
 #include <systemlib/systemlib.h>	//Scheduler
 #include <systemlib/err.h>			//print to console
 
-#include "PreclandBeaconEst.h"
+#include "BeaconPositionEstimator.h"
 
 
-namespace precland_beacon_est
+namespace beacon_position_estimator
 {
 
 //Function prototypes
-static int precland_beacon_est_start();
-static void precland_beacon_est_stop();
+static int beacon_position_estimator_start();
+static void beacon_position_estimator_stop();
 
 /**
- * land detector app start / stop handling function
- * This makes the land detector module accessible from the nuttx shell
+ * Beacon position estimator app start / stop handling function
+ * This makes the module accessible from the nuttx shell
  * @ingroup apps
  */
-extern "C" __EXPORT int precland_beacon_est_main(int argc, char *argv[]);
+extern "C" __EXPORT int beacon_position_estimator_main(int argc, char *argv[]);
 
 //Private variables
-static PreclandBeaconEst *precland_beacon_est_task = nullptr;
+static BeaconPositionEstimator *beacon_position_estimator_task = nullptr;
 
 /**
 * Stop the task, force killing it if it doesn't stop by itself
 **/
-static void precland_beacon_est_stop()
+static void beacon_position_estimator_stop()
 {
-	if (precland_beacon_est_task == nullptr) {
+	if (beacon_position_estimator_task == nullptr) {
 		PX4_WARN("not running");
 		return;
 	}
 
-	precland_beacon_est_task->stop();
+	beacon_position_estimator_task->stop();
 
 	// Wait for task to die
 	int i = 0;
@@ -90,34 +90,34 @@ static void precland_beacon_est_stop()
 		/* wait 20ms */
 		usleep(20000);
 
-	} while (precland_beacon_est_task->is_running() && ++i < 50);
+	} while (beacon_position_estimator_task->is_running() && ++i < 50);
 
 
-	delete precland_beacon_est_task;
-	precland_beacon_est_task = nullptr;
-	PX4_WARN("precland_beacon_est has been stopped");
+	delete beacon_position_estimator_task;
+	beacon_position_estimator_task = nullptr;
+	PX4_WARN("beacon_position_estimator has been stopped");
 }
 
 /**
 * Start new task, fails if it is already running. Returns OK if successful
 **/
-static int precland_beacon_est_start()
+static int beacon_position_estimator_start()
 {
-	if (precland_beacon_est_task != nullptr) {
+	if (beacon_position_estimator_task != nullptr) {
 		PX4_WARN("already running");
 		return -1;
 	}
 
-	precland_beacon_est_task = new PreclandBeaconEst();
+	beacon_position_estimator_task = new BeaconPositionEstimator();
 
 	//Check if alloc worked
-	if (precland_beacon_est_task == nullptr) {
+	if (beacon_position_estimator_task == nullptr) {
 		PX4_WARN("alloc failed");
 		return -1;
 	}
 
 	//Start new thread task
-	int ret = precland_beacon_est_task->start();
+	int ret = beacon_position_estimator_task->start();
 
 	if (ret) {
 		PX4_WARN("task start failed: %d", -errno);
@@ -131,13 +131,13 @@ static int precland_beacon_est_start()
 	usleep(10000);
 
 	/* check if the waiting involving dots and a newline are still needed */
-	if (!precland_beacon_est_task->is_running()) {
-		while (!precland_beacon_est_task->is_running()) {
+	if (!beacon_position_estimator_task->is_running()) {
+		while (!beacon_position_estimator_task->is_running()) {
 			usleep(50000);
 
 			if (hrt_absolute_time() > timeout) {
 				PX4_WARN("start failed - timeout");
-				precland_beacon_est_stop();
+				beacon_position_estimator_stop();
 				return 1;
 			}
 		}
@@ -149,7 +149,7 @@ static int precland_beacon_est_start()
 /**
 * Main entry point for this module
 **/
-int precland_beacon_est_main(int argc, char *argv[])
+int beacon_position_estimator_main(int argc, char *argv[])
 {
 
 	if (argc < 2) {
@@ -157,8 +157,8 @@ int precland_beacon_est_main(int argc, char *argv[])
 	}
 
 	if (argc >= 2 && !strcmp(argv[1], "start")) {
-		if (precland_beacon_est_start() != 0) {
-			PX4_WARN("precland_beacon_est start failed");
+		if (beacon_position_estimator_start() != 0) {
+			PX4_WARN("beacon_position_estimator start failed");
 			return 1;
 		}
 
@@ -166,14 +166,14 @@ int precland_beacon_est_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		precland_beacon_est_stop();
+		beacon_position_estimator_stop();
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (precland_beacon_est_task) {
+		if (beacon_position_estimator_task) {
 
-			if (precland_beacon_est_task->is_running()) {
+			if (beacon_position_estimator_task->is_running()) {
 				PX4_INFO("running");
 
 			} else {
@@ -189,7 +189,7 @@ int precland_beacon_est_main(int argc, char *argv[])
 	}
 
 exiterr:
-	PX4_WARN("usage: precland_beacon_est {start|stop|status}");
+	PX4_WARN("usage: beacon_position_estimator {start|stop|status}");
 	return 1;
 }
 

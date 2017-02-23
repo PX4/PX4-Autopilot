@@ -111,7 +111,7 @@ set(config_module_list
 	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
-	modules/precland_beacon_est
+	modules/beacon_position_estimator
 
 	#
 	# Libraries

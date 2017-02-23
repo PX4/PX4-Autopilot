@@ -31,13 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__precland_beacon_est
-	MAIN precland_beacon_est
+	MODULE modules__beacon_position_estimator
+	MAIN beacon_position_estimator
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		precland_beacon_est_main.cpp
-		PreclandBeaconEst.cpp
+		beacon_position_estimator_main.cpp
+		BeaconPositionEstimator.cpp
 		KalmanFilter.cpp
 	DEPENDS
 		platforms__common

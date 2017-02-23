@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /*
- * @file PreclandBeaconEst.h
- * Precision land beacon position estimator
+ * @file BeaconPositionEstimator.h
+ * Beacon position estimator. Filter and publish the position of a ground beacon as observed by an onboard sensor.
  *
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
@@ -47,7 +47,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/irlock_report.h>
-#include <uORB/topics/precland_beacon_relpos.h>
+#include <uORB/topics/beacon_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -55,15 +55,15 @@
 #include "KalmanFilter.h"
 
 
-namespace precland_beacon_est
+namespace beacon_position_estimator
 {
 
-class PreclandBeaconEst
+class BeaconPositionEstimator
 {
 public:
 
-	PreclandBeaconEst();
-	virtual ~PreclandBeaconEst();
+	BeaconPositionEstimator();
+	virtual ~BeaconPositionEstimator();
 
 	/*
 	 * @return true if this task is currently running.
@@ -106,13 +106,13 @@ protected:
 	 */
 	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
-	/* Run main land detector loop at this rate in Hz. */
-	static constexpr uint32_t PRECLAND_BEACON_EST_UPDATE_RATE_HZ = 50;
+	/* Run main loop at this rate in Hz. */
+	static constexpr uint32_t beacon_position_estimator_UPDATE_RATE_HZ = 50;
 	/* timeout after which filter is reset if beacon not seen */
-	static constexpr uint32_t PRECLAND_BEACON_EST_TIMEOUT_US = 2000000;
+	static constexpr uint32_t beacon_position_estimator_TIMEOUT_US = 2000000;
 
-	orb_advert_t _preclandBeaconRelposPub;
-	struct precland_beacon_relpos_s _preclandBeaconRelpos;
+	orb_advert_t _beaconPositionPub;
+	struct beacon_position_s _beacon_position;
 
 	int _parameterSub;
 
@@ -172,4 +172,4 @@ private:
 };
 
 
-} // namespace precland_beacon_est
+} // namespace beacon_position_estimator
