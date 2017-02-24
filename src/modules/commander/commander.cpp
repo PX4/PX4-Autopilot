@@ -180,8 +180,9 @@ static uint64_t last_print_mode_reject_time = 0;
 
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
-static float eph_threshold = 5.0f;
-static float epv_threshold = 10.0f;
+static float eph_threshold = 5.0f;	// Horizontal position error threshold (m)
+static float epv_threshold = 10.0f;	// Vertivcal position error threshold (m)
+static float evh_threshold = 1.0f;	// Horizontal velocity error threshold (m)
 
 /* pre-flight EKF checks */
 static float max_ekf_pos_ratio = 0.5f;
@@ -2103,7 +2104,9 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &attitude);
 		}
 
-		/* Check validity of global and local position data */
+		/*
+		 * Check validity of global and local position data
+		*/
 
 		// Check if quality checking of position accuracy and consistency is to be performed
 		bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
@@ -2111,6 +2114,8 @@ int commander_thread_main(int argc, char *argv[])
 		// Check position accuracy with hysteresis
 		bool global_pos_inaccurate = true;
 		bool local_pos_inaccurate = true;
+		bool global_vel_inaccurate = true;
+		bool local_vel_inaccurate = true;
 		if (run_quality_checks) {
 			// Check global position accuracy
 			if (status_flags.condition_global_position_valid) {
@@ -2133,21 +2138,46 @@ int commander_thread_main(int argc, char *argv[])
 					local_pos_inaccurate = false;
 				}
 			}
+
+			// Check global velocity accuracy
+			if (status_flags.condition_global_velocity_valid) {
+				if (global_position.evh < evh_threshold * 2.5f) {
+					global_vel_inaccurate = false;
+				}
+			} else {
+				if (global_position.eph < eph_threshold) {
+					global_vel_inaccurate = false;
+				}
+			}
+
+			// Check local velocity accuracy
+			if (status_flags.condition_local_velocity_valid) {
+				if (local_position.evh < evh_threshold * 2.5f) {
+					local_vel_inaccurate = false;
+				}
+			} else {
+				if (local_position.eph < eph_threshold) {
+					local_vel_inaccurate = false;
+				}
+			}
 		} else {
 			global_pos_inaccurate = false;
 			local_pos_inaccurate = false;
+			global_vel_inaccurate = false;
+			local_vel_inaccurate = false;
 		}
 
 		// Set global position validity
 		bool global_pos_stale = (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT);
 		if (status_flags.condition_global_position_valid
-			   && (global_pos_stale || global_pos_inaccurate)) {
+			   && (global_pos_stale || global_pos_inaccurate || global_vel_inaccurate)) {
 			status_flags.condition_global_position_valid = false;
 			set_tune_override(TONE_GPS_WARNING_TUNE);
 			status_changed = true;
 		} else if (!status_flags.condition_global_position_valid
 			   && !global_pos_stale
-			   && !global_pos_inaccurate) {
+			   && !global_pos_inaccurate
+			   && !local_vel_inaccurate) {
 			status_flags.condition_global_position_valid = true;
 			status_changed = true;
 		}
@@ -2155,12 +2185,13 @@ int commander_thread_main(int argc, char *argv[])
 		// Set local position validity
 		bool local_pos_stale = (hrt_absolute_time() - local_position.timestamp > POSITION_TIMEOUT);
 		if (status_flags.condition_local_position_valid
-			   && (local_pos_stale || !local_position.xy_valid || local_pos_inaccurate)) {
+			   && (local_pos_stale || !local_position.xy_valid || local_pos_inaccurate || local_vel_inaccurate)) {
 			status_flags.condition_local_position_valid = false;
 			status_changed = true;
 		} else if (!status_flags.condition_local_position_valid
 			   && !local_pos_stale
 			   && !local_pos_inaccurate
+			   && !local_vel_inaccurate
 			   && local_position.xy_valid) {
 			status_flags.condition_local_position_valid = true;
 			status_changed = true;
@@ -2365,12 +2396,8 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/*
-		 * Check for valid position information.
-		 *
-		 * If the system has a valid position source from an onboard
-		 * position estimator, it is safe to operate it autonomously.
-		 * The flag_vector_flight_mode_ok flag indicates that a minimum
-		 * set of position measurements is available.
+		 * Check GPS fix quality. Note that this check augments the position validity
+		 * checks and adds an additional level of protection.
 		 */
 
 		orb_check(gps_sub, &updated);
@@ -3181,6 +3208,7 @@ get_circuit_breaker_params()
 	status_flags.circuit_breaker_engaged_enginefailure_check = circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
 	status_flags.circuit_breaker_engaged_gpsfailure_check = circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 	status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled("CBRK_VELPOSERR", CBRK_VELPOSERR_KEY);
 }
 
 void
