@@ -1039,10 +1039,10 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 {
 	bool fallback_required = false;
 
-	if (using_global_pos && !status_flags->condition_global_position_valid) {
+	if (using_global_pos && (!status_flags->condition_global_position_valid || !status_flags->condition_global_velocity_valid)) {
 		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_global_position);
 		fallback_required = true;
-	} else if (!using_global_pos && !status_flags->condition_local_position_valid) {
+	} else if (!using_global_pos && (!status_flags->condition_local_position_valid || !status_flags->condition_local_velocity_valid)) {
 		enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
 		fallback_required = true;
 	}
