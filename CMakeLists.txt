@@ -154,6 +154,10 @@ set(THREADS "4" CACHE STRING "number of threads to use for external build proces
 set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
+endif()
+
 #=============================================================================
 # configuration
 #

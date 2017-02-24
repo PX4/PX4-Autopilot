@@ -1041,7 +1041,7 @@ function(px4_generate_parameters_xml)
 
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${module_list}
+			-s ${module_list} ${EXTERNAL_MODULES_LOCATION}
 			--board CONFIG_ARCH_${BOARD} --xml --inject-xml
 			--overrides ${OVERRIDES}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
