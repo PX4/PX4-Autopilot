@@ -8,7 +8,7 @@ uorb start
 
 if rgbled start
 then
-	rgbled rgb 20 20 255
+	led_control on -c blue
 fi
 
 if sercon
@@ -122,11 +122,11 @@ if tests all
 then
 	echo
 	echo "All Unit Tests PASSED"
-	rgbled rgb 20 255 20
+	led_control on -c green
 else
 	echo
 	echo "Some Unit Tests FAILED"
-	rgbled rgb 255 20 20
+	led_control on -c red
 fi
 
 free
