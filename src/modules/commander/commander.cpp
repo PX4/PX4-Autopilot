@@ -3163,7 +3163,7 @@ int commander_thread_main(int argc, char *argv[])
 		warn("join failed: %d", ret);
 	}
 
-	rgbled_set_mode(RGBLED_MODE_OFF);
+	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
 
 	/* close fds */
 	led_deinit();
@@ -3226,6 +3226,8 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	/* driving rgbled */
 	if (changed || last_overload != overload) {
+		uint8_t led_mode = led_control_s::MODE_OFF;
+		uint8_t led_color;
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
@@ -3233,47 +3235,53 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 		/* set mode */
 		if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
-			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
-			rgbled_set_color(RGBLED_COLOR_PURPLE);
-			set_normal_color = false;
+			led_mode = led_control_s::MODE_BLINK_FAST;
+			led_color = led_control_s::COLOR_PURPLE;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			rgbled_set_mode(RGBLED_MODE_ON);
+			led_color = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR || (!status_flags.condition_system_sensors_initialized && hotplug_timeout)) {
-			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
-			rgbled_set_color(RGBLED_COLOR_RED);
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR ||
+				(!status_flags.condition_system_sensors_initialized && hotplug_timeout)) {
+			led_mode = led_control_s::MODE_BLINK_FAST;
+			led_color = led_control_s::COLOR_RED;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-			rgbled_set_mode(RGBLED_MODE_BREATHE);
+			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
 		} else if (!status_flags.condition_system_sensors_initialized && !hotplug_timeout) {
-			rgbled_set_mode(RGBLED_MODE_BREATHE);
+			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
-
+		}else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+			// if in init status it should not be in the error state
+			led_mode = led_control_s::MODE_OFF;
 		} else {	// STANDBY_ERROR and other states
-			rgbled_set_mode(RGBLED_MODE_BLINK_NORMAL);
-			rgbled_set_color(RGBLED_COLOR_RED);
+			led_mode = led_control_s::MODE_BLINK_NORMAL;
+			led_color = led_control_s::COLOR_RED;
 		}
 
 		if (set_normal_color) {
 			/* set color */
 			if (status.failsafe) {
-				rgbled_set_color(RGBLED_COLOR_PURPLE);
+				led_color = led_control_s::COLOR_PURPLE;
+
 			} else if (battery_local->warning == battery_status_s::BATTERY_WARNING_LOW) {
-				rgbled_set_color(RGBLED_COLOR_AMBER);
+				led_color = led_control_s::COLOR_AMBER;
 			} else if (battery_local->warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
-				rgbled_set_color(RGBLED_COLOR_RED);
+				led_color = led_control_s::COLOR_RED;
 			} else {
 				if (status_flags.condition_home_position_valid && status_flags.condition_global_position_valid) {
-					rgbled_set_color(RGBLED_COLOR_GREEN);
+					led_color = led_control_s::COLOR_GREEN;
 
 				} else {
-					rgbled_set_color(RGBLED_COLOR_BLUE);
+					led_color = led_control_s::COLOR_BLUE;
 				}
 			}
+		}
+		if (led_mode != led_control_s::MODE_OFF) {
+			rgbled_set_color_and_mode(led_color, led_mode);
 		}
 	}
 
