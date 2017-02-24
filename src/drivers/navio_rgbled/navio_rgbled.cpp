@@ -68,12 +68,10 @@ RGBLED::~RGBLED()
 
 int RGBLED::start()
 {
-	int res;
-
-	res = DevObj::init();
+	int res = DevObj::init();
 
 	if (res != 0) {
-		DF_LOG_ERR("error: could not init DevObj");
+		DF_LOG_ERR("could not init DevObj (%i)", res);
 		return res;
 	}
 
@@ -86,7 +84,14 @@ int RGBLED::start()
 	// update at fixed interval
 	DevObj::setSampleInterval(_led_controller.maximum_update_interval());
 
-	return 0;
+	res = DevObj::start();
+
+	if (res != 0) {
+		DF_LOG_ERR("could not start DevObj (%i)", res);
+		return res;
+	}
+
+	return res;
 }
 
 int RGBLED::stop()
@@ -98,7 +103,7 @@ int RGBLED::stop()
 	res = DevObj::stop();
 
 	if (res < 0) {
-		DF_LOG_ERR("error: could not stop DevObj");
+		DF_LOG_ERR("could not stop DevObj");
 		//this may not be an error for this device
 		return res;
 	}
@@ -208,7 +213,7 @@ int stop()
 
 void usage()
 {
-	PX4_WARN("Usage: navio_rgbled 'start', 'stop'");
+	PX4_INFO("Usage: navio_rgbled 'start', 'stop'");
 }
 
 } //namespace navio_rgbled
