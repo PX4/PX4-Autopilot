@@ -75,7 +75,7 @@ endif()
 if(FORMAT)
 	set(astyle_exe ${CMAKE_BINARY_DIR}/astyle/src/bin/astyle)
 	add_custom_command(OUTPUT ${astyle_exe}
-		COMMAND wget http://sourceforge.net/projects/astyle/files/astyle/astyle%202.05.1/astyle_2.05.1_linux.tar.gz -O /tmp/astyle.tar.gz
+		COMMAND wget http://sourceforge.net/projects/astyle/files/astyle/astyle%202.06/astyle_2.06_linux.tar.gz -O /tmp/astyle.tar.gz
 		COMMAND tar -xvf /tmp/astyle.tar.gz
 		COMMAND cd astyle/src && make -f ../build/gcc/Makefile
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}

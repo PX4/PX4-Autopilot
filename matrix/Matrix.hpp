@@ -119,7 +119,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j)*other(i, j);
+                res(i, j) = self(i, j)*other(i, j);
             }
         }
 
@@ -133,7 +133,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j)/other(i, j);
+                res(i, j) = self(i, j)/other(i, j);
             }
         }
 
@@ -147,7 +147,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j) + other(i, j);
+                res(i, j) = self(i, j) + other(i, j);
             }
         }
 
@@ -161,7 +161,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j) - other(i, j);
+                res(i, j) = self(i, j) - other(i, j);
             }
         }
 
@@ -176,7 +176,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = -self(i, j);
+                res(i, j) = -self(i, j);
             }
         }
 
@@ -213,7 +213,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j) * scalar;
+                res(i, j) = self(i, j) * scalar;
             }
         }
 
@@ -232,7 +232,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                res(i , j) = self(i, j) + scalar;
+                res(i, j) = self(i, j) + scalar;
             }
         }
 
@@ -491,7 +491,7 @@ bool isEqual(const Matrix<Type, M, N> &x,
 
     for (size_t i = 0; i < M; i++) {
         for (size_t j = 0; j < N; j++) {
-            if (fabs(x(i , j) - y(i, j)) > eps) {
+            if (fabs(x(i, j) - y(i, j)) > eps) {
                 equal = false;
                 break;
             }
