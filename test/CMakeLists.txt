@@ -26,7 +26,7 @@ foreach(test_name ${tests})
 	add_dependencies(test_build ${test_name})
 endforeach()
 
-if (${CMAKE_BUILD_TYPE} STREQUAL "Profile")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
 
 	add_custom_target(coverage_build
 		COMMAND ${CMAKE_CTEST_COMMAND}

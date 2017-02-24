@@ -1,17 +1,40 @@
 language: c
-sudo: false
-install:
-  - pip install --user cpp-coveralls
-script:
-  - cmake -DCMAKE_BUILD_TYPE=Profile -DTESTING=ON -DFORMAT=ON .
-  - make check
-after_success:
-  - cpp-coveralls -i matrix
+
 env:
   global:
   - export COVERALLS_SERVICE_NAME=travis-ci
   - secure: "dA+jGAR9O3f+xsh6h7e7coeM0dU1vHiiM7kIPh5TvbbifDQiF5s2uxFQziZVSnLuohRD9oNODiJFz077n+svp7S9t77sdks0+7r61pkD5LlVItZ6ol5jQCfiksyMw6q5ChEes9KSKEfdFRjuDvQUHwShgpsXVAurizA2Hs3MziWxfIlOPULY4UCCm5+TLoY+vXmfFc4bwk2knxpIP8pYRd+xKYAiN9QC1fJiglipuKHaYbo2+ZYrM92RD0Cl+BZdWyI7vD7zmeXV6mstzAFZ20c63NhNNCYRy0VIC3hLB8zKMuvCZdJnpmSRfFt5uJYJPNcORc1ypeY7/CGMm5Rq1lNwxehFO3/++/aHE8H7GR0cTiKndPO0jDu48j+GUB4k1HHSsVEpj7vO7F3FOO0619xxybDFk1zFjHw8KTbdSXmBERldYAKZOP0JKZxp6CU5DXOO2dunumZAzl6WHJjhRMPFqPheE4e+I2YOEHvXTwDcEO/lMwacr6nuaZZXxEh/TwEdqsIRd9bvsoG1zuVQnZm+atLp3oF4QW8nI5l6qe6R+3l5dEgJGtz5hOsiEpWrwWk6ub2VCdELcgpPZyZcdwu/bKvXx3ndW6LjqzcLxMGxM3rdxx6J+b7Es/vkmT1SXFcxiUjpKkUf04Bb8SmGdbJdAKRZuSRFtjqsU0tHPfo="
+
+matrix:
+  fast_finish: true
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+      env: CMAKE_BUILD_TYPE=Coverage
+    - os: linux
+      dist: trusty
+      compiler: clang
+      env: CMAKE_BUILD_TYPE=Release CC=clang CXX=clang++
+    - os: osx
+      osx_image: xcode8
+      env: CMAKE_BUILD_TYPE=Release
+
 addons:
   apt:
     packages:
-      - cmake
+    - cmake
+    - gcc
+    - g++
+    - clang
+
+install:
+  - pip install --user cpp-coveralls
+
+script:
+  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DTESTING=ON -DFORMAT=ON .
+  - make check
+
+after_success:
+  - if [[ "${CMAKE_BUILD_TYPE}" = "Coverage" && "${TRAVIS_BRANCH}" == "master" ]]; then cpp-coveralls -i matrix; fi
+

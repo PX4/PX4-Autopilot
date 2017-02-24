@@ -7,69 +7,82 @@ set(VERSION_PATCH "2")
 project(matrix CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Profile" CACHE STRING "Build type" FORCE)
+	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
 
-set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-	STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Profile")
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage")
 
-option(SUPPORT_STDIOSTREAM
-	"If enabled provides support for << operator (as used with std::cout)" OFF)
+option(SUPPORT_STDIOSTREAM "If enabled provides support for << operator (as used with std::cout)" OFF)
 option(TESTING "Enable testing" OFF)
 option(FORMAT "Enable formatting" OFF)
 option(COV_HTML "Display html for coverage" OFF)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include_directories(${CMAKE_SOURCE_DIR})
 
 if(SUPPORT_STDIOSTREAM)
 	add_definitions(-DSUPPORT_STDIOSTREAM)
 endif()
 
-set(CMAKE_CXX_FLAGS_PROFILE
-	${CMAKE_CXX_FLAGS_DEBUG}
-	--coverage
-	-fno-inline
-	-fno-inline-small-functions
-	-fno-default-inline
-	)
-string(REPLACE ";" " " CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE}")
+set(CMAKE_CXX_FLAGS_COVERAGE
+	"--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
+	CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+	"--coverage -ftest-coverage -lgcov"
+	CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE CMAKE_EXE_LINKER_FLAGS_COVERAGE)
 
-set(CMAKE_CXX_FLAGS
-	${CMAKE_CXX_FLAGS}
+add_compile_options(
+	-pedantic
 	-Wall
-	-Wno-sign-compare
-	-Wextra
-	-Wshadow
-	-Wfloat-equal
-	-Wpointer-arith
-	-Wmissing-declarations
-	-Wno-unused-parameter
-	-Werror=format-security
-	-Werror=array-bounds
-	#-Wfatal-errors
-	-Werror=unused-variable
-	-Werror=reorder
-	-Werror=uninitialized
-	-Werror=init-self
+	-Warray-bounds
+	-Wcast-align
 	-Wcast-qual
 	-Wconversion
-	-Wcast-align
+	-Wctor-dtor-privacy
+	-Wdisabled-optimization
 	-Werror
-	-pedantic -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2
-	-Winit-self -Wlogical-op -Wmissing-declarations
-	-Wmissing-include-dirs -Wnoexcept -Wold-style-cast
-	-Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion
-	-Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5
-	-Wswitch-default -Wundef -Werror -Wno-unused
+	-Wextra
+	-Wfloat-equal
+	-Wformat-security
+	-Wformat=2
+	-Winit-self
+	-Wlogical-op
+	-Wmissing-declarations
+	-Wmissing-include-dirs
+	-Wno-sign-compare
+	-Wno-unused
+	-Wno-unused-parameter
+	-Wnoexcept
+	-Wold-style-cast
+	-Woverloaded-virtual
+	-Wpointer-arith
+	-Wredundant-decls
+	-Wreorder
+	-Wshadow
+	-Wsign-conversion
+	-Wsign-promo
+	-Wstrict-null-sentinel
+	-Wstrict-overflow=5
+	-Wswitch-default
+	-Wundef
+	-Wuninitialized
+	-Wunused-variable
 	)
-string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-include_directories(${CMAKE_SOURCE_DIR})
+# clang tolerate unknown gcc options
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	add_compile_options(-Wno-error=unused-command-line-argument-hard-error-in-future -Wno-unknown-warning-option)
+endif()
 
-file(GLOB_RECURSE COV_SRCS matrix/*.hpp matrix/*.cpp)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
 
 if(TESTING)
 	enable_testing()
 	add_subdirectory(test)
+	add_dependencies(check test_build)
 endif()
 
 if(FORMAT)
@@ -94,11 +107,8 @@ if(FORMAT)
 		VERBATIM
 		DEPENDS ${astyle_exe}
 	)
-endif()
 
-if(TESTING AND FORMAT)
-	add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
-	add_dependencies(check test_build check_format)
+	add_dependencies(check check_format)
 endif()
 
 set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})

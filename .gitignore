@@ -1,10 +1,12 @@
 *.orig
 *.swp
+*~
 astyle/
 build*/
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
+compile_commands.json
 CPackConfig.cmake
 CPackSourceConfig.cmake
 CTestTestfile.cmake
@@ -12,6 +14,7 @@ Makefile
 test/attitude
 test/cmake_install.cmake
 test/CMakeFiles/
+test/coverage.info
 test/CTestTestfile.cmake
 test/filter
 test/hatvee
@@ -22,6 +25,7 @@ test/Makefile
 test/matrixAssignment
 test/matrixMult
 test/matrixScalarMult
+test/out/
 test/setIdentity
 test/slice
 test/squareMatrix
