@@ -42,10 +42,12 @@ extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
 class SendEvent
 {
 public:
-	/** Start background listening for commands
+	SendEvent();
+
+	/** Initialize class in the same context as the work queue. And start the background listener.
 	 *
-	 * @return 0 if successfull, -1 on error. */
-	int start();
+	 * @return 0 if successful, <0 on error */
+	static int initialize();
 
 	/** Stop background listener */
 	void stop();
@@ -55,6 +57,15 @@ public:
 	void print_status();
 
 private:
+
+	/** Start background listening for commands
+	 *
+	 * @return 0 if successful, <0 on error. */
+	int start();
+
+
+	/** Trampoline for initialisation. */
+	static void initialize_trampoline(void *arg);
 	/** Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
@@ -69,7 +80,7 @@ private:
 
 	volatile bool _task_should_exit = false;
 	volatile bool _task_is_running = false;
-	struct work_s _work = {};
+	static struct work_s _work;
 	int _vehicle_command_sub = -1;
 	orb_advert_t _command_ack_pub = nullptr;
 };
