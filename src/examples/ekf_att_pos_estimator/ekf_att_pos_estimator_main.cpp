@@ -955,6 +955,12 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.v_z_valid = true;
 	_local_pos.xy_global = _gps_initialized; //TODO: Handle optical flow mode here
 
+	// TODO provide calculated values for these
+	_local_pos.eph = 0.0f;
+	_local_pos.epv = 0.0f;
+	_local_pos.evh = 0.0f;
+	_local_pos.evv = 0.0f;
+
 	_local_pos.z_global = false;
 	matrix::Eulerf euler = matrix::Quatf(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	_local_pos.yaw = euler.psi();
@@ -1054,6 +1060,10 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 		// bad data, abort publication
 		return;
 	}
+
+	// TODO provide calculated values for these
+	_global_pos.evh = 0.0f;
+	_global_pos.evv = 0.0f;
 
 	/* lazily publish the global position only once available */
 	if (_global_pos_pub != nullptr) {
