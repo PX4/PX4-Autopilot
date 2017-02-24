@@ -20,6 +20,8 @@ option(SUPPORT_STDIOSTREAM "If enabled provides support for << operator (as used
 option(TESTING "Enable testing" OFF)
 option(FORMAT "Enable formatting" OFF)
 option(COV_HTML "Display html for coverage" OFF)
+option(ASAN "Enable address sanitizer" OFF)
+option(UBSAN "Enable undefined behaviour sanitizer" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -75,7 +77,7 @@ add_compile_options(
 	)
 
 # clang tolerate unknown gcc options
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	add_compile_options(
 		-Wno-error=unused-command-line-argument-hard-error-in-future
 		-Wno-unknown-warning-option
@@ -85,6 +87,38 @@ else()
 		-Wstrict-overflow=5
 		)
 endif()
+
+# santiziers (ASAN, UBSAN)
+if(ASAN)
+	message(STATUS "address sanitizer enabled")
+
+	# environment variables
+	#  ASAN_OPTIONS=detect_stack_use_after_return=1
+	#  ASAN_OPTIONS=check_initialization_order=1
+
+	add_compile_options(
+		-fsanitize=address
+		-g3
+		-O1
+		-fno-omit-frame-pointer
+		)
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address)
+
+elseif(UBSAN)
+	message(STATUS "undefined behaviour sanitizer enabled")
+
+	add_compile_options(
+		-fsanitize=undefined
+		-fsanitize=integer
+		-g3
+		-O1
+		-fno-omit-frame-pointer
+		)
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined)
+endif()
+
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
 
