@@ -210,7 +210,7 @@ RGBLED_PWM::info()
 		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
-		warnx("failed to read led");
+		PX4_WARN("failed to read led");
 	}
 
 	return ret;
@@ -430,7 +430,7 @@ RGBLED_PWM::set_color(rgbled_color_t color)
 		break;
 
 	default:
-		warnx("color unknown");
+		PX4_WARN("color unknown");
 		break;
 	}
 }
@@ -495,7 +495,7 @@ RGBLED_PWM::set_mode(rgbled_mode_t mode)
 			break;
 
 		default:
-			warnx("mode unknown");
+			PX4_WARN("mode unknown");
 			break;
 		}
 
@@ -562,7 +562,7 @@ RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 void
 rgbled_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
+	PX4_WARN("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
 }
 
 int
@@ -619,7 +619,7 @@ rgbled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
-		warnx("not started");
+		PX4_WARN("not started");
 		rgbled_usage();
 		exit(1);
 	}
@@ -679,9 +679,9 @@ rgbled_main(int argc, char *argv[])
 		}
 
 		rgbled_rgbset_t v;
-		v.red   = strtol(argv[2], NULL, 0);
-		v.green = strtol(argv[3], NULL, 0);
-		v.blue  = strtol(argv[4], NULL, 0);
+		v.red   = strtol(argv[2], nullptr, 0);
+		v.green = strtol(argv[3], nullptr, 0);
+		v.blue  = strtol(argv[4], nullptr, 0);
 		ret = ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
 		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_ON);
 		close(fd);
