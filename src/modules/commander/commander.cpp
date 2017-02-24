@@ -1427,6 +1427,13 @@ int commander_thread_main(int argc, char *argv[])
 	status_flags.circuit_breaker_engaged_gpsfailure_check = false;
 	get_circuit_breaker_params();
 
+	/* Set position and velocity validty to false */
+	status_flags.condition_global_position_valid = false;
+	status_flags.condition_global_velocity_valid = false;
+	status_flags.condition_local_position_valid = false;
+	status_flags.condition_local_velocity_valid = false;
+	status_flags.condition_local_altitude_valid = false;
+
 	// initialize gps failure to false if circuit breaker enabled
 	if (status_flags.circuit_breaker_engaged_gpsfailure_check) {
 		status_flags.gps_failure = false;
@@ -2119,8 +2126,8 @@ int commander_thread_main(int argc, char *argv[])
 		if (run_quality_checks) {
 			// Check global position accuracy
 			if (status_flags.condition_global_position_valid) {
-				if (global_position.eph < eph_threshold * 2.5f) {
-					global_pos_inaccurate = false;
+				if (global_position.eph > eph_threshold * 2.5f) {
+					global_pos_inaccurate = true;
 				}
 			} else {
 				if (global_position.eph < eph_threshold) {
@@ -2130,8 +2137,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			// Check local position accuracy
 			if (status_flags.condition_local_position_valid) {
-				if (local_position.eph < eph_threshold * 2.5f) {
-					local_pos_inaccurate = false;
+				if (local_position.eph > eph_threshold * 2.5f) {
+					local_pos_inaccurate = true;
 				}
 			} else {
 				if (local_position.eph < eph_threshold) {
@@ -2141,8 +2148,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			// Check global velocity accuracy
 			if (status_flags.condition_global_velocity_valid) {
-				if (global_position.evh < evh_threshold * 2.5f) {
-					global_vel_inaccurate = false;
+				if (global_position.evh > evh_threshold * 2.5f) {
+					global_vel_inaccurate = true;
 				}
 			} else {
 				if (global_position.eph < eph_threshold) {
@@ -2152,8 +2159,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			// Check local velocity accuracy
 			if (status_flags.condition_local_velocity_valid) {
-				if (local_position.evh < evh_threshold * 2.5f) {
-					local_vel_inaccurate = false;
+				if (local_position.evh > evh_threshold * 2.5f) {
+					local_vel_inaccurate = true;
 				}
 			} else {
 				if (local_position.eph < eph_threshold) {
@@ -2167,31 +2174,53 @@ int commander_thread_main(int argc, char *argv[])
 			local_vel_inaccurate = false;
 		}
 
+		// Set global velocity validity
+		bool global_data_stale = (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_global_velocity_valid
+			   && (global_data_stale || global_vel_inaccurate)) {
+			status_flags.condition_global_position_valid = false;
+			status_changed = true;
+		} else if (!status_flags.condition_global_velocity_valid
+			   && !global_data_stale
+			   && !global_vel_inaccurate) {
+			status_flags.condition_global_velocity_valid = true;
+			status_changed = true;
+		}
+
 		// Set global position validity
-		bool global_pos_stale = (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT);
 		if (status_flags.condition_global_position_valid
-			   && (global_pos_stale || global_pos_inaccurate || global_vel_inaccurate)) {
+			   && (global_data_stale || global_pos_inaccurate)) {
 			status_flags.condition_global_position_valid = false;
 			set_tune_override(TONE_GPS_WARNING_TUNE);
 			status_changed = true;
 		} else if (!status_flags.condition_global_position_valid
-			   && !global_pos_stale
-			   && !global_pos_inaccurate
-			   && !local_vel_inaccurate) {
+			   && !global_data_stale
+			   && !global_pos_inaccurate) {
 			status_flags.condition_global_position_valid = true;
 			status_changed = true;
 		}
 
+		// Set local velocity validity
+		bool local_data_stale = (hrt_absolute_time() - local_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_local_velocity_valid
+			   && (local_data_stale || local_vel_inaccurate)) {
+			status_flags.condition_local_velocity_valid = false;
+			status_changed = true;
+		} else if (!status_flags.condition_local_velocity_valid
+			   && !local_data_stale
+			   && !local_vel_inaccurate) {
+			status_flags.condition_local_velocity_valid = true;
+			status_changed = true;
+		}
+
 		// Set local position validity
-		bool local_pos_stale = (hrt_absolute_time() - local_position.timestamp > POSITION_TIMEOUT);
 		if (status_flags.condition_local_position_valid
-			   && (local_pos_stale || !local_position.xy_valid || local_pos_inaccurate || local_vel_inaccurate)) {
+			   && (local_data_stale || !local_position.xy_valid || local_pos_inaccurate)) {
 			status_flags.condition_local_position_valid = false;
 			status_changed = true;
 		} else if (!status_flags.condition_local_position_valid
-			   && !local_pos_stale
+			   && !local_data_stale
 			   && !local_pos_inaccurate
-			   && !local_vel_inaccurate
 			   && local_position.xy_valid) {
 			status_flags.condition_local_position_valid = true;
 			status_changed = true;
