@@ -63,7 +63,6 @@
 /* PX4 headers */
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
 #include <navigator/navigation.h>
