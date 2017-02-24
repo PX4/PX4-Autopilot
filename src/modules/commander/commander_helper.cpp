@@ -59,8 +59,6 @@
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
-#include <drivers/drv_led.h>
-#include <drivers/drv_rgbled.h>
 
 #include "commander_helper.h"
 #include "DevMgr.hpp"

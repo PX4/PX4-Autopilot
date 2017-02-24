@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file drv_led.h
+ * @file drv_board_led.h
  *
- * LED driver API
+ * LED driver API to control the onboard LED(s) via ioctl() interface
  */
 
 #pragma once
