@@ -632,6 +632,9 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().eph = eph;
 		_pub_lpos.get().epv = epv;
 		_pub_lpos.update();
+		//TODO provide calculated values for these
+		_pub_lpos.get().evh = 0.0f;
+		_pub_lpos.get().evv = 0.0f;
 	}
 }
 
@@ -699,6 +702,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
 		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.update();
+		// TODO provide calculated values for these
+		_pub_gpos.get().evh = 0.0f;
+		_pub_gpos.get().evv = 0.0f;
 	}
 }
 
