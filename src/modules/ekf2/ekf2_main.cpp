@@ -730,10 +730,7 @@ void Ekf2::task_main()
 				ctrl_state.z_pos = position[2];
 
 				// Attitude quaternion
-				ctrl_state.q[0] = q(0);
-				ctrl_state.q[1] = q(1);
-				ctrl_state.q[2] = q(2);
-				ctrl_state.q[3] = q(3);
+				q.copyTo(ctrl_state.q);
 
 				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
 
@@ -789,10 +786,7 @@ void Ekf2::task_main()
 				struct vehicle_attitude_s att = {};
 				att.timestamp = hrt_absolute_time();
 
-				att.q[0] = q(0);
-				att.q[1] = q(1);
-				att.q[2] = q(2);
-				att.q[3] = q(3);
+				q.copyTo(att.q);
 
 				att.rollspeed = gyro_rad[0];
 				att.pitchspeed = gyro_rad[1];
