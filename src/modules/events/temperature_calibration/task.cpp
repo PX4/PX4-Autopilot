@@ -231,7 +231,7 @@ void TemperatureCalibration::task_main()
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
 
-			if (ret == -110) {
+			if (ret == -TC_ERROR_INITIAL_TEMP_TOO_HIGH) {
 				abort_calibration = true;
 				PX4_ERR("Calibration won't start - sensor temperature too high");
 				_force_task_exit = true;
