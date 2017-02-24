@@ -57,6 +57,7 @@ set(config_module_list
 	systemcmds/config
 	systemcmds/dumpfile
 	systemcmds/esc_calib
+	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/hardfault_log
 	systemcmds/motor_ramp
@@ -140,6 +141,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
