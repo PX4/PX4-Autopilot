@@ -4,8 +4,8 @@
 
 #include "test_macros.hpp"
 
-using matrix::Vector2f;
 using matrix::Matrix;
+using matrix::Vector2f;
 
 int main()
 {

@@ -2,8 +2,8 @@
 
 #include <matrix/math.hpp>
 
-using matrix::Vector;
 using matrix::isEqualF;
+using matrix::Vector;
 
 int main()
 {
