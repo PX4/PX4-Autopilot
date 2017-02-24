@@ -46,7 +46,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+#include <drivers/drv_led.h>
 #include <drivers/drv_board_led.h>
 
 
@@ -76,8 +76,11 @@ int led_toggle(int led);
 int led_on(int led);
 int led_off(int led);
 
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
+/**
+ * set the LED color & mode
+ * @param color @see led_control_s::COLOR_*
+ * @param mode @see led_control_s::MODE_*
+ */
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode);
 
 #endif /* COMMANDER_HELPER_H_ */
