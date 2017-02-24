@@ -8,12 +8,6 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "math.hpp"
 #include "helper_functions.hpp"
 

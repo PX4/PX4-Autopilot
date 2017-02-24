@@ -8,11 +8,10 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+
 #if defined(SUPPORT_STDIOSTREAM)
 #include <iostream>
 #include <iomanip>
@@ -36,25 +35,20 @@ public:
 
     virtual ~Matrix() {};
 
-    Matrix() :
-        _data()
-    {
-    }
+    // Constructors
+    Matrix() : _data() {}
 
-    Matrix(const Type data_[][N]) :
-        _data()
+    Matrix(const Type data_[][N]) : _data()
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Type *data_) :
-        _data()
+    Matrix(const Type *data_) : _data()
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Matrix &other) :
-        _data()
+    Matrix(const Matrix &other) : _data()
     {
         memcpy(_data, other._data, sizeof(_data));
     }
@@ -519,7 +513,7 @@ bool isEqualF(Type x,
 
     bool equal = true;
 
-    if (fabsf(x - y) > eps) {
+    if (fabs(x - y) > eps) {
         equal = false;
     }
 

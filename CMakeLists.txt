@@ -6,6 +6,9 @@ set(VERSION_PATCH "2")
 
 project(matrix CXX)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
 	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
@@ -65,7 +68,6 @@ add_compile_options(
 	-Wsign-conversion
 	-Wsign-promo
 	-Wstrict-null-sentinel
-	-Wstrict-overflow=5
 	-Wswitch-default
 	-Wundef
 	-Wuninitialized
@@ -74,7 +76,14 @@ add_compile_options(
 
 # clang tolerate unknown gcc options
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_compile_options(-Wno-error=unused-command-line-argument-hard-error-in-future -Wno-unknown-warning-option)
+	add_compile_options(
+		-Wno-error=unused-command-line-argument-hard-error-in-future
+		-Wno-unknown-warning-option
+		)
+else()
+	add_compile_options(
+		-Wstrict-overflow=5
+		)
 endif()
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
@@ -83,6 +92,9 @@ if(TESTING)
 	enable_testing()
 	add_subdirectory(test)
 	add_dependencies(check test_build)
+
+	add_custom_target(clang-tidy COMMAND clang-tidy -p . ${CMAKE_SOURCE_DIR}/test/*.cpp)
+	add_dependencies(clang-tidy test_build)
 endif()
 
 if(FORMAT)

@@ -17,7 +17,6 @@
 
 #include "math.hpp"
 
-
 namespace matrix
 {
 
@@ -29,7 +28,6 @@ class Euler;
 
 template<typename Type>
 class AxisAngle;
-
 
 /**
  * Direction cosine matrix class

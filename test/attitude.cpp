@@ -1,21 +1,20 @@
-#include <cstdio>
-#include <stdexcept>
-
-#include <matrix/math.hpp>
 #include "test_macros.hpp"
+#include <matrix/math.hpp>
 
-using namespace matrix;
-
-// important to list all classes here for coverage
-template class Quaternion<float>;
-template class Euler<float>;
-template class Dcm<float>;
-template class AxisAngle<float>;
-template class Scalar<float>;
-template class SquareMatrix<float, 2>;
-template class Vector<float, 3>;
-template class Vector2<float>;
-template class Vector3<float>;
+using matrix::AxisAnglef;
+using matrix::Dcm;
+using matrix::Dcmf;
+using matrix::Euler;
+using matrix::Eulerf;
+using matrix::eye;
+using matrix::isEqualF;
+using matrix::Matrix;
+using matrix::Quaternion;
+using matrix::Quatf;
+using matrix::SquareMatrix;
+using matrix::Vector3f;
+using matrix::Vector;
+using matrix::zeros;
 
 int main()
 {
@@ -51,10 +50,10 @@ int main()
     // quaternion ctor
     Quatf q0(1, 2, 3, 4);
     Quatf q(q0);
-    TEST(fabs(q(0) - 1) < eps);
-    TEST(fabs(q(1) - 2) < eps);
-    TEST(fabs(q(2) - 3) < eps);
-    TEST(fabs(q(3) - 4) < eps);
+    TEST(fabsf(q(0) - 1) < eps);
+    TEST(fabsf(q(1) - 2) < eps);
+    TEST(fabsf(q(2) - 3) < eps);
+    TEST(fabsf(q(3) - 4) < eps);
 
     // quat normalization
     q.normalize();
@@ -102,10 +101,12 @@ int main()
     for (size_t i = 0; i < 1000; i++) {
         A = R * A;
     }
+
     A.renormalize();
     float err = 0.0f;
-    for (size_t row = 0; row < 3; row++) {
-        matrix::Vector3f rvec(A._data[row]);
+
+    for (auto & row : A._data) {
+        Vector3f rvec(row);
         err += fabsf(1.0f - rvec.length());
     }
     TEST(err < eps);

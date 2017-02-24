@@ -1,13 +1,13 @@
-#include <stdio.h>
-
-#include <matrix/integration.hpp>
 #include "test_macros.hpp"
+#include <matrix/integration.hpp>
 
-using namespace matrix;
+using matrix::Matrix;
+using matrix::ones;
+using matrix::Vector;
 
-Vector<float, 6> f(float t, const Matrix<float, 6, 1> & y, const Matrix<float, 3, 1> & u);
+Vector<float, 6> f(float t, const Matrix<float, 6, 1> &  /*y*/, const Matrix<float, 3, 1> &  /*u*/);
 
-Vector<float, 6> f(float t, const Matrix<float, 6, 1> & y, const Matrix<float, 3, 1> & u) {
+Vector<float, 6> f(float t, const Matrix<float, 6, 1> &  /*y*/, const Matrix<float, 3, 1> &  /*u*/) {
     float v = -sinf(t);
     return v*ones<float, 6, 1>();
 }

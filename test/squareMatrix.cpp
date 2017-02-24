@@ -1,11 +1,9 @@
-#include <stdio.h>
 #include "test_macros.hpp"
 
 #include <matrix/math.hpp>
 
-using namespace matrix;
-
-template class SquareMatrix<float, 3>;
+using matrix::SquareMatrix;
+using matrix::Vector3;
 
 int main()
 {

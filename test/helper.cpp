@@ -1,10 +1,10 @@
-#include <stdio.h>
-
-#include <matrix/helper_functions.hpp>
 #include "test_macros.hpp"
+#include <matrix/helper_functions.hpp>
 
-using namespace matrix;
-
+using matrix::isEqual;
+using matrix::isEqualF;
+using matrix::Vector3f;
+using matrix::wrap_pi;
 
 int main()
 {

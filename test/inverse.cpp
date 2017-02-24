@@ -1,14 +1,10 @@
-#include <stdio.h>
-
-#include <matrix/math.hpp>
 #include "test_macros.hpp"
+#include <matrix/math.hpp>
 
-using namespace matrix;
+using matrix::SquareMatrix;
+using matrix::zeros;
 
 static const size_t n_large = 50;
-
-template class SquareMatrix<float, 3>;
-template class SquareMatrix<float, n_large>;
 
 int main()
 {

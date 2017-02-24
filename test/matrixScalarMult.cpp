@@ -1,9 +1,8 @@
-#include <stdio.h>
-
-#include <matrix/math.hpp>
 #include "test_macros.hpp"
 
-using namespace matrix;
+#include <matrix/math.hpp>
+
+using matrix::Matrix3f;
 
 int main()
 {

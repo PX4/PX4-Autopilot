@@ -1,14 +1,7 @@
 #pragma once
 
 #include "math.hpp"
-
-// grody hack - this should go once C++11 is supported
-// on all platforms.
-#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
-#include <math.h>
-#else
 #include <cmath>
-#endif
 
 namespace matrix
 {

@@ -22,7 +22,7 @@ template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
 {
 public:
-    virtual ~Vector() {};
+    ~Vector() override = default;
 
     typedef Matrix<Type, M, 1> MatrixM1;
 

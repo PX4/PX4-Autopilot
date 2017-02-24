@@ -1,9 +1,11 @@
-#include <stdio.h>
-
-#include <matrix/filter.hpp>
 #include "test_macros.hpp"
+#include <matrix/filter.hpp>
 
-using namespace matrix;
+using matrix::Matrix;
+using matrix::kalman_correct;
+using matrix::eye;
+using matrix::SquareMatrix;
+using matrix::Vector;
 
 int main()
 {
