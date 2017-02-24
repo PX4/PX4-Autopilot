@@ -70,7 +70,7 @@ int LedController::update(LedControlData &control_data)
 
 	// handle state updates
 	hrt_abstime now = hrt_absolute_time();
-	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100);
+	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100); // Note: this is in 0.1ms
 
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
 		bool do_not_change_state = false;
@@ -106,7 +106,7 @@ int LedController::update(LedControlData &control_data)
 					_states[i].current_blinking_time -= current_blink_duration;
 
 					if (cur_data.blink_times_left == 254) {
-						// handle toggling for infinite case
+						// handle toggling for infinite case: toggle between 254 and 255
 						cur_data.blink_times_left = 255;
 						do_not_change_state = true;
 

@@ -91,12 +91,12 @@ public:
 	 */
 	int update(LedControlData &control_data);
 
-	static const int BLINK_FAST_DURATION = 100 *
-					       1000; ///< duration of half a blinking cycle (on-to-off and off-to-on) in us
-	static const int BLINK_NORMAL_DURATION = 500 *
-			1000; ///< duration of half a blinking cycle (on-to-off and off-to-on) in us
-	static const int BLINK_SLOW_DURATION = 2000 *
-					       1000; ///< duration of half a blinking cycle (on-to-off and off-to-on) in us
+	static const int BLINK_FAST_DURATION = 100 * 1000; /**< duration of half a blinking cycle
+									(on-to-off and off-to-on) in us */
+	static const int BLINK_NORMAL_DURATION = 500 * 1000; /**< duration of half a blinking cycle
+									(on-to-off and off-to-on) in us */
+	static const int BLINK_SLOW_DURATION = 2000 * 1000; /**< duration of half a blinking cycle
+									(on-to-off and off-to-on) in us */
 
 	int led_control_subscription() const { return _led_control_sub; }
 
@@ -135,7 +135,7 @@ private:
 
 	struct PerLedData {
 		PerPriorityData priority[led_control_s::MAX_PRIORITY + 1];
-		uint16_t current_blinking_time = 0; ///< how long the Led was in current state (in 0.1 ms)
+		uint16_t current_blinking_time = 0; ///< how long the Led was in current state (in 0.1 ms, wraps if > 6.5s)
 		NextState next_state;
 	};
 
