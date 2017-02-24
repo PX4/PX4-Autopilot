@@ -68,7 +68,7 @@ usage()
 		"\t-t <defualt tunes>\tPlay the default (1...15) (default=1)\n"
 		"\t-f <frequency>\t\tFrequency from 0-20kHz\n"
 		"\t-d <duration>\t\tDuration of the tone in us\n"
-		"\t-s <strength>\t\tStrenght of the tone between 0-100\n"
+		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
 		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
 	);
 }
@@ -88,7 +88,7 @@ static void publish_tune_control(tune_control_s &tune_control)
 int
 tune_control_main(int argc, char *argv[])
 {
-	output::Tunes tunes;
+	Tunes tunes;
 	bool string_input = false;
 	const char *tune_string  = NULL;
 	int myoptind = 1;
