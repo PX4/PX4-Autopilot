@@ -48,7 +48,7 @@ namespace uORB
 {
 
 /**
- * Base subscription warapper class, used in list traversal
+ * Base subscription wrapper class, used in list traversal
  * of various subscriptions.
  */
 class __EXPORT SubscriptionBase
@@ -85,6 +85,7 @@ public:
 	virtual ~SubscriptionBase();
 
 // accessors
+	void setMeta(const struct orb_metadata *meta);
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() const { return _handle; }
 
@@ -99,6 +100,7 @@ protected:
 	void setHandle(int handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
+	unsigned _interval;
 	int _instance;
 	int _handle;
 private:

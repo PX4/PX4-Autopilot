@@ -93,11 +93,13 @@ set(config_module_list
 	modules/commander
 	modules/events
 	modules/load_mon
-	modules/navigator
-	modules/mavlink
 	modules/gpio_led
-	#modules/uavcan
+	modules/mavlink
+	modules/navigator
 	modules/land_detector
+	modules/stick_mapper
+	#modules/tempcal
+	#modules/uavcan
 
 	#
 	# Estimation modules

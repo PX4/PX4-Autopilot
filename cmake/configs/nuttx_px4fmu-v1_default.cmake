@@ -70,6 +70,7 @@ set(config_module_list
 	modules/mavlink
 	modules/gpio_led
 	modules/land_detector
+	modules/stick_mapper
 
 	#
 	# Estimation modules

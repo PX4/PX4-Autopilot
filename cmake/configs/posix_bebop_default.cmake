@@ -68,6 +68,7 @@ set(config_module_list
 	modules/uORB
 	modules/dataman
 	modules/land_detector
+	modules/stick_mapper
 	modules/navigator
 	modules/mavlink
 

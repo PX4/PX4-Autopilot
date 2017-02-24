@@ -294,7 +294,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 /**
  * Yaw feed forward
  *
- * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
+ * Feed forward weight for manual yaw control. 0 will give slow response and no overshot, 1 - fast response and big overshot.
  *
  * @min 0.0
  * @max 1.0

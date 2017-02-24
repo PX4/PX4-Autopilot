@@ -70,7 +70,7 @@ protected:
 };
 
 /**
- * Parameters that are tied to blocks for updating and nameing.
+ * Parameters that are tied to blocks for updating and naming.
  */
 
 template <class T>
@@ -98,7 +98,7 @@ typedef BlockParam<int> BlockParamInt;
 /**
  * Same as BlockParam, but in addition with a pointer to an external field that will be
  * set to the value of the parameter.
- * (BlockParam should be prefered over this)
+ * (BlockParam should be preferred over this)
  */
 template <class T>
 class BlockParamExt : public BlockParam<T>

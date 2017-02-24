@@ -38,11 +38,12 @@ set(msg_file_names
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	att_ctrl_status.msg
 	att_pos_mocap.msg
 	battery_status.msg
 	camera_trigger.msg
-	commander_state.msg
 	collision_report.msg
+	commander_state.msg
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
@@ -69,7 +70,6 @@ set(msg_file_names
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
-	mc_att_ctrl_status.msg
 	mc_virtual_attitude_setpoint.msg
 	mc_virtual_rates_setpoint.msg
 	mission.msg
@@ -110,8 +110,8 @@ set(msg_file_names
 	ulog_stream_ack.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
-	vehicle_command_ack.msg
 	vehicle_command.msg
+	vehicle_command_ack.msg
 	vehicle_control_mode.msg
 	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
