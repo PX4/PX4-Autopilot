@@ -40,6 +40,9 @@
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 
+#include <uORB/topics/mc_virtual_attitude_setpoint.h>
+#include <uORB/topics/mc_virtual_rates_setpoint.h>
+
 using math::constrain;
 using math::min;
 using math::max;
@@ -50,30 +53,6 @@ using matrix::Quatf;
 
 StickMapper::StickMapper() :
 	SuperBlock(NULL, "SM"),
-
-	// manual input scaling
-	_man_roll_scale(0.0f),
-	_man_pitch_scale(0.0f),
-	_man_yaw_scale(0.0f),
-
-	// acro maximum rates
-	_acro_roll_max(0.0f),
-	_acro_pitch_max(0.0f),
-	_acro_yaw_max(0.0f),
-
-	// roll and pitch offsets
-	_man_roll_max(0.0f),
-	_man_pitch_max(0.0f),
-
-	_roll_offset(0.0f),
-	_pitch_offset(0.0f),
-
-	_taskShouldExit(false),
-	_taskIsRunning(false),
-	_work{},
-
-	_polls(),
-	_timestamp(hrt_absolute_time()),
 
 	// subscriptions
 	_manual_control_setpoint_sub(ORB_ID(manual_control_setpoint), 0, 0, &getSubscriptions()),
@@ -158,12 +137,16 @@ StickMapper::cycle()
 	// set correct uORB ID, depending on if vehicle is VTOL or not
 	if (status_updated) {
 		if (_vehicle_status_sub.get().is_vtol) {
+			if (_vehicle_status_sub.get().is_rotary_wing) {
+				_actuator_controls_0_pub.setMeta(ORB_ID(actuator_controls_virtual_mc));
+				_vehicle_attitude_setpoint_pub.setMeta(ORB_ID(mc_virtual_attitude_setpoint));
+				_vehicle_rates_setpoint_pub.setMeta(ORB_ID(mc_virtual_rates_setpoint));
 
-			// TODO: VTOL handle actuator controls MC
-			//  need to publish both?
-			_actuator_controls_0_pub.setMeta(ORB_ID(actuator_controls_virtual_fw));
-			_vehicle_attitude_setpoint_pub.setMeta(ORB_ID(fw_virtual_attitude_setpoint));
-			_vehicle_rates_setpoint_pub.setMeta(ORB_ID(fw_virtual_rates_setpoint));
+			} else {
+				_actuator_controls_0_pub.setMeta(ORB_ID(actuator_controls_virtual_fw));
+				_vehicle_attitude_setpoint_pub.setMeta(ORB_ID(fw_virtual_attitude_setpoint));
+				_vehicle_rates_setpoint_pub.setMeta(ORB_ID(fw_virtual_rates_setpoint));
+			}
 
 		} else {
 			_actuator_controls_0_pub.setMeta(ORB_ID(actuator_controls_0));
@@ -183,25 +166,19 @@ StickMapper::cycle()
 	const vehicle_control_mode_s &vmode = _vehicle_control_mode_sub.get();
 
 	if (vmode.flag_control_manual_enabled) {
-		if (vmode.flag_control_attitude_enabled &&
-		    vmode.flag_control_rates_enabled &&
-		    !vmode.flag_control_climb_rate_enabled &&
-		    !vmode.flag_control_altitude_enabled &&
-		    !vmode.flag_control_velocity_enabled &&
-		    !vmode.flag_control_position_enabled) {
-
+		if (vmode.flag_control_position_enabled) {
+			// TODO: currently handled by position controllers
+		} else if (vmode.flag_control_altitude_enabled) {
+			// TODO: currently handled by position controllers
+		} else if (vmode.flag_control_attitude_enabled) {
 			// attitude only
 			publish_vehicle_attitude_setpoint();
 
-		} else if (vmode.flag_control_rates_enabled &&
-			   !vmode.flag_control_attitude_enabled) {
-
+		} else if (vmode.flag_control_rates_enabled) {
 			// rates only
 			publish_vehicle_rates_setpoint();
 
-		} else if (!vmode.flag_control_rates_enabled &&
-			   !vmode.flag_control_attitude_enabled) {
-
+		} else {
 			// manual
 			publish_actuator_controls();
 		}
@@ -222,6 +199,21 @@ StickMapper::publish_actuator_controls()
 {
 	const manual_control_setpoint_s &manual = _manual_control_setpoint_sub.get();
 
+	float flaps_applied = 0.0f;
+
+	if (manual.flaps > 0.0f) {
+		flaps_applied = constrain(manual.flaps, -1.0f, 1.0f);
+	}
+
+	float gear_applied = 0.0f;
+
+	if (manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		gear_applied = 1.0f;
+
+	} else if (manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+		gear_applied = -1.0f;
+	}
+
 	// publish actuator controls
 	actuator_controls_s &pub = _actuator_controls_0_pub.get();
 	pub.timestamp = _timestamp;
@@ -229,11 +221,12 @@ StickMapper::publish_actuator_controls()
 	pub.control[actuator_controls_s::INDEX_ROLL] = manual.y * _man_roll_scale + _trim_roll.get();
 	pub.control[actuator_controls_s::INDEX_PITCH] = -manual.x * _man_pitch_scale + _trim_pitch.get();
 	pub.control[actuator_controls_s::INDEX_YAW] = manual.r + _man_yaw_scale + _trim_yaw.get();
-	pub.control[actuator_controls_s::INDEX_THROTTLE] = manual.z;
-	pub.control[actuator_controls_s::INDEX_FLAPS] = 0.0f; // flaps_applied
-	pub.control[actuator_controls_s::INDEX_SPOILERS] = manual.aux1;
-	pub.control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f; // flaperons_applied;
-	pub.control[actuator_controls_s::INDEX_LANDING_GEAR] = manual.aux3;
+	pub.control[actuator_controls_s::INDEX_THROTTLE] = throttle_curve(manual.z, _throttle_level);
+
+	pub.control[actuator_controls_s::INDEX_FLAPS] = flaps_applied;
+	pub.control[actuator_controls_s::INDEX_SPOILERS] = 0.0f;
+	pub.control[actuator_controls_s::INDEX_AIRBRAKES] = flaps_applied;
+	pub.control[actuator_controls_s::INDEX_LANDING_GEAR] = gear_applied;
 
 	_actuator_controls_0_pub.update();
 }
@@ -242,14 +235,16 @@ void
 StickMapper::publish_vehicle_rates_setpoint()
 {
 	const manual_control_setpoint_s &manual = _manual_control_setpoint_sub.get();
-	const float acro_max_throttle = 0.9f;
+
+	// TODO: MC only limit
+	_acro_thrust_max = 0.9f;
 
 	vehicle_rates_setpoint_s &pub = _vehicle_rates_setpoint_pub.get();
 	pub.timestamp = _timestamp;
 	pub.roll = manual.y * radians(_acro_roll_max);
 	pub.pitch = manual.x * radians(_acro_pitch_max);
 	pub.yaw = manual.r * radians(_acro_yaw_max);
-	pub.thrust = min(manual.z, acro_max_throttle);
+	pub.thrust = manual.z * _acro_thrust_max;
 
 	_vehicle_rates_setpoint_pub.update();
 }
@@ -299,4 +294,16 @@ StickMapper::publish_vehicle_attitude_setpoint()
 	pub.apply_flaps = false;
 
 	_vehicle_attitude_setpoint_pub.update();
+}
+
+float
+StickMapper::throttle_curve(float ctl, float ctr)
+{
+	// piecewise linear mapping: 0:ctr -> 0:0.5 and ctr:1 -> 0.5:1
+	if (ctl < 0.5f) {
+		return 2 * ctl * ctr;
+
+	} else {
+		return ctr + 2 * (ctl - 0.5f) * (1.0f - ctr);
+	}
 }

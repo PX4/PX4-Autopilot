@@ -85,29 +85,32 @@ protected:
 	//virtual void set_params_manual_scale(float roll_scale, float pitch_scale, float yaw_scale) = 0;
 	//virtual void set_params_acro(float roll_rate_max, float pitch_rate_max, float yaw_rate_max) = 0;
 
-	// manual scaling
-	float  _man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
-	float  _man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
-	float  _man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
+	// manual input scaling
+	float  _man_roll_scale{0.0f};			/**< scale factor applied to roll actuator control in pure manual mode */
+	float  _man_pitch_scale{0.0f};			/**< scale factor applied to pitch actuator control in pure manual mode */
+	float  _man_yaw_scale{0.0f}; 			/**< scale factor applied to yaw actuator control in pure manual mode */
 
-	// acro
-	float _acro_roll_max;
-	float _acro_pitch_max;
-	float _acro_yaw_max;
+	float _throttle_level{0.0f};
+
+	// acro maximum rates
+	float _acro_roll_max{0.0f};
+	float _acro_pitch_max{0.0f};
+	float _acro_yaw_max{0.0f};
+	float _acro_thrust_max{0.0f};
 
 	// attitude
-	float _man_roll_max;
-	float _man_pitch_max;
+	float _man_roll_max{0.0f};
+	float _man_pitch_max{0.0f};
 
-	float _roll_offset;
-	float _pitch_offset;
+	// roll and pitch offsets
+	float _roll_offset{0.0f};
+	float _pitch_offset{0.0f};
 
 private:
 	static void cycle_trampoline(void *arg);
 
 	void cycle();
 
-	// prevent copy and assignment
 	StickMapper(StickMapper *att_controller);
 	StickMapper(const StickMapper &) = delete;
 	StickMapper &operator=(const StickMapper &) = delete;
@@ -117,18 +120,20 @@ private:
 	void publish_vehicle_rates_setpoint();
 	void publish_vehicle_attitude_setpoint();
 
+	float throttle_curve(float ctl, float ctr);
+
 	// run main stick mapper loop at this rate in Hz
 	static constexpr uint32_t STICK_MAPPER_UPDATE_RATE_HZ = 50;
 
-	bool _taskShouldExit;
-	bool _taskIsRunning;
+	bool _taskShouldExit{false};
+	bool _taskIsRunning{false};
 
-	struct work_s	_work;
+	struct work_s _work {};
 
 	enum {POLL_MANUAL_CONTROL, POLL_CONTROL_MODE, n_poll};
 	px4_pollfd_struct_t _polls[n_poll];
 
-	hrt_abstime _timestamp;
+	hrt_abstime _timestamp{0};
 
 	// uORB Subscriptions
 	uORB::Subscription<manual_control_setpoint_s> _manual_control_setpoint_sub;

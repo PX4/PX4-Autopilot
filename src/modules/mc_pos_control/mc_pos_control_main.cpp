@@ -317,7 +317,6 @@ private:
 	void		poll_subscriptions();
 
 	static float	scale_control(float ctl, float end, float dz, float dy);
-	static float    throttle_curve(float ctl, float ctr);
 
 	/**
 	 * Update reference for local position projection
@@ -840,19 +839,6 @@ MulticopterPositionControl::scale_control(float ctl, float end, float dz, float 
 	}
 }
 
-float
-MulticopterPositionControl::throttle_curve(float ctl, float ctr)
-{
-	/* piecewise linear mapping: 0:ctr -> 0:0.5
-	 * and ctr:1 -> 0.5:1 */
-	if (ctl < 0.5f) {
-		return 2 * ctl * ctr;
-
-	} else {
-		return ctr + 2 * (ctl - 0.5f) * (1.0f - ctr);
-	}
-}
-
 void
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -914,7 +900,6 @@ MulticopterPositionControl::reset_alt_sp()
 }
 
 
-
 void
 MulticopterPositionControl::control_manual(float dt)
 {
@@ -928,7 +913,6 @@ MulticopterPositionControl::control_manual(float dt)
 			_reset_alt_sp = true;
 		}
 	}
-
 
 	/*
 	* Map from stick input to velocity setpoint
@@ -974,14 +958,13 @@ MulticopterPositionControl::control_manual(float dt)
 
 	}
 
-	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(
-				    vel_cruise); // in NED and scaled to actual velocity;
+	// in NED and scaled to actual velocity;
+	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(vel_cruise);
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
-
 
 	/* check vertical hold engaged flag */
 	if (_alt_hold_engaged) {
@@ -1042,11 +1025,9 @@ MulticopterPositionControl::control_manual(float dt)
 
 			_pos_hold_engaged = true;
 		}
-
 	}
 
-
-	/* set requested velocity setpoitns */
+	/* set requested velocity setpoints */
 	if (!_alt_hold_engaged) {
 		_pos_sp(2) = _pos(2);
 		_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
@@ -1081,7 +1062,6 @@ MulticopterPositionControl::control_manual(float dt)
 	} else {
 		control_position(dt);
 	}
-
 }
 
 void
@@ -1111,13 +1091,11 @@ MulticopterPositionControl::control_non_manual(float dt)
 	}
 
 	// guard against any bad velocity values
-
 	bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
 			      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
 			      _pos_sp_triplet.current.velocity_valid;
 
 	// do not go slower than the follow target velocity when position tracking is active (set to valid)
-
 	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 	    velocity_valid &&
 	    _pos_sp_triplet.current.position_valid) {
@@ -1128,7 +1106,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 
 		// only override velocity set points when uav is traveling in same direction as target and vector component
 		// is greater than calculated position set point velocity component
-
 		if (cos_ratio > 0) {
 			ft_vel *= (cos_ratio);
 			// min speed a little faster than target vel
@@ -1141,11 +1118,11 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_vel_sp(0) = fabsf(ft_vel(0)) > fabsf(_vel_sp(0)) ? ft_vel(0) : _vel_sp(0);
 		_vel_sp(1) = fabsf(ft_vel(1)) > fabsf(_vel_sp(1)) ? ft_vel(1) : _vel_sp(1);
 
-		// track target using velocity only
+
 
 	} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 		   velocity_valid) {
-
+		// track target using velocity only
 		_vel_sp(0) = _pos_sp_triplet.current.vx;
 		_vel_sp(1) = _pos_sp_triplet.current.vy;
 	}
@@ -1199,7 +1176,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		/* idle state, don't run controller and set zero thrust */
 		_R_setpoint.identity();
-
 
 		matrix::Quatf qd = _R_setpoint;
 		memcpy(&_att_sp.q_d[0], qd.data(), sizeof(_att_sp.q_d));
@@ -1639,7 +1615,6 @@ MulticopterPositionControl::update_velocity_derivative()
 void
 MulticopterPositionControl::do_control(float dt)
 {
-
 	_vel_ff.zero();
 
 	/* by default, run position/altitude controller. the control_* functions
@@ -1658,14 +1633,12 @@ MulticopterPositionControl::do_control(float dt)
 	} else {
 		control_non_manual(dt);
 	}
-
 }
 
 void
 MulticopterPositionControl::control_position(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-
 	if (_run_pos_control) {
 		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
@@ -2135,17 +2108,6 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
 		    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
 			_att_sp.yaw_body = yaw_target;
-		}
-	}
-
-	/* control throttle directly if no climb rate controller is active */
-	if (!_control_mode.flag_control_climb_rate_enabled) {
-		float thr_val = throttle_curve(_manual.z, _params.thr_hover);
-		_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
-
-		/* enforce minimum throttle if not landed */
-		if (!_vehicle_land_detected.landed) {
-			_att_sp.thrust = math::max(_att_sp.thrust, _manual_thr_min.get());
 		}
 	}
 

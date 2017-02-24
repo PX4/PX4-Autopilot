@@ -215,8 +215,6 @@ struct manual_control_setpoint_s sp_man = {};		///< the current manual control s
 static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
 static uint8_t _last_sp_man_arm_switch = 0;
 
-static float _rattitude_threshold = 0.0f;
-
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
 
@@ -1314,8 +1312,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
 
-	param_t _param_rattitude_threshold = param_find("MC_RATT_TH");
-
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
 	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
@@ -1809,8 +1805,6 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_arm_without_gps, &arm_without_gps);
 			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
 			can_arm_without_gps = (arm_without_gps == 1);
-
-			param_get(_param_rattitude_threshold, &_rattitude_threshold);
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
@@ -3713,15 +3707,15 @@ set_control_mode()
 		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 		 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
 		 * even bother running the attitude controllers */
-		if (fabsf(sp_man.y) > _rattitude_threshold ||
-			fabsf(sp_man.x) > _rattitude_threshold) {
+		//if (fabsf(sp_man.y) > _rattitude_threshold ||
+		//	fabsf(sp_man.x) > _rattitude_threshold) {
 
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = true;
-		} else {
-			control_mode.flag_control_rates_enabled = true;
-			control_mode.flag_control_attitude_enabled = false;
-		}
+		//	control_mode.flag_control_rates_enabled = true;
+		//	control_mode.flag_control_attitude_enabled = true;
+		//} else {
+		//	control_mode.flag_control_rates_enabled = true;
+		//	control_mode.flag_control_attitude_enabled = false;
+		//}
 
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;

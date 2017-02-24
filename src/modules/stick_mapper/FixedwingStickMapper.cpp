@@ -57,10 +57,6 @@ FixedwingStickMapper::FixedwingStickMapper() :
 
 }
 
-FixedwingStickMapper::~FixedwingStickMapper()
-{
-}
-
 void
 FixedwingStickMapper::parameters_update()
 {

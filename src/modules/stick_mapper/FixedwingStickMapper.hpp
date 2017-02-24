@@ -50,7 +50,7 @@ class FixedwingStickMapper : public StickMapper
 public:
 	FixedwingStickMapper();
 
-	virtual ~FixedwingStickMapper();
+	virtual ~FixedwingStickMapper() = default;
 
 protected:
 	// Update our local parameter cache.
