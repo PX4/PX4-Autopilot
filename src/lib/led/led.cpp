@@ -179,6 +179,7 @@ void LedController::get_control_data(LedControlData &control_data)
 
 			switch (cur_data.mode) {
 			case led_control_s::MODE_ON:
+			case led_control_s::MODE_BREATHE: // TODO: handle this properly
 				control_data.leds[i].color = cur_data.color;
 				break;
 
