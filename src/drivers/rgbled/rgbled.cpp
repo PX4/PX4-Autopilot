@@ -63,7 +63,8 @@
 
 #include <board_config.h>
 
-#include <drivers/drv_rgbled.h>
+#include <drivers/drv_led.h>
+#include <lib/led/led.h>
 
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
@@ -88,30 +89,23 @@ public:
 
 	virtual int		init();
 	virtual int		probe();
-	virtual int		info();
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	int		status();
 
 private:
 	work_s			_work;
 
-	rgbled_mode_t		_mode;
-	rgbled_pattern_t	_pattern;
+	float			_brightness;
+	float			_max_brightness;
 
 	uint8_t			_r;
 	uint8_t			_g;
 	uint8_t			_b;
-	float			_brightness;
-	float			_max_brightness;
-
-	bool			_running;
-	int			_led_interval;
-	bool			_should_run;
-	int			_counter;
+	volatile bool		_running;
+	volatile bool		_should_run;
+	bool			_leds_enabled;
 	int			_param_sub;
 
-	void 			set_color(rgbled_color_t ledcolor);
-	void			set_mode(rgbled_mode_t mode);
-	void			set_pattern(rgbled_pattern_t *pattern);
+	LedController		_led_controller;
 
 	static void		led_trampoline(void *arg);
 	void			led();
@@ -138,24 +132,27 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	    , 100000 /* maximum speed supported */
 #endif
 	   ),
-	_mode(RGBLED_MODE_OFF),
+	_work{},
+	_brightness(1.0f),
+	_max_brightness(1.0f),
 	_r(0),
 	_g(0),
 	_b(0),
-	_brightness(1.0f),
-	_max_brightness(1.0f),
 	_running(false),
-	_led_interval(0),
-	_should_run(false),
-	_counter(0),
+	_should_run(true),
+	_leds_enabled(true),
 	_param_sub(-1)
 {
-	memset(&_work, 0, sizeof(_work));
-	memset(&_pattern, 0, sizeof(_pattern));
 }
 
 RGBLED::~RGBLED()
 {
+	_should_run = false;
+	int counter = 0;
+
+	while (_running && ++counter < 10) {
+		usleep(100000);
+	}
 }
 
 int
@@ -171,6 +168,10 @@ RGBLED::init()
 	/* switch off LED on start */
 	send_led_enable(false);
 	send_led_rgb();
+
+	_running = true;
+	// kick off work queue
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
 
 	return OK;
 }
@@ -207,7 +208,7 @@ RGBLED::probe()
 }
 
 int
-RGBLED::info()
+RGBLED::status()
 {
 	int ret;
 	bool on, powersave;
@@ -227,50 +228,6 @@ RGBLED::info()
 	return ret;
 }
 
-int
-RGBLED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	int ret = ENOTTY;
-
-	switch (cmd) {
-	case RGBLED_SET_RGB:
-		/* set the specified color */
-		_r = ((rgbled_rgbset_t *) arg)->red;
-		_g = ((rgbled_rgbset_t *) arg)->green;
-		_b = ((rgbled_rgbset_t *) arg)->blue;
-		send_led_rgb();
-		return OK;
-
-	case RGBLED_SET_COLOR:
-		/* set the specified color name */
-		set_color((rgbled_color_t)arg);
-		send_led_rgb();
-		return OK;
-
-	case RGBLED_SET_MODE:
-		/* set the specified mode */
-		set_mode((rgbled_mode_t)arg);
-		return OK;
-
-	case RGBLED_SET_PATTERN:
-		/* set a special pattern */
-		set_pattern((rgbled_pattern_t *)arg);
-		return OK;
-
-	default:
-		/* see if the parent class can make any use of it */
-#ifdef __PX4_NUTTX
-		ret = CDev::ioctl(filp, cmd, arg);
-#else
-		ret = VDev::ioctl(filp, cmd, arg);
-#endif
-		break;
-	}
-
-	return ret;
-}
-
-
 void
 RGBLED::led_trampoline(void *arg)
 {
@@ -286,12 +243,27 @@ void
 RGBLED::led()
 {
 	if (!_should_run) {
+		if (_param_sub >= 0) {
+			orb_unsubscribe(_param_sub);
+		}
+
+		int led_control_sub = _led_controller.led_control_subscription();
+
+		if (led_control_sub >= 0) {
+			orb_unsubscribe(led_control_sub);
+		}
+
 		_running = false;
 		return;
 	}
 
 	if (_param_sub < 0) {
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
+	}
+
+	if (!_led_controller.is_init()) {
+		int led_control_sub = orb_subscribe(ORB_ID(led_control));
+		_led_controller.init(led_control_sub);
 	}
 
 	if (_param_sub >= 0) {
@@ -307,242 +279,59 @@ RGBLED::led()
 		}
 	}
 
-	switch (_mode) {
-	case RGBLED_MODE_BLINK_SLOW:
-	case RGBLED_MODE_BLINK_NORMAL:
-	case RGBLED_MODE_BLINK_FAST:
-		if (_counter >= 2) {
-			_counter = 0;
-		}
+	LedControlData led_control_data;
 
-		send_led_enable(_counter == 0);
+	if (_led_controller.update(led_control_data) == 1) {
+		switch (led_control_data.leds[0].color) {
+		case led_control_s::COLOR_RED:
+			_r = 255; _g = 0; _b = 0;
+			send_led_enable(true);
+			break;
 
-		break;
+		case led_control_s::COLOR_GREEN:
+			_r = 0; _g = 255; _b = 0;
+			send_led_enable(true);
+			break;
 
-	case RGBLED_MODE_BREATHE:
+		case led_control_s::COLOR_BLUE:
+			_r = 0; _g = 0; _b = 255;
+			send_led_enable(true);
+			break;
 
-		if (_counter >= 62) {
-			_counter = 0;
-		}
+		case led_control_s::COLOR_AMBER: //make it the same as yellow
+		case led_control_s::COLOR_YELLOW:
+			_r = 255; _g = 255; _b = 0;
+			send_led_enable(true);
+			break;
 
-		int n;
+		case led_control_s::COLOR_PURPLE:
+			_r = 255; _g = 0; _b = 255;
+			send_led_enable(true);
+			break;
 
-		if (_counter < 32) {
-			n = _counter;
+		case led_control_s::COLOR_CYAN:
+			_r = 0; _g = 255; _b = 255;
+			send_led_enable(true);
+			break;
 
-		} else {
-			n = 62 - _counter;
-		}
+		case led_control_s::COLOR_WHITE:
+			_r = 255; _g = 255; _b = 255;
+			send_led_enable(true);
+			break;
 
-		_brightness = n * n / (31.0f * 31.0f);
-		send_led_rgb();
-		break;
-
-	case RGBLED_MODE_PATTERN:
-
-		/* don't run out of the pattern array and stop if the next frame is 0 */
-		if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0) {
-			_counter = 0;
-		}
-
-		set_color(_pattern.color[_counter]);
-		send_led_rgb();
-		_led_interval = _pattern.duration[_counter];
-		break;
-
-	default:
-		break;
-	}
-
-	_counter++;
-
-	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
-}
-
-/**
- * Parse color constant and set _r _g _b values
- */
-void
-RGBLED::set_color(rgbled_color_t color)
-{
-	switch (color) {
-	case RGBLED_COLOR_OFF:
-		_r = 0;
-		_g = 0;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_RED:
-		_r = 255;
-		_g = 0;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_YELLOW:
-		_r = 255;
-		_g = 200;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_PURPLE:
-		_r = 255;
-		_g = 0;
-		_b = 255;
-		break;
-
-	case RGBLED_COLOR_GREEN:
-		_r = 0;
-		_g = 255;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_BLUE:
-		_r = 0;
-		_g = 0;
-		_b = 255;
-		break;
-
-	case RGBLED_COLOR_WHITE:
-		_r = 255;
-		_g = 255;
-		_b = 255;
-		break;
-
-	case RGBLED_COLOR_AMBER:
-		_r = 255;
-		_g = 80;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_DIM_RED:
-		_r = 90;
-		_g = 0;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_DIM_YELLOW:
-		_r = 80;
-		_g = 30;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_DIM_PURPLE:
-		_r = 45;
-		_g = 0;
-		_b = 45;
-		break;
-
-	case RGBLED_COLOR_DIM_GREEN:
-		_r = 0;
-		_g = 90;
-		_b = 0;
-		break;
-
-	case RGBLED_COLOR_DIM_BLUE:
-		_r = 0;
-		_g = 0;
-		_b = 90;
-		break;
-
-	case RGBLED_COLOR_DIM_WHITE:
-		_r = 30;
-		_g = 30;
-		_b = 30;
-		break;
-
-	case RGBLED_COLOR_DIM_AMBER:
-		_r = 80;
-		_g = 20;
-		_b = 0;
-		break;
-
-	default:
-		PX4_WARN("color unknown");
-		break;
-	}
-}
-
-/**
- * Set mode, if mode not changed has no any effect (doesn't reset blinks phase)
- */
-void
-RGBLED::set_mode(rgbled_mode_t mode)
-{
-	if (mode != _mode) {
-		_mode = mode;
-
-		switch (mode) {
-		case RGBLED_MODE_OFF:
-			_should_run = false;
+		default: // led_control_s::COLOR_OFF
+			_r = 0; _g = 0; _b = 0;
 			send_led_enable(false);
 			break;
-
-		case RGBLED_MODE_ON:
-			_brightness = 1.0f;
-			send_led_rgb();
-			send_led_enable(true);
-			break;
-
-		case RGBLED_MODE_BLINK_SLOW:
-			_should_run = true;
-			_counter = 0;
-			_led_interval = 2000;
-			_brightness = 1.0f;
-			send_led_rgb();
-			break;
-
-		case RGBLED_MODE_BLINK_NORMAL:
-			_should_run = true;
-			_counter = 0;
-			_led_interval = 500;
-			_brightness = 1.0f;
-			send_led_rgb();
-			break;
-
-		case RGBLED_MODE_BLINK_FAST:
-			_should_run = true;
-			_counter = 0;
-			_led_interval = 100;
-			_brightness = 1.0f;
-			send_led_rgb();
-			break;
-
-		case RGBLED_MODE_BREATHE:
-			_should_run = true;
-			_counter = 0;
-			_led_interval = 25;
-			send_led_enable(true);
-			break;
-
-		case RGBLED_MODE_PATTERN:
-			_should_run = true;
-			_counter = 0;
-			_brightness = 1.0f;
-			send_led_enable(true);
-			break;
-
-		default:
-			PX4_WARN("mode unknown");
-			break;
 		}
 
-		/* if it should run now, start the workq */
-		if (_should_run && !_running) {
-			_running = true;
-			work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
-		}
-
+		send_led_rgb();
 	}
-}
 
-/**
- * Set pattern for PATTERN mode, but don't change current mode
- */
-void
-RGBLED::set_pattern(rgbled_pattern_t *pattern)
-{
-	memcpy(&_pattern, pattern, sizeof(rgbled_pattern_t));
+
+	/* re-queue ourselves to run again later */
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this,
+		   USEC2TICK(_led_controller.maximum_update_interval()));
 }
 
 /**
@@ -551,6 +340,12 @@ RGBLED::set_pattern(rgbled_pattern_t *pattern)
 int
 RGBLED::send_led_enable(bool enable)
 {
+	if (_leds_enabled && enable) {
+		// already enabled
+		return 0;
+	}
+
+	_leds_enabled = enable;
 	uint8_t settings_byte = 0;
 
 	if (enable) {
@@ -618,10 +413,10 @@ RGBLED::update_params()
 void
 rgbled_usage()
 {
-	PX4_WARN("missing command: try 'start', 'test', 'info', 'off', 'stop', 'rgb 30 40 50'");
-	PX4_WARN("options:");
-	PX4_WARN("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	PX4_WARN("    -a addr (0x%x)", ADDR);
+	PX4_INFO("missing command: try 'start', 'status', 'stop'");
+	PX4_INFO("options:");
+	PX4_INFO("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
+	PX4_INFO("    -a addr (0x%x)", ADDR);
 }
 
 int
@@ -659,9 +454,6 @@ rgbled_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-	int fd;
-	int ret;
-
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr) {
 			PX4_WARN("already started");
@@ -693,7 +485,7 @@ rgbled_main(int argc, char *argv[])
 			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
 
 			if (g_rgbled == nullptr) {
-				PX4_WARN("new failed");
+				PX4_WARN("alloc failed");
 				return 1;
 			}
 
@@ -715,72 +507,15 @@ rgbled_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(verb, "test")) {
-		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
-
-		if (fd == -1) {
-			PX4_WARN("Unable to open " RGBLED0_DEVICE_PATH);
-			return 1;
-		}
-
-		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
-			{500, 500, 500, 500, 1000, 0 }	// "0" indicates end of pattern
-		};
-
-		ret = px4_ioctl(fd, RGBLED_SET_PATTERN, (unsigned long)&pattern);
-		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_PATTERN);
-
-		px4_close(fd);
-		return ret;
-	}
-
-	if (!strcmp(verb, "info")) {
-		g_rgbled->info();
+	if (!strcmp(verb, "status")) {
+		g_rgbled->status();
 		return 0;
 	}
 
-	if (!strcmp(verb, "off") || !strcmp(verb, "stop")) {
-		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
-
-		if (fd == -1) {
-			warnx("Unable to open " RGBLED0_DEVICE_PATH);
-			return 1;
-		}
-
-		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
-		px4_close(fd);
-
-		/* delete the rgbled object if stop was requested, in addition to turning off the LED. */
-		if (!strcmp(verb, "stop")) {
-			delete g_rgbled;
-			g_rgbled = nullptr;
-			return 0;
-		}
-
-		return ret;
-	}
-
-	if (!strcmp(verb, "rgb")) {
-		if (argc < 5) {
-			PX4_WARN("Usage: rgbled rgb <red> <green> <blue>");
-			return 1;
-		}
-
-		fd = px4_open(RGBLED0_DEVICE_PATH, 0);
-
-		if (fd == -1) {
-			PX4_WARN("Unable to open " RGBLED0_DEVICE_PATH);
-			return 1;
-		}
-
-		rgbled_rgbset_t v;
-		v.red   = strtol(argv[2], nullptr, 0);
-		v.green = strtol(argv[3], nullptr, 0);
-		v.blue  = strtol(argv[4], nullptr, 0);
-		ret = px4_ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
-		ret = px4_ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_ON);
-		px4_close(fd);
-		return ret;
+	if (!strcmp(verb, "stop")) {
+		delete g_rgbled;
+		g_rgbled = nullptr;
+		return 0;
 	}
 
 	rgbled_usage();
