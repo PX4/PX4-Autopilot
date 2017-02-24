@@ -11,30 +11,30 @@ matrix:
     - os: linux
       dist: trusty
       compiler: gcc
-      env: CMAKE_BUILD_TYPE=Coverage
+      env: CMAKE_BUILD_TYPE=Coverage FORMAT=ON
     - os: linux
       dist: trusty
       compiler: clang
-      env: CMAKE_BUILD_TYPE=Release CC=clang CXX=clang++
+      env: CMAKE_BUILD_TYPE=Release CC=clang CXX=clang++ FORMAT=OFF
     - os: osx
       osx_image: xcode8
-      env: CMAKE_BUILD_TYPE=Release
+      env: CMAKE_BUILD_TYPE=Release FORMAT=OFF
 
 addons:
   apt:
     packages:
-    - cmake
-    - gcc
-    - g++
     - clang
+    - cmake
+    - g++
+    - gcc
 
 install:
-  - pip install --user cpp-coveralls
+  - if [ "${CMAKE_BUILD_TYPE}" = "Coverage" ]; then pip install --user cpp-coveralls; fi
 
 script:
-  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DTESTING=ON -DFORMAT=ON .
+  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DTESTING=ON -DFORMAT=${FORMAT} .
   - make check
 
 after_success:
-  - if [[ "${CMAKE_BUILD_TYPE}" = "Coverage" && "${TRAVIS_BRANCH}" == "master" ]]; then cpp-coveralls -i matrix; fi
+  - if [ "${CMAKE_BUILD_TYPE}" = "Coverage" ]; then cpp-coveralls -i matrix; fi
 
