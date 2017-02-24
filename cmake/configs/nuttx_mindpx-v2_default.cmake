@@ -64,6 +64,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/esc_calib
+	systemcmds/led_control
 	systemcmds/hardfault_log
 	systemcmds/reboot
 	systemcmds/topic_listener
@@ -145,6 +146,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
