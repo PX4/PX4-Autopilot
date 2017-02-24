@@ -343,6 +343,17 @@ int main()
     q = Quatf(0,0,0,1); // 180 degree rotation around the z axis
     R = Dcmf(q);
     TEST(isEqual(q, Quatf(R)));
+
+
+    // Quaternion copyTo
+    q = Quatf(1, 2, 3, 4);
+    float dst[4] = {};
+    q.copyTo(dst);
+    TEST(fabsf(q(0) - dst[0]) < eps);
+    TEST(fabsf(q(1) - dst[1]) < eps);
+    TEST(fabsf(q(2) - dst[2]) < eps);
+    TEST(fabsf(q(3) - dst[3]) < eps);
+
 }
 
 /* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */

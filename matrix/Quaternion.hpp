@@ -254,6 +254,20 @@ public:
     }
 
     /**
+     * Copy quaternion to a float array
+     *
+     * @param dst array of 4 floats
+     */
+    void copyTo(float (&dst)[4])
+    {
+        const Quaternion &q = *this;
+        dst[0] = q(0);
+        dst[1] = q(1);
+        dst[2] = q(2);
+        dst[3] = q(3);
+    }
+
+    /**
      * Computes the derivative of q_12 when
      * rotated with angular velocity expressed in frame 2
      * v_2 = q_12 * v_1 * q_12^-1
