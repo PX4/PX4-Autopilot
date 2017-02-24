@@ -51,6 +51,22 @@
 #if defined(MIXER_CONFIGURATION)
 #define MAVLINK_MIXER_STATE_WAITING -1
 
+enum MIXER_SEND_ALL_STATE {
+	MIXERS_SEND_ALL_NONE = 0,
+	MIXERS_SEND_ALL_START,
+	MIXERS_SEND_ALL_MIXER_COUNT,
+	MIXERS_SEND_ALL_SUBMIXER_COUNT,
+	MIXERS_SEND_ALL_MIXER_TYPE,
+	MIXERS_SEND_ALL_PARAMETER_COUNT,
+	MIXERS_SEND_ALL_INPUT_CONNECTIONS_COUNT,
+	MIXERS_SEND_ALL_INPUT_CONNECTIONS,
+	MIXERS_SEND_ALL_OUTPUT_CONNECTIONS_COUNT,
+	MIXERS_SEND_ALL_OUTPUT_CONNECTIONS,
+	MIXERS_SEND_ALL_PARAMETERS,
+	MIXERS_SEND_ALL_PARAMETERS_START,
+	MIXERS_SEND_ALL_PARAMETERS_END,
+};
+
 class MavlinkMixersManager : public MavlinkStream
 {
 public:
@@ -95,7 +111,7 @@ protected:
 	void        _send_mixer_count();
 
 	bool        _request_pending;
-	bool        _send_all;
+	MIXER_SEND_ALL_STATE        _send_all_state;
 	bool        _send_data_immediate;
 
 	/**For tracking data when sending or streaming*/
@@ -106,6 +122,8 @@ protected:
 	uint16_t    _mixer_sub_count;
 	uint16_t    _mixer_type;
 	uint16_t    _mixer_param_count;
+	uint16_t    _mixer_input_count;
+	uint16_t    _mixer_output_count;
 	int16_t     _mavlink_mixer_state;
 	char       *_p_mixer_save_buffer;
 
