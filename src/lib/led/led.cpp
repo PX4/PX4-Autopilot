@@ -76,8 +76,11 @@ int LedController::update(LedControlData &control_data)
 	hrt_abstime now = hrt_absolute_time();
 	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100); // Note: this is in 0.1ms
 
+	int num_blinking_leds = 0;
+	int num_blinking_do_not_change_state = 0;
+	int current_priorities[BOARD_MAX_LEDS];
+
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
-		bool do_not_change_state = false;
 		int priority = led_control_s::MAX_PRIORITY;
 
 		for (; priority >= 0; --priority) {
@@ -106,54 +109,66 @@ int LedController::update(LedControlData &control_data)
 			}
 
 			if (current_blink_duration > 0) {
+				++num_blinking_leds;
+
 				if ((_states[i].current_blinking_time += blink_delta_t) > current_blink_duration) {
 					_states[i].current_blinking_time -= current_blink_duration;
 
 					if (cur_data.blink_times_left == 254) {
 						// handle toggling for infinite case: toggle between 254 and 255
 						cur_data.blink_times_left = 255;
-						do_not_change_state = true;
+						++num_blinking_do_not_change_state;
 
 					} else if (cur_data.blink_times_left == 255) {
 						cur_data.blink_times_left = 254;
 
-					} else if (--cur_data.blink_times_left == 0) { //TODO: 1 to ignore last off duration?
+					} else if (--cur_data.blink_times_left == 0) {
 						cur_data.mode = led_control_s::MODE_DISABLED;
 						_states[i].current_blinking_time = 0;
 
 					} else if (cur_data.blink_times_left % 2 == 1) {
-						do_not_change_state = true;
+						++num_blinking_do_not_change_state;
 					}
 
 					had_changes = true;
 
 				} else {
-					do_not_change_state = true;
+					++num_blinking_do_not_change_state;
 				}
 			}
 
 			break; // handle next led
 		}
 
-		// handle next state
-		if (!do_not_change_state && _states[i].next_state.is_valid()) {
-			uint8_t next_priority = _states[i].next_state.priority;
+		current_priorities[i] = priority;
 
-			if ((int)next_priority >= priority) {
-				_states[i].current_blinking_time = 0;
-				had_changes = true;
+	}
+
+	// handle next state:
+	// only allow a state change if no led blinks or at least one of the blinking leds signals that it's ok to switch.
+	// This makes sure all leds are kept in sync, but does not allow interrupting at arbitrary points.
+	if (num_blinking_leds == 0 || num_blinking_leds > num_blinking_do_not_change_state) {
+		for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
+			if (_states[i].next_state.is_valid()) {
+				int next_priority = (int)_states[i].next_state.priority;
+
+				if (next_priority >= current_priorities[i]) {
+					_states[i].current_blinking_time = 0;
+					had_changes = true;
+				}
+
+				_states[i].priority[next_priority].color = _states[i].next_state.color;
+				_states[i].priority[next_priority].mode = _states[i].next_state.mode;
+				_states[i].priority[next_priority].blink_times_left = _states[i].next_state.num_blinks * 2;
+
+				if (_states[i].priority[next_priority].blink_times_left == 0) {
+					// handle infinite case
+					_states[i].priority[next_priority].blink_times_left = 254;
+				}
+
+				_states[i].next_state.reset();
 			}
 
-			_states[i].priority[next_priority].color = _states[i].next_state.color;
-			_states[i].priority[next_priority].mode = _states[i].next_state.mode;
-			_states[i].priority[next_priority].blink_times_left = _states[i].next_state.num_blinks * 2;
-
-			if (_states[i].priority[next_priority].blink_times_left == 0) {
-				// handle infinite case
-				_states[i].priority[next_priority].blink_times_left = 254;
-			}
-
-			_states[i].next_state.reset();
 		}
 	}
 
