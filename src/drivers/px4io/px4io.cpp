@@ -87,11 +87,11 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #include <uORB/topics/mixer_data_request.h>
 #include <uORB/topics/mixer_parameter_set.h>
 #include <uORB/topics/mixer_data.h>
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 #include <debug.h>
 
@@ -298,10 +298,10 @@ private:
 	int			_t_param;		///< parameter update topic
 	bool			_param_update_force;	///< force a parameter update
 	int			_t_vehicle_command;	///< vehicle command topic
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	int                     _mixer_data_request_sub; //< mixer parameter data request topic
 	int                     _mixer_parameter_set_sub;//< mixer parameter set topic
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
@@ -310,9 +310,9 @@ private:
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	orb_advert_t            _mixer_data_pub;        ///< mixer parameter data pubilish
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -344,9 +344,9 @@ private:
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
 #endif
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	MixerGroup	*_mixers;
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 	/**
 	 * Trampoline to the worker task
@@ -554,19 +554,19 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_param(-1),
 	_param_update_force(false),
 	_t_vehicle_command(-1),
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	_to_input_rc(nullptr),
 	_to_outputs(nullptr),
 	_to_battery(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_pub(nullptr),
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	_outputs {},
 	_servorail_status{},
 	_primary_pwm_device(false),
@@ -590,9 +590,9 @@ PX4IO::PX4IO(device::Device *interface) :
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	, _mixers(nullptr)
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 {
 	/* we need this potentially before it could be set in task_main */
@@ -989,10 +989,10 @@ PX4IO::task_main()
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
 	_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	if ((_t_actuator_controls_0 < 0) ||
 	    (_t_actuator_armed < 0) ||
@@ -1108,7 +1108,7 @@ PX4IO::task_main()
 			}
 
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 			/* mixer data request */
 			orb_check(_mixer_data_request_sub, &updated);
 
@@ -1269,7 +1269,7 @@ PX4IO::task_main()
 				}
 			}
 
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 			/*
 			 * If parameters have changed, re-send RC mappings to IO
@@ -3176,7 +3176,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			const char *buf = (const char *)arg;
 			ret = mixer_send(buf, strnlen(buf, 2048));
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 
 			if (ret == 0)   /* load the mixer settings into a local copy for tracking parameters */
 
@@ -3202,11 +3202,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				// else update of pwm trims removed
 			}
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 			break;
 		}
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			unsigned *count = (unsigned *)arg;
@@ -3240,7 +3240,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			mixer_type_s *mixer_type = (mixer_type_s *)arg;
 			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
 
-			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+			if (mixer_type->mix_type == MIXER_TYPES_NONE) {
 				ret = -EINVAL;
 
 			} else {
@@ -3330,7 +3330,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 	case RC_INPUT_GET: {
 			uint16_t status;

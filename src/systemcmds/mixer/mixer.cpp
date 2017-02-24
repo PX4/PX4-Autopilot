@@ -51,7 +51,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 #include <systemlib/mixer/mixer_parameters.h>
 #include <systemlib/mixer/mixer_type_id.h>
 #include <systemlib/mixer/mixer_io.h>
@@ -59,7 +59,7 @@ static const char *mixer_parameter_table[][MIXER_PARAMETERS_MIXER_TYPE_COUNT] = 
 static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 static const unsigned mixer_input_counts[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_INPUT_COUNTS;
 static const unsigned mixer_output_counts[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_OUTPUT_COUNTS;
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 /**
  * Mixer utility for loading mixer files to devices
@@ -71,14 +71,14 @@ extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 static void	usage(const char *reason);
 static int	load(const char *devname, const char *fname, bool append);
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 static int	save(const char *devname, const char *fname);
 static int  mixer_list(const char *devname);
 static int  mixer_param_list(const char *devname, int mix_index, int sub_index);
 static int  mixer_param_set(const char *devname, int mix_index, int sub_index, int param_index, float value);
 static int  mixer_show_config(const char *devname);
 static int  mixer_conn(const char *devname, int mix_index, int sub_index, int conn_type, int conn_index);
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 int
 mixer_main(int argc, char *argv[])
@@ -114,7 +114,7 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 
 	}  else if (!strcmp(argv[1], "save")) {
 		if (argc < 4) {
@@ -219,7 +219,7 @@ mixer_main(int argc, char *argv[])
 			return 1;
 		}
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 	} else {
 		usage("Unknown command");
@@ -238,7 +238,7 @@ usage(const char *reason)
 
 	PX4_INFO("usage:");
 	PX4_INFO("  mixer load <device> <filename>");
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 	PX4_INFO("  mixer save <device> <filename>");
 	PX4_INFO("  mixer list <device>");
 	PX4_INFO("  mixer params <device> <mixer_index>");
@@ -247,7 +247,7 @@ usage(const char *reason)
 	PX4_INFO("  mixer set <device> <mixer_index> <sub_index> <param_index> <value>");
 	PX4_INFO("  mixer conn <device> <mixer_index> <sub_index> <conn_type> <index>");
 	PX4_INFO("  mixer config <device>");
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 }
 
 static int
@@ -290,7 +290,7 @@ load(const char *devname, const char *fname, bool append)
 	return 0;
 }
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 static int
 save(const char *devname, const char *fname)
 {
@@ -586,4 +586,4 @@ static int  mixer_conn(const char *devname, int mix_index, int sub_index, int co
 	}
 }
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)

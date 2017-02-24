@@ -362,7 +362,7 @@ mixer_tick(void)
 		}
 	}
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 
 	if (update_mixer_param) {
 		union {
@@ -380,7 +380,7 @@ mixer_tick(void)
 		update_mixer_param = false;
 	}
 
-#endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
+#endif //MIXER_TUNING			r_mixer_crc_ok = 0;
 
 }
 
@@ -616,7 +616,7 @@ mixer_set_failsafe()
 		r_page_servo_failsafe[i] = 0;
 	}
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 
 	if (update_mixer_param) {
 		union {
@@ -634,5 +634,5 @@ mixer_set_failsafe()
 		update_mixer_param = false;
 	}
 
-#endif //MIXER_CONFIGURATION			r_mixer_crc_ok = 0;
+#endif //MIXER_TUNING			r_mixer_crc_ok = 0;
 }

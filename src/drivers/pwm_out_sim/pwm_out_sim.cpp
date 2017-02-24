@@ -79,11 +79,11 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #include <uORB/topics/mixer_data_request.h>
 #include <uORB/topics/mixer_parameter_set.h>
 #include <uORB/topics/mixer_data.h>
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 
 #include <systemlib/err.h>
 
@@ -126,11 +126,11 @@ private:
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	int     _mixer_data_request_sub;
 	int     _mixer_parameter_set_sub;
 	orb_advert_t	_mixer_data_pub;
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -201,11 +201,11 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
 	_mixer_data_pub(nullptr),
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -402,10 +402,10 @@ PWMSim::task_main()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
 	_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs = {};
@@ -569,7 +569,7 @@ PWMSim::task_main()
 			_lockdown = aa.lockdown || aa.manual_lockdown;
 		}
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 		/* mixer data request */
 		orb_check(_mixer_data_request_sub, &updated);
 
@@ -707,7 +707,7 @@ PWMSim::task_main()
 			}
 		}
 
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	}
 
@@ -718,11 +718,11 @@ PWMSim::task_main()
 	}
 
 	orb_unsubscribe(_armed_sub);
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	orb_unsubscribe(_mixer_data_request_sub);
 	orb_unsubscribe(_mixer_parameter_set_sub);
 	orb_unadvertise(_mixer_data_pub);
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
@@ -1002,7 +1002,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
@@ -1090,7 +1090,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;

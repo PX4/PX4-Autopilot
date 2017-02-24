@@ -40,6 +40,7 @@
 
 #pragma once
 
+#include <px4_config.h>
 #include <systemlib/param/param.h>
 
 #include "mavlink_bridge_header.h"
@@ -47,8 +48,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mixer_data_request.h>
 
-
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #define MAVLINK_MIXER_STATE_WAITING -1
 
 enum MIXER_SEND_ALL_STATE {
@@ -131,4 +131,4 @@ protected:
 	orb_advert_t _mixer_parameter_set_pub;
 	int _mixer_data_sub;
 };
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING

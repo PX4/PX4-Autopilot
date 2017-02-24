@@ -225,7 +225,7 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 }
 
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 int
 NullMixer::to_text(char *buf, unsigned &buflen)
@@ -277,4 +277,4 @@ NullMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
 
 }
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)

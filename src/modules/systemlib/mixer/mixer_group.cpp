@@ -274,7 +274,7 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 	}
 }
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 int
 MixerGroup::save_to_buf(char *buf, unsigned &buflen)
@@ -412,4 +412,4 @@ MixerGroup::set_mixer_param(uint16_t mix_index, uint16_t param_index, float valu
 }
 
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)

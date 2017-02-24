@@ -197,11 +197,11 @@ private:
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	int             _mixer_data_request_sub;
 	int             _mixer_parameter_set_sub;
 	orb_advert_t	_mixer_data_pub;
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	struct rc_input_values	_rc_in;
 	float		_analog_rc_rssi_volt;
 	bool		_analog_rc_rssi_stable;
@@ -337,11 +337,11 @@ PX4FMU::PX4FMU() :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
 	_mixer_data_pub(nullptr),
-#endif // MIXER_CONFIGURATION
+#endif // MIXER_TUNING
 	_rc_in {},
 	_analog_rc_rssi_volt(-1.0f),
 	_analog_rc_rssi_stable(false),
@@ -999,10 +999,10 @@ PX4FMU::cycle()
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 		_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 		_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
 		_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
@@ -1384,7 +1384,7 @@ PX4FMU::cycle()
 		}
 	}
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	/* mixer data request */
 	orb_check(_mixer_data_request_sub, &updated);
 
@@ -1506,7 +1506,7 @@ PX4FMU::cycle()
 		}
 	}
 
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
@@ -1792,14 +1792,14 @@ void PX4FMU::work_stop()
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 	orb_unsubscribe(_mixer_data_request_sub);
 	_mixer_data_request_sub = -1;
 	orb_unsubscribe(_mixer_parameter_set_sub);
 	_mixer_parameter_set_sub = -1;
 	orb_unadvertise(_mixer_data_pub);
 	_mixer_data_pub = nullptr;
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -2541,7 +2541,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#if (defined(MIXER_CONFIGURATION) && !defined(MIXER_CONFIG_NO_NSH))
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
 
 	case MIXERIOCGETMIXERCOUNT: {
 			if (_mixers == nullptr) {
@@ -2574,7 +2574,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			mixer_type_s *mixer_type = (mixer_type_s *)arg;
 			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
 
-			if (mixer_type->mix_type == MIXER_TYPE_NONE) {
+			if (mixer_type->mix_type == MIXER_TYPES_NONE) {
 				ret = -EINVAL;
 
 			} else {
@@ -2616,7 +2616,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;

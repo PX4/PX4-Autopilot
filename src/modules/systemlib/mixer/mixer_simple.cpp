@@ -223,7 +223,7 @@ out:
 	return sm;
 }
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 int
 SimpleMixer::to_text(char *buf, unsigned &buflen)
@@ -280,7 +280,7 @@ SimpleMixer::to_text(char *buf, unsigned &buflen)
 	return 0;
 }
 #endif //MIXER_REMOTE
-#endif //MIXER_CONFIGURATION
+#endif //MIXER_TUNING
 
 SimpleMixer *
 SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
@@ -427,7 +427,7 @@ SimpleMixer::check()
 	return 0;
 }
 
-#if defined(MIXER_CONFIGURATION)
+#if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 
 MIXER_TYPES
@@ -588,4 +588,4 @@ SimpleMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
 	return 0;
 }
 
-#endif //defined(MIXER_CONFIGURATION)
+#endif //defined(MIXER_TUNING)

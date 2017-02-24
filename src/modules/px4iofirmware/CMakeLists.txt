@@ -32,21 +32,11 @@
 ############################################################################
 
 # kill all flags above us, this is a different board (io)
-if(MIXER_CONFIGURATION)
 set_directory_properties(PROPERTIES
 	INCLUDE_DIRECTORIES ""
 	LINK_DIRECTORIES ""
 	COMPILE_DEFINITIONS ""
 	)
-add_definitions(-DMIXER_CONFIGURATION=1)
-add_definitions(-DMIXER_REMOTE=1)
-else()
-set_directory_properties(PROPERTIES
-	INCLUDE_DIRECTORIES ""
-	LINK_DIRECTORIES ""
-	COMPILE_DEFINITIONS ""
-	)
-endif()
 
 set(c_flags)
 set(exe_linker_flags)
