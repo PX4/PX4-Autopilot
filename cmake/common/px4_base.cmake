@@ -1032,11 +1032,18 @@ function(px4_generate_parameters_xml)
 	if (NOT OVERRIDES)
 		set(OVERRIDES "{}")
 	endif()
-	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
+
+	# get full path for each module
+	set(module_list)
+	foreach(module ${MODULES})
+		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
+	endforeach()
+
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
-			--overrides ${OVERRIDES} --modules ${module_list}
+			-s ${module_list}
+			--board CONFIG_ARCH_${BOARD} --xml --inject-xml
+			--overrides ${OVERRIDES}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
