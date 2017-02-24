@@ -60,7 +60,7 @@ usage()
 	PX4_INFO(
 		"External Led control for testing. Usage:\n"
 		"led_control test\t\tRun test pattern\n"
-		"led_control {on, off, reset, blink} [-c <color>] [-l <led>] [-n <num_blink>] [-s <speed>] [-p <prio>]\n"
+		"led_control {on, off, reset, blink, breathe} [-c <color>] [-l <led>] [-n <num_blink>] [-s <speed>] [-p <prio>]\n"
 		"\n"
 		"\t-c <color>\t\tColor (red,blue,green,yellow,purple,amber,cyan,white) (default=white)\n"
 		"\t-l <led>\t\tWhich led to control (0,1,...) (default=all)\n"
@@ -236,6 +236,9 @@ led_control_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[myoptind], "blink")) {
 		led_control.mode = blink_speed;
+
+	} else if (!strcmp(argv[myoptind], "breathe")) {
+		led_control.mode = led_control_s::MODE_BREATHE;
 
 	} else {
 		usage();
