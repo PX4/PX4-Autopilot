@@ -325,6 +325,8 @@ RGBLED::led()
 			break;
 		}
 
+		_brightness = (float)led_control_data.leds[0].brightness / 255.f;
+
 		send_led_rgb();
 	}
 

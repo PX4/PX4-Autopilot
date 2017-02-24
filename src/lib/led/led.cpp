@@ -75,6 +75,7 @@ int LedController::update(LedControlData &control_data)
 	// handle state updates
 	hrt_abstime now = hrt_absolute_time();
 	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100); // Note: this is in 0.1ms
+	constexpr uint16_t breathe_duration = BREATHE_INTERVAL * BREATHE_STEPS / 100;
 
 	int num_blinking_leds = 0;
 	int num_blinking_do_not_change_state = 0;
@@ -105,6 +106,16 @@ int LedController::update(LedControlData &control_data)
 
 			case led_control_s::MODE_BLINK_SLOW:
 				current_blink_duration = BLINK_SLOW_DURATION / 100;
+				break;
+
+			case led_control_s::MODE_BREATHE:
+				_states[i].current_blinking_time += blink_delta_t;
+
+				while (_states[i].current_blinking_time > breathe_duration) {
+					_states[i].current_blinking_time -= breathe_duration;
+				}
+
+				had_changes = true;
 				break;
 			}
 
@@ -186,8 +197,11 @@ int LedController::update(LedControlData &control_data)
 
 void LedController::get_control_data(LedControlData &control_data)
 {
+	_breathe_enabled = false;
+
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
 		control_data.leds[i].color = led_control_s::COLOR_OFF; // set output to a defined state
+		control_data.leds[i].brightness = 255;
 
 		for (int priority = led_control_s::MAX_PRIORITY; priority >= 0; --priority) {
 			const PerPriorityData &cur_data = _states[i].priority[priority];
@@ -198,9 +212,18 @@ void LedController::get_control_data(LedControlData &control_data)
 
 			switch (cur_data.mode) {
 			case led_control_s::MODE_ON:
-			case led_control_s::MODE_BREATHE: // TODO: handle this properly
 				control_data.leds[i].color = cur_data.color;
 				break;
+
+			case led_control_s::MODE_BREATHE: {
+					// fade on and off
+					int counter = _states[i].current_blinking_time / (BREATHE_INTERVAL / 100);
+					int n = counter >= (BREATHE_STEPS / 2) ? BREATHE_STEPS - counter : counter;
+					control_data.leds[i].brightness = (n * n) * 255 / (BREATHE_STEPS * BREATHE_STEPS / 4); // (n/(steps/2))^2
+					control_data.leds[i].color = cur_data.color;
+					_breathe_enabled = true;
+					break;
+				}
 
 			case led_control_s::MODE_BLINK_FAST:
 			case led_control_s::MODE_BLINK_NORMAL:

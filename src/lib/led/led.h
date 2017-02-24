@@ -46,7 +46,8 @@
 
 
 struct LedControlDataSingle {
-	uint8_t color;
+	uint8_t color; ///< one of led_control_s::COLOR_*
+	uint8_t brightness; ///< brightness in [0, 255]
 };
 struct LedControlData {
 	LedControlDataSingle leds[BOARD_MAX_LEDS];
@@ -80,7 +81,7 @@ public:
 	 */
 	int maximum_update_interval() const
 	{
-		return BLINK_FAST_DURATION;
+		return _breathe_enabled ? BREATHE_INTERVAL : BLINK_FAST_DURATION;
 	}
 
 	/**
@@ -90,6 +91,9 @@ public:
 	 * @return 1 if control_data set (state changed), 0 if control_data not changed (state did not change), <0 error otherwise
 	 */
 	int update(LedControlData &control_data);
+
+	static const int BREATHE_INTERVAL = 25 * 1000; /**< single step when in breathe mode */
+	static const int BREATHE_STEPS = 64; /**< number of steps in breathe mode for a full on-off cycle */
 
 	static const int BLINK_FAST_DURATION = 100 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
@@ -108,8 +112,8 @@ private:
 	struct PerPriorityData {
 		uint8_t color = 0; ///< one of led_control_s::COLOR_*
 		uint8_t mode = led_control_s::MODE_DISABLED; ///< one of led_control_s::MODE_*
-		uint8_t blink_times_left = 0; ///< how many times left to blink (MSB bit is used for infinite case).
-		/// This limits the number of complete blink cycles to 64 (if not infinite)
+		uint8_t blink_times_left = 0; /**< how many times left to blink (MSB bit is used for infinite case).
+									This limits the number of complete blink cycles to 64 (if not infinite) */
 	};
 
 	struct NextState {
@@ -144,5 +148,6 @@ private:
 	int _led_control_sub = -1; ///< uorb subscription
 	hrt_abstime _last_update_call;
 	bool _force_update = true; ///< force an orb_copy in the beginning
+	bool _breathe_enabled = false; ///< true if at least one of the led's is currently in breathe mode
 };
 
