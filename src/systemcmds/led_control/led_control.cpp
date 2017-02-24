@@ -46,7 +46,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
-static void	usage(void);
+static void	usage();
 
 static orb_advert_t led_control_pub = nullptr;
 
@@ -134,7 +134,7 @@ led_control_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 	int ch;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	uint8_t blink_speed = led_control_s::MODE_BLINK_NORMAL;
 	led_control_s led_control = {};
 	led_control.num_blinks = 3;
@@ -178,11 +178,11 @@ led_control_main(int argc, char *argv[])
 			break;
 
 		case 'l':
-			led_control.led_mask = 1 << strtol(myoptarg, NULL, 0);
+			led_control.led_mask = 1 << strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'n':
-			led_control.num_blinks = strtol(myoptarg, NULL, 0);
+			led_control.num_blinks = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 's':
@@ -203,7 +203,7 @@ led_control_main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			led_control.priority = strtol(myoptarg, NULL, 0);
+			led_control.priority = strtol(myoptarg, nullptr, 0);
 			break;
 
 		default:
