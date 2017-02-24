@@ -19,7 +19,7 @@ uint8 MODE_DISABLED = 2  # disable this priority (switch to lower priority setti
 uint8 MODE_BLINK_SLOW = 3
 uint8 MODE_BLINK_NORMAL = 4
 uint8 MODE_BLINK_FAST = 5
-# uint8 MODE_BREATHE = 6 # not implemented (yet)
+uint8 MODE_BREATHE = 6 # continuously increase & decrease brightness (solid color if driver does not support it)
 
 uint8 MAX_PRIORITY = 2 # maxium priority (minimum is 0)
 
