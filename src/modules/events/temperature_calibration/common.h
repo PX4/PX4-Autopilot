@@ -165,16 +165,17 @@ protected:
 	struct PerSensorData {
 		float sensor_sample_filt[Dim + 1]; ///< last value is the temperature
 		polyfitter < PolyfitOrder + 1 > P[Dim];
-		unsigned hot_soak_sat = 0; // counter that increments every time the sensor temperature reduces from the last reading
-		uint32_t device_id = 0; // ID for the sensor being calibrated
-		bool cold_soaked =
-			false; // true when the sensor cold soak starting temperature condition had been verified and the starting temperature set
-		bool hot_soaked = false; // true when the sensor has achieved the specified temperature increase
-		bool tempcal_complete = false; // true when the calibration has been completed
-		float low_temp = 0.f; // low temperature recorded at start of calibration (deg C)
-		float high_temp = 0.f; // highest temperature recorded during calibration (deg C)
-		float ref_temp =
-			0.f; // calibration reference temperature, nominally in the middle of the calibration temperature range (deg C)
+		unsigned hot_soak_sat = 0; /**< counter that increments every time the sensor temperature reduces
+									from the last reading */
+		uint32_t device_id = 0; ///< ID for the sensor being calibrated
+		bool cold_soaked = false; ///< true when the sensor cold soak starting temperature condition had been
+		/// verified and the starting temperature set
+		bool hot_soaked = false; ///< true when the sensor has achieved the specified temperature increase
+		bool tempcal_complete = false; ///< true when the calibration has been completed
+		float low_temp = 0.f; ///< low temperature recorded at start of calibration (deg C)
+		float high_temp = 0.f; ///< highest temperature recorded during calibration (deg C)
+		float ref_temp = 0.f; /**< calibration reference temperature, nominally in the middle of the
+							calibration temperature range (deg C) */
 	};
 
 	PerSensorData _data[SENSOR_COUNT_MAX];
