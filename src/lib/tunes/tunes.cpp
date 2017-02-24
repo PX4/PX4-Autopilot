@@ -49,8 +49,6 @@
 #define BEAT_TIME_CONVERSION_US BEAT_TIME_CONVERSION_MS * 1000
 #define BEAT_TIME_CONVERSION BEAT_TIME_CONVERSION_US
 
-using namespace output;
-
 // initialise default tunes
 const char *Tunes::_default_tunes[] = {
 	"", // empty to align with the index
@@ -84,7 +82,7 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	config_tone();
 }
 
-Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::MODE_NORMAL)
+Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::NORMAL)
 {
 }
 
@@ -100,7 +98,7 @@ void Tunes::config_tone()
 	_octave = _default_octave;
 }
 
-int Tunes::parse_cmd(struct tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence)
+int Tunes::parse_cmd(const tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence)
 {
 	int continue_sequnece = 0;
 
@@ -168,16 +166,16 @@ unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned 
 	unsigned note_period = whole_note_period / note_length;
 
 	switch (_note_mode) {
-	case MODE_NORMAL:
+	case NoteMode::NORMAL:
 		silence = note_period / 8;
 		break;
 
-	case MODE_STACCATO:
+	case NoteMode::STACCATO:
 		silence = note_period / 4;
 		break;
 
+	case NoteMode::LEGATO:
 	default:
-	case MODE_LEGATO:
 		silence = 0;
 		break;
 	}
@@ -317,15 +315,15 @@ int Tunes::next_note(unsigned &frequency, unsigned &duration, unsigned &silence)
 
 			switch (c) {
 			case 'N':
-				_note_mode = MODE_NORMAL;
+				_note_mode = NoteMode::NORMAL;
 				break;
 
 			case 'L':
-				_note_mode = MODE_LEGATO;
+				_note_mode = NoteMode::LEGATO;
 				break;
 
 			case 'S':
-				_note_mode = MODE_STACCATO;
+				_note_mode = NoteMode::STACCATO;
 				break;
 
 			case 'F':

@@ -42,16 +42,25 @@
 // TODO: find better way to include the number of tunes, maybe include them in the lib directly?
 #include <drivers/drv_tone_alarm.h>
 
-namespace output
-{
-
-enum NoteMode { MODE_NORMAL, MODE_LEGATO, MODE_STACCATO};
-
 class Tunes
 {
 public:
+	enum class NoteMode {NORMAL, LEGATO, STACCATO};
+
+	/**
+	 * Constructor with the default parameter set to:
+	 * default_tempo: 120
+	 * default_octave: 4
+	 * default_note_length: 4
+	 * default_mode: NORMAL
+	 */
 	Tunes();
-	Tunes(unsigned tempo, unsigned octave, unsigned note_length, NoteMode mode);
+
+	/**
+	 * Constructor that can set the default parameters
+	 */
+	Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length, NoteMode default_mode);
+
 	~Tunes() = default;
 
 	/**
@@ -63,7 +72,7 @@ public:
 	 * @param  silence      return silance duration (us)
 	 * @return              -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int parse_cmd(tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence);
+	int parse_cmd(const tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	/**
 	 * parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic, in frequency(Hz),
@@ -80,10 +89,10 @@ public:
 private:
 	static const char *_default_tunes[TONE_NUMBER_OF_TUNES];
 	static const uint8_t _note_tab[];
-	bool _repeat;	// if true, tune restarts at end
+	bool _repeat;	///< if true, tune restarts at end
 
-	const char *_tune = nullptr; // current tune string
-	const char *_next = nullptr; // next note in the string
+	const char *_tune = nullptr; ///< current tune string
+	const char *_next = nullptr; ///< next note in the string
 
 	unsigned _tempo;
 	unsigned _note_length;
@@ -92,7 +101,7 @@ private:
 
 	unsigned _default_tempo = 120;
 	unsigned _default_note_length = 4;
-	NoteMode _default_mode = NoteMode::MODE_NORMAL;
+	NoteMode _default_mode = NoteMode::NORMAL;
 	unsigned _default_octave = 4;
 
 	/**
@@ -133,12 +142,16 @@ private:
 	//
 	unsigned next_number();
 
-	// Consume dot characters from the string, returning the number consumed.
-	//
+	/**
+	 * Consume dot characters from the string
+	 *
+	 * @return number of consumed dots
+	 */
 	unsigned next_dots();
 
+	/**
+	 * set the tune parameters to default
+	 */
 	void config_tone();
 
 };
-
-} /* output */
