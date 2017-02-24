@@ -51,17 +51,21 @@ int LedController::update(LedControlData &control_data)
 
 	orb_check(_led_control_sub, &updated);
 
-	while (updated) {
+	while (updated || _force_update) {
 		// handle new state
 		led_control_s led_control;
-		orb_copy(ORB_ID(led_control), _led_control_sub, &led_control);
 
-		// don't apply the new state just yet to avoid interrupting an ongoing blinking state
-		for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
-			if (led_control.led_mask & (1 << i)) {
-				_states[i].next_state.set(led_control);
+		if (orb_copy(ORB_ID(led_control), _led_control_sub, &led_control) == 0) {
+
+			// don't apply the new state just yet to avoid interrupting an ongoing blinking state
+			for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
+				if (led_control.led_mask & (1 << i)) {
+					_states[i].next_state.set(led_control);
+				}
 			}
 		}
+
+		_force_update = false;
 
 		orb_check(_led_control_sub, &updated);
 	}
