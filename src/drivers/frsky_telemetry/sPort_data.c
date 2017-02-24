@@ -90,8 +90,8 @@ bool sPort_init()
 	gps_position = malloc(sizeof(struct vehicle_gps_position_s));
 
 
-	if (sensor_combined == NULL || global_pos == NULL || local_pos == NULL || battery_status == NULL || vehicle_status == NULL
-	    || gps_position == NULL) {
+	if (sensor_combined == NULL || global_pos == NULL || local_pos == NULL || battery_status == NULL
+	    || vehicle_status == NULL || gps_position == NULL) {
 		return false;
 	}
 
@@ -318,7 +318,8 @@ void sPort_send_GPS_CRS(int uart)
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	int32_t iYaw = local_pos->yaw * 18000.0f / M_PI_F;
-	if (iYaw < 0) iYaw += 36000;
+
+	if (iYaw < 0) { iYaw += 36000; }
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
@@ -331,14 +332,16 @@ void sPort_send_GPS_TIME(int uart)
 	time_t time_gps = gps_position->time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 
-	if(date){
+	if (date) {
 
-		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, (uint32_t) 0xff | (tm_gps->tm_mday << 8 ) | ((tm_gps->tm_mon + 1) << 16 ) | ((tm_gps->tm_year -100) << 24 ) );
+		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME,
+				(uint32_t) 0xff | (tm_gps->tm_mday << 8) | ((tm_gps->tm_mon + 1) << 16) | ((tm_gps->tm_year - 100) << 24));
 		date = 0;
 
 	} else {
 
-		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME, (uint32_t) 0x00 | (tm_gps->tm_sec << 8 ) | (tm_gps->tm_min  << 16 ) | (tm_gps->tm_hour << 24 ));
+		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME,
+				(uint32_t) 0x00 | (tm_gps->tm_sec << 8) | (tm_gps->tm_min  << 16) | (tm_gps->tm_hour << 24));
 		date = 1;
 
 	}
