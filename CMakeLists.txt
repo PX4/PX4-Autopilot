@@ -96,6 +96,11 @@ if(FORMAT)
 	)
 endif()
 
+if(TESTING AND FORMAT)
+	add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
+	add_dependencies(check test_build check_format)
+endif()
+
 set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})

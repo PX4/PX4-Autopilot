@@ -4,9 +4,7 @@ install:
   - pip install --user cpp-coveralls
 script:
   - cmake -DCMAKE_BUILD_TYPE=Profile -DTESTING=ON -DFORMAT=ON .
-  - make
-  - make check_format
-  - ctest -V
+  - make check
 after_success:
   - cpp-coveralls -i matrix
 env:
