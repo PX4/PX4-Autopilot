@@ -1111,6 +1111,7 @@ PX4IO::task_main()
 				mixer_parameter_set_s param;
 				orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
 
+
 				//Group 1 is remote/failsafe mixer group
 				if (param.mixer_group == 1) {
 					struct __attribute__((
@@ -1131,7 +1132,8 @@ PX4IO::task_main()
 
 					uint32_t check_val = mix_param.param.check_val;
 
-					io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
+					ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
+
 					//No check of return status. Data checked by readback.
 
 					memset((void *) &mix_param, 0xFF, sizeof(mix_param));
@@ -3135,7 +3137,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			signed *count = (signed *)arg;
-			*count = _mixers->count_submixers(*count);
+			*count = _mixers->count_mixers_submixer(*count);
 
 			break;
 		}
@@ -3197,6 +3199,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
 
 			if (ret != 0) {
+				PX4_INFO("PX4io Set param write registers failed");
 				ret = -EINVAL;
 				break;
 			}
@@ -3206,6 +3209,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_MIXER_INDEX, (uint16_t *) &mix_param, 5);
 
 			if (ret != 0) {
+				PX4_INFO("PX4io Set param read registers failed");
 				ret = -EINVAL;
 				break;
 			}
@@ -3216,6 +3220,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			    (mix_param.param_index != param->param_index) ||
 			    (mix_param.param.check_val != check_val)
 			   ) {
+				PX4_INFO("PX4io Set param verify registers failed");
 				ret = -EINVAL;
 				break;
 			}

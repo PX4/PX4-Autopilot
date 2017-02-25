@@ -324,7 +324,7 @@ MixerGroup::get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index)
 }
 
 signed
-MixerGroup::count_submixers(uint16_t mix_index)
+MixerGroup::count_mixers_submixer(uint16_t mix_index)
 {
 	Mixer	*mixer = _first;
 	uint16_t index = 0;

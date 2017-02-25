@@ -483,7 +483,7 @@ public:
 	 * @param[in] mix_index     Index of the mixer to get the submixer count
 	 * @return                  The count of submixers.
 	 */
-	signed              count_submixers(uint16_t mix_index);
+	signed              count_mixers_submixer(uint16_t mix_index);
 
 	/**
 	* @brief                   Get the value of a mixer parameter

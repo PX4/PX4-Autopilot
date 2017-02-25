@@ -45,6 +45,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <px4_posix.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -117,10 +118,10 @@ MavlinkMixersManager::open_group_as_device(uint16_t group)
 	if (_has_px4io) {
 		switch (group) {
 		case 0:
-			return px4_open("/dev/px4io", 0);
+			return px4_open("/dev/pwm_output1", 0);
 
 		case 1:
-			return px4_open("/dev/pwm_output1", 0);
+			return px4_open("/dev/px4io", 0);
 		}
 
 	} else {
@@ -731,7 +732,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 
 
-	/* Send parameter values received from mixer data topic */
+	/* Send parameter values received from mixer parameter topic */
 	if (_mixer_parameter_sub < 0) {
 		_mixer_parameter_sub = orb_subscribe(ORB_ID(mixer_parameter));
 	}

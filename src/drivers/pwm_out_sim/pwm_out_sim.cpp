@@ -572,30 +572,33 @@ PWMSim::task_main()
 		if (updated) {
 			mixer_parameter_set_s param;
 			orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
-			ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
-						       (unsigned)param.mixer_sub_index);
 
-			mixer_parameter_s data;
-			data.mixer_group = param.mixer_group;
-			data.mixer_index = param.mixer_index;
-			data.mixer_sub_index = param.mixer_sub_index;
-			data.parameter_index = param.parameter_index;
-			data.int_value = 0;
+			if (param.mixer_group == 0) {
+				ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
+							       (unsigned)param.mixer_sub_index);
 
-			if (ret == 0) {
-				data.real_value = param.real_value;
+				mixer_parameter_s data;
+				data.mixer_group = param.mixer_group;
+				data.mixer_index = param.mixer_index;
+				data.mixer_sub_index = param.mixer_sub_index;
+				data.parameter_index = param.parameter_index;
+				data.int_value = 0;
 
-			} else {
-				data.real_value = 0;
-			}
+				if (ret == 0) {
+					data.real_value = param.real_value;
 
-			data.param_type = 9;    //FLOAT
+				} else {
+					data.real_value = 0;
+				}
 
-			if (_mixer_parameter_pub == 0) {
-				_mixer_parameter_pub = orb_advertise(ORB_ID(mixer_parameter), &data);
+				data.param_type = 9;    //FLOAT
 
-			} else {
-				orb_publish(ORB_ID(mixer_parameter), _mixer_parameter_pub, &data);
+				if (_mixer_parameter_pub == 0) {
+					_mixer_parameter_pub = orb_advertise(ORB_ID(mixer_parameter), &data);
+
+				} else {
+					orb_publish(ORB_ID(mixer_parameter), _mixer_parameter_pub, &data);
+				}
 			}
 		}
 
@@ -912,7 +915,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			}
 
 			signed *count = (signed *)arg;
-			*count = _mixers->count_submixers(*count);
+			*count = _mixers->count_mixers_submixer(*count);
 
 			break;
 		}

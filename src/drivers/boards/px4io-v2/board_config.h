@@ -52,8 +52,11 @@
  ******************************************************************************/
 /* Configuration **************************************************************/
 
-/* Turns off mixer features not required on a remote failsafe*/
+/* Turns on mixer features */
+#define MIXER_TUNING
+/* Turns off features not required on a remote failsafe*/
 #define MIXER_REMOTE
+
 
 /******************************************************************************
  * Serial
