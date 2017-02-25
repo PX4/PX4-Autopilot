@@ -139,6 +139,11 @@ set(config_module_list
 	examples/rover_steering_control
 
 	#
+	# Segway
+	#
+	examples/segway
+
+	#
 	# Demo apps
 	#
 
