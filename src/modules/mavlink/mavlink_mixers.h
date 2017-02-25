@@ -49,7 +49,6 @@
 #include <uORB/topics/mixer_data_request.h>
 
 #if defined(MIXER_TUNING)
-#define MAVLINK_MIXER_STATE_WAITING -1
 
 enum MIXER_SEND_ALL_STATE {
 	MIXERS_SEND_ALL_NONE = 0,
@@ -64,7 +63,7 @@ enum MIXER_SEND_ALL_STATE {
 	MIXERS_SEND_ALL_OUTPUT_CONNECTIONS,
 	MIXERS_SEND_ALL_PARAMETERS,
 	MIXERS_SEND_ALL_PARAMETERS_START,
-	MIXERS_SEND_ALL_PARAMETERS_END,
+	MIXERS_SEND_ALL_NEXT_MIXER,
 };
 
 class MavlinkMixersManager : public MavlinkStream
@@ -109,13 +108,13 @@ protected:
 	void send(const hrt_abstime t);
 
 	void        _send_mixer_count();
+	int16_t     open_group_as_device(uint16_t group);
 
 	bool        _request_pending;
 	MIXER_SEND_ALL_STATE        _send_all_state;
 	bool        _send_data_immediate;
 
 	/**For tracking data when sending or streaming*/
-	mixer_data_request_s    _mixer_data_req;
 	mavlink_mixer_data_t    _msg_mixer_data_immediate;
 	uint16_t    _mixer_group;
 	uint16_t    _mixer_count;
@@ -124,11 +123,11 @@ protected:
 	uint16_t    _mixer_param_count;
 	uint16_t    _mixer_input_count;
 	uint16_t    _mixer_output_count;
-	int16_t     _mavlink_mixer_state;
 	char       *_p_mixer_save_buffer;
 
-	orb_advert_t _mixer_data_request_pub;
 	orb_advert_t _mixer_parameter_set_pub;
-	int _mixer_data_sub;
+	int         _mixer_data_sub;
+	bool        _has_checked_px4io;
+	bool        _has_px4io;
 };
 #endif //MIXER_TUNING

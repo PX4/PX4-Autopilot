@@ -1159,6 +1159,20 @@ PX4IO::task_main()
 							break;
 						}
 
+					case 4: {
+							//Connection
+							uint16_t conn_group;
+							data.int_value = _mixers->get_connection((uint16_t) data.mixer_index,
+									 (uint16_t) data.mixer_sub_index,
+									 (uint16_t) data.connection_type,
+									 (uint16_t) data.parameter_index,
+									 &conn_group);
+							data.connection_group = conn_group;
+							data.real_value = 0.0;
+							data.param_type = 0;    //FLOAT32
+							break;
+						}
+
 					//MIXER_ACTION_SAVE_GROUP
 					case 112: {
 							PX4_INFO("Saving mixers for px4io");
@@ -3327,6 +3341,19 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			unsigned buflen = 1022;
 			ret = _mixers->save_to_buf(buf, buflen);
+			break;
+		}
+
+	case MIXERIOCGETIOCONNECTION: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_connection_s *conn = (mixer_connection_s *)arg;
+
+			conn->connection = _mixers->get_connection(conn->mix_index, conn->mix_sub_index, conn->connection_type,
+					   conn->connection_index, &conn->connection_group);
+			ret = 0;
 			break;
 		}
 

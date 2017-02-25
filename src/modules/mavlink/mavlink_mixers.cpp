@@ -44,6 +44,7 @@
 #if defined(MIXER_TUNING)
 
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -57,9 +58,9 @@
 
 #define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
 
-static const char *kMixerLocalData    = MOUNTPOINT "/mixer.local.mix";
-static const char *kMixerFailsafeData = MOUNTPOINT "/mixer.failsafe.mix";
-static const char *kMixerDefaultData = MOUNTPOINT "/mixer.default.mix";
+//static const char *kMixerLocalData    = MOUNTPOINT "/mixer.local.mix";
+//static const char *kMixerFailsafeData = MOUNTPOINT "/mixer.failsafe.mix";
+//static const char *kMixerDefaultData = MOUNTPOINT "/mixer.default.mix";
 
 static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 static const unsigned mixer_input_count[MIXER_IO_MIXER_TYPE_COUNT] = MIXER_INPUT_COUNTS;
@@ -69,7 +70,6 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_request_pending(false),
 	_send_all_state(MIXERS_SEND_ALL_NONE),
 	_send_data_immediate(false),
-	_mixer_data_req(),
 	_mixer_group(0),
 	_mixer_count(0),
 	_mixer_sub_count(0),
@@ -77,11 +77,10 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_mixer_param_count(0),
 	_mixer_input_count(0),
 	_mixer_output_count(0),
-	_mavlink_mixer_state(MAVLINK_MIXER_STATE_WAITING),
 	_p_mixer_save_buffer(nullptr),
-	_mixer_data_request_pub(nullptr),
 	_mixer_parameter_set_pub(nullptr),
-	_mixer_data_sub(-1)
+	_mixer_data_sub(-1),
+	_has_checked_px4io(false)
 {
 	_interval = 100000;
 }
@@ -89,10 +88,6 @@ MavlinkMixersManager::~MavlinkMixersManager()
 {
 	if (_mixer_data_sub >= 0) {
 		orb_unsubscribe(_mixer_data_sub);
-	}
-
-	if (_mixer_data_request_pub) {
-		orb_unadvertise(_mixer_data_request_pub);
 	}
 
 	if (_mixer_parameter_set_pub) {
@@ -112,6 +107,33 @@ MavlinkMixersManager::get_size_avg()
 	return 0;
 }
 
+int16_t
+MavlinkMixersManager::open_group_as_device(uint16_t group)
+{
+	if (!_has_checked_px4io) {
+		struct stat st;
+		_has_px4io = (stat("/dev/px4io", &st) == 0);
+		_has_checked_px4io = true;
+	}
+
+	if (_has_px4io) {
+		switch (group) {
+		case 0:
+			return px4_open("/dev/px4io", 0);
+
+		case 1:
+			return px4_open("/dev/pwm_output1", 0);
+		}
+
+	} else {
+		if (group == 0) {
+			return px4_open("/dev/pwm_output0", 0);
+		}
+	}
+
+	return -1;
+}
+
 void
 MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 {
@@ -121,36 +143,116 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 	mavlink_msg_command_long_decode(msg, &cmd);
 
 	switch (cmd.command) {
-	case MAV_CMD_REQUEST_MIXER_DATA:
-		_mixer_data_req.mixer_group = cmd.param1;
-		_mixer_data_req.mixer_index = cmd.param2;
-		_mixer_data_req.mixer_sub_index = cmd.param3;
-		_mixer_data_req.parameter_index = cmd.param4;
-		_mixer_data_req.connection_type = 0;
-		_mixer_data_req.mixer_data_type = cmd.param5;
-		_mixer_data_req.connection_type = 0;
-		_send_all_state = MIXERS_SEND_ALL_NONE;
+	case MAV_CMD_REQUEST_MIXER_DATA: {
+			_msg_mixer_data_immediate.mixer_group = cmd.param1;
+			_msg_mixer_data_immediate.mixer_index = cmd.param2;
+			_msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
+			_msg_mixer_data_immediate.parameter_index = cmd.param4;
+			_msg_mixer_data_immediate.data_type = cmd.param5;
+			_msg_mixer_data_immediate.connection_type = 0;
+			_msg_mixer_data_immediate.connection_group = 0;
 
-		// data types not yet supported
-		if ((_mixer_data_req.mixer_data_type == MIXER_DATA_TYPE_PARAMETER_COUNT) ||
-		    (_mixer_data_req.mixer_data_type == MIXER_DATA_TYPE_CONNECTION_COUNT)) {
-			return;
+			_msg_mixer_data_immediate.param_value = 0.0;
+			_msg_mixer_data_immediate.param_type = 0;
+			_msg_mixer_data_immediate.data_value = 0;
+			_send_all_state = MIXERS_SEND_ALL_NONE;
+
+			int dev;
+			dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
+
+			if (dev < 0) {
+				_msg_mixer_data_immediate.data_value = -1;
+				_msg_mixer_data_immediate.param_value = 0.0;
+				_send_data_immediate = true;
+				return;
+			}
+
+			switch (_msg_mixer_data_immediate.data_type) {
+			case MIXER_DATA_TYPE_MIXER_COUNT: {
+					int mix_count;
+					int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = mix_count;
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
+			case MIXER_DATA_TYPE_SUBMIXER_COUNT: {
+					int mix_count;
+					int ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&mix_count);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = mix_count;
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
+			case MIXER_DATA_TYPE_MIXTYPE: {
+					mixer_type_s type;
+					type.mix_index = _msg_mixer_data_immediate.mixer_index;
+					type.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = type.mix_type;
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
+			case MIXER_DATA_TYPE_PARAMETER: {
+					mixer_param_s param;
+					param.mix_index = _msg_mixer_data_immediate.mixer_index;
+					param.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					param.param_index = _msg_mixer_data_immediate.parameter_index;
+					int ret = px4_ioctl(dev, MIXERIOCGETPARAM, (unsigned long)&param);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+					_msg_mixer_data_immediate.data_value = 0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						_msg_mixer_data_immediate.param_type = MAV_PARAM_TYPE_REAL32;
+						_msg_mixer_data_immediate.param_value = param.value;
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
+			// Not supported or not yet supported
+			case MIXER_DATA_TYPE_CONNECTION:
+			case MIXER_DATA_TYPE_PARAMETER_COUNT:
+			case MIXER_DATA_TYPE_CONNECTION_COUNT:
+			default:
+				return;
+			}
+
+			break;
 		}
-
-		_request_pending = true;
-
-//		PX4_INFO("data request group:%u mix_index:%u sub_index:%u param_index:%u type:%u",
-//			 _mixer_data_req.mixer_group,  _mixer_data_req.mixer_index, _mixer_data_req.mixer_sub_index,
-//			 _mixer_data_req.parameter_index, _mixer_data_req.mixer_data_type);
-
-		if (_mixer_data_request_pub == nullptr) {
-			_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
-
-		} else {
-			orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
-		}
-
-		break;
 
 	case MAV_CMD_SET_MIXER_PARAMETER:
 		// publish set mixer parameter request to uORB
@@ -189,26 +291,47 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 		break;
 
 	case MAV_CMD_REQUEST_MIXER_SEND_ALL:
-		param_set.mixer_group = cmd.param1;
+		_msg_mixer_data_immediate.mixer_group = cmd.param1;
 		_send_all_state = MIXERS_SEND_ALL_START;
 		break;
 
 	case MAV_CMD_REQUEST_MIXER_CONN: {
-			_mixer_data_req.mixer_group = cmd.param1;
-			_mixer_data_req.mixer_index = cmd.param2;
-			_mixer_data_req.mixer_sub_index = cmd.param3;
-			_mixer_data_req.parameter_index = cmd.param5;
-			_mixer_data_req.connection_type = cmd.param4;
-			_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_CONNECTION;
+			_msg_mixer_data_immediate.mixer_group = cmd.param1;
+			_msg_mixer_data_immediate.mixer_index = cmd.param2;
+			_msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
+			_msg_mixer_data_immediate.parameter_index = cmd.param5;
+			_msg_mixer_data_immediate.connection_type = cmd.param4;
+			_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION;
 			_send_all_state = MIXERS_SEND_ALL_NONE;
-			_request_pending = true;
 
-			if (_mixer_data_request_pub == nullptr) {
-				_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
+			int dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
+
+			if (dev < 0) {
+				_msg_mixer_data_immediate.data_value = -1;
+				_msg_mixer_data_immediate.param_value = 0.0;
+				_send_data_immediate = true;
+				return;
+			}
+
+			mixer_connection_s conn;
+			conn.mix_index = _msg_mixer_data_immediate.mixer_index;
+			conn.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+			conn.connection_index = _msg_mixer_data_immediate.parameter_index;
+			conn.connection_type = _msg_mixer_data_immediate.connection_type;
+
+			int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
+			px4_close(dev);
+			_msg_mixer_data_immediate.data_value = 0;
+
+			if (ret < 0) {
+				_msg_mixer_data_immediate.data_value = ret;
 
 			} else {
-				orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+				_msg_mixer_data_immediate.data_value = conn.connection;
+				_msg_mixer_data_immediate.connection_group = conn.connection_group;
 			}
+
+			_send_data_immediate = true;
 
 			break;
 		}
@@ -234,192 +357,105 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		return;
 	}
 
-	if (_send_all_state == MIXERS_SEND_ALL_START) {
-		//Reset all values to the start and get the mixer count
-		_mixer_data_req.mixer_index = 0;
-		_mixer_data_req.mixer_sub_index = 0;
-		_mixer_data_req.parameter_index = 0;
-		_mixer_data_req.connection_type = 0;
-		_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXER_COUNT;
+	// If not waiting for anything and send all is active, prepare the next item
+	if (!_send_data_immediate && !_request_pending && _send_all_state != MIXERS_SEND_ALL_NONE) {
+		int dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
 
-		if (_mixer_data_request_pub == nullptr) {
-			_mixer_data_request_pub = orb_advertise(ORB_ID(mixer_data_request), &_mixer_data_req);
-
-		} else {
-			orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+		if (dev < 0) {
+			_send_all_state = MIXERS_SEND_ALL_NONE;
+			_send_data_immediate = false;
+			return;
 		}
 
-		_request_pending = true;
-		_send_all_state = MIXERS_SEND_ALL_SUBMIXER_COUNT;
-	}
+		switch (int(_send_all_state)) {
+		case MIXERS_SEND_ALL_START: {
+				//Reset all values to the start and get the mixer count
+				_msg_mixer_data_immediate.mixer_index = 0;
+				_msg_mixer_data_immediate.mixer_sub_index = 0;
+				_msg_mixer_data_immediate.parameter_index = 0;
+				_msg_mixer_data_immediate.connection_type = 0;
+				_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_MIXER_COUNT;
 
-	/* Send parameter values received from mixer data topic */
-	if (_mixer_data_sub < 0) {
-		_mixer_data_sub = orb_subscribe(ORB_ID(mixer_data));
-	}
+				int mix_count;
+				int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
+				px4_close(dev);
 
-	bool mixer_data_ready;
-	orb_check(_mixer_data_sub, &mixer_data_ready);
-
-	if (space_available && mixer_data_ready && _request_pending) {
-		struct mixer_data_s mixer_data;
-		orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
-
-		mavlink_mixer_data_t msg;
-		msg.mixer_group = mixer_data.mixer_group;
-		msg.mixer_index = mixer_data.mixer_index;
-		msg.mixer_sub_index = mixer_data.mixer_sub_index;
-		msg.parameter_index = mixer_data.parameter_index;
-		msg.connection_type = mixer_data.connection_type;
-		msg.connection_group = mixer_data.connection_group;
-		msg.data_type = mixer_data.mixer_data_type;
-		msg.param_type = mixer_data.param_type;
-		msg.data_value = mixer_data.int_value;
-
-		//If sending all as a stream, remember the latest values for mixer shapes
-		if (_send_all_state != MIXERS_SEND_ALL_NONE) {
-			switch (mixer_data.mixer_data_type) {
-			case MIXER_DATA_TYPE_MIXER_COUNT:
-				_mixer_count = mixer_data.int_value;
-				break;
-
-			case MIXER_DATA_TYPE_SUBMIXER_COUNT:
-				_mixer_sub_count = mixer_data.int_value;
-				break;
-
-			case MIXER_DATA_TYPE_MIXTYPE:
-				_mixer_type = mixer_data.int_value;
-				_mixer_param_count = mixer_parameter_count[_mixer_type];
-				_mixer_input_count = mixer_input_count[_mixer_type];
-				_mixer_output_count = mixer_output_count[_mixer_type];
-				break;
-			}
-		}
-
-		if (msg.data_type == MIXER_DATA_TYPE_PARAMETER) {
-			if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {
-				msg.param_type = MAVLINK_TYPE_FLOAT;
-				msg.param_value = mixer_data.real_value;
-
-			} else {
-				int32_t val;
-				val = (int32_t)mixer_data.int_value;
-				memcpy(&msg.param_value, &val, sizeof(int32_t));
-				msg.param_type = MAVLINK_TYPE_INT32_T;
-			}
-		}
-
-		if (msg.data_type == 112) {
-			if ((_p_mixer_save_buffer != nullptr) || (mixer_data.int_value != -1)) {
-				const char *fname = nullptr;
-
-				switch (mixer_data.mixer_group) {
-				case 0:
-					fname = kMixerLocalData;
-					break;
-
-				case 1:
-					fname = kMixerFailsafeData;
-					break;
-
-				default:
-					fname = kMixerDefaultData;
-					break;
-				}
-
-				/* Create the mixer definition file */
-				FILE *f = ::fopen(fname, "w");
-
-				if (f != nullptr) {
-					/* Write the buffer to the file*/
-					signed err = fputs(_p_mixer_save_buffer, f);
-
-					if (err <= 0) {
-						PX4_ERR("Mixer file write error: %s ", fname);
-						msg.data_value = -1;
-
-					} else {
-						PX4_INFO("Wrote mixer group:%u to file %s\n", mixer_data.mixer_group, fname);
-					}
-
-#ifdef __PX4_NUTTX
-					fsync(fileno(f));
-#endif
-					fclose(f);
+				if (ret < 0) {
+					_msg_mixer_data_immediate.data_value = ret;
+					_send_all_state = MIXERS_SEND_ALL_NONE;
+					_mixer_count = 0;
 
 				} else {
-					PX4_ERR("not able to create mixer file %s", fname);
-					msg.data_value = -1;
+					_msg_mixer_data_immediate.data_value = mix_count;
+					_mixer_count = mix_count;
+					_send_all_state = MIXERS_SEND_ALL_SUBMIXER_COUNT;
 				}
 
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+				break;
 			}
-
-			if (_p_mixer_save_buffer != nullptr) {
-				free(_p_mixer_save_buffer);
-				_p_mixer_save_buffer = nullptr;
-				PX4_INFO("Saving mixer freeing buffer");
-			}
-		}
-
-//        PX4_INFO("mavlink mixer_data send with group:%u index:%u conn_type:%u sub:%u param:%u type:%u data:%u",
-//			 msg.mixer_group,
-//			 msg.mixer_index,
-//			 msg.mixer_sub_index,
-//			 msg.parameter_index,
-//             msg.connection_type,
-//			 mixer_data.mixer_data_type,
-//			 msg.data_value);
-
-		_request_pending = false;
-
-		/* Send with default component ID */
-		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
-
-	} else if (!space_available && mixer_data_ready && _request_pending) {
-		PX4_WARN("Space not avialable in buffer to stream mixer data");
-	}
-
-	// Request the next piece of data for send all
-	// Case statement handles the last state of the last data sent, not the next one.
-
-	if (!_request_pending) {
-		switch (uint(_send_all_state)) {
 
 		case MIXERS_SEND_ALL_SUBMIXER_COUNT: {
-				_mixer_data_req.parameter_index = 0;
-				_mixer_data_req.connection_type = 0;
-				_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_SUBMIXER_COUNT;
+				_msg_mixer_data_immediate.parameter_index = 0;
+				_msg_mixer_data_immediate.connection_type = 0;
+				_msg_mixer_data_immediate.param_value = 0.0;
+				_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_SUBMIXER_COUNT;
 
-				_request_pending = true;
+				int mix_count = _msg_mixer_data_immediate.mixer_index;
+				int ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&mix_count);
+				px4_close(dev);
+				_msg_mixer_data_immediate.param_value = 0.0;
 
-				if (_mixer_data_request_pub != nullptr) {
-					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
-				};
+				if (ret < 0) {
+					_msg_mixer_data_immediate.data_value = ret;
+					_mixer_sub_count = 0;
+					_send_all_state = MIXERS_SEND_ALL_NONE;
 
-				_send_all_state = MIXERS_SEND_ALL_MIXER_TYPE;
+				} else {
+					_msg_mixer_data_immediate.data_value = mix_count;
+					_mixer_sub_count = mix_count;
+					_send_all_state = MIXERS_SEND_ALL_MIXER_TYPE;
+				}
 
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 				break;
 			}
 
 		case MIXERS_SEND_ALL_MIXER_TYPE: {
-				// Send the mixer type
-				_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_MIXTYPE;
+				_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_MIXTYPE;
 
-				_request_pending = true;
+				mixer_type_s type;
+				type.mix_index = _msg_mixer_data_immediate.mixer_index;
+				type.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
 
-				if (_mixer_data_request_pub != nullptr) {
-					orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+				int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
+				px4_close(dev);
+				_msg_mixer_data_immediate.param_value = 0.0;
+
+				if (ret < 0) {
+					_msg_mixer_data_immediate.data_value = ret;
+					_send_all_state = MIXERS_SEND_ALL_NONE;
+					_mixer_type = -1;
+
+				} else {
+					_msg_mixer_data_immediate.data_value = type.mix_type;
+
+					//Collect mixer metadata for later
+					_mixer_type = type.mix_type;
+					_mixer_param_count = mixer_parameter_count[_mixer_type];
+					_mixer_input_count = mixer_input_count[_mixer_type];
+					_mixer_output_count = mixer_output_count[_mixer_type];
+
+					_send_all_state = MIXERS_SEND_ALL_PARAMETER_COUNT;
 				}
 
-				_send_all_state = MIXERS_SEND_ALL_PARAMETER_COUNT;
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 				break;
 			}
 
+
 		case MIXERS_SEND_ALL_PARAMETER_COUNT: {
 				//Send the parameter count for the current mixer/submixer
-				_msg_mixer_data_immediate.mixer_group = _mixer_data_req.mixer_group;
-				_msg_mixer_data_immediate.mixer_index = _mixer_data_req.mixer_index;
-				_msg_mixer_data_immediate.mixer_sub_index = _mixer_data_req.mixer_sub_index;
 				_msg_mixer_data_immediate.parameter_index = 0;
 				_msg_mixer_data_immediate.connection_type = 0;
 				_msg_mixer_data_immediate.connection_group = 0;
@@ -428,45 +464,54 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				_msg_mixer_data_immediate.param_value = 0.0;
 				_msg_mixer_data_immediate.data_value = _mixer_param_count;
 
-				_send_data_immediate = true;
-				_request_pending = false;
-
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 				_send_all_state = MIXERS_SEND_ALL_INPUT_CONNECTIONS_COUNT;
 				break;
 			}
 
 		case MIXERS_SEND_ALL_INPUT_CONNECTIONS_COUNT: {
 				//Send the input connection count for the current mixer/submixer
-				_msg_mixer_data_immediate.mixer_group = _mixer_data_req.mixer_group;
-				_msg_mixer_data_immediate.mixer_index = _mixer_data_req.mixer_index;
-				_msg_mixer_data_immediate.mixer_sub_index = _mixer_data_req.mixer_sub_index;
 				_msg_mixer_data_immediate.parameter_index = 0;
 				_msg_mixer_data_immediate.connection_type = 1;
 				_msg_mixer_data_immediate.connection_group = 0;
 				_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION_COUNT;
 				_msg_mixer_data_immediate.param_type = 0;
 				_msg_mixer_data_immediate.param_value = 0.0;
-				_msg_mixer_data_immediate.data_value = _mixer_param_count;
+				_msg_mixer_data_immediate.data_value = _mixer_input_count;
 
-				_send_data_immediate = true;
-				_request_pending = false;
-
-				_mixer_data_req.parameter_index = 0;
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+				_msg_mixer_data_immediate.parameter_index = 0;
 				_send_all_state = MIXERS_SEND_ALL_INPUT_CONNECTIONS;
+				break;
 			}
 
 		case MIXERS_SEND_ALL_INPUT_CONNECTIONS: {
-				if (_mixer_data_req.parameter_index < _mixer_input_count) {
+				if (_msg_mixer_data_immediate.parameter_index < _mixer_input_count) {
 					/**Send next input connection request */
-					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_CONNECTION;
-					_mixer_data_req.connection_type = 1;
+					_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION;
+					_msg_mixer_data_immediate.connection_type = 1;
 
-					if (_mixer_data_request_pub != nullptr) {
-						orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+					mixer_connection_s conn;
+					conn.mix_index = _msg_mixer_data_immediate.mixer_index;
+					conn.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					conn.connection_index = _msg_mixer_data_immediate.parameter_index;
+					conn.connection_type = 1;
+
+					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
+					px4_close(dev);
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+						_send_all_state = MIXERS_SEND_ALL_NONE;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = conn.connection;
+						_msg_mixer_data_immediate.connection_group = conn.connection_group;
 					}
 
-					_request_pending = true;
-					_mixer_data_req.parameter_index++;
+					mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+					_msg_mixer_data_immediate.parameter_index++;
+					//_send_all_state = MIXERS_SEND_ALL_INPUT_CONNECTIONS;      //Stay in same state
 
 				} else {
 					_send_all_state = MIXERS_SEND_ALL_OUTPUT_CONNECTIONS_COUNT;
@@ -476,37 +521,49 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			}
 
 		case MIXERS_SEND_ALL_OUTPUT_CONNECTIONS_COUNT: {
-				//Send the output connection count for the current mixer/submixer
-				_msg_mixer_data_immediate.mixer_group = _mixer_data_req.mixer_group;
-				_msg_mixer_data_immediate.mixer_index = _mixer_data_req.mixer_index;
-				_msg_mixer_data_immediate.mixer_sub_index = _mixer_data_req.mixer_sub_index;
+				//Send the input connection count for the current mixer/submixer
 				_msg_mixer_data_immediate.parameter_index = 0;
 				_msg_mixer_data_immediate.connection_type = 0;
 				_msg_mixer_data_immediate.connection_group = 0;
 				_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION_COUNT;
 				_msg_mixer_data_immediate.param_type = 0;
 				_msg_mixer_data_immediate.param_value = 0.0;
-				_msg_mixer_data_immediate.data_value = _mixer_param_count;
+				_msg_mixer_data_immediate.data_value = _mixer_output_count;
 
-				_send_data_immediate = true;
-				_request_pending = false;
+				mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 
+				_msg_mixer_data_immediate.parameter_index = 0;
 				_send_all_state = MIXERS_SEND_ALL_OUTPUT_CONNECTIONS;
 				break;
 			}
 
-		case MIXERS_SEND_ALL_OUTPUT_CONNECTIONS: {
-				if (_mixer_data_req.parameter_index < _mixer_output_count) {
-					/**Send next input connection request */
-					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_CONNECTION;
-					_mixer_data_req.connection_type = 0;
 
-					if (_mixer_data_request_pub != nullptr) {
-						orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+		case MIXERS_SEND_ALL_OUTPUT_CONNECTIONS: {
+				if (_msg_mixer_data_immediate.parameter_index < _mixer_output_count) {
+					/**Send next input connection request */
+					_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION;
+					_msg_mixer_data_immediate.connection_type = 0;
+
+					mixer_connection_s conn;
+					conn.mix_index = _msg_mixer_data_immediate.mixer_index;
+					conn.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					conn.connection_index = _msg_mixer_data_immediate.parameter_index;
+					conn.connection_type = 0;
+
+					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
+					px4_close(dev);
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+						_send_all_state = MIXERS_SEND_ALL_NONE;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = conn.connection;
+						_msg_mixer_data_immediate.connection_group = conn.connection_group;
 					}
 
-					_request_pending = true;
-					_mixer_data_req.parameter_index++;
+					mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+					_msg_mixer_data_immediate.parameter_index++;
 
 				} else {
 					_send_all_state = MIXERS_SEND_ALL_PARAMETERS_START;
@@ -516,50 +573,65 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			}
 
 		case MIXERS_SEND_ALL_PARAMETERS_START: {
-				_mixer_data_req.parameter_index = 0;
+				_msg_mixer_data_immediate.parameter_index = 0;
 				_send_all_state = MIXERS_SEND_ALL_PARAMETERS;
 				break;
 			}
 
 		case MIXERS_SEND_ALL_PARAMETERS: {
-				if (_mixer_data_req.parameter_index < _mixer_param_count) {
-					_mixer_data_req.mixer_data_type = MIXER_DATA_TYPE_PARAMETER;
+				if (_msg_mixer_data_immediate.parameter_index < _mixer_param_count) {
+					_msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_PARAMETER;
 
-					/**Send next parameter request */
-					if (_mixer_data_request_pub != nullptr) {
-						orb_publish(ORB_ID(mixer_data_request), _mixer_data_request_pub, &_mixer_data_req);
+					mixer_param_s param;
+					param.mix_index = _msg_mixer_data_immediate.mixer_index;
+					param.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					param.param_index = _msg_mixer_data_immediate.parameter_index;
+
+					int ret = px4_ioctl(dev, MIXERIOCGETPARAM, (unsigned long)&param);
+					px4_close(dev);
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.param_type = 0;
+						_msg_mixer_data_immediate.param_value = 0.0;
+						_msg_mixer_data_immediate.data_value = ret;
+						_send_all_state = MIXERS_SEND_ALL_NONE;
+
+					} else {
+						_msg_mixer_data_immediate.param_type = MAV_PARAM_TYPE_REAL32;
+						_msg_mixer_data_immediate.param_value = param.value;
+						_msg_mixer_data_immediate.data_value = 0;
+						//_send_all_state = MIXERS_SEND_ALL_PARAMETERS;     //Stay in the same state
 					}
 
-					_request_pending = true;
-
-					_mixer_data_req.parameter_index++;
+					mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
+					_msg_mixer_data_immediate.parameter_index++;
 
 				} else {
-					_mixer_data_req.parameter_index = 0;
-					_send_all_state = MIXERS_SEND_ALL_PARAMETERS_END;
+					_send_all_state = MIXERS_SEND_ALL_NEXT_MIXER;
 				}
 
 				break;
 			}
 
-		case MIXERS_SEND_ALL_PARAMETERS_END: {
-				_mixer_data_req.mixer_sub_index++;
 
-				if (_mixer_data_req.mixer_sub_index > _mixer_sub_count) {   /**Check if submixer index has exceeded count*/
-					_mixer_data_req.mixer_sub_index = 0;
-					_mixer_data_req.parameter_index = 0;
-					_mixer_data_req.mixer_index++;
+		case MIXERS_SEND_ALL_NEXT_MIXER: {
+				_msg_mixer_data_immediate.mixer_sub_index++;
+
+				if (_msg_mixer_data_immediate.mixer_sub_index > _mixer_sub_count) {   /**Check if submixer index has exceeded count*/
+					_msg_mixer_data_immediate.mixer_sub_index = 0;
+					_msg_mixer_data_immediate.parameter_index = 0;
+					_msg_mixer_data_immediate.mixer_index++;
 
 				} else {
 					_send_all_state = MIXERS_SEND_ALL_MIXER_TYPE;
 				}
 
-				if (_mixer_data_req.mixer_index < _mixer_count) {           /**Check if mixer index has exceeded count*/
+				if (_msg_mixer_data_immediate.mixer_index < _mixer_count) {           /**Check if mixer index has exceeded count*/
 					_send_all_state = MIXERS_SEND_ALL_SUBMIXER_COUNT;
 
 				} else {
 					_send_all_state = MIXERS_SEND_ALL_NONE;
-					PX4_INFO("MIXER send all - finished");                  /**Stop here*/
+					PX4_INFO("MIXER send all - finished");                           /**Stop here*/
 				}
 
 				break;
@@ -567,9 +639,119 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 		default:
 			_send_all_state = MIXERS_SEND_ALL_NONE;
-			_mavlink_mixer_state = MAVLINK_MIXER_STATE_WAITING;
 			break;
 		}
+
+
+		/* Send parameter values received from mixer data topic */
+		if (_mixer_data_sub < 0) {
+			_mixer_data_sub = orb_subscribe(ORB_ID(mixer_data));
+		}
+
+		bool mixer_data_ready;
+		orb_check(_mixer_data_sub, &mixer_data_ready);
+
+		if (mixer_data_ready && _request_pending) {
+			struct mixer_data_s mixer_data;
+			orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
+
+			_request_pending = false;
+
+			switch (mixer_data.mixer_data_type) {
+			case MIXER_DATA_TYPE_PARAMETER: {
+					mavlink_mixer_data_t msg;
+					msg.mixer_group = mixer_data.mixer_group;
+					msg.mixer_index = mixer_data.mixer_index;
+					msg.mixer_sub_index = mixer_data.mixer_sub_index;
+					msg.parameter_index = mixer_data.parameter_index;
+					msg.connection_type = mixer_data.connection_type;
+					msg.connection_group = mixer_data.connection_group;
+					msg.data_type = mixer_data.mixer_data_type;
+					msg.param_type = mixer_data.param_type;
+					msg.data_value = mixer_data.int_value;
+
+					if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {
+						msg.param_type = MAVLINK_TYPE_FLOAT;
+						msg.param_value = mixer_data.real_value;
+
+					} else {
+						int32_t val;
+						val = (int32_t)mixer_data.int_value;
+						memcpy(&msg.param_value, &val, sizeof(int32_t));
+						msg.param_type = MAVLINK_TYPE_INT32_T;
+					}
+
+					/* Send with default component ID */
+					mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
+					break;
+				}
+
+			default:
+				break;
+			}
+		}
+
+
+//		if (msg.data_type == 112) {
+//			if ((_p_mixer_save_buffer != nullptr) || (mixer_data.int_value != -1)) {
+//				const char *fname = nullptr;
+
+//				switch (mixer_data.mixer_group) {
+//				case 0:
+//					fname = kMixerLocalData;
+//					break;
+
+//				case 1:
+//					fname = kMixerFailsafeData;
+//					break;
+
+//				default:
+//					fname = kMixerDefaultData;
+//					break;
+//				}
+
+//				/* Create the mixer definition file */
+//				FILE *f = ::fopen(fname, "w");
+
+//				if (f != nullptr) {
+//					/* Write the buffer to the file*/
+//					signed err = fputs(_p_mixer_save_buffer, f);
+
+//					if (err <= 0) {
+//						PX4_ERR("Mixer file write error: %s ", fname);
+//						msg.data_value = -1;
+
+//					} else {
+//						PX4_INFO("Wrote mixer group:%u to file %s\n", mixer_data.mixer_group, fname);
+//					}
+
+//#ifdef __PX4_NUTTX
+//					fsync(fileno(f));
+//#endif
+//					fclose(f);
+
+//				} else {
+//					PX4_ERR("not able to create mixer file %s", fname);
+//					msg.data_value = -1;
+//				}
+
+//			}
+
+//			if (_p_mixer_save_buffer != nullptr) {
+//				free(_p_mixer_save_buffer);
+//				_p_mixer_save_buffer = nullptr;
+//				PX4_INFO("Saving mixer freeing buffer");
+//			}
+//		}
+
+//        PX4_INFO("mavlink mixer_data send with group:%u index:%u conn_type:%u sub:%u param:%u type:%u data:%u",
+//			 msg.mixer_group,
+//			 msg.mixer_index,
+//			 msg.mixer_sub_index,
+//			 msg.parameter_index,
+//             msg.connection_type,
+//			 mixer_data.mixer_data_type,
+//			 msg.data_value);
 
 	}
 
