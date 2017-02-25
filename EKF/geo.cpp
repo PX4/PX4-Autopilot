@@ -339,11 +339,11 @@ int map_projection_global_getref(double *lat_0, double *lon_0)
 		return -1;
 	}
 
-	if (lat_0 != NULL) {
+	if (lat_0 != nullptr) {
 		*lat_0 = M_RAD_TO_DEG * mp_ref.lat_rad;
 	}
 
-	if (lon_0 != NULL) {
+	if (lon_0 != nullptr) {
 		*lon_0 = M_RAD_TO_DEG * mp_ref.lon_rad;
 	}
 
@@ -403,7 +403,7 @@ int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0)
 		return -1;
 	}
 
-	if (alt_0 != NULL) {
+	if (alt_0 != nullptr) {
 		*alt_0 = gl_ref.alt;
 	}
 
