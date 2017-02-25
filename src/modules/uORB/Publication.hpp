@@ -117,9 +117,7 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	PublicationNode(const struct orb_metadata *meta,
-			int priority = -1,
-			List<PublicationNode *> *list = nullptr);
+	PublicationNode(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr);
 
 	/**
 	 * This function is the callback for list traversal
@@ -145,9 +143,7 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Publication(const struct orb_metadata *meta,
-		    int priority = -1,
-		    List<PublicationNode *> *list = nullptr)  :
+	Publication(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr)  :
 		PublicationNode(meta, priority, list),
 		_data()
 	{
