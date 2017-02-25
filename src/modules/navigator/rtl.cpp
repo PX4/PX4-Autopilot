@@ -80,10 +80,8 @@ RTL::~RTL()
 void
 RTL::on_inactive()
 {
-	/* reset RTL state only if setpoint moved */
-	if (!_navigator->get_can_loiter_at_sp()) {
-		_rtl_state = RTL_STATE_NONE;
-	}
+	// reset RTL state
+	_rtl_state = RTL_STATE_NONE;
 }
 
 void
@@ -95,28 +93,24 @@ RTL::on_activation()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
-	/* decide where to enter the RTL procedure when we switch into it */
-	if (_rtl_state == RTL_STATE_NONE) {
-		/* for safety reasons don't go into RTL if landed */
-		if (_navigator->get_land_detected()->landed) {
-			_rtl_state = RTL_STATE_LANDED;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
+	/* for safety reasons don't go into RTL if landed */
+	if (_navigator->get_land_detected()->landed) {
+		_rtl_state = RTL_STATE_LANDED;
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 
-			/* if lower than return altitude, climb up first */
+		/* if lower than return altitude, climb up first */
 
-		} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
-				+ _param_return_alt.get())) {
-			_rtl_state = RTL_STATE_CLIMB;
+	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
+			+ _param_return_alt.get())) {
+		_rtl_state = RTL_STATE_CLIMB;
 
-			/* otherwise go straight to return */
+		/* otherwise go straight to return */
 
-		} else {
-			/* set altitude setpoint to current altitude */
-			_rtl_state = RTL_STATE_RETURN;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _navigator->get_global_position()->alt;
-		}
-
+	} else {
+		/* set altitude setpoint to current altitude */
+		_rtl_state = RTL_STATE_RETURN;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.altitude = _navigator->get_global_position()->alt;
 	}
 
 	set_rtl_item();
