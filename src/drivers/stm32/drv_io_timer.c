@@ -103,12 +103,16 @@
 
 #define CCMR_C1_PWMOUT_INIT (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
 
+#define CCMR_C1_ONESHOT_INIT (GTIM_CCMR_MODE_PWM2 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
+
 #define CCMR_C1_PWMIN_INIT 0 // TBD
 
-//												 				  NotUsed   PWMOut  PWMIn Capture
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0 };
+//												 				  NotUsed   PWMOut  PWMIn Capture OneShot
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
+
+static uint8_t timer_freq[MAX_IO_TIMERS] = { 1, 1, 1, 1 };	/* default 1 MHz counter frequency */
 
 static io_timer_allocation_t once = 0;
 
@@ -242,7 +246,7 @@ static uint32_t get_timer_channels(unsigned timer)
 
 	if (validate_timer_index(timer) == 0) {
 		const io_timers_t *tmr = &io_timers[timer];
-		/* Gather the channel bit that belong to the timer */
+		/* Gather the channel bits that belong to the timer */
 
 		for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
 			channels |= 1 << chan_index;
@@ -374,9 +378,13 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-
-	/* configure the timer to update at the desired rate */
-	rARR(timer) = 1000000 / rate;
+	/* Configure the timer to run at 1MHz (other system code _assumes_ that timers run at 1MHz).
+	 * If you want to hack this to achieve a different frequency, alter the value of
+	 * .clock_freq in the relevant driver/boards/xxxx/xxx_timer_config.c file.
+	 */
+	timer_freq[timer] = 1;
+	rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
+	rARR(timer) = timer_freq[timer] * 1000000 / rate;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;
@@ -384,6 +392,31 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 	return 0;
 }
 
+void io_timer_set_oneshot_mode(unsigned timer)
+{
+	/* This timer MUST run at 8MHz */
+	timer_freq[timer] = 8;
+	rPSC(timer) = (io_timers[timer].clock_freq / 8000000) - 1;
+
+	// set rate to 125Hz (lowest possible at 8MHz is ~122Hz)
+	// io_timer_set_ccr() must be called at > 125Hz to minimize latency
+	rARR(timer) = timer_freq[timer] * 1000000 / 125;
+}
+
+uint8_t io_timer_get_freq(unsigned timer)
+{
+	return timer_freq[timer];
+}
+
+void io_timer_force_update()
+{
+	for (int i = 0; i < MAX_IO_TIMERS; i++) {
+		if (timer_freq[i] == 8) {
+			// force update of channel compare register
+			rEGR(i) |= GTIM_EGR_UG;
+		}
+	}
+}
 
 int io_timer_init_timer(unsigned timer)
 {
@@ -423,13 +456,6 @@ int io_timer_init_timer(unsigned timer)
 			rBDTR(timer) = ATIM_BDTR_MOE;
 		}
 
-		/* If the timer clock source provided as clock_freq is the STM32_APBx_TIMx_CLKIN
-		 * then configure the timer to free-run at 1MHz.
-		 * Otherwize, other frequencies are attainable by adjusting .clock_freq accordingly.
-		 */
-
-		rPSC(timer) = (io_timers[timer].clock_freq / 1000000) - 1;
-
 		/*
 		 * Note we do the Standard PWM Out init here
 		 * default to updating at 50Hz
@@ -455,7 +481,7 @@ int io_timer_init_timer(unsigned timer)
 
 int io_timer_set_rate(unsigned timer, unsigned rate)
 {
-	/* Gather the channel bit that belong to the timer */
+	/* Gather the channel bits that belong to the timer */
 
 	uint32_t channels = get_timer_channels(timer);
 
@@ -484,6 +510,12 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	/* figure out the GPIO config first */
 
 	switch (mode) {
+
+	case IOTimerChanMode_OneShot:
+		io_timer_set_oneshot_mode(timer_io_channels[channel].timer_index);
+
+	// intentional fallthrough
+
 	case IOTimerChanMode_PWMOut:
 		ccer_setbits = 0;
 		dier_setbits = 0;
@@ -514,7 +546,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 	if (rv >= 0) {
 
-		/* Blindly try to initialize the time - it will only do it once */
+		/* Blindly try to initialize the timer - it will only do it once */
 
 		io_timer_init_timer(channels_timer(channel));
 
@@ -593,6 +625,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	switch (mode) {
 	case IOTimerChanMode_NotUsed:
 	case IOTimerChanMode_PWMOut:
+	case IOTimerChanMode_OneShot:
 		dier_bit = 0;
 		break;
 
@@ -635,7 +668,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			action_cache[timer].dier_clearbits |= GTIM_DIER_CC1IE  << shifts;
 			action_cache[timer].dier_setbits   |= dier_bit << shifts;
 
-			if (state && mode == IOTimerChanMode_PWMOut) {
+			if ((state && mode == IOTimerChanMode_PWMOut) || (state && mode == IOTimerChanMode_OneShot)) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
 		}
@@ -689,13 +722,16 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-		if (io_timer_get_channel_mode(channel) != IOTimerChanMode_PWMOut) {
+		if ((io_timer_get_channel_mode(channel) != IOTimerChanMode_PWMOut) &&
+		    (io_timer_get_channel_mode(channel) != IOTimerChanMode_OneShot)) {
 
 			rv = -EIO;
 
 		} else {
 
 			/* configure the channel */
+
+			// this hack won't work correctly in oneshot mode; would be OK if it just inverted the output
 #ifdef BOARD_PWM_DRIVE_ACTIVE_LOW
 			unsigned period = rARR(channels_timer(channel));
 			value = period - value;
@@ -705,6 +741,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 				value--;
 			}
 
+			// write PWM value into CCR preload register
 			REG(channels_timer(channel), timer_io_channels[channel].ccr_offset) = value;
 		}
 	}
@@ -717,7 +754,8 @@ uint16_t io_channel_get_ccr(unsigned channel)
 	uint16_t value = 0;
 
 	if (io_timer_validate_channel_index(channel) == 0 &&
-	    io_timer_get_channel_mode(channel) == IOTimerChanMode_PWMOut) {
+	    ((io_timer_get_channel_mode(channel) == IOTimerChanMode_PWMOut) ||
+	     (io_timer_get_channel_mode(channel) == IOTimerChanMode_OneShot))) {
 		value = REG(channels_timer(channel), timer_io_channels[channel].ccr_offset) + 1;
 
 #ifdef BOARD_PWM_DRIVE_ACTIVE_LOW

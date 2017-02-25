@@ -75,6 +75,9 @@ static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
 
+static bool new_fmu_data = false;
+static uint64_t last_fmu_update = 0;
+
 extern int _sbus_fd;
 
 /* selected control values and count for mixing */
@@ -133,6 +136,11 @@ mixer_tick(void)
 
 		/* this flag is never cleared once OK */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
+
+		if (system_state.fmu_data_received_time > last_fmu_update) {
+			new_fmu_data = true;
+			last_fmu_update = system_state.fmu_data_received_time;
+		}
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -287,19 +295,29 @@ mixer_tick(void)
 		/* mix */
 		mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
-		/* the pwm limit call takes care of out of band errors */
-		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
-			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		/* if mixer_mix_threadsafe returns zero, it did nothing */
+		if (mixed != 0) {
 
-		/* clamp unused outputs to zero */
-		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_servos[i] = 0;
-			outputs[i] = 0.0f;
-		}
+			/* the pwm limit call takes care of out of band errors */
+			pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
+				       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
-		/* store normalized outputs */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+			/* clamp unused outputs to zero */
+			for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
+				r_page_servos[i] = 0;
+				outputs[i] = 0.0f;
+			}
+
+			/* store normalized outputs */
+			for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+				r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+			}
+
+			if (new_fmu_data) {
+				new_fmu_data = false;
+
+				up_pwm_force_update();
+			}
 		}
 	}
 

@@ -72,6 +72,7 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/scheduling_priorities.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
@@ -187,6 +188,7 @@ private:
 	unsigned	_pwm_alt_rate;
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
+	int 		_task;
 	struct work_s	_work;
 	int		_vehicle_cmd_sub;
 	int		_armed_sub;
@@ -199,8 +201,12 @@ private:
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	int		_class_instance;
+	volatile bool	_task_should_exit;
 	int		_rcs_fd;
 	uint8_t _rcs_buf[SBUS_BUFFER_SIZE];
+
+	static void	task_main_trampoline(int argc, char *argv[]);
+	void		task_main();
 
 	volatile bool	_initialized;
 	bool		_throttle_armed;
@@ -258,8 +264,8 @@ private:
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		subscribe();
-	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
+	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
 	void		update_pwm_out_state(bool on);
@@ -322,6 +328,7 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate(50),
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
+	_task(-1),
 	_work{},
 	_vehicle_cmd_sub(-1),
 	_armed_sub(-1),
@@ -334,6 +341,7 @@ PX4FMU::PX4FMU() :
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
+	_task_should_exit(false),
 	_rcs_fd(-1),
 	_initialized(false),
 	_throttle_armed(false),
@@ -457,9 +465,35 @@ PX4FMU::init()
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
+#ifndef PX4FMU_TASK
 	work_start();
+#else
+	/* start the IO interface task */
+	_task = px4_task_spawn_cmd("fmuservo",
+				   SCHED_DEFAULT,
+				   SCHED_PRIORITY_FAST_DRIVER - 1,
+				   1280,
+				   (main_t)&PX4FMU::task_main_trampoline,
+				   nullptr);
+
+	/* wait until the task is up and running or has failed */
+	while (_task > 0 && _task_should_exit) {
+		usleep(100);
+	}
+
+	if (_task < 0) {
+		return -PX4_ERROR;
+	}
+
+#endif
 
 	return OK;
+}
+
+void
+PX4FMU::task_main_trampoline(int argc, char *argv[])
+{
+	g_fmu->task_main();
 }
 
 void
@@ -667,6 +701,11 @@ PX4FMU::set_mode(Mode mode)
 	return OK;
 }
 
+/* This routine is called from two IOCTLs: PWM_SERVO_SET_UPDATE_RATE and PWM_SERVO_SET_SELECT_UPDATE_RATE
+ * In the first case, it is intended to set the "alternate" PWM rate, which may be [25,400]Hz.
+ * In the second case, it specifies which channels are set at the alternate rate, with all others
+ * implicitly set to the default rate.
+ */
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
@@ -688,7 +727,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
-					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
+					PX4_WARN("rate group %u mask %x bad overlap %x", group, mask, alt);
 					// not a legal map, bail
 					return -EINVAL;
 				}
@@ -696,14 +735,14 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
-						warn("rate group set alt failed");
+					if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
+						PX4_WARN("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
-						warn("rate group set default failed");
+					if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
+						PX4_WARN("rate group set default failed");
 						return -EINVAL;
 					}
 				}
@@ -838,8 +877,10 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 void
 PX4FMU::work_start()
 {
+#ifndef PX4FMU_TASK
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, 0);
+#endif
 }
 
 void
@@ -973,9 +1014,17 @@ PX4FMU::update_pwm_out_state(bool on)
 	up_pwm_servo_arm(on);
 }
 
+#ifndef PX4FMU_TASK
 void
 PX4FMU::cycle()
 {
+#else
+void
+PX4FMU::task_main()
+{
+	while (!_task_should_exit) {
+#endif
+
 	if (!_initialized) {
 		/* force a reset of the update rate */
 		_current_update_rate = 0;
@@ -1025,6 +1074,7 @@ PX4FMU::cycle()
 		_current_update_rate = 0;
 	}
 
+#ifndef PX4FMU_TASK
 	/*
 	 * Adjust actuator topic update rate to keep up with
 	 * the highest servo update rate configured.
@@ -1061,6 +1111,10 @@ PX4FMU::cycle()
 
 	/* check if anything updated */
 	int ret = ::poll(_poll_fds, _poll_fds_num, 0);
+#else
+	/* wait for an update */
+	int ret = ::poll(_poll_fds, _poll_fds_num, 20);
+#endif
 
 	/* this would be bad... */
 	if (ret < 0) {
@@ -1075,10 +1129,15 @@ PX4FMU::cycle()
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
+		unsigned n_updates = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
+					if (i == 0) {
+						n_updates++;
+					}
+
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
 #if defined(DEBUG_BUILD)
@@ -1122,12 +1181,9 @@ PX4FMU::cycle()
 				_pwm_limit.state = PWM_LIMIT_STATE_ON;
 			}
 		}
-	} // poll_fds
 
-	/* run the mixers on every cycle */
-	{
-		/* can we mix? */
-		if (_mixers != nullptr) {
+		// only mix if we have a new actuator_controls message
+		if ((n_updates > 0) && (_mixers != nullptr)) {
 
 			size_t num_outputs;
 
@@ -1237,11 +1293,14 @@ PX4FMU::cycle()
 				pwm_output_set(i, pwm_limited[i]);
 			}
 
+			// force an update of oneshot channels
+			up_pwm_force_update();
+
 			publish_pwm_outputs(pwm_limited, num_outputs);
 			perf_end(_ctl_latency);
-		}
-	}
-//	} // poll_fds
+		} // new actuator_controls message
+
+	} // poll_fds
 
 	_cycle_timestamp = hrt_absolute_time();
 
@@ -1627,16 +1686,21 @@ PX4FMU::cycle()
 		_rc_scan_locked = false;
 	}
 
+#ifdef PX4FMU_TASK
+}
+
+#else
 	/*
 	 * schedule next cycle
 	 */
 	work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
 //		   USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
+
+#endif
 }
 
 void PX4FMU::work_stop()
 {
-	work_cancel(HPWORK, &_work);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {

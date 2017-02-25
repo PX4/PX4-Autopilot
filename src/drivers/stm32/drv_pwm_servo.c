@@ -76,7 +76,9 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
-	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
+	io_timer_channel_mode_t chmode = IOTimerChanMode_PWMOut;
+
+	uint32_t current = io_timer_get_mode_channels(chmode);
 
 	// First free the current set of PWMs
 
@@ -98,8 +100,13 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
+			if (io_timer_get_freq(timer_io_channels[channel].timer_index) == 8) {
+				chmode = IOTimerChanMode_OneShot;
+			}
+
+			io_timer_channel_init(channel, chmode, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+
 		}
 	}
 
@@ -114,6 +121,12 @@ void up_pwm_servo_deinit(void)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
+	if (rate == 0) {
+		/* configure this group for OneShot125 PWM */
+		io_timer_set_oneshot_mode(group);
+		return OK;
+	}
+
 	/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
 	if (rate < 1) {
 		return -ERANGE;
@@ -130,6 +143,11 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	io_timer_set_rate(group, rate);
 
 	return OK;
+}
+
+void up_pwm_force_update(void)
+{
+	io_timer_force_update();
 }
 
 int up_pwm_servo_set_rate(unsigned rate)
@@ -149,5 +167,6 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 void
 up_pwm_servo_arm(bool armed)
 {
+	io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
 	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
 }

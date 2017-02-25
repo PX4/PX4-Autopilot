@@ -57,6 +57,7 @@
 #include "systemlib/err.h"
 #include "systemlib/param/param.h"
 #include "drivers/drv_pwm_output.h"
+#include "drivers/stm32/drv_io_timer.h"
 
 static void	usage(const char *reason);
 __EXPORT int	pwm_main(int argc, char *argv[]);
@@ -314,14 +315,15 @@ pwm_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "rate")) {
 
 		/* change alternate PWM rate */
-		if (alt_rate > 0) {
-			ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+//		if (alt_rate >= 0) {
+		ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
-			if (ret != OK) {
-				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
-				return error_on_warn;
-			}
+		if (ret != OK) {
+			PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+			return error_on_warn;
 		}
+
+//		}
 
 		/* directly supplied channel mask */
 		if (set_mask > 0) {
@@ -586,6 +588,7 @@ pwm_main(int argc, char *argv[])
 		warnx("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
+
 			for (unsigned i = 0; i < servo_count; i++) {
 				if (set_mask & 1 << i) {
 					ret = ioctl(fd, PWM_SERVO_SET(i), pwm_value);
@@ -621,7 +624,7 @@ pwm_main(int argc, char *argv[])
 				}
 			}
 
-			usleep(2000);
+			usleep(2500);
 		}
 
 		exit(0);
