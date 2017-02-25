@@ -209,8 +209,7 @@ void VtolType::check_quadchute_condition()
 	if (_params->fw_qc_max_pitch > 0
 	    && _armed->armed && !_land_detected->landed) {
 
-		if (math::degrees(euler.theta()) < -_params->fw_qc_max_pitch
-		    || math::degrees(euler.theta()) > _params->fw_qc_max_pitch) {
+		if (fabs(euler.theta()) > fabs(math::radians(_params->fw_qc_max_pitch))) {
 			_attc->abort_front_transition("Maximum pitch angle exceeded");
 		}
 	}
@@ -219,8 +218,7 @@ void VtolType::check_quadchute_condition()
 	if (_params->fw_qc_max_roll > 0
 	    && _armed->armed && !_land_detected->landed) {
 
-		if (math::degrees(euler.phi()) < -_params->fw_qc_max_roll
-		    || math::degrees(euler.phi()) > _params->fw_qc_max_roll) {
+		if (fabs(euler.phi()) > fabs(math::radians(_params->fw_qc_max_roll))) {
 			_attc->abort_front_transition("Maximum roll angle exceeded");
 		}
 	}
