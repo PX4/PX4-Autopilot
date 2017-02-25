@@ -531,7 +531,7 @@ param_get(param_t param, void *val)
 
 	const void *v = param_get_value_ptr(param);
 
-	if (val != NULL) {
+	if (val && v) {
 		memcpy(val, v, param_size(param));
 		result = 0;
 	}
