@@ -41,7 +41,6 @@
  * and background parameter saving.
  */
 
-//#include <debug.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_config.h>
@@ -126,9 +125,9 @@ static unsigned
 get_param_info_count(void)
 {
 	/* Singleton creation of and array of bits to track changed values */
-	if (!param_changed_storage) {
+	if (param_changed_storage == NULL) {
 		/* Note that we have a (highly unlikely) race condition here: in the worst case the allocation is done twice */
-		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
+		size_param_changed_storage_bytes = (param_info_count / bits_per_allocation_unit) + 1;
 		param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
 
 		/* If the allocation fails we need to indicate failure in the
@@ -335,8 +334,8 @@ param_count_used(void)
 	// ensure the allocation has been done
 	if (get_param_info_count()) {
 
-		for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
+			for (int j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 					count++;
 				}
@@ -362,7 +361,7 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 
 	if (count && index < count) {
 		/* walk all params and count used params */
@@ -480,7 +479,6 @@ param_size(param_t param)
 	return 0;
 }
 
-
 /**
  * Obtain a pointer to the storage allocated for a parameter.
  *
@@ -525,15 +523,17 @@ param_get_value_ptr(param_t param)
 int
 param_get(param_t param, void *val)
 {
-	int result = -1;
+	int result = PX4_ERROR;
 
 	param_lock();
 
 	const void *v = param_get_value_ptr(param);
 
-	if (val && v) {
+	size_t psize = param_size(param);
+
+	if (val && v && (psize > 0)) {
 		memcpy(val, v, param_size(param));
-		result = 0;
+		result = PX4_OK;
 	}
 
 	param_unlock();
@@ -672,7 +672,8 @@ param_used(param_t param)
 	       (1 << param_index % bits_per_allocation_unit);
 }
 
-void param_set_used_internal(param_t param)
+void
+param_set_used_internal(param_t param)
 {
 	int param_index = param_get_index(param);
 
@@ -680,8 +681,7 @@ void param_set_used_internal(param_t param)
 		return;
 	}
 
-	param_changed_storage[param_index / bits_per_allocation_unit] |=
-		(1 << param_index % bits_per_allocation_unit);
+	param_changed_storage[param_index / bits_per_allocation_unit] |= (1 << param_index % bits_per_allocation_unit);
 }
 
 int
@@ -788,9 +788,9 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	int res;
+	int res = PX4_ERROR;
 #if !defined(FLASH_BASED_PARAMS)
-	int fd;
+	int fd = -1;
 
 	const char *filename = param_get_default_file();
 
@@ -799,18 +799,18 @@ param_save_default(void)
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
-		return ERROR;
+		return PX4_ERROR;
 	}
 
 	res = 1;
 	int attempts = 5;
 
-	while (res != OK && attempts > 0) {
+	while (res != PX4_OK && attempts > 0) {
 		res = param_export(fd, false);
 		attempts--;
 	}
 
-	if (res != OK) {
+	if (res != PX4_OK) {
 		warnx("failed to write parameters to file: %s", filename);
 	}
 

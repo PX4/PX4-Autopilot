@@ -107,6 +107,7 @@ endfunction()
 # param_test
 add_executable(param_test setup.cpp param_test.cpp uorb_stub.cpp
 						${PX4_SRC}/modules/systemlib/bson/tinybson.c
-						${PX4_SRC}/modules/systemlib/param/param.c)
+						${PX4_SRC}/modules/systemlib/param/param.c
+						${PX4_SRC}/modules/systemlib/param/param.cpp)
 target_link_libraries(param_test ${PX4_PLATFORM})
 add_gtest(param_test)

@@ -80,50 +80,47 @@ Standard::~Standard()
 void
 Standard::parameters_update()
 {
-	float v;
-	int i;
+	float v = 0.0f;
+	int i = 0;
 
 	/* duration of a forwards transition to fw mode */
-	param_get(_params_handles_standard.front_trans_dur, &v);
+	param_get(_params_handles_standard.front_trans_dur, v);
 	_params_standard.front_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
 	/* duration of a back transition to mc mode */
-	param_get(_params_handles_standard.back_trans_dur, &v);
+	param_get(_params_handles_standard.back_trans_dur, v);
 	_params_standard.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
 	/* target throttle value for pusher motor during the transition to fw mode */
-	param_get(_params_handles_standard.pusher_trans, &v);
+	param_get(_params_handles_standard.pusher_trans, v);
 	_params_standard.pusher_trans = math::constrain(v, 0.0f, 5.0f);
 
 	/* airspeed at which we should switch to fw mode */
-	param_get(_params_handles_standard.airspeed_trans, &v);
+	param_get(_params_handles_standard.airspeed_trans, v);
 	_params_standard.airspeed_trans = math::constrain(v, 1.0f, 20.0f);
 
 	/* airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_standard.airspeed_blend, &v);
+	param_get(_params_handles_standard.airspeed_blend, v);
 	_params_standard.airspeed_blend = math::constrain(v, 0.0f, 20.0f);
 
 	_airspeed_trans_blend_margin = _params_standard.airspeed_trans - _params_standard.airspeed_blend;
 
 	/* timeout for transition to fw mode */
-	param_get(_params_handles_standard.front_trans_timeout, &_params_standard.front_trans_timeout);
+	param_get(_params_handles_standard.front_trans_timeout, _params_standard.front_trans_timeout);
 
 	/* minimum time for transition to fw mode */
-	param_get(_params_handles_standard.front_trans_time_min, &_params_standard.front_trans_time_min);
+	param_get(_params_handles_standard.front_trans_time_min, _params_standard.front_trans_time_min);
 
 	/* maximum down pitch allowed */
-	param_get(_params_handles_standard.down_pitch_max, &v);
+	param_get(_params_handles_standard.down_pitch_max, v);
 	_params_standard.down_pitch_max = math::radians(v);
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
-	param_get(_params_handles_standard.forward_thrust_scale, &_params_standard.forward_thrust_scale);
+	param_get(_params_handles_standard.forward_thrust_scale, _params_standard.forward_thrust_scale);
 
 	/* airspeed mode */
-	param_get(_params_handles_standard.airspeed_mode, &i);
+	param_get(_params_handles_standard.airspeed_mode, i);
 	_params_standard.airspeed_mode = math::constrain(i, 0, 2);
-
-
-
 }
 
 void Standard::update_vtol_state()

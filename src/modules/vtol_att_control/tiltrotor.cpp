@@ -82,49 +82,41 @@ Tiltrotor::~Tiltrotor()
 void
 Tiltrotor::parameters_update()
 {
-	float v;
-	int l;
+	float v = 0.0f;
+	int l = 0;
 
 	/* motors that must be turned off when in fixed wing mode */
-	param_get(_params_handles_tiltrotor.fw_motors_off, &l);
+	param_get(_params_handles_tiltrotor.fw_motors_off, l);
 	_params_tiltrotor.fw_motors_off = get_motor_off_channels(l);
 
-
 	/* vtol duration of a front transition */
-	param_get(_params_handles_tiltrotor.front_trans_dur, &v);
+	param_get(_params_handles_tiltrotor.front_trans_dur, v);
 	_params_tiltrotor.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
 
 	/* vtol duration of a back transition */
-	param_get(_params_handles_tiltrotor.back_trans_dur, &v);
+	param_get(_params_handles_tiltrotor.back_trans_dur, v);
 	_params_tiltrotor.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
 	/* vtol tilt mechanism position in mc mode */
-	param_get(_params_handles_tiltrotor.tilt_mc, &v);
-	_params_tiltrotor.tilt_mc = v;
+	param_get(_params_handles_tiltrotor.tilt_mc, _params_tiltrotor.tilt_mc);
 
 	/* vtol tilt mechanism position in transition mode */
-	param_get(_params_handles_tiltrotor.tilt_transition, &v);
-	_params_tiltrotor.tilt_transition = v;
+	param_get(_params_handles_tiltrotor.tilt_transition, _params_tiltrotor.tilt_transition);
 
 	/* vtol tilt mechanism position in fw mode */
-	param_get(_params_handles_tiltrotor.tilt_fw, &v);
-	_params_tiltrotor.tilt_fw = v;
+	param_get(_params_handles_tiltrotor.tilt_fw, _params_tiltrotor.tilt_fw);
 
 	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_tiltrotor.airspeed_trans, &v);
-	_params_tiltrotor.airspeed_trans = v;
+	param_get(_params_handles_tiltrotor.airspeed_trans, _params_tiltrotor.airspeed_trans);
 
 	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_tiltrotor.airspeed_blend_start, &v);
-	_params_tiltrotor.airspeed_blend_start = v;
+	param_get(_params_handles_tiltrotor.airspeed_blend_start, _params_tiltrotor.airspeed_blend_start);
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_tiltrotor.elevons_mc_lock, &l);
-	_params_tiltrotor.elevons_mc_lock = l;
+	param_get(_params_handles_tiltrotor.elevons_mc_lock, _params_tiltrotor.elevons_mc_lock);
 
 	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_tiltrotor.front_trans_dur_p2, &v);
-	_params_tiltrotor.front_trans_dur_p2 = v;
+	param_get(_params_handles_tiltrotor.front_trans_dur_p2, _params_tiltrotor.front_trans_dur_p2);
 
 	/* avoid parameters which will lead to zero division in the transition code */
 	_params_tiltrotor.front_trans_dur = math::max(_params_tiltrotor.front_trans_dur, _min_front_trans_dur);
@@ -134,12 +126,12 @@ Tiltrotor::parameters_update()
 	}
 
 	/* airspeed mode */
-	param_get(_params_handles_tiltrotor.airspeed_mode, &l);
+	param_get(_params_handles_tiltrotor.airspeed_mode, l);
 	_params_tiltrotor.airspeed_mode = math::constrain(l, 0, 2);
 
 	param_get(_params_handles_tiltrotor.diff_thrust, &_params_tiltrotor.diff_thrust);
 
-	param_get(_params_handles_tiltrotor.diff_thrust_scale, &v);
+	param_get(_params_handles_tiltrotor.diff_thrust_scale, v);
 	_params_tiltrotor.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 }
 

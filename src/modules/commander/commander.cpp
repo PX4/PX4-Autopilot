@@ -75,7 +75,7 @@
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <systemlib/param/param.hpp>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
 #include <float.h>
@@ -163,7 +163,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 static orb_advert_t mavlink_log_pub = nullptr;
 
 /* System autostart ID */
-static int autostart_id;
+static int32_t autostart_id;
 
 /* flags */
 static bool commander_initialized = false;
@@ -1640,7 +1640,10 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	param_get(_param_sys_type, &(status.system_type)); // get system type
+	int32_t mav_type = 0;
+	param_get(_param_sys_type, mav_type); // get system type
+	status.system_type = mav_type;
+
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1649,20 +1652,26 @@ int commander_thread_main(int argc, char *argv[])
 	 * engaged and it's not a rotary wing */
 	if (!status_flags.circuit_breaker_engaged_airspd_check &&
 	    (!status.is_rotary_wing || status.is_vtol)) {
+
 		checkAirspeed = true;
 	}
 
 	// Run preflight check
-	int32_t rc_in_off = 0;
-	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+	bool hotplug_timeout = (hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
+
+	param_get(_param_autostart_id, autostart_id);
+
+	int32_t rc_input_mode = 0;
+	param_get(_param_rc_in_off, rc_input_mode);
+	status.rc_input_mode = rc_input_mode;
+
 	int32_t arm_without_gps = 0;
-	param_get(_param_autostart_id, &autostart_id);
-	param_get(_param_rc_in_off, &rc_in_off);
-	param_get(_param_arm_without_gps, &arm_without_gps);
-	int32_t arm_switch_is_button = 0;
-	param_get(_param_arm_switch_is_button, &arm_switch_is_button);
+	param_get(_param_arm_without_gps, arm_without_gps);
 	can_arm_without_gps = (arm_without_gps == 1);
-	status.rc_input_mode = rc_in_off;
+
+	int32_t arm_switch_is_button = 0;
+	param_get(_param_arm_switch_is_button, arm_switch_is_button);
+
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
@@ -1677,7 +1686,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
 	int32_t rc_arm_hyst = 100;
-	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
+	param_get(_param_rc_arm_hyst, rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
 	commander_boot_timestamp = hrt_absolute_time();
@@ -1699,9 +1708,9 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+	hrt_abstime timestamp_engine_healthy = 0; /**< absolute time when engine was healthy */
 
-	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
+	int32_t autosave_params = 0; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
@@ -1747,9 +1756,11 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
-					warnx("failed getting new system type");
+				if (!param_get(_param_sys_type, mav_type)) {
+					PX4_WARN("failed getting new system type");
+					mav_type = 0;
 				}
+				status.system_type = mav_type;
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
@@ -1763,8 +1774,13 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
-				param_get(_param_system_id, &(status.system_id));
-				param_get(_param_component_id, &(status.component_id));
+				int32_t system_id = 0;
+				param_get(_param_system_id, system_id);
+				status.system_id = system_id;
+
+				int32_t component_id = 0;
+				param_get(_param_component_id, component_id);
+				status.component_id = component_id;
 
 				get_circuit_breaker_params();
 
@@ -1772,75 +1788,80 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* Safety parameters */
-			param_get(_param_enable_datalink_loss, &datalink_loss_act);
-			param_get(_param_enable_rc_loss, &rc_loss_act);
-			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
-			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
-			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
-			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
-			param_get(_param_min_stick_change, &min_stick_change);
+			param_get(_param_enable_datalink_loss, datalink_loss_act);
+			param_get(_param_enable_rc_loss, rc_loss_act);
+			param_get(_param_datalink_loss_timeout, datalink_loss_timeout);
+			param_get(_param_rc_loss_timeout, rc_loss_timeout);
+
+			rc_input_mode = 0;
+			param_get(_param_rc_in_off, rc_input_mode);
+			status.rc_input_mode = rc_input_mode;
+
+			param_get(_param_rc_arm_hyst, rc_arm_hyst);
+			param_get(_param_min_stick_change, min_stick_change);
+
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
-			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
-			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
-			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
-			param_get(_param_ef_time_thres, &ef_time_thres);
-			param_get(_param_geofence_action, &geofence_action);
-			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_datalink_regain_timeout, datalink_regain_timeout);
+			param_get(_param_ef_throttle_thres, ef_throttle_thres);
+			param_get(_param_ef_current2throttle_thres, ef_current2throttle_thres);
+			param_get(_param_ef_time_thres, ef_time_thres);
+			param_get(_param_geofence_action, geofence_action);
+			param_get(_param_disarm_land, disarm_when_landed);
 
 			// If we update parameters the first time
 			// make sure the hysteresis time gets set.
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000);
+				auto_disarm_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)disarm_when_landed * 1000000);
 			}
 
-			param_get(_param_low_bat_act, &low_bat_action);
-			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
-			param_get(_param_offboard_loss_act, &offboard_loss_act);
-			param_get(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
-			param_get(_param_arm_without_gps, &arm_without_gps);
-			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
+			param_get(_param_low_bat_act, low_bat_action);
+			param_get(_param_offboard_loss_timeout, offboard_loss_timeout);
+			param_get(_param_offboard_loss_act, offboard_loss_act);
+			param_get(_param_offboard_loss_rc_act, offboard_loss_rc_act);
+
+			param_get(_param_arm_without_gps, arm_without_gps);
 			can_arm_without_gps = (arm_without_gps == 1);
 
+			param_get(_param_arm_switch_is_button, arm_switch_is_button);
+
 			/* Autostart id */
-			param_get(_param_autostart_id, &autostart_id);
+			param_get(_param_autostart_id, autostart_id);
 
 			/* Parameter autosave setting */
-			param_get(_param_autosave_params, &autosave_params);
+			param_get(_param_autosave_params, autosave_params);
 
 			/* EPH / EPV */
-			param_get(_param_eph, &eph_threshold);
-			param_get(_param_epv, &epv_threshold);
+			param_get(_param_eph, eph_threshold);
+			param_get(_param_epv, epv_threshold);
 
 			/* flight mode slots */
-			param_get(_param_fmode_1, &_flight_mode_slots[0]);
-			param_get(_param_fmode_2, &_flight_mode_slots[1]);
-			param_get(_param_fmode_3, &_flight_mode_slots[2]);
-			param_get(_param_fmode_4, &_flight_mode_slots[3]);
-			param_get(_param_fmode_5, &_flight_mode_slots[4]);
-			param_get(_param_fmode_6, &_flight_mode_slots[5]);
+			param_get(_param_fmode_1, _flight_mode_slots[0]);
+			param_get(_param_fmode_2, _flight_mode_slots[1]);
+			param_get(_param_fmode_3, _flight_mode_slots[2]);
+			param_get(_param_fmode_4, _flight_mode_slots[3]);
+			param_get(_param_fmode_5, _flight_mode_slots[4]);
+			param_get(_param_fmode_6, _flight_mode_slots[5]);
 
 			/* pre-flight EKF checks */
-			param_get(_param_max_ekf_pos_ratio, &max_ekf_pos_ratio);
-			param_get(_param_max_ekf_vel_ratio, &max_ekf_vel_ratio);
-			param_get(_param_max_ekf_hgt_ratio, &max_ekf_hgt_ratio);
-			param_get(_param_max_ekf_yaw_ratio, &max_ekf_yaw_ratio);
-			param_get(_param_max_ekf_dvel_bias, &max_ekf_dvel_bias);
-			param_get(_param_max_ekf_dang_bias, &max_ekf_dang_bias);
+			param_get(_param_max_ekf_pos_ratio, max_ekf_pos_ratio);
+			param_get(_param_max_ekf_vel_ratio, max_ekf_vel_ratio);
+			param_get(_param_max_ekf_hgt_ratio, max_ekf_hgt_ratio);
+			param_get(_param_max_ekf_yaw_ratio, max_ekf_yaw_ratio);
+			param_get(_param_max_ekf_dvel_bias, max_ekf_dvel_bias);
+			param_get(_param_max_ekf_dang_bias, max_ekf_dang_bias);
 
 			/* pre-flight IMU consistency checks */
-			param_get(_param_max_imu_acc_diff, &max_imu_acc_diff);
-			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
+			param_get(_param_max_imu_acc_diff, max_imu_acc_diff);
+			param_get(_param_max_imu_gyr_diff, max_imu_gyr_diff);
 
 			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
-			if (updated && autosave_params != 0 && param_changed.saved == false) {
+			if (updated && autosave_params != 0 && !param_changed.saved) {
 				/* trigger an autosave */
 				need_param_autosave = true;
 			}
@@ -2867,17 +2888,17 @@ int commander_thread_main(int argc, char *argv[])
 			 * only for fixed wing for now
 			 */
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    status.is_rotary_wing == false &&
+			    !status.is_rotary_wing &&
 			    armed.armed &&
-			    ((actuator_controls.control[3] > ef_throttle_thres &&
-			      battery.current_a / actuator_controls.control[3] <
-			      ef_current2throttle_thres) ||
-			     (status.engine_failure))) {
+			    (((actuator_controls.control[3] > ef_throttle_thres) &&
+			    (battery.current_a / actuator_controls.control[3] < ef_current2throttle_thres)) ||
+			    status.engine_failure)) {
+
 				/* potential failure, measure time */
 				if (timestamp_engine_healthy > 0 &&
-				    hrt_elapsed_time(&timestamp_engine_healthy) >
-				    ef_time_thres * 1e6 &&
+				    (hrt_elapsed_time(&timestamp_engine_healthy) > ef_time_thres * 1e6) &&
 				    !status.engine_failure) {
+
 					status.engine_failure = true;
 					status_changed = true;
 					mavlink_log_critical(&mavlink_log_pub, "Engine Failure");

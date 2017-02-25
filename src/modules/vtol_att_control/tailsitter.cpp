@@ -84,32 +84,27 @@ Tailsitter::~Tailsitter()
 void
 Tailsitter::parameters_update()
 {
-	float v;
-	int l;
+	float v = 0.0f;
 
 	/* vtol duration of a front transition */
-	param_get(_params_handles_tailsitter.front_trans_dur, &v);
+	param_get(_params_handles_tailsitter.front_trans_dur, v);
 	_params_tailsitter.front_trans_dur = math::constrain(v, 1.0f, 5.0f);
 
 	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
-	_params_tailsitter.front_trans_dur_p2 = v;
+	param_get(_params_handles_tailsitter.front_trans_dur_p2, _params_tailsitter.front_trans_dur_p2);
 
 	/* vtol duration of a back transition */
-	param_get(_params_handles_tailsitter.back_trans_dur, &v);
+	param_get(_params_handles_tailsitter.back_trans_dur, v);
 	_params_tailsitter.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
 	/* vtol airspeed at which it is ok to switch to fw mode */
-	param_get(_params_handles_tailsitter.airspeed_trans, &v);
-	_params_tailsitter.airspeed_trans = v;
+	param_get(_params_handles_tailsitter.airspeed_trans, _params_tailsitter.airspeed_trans);
 
 	/* vtol airspeed at which we start blending mc/fw controls */
-	param_get(_params_handles_tailsitter.airspeed_blend_start, &v);
-	_params_tailsitter.airspeed_blend_start = v;
+	param_get(_params_handles_tailsitter.airspeed_blend_start, _params_tailsitter.airspeed_blend_start);
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles_tailsitter.elevons_mc_lock, &l);
-	_params_tailsitter.elevons_mc_lock = l;
+	param_get(_params_handles_tailsitter.elevons_mc_lock, _params_tailsitter.elevons_mc_lock);
 
 	/* avoid parameters which will lead to zero division in the transition code */
 	_params_tailsitter.front_trans_dur = math::max(_params_tailsitter.front_trans_dur, _min_front_trans_dur);
