@@ -166,6 +166,10 @@ struct mixer_param_s {
 /**
  * Get mixer configuration text for serialization
  */
+struct mixer_config_s {
+	char           *buff;
+	unsigned        size;
+};
 #define MIXERIOCGETCONFIG               _MIXERIOC(15)
 
 /**

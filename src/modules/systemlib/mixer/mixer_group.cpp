@@ -300,7 +300,7 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 		mixer = mixer->_next;
 	}
 
-	return 0;
+	return buflen -= remaining;
 }
 
 MIXER_TYPES

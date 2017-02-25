@@ -80,9 +80,8 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #if defined(MIXER_TUNING)
-#include <uORB/topics/mixer_data_request.h>
 #include <uORB/topics/mixer_parameter_set.h>
-#include <uORB/topics/mixer_data.h>
+#include <uORB/topics/mixer_parameter.h>
 #endif // MIXER_TUNING
 
 #include <systemlib/err.h>
@@ -127,9 +126,8 @@ private:
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
 #if defined(MIXER_TUNING)
-	int     _mixer_data_request_sub;
-	int     _mixer_parameter_set_sub;
-	orb_advert_t	_mixer_data_pub;
+	int         _mixer_parameter_set_sub;
+	orb_advert_t	_mixer_parameter_pub;
 #endif // MIXER_TUNING
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
@@ -202,9 +200,8 @@ PWMSim::PWMSim() :
 	_poll_fds_num(0),
 	_armed_sub(-1),
 #if defined(MIXER_TUNING)
-	_mixer_data_request_sub(-1),
 	_mixer_parameter_set_sub(-1),
-	_mixer_data_pub(nullptr),
+	_mixer_parameter_pub(nullptr),
 #endif // MIXER_TUNING
 	_outputs_pub(nullptr),
 	_num_outputs(0),
@@ -403,7 +400,6 @@ PWMSim::task_main()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 #if defined(MIXER_TUNING)
-	_mixer_data_request_sub = orb_subscribe(ORB_ID(mixer_data_request));
 	_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
 #endif //MIXER_TUNING
 
@@ -570,109 +566,6 @@ PWMSim::task_main()
 		}
 
 #if defined(MIXER_TUNING)
-		/* mixer data request */
-		orb_check(_mixer_data_request_sub, &updated);
-
-		if (updated) {
-			mixer_data_request_s req;
-			orb_copy(ORB_ID(mixer_data_request), _mixer_data_request_sub, &req);
-
-			if (req.mixer_group == 0) {
-				mixer_data_s data;
-				data.mixer_group = req.mixer_group;
-				data.mixer_index = req.mixer_index;
-				data.mixer_sub_index = req.mixer_sub_index;
-				data.parameter_index = req.parameter_index;
-				data.connection_type = req.connection_type;
-				data.connection_group = 0;
-				data.mixer_data_type = req.mixer_data_type;
-
-				switch (req.mixer_data_type) {
-				case 0: {
-						//Mixer count
-						data.param_type = (int16_t) _mixers->count();
-						data.real_value = 0.0;
-						data.int_value = (int32_t) data.param_type;
-						break;
-					}
-
-				case 1: {
-						//Submixer count
-						data.param_type = (int32_t) _mixers->count_submixers((unsigned)data.mixer_index);
-						data.real_value = 0.0;
-						data.int_value = (int32_t) data.param_type;
-						break;
-					}
-
-				case 2: {
-						//Mixer type
-						data.param_type = (int32_t) _mixers->get_mixer_type_from_index((unsigned)data.mixer_index,
-								  (unsigned)data.mixer_sub_index);
-						data.real_value = 0.0;
-						data.int_value = (int32_t) data.param_type;
-						break;
-					}
-
-				case 3: {
-						//Parameter
-						data.real_value = _mixers->get_mixer_param((unsigned)data.mixer_index, (unsigned)data.parameter_index,
-								  (unsigned)data.mixer_sub_index);
-						data.int_value = 0;
-						data.param_type = 9;    //FLOAT32
-						break;
-					}
-
-				case 4: {
-						//Connection
-						uint16_t conn_group;
-						data.int_value = _mixers->get_connection((uint16_t) data.mixer_index,
-								 (uint16_t) data.mixer_sub_index,
-								 (uint16_t) data.connection_type,
-								 (uint16_t) data.parameter_index,
-								 &conn_group);
-						data.connection_group = conn_group;
-						data.real_value = 0.0;
-						data.param_type = 0;    //FLOAT32
-						break;
-					}
-
-				//MIXER_ACTION_SAVE_GROUP
-				case 112: {
-						PX4_INFO("Saving mixers for pwm_out_sim group");
-
-						char **ppbuf = (char **) req.dataref;
-						unsigned buf_length = 2048;
-
-						if (*ppbuf != nullptr) {
-							if (_mixers->save_to_buf(*ppbuf, buf_length) < 0) {
-								PX4_ERR("Could not get mixer config");
-								data.int_value = -1;
-
-							} else {
-								data.int_value = strlen(*ppbuf);
-							}
-
-						} else {
-							data.int_value = -1;
-						}
-
-						break;
-					}
-
-				default:
-					data.real_value = 0.0;
-					data.int_value = -1;
-					break;
-				} //case
-
-				if (_mixer_data_pub == 0) {
-					_mixer_data_pub = orb_advertise(ORB_ID(mixer_data), &data);
-
-				} else {
-					orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
-				}
-			} //mixer_group
-		} //updated
 
 		orb_check(_mixer_parameter_set_sub, &updated);
 
@@ -682,12 +575,11 @@ PWMSim::task_main()
 			ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
 						       (unsigned)param.mixer_sub_index);
 
-			mixer_data_s data;
+			mixer_parameter_s data;
 			data.mixer_group = param.mixer_group;
 			data.mixer_index = param.mixer_index;
 			data.mixer_sub_index = param.mixer_sub_index;
 			data.parameter_index = param.parameter_index;
-			data.mixer_data_type = 3;   //Parameter
 			data.int_value = 0;
 
 			if (ret == 0) {
@@ -699,11 +591,11 @@ PWMSim::task_main()
 
 			data.param_type = 9;    //FLOAT
 
-			if (_mixer_data_pub == 0) {
-				_mixer_data_pub = orb_advertise(ORB_ID(mixer_data), &data);
+			if (_mixer_parameter_pub == 0) {
+				_mixer_parameter_pub = orb_advertise(ORB_ID(mixer_parameter), &data);
 
 			} else {
-				orb_publish(ORB_ID(mixer_data), _mixer_data_pub, &data);
+				orb_publish(ORB_ID(mixer_parameter), _mixer_parameter_pub, &data);
 			}
 		}
 
@@ -719,9 +611,8 @@ PWMSim::task_main()
 
 	orb_unsubscribe(_armed_sub);
 #if defined(MIXER_TUNING)
-	orb_unsubscribe(_mixer_data_request_sub);
 	orb_unsubscribe(_mixer_parameter_set_sub);
-	orb_unadvertise(_mixer_data_pub);
+	orb_unadvertise(_mixer_parameter_pub);
 #endif //MIXER_TUNING
 
 	/* make sure servos are off */
@@ -1070,10 +961,8 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = -EINVAL;
 			}
 
-			char *buf = (char *)arg;
-
-			unsigned buflen = 1022;
-			ret = _mixers->save_to_buf(buf, buflen);
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
 			break;
 		}
 

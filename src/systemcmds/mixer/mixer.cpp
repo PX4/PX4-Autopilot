@@ -305,11 +305,11 @@ save(const char *devname, const char *fname)
 		return -1;
 	}
 
-	char buf[2048];
-
-	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
-
+	char buf[1024];
+	mixer_config_s config = {buf, 1022};
+	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)&config);
 	px4_close(dev);
+
 
 	if (ret != 0) {
 		warnx("Could not get mixer config for %s\n", devname);
@@ -356,11 +356,9 @@ static int  mixer_show_config(const char *devname)
 		return 1;
 	}
 
-	char buf[2048];
-
-	/* Pass the buffer to the device */
-	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)buf);
-
+	char buf[1024];
+	mixer_config_s config = {buf, 1022};
+	int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)&config);
 	px4_close(dev);
 
 	if (ret == 0) {
@@ -539,7 +537,6 @@ mixer_param_set(const char *devname, int mix_index, int sub_index, int param_ind
 	param.value = value;
 
 	int ret = px4_ioctl(dev, MIXERIOCSETPARAM, (unsigned long)&param);
-
 	px4_close(dev);
 
 	if (ret == 0) {

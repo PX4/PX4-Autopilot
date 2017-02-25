@@ -46,7 +46,6 @@
 #include "mavlink_bridge_header.h"
 #include "mavlink_stream.h"
 #include <uORB/uORB.h>
-#include <uORB/topics/mixer_data_request.h>
 
 #if defined(MIXER_TUNING)
 
@@ -116,7 +115,6 @@ protected:
 
 	/**For tracking data when sending or streaming*/
 	mavlink_mixer_data_t    _msg_mixer_data_immediate;
-	uint16_t    _mixer_group;
 	uint16_t    _mixer_count;
 	uint16_t    _mixer_sub_count;
 	uint16_t    _mixer_type;
@@ -126,7 +124,7 @@ protected:
 	char       *_p_mixer_save_buffer;
 
 	orb_advert_t _mixer_parameter_set_pub;
-	int         _mixer_data_sub;
+	int         _mixer_parameter_sub;
 	bool        _has_checked_px4io;
 	bool        _has_px4io;
 };

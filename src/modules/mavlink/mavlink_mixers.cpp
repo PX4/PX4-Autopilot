@@ -48,8 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <uORB/topics/mixer_data_request.h>
-#include <uORB/topics/mixer_data.h>
+#include <uORB/topics/mixer_parameter.h>
 #include <uORB/topics/mixer_parameter_set.h>
 
 #include <systemlib/mixer/mixer_parameters.h>
@@ -58,9 +57,9 @@
 
 #define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
 
-//static const char *kMixerLocalData    = MOUNTPOINT "/mixer.local.mix";
-//static const char *kMixerFailsafeData = MOUNTPOINT "/mixer.failsafe.mix";
-//static const char *kMixerDefaultData = MOUNTPOINT "/mixer.default.mix";
+static const char *kMixerLocalData    = MOUNTPOINT "/mixer.local.mix";
+static const char *kMixerFailsafeData = MOUNTPOINT "/mixer.failsafe.mix";
+static const char *kMixerDefaultData = MOUNTPOINT "/mixer.default.mix";
 
 static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
 static const unsigned mixer_input_count[MIXER_IO_MIXER_TYPE_COUNT] = MIXER_INPUT_COUNTS;
@@ -70,7 +69,6 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_request_pending(false),
 	_send_all_state(MIXERS_SEND_ALL_NONE),
 	_send_data_immediate(false),
-	_mixer_group(0),
 	_mixer_count(0),
 	_mixer_sub_count(0),
 	_mixer_type(0),
@@ -79,15 +77,15 @@ MavlinkMixersManager::MavlinkMixersManager(Mavlink *mavlink) : MavlinkStream(mav
 	_mixer_output_count(0),
 	_p_mixer_save_buffer(nullptr),
 	_mixer_parameter_set_pub(nullptr),
-	_mixer_data_sub(-1),
+	_mixer_parameter_sub(-1),
 	_has_checked_px4io(false)
 {
 	_interval = 100000;
 }
 MavlinkMixersManager::~MavlinkMixersManager()
 {
-	if (_mixer_data_sub >= 0) {
-		orb_unsubscribe(_mixer_data_sub);
+	if (_mixer_parameter_sub >= 0) {
+		orb_unsubscribe(_mixer_parameter_sub);
 	}
 
 	if (_mixer_parameter_set_pub) {
@@ -253,6 +251,94 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 			break;
 		}
+
+	case MAV_CMD_REQUEST_MIXER_STORE: {
+			_msg_mixer_data_immediate.mixer_group = cmd.param1;
+			_msg_mixer_data_immediate.mixer_index = 0;
+			_msg_mixer_data_immediate.mixer_sub_index = 0;
+			_msg_mixer_data_immediate.parameter_index = 0;
+			_msg_mixer_data_immediate.data_type = 122;      //Code for store!
+			_msg_mixer_data_immediate.connection_type = 0;
+			_msg_mixer_data_immediate.connection_group = 0;
+
+			int dev;
+			dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
+
+			if (dev < 0) {
+				_msg_mixer_data_immediate.data_value = -1;
+				_send_data_immediate = true;
+				return;
+			}
+
+			if (_p_mixer_save_buffer == nullptr) {
+				_p_mixer_save_buffer = (char *) malloc(1024);
+			}
+
+			mixer_config_s config = {_p_mixer_save_buffer, 1024};
+
+			int ret = px4_ioctl(dev, MIXERIOCGETCONFIG, (unsigned long)&config);
+			px4_close(dev);
+
+			if (ret < 0) {
+				_msg_mixer_data_immediate.data_value = ret;
+				_send_data_immediate = true;
+				free(_p_mixer_save_buffer);
+				_p_mixer_save_buffer = nullptr;
+				return;
+			}
+
+			const char *fname;
+
+			switch (_msg_mixer_data_immediate.mixer_group) {
+			case 0:
+				fname = kMixerLocalData;
+				break;
+
+			case 1:
+				fname = kMixerFailsafeData;
+				break;
+
+			default:
+				fname = kMixerDefaultData;
+				break;
+			}
+
+			/* Create the mixer definition file */
+			FILE *f = ::fopen(fname, "w");
+
+			if (f == nullptr) {
+				PX4_ERR("not able to create mixer file %s", fname);
+				_msg_mixer_data_immediate.data_value = ret;
+				_send_data_immediate = true;
+				free(_p_mixer_save_buffer);
+				_p_mixer_save_buffer = nullptr;
+				return;
+			}
+
+			/* Write the buffer to the file*/
+			signed err = fputs(_p_mixer_save_buffer, f);
+			fclose(f);
+
+			free(_p_mixer_save_buffer);
+			_p_mixer_save_buffer = nullptr;
+
+			if (err < 0) {
+				PX4_ERR("Mixer file write error: %s ", fname);
+				_msg_mixer_data_immediate.data_value = ret;
+				_send_data_immediate = true;
+				return;
+			}
+
+			PX4_INFO("Wrote mixer group:%u to file %s\n", _msg_mixer_data_immediate.mixer_group, fname);
+
+#ifdef __PX4_NUTTX
+			fsync(fileno(f));
+#endif
+			_msg_mixer_data_immediate.data_value = config.size;
+			_send_data_immediate = true;
+			break;
+		}
+
 
 	case MAV_CMD_SET_MIXER_PARAMETER:
 		// publish set mixer parameter request to uORB
@@ -641,118 +727,47 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			_send_all_state = MIXERS_SEND_ALL_NONE;
 			break;
 		}
+	} //if sending all
 
 
-		/* Send parameter values received from mixer data topic */
-		if (_mixer_data_sub < 0) {
-			_mixer_data_sub = orb_subscribe(ORB_ID(mixer_data));
+
+	/* Send parameter values received from mixer data topic */
+	if (_mixer_parameter_sub < 0) {
+		_mixer_parameter_sub = orb_subscribe(ORB_ID(mixer_parameter));
+	}
+
+	bool mixer_parameter_ready;
+	orb_check(_mixer_parameter_sub, &mixer_parameter_ready);
+
+	if (mixer_parameter_ready && _request_pending) {
+		struct mixer_parameter_s parameter;
+		orb_copy(ORB_ID(mixer_parameter), _mixer_parameter_sub, &parameter);
+
+		_request_pending = false;
+
+		mavlink_mixer_data_t msg;
+		msg.mixer_group = parameter.mixer_group;
+		msg.mixer_index = parameter.mixer_index;
+		msg.mixer_sub_index = parameter.mixer_sub_index;
+		msg.parameter_index = parameter.parameter_index;
+		msg.connection_type = 0;
+		msg.connection_group = 0;
+		msg.data_type = MIXER_DATA_TYPE_PARAMETER;
+		msg.data_value = 0;
+
+		if (parameter.param_type == MAV_PARAM_TYPE_REAL32) {
+			msg.param_type = MAVLINK_TYPE_FLOAT;
+			msg.param_value = parameter.real_value;
+
+		} else {
+			int32_t val;
+			val = (int32_t)parameter.int_value;
+			memcpy(&msg.param_value, &val, sizeof(int32_t));
+			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
 
-		bool mixer_data_ready;
-		orb_check(_mixer_data_sub, &mixer_data_ready);
-
-		if (mixer_data_ready && _request_pending) {
-			struct mixer_data_s mixer_data;
-			orb_copy(ORB_ID(mixer_data), _mixer_data_sub, &mixer_data);
-
-			_request_pending = false;
-
-			switch (mixer_data.mixer_data_type) {
-			case MIXER_DATA_TYPE_PARAMETER: {
-					mavlink_mixer_data_t msg;
-					msg.mixer_group = mixer_data.mixer_group;
-					msg.mixer_index = mixer_data.mixer_index;
-					msg.mixer_sub_index = mixer_data.mixer_sub_index;
-					msg.parameter_index = mixer_data.parameter_index;
-					msg.connection_type = mixer_data.connection_type;
-					msg.connection_group = mixer_data.connection_group;
-					msg.data_type = mixer_data.mixer_data_type;
-					msg.param_type = mixer_data.param_type;
-					msg.data_value = mixer_data.int_value;
-
-					if (mixer_data.param_type == MAV_PARAM_TYPE_REAL32) {
-						msg.param_type = MAVLINK_TYPE_FLOAT;
-						msg.param_value = mixer_data.real_value;
-
-					} else {
-						int32_t val;
-						val = (int32_t)mixer_data.int_value;
-						memcpy(&msg.param_value, &val, sizeof(int32_t));
-						msg.param_type = MAVLINK_TYPE_INT32_T;
-					}
-
-					/* Send with default component ID */
-					mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
-					break;
-				}
-
-			default:
-				break;
-			}
-		}
-
-
-//		if (msg.data_type == 112) {
-//			if ((_p_mixer_save_buffer != nullptr) || (mixer_data.int_value != -1)) {
-//				const char *fname = nullptr;
-
-//				switch (mixer_data.mixer_group) {
-//				case 0:
-//					fname = kMixerLocalData;
-//					break;
-
-//				case 1:
-//					fname = kMixerFailsafeData;
-//					break;
-
-//				default:
-//					fname = kMixerDefaultData;
-//					break;
-//				}
-
-//				/* Create the mixer definition file */
-//				FILE *f = ::fopen(fname, "w");
-
-//				if (f != nullptr) {
-//					/* Write the buffer to the file*/
-//					signed err = fputs(_p_mixer_save_buffer, f);
-
-//					if (err <= 0) {
-//						PX4_ERR("Mixer file write error: %s ", fname);
-//						msg.data_value = -1;
-
-//					} else {
-//						PX4_INFO("Wrote mixer group:%u to file %s\n", mixer_data.mixer_group, fname);
-//					}
-
-//#ifdef __PX4_NUTTX
-//					fsync(fileno(f));
-//#endif
-//					fclose(f);
-
-//				} else {
-//					PX4_ERR("not able to create mixer file %s", fname);
-//					msg.data_value = -1;
-//				}
-
-//			}
-
-//			if (_p_mixer_save_buffer != nullptr) {
-//				free(_p_mixer_save_buffer);
-//				_p_mixer_save_buffer = nullptr;
-//				PX4_INFO("Saving mixer freeing buffer");
-//			}
-//		}
-
-//        PX4_INFO("mavlink mixer_data send with group:%u index:%u conn_type:%u sub:%u param:%u type:%u data:%u",
-//			 msg.mixer_group,
-//			 msg.mixer_index,
-//			 msg.mixer_sub_index,
-//			 msg.parameter_index,
-//             msg.connection_type,
-//			 mixer_data.mixer_data_type,
-//			 msg.data_value);
-
+		/* Send with default component ID */
+		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &msg);
 	}
 
 }
