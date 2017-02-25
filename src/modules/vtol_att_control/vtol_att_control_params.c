@@ -317,7 +317,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * @max 180
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_QC_P, 55);
+PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 
 /**
  * QuadChute Max Roll
@@ -328,7 +328,7 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 55);
  * @max 180
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_QC_R, 55);
+PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
  * Airspeed less front transition time (open loop)
