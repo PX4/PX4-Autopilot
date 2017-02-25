@@ -565,12 +565,10 @@ VtolAttitudeControl::parameters_update()
 	_params.fw_min_alt = v;
 
 	/* maximum pitch angle (QuadChute) */
-	param_get(_params_handles.fw_qc_max_pitch, &l);
-	_params.fw_qc_max_pitch = l;
+	param_get(_params_handles.fw_qc_max_pitch, &_params.fw_qc_max_pitch);
 
 	/* maximum roll angle (QuadChute) */
-	param_get(_params_handles.fw_qc_max_roll, &l);
-	_params.fw_qc_max_roll = l;
+	param_get(_params_handles.fw_qc_max_roll, &_params.fw_qc_max_roll);
 
 	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 
