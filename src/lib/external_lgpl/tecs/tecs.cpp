@@ -252,18 +252,11 @@ void TECS::_update_height_demand(float demand, float state)
 	}
 
 	_hgt_dem_prev = _hgt_dem;
-//
-//	// Apply first order lag to height demand
-//	_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
-//	_hgt_rate_dem = (_hgt_dem_adj - _hgt_dem_adj_last) / 0.1f;
-//	_hgt_dem_adj_last = _hgt_dem_adj;
-//
-//	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
-//	// 	_hgt_rate_dem);
 
+	// Apply first order lag to height demand
 	_hgt_dem_adj = 0.1f * _hgt_dem + 0.9f * _hgt_dem_adj_last;
-	_hgt_dem_adj_last = _hgt_dem_adj;
 	_hgt_rate_dem = (_hgt_dem_adj - state) * _heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last) / _DT;
+	_hgt_dem_adj_last = _hgt_dem_adj;
 
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
@@ -272,8 +265,6 @@ void TECS::_update_height_demand(float demand, float state)
 	} else if (_hgt_rate_dem < -_maxSinkRate) {
 		_hgt_rate_dem = -_maxSinkRate;
 	}
-
-	//warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
 }
 
 void TECS::_detect_underspeed()
