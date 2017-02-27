@@ -208,7 +208,6 @@ private:
 		param_t alt_mode;
 		param_t opt_recover;
 		param_t xy_vel_man_expo;
-		param_t altitude_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -236,7 +235,6 @@ private:
 		float vel_max_up;
 		float vel_max_down;
 		float xy_vel_man_expo;
-		float altitude_max;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -291,7 +289,6 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
-	float _valid_altitude_max; /**< maximum altitude that can be reached based on several conditions */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -539,9 +536,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
-	_params_handles.altitude_max = param_find("MPC_ALTITUDE_MAX");
-
-	_valid_altitude_max = _params_handles.altitude_max;
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -659,11 +653,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_down_max = v;
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
-		param_get(_params_handles.altitude_max, &v);
-		_params.altitude_max = v;
-
-		/* ToDo: the max altitude will be sent from navigator */
-		_valid_altitude_max = _params.altitude_max;
 
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
@@ -933,14 +922,14 @@ MulticopterPositionControl::limit_altitude()
 	float alt = _pos(2);
 
 	/* in altitude control, limit setpoint */
-	if (-alt >= _valid_altitude_max && _run_alt_control && _pos_sp(2) <= alt) {
-		_pos_sp(2) = -_valid_altitude_max;
+	if (-alt >= _vehicle_land_detected.alt_max && _run_alt_control && _pos_sp(2) <= alt) {
+		_pos_sp(2) = -_vehicle_land_detected.alt_max;
 		return;
 	}
 
 	/* in velocity control in z, prevent vehicle from flying upwards if 0.5m close to altitude max*/
-	if (-alt + 0.5f >= _valid_altitude_max && !_run_alt_control && _vel_sp(2) <= 0.0f) {
-		_pos_sp(2) = -_valid_altitude_max;
+	if (-alt + 0.5f >= _vehicle_land_detected.alt_max && !_run_alt_control && _vel_sp(2) <= 0.0f) {
+		_pos_sp(2) = -_vehicle_land_detected.alt_max;;
 		_run_alt_control = true;
 		return;
 	}
