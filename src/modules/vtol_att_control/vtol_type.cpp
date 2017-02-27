@@ -198,11 +198,11 @@ void VtolType::check_quadchute_condition()
 	if (_armed->armed && !_land_detected->landed) {
 		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 
-		// fixed-wing minimum altitude, armed, !landed
+		// fixed-wing minimum altitude
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->abort_front_transition("Minimum altitude");
+				_attc->abort_front_transition("Minimum altitude breached");
 			}
 		}
 
