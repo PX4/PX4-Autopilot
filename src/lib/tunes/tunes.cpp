@@ -52,7 +52,7 @@
 // initialise default tunes
 const char *Tunes::_default_tunes[] = {
 	"", // empty to align with the index
-	"MFT240L8 O2aO3dc O2aO3dc O2aO3dc L16dcdcdcdc", // startup tune
+	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc", // startup tune
 	"MBT200a8a8a8PaaaP", // ERROR tone
 	"MFT200e8a8a", // Notify Positive tone
 	"MFT200e8e", // Notify Neutral tone
@@ -98,160 +98,66 @@ void Tunes::config_tone()
 	_octave = _default_octave;
 }
 
-int Tunes::parse_cmd(const tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence)
+void Tunes::set_control(const tune_control_s &tune_control)
 {
-	int continue_sequnece = 0;
+	bool reset_playing_tune = false;
 
 	switch (tune_control.tune_id) {
-	case tune_control_s::STARTUP:
-	case tune_control_s::ERROR:
-	case tune_control_s::NOTIFY_POSITIVE:
-	case tune_control_s::NOTIFY_NEUTRAL:
-	case tune_control_s::NOTIFY_NEGATIVE:
-	case tune_control_s::ARMING_WARNING:
-	case tune_control_s::BATTERY_WARNING_SLOW:
-	case tune_control_s::BATTERY_WARNING_FAST:
-	case tune_control_s::GPS_WARNING:
-	case tune_control_s::PARACHUTE_RELEASE:
-	case tune_control_s::EKF_WARNING:
-	case tune_control_s::BARO_WARNING:
-	case tune_control_s::SINGLE_BEEP:
-	case tune_control_s::HOME_SET:
+	case tune_control_s::TUNE_ID_STARTUP:
+	case tune_control_s::TUNE_ID_ERROR:
+		reset_playing_tune = true;
+		config_tone();
 
-		// set tune string the first time
-		if (_tune == nullptr) {
+	case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
+	case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
+	case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
+	case tune_control_s::TUNE_ID_ARMING_WARNING:
+	case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
+	case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
+	case tune_control_s::TUNE_ID_GPS_WARNING:
+	case tune_control_s::TUNE_ID_PARACHUTE_RELEASE:
+	case tune_control_s::TUNE_ID_EKF_WARNING:
+	case tune_control_s::TUNE_ID_BARO_WARNING:
+	case tune_control_s::TUNE_ID_SINGLE_BEEP:
+	case tune_control_s::TUNE_ID_HOME_SET:
+
+		// TODO: come up with a better strategy
+		if (_tune == nullptr || reset_playing_tune) {
 			_tune = _default_tunes[tune_control.tune_id];
 			_next = _tune;
 		}
 
-		continue_sequnece = next_note(frequency, duration, silence);
 		break;
 
-	case tune_control_s::CUSTOM:
+	case tune_control_s::TUNE_ID_CUSTOM:
 	default:
-		frequency = (unsigned)tune_control.frequency;
-		duration = (unsigned)tune_control.duration;
-		silence = 0;
+		_frequency = (unsigned)tune_control.frequency;
+		_duration = (unsigned)tune_control.duration;
+		_using_custom_msg = true;
 		break;
 	}
-
-	return continue_sequnece;
 }
 
-int Tunes::parse_string(const char *string, unsigned &frequency, unsigned &duration, unsigned &silence)
+void Tunes::set_string(const char *string)
 {
 	// set tune string the first time
 	if (_tune == nullptr) {
 		_tune = string;
 		_next = _tune;
 	}
-
-	return next_note(frequency, duration, silence);
 }
 
-unsigned Tunes::note_to_frequency(unsigned note)
+int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence)
 {
-	// compute the frequency (Hz)
-	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
-}
-
-unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
-{
-	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
-
-	if (note_length == 0) {
-		note_length = 1;
-	}
-
-	unsigned note_period = whole_note_period / note_length;
-
-	switch (_note_mode) {
-	case NoteMode::NORMAL:
-		silence = note_period / 8;
-		break;
-
-	case NoteMode::STACCATO:
-		silence = note_period / 4;
-		break;
-
-	case NoteMode::LEGATO:
-	default:
+	// Return the vaules for frequency and duration if the custom msg was recieved
+	if (_using_custom_msg) {
+		_using_custom_msg = false;
+		frequency = _frequency;
+		duration = _duration;
 		silence = 0;
-		break;
+		return TUNE_STOP;
 	}
 
-	note_period -= silence;
-
-	unsigned dot_extension = note_period / 2;
-
-	while (dots--) {
-		note_period += dot_extension;
-		dot_extension /= 2;
-	}
-
-	return note_period;
-}
-
-unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots)
-{
-	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
-
-	if (rest_length == 0) {
-		rest_length = 1;
-	}
-
-	unsigned rest_period = whole_note_period / rest_length;
-
-	unsigned dot_extension = rest_period / 2;
-
-	while (dots--) {
-		rest_period += dot_extension;
-		dot_extension /= 2;
-	}
-
-	return rest_period;
-}
-
-int Tunes::next_char()
-{
-	while (isspace(*_next)) {
-		_next++;
-	}
-
-	return toupper(*_next);
-}
-
-unsigned Tunes::next_number()
-{
-	unsigned number = 0;
-	int c;
-
-	for (;;) {
-		c = next_char();
-
-		if (!isdigit(c)) {
-			return number;
-		}
-
-		_next++;
-		number = (number * 10) + (c - '0');
-	}
-}
-
-unsigned Tunes::next_dots()
-{
-	unsigned dots = 0;
-
-	while (next_char() == '.') {
-		_next++;
-		dots++;
-	}
-
-	return dots;
-}
-
-int Tunes::next_note(unsigned &frequency, unsigned &duration, unsigned &silence)
-{
 	// make sure we still have a tune
 	if ((_next == nullptr) || (_tune == nullptr)) {
 		return TUNE_ERROR;
@@ -440,4 +346,105 @@ tune_end:
 	} else {
 		return TUNE_STOP;
 	}
+}
+
+unsigned Tunes::note_to_frequency(unsigned note)
+{
+	// compute the frequency (Hz)
+	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
+}
+
+unsigned Tunes::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
+{
+	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
+
+	if (note_length == 0) {
+		note_length = 1;
+	}
+
+	unsigned note_period = whole_note_period / note_length;
+
+	switch (_note_mode) {
+	case NoteMode::NORMAL:
+		silence = note_period / 8;
+		break;
+
+	case NoteMode::STACCATO:
+		silence = note_period / 4;
+		break;
+
+	case NoteMode::LEGATO:
+	default:
+		silence = 0;
+		break;
+	}
+
+	note_period -= silence;
+
+	unsigned dot_extension = note_period / 2;
+
+	while (dots--) {
+		note_period += dot_extension;
+		dot_extension /= 2;
+	}
+
+	return note_period;
+}
+
+unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots)
+{
+	unsigned whole_note_period = BEAT_TIME_CONVERSION / _tempo;
+
+	if (rest_length == 0) {
+		rest_length = 1;
+	}
+
+	unsigned rest_period = whole_note_period / rest_length;
+
+	unsigned dot_extension = rest_period / 2;
+
+	while (dots--) {
+		rest_period += dot_extension;
+		dot_extension /= 2;
+	}
+
+	return rest_period;
+}
+
+int Tunes::next_char()
+{
+	while (isspace(*_next)) {
+		_next++;
+	}
+
+	return toupper(*_next);
+}
+
+unsigned Tunes::next_number()
+{
+	unsigned number = 0;
+	int c;
+
+	for (;;) {
+		c = next_char();
+
+		if (!isdigit(c)) {
+			return number;
+		}
+
+		_next++;
+		number = (number * 10) + (c - '0');
+	}
+}
+
+unsigned Tunes::next_dots()
+{
+	unsigned dots = 0;
+
+	while (next_char() == '.') {
+		_next++;
+		dots++;
+	}
+
+	return dots;
 }
