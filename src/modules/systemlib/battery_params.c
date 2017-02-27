@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@
  * @unit V
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
@@ -67,6 +68,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  * @unit V
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
@@ -82,6 +84,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  * @max 0.4
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
 
@@ -98,6 +101,7 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  * @max 0.1
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
 
@@ -114,6 +118,7 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @max 0.07
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
 
@@ -132,6 +137,7 @@ PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
  * @max 0.5
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
@@ -145,6 +151,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  * @unit Ohms
  * @min -1.0
  * @max 0.2
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
 
@@ -171,6 +178,7 @@ PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
  * @value 14 14S Battery
  * @value 15 15S Battery
  * @value 16 16S Battery
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
@@ -185,5 +193,6 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * @min -1.0
  * @max 100000
  * @increment 50
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
