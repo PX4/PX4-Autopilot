@@ -67,6 +67,11 @@ import os
 
 from sys import platform as _platform
 
+# Detect python version
+if sys.version_info[0] < 3:
+    runningPython3 = False
+else:
+    runningPython3 = True
 
 class firmware(object):
     '''Loads a firmware file'''
@@ -471,13 +476,13 @@ class uploader(object):
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
     # upload the firmware
-    def upload(self, fw):
+    def upload(self, fw, force=False, boot_delay=None):
         # Make sure we are doing the right thing
         if self.board_type != fw.property('board_id'):
             msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
                 self.board_type, fw.property('board_id'))
             print("WARNING: %s" % msg)
-            if args.force:
+            if force:
                 print("FORCED WRITE, FLASHING ANYWAY!")
             else:
                 raise IOError(msg)
@@ -529,8 +534,8 @@ class uploader(object):
         else:
             self.__verify_v3("Verify ", fw)
 
-        if args.boot_delay is not None:
-            self.__set_boot_delay(args.boot_delay)
+        if boot_delay is not None:
+            self.__set_boot_delay(boot_delay)
 
         print("\nRebooting.\n")
         self.__reboot()
@@ -574,130 +579,129 @@ class uploader(object):
         return True
 
 
-# Detect python version
-if sys.version_info[0] < 3:
-    runningPython3 = False
-else:
-    runningPython3 = True
+def main():
 
-# Parse commandline arguments
-parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
-parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
-parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
-parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
-parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
-parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
-parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
-args = parser.parse_args()
+    # Parse commandline arguments
+    parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
+    parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
+    parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
+    parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
+    parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
+    parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
+    parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
+    args = parser.parse_args()
 
-# warn people about ModemManager which interferes badly with Pixhawk
-if os.path.exists("/usr/sbin/ModemManager"):
-    print("==========================================================================================================")
-    print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
-    print("==========================================================================================================")
+    # warn people about ModemManager which interferes badly with Pixhawk
+    if os.path.exists("/usr/sbin/ModemManager"):
+        print("==========================================================================================================")
+        print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
+        print("==========================================================================================================")
 
-# Load the firmware file
-fw = firmware(args.firmware)
-print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
-print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
+    # Load the firmware file
+    fw = firmware(args.firmware)
+    print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
+    print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
-# Spin waiting for a device to show up
-try:
-    while True:
-        portlist = []
-        patterns = args.port.split(",")
-        # on unix-like platforms use glob to support wildcard ports. This allows
-        # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
-        # causing modem hangups etc
-        if "linux" in _platform or "darwin" in _platform:
-            import glob
-            for pattern in patterns:
-                portlist += glob.glob(pattern)
-        else:
-            portlist = patterns
+    # Spin waiting for a device to show up
+    try:
+        while True:
+            portlist = []
+            patterns = args.port.split(",")
+            # on unix-like platforms use glob to support wildcard ports. This allows
+            # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
+            # causing modem hangups etc
+            if "linux" in _platform or "darwin" in _platform:
+                import glob
+                for pattern in patterns:
+                    portlist += glob.glob(pattern)
+            else:
+                portlist = patterns
 
-        baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
+            baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
 
-        for port in portlist:
+            for port in portlist:
 
-            # print("Trying %s" % port)
+                # print("Trying %s" % port)
 
-            # create an uploader attached to the port
-            try:
-                if "linux" in _platform:
-                    # Linux, don't open Mac OS and Win ports
-                    if "COM" not in port and "tty.usb" not in port:
-                        up = uploader(port, args.baud_bootloader, baud_flightstack)
-                elif "darwin" in _platform:
-                    # OS X, don't open Windows and Linux ports
-                    if "COM" not in port and "ACM" not in port:
-                        up = uploader(port, args.baud_bootloader, baud_flightstack)
-                elif "win" in _platform:
-                    # Windows, don't open POSIX ports
-                    if "/" not in port:
-                        up = uploader(port, args.baud_bootloader, baud_flightstack)
-            except Exception as e:
-                # open failed, rate-limit our attempts
-                time.sleep(0.05)
-
-                # and loop to the next port
-                continue
-
-            found_bootloader = False
-            while (True):
-                up.open()
-
-                # port is open, try talking to it
+                # create an uploader attached to the port
                 try:
-                    # identify the bootloader
-                    up.identify()
-                    found_bootloader = True
-                    print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
-                    break
+                    if "linux" in _platform:
+                        # Linux, don't open Mac OS and Win ports
+                        if "COM" not in port and "tty.usb" not in port:
+                            up = uploader(port, args.baud_bootloader, baud_flightstack)
+                    elif "darwin" in _platform:
+                        # OS X, don't open Windows and Linux ports
+                        if "COM" not in port and "ACM" not in port:
+                            up = uploader(port, args.baud_bootloader, baud_flightstack)
+                    elif "win" in _platform:
+                        # Windows, don't open POSIX ports
+                        if "/" not in port:
+                            up = uploader(port, args.baud_bootloader, baud_flightstack)
+                except Exception as e:
+                    # open failed, rate-limit our attempts
+                    time.sleep(0.05)
 
-                except Exception:
+                    # and loop to the next port
+                    continue
 
-                    if not up.send_reboot():
+                found_bootloader = False
+                while (True):
+                    up.open()
+
+                    # port is open, try talking to it
+                    try:
+                        # identify the bootloader
+                        up.identify()
+                        found_bootloader = True
+                        print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
                         break
 
-                    # wait for the reboot, without we might run into Serial I/O Error 5
-                    time.sleep(0.25)
+                    except Exception:
 
+                        if not up.send_reboot():
+                            break
+
+                        # wait for the reboot, without we might run into Serial I/O Error 5
+                        time.sleep(0.25)
+
+                        # always close the port
+                        up.close()
+
+                        # wait for the close, without we might run into Serial I/O Error 6
+                        time.sleep(0.3)
+
+                if not found_bootloader:
+                    # Go to the next port
+                    continue
+
+                try:
+                    # ok, we have a bootloader, try flashing it
+                    up.upload(fw, force=args.force, boot_delay=args.boot_delay)
+
+                except RuntimeError as ex:
+                    # print the error
+                    print("\nERROR: %s" % ex.args)
+
+                except IOError as e:
+                    up.close()
+                    continue
+
+                finally:
                     # always close the port
                     up.close()
 
-                    # wait for the close, without we might run into Serial I/O Error 6
-                    time.sleep(0.3)
+                # we could loop here if we wanted to wait for more boards...
+                sys.exit(0)
 
-            if not found_bootloader:
-                # Go to the next port
-                continue
+            # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
+            time.sleep(0.05)
 
-            try:
-                # ok, we have a bootloader, try flashing it
-                up.upload(fw)
+    # CTRL+C aborts the upload/spin-lock by interrupt mechanics
+    except KeyboardInterrupt:
+        print("\n Upload aborted by user.")
+        sys.exit(0)
 
-            except RuntimeError as ex:
-                # print the error
-                print("\nERROR: %s" % ex.args)
-
-            except IOError as e:
-                up.close()
-                continue
-
-            finally:
-                # always close the port
-                up.close()
-
-            # we could loop here if we wanted to wait for more boards...
-            sys.exit(0)
-
-        # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
-        time.sleep(0.05)
-
-# CTRL+C aborts the upload/spin-lock by interrupt mechanics
-except KeyboardInterrupt:
-    print("\n Upload aborted by user.")
-    sys.exit(0)
+if __name__ == '__main__':
+    main()
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
