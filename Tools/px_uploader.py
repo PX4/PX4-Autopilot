@@ -695,3 +695,5 @@ try:
 except KeyboardInterrupt:
     print("\n Upload aborted by user.")
     sys.exit(0)
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
