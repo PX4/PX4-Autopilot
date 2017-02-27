@@ -149,7 +149,7 @@ void Tunes::set_string(const char *string)
 
 int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence)
 {
-	// Return the vaules for frequency and duration if the custom msg was recieved
+	// Return the vaules for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
 		_using_custom_msg = false;
 		frequency = _frequency;
