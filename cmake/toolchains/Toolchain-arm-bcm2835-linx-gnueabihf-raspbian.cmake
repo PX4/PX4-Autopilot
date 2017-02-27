@@ -22,6 +22,16 @@ else()
         set(RPI_TOOLCHAIN_DIR $ENV{RPI_TOOLCHAIN_DIR})
 endif()
 
+if ("$ENV{CROSS_COMPILE_PREFIX}" STREQUAL "")
+        message(FATAL_ERROR "CROSS_COMPILE_PREFIX not set")
+else()
+        set(CROSS_COMPILE_PREFIX $ENV{CROSS_COMPILE_PREFIX})
+endif()
+
+
+
+
+
 # this one is important
 set(CMAKE_SYSTEM_NAME Generic)
 
@@ -29,35 +39,35 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
 
 # specify the cross compiler
-find_program(C_COMPILER arm-bcm2835-linux-gnueabihf-gcc
-	PATHS ${RPI_TOOLCHAIN_DIR}/arm-bcm2835-linux-gnueabihf/bin
+find_program(C_COMPILER ${CROSS_COMPILE_PREFIX}-gcc
+	PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
 	NO_DEFAULT_PATH
 	)
 
 if(NOT C_COMPILER)
-	message(FATAL_ERROR "could not find arm-bcm2835-linux-gnueabihf-gcc compiler")
+	message(FATAL_ERROR "could not find ${CROSS_COMPILE_PREFIX}-gcc compiler")
 endif()
 cmake_force_c_compiler(${C_COMPILER} GNU)
 
-find_program(CXX_COMPILER  arm-bcm2835-linux-gnueabihf-g++
-	PATHS ${RPI_TOOLCHAIN_DIR}/arm-bcm2835-linux-gnueabihf/bin
+find_program(CXX_COMPILER  ${CROSS_COMPILE_PREFIX}-g++
+	PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
 	NO_DEFAULT_PATH
 	)
 
 if(NOT CXX_COMPILER)
-	message(FATAL_ERROR "could not find arm-bcm2835-linux-gnueabihf-g++ compiler")
+	message(FATAL_ERROR "could not find ${CROSS_COMPILE_PREFIX}-g++ compiler")
 endif()
 cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
 
 # compiler tools
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} arm-bcm2835-linux-gnueabihf-${tool}
-		PATHS ${RPI_TOOLCHAIN_DIR}/arm-bcm2835-linux-gnueabihf/bin
+	find_program(${TOOL} ${CROSS_COMPILE_PREFIX}-${tool}
+		PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
 		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find arm-bcm2835-linux-gnueabihf-${tool}")
+		message(FATAL_ERROR "could not find ${CROSS_COMPILE_PREFIX}-${tool}")
 	endif()
 endforeach()
 
