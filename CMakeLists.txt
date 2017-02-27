@@ -40,23 +40,23 @@ px4_add_module(
 		attitude_fw/ecl_controller.cpp
 		attitude_fw/ecl_pitch_controller.cpp
 		attitude_fw/ecl_roll_controller.cpp
-		attitude_fw/ecl_yaw_controller.cpp
 		attitude_fw/ecl_wheel_controller.cpp
+		attitude_fw/ecl_yaw_controller.cpp
+		EKF/airspeed_fusion.cpp
+		EKF/control.cpp
+		EKF/covariance.cpp
+		EKF/ekf.cpp
+		EKF/ekf_helper.cpp
+		EKF/estimator_interface.cpp
+		EKF/gps_checks.cpp
+		EKF/mag_fusion.cpp
+		EKF/optflow_fusion.cpp
+		EKF/sideslip_fusion.cpp
+		EKF/terrain_estimator.cpp
+		EKF/vel_pos_fusion.cpp
 		l1/ecl_l1_pos_controller.cpp
 		validation/data_validator.cpp
 		validation/data_validator_group.cpp
-		EKF/estimator_interface.cpp
-		EKF/ekf.cpp
-		EKF/ekf_helper.cpp
-		EKF/covariance.cpp
-		EKF/vel_pos_fusion.cpp
-		EKF/mag_fusion.cpp
-		EKF/gps_checks.cpp
-		EKF/airspeed_fusion.cpp
-		EKF/sideslip_fusion.cpp
-		EKF/optflow_fusion.cpp
-		EKF/control.cpp
-		EKF/terrain_estimator.cpp
 	DEPENDS
 		platforms__common
 	)

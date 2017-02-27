@@ -1,16 +1,23 @@
 language: cpp
-sudo: required
-compiler: g++
 
-before_install:
-- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-- sudo apt-get update -qq
+matrix:
+  fast_finish: true
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+    - os: linux
+      dist: trusty
+      compiler: clang
+      env: CC=clang CXX=clang++
 
-install:
-- sudo apt-get install -qq g++-4.8 libeigen3-dev
-- export CXX="g++-4.8"
-
-before_script:
- - chmod +x build.sh
+addons:
+  apt:
+    packages:
+    - clang
+    - cmake
+    - g++
+    - gcc
+    - libeigen3-dev
 
 script: ./build.sh

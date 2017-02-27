@@ -36,7 +36,7 @@
 set -e
 
 # Build EKF shared library.
-mkdir Build
+mkdir Build -p
 cd Build
 cmake ../EKF
 make

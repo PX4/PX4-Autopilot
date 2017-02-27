@@ -52,7 +52,6 @@
 namespace math
 {
 // using namespace Eigen;
-using namespace std;
 
 float min(float val1, float val2);
 float max(float val1, float val2);
