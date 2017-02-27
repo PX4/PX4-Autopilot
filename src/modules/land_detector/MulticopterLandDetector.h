@@ -94,6 +94,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t manual_stick_down_threshold;
 		param_t altitude_max;
+		param_t manual_stick_up_position_takeoff_threshold;
 	} _paramHandle;
 
 	struct {
@@ -108,6 +109,7 @@ private:
 		float freefall_trigger_time;
 		float manual_stick_down_threshold;
 		float altitude_max;
+		float manual_stick_up_position_takeoff_threshold;
 	} _params;
 
 	int _vehicleLocalPositionSub;

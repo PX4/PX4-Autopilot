@@ -82,6 +82,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 	_paramHandle.manual_stick_down_threshold = param_find("LNDMC_MAN_DWNTHR");
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
+	_paramHandle.manual_stick_up_position_takeoff_threshold = param_find("LNDMC_POS_UPTHR");
 }
 
 void MulticopterLandDetector::_initialize_topics()
@@ -125,7 +126,7 @@ void MulticopterLandDetector::_update_params()
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 	param_get(_paramHandle.manual_stick_down_threshold, &_params.manual_stick_down_threshold);
 	param_get(_paramHandle.altitude_max, &_params.altitude_max);
-
+	param_get(_paramHandle.manual_stick_up_position_takeoff_threshold, &_params.manual_stick_up_position_takeoff_threshold);
 }
 
 
@@ -273,7 +274,7 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 		/* Should be above 0.5 because below that we do not gain altitude and won't take off.
 		 * Also it should be quite high such that we don't accidentally take off when using
 		 * a spring loaded throttle and have a useful vertical speed to start with. */
-		return 0.75f;
+		return _params.manual_stick_up_position_takeoff_threshold;
 	}
 
 	/* Manual/attitude mode */
