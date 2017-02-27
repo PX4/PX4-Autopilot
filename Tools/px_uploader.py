@@ -637,7 +637,7 @@ def main():
                         # Windows, don't open POSIX ports
                         if "/" not in port:
                             up = uploader(port, args.baud_bootloader, baud_flightstack)
-                except Exception as e:
+                except Exception:
                     # open failed, rate-limit our attempts
                     time.sleep(0.05)
 
@@ -682,7 +682,7 @@ def main():
                     # print the error
                     print("\nERROR: %s" % ex.args)
 
-                except IOError as e:
+                except IOError:
                     up.close()
                     continue
 
