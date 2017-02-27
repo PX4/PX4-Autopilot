@@ -135,6 +135,20 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
 PARAM_DEFINE_FLOAT(LNDMC_MAN_DWNTHR, 0.15f);
 
 /**
+ * Manual position flight stick up threshold for taking off
+ *
+ * When controlling manually in position mode the throttle stick value (0 to 1)
+ * has to get above this threshold after arming in order to take off.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_POS_UPTHR, 0.65f);
+
+/**
  * Fixedwing max horizontal velocity
  *
  * Maximum horizontal velocity allowed in the landed state (m/s)
