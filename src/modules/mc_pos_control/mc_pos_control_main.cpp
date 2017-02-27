@@ -654,6 +654,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
 
+
+
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
@@ -919,17 +921,16 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_altitude()
 {
-	float alt = _pos(2);
 
 	/* in altitude control, limit setpoint */
-	if (-alt >= _vehicle_land_detected.alt_max && _run_alt_control && _pos_sp(2) <= alt) {
+	if (_pos_sp(2) <= -_vehicle_land_detected.alt_max && _run_alt_control) {
 		_pos_sp(2) = -_vehicle_land_detected.alt_max;
 		return;
 	}
 
 	/* in velocity control in z, prevent vehicle from flying upwards if 0.5m close to altitude max*/
-	if (-alt + 0.5f >= _vehicle_land_detected.alt_max && !_run_alt_control && _vel_sp(2) <= 0.0f) {
-		_pos_sp(2) = -_vehicle_land_detected.alt_max;;
+	if (_pos(2) <= -_vehicle_land_detected.alt_max && !_run_alt_control && _vel_sp(2) <= 0.0f) {
+		_pos_sp(2) = -_vehicle_land_detected.alt_max;
 		_run_alt_control = true;
 		return;
 	}
