@@ -82,12 +82,17 @@
 
 /* The BMI160 sensor replaces the MPU9250 on some boards. Only one is actually present and connected
  * to the second GPIO pin on port C. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
-#define GPIO_SPI_CS_BMI160		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
+#define GPIO_SPI1_CS_PORTC_PIN2		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
 
 #define GPIO_SPI_CS_FRAM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-#define GPIO_SPI_CS_BMI055_ACC  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_SPI_CS_BMI055_GYR  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
+/* The BMI055 acceleration sensor replaces the ICM20608G on some boards. Only one is actually present and connected
+ * to the second GPIO pin on port C. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
+#define GPIO_SPI1_CS_PORTC_PIN15  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
+
+/* The BMI055 gyroscope sensor replaces the LIS3MDL, HMC5983 on some boards. Only one is actually present and connected
+ * to the second GPIO pin on port E. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
+#define GPIO_SPI1_CS_PORTE_PIN15  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 
 
 /*  Define the Ready interrupts */
@@ -108,9 +113,9 @@
 #define GPIO_SPI_CS_OFF_LIS3MDL		_PIN_OFF(GPIO_SPI_CS_LIS3MDL)
 #define GPIO_SPI_CS_OFF_MS5611		_PIN_OFF(GPIO_SPI_CS_MS5611)
 #define GPIO_SPI_CS_OFF_ICM_2060X 	_PIN_OFF(GPIO_SPI_CS_ICM_2060X)
-#define GPIO_SPI_CS_OFF_BMI160		_PIN_OFF(GPIO_SPI_CS_BMI160)
-#define GPIO_SPI_CS_OFF_BMI055_ACC _PIN_OFF(GPIO_SPI_CS_BMI055_ACC)
-#define GPIO_SPI_CS_OFF_BMI055_GYR _PIN_OFF(GPIO_SPI_CS_BMI055_GYR)
+#define GPIO_SPI_CS_OFF_BMI160		_PIN_OFF(GPIO_SPI1_CS_PORTC_PIN2)
+#define GPIO_SPI_CS_OFF_BMI055_ACC _PIN_OFF(GPIO_SPI1_CS_PORTC_PIN15)
+#define GPIO_SPI_CS_OFF_BMI055_GYR _PIN_OFF(GPIO_SPI1_CS_PORTE_PIN15)
 
 #define GPIO_DRDY_OFF_MPU9250		_PIN_OFF(GPIO_DRDY_MPU9250)
 #define GPIO_DRDY_OFF_ICM_2060X	_PIN_OFF(GPIO_DRDY_ICM_2060X)

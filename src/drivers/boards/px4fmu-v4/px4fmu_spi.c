@@ -76,9 +76,9 @@ __EXPORT void stm32_spiinitialize(void)
 	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
 	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI160);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI055_ACC);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI055_GYR);
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTC_PIN2);   //BMI160
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTC_PIN15);  //BMI055 ACC
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTE_PIN15);  //BMI055 GYRO
 
 	/* De-activate all peripherals,
 	 * required for some peripheral
@@ -88,9 +88,9 @@ __EXPORT void stm32_spiinitialize(void)
 	px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-	px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+	px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);
+	px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);
+	px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);
 
 	px4_arch_configgpio(GPIO_DRDY_MPU9250);
 	px4_arch_configgpio(GPIO_DRDY_HMC5983);
@@ -116,9 +116,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	/* intended fallthrough */
 	case PX4_SPIDEV_ICM_20608:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
@@ -131,9 +131,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);     //BMI160
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);    //BMI055 ACC
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);    //BMI055 GYRO
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
@@ -142,9 +142,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	case PX4_SPIDEV_HMC:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);     //BMI160
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);    //BMI055 ACC
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);    //BMI055 GYRO
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
@@ -153,9 +153,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);     //BMI160
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);    //BMI055 ACC
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);    //BMI055 GYRO
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
@@ -168,9 +168,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, !selected);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);    //BMI055 ACC
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);    //BMI055 GYRO
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, !selected); //BMI160
 		break;
 
 	case PX4_SPIDEV_BMI055_ACC:
@@ -179,9 +179,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, !selected);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);     //BMI160
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, 1);    //BMI055 GYRO
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, !selected); //BMI055 ACC
 		break;
 
 	case PX4_SPIDEV_BMI055_GYR:
@@ -190,9 +190,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		px4_arch_gpiowrite(GPIO_SPI_CS_HMC5983, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MS5611, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI160, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_ACC, 1);
-		px4_arch_gpiowrite(GPIO_SPI_CS_BMI055_GYR, !selected);
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN2, 1);     //BMI160
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTC_PIN15, 1);    //BMI055 ACC
+		px4_arch_gpiowrite(GPIO_SPI1_CS_PORTE_PIN15, !selected);    //BMI055 GYRO
 		break;
 
 	default:
@@ -243,17 +243,17 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_configgpio(GPIO_SPI_CS_OFF_HMC5983);
 	px4_arch_configgpio(GPIO_SPI_CS_OFF_MS5611);
 	px4_arch_configgpio(GPIO_SPI_CS_OFF_ICM_2060X);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI160);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_ACC);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_GYR);
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI160);   // BMI160
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_ACC);  // BMI055 ACC
+	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_GYR);  // BMI055 GYRO
 
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_HMC5983, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_ICM_2060X, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI160, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI055_ACC, 0);
-	px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI055_GYR, 0);
+    px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI160, 0);     // BMI160
+    px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI055_ACC, 0);    // BMI055 ACC
+    px4_arch_gpiowrite(GPIO_SPI_CS_OFF_BMI055_GYR, 0);    // BMI055 GYRO
 
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
@@ -293,9 +293,9 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
 	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI160);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI055_ACC);
-	px4_arch_configgpio(GPIO_SPI_CS_BMI055_GYR);
+    px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI160);		// BMI160
+    px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_ACC);	// BMI055 ACC
+    px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_GYR);	// BMI055 GYRO
 
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);
