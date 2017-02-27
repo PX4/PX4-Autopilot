@@ -7,6 +7,7 @@ add_definitions(
 	-D__PX4_POSIX_RPI
 	-D__DF_LINUX # For DriverFramework
 	-D__DF_RPI # For raspberry pi
+	-D__DF_RPI_SINGLE # For raspberry pi alone
 )
 
 # 硬件驱动模块
@@ -17,11 +18,8 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
-	#platforms/posix/drivers/df_lsm9ds1_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
-	#platforms/posix/drivers/df_hmc5883_wrapper
 	platforms/posix/drivers/df_trone_wrapper
-	#platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
@@ -71,10 +69,7 @@ set(config_module_list
 	#
 	drivers/gps
 	drivers/rpi_rc_in
-	#drivers/navio_sysfs_rc_in
-	#drivers/navio_sysfs_pwm_out
-	#drivers/navio_gpio
-	#drivers/navio_rgbled
+	drivers/rpi_pca9685_pwm_out
 
 	#
 	# Libraries
@@ -106,9 +101,7 @@ set(config_module_list
 #
 set(config_df_driver_list
 	mpu9250
-	#lsm9ds1
 	ms5611
-	#hmc5883
 	trone
 	#isl29501
 )
