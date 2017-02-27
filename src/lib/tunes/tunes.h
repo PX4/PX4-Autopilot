@@ -64,15 +64,15 @@ public:
 	~Tunes() = default;
 
 	/**
-	 * Set tune to be played
+	 * Set tune to be played.
 	 *
 	 * @param  tune_control struct containig the uORB message
 	 */
 	void set_control(const tune_control_s &tune_control);
 
 	/**
-	 * parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic, in frequency(Hz),
-	 * duration(us) and silence(us).
+	 * Parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic.
+	 * This has to be kept in memory for the whole duration of the melody.
 	 *
 	 * @param  string    tune input string
 	 */
@@ -129,18 +129,28 @@ private:
 	 */
 	unsigned note_duration(unsigned &silence, unsigned note_length, unsigned dots);
 
-	// Calculate the duration in microseconds of a rest corresponding to
-	// a given note length.
-	//
+	/**
+	 * Calculate the duration in microseconds of a rest corresponding to
+	 * a given note length.
+	 *
+	 * @param  rest_length rest lenght in fraction of a note
+	 * @param  dots        number of extension dots
+	 * @return             rest duration (us)
+	 */
 	unsigned rest_duration(unsigned rest_length, unsigned dots);
 
-	// Find the next character in the string, discard any whitespace and
-	// return the canonical (uppercase) version.
-	//
+	/**
+	 * Find the next character in the string, discard any whitespace.
+	 *
+	 * @return uppercase version of the char.
+	 */
 	int next_char();
 
-	// Extract a number from the string, consuming all the digit characters.
-	//
+	/**
+	 * Extract a number from the string, consuming all the digit characters.
+	 *
+	 * @return extracted number.
+	 */
 	unsigned next_number();
 
 	/**
