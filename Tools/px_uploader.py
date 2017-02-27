@@ -272,7 +272,7 @@ class uploader(object):
 
         except NotImplementedError:
             raise RuntimeError("Programing not supported for this version of silicon!\n"
-                                   "See https://pixhawk.org/help/errata")
+                               "See https://pixhawk.org/help/errata")
         except RuntimeError:
             # timeout, no response yet
             return False
@@ -612,7 +612,7 @@ try:
         else:
             portlist = patterns
 
-        baud_flightstack = [ int(x) for x in args.baud_flightstack.split(',') ]
+        baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
 
         for port in portlist:
 
