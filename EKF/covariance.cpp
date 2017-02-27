@@ -701,8 +701,37 @@ void Ekf::fixCovarianceErrors()
 		for (int i = 13; i <= 15; i++) {
 			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
 		}
-		// force symmetry
-		makeSymmetrical(P,13,15);
+
+		// calculate accel bias term aligned with the gravity vector
+		float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
+		float down_dvel_bias = 0.0f;
+		for (uint8_t axis_index=0; axis_index < 3; axis_index++) {
+			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2,axis_index);
+		}
+
+		// check that the vertical componenent of accel bias is consistent with both the vertical position and velocity innovation
+		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
+				     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
+				     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);
+
+		// record the pass and force symmetry on the covariance matrix
+		if (!bad_acc_bias) {
+			_time_acc_bias_check = _time_last_imu;
+			makeSymmetrical(P,13,15);
+		}
+
+		// if we have failed for 7 seconds continuously, reset the accel bias covariance
+		if (_time_last_imu - _time_acc_bias_check > 7E6) {
+			float varX = P[13][13];
+			float varY = P[14][14];
+			float varZ = P[15][15];
+			zeroRows(P,13,15);
+			zeroCols(P,13,15);
+			P[13][13] = varX;
+			P[14][14] = varY;
+			P[15][15] = varZ;
+		}
+
 	}
 
 	// magnetic field states
