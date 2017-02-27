@@ -64,27 +64,28 @@ public:
 	~Tunes() = default;
 
 	/**
-	 * parse a tune_control_s in frequency(Hz), duration(us) and silence(us).
+	 * Set tune to be played
 	 *
 	 * @param  tune_control struct containig the uORB message
-	 * @param  frequency    return frequency value (Hz)
-	 * @param  duration     return duration of the tone (us)
-	 * @param  silence      return silance duration (us)
-	 * @return              -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int parse_cmd(const tune_control_s &tune_control, unsigned &frequency, unsigned &duration, unsigned &silence);
+	void set_control(const tune_control_s &tune_control);
 
 	/**
 	 * parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic, in frequency(Hz),
 	 * duration(us) and silence(us).
 	 *
 	 * @param  string    tune input string
+	 */
+	void set_string(const char *string);
+
+	/**
+	 * Get next note in the setted string in set_control or play_string
 	 * @param  frequency return frequency value (Hz)
 	 * @param  duration  return duration of the tone (us)
-	 * @param  silence   return silance duration (us)
+	 * @param  silence   return silence duration (us)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int parse_string(const char *string, unsigned &frequency, unsigned &duration, unsigned &silence);
+	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 private:
 	static const char *_default_tunes[TONE_NUMBER_OF_TUNES];
@@ -103,6 +104,10 @@ private:
 	unsigned _default_note_length = 4;
 	NoteMode _default_mode = NoteMode::NORMAL;
 	unsigned _default_octave = 4;
+
+	unsigned _frequency;
+	unsigned _duration;
+	bool _using_custom_msg = false;
 
 	/**
 	 * Convert note to frequency
@@ -128,10 +133,6 @@ private:
 	// a given note length.
 	//
 	unsigned rest_duration(unsigned rest_length, unsigned dots);
-
-	// Parse the next note out of the string
-	//
-	int next_note(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	// Find the next character in the string, discard any whitespace and
 	// return the canonical (uppercase) version.
