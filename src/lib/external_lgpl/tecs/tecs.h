@@ -45,7 +45,7 @@ public:
 		_integGain(0.0f),
 		_vertAccLim(0.0f),
 		_rollComp(0.0f),
-		_spdWeight(0.5f),
+		_spdWeight(1.0f),
 		_heightrate_p(0.0f),
 		_heightrate_ff(0.0f),
 		_speedrate_p(0.0f),
@@ -106,53 +106,38 @@ public:
 		_throttle_slewrate(0.0f),
 		_indicated_airspeed_min(3.0f),
 		_indicated_airspeed_max(30.0f)
-
 	{
 	}
 
-	bool airspeed_sensor_enabled() {
+	bool airspeed_sensor_enabled()
+	{
 		return _airspeed_enabled;
 	}
 
-	void enable_airspeed(bool enabled) {
+	void enable_airspeed(bool enabled)
+	{
 		_airspeed_enabled = enabled;
 	}
 
 	// Update of the estimated height and height rate internal state
 	// Update of the inertial speed rate internal state
 	// Should be called at 50Hz or greater
-	void update_state(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat,
-		const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air);
+	void update_state(float baro_altitude, float airspeed, const math::Matrix<3, 3> &rotMat,
+			  const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air);
 
 	// Update the control loop calculations
-	void update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+	void update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, float baro_altitude, float hgt_dem,
+				   float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
 				   float throttle_min, float throttle_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
-	// demanded throttle in percentage
-	// should return 0 to 100
-	float get_throttle_demand(void) {
-		return _throttle_dem;
-	}
-	int32_t get_throttle_demand_percent(void) {
-		return get_throttle_demand();
-	}
 
-	void reset_state() {
-		_states_initalized = false;
-	}
-
+	float get_throttle_demand(void) { return _throttle_dem; }
 	float get_pitch_demand() { return _pitch_dem; }
+	float get_speed_weight() { return _spdWeight; }
 
-	// demanded pitch angle in centi-degrees
-	// should return between -9000 to +9000
-	int32_t get_pitch_demand_cd() { return int32_t(get_pitch_demand() * 5729.5781f);}
-
-	// Rate of change of velocity along X body axis in m/s^2
-	float get_VXdot(void) { return _vel_dot; }
-
-
-	float get_speed_weight() {
-		return _spdWeight;
+	void reset_state()
+	{
+		_states_initalized = false;
 	}
 
 	enum ECL_TECS_MODE {
@@ -183,93 +168,115 @@ public:
 		enum ECL_TECS_MODE mode;
 	};
 
-	void get_tecs_state(struct tecs_state& state) {
+	void get_tecs_state(struct tecs_state &state)
+	{
 		state = _tecs_state;
 	}
 
-	void set_time_const(float time_const) {
+	void set_time_const(float time_const)
+	{
 		_timeConst = time_const;
 	}
 
-	void set_time_const_throt(float time_const_throt) {
+	void set_time_const_throt(float time_const_throt)
+	{
 		_timeConstThrot = time_const_throt;
 	}
 
-	void set_min_sink_rate(float rate) {
+	void set_min_sink_rate(float rate)
+	{
 		_minSinkRate = rate;
 	}
 
-	void set_max_sink_rate(float sink_rate) {
+	void set_max_sink_rate(float sink_rate)
+	{
 		_maxSinkRate = sink_rate;
 	}
 
-	void set_max_climb_rate(float climb_rate) {
+	void set_max_climb_rate(float climb_rate)
+	{
 		_maxClimbRate = climb_rate;
 	}
 
-	void set_throttle_damp(float throttle_damp) {
+	void set_throttle_damp(float throttle_damp)
+	{
 		_thrDamp = throttle_damp;
 	}
 
-	void set_integrator_gain(float gain) {
+	void set_integrator_gain(float gain)
+	{
 		_integGain = gain;
 	}
 
-	void set_vertical_accel_limit(float limit) {
+	void set_vertical_accel_limit(float limit)
+	{
 		_vertAccLim = limit;
 	}
 
-	void set_height_comp_filter_omega(float omega) {
+	void set_height_comp_filter_omega(float omega)
+	{
 		_hgtCompFiltOmega = omega;
 	}
 
-	void set_speed_comp_filter_omega(float omega) {
+	void set_speed_comp_filter_omega(float omega)
+	{
 		_spdCompFiltOmega = omega;
 	}
 
-	void set_roll_throttle_compensation(float compensation) {
+	void set_roll_throttle_compensation(float compensation)
+	{
 		_rollComp = compensation;
 	}
 
-	void set_speed_weight(float weight) {
+	void set_speed_weight(float weight)
+	{
 		_spdWeight = weight;
 	}
 
-	void set_pitch_damping(float damping) {
+	void set_pitch_damping(float damping)
+	{
 		_ptchDamp = damping;
 	}
 
-	void set_throttle_slewrate(float slewrate) {
+	void set_throttle_slewrate(float slewrate)
+	{
 		_throttle_slewrate = slewrate;
 	}
 
-	void set_indicated_airspeed_min(float airspeed) {
+	void set_indicated_airspeed_min(float airspeed)
+	{
 		_indicated_airspeed_min = airspeed;
 	}
 
-	void set_indicated_airspeed_max(float airspeed) {
+	void set_indicated_airspeed_max(float airspeed)
+	{
 		_indicated_airspeed_max = airspeed;
 	}
 
-	void set_heightrate_p(float heightrate_p) {
+	void set_heightrate_p(float heightrate_p)
+	{
 		_heightrate_p = heightrate_p;
 	}
 
-	void set_heightrate_ff(float heightrate_ff) {
+	void set_heightrate_ff(float heightrate_ff)
+	{
 		_heightrate_ff = heightrate_ff;
 	}
 
-	void set_speedrate_p(float speedrate_p) {
+	void set_speedrate_p(float speedrate_p)
+	{
 		_speedrate_p = speedrate_p;
 	}
 
-	void set_detect_underspeed_enabled(bool enabled) {
+	void set_detect_underspeed_enabled(bool enabled)
+	{
 		_detect_underspeed_enabled = enabled;
 	}
 
 	// in case of a height reset driven by the estimator we need
 	// to allow TECS to swallow the step in height and demanded height instantaneously
-	void handle_alt_step(float delta_alt, float altitude) {
+	void handle_alt_step(float delta_alt, float altitude)
+	{
 		// add height reset delta to all variables involved
 		// in filtering the demanded height
 		_hgt_dem_in_old += delta_alt;
@@ -278,7 +285,8 @@ public:
 
 		// reset height states
 		_integ3_state = altitude;
-		_integ1_state = _integ2_state = 0.0f;
+		_integ1_state = 0.0f;
+		_integ2_state = 0.0f;
 	}
 
 private:
@@ -445,8 +453,7 @@ private:
 	float _indicated_airspeed_max;
 
 	// Update the airspeed internal state using a second order complementary filter
-	void _update_speed(float airspeed_demand, float indicated_airspeed,
-			   float indicated_airspeed_min, float indicated_airspeed_max, float EAS2TAS);
+	void _update_speed(float airspeed_demand, float indicated_airspeed, float EAS2TAS);
 
 	// Update the demanded airspeed
 	void _update_speed_demand(void);
@@ -461,7 +468,7 @@ private:
 	void _update_energies(void);
 
 	// Update Demanded Throttle
-	void _update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat);
+	void _update_throttle(float throttle_cruise, const math::Matrix<3, 3> &rotMat);
 
 	// Detect Bad Descent
 	void _detect_bad_descent(void);
