@@ -21,3 +21,4 @@ bool flag_control_position_enabled		# true if position is controlled
 bool flag_control_altitude_enabled		# true if altitude is controlled
 bool flag_control_climb_rate_enabled		# true if climb rate is controlled
 bool flag_control_termination_enabled		# true if flighttermination is enabled
+bool flag_control_fixed_hdg_enabled			# true if using a fixed heading for user control

@@ -307,6 +307,10 @@ then
 	if ist8310 -C -b 1 -R 4 start
 	then
 	fi
+
+	if aerofc_adc start
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V4PRO
@@ -353,10 +357,6 @@ then
 
 	# Possible external compasses
 	if hmc5883 -X start
-	then
-	fi
-
-	if aerofc_adc start
 	then
 	fi
 fi

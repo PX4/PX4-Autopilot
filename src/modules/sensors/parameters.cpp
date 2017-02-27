@@ -93,6 +93,8 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
 	parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
 	parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
+	parameter_handles.rc_map_stab_sw = param_find("RC_MAP_STAB_SW");
+	parameter_handles.rc_map_man_sw = param_find("RC_MAP_MAN_SW");
 
 	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -124,6 +126,8 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_armswitch_th = param_find("RC_ARMSWITCH_TH");
 	parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
 	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
+	parameter_handles.rc_stab_th = param_find("RC_STAB_TH");
+	parameter_handles.rc_man_th = param_find("RC_MAN_TH");
 
 	/* RC low pass filter configuration */
 	parameter_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
@@ -339,6 +343,14 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		PX4_WARN("%s", paramerr);
 	}
 
+	if (param_get(parameter_handles.rc_map_stab_sw, &(parameters.rc_map_stab_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
+	if (param_get(parameter_handles.rc_map_man_sw, &(parameters.rc_map_man_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	param_get(parameter_handles.rc_map_aux1, &(parameters.rc_map_aux1));
 	param_get(parameter_handles.rc_map_aux2, &(parameters.rc_map_aux2));
 	param_get(parameter_handles.rc_map_aux3, &(parameters.rc_map_aux3));
@@ -388,6 +400,12 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_gear_th, &(parameters.rc_gear_th));
 	parameters.rc_gear_inv = (parameters.rc_gear_th < 0);
 	parameters.rc_gear_th = fabs(parameters.rc_gear_th);
+	param_get(parameter_handles.rc_stab_th, &(parameters.rc_stab_th));
+	parameters.rc_stab_inv = (parameters.rc_stab_th < 0);
+	parameters.rc_stab_th = fabs(parameters.rc_stab_th);
+	param_get(parameter_handles.rc_man_th, &(parameters.rc_man_th));
+	parameters.rc_man_inv = (parameters.rc_man_th < 0);
+	parameters.rc_man_th = fabs(parameters.rc_man_th);
 
 	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
 	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);

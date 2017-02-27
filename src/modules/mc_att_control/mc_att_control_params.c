@@ -411,7 +411,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 360.0f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_RATT_TH, 1.0f);
+PARAM_DEFINE_FLOAT(MC_RATT_TH, 0.8f);
 
 /**
  * Battery power level scaler

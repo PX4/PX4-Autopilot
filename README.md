@@ -42,11 +42,11 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * Multicopter Flight Control - [Dennis Mannhart](http://github.com/Stifael), [Matthias Grob](http://github.com/MaEtUgR)
   * VTOL Flight Control - [Roman Bapst](http://github.com/tumbili), [Andreas Antener](http://github.com/AndreasAntener), [Sander Smeets](http://github.com/sanderux)
   * Fixed Wing Flight Control - [Daniel Agar](http://github.com/dagar), [Paul Riseborough](http://github.com/priseborough)
-  * Racers - Anton Matosov / [Mark Whitehorn](http://github.com/kd0aij)
+  * Racers - [Anton Matosov](http://github.com/anton-matosov) / [Mark Whitehorn](http://github.com/kd0aij)
   * OS / drivers - [David Sidrane](http://github.com/david_s5)
   * UAVCAN / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
   * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
-  * VIO - Christoph Tobler
+  * VIO - [Mohammed Kabir](http://github.com/mhkabir), [Christoph Tobler](http://github.com/ChristophTobler)
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](http://github.com/vilhjalmur89)
   * Snapdragon - [Mark Charlebois](http://github.com/mcharleb)
   * Intel Aero - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
@@ -59,7 +59,7 @@ This repository contains code supporting these boards:
   * [Snapdragon Flight](http://dev.px4.io/hardware-snapdragon.html)
   * Intel Aero
   * Raspberry PI with Navio 2
-  * [Parrot Bebop](http://dev.px4.io/starting-building.html#parrot-bebop)
+  * [Parrot Bebop 2](http://dev.px4.io/starting-building.html#parrot-bebop)
   * FMUv1.x
   * FMUv2.x ([Pixhawk](http://dev.px4.io/hardware-pixhawk.html) and [Pixfalcon](http://dev.px4.io/hardware-pixfalcon.html))
   * FMUv3.x ([Pixhawk 2](http://dev.px4.io/hardware-pixhawk.html))

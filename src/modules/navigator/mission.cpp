@@ -444,9 +444,6 @@ Mission::get_absolute_altitude_for_item(struct mission_item_s &mission_item)
 void
 Mission::set_mission_items()
 {
-	/* make sure param is up to date */
-	updateParams();
-
 	/* reset the altitude foh (first order hold) logic, if altitude foh is enabled (param) a new foh element starts now */
 	altitude_sp_foh_reset();
 

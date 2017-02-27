@@ -991,7 +991,7 @@ int UavcanNode::run()
 
 			// Update the armed status and check that we're not locked down and motor
 			// test is not running
-			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
+			bool set_armed = _armed.armed && !_armed.lockdown && !_armed.manual_lockdown && !_test_in_progress;
 
 			arm_actuators(set_armed);
 		}
