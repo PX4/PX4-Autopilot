@@ -214,6 +214,10 @@ class uploader(object):
                 except OSError:
                     # wait for the port to be ready
                     time.sleep(0.04)
+                except serial.SerialException:
+                    # if open fails, try again later
+                    time.sleep(0.04)
+
             else:
                 break
 
