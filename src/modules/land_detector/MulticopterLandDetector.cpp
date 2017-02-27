@@ -59,6 +59,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_manualSub(-1),
 	_ctrl_state_sub(-1),
 	_vehicle_control_mode_sub(-1),
+	_battery_sub(-1),
 	_vehicleLocalPosition{},
 	_actuators{},
 	_arming{},
@@ -66,6 +67,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_manual{},
 	_ctrl_state{},
 	_control_mode{},
+	_battery{},
 	_min_trust_start(0),
 	_arming_time(0)
 {
@@ -79,6 +81,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 	_paramHandle.manual_stick_down_threshold = param_find("LNDMC_MAN_DWNTHR");
+	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
 }
 
 void MulticopterLandDetector::_initialize_topics()
@@ -92,6 +95,7 @@ void MulticopterLandDetector::_initialize_topics()
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -103,6 +107,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
 	_orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
+	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -119,6 +124,8 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 	param_get(_paramHandle.manual_stick_down_threshold, &_params.manual_stick_down_threshold);
+	param_get(_paramHandle.altitude_max, &_params.altitude_max);
+
 }
 
 
@@ -277,6 +284,26 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 
 	/* As default for example in acro mode we do not want to stay landed. */
 	return 0.0f;
+}
+
+float MulticopterLandDetector::_get_max_altitude()
+{
+	/* ToDo: add meaningful heights */
+	float valid_altitude_max = _params.altitude_max;
+
+	if (_battery.warning == battery_status_s::BATTERY_WARNING_LOW) {
+		valid_altitude_max = _params.altitude_max * 0.75f;
+	}
+
+	if (_battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+		valid_altitude_max = _params.altitude_max * 0.5f;
+	}
+
+	if (_battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		valid_altitude_max = _params.altitude_max * 0.25f;
+	}
+
+	return valid_altitude_max;
 }
 
 bool MulticopterLandDetector::_has_position_lock()
