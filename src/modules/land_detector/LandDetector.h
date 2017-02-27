@@ -61,6 +61,10 @@ public:
 		GROUND_CONTACT = 3
 	};
 
+	enum class BatteryLevel {
+
+	};
+
 	LandDetector();
 	virtual ~LandDetector();
 
@@ -124,6 +128,11 @@ protected:
 	virtual bool _get_freefall_state() = 0;
 
 	/**
+	 *  @return
+	 */
+	virtual float _get_max_altitude() = 0;
+
+	/**
 	 * Convenience function for polling uORB subscriptions.
 	 *
 	 * @return true if there was new data and it was successfully copied
@@ -153,6 +162,9 @@ protected:
 	systemlib::Hysteresis _landed_hysteresis;
 	systemlib::Hysteresis _ground_contact_hysteresis;
 
+	float _altitude_max;
+
+
 
 private:
 	static void _cycle_trampoline(void *arg);
@@ -163,6 +175,9 @@ private:
 
 	void _update_state();
 
+	void _update_max_altitude();
+
+
 	bool _taskShouldExit;
 	bool _taskIsRunning;
 
@@ -170,6 +185,7 @@ private:
 	param_t _p_total_flight_time_low;
 	uint64_t _total_flight_time; ///< in microseconds
 	hrt_abstime _takeoff_time;
+
 
 	struct work_s	_work;
 };

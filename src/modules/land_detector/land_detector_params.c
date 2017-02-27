@@ -213,3 +213,15 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
  *
  */
 PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
+
+/**
+ * Maximum altitude that can be reached prior to subconditions
+ *
+ * @unit m/s
+ * @min 10
+ * @max 150
+ * @decimal 2
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 15.0f);
