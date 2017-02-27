@@ -40,7 +40,7 @@ set(CMAKE_SYSTEM_VERSION 1)
 
 # specify the cross compiler
 find_program(C_COMPILER ${CROSS_COMPILE_PREFIX}-gcc
-	PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -50,7 +50,7 @@ endif()
 cmake_force_c_compiler(${C_COMPILER} GNU)
 
 find_program(CXX_COMPILER  ${CROSS_COMPILE_PREFIX}-g++
-	PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
+	PATHS ${RPI_TOOLCHAIN_DIR}/bin
 	NO_DEFAULT_PATH
 	)
 
@@ -63,7 +63,7 @@ cmake_force_cxx_compiler(${CXX_COMPILER} GNU)
 foreach(tool objcopy nm ld)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${CROSS_COMPILE_PREFIX}-${tool}
-		PATHS ${RPI_TOOLCHAIN_DIR}/${CROSS_COMPILE_PREFIX}/bin
+		PATHS ${RPI_TOOLCHAIN_DIR}/bin
 		NO_DEFAULT_PATH
 		)
 	if(NOT ${TOOL})
