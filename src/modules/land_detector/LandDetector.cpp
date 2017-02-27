@@ -125,7 +125,8 @@ void LandDetector::_cycle()
 	_update_state();
 
 	float alt_max_prev = _altitude_max;
-	_update_max_altitude();
+	_altitude_max = _get_max_altitude();
+
 
 	bool freefallDetected = (_state == LandDetectionState::FREEFALL);
 	bool landDetected = (_state == LandDetectionState::LANDED);
@@ -220,12 +221,6 @@ void LandDetector::_update_state()
 		_state = LandDetectionState::FLYING;
 	}
 }
-
-void LandDetector::_update_max_altitude()
-{
-	_altitude_max = _get_max_altitude();
-}
-
 
 bool LandDetector::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
 {

@@ -169,9 +169,6 @@ private:
 
 	void _update_state();
 
-	void _update_max_altitude();
-
-
 	bool _taskShouldExit;
 	bool _taskIsRunning;
 
