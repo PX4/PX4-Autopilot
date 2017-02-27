@@ -194,32 +194,32 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
-	matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 
-	// fixed-wing minimum altitude, armed, !landed
-	if (_params->fw_min_alt > FLT_EPSILON
-	    && _armed->armed && !_land_detected->landed) {
+	if (_armed->armed && !_land_detected->landed) {
+		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
 
-		if (-(_local_pos->z) < _params->fw_min_alt) {
-			_attc->abort_front_transition("Minimum altitude");
+		// fixed-wing minimum altitude, armed, !landed
+		if (_params->fw_min_alt > FLT_EPSILON) {
+
+			if (-(_local_pos->z) < _params->fw_min_alt) {
+				_attc->abort_front_transition("Minimum altitude");
+			}
 		}
-	}
 
-	// fixed-wing maximum pitch angle
-	if (_params->fw_qc_max_pitch > 0
-	    && _armed->armed && !_land_detected->landed) {
+		// fixed-wing maximum pitch angle
+		if (_params->fw_qc_max_pitch > 0) {
 
-		if (fabs(euler.theta()) > fabs(math::radians(_params->fw_qc_max_pitch))) {
-			_attc->abort_front_transition("Maximum pitch angle exceeded");
+			if (fabs(euler.theta()) > fabs(math::radians(_params->fw_qc_max_pitch))) {
+				_attc->abort_front_transition("Maximum pitch angle exceeded");
+			}
 		}
-	}
 
-	// fixed-wing maximum roll angle
-	if (_params->fw_qc_max_roll > 0
-	    && _armed->armed && !_land_detected->landed) {
+		// fixed-wing maximum roll angle
+		if (_params->fw_qc_max_roll > 0) {
 
-		if (fabs(euler.phi()) > fabs(math::radians(_params->fw_qc_max_roll))) {
-			_attc->abort_front_transition("Maximum roll angle exceeded");
+			if (fabs(euler.phi()) > fabs(math::radians(_params->fw_qc_max_roll))) {
+				_attc->abort_front_transition("Maximum roll angle exceeded");
+			}
 		}
 	}
 
