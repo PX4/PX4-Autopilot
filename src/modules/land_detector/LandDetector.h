@@ -61,10 +61,6 @@ public:
 		GROUND_CONTACT = 3
 	};
 
-	enum class BatteryLevel {
-
-	};
-
 	LandDetector();
 	virtual ~LandDetector();
 
@@ -128,7 +124,7 @@ protected:
 	virtual bool _get_freefall_state() = 0;
 
 	/**
-	 *  @return
+	 *  @return maximum altitude that can be reached
 	 */
 	virtual float _get_max_altitude() = 0;
 
@@ -163,8 +159,6 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis;
 
 	float _altitude_max;
-
-
 
 private:
 	static void _cycle_trampoline(void *arg);
