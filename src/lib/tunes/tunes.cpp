@@ -122,7 +122,7 @@ void Tunes::set_control(const tune_control_s &tune_control)
 	case tune_control_s::TUNE_ID_HOME_SET:
 
 		// TODO: come up with a better strategy
-		if (_tune == nullptr || reset_playing_tune) {
+		if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
 			_tune = _default_tunes[tune_control.tune_id];
 			_next = _tune;
 		}
