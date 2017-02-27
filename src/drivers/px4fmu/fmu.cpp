@@ -3396,6 +3396,10 @@ fmu_main(int argc, char *argv[])
 			warnx("resettet default time");
 		}
 
+		// When we are done resetting, we should clean up the fmu drivers
+		// Failure to do so prevents other devices (HIL sim driver)
+		// from starting.
+		fmu_stop();
 		exit(0);
 	}
 
@@ -3409,6 +3413,10 @@ fmu_main(int argc, char *argv[])
 			warnx("resettet default time");
 		}
 
+		// When we are done resetting, we should clean up the fmu drivers
+		// Failure to do so prevents other devices (HIL sim driver)
+		// from starting.
+		fmu_stop();
 		exit(0);
 	}
 
