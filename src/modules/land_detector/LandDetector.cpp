@@ -127,11 +127,9 @@ void LandDetector::_cycle()
 	float alt_max_prev = _altitude_max;
 	_altitude_max = _get_max_altitude();
 
-
 	bool freefallDetected = (_state == LandDetectionState::FREEFALL);
 	bool landDetected = (_state == LandDetectionState::LANDED);
 	bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
-
 
 	// Only publish very first time or when the result has changed.
 	if ((_landDetectedPub == nullptr) ||
