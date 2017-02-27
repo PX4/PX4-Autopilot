@@ -321,7 +321,10 @@ submodulesclean:
 	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean
+gazeboclean:
+	@rm -rf ~/.gazebo/*
+
+distclean: submodulesclean gazeboclean
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
 # --------------------------------------------------------------------

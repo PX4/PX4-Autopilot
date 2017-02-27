@@ -55,6 +55,7 @@
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
 #include "VtolLandDetector.h"
+#include "RoverLandDetector.h"
 
 
 namespace land_detector
@@ -121,6 +122,9 @@ static int land_detector_start(const char *mode)
 
 	} else if (!strcmp(mode, "vtol")) {
 		land_detector_task = new VtolLandDetector();
+
+	} else if (!strcmp(mode, "rover")) {
+		land_detector_task = new RoverLandDetector();
 
 	} else {
 		PX4_WARN("[mode] must be either 'fixedwing', 'multicopter', or 'vtol'");
