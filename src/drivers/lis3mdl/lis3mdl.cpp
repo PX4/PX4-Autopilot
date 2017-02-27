@@ -1228,12 +1228,7 @@ int LIS3MDL::check_calibration()
 	}
 
 	/* return 0 if calibrated, 1 else */
-	if (!_calibrated) {
-		return 0;
-
-	} else {
-		return 1;
-	}
+	return !_calibrated;
 }
 
 int LIS3MDL::set_excitement(unsigned enable)
