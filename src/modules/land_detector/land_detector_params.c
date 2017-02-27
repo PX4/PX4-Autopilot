@@ -217,7 +217,7 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
 /**
  * Maximum altitude that can be reached prior to subconditions
  *
- * @unit m/s
+ * @unit m
  * @min 10
  * @max 150
  * @decimal 2
