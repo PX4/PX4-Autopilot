@@ -288,7 +288,7 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 
 float MulticopterLandDetector::_get_max_altitude()
 {
-	/* ToDo: add meaningful heights */
+	/* ToDo: add a meaningful altitude */
 	float valid_altitude_max = _params.altitude_max;
 
 	if (_battery.warning == battery_status_s::BATTERY_WARNING_LOW) {

@@ -922,7 +922,6 @@ MulticopterPositionControl::reset_alt_sp()
 void
 MulticopterPositionControl::limit_altitude()
 {
-
 	/* in altitude control, limit setpoint */
 	if (_run_alt_control && _pos_sp(2) <= -_vehicle_land_detected.alt_max) {
 		_pos_sp(2) = -_vehicle_land_detected.alt_max;
