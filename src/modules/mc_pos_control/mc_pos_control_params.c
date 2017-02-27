@@ -424,7 +424,6 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_Z_DZ, 0.1f);
 
-
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
  *
@@ -519,3 +518,15 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
+
+/**
+ * Maximum altitude that can be reached
+ *
+ * @unit m
+ * @min 5
+ * @max 150
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ALTITUDE_MAX, 10.0f);
