@@ -84,6 +84,13 @@ RTL::on_inactive()
 	_rtl_state = RTL_STATE_NONE;
 }
 
+float
+RTL::get_rtl_altitude()
+{
+	return (_param_return_alt.get() < _navigator->get_land_detected()->alt_max) ? _param_return_alt.get() :
+	       _navigator->get_land_detected()->alt_max;
+}
+
 void
 RTL::on_activation()
 {
@@ -101,7 +108,7 @@ RTL::on_activation()
 		/* if lower than return altitude, climb up first */
 
 	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
-			+ _param_return_alt.get())) {
+			+ get_rtl_altitude())) {
 		_rtl_state = RTL_STATE_CLIMB;
 
 		/* otherwise go straight to return */
@@ -145,7 +152,7 @@ RTL::set_rtl_item()
 					  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 			// if we are close to home we do not climb as high, otherwise we climb to return alt
-			float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
+			float climb_alt = _navigator->get_home_position()->alt + get_rtl_altitude();
 
 			// we are close to home, limit climb to min
 			if (home_dist < _param_rtl_min_dist.get()) {
