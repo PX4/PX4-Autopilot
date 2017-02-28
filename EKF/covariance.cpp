@@ -715,10 +715,12 @@ void Ekf::fixCovarianceErrors()
 				     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
 				     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);
 
-		// record the pass and force symmetry on the covariance matrix
+		// record the pass/fail
 		if (!bad_acc_bias) {
+			_fault_status.flags.bad_acc_bias = true;
 			_time_acc_bias_check = _time_last_imu;
-			makeSymmetrical(P,13,15);
+		} else {
+			_fault_status.flags.bad_acc_bias = true;
 		}
 
 		// if we have failed for 7 seconds continuously, reset the accel bias covariance
@@ -732,7 +734,11 @@ void Ekf::fixCovarianceErrors()
 			P[14][14] = varY;
 			P[15][15] = varZ;
 			_time_acc_bias_check = _time_last_imu;
+			_fault_status.flags.bad_acc_bias = false;
 			ECL_WARN("EKF invalid accel bias - resetting covariance");
+		} else {
+			// ensure the covariance values are symmetrical
+			makeSymmetrical(P,13,15);
 		}
 
 	}
