@@ -80,6 +80,7 @@ set(config_module_list
 	drivers/sf0x/sf0x_tests
 ### NOT Portable YET drivers/test_ppm
 	modules/commander/commander_tests
+	modules/mc_pos_control/mc_pos_control_tests
 	modules/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/unit_test
@@ -90,6 +91,7 @@ set(config_module_list
 	# General system control
 	#
 	modules/commander
+	modules/events
 	modules/load_mon
 	modules/navigator
 	modules/mavlink
@@ -102,8 +104,8 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
-	modules/local_position_estimator
 	modules/ekf2
+	modules/local_position_estimator
 
 	#
 	# Vehicle Control
@@ -118,7 +120,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-#	modules/sdlog2
+	modules/sdlog2
 	modules/logger
 
 	#
@@ -182,7 +184,7 @@ set(config_module_list
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	#examples/fixedwing_control
+	examples/fixedwing_control
 
 	# Hardware test
 	#examples/hwtest
