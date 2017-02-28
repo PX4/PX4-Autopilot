@@ -54,6 +54,7 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_paramHandle(),
 	_vehicleLocalPosition_valid(false),
 	_vehicleAttitude_valid(false),
+	_sensorCombined_valid(false),
 	_new_irlockReport(false),
 	_estimator_initialized(false),
 	_last_predict(0),
@@ -66,6 +67,7 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_paramHandle.meas_unc = param_find("BEST_MEAS_UNC");
 	_paramHandle.pos_unc_init = param_find("BEST_POS_UNC_IN");
 	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
+	_paramHandle.mode = param_find("BEST_MODE");
 }
 
 BeaconPositionEstimator::~BeaconPositionEstimator()
@@ -117,7 +119,6 @@ void BeaconPositionEstimator::_cycle()
 		/* predict */
 		// only run prediction if filter has been initialized
 		// use the best estimate of the vehicle acceleration to predict the beacon position
-		// TODO this is only valid if the beacon is stationary
 
 		if (hrt_absolute_time() - _last_update > beacon_position_estimator_TIMEOUT_US) {
 			PX4_WARN("Timeout");
@@ -128,11 +129,22 @@ void BeaconPositionEstimator::_cycle()
 			   && _vehicleLocalPosition.v_xy_valid
 			   && _vehicleLocalPosition_last.v_xy_valid) {
 			double dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
-			double dt_vehicleLocalPosition = (_vehicleLocalPosition.timestamp - _vehicleLocalPosition_last.timestamp) / SEC2USEC;
-			double acc_x = (_vehicleLocalPosition.vx - _vehicleLocalPosition_last.vx) / dt_vehicleLocalPosition;
-			double acc_y = (_vehicleLocalPosition.vy - _vehicleLocalPosition_last.vy) / dt_vehicleLocalPosition;
-			_kalman_filter_x.predict(dt, -acc_x, _params.acc_unc);
-			_kalman_filter_y.predict(dt, -acc_y, _params.acc_unc);
+
+			// predict beacon position with the help of accel data
+			matrix::Vector3f a;
+
+			if (_sensorCombined_valid) {
+				matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
+				_R_att = matrix::Dcm<float>(q_att);
+				a = _sensorCombined.accelerometer_m_s2;
+				a = _R_att * a;
+
+			} else {
+				a.zero();
+			}
+
+			_kalman_filter_x.predict(dt, -a(0), _params.acc_unc);
+			_kalman_filter_y.predict(dt, -a(1), _params.acc_unc);
 
 			_last_predict = hrt_absolute_time();
 		}
@@ -180,6 +192,63 @@ void BeaconPositionEstimator::_cycle()
 				// update
 				_kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
 				_kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
+
+				_beacon_position.timestamp = hrt_absolute_time();
+				double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+				_kalman_filter_x.getState(x, xvel);
+				_kalman_filter_x.getCovariance(covx, covx_v);
+
+				_kalman_filter_y.getState(y, yvel);
+				_kalman_filter_y.getCovariance(covy, covy_v);
+
+				_beacon_position.rel_pos_valid = true; // relative position is always valid, independent of mode
+				_beacon_position.rel_vel_valid = true; // relative velocity is always valid, independent of mode
+				_beacon_position.x_rel = x;
+				_beacon_position.y_rel = y;
+				_beacon_position.vx_rel = xvel;
+				_beacon_position.vy_rel = yvel;
+				_beacon_position.x_unfilt = _rel_pos(0);
+				_beacon_position.y_unfilt = _rel_pos(1);
+
+				_beacon_position.cov_x_rel = covx;
+				_beacon_position.cov_y_rel = covy;
+
+				_beacon_position.cov_vx_rel = covx_v;
+				_beacon_position.cov_vy_rel = covy_v;
+
+				if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
+					_beacon_position.local_pos_valid = true;
+					_beacon_position.local_vel_valid = true;
+
+					// In stationary mode, relative velocity is used in the position estimator, so vx/vy_local should always be 0
+					// Mark it as invalid to signal that it should not be used, write the values anyway for debugging
+					if (_params.mode > BeaconMode::Moving) {
+						_beacon_position.local_vel_valid = false;
+					}
+
+					// In known location mode, relative position ins used in the position estimator, so v/y_local should always correspond to BEST_LAT/BEST_LON
+					// mark it as invalid to signal that it should not be used, write the values anyway for debugging
+					if (_params.mode > BeaconMode::Stationary) {
+						_beacon_position.local_pos_valid = false;
+					}
+
+					_beacon_position.x_local = x + _vehicleLocalPosition.x;
+					_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
+
+					_beacon_position.y_local = y + _vehicleLocalPosition.y;
+					_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
+
+				} else {
+					_beacon_position.local_pos_valid = false;
+					_beacon_position.local_vel_valid = false;
+				}
+
+				if (_beaconPositionPub == nullptr) {
+					_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
+
+				} else {
+					orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
+				}
 			}
 
 			_last_update = hrt_absolute_time();
@@ -187,47 +256,6 @@ void BeaconPositionEstimator::_cycle()
 
 		_new_irlockReport = false;
 
-	}
-
-	if (_estimator_initialized) {
-		// always publish, even if only predicted, unless timeout was exceeded
-		_beacon_position.timestamp = hrt_absolute_time();
-		double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
-		_kalman_filter_x.getState(x, xvel);
-		_kalman_filter_x.getCovariance(covx, covx_v);
-
-		_kalman_filter_y.getState(y, yvel);
-		_kalman_filter_y.getCovariance(covy, covy_v);
-
-		_beacon_position.rel_valid = true;
-		_beacon_position.x_rel = x;
-		_beacon_position.y_rel = y;
-		_beacon_position.vx_rel = xvel;
-		_beacon_position.vy_rel = yvel;
-		_beacon_position.x_unfilt = _rel_pos(0);
-		_beacon_position.y_unfilt = _rel_pos(1);
-
-		_beacon_position.covx = covx;
-		_beacon_position.covy = covy;
-
-		if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
-			_beacon_position.local_valid = true;
-			_beacon_position.x_local = x + _vehicleLocalPosition.x;
-			_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
-
-			_beacon_position.y_local = y + _vehicleLocalPosition.y;
-			_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
-
-		} else {
-			_beacon_position.local_valid = false;
-		}
-
-		if (_beaconPositionPub == nullptr) {
-			_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
-
-		} else {
-			orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
-		}
 	}
 
 	if (!_taskShouldExit) {
@@ -262,6 +290,7 @@ void BeaconPositionEstimator::_initialize_topics()
 	// subscribe to position, attitude, arming and velocity changes
 	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_sensorCombinedSub = orb_subscribe(ORB_ID(sensor_combined));
 	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 }
@@ -276,6 +305,7 @@ void BeaconPositionEstimator::_update_topics()
 	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
 				      &_vehicleLocalPosition);
 	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
+	_sensorCombined_valid = _orb_update(ORB_ID(sensor_combined), _sensorCombinedSub, &_sensorCombined);
 
 	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
 }
@@ -307,6 +337,7 @@ void BeaconPositionEstimator::_update_params()
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
+	param_get(_paramHandle.mode, &_params.mode);
 }
 
 

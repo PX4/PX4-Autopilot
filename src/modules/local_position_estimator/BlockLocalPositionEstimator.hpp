@@ -21,6 +21,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/beacon_position.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -112,6 +113,7 @@ public:
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
+	enum {Y_beacon_x = 0, Y_beacon_y, n_y_beacon};
 	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
@@ -216,6 +218,12 @@ private:
 	void landInit();
 	void landCheckTimeout();
 
+	// beacon
+	int  beaconMeasure(Vector<float, n_y_beacon> &y);
+	void beaconCorrect();
+	void beaconInit();
+	void beaconCheckTimeout();
+
 	// timeouts
 	void checkTimeouts();
 
@@ -252,6 +260,7 @@ private:
 	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
+	uORB::Subscription<beacon_position_s> _sub_beacon_position;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
@@ -319,6 +328,28 @@ private:
 	BlockParamFloat  _pn_t_noise_density;
 	BlockParamFloat  _t_max_grade;
 
+	// beacon mode paramters from beacon_position_estimator module
+	enum class BeaconMode {
+		Moving = 0,
+		Stationary,
+		KnownLocation
+	};
+
+	/**
+	* Handles for beacon position estimator parameters
+	**/
+	struct {
+		param_t mode;
+		param_t lat;
+		param_t lon;
+	} _bestParamHandle;
+
+	struct {
+		BeaconMode mode;
+		float lat;
+		float lon;
+	} _bestParams;
+
 	// init origin
 	BlockParamInt    _fake_origin;
 	BlockParamFloat  _init_origin_lat;
@@ -361,6 +392,10 @@ private:
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
+	uint64_t _time_last_beacon;
+
+	// initialization flags
+	bool _beaconInitialized;
 
 	// reference altitudes
 	float _altOrigin;
@@ -377,6 +412,8 @@ private:
 	uint16_t _sensorTimeout;
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
+
+fault_t _beaconFault; // TODO add to _sensorFault
 
 	// state space
 	Vector<float, n_x>  _x;	// state vector

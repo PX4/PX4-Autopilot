@@ -45,6 +45,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
+	_sub_beacon_position(ORB_ID(beacon_position), 1000 / 10, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -190,6 +191,12 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
 	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
 	       (_fusion.get() & FUSE_LAND_TARGET) != 0);
+	_bestParamHandle.mode = param_find("BEST_MODE");
+	_bestParamHandle.lat = param_find("BEST_LAT");
+	_bestParamHandle.lon = param_find("BEST_LON");
+	param_get(_bestParamHandle.mode, &_bestParams.mode);
+	param_get(_bestParamHandle.lat, &_bestParams.lat);
+	param_get(_bestParamHandle.lon, &_bestParams.lon);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -304,6 +311,7 @@ void BlockLocalPositionEstimator::update()
 	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
 	bool landUpdated = landed()
 			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);		// throttle rate
+	bool beaconPositionUpdated = _sub_beacon_position.updated();
 
 	// get new data
 	updateSubscriptions();
@@ -519,10 +527,20 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	if (beaconPositionUpdated) {
+		if (!_beaconInitialized) {
+			beaconInit();
+
+		} else {
+			beaconCorrect();
+		}
+	}
+
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
+		_pub_innov.get().timestamp = _timeStamp;
 		_pub_innov.update();
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {

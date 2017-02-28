@@ -46,6 +46,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/beacon_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -117,6 +118,13 @@ protected:
 	int _parameterSub;
 
 private:
+
+	enum class BeaconMode {
+		Moving = 0,
+		Stationary,
+		KnownLocation
+	};
+
 	/**
 	* Handles for parameters
 	**/
@@ -125,6 +133,7 @@ private:
 		param_t meas_unc;
 		param_t pos_unc_init;
 		param_t vel_unc_init;
+		param_t mode;
 	} _paramHandle;
 
 	struct {
@@ -132,21 +141,25 @@ private:
 		float meas_unc;
 		float pos_unc_init;
 		float vel_unc_init;
+		BeaconMode mode;
 	} _params;
 
 	int _vehicleLocalPositionSub;
 	int _attitudeSub;
+	int _sensorCombinedSub;
 	int _irlockReportSub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition,
 			      _vehicleLocalPosition_last; // store two most recent to compute acceleration
 	struct vehicle_attitude_s			_vehicleAttitude;
+	struct sensor_combined_s			_sensorCombined;
 	struct irlock_report_s				_irlockReport;
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid;
 	bool _vehicleLocalPosition_last_valid;
 	bool _vehicleAttitude_valid;
+	bool _sensorCombined_valid;
 	bool _new_irlockReport;
 	bool _estimator_initialized;
 
