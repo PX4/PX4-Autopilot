@@ -507,6 +507,18 @@ private:
 		return var * var;
 	}
 
+	// set control flags to use baro height
+	void setControlBaroHeight();
+
+	// set control flags to use range height
+	void setControlRangeHeight();
+
+	// set control flags to use GPS height
+	void setControlGPSHeight();
+
+	// set control flags to use external vision height
+	void setControlEVHeight();
+
 	// zero the specified range of rows in the state covariance matrix
 	void zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
