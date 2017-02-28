@@ -2371,6 +2371,12 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 			}
 		}
 	}
+
+	if (widest_pulse > 2300) {
+			// don't allow extreme pulses to cause issues with oneshot delays
+			widest_pulse = 2300;
+	}
+    
 	for (uint8_t i = count; i < _max_actuators; i++) {
             if ((1U<<i) & _pwm_mask) {
                 pwm_output_set(i, 0);

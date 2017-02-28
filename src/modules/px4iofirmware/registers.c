@@ -336,6 +336,11 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 				values++;
 			}
 
+            if (widest_pulse > 2300) {
+                // don't allow extreme pulses to cause issues with oneshot delays
+                widest_pulse = 2300;
+            }
+
 			system_state.fmu_data_received_time = hrt_absolute_time();
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
