@@ -40,6 +40,7 @@
  *
  */
 
+#include "../ecl.h"
 #include "ekf.h"
 #include <math.h>
 #include "mathlib.h"
@@ -730,6 +731,8 @@ void Ekf::fixCovarianceErrors()
 			P[13][13] = varX;
 			P[14][14] = varY;
 			P[15][15] = varZ;
+			_time_acc_bias_check = _time_last_imu;
+			ECL_WARN("EKF invalid accel bias - resetting covariance");
 		}
 
 	}
