@@ -256,6 +256,10 @@ struct parameters {
 	float rng_gnd_clearance{0.1f};		// minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};		// Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};		// scaling from range measurement to noise (m/m)
+	float vehicle_variance_scaler{0.0f};	// gain applied to vehicle height variance used in calculation of height above ground observation variance
+	float max_hagl_for_range_aid{5.0f};	// maximum height above ground for which we allow to use the range finder as height source (if range_aid == 1)
+	float max_vel_for_range_aid{1.0f};	// maximum ground velocity for which we allow to use the range finder as height source (if range_aid == 1)
+	int range_aid{0};			// allow switching primary height source to range finder if certian conditions are met
 
 	// vision position fusion
 	float ev_innov_gate{5.0f};		// vision estimator fusion innovation consistency gate size (STD)
