@@ -502,6 +502,11 @@ private:
 	// control for height sensor timeouts, sensor changes and state resets
 	void controlHeightSensorTimeouts();
 
+	// control for combined height fusion mode (implemented for switching between baro and range height)
+	void controlHeightFusion();
+
+	bool rangeAidConditionsMet();
+
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
 	{
