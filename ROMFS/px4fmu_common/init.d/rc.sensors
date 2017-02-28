@@ -225,6 +225,11 @@ then
 	if bmi055 -G start
 	then
 	fi
+
+	# expansion i2c used for BMM150
+	if bmm150 start
+	then
+	fi
 	
 fi
 
