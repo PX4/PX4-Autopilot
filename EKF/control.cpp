@@ -82,7 +82,15 @@ void Ekf::controlFusionModes()
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
+
+	_delta_time_baro_us = _baro_sample_delayed.time_us;
 	_baro_data_ready = _baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
+
+	// if we have a new baro sample save the delta time between this sample and the last sample which is
+	// used below for baro offset calculations
+	if (_baro_data_ready) {
+		_delta_time_baro_us = _baro_sample_delayed.time_us - _delta_time_baro_us;
+	}
 
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	_R_rng_to_earth_2_2 = _R_to_earth(2, 0) * _sin_tilt_rng + _R_to_earth(2, 2) * _cos_tilt_rng;
