@@ -1162,3 +1162,39 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 
 	}
 }
+
+void Ekf::setControlBaroHeight()
+{
+	_control_status.flags.baro_hgt = true;
+
+	_control_status.flags.gps_hgt = false;
+	_control_status.flags.rng_hgt = false;
+	_control_status.flags.ev_hgt = false;
+}
+
+void Ekf::setControlRangeHeight()
+{
+	_control_status.flags.rng_hgt = true;
+
+	_control_status.flags.baro_hgt = false;
+	_control_status.flags.gps_hgt = false;
+	_control_status.flags.ev_hgt = false;
+}
+
+void Ekf::setControlGPSHeight()
+{
+	_control_status.flags.gps_hgt = true;
+
+	_control_status.flags.baro_hgt = false;
+	_control_status.flags.rng_hgt = false;
+	_control_status.flags.ev_hgt = false;
+}
+
+void Ekf::setControlEVHeight()
+{
+	_control_status.flags.ev_hgt = true;
+
+	_control_status.flags.baro_hgt = false;
+	_control_status.flags.gps_hgt = false;
+	_control_status.flags.rng_hgt = false;
+}
