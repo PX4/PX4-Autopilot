@@ -180,42 +180,42 @@ fi
 if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
-	if hmc5883 -C -T -X start
-	then
-	fi
+	#if hmc5883 -C -T -X start
+	#then
+	#fi
 
-	if lis3mdl -R 2 start
-	then
-	fi
+	#if lis3mdl -R 2 start
+	#then
+	#fi
 
 	# Internal SPI bus is rotated 90 deg yaw
-	if hmc5883 -C -T -S -R 2 start
-	then
-	fi
+	#if hmc5883 -C -T -S -R 2 start
+	#then
+	#fi
 
 	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	if mpu6000 -R 2 -T 20608 start
-	then
-	fi
+	#if mpu6000 -R 2 -T 20608 start
+	#then
+	#fi
 
 	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	if mpu6000 -R 2 -T 20602 start
-	then
-	fi
+	#if mpu6000 -R 2 -T 20602 start
+	#then
+	#fi
 
 	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	if mpu9250 -R 2 start
-	then
-	fi
+	#if mpu9250 -R 2 start
+	#then
+	#fi
 
 	# Internal SPI bus BMI160
-	if bmi160 start
-	then
-	fi
+	#if bmi160 start
+	#then
+	#fi
 
 	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
@@ -228,6 +228,11 @@ then
 	
 	# Internal SPI bus BMI055_GYR
 	if bmi055 -G start
+	then
+	fi
+
+	# expansion i2c used for BMM150
+	if bmm150 start
 	then
 	fi
 	
