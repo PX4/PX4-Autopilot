@@ -190,9 +190,9 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
 #define led(code, a, b, c, h) {.led_a = (a), .led_b = (b), .led_c = (c), .hz = (h)}
 
 typedef begin_packed_struct struct led_t {
-	bool led_a;
-	bool led_b;
-	bool led_c;
+	uint8_t led_a : 1;
+	uint8_t led_b : 1;
+	uint8_t led_c : 1;
 	uint8_t hz;
 } end_packed_struct led_t;
 
