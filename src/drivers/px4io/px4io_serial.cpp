@@ -136,7 +136,7 @@ private:
 	/**
 	 * Serial interrupt handler.
 	 */
-	static int		_interrupt(int vector, void *context);
+	static int		_interrupt(int vector, void *context, void *arg);
 	void			_do_interrupt();
 
 	/**
@@ -291,7 +291,7 @@ PX4IO_serial::init()
 	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
 
 	/* attach serial interrupt handler */
-	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt);
+	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt, NULL);
 	up_enable_irq(PX4IO_SERIAL_VECTOR);
 
 	/* enable UART in DMA mode, enable error and line idle interrupts */
@@ -657,7 +657,7 @@ PX4IO_serial::_do_rx_dma_callback(unsigned status)
 }
 
 int
-PX4IO_serial::_interrupt(int irq, void *context)
+PX4IO_serial::_interrupt(int irq, void *context, void *arg)
 {
 	if (g_interface != nullptr) {
 		g_interface->_do_interrupt();
