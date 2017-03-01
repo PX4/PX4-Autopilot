@@ -1036,7 +1036,7 @@ MulticopterPositionControl::control_manual(float dt)
 			float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
 
 			/* time to travel from current velocity to zero velocity */
-			float delta_t = -_vel(2) / max_acc_z;
+			float delta_t = fabsf(_vel(2) / max_acc_z);
 
 			/* set desired position setpoint assuming max acceleraiton */
 			_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
