@@ -173,7 +173,7 @@ extern "C" {
 			PX4_DEBUG("px4_close fd = %d", fd);
 
 		} else {
-			ret = -EINVAL;
+			ret = -EINVAL; // 参数无效
 		}
 
 		if (ret < 0) {

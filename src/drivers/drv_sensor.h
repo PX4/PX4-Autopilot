@@ -50,6 +50,8 @@
  * Sensor type definitions.
  *
  * Used to create a unique device id for redundant and combo sensors
+ * 传感器类型定义
+ * 用于为冗余和组合传感器创建唯一的设备ID
  */
 
 #define DRV_MAG_DEVTYPE_HMC5883  0x01

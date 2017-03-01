@@ -41,8 +41,8 @@
 
 #if defined(PX4_I2C_MPU6050_ADDR) || \
 	defined(PX4_I2C_MPU6000_ADDR) || \
-	defined(PX4_I2C_ICM_20608_G_ADDR)
-#  define USE_I2C
+	defined(PX4_I2C_ICM_20608_G_ADDR) // ICM20608G是MPU6050的缩小版, 6轴陀螺仪，加速度计
+#define USE_I2C
 #endif
 
 
@@ -113,16 +113,16 @@
 #define BITS_FS_500DPS			0x08
 #define BITS_FS_1000DPS			0x10
 #define BITS_FS_2000DPS			0x18
-#define BITS_FS_MASK			0x18
+#define BITS_FS_MASK				0x18
 #define BIT_INT_ANYRD_2CLEAR	0x10
 #define BIT_RAW_RDY_EN			0x01
 #define BIT_I2C_IF_DIS			0x10
 #define BIT_INT_STATUS_DATA		0x01
 
-#define MPU_WHOAMI_6000			0x68
-#define ICM_WHOAMI_20608		0xaf
+#define MPU_WHOAMI_6000		0x68
+#define ICM_WHOAMI_20608		0xaf	
 
-// ICM2608 specific registers
+// ICM20608 specific registers
 
 #define ICMREG_ACCEL_CONFIG2		0x1D
 #define ICM_ACC_DLPF_CFG_1046HZ_NOLPF	0x00

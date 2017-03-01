@@ -1284,18 +1284,23 @@ int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
 	/* calculate interval in us, 0 means disabled stream */
+	// 由更新频率计算时间间隔，以us为单位(1,000,000 / fHz = tus )
+	// 0 表示禁用流
 	unsigned int interval = interval_from_rate(rate);
 
 	/* search if stream exists */
+	// 如果流存在的话，进行搜索
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
 			if (interval > 0) {
 				/* set new interval */
+				// 设置新的时间间隔
 				stream->set_interval(interval);
 
 			} else {
 				/* delete stream */
+				// 删除流
 				LL_DELETE(_streams, stream);
 				delete stream;
 			}
@@ -1306,14 +1311,17 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 	if (interval <= 0) {
 		/* stream was not active and is requested to be disabled, do nothing */
+		// 流未处于活动状态，并且请求禁用，不执行任何操作
 		return OK;
 	}
 
 	/* search for stream with specified name in supported streams list */
+	// 在支持的流列表中搜索指定名称的流
 	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
 
 		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
 			/* create new instance */
+			// 创建新实例
 			stream = streams_list[i]->new_instance(this);
 			stream->set_interval(interval);
 			LL_APPEND(_streams, stream);
@@ -1323,6 +1331,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	/* if we reach here, the stream list does not contain the stream */
+	// 进行到这一步，表示流列表里面没有你想要的流
 	warnx("stream %s not found", stream_name);
 
 	return ERROR;
@@ -1651,7 +1660,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {//短参数列表
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, NULL, 10);
@@ -1821,6 +1830,7 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_mutex_init(&_send_mutex, NULL);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
+	// 如果我们要传递mavlink消息，我们需要为这个实例准备一个缓冲区
 	if (_forwarding_on || _ftp_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
 		 * make space for two messages plus off-by-one space as we use the empty element
@@ -1836,9 +1846,11 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* Initialize system properties */
+	// 初始化系统属性
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
+	// 打开MAVLink接收器
 	MavlinkReceiver::receive_start(&_receive_thread, this);
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
@@ -1855,14 +1867,18 @@ Mavlink::task_main(int argc, char *argv[])
 	ack_sub->update(&ack_time, &command_ack);
 
 	/* add default streams depending on mode */
+////// 取决于模式添加默认的流
 
 	/* HEARTBEAT is constant rate stream, rate never adjusted */
+	// HEARTBEAT是恒定速率流，速率从未调整 1Hz
 	configure_stream("HEARTBEAT", 1.0f);
 
-	/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
-	configure_stream("STATUSTEXT", 20.0f);
+	/* STATUSTEXT stream is like normal stream but gets messages from log buffer instead of uORB */
+	// STATUSTEXT流像普通(Normal-default)流一样，但从日志缓存区而不是uORB获取消息
+	configure_stream("STATUSTEXT", 20.0f); // 在 QGC 中用于显示警告信息(黄色)
 
 	/* COMMAND_LONG stream: use high rate to avoid commands skipping */
+	// COMMAND_LONG流：使用高速率以避免命令跳过
 	configure_stream("COMMAND_LONG", 100.0f);
 
 	/* PARAM_VALUE stream */
@@ -1871,6 +1887,7 @@ Mavlink::task_main(int argc, char *argv[])
 	LL_APPEND(_streams, _parameters_manager);
 
 	/* MAVLINK_FTP stream */
+	// File Transfer Protocol 文件传输协议
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
 	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
 	LL_APPEND(_streams, _mavlink_ftp);
@@ -1883,13 +1900,18 @@ Mavlink::task_main(int argc, char *argv[])
 	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
 	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
 	 * mission messages. */
+	 /*
+	  * MISSION_STREAM流，实际上以某一速率发送所有MISSION_XXX消息，这取决于远程请求速率。 
+	  * 此处指定的速率控制我们将为任务消息预留的带宽。
+	  */
 	_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
 	_mission_manager->set_interval(interval_from_rate(10.0f));
 	_mission_manager->set_verbose(_verbose);
 	LL_APPEND(_streams, _mission_manager);
 
 	switch (_mode) {
-	case MAVLINK_MODE_NORMAL:
+	case MAVLINK_MODE_NORMAL:   
+	// 默认为Normal模式  通过在nsh中通过mavlink stop-all/start开关查看
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("HIGHRES_IMU", 1.5f);
@@ -1912,6 +1934,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
+////////在这里添加自定义的MAVLink消息
+	 	//configure_stream("Fantasy", 100.0f)
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -2004,24 +2028,29 @@ Mavlink::task_main(int argc, char *argv[])
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
 	/* hard limit to 500 Hz at max */
+	// 最高500Hz
 	if (_main_loop_delay < 2000) {
 		_main_loop_delay = 2000;
 	}
 
 	/* hard limit to 100 Hz at least */
+	// 最低100Hz
 	if (_main_loop_delay > 10000) {
 		_main_loop_delay = 10000;
 	}
 
 	/* now the instance is fully initialized and we can bump the instance count */
+	// 现在实例被完全初始化，我们可以bump实例计数
 	LL_APPEND(_mavlink_instances, this);
 
 	/* init socket if necessary */
-	if (get_protocol() == UDP) {
+	// 必要时初始化套接字
+	if (get_protocol() == UDP) { // Protocol = SERIAL/UDP/TCP
 		init_udp();
 	}
 
 	/* if the protocol is serial, we send the system version blindly */
+	// 如果协议是串行的，我们盲目地发送系统版本
 	if (get_protocol() == SERIAL) {
 		send_autopilot_capabilites();
 	}
@@ -2153,7 +2182,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* update streams */
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
-			stream->update(t);
+			stream->update(t); // 循环发送 MAVLink 消息包
 		}
 
 		/* pass messages from other UARTs or FTP worker */

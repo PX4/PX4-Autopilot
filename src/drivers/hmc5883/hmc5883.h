@@ -37,14 +37,16 @@
  * Shared defines for the hmc5883 driver.
  */
 
-#pragma once
+#pragma once 
+// #pragma once是一个比较常用的C/C++杂注，只要在头文件的最开始加入这条杂注，就能够保证头文件只被编译一次。
+// 与#ifndef,#define,#endif有相同的作用，都是通过宏定义避免文件多次编译。
 
-#define ADDR_ID_A			0x0a
+#define ADDR_ID_A			0x0a //Identification Register A
 #define ADDR_ID_B			0x0b
 #define ADDR_ID_C			0x0c
 
 #define ID_A_WHO_AM_I			'H'
-#define ID_B_WHO_AM_I			'4'
+#define ID_B_WHO_AM_I			'4' 
 #define ID_C_WHO_AM_I			'3'
 
 /* interface factories */

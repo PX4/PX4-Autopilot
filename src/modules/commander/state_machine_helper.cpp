@@ -85,6 +85,12 @@ using namespace DriverFramework;
 // will be true for a valid transition or false for a invalid transition. In some cases even
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
+/*
+ * 该数组定义了解锁状态转换机制。 行是新的状态，列是当前状态。 
+ * 使用新的状态和当前状态，您可以索引到数组，对于有效转换将为true，对于无效转换为false。
+ * 在某些情况下，即使转换标记为true，也必须进行附加检查。 
+ * 对于那些检查，请参见arming_state_transition代码。
+ */
 static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
 	//                                                    INIT,  STANDBY, ARMED, ARMED_ERROR, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
 	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, false,       true,          false,  false },
@@ -97,6 +103,7 @@ static const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
+// 你可以用一个arming_state_t索引到数组，以获得它的文本表示
 static const char *const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
@@ -110,6 +117,7 @@ static const char *const state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 static int last_prearm_ret = 1;			///< initialize to fail
 
+// 解锁条件判断
 transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		struct battery_status_s *battery,
 		const struct safety_s *safety,
@@ -179,12 +187,14 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 #endif
 
 		/* enforce lockdown in HIL */
+		// HIL 状态下强制锁定
 		if (status->hil_state == vehicle_status_s::HIL_STATE_ON) {
 			armed->lockdown = true;
 			prearm_ret = OK;
 			status_flags->condition_system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
+			// 从解锁前失败恢复
 			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 			}
@@ -194,26 +204,32 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 		}
 
 		// Check that we have a valid state transition
+		// 检查是否进行了有效的状态转换
 		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
 
 		if (valid_transition) {
 			// We have a good transition. Now perform any secondary validation.
+			// 已解锁。执行二次验证
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
-				//      Do not perform pre-arm checks if coming from in air restore
-				//      Allow if vehicle_status_s::HIL_STATE_ON
+				// Do not perform pre-arm checks if coming from in air restore
+				// Allow if vehicle_status_s::HIL_STATE_ON
+				// 如果从空中恢复，请不要进行pre-arm检查
 				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
 				    status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 					// Fail transition if pre-arm check fails
+					// 如果pre-arm检查失败，故障转移
 					if (prearm_ret) {
-						/* the prearm check already prints the reject reason */
+						/* the pre-arm check already prints the reject reason */
+						// pre-arm检查阶段已经打印了拒绝原因
 						feedback_provided = true;
 						valid_transition = false;
 
 						// Fail transition if we need safety switch press
+						// 如果我们需要按安全开关，则转换失败
 
-					} else if (safety->safety_switch_available && !safety->safety_off) {
+					} else if (safety->safety_switch_available && !safety->safety_off) { // 有安全开关但是没有按下
 
 						mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
@@ -222,8 +238,10 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 					// Perform power checks only if circuit breaker is not
 					// engaged for these checks
+					// 只有在这些检查中断路器未接合时才执行电源检查
 					if (!status_flags->circuit_breaker_engaged_power_check) {
 						// Fail transition if power is not good
+						// 如果电源不太好则转换失败
 						if (!status_flags->condition_power_input_valid) {
 
 							mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
@@ -233,8 +251,10 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
+						// 如果测量到航空电子rail上的电源电平不足，则转换失败
 						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
+							// 检查航空电子rail电压
 							if (avionics_power_rail_voltage < 4.5f) {
 								mavlink_and_console_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
 												 (double)avionics_power_rail_voltage);
@@ -669,7 +689,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
 		/* require RC for all manual modes */
-		// 所有模式都需要遥控操作
+		// 以上所有模式都需要遥控操作
 		if (rc_loss_enabled && (status->rc_signal_lost || status_flags->rc_signal_lost_cmd) && armed) {
 			status->failsafe = true;
 			// 遥控信号丢失，进入失控保护模式
@@ -843,8 +863,8 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 			/* datalink loss disabled:
 			 * check if both, RC and datalink are lost during the mission
 			 * or all links are lost after the mission finishes in air: this should always trigger RCRECOVER */
-			/* 使能数据链丢失模式：
-			 * 检查任务过程中数据链和遥控信号是否丢失
+			/* 禁用数据链丢失模式：
+			 * 检查任务过程中数据链和遥控信号是否都丢失
 			 * 或者在任务结束后飞行器还在空中时所有链路都丢失了：这应该触发RCRECOVER模式
 			 */
 
@@ -875,6 +895,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 
 		/* go into failsafe on a engine failure */
+		// 电机故障，进入失效保护
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
@@ -926,6 +947,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 		} else if (status->rc_signal_lost) {
 
 			/* this mode is ok, we don't need RC for loitering */
+			// 此模式下可正常操作，进行悬停操作不需要遥控器
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 		} else {
@@ -938,6 +960,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_AUTO_RTL:
 
 		/* require global position and home, also go into failsafe on an engine failure */
+		// 需要GPS位置以及起飞点位置，出现电机故障时进入故障保护
 
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -1049,6 +1072,7 @@ bool set_nav_state(struct vehicle_status_s *status, struct commander_state_s *in
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* require offboard control, otherwise stay where you are */
+		// 需要外部控制
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
 			status->failsafe = true;
 

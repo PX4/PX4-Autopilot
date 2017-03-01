@@ -126,6 +126,7 @@ __BEGIN_DECLS
 
 /**
  * ORB topic advertiser handle.
+ * uORB主题公告者句柄
  *
  * Advertiser handles are global; once obtained they can be shared freely
  * and do not need to be closed or released.

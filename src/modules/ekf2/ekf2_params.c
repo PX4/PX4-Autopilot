@@ -34,13 +34,30 @@
 /**
  * @file parameters.c
  * Parameter definition for ekf2.
+ * ekf2的参数定义
  *
  * @author Roman Bast <bapstroman@gmail.com>
  *
  */
 
+
+/**
+ * Minimum time of arrival delta between non-IMU observations before data is downsampled.
+ * Baro and Magnetometer data will be averaged before downsampling, other data will be point sampled resulting in loss of information.
+ * 
+ * 在数据被下采样之前的非IMU观测值之间的最小到达时间增量。
+ * 气压计和磁力计数据将在下采样之前进行平均，其他数据将进行点采样，导致信息丢失。
+ *
+ * @group EKF2
+ * @min 10
+ * @max 50
+ * @unit ms
+ */
+PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
+
 /**
  * Magnetometer measurement delay relative to IMU measurements
+ * 磁力计相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -52,6 +69,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
 
 /**
  * Barometer measurement delay relative to IMU measurements
+ * 气压计相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -63,6 +81,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
 
 /**
  * GPS measurement delay relative to IMU measurements
+ * GPS相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -75,6 +94,8 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
 /**
  * Optical flow measurement delay relative to IMU measurements
  * Assumes measurement is timestamped at trailing edge of integration period
+ * 光流相对于IMU测量的测量延迟
+ * 假设测量在积分周期的后沿发生
  *
  * @group EKF2
  * @min 0
@@ -86,6 +107,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
 
 /**
  * Range finder measurement delay relative to IMU measurements
+ * 测距仪相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -97,6 +119,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
 
 /**
  * Airspeed measurement delay relative to IMU measurements
+ * 空速计相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -108,6 +131,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
 
 /**
  * Vision Position Estimator delay relative to IMU measurements
+ * 视觉位置估计相对于IMU测量的测量延迟
  *
  * @group EKF2
  * @min 0
@@ -119,6 +143,7 @@ PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
 
 /**
  * Integer bitmask controlling GPS checks.
+ * 整数掩码控制GPS检查
  *
  * Set bits to 1 to enable checks. Checks enabled by the following bit positions
  * 0 : Minimum required sat count set by EKF2_REQ_NSATS
@@ -130,6 +155,10 @@ PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
  * 6 : Maximum allowed vertical position rate set by EKF2_REQ_VDRIFT. This check can only be used if the vehicle is stationary during alignment.
  * 7 : Maximum allowed horizontal speed set by EKF2_REQ_HDRIFT. This check can only be used if the vehicle is stationary during alignment.
  * 8 : Maximum allowed vertical velocity discrepancy set by EKF2_REQ_VDRIFT
+ *
+ * 几何精度因子（Geometric Dilution Precision ，缩写为GDOP）是衡量定位精度的很重要的一个系数，
+ * 它代表GPS 测距误差造成的接收机与空间卫星间的距离矢量放大因子。
+ * 实际表征参与定位解的从接收机至空间卫星的单位矢量所勾勒的形体体积与GDOP成反比，故又称为几何精度因子。
  *
  * @group EKF2
  * @min 0
@@ -148,6 +177,7 @@ PARAM_DEFINE_INT32(EKF2_GPS_CHECK, 21);
 
 /**
  * Required EPH to use GPS.
+ * GPS的使用需要保证的水平位置精度EPH
  *
  * @group EKF2
  * @min 2
@@ -159,6 +189,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_EPH, 5.0f);
 
 /**
  * Required EPV to use GPS.
+ * GPS的使用需要保证的垂直位置精度EPV
  *
  * @group EKF2
  * @min 2
@@ -170,6 +201,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_EPV, 8.0f);
 
 /**
  * Required speed accuracy to use GPS.
+ * GPS的使用需要保证的速度精度
  *
  * @group EKF2
  * @min 0.5
@@ -181,6 +213,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 1.0f);
 
 /**
  * Required satellite count to use GPS.
+ * GPS的使用至少需要的卫星数
  *
  * @group EKF2
  * @min 4
@@ -190,6 +223,7 @@ PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
 
 /**
  * Required GDoP to use GPS.
+ * GPS的使用需要的几何精度因子
  *
  * @group EKF2
  * @min 1.5
@@ -200,6 +234,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GDOP, 2.5f);
 
 /**
  * Maximum horizontal drift speed to use GPS.
+ * GPS的使用需要的最大水平漂移速度
  *
  * @group EKF2
  * @min 0.1
@@ -211,6 +246,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.3f);
 
 /**
  * Maximum vertical drift speed to use GPS.
+ * GPS的使用需要的最大垂直漂移速度
  *
  * @group EKF2
  * @min 0.1
@@ -222,6 +258,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.5f);
 
 /**
  * Rate gyro noise for covariance prediction.
+ * 角速率陀螺仪噪声协方差预测
  *
  * @group EKF2
  * @min 0.0001
@@ -233,6 +270,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.5e-2f);
 
 /**
  * Accelerometer noise for covariance prediction.
+ * 加速度计噪声协方差预测
  *
  * @group EKF2
  * @min 0.01
@@ -244,6 +282,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
 
 /**
  * Process noise for IMU rate gyro bias prediction.
+ * IMU角速度陀螺仪偏差的过程噪声
  *
  * @group EKF2
  * @min 0.0
@@ -255,6 +294,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 1.0e-3f);
 
 /**
  * Process noise for IMU accelerometer bias prediction.
+ * IMU加速度计偏差的过程噪声 
  *
  * @group EKF2
  * @min 0.0
@@ -266,6 +306,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-3f);
 
 /**
  * Process noise for body magnetic field prediction.
+ * 机体磁场预测的过程噪声
  *
  * @group EKF2
  * @min 0.0
@@ -277,6 +318,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
 
 /**
  * Process noise for earth magnetic field prediction.
+ * 地磁场预测的过程噪声
  *
  * @group EKF2
  * @min 0.0
@@ -288,6 +330,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
 
 /**
  * Process noise for wind velocity prediction.
+ * 风速预测的过程噪声
  *
  * @group EKF2
  * @min 0.0
@@ -299,6 +342,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
 
 /**
  * Measurement noise for gps horizontal velocity.
+ * GPS水平速度的测量噪声
  *
  * @group EKF2
  * @min 0.01
@@ -310,6 +354,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
 
 /**
  * Measurement noise for gps position.
+ * GPS位置的测量噪声
  *
  * @group EKF2
  * @min 0.01
@@ -321,6 +366,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.5f);
 
 /**
  * Measurement noise for non-aiding position hold.
+ * 非辅助位置保持的测量噪声
  *
  * @group EKF2
  * @min 0.5
@@ -332,6 +378,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
 
 /**
  * Measurement noise for barometric altitude.
+ * 气压计高度的测量噪声
  *
  * @group EKF2
  * @min 0.01
@@ -343,6 +390,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 2.0f);
 
 /**
  * Measurement noise for magnetic heading fusion.
+ * 
  *
  * @group EKF2
  * @min 0.01
@@ -375,6 +423,17 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_EAS_NOISE, 1.4f);
 
 /**
+ * Noise for synthetic sideslip fusion.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit m/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
+
+/**
  * Magnetic declination
  *
  * @group EKF2
@@ -405,6 +464,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
 
 /**
  * Integer bitmask controlling handling of magnetic declination.
+ * 整数位掩码控制磁偏角的处理。
  *
  * Set bits in the following positions to enable functions.
  * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
@@ -422,6 +482,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
 /**
  * Type of magnetometer fusion
+ * 磁力计融合类型
  *
  * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-axis magnetometer.
  * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight
@@ -487,13 +548,14 @@ PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
 
 /**
  * Integer bitmask controlling data fusion and aiding methods.
+ * 整数位掩码控制数据融合和辅助方法。
  *
  * Set bits in the following positions to enable:
- * 0 : Set to true to use GPS data if available
- * 1 : Set to true to use optical flow data if available
- * 2 : Set to true to inhibit IMU bias estimation
- * 3 : Set to true to enable vision position fusion
- * 4 : Set to true to enable vision yaw fusion
+ * 0 : Set to true to use GPS data if available 使用GPS
+ * 1 : Set to true to use optical flow data if available 使用光流
+ * 2 : Set to true to inhibit IMU bias estimation 禁止IMU偏差估计
+ * 3 : Set to true to enable vision position fusion 使能视觉位置融合
+ * 4 : Set to true to enable vision yaw fusion 使能视觉偏航融合
  *
  * @group EKF2
  * @min 0
@@ -508,8 +570,10 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
 /**
  * Determines the primary source of height data used by the EKF.
+ * 确定EKF使用的高度数据的主要来源。
  *
- * The range sensor option should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
+ * The range sensor option should only be used when for operation over a flat surface 
+ * as the local NED origin will move up and down with ground level.
  *
  * @group EKF2
  * @value 0 Barometric pressure
@@ -809,7 +873,16 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 
 /**
+* Boolean determining if synthetic sideslip measurements should fused.
+*
+* A value of 1 indicates that fusion is active
+*
+* @group EKF2
+* @boolean
+*/
+PARAM_DEFINE_INT32(EKF2_FUSE_BETA, 0);
 
+/**
  * Time constant of the velocity output prediction and smoothing filter
  *
  * @group EKF2
@@ -817,10 +890,12 @@ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_TAU_VEL, 0.25f);
 
 /**
- * Time constant of the position output prediction and smoothing filter. Controls how tightly the output track the EKF states.
+ * Time constant of the position output prediction and smoothing filter.
+ * Controls how tightly the output track the EKF states.
+ * 位置输出预测和平滑滤波器的时间常数。控制输出跟踪EKF状态的紧密程度。
  *
  * @group EKF2
  * @min 0.1
@@ -854,6 +929,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
 
 /**
  * 1-sigma tilt angle uncertainty after gravity vector alignment
+ * 重力向量对齐后的 1-sigma倾斜角不确定度
  *
  * @group EKF2
  * @min 0.0

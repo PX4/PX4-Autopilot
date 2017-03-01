@@ -34,6 +34,7 @@
 /**
  * @file mavlink_receiver.h
  * MAVLink receiver thread
+ * MAVLink接收器线程
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton@px4.io>
@@ -150,6 +151,7 @@ private:
 	/**
 	 * Set the interval at which the given message stream is published.
 	 * The rate is the number of messages per second.
+	 * 给定消息流的发布间隔。多少个消息每秒
 	 *
 	 * @param msgId the message ID of to change the interval of
 	 * @param interval the interval in us to send the message at
@@ -186,7 +188,7 @@ private:
 	struct vehicle_local_position_s hil_local_pos;
 	struct vehicle_land_detected_s hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
-	orb_advert_t _global_pos_pub;
+	orb_advert_t _global_pos_pub; // 消息发布者
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
 	orb_advert_t _gps_pub;

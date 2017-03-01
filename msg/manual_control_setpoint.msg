@@ -21,7 +21,7 @@ int8 MODE_SLOT_MAX = 6			# number of slots plus one
 # the MANUAL_CONTROL mavlink message is defined from -1000 to 1000)
 
 float32 x			 # stick position in x direction -1..1
-				 # in general corresponds to forward/back motion or pitch of vehicle, 前后运动
+				 # in general corresponds to forward/back motion or pitch of vehicle,  前后运动
 				 # in general a positive value means forward or negative pitch and
 				 # a negative value means backward or positive pitch
 float32 y			 # stick position in y direction -1..1
@@ -43,7 +43,7 @@ float32 aux3			 # default function: camera trigger	 	  辅助通道3 -> 默认�
 float32 aux4			 # default function: camera roll		  辅助通道4 -> 默认功能：相机横滚
 float32 aux5			 # default function: payload drop		  辅助通道5 -> 默认功能：有效载荷下降
 
-uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
+uint8 mode_switch		 # main mode 3 position switch (mandatory强制): _MANUAL_, ASSIST, AUTO
 uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL
 uint8 rattitude_switch	 # rattitude control 2 position switch (optional): _MANUAL, RATTITUDE
 uint8 posctl_switch		 # position control 2 position switch (optional): _ALTCTL_, POSCTL

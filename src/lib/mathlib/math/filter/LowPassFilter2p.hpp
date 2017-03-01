@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /// @file	LowPassFilter.h
-/// @brief	A class to implement a second order low pass filter 
+/// @brief	A class to implement a second order low pass filter 实现二阶低通滤波器的类
 /// Author: Leonard Hall <LeonardTHall@gmail.com>
 /// Adapted for PX4 by Andrew Tridgell
 

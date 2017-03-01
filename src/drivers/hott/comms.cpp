@@ -53,29 +53,38 @@ open_uart(const char *device)
 
 	/* open uart */
 	const int uart = open(device, O_RDWR | O_NOCTTY);
+	// O_RDWR 打开文件进行读或者写
 
 	if (uart < 0) {
 		err(1, "ERR: opening %s", device);
 	}
 
 	/* Back up the original uart configuration to restore it after exit */
+	/* 备份原始uart配置以在退出后还原 */
 	int termios_state;
 	struct termios uart_config_original;
 
-	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
+	// 用于获取与终端相关的参数
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) { // 打不开串口
 		close(uart);
 		err(1, "ERR: %s: %d", device, termios_state);
 	}
 
 	/* Fill the struct for the new configuration */
+	// 填写新配置的结构体
 	struct termios uart_config;
+	// 获取终端参数
 	tcgetattr(uart, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
+	// 清除ONLCR标志（它为每个LF附加一个CR)
+	// CR（CarriageReturn）   LF（LineFeed）
+	// Dos和Windows采用回车+换行CR/LF表示下一行
+	// 而UNIX/Linux采用换行符LF表示下一行
+	uart_config.c_oflag &= ~ONLCR; // 输出模式,第3位置0
 
 	/* Set baud rate */
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) { // 输入速度  输出速度
 		close(uart);
 		err(1, "ERR: %s: %d (cfsetispeed, cfsetospeed)",
 		    device, termios_state);
@@ -87,6 +96,7 @@ open_uart(const char *device)
 	}
 
 	/* Activate single wire mode */
+	// 激活单线模式
 	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 
 	return uart;

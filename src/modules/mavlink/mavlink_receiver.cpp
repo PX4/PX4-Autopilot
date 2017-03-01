@@ -34,6 +34,7 @@
 /**
  * @file mavlink_receiver.cpp
  * MAVLink protocol message receive and dispatch
+ * MAVLink协议消息接收和处理
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton@px4.io>
