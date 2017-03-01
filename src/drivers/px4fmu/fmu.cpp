@@ -3273,6 +3273,7 @@ fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
+	bool fmu_was_running = false;
 
 	if (!strcmp(verb, "bind")) {
 		bind_spektrum();
@@ -3301,6 +3302,8 @@ fmu_main(int argc, char *argv[])
 		fmu_stop();
 		errx(0, "FMU driver stopped");
 	}
+
+	fmu_was_running = (g_fmu != nullptr);
 
 	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
@@ -3396,10 +3399,12 @@ fmu_main(int argc, char *argv[])
 			warnx("resettet default time");
 		}
 
-		// When we are done resetting, we should clean up the fmu drivers
-		// Failure to do so prevents other devices (HIL sim driver)
-		// from starting.
-		fmu_stop();
+		// When we are done resetting, we should clean up the fmu drivers if they
+		// weren't active at the beginning of the reset.
+		// Failure to do so prevents other devices (HIL sim driver) from starting
+		if (!fmu_was_running) {
+			fmu_stop();
+		}
 		exit(0);
 	}
 
@@ -3413,10 +3418,12 @@ fmu_main(int argc, char *argv[])
 			warnx("resettet default time");
 		}
 
-		// When we are done resetting, we should clean up the fmu drivers
-		// Failure to do so prevents other devices (HIL sim driver)
-		// from starting.
-		fmu_stop();
+		// When we are done resetting, we should clean up the fmu drivers if they
+		// weren't active at the beginning of the reset.
+		// Failure to do so prevents other devices (HIL sim driver) from starting
+		if (!fmu_was_running) {
+			fmu_stop();
+		}
 		exit(0);
 	}
 
