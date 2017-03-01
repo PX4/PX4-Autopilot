@@ -1046,11 +1046,11 @@ void Ekf2Replay::task_main()
 
 	// Report sensor innovation RMS values to assist with time delay tuning
 	if (_numInnovSamples > 0) {
-		PX4_INFO("GPS vel innov RMS = %6.3f", sqrt(_velInnovSumSq / _numInnovSamples));
-		PX4_INFO("GPS pos innov RMS = %6.3f", sqrt(_posInnovSumSq / _numInnovSamples));
-		PX4_INFO("Hgt innov RMS = %6.3f", sqrt(_hgtInnovSumSq / _numInnovSamples));
-		PX4_INFO("Mag innov RMS = %6.4f", sqrt(_magInnovSumSq / _numInnovSamples));
-		PX4_INFO("TAS innov RMS = %6.3f", sqrt(_tasInnovSumSq / _numInnovSamples));
+		PX4_INFO("GPS vel innov RMS = %6.3f", (double)sqrtf(_velInnovSumSq / _numInnovSamples));
+		PX4_INFO("GPS pos innov RMS = %6.3f", (double)sqrtf(_posInnovSumSq / _numInnovSamples));
+		PX4_INFO("Hgt innov RMS = %6.3f", (double)sqrtf(_hgtInnovSumSq / _numInnovSamples));
+		PX4_INFO("Mag innov RMS = %6.4f", (double)sqrtf(_magInnovSumSq / _numInnovSamples));
+		PX4_INFO("TAS innov RMS = %6.3f", (double)sqrtf(_tasInnovSumSq / _numInnovSamples));
 	}
 
 }
