@@ -262,7 +262,7 @@ private:
 
 };
 
-static int pwmin_tim_isr(int irq, void *context);
+static int pwmin_tim_isr(int irq, void *context, void *arg);
 static void pwmin_start();
 static void pwmin_info(void);
 static void pwmin_test(void);
@@ -330,7 +330,7 @@ void PWMIN::_timer_init(void)
 	px4_arch_configgpio(GPIO_VDD_RANGEFINDER_EN);
 
 	/* claim our interrupt vector */
-	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr);
+	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr, NULL);
 
 	/* Clear no bits, set timer enable bit.*/
 	modifyreg32(PWMIN_TIMER_POWER_REG, 0, PWMIN_TIMER_POWER_BIT);
@@ -544,7 +544,7 @@ void PWMIN::print_info(void)
 /*
  * Handle the interrupt, gathering pulse data
  */
-static int pwmin_tim_isr(int irq, void *context)
+static int pwmin_tim_isr(int irq, void *context, void *arg)
 {
 	uint16_t status = rSR;
 	uint32_t period = rCCR_PWMIN_A;
