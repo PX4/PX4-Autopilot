@@ -702,35 +702,8 @@ void Replay::task_main()
 		replay_file.read((char *)_read_buffer.data(), msg_read_size);
 		*(uint64_t *)(_read_buffer.data() + sub.timestamp_offset) = publish_timestamp;
 
-		if (sub.orb_advert) {
-			orb_publish(sub.orb_meta, sub.orb_advert, _read_buffer.data());
+		if (publishTopic(sub, _read_buffer.data())) {
 			++nr_published_messages;
-
-		} else {
-			if (sub.multi_id == 0) {
-				sub.orb_advert = orb_advertise(sub.orb_meta, _read_buffer.data());
-				++nr_published_messages;
-
-			} else {
-				// make sure the other instances are advertised already so that we get the correct instance
-				bool advertised = false;
-
-				for (const auto &subscription : _subscriptions) {
-					if (subscription.orb_meta) {
-						if (strcmp(sub.orb_meta->o_name, subscription.orb_meta->o_name) == 0 &&
-						    subscription.orb_advert && subscription.multi_id == sub.multi_id - 1) {
-							advertised = true;
-						}
-					}
-				}
-
-				if (advertised) {
-					int instance;
-					sub.orb_advert = orb_advertise_multi(sub.orb_meta, _read_buffer.data(),
-									     &instance, ORB_PRIO_DEFAULT);
-					++nr_published_messages;
-				}
-			}
 		}
 
 
@@ -752,6 +725,46 @@ void Replay::task_main()
 
 		//TODO: should we close the log file & exit (optionally, by adding a parameter -q) ?
 	}
+}
+
+bool Replay::publishTopic(Subscription &sub, void *data)
+{
+	bool published = false;
+
+	if (sub.orb_advert) {
+		orb_publish(sub.orb_meta, sub.orb_advert, _read_buffer.data());
+		published = true;
+
+	} else {
+		if (sub.multi_id == 0) {
+			sub.orb_advert = orb_advertise(sub.orb_meta, _read_buffer.data());
+			published = true;
+
+		} else {
+			// make sure the other instances are advertised already so that we get the correct instance
+			bool advertised = false;
+
+			for (const auto &subscription : _subscriptions) {
+				if (subscription.orb_meta) {
+					if (strcmp(sub.orb_meta->o_name, subscription.orb_meta->o_name) == 0 &&
+					    subscription.orb_advert && subscription.multi_id == sub.multi_id - 1) {
+						advertised = true;
+					}
+				}
+			}
+
+			if (advertised) {
+				int instance;
+				sub.orb_advert = orb_advertise_multi(sub.orb_meta, _read_buffer.data(),
+								     &instance, ORB_PRIO_DEFAULT);
+				published = true;
+			}
+		}
+	}
+
+	return published;
+}
+
 }
 
 void Replay::task_main_trampoline(int argc, char *argv[])
