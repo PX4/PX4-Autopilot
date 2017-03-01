@@ -59,7 +59,7 @@ public:
 	Replay();
 
 	/// Destructor, also waits for task exit
-	~Replay();
+	virtual ~Replay();
 
 	/**
 	 * Start task.
@@ -82,15 +82,8 @@ public:
 	static void setupReplayFile(const char *file_name);
 
 	static bool isSetup() { return _replay_file; }
-private:
-	bool _task_should_exit = false;
-	std::set<std::string> _overridden_params;
-	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
 
-	uint64_t _file_start_time;
-	uint64_t _replay_start_time;
-	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
-	std::vector<uint8_t> _read_buffer;
+protected:
 
 	struct Subscription {
 
@@ -102,6 +95,48 @@ private:
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
 	};
+
+	/**
+	 * publish an orb topic
+	 * @param sub
+	 * @param data
+	 * @return true if published, false otherwise
+	 */
+	bool publishTopic(Subscription &sub, void *data);
+
+	/**
+	 * called when entering the main replay loop
+	 */
+	virtual void onEnterMainLoop() {};
+	/**
+	 * called when exiting the main replay loop
+	 */
+	virtual void onExitMainLoop() {};
+
+	/**
+	 * handle delay until topic can be published.
+	 * @param next_file_timestamp timestamp of next message to publish
+	 * @param timestamp_offset offset between file start time and replay start time
+	 * @return timestamp that the message to publish should have
+	 */
+	virtual uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset);
+
+	/**
+	 * handle the publication of a topic update
+	 * @return true if published, false otherwise
+	 */
+	virtual bool handleTopicUpdate(Subscription &sub, void *data);
+
+private:
+	bool _task_should_exit = false;
+	std::set<std::string> _overridden_params;
+	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
+
+	uint64_t _file_start_time;
+	uint64_t _replay_start_time;
+	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
+	std::vector<uint8_t> _read_buffer;
+
 	std::vector<Subscription> _subscriptions;
 
 	/** keep track of file position to avoid adding a subscription multiple times. */
