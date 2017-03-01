@@ -690,8 +690,8 @@ void Replay::task_main()
 		//wait if necessary
 		const uint64_t publish_timestamp = next_file_time + timestamp_offset;
 		uint64_t cur_time = hrt_absolute_time();
-
-		if (cur_time < publish_timestamp) {
+		// if some topics have a timestamp smaller than the log file start, publish them immediately
+		if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
 			usleep(publish_timestamp - cur_time);
 		}
 
