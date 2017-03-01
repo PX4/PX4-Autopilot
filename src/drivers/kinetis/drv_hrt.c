@@ -133,7 +133,7 @@ static volatile uint32_t dummy[18];
 #undef modifyreg32
 #define modifyreg32(reg,clr,set)
 #define HRT_TIMER_VECTOR 0
-#define irq_attach(HRT_TIMER_VECTOR, isr) (void)(isr)
+#define irq_attach(HRT_TIMER_VECTOR, isr, args) (void)(isr)
 
 #define rCR1     	REG(0)
 #define rCR2     	REG(1)
@@ -309,7 +309,7 @@ static void
 hrt_tim_init(void)
 {
 	/* claim our interrupt vector */
-	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
+	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
 
 	/* clock/power on our timer */
 	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
