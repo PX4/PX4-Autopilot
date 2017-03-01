@@ -70,7 +70,6 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/vision_position_estimate.h>
 
 #include <sdlog2/sdlog2_messages.h>
 
@@ -136,7 +135,8 @@ private:
 	orb_advert_t _flow_pub;
 	orb_advert_t _range_pub;
 	orb_advert_t _airspeed_pub;
-	orb_advert_t _ev_pub;
+	orb_advert_t _vehicle_vision_position_pub;
+	orb_advert_t _vehicle_vision_attitude_pub;
 	orb_advert_t _vehicle_status_pub;
 
 	int _att_sub;
@@ -154,7 +154,8 @@ private:
 	struct optical_flow_s _flow;
 	struct distance_sensor_s _range;
 	struct airspeed_s _airspeed;
-	struct vision_position_estimate_s _ev;
+	struct vehicle_local_position_s _vehicle_vision_position;
+	struct vehicle_attitude_s _vehicle_vision_attitude;
 	struct vehicle_status_s _vehicle_status;
 
 	uint32_t _numInnovSamples;	// number of samples used to calculate the RMS innovation values
@@ -219,7 +220,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_flow_pub(nullptr),
 	_range_pub(nullptr),
 	_airspeed_pub(nullptr),
-	_ev_pub(nullptr),
+	_vehicle_vision_position_pub(nullptr),
+	_vehicle_vision_attitude_pub(nullptr),
 	_vehicle_status_pub(nullptr),
 	_att_sub(-1),
 	_estimator_status_sub(-1),
@@ -233,6 +235,8 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_flow{},
 	_range{},
 	_airspeed{},
+	_vehicle_vision_position{},
+	_vehicle_vision_attitude{},
 	_vehicle_status{},
 	_numInnovSamples(0),
 	_velInnovSumSq(0.0f),
@@ -294,11 +298,18 @@ void Ekf2Replay::publishEstimatorInput()
 
 	_read_part4 = false;
 
-	if (_ev_pub == nullptr && _read_part5) {
-		_ev_pub = orb_advertise(ORB_ID(vision_position_estimate), &_ev);
+	if (_vehicle_vision_attitude_pub == nullptr && _read_part5) {
+		_vehicle_vision_attitude_pub = orb_advertise(ORB_ID(vehicle_vision_attitude), &_vehicle_vision_attitude);
 
-	} else if (_ev_pub != nullptr && _read_part5) {
-		orb_publish(ORB_ID(vision_position_estimate), _ev_pub, &_ev);
+	} else if (_vehicle_vision_attitude_pub != nullptr && _read_part5) {
+		orb_publish(ORB_ID(vehicle_vision_attitude), _vehicle_vision_attitude_pub, &_vehicle_vision_attitude);
+	}
+
+	if (_vehicle_vision_position_pub == nullptr && _read_part5) {
+		_vehicle_vision_position_pub = orb_advertise(ORB_ID(vehicle_vision_position), &_vehicle_vision_position);
+
+	} else if (_vehicle_vision_position_pub != nullptr && _read_part5) {
+		orb_publish(ORB_ID(vehicle_vision_position), _vehicle_vision_position_pub, &_vehicle_vision_position);
 	}
 
 	_read_part5 = false;
@@ -474,17 +485,15 @@ void Ekf2Replay::setEstimatorInput(uint8_t *data, uint8_t type)
 	} else if (type == LOG_RPL5_MSG) {
 		uint8_t *dest_ptr = (uint8_t *)&replay_part5.time_ev_usec;
 		parseMessage(data, dest_ptr, type);
-		_ev.timestamp = replay_part5.time_ev_usec;
-		_ev.timestamp_received = replay_part5.time_ev_usec; // fake this timestamp
-		_ev.x = replay_part5.x;
-		_ev.y = replay_part5.y;
-		_ev.z = replay_part5.z;
-		_ev.q[0] = replay_part5.q0;
-		_ev.q[1] = replay_part5.q1;
-		_ev.q[2] = replay_part5.q2;
-		_ev.q[3] = replay_part5.q3;
-		_ev.pos_err = replay_part5.pos_err;
-		_ev.ang_err = replay_part5.pos_err;
+		_vehicle_vision_attitude.timestamp = replay_part5.time_ev_usec;
+		_vehicle_vision_position.timestamp = replay_part5.time_ev_usec;
+		_vehicle_vision_position.x = replay_part5.x;
+		_vehicle_vision_position.y = replay_part5.y;
+		_vehicle_vision_position.z = replay_part5.z;
+		_vehicle_vision_attitude.q[0] = replay_part5.q0;
+		_vehicle_vision_attitude.q[1] = replay_part5.q1;
+		_vehicle_vision_attitude.q[2] = replay_part5.q2;
+		_vehicle_vision_attitude.q[3] = replay_part5.q3;
 		_read_part5 = true;
 
 	} else if (type == LOG_LAND_MSG) {
