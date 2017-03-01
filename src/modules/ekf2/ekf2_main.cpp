@@ -1015,7 +1015,7 @@ void Ekf2::task_main()
 
 		if (publish_replay_message) {
 			struct ekf2_replay_s replay = {};
-			replay.time_ref = now;
+			replay.timestamp = now;
 			replay.gyro_integral_dt = sensors.gyro_integral_dt;
 			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
 			replay.magnetometer_timestamp = _timestamp_mag_us;
@@ -1028,7 +1028,6 @@ void Ekf2::task_main()
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
 				replay.time_usec = gps.timestamp;
-				replay.time_usec_vel = gps.timestamp;
 				replay.lat = gps.lat;
 				replay.lon = gps.lon;
 				replay.alt = gps.alt;

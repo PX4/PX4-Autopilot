@@ -1,4 +1,4 @@
-uint64 time_ref 			# ekf2 reference time. This is a timestamp passed to the
+# uint64 timestamp 			# ekf2 reference time. This is a timestamp passed to the
 					# estimator which it uses a absolute reference.
 float32 gyro_integral_dt		# gyro integration period in s
 float32 accelerometer_integral_dt 	# accelerometer integration period in s
@@ -16,7 +16,6 @@ float32[3] magnetometer_ga 		# magnetometer measurement vector (body fixed NED) 
 float32 baro_alt_meter			# barometer altitude measurement in m
 
 uint64 time_usec			# timestamp of gps position measurement in us
-uint64 time_usec_vel			# timestamp of gps velocity measurement in us
 int32 lat				# Latitude in 1E-7 degrees
 int32 lon				# Longitude in 1E-7 degrees
 int32 alt				# Altitude in 1E-3 meters above MSL, (millimetres)
