@@ -61,11 +61,13 @@ public:
 	/// Destructor, also waits for task exit
 	~Replay();
 
-	/// Start task.
-	/// @param quiet silently fail if no log file found
-	/// @param apply_params_only if true, only apply parameters from definitions section of the file
-	///                          and user-overridden parameters, then exit w/o replaying.
-	/// @return		OK on success.
+	/**
+	 * Start task.
+	 * @param quiet silently fail if no log file found
+	 * @param apply_params_only if true, only apply parameters from definitions section of the file
+	 *                          and user-overridden parameters, then exit w/o replaying.
+	 * @return OK on success.
+	 */
 	static int		start(bool quiet, bool apply_params_only);
 
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -154,6 +156,14 @@ private:
 	static size_t sizeOfFullType(const std::string &type_name_full);
 
 	void setUserParams(const char *filename);
+
+	/**
+	 * publish an orb topic
+	 * @param sub
+	 * @param data
+	 * @return true if published, false otherwise
+	 */
+	bool publishTopic(Subscription &sub, void *data);
 
 	static char *_replay_file;
 };
