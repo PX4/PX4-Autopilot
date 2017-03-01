@@ -57,7 +57,7 @@ fi
 # Configure this as plane
 set MAV_TYPE 1
 # Set mixer
-set MIXER wingwing
+set MIXER rover
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 1234
 set PWM_DISARMED 1500
