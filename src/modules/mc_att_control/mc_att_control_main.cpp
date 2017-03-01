@@ -1000,6 +1000,7 @@ MulticopterAttitudeControl::task_main()
 				control_attitude_rates(dt);
 
 				/* publish actuator controls */
+/*
 				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
@@ -1007,9 +1008,9 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[7] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
-
+*/
 				/* scale effort by battery status */
-				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
+	/*			if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
 					for (int i = 0; i < 4; i++) {
 						_actuators.control[i] *= _battery_status.scale;
 					}
@@ -1019,6 +1020,16 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.pitch_rate_integ = _rates_int(1);
 				_controller_status.yaw_rate_integ = _rates_int(2);
 				_controller_status.timestamp = hrt_absolute_time();
+*/
+				_actuators.control[0] = 0.5f;
+				_actuators.control[1] = 0.5f;
+				_actuators.control[2] = 0.5f;
+				_actuators.control[3] = 0.5f;
+				_actuators.control[4] = 0.5f;
+				_actuators.control[5] = 0.5f;
+				_actuators.timestamp = hrt_absolute_time();
+				_actuators.timestamp_sample = _ctrl_state.timestamp;
+
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != nullptr) {
