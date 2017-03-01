@@ -291,6 +291,7 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		PX4_WARN("Formats for %s don't match. Will ignore it.", topic_name.c_str());
 		PX4_WARN(" Internal format: %s", orb_meta->o_fields);
 		PX4_WARN(" File format    : %s", file_format.c_str());
+		return true; // not a fatal error
 	}
 
 	Subscription subscription;
