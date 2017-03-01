@@ -84,6 +84,11 @@
 #define BOARD_PRDIV          4              /* PLL External Reference Divider */
 #define BOARD_VDIV           30             /* PLL VCO Divider (frequency multiplier) */
 
+/* Define additional MCG_C2 Setting */
+
+#define BOARD_MCG_C2_FCFTRIM 0              /* Do not enable FCFTRIM */
+#define BOARD_MCG_C2_LOCRE0  MCG_C2_LOCRE0  /* Enable reset on loss of clock */
+
 #define BOARD_PLLIN_FREQ     (BOARD_EXTAL_FREQ / BOARD_PRDIV)
 #define BOARD_PLLOUT_FREQ    (BOARD_PLLIN_FREQ * BOARD_VDIV)
 #define BOARD_MCG_FREQ       BOARD_PLLOUT_FREQ
@@ -99,6 +104,27 @@
 #define BOARD_BUS_FREQ      (BOARD_MCG_FREQ / BOARD_OUTDIV2)
 #define BOARD_FLEXBUS_FREQ  (BOARD_MCG_FREQ / BOARD_OUTDIV3)
 #define BOARD_FLASHCLK_FREQ (BOARD_MCG_FREQ / BOARD_OUTDIV4)
+
+/* Use BOARD_MCG_FREQ as the output SIM_SOPT2 MUX selected by
+ * SIM_SOPT2[PLLFLLSEL]
+ */
+
+#define BOARD_SOPT2_PLLFLLSEL   SIM_SOPT2_PLLFLLSEL_MCGPLLCLK
+#define BOARD_SOPT2_FREQ        BOARD_MCG_FREQ
+
+/* Divider output clock = Divider input clock × [ (USBFRAC+1) / (USBDIV+1) ]
+ *     SIM_CLKDIV2_FREQ = BOARD_SOPT2_FREQ × [ (USBFRAC+1) / (USBDIV+1) ]
+ *                48Mhz = 120Mhz X [(1 + 1) / (4 + 1)]
+ *                48Mhz = 120Mhz / (4 + 1) * (1 + 1)
+ */
+
+#define BOARD_SIM_CLKDIV2_USBFRAC     2
+#define BOARD_SIM_CLKDIV2_USBDIV      5
+#define BOARD_SIM_CLKDIV2_FREQ        (BOARD_SOPT2_FREQ / \
+                                       BOARD_SIM_CLKDIV2_USBDIV * \
+                                       BOARD_SIM_CLKDIV2_USBFRAC)
+#define BOARD_USB_CLKSRC               SIM_SOPT2_USBSRC
+#define BOARD_USB_FREQ                 BOARD_SIM_CLKDIV2_FREQ
 
 /* SDHC clocking ********************************************************************/
 
