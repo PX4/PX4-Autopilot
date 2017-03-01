@@ -1,0 +1,59 @@
+diff --git NuttX/nuttx/sched/irq/irq.h NuttX/nuttx/sched/irq/irq.h
+index 59bd5ea..fcf996f 100644
+--- NuttX/nuttx/sched/irq/irq.h
++++ NuttX/nuttx/sched/irq/irq.h
+@@ -63,7 +63,9 @@
+ struct irq
+ {
+   xcpt_t handler;  /* Address of the interrupt handler */
++#if !defined(CONFIG_NOIRQARGS)
+   FAR void *arg;   /* The argument provided to the interrupt handler. */
++#endif
+ };
+ 
+ /****************************************************************************
+diff --git NuttX/nuttx/sched/irq/irq_attach.c NuttX/nuttx/sched/irq/irq_attach.c
+index ae147e2..50c621b 100644
+--- NuttX/nuttx/sched/irq/irq_attach.c
++++ NuttX/nuttx/sched/irq/irq_attach.c
+@@ -97,7 +97,11 @@ int irq_attach(int irq, xcpt_t isr, FAR void * arg)
+       /* Save the new ISR in the table. */
+ 
+       g_irqvector[irq].handler = isr;
++#if defined(CONFIG_NOIRQARGS)
++      ASSERT(arg == NULL);
++#else
+       g_irqvector[irq].arg     = arg;
++#endif
+       leave_critical_section(flags);
+       ret = OK;
+     }
+diff --git NuttX/nuttx/sched/irq/irq_dispatch.c NuttX/nuttx/sched/irq/irq_dispatch.c
+index 576e757..941eeb8 100644
+--- NuttX/nuttx/sched/irq/irq_dispatch.c
++++ NuttX/nuttx/sched/irq/irq_dispatch.c
+@@ -75,7 +75,11 @@ void irq_dispatch(int irq, FAR void *context)
+   else
+     {
+       vector = g_irqvector[irq].handler;
++#if defined(CONFIG_NOIRQARGS)
++      arg    = NULL;
++#else
+       arg    = g_irqvector[irq].arg;
++#endif
+     }
+ #else
+   vector = irq_unexpected_isr;
+diff --git NuttX/nuttx/sched/irq/irq_initialize.c NuttX/nuttx/sched/irq/irq_initialize.c
+index e03d27a..3350fb0 100644
+--- NuttX/nuttx/sched/irq/irq_initialize.c
++++ NuttX/nuttx/sched/irq/irq_initialize.c
+@@ -70,6 +70,8 @@ void irq_initialize(void)
+   for (i = 0; i < NR_IRQS; i++)
+     {
+       g_irqvector[i].handler = irq_unexpected_isr;
++#if !defined(CONFIG_NOIRQARGS)
+       g_irqvector[i].arg     = NULL;
++#endif
+     }
+ }
