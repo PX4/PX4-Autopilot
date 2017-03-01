@@ -627,6 +627,8 @@ void Replay::task_main()
 		return;
 	}
 
+	onEnterMainLoop();
+
 	_replay_start_time = hrt_absolute_time();
 
 	PX4_INFO("Replay in progress...");
@@ -687,13 +689,8 @@ void Replay::task_main()
 		last_additional_message_pos = next_additional_message_pos;
 
 
-		//wait if necessary
-		const uint64_t publish_timestamp = next_file_time + timestamp_offset;
-		uint64_t cur_time = hrt_absolute_time();
-		// if some topics have a timestamp smaller than the log file start, publish them immediately
-		if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
-			usleep(publish_timestamp - cur_time);
-		}
+		const uint64_t publish_timestamp = handleTopicDelay(next_file_time, timestamp_offset);
+
 
 		//It's time to publish
 		const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
@@ -703,10 +700,9 @@ void Replay::task_main()
 		replay_file.read((char *)_read_buffer.data(), msg_read_size);
 		*(uint64_t *)(_read_buffer.data() + sub.timestamp_offset) = publish_timestamp;
 
-		if (publishTopic(sub, _read_buffer.data())) {
+		if (handleTopicUpdate(sub, _read_buffer.data())) {
 			++nr_published_messages;
 		}
-
 
 		nextDataMessage(replay_file, _subscriptions[next_msg_id], next_msg_id);
 
@@ -726,6 +722,29 @@ void Replay::task_main()
 
 		//TODO: should we close the log file & exit (optionally, by adding a parameter -q) ?
 	}
+
+	onExitMainLoop();
+}
+
+bool Replay::handleTopicUpdate(Subscription &sub, void *data)
+{
+	return publishTopic(sub, data);
+}
+
+uint64_t Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
+{
+
+	const uint64_t publish_timestamp = next_file_time + timestamp_offset;
+
+	//wait if necessary
+	uint64_t cur_time = hrt_absolute_time();
+
+	// if some topics have a timestamp smaller than the log file start, publish them immediately
+	if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
+		usleep(publish_timestamp - cur_time);
+	}
+
+	return publish_timestamp;
 }
 
 bool Replay::publishTopic(Subscription &sub, void *data)
@@ -875,7 +894,7 @@ int replay_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (PX4_OK != replay::instance->start(quiet, apply_params_only)) {
+		if (PX4_OK != Replay::start(quiet, apply_params_only)) {
 			PX4_ERR("start failed");
 			return 1;
 		}
