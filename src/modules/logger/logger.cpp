@@ -591,6 +591,18 @@ void Logger::add_default_topics()
 	add_topic("sensor_combined");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
+
+	// log the replay topic if EKF2_REC_RPL is set
+	param_t replay_handle = param_find("EKF2_REC_RPL");
+
+	if (replay_handle != PARAM_INVALID) {
+		int32_t replay_value = 0;
+		param_get(replay_handle, &replay_value);
+
+		if (replay_value == 1) {
+			add_topic("ekf2_replay");
+		}
+	}
 }
 
 void Logger::add_calibration_topics()
