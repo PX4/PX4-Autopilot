@@ -297,7 +297,7 @@ protected:
 	This can be adjusted to a value that is FILTER_UPDATE_PERIOD_MS longer than the maximum observation time delay.
 	*/
 	uint8_t _imu_buffer_length;
-	static const unsigned FILTER_UPDATE_PERIOD_MS = 10;	// ekf prediction period in milliseconds
+	static const unsigned FILTER_UPDATE_PERIOD_MS = 12;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 
 	unsigned _min_obs_interval_us; // minimum time interval between observations that will guarantee data is not lost (usec)
 
