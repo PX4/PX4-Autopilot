@@ -3,6 +3,10 @@
 # Nuttx/ Configuration
 #
 
+# The following must be applied on RAM constrained
+# builds
+CONFIG_NOIRQARGS=y
+
 #
 # Build Setup
 #
