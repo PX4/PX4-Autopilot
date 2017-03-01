@@ -82,7 +82,7 @@ static void	unregister_interrupt(int irq);
  * @param context	The interrupt register context.
  * @return		Always returns OK.
  */
-static int	interrupt(int irq, void *context);
+static int	interrupt(int irq, void *context, void *arg);
 
 Device::Device(const char *name,
 	       int irq) :
@@ -167,7 +167,7 @@ register_interrupt(int irq, Device *owner)
 		if (irq_entries[i].irq == 0) {
 
 			// great, we could put it here; try attaching it
-			ret = irq_attach(irq, &interrupt);
+			ret = irq_attach(irq, &interrupt, owner);
 
 			if (ret == OK) {
 				irq_entries[i].irq = irq;
@@ -193,7 +193,7 @@ unregister_interrupt(int irq)
 }
 
 static int
-interrupt(int irq, void *context)
+interrupt(int irq, void *context, void *arg)
 {
 	for (unsigned i = 0; i < irq_nentries; i++) {
 		if (irq_entries[i].irq == irq) {
