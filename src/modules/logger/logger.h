@@ -82,8 +82,8 @@ struct LoggerSubscription {
 class Logger
 {
 public:
-	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
-	       bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
+	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
+	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
 
 	~Logger();
 
@@ -252,6 +252,7 @@ private:
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;
 	uint32_t					_log_interval;
+	const orb_metadata				*_polling_topic_meta = nullptr; ///< if non-null, poll on this topic instead of sleeping
 	param_t						_log_utc_offset;
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
