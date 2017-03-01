@@ -3405,6 +3405,7 @@ fmu_main(int argc, char *argv[])
 		if (!fmu_was_running) {
 			fmu_stop();
 		}
+
 		exit(0);
 	}
 
@@ -3424,6 +3425,7 @@ fmu_main(int argc, char *argv[])
 		if (!fmu_was_running) {
 			fmu_stop();
 		}
+
 		exit(0);
 	}
 
