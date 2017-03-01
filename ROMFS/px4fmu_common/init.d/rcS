@@ -125,8 +125,8 @@ then
 	# Set default values
 	#
 	set HIL no
-	set VEHICLE_TYPE voliro
-	set MIXER voliro
+	set VEHICLE_TYPE none
+	set MIXER none
 	set MIXER_AUX none
 	set OUTPUT_MODE none
 	set PWM_OUT none
