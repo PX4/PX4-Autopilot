@@ -42,6 +42,7 @@
 #include "definitions.hpp"
 
 #include <uORB/uORBTopics.h>
+#include <uORB/topics/ekf2_replay.h>
 
 namespace px4
 {
@@ -192,15 +193,46 @@ private:
 
 	void setUserParams(const char *filename);
 
+	static char *_replay_file;
+};
+
+
+/**
+ * @class ReplayEkf2
+ * replay specialization for Ekf2 replay
+ */
+class ReplayEkf2 : public Replay
+{
+public:
+protected:
+
+	void onEnterMainLoop() override;
+	void onExitMainLoop() override;
+
+	uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset) override;
+
+private:
+
 	/**
-	 * publish an orb topic
+	 * handle ekf2 topic publication in ekf2 replay mode
 	 * @param sub
 	 * @param data
 	 * @return true if published, false otherwise
 	 */
-	bool publishTopic(Subscription &sub, void *data);
+	bool handleTopicUpdate(Subscription &sub, void *data) override;
 
-	static char *_replay_file;
+	void publishEkf2Topics(const ekf2_replay_s &ekf2_replay);
+
+	int _vehicle_attitude_sub = -1;
+	orb_advert_t _sensors_pub = nullptr;
+	orb_advert_t _gps_pub = nullptr;
+	orb_advert_t _flow_pub = nullptr;
+	orb_advert_t _range_pub = nullptr;
+	orb_advert_t _airspeed_pub = nullptr;
+	orb_advert_t _vehicle_vision_position_pub = nullptr;
+	orb_advert_t _vehicle_vision_attitude_pub = nullptr;
+
+	int _topic_counter = 0;
 };
 
 } //namespace px4
