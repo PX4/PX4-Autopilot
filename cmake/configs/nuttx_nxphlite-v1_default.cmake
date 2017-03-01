@@ -95,7 +95,7 @@ set(config_module_list
 	modules/mavlink
 	modules/gpio_led
 ##NO CAN YET	modules/uavcan
-	modules/land_detector
+##SPACE	modules/land_detector
 
 	#
 	# Estimation modules (EKF/ SO3 / other filters)
