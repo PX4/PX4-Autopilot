@@ -69,7 +69,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <systemlib/param/param.hpp>
 #include <systemlib/systemlib.h>
 
 #include <uORB/topics/actuator_armed.h>
@@ -244,8 +244,8 @@ private:
 	void		vehicle_cmd_poll();
 	void		tecs_status_poll();
 	void		land_detected_poll();
-	void 		parameters_update_poll();		//Check if parameters have changed
-	int 		parameters_update();			//Update local paraemter cache
+	void 		parameters_update_poll();		// Check if parameters have changed
+	void 		parameters_update();			// Update local parameter cache
 	void 		fill_mc_att_rates_sp();
 	void 		fill_fw_att_rates_sp();
 	void		handle_command();

@@ -71,7 +71,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
-#include <systemlib/param/param.h>
+#include <systemlib/param/param.hpp>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/battery.h>
@@ -801,11 +801,11 @@ PX4IO::init()
 		int32_t sys_id;
 		int32_t comp_id;
 
-		if (param_get(sys_id_param, &sys_id)) {
+		if (!param_get(sys_id_param, sys_id)) {
 			errx(1, "PRM SYSID");
 		}
 
-		if (param_get(comp_id_param, &comp_id)) {
+		if (!param_get(comp_id_param, comp_id)) {
 			errx(1, "PRM CMPID");
 		}
 
@@ -3290,7 +3290,7 @@ start(int argc, char *argv[])
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	int dsm_vcc_ctl;
 
-	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
+	if (param_get(param_find("RC_RL1_DSM_VCC"), dsm_vcc_ctl)) {
 		if (dsm_vcc_ctl) {
 			g_dev->set_dsm_vcc_ctl(true);
 			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);

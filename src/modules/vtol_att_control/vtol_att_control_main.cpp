@@ -509,76 +509,61 @@ VtolAttitudeControl::abort_front_transition(const char *reason)
 /**
 * Update parameters.
 */
-int
+void
 VtolAttitudeControl::parameters_update()
 {
-	float v;
-	int l;
 	/* idle pwm for mc mode */
-	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
+	param_get(_params_handles.idle_pwm_mc, _params.idle_pwm_mc);
 
 	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+	param_get(_params_handles.vtol_motor_count, _params.vtol_motor_count);
 
 	/* vtol fw permanent stabilization */
-	param_get(_params_handles.vtol_fw_permanent_stab, &_params.vtol_fw_permanent_stab);
+	param_get(_params_handles.vtol_fw_permanent_stab, _params.vtol_fw_permanent_stab);
 
 	/* vtol mc mode min airspeed */
-	param_get(_params_handles.mc_airspeed_min, &v);
-	_params.mc_airspeed_min = v;
+	param_get(_params_handles.mc_airspeed_min, _params.mc_airspeed_min);
 
 	/* vtol mc mode max airspeed */
-	param_get(_params_handles.mc_airspeed_max, &v);
-	_params.mc_airspeed_max = v;
+	param_get(_params_handles.mc_airspeed_max, _params.mc_airspeed_max);
 
 	/* vtol mc mode trim airspeed */
-	param_get(_params_handles.mc_airspeed_trim, &v);
-	_params.mc_airspeed_trim = v;
+	param_get(_params_handles.mc_airspeed_trim, _params.mc_airspeed_trim);
 
 	/* vtol pitch trim for fw mode */
-	param_get(_params_handles.fw_pitch_trim, &v);
-	_params.fw_pitch_trim = v;
+	param_get(_params_handles.fw_pitch_trim, _params.fw_pitch_trim);
 
 	/* vtol maximum power engine can produce */
-	param_get(_params_handles.power_max, &v);
-	_params.power_max = v;
+	param_get(_params_handles.power_max, _params.power_max);
 
 	/* vtol propeller efficiency factor */
-	param_get(_params_handles.prop_eff, &v);
-	_params.prop_eff = v;
+	param_get(_params_handles.prop_eff, _params.prop_eff);
 
 	/* vtol total airspeed estimate low pass gain */
-	param_get(_params_handles.arsp_lp_gain, &v);
-	_params.arsp_lp_gain = v;
+	param_get(_params_handles.arsp_lp_gain, _params.arsp_lp_gain);
 
-	param_get(_params_handles.vtol_type, &l);
-	_params.vtol_type = l;
+	param_get(_params_handles.vtol_type, _params.vtol_type);
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles.elevons_mc_lock, &l);
-	_params.elevons_mc_lock = l;
+	param_get(_params_handles.elevons_mc_lock, _params.elevons_mc_lock);
 
 	/* minimum relative altitude for FW mode (QuadChute) */
-	param_get(_params_handles.fw_min_alt, &v);
-	_params.fw_min_alt = v;
+	param_get(_params_handles.fw_min_alt, _params.fw_min_alt);
 
-	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
+	param_get(_params_handles.front_trans_time_openloop, _params.front_trans_time_openloop);
 
-	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
+	param_get(_params_handles.front_trans_time_min, _params.front_trans_time_min);
 
 	/*
 	 * Minimum transition time can be maximum 90 percent of the open loop transition time,
 	 * anything else makes no sense and can potentially lead to numerical problems.
 	 */
-	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f,
-				       _params.front_trans_time_min);
+	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f, _params.front_trans_time_min);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
 	}
-
-	return OK;
 }
 
 /**

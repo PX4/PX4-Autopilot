@@ -52,7 +52,7 @@
 #include <poll.h>
 
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <systemlib/param/param.hpp>
 #include <systemlib/rc_check.h>
 #include <systemlib/mavlink_log.h>
 
@@ -102,8 +102,8 @@ static int check_calibration(DevHandle &h, const char* param_template, int &devi
 		}
 
 		/* if param get succeeds */
-		int calibration_devid;
-		if (!param_get(parm, &(calibration_devid))) {
+		int32_t calibration_devid;
+		if (param_get(parm, calibration_devid)) {
 
 			/* if the devid matches, exit early */
 			if (devid == calibration_devid) {

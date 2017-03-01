@@ -44,7 +44,7 @@
 
 #include "vtol_type.h"
 #include <systemlib/perf_counter.h>  /** is it necsacery? **/
-#include <systemlib/param/param.h>
+#include <systemlib/param/param.hpp>
 #include <drivers/drv_hrt.h>
 
 class Tailsitter : public VtolType
