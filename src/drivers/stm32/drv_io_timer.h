@@ -108,11 +108,11 @@ __EXPORT extern const io_timers_t led_pwm_timers[MAX_LED_TIMERS];
 __EXPORT extern const timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS];
 
 __EXPORT extern io_timer_channel_allocation_t allocations[IOTimerChanModeSize];
-__EXPORT int io_timer_handler0(int irq, void *context);
-__EXPORT int io_timer_handler1(int irq, void *context);
-__EXPORT int io_timer_handler2(int irq, void *context);
-__EXPORT int io_timer_handler3(int irq, void *context);
-__EXPORT int io_timer_handler4(int irq, void *context);
+__EXPORT int io_timer_handler0(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler1(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler2(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler3(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler4(int irq, void *context, void *arg);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
