@@ -211,8 +211,6 @@ protected:
 
 	uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset) override;
 
-private:
-
 	/**
 	 * handle ekf2 topic publication in ekf2 replay mode
 	 * @param sub
@@ -220,6 +218,8 @@ private:
 	 * @return true if published, false otherwise
 	 */
 	bool handleTopicUpdate(Subscription &sub, void *data) override;
+
+private:
 
 	void publishEkf2Topics(const ekf2_replay_s &ekf2_replay);
 
