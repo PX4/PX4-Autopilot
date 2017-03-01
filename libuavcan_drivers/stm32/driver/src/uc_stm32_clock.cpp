@@ -151,7 +151,7 @@ void init()
 # if UAVCAN_STM32_NUTTX
 
     // Attach IRQ
-    irq_attach(TIMX_IRQn, &TIMX_IRQHandler);
+    irq_attach(TIMX_IRQn, &TIMX_IRQHandler, NULL);
 
     // Power-on and reset
     modifyreg32(STM32_RCC_APB1ENR, 0, TIMX_RCC_ENR_MASK);
