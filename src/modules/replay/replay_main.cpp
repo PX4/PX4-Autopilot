@@ -59,6 +59,17 @@
 
 #include <logger/messages.h>
 
+// for ekf2 replay
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+
 #include "replay.hpp"
 
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
@@ -785,11 +796,226 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 	return published;
 }
 
+bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data)
+{
+	if (sub.orb_meta == ORB_ID(ekf2_replay)) {
+		struct ekf2_replay_s ekf2_replay;
+		memcpy(&ekf2_replay, data, sub.orb_meta->o_size);
+
+		publishEkf2Topics(ekf2_replay);
+
+		px4_pollfd_struct_t fds[1];
+		fds[0].fd = _vehicle_attitude_sub;
+		fds[0].events = POLLIN;
+		// wait for a response from the estimator
+		int pret = px4_poll(fds, 1, 1000);
+
+		// introduce some breaks to make sure the logger can keep up
+		if (++_topic_counter == 50) {
+			usleep(1000);
+			_topic_counter = 0;
+		}
+
+		if (pret == 0) {
+			PX4_WARN("poll timeout");
+
+		} else if (pret < 0) {
+			PX4_ERR("poll failed (%i)", pret);
+
+		} else {
+			if (fds[0].revents & POLLIN) {
+				vehicle_attitude_s att;
+				// need to to an orb_copy so that poll will not return immediately
+				orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &att);
+			}
+		}
+
+		return true;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)) {
+		return publishTopic(sub, data);
+	} // else: do not publish
+
+	return false;
+}
+
+void ReplayEkf2::publishEkf2Topics(const ekf2_replay_s &ekf2_replay)
+{
+	sensor_combined_s sensors;
+	sensors.timestamp = ekf2_replay.timestamp;
+	sensors.gyro_integral_dt = ekf2_replay.gyro_integral_dt;
+	sensors.accelerometer_integral_dt = ekf2_replay.accelerometer_integral_dt;
+
+	// If the magnetometer timestamp is zero, then there is no valid data
+	if (ekf2_replay.magnetometer_timestamp == 0) {
+		sensors.magnetometer_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	} else {
+		sensors.magnetometer_timestamp_relative = (int32_t)(ekf2_replay.magnetometer_timestamp - sensors.timestamp);
+	}
+
+	// If the barometer timestamp is zero then there is no valid data
+	if (ekf2_replay.baro_timestamp == 0) {
+		sensors.baro_timestamp_relative = (int32_t)sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
+	} else {
+		sensors.baro_timestamp_relative = (int32_t)(ekf2_replay.baro_timestamp - sensors.timestamp);
+	}
+
+	sensors.gyro_rad[0] = ekf2_replay.gyro_rad[0];
+	sensors.gyro_rad[1] = ekf2_replay.gyro_rad[1];
+	sensors.gyro_rad[2] = ekf2_replay.gyro_rad[2];
+	sensors.accelerometer_m_s2[0] = ekf2_replay.accelerometer_m_s2[0];
+	sensors.accelerometer_m_s2[1] = ekf2_replay.accelerometer_m_s2[1];
+	sensors.accelerometer_m_s2[2] = ekf2_replay.accelerometer_m_s2[2];
+	sensors.magnetometer_ga[0] = ekf2_replay.magnetometer_ga[0];
+	sensors.magnetometer_ga[1] = ekf2_replay.magnetometer_ga[1];
+	sensors.magnetometer_ga[2] = ekf2_replay.magnetometer_ga[2];
+	sensors.baro_alt_meter = ekf2_replay.baro_alt_meter;
+
+	if (ekf2_replay.time_usec > 0) {
+		vehicle_gps_position_s gps;
+		gps.timestamp = ekf2_replay.time_usec;
+		gps.lat = ekf2_replay.lat;
+		gps.lon = ekf2_replay.lon;
+		gps.fix_type = ekf2_replay.fix_type;
+		gps.satellites_used = ekf2_replay.nsats;
+		gps.eph = ekf2_replay.eph;
+		gps.epv = ekf2_replay.epv;
+		gps.s_variance_m_s = ekf2_replay.sacc;
+		gps.vel_m_s = ekf2_replay.vel_m_s;
+		gps.vel_n_m_s = ekf2_replay.vel_n_m_s;
+		gps.vel_e_m_s = ekf2_replay.vel_e_m_s;
+		gps.vel_d_m_s = ekf2_replay.vel_d_m_s;
+		gps.vel_ned_valid = ekf2_replay.vel_ned_valid;
+		gps.alt = ekf2_replay.alt;
+
+		if (_gps_pub == nullptr) {
+			_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &gps);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &gps);
+		}
+
+	}
+
+	if (ekf2_replay.flow_timestamp > 0) {
+		optical_flow_s flow;
+		flow.timestamp = ekf2_replay.flow_timestamp;
+		flow.pixel_flow_x_integral = ekf2_replay.flow_pixel_integral[0];
+		flow.pixel_flow_y_integral = ekf2_replay.flow_pixel_integral[1];
+		flow.gyro_x_rate_integral = ekf2_replay.flow_gyro_integral[0];
+		flow.gyro_y_rate_integral = ekf2_replay.flow_gyro_integral[1];
+		flow.integration_timespan = ekf2_replay.flow_time_integral;
+		flow.quality = ekf2_replay.flow_quality;
+
+		if (_flow_pub == nullptr) {
+			_flow_pub = orb_advertise(ORB_ID(optical_flow), &flow);
+
+		} else {
+			orb_publish(ORB_ID(optical_flow), _flow_pub, &flow);
+		}
+	}
+
+	if (ekf2_replay.rng_timestamp > 0) {
+		distance_sensor_s distance_sensor;
+		distance_sensor.timestamp = ekf2_replay.rng_timestamp;
+		distance_sensor.current_distance = ekf2_replay.range_to_ground;
+		distance_sensor.covariance = 0.0f;
+		// magic values
+		distance_sensor.min_distance = 0.05f;
+		distance_sensor.max_distance = 30.0f;
+
+		if (_range_pub == nullptr) {
+			_range_pub = orb_advertise(ORB_ID(distance_sensor), &distance_sensor);
+
+		} else {
+			orb_publish(ORB_ID(distance_sensor), _range_pub, &distance_sensor);
+		}
+	}
+
+	if (ekf2_replay.asp_timestamp > 0) {
+		airspeed_s airspeed;
+		airspeed.timestamp = ekf2_replay.asp_timestamp;
+		airspeed.indicated_airspeed_m_s = ekf2_replay.indicated_airspeed_m_s;
+		airspeed.true_airspeed_m_s = ekf2_replay.true_airspeed_m_s;
+
+		if (_airspeed_pub == nullptr) {
+			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &airspeed);
+
+		} else {
+			orb_publish(ORB_ID(airspeed), _airspeed_pub, &airspeed);
+		}
+	}
+
+	if (ekf2_replay.ev_timestamp > 0) {
+		vehicle_local_position_s vehicle_vision_position{};
+		vehicle_attitude_s vehicle_vision_attitude{};
+		vehicle_vision_attitude.timestamp = ekf2_replay.ev_timestamp;
+		vehicle_vision_position.timestamp = ekf2_replay.ev_timestamp;
+		vehicle_vision_position.x = ekf2_replay.pos_ev[0];
+		vehicle_vision_position.y = ekf2_replay.pos_ev[1];
+		vehicle_vision_position.z = ekf2_replay.pos_ev[2];
+		vehicle_vision_attitude.q[0] = ekf2_replay.quat_ev[0];
+		vehicle_vision_attitude.q[1] = ekf2_replay.quat_ev[1];
+		vehicle_vision_attitude.q[2] = ekf2_replay.quat_ev[2];
+		vehicle_vision_attitude.q[3] = ekf2_replay.quat_ev[3];
+
+		if (_vehicle_vision_attitude_pub == nullptr) {
+			_vehicle_vision_attitude_pub = orb_advertise(ORB_ID(vehicle_vision_attitude), &vehicle_vision_attitude);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_vision_attitude), _vehicle_vision_attitude_pub, &vehicle_vision_attitude);
+		}
+
+		if (_vehicle_vision_position_pub == nullptr) {
+			_vehicle_vision_position_pub = orb_advertise(ORB_ID(vehicle_vision_position), &vehicle_vision_position);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_vision_position), _vehicle_vision_position_pub, &vehicle_vision_position);
+		}
+	}
+
+	// publish this last, since ekf2 is polling on this
+	if (_sensors_pub == nullptr) {
+		_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &sensors);
+
+	} else {
+		orb_publish(ORB_ID(sensor_combined), _sensors_pub, &sensors);
+	}
+
+}
+
+
+void ReplayEkf2::onEnterMainLoop()
+{
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+}
+
+void ReplayEkf2::onExitMainLoop()
+{
+	orb_unsubscribe(_vehicle_attitude_sub);
+	_vehicle_attitude_sub = -1;
+}
+
+uint64_t ReplayEkf2::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
+{
+	// no need for usleep
+	return next_file_time;
 }
 
 void Replay::task_main_trampoline(int argc, char *argv[])
 {
-	replay::instance = new Replay();
+	// check the replay mode
+	const char *replay_mode = getenv(replay::ENV_MODE);
+
+	if (replay_mode && strcmp(replay_mode, "ekf2") == 0) {
+		PX4_INFO("Ekf2 replay mode");
+		replay::instance = new ReplayEkf2();
+
+	} else {
+		replay::instance = new Replay();
+	}
 
 	if (replay::instance == nullptr) {
 		PX4_ERR("alloc failed");
