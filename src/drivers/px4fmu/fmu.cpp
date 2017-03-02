@@ -1737,6 +1737,7 @@ PX4FMU::task_main()
 
 void PX4FMU::work_stop()
 {
+	work_cancel(HPWORK, &_work);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
