@@ -151,8 +151,18 @@ void Ekf::predictCovariance()
 	// convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
 	float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
 
-	// convert rate of change of acceerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
+	// convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
 	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
+
+	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities
+	float alpha = 1.0f - math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
+	_ang_rate_mag_filt = fmax(_imu_sample_delayed.delta_ang.norm(), alpha * _ang_rate_mag_filt);
+	_accel_mag_filt = fmax(_imu_sample_delayed.delta_vel.norm(), alpha * _accel_mag_filt);
+	if (_ang_rate_mag_filt > dt * _params.acc_bias_learn_gyr_lim || _accel_mag_filt > dt * _params.acc_bias_learn_acc_lim) {
+		_accel_bias_inhibit = true;
+	} else {
+		_accel_bias_inhibit = false;
+	}
 
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	float mag_I_sig;
@@ -371,7 +381,7 @@ void Ekf::predictCovariance()
 	}
 
 	// Don't calculate these covariance terms if IMU delta vlocity bias estimation is inhibited
-	if (!(_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)) {
+	if (!(_params.fusion_mode & MASK_INHIBIT_ACC_BIAS) && !_accel_bias_inhibit) {
 
 		// calculate variances and upper diagonal covariances for IMU delta velocity bias states
 		nextP[0][13] = P[0][13] + P[1][13]*SF[9] + P[2][13]*SF[11] + P[3][13]*SF[10] + P[10][13]*SF[14] + P[11][13]*SF[15] + P[12][13]*SPP[10];
@@ -424,6 +434,13 @@ void Ekf::predictCovariance()
 		for (unsigned i = 13; i <= 15; i++) {
 			nextP[i][i] += process_noise[i];
 		}
+
+	} else {
+		zeroRows(nextP,13,15);
+		zeroCols(nextP,13,15);
+		nextP[13][13] = P[14][14];
+		nextP[14][14] = P[15][15];
+		nextP[15][15] = P[15][15];
 
 	}
 

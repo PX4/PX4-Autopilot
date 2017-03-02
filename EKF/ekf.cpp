@@ -196,6 +196,9 @@ bool Ekf::init(uint64_t timestamp)
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
+	_accel_mag_filt = 0.0f;
+	_ang_rate_mag_filt = 0.0f;
+
 	return ret;
 }
 

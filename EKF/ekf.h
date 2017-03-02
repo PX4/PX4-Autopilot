@@ -321,6 +321,11 @@ private:
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
+	// variables used to inhibit accel bias learning
+	bool _accel_bias_inhibit;	// true when the accel bias learning is being inhibited
+	float _accel_mag_filt;		// acceleration magnitude after application of a decaying envelope filter (m/sec**2)
+	float _ang_rate_mag_filt;	// angular rate magnitude after application of a decaying envelope filter (rad/sec)
+
 	// Terrain height state estimation
 	float _terrain_vpos;		// estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
 	float _terrain_var;		// variance of terrain position estimate (m^2)

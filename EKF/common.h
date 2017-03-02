@@ -269,8 +269,11 @@ struct parameters {
 	float vel_Tau;	// velocity state correction time constant (1/sec)
 	float pos_Tau;	// postion state correction time constant (1/sec)
 
-	// state limits
-	float acc_bias_lim;	// maximum accel bias magnitude (m/s/s)
+	// accel bias learning control
+	float acc_bias_lim;		// maximum accel bias magnitude (m/s/s)
+	float acc_bias_learn_acc_lim;	// learning is disabled if the magnitude of the IMU acceleration vector is greeater than this (m/sec**2)
+	float acc_bias_learn_gyr_lim;	// learning is disabled if the magnitude of the IMU angular rate vector is greeater than this (rad/sec)
+	float acc_bias_learn_tc;	// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	unsigned no_gps_timeout_max;	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
 									// rejected
@@ -376,8 +379,11 @@ struct parameters {
 		vel_Tau = 0.25f;
 		pos_Tau = 0.25f;
 
-		// state limiting
+		// accel bias state limiting
 		acc_bias_lim = 0.4f;
+		acc_bias_learn_acc_lim = 25.0f;
+		acc_bias_learn_gyr_lim = 3.0f;
+		acc_bias_learn_tc = 0.5f;
 
 		no_gps_timeout_max = 7e6;	// maximum seven seconds of dead reckoning time for gps
 
