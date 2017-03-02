@@ -83,6 +83,12 @@ usage(const char *reason)
 		"arm\t\t\t\tArm output\n"
 		"disarm\t\t\t\tDisarm output\n"
 		"\n"
+		"oneshot ...\t\t\tConfigure Onshot\n"
+		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
+		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
+		"\t[-a]\t\t\tConfigure all outputs\n"
+		"\t-t <pulse>\t\tOneshot duration (1 to 65535 125nS)\n"
+		"\n"
 		"rate ...\t\t\tConfigure PWM rates\n"
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
 		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
@@ -169,6 +175,7 @@ pwm_main(int argc, char *argv[])
 	bool alt_channels_set = false;
 	bool print_verbose = false;
 	bool error_on_warn = false;
+	bool oneshot = false;
 	int ch;
 	int ret;
 	char *ep;
@@ -302,6 +309,8 @@ pwm_main(int argc, char *argv[])
 		return error_on_warn;
 	}
 
+	oneshot = !strcmp(command, "oneshot");
+
 	if (!strcmp(command, "arm")) {
 		/* tell safety that its ok to disable it with the switch */
 		ret = px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
@@ -337,18 +346,17 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(command, "rate")) {
+	} else if (oneshot || !strcmp(command, "rate")) {
 
-		/* change alternate PWM rate */
-//		if (alt_rate > 0) {
-		ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+		/* change alternate PWM rate or set oneshot */
+		if (oneshot || alt_rate > 0) {
+			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
-		if (ret != OK) {
-			PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
-			return error_on_warn;
+			if (ret != OK) {
+				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+				return error_on_warn;
+			}
 		}
-
-//		}
 
 		/* directly supplied channel mask */
 		if (set_mask > 0) {
@@ -632,7 +640,6 @@ pwm_main(int argc, char *argv[])
 		PX4_INFO("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
-
 			for (unsigned i = 0; i < servo_count; i++) {
 				if (set_mask & 1 << i) {
 					ret = px4_ioctl(fd, PWM_SERVO_SET(i), pwm_value);
@@ -670,7 +677,15 @@ pwm_main(int argc, char *argv[])
 				}
 			}
 
-			usleep(2500);
+			/* Delay longer than the max Oneshot duration */
+
+			usleep(2542);
+
+			/* Trigger all timer's channels in Oneshot mode to fire
+			 * the oneshots with updated values.
+			 */
+
+			up_pwm_update();
 		}
 
 		return 0;
