@@ -112,6 +112,19 @@ static dm_operations_t dm_ram_operations = {
 
 static dm_operations_t *g_dm_ops = &dm_file_operations;
 
+static struct {
+	union {
+		struct {
+			int fd;
+		} file;
+		struct {
+			uint8_t *data;
+			uint8_t *data_end;
+		} ram;
+	};
+	bool running;
+} dm_operations_data;
+
 /** Types of function calls supported by the worker task */
 typedef enum {
 	dm_write_func = 0,
@@ -175,18 +188,12 @@ static px4_sem_t *g_item_locks[DM_KEY_NUM_KEYS];
 static px4_sem_t g_sys_state_mutex;
 
 /* The data manager store file handle and file name */
-static int g_fd = -1;
-static int g_task_fd = -1;
 #if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
 #else
 static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
 #endif
 static char *k_data_manager_device_path = NULL;
-static uint8_t *g_data = NULL;
-static uint8_t *g_task_data = NULL;
-static uint8_t *g_task_data_end = NULL;
-static bool g_on_disk = true;
 
 /* The data manager work queues */
 
@@ -347,8 +354,9 @@ enqueue_work_item_and_wait_for_result(work_q_item_t *item)
 
 static bool is_running(void)
 {
-	return (g_on_disk ?  g_fd != -1 : g_data != NULL);
+	return dm_operations_data.running;
 }
+
 /* Calculate the offset in file of specific item */
 static int
 calculate_offset(dm_item_t item, unsigned index)
@@ -397,9 +405,9 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 		return -E2BIG;
 	}
 
-	uint8_t *buffer = &g_task_data[offset];
+	uint8_t *buffer = &dm_operations_data.ram.data[offset];
 
-	if (buffer > g_task_data_end) {
+	if (buffer > dm_operations_data.ram.data_end) {
 		return -1;
 	}
 
@@ -453,9 +461,9 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 	len = -1;
 
 	/* Seek to the right spot in the data manager file and write the data item */
-	if (lseek(g_task_fd, offset, SEEK_SET) == offset) {
-		if ((len = write(g_task_fd, buffer, count)) == count) {
-			fsync(g_task_fd);        /* Make sure data is written to physical media */
+	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
+		if ((len = write(dm_operations_data.file.fd, buffer, count)) == count) {
+			fsync(dm_operations_data.file.fd);        /* Make sure data is written to physical media */
 		}
 	}
 
@@ -486,9 +494,9 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 
 	/* Read the prefix and data */
 
-	uint8_t *buffer = &g_task_data[offset];
+	uint8_t *buffer = &dm_operations_data.ram.data[offset];
 
-	if (buffer > g_task_data_end) {
+	if (buffer > dm_operations_data.ram.data_end) {
 		return -1;
 	}
 
@@ -530,8 +538,8 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	/* Read the prefix and data */
 	len = -1;
 
-	if (lseek(g_task_fd, offset, SEEK_SET) == offset) {
-		len = read(g_task_fd, buffer, count + DM_SECTOR_HDR_SIZE);
+	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
+		len = read(dm_operations_data.file.fd, buffer, count + DM_SECTOR_HDR_SIZE);
 	}
 
 	/* Check for read error */
@@ -574,9 +582,9 @@ static int  _ram_clear(dm_item_t item)
 
 	/* Clear all items of this type */
 	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
-		uint8_t *buf = &g_task_data[offset];
+		uint8_t *buf = &dm_operations_data.ram.data[offset];
 
-		if (buf > g_task_data_end) {
+		if (buf > dm_operations_data.ram.data_end) {
 			result = -1;
 			break;
 		}
@@ -605,26 +613,26 @@ _file_clear(dm_item_t item)
 	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		char buf[1];
 
-		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
+		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 			result = -1;
 			break;
 		}
 
 		/* Avoid SD flash wear by only doing writes where necessary */
-		if (read(g_task_fd, buf, 1) < 1) {
+		if (read(dm_operations_data.file.fd, buf, 1) < 1) {
 			break;
 		}
 
 		/* If item has length greater than 0 it needs to be overwritten */
 		if (buf[0]) {
-			if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
+			if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 				result = -1;
 				break;
 			}
 
 			buf[0] = 0;
 
-			if (write(g_task_fd, buf, 1) != 1) {
+			if (write(dm_operations_data.file.fd, buf, 1) != 1) {
 				result = -1;
 				break;
 			}
@@ -634,7 +642,7 @@ _file_clear(dm_item_t item)
 	}
 
 	/* Make sure data is actually written to physical media */
-	fsync(g_task_fd);
+	fsync(dm_operations_data.file.fd);
 	return result;
 }
 
@@ -651,9 +659,9 @@ static int  _ram_restart(dm_reset_reason reason)
 	while (1) {
 
 		/* Get data segment at current offset */
-		uint8_t *buffer = &g_task_data[offset];
+		uint8_t *buffer = &dm_operations_data.ram.data[offset];
 
-		if (buffer >= g_task_data_end) {
+		if (buffer >= dm_operations_data.ram.data_end) {
 			break;
 		}
 
@@ -699,12 +707,12 @@ _file_restart(dm_reset_reason reason)
 		size_t len;
 
 		/* Get data segment at current offset */
-		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
+		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 			/* must be at eof */
 			break;
 		}
 
-		len = read(g_task_fd, buffer, sizeof(buffer));
+		len = read(dm_operations_data.file.fd, buffer, sizeof(buffer));
 
 		if (len != sizeof(buffer)) {
 			/* must be at eof */
@@ -729,14 +737,14 @@ _file_restart(dm_reset_reason reason)
 
 			/* Set segment to unused if data does not persist */
 			if (clear_entry) {
-				if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
+				if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 					result = -1;
 					break;
 				}
 
 				buffer[0] = 0;
 
-				len = write(g_task_fd, buffer, 1);
+				len = write(dm_operations_data.file.fd, buffer, 1);
 
 				if (len != 1) {
 					result = -1;
@@ -748,7 +756,7 @@ _file_restart(dm_reset_reason reason)
 		offset += k_sector_size;
 	}
 
-	fsync(g_task_fd);
+	fsync(dm_operations_data.file.fd);
 
 	/* tell the caller how it went */
 	return result;
@@ -894,7 +902,7 @@ task_main(int argc, char *argv[])
 {
 	/* Dataman can use disk or RAM */
 
-	bool on_disk = k_data_manager_device_path != NULL;
+	const bool on_disk = k_data_manager_device_path != NULL;
 
 	work_q_item_t *work;
 
@@ -934,22 +942,22 @@ task_main(int argc, char *argv[])
 	if (!on_disk) {
 
 		/* In memory */
-		g_task_data = malloc(max_offset);
+		dm_operations_data.ram.data = malloc(max_offset);
 
-		if (g_task_data == NULL) {
+		if (dm_operations_data.ram.data == NULL) {
 			PX4_WARN("Could not allocate %d bytes of memory", max_offset);
 			px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 			return -1;
 		}
 
-		memset(g_task_data, 0, max_offset);
-		g_task_data_end = &g_task_data[max_offset - 1];
+		memset(dm_operations_data.ram.data, 0, max_offset);
+		dm_operations_data.ram.data_end = &dm_operations_data.ram.data[max_offset - 1];
 
 	} else {
 		/* See if the data manage file exists and is a multiple of the sector size */
-		g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+		dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
 
-		if (g_task_fd >= 0) {
+		if (dm_operations_data.file.fd >= 0) {
 			// Read the mission state and check the hash
 			struct dataman_compat_s compat_state;
 			int ret = g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
@@ -962,7 +970,7 @@ task_main(int argc, char *argv[])
 				}
 			}
 
-			close(g_task_fd);
+			close(dm_operations_data.file.fd);
 
 			if (incompat) {
 				unlink(k_data_manager_device_path);
@@ -970,16 +978,16 @@ task_main(int argc, char *argv[])
 		}
 
 		/* Open or create the data manager file */
-		g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
+		dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
 
-		if (g_task_fd < 0) {
+		if (dm_operations_data.file.fd < 0) {
 			PX4_WARN("Could not open data manager file %s", k_data_manager_device_path);
 			px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 			return -1;
 		}
 
-		if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
-			close(g_task_fd);
+		if ((unsigned)lseek(dm_operations_data.file.fd, max_offset, SEEK_SET) != max_offset) {
+			close(dm_operations_data.file.fd);
 			PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
 			px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 			return -1;
@@ -994,10 +1002,11 @@ task_main(int argc, char *argv[])
 			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
-		fsync(g_task_fd);
+		fsync(dm_operations_data.file.fd);
 	}
 
 	g_dm_ops = on_disk ? &dm_file_operations : &dm_ram_operations;
+	dm_operations_data.running = true;
 
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
@@ -1015,22 +1024,11 @@ task_main(int argc, char *argv[])
 		}
 	}
 
-	/* We use two file descriptors or memory pointers, one for the caller context and one for the worker thread */
-	/* They are actually the same but we need to some way to reject caller request while the */
-	/* worker thread is shutting down but still processing requests */
-
-	g_fd = g_task_fd;
-	g_data = g_task_data;
-	/* g_on_disk defaults to true
-	 * Now qualify is_running based on storages
-	 */
-	g_on_disk = on_disk;
-
-	if (g_on_disk && sys_restart_val != DM_INIT_REASON_POWER_ON) {
+	if (on_disk && sys_restart_val != DM_INIT_REASON_POWER_ON) {
 		PX4_INFO("%s, data manager file '%s' size is %d bytes",
 			 restart_type_str, k_data_manager_device_path, max_offset);
 
-	} else if (!g_on_disk) {
+	} else if (!on_disk) {
 		PX4_INFO("%s, data manager RAM size is %d bytes",
 			 restart_type_str, max_offset);
 	}
@@ -1045,20 +1043,6 @@ task_main(int argc, char *argv[])
 		if (!g_task_should_exit) {
 			/* wait for work */
 			px4_sem_wait(&g_work_queued_sema);
-
-		} else {
-			if (g_on_disk) {
-				/* Mark the file handle  closed the to stop further queuing */
-				if (g_fd >= 0) {
-					g_fd = -1;
-				}
-
-			} else {
-				/* Mark the memory freed the to stop further queuing */
-				if (g_data) {
-					g_data = NULL;
-				}
-			}
 		}
 
 		/* Empty the work queue */
@@ -1100,23 +1084,19 @@ task_main(int argc, char *argv[])
 		}
 
 		/* time to go???? */
-		if ((g_task_should_exit) && !is_running()) {
+		if (g_task_should_exit) {
 			break;
 		}
 	}
 
+	dm_operations_data.running = false;
+
 	if (on_disk) {
-		close(g_task_fd);
+		close(dm_operations_data.file.fd);
 
 	} else {
-		free(g_task_data);
+		free(dm_operations_data.ram.data);
 	}
-
-	g_task_data = NULL;
-	g_task_data_end = NULL;
-	g_task_fd = -1;
-	/* revert back to qualifying is_running based on disk */
-	g_on_disk = true;
 
 	/* The work queue is now empty, empty the free queue */
 	for (;;) {
