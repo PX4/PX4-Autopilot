@@ -38,6 +38,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -461,7 +462,7 @@ PX4FMU::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		/* lets not be too verbose */
 	} else if (_class_instance < 0) {
-		warnx("FAILED registering class device");
+		PX4_ERR("FAILED registering class device");
 	}
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
@@ -1014,7 +1015,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count_local,
 #ifdef RC_SERIAL_PORT
 void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 {
-//    warnx("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
+//    PX4_WARN("RCscan: %s failed, trying %s", PX4FMU::RC_SCAN_STRING[_rc_scan_state], PX4FMU::RC_SCAN_STRING[newState]);
 	_rc_scan_begin = 0;
 	_rc_scan_state = newState;
 }
@@ -1158,7 +1159,7 @@ PX4FMU::cycle()
 
 		} else if (ret == 0) {
 			/* timeout: no control data, switch to failsafe values */
-			//			warnx("no PWM: failsafe");
+			//			PX4_WARN("no PWM: failsafe");
 
 		} else {
 			perf_begin(_ctl_latency);
@@ -1505,7 +1506,7 @@ PX4FMU::cycle()
 
 		if (_report_lock && _rc_scan_locked) {
 			_report_lock = false;
-			//warnx("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+			//PX4_WARN("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
 
 		// read all available data from the serial RC input UART
@@ -2899,18 +2900,18 @@ PX4FMU::dsm_bind_ioctl(int dsmMode)
 {
 	if (!_armed.armed) {
 //      mavlink_log_info(&_mavlink_log_pub, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		warnx("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		PX4_INFO("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
 		int ret = ioctl(nullptr, DSM_BIND_START,
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
 		if (ret) {
 //            mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
-			warnx("binding failed.");
+			PX4_ERR("binding failed.");
 		}
 
 	} else {
 //        mavlink_log_info(&_mavlink_log_pub, "[FMU] system armed, bind request rejected");
-		warnx("[FMU] system armed, bind request rejected");
+		PX4_WARN("[FMU] system armed, bind request rejected");
 	}
 }
 
@@ -3136,7 +3137,7 @@ sensor_reset(int ms)
 	}
 
 	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0) {
-		warnx("sensor rail reset failed");
+		PX4_ERR("sensor rail reset failed");
 	}
 
 	close(fd);
@@ -3154,7 +3155,7 @@ peripheral_reset(int ms)
 	}
 
 	if (ioctl(fd, GPIO_PERIPHERAL_RAIL_RESET, ms) < 0) {
-		warnx("peripheral rail reset failed");
+		PX4_ERR("peripheral rail reset failed");
 	}
 
 	close(fd);
@@ -3191,7 +3192,7 @@ test(void)
 		fprintf(stdout, "Not in a capture mode\n");
 	}
 
-	warnx("Testing %u servos and %u input captures", (unsigned)servo_count, capture_count);
+	PX4_INFO("Testing %u servos and %u input captures", (unsigned)servo_count, capture_count);
 	memset(capture_conf, 0, sizeof(capture_conf));
 
 	if (capture_count != 0) {
@@ -3225,7 +3226,7 @@ test(void)
 
 	fds.events = POLLIN;
 
-	warnx("Press CTRL-C or 'c' to abort.");
+	PX4_INFO("Press CTRL-C or 'c' to abort.");
 
 	for (;;) {
 		/* sweep all servos between 1000..2000 */
@@ -3314,7 +3315,7 @@ test(void)
 			read(0, &c, 1);
 
 			if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("User abort\n");
+				PX4_INFO("User abort\n");
 				break;
 			}
 		}
@@ -3410,7 +3411,7 @@ fmu_main(int argc, char *argv[])
 			exit(0);
 
 		} else {
-			warnx("i2c cmd args: <bus id> <clock Hz>");
+			PX4_WARN("i2c cmd args: <bus id> <clock Hz>");
 		}
 	}
 
@@ -3502,7 +3503,7 @@ fmu_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "info")) {
 #ifdef RC_SERIAL_PORT
-		warnx("frame drops: %u", sbus_dropped_frames());
+		PX4_WARN("frame drops: %u", sbus_dropped_frames());
 #endif
 		return 0;
 	}
@@ -3518,7 +3519,7 @@ fmu_main(int argc, char *argv[])
 
 		} else {
 			sensor_reset(0);
-			warnx("resettet default time");
+			PX4_INFO("reseted default time");
 		}
 
 		// When we are done resetting, we should clean up the fmu drivers if they
@@ -3538,7 +3539,7 @@ fmu_main(int argc, char *argv[])
 
 		} else {
 			peripheral_reset(0);
-			warnx("resettet default time");
+			PX4_INFO("reseted default time");
 		}
 
 		// When we are done resetting, we should clean up the fmu drivers if they
