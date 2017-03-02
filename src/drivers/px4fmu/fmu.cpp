@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -701,10 +701,31 @@ PX4FMU::set_mode(Mode mode)
 	return OK;
 }
 
-/* This routine is called from two IOCTLs: PWM_SERVO_SET_UPDATE_RATE and PWM_SERVO_SET_SELECT_UPDATE_RATE
- * In the first case, it is intended to set the "alternate" PWM rate, which may be [25,400]Hz.
- * In the second case, it specifies which channels are set at the alternate rate, with all others
- * implicitly set to the default rate.
+/* When set_pwm_rate is called from either of the 2 IOCTLs:
+ *
+ * PWM_SERVO_SET_UPDATE_RATE        - Sets the "alternate" channel's rate to the callers's rate specified
+ *                                    and the non "alternate" channels to the _pwm_default_rate.
+ *
+ *                                    rate_map     = _pwm_alt_rate_channels
+ *                                    default_rate = _pwm_default_rate
+ *                                    alt_rate     = arg of IOCTL (see rates)
+ *
+ * PWM_SERVO_SET_SELECT_UPDATE_RATE - The caller's specified rate map selects the "alternate" channels
+ *                                    to be set to the alt rate. (_pwm_alt_rate)
+ *                                    All other channels are set to the default rate. (_pwm_default_rate)
+ *
+ *                                    rate_map     = arg of IOCTL
+ *                                    default_rate = _pwm_default_rate
+ *                                    alt_rate     = _pwm_alt_rate
+
+ *  rate_map                        - A mask of 1's for the channels to be set to the
+ *                                    alternate rate.
+ *                                    N.B. All channels is a given group must be set
+ *                                    to the same rate/mode. (default or alt)
+ * rates:
+ *   alt_rate, default_rate           For PWM is 25 or 400Hz
+ *                                    For Oneshot there is no rate, 0 is therefore used
+ *                                    to  select Oneshot mode
  */
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
@@ -712,6 +733,21 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 	PX4_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
+
+		/* We should note that group is iterated over from 0 to _max_actuators.
+		 * This allows for the ideal worlds situation: 1 channel per group
+		 * configuration.
+		 *
+		 * This is typically not what HW supports. A group represents a timer
+		 * and channels belongs to a timer.
+		 * Therefore all channels in a group are dependent on the timer's
+		 * common settings and can not be independent in terms of count frequency
+		 * (granularity of pulse width) and rate (period of repetition).
+		 *
+		 * To say it another way, all channels in a group moust have the same
+		 * rate and mode. (See rates above.)
+		 */
+
 		for (unsigned group = 0; group < _max_actuators; group++) {
 
 			// get the channel mask for this rate group
