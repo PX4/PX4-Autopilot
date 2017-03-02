@@ -72,6 +72,10 @@
 #  define BOARD_TAP_ESC_NO_VERIFY_CONFIG 0
 #endif
 
+#if !defined(BOARD_TAP_ESC_MODE)
+#  define BOARD_TAP_ESC_MODE 0
+#endif
+
 /*
  * This driver connects to TAP ESCs via serial.
  */
@@ -251,6 +255,8 @@ TAP_ESC::init()
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
 	config.maxChannelInUse = _channels_count;
+	/* Enable closed-loop control if supported by the board */
+	config.controlMode = BOARD_TAP_ESC_MODE;
 
 	/* Asign the id's to the ESCs to match the mux */
 
