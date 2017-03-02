@@ -161,6 +161,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -201,6 +202,9 @@ set(config_module_list
 
 	# EKF
 	examples/ekf_att_pos_estimator
+	
+	# micro-RTPS
+    #examples/micrortps_transmitter
 )
 
 set(config_extra_builtin_cmds
