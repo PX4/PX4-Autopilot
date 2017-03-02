@@ -1,0 +1,52 @@
+@###############################################
+@#
+@# ROS message to IDL converter
+@#
+@# EmPy template for generating <msg>.idl files
+@#
+@###############################################
+@{
+import genmsg.msgs
+import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
+
+uorb_struct = '%s_s'%spec.short_name
+topic_name = spec.short_name
+
+sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
+topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
+}@
+@#################################################
+@# Searching for serialize function per each field
+@#################################################
+@{
+
+def get_idl_type_name(field_type):
+    if field_type in type_idl_map:
+        return type_idl_map[field_type]
+    else:
+        (package, name) = genmsg.names.package_resource_name(field_type)
+        return name
+
+def add_msg_field(field):
+    if (not field.is_header):
+        if (not field.is_array):
+            print '\t' + str(get_idl_type_name(field.type)) + ' ' + field.name + ';'
+        else:
+            print '\t' + str(get_idl_type_name(field.base_type)) + ' ' + field.name + '[' +str(field.array_len)+ '];'
+
+def add_msg_fields():
+    # sort fields (using a stable sort) as in the declaration of the type
+    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+    for field in sorted_fields:
+        add_msg_field(field)
+
+        
+}@
+@
+struct @(spec.short_name)_
+{
+    unsigned long long timestamp;
+@add_msg_fields()
+}; // struct @(spec.short_name)_
