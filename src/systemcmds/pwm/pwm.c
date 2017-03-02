@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,9 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_getopt.h>
+#include <px4_defines.h>
+#include <px4_log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -181,17 +184,20 @@ pwm_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = getopt(argc - 1, &argv[1], "d:vec:g:m:ap:r:")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "d:vec:g:m:ap:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'd':
-			if (NULL == strstr(optarg, "/dev/")) {
-				warnx("device %s not valid", optarg);
+			if (NULL == strstr(myoptarg, "/dev/")) {
+				warnx("device %s not valid", myoptarg);
 				usage(NULL);
 				return 1;
 			}
 
-			dev = optarg;
+			dev = myoptarg;
 			break;
 
 		case 'v':
@@ -204,7 +210,7 @@ pwm_main(int argc, char *argv[])
 
 		case 'c':
 			/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
-			channels = strtoul(optarg, &ep, 0);
+			channels = strtoul(myoptarg, &ep, 0);
 
 			while ((single_ch = channels % 10)) {
 
@@ -215,7 +221,7 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'g':
-			group = strtoul(optarg, &ep, 0);
+			group = strtoul(myoptarg, &ep, 0);
 
 			if ((*ep != '\0') || (group >= 32)) {
 				usage("bad channel_group value");
@@ -229,7 +235,7 @@ pwm_main(int argc, char *argv[])
 
 		case 'm':
 			/* Read in mask directly */
-			set_mask = strtoul(optarg, &ep, 0);
+			set_mask = strtoul(myoptarg, &ep, 0);
 
 			if (*ep != '\0') {
 				usage("BAD set_mask VAL");
@@ -246,18 +252,26 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			pwm_value = get_parameter_value(optarg, "PWM Value");
+			pwm_value = get_parameter_value(myoptarg, "PWM Value");
 			break;
 
 		case 'r':
-			alt_rate = get_parameter_value(optarg, "PWM Rate");
+			alt_rate = get_parameter_value(myoptarg, "PWM Rate");
 
 			break;
 
 		default:
-			break;
+			usage(NULL);
+			return 1;
 		}
 	}
+
+	if (myoptind >= argc) {
+		usage(NULL);
+		return 1;
+	}
+
+	const char *command = argv[myoptind];
 
 	if (print_verbose && set_mask > 0) {
 		warnx("Channels: ");
@@ -289,7 +303,7 @@ pwm_main(int argc, char *argv[])
 		return error_on_warn;
 	}
 
-	if (!strcmp(argv[1], "arm")) {
+	if (!strcmp(command, "arm")) {
 		/* tell safety that its ok to disable it with the switch */
 		ret = px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 
@@ -310,7 +324,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "disarm")) {
+	} else if (!strcmp(command, "disarm")) {
 		/* disarm, but do not revoke the SET_ARM_OK flag */
 		ret = px4_ioctl(fd, PWM_SERVO_DISARM, 0);
 
@@ -324,11 +338,11 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "rate")) {
+	} else if (!strcmp(command, "rate")) {
 
 		/* change alternate PWM rate */
 //		if (alt_rate > 0) {
-			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+		ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 
 		if (ret != OK) {
 			PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
@@ -376,7 +390,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "min")) {
+	} else if (!strcmp(command, "min")) {
 
 		if (set_mask == 0) {
 			usage("min: no channels set");
@@ -428,7 +442,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "max")) {
+	} else if (!strcmp(command, "max")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -480,7 +494,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "disarmed")) {
+	} else if (!strcmp(command, "disarmed")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -531,7 +545,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "failsafe")) {
+	} else if (!strcmp(command, "failsafe")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -583,7 +597,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "test")) {
+	} else if (!strcmp(command, "test")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -663,7 +677,7 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 
-	} else if (!strcmp(argv[1], "steps")) {
+	} else if (!strcmp(command, "steps")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -785,7 +799,7 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 
-	} else if (!strcmp(argv[1], "info")) {
+	} else if (!strcmp(command, "info")) {
 
 		printf("device: %s\n", dev);
 
@@ -910,7 +924,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "forcefail")) {
+	} else if (!strcmp(command, "forcefail")) {
 
 		if (argc < 3) {
 			PX4_ERR("arg missing [on|off]");
@@ -934,7 +948,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "terminatefail")) {
+	} else if (!strcmp(command, "terminatefail")) {
 
 		if (argc < 3) {
 			PX4_ERR("arg missing [on|off]");
