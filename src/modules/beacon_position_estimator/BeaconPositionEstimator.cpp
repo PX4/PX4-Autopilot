@@ -128,7 +128,7 @@ void BeaconPositionEstimator::_cycle()
 			   && _vehicleLocalPosition_last_valid
 			   && _vehicleLocalPosition.v_xy_valid
 			   && _vehicleLocalPosition_last.v_xy_valid) {
-			double dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 			// predict beacon position with the help of accel data
 			matrix::Vector3f a;
@@ -170,7 +170,7 @@ void BeaconPositionEstimator::_cycle()
 		_R_att = matrix::Dcm<float>(q_att);
 		sensor_ray = _R_att * sensor_ray;
 
-		if (std::abs(sensor_ray(2)) < 1e-6) {
+		if (fabs(sensor_ray(2)) < 1e-6) {
 			PX4_WARN("z component of measurement unsafe: %f %f %f", (double)sensor_ray(0), (double)sensor_ray(1),
 				 (double)sensor_ray(2));
 
@@ -194,7 +194,7 @@ void BeaconPositionEstimator::_cycle()
 				_kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 
 				_beacon_position.timestamp = hrt_absolute_time();
-				double x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+				float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
 				_kalman_filter_x.getState(x, xvel);
 				_kalman_filter_x.getCovariance(covx, covx_v);
 

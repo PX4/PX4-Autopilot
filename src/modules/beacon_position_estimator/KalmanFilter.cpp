@@ -53,7 +53,7 @@ void KalmanFilter::init(matrix::Vector<float, 2> initial, matrix::Matrix<float, 
 	_covariance = covInit;
 }
 
-void KalmanFilter::init(double initial0, double initial1, double covInit00, double covInit11)
+void KalmanFilter::init(float initial0, float initial1, float covInit00, float covInit11)
 {
 	matrix::Vector<float, 2> initial;
 	initial(0) = initial0;
@@ -65,7 +65,7 @@ void KalmanFilter::init(double initial0, double initial1, double covInit00, doub
 	init(initial, covInit);
 }
 
-void KalmanFilter::predict(double dt, double acc, double acc_unc)
+void KalmanFilter::predict(float dt, float acc, float acc_unc)
 {
 	_x(0) += _x(1) * dt + dt * dt / 2 * acc;
 	_x(1) += acc * dt;
@@ -84,14 +84,14 @@ void KalmanFilter::predict(double dt, double acc, double acc_unc)
 	_covariance = A * _covariance * A.transpose() + process_noise;
 }
 
-void KalmanFilter::update(double meas, double measUnc)
+void KalmanFilter::update(float meas, float measUnc)
 {
 
 	// Implicitly take H = [1, 0]
-	double residual = meas - _x(0);
+	float residual = meas - _x(0);
 
 	// H * P * H^T simply selects P(0,0)
-	double innovCovar = _covariance(0, 0) + measUnc;
+	float innovCovar = _covariance(0, 0) + measUnc;
 
 	// TODO outlier rejection
 
@@ -118,7 +118,7 @@ void KalmanFilter::getState(matrix::Vector<float, 2> &state)
 	state = _x;
 }
 
-void KalmanFilter::getState(double &state0, double &state1)
+void KalmanFilter::getState(float &state0, float &state1)
 {
 	state0 = _x(0);
 	state1 = _x(1);
@@ -129,7 +129,7 @@ void KalmanFilter::getCovariance(matrix::Matrix<float, 2, 2> &covariance)
 	covariance = _covariance;
 }
 
-void KalmanFilter::getCovariance(double &cov00, double &cov11)
+void KalmanFilter::getCovariance(float &cov00, float &cov11)
 {
 	cov00 = _covariance(0, 0);
 	cov11 = _covariance(1, 1);

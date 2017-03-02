@@ -86,7 +86,7 @@ public:
 	 * @param covInit00 initial variance of first state
 	 * @param covinit11 initial variance of second state
 	 */
-	void init(double initial0, double initial1, double covInit00, double covInit11);
+	void init(float initial0, float initial1, float covInit00, float covInit11);
 
 	/**
 	 * Predict the state with an external acceleration estimate
@@ -94,14 +94,14 @@ public:
 	 * @param acc           Acceleration estimate
 	 * @param acc_unc       Variance of acceleration estimate
 	 */
-	void predict(double dt, double acc, double acc_unc);
+	void predict(float dt, float acc, float acc_unc);
 
 	/**
 	 * Update the state estimate with a measurement
 	 * @param meas    state measeasurement
 	 * @param measUnc measurement uncertainty
 	 */
-	void update(double meas, double measUnc);
+	void update(float meas, float measUnc);
 
 	/**
 	 * Get the current filter state
@@ -114,7 +114,7 @@ public:
 	 * @param state0 First state
 	 * @param state1 Second state
 	 */
-	void getState(double &state0, double &state1);
+	void getState(float &state0, float &state1);
 
 	/**
 	 * Get state covariance
@@ -127,7 +127,7 @@ public:
 	 * @param cov00 Variance of first state
 	 * @param cov11 Variance of second state
 	 */
-	void getCovariance(double &cov00, double &cov11);
+	void getCovariance(float &cov00, float &cov11);
 
 private:
 	matrix::Vector<float, 2> _x; // state
