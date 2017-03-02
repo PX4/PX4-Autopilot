@@ -143,6 +143,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 	switch (cmd.command) {
 	case MAV_CMD_REQUEST_MIXER_DATA: {
+        PX4_INFO("Received mixer data request");
 			_msg_mixer_data_immediate.mixer_group = cmd.param1;
 			_msg_mixer_data_immediate.mixer_index = cmd.param2;
 			_msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
@@ -168,7 +169,8 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 			switch (_msg_mixer_data_immediate.data_type) {
 			case MIXER_DATA_TYPE_MIXER_COUNT: {
-					int mix_count;
+                    PX4_INFO("Received mixer count request");
+                    int mix_count;
 					int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 					px4_close(dev);
 					_msg_mixer_data_immediate.param_value = 0.0;
@@ -441,6 +443,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		/* Send with default component ID */
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 		_send_data_immediate = false;
+        PX4_INFO("Sent immediate mixer data");
 		return;
 	}
 
@@ -466,6 +469,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				int mix_count;
 				int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 				px4_close(dev);
+                dev = -1;
 
 				if (ret < 0) {
 					_msg_mixer_data_immediate.data_value = ret;
@@ -491,6 +495,8 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				int mix_count = _msg_mixer_data_immediate.mixer_index;
 				int ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&mix_count);
 				px4_close(dev);
+                dev = -1;
+
 				_msg_mixer_data_immediate.param_value = 0.0;
 
 				if (ret < 0) {
@@ -517,6 +523,8 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 				int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
 				px4_close(dev);
+                dev = -1;
+
 				_msg_mixer_data_immediate.param_value = 0.0;
 
 				if (ret < 0) {
@@ -586,6 +594,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
 					px4_close(dev);
+                    dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.data_value = ret;
@@ -639,6 +648,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
 					px4_close(dev);
+                    dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.data_value = ret;
@@ -676,6 +686,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETPARAM, (unsigned long)&param);
 					px4_close(dev);
+                    dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.param_type = 0;
@@ -728,6 +739,9 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			_send_all_state = MIXERS_SEND_ALL_NONE;
 			break;
 		}
+        if(dev != -1)
+            px4_close(dev);
+
 	} //if sending all
 
 
