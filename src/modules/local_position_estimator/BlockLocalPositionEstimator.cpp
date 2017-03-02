@@ -45,7 +45,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs(),
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
-	_sub_beacon_position(ORB_ID(beacon_position), 1000 / 10, 0, &getSubscriptions()),
+	_sub_beacon_position(ORB_ID(beacon_position), 1000 / 40, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
