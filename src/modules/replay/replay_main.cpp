@@ -799,6 +799,10 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 		}
 	}
 
+	if (published) {
+		++sub.publication_counter;
+	}
+
 	return published;
 }
 
@@ -935,6 +939,7 @@ bool ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, st
 		// this can happen in beginning of the log or on a dropout
 		PX4_DEBUG("No timestamp match found for topic %s (%i, %i)", sub.orb_meta->o_name, (int)sub.next_timestamp / 100,
 			  timestamp);
+		++sub.error_counter;
 		return false;
 	}
 
@@ -950,6 +955,27 @@ void ReplayEkf2::onEnterMainLoop()
 
 void ReplayEkf2::onExitMainLoop()
 {
+	// print statistics
+	auto print_sensor_statistics = [this](uint16_t msg_id, const char *name) {
+		if (msg_id != msg_id_invalid) {
+			Subscription &sub = _subscriptions[msg_id];
+
+			if (sub.publication_counter > 0 || sub.error_counter > 0) {
+				PX4_INFO("%s: %i, %i", name, sub.publication_counter, sub.error_counter);
+			}
+		}
+	};
+
+	PX4_INFO("");
+	PX4_INFO("Topic, Num Published, Num Error (no timestamp match found):");
+	print_sensor_statistics(_sensors_combined_msg_id, "sensor_combined");
+	print_sensor_statistics(_gps_msg_id, "vehicle_gps_position");
+	print_sensor_statistics(_optical_flow_msg_id, "optical_flow");
+	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
+	print_sensor_statistics(_airspeed_msg_id, "airspeed");
+	print_sensor_statistics(_vehicle_vision_position_msg_id, "vehicle_vision_position");
+	print_sensor_statistics(_vehicle_vision_attitude_msg_id, "vehicle_vision_attitude");
+
 	orb_unsubscribe(_vehicle_attitude_sub);
 	_vehicle_attitude_sub = -1;
 }
