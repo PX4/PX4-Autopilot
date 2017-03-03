@@ -87,7 +87,6 @@ usage(const char *reason)
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
 		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-t <pulse>\t\tOneshot duration (1 to 65535 125nS)\n"
 		"\n"
 		"rate ...\t\t\tConfigure PWM rates\n"
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
@@ -350,7 +349,7 @@ pwm_main(int argc, char *argv[])
 
 		/* change alternate PWM rate or set oneshot */
 		if (oneshot || alt_rate > 0) {
-			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, oneshot ? 0 : alt_rate);
 
 			if (ret != OK) {
 				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
