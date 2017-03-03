@@ -97,6 +97,10 @@ protected:
 
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
+
+		// statistics
+		int error_counter = 0;
+		int publication_counter = 0;
 	};
 
 	/**
