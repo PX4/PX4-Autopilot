@@ -1039,15 +1039,17 @@ void VotedSensorsUpdate::check_failover()
 void VotedSensorsUpdate::set_relative_timestamps(sensor_combined_s &raw)
 {
 	if (_last_accel_timestamp[_accel.last_best_vote]) {
-		raw.accelerometer_timestamp_relative = (int32_t)(_last_accel_timestamp[_accel.last_best_vote] - raw.timestamp);
+		raw.accelerometer_timestamp_relative = (int32_t)((int64_t)_last_accel_timestamp[_accel.last_best_vote] -
+						       (int64_t)raw.timestamp);
 	}
 
 	if (_last_mag_timestamp[_mag.last_best_vote]) {
-		raw.magnetometer_timestamp_relative = (int32_t)(_last_mag_timestamp[_mag.last_best_vote] - raw.timestamp);
+		raw.magnetometer_timestamp_relative = (int32_t)((int64_t)_last_mag_timestamp[_mag.last_best_vote] -
+						      (int64_t)raw.timestamp);
 	}
 
 	if (_last_baro_timestamp[_baro.last_best_vote]) {
-		raw.baro_timestamp_relative = (int32_t)(_last_baro_timestamp[_baro.last_best_vote] - raw.timestamp);
+		raw.baro_timestamp_relative = (int32_t)((int64_t)_last_baro_timestamp[_baro.last_best_vote] - (int64_t)raw.timestamp);
 	}
 }
 
