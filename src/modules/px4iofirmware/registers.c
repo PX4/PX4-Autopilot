@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -325,7 +325,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
-		up_pwm_force_update();
+		/* Trigger all timer's channels in Oneshot mode to fire
+		 * the oneshots with updated values.
+		 */
+		up_pwm_update();
 
 		break;
 
@@ -631,9 +634,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
 
-			/* a rate of zero implies oneshot mode */
+			/* For PWM constrain to [25,400]Hz
+			 * For Onshot there is no rate, 0 is therefore used to select Oneshot mode
+			 */
 			if (value != 0) {
-				/* constrain normal PWM to [25,400]Hz */
 				if (value < 25) {
 					value = 25;
 				}
