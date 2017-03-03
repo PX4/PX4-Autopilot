@@ -105,7 +105,7 @@ public:
 	/*
 	* set duration
 	*/
-	void setDuraiont(const float time) {_duration = time;}
+	void setDuration(const float time) {_duration = time;}
 
 	/**
 	 * get point on bezier point corresponding to t
