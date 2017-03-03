@@ -7,7 +7,7 @@ udp_port=14560
 extra_args=
 baudrate=921600
 device=
-while getopts ":b:d:p:q" opt; do
+while getopts ":b:d:p:qr:" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
@@ -20,6 +20,9 @@ while getopts ":b:d:p:q" opt; do
 			;;
 		q)
 			extra_args="$extra_args -qgc"
+			;;
+		r)
+			extra_args="$extra_args -r $OPTARG"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
