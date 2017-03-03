@@ -606,7 +606,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 			 */
 
 			if (reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut)) {
-				rPSC(timer) = (io_timers[timer].clock_freq / BOARD_PWM_FREQ) - 1;
+				io_timer_set_PWM_mode(timer);
 			}
 
 			timer_set_rate(timer, rate);
