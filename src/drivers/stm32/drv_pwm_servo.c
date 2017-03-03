@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,9 +76,7 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
-	io_timer_channel_mode_t chmode = IOTimerChanMode_PWMOut;
-
-	uint32_t current = io_timer_get_mode_channels(chmode);
+	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
 
 	// First free the current set of PWMs
 
@@ -100,13 +98,8 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			if (io_timer_get_freq(timer_io_channels[channel].timer_index) == 8) {
-				chmode = IOTimerChanMode_OneShot;
-			}
-
-			io_timer_channel_init(channel, chmode, NULL, NULL);
+			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
 			channel_mask &= ~(1 << channel);
-
 		}
 	}
 
@@ -121,33 +114,32 @@ void up_pwm_servo_deinit(void)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
-	if (rate == 0) {
-		/* configure this group for OneShot125 PWM */
-		io_timer_set_oneshot_mode(group);
-		return OK;
-	}
-
-	/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
-	if (rate < 1) {
-		return -ERANGE;
-	}
-
-	if (rate > 10000) {
-		return -ERANGE;
-	}
-
 	if ((group >= MAX_IO_TIMERS) || (io_timers[group].base == 0)) {
 		return ERROR;
 	}
 
-	io_timer_set_rate(group, rate);
+	/* Allow a rate of 0 to enter onshot mode */
 
+	if (rate != 0) {
+
+		/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
+
+		if (rate < 1) {
+			return -ERANGE;
+		}
+
+		if (rate > 10000) {
+			return -ERANGE;
+		}
+	}
+
+	io_timer_set_rate(group, rate);
 	return OK;
 }
 
-void up_pwm_force_update(void)
+void up_pwm_update(void)
 {
-	io_timer_force_update();
+	io_timer_trigger();
 }
 
 int up_pwm_servo_set_rate(unsigned rate)
