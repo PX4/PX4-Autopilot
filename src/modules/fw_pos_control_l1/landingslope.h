@@ -41,7 +41,6 @@
 #define LANDINGSLOPE_H_
 
 #include <math.h>
-#include <systemlib/err.h>
 
 class Landingslope
 {
@@ -61,7 +60,7 @@ private:
 
 public:
 	Landingslope();
-	~Landingslope() {}
+	~Landingslope() = default;
 
 
 	/**
@@ -100,8 +99,8 @@ public:
 	__EXPORT static float getLandingSlopeRelativeAltitude(float wp_landing_distance, float horizontal_slope_displacement,
 			float landing_slope_angle_rad)
 	{
-		return (wp_landing_distance - horizontal_slope_displacement) * tanf(
-			       landing_slope_angle_rad); //flare_relative_alt is negative
+		// flare_relative_alt is negative
+		return (wp_landing_distance - horizontal_slope_displacement) * tanf(landing_slope_angle_rad);
 	}
 
 	/**

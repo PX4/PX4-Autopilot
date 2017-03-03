@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,39 +48,23 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <float.h>
-#include <poll.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
+#include <cfloat>
 #include <sys/stat.h>
 
-#include <drivers/device/device.h>
+#include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/mission.h>
+#include <geo/geo.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <systemlib/systemlib.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_command.h>
-#include <drivers/drv_baro.h>
-
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <geo/geo.h>
-#include <dataman/dataman.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/mavlink_log.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 #include "navigator.h"
 
@@ -95,7 +79,6 @@ extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
 namespace navigator
 {
-
 Navigator	*g_navigator;
 }
 
@@ -458,7 +441,7 @@ Navigator::task_main()
 		orb_check(_vehicle_command_sub, &updated);
 
 		if (updated) {
-			vehicle_command_s cmd;
+			vehicle_command_s cmd = {};
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
@@ -545,18 +528,20 @@ Navigator::task_main()
 				/* find NAV_CMD_DO_LAND_START in the mission and
 				 * use MAV_CMD_MISSION_START to start the mission there
 				 */
-				unsigned land_start = _mission.find_offboard_land_start();
+				int land_start = _mission.find_offboard_land_start();
 
 				if (land_start != -1) {
-					vehicle_command_s vcmd = {};
-					vcmd.target_system = get_vstatus()->system_id;
-					vcmd.target_component = get_vstatus()->component_id;
-					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.param1 = land_start;
-					vcmd.param2 = 0;
+					vehicle_command_s cmd_mission_start = {};
+					cmd_mission_start.target_system = get_vstatus()->system_id;
+					cmd_mission_start.target_component = get_vstatus()->component_id;
+					cmd_mission_start.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
+					cmd_mission_start.param1 = land_start;
+					cmd_mission_start.param2 = 0;
 
-					orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-					(void)orb_unadvertise(pub);
+					publish_vehicle_cmd(cmd_mission_start);
+
+				} else {
+					PX4_WARN("planned landing not available");
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
@@ -778,9 +763,6 @@ Navigator::status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	/* update navigation state */
-	_pos_sp_triplet.nav_state = _vstatus.nav_state;
-
 	/* do not publish an empty triplet */
 	if (!_pos_sp_triplet.current.valid) {
 		return;
@@ -810,7 +792,7 @@ Navigator::get_acceptance_radius()
 float
 Navigator::get_altitude_acceptance_radius()
 {
-	if (!this->get_vstatus()->is_rotary_wing) {
+	if (!get_vstatus()->is_rotary_wing) {
 		return _param_fw_alt_acceptance_radius.get();
 
 	} else {
@@ -823,8 +805,7 @@ Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.is_rotary_wing) {
-		if (_mission_cruising_speed_mc > 0.0f
-		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
 		} else {
@@ -832,8 +813,7 @@ Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (_mission_cruising_speed_fw > 0.0f
-		    && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
 			return _mission_cruising_speed_fw;
 
 		} else {
@@ -1037,6 +1017,17 @@ Navigator::publish_att_sp()
 	} else {
 		/* advertise and publish */
 		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+	}
+}
+
+void
+Navigator::publish_vehicle_cmd(const struct vehicle_command_s &vcmd)
+{
+	if (_vehicle_cmd_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vcmd);
+
+	} else {
+		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 	}
 }
 

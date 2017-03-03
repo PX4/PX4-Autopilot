@@ -70,15 +70,14 @@ protected:
 };
 
 /**
- * Parameters that are tied to blocks for updating and nameing.
+ * Parameters that are tied to blocks for updating and naming.
  */
 
 template <class T>
 class BlockParam : public BlockParamBase
 {
 public:
-	BlockParam(Block *block, const char *name,
-		   bool parent_prefix = true);
+	BlockParam(Block *block, const char *name, bool parent_prefix = true);
 	BlockParam(const BlockParam &) = delete;
 	BlockParam &operator=(const BlockParam &) = delete;
 
@@ -104,8 +103,7 @@ template <class T>
 class BlockParamExt : public BlockParam<T>
 {
 public:
-	BlockParamExt(Block *block, const char *name,
-		      bool parent_prefix, T &extern_val);
+	BlockParamExt(Block *block, const char *name, bool parent_prefix, T &extern_val);
 	BlockParamExt(const BlockParamExt &) = delete;
 	BlockParamExt &operator=(const BlockParamExt &) = delete;
 

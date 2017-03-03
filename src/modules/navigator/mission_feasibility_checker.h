@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,13 +52,12 @@
 class MissionFeasibilityChecker
 {
 private:
-	orb_advert_t		*_mavlink_log_pub;
+	orb_advert_t		*_mavlink_log_pub{nullptr};
 
-	int _fw_pos_ctrl_status_sub;
-	struct fw_pos_ctrl_status_s _fw_pos_ctrl_status;
+	int _fw_pos_ctrl_status_sub{-1};
+	struct fw_pos_ctrl_status_s _fw_pos_ctrl_status {};
 
-	bool _initDone;
-	bool _dist_1wp_ok;
+	bool _initDone{false};
 	void init();
 
 	/* Checks for all airframes */
@@ -68,12 +67,11 @@ private:
 	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems, bool condition_landed);
 	bool check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon, float dist_first_wp,
 			    bool &warning_issued);
-	bool isPositionCommand(unsigned cmd);
 
 	/* Checks specific to fixedwing airframes */
 	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt,
-					   bool home_valid);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
+					   bool home_valid, bool land_start_req);
+	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems, bool land_start_req);
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
@@ -81,12 +79,10 @@ private:
 					    bool home_valid, float default_acceptance_rad);
 public:
 
-	MissionFeasibilityChecker();
-
+	MissionFeasibilityChecker() = default;
 	MissionFeasibilityChecker(const MissionFeasibilityChecker &) = delete;
 	MissionFeasibilityChecker &operator=(const MissionFeasibilityChecker &) = delete;
-
-	~MissionFeasibilityChecker() {}
+	~MissionFeasibilityChecker() = default;
 
 	/*
 	 * Returns true if mission is feasible and false otherwise
@@ -94,7 +90,7 @@ public:
 	bool checkMissionFeasible(orb_advert_t *mavlink_log_pub, bool isRotarywing, dm_item_t dm_current,
 				  size_t nMissionItems, Geofence &geofence, float home_alt, bool home_valid,
 				  double curr_lat, double curr_lon, float max_waypoint_distance, bool &warning_issued, float default_acceptance_rad,
-				  bool condition_landed);
+				  bool condition_landed, bool land_start_req);
 
 };
 
