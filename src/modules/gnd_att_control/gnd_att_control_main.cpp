@@ -75,24 +75,24 @@ using matrix::Eulerf;
 using matrix::Quatf;
 
 /**
- * Fixedwing attitude control app start / stop handling function
+ * GroundRover attitude control app start / stop handling function
  *
  * @ingroup apps
  */
 extern "C" __EXPORT int gnd_att_control_main(int argc, char *argv[]);
 
-class FixedwingAttitudeControl
+class GroundRoverAttitudeControl
 {
 public:
 	/**
 	 * Constructor
 	 */
-	FixedwingAttitudeControl();
+	GroundRoverAttitudeControl();
 
 	/**
 	 * Destructor, also kills the main task.
 	 */
-	~FixedwingAttitudeControl();
+	~GroundRoverAttitudeControl();
 
 	/**
 	 * Start the main task.
@@ -345,12 +345,12 @@ private:
 
 };
 
-namespace att_control
+namespace att_gnd_control
 {
-FixedwingAttitudeControl	*g_control = nullptr;
+GroundRoverAttitudeControl	*g_control = nullptr;
 }
 
-FixedwingAttitudeControl::FixedwingAttitudeControl() :
+GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 
 	_task_should_exit(false),
 	_task_running(false),
@@ -472,7 +472,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	parameters_update();
 }
 
-FixedwingAttitudeControl::~FixedwingAttitudeControl()
+GroundRoverAttitudeControl::~GroundRoverAttitudeControl()
 {
 	if (_control_task != -1) {
 
@@ -498,11 +498,11 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 	perf_free(_nonfinite_input_perf);
 	perf_free(_nonfinite_output_perf);
 
-	att_control::g_control = nullptr;
+	att_gnd_control::g_control = nullptr;
 }
 
 int
-FixedwingAttitudeControl::parameters_update()
+GroundRoverAttitudeControl::parameters_update()
 {
 
 	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
@@ -608,7 +608,7 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_control_mode_poll()
+GroundRoverAttitudeControl::vehicle_control_mode_poll()
 {
 	bool vcontrol_mode_updated;
 
@@ -622,7 +622,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll()
+GroundRoverAttitudeControl::vehicle_manual_poll()
 {
 	bool manual_updated;
 
@@ -636,7 +636,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_setpoint_poll()
+GroundRoverAttitudeControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
 	bool att_sp_updated;
@@ -649,7 +649,7 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 }
 
 void
-FixedwingAttitudeControl::global_pos_poll()
+GroundRoverAttitudeControl::global_pos_poll()
 {
 	/* check if there is a new global position */
 	bool global_pos_updated;
@@ -661,7 +661,7 @@ FixedwingAttitudeControl::global_pos_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_status_poll()
+GroundRoverAttitudeControl::vehicle_status_poll()
 {
 	/* check if there is new status information */
 	bool vehicle_status_updated;
@@ -687,7 +687,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_land_detected_poll()
+GroundRoverAttitudeControl::vehicle_land_detected_poll()
 {
 	/* check if there is new status information */
 	bool vehicle_land_detected_updated;
@@ -699,7 +699,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 }
 
 void
-FixedwingAttitudeControl::battery_status_poll()
+GroundRoverAttitudeControl::battery_status_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -711,13 +711,13 @@ FixedwingAttitudeControl::battery_status_poll()
 }
 
 void
-FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
+GroundRoverAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
-	att_control::g_control->task_main();
+	att_gnd_control::g_control->task_main();
 }
 
 void
-FixedwingAttitudeControl::task_main()
+GroundRoverAttitudeControl::task_main()
 {
 	/*
 	 * do subscriptions
@@ -1272,7 +1272,7 @@ FixedwingAttitudeControl::task_main()
 }
 
 int
-FixedwingAttitudeControl::start()
+GroundRoverAttitudeControl::start()
 {
 	ASSERT(_control_task == -1);
 
@@ -1281,7 +1281,7 @@ FixedwingAttitudeControl::start()
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
 					   1500,
-					   (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
+					   (px4_main_t)&GroundRoverAttitudeControl::task_main_trampoline,
 					   nullptr);
 
 	if (_control_task < 0) {
@@ -1301,30 +1301,30 @@ int gnd_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (att_control::g_control != nullptr) {
+		if (att_gnd_control::g_control != nullptr) {
 			warnx("already running");
 			return 1;
 		}
 
-		att_control::g_control = new FixedwingAttitudeControl;
+		att_gnd_control::g_control = new GroundRoverAttitudeControl;
 
-		if (att_control::g_control == nullptr) {
+		if (att_gnd_control::g_control == nullptr) {
 			warnx("alloc failed");
 			return 1;
 		}
 
-		if (PX4_OK != att_control::g_control->start()) {
-			delete att_control::g_control;
-			att_control::g_control = nullptr;
+		if (PX4_OK != att_gnd_control::g_control->start()) {
+			delete att_gnd_control::g_control;
+			att_gnd_control::g_control = nullptr;
 			warn("start failed");
 			return 1;
 		}
 
 		/* check if the waiting is necessary at all */
-		if (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+		if (att_gnd_control::g_control == nullptr || !att_gnd_control::g_control->task_running()) {
 
 			/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-			while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+			while (att_gnd_control::g_control == nullptr || !att_gnd_control::g_control->task_running()) {
 				usleep(50000);
 				printf(".");
 				fflush(stdout);
@@ -1337,18 +1337,18 @@ int gnd_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (att_control::g_control == nullptr) {
+		if (att_gnd_control::g_control == nullptr) {
 			warnx("not running");
 			return 1;
 		}
 
-		delete att_control::g_control;
-		att_control::g_control = nullptr;
+		delete att_gnd_control::g_control;
+		att_gnd_control::g_control = nullptr;
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (att_control::g_control) {
+		if (att_gnd_control::g_control) {
 			warnx("running");
 			return 0;
 

@@ -128,22 +128,22 @@ extern "C" __EXPORT int gnd_pos_control_main(int argc, char *argv[]);
 
 using namespace launchdetection;
 
-class FixedwingPositionControl
+class GroundRoverPositionControl
 {
 public:
 	/**
 	 * Constructor
 	 */
-	FixedwingPositionControl();
+	GroundRoverPositionControl();
 
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
-	~FixedwingPositionControl();
+	~GroundRoverPositionControl();
 
 	// prevent copying
-	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
-	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
+	GroundRoverPositionControl(const GroundRoverPositionControl &) = delete;
+	GroundRoverPositionControl operator=(const GroundRoverPositionControl &other) = delete;
 
 	/**
 	 * Start the sensors task.
@@ -257,7 +257,7 @@ private:
 	uint8_t _pos_reset_counter;		// captures the number of times the estimator has reset the horizontal position
 	uint8_t _alt_reset_counter;		// captures the number of times the estimator has reset the altitude state
 
-	ECL_L1_Pos_Controller				_l1_control;
+	ECL_L1_Pos_Controller				_gnd_control;
 	TECS						_tecs;
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
@@ -531,13 +531,13 @@ private:
 
 };
 
-namespace l1_control
+namespace gnd_control
 {
 
-FixedwingPositionControl	*g_control = nullptr;
+GroundRoverPositionControl	*g_control = nullptr;
 }
 
-FixedwingPositionControl::FixedwingPositionControl() :
+GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	_mavlink_log_pub(nullptr),
 	_task_should_exit(false),
@@ -624,7 +624,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_was_in_transition(false),
 	_pos_reset_counter(0),
 	_alt_reset_counter(0),
-	_l1_control(),
+	_gnd_control(),
 	_tecs(),
 	_control_mode_current(FW_POSCTRL_MODE_OTHER),
 	_parameters(),
@@ -688,7 +688,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	parameters_update();
 }
 
-FixedwingPositionControl::~FixedwingPositionControl()
+GroundRoverPositionControl::~GroundRoverPositionControl()
 {
 	if (_control_task != -1) {
 
@@ -710,11 +710,11 @@ FixedwingPositionControl::~FixedwingPositionControl()
 		} while (_control_task != -1);
 	}
 
-	l1_control::g_control = nullptr;
+	gnd_control::g_control = nullptr;
 }
 
 int
-FixedwingPositionControl::parameters_update()
+GroundRoverPositionControl::parameters_update()
 {
 
 	/* L1 control parameters */
@@ -785,9 +785,9 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.vtol_type, &(_parameters.vtol_type));
 
-	_l1_control.set_l1_damping(_parameters.l1_damping);
-	_l1_control.set_l1_period(_parameters.l1_period);
-	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
+	_gnd_control.set_l1_damping(_parameters.l1_damping);
+	_gnd_control.set_l1_period(_parameters.l1_period);
+	_gnd_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
 
 	_tecs.set_time_const(_parameters.time_const);
 	_tecs.set_time_const_throt(_parameters.time_const_throt);
@@ -838,7 +838,7 @@ FixedwingPositionControl::parameters_update()
 }
 
 void
-FixedwingPositionControl::vehicle_control_mode_poll()
+GroundRoverPositionControl::vehicle_control_mode_poll()
 {
 	bool updated;
 
@@ -850,7 +850,7 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_command_poll()
+GroundRoverPositionControl::vehicle_command_poll()
 {
 	bool updated;
 
@@ -863,7 +863,7 @@ FixedwingPositionControl::vehicle_command_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_status_poll()
+GroundRoverPositionControl::vehicle_status_poll()
 {
 	bool updated;
 
@@ -885,7 +885,7 @@ FixedwingPositionControl::vehicle_status_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_land_detected_poll()
+GroundRoverPositionControl::vehicle_land_detected_poll()
 {
 	bool updated;
 
@@ -897,7 +897,7 @@ FixedwingPositionControl::vehicle_land_detected_poll()
 }
 
 bool
-FixedwingPositionControl::vehicle_manual_control_setpoint_poll()
+GroundRoverPositionControl::vehicle_manual_control_setpoint_poll()
 {
 	bool manual_updated;
 
@@ -912,7 +912,7 @@ FixedwingPositionControl::vehicle_manual_control_setpoint_poll()
 }
 
 void
-FixedwingPositionControl::control_state_poll()
+GroundRoverPositionControl::control_state_poll()
 {
 	/* check if there is a new position */
 	bool ctrl_state_updated;
@@ -946,7 +946,7 @@ FixedwingPositionControl::control_state_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_sensor_combined_poll()
+GroundRoverPositionControl::vehicle_sensor_combined_poll()
 {
 	/* check if there is a new position */
 	bool sensors_updated;
@@ -958,7 +958,7 @@ FixedwingPositionControl::vehicle_sensor_combined_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_setpoint_poll()
+GroundRoverPositionControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
 	bool pos_sp_triplet_updated;
@@ -970,23 +970,23 @@ FixedwingPositionControl::vehicle_setpoint_poll()
 }
 
 void
-FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
+GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
-	l1_control::g_control = new FixedwingPositionControl();
+	gnd_control::g_control = new GroundRoverPositionControl();
 
-	if (l1_control::g_control == nullptr) {
+	if (gnd_control::g_control == nullptr) {
 		warnx("OUT OF MEM");
 		return;
 	}
 
 	/* only returns on exit */
-	l1_control::g_control->task_main();
-	delete l1_control::g_control;
-	l1_control::g_control = nullptr;
+	gnd_control::g_control->task_main();
+	delete gnd_control::g_control;
+	gnd_control::g_control = nullptr;
 }
 
 float
-FixedwingPositionControl::get_demanded_airspeed()
+GroundRoverPositionControl::get_demanded_airspeed()
 {
 	float altctrl_airspeed = 0;
 
@@ -1008,7 +1008,7 @@ FixedwingPositionControl::get_demanded_airspeed()
 }
 
 float
-FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
+GroundRoverPositionControl::calculate_target_airspeed(float airspeed_demand)
 {
 	float airspeed;
 
@@ -1039,11 +1039,11 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 }
 
 void
-FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position,
+GroundRoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position,
 		const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
 
-	if (pos_sp_triplet.current.valid && !_l1_control.circle_mode()) {
+	if (pos_sp_triplet.current.valid && !_gnd_control.circle_mode()) {
 
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
@@ -1084,7 +1084,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 	}
 }
 
-void FixedwingPositionControl::fw_pos_ctrl_status_publish()
+void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
 {
 	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
 
@@ -1096,7 +1096,7 @@ void FixedwingPositionControl::fw_pos_ctrl_status_publish()
 	}
 }
 
-void FixedwingPositionControl::get_waypoint_heading_distance(float heading, float distance,
+void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, float distance,
 		struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init)
 {
 	waypoint_prev.valid = true;
@@ -1139,7 +1139,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 	waypoint_next.alt = _hold_alt;
 }
 
-float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt,
+float GroundRoverPositionControl::get_terrain_altitude_landing(float land_setpoint_alt,
 		const struct vehicle_global_position_s &global_pos)
 {
 	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
@@ -1161,7 +1161,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 	}
 }
 
-float FixedwingPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
+float GroundRoverPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
 		const struct vehicle_global_position_s &global_pos)
 {
 	if (PX4_ISFINITE(global_pos.terrain_alt) && global_pos.terrain_alt_valid) {
@@ -1171,7 +1171,7 @@ float FixedwingPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
 	return takeoff_alt;
 }
 
-bool FixedwingPositionControl::update_desired_altitude(float dt)
+bool GroundRoverPositionControl::update_desired_altitude(float dt)
 {
 	/*
 	 * The complete range is -1..+1, so this is 6%
@@ -1237,7 +1237,7 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	return climbout_mode;
 }
 
-bool FixedwingPositionControl::in_takeoff_situation()
+bool GroundRoverPositionControl::in_takeoff_situation()
 {
 	// in air for < 10s
 	const hrt_abstime delta_takeoff = 10000000;
@@ -1251,7 +1251,7 @@ bool FixedwingPositionControl::in_takeoff_situation()
 	return false;
 }
 
-void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
+void GroundRoverPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
 {
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
@@ -1264,7 +1264,7 @@ void FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitc
 }
 
 bool
-FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
+GroundRoverPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
@@ -1365,7 +1365,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_hdg_hold_yaw = _yaw;
 
 		/* get circle mode */
-		bool was_circle_mode = _l1_control.circle_mode();
+		bool was_circle_mode = _gnd_control.circle_mode();
 
 		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
 		_tecs.set_speed_weight(_parameters.speed_weight);
@@ -1420,9 +1420,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
-			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
-			_att_sp.roll_body = _l1_control.nav_roll();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
+			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
@@ -1432,10 +1432,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
-			_l1_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
+			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
 						    pos_sp_triplet.current.loiter_direction, nav_speed_2d);
-			_att_sp.roll_body = _l1_control.nav_roll();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 			float alt_sp = pos_sp_triplet.current.alt;
 
@@ -1527,15 +1527,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			if (_land_noreturn_horizontal) {
 				// heading hold
-				_l1_control.navigate_heading(_target_bearing, _yaw, nav_speed_2d);
+				_gnd_control.navigate_heading(_target_bearing, _yaw, nav_speed_2d);
 
 			} else {
 				// normal navigation
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
+				_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
 			}
 
-			_att_sp.roll_body = _l1_control.nav_roll();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 			if (_land_noreturn_horizontal) {
 				/* limit roll motion to prevent wings from touching the ground first */
@@ -1746,7 +1746,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
 				 * If we use the navigator heading or not is decided later.
 				 */
-				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, nav_speed_2d);
+				_gnd_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, nav_speed_2d);
 
 				// update tecs
 				float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
@@ -1771,8 +1771,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				// assign values
-				_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.nav_roll());
-				_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
+				_att_sp.roll_body = _runway_takeoff.getRoll(_gnd_control.nav_roll());
+				_att_sp.yaw_body = _runway_takeoff.getYaw(_gnd_control.nav_bearing());
 				_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
 				_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 
@@ -1810,9 +1810,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 					/* Launch has been detected, hence we have to control the plane. */
 
-					_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
-					_att_sp.roll_body = _l1_control.nav_roll();
-					_att_sp.yaw_body = _l1_control.nav_bearing();
+					_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
+					_att_sp.roll_body = _gnd_control.nav_roll();
+					_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 					 * full throttle, otherwise we use the preTakeOff Throttle */
@@ -1888,7 +1888,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			reset_takeoff_state();
 		}
 
-		if (was_circle_mode && !_l1_control.circle_mode()) {
+		if (was_circle_mode && !_gnd_control.circle_mode()) {
 			/* just kicked out of loiter, reset roll integrals */
 			_att_sp.roll_reset_integral = true;
 		}
@@ -1996,10 +1996,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				curr_wp(1) = (float)_hdg_hold_curr_wp.lon;
 
 				/* populate l1 control setpoint */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 
-				_att_sp.roll_body = _l1_control.nav_roll();
-				_att_sp.yaw_body = _l1_control.nav_bearing();
+				_att_sp.roll_body = _gnd_control.nav_roll();
+				_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 				if (in_takeoff_situation()) {
 					/* limit roll motion to ensure enough lift */
@@ -2159,7 +2159,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 }
 
 float
-FixedwingPositionControl::get_tecs_pitch()
+GroundRoverPositionControl::get_tecs_pitch()
 {
 	if (_is_tecs_running) {
 		return _tecs.get_pitch_demand();
@@ -2171,7 +2171,7 @@ FixedwingPositionControl::get_tecs_pitch()
 }
 
 float
-FixedwingPositionControl::get_tecs_thrust()
+GroundRoverPositionControl::get_tecs_thrust()
 {
 	if (_is_tecs_running) {
 		return _tecs.get_throttle_demand();
@@ -2183,7 +2183,7 @@ FixedwingPositionControl::get_tecs_thrust()
 }
 
 void
-FixedwingPositionControl::handle_command()
+GroundRoverPositionControl::handle_command()
 {
 	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 		// only abort landing before point of no return (horizontal and vertical)
@@ -2202,7 +2202,7 @@ FixedwingPositionControl::handle_command()
 
 
 void
-FixedwingPositionControl::task_main()
+GroundRoverPositionControl::task_main()
 {
 
 	/*
@@ -2361,7 +2361,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(100.0f);
+				float turn_distance = _gnd_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
@@ -2371,12 +2371,12 @@ FixedwingPositionControl::task_main()
 					/* set new turn distance */
 					_fw_pos_ctrl_status.turn_distance = turn_distance;
 
-					_fw_pos_ctrl_status.nav_roll = _l1_control.nav_roll();
+					_fw_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
 					_fw_pos_ctrl_status.nav_pitch = get_tecs_pitch();
-					_fw_pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
+					_fw_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
-					_fw_pos_ctrl_status.target_bearing = _l1_control.target_bearing();
-					_fw_pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+					_fw_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+					_fw_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
 					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
 					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
@@ -2399,14 +2399,14 @@ FixedwingPositionControl::task_main()
 	_control_task = -1;
 }
 
-void FixedwingPositionControl::reset_takeoff_state()
+void GroundRoverPositionControl::reset_takeoff_state()
 {
 	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	_launchDetector.reset();
 	_runway_takeoff.reset();
 }
 
-void FixedwingPositionControl::reset_landing_state()
+void GroundRoverPositionControl::reset_landing_state()
 {
 	_time_started_landing = 0;
 
@@ -2429,7 +2429,7 @@ void FixedwingPositionControl::reset_landing_state()
 
 }
 
-void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
@@ -2578,7 +2578,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 }
 
 int
-FixedwingPositionControl::start()
+GroundRoverPositionControl::start()
 {
 	ASSERT(_control_task == -1);
 
@@ -2587,7 +2587,7 @@ FixedwingPositionControl::start()
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
 					   1700,
-					   (px4_main_t)&FixedwingPositionControl::task_main_trampoline,
+					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
 
 	if (_control_task < 0) {
@@ -2607,18 +2607,18 @@ int gnd_pos_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (l1_control::g_control != nullptr) {
+		if (gnd_control::g_control != nullptr) {
 			warnx("already running");
 			return 1;
 		}
 
-		if (OK != FixedwingPositionControl::start()) {
+		if (OK != GroundRoverPositionControl::start()) {
 			warn("start failed");
 			return 1;
 		}
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (l1_control::g_control == nullptr || !l1_control::g_control->task_running()) {
+		while (gnd_control::g_control == nullptr || !gnd_control::g_control->task_running()) {
 			usleep(50000);
 			printf(".");
 			fflush(stdout);
@@ -2630,18 +2630,18 @@ int gnd_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (l1_control::g_control == nullptr) {
+		if (gnd_control::g_control == nullptr) {
 			warnx("not running");
 			return 1;
 		}
 
-		delete l1_control::g_control;
-		l1_control::g_control = nullptr;
+		delete gnd_control::g_control;
+		gnd_control::g_control = nullptr;
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (l1_control::g_control) {
+		if (gnd_control::g_control) {
 			warnx("running");
 			return 0;
 
