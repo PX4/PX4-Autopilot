@@ -169,6 +169,8 @@ RGBLED::init()
 	send_led_enable(false);
 	send_led_rgb();
 
+	update_params();
+
 	_running = true;
 	// kick off work queue
 	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
