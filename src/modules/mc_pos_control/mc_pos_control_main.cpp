@@ -86,6 +86,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include <bezier/BezierQuad.hpp>
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -168,6 +169,8 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+	bezier::BezierQuad _bez;
 
 	struct {
 		param_t thr_min;
@@ -437,6 +440,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_bez(),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -1483,7 +1487,6 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			/* default is current setpoint */
 			_pos_sp = curr_sp;
-
 
 			if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
 			     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
