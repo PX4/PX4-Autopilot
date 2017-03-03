@@ -371,6 +371,8 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	_subscriptions[msg_id] = subscription;
 
+	onSubscriptionAdded(_subscriptions[msg_id], msg_id);
+
 	return true;
 }
 
@@ -672,7 +674,7 @@ void Replay::task_main()
 		for (size_t i = 0; i < _subscriptions.size(); ++i) {
 			const Subscription &subscription = _subscriptions[i];
 
-			if (subscription.orb_meta) {
+			if (subscription.orb_meta && !subscription.ignored) {
 				if (next_file_time == 0 || subscription.next_timestamp < next_file_time) {
 					next_msg_id = (int)i;
 					next_file_time = subscription.next_timestamp;
@@ -704,18 +706,14 @@ void Replay::task_main()
 
 
 		//It's time to publish
-		const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
-		const size_t msg_write_size = sub.orb_meta->o_size;
-		_read_buffer.reserve(msg_write_size);
-		replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2)); //skip header & msg id
-		replay_file.read((char *)_read_buffer.data(), msg_read_size);
-		*(uint64_t *)(_read_buffer.data() + sub.timestamp_offset) = publish_timestamp;
+		readTopicDataToBuffer(sub, replay_file);
+		memcpy(_read_buffer.data() + sub.timestamp_offset, &publish_timestamp, sizeof(uint64_t)); //adjust the timestamp
 
-		if (handleTopicUpdate(sub, _read_buffer.data())) {
+		if (handleTopicUpdate(sub, _read_buffer.data(), replay_file)) {
 			++nr_published_messages;
 		}
 
-		nextDataMessage(replay_file, _subscriptions[next_msg_id], next_msg_id);
+		nextDataMessage(replay_file, sub, next_msg_id);
 
 		//TODO: output status (eg. every sec), including total duration...
 	}
@@ -737,7 +735,16 @@ void Replay::task_main()
 	onExitMainLoop();
 }
 
-bool Replay::handleTopicUpdate(Subscription &sub, void *data)
+void Replay::readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file)
+{
+	const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
+	const size_t msg_write_size = sub.orb_meta->o_size;
+	_read_buffer.reserve(msg_write_size);
+	replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2)); //skip header & msg id
+	replay_file.read((char *)_read_buffer.data(), msg_read_size);
+}
+
+bool Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
 {
 	return publishTopic(sub, data);
 }
@@ -763,12 +770,12 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 	bool published = false;
 
 	if (sub.orb_advert) {
-		orb_publish(sub.orb_meta, sub.orb_advert, _read_buffer.data());
+		orb_publish(sub.orb_meta, sub.orb_advert, data);
 		published = true;
 
 	} else {
 		if (sub.multi_id == 0) {
-			sub.orb_advert = orb_advertise(sub.orb_meta, _read_buffer.data());
+			sub.orb_advert = orb_advertise(sub.orb_meta, data);
 			published = true;
 
 		} else {
@@ -786,8 +793,7 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 
 			if (advertised) {
 				int instance;
-				sub.orb_advert = orb_advertise_multi(sub.orb_meta, _read_buffer.data(),
-								     &instance, ORB_PRIO_DEFAULT);
+				sub.orb_advert = orb_advertise_multi(sub.orb_meta, data, &instance, ORB_PRIO_DEFAULT);
 				published = true;
 			}
 		}
@@ -796,7 +802,7 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 	return published;
 }
 
-bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data)
+bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
 {
 	if (sub.orb_meta == ORB_ID(ekf2_replay)) {
 		struct ekf2_replay_s ekf2_replay;

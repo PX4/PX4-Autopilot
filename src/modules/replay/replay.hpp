@@ -93,6 +93,8 @@ protected:
 		uint8_t multi_id;
 		int timestamp_offset; ///< marks the field of the timestamp
 
+		bool ignored = false; ///< if true, it will not be considered for publication in the main loop
+
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
 	};
@@ -115,6 +117,11 @@ protected:
 	virtual void onExitMainLoop() {};
 
 	/**
+	 * called when a new subscription is added
+	 */
+	virtual void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {};
+
+	/**
 	 * handle delay until topic can be published.
 	 * @param next_file_timestamp timestamp of next message to publish
 	 * @param timestamp_offset offset between file start time and replay start time
@@ -126,7 +133,25 @@ protected:
 	 * handle the publication of a topic update
 	 * @return true if published, false otherwise
 	 */
-	virtual bool handleTopicUpdate(Subscription &sub, void *data);
+	virtual bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file);
+
+	/**
+	 * read a topic from the file (offset given by the subscription) into _read_buffer
+	 */
+	void readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file);
+
+	/**
+	 * Find next data message for this subscription, starting with the stored file offset.
+	 * Skip the first message, and if found, read the timestamp and store the new file offset.
+	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
+	 * the subscription is set to invalid.
+	 * File seek position is arbitrary after this call.
+	 * @return false on file error
+	 */
+	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
+
+	std::vector<Subscription> _subscriptions;
+	std::vector<uint8_t> _read_buffer;
 
 private:
 	bool _task_should_exit = false;
@@ -136,9 +161,6 @@ private:
 	uint64_t _file_start_time;
 	uint64_t _replay_start_time;
 	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
-	std::vector<uint8_t> _read_buffer;
-
-	std::vector<Subscription> _subscriptions;
 
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
@@ -172,16 +194,6 @@ private:
 	bool readAndHandleAdditionalMessages(std::ifstream &file, std::streampos end_position);
 	bool readDropout(std::ifstream &file, uint16_t msg_size);
 	bool readAndApplyParameter(std::ifstream &file, uint16_t msg_size);
-
-	/**
-	 * Find next data message for this subscription, starting with the stored file offset.
-	 * Skip the first message, and if found, read the timestamp and store the new file offset.
-	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
-	 * the subscription is set to invalid.
-	 * File seek position is arbitrary after this call.
-	 * @return false on file error
-	 */
-	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
 
 	static const orb_metadata *findTopic(const std::string &name);
 	/** get the array size from a type. eg. float[3] -> return float */
@@ -217,7 +229,8 @@ protected:
 	 * @param data
 	 * @return true if published, false otherwise
 	 */
-	bool handleTopicUpdate(Subscription &sub, void *data) override;
+	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) override;
+
 
 private:
 
