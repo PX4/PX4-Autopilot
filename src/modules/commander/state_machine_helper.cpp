@@ -844,10 +844,10 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
-			/* also go into failsafe if just datalink is lost */
+			/* also go into failsafe if just datalink is lost, and we're actually in air */
 
-		} else if (status->data_link_lost && data_link_loss_act_configured) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
 
 			set_data_link_loss_nav_state(status, armed, status_flags, data_link_loss_act);
 
