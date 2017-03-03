@@ -133,8 +133,7 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 		}
 	}
 
-	io_timer_set_rate(group, rate);
-	return OK;
+	return io_timer_set_rate(group, rate);
 }
 
 void up_pwm_update(void)
