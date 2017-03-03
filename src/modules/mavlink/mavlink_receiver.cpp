@@ -137,11 +137,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
-	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_prev_gyro{},
-	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -1776,24 +1773,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
-	float dt;
-
-	if (_hil_last_frame == 0 ||
-	    (timestamp <= _hil_last_frame) ||
-	    (timestamp - _hil_last_frame) > (0.1f * 1e6f) ||
-	    (_hil_last_frame >= timestamp)) {
-		dt = 0.01f; /* default to 100 Hz */
-		memset(&_hil_prev_gyro[0], 0, sizeof(_hil_prev_gyro));
-		_hil_prev_accel[0] = 0.0f;
-		_hil_prev_accel[1] = 0.0f;
-		_hil_prev_accel[2] = 9.866f;
-
-	} else {
-		dt = (timestamp - _hil_last_frame) / 1e6f;
-	}
-
-	_hil_last_frame = timestamp;
-
 	/* airspeed */
 	{
 		struct airspeed_s airspeed = {};
@@ -1893,46 +1872,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-		}
-	}
-
-	/* sensor combined */
-	{
-		struct sensor_combined_s hil_sensors = {};
-
-		hil_sensors.gyro_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]);
-		hil_sensors.gyro_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]);
-		hil_sensors.gyro_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]);
-		_hil_prev_gyro[0] = imu.xgyro;
-		_hil_prev_gyro[1] = imu.ygyro;
-		_hil_prev_gyro[2] = imu.zgyro;
-		hil_sensors.gyro_integral_dt = dt;
-		hil_sensors.timestamp = timestamp;
-
-		hil_sensors.accelerometer_m_s2[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]);
-		hil_sensors.accelerometer_m_s2[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]);
-		hil_sensors.accelerometer_m_s2[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]);
-		_hil_prev_accel[0] = imu.xacc;
-		_hil_prev_accel[1] = imu.yacc;
-		_hil_prev_accel[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_dt = dt;
-		hil_sensors.accelerometer_timestamp_relative = 0;
-
-		hil_sensors.magnetometer_ga[0] = imu.xmag;
-		hil_sensors.magnetometer_ga[1] = imu.ymag;
-		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_timestamp_relative = 0;
-
-		hil_sensors.baro_alt_meter = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp_relative = 0;
-
-		/* publish combined sensor topic */
-		if (_sensors_pub == nullptr) {
-			_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-
-		} else {
-			orb_publish(ORB_ID(sensor_combined), _sensors_pub, &hil_sensors);
 		}
 	}
 
