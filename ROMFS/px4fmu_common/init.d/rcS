@@ -399,9 +399,7 @@ then
 		then
 			set FMU_MODE serial
 		fi
-		unset HIL
 	else
-		unset HIL
 		gps start
 	fi
 
@@ -420,7 +418,13 @@ then
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
-	sh /etc/init.d/rc.sensors
+	if [ $HIL == yes ]
+	then
+		sensors start -hil
+	else
+		sh /etc/init.d/rc.sensors
+	fi
+	unset HIL
 
 	# Needs to be this early for in-air-restarts
 	if [ $OUTPUT_MODE == hil ]
