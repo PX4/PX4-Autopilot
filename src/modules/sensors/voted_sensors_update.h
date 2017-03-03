@@ -76,7 +76,7 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(const Parameters &parameters);
+	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled);
 
 	/**
 	 * initialize subscriptions etc.
@@ -259,6 +259,7 @@ private:
 	math::Matrix<3, 3>	_mag_rotation[SENSOR_COUNT_MAX] = {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	const Parameters &_parameters;
+	const bool _hil_enabled; /**< is hardware-in-the-loop mode enabled? */
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
