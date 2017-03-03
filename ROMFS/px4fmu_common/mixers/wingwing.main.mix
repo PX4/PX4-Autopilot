@@ -25,20 +25,20 @@ for the elevons.
 
 Output 0
 --------
+Z:
 
+Output 1
+--------
 M: 1
 O:       10000   10000      0 -10000  10000
 S: 0 2  -10000  -10000      0 -10000  10000
 
-Output 1
---------
-Z:
 
 Output 2
 --------
 This mixer is empty.
-
 Z:
+
 
 Output 3
 -----------------
