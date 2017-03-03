@@ -1,8 +1,8 @@
 # this message contains the (relative) timestamps of the sensor inputs used by
 # ekf2. It can be used for reproducible replay.
 
-# timestamp             # ekf2 reference time. This matches the timestamp of the
-                        # sensor_combined topic.
+# the timestamp field (auto-generated) is the ekf2 reference time and matches
+# the timestamp of the sensor_combined topic.
 
 
 int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative timestamps

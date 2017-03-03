@@ -1,5 +1,4 @@
-# uint64 timestamp 			# ekf2 reference time. This is a timestamp passed to the
-					# estimator which it uses a absolute reference.
+
 float32 gyro_integral_dt		# gyro integration period in s
 float32 accelerometer_integral_dt 	# accelerometer integration period in s
 uint64 magnetometer_timestamp 		# timestamp of magnetometer measurement in us

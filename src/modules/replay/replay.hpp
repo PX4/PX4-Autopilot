@@ -231,6 +231,7 @@ protected:
 	 * handle ekf2 topic publication in ekf2 replay mode
 	 * @param sub
 	 * @param data
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
 	 * @return true if published, false otherwise
 	 */
 	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) override;
@@ -245,6 +246,7 @@ private:
 	 * find the next message for a subscription that matches a given timestamp and publish it
 	 * @param timestamp in 0.1 ms
 	 * @param msg_id
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
 	 * @return true if timestamp found and published
 	 */
 	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
