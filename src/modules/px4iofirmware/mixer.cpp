@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
 #include "mixer.h"
 
 extern "C" {
-//#define DEBUG
+	/* #define DEBUG */
 #include "px4io.h"
 }
 
@@ -278,8 +278,9 @@ mixer_tick(void)
 		unsigned mixed;
 
 		if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-			// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-			// factor 2 is needed because actuator ouputs are in the range [-1,1]
+			/*  maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+			 * factor 2 is needed because actuator outputs are in the range [-1,1]
+			 */
 			float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 						      r_setup_slew_max);
 			mixer_group.set_max_delta_out_once(delta_out_max);
@@ -295,29 +296,30 @@ mixer_tick(void)
 		/* mix */
 		mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
-		/* if mixer_mix_threadsafe returns zero, it did nothing */
-		if (mixed != 0) {
+		/* the pwm limit call takes care of out of band errors */
+		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
+			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
-			/* the pwm limit call takes care of out of band errors */
-			pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
-				       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		/* clamp unused outputs to zero */
+		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_servos[i] = 0;
+			outputs[i] = 0.0f;
+		}
 
-			/* clamp unused outputs to zero */
-			for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
-				r_page_servos[i] = 0;
-				outputs[i] = 0.0f;
-			}
+		/* store normalized outputs */
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+		}
 
-			/* store normalized outputs */
-			for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-				r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
-			}
 
-			if (new_fmu_data) {
-				new_fmu_data = false;
+		if (mixed  && new_fmu_data) {
+			new_fmu_data = false;
 
-				up_pwm_force_update();
-			}
+			/* Trigger all timer's channels in Oneshot mode to fire
+			 * the oneshots with updated values.
+			 */
+
+			up_pwm_update();
 		}
 	}
 
@@ -582,8 +584,9 @@ mixer_set_failsafe()
 	unsigned mixed;
 
 	if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-		// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-		// factor 2 is needed because actuator ouputs are in the range [-1,1]
+		/* maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+		 * factor 2 is needed because actuator outputs are in the range [-1,1]
+		 */
 		float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 					      r_setup_slew_max);
 		mixer_group.set_max_delta_out_once(delta_out_max);
