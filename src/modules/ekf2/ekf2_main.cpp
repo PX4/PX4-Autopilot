@@ -75,6 +75,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -162,6 +163,7 @@ private:
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
+	orb_advert_t _ekf2_timestamps_pub;
 
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
@@ -299,6 +301,7 @@ Ekf2::Ekf2():
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
+	_ekf2_timestamps_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f),
@@ -1009,6 +1012,68 @@ void Ekf2::task_main()
 		}
 
 		_prev_landed = vehicle_land_detected.landed;
+
+		// publish ekf2_timestamps (using 0.1 ms relative timestamps)
+		{
+			ekf2_timestamps_s ekf2_timestamps;
+			ekf2_timestamps.timestamp = sensors.timestamp;
+
+			if (gps_updated) {
+				// divide individually to get consistent rounding behavior
+				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.gps_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (optical_flow_updated) {
+				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (range_finder_updated) {
+				ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)range_finder.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (airspeed_updated) {
+				ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (vision_position_updated) {
+				ekf2_timestamps.vision_position_timestamp_rel = (int16_t)((int64_t)ev_pos.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (vision_attitude_updated) {
+				ekf2_timestamps.vision_attitude_timestamp_rel = (int16_t)((int64_t)ev_att.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (_ekf2_timestamps_pub == nullptr) {
+				_ekf2_timestamps_pub = orb_advertise(ORB_ID(ekf2_timestamps), &ekf2_timestamps);
+
+			} else {
+				orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
+			}
+		}
+
 
 		// publish replay message if in replay mode
 		bool publish_replay_message = (bool)_param_record_replay_msg.get();
