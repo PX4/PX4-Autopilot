@@ -40,14 +40,17 @@
 
 #include "BezierQuad.hpp"
 
-namespace bezier{
+namespace bezier
+{
 
 #define GOLDEN_RATIO 1.61803398f //(sqrt(5)-1)/2
 #define RESOLUTION 0.0001f  //represents resolution; end criterion for golden section search
 
 
 void
-BezierQuad::setBezier(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1, float duration){
+BezierQuad::setBezier(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1,
+		      float duration)
+{
 	_pt0 = pt0;
 	_ctrl = ctrl;
 	_pt1 = pt1;
@@ -56,39 +59,153 @@ BezierQuad::setBezier(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl,
 }
 
 void
-BezierQuad::getBezier(matrix::Vector3f &pt0, matrix::Vector3f &ctrl, matrix::Vector3f &pt1){
+BezierQuad::getBezier(matrix::Vector3f &pt0, matrix::Vector3f &ctrl, matrix::Vector3f &pt1)
+{
 	pt0 = _pt0;
 	ctrl = _ctrl;
 	pt1 = _pt1;
 }
 
-void
-BezierQuad::getPoint(matrix::Vector3f &point, const float t){
-	point = _pt0 * (1 - t/_duration) * (1 - t/_duration) + _ctrl * 2.0f * (1- t/_duration)*t/_duration +   _pt1*t/_duration * t/_duration;
+matrix::Vector3f
+BezierQuad::getPoint(const float t)
+{
+	return (_pt0 * (1 - t / _duration) * (1 - t / _duration) + _ctrl * 2.0f * (1 - t / _duration) * t / _duration +   _pt1 *
+		t / _duration * t / _duration);
+}
+
+matrix::Vector3f
+BezierQuad::getVelocity(const float t)
+{
+	return (((_ctrl - _pt0) * _duration + (_pt0 - _ctrl * 2.0f + _pt1) * t) * 2.0f / (_duration * _duration));
+}
+
+matrix::Vector3f
+BezierQuad::getAcceleration()
+{
+	return ((_pt0 - _ctrl * 2.0f + _pt1) * 2.0f / (_duration * _duration));
 }
 
 void
-BezierQuad::getVelocity(matrix::Vector3f &vel, const float t){
-	vel = ((_ctrl - _pt0)*_duration + (_pt0 - _ctrl *2.0f + _pt1 )*t )*2.0f/(_duration*_duration);
+BezierQuad::getStates(matrix::Vector3f &point, matrix::Vector3f &vel, matrix::Vector3f &acc, const float time)
+{
+	point = getPoint(time);
+	vel = getVelocity(time);
+	acc = getAcceleration();
+}
+
+
+void
+BezierQuad::getStatesClosest(matrix::Vector3f &point, matrix::Vector3f &vel, matrix::Vector3f &acc,
+			     const matrix::Vector3f pose)
+{
+	/* get t that corresponds to point closest on bezier point */
+	float t = _goldenSectionSearch(pose);
+
+	/* get states corresponding to t */
+	getStates(point, vel, acc, t);
+
 }
 
 void
-BezierQuad::getAcceleration(matrix::Vector3f &acc){
-	acc = (_pt0 - _ctrl * 2.0f + _pt1) * 2.0f/(_duration * _duration);
-}
+BezierQuad::setBezFromVel(const matrix::Vector3f &ctrl, const matrix::Vector3f &vel0, const matrix::Vector3f &vel1,
+			  const float duration)
+{
 
-void
-BezierQuad::getStates(matrix::Vector3f &point, matrix::Vector3f &vel, matrix::Vector3f &acc, const float time){
-	getPoint(point, time);
-	getVelocity(vel, time);
-	getAcceleration(acc);
+	/* update bezier points */
+	_ctrl = ctrl;
+	_duration = duration;
+	_pt0 = _ctrl - vel0 * _duration / 2.0f;
+	_pt1 = _ctrl + vel1 * _duration / 2.0f;
 }
 
 float
-BezierQuad::getDistanceSquared(const float t, const matrix::Vector3f &pose){
+BezierQuad::getDistToClosestPoint(const matrix::Vector3f &pose)
+{
+
+	/* get t that corresponds to point closest on bezier point */
+	float t = _goldenSectionSearch(pose);
+
+	/* get closest point */
+	matrix::Vector3f point = getPoint(t);
+	return (pose - point).length();
+}
+
+
+float
+BezierQuad::getArcLength(const float resolution)
+{
+
+	// get number of elements
+	int n = (int)(roundf(_duration / resolution));
+	matrix::Vector3f v0, vn;
+	float y0, yn;
+
+	// check if n is even
+	if (n % 2 == 1) {
+		n += 1;
+	}
+
+	// step size
+	float h = (_duration) / n;
+	// get integration
+	float area = 0.0f;
+	matrix::Vector3f y;
+
+	for (int i = 1; i < n; i++) {
+
+		y = getVelocity(h * i);
+
+		if (i % 2 == 1) {
+			area += 4.0f * y.length();
+
+		} else {
+			area += 2.0f * y.length();
+		}
+
+	}
+
+	v0 = getVelocity(0.0f);
+	vn = getVelocity(_duration);
+	y0 = v0.length();
+	yn = vn.length();
+
+	// 1/3 simpsons rule
+	area = h / 3.0f * (y0 + yn + area);
+	return area;
+}
+
+
+float
+BezierQuad::_goldenSectionSearch(const matrix::Vector3f &pose)
+{
+	float a, b, c, d;
+	a = 0.0f; //represents most left point
+	b = _duration * 1.0f; //represents most right point
+
+	c = b - (b - a) / GOLDEN_RATIO;
+	d = a + (b - a) / GOLDEN_RATIO;
+
+	while (fabsf(c - d) > RESOLUTION) {
+		if (_getDistanceSquared(c, pose) < _getDistanceSquared(d, pose)) {
+			b = d;
+
+		} else {
+			a = c;
+		}
+
+		c = b - (b - a) / GOLDEN_RATIO;
+		d = a + (b - a) / GOLDEN_RATIO;
+
+	}
+
+	return (b + a) / 2.0f;
+}
+
+float
+BezierQuad::_getDistanceSquared(const float t, const matrix::Vector3f &pose)
+{
 	/* get point on bezier */
-	matrix::Vector3f vec;
-	getPoint(vec, t);
+	matrix::Vector3f vec = getPoint(t);
 
 	/* get vector from point to pose */
 	vec = vec - pose;
@@ -97,48 +214,4 @@ BezierQuad::getDistanceSquared(const float t, const matrix::Vector3f &pose){
 	return (vec * vec);
 
 }
-
-void
-BezierQuad::getStatesClosest(matrix::Vector3f &point,matrix::Vector3f &vel,matrix::Vector3f &acc, const matrix::Vector3f pose){
-	/* get t that corresponds to point closest on bezier point */
-	float t = goldenSectionSearch(pose);
-
-	/* get states corresponding to t */
-	getStates(point, vel, acc, t);
-
-}
-
-void
-BezierQuad::computeBezFromVel(const matrix::Vector3f &ctrl, const matrix::Vector3f &vel0, const matrix::Vector3f &vel1, const float duration){
-
-	/* update bezier points */
-	_ctrl = ctrl;
-	_duration = duration;
-	_pt0 = _ctrl - vel0 * _duration/2.0f;
-	_pt1 = _ctrl + vel1 * _duration/2.0f;
-}
-
-float
-BezierQuad::goldenSectionSearch(const matrix::Vector3f &pose){
-	float a, b, c, d;
-	a = 0.0f; //represents most left point
-	b = _duration * 1.0f; //represents most right point
-
-	c = b - (b - a) / GOLDEN_RATIO;
-	d = a + (b - a) / GOLDEN_RATIO;
-
-	while(fabsf(c - d) > RESOLUTION){
-			if( getDistanceSquared(c, pose) < getDistanceSquared(d, pose)){
-				b = d;
-			}else{
-				a = c;
-			}
-
-			c = b - (b -a)/GOLDEN_RATIO;
-			d = a + (b -a)/GOLDEN_RATIO;
-
-	}
-	return (b+a)/2.0f;
-}
-
 }

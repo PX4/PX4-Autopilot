@@ -47,7 +47,8 @@
 #include <matrix/math.hpp>
 
 
-namespace bezier{
+namespace bezier
+{
 
 
 class __EXPORT BezierQuad
@@ -58,7 +59,7 @@ public:
 	 * empty constructor
 	 */
 	BezierQuad(void) :
-	_pt0(matrix::Vector3f()), _ctrl(matrix::Vector3f()), _pt1(matrix::Vector3f()), _duration(1.0f){}
+		_pt0(matrix::Vector3f()), _ctrl(matrix::Vector3f()), _pt1(matrix::Vector3f()), _duration(1.0f) {}
 
 
 	/**
@@ -70,8 +71,9 @@ public:
 	/**
 	 * constructor from vector
 	 */
-	BezierQuad(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1, float duration = 1.0f ):
-		_pt0(pt0), _ctrl(ctrl), _pt1(pt1), _duration(1.0f){}
+	BezierQuad(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1,
+		   float duration = 1.0f):
+		_pt0(pt0), _ctrl(ctrl), _pt1(pt1), _duration(1.0f) {}
 
 
 	/*
@@ -79,46 +81,73 @@ public:
 	 */
 	void getBezier(matrix::Vector3f &pt0, matrix::Vector3f &ctrl, matrix::Vector3f &pt1);
 
+	/*
+	 * get pt0
+	 */
+	matrix::Vector3f getPt0() {return _pt0;}
+
+	/*
+	 * get ctrl
+	 */
+	matrix::Vector3f getCtrl() {return _ctrl;}
+
+	/*
+	 * get pt1
+	 */
+	matrix::Vector3f getPt1() {return _pt1;}
+
 	/**
 	 * set new bezier points
 	 */
-	void setBezier(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1, float duration = 1.0f );
+	void setBezier(const matrix::Vector3f &pt0, const matrix::Vector3f &ctrl, const matrix::Vector3f &pt1,
+		       float duration = 1.0f);
+
+	/*
+	* set duration
+	*/
+	void setDuraiont(const float time) {_duration = time;}
 
 	/**
 	 * get point on bezier point corresponding to t
 	 */
-	void getPoint(matrix::Vector3f &point, const float t);
+	matrix::Vector3f getPoint(const float t);
+
+	/*
+	 * Distance to closest point given a position
+	 */
+	float getDistToClosestPoint(const matrix::Vector3f &pose);
 
 	/*
 	 * get velocity on bezier corresponding to t
 	 */
-	void getVelocity(matrix::Vector3f &vel, const float t);
+	matrix::Vector3f getVelocity(const float t);
 
 	/*
 	 * get acceleration on bezier corresponding to t
 	 */
-	void getAcceleration(matrix::Vector3f &acc);
+	matrix::Vector3f getAcceleration();
 
 	/*
 	 * get states on bezier corresponding to t
 	 */
-	void getStates(matrix::Vector3f &point,matrix::Vector3f &vel,matrix::Vector3f &acc, const float t);
+	void getStates(matrix::Vector3f &point, matrix::Vector3f &vel, matrix::Vector3f &acc, const float t);
 
 	/*
 	 * get states on bezier which are closest to pose
 	 */
-	void getStatesClosest(matrix::Vector3f &point,matrix::Vector3f &vel,matrix::Vector3f &acc, const matrix::Vector3f pose);
-
-	/*
-	 * get distance to point on bezier
-	 */
-	float getDistanceSquared(const float t, const matrix::Vector3f &pose);
+	void getStatesClosest(matrix::Vector3f &point, matrix::Vector3f &vel, matrix::Vector3f &acc,
+			      const matrix::Vector3f pose);
 
 	/*
 	 * compute bezier from velocity at bezier end points and ctrl point
 	 */
-	void computeBezFromVel(const matrix::Vector3f &ctrl, const matrix::Vector3f &vel0, const matrix::Vector3f &vel1, const float duration = 1.0f);
+	void setBezFromVel(const matrix::Vector3f &ctrl, const matrix::Vector3f &vel0, const matrix::Vector3f &vel1,
+			   const float duration = 1.0f);
 
+	/*
+	 * simpsons inegrattion applied to velocity
+	 */
+	float getArcLength(const float resolution);
 
 private:
 
@@ -134,17 +163,12 @@ private:
 	 */
 
 	/* golden section search */
-	float goldenSectionSearch(const matrix::Vector3f &pose);
+	float _goldenSectionSearch(const matrix::Vector3f &pose);
 
-
-
-
-
-
-
-
-
-
+	/*
+	 * get distance to point on bezier
+	 */
+	float _getDistanceSquared(const float t, const matrix::Vector3f &pose);
 
 
 };
