@@ -184,7 +184,7 @@ private:
 
 	struct control_state_s				_ctrl_state;			/**< control state */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
-	struct fw_pos_ctrl_status_s		_fw_pos_ctrl_status;		/**< navigation capabilities */
+	struct fw_pos_ctrl_status_s			_fw_pos_ctrl_status;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
 	struct vehicle_command_s			_vehicle_command;		/**< vehicle commands */
@@ -197,15 +197,15 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float	_takeoff_ground_alt;				/**< ground altitude at which plane was launched */
+	float	_takeoff_ground_alt;			/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
 	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	float	_althold_epv;				/**< the position estimate accuracy when engaging alt hold */
-	bool	_was_in_deadband;				/**< wether the last stick input was in althold deadband */
+	bool	_was_in_deadband;			/**< wether the last stick input was in althold deadband */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
-	hrt_abstime _control_position_last_called; /**<last call of control_position  */
+	hrt_abstime _control_position_last_called; 	/**<last call of control_position  */
 
 	/* Landing */
 	bool _land_noreturn_horizontal;
@@ -219,10 +219,10 @@ private:
 
 	hrt_abstime _time_started_landing;	//*< time at which landing started */
 
-	float _t_alt_prev_valid;	//**< last terrain estimate which was valid */
-	hrt_abstime _time_last_t_alt; //*< time at which we had last valid terrain alt */
+	float _t_alt_prev_valid;		//**< last terrain estimate which was valid */
+	hrt_abstime _time_last_t_alt; 		//*< time at which we had last valid terrain alt */
 
-	float _flare_height;					//*< estimated height to ground at which flare started */
+	float _flare_height;				//*< estimated height to ground at which flare started */
 	float _flare_curve_alt_rel_last;
 	float _target_bearing;				//*< estimated height to ground at which flare started */
 
@@ -239,8 +239,12 @@ private:
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
+	float _gpsspeed_error;				///< gpsspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
-	uint64_t _airspeed_last_received;			///< last time airspeed was received. Used to detect timeouts.
+	bool _gpsspeed_valid;				///< flag if a valid gpsspeed estimate exists
+	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
+	uint64_t _gpsspeed_last_received;		///< last time gpsspeed was received. Used to detect timeouts.
+	
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
@@ -2321,6 +2325,11 @@ GroundRoverPositionControl::task_main()
 			vehicle_manual_control_setpoint_poll();
 			// vehicle_baro_poll();
 
+
+			/******************************************************************************
+			* MARCO HERE: here the gps speed is parsed in the NED frame
+			* With the rover we don't need air speed and all the control here.
+			******************************************************************************/
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
