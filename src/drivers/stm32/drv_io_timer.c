@@ -577,7 +577,9 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 	/* Check that all channels are either in PWM or Oneshot */
 
-	if ((channels & (channel_allocations[IOTimerChanMode_PWMOut] | channel_allocations[IOTimerChanMode_OneShot])) ==
+	if ((channels & (channel_allocations[IOTimerChanMode_PWMOut] |
+			 channel_allocations[IOTimerChanMode_OneShot] |
+			 channel_allocations[IOTimerChanMode_NotUsed])) ==
 	    channels) {
 
 		/* Change only a timer that is owned by pwm or one shot */
