@@ -1124,10 +1124,11 @@ MulticopterAttitudeControl::task_main()
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
-	poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 	poll_fds.events = POLLIN;
 
 	while (!_task_should_exit) {
+
+		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&poll_fds, 1, 100);
