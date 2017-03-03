@@ -298,11 +298,11 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
  */
 void *commander_low_prio_loop(void *arg);
 
-void answer_command(struct vehicle_command_s &cmd, unsigned result,
+static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 					orb_advert_t &command_ack_pub, vehicle_command_ack_s &command_ack);
 
 /* publish vehicle status flags from the global variable status_flags*/
-void publish_status_flags(orb_advert_t vehicle_status_flags_pub);
+static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
 /**
  * check whether autostart ID is in the reserved range for HIL setups
@@ -4295,7 +4295,7 @@ void *commander_low_prio_loop(void *arg)
 	return nullptr;
 }
 
-void publish_status_flags(orb_advert_t vehicle_status_flags_pub){
+void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
 	struct vehicle_status_flags_s v_flags;
 	memset(&v_flags, 0, sizeof(v_flags));
 	/* set condition status flags */
@@ -4412,7 +4412,7 @@ void publish_status_flags(orb_advert_t vehicle_status_flags_pub){
 	/* publish vehicle_status_flags */
 	if (vehicle_status_flags_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_status_flags), vehicle_status_flags_pub, &v_flags);
-	}else{
+	} else {
 		vehicle_status_flags_pub = orb_advertise(ORB_ID(vehicle_status_flags), &v_flags);
 	}
 }
