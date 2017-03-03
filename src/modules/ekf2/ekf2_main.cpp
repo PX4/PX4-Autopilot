@@ -924,7 +924,7 @@ void Ekf2::task_main()
 			// in replay mode we have to tell the replay module not to wait for an update
 			// we do this by publishing an attitude with zero timestamp
 			struct vehicle_attitude_s att = {};
-			att.timestamp = 0;
+			att.timestamp = now;
 
 			if (_att_pub == nullptr) {
 				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
