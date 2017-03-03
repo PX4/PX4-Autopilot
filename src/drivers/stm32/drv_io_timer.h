@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,11 +65,12 @@ typedef enum io_timer_channel_mode_t {
 typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
 
 /* array of timers dedicated to PWM in and out and capture use
- *** Note that the clock_freq field must be set to the frequency (in Hz) of the selected clock.
- *** Normal PWM timers set the prescaler to achieve a counter frequency of 1MHz
- *** and OneShot PWM timers set the prescaler to achieve a counter frequency of 8MHz.
- *** These counter frequencies are specified (in MHz) in array timer_freq[MAX_IO_TIMERS].
- *** Beware that legacy code *assumes* that the counter frequency is 1MHz.
+ *** Note that the clock_freq is set to the source in the clock tree that
+ *** feeds this specific timer. This can differs by Timer!
+ *** In PWM  mode the timer's prescaler is set to achieve a counter frequency of 1MHz
+ *** In OneShot mode the timer's prescaler is set to achieve a counter frequency of 8MHz
+ *** Other prescaler rates can be achieved by fore instance by setting the clock_freq = 1Mhz
+ *** the resulting PSC will be one and the timer will count at it's clock frequency.
  */
 typedef struct io_timers_t {
 	uint32_t	base;
@@ -115,7 +116,6 @@ __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mod
 				   channel_handler_t channel_handler, void *context);
 
 __EXPORT int io_timer_init_timer(unsigned timer);
-__EXPORT void io_timer_set_oneshot_mode(unsigned timer);
 
 __EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
 __EXPORT int io_timer_set_enable(bool state, io_timer_channel_mode_t mode,
@@ -129,12 +129,6 @@ __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
-/**
- * Force update of all timer channels
- *
- * @param timer	The timer to force.
- */
-__EXPORT extern void io_timer_force_update(void);
-__EXPORT extern uint8_t io_timer_get_freq(unsigned timer);
+__EXPORT extern void io_timer_trigger(void);
 
 __END_DECLS
