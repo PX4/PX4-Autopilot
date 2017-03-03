@@ -551,7 +551,6 @@ void Logger::add_default_topics()
 	add_topic("actuator_outputs", 50);
 	add_topic("telemetry_status");
 	add_topic("vehicle_command");
-	add_topic("vehicle_status");
 	add_topic("vtol_vehicle_status", 100);
 	add_topic("commander_state", 100);
 	add_topic("satellite_info");
@@ -572,9 +571,7 @@ void Logger::add_default_topics()
 	add_topic("optical_flow", 50);
 	add_topic("rc_channels");
 	add_topic("input_rc");
-	add_topic("airspeed", 50);
 	add_topic("differential_pressure", 50);
-	add_topic("distance_sensor", 20);
 	add_topic("esc_status", 20);
 	add_topic("estimator_status", 50); //this one is large
 	add_topic("ekf2_innovations", 20);
@@ -588,21 +585,13 @@ void Logger::add_default_topics()
 	add_topic("task_stack_info");
 
 	/* for estimator replay (need to be at full rate) */
+	add_topic("airspeed");
+	add_topic("distance_sensor");
+	add_topic("ekf2_timestamps");
 	add_topic("sensor_combined");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
-
-	// log the replay topic if EKF2_REC_RPL is set
-	param_t replay_handle = param_find("EKF2_REC_RPL");
-
-	if (replay_handle != PARAM_INVALID) {
-		int32_t replay_value = 0;
-		param_get(replay_handle, &replay_value);
-
-		if (replay_value == 1) {
-			add_topic("ekf2_replay");
-		}
-	}
+	add_topic("vehicle_status");
 }
 
 void Logger::add_calibration_topics()
