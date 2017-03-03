@@ -42,7 +42,7 @@
 #include "definitions.hpp"
 
 #include <uORB/uORBTopics.h>
-#include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/ekf2_timestamps.h>
 
 namespace px4
 {
@@ -231,19 +231,31 @@ protected:
 	 */
 	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) override;
 
+	void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) override;
 
 private:
 
-	void publishEkf2Topics(const ekf2_replay_s &ekf2_replay);
+	bool publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file);
+
+	/**
+	 * find the next message for a subscription that matches a given timestamp and publish it
+	 * @param timestamp in 0.1 ms
+	 * @param msg_id
+	 * @return true if timestamp found and published
+	 */
+	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
 
 	int _vehicle_attitude_sub = -1;
-	orb_advert_t _sensors_pub = nullptr;
-	orb_advert_t _gps_pub = nullptr;
-	orb_advert_t _flow_pub = nullptr;
-	orb_advert_t _range_pub = nullptr;
-	orb_advert_t _airspeed_pub = nullptr;
-	orb_advert_t _vehicle_vision_position_pub = nullptr;
-	orb_advert_t _vehicle_vision_attitude_pub = nullptr;
+
+	static constexpr uint16_t msg_id_invalid = 0xffff;
+
+	uint16_t _sensors_combined_msg_id = msg_id_invalid;
+	uint16_t _gps_msg_id = msg_id_invalid;
+	uint16_t _optical_flow_msg_id = msg_id_invalid;
+	uint16_t _distance_sensor_msg_id = msg_id_invalid;
+	uint16_t _airspeed_msg_id = msg_id_invalid;
+	uint16_t _vehicle_vision_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_vision_attitude_msg_id = msg_id_invalid;
 
 	int _topic_counter = 0;
 };
