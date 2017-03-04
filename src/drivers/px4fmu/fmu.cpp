@@ -131,6 +131,9 @@ public:
 		MODE_4CAP,
 		MODE_5CAP,
 		MODE_6CAP,
+		MODE_4ONESHOT,
+		MODE_6ONESHOT,
+		MODE_8ONESHOT,
 	};
 	PX4FMU(bool run_as_task);
 	virtual ~PX4FMU();
@@ -611,6 +614,18 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_initialized = false;
 		break;
 
+	case MODE_4ONESHOT:
+		DEVICE_DEBUG("MODE_4ONESHOT");
+
+		/* default output rates */
+		_pwm_default_rate = 0;
+		_pwm_alt_rate = 0;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0xf;
+		_pwm_initialized = false;
+		mode =  MODE_4PWM;
+		break;
+
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
 		DEVICE_DEBUG("MODE_4PWM");
 
@@ -624,6 +639,18 @@ PX4FMU::set_mode(Mode mode)
 		break;
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
+	case MODE_6ONESHOT:
+		DEVICE_DEBUG("MODE_6ONESHOT");
+
+		/* default output rates */
+		_pwm_default_rate = 0;
+		_pwm_alt_rate = 0;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x3f;
+		_pwm_initialized = false;
+		mode =  MODE_6PWM;
+		break;
 
 	case MODE_6PWM:
 		DEVICE_DEBUG("MODE_6PWM");
@@ -639,6 +666,18 @@ PX4FMU::set_mode(Mode mode)
 #endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+
+	case MODE_8ONESHOT:
+		DEVICE_DEBUG("MODE_8ONESHOT");
+
+		/* default output rates */
+		_pwm_default_rate = 0;
+		_pwm_alt_rate = 0;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0xff;
+		_pwm_initialized = false;
+		mode =  MODE_8PWM;
+		break;
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
 		DEVICE_DEBUG("MODE_8PWM");
@@ -2960,6 +2999,7 @@ enum PortMode {
 	PORT_PWM3CAP1,
 	PORT_PWM2CAP2,
 	PORT_CAPTURE,
+	PORT_FULL_ONESHOT,
 };
 
 PortMode g_port_mode;
@@ -2977,6 +3017,19 @@ fmu_new_mode(PortMode new_mode)
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
 	case PORT_MODE_UNSET:
+		break;
+
+	case PORT_FULL_ONESHOT:
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_4ONESHOT;
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
+		servo_mode = PX4FMU::MODE_6ONESHOT;
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
+		servo_mode = PX4FMU::MODE_8ONESHOT;
+#endif
 		break;
 
 	case PORT_FULL_PWM:
@@ -3440,6 +3493,9 @@ fmu_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_rcin")) {
 		exit(0);
+
+	} else if (!strcmp(verb, "mode_oneshot")) {
+		new_mode = PORT_FULL_ONESHOT;
 
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
