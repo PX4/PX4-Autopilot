@@ -18,6 +18,8 @@ float32 vel_d			# Down velocity in NED earth-fixed frame, (metres/sec)
 float32 yaw 			# Euler yaw angle relative to NED earth-fixed frame, -PI..+PI, (radians)
 float32 eph			# Standard deviation of horizontal position error, (metres)
 float32 epv			# Standard deviation of vertical position error, (metres)
+float32 evh			# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv			# Standard deviation of horizontal velocity error, (metres/sec)
 float32 terrain_alt		# Terrain altitude WGS84, (metres)
 bool terrain_alt_valid		# Terrain altitude estimate is valid
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
