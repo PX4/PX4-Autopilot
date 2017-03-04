@@ -289,6 +289,94 @@ fix_c_code('K_LOSY.c');
 clear all;
 reset(symengine);
 
+%% derive equations for sequential fusion of body frame velocity measurements
+load('StatePrediction.mat');
+
+% body frame velocity observations
+syms velX velY velZ real;
+
+% velocity observation variance
+syms R_VEL real;
+
+% calculate relative velocity in body frame
+relVelBody = transpose(Tbn)*[vn;ve;vd];
+
+save('temp1.mat','relVelBody','R_VEL');
+
+% calculate the observation Jacobian for the X axis
+H_VELX = jacobian(relVelBody(1),stateVector); % measurement Jacobian
+H_VELX = simplify(H_VELX);
+save('temp2.mat','H_VELX');
+ccode(H_VELX,'file','H_VELX.c');
+fix_c_code('H_VELX.c');
+
+clear all;
+reset(symengine);
+load('StatePrediction.mat');
+load('temp1.mat');
+
+% calculate the observation Jacobian for the Y axis
+H_VELY = jacobian(relVelBody(2),stateVector); % measurement Jacobian
+H_VELY = simplify(H_VELY);
+save('temp3.mat','H_VELY');
+ccode(H_VELY,'file','H_VELY.c');
+fix_c_code('H_VELY.c');
+
+clear all;
+reset(symengine);
+load('StatePrediction.mat');
+load('temp1.mat');
+
+% calculate the observation Jacobian for the Z axis
+H_VELZ = jacobian(relVelBody(3),stateVector); % measurement Jacobian
+H_VELZ = simplify(H_VELZ);
+save('temp4.mat','H_VELZ');
+ccode(H_VELZ,'file','H_VELZ.c');
+fix_c_code('H_VELZ.c');
+
+clear all;
+reset(symengine);
+
+% calculate Kalman gain vector for the X axis
+load('StatePrediction.mat');
+load('temp1.mat');
+load('temp2.mat');
+
+K_VELX = (P*transpose(H_VELX))/(H_VELX*P*transpose(H_VELX) + R_VEL); % Kalman gain vector
+K_VELX = simplify(K_VELX);
+ccode(K_VELX,'file','K_VELX.c');
+fix_c_code('K_VELX.c');
+
+clear all;
+reset(symengine);
+
+% calculate Kalman gain vector for the Y axis
+load('StatePrediction.mat');
+load('temp1.mat');
+load('temp3.mat');
+
+K_VELY = (P*transpose(H_VELY))/(H_VELY*P*transpose(H_VELY) + R_VEL); % Kalman gain vector
+K_VELY = simplify(K_VELY);
+ccode(K_VELY,'file','K_VELY.c');
+fix_c_code('K_VELY.c');
+
+clear all;
+reset(symengine);
+
+% calculate Kalman gain vector for the Z axis
+load('StatePrediction.mat');
+load('temp1.mat');
+load('temp4.mat');
+
+K_VELZ = (P*transpose(H_VELZ))/(H_VELZ*P*transpose(H_VELZ) + R_VEL); % Kalman gain vector
+K_VELZ = simplify(K_VELZ);
+ccode(K_VELZ,'file','K_VELZ.c');
+fix_c_code('K_VELZ.c');
+
+% reset workspace
+clear all;
+reset(symengine);
+
 %% derive equations for fusion of 321 sequence yaw measurement
 load('StatePrediction.mat');
 
