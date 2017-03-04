@@ -143,13 +143,13 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 	switch (cmd.command) {
 	case MAV_CMD_REQUEST_MIXER_DATA: {
-        PX4_INFO("Received mixer data request");
+			PX4_INFO("Received mixer data request");
 			_msg_mixer_data_immediate.mixer_group = cmd.param1;
 			_msg_mixer_data_immediate.mixer_index = cmd.param2;
 			_msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
 			_msg_mixer_data_immediate.parameter_index = cmd.param4;
 			_msg_mixer_data_immediate.data_type = cmd.param5;
-			_msg_mixer_data_immediate.connection_type = 0;
+			_msg_mixer_data_immediate.connection_type = cmd.param6;
 			_msg_mixer_data_immediate.connection_group = 0;
 
 			_msg_mixer_data_immediate.param_value = 0.0;
@@ -169,8 +169,8 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 			switch (_msg_mixer_data_immediate.data_type) {
 			case MIXER_DATA_TYPE_MIXER_COUNT: {
-                    PX4_INFO("Received mixer count request");
-                    int mix_count;
+					PX4_INFO("Received mixer count request");
+					int mix_count;
 					int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 					px4_close(dev);
 					_msg_mixer_data_immediate.param_value = 0.0;
@@ -187,7 +187,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 				}
 
 			case MIXER_DATA_TYPE_SUBMIXER_COUNT: {
-					int mix_count;
+					int mix_count = _msg_mixer_data_immediate.mixer_index;
 					int ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&mix_count);
 					px4_close(dev);
 					_msg_mixer_data_immediate.param_value = 0.0;
@@ -198,6 +198,11 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 					} else {
 						_msg_mixer_data_immediate.data_value = mix_count;
 					}
+
+//                    PX4_INFO("MAVlink reqeust for submixer count. group:%u mixer:%u submixer_count:%u",
+//                             _msg_mixer_data_immediate.mixer_group,
+//                             _msg_mixer_data_immediate.mixer_index,
+//                             _msg_mixer_data_immediate.data_value);
 
 					_send_data_immediate = true;
 					break;
@@ -244,16 +249,103 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 					break;
 				}
 
+			case MIXER_DATA_TYPE_PARAMETER_COUNT: {
+					mixer_type_s type;
+					type.mix_index = _msg_mixer_data_immediate.mixer_index;
+					type.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						_msg_mixer_data_immediate.data_value = mixer_parameter_count[type.mix_type];
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
+			case MIXER_DATA_TYPE_CONNECTION_COUNT: {
+					mixer_type_s type;
+					type.mix_index = _msg_mixer_data_immediate.mixer_index;
+					type.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+					int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
+					px4_close(dev);
+					_msg_mixer_data_immediate.param_value = 0.0;
+
+					if (ret < 0) {
+						_msg_mixer_data_immediate.data_value = ret;
+
+					} else {
+						if (_msg_mixer_data_immediate.connection_type == 0) {
+							_msg_mixer_data_immediate.data_value = mixer_output_count[type.mix_type];
+
+						} else {
+							_msg_mixer_data_immediate.data_value = mixer_input_count[type.mix_type];
+						}
+					}
+
+					_send_data_immediate = true;
+					break;
+				}
+
 			// Not supported or not yet supported
 			case MIXER_DATA_TYPE_CONNECTION:
-			case MIXER_DATA_TYPE_PARAMETER_COUNT:
-			case MIXER_DATA_TYPE_CONNECTION_COUNT:
+
 			default:
 				return;
 			}
 
 			break;
 		}
+
+//    case MAV_CMD_REQUEST_MIXER_CONN: {
+//        PX4_INFO("Received mixer connection request");
+//        _msg_mixer_data_immediate.mixer_group = cmd.param1;
+//        _msg_mixer_data_immediate.mixer_index = cmd.param2;
+//        _msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
+//        _msg_mixer_data_immediate.connection_type = cmd.param4;
+//        _msg_mixer_data_immediate.parameter_index = cmd.param5;
+
+//        _msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION;
+//        _msg_mixer_data_immediate.connection_group = 0;
+
+//        _msg_mixer_data_immediate.param_value = 0.0;
+//        _msg_mixer_data_immediate.param_type = 0;
+//        _msg_mixer_data_immediate.data_value = 0;
+//        _send_all_state = MIXERS_SEND_ALL_NONE;
+
+//        int dev;
+//        dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
+
+//        if (dev < 0) {
+//            _msg_mixer_data_immediate.data_value = -1;
+//            _msg_mixer_data_immediate.param_value = 0.0;
+//            _send_data_immediate = true;
+//            return;
+//        }
+
+//        mixer_connection_s conn;
+//        conn.mix_index = _msg_mixer_data_immediate.mixer_index;
+//        conn.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
+//        conn.connection_type = _msg_mixer_data_immediate.connection_type;
+//        conn.connection_index = _msg_mixer_data_immediate.parameter_index;
+//        int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
+//        px4_close(dev);
+
+//        if (ret < 0) {
+//            _msg_mixer_data_immediate.data_value = ret;
+
+//        } else {
+//            _msg_mixer_data_immediate.connection_group = conn.connection_group;
+//            _msg_mixer_data_immediate.data_value = conn.connection;
+//        }
+
+//        break;
+//    }
 
 	case MAV_CMD_REQUEST_MIXER_STORE: {
 			_msg_mixer_data_immediate.mixer_group = cmd.param1;
@@ -443,7 +535,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 		/* Send with default component ID */
 		mavlink_msg_mixer_data_send_struct(_mavlink->get_channel(), &_msg_mixer_data_immediate);
 		_send_data_immediate = false;
-        PX4_INFO("Sent immediate mixer data");
+		PX4_INFO("Sent immediate mixer data");
 		return;
 	}
 
@@ -469,7 +561,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				int mix_count;
 				int ret = px4_ioctl(dev, MIXERIOCGETMIXERCOUNT, (unsigned long)&mix_count);
 				px4_close(dev);
-                dev = -1;
+				dev = -1;
 
 				if (ret < 0) {
 					_msg_mixer_data_immediate.data_value = ret;
@@ -495,7 +587,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 				int mix_count = _msg_mixer_data_immediate.mixer_index;
 				int ret = px4_ioctl(dev, MIXERIOCGETSUBMIXERCOUNT, (unsigned long)&mix_count);
 				px4_close(dev);
-                dev = -1;
+				dev = -1;
 
 				_msg_mixer_data_immediate.param_value = 0.0;
 
@@ -523,7 +615,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 				int ret = px4_ioctl(dev, MIXERIOCGETTYPE, (unsigned long)&type);
 				px4_close(dev);
-                dev = -1;
+				dev = -1;
 
 				_msg_mixer_data_immediate.param_value = 0.0;
 
@@ -594,7 +686,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
 					px4_close(dev);
-                    dev = -1;
+					dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.data_value = ret;
@@ -648,7 +740,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
 					px4_close(dev);
-                    dev = -1;
+					dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.data_value = ret;
@@ -686,7 +778,7 @@ MavlinkMixersManager::send(const hrt_abstime t)
 
 					int ret = px4_ioctl(dev, MIXERIOCGETPARAM, (unsigned long)&param);
 					px4_close(dev);
-                    dev = -1;
+					dev = -1;
 
 					if (ret < 0) {
 						_msg_mixer_data_immediate.param_type = 0;
@@ -739,8 +831,10 @@ MavlinkMixersManager::send(const hrt_abstime t)
 			_send_all_state = MIXERS_SEND_ALL_NONE;
 			break;
 		}
-        if(dev != -1)
-            px4_close(dev);
+
+		if (dev != -1) {
+			px4_close(dev);
+		}
 
 	} //if sending all
 
