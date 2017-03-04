@@ -119,7 +119,7 @@
 #define BIT_I2C_IF_DIS			0x10
 #define BIT_INT_STATUS_DATA		0x01
 
-#define MPU_WHOAMI_6000		0x68
+#define MPU_WHOAMI_6000		0x68 /// 0x68为MPU6000的WHO_AM_I(0x75)复位值
 #define ICM_WHOAMI_20608		0xaf	
 
 // ICM20608 specific registers

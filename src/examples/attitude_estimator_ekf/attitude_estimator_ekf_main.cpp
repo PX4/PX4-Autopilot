@@ -84,8 +84,8 @@ extern "C" {
 
 extern "C" __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
+static bool thread_should_exit = false;		/**< Daemon exit flag */
+static bool thread_running = false;		/**< Daemon status flag */
 static int attitude_estimator_ekf_task;				/**< Handle of deamon task / thread */
 
 /**

@@ -59,7 +59,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <poll.h>
@@ -226,6 +225,7 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 #else
 #define write_debug_log(...)
 #endif
+#include <uORB/topics/att_pos_mocap.h>
 
 /****************************************************************************
  * main
