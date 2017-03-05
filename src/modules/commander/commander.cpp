@@ -120,6 +120,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/estimator_status.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -190,6 +191,12 @@ static float max_ekf_hgt_ratio = 0.5f;
 static float max_ekf_yaw_ratio = 0.5f;
 static float max_ekf_dvel_bias = 2.0e-3f;
 static float max_ekf_dang_bias = 3.5e-4f;
+
+/* in-flight EKF consistency checks */
+static hrt_abstime last_velpos_pass_time = 0;
+static hrt_abstime last_velpos_fail_time = 0;
+static hrt_abstime last_optflow_pass_time = 0;
+static hrt_abstime last_optflow_fail_time = 0;
 
 /* pre-flight IMU consistency checks */
 static float max_imu_acc_diff = 0.7f;
@@ -331,7 +338,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = px4_task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT + 40,
-					     3600,
+					     3700,
 					     commander_thread_main,
 					     (char * const *)&argv[0]);
 
@@ -1633,6 +1640,10 @@ int commander_thread_main(int argc, char *argv[])
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
 	memset(&cpuload, 0, sizeof(cpuload));
 
+	/* Subscribe to estimator status topic */
+	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	struct estimator_status_s estimator_status;
+	memset(&estimator_status, 0, sizeof(estimator_status));
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
 	/* now initialized */
@@ -2085,22 +2096,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			/* position changed */
-			vehicle_global_position_s gpos;
-			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &gpos);
-
-			/* copy to global struct if valid, with hysteresis */
-
-			// XXX consolidate this with local position handling and timeouts after release
-			// but we want a low-risk change now.
-			if (status_flags.condition_global_position_valid) {
-				if (gpos.eph < eph_threshold * 2.5f) {
-					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
-				}
-			} else {
-				if (gpos.eph < eph_threshold) {
-					orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
-				}
-			}
+			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
 		}
 
 		/* update local position estimate */
@@ -2115,50 +2111,119 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(attitude_sub, &updated);
 
 		if (updated) {
-			/* position changed */
+			/* attitude changed */
 			orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &attitude);
 		}
 
-		//update condition_global_position_valid
-		//Global positions are only published by the estimators if they are valid
-		if (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT) {
-			//We have had no good fix for POSITION_TIMEOUT amount of time
-			if (status_flags.condition_global_position_valid) {
-				set_tune_override(TONE_GPS_WARNING_TUNE);
-				status_changed = true;
-				status_flags.condition_global_position_valid = false;
-			}
-		} else if (global_position.timestamp != 0) {
-			// Got good global position estimate
-			if (!status_flags.condition_global_position_valid) {
-				status_changed = true;
-				status_flags.condition_global_position_valid = true;
-			}
+		/* Check validity of global and local position data */
+
+		// Check if quality checking of position accuracy and consistency is to be performed
+		bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
+
+		// Get estimator status data
+		bool estimator_status_updated;
+		orb_check(estimator_status_sub, &estimator_status_updated);
+		if (estimator_status_updated) {
+			orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
 		}
 
-		/* update condition_local_position_valid and condition_local_altitude_valid */
-		/* hysteresis for EPH */
-		bool local_eph_good;
+		// Record pass/fail of position and velocity consistency checks
+		// Both position and velocity have to pass to record a pass
+		// Both position and velocity have to fail to record a fail
+		bool gps_is_inconsistent = (estimator_status.control_mode_flags & (1<<2)) // the EKF is using GPS
+				&& (estimator_status.pos_test_ratio > 1.0f) // position innovations are excessive
+				&& (estimator_status.vel_test_ratio > 1.0f); // velocity innovations are excessive
 
-		if (status_flags.condition_local_position_valid) {
-			if (local_position.eph > eph_threshold * 2.5f) {
-				local_eph_good = false;
+		bool gps_is_consistent = (estimator_status.control_mode_flags & (1<<2)) // the EKF is using GPS
+				&& (estimator_status.pos_test_ratio <= 1.0f) // position innovations are excessive
+				&& (estimator_status.vel_test_ratio <= 1.0f); // velocity innovations are excessive
 
-			} else {
-				local_eph_good = true;
-			}
+		if (gps_is_inconsistent && run_quality_checks) {
+			last_velpos_fail_time = hrt_absolute_time();
+		} else if (gps_is_consistent || !run_quality_checks) {
+			last_velpos_pass_time = hrt_absolute_time();
+		}
 
+		// record pass/fail of optical flow consistency checks
+		bool using_optical_flow = (estimator_status.control_mode_flags & (1<<3));
+		bool optical_flow_data_good = !(estimator_status.innovation_check_flags & (1<<9)) // X axis flow data has been accepted
+				&& !(estimator_status.innovation_check_flags & (1<<10)); // Y axis flow data has been accepted
+		if (using_optical_flow && (optical_flow_data_good || !run_quality_checks)) {
+			last_optflow_fail_time = hrt_absolute_time();
 		} else {
-			if (local_position.eph < eph_threshold) {
-				local_eph_good = true;
-
-			} else {
-				local_eph_good = false;
-			}
+			last_optflow_fail_time = hrt_absolute_time();
 		}
 
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid
-			    && local_eph_good, &(status_flags.condition_local_position_valid), &status_changed);
+		// Check position accuracy with hysteresis
+		bool global_pos_inaccurate = true;
+		bool local_pos_inaccurate = true;
+		if (run_quality_checks) {
+			// Check global position accuracy
+			if (status_flags.condition_global_position_valid) {
+				if (global_position.eph < eph_threshold * 2.5f) {
+					global_pos_inaccurate = false;
+				}
+			} else {
+				if (global_position.eph < eph_threshold) {
+					global_pos_inaccurate = false;
+				}
+			}
+
+			// Check local position accuracy
+			if (status_flags.condition_local_position_valid) {
+				if (local_position.eph < eph_threshold * 2.5f) {
+					local_pos_inaccurate = false;
+				}
+			} else {
+				if (local_position.eph < eph_threshold) {
+					local_pos_inaccurate = false;
+				}
+			}
+		} else {
+			global_pos_inaccurate = false;
+			local_pos_inaccurate = false;
+		}
+
+		// Set global position validity
+		bool no_aiding = ((hrt_absolute_time() - last_velpos_pass_time) > 1E6) && ((hrt_absolute_time() - last_optflow_pass_time) > 1E6);
+		bool global_aiding_resumed = ((hrt_absolute_time() - last_velpos_fail_time) > 5E6);
+		bool ekf_reports_valid_global_pos = (estimator_status.solution_status_flags & (1<<4));
+		bool global_pos_stale = (hrt_absolute_time() - global_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_global_position_valid
+			   && (global_pos_stale || no_aiding || !ekf_reports_valid_global_pos || global_pos_inaccurate)) {
+			// Require 1 second continuous loss of all aiding sources to declare global position invalid
+			status_flags.condition_global_position_valid = false;
+			set_tune_override(TONE_GPS_WARNING_TUNE);
+			status_changed = true;
+		} else if (!status_flags.condition_global_position_valid
+			   && global_aiding_resumed
+			   && ekf_reports_valid_global_pos
+			   && !global_pos_stale
+			   && !global_pos_inaccurate) {
+			// Require 5 seconds continuous position fusion to declare global position valid again
+			status_flags.condition_global_position_valid = true;
+			status_changed = true;
+		}
+
+		// Set local position validity
+		bool flow_aiding_resumed = ((hrt_absolute_time() - last_optflow_fail_time) > 5E6);
+		bool local_pos_stale = (hrt_absolute_time() - local_position.timestamp > POSITION_TIMEOUT);
+		if (status_flags.condition_local_position_valid
+			   && (local_pos_stale || no_aiding || !local_position.xy_valid || local_pos_inaccurate)) {
+			// Require 1 second continuous rejection of all aiding sources to declare local position invalid
+			status_flags.condition_local_position_valid = false;
+			status_changed = true;
+		} else if (!status_flags.condition_local_position_valid
+			   && (global_aiding_resumed || flow_aiding_resumed)
+			   && !local_pos_stale
+			   && !local_pos_inaccurate
+			   && local_position.xy_valid) {
+			// Require 5 seconds continuous fusion of either GPS or optical flow to declare local position valid again
+			status_flags.condition_local_position_valid = true;
+			status_changed = true;
+		}
+
+		/* update condition_local_altitude_valid */
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
@@ -2422,6 +2487,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
+			// Check fix type and data freshness
 			if (gps_position.fix_type >= 3 && hrt_elapsed_time(&gps_position.timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
 				/* handle the case where gps was regained */
 				if (status_flags.gps_failure && !gpsIsNoisy) {
@@ -2437,6 +2503,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 				mavlink_log_critical(&mavlink_log_pub, "GPS fix lost");
 			}
+
 		}
 
 		/* start mission result check */
@@ -3181,6 +3248,7 @@ int commander_thread_main(int argc, char *argv[])
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
 	px4_close(land_detector_sub);
+	px4_close (estimator_status_sub);
 
 	thread_running = false;
 
@@ -3196,6 +3264,7 @@ get_circuit_breaker_params()
 	status_flags.circuit_breaker_engaged_enginefailure_check = circuit_breaker_enabled("CBRK_ENGINEFAIL", CBRK_ENGINEFAIL_KEY);
 	status_flags.circuit_breaker_engaged_gpsfailure_check = circuit_breaker_enabled("CBRK_GPSFAIL", CBRK_GPSFAIL_KEY);
 	status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled("CBRK_POS_CHK", CBRK_POS_CHK_KEY);
 }
 
 void
