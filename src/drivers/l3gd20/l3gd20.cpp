@@ -93,14 +93,15 @@ static const int ERROR = -1;
 
 /* register addresses */
 #define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM_H 				0xD7
+#define WHO_I_AM_H 			0xD7
 #define WHO_I_AM				0xD4
 #define WHO_I_AM_L3G4200D		0xD3	/* for L3G4200D */
 
 #define ADDR_CTRL_REG1			0x20
-#define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
+#define REG1_RATE_LP_MASK		0xF0 /* Mask to guard partial register update */
 
 /* keep lowpass low to avoid noise issues */
+// ADDR_CTRL_REG1 具体配置结果，ODR采样频率  LP低通截止频率
 #define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
 #define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (0<<5) | (1<<4))
 #define RATE_190HZ_LP_50HZ		((0<<7) | (1<<6) | (1<<5) | (0<<4))
@@ -108,24 +109,26 @@ static const int ERROR = -1;
 #define RATE_380HZ_LP_20HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
 #define RATE_380HZ_LP_25HZ		((1<<7) | (0<<6) | (0<<5) | (1<<4))
 #define RATE_380HZ_LP_50HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
-#define RATE_380HZ_LP_100HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
+#define RATE_380HZ_LP_100HZ	((1<<7) | (0<<6) | (1<<5) | (1<<4))
 #define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (0<<5) | (0<<4))
 #define RATE_760HZ_LP_35HZ		((1<<7) | (1<<6) | (0<<5) | (1<<4))
 #define RATE_760HZ_LP_50HZ		((1<<7) | (1<<6) | (1<<5) | (0<<4))
-#define RATE_760HZ_LP_100HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_760HZ_LP_100HZ	((1<<7) | (1<<6) | (1<<5) | (1<<4))
 
 #define ADDR_CTRL_REG2			0x21
 #define ADDR_CTRL_REG3			0x22
 #define ADDR_CTRL_REG4			0x23
-#define REG4_RANGE_MASK				0x30 /* Mask to guard partial register update */
+#define REG4_RANGE_MASK		0x30 /* Mask to guard partial register update */
+
+// ADDR_CTRL_REG4 的具体配置结果
 #define RANGE_250DPS				(0<<4)
 #define RANGE_500DPS				(1<<4)
-#define RANGE_2000DPS				(3<<4)
+#define RANGE_2000DPS				(3<<4) // 第 4 5位置1
 
 #define ADDR_CTRL_REG5			0x24
 #define ADDR_REFERENCE			0x25
 #define ADDR_OUT_TEMP			0x26
-#define ADDR_STATUS_REG			0x27
+#define ADDR_STATUS_REG		0x27
 #define ADDR_OUT_X_L			0x28
 #define ADDR_OUT_X_H			0x29
 #define ADDR_OUT_Y_L			0x2A
@@ -147,6 +150,8 @@ static const int ERROR = -1;
 
 
 /* Internal configuration values */
+// 内部配置值
+// ADD_CTRL_REG1的位定义
 #define REG1_POWER_NORMAL			(1<<3)
 #define REG1_Z_ENABLE				(1<<2)
 #define REG1_Y_ENABLE				(1<<1)
@@ -184,7 +189,7 @@ static const int ERROR = -1;
 #define L3GD20_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
 
 #ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
+#define EXTERNAL_BUS PX4_SPI_BUS_deEXT
 #else
 #define EXTERNAL_BUS 0
 #endif
