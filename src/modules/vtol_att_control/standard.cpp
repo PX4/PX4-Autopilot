@@ -71,6 +71,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
+	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 }
 
 Standard::~Standard()
@@ -122,6 +123,9 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.airspeed_mode, &i);
 	_params_standard.airspeed_mode = math::constrain(i, 0, 2);
 
+	/* pitch setpoint offset */
+	param_get(_params_handles_standard.pitch_setpoint_offset, &v);
+	_params_standard.pitch_setpoint_offset = math::radians(v);
 
 
 }
@@ -297,6 +301,10 @@ void Standard::update_transition_state()
 		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+
+		// maintain FW_PSP_OFF
+		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
+
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > 0.0f) {
 			float weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.back_trans_dur *
