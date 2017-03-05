@@ -40,33 +40,23 @@
  */
 
 #include "CatapultLaunchMethod.h"
-#include <systemlib/err.h>
 
 namespace launchdetection
 {
 
 CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
 	SuperBlock(parent, "CAT"),
-	last_timestamp(hrt_absolute_time()),
-	integrator(0.0f),
-	motorDelayCounter(0.0f),
-	state(LAUNCHDETECTION_RES_NONE),
 	thresholdAccel(this, "A"),
 	thresholdTime(this, "T"),
 	motorDelay(this, "MDEL"),
 	pitchMaxPreThrottle(this, "PMAX")
 {
-
-}
-
-CatapultLaunchMethod::~CatapultLaunchMethod()
-{
-
+	last_timestamp = hrt_absolute_time();
 }
 
 void CatapultLaunchMethod::update(float accel_x)
 {
-	float dt = (float)hrt_elapsed_time(&last_timestamp) * 1e-6f;
+	float dt = hrt_elapsed_time(&last_timestamp) * 1e-6f;
 	last_timestamp = hrt_absolute_time();
 
 	switch (state) {
@@ -79,18 +69,17 @@ void CatapultLaunchMethod::update(float accel_x)
 			if (integrator > thresholdTime.get()) {
 				if (motorDelay.get() > 0.0f) {
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
-					warnx("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
-					      double(motorDelay.get()));
+					PX4_WARN("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
+						 double(motorDelay.get()));
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-					warnx("Launch detected: enablemotors (delay not activated)");
+					PX4_WARN("Launch detected: enablemotors (delay not activated)");
 				}
 			}
 
 		} else {
-			/* reset */
 			reset();
 		}
 
@@ -102,7 +91,7 @@ void CatapultLaunchMethod::update(float accel_x)
 		motorDelayCounter += dt;
 
 		if (motorDelayCounter > motorDelay.get()) {
-			warnx("Launch detected: state enablemotors");
+			PX4_WARN("Launch detected: state enablemotors");
 			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 		}
 
@@ -112,14 +101,12 @@ void CatapultLaunchMethod::update(float accel_x)
 		break;
 
 	}
-
 }
 
 LaunchDetectionResult CatapultLaunchMethod::getLaunchDetected() const
 {
 	return state;
 }
-
 
 void CatapultLaunchMethod::reset()
 {
@@ -137,7 +124,6 @@ float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
 	} else {
 		return pitchMaxPreThrottle.get();
 	}
-
 }
 
-}
+} // namespace launchdetection
