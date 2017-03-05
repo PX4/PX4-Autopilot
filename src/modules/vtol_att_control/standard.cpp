@@ -292,6 +292,8 @@ void Standard::update_transition_state()
 			_mc_throttle_weight = 1.0f;
 		}
 
+		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - _mc_pitch_weight);
+
 		// check front transition timeout
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
 			if ((float)hrt_elapsed_time(&_vtol_schedule.transition_start) > (_params_standard.front_trans_timeout * 1000000.0f)) {
