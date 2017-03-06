@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  * Handles mission items, geo fencing and failsafe navigation behavior.
  * Published the position setpoint triplet for the position controller.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Jean Cyr <jean.m.cyr@gmail.com>
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -73,6 +73,7 @@
 #include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/transponder_report.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -902,6 +903,35 @@ Navigator::load_fence_from_file(const char *filename)
 	_geofence.loadFromFile(filename);
 }
 
+void Navigator::fake_traffic()
+{
+	double lat = get_global_position()->lat;
+	double lon = get_global_position()->lon;
+	float alt = get_global_position()->alt + 5;
+
+	float vel_n = get_global_position()->vel_n;
+	float vel_e = get_global_position()->vel_e;
+	float vel_d = get_global_position()->vel_d;
+
+	transponder_report_s tr = {};
+	tr.ICAO_address = 1234;
+	tr.lat = lat; // Latitude, expressed as degrees
+	tr.lon = lon; // Longitude, expressed as degrees
+	tr.altitude_type = 0;
+	tr.altitude = alt;
+	tr.heading = -atan2(vel_e, vel_n); // Course over ground in radians
+	tr.hor_velocity	= sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
+	tr.ver_velocity = -vel_d; // The vertical velocity in m/s, positive is up
+	strcpy(&tr.callsign[0], "LX007");
+	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
+	tr.tslc = 2; // Time since last communication in seconds
+	tr.flags = 0; // Flags to indicate various statuses including valid data fields
+	tr.squawk = 6667;
+
+	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
+	(void)orb_unadvertise(h);
+}
+
 bool
 Navigator::abort_landing()
 {
@@ -974,6 +1004,9 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "fencefile")) {
 		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
+
+	} else if (!strcmp(argv[1], "fake_traffic")) {
+		navigator::g_navigator->fake_traffic();
 
 	} else {
 		usage();
