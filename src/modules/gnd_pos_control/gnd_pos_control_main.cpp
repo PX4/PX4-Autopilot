@@ -299,6 +299,12 @@ private:
 		float airspeed_trans;
 		int airspeed_mode;
 
+		float gpsspeed_min;
+		float gpsspeed_trim;
+		float gpsspeed_max;
+		float gpsspeed_trans;
+		int gpsspeed_mode;
+
 		float pitch_limit_min;
 		float pitch_limit_max;
 		float roll_limit;
@@ -356,6 +362,13 @@ private:
 		param_t airspeed_max;
 		param_t airspeed_trans;
 		param_t airspeed_mode;
+
+		param_t gpsspeed_min;
+		param_t gpsspeed_trim;
+		param_t gpsspeed_max;
+		param_t gpsspeed_trans;
+		param_t gpsspeed_mode;
+
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
@@ -649,6 +662,11 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
 	_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_parameter_handles.airspeed_mode = param_find("GND_ARSP_MODE");
+
+	_parameter_handles.gpsspeed_min = param_find("GND_GPSSPD_MIN");
+	_parameter_handles.gpsspeed_trim = param_find("GND_GPSSPD_TRIM");
+	_parameter_handles.gpsspeed_max = param_find("GND_GPSSPD_MAX");
+	_parameter_handles.gpsspeed_mode = param_find("GND_ARSP_MODE");
 
 	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");
@@ -1335,15 +1353,18 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	math::Vector<2> nav_speed_2d = {0, 0};
 
 	// angle between air_speed_2d and ground_speed_2d
-	float air_gnd_angle = acosf((air_speed_2d * ground_speed_2d) / (air_speed_2d.length() * ground_speed_2d.length()));
+	//float air_gnd_angle = acosf((air_speed_2d * ground_speed_2d) / (air_speed_2d.length() * ground_speed_2d.length()));
 
-	// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-	if ((fabsf(air_gnd_angle) > (float)M_PI) || (ground_speed_2d.length() < 3.0f)) {
-		nav_speed_2d = air_speed_2d;
+	// // if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
+	// if ((fabsf(air_gnd_angle) > (float)M_PI) || (ground_speed_2d.length() < 3.0f)) {
+	// 	nav_speed_2d = air_speed_2d;
 
-	} else {
-		nav_speed_2d = ground_speed_2d;
-	}
+	// } else {
+	// 	nav_speed_2d = ground_speed_2d;
+	// }
+
+	nav_speed_2d = ground_speed_2d;
+
 
 	/* define altitude error */
 	float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
@@ -2346,6 +2367,8 @@ GroundRoverPositionControl::task_main()
 			******************************************************************************/
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
+
+
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
