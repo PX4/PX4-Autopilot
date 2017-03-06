@@ -239,10 +239,11 @@ private:
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
-	float _gpsspeed_error;				///< gpsspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
-	bool _gpsspeed_valid;				///< flag if a valid gpsspeed estimate exists
 	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
+	
+	float _gpsspeed_error;				///< gpsspeed error to setpoint in m/s
+	bool _gpsspeed_valid;				///< flag if a valid gpsspeed estimate exists
 	uint64_t _gpsspeed_last_received;		///< last time gpsspeed was received. Used to detect timeouts.
 	
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
@@ -615,6 +616,10 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
 	_airspeed_last_received(0),
+	_gpsspeed_error(0.0f),
+	_gpsspeed_valid(false),
+	_gpsspeed_last_received(0),
+
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_R_nb(),
@@ -813,7 +818,7 @@ GroundRoverPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	/* sanity check parameters */
+	/* sanity check parameters 
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
 	    _parameters.airspeed_max < 5.0f ||
 	    _parameters.airspeed_min > 100.0f ||
@@ -822,6 +827,7 @@ GroundRoverPositionControl::parameters_update()
 		warnx("error: airspeed parameters invalid");
 		return 1;
 	}
+	*/
 
 	/* Update the landing slope */
 	_landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
@@ -973,6 +979,12 @@ GroundRoverPositionControl::vehicle_setpoint_poll()
 	}
 }
 
+/**
+ * @brief      this creates a new object and starts the main task which loops
+ *
+ * @param[in]  argc  number of starting strings, not used
+ * @param      argv  starting characters, not used
+ */
 void
 GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -2204,7 +2216,9 @@ GroundRoverPositionControl::handle_command()
 	}
 }
 
-
+/**
+ * @brief      Main task which starts the control loop
+ */
 void
 GroundRoverPositionControl::task_main()
 {
@@ -2586,10 +2600,16 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 	}
 }
 
+/**
+ * @brief      Spawns a new task for the PX4
+ *
+ * @return     OK or error
+ */
 int
 GroundRoverPositionControl::start()
 {
 	ASSERT(_control_task == -1);
+	warn("Starting by marco");
 
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
@@ -2598,6 +2618,7 @@ GroundRoverPositionControl::start()
 					   1700,
 					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
+	warn("done");
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -2607,6 +2628,14 @@ GroundRoverPositionControl::start()
 	return OK;
 }
 
+/**
+ * @brief      Lander function that starts the application
+ *
+ * @param[in]  argc  number of appended strings
+ * @param      argv  The string commands attached
+ *
+ * @return     success or not
+ */
 int gnd_pos_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
