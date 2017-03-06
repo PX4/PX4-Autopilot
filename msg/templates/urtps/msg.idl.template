@@ -37,6 +37,7 @@ def add_msg_field(field):
             print '\t' + str(get_idl_type_name(field.base_type)) + ' ' + field.name + '[' +str(field.array_len)+ '];'
 
 def add_msg_fields():
+    print "\tunsigned long long timestamp;"
     # sort fields (using a stable sort) as in the declaration of the type
     sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
     for field in sorted_fields:
@@ -47,6 +48,5 @@ def add_msg_fields():
 @
 struct @(spec.short_name)_
 {
-    unsigned long long timestamp;
 @add_msg_fields()
 }; // struct @(spec.short_name)_

@@ -403,11 +403,6 @@ foreach(driver ${config_df_driver_list})
 endforeach()
 
 #=============================================================================
-# micro-CDR
-#
-include_directories(src/lib/micro-CDR/include)
-
-#=============================================================================
 # external projects
 #
 
