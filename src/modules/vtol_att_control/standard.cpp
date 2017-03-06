@@ -292,7 +292,14 @@ void Standard::update_transition_state()
 			_mc_throttle_weight = 1.0f;
 		}
 
+		// ramp up FW_PSP_OFF
+		matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - _mc_pitch_weight);
+		R_sp = matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
+		matrix::Quatf q_sp(R_sp);
+		memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
+
+
 
 		// check front transition timeout
 		if (_params_standard.front_trans_timeout > FLT_EPSILON) {
@@ -305,7 +312,12 @@ void Standard::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 
 		// maintain FW_PSP_OFF
+		matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
+		R_sp = matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body);
+		matrix::Quatf q_sp(R_sp);
+		memcpy(&_v_att_sp->q_d[0], &q_sp._data[0], sizeof(_v_att_sp->q_d));
+
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_params_standard.back_trans_dur > 0.0f) {
