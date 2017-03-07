@@ -32,9 +32,9 @@ topic_name = spec.short_name
 
 int uart_init(const char *uart_name, uint32_t speed);
 
-__EXPORT int eprosima_cdr_main(int argc, char *argv[]);
+extern "C" __EXPORT int @(topic_name)_trans_main(int argc, char *argv[]);
 
-int eprosima_cdr_main(int argc, char *argv[])
+int @(topic_name)_trans_main(int argc, char *argv[])
 {
     if (argc < 2)
     {
