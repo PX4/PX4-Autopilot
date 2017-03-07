@@ -34,6 +34,10 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <arch/board/board.h>
 
 #include <nuttx/arch.h>
@@ -54,7 +58,7 @@
 // 10Hz
 #define CYCLE_TICKS_DELAY MSEC2TICK(100)
 
-extern "C" { __EXPORT int aerofc_adc_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int adc_main(int argc, char *argv[]); }
 
 class AEROFC_ADC : public device::I2C
 {
@@ -105,7 +109,7 @@ static void test()
 	exit(0);
 }
 
-int aerofc_adc_main(int argc, char *argv[])
+int adc_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		warn("Missing action <start>");

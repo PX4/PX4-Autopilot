@@ -32,7 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__aerofc_adc
-	MAIN aerofc_adc
+	MAIN adc
 	COMPILE_FLAGS
 		-Os
 	SRCS
