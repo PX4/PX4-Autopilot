@@ -679,6 +679,7 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	/* check if there is a new message */
 	bool updated;
 	orb_check(_motor_limits_sub, &updated);
+    //comment
 
 	if (updated) {
 		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &_motor_limits);
