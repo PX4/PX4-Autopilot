@@ -94,6 +94,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t manual_stick_down_threshold;
 		param_t altitude_max;
+		param_t land_min_time;
 		param_t manual_stick_up_position_takeoff_threshold;
 	} _paramHandle;
 
@@ -109,6 +110,7 @@ private:
 		float freefall_trigger_time;
 		float manual_stick_down_threshold;
 		float altitude_max;
+		int land_min_time;
 		float manual_stick_up_position_takeoff_threshold;
 	} _params;
 
@@ -131,6 +133,7 @@ private:
 	struct battery_status_s _battery;
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
+	uint64_t _landed_start;			///< timestamp when landed condition was met first
 	uint64_t _arming_time;
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
