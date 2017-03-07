@@ -430,4 +430,31 @@ PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
  * @increment
  * @group Multicopter Attitude Control
  */
+
 PARAM_DEFINE_FLOAT(TAU_SERVO, 7.9587f);
+
+/**
+ * Torque coefficient
+ *
+ * Ratio of torque produced by rotor and thrust produced by rotor. In unit [Nm/N]
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_TORQUE_COEFF, 0.016f);
+
+/**
+ * Length axis
+ *
+ * Length from rotor to body center of gravity in meters
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_LENGTH_AXIS, 0.375f);

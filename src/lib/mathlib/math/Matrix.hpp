@@ -479,6 +479,78 @@ public:
 	}
 };
 
-}
 
+
+
+template <>
+class __EXPORT Matrix<6, 6> : public MatrixBase<6, 6>
+{
+public:
+        using MatrixBase<6, 6>::operator *;
+
+        Matrix() : MatrixBase<6, 6>() {}
+
+        Matrix(const Matrix<6, 6> &m) : MatrixBase<6, 6>(m) {}
+
+        Matrix(const float *d) : MatrixBase<6, 6>(d) {}
+
+        Matrix(const float d[6][6]) : MatrixBase<6, 6>(d) {}
+        /**
+         * set data
+         */
+        void set(const float d[36]) {
+                memcpy(data, d, sizeof(data));
+        }
+        /*
+        Vector(const float x, const float y, const float z) : VectorBase<3>() {
+                data[0] = x;
+                data[1] = y;
+                data[2] = z;
+        }
+        */
+
+#if defined(__PX4_ROS)
+        /**
+         * set data from boost::array
+         */
+        void set(const boost::array<float, 36ul> d) {
+        set(static_cast<const float*>(d.data()));
+        }
+#endif
+
+        /**
+         * set to value
+         */
+        const Matrix<6, 6> &operator =(const Matrix<6, 6> &m) {
+                memcpy(this->data, m.data, sizeof(this->data));
+                return *this;
+        }
+
+
+        /**
+         * multiplication by a vector
+         */
+        /*
+        Vector<3> operator *(const Vector<3> &v) const {
+                Vector<3> res(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
+                              data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
+                              data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
+                return res;
+        }
+        */
+        Vector<6> operator *(const Vector<6> &v) const {
+                float vec[6]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+                Vector<6> res(vec);
+
+                for (unsigned int i = 0; i < 6; i++)
+                        for (unsigned int j = 0; j < 6; j++)
+                                res.data[i] += data[i][j] * v.data[j];
+
+                return res;
+        }
+
+
+};
+
+}
 #endif // MATRIX_HPP

@@ -217,6 +217,10 @@ private:
 
     param_t tau_servo; //added by Voliro
 
+        //added by Voliro
+        param_t length_axis;
+        param_t torque_coeff;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -245,6 +249,10 @@ private:
 		int bat_scale_en;
 
 		float tau_servo;
+
+        //added by Voliro
+        float length_axis;
+        float torque_coeff;
 
 	}		_params;
 
@@ -299,6 +307,11 @@ private:
    *functions that looks up alpha in table and simulates motor dynamics.
    */
   void alpha(float dt);
+
+    /**
+     * Control Allocation
+     */
+  void		control_allocation(float dt);
 
     /**
 	 * Check for vehicle status updates.
@@ -401,6 +414,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_I.identity();
 
+  //Added by Voliro
+  _params.length_axis = 0.375f;
+  _params.torque_coeff = 0.016f;
+
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
 	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
@@ -435,6 +452,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
 
 	_params_handles.tau_servo = param_find("TAU_SERVO");
+
+	//Added by Voliro
+	_params_handles.length_axis     =   param_find("MC_LENGTH_AXIS");
+	_params_handles.torque_coeff    =   param_find("MC_TORQUE_COEFF");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -569,7 +590,13 @@ MulticopterAttitudeControl::parameters_update()
 
 	param_get(_params_handles.tau_servo, &(_params_handles.tau_servo));
 
-		return OK;
+  /*Parameters added by voliro*/
+  param_get(_params_handles.length_axis, &(_params.length_axis));
+  param_get(_params_handles.torque_coeff, &(_params.torque_coeff));
+
+
+
+	return OK;
 }
 
 void
@@ -679,7 +706,7 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	/* check if there is a new message */
 	bool updated;
 	orb_check(_motor_limits_sub, &updated);
-    //comment
+
 
 	if (updated) {
 		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &_motor_limits);
@@ -913,6 +940,42 @@ for (int i=0;i<6;i++)
 }
 
 
+
+
+void
+MulticopterAttitudeControl::control_allocation(float dt)
+{
+    float k=_params.torque_coeff;
+    float l=_params.length_axis;
+    //U=[_thrust_sp m_des];
+    math::Vector<6> u;
+    //to be changed
+    math::Vector<3> f_des;
+    math::Vector<3> m_des;
+
+
+    math::Vector<6> alpha_des;
+    u(0)=f_des(0);
+    u(1)=f_des(1);
+    u(2)=f_des(2);
+    u(3)=m_des(0);
+    u(4)=m_des(1);
+    u(5)=m_des(2);
+    //u={f_des,m_des};
+
+
+    float alloc [6][6]= {{-sinf(alpha_des(0)),                          sinf(alpha_des(1)),                          0.5f*sinf(alpha_des(2)),                                               -0.5f*sinf(alpha_des(3)),                                               -0.5f*sinf(alpha_des(4)),                                               0.5f*sinf(alpha_des(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(alpha_des(2)),                                      -sqrtf(3)*0.5f*sinf(alpha_des(3)),                                      sqrtf(3)*0.5f*sinf(alpha_des(4)),                                       -sqrtf(3)*0.5f*sinf(alpha_des(5))},
+                         {-cosf(alpha_des(0)),                          -cosf(alpha_des(1)),                         -cosf(alpha_des(2)),                                                   -cosf(alpha_des(3)),                                                    -cosf(alpha_des(4)),                                                    -cosf(alpha_des(5))},
+                         {-l*cosf(alpha_des(0))-k*sinf(alpha_des(0)),   l*cosf(alpha_des(1))-k*sinf(alpha_des(1)),   l*0.5f*cosf(alpha_des(2))+k*0.5f*sinf(alpha_des(2)),                   -l*0.5f*cosf(alpha_des(3))+k*0.5f*sinf(alpha_des(3)),                   -l*0.5f*cosf(alpha_des(4))+k*0.5f*sinf(alpha_des(4)),                   l*0.5f*cosf(alpha_des(5))+k*0.5f*sinf(alpha_des(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(alpha_des(2))+sqrtf(3)*0.5f*k*sinf(alpha_des(2)), -l*sqrtf(3)*0.5f*cosf(alpha_des(3))+k*sqrtf(3)*0.5f*sinf(alpha_des(3)), sqrtf(3)*0.5f*l*cosf(alpha_des(4))-sqrtf(3)*0.5f*k*sinf(alpha_des(4)),  -sqrtf(3)*0.5f*l*cosf(alpha_des(5))-sqrtf(3)*0.5f*k*sinf(alpha_des(5))},
+                         {l*sinf(alpha_des(0))-k*cosf(alpha_des(0)),    l*sinf(alpha_des(1))+k*cosf(alpha_des(2)),   l*sinf(alpha_des(2))-k*cosf(alpha_des(2)),                             l*sinf(alpha_des(3))+k*cosf(alpha_des(3)),                              l*sinf(alpha_des(4))+k*cosf(alpha_des(4)),                              l*sinf(alpha_des(5))-k*cosf(alpha_des(5))}};
+
+    math::Matrix<6,6> A(alloc);
+    math::Vector<6> omega_des;
+    omega_des=A.inversed()*u;
+
+}
 
 
 void
