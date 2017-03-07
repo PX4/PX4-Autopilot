@@ -145,8 +145,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params except RC*
-		param reset_nostart RC*
+		# Wipe out params except RC* and total flight time
+		param reset_nostart RC* LND_FLIGHT_T_*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
