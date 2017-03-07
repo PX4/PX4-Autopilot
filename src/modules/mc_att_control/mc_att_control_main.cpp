@@ -174,6 +174,7 @@ private:
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
+    math::Vector<6>      alpha_des;  /**< alpha_des */
 
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
@@ -214,6 +215,8 @@ private:
 
 		param_t bat_scale_en;
 
+    param_t tau_servo; //added by Voliro
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -240,6 +243,9 @@ private:
 		float vtol_wv_yaw_rate_scale;			/**< Scale value [0, 1] for yaw rate setpoint  */
 
 		int bat_scale_en;
+
+		float tau_servo;
+
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -289,7 +295,12 @@ private:
 	 */
 	void		control_attitude_rates(float dt);
 
-	/**
+  /**
+   *functions that looks up alpha in table and simulates motor dynamics.
+   */
+  void alpha(float dt);
+
+    /**
 	 * Check for vehicle status updates.
 	 */
 	void		vehicle_status_poll();
@@ -379,6 +390,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.vtol_wv_yaw_rate_scale = 1.0f;
 	_params.bat_scale_en = 0;
 
+  _params.tau_servo = 0.0f;
+
 	_rates_prev.zero();
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
@@ -414,14 +427,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
 	_params_handles.rattitude_thres = 	param_find("MC_RATT_TH");
-	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
+	_params_handles.vtol_type 		= 	param_find("VT_TYPE");tc
 	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
 	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
 	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
 
-
+	_params_handles.tau_servo = param_find("TAU_SERVO");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -554,7 +567,9 @@ MulticopterAttitudeControl::parameters_update()
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
-	return OK;
+	param_get(_params_handles.tau_servo, &(_params_handles.tau_servo));
+
+		return OK;
 }
 
 void
@@ -838,6 +853,67 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	}
 }
 
+void MulticopterAttitudeControl::alpha (float dt)
+ {
+ //alpha destiny lookup table
+
+    float al[6]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+alpha_des=(al);
+
+//alpha infinity
+
+
+math::Vector<6> alpha_des_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+
+for (int i=0;i<6;i++)
+{
+    float a=fmod((alpha_des_prev(i)+(float)M_PI),2*(float)M_PI);
+
+   int k=(alpha_des_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
+
+    alpha_des_prev(i)=alpha_des_prev(i)-k*2*(float)M_PI;
+
+    if (alpha_des(i)*alpha_des_prev(i)<0 && abs(alpha_des(i)-alpha_des_prev(i))>(double)M_PI)
+       {
+        if (alpha_des_prev(i)<alpha_des(i))
+            {alpha_des(i)=alpha_des(i)-2*(float)M_PI;}
+        else
+            {alpha_des(i)=alpha_des(i)+2*(float)M_PI;}
+        }
+    else
+    {
+        alpha_des(i)=alpha_des(i);
+    }
+
+    alpha_des(i)=alpha_des(i)+k*2*(float)M_PI;
+    alpha_des_prev(i)=alpha_des(i);
+
+}
+
+
+ //alpha motor dynamics
+ math::Vector<6> alpha_sim(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+
+math::Vector<6> alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+
+
+for (int i=0;i<6;i++)
+{
+
+  if(alpha_des(i)-alpha_sim_prev(i)>_params.tau_servo*dt)
+  {
+    alpha_sim(i)=(alpha_des(i)-alpha_sim_prev(i))*_params.tau_servo*dt + alpha_sim_prev(i);
+  }
+  else { alpha_sim(i)=alpha_des(i);}
+
+  alpha_sim_prev(i)=alpha_sim(i);}
+
+
+}
+
+
+
+
 void
 MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -1001,17 +1077,31 @@ MulticopterAttitudeControl::task_main()
 
 				/* publish actuator controls */
 
-				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+                //omegas
+
+                _actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.control[7] = _v_att_sp.landing_gear;
+//                _actuators.control[3] = (PX4_ISFINITE(_att_control(3))) ? _att_control(3) : 0.0f;
+//                _actuators.control[4] = (PX4_ISFINITE(_att_control(4))) ? _att_control(4) : 0.0f;
+//                _actuators.control[5] = (PX4_ISFINITE(_att_control(5))) ? _att_control(5) : 0.0f;
+
+
+               //alphas
+
+                _actuators.control[3] = (PX4_ISFINITE(alpha_des(0))) ? alpha_des(0) : 0.0f;
+//                _actuators.control[7] = (PX4_ISFINITE(alpha_des(1))) ? alpha_des(1) : 0.0f;
+//                _actuators.control[8] = (PX4_ISFINITE(alpha_des(2))) ? alpha_des(2) : 0.0f;
+//                _actuators.control[9] = (PX4_ISFINITE(alpha_des(3))) ? alpha_des(3) : 0.0f;
+//                _actuators.control[10] = (PX4_ISFINITE(alpha_des(4))) ? alpha_des(4) : 0.0f;
+//                _actuators.control[11] = (PX4_ISFINITE(alpha_des(5))) ? alpha_des(5) : 0.0f;
+
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
 
 				/* scale effort by battery status */
 				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
-					for (int i = 0; i < 4; i++) {
+                    for (int i = 0; i < 4; i++) {
 						_actuators.control[i] *= _battery_status.scale;
 					}
 				}

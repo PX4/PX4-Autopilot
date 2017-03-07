@@ -417,4 +417,17 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE, 1.0f);
  * @boolean
  * @group Multicopter Attitude Control
  */
+
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
+
+/**
+ * Tilting motor time constant tau
+ *
+ *
+ * @min 0.0
+ * @max
+ * @decimal
+ * @increment
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(TAU_SERVO, 7.9587f);
