@@ -844,12 +844,9 @@ void Ekf2::task_main()
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
 			lpos.surface_bottom_timestamp	= hrt_absolute_time(); // Time when new bottom surface found
 
-			// TODO: uORB definition does not define what these variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
-			Vector3f pos_var, vel_var;
-			_ekf.get_pos_var(pos_var);
-			_ekf.get_vel_var(vel_var);
-			lpos.eph = sqrtf(pos_var(0) + pos_var(1));
-			lpos.epv = sqrtf(pos_var(2));
+			bool dead_reckoning;
+			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv, &dead_reckoning);
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -893,8 +890,9 @@ void Ekf2::task_main()
 
 				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
 
-				global_pos.eph = sqrtf(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
-				global_pos.epv = sqrtf(pos_var(2)); // Standard deviation of position vertically
+				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+				global_pos.evh = lpos.evh;
+				global_pos.evv = lpos.evv;
 
 				if (lpos.dist_bottom_valid) {
 					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
@@ -905,8 +903,7 @@ void Ekf2::task_main()
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
 
-				// TODO use innovatun consistency check timouts to set this
-				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
