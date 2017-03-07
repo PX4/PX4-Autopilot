@@ -39,7 +39,7 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
-
+#include <drivers/drv_hrt.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -109,6 +109,10 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
+	actuator_outputs_s actuator_outputs = {};
+	actuator_outputs.noutputs = num_outputs;
+	actuator_outputs.timestamp = hrt_absolute_time();
+
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
 	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
 
@@ -130,9 +134,11 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<int>(scaled));
 
 			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
+			actuator_outputs.output[i] = scaled;
 
 		} else {
 			msg.cmd.push_back(static_cast<unsigned>(0));
+			actuator_outputs.output[i] = 0.0f;
 		}
 	}
 
@@ -160,6 +166,17 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
+
+	// Publish actuator outputs
+	if (_actuator_outputs_pub != nullptr)
+	{
+		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
+	} else {
+		int instance;
+		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
+					&instance, ORB_PRIO_DEFAULT);
+	}
+
 }
 
 void UavcanEscController::arm_all_escs(bool arm)
