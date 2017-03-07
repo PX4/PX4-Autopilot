@@ -59,5 +59,7 @@ uint64 surface_bottom_timestamp		# Time when new bottom surface found since syst
 bool dist_bottom_valid			# true if distance to bottom surface is valid
 float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
+float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
 
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position
