@@ -60,6 +60,8 @@ LandDetector::LandDetector() :
 	_ground_contact_hysteresis(true),
 	_taskShouldExit(false),
 	_taskIsRunning(false),
+	_total_flight_time{0},
+	_takeoff_time{0},
 	_work{}
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
@@ -150,6 +152,7 @@ void LandDetector::_cycle()
 			param_set_no_notification(_p_total_flight_time_high, &flight_time);
 			flight_time = _total_flight_time & 0xffffffff;
 			param_set_no_notification(_p_total_flight_time_low, &flight_time);
+			param_save_default();
 		}
 
 		_landDetected.timestamp = hrt_absolute_time();
