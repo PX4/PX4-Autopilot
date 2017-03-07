@@ -83,7 +83,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 	_paramHandle.manual_stick_down_threshold = param_find("LNDMC_MAN_DWNTHR");
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
-	_paramHandle.land_min_time = param_find("LND_MIN_TIME");
+	_paramHandle.land_min_time = param_find("LNDMC_MIN_TIME");
 	_paramHandle.manual_stick_up_position_takeoff_threshold = param_find("LNDMC_POS_UPTHR");
 }
 
