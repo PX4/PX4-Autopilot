@@ -170,8 +170,8 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_BMA          9
 #define PX4_SPIDEV_EXT0         10
 #define PX4_SPIDEV_EXT1         11
-#define PX4_SPIDEV_EEPROM	12
-
+#define PX4_SPIDEV_EEPROM	      12
+#define PX4_SPIDEV_ICM_20608    13
 
 /* I2C busses */
 #define PX4_I2C_BUS_ONBOARD     1
