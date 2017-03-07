@@ -120,7 +120,7 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->node_id        = node_id;
 		channel->class_instance = class_instance;
 
-		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_HIGH);
+		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
 		if (channel->orb_advert == nullptr) {
 			DEVICE_LOG("ADVERTISE FAILED");
 			(void)unregister_class_devname(_class_devname, class_instance);
