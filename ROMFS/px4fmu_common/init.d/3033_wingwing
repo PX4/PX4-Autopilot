@@ -38,8 +38,6 @@ then
 	param set FW_PR_FF 0.35
 	param set FW_RR_FF 0.6
 	param set FW_RR_P 0.04
-	param set LPE_GPS_ON 0
-
 fi
 
 # Configure this as plane

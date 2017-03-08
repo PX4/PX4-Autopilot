@@ -1352,6 +1352,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	math::Vector<2> air_speed_2d = {_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
 	math::Vector<2> nav_speed_2d = {0, 0};
 
+
+	/***** Comment this out to remove air speed and only use gps speed ******/
 	// angle between air_speed_2d and ground_speed_2d
 	//float air_gnd_angle = acosf((air_speed_2d * ground_speed_2d) / (air_speed_2d.length() * ground_speed_2d.length()));
 
@@ -1362,7 +1364,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	// } else {
 	// 	nav_speed_2d = ground_speed_2d;
 	// }
-
+	/***** Commented this out to remove air speed and only use gps speed ******/
+	
 	nav_speed_2d = ground_speed_2d;
 
 
