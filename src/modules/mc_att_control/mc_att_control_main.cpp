@@ -93,6 +93,7 @@
 #include <lib/geo/geo.h>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
 
+
 /**
  * Multicopter attitude control app start / stop handling function
  *
@@ -389,40 +390,17 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
         _alpha_0_pub(nullptr), //added by voliro
         _omega_0_pub(nullptr), //added by voliro
 	_controller_status_pub(nullptr),
-<<<<<<< HEAD
 	_rates_sp_id(0),
 	_actuators_id(0),
 
 	_actuators_0_circuit_breaker_enabled(false),
 
-=======
-	_rates_sp_id(nullptr),
-	_actuators_id(nullptr),
         _alpha_id(nullptr), //added by voliro
         _omega_id(nullptr), //added by voliro
 
-
-	_actuators_0_circuit_breaker_enabled(false),
-
-	_ctrl_state{},
-	_v_att_sp{},
-        _vol_thrust_sp{},
-	_v_rates_sp{},
-	_manual_control_sp{},
-	_v_control_mode{},
-	_actuators{},
         _alpha{},   //added by voliro
         _omega{},   //added by voliro
-        _armed{},
-	_vehicle_status{},
-	_motor_limits{},
-	_controller_status{},
-	_battery_status{},
-	_sensor_gyro{},
-	_sensor_correction{},
 
-	_saturation_status{},
->>>>>>> f3d412b... added voliro_thrust_setpoint.msg and voliro_alpha.msg and voliro_omega.msg
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
@@ -960,12 +938,12 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 void MulticopterAttitudeControl::alpha (float dt)
  {
- //alpha destiny lookup table
+    //alpha destiny lookup table
 
     float al[6]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-_alpha_des=(al);
+    alpha_des=(al);
 
-//alpha infinity
+    //alpha infinity
 
 
 math::Vector<6> _alpha_des_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
@@ -992,8 +970,7 @@ for (int i=0;i<6;i++)
 
     _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
     _alpha_des_prev(i)=_alpha_des(i);
-
-}
+  }
 
 
  //alpha motor dynamics
@@ -1002,8 +979,9 @@ for (int i=0;i<6;i++)
 math::Vector<6> _alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
 
 
-for (int i=0;i<6;i++)
-{
+
+    for (int i=0;i<6;i++)
+    {
 
   if(_alpha_des(i)-_alpha_sim_prev(i)>_params.tau_servo*dt)
   {
@@ -1012,7 +990,6 @@ for (int i=0;i<6;i++)
   else { _alpha_sim(i)=_alpha_des(i);}
 
   _alpha_sim_prev(i)=_alpha_sim(i);}
-
 
 }
 
@@ -1024,24 +1001,11 @@ MulticopterAttitudeControl::control_allocation(float dt)
 {
     float k=_params.torque_coeff;
     float l=_params.length_axis;
-    //U=[_thrust_sp m_des];
+
     math::Vector<6> u;
     //to be changed
-<<<<<<< HEAD
-    math::Vector<3> f_des;
-    math::Vector<3> m_des;
 
-
-    math::Vector<6> alpha_des;
-    u(0)=f_des(0);
-    u(1)=f_des(1);
-    u(2)=f_des(2);
-    u(3)=m_des(0);
-    u(4)=m_des(1);
-    u(5)=m_des(2);
-=======
-    //math::Vector<3> f_des;
-    //math::Vector<3> m_des;
+		math::Vector<6> alpha_des;
 
     u(0)=_vol_thrust_sp.x;
     u(1)=_vol_thrust_sp.y;
@@ -1049,9 +1013,6 @@ MulticopterAttitudeControl::control_allocation(float dt)
     u(3)=_vol_att_sp.x;
     u(4)=_vol_att_sp.y;
     u(5)=_vol_att_sp.z;
->>>>>>> f3d412b... added voliro_thrust_setpoint.msg and voliro_alpha.msg and voliro_omega.msg
-    //u={f_des,m_des};
-
 
     float alloc [6][6]= {{-sinf(_alpha_des(0)),                          sinf(_alpha_des(1)),                          0.5f*sinf(_alpha_des(2)),                                               -0.5f*sinf(_alpha_des(3)),                                               -0.5f*sinf(_alpha_des(4)),                                               0.5f*sinf(_alpha_des(5))},
                          {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_des(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_des(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_des(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_des(5))},

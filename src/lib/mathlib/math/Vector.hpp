@@ -555,6 +555,15 @@ public:
 		data[4] = y;
 		data[5] = z;
 	}
+        Vector(const Vector<3> &v1, const Vector<3> &v2) : VectorBase<6>() {
+                for (unsigned int i = 0; i < 6; i++)
+                data[0]=v1.data[0];
+                data[1]=v1.data[1];
+                data[2]=v1.data[2];
+                data[3]=v2.data[0];
+                data[4]=v2.data[1];
+                data[5]=v2.data[2];
+        }
 #if defined(__PX4_ROS)
 	/**
 	 * set data from boost::array
@@ -585,7 +594,68 @@ public:
 
 };
 
+template <>
+class __EXPORT Vector<12> : public VectorBase<12>
+{
+public:
+        Vector() : VectorBase<12>() {}
 
+        // simple copy is 1.6 times faster than memcpy
+        Vector(const Vector<12> &v) : VectorBase<12>() {
+                for (unsigned int i = 0; i < 12; i++)
+                        data[i] = v.data[i];
+        }
+
+        Vector(const float d[12]) : VectorBase<12>() {
+                for (unsigned int i = 0; i < 12; i++)
+                        data[i] = d[i];
+        }
+
+
+        Vector(const Vector<6> &v1, const Vector<6> &v2) : VectorBase<12>() {
+                for (unsigned int i = 0; i < 12; i++)
+                data[0]=v1.data[0];
+                data[1]=v1.data[1];
+                data[2]=v1.data[2];
+                data[3]=v1.data[3];
+                data[4]=v1.data[4];
+                data[5]=v1.data[5];
+                data[6]=v2.data[0];
+                data[7]=v2.data[1];
+                data[8]=v2.data[2];
+                data[9]=v2.data[3];
+                data[10]=v2.data[4];
+                data[11]=v2.data[5];
+        }
+#if defined(__PX4_ROS)
+        /**
+         * set data from boost::array
+         */
+        void set(const boost::array<float, 12ul> d) {
+        set(static_cast<const float*>(d.data()));
+        }
+#endif
+
+        /**
+         * set data
+         */
+        void set(const float d[12]) {
+                for (unsigned int i = 0; i < 12; i++)
+                        data[i] = d[i];
+        }
+
+        /**
+         * set to value
+         */
+        const Vector<12> &operator =(const Vector<12> &v) {
+                for (unsigned int i = 0; i < 12; i++)
+                        data[i] = v.data[i];
+
+                return *this;
+        }
+
+
+};
 }
 
 #endif // VECTOR_HPP

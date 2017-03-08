@@ -539,8 +539,8 @@ public:
         }
         */
         Vector<6> operator *(const Vector<6> &v) const {
-                float vec[6]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-                Vector<6> res(vec);
+
+                Vector<6> res({0.0f,0.0f,0.0f,0.0f,0.0f,0.0f});
 
                 for (unsigned int i = 0; i < 6; i++)
                         for (unsigned int j = 0; j < 6; j++)
