@@ -662,9 +662,8 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 	{
-		std::int32_t idle_throttle_when_armed = 0;
-		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &idle_throttle_when_armed);
-		_esc_controller.enable_idle_throttle_when_armed(idle_throttle_when_armed > 0);
+		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed);
+		_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
 	}
 
 	ret = _hardpoint_controller.init();
@@ -994,6 +993,13 @@ int UavcanNode::run()
 			bool set_armed = _armed.armed && !_armed.lockdown && !_armed.manual_lockdown && !_test_in_progress;
 
 			arm_actuators(set_armed);
+
+			if (_armed.soft_stop) {
+				_esc_controller.enable_idle_throttle_when_armed(false);
+
+			} else {
+				_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
+			}
 		}
 	}
 

@@ -2074,6 +2074,8 @@ int commander_thread_main(int argc, char *argv[])
 				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
 				status_flags.vtol_transition_failure = vtol_status.vtol_transition_failsafe;
 				status_flags.vtol_transition_failure_cmd = vtol_status.vtol_transition_failsafe;
+
+				armed.soft_stop = !status.is_rotary_wing;
 			}
 
 			status_changed = true;
