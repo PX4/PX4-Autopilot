@@ -4,6 +4,7 @@ param set MAV_TYPE 2
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
 param set SYS_MC_EST_GROUP 1
+param set MAV_PROTO_VER 2
 dataman start
 param set BAT_N_CELLS 3
 param set CAL_GYRO0_ID 2293768
