@@ -199,6 +199,7 @@ private:
 	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned			_poll_fds_num = 0;
+	int32_t 			_idle_throttle_when_armed = 0;
 
 	int				_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
 	uint8_t				_actuator_direct_poll_fd_num = 0;
