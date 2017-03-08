@@ -174,8 +174,8 @@ private:
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
 	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
-    math::Vector<6>      alpha_des;  /**< alpha_des */
-
+    math::Vector<6>      alpha_des;     /**< alpha_des, is sent to actuator control */
+    math::Vector<6>      omega_des;     /**< omega_des, is sent to actuator control */
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
 	struct {
@@ -972,7 +972,6 @@ MulticopterAttitudeControl::control_allocation(float dt)
                          {l*sinf(alpha_des(0))-k*cosf(alpha_des(0)),    l*sinf(alpha_des(1))+k*cosf(alpha_des(2)),   l*sinf(alpha_des(2))-k*cosf(alpha_des(2)),                             l*sinf(alpha_des(3))+k*cosf(alpha_des(3)),                              l*sinf(alpha_des(4))+k*cosf(alpha_des(4)),                              l*sinf(alpha_des(5))-k*cosf(alpha_des(5))}};
 
     math::Matrix<6,6> A(alloc);
-    math::Vector<6> omega_des;
     omega_des=A.inversed()*u;
 
 }
@@ -1153,7 +1152,7 @@ MulticopterAttitudeControl::task_main()
 
                //alphas
 
-                _actuators.control[3] = (PX4_ISFINITE(alpha_des(0))) ? alpha_des(0) : 0.0f;
+                _actuators.control[8] = (PX4_ISFINITE(alpha_des(0))) ? alpha_des(0) : 0.0f;
 //                _actuators.control[7] = (PX4_ISFINITE(alpha_des(1))) ? alpha_des(1) : 0.0f;
 //                _actuators.control[8] = (PX4_ISFINITE(alpha_des(2))) ? alpha_des(2) : 0.0f;
 //                _actuators.control[9] = (PX4_ISFINITE(alpha_des(3))) ? alpha_des(3) : 0.0f;
@@ -1194,6 +1193,74 @@ MulticopterAttitudeControl::task_main()
 
 				} else {
 					_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+				}
+			}
+
+			if (_v_control_mode.flag_control_termination_enabled) {
+				if (!_vehicle_status.is_vtol) {
+
+					_rates_sp.zero();
+					_rates_int.zero();
+					_thrust_sp = 0.0f;
+					_att_control.zero();
+
+
+					/* publish actuator controls */
+					_actuators.control[0] = 0.0f;
+					_actuators.control[1] = 0.0f;
+					_actuators.control[2] = 0.0f;
+                    _actuators.control[3] = 0.0f;
+                    _actuators.control[4] = 0.0f;
+                    _actuators.control[5] = 0.0f;
+                    _actuators.control[6] = 0.0f;
+                    _actuators.control[7] = 0.0f;
+                    _actuators.control[8] = 0.0f;
+//                    _actuators.control[9] = 0.0f;
+//                    _actuators.control[10] = 0.0f;
+//                    _actuators.control[11] = 0.0f;
+
+
+
+					_actuators.timestamp = hrt_absolute_time();
+					_actuators.timestamp_sample = _ctrl_state.timestamp;
+
+					if (!_actuators_0_circuit_breaker_enabled) {
+						if (_actuators_0_pub != nullptr) {
+
+							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+							perf_end(_controller_latency_perf);
+
+						} else if (_actuators_id) {
+							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+						}
+					}
+
+					_controller_status.roll_rate_integ = _rates_int(0);
+					_controller_status.pitch_rate_integ = _rates_int(1);
+					_controller_status.yaw_rate_integ = _rates_int(2);
+					_controller_status.timestamp = hrt_absolute_time();
+
+					/* publish controller status */
+					if (_controller_status_pub != nullptr) {
+						orb_publish(ORB_ID(mc_att_ctrl_status), _controller_status_pub, &_controller_status);
+
+					} else {
+						_controller_status_pub = orb_advertise(ORB_ID(mc_att_ctrl_status), &_controller_status);
+					}
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub != nullptr) {
+						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
+					} else if (_rates_sp_id) {
+						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+					}
 				}
 			}
 		}
