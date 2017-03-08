@@ -265,6 +265,25 @@
 #  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
 #endif
 
+/* Provide an interface for reading the connected state of VBUS */
+
+/************************************************************************************
+ * Name: board_read_VBUS_state
+ *
+ * Description:
+ *   All boards must provide a way to read the state of VBUS, this my be simple
+ *   digital input on a GPIO. Or something more complicated like a Analong input
+ *   or reading a bit from a USB controller register.
+ *
+ * Returns -  0 if connected.
+ *
+ ************************************************************************************/
+
+#if defined(GPIO_OTGFS_VBUS)
+#  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
+#else
+int board_read_VBUS_state(void);
+#endif
 /************************************************************************************
  * Public Data
  ************************************************************************************/
