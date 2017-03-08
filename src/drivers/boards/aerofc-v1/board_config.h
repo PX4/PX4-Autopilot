@@ -134,6 +134,7 @@
 #define	BOARD_NAME "AEROFC_V1"
 
 #define  FLASH_BASED_PARAMS
+#define  FLASH_BASED_DATAMAN
 
 /*
  * The following defined is a workaround and replaces CONFIG_ARCH_BOARD_AEROFC_V1
