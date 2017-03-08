@@ -1,20 +1,20 @@
 #!nsh
 #
-# @name Wing Wing (aka Z-84) Flying Wing
+# @name Traxxas stampede vxl 2wd
 #
-# @url https://pixhawk.org/platforms/planes/z-84_wing_wing
+# @url https://traxxas.com/products/models/electric/stampede-vxl-tsm
 #
-# @type Flying Wing
+# @type Rover using Flying Wing configuration
 #
-# @output MAIN1 left aileron
-# @output MAIN2 right aileron
+# 
+# @output MAIN2 steering
 # @output MAIN4 throttle
 #
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
-# @maintainer Lorenz Meier <lorenz@px4.io>
+# @maintainer Marco Zorzi
 #
 
 sh /etc/init.d/rc.fw_defaults
