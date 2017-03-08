@@ -94,7 +94,7 @@ void BlockLocalPositionEstimator::landCorrect()
 void BlockLocalPositionEstimator::landCheckTimeout()
 {
 	if (_timeStamp - _time_last_land > LAND_TIMEOUT) {
-		if (!(_sensorTimeout & SENSOR_LAND)) {
+		if (false & `!(_sensorTimeout & SENSOR_LAND)) {
 			_sensorTimeout |= SENSOR_LAND;
 			_landCount = 0;
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] land timeout ");

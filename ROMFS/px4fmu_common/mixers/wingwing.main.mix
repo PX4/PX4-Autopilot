@@ -23,24 +23,23 @@ input is inverted between the two servos.
 The scaling factor for roll inputs is adjusted to implement differential travel
 for the elevons.
 
-Output 0
---------
-Z:
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 0 0  -6000  -6000      0 -10000  10000
+S: 0 1   6500   6500      0 -10000  10000
 
-Output 1
---------
-M: 1
-O:       10000   10000      0 -10000  10000
-S: 0 2  -10000  -10000      0 -10000  10000
-
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 0 0  -6000  -6000      0 -10000  10000
+S: 0 1  -6500  -6500      0 -10000  10000
 
 Output 2
 --------
 This mixer is empty.
+
 Z:
 
-
-Output 3
+Motor speed mixer
 -----------------
 Two scalers total (output, thrust).
 

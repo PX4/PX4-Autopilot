@@ -6,14 +6,17 @@
 #
 # Start the attitude and position estimator
 #
-ekf2 start
+#ekf2 start
+attitude_estimator_q start
+local_position_estimator start
+
 
 #
 # Start attitude controller
 #
-#fw_att_control start
-#fw_pos_control_l1 start
-gnd_att_control start
+fw_att_control start
+fw_pos_control_l1 start
+#gnd_att_control start
 
 
 
