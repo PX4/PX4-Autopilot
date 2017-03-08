@@ -323,8 +323,11 @@ MissionBlock::is_mission_item_reached()
 		     || (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT && _mission_item.force_heading))
 		    && PX4_ISFINITE(_mission_item.yaw)) {
 
-			/* check yaw if defined only for rotary wing except takeoff */
-			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
+			/* check course if defined only for rotary wing except takeoff */
+			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
+					    _navigator->get_global_position()->vel_e,
+					    _navigator->get_global_position()->vel_n);
+			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
@@ -362,10 +365,26 @@ MissionBlock::is_mission_item_reached()
 			    (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
-				// reset lat/lon of loiter waypoint so vehicle exits on a tangent
+				// reset lat/lon of loiter waypoint so vehicle follows a tangent
 				struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
-				curr_sp->lat = _navigator->get_global_position()->lat;
-				curr_sp->lon = _navigator->get_global_position()->lon;
+				const struct position_setpoint_s *next_sp = &_navigator->get_position_setpoint_triplet()->next;
+				float range = get_distance_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
+				float bearing = get_bearing_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
+				float inner_angle = M_PI_2_F - asinf(_mission_item.loiter_radius / range);
+
+				// Compute "ideal" tangent origin
+				if (curr_sp->loiter_direction > 0) {
+					bearing -= inner_angle;
+
+				} else {
+					bearing += inner_angle;
+				}
+
+
+				// Replace current setpoint lat/lon with tangent coordinate
+				waypoint_from_heading_and_distance(curr_sp->lat, curr_sp->lon,
+								   bearing, curr_sp->loiter_radius,
+								   &curr_sp->lat, &curr_sp->lon);
 			}
 
 			return true;
