@@ -271,7 +271,7 @@ __BEGIN_DECLS
  * Define as GPIO input / GPIO outputs and timers IO
  */
 
-#define PX4_MK_GPIO(pin_ftmx, io)    ((pin_ftmx) & (((uint32_t) ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | (uint32_t)(io)))
+#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
 #define PX4_MK_GPIO_INPUT(pin_ftmx)    PX4_MK_GPIO(pin_ftmx, GPIO_PULLUP)
 #define PX4_MK_GPIO_OUTPUT(pin_ftmx)   PX4_MK_GPIO(pin_ftmx, GPIO_HIGHDRIVE)
 
