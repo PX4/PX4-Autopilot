@@ -50,7 +50,6 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 land_detector start multicopter
