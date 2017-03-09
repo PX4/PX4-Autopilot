@@ -3400,6 +3400,18 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		/* if we get here mode was rejected, continue to evaluate the main system mode */
 	}
 
+	/* Loiter switch overrides main switch */
+	if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(status_local, "AUTO HOLD");
+
+		} else {
+			return res;
+		}
+	}
+
 	/* we know something has changed - check if we are in mode slot operation */
 	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
@@ -3638,30 +3650,19 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		break;
 
 	case manual_control_setpoint_s::SWITCH_POS_ON:			// AUTO
-		if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
 
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this state
-			}
+		if (res != TRANSITION_DENIED) {
+			break;	// changed successfully or already in this state
+		}
 
-			print_reject_mode(status_local, "AUTO PAUSE");
+		print_reject_mode(status_local, "AUTO MISSION");
 
-		} else {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+		// fallback to LOITER if home position not set
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this state
-			}
-
-			print_reject_mode(status_local, "AUTO MISSION");
-
-			// fallback to LOITER if home position not set
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
-
-			if (res != TRANSITION_DENIED) {
-				break;  // changed successfully or already in this state
-			}
+		if (res != TRANSITION_DENIED) {
+			break;  // changed successfully or already in this state
 		}
 
 		// fallback to POSCTL
