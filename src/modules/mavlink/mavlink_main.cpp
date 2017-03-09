@@ -2225,13 +2225,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for shell output */
 		if (_mavlink_shell && _mavlink_shell->available() > 0) {
-			mavlink_serial_control_t msg;
-			msg.baudrate = 0;
-			msg.flags = SERIAL_CONTROL_FLAG_REPLY;
-			msg.timeout = 0;
-			msg.device = SERIAL_CONTROL_DEV_SHELL;
-			msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+				mavlink_serial_control_t msg;
+				msg.baudrate = 0;
+				msg.flags = SERIAL_CONTROL_FLAG_REPLY;
+				msg.timeout = 0;
+				msg.device = SERIAL_CONTROL_DEV_SHELL;
+				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			}
 		}
 
 		/* check for ulog streaming messages */
