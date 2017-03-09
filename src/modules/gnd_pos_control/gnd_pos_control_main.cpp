@@ -2074,7 +2074,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
 
-		/* Get demanded airspeed */
+		/* Get demanded airspeed from the parameters, user decided */
 		float altctrl_airspeed = get_demanded_airspeed();
 
 		/* update desired altitude based on user pitch stick input */
