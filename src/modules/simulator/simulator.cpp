@@ -198,7 +198,7 @@ extern "C" {
 								argv);
 
 				// now wait for the command to complete
-				while (true) {
+				while (!px4_exit_requested()) {
 					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
 						break;
 
