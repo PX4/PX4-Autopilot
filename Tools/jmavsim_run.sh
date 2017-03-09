@@ -7,13 +7,17 @@ udp_port=14560
 extra_args=
 baudrate=921600
 device=
-while getopts ":b:d:p:qr:" opt; do
+ip="127.0.0.1"
+while getopts ":b:d:p:qr:i:" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
 			;;
 		d)
 			device="$OPTARG"
+			;;
+		i)
+			ip="$OPTARG"
 			;;
 		p)
 			udp_port=$OPTARG
@@ -32,7 +36,7 @@ while getopts ":b:d:p:qr:" opt; do
 done
 
 if [ "$device" == "" ]; then
-	device="-udp 127.0.0.1:$udp_port"
+	device="-udp $ip:$udp_port"
 else
 	device="-serial $device $baudrate"
 fi
