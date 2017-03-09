@@ -2522,14 +2522,15 @@ int commander_thread_main(int argc, char *argv[])
 			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
 		}
 
-		// revert geofence failsafe transition if sticks are moved and we were previously in MANUAL or ASSIST
-		if (warning_action_on &&
+		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
+		// but only if not in a low battery handling action
+		if (!critical_battery_voltage_actions_done && (warning_action_on &&
 		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
+			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
 
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
@@ -2540,14 +2541,16 @@ int commander_thread_main(int argc, char *argv[])
 
 				// revert to position control in any case
 				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Aborted RTL, returned control to pilot");
+				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 
 		// abort landing or auto or loiter if sticks are moved significantly
-		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+		// but only if not in a low battery handling action
+		if (!critical_battery_voltage_actions_done &&
+			(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER) {
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
 			// transition to previous state if sticks are touched
 
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
