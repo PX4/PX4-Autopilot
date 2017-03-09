@@ -91,7 +91,6 @@
 
 #include <DevMgr.hpp>
 
-#include "sensors_init.h"
 #include "parameters.h"
 #include "rc_update.h"
 #include "voted_sensors_update.h"
@@ -158,11 +157,10 @@ public:
 	void	print_status();
 
 private:
-	/* XXX should not be here - should be own driver */
 	DevHandle 	_h_adc;				/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
-	bool 		_task_should_exit;		/**< if true, sensor task should exit */
+	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
 	int 		_sensors_task;			/**< task handle for sensor task */
 
 	const bool	_hil_enabled;			/**< if true, HIL is active */
@@ -553,21 +551,12 @@ void
 Sensors::task_main()
 {
 
-	/* start individual sensors */
 	int ret = 0;
 
 	if (!_hil_enabled) {
-		/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
-		ret = sensors_init();
-
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
-		// TODO: move adc_init into the sensors_init call.
-		ret = ret || adc_init();
+		adc_init();
 #endif
-	}
-
-	if (ret) {
-		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
