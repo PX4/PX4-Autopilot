@@ -470,12 +470,12 @@ private:
 	/**
 	 * Return the terrain estimate during landing: uses the wp altitude value or the terrain estimate if available
 	 */
-	float		get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
+	//float		get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
 
 	/**
 	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
 	 */
-	float		get_terrain_altitude_takeoff(float takeoff_alt, const struct vehicle_global_position_s &global_pos);
+	//float		get_terrain_altitude_takeoff(float takeoff_alt, const struct vehicle_global_position_s &global_pos);
 
 	/**
 	 * Check if we are in a takeoff situation
@@ -495,7 +495,7 @@ private:
 	 * @param dt Time step
 	 * @return true if climbout mode was requested by user (climb with max rate and min airspeed)
 	 */
-	bool		update_desired_altitude(float dt);
+	// bool		update_desired_altitude(float dt);
 
 	/**
 	 * Control position.
@@ -555,6 +555,13 @@ namespace gnd_control
 GroundRoverPositionControl	*g_control = nullptr;
 }
 
+/*********************************************************************************************************/
+/******************************************* CONSTRUCTOR DESTRUCTOR **************************************/
+/*********************************************************************************************************/
+
+/**
+ * @brief      Constructs the object.
+ */
 GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	_mavlink_log_pub(nullptr),
@@ -740,6 +747,9 @@ GroundRoverPositionControl::~GroundRoverPositionControl()
 	gnd_control::g_control = nullptr;
 }
 
+/*********************************************************************************************************/
+/********************************************** PARAMETERS UPDATE ****************************************/
+/*********************************************************************************************************/
 int
 GroundRoverPositionControl::parameters_update()
 {
@@ -865,6 +875,9 @@ GroundRoverPositionControl::parameters_update()
 	return OK;
 }
 
+/*********************************************************************************************************/
+/************************************************* POLLINGS **********************************************/
+/*********************************************************************************************************/
 void
 GroundRoverPositionControl::vehicle_control_mode_poll()
 {
@@ -997,28 +1010,6 @@ GroundRoverPositionControl::vehicle_setpoint_poll()
 	}
 }
 
-/**
- * @brief      this creates a new object and starts the main task which loops
- *
- * @param[in]  argc  number of starting strings, not used
- * @param      argv  starting characters, not used
- */
-void
-GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
-{
-	gnd_control::g_control = new GroundRoverPositionControl();
-
-	if (gnd_control::g_control == nullptr) {
-		warnx("OUT OF MEM");
-		return;
-	}
-
-	/* only returns on exit */
-	gnd_control::g_control->task_main();
-	delete gnd_control::g_control;
-	gnd_control::g_control = nullptr;
-}
-
 float
 GroundRoverPositionControl::get_demanded_airspeed()
 {
@@ -1118,6 +1109,7 @@ GroundRoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> 
 	}
 }
 
+
 void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
 {
 	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
@@ -1130,6 +1122,14 @@ void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
 	}
 }
 
+/**
+ * Get a new waypoint based on heading and distance from current position
+ *
+ * @param heading the heading to fly to
+ * @param distance the distance of the generated waypoint
+ * @param waypoint_prev the waypoint at the current position
+ * @param waypoint_next the waypoint in the heading direction
+ */
 void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, float distance,
 		struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init)
 {
@@ -1173,102 +1173,156 @@ void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, fl
 	waypoint_next.alt = _hold_alt;
 }
 
-float GroundRoverPositionControl::get_terrain_altitude_landing(float land_setpoint_alt,
-		const struct vehicle_global_position_s &global_pos)
+
+// bool GroundRoverPositionControl::update_desired_altitude(float dt)
+// {
+// 	/*
+// 	 * The complete range is -1..+1, so this is 6%
+// 	 * of the up or down range or 3% of the total range.
+// 	 */
+// 	const float deadBand = 0.06f;
+
+// 	/*
+// 	 * The correct scaling of the complete range needs
+// 	 * to account for the missing part of the slope
+// 	 * due to the deadband
+// 	 */
+// 	const float factor = 1.0f - deadBand;
+
+// 	/* Climbout mode sets maximum throttle and pitch up */
+// 	bool climbout_mode = false;
+
+// 	/*
+// 	 * Reset the hold altitude to the current altitude if the uncertainty
+// 	 * changes significantly.
+// 	 * This is to guard against uncommanded altitude changes
+// 	 * when the altitude certainty increases or decreases.
+// 	 */
+
+// 	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
+// 		_hold_alt = _global_pos.alt;
+// 		_althold_epv = _global_pos.epv;
+// 	}
+
+	
+// 	 * Manual control has as convention the rotation around
+// 	 * an axis. Positive X means to rotate positively around
+// 	 * the X axis in NED frame, which is pitching down
+	 
+// 	if (_manual.x > deadBand) {
+// 		/* pitching down */
+// 		float pitch = -(_manual.x - deadBand) / factor;
+// 		_hold_alt += (_parameters.max_sink_rate * dt) * pitch;
+// 		_was_in_deadband = false;
+
+// 	} else if (_manual.x < - deadBand) {
+// 		/* pitching up */
+// 		float pitch = -(_manual.x + deadBand) / factor;
+// 		_hold_alt += (_parameters.max_climb_rate * dt) * pitch;
+// 		_was_in_deadband = false;
+// 		climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
+
+// 	} else if (!_was_in_deadband) {
+// 		/* store altitude at which manual.x was inside deadBand
+// 		 * The aircraft should immediately try to fly at this altitude
+// 		 * as this is what the pilot expects when he moves the stick to the center */
+// 		_hold_alt = _global_pos.alt;
+// 		_althold_epv = _global_pos.epv;
+// 		_was_in_deadband = true;
+// 	}
+
+// 	if (_vehicle_status.is_vtol) {
+// 		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+// 			_hold_alt = _global_pos.alt;
+// 		}
+// 	}
+
+// 	return climbout_mode;
+// }
+
+
+
+void
+GroundRoverPositionControl::handle_command()
 {
-	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
-		return land_setpoint_alt;
-	}
+	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
+		// only abort landing before point of no return (horizontal and vertical)
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
-	 * for the whole landing */
-	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
-		if (!_land_useterrain) {
-			mavlink_log_info(&_mavlink_log_pub, "Landing, using terrain estimate");
-			_land_useterrain = true;
+			if (_land_noreturn_vertical) {
+				mavlink_log_info(&_mavlink_log_pub, "#Landing, can't abort after flare");
+
+			} else {
+				_fw_pos_ctrl_status.abort_landing = true;
+				mavlink_log_info(&_mavlink_log_pub, "#Landing, aborted");
+			}
 		}
-
-		return global_pos.terrain_alt;
-
-	} else {
-		return land_setpoint_alt;
 	}
 }
 
-float GroundRoverPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
-		const struct vehicle_global_position_s &global_pos)
-{
-	if (PX4_ISFINITE(global_pos.terrain_alt) && global_pos.terrain_alt_valid) {
-		return global_pos.terrain_alt;
-	}
+// float GroundRoverPositionControl::get_terrain_altitude_landing(float land_setpoint_alt,
+// 		const struct vehicle_global_position_s &global_pos)
+// {
+// 	if (!PX4_ISFINITE(global_pos.terrain_alt)) {
+// 		return land_setpoint_alt;
+// 	}
 
-	return takeoff_alt;
+// 	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
+// 	 * for the whole landing */
+// 	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
+// 		if (!_land_useterrain) {
+// 			mavlink_log_info(&_mavlink_log_pub, "Landing, using terrain estimate");
+// 			_land_useterrain = true;
+// 		}
+
+// 		return global_pos.terrain_alt;
+
+// 	} else {
+// 		return land_setpoint_alt;
+// 	}
+// }
+
+// float GroundRoverPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
+// 		const struct vehicle_global_position_s &global_pos)
+// {
+// 	if (PX4_ISFINITE(global_pos.terrain_alt) && global_pos.terrain_alt_valid) {
+// 		return global_pos.terrain_alt;
+// 	}
+
+// 	return takeoff_alt;
+// }
+
+/*********************************************************************************************************/
+/****************************************** TAKEOFF AND LANDING ******************************************/
+/*********************************************************************************************************/
+void GroundRoverPositionControl::reset_takeoff_state()
+{
+	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
+	_launchDetector.reset();
+	_runway_takeoff.reset();
 }
 
-bool GroundRoverPositionControl::update_desired_altitude(float dt)
+void GroundRoverPositionControl::reset_landing_state()
 {
-	/*
-	 * The complete range is -1..+1, so this is 6%
-	 * of the up or down range or 3% of the total range.
-	 */
-	const float deadBand = 0.06f;
+	_time_started_landing = 0;
 
-	/*
-	 * The correct scaling of the complete range needs
-	 * to account for the missing part of the slope
-	 * due to the deadband
-	 */
-	const float factor = 1.0f - deadBand;
+	// reset terrain estimation relevant values
+	_time_last_t_alt = 0;
 
-	/* Climbout mode sets maximum throttle and pitch up */
-	bool climbout_mode = false;
+	_land_noreturn_horizontal = false;
+	_land_noreturn_vertical = false;
+	_land_stayonground = false;
+	_land_motor_lim = false;
+	_land_onslope = false;
+	_land_useterrain = false;
 
-	/*
-	 * Reset the hold altitude to the current altitude if the uncertainty
-	 * changes significantly.
-	 * This is to guard against uncommanded altitude changes
-	 * when the altitude certainty increases or decreases.
-	 */
+	// reset abort land, unless loitering after an abort
+	if (_fw_pos_ctrl_status.abort_landing == true
+	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
-	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
-		_hold_alt = _global_pos.alt;
-		_althold_epv = _global_pos.epv;
+		_fw_pos_ctrl_status.abort_landing = false;
 	}
 
-	/*
-	 * Manual control has as convention the rotation around
-	 * an axis. Positive X means to rotate positively around
-	 * the X axis in NED frame, which is pitching down
-	 */
-	if (_manual.x > deadBand) {
-		/* pitching down */
-		float pitch = -(_manual.x - deadBand) / factor;
-		_hold_alt += (_parameters.max_sink_rate * dt) * pitch;
-		_was_in_deadband = false;
-
-	} else if (_manual.x < - deadBand) {
-		/* pitching up */
-		float pitch = -(_manual.x + deadBand) / factor;
-		_hold_alt += (_parameters.max_climb_rate * dt) * pitch;
-		_was_in_deadband = false;
-		climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
-
-	} else if (!_was_in_deadband) {
-		/* store altitude at which manual.x was inside deadBand
-		 * The aircraft should immediately try to fly at this altitude
-		 * as this is what the pilot expects when he moves the stick to the center */
-		_hold_alt = _global_pos.alt;
-		_althold_epv = _global_pos.epv;
-		_was_in_deadband = true;
-	}
-
-	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
-			_hold_alt = _global_pos.alt;
-		}
-	}
-
-	return climbout_mode;
 }
 
 bool GroundRoverPositionControl::in_takeoff_situation()
@@ -1297,15 +1351,194 @@ void GroundRoverPositionControl::do_takeoff_help(float *hold_altitude, float *pi
 	}
 }
 
+
+/*********************************************************************************************************/
+/*********************************************** TECS FUNCTIONS ******************************************/
+/*********************************************************************************************************/
+
+void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+		float pitch_min_rad, float pitch_max_rad,
+		float throttle_min, float throttle_max, float throttle_cruise,
+		bool climbout_mode, float climbout_pitch_min_rad,
+		float altitude,
+		const math::Vector<3> &ground_speed,
+		unsigned mode)
+{
+	float dt = 0.01f; // prevent division with 0
+
+	if (_last_tecs_update > 0) {
+		dt = hrt_elapsed_time(&_last_tecs_update) * 1e-6;
+	}
+
+	_last_tecs_update = hrt_absolute_time();
+
+	// do not run TECS if we are not in air
+	bool run_tecs = !_vehicle_land_detected.landed;
+
+	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
+	// (it should also not run during VTOL blending because airspeed is too low still)
+	if (_vehicle_status.is_vtol) {
+		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+	}
+
+	// we're in transition
+	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+		_was_in_transition = true;
+
+		// set this to transition airspeed to init tecs correctly
+		if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
+			// some vtols fly without airspeed sensor
+			_asp_after_transition = _parameters.airspeed_trans;
+
+		} else {
+			_asp_after_transition = _ctrl_state.airspeed;
+		}
+
+		_asp_after_transition = math::constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
+
+	} else if (_was_in_transition) {
+		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+		_asp_after_transition += dt * 2; // increase 2m/s
+
+		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
+			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
+
+		} else {
+			_was_in_transition = false;
+			_asp_after_transition = 0;
+		}
+	}
+
+	_is_tecs_running = run_tecs;
+
+	if (!run_tecs) {
+		// next time we run TECS we should reinitialize states
+		_reinitialize_tecs = true;
+		return;
+	}
+
+	if (_reinitialize_tecs) {
+		_tecs.reset_state();
+		_reinitialize_tecs = false;
+	}
+
+	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
+		/* Force the slow downwards spiral */
+		pitch_min_rad = M_DEG_TO_RAD_F * -1.0f;
+		pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
+	}
+
+	/* No underspeed protection in landing mode */
+	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
+					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
+
+	/* Using tecs library */
+	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
+
+	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+	// between multirotor and fixed wing flight
+	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		math::Matrix<3, 3> R_offset;
+		R_offset.from_euler(0, M_PI_2_F, 0);
+		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
+		math::Vector<3> euler = R_fixed_wing.to_euler();
+		pitch_for_tecs = euler(1);
+	}
+
+	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs, altitude, alt_sp, v_sp,
+				    _ctrl_state.airspeed, eas2tas,
+				    climbout_mode, climbout_pitch_min_rad,
+				    throttle_min, throttle_max, throttle_cruise,
+				    pitch_min_rad, pitch_max_rad);
+
+	struct TECS::tecs_state s;
+	_tecs.get_tecs_state(s);
+
+	struct tecs_status_s t = {};
+
+	t.timestamp = s.timestamp;
+
+	switch (s.mode) {
+	case TECS::ECL_TECS_MODE_NORMAL:
+		t.mode = tecs_status_s::TECS_MODE_NORMAL;
+		break;
+
+	case TECS::ECL_TECS_MODE_UNDERSPEED:
+		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+		break;
+
+	case TECS::ECL_TECS_MODE_BAD_DESCENT:
+		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
+		break;
+
+	case TECS::ECL_TECS_MODE_CLIMBOUT:
+		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
+		break;
+	}
+
+	t.altitudeSp 		= s.altitude_sp;
+	t.altitude_filtered = s.altitude_filtered;
+	t.airspeedSp 		= s.airspeed_sp;
+	t.airspeed_filtered = s.airspeed_filtered;
+
+	t.flightPathAngleSp 		= s.altitude_rate_sp;
+	t.flightPathAngle 			= s.altitude_rate;
+	t.flightPathAngleFiltered 	= s.altitude_rate;
+
+	t.airspeedDerivativeSp 	= s.airspeed_rate_sp;
+	t.airspeedDerivative 	= s.airspeed_rate;
+
+	t.totalEnergyError 				= s.total_energy_error;
+	t.totalEnergyRateError 			= s.total_energy_rate_error;
+	t.energyDistributionError 		= s.energy_distribution_error;
+	t.energyDistributionRateError 	= s.energy_distribution_rate_error;
+
+	t.throttle_integ 	= s.throttle_integ;
+	t.pitch_integ 		= s.pitch_integ;
+
+	if (_tecs_status_pub != nullptr) {
+		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
+
+	} else {
+		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
+	}
+}
+
+float
+GroundRoverPositionControl::get_tecs_pitch()
+{
+	if (_is_tecs_running) {
+		return _tecs.get_pitch_demand();
+
+	} else {
+		// return 0 to prevent stale tecs state when it's not running
+		return 0.0f;
+	}
+}
+
+float
+GroundRoverPositionControl::get_tecs_thrust()
+{
+	if (_is_tecs_running) {
+		return _tecs.get_throttle_demand();
+
+	} else {
+		// return 0 to prevent stale tecs state when it's not running
+		return 0.0f;
+	}
+}
+
+/*********************************************************************************************************/
+/****************************************** MAIN CONTROL LOOP ********************************************/
+/*********************************************************************************************************/
 bool
 GroundRoverPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
-	float dt = 0.01; // Using non zero value to a avoid division by zero
-
-	if (_control_position_last_called > 0) {
-		dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
-	}
+	// float dt = 0.01; // Using non zero value to a avoid division by zero
+	// if (_control_position_last_called > 0) {
+	// 	dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
+	// }
 
 	_control_position_last_called = hrt_absolute_time();
 
@@ -1772,12 +2005,12 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 					mavlink_log_info(&_mavlink_log_pub, "#Takeoff on runway");
 				}
 
-				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
+				//float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
 
 				// update runway takeoff helper
 				_runway_takeoff.update(
 					_ctrl_state.airspeed,
-					_global_pos.alt - terrain_alt,
+					_global_pos.alt - 0,//terrain_alt,
 					_global_pos.lat,
 					_global_pos.lon,
 					&_mavlink_log_pub);
@@ -1962,7 +2195,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		float altctrl_airspeed = get_demanded_airspeed();
 
 		/* update desired altitude based on user pitch stick input */
-		bool climbout_requested = update_desired_altitude(dt);
+		bool climbout_requested = false;//update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground
 		* and set limit to pitch angle to prevent stearing into ground
@@ -2078,7 +2311,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		float altctrl_airspeed = get_demanded_airspeed();
 
 		/* update desired altitude based on user pitch stick input */
-		bool climbout_requested = update_desired_altitude(dt);
+		bool climbout_requested = false; //update_desired_altitude(dt);
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground
 		* and set limit to pitch angle to prevent stearing into ground
@@ -2198,48 +2431,10 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	return setpoint;
 }
 
-float
-GroundRoverPositionControl::get_tecs_pitch()
-{
-	if (_is_tecs_running) {
-		return _tecs.get_pitch_demand();
 
-	} else {
-		// return 0 to prevent stale tecs state when it's not running
-		return 0.0f;
-	}
-}
-
-float
-GroundRoverPositionControl::get_tecs_thrust()
-{
-	if (_is_tecs_running) {
-		return _tecs.get_throttle_demand();
-
-	} else {
-		// return 0 to prevent stale tecs state when it's not running
-		return 0.0f;
-	}
-}
-
-void
-GroundRoverPositionControl::handle_command()
-{
-	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
-		// only abort landing before point of no return (horizontal and vertical)
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-			if (_land_noreturn_vertical) {
-				mavlink_log_info(&_mavlink_log_pub, "#Landing, can't abort after flare");
-
-			} else {
-				_fw_pos_ctrl_status.abort_landing = true;
-				mavlink_log_info(&_mavlink_log_pub, "#Landing, aborted");
-			}
-		}
-	}
-}
-
+/*********************************************************************************************************/
+/*********************************************** MAIN LOOP ***********************************************/
+/*********************************************************************************************************/
 /**
  * @brief      Main task which starts the control loop
  */
@@ -2448,183 +2643,32 @@ GroundRoverPositionControl::task_main()
 	_control_task = -1;
 }
 
-void GroundRoverPositionControl::reset_takeoff_state()
+
+/*********************************************************************************************************/
+/********************************************** APP STARTING *********************************************/
+/*********************************************************************************************************/
+/**
+ * @brief      this creates a new object and starts the main task which loops
+ *
+ * @param[in]  argc  number of starting strings, not used
+ * @param      argv  starting characters, not used
+ */
+void
+GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
-	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-	_launchDetector.reset();
-	_runway_takeoff.reset();
-}
+	gnd_control::g_control = new GroundRoverPositionControl();
 
-void GroundRoverPositionControl::reset_landing_state()
-{
-	_time_started_landing = 0;
-
-	// reset terrain estimation relevant values
-	_time_last_t_alt = 0;
-
-	_land_noreturn_horizontal = false;
-	_land_noreturn_vertical = false;
-	_land_stayonground = false;
-	_land_motor_lim = false;
-	_land_onslope = false;
-	_land_useterrain = false;
-
-	// reset abort land, unless loitering after an abort
-	if (_fw_pos_ctrl_status.abort_landing == true
-	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
-
-		_fw_pos_ctrl_status.abort_landing = false;
-	}
-
-}
-
-void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
-		float pitch_min_rad, float pitch_max_rad,
-		float throttle_min, float throttle_max, float throttle_cruise,
-		bool climbout_mode, float climbout_pitch_min_rad,
-		float altitude,
-		const math::Vector<3> &ground_speed,
-		unsigned mode)
-{
-	float dt = 0.01f; // prevent division with 0
-
-	if (_last_tecs_update > 0) {
-		dt = hrt_elapsed_time(&_last_tecs_update) * 1e-6;
-	}
-
-	_last_tecs_update = hrt_absolute_time();
-
-	// do not run TECS if we are not in air
-	bool run_tecs = !_vehicle_land_detected.landed;
-
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
-	if (_vehicle_status.is_vtol) {
-		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
-	}
-
-	// we're in transition
-	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
-		_was_in_transition = true;
-
-		// set this to transition airspeed to init tecs correctly
-		if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
-			// some vtols fly without airspeed sensor
-			_asp_after_transition = _parameters.airspeed_trans;
-
-		} else {
-			_asp_after_transition = _ctrl_state.airspeed;
-		}
-
-		_asp_after_transition = math::constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
-
-	} else if (_was_in_transition) {
-		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-		_asp_after_transition += dt * 2; // increase 2m/s
-
-		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
-			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
-
-		} else {
-			_was_in_transition = false;
-			_asp_after_transition = 0;
-		}
-	}
-
-	_is_tecs_running = run_tecs;
-
-	if (!run_tecs) {
-		// next time we run TECS we should reinitialize states
-		_reinitialize_tecs = true;
+	if (gnd_control::g_control == nullptr) {
+		warnx("OUT OF MEM");
 		return;
 	}
 
-	if (_reinitialize_tecs) {
-		_tecs.reset_state();
-		_reinitialize_tecs = false;
-	}
-
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-		/* Force the slow downwards spiral */
-		pitch_min_rad = M_DEG_TO_RAD_F * -1.0f;
-		pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
-	}
-
-	/* No underspeed protection in landing mode */
-	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
-					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
-
-	/* Using tecs library */
-	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
-
-	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-	// between multirotor and fixed wing flight
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		math::Matrix<3, 3> R_offset;
-		R_offset.from_euler(0, M_PI_2_F, 0);
-		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
-		math::Vector<3> euler = R_fixed_wing.to_euler();
-		pitch_for_tecs = euler(1);
-	}
-
-	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs, altitude, alt_sp, v_sp,
-				    _ctrl_state.airspeed, eas2tas,
-				    climbout_mode, climbout_pitch_min_rad,
-				    throttle_min, throttle_max, throttle_cruise,
-				    pitch_min_rad, pitch_max_rad);
-
-	struct TECS::tecs_state s;
-	_tecs.get_tecs_state(s);
-
-	struct tecs_status_s t = {};
-
-	t.timestamp = s.timestamp;
-
-	switch (s.mode) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
-
-	case TECS::ECL_TECS_MODE_CLIMBOUT:
-		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
-		break;
-	}
-
-	t.altitudeSp 		= s.altitude_sp;
-	t.altitude_filtered = s.altitude_filtered;
-	t.airspeedSp 		= s.airspeed_sp;
-	t.airspeed_filtered = s.airspeed_filtered;
-
-	t.flightPathAngleSp 		= s.altitude_rate_sp;
-	t.flightPathAngle 			= s.altitude_rate;
-	t.flightPathAngleFiltered 	= s.altitude_rate;
-
-	t.airspeedDerivativeSp 	= s.airspeed_rate_sp;
-	t.airspeedDerivative 	= s.airspeed_rate;
-
-	t.totalEnergyError 				= s.total_energy_error;
-	t.totalEnergyRateError 			= s.total_energy_rate_error;
-	t.energyDistributionError 		= s.energy_distribution_error;
-	t.energyDistributionRateError 	= s.energy_distribution_rate_error;
-
-	t.throttle_integ 	= s.throttle_integ;
-	t.pitch_integ 		= s.pitch_integ;
-
-	if (_tecs_status_pub != nullptr) {
-		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
-
-	} else {
-		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
-	}
+	/* only returns on exit */
+	gnd_control::g_control->task_main();
+	delete gnd_control::g_control;
+	gnd_control::g_control = nullptr;
 }
+
 
 /**
  * @brief      Spawns a new task for the PX4
