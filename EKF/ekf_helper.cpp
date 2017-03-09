@@ -42,6 +42,8 @@
 #include "ekf.h"
 #include "mathlib.h"
 
+using std::abs;
+
 // Reset the velocity states. If we have a recent and valid
 // gps measurement then use for velocity initialisation
 bool Ekf::resetVelocity()
