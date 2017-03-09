@@ -233,6 +233,19 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_COMPAT_MAX
 };
 
+#define DM_SECTOR_HDR_SIZE 4	/* data manager per item header overhead */
+
+/* Table of the len of each item type */
+static const unsigned g_per_item_size[DM_KEY_NUM_KEYS] = {
+	sizeof(struct home_position_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct fence_vertex_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct dataman_compat_s) + DM_SECTOR_HDR_SIZE
+};
+
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
@@ -278,9 +291,6 @@ static px4_sem_t g_work_queued_sema;	/* To notify worker thread a work item has 
 static px4_sem_t g_init_sema;
 
 static bool g_task_should_exit;	/**< if true, dataman task should exit */
-
-#define DM_SECTOR_HDR_SIZE 4	/* data manager per item header overhead */
-static const unsigned k_sector_size = DM_MAX_DATA_SIZE + DM_SECTOR_HDR_SIZE; /* total item sorage space */
 
 static void init_q(work_q_t *q)
 {
@@ -440,7 +450,7 @@ calculate_offset(dm_item_t item, unsigned index)
 	}
 
 	/* Calculate and return the item index based on type and index */
-	return g_key_offsets[item] + (index * k_sector_size);
+	return g_key_offsets[item] + (index * g_per_item_size[item]);
 }
 
 /* Each data item is stored as follows
@@ -451,7 +461,7 @@ calculate_offset(dm_item_t item, unsigned index)
  * byte 3: Unused (for future use)
  * byte DM_SECTOR_HDR_SIZE... : data item value
  *
- * The total size must not exceed k_sector_size
+ * The total size must not exceed g_per_item_max_index[item]
  */
 
 /* write to the data manager RAM buffer  */
@@ -468,7 +478,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 	}
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) {
+	if (count > g_per_item_size[item]) {
 		return -E2BIG;
 	}
 
@@ -496,7 +506,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 static ssize_t
 _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
-	unsigned char buffer[k_sector_size];
+	unsigned char buffer[g_per_item_size[item]];
 	size_t len;
 	int offset;
 
@@ -509,7 +519,7 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 	}
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) {
+	if (count > g_per_item_size[item]) {
 		return -E2BIG;
 	}
 
@@ -576,7 +586,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) {
+	if (count > g_per_item_size[item]) {
 		return -E2BIG;
 	}
 
@@ -607,7 +617,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
-	unsigned char buffer[k_sector_size];
+	unsigned char buffer[g_per_item_size[item]];
 	int len, offset;
 
 	/* Get the offset for this item */
@@ -619,7 +629,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) {
+	if (count > g_per_item_size[item]) {
 		return -E2BIG;
 	}
 
@@ -686,7 +696,7 @@ static int  _ram_clear(dm_item_t item)
 		}
 
 		buf[0] = 0;
-		offset += k_sector_size;
+		offset += g_per_item_size[item];
 	}
 
 	return result;
@@ -734,7 +744,7 @@ _file_clear(dm_item_t item)
 			}
 		}
 
-		offset += k_sector_size;
+		offset += g_per_item_size[item];
 	}
 
 	/* Make sure data is actually written to physical media */
@@ -760,110 +770,107 @@ _ram_flash_clear(dm_item_t item)
 /* Tell the data manager about the type of the last reset */
 static int  _ram_restart(dm_reset_reason reason)
 {
-	int offset = 0;
-	int result = 0;
+	uint8_t *buffer = dm_operations_data.ram.data;
 
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	while (1) {
 
-		/* Get data segment at current offset */
-		uint8_t *buffer = &dm_operations_data.ram.data[offset];
+	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
+		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
+			/* check if segment contains data */
+			if (buffer[0]) {
+				bool clear_entry = false;
 
-		if (buffer >= dm_operations_data.ram.data_end) {
-			break;
-		}
+				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
+				if (reason == DM_INIT_REASON_POWER_ON) {
+					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
+						clear_entry = true;
+					}
 
-		/* check if segment contains data */
-		if (buffer[0]) {
-			int clear_entry = 0;
-
-			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-			if (reason == DM_INIT_REASON_POWER_ON) {
-				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-					clear_entry = 1;
+				} else {
+					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
+						clear_entry = true;
+					}
 				}
 
-			} else {
-				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-					clear_entry = 1;
+				/* Set segment to unused if data does not persist */
+				if (clear_entry) {
+					buffer[0] = 0;
 				}
 			}
 
-			/* Set segment to unused if data does not persist */
-			if (clear_entry) {
-				buffer[0] = 0;
-			}
+			buffer += g_per_item_size[item];
 		}
-
-		offset += k_sector_size;
 	}
 
-	/* tell the caller how it went */
-	return result;
+	return 0;
 }
 
 static int
 _file_restart(dm_reset_reason reason)
 {
-	unsigned char buffer[2];
-	int offset = 0, result = 0;
-
+	unsigned offset = 0;
+	int result = 0;
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	while (1) {
-		size_t len;
+	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
+		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
+			/* Get data segment at current offset */
+			if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
+				result = -1;
+				item = DM_KEY_NUM_KEYS;
+				break;
+			}
 
-		/* Get data segment at current offset */
-		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-			/* must be at eof */
-			break;
-		}
+			uint8_t buffer[2];
+			ssize_t len = read(dm_operations_data.file.fd, buffer, sizeof(buffer));
 
-		len = read(dm_operations_data.file.fd, buffer, sizeof(buffer));
+			if (len != sizeof(buffer)) {
+				result = -1;
+				item = DM_KEY_NUM_KEYS;
+				break;
+			}
 
-		if (len != sizeof(buffer)) {
-			/* must be at eof */
-			break;
-		}
+			/* check if segment contains data */
+			if (buffer[0]) {
+				bool clear_entry = false;
 
-		/* check if segment contains data */
-		if (buffer[0]) {
-			int clear_entry = 0;
+				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
+				if (reason == DM_INIT_REASON_POWER_ON) {
+					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
+						clear_entry = true;
+					}
 
-			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-			if (reason == DM_INIT_REASON_POWER_ON) {
-				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-					clear_entry = 1;
+				} else {
+					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
+						clear_entry = true;
+					}
 				}
 
-			} else {
-				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-					clear_entry = 1;
+				/* Set segment to unused if data does not persist */
+				if (clear_entry) {
+					if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
+						result = -1;
+						item = DM_KEY_NUM_KEYS;
+						break;
+					}
+
+					buffer[0] = 0;
+
+					len = write(dm_operations_data.file.fd, buffer, 1);
+
+					if (len != 1) {
+						result = -1;
+						item = DM_KEY_NUM_KEYS;
+						break;
+					}
 				}
 			}
 
-			/* Set segment to unused if data does not persist */
-			if (clear_entry) {
-				if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-					result = -1;
-					break;
-				}
-
-				buffer[0] = 0;
-
-				len = write(dm_operations_data.file.fd, buffer, 1);
-
-				if (len != 1) {
-					result = -1;
-					break;
-				}
-			}
+			offset += g_per_item_size[item];
 		}
-
-		offset += k_sector_size;
 	}
 
 	fsync(dm_operations_data.file.fd);
@@ -876,53 +883,46 @@ _file_restart(dm_reset_reason reason)
 static int
 _ram_flash_restart(dm_reset_reason reason)
 {
-	int offset = 0;
+	uint8_t *buffer = dm_operations_data.ram.data;
 	bool need_flush = false;
 
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	while (1) {
 
-		/* Get data segment at current offset */
-		uint8_t *buffer = &dm_operations_data.ram.data[offset];
+	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
+		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
+			/* check if segment contains data */
+			if (buffer[0]) {
+				bool clear_entry = false;
 
-		if (buffer >= dm_operations_data.ram.data_end) {
-			break;
-		}
+				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
+				if (reason == DM_INIT_REASON_POWER_ON) {
+					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
+						clear_entry = true;
+					}
 
-		/* check if segment contains data */
-		if (buffer[0]) {
-			int clear_entry = 0;
-
-			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-			if (reason == DM_INIT_REASON_POWER_ON) {
-				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-					clear_entry = 1;
+				} else {
+					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
+						clear_entry = true;
+					}
 				}
 
-			} else {
-				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-					clear_entry = 1;
+				/* Set segment to unused if data does not persist */
+				if (clear_entry) {
+					buffer[0] = 0;
+					need_flush = true;
 				}
 			}
 
-			/* Set segment to unused if data does not persist */
-			if (clear_entry) {
-				buffer[0] = 0;
-				need_flush = true;
-			}
+			buffer += g_per_item_size[item];
 		}
-
-		offset += k_sector_size;
 	}
 
 	if (need_flush) {
 		_ram_flash_update_flush_timeout();
-		return 0;
 	}
 
-	/* tell the caller how it went */
 	return 0;
 }
 #endif
@@ -1298,11 +1298,12 @@ task_main(int argc, char *argv[])
 	/* Initialize global variables */
 	g_key_offsets[0] = 0;
 
-	for (unsigned i = 0; i < (DM_KEY_NUM_KEYS - 1); i++) {
-		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * k_sector_size);
+	for (dm_item_t i = 0; i < (DM_KEY_NUM_KEYS - 1); i++) {
+		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * g_per_item_size[i]);
 	}
 
-	unsigned max_offset = g_key_offsets[DM_KEY_NUM_KEYS - 1] + (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] * k_sector_size);
+	unsigned max_offset = g_key_offsets[DM_KEY_NUM_KEYS - 1] + (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] *
+			      g_per_item_size[DM_KEY_NUM_KEYS - 1]);
 
 	for (unsigned i = 0; i < dm_number_of_funcs; i++) {
 		g_func_counts[i] = 0;

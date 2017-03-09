@@ -63,6 +63,8 @@ int test_dataman(int argc, char *argv[]);
 
 #define NUM_MISSIONS_TEST 50
 
+#define DM_MAX_DATA_SIZE sizeof(struct mission_s)
+
 static int
 task_main(int argc, char *argv[])
 {
