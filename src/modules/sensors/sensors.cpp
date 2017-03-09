@@ -332,8 +332,10 @@ Sensors::parameters_update()
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
-		PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-		ret = PX4_ERROR;
+		if (!_hil_enabled) { // in HIL we don't have a baro
+			PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+			ret = PX4_ERROR;
+		}
 
 	} else {
 		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
