@@ -39,5 +39,6 @@
 /**
  * @board QuRT_App
  */
-PARAM_DEFINE_INT32(MAV_TYPE, 2);
+// TODO-JYW: Temporarily removed to remove duplicate definition.
+// PARAM_DEFINE_INT32(MAV_TYPE, 2);
 
