@@ -284,10 +284,10 @@ public:
 		R.data[2][0] = 2.0f * (data[1] * data[3] - data[0] * data[2]);
 		R.data[2][1] = 2.0f * (data[0] * data[1] + data[2] * data[3]);
 		R.data[2][2] = aSq - bSq - cSq + dSq;
-		return R;
-	}
-};
+                return R;
+        }
 
+};
 }
 
 #endif // QUATERNION_HPP

@@ -188,10 +188,13 @@ private:
 	perf_counter_t	_controller_latency_perf;
 
 	math::Vector<3>		_rates_prev;	/**< angular rates on previous step */
+    math::Vector<3>		_att_err_prev;  /**< attitude error on previous step */   //AbV
 	math::Vector<3>		_rates_sp_prev; /**< previous rates setpoint */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-    float				_thrust_sp;		/**< thrust setpoint */
+
+    math::Vector<3>		_att_int;		/**< attitude integral error */     //AbV
+	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
     math::Vector<6>     _alpha_des;     /**< _alpha_des, is sent to actuator control */
     math::Vector<6>     _omega_des;     /**< omega_des, is sent to actuator control */
@@ -199,11 +202,17 @@ private:
 
 	struct {
 		param_t roll_p;
+        param_t roll_d;     //AbV
+        param_t roll_i;     //AbV
+        param_t roll_integ_lim;  //AbV
 		param_t roll_rate_p;
 		param_t roll_rate_i;
 		param_t roll_rate_d;
 		param_t roll_rate_ff;
 		param_t pitch_p;
+        param_t pitch_d;     //AbV
+        param_t pitch_i;     //AbV
+        param_t pitch_integ_lim;  //AbV
 		param_t pitch_rate_p;
 		param_t pitch_rate_i;
 		param_t pitch_rate_d;
@@ -211,6 +220,9 @@ private:
 		param_t tpa_breakpoint;
 		param_t tpa_slope;
 		param_t yaw_p;
+        param_t yaw_d;     //AbV
+        param_t yaw_i;     //AbV
+        param_t yaw_integ_lim;  //AbV
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
@@ -244,6 +256,9 @@ private:
 
 	struct {
 		math::Vector<3> att_p;					/**< P gain for angular error */
+        math::Vector<3> att_d;	//AbV		/**< D gain for angular error */
+        math::Vector<3> att_i;	//AbV		/**< I gain for angular error */
+        math::Vector<3> att_int_lim; //AbV	/**< integrator state limit for angular loop */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
@@ -267,11 +282,12 @@ private:
 
 		int bat_scale_en;
 
-		float tau_servo;
-
         //added by Voliro
         float length_axis;
         float torque_coeff;
+        float tau_servo;
+
+
 
 	}		_params;
 
@@ -420,7 +436,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_vehicle_status.is_rotary_wing = true;
 
 	_params.att_p.zero();
-	_params.rate_p.zero();
+    _params.att_d.zero();   //AbV
+    _params.att_i.zero();   //AbV
+    _params.att_int_lim.zero();   //AbV
+    _params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
 	_params.rate_ff.zero();
@@ -436,12 +455,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.vtol_wv_yaw_rate_scale = 1.0f;
 	_params.bat_scale_en = 0;
 
-  _params.tau_servo = 0.0f;
-
 	_rates_prev.zero();
+    _att_err_prev.zero();   //AbV
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
 	_rates_int.zero();
+    _att_int.zero();    //AbV
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
@@ -450,13 +469,21 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
   //Added by Voliro
   _params.length_axis = 0.375f;
   _params.torque_coeff = 0.016f;
+  _params.tau_servo = 0.0f;
 
 	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
-	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
+    _params_handles.roll_d			= 	param_find("MC_ROLL_D");    //AbV
+    _params_handles.roll_i			= 	param_find("MC_ROLL_I");    //AbV
+    _params_handles.roll_integ_lim	= 	param_find("MC_R_INT_LIM"); //AbV
+    _params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
+    _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
 	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
 	_params_handles.roll_rate_ff	= 	param_find("MC_ROLLRATE_FF");
-	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
+    _params_handles.pitch_p			= 	param_find("MC_PITCH_P");
+    _params_handles.pitch_d			= 	param_find("MC_PITCH_D");   //AbV
+    _params_handles.pitch_i			= 	param_find("MC_PITCH_I");   //AbV
+    _params_handles.pitch_integ_lim	= 	param_find("MC_P_INT_LIM"); //AbV
 	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
@@ -464,6 +491,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.tpa_breakpoint 	= 	param_find("MC_TPA_BREAK");
 	_params_handles.tpa_slope	 	= 	param_find("MC_TPA_SLOPE");
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
+    _params_handles.yaw_d			=	param_find("MC_YAW_D");   //AbV
+    _params_handles.yaw_i			=	param_find("MC_YAW_I");   //AbV
+    _params_handles.yaw_integ_lim	= 	param_find("MC_Y_INT_LIM");//AbV
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
@@ -484,11 +514,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
 	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
 
-	_params_handles.tau_servo = param_find("TAU_SERVO");
-
-	//Added by Voliro
-	_params_handles.length_axis     =   param_find("MC_LENGTH_AXIS");
-	_params_handles.torque_coeff    =   param_find("MC_TORQUE_COEFF");
+    //Added by Voliro
+    _params_handles.length_axis     =   param_find("MC_LENGTH_AXIS");
+    _params_handles.torque_coeff    =   param_find("MC_TORQUE_COEFF");
+    _params_handles.tau_servo       =   param_find("TAU_SERVO");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -542,9 +571,15 @@ MulticopterAttitudeControl::parameters_update()
 	/* roll gains */
 	param_get(_params_handles.roll_p, &v);
 	_params.att_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
-	param_get(_params_handles.roll_rate_p, &v);
-	_params.rate_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
-	param_get(_params_handles.roll_rate_i, &v);
+    param_get(_params_handles.roll_i, &v); //AbV
+    _params.att_i(0) = v;
+    param_get(_params_handles.roll_integ_lim, &v); //AbV
+    _params.att_int_lim(0) = v;
+    param_get(_params_handles.roll_d, &v); //AbV
+    _params.att_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+    param_get(_params_handles.roll_rate_p, &v);
+    _params.rate_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
+    param_get(_params_handles.roll_rate_i, &v);
 	_params.rate_i(0) = v;
 	param_get(_params_handles.roll_rate_d, &v);
 	_params.rate_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
@@ -554,6 +589,12 @@ MulticopterAttitudeControl::parameters_update()
 	/* pitch gains */
 	param_get(_params_handles.pitch_p, &v);
 	_params.att_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
+    param_get(_params_handles.pitch_i, &v); //AbV
+    _params.att_i(1) = v;
+    param_get(_params_handles.pitch_integ_lim, &v); //AbV
+    _params.att_int_lim(1) = v;
+    param_get(_params_handles.pitch_d, &v); //AbV
+    _params.att_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_p, &v);
 	_params.rate_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_i, &v);
@@ -571,6 +612,12 @@ MulticopterAttitudeControl::parameters_update()
 	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
 	_params.att_p(2) = v;
+    param_get(_params_handles.yaw_i, &v); //AbV
+    _params.att_i(2) = v;
+    param_get(_params_handles.yaw_integ_lim, &v); //AbV
+    _params.att_int_lim(2) = v;
+    param_get(_params_handles.yaw_d, &v); //AbV
+    _params.att_d(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
 	_params.rate_p(2) = v;
 	param_get(_params_handles.yaw_rate_i, &v);
@@ -790,42 +837,42 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 
     _thrust_sp = _v_att_sp.thrust;
-
-	/* construct attitude setpoint rotation matrix */
+/*
+    / construct attitude setpoint rotation matrix /
 	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
-	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
+    math::Matrix<3, 3> R_sp = q_sp.to_dcm();
 
-	/* get current rotation matrix from control state quaternions */
+    / get current rotation matrix from control state quaternions /
 	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-	math::Matrix<3, 3> R = q_att.to_dcm();
+    math::Matrix<3, 3> R = q_att.to_dcm();
 
-	/* all input data is ready, run controller itself */
+    / all input data is ready, run controller itself /
 
-	/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
+    / try to move thrust vector shortest way, because yaw response is slower than roll/pitch /
 	math::Vector<3> R_z(R(0, 2), R(1, 2), R(2, 2));
 	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
-	/* axis and sin(angle) of desired rotation */
+    / axis and sin(angle) of desired rotation /
 	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
 
-	/* calculate angle error */
+    / calculate angle error /
 	float e_R_z_sin = e_R.length();
 	float e_R_z_cos = R_z * R_sp_z;
 
-	/* calculate weight for yaw control */
+    / calculate weight for yaw control /
 	float yaw_w = R_sp(2, 2) * R_sp(2, 2);
 
-	/* calculate rotation matrix after roll/pitch only rotation */
+    / calculate rotation matrix after roll/pitch only rotation /
 	math::Matrix<3, 3> R_rp;
 
 	if (e_R_z_sin > 0.0f) {
-		/* get axis-angle representation */
+        / get axis-angle representation /
 		float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
 		math::Vector<3> e_R_z_axis = e_R / e_R_z_sin;
 
 		e_R = e_R_z_axis * e_R_z_angle;
 
-		/* cross product matrix for e_R_axis */
+        / cross product matrix for e_R_axis /
 		math::Matrix<3, 3> e_R_cp;
 		e_R_cp.zero();
 		e_R_cp(0, 1) = -e_R_z_axis(2);
@@ -835,35 +882,35 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		e_R_cp(2, 0) = -e_R_z_axis(1);
 		e_R_cp(2, 1) = e_R_z_axis(0);
 
-		/* rotation matrix for roll/pitch only rotation */
+        / rotation matrix for roll/pitch only rotation /
 		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
 
 	} else {
-		/* zero roll/pitch rotation */
+        / zero roll/pitch rotation /
 		R_rp = R;
 	}
 
-	/* R_rp and R_sp has the same Z axis, calculate yaw error */
+    / R_rp and R_sp has the same Z axis, calculate yaw error /
 	math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
 	math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
 	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
 
 	if (e_R_z_cos < 0.0f) {
-		/* for large thrust vector rotations use another rotation method:
-		 * calculate angle and axis for R -> R_sp rotation directly */
+        / for large thrust vector rotations use another rotation method:
+          calculate angle and axis for R -> R_sp rotation directly /
 		math::Quaternion q_error;
 		q_error.from_dcm(R.transposed() * R_sp);
 		math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f : -q_error.imag() * 2.0f;
 
-		/* use fusion of Z axis based rotation and direct rotation */
+        / use fusion of Z axis based rotation and direct rotation /
 		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
 		e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;
 	}
 
-	/* calculate angular rates setpoint */
+    / calculate angular rates setpoint /
 	_rates_sp = _params.att_p.emult(e_R);
 
-	/* limit rates */
+    / limit rates /
 	for (int i = 0; i < 3; i++) {
 		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
 		    !_v_control_mode.flag_control_manual_enabled) {
@@ -874,18 +921,89 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 	}
 
-
-	/* feed forward yaw setpoint rate */
+	/ feed forward yaw setpoint rate /
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 
-	/* weather-vane mode, dampen yaw rate */
+    / weather-vane mode, dampen yaw rate /
 	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
 	    _v_att_sp.disable_mc_yaw_control == true && !_v_control_mode.flag_control_manual_enabled) {
 		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
 		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
 		// prevent integrator winding up in weathervane mode
 		_rates_int(2) = 0.0f;
-	}
+    }
+*/
+    //create quaternion setpoint
+    math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
+
+    //get current quaternion
+    math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+
+    //calculate quaternion error
+    math::Quaternion q_error;
+    q_error=q_sp.conjugated()*q_att;
+    q_error.normalize();
+
+    //calculate quaternion error vector
+    math::Vector<3> att_err(q_error(1),q_error(2),q_error(3));
+
+    //avoid unwinding
+    if (q_error(0)<0.0f)
+    {
+        att_err*=-1.0f;
+    }
+
+    //calculate rates setpoint (PID)
+    _rates_sp = _params.att_p.emult(att_err) +
+               _att_int +
+               _params.att_d.emult(att_err - _att_err_prev) / dt;
+
+    _att_err_prev = att_err;
+
+
+    /* update integral only if motors are providing enough thrust to be effective */
+    if (_thrust_sp > MIN_TAKEOFF_THRUST) {
+        for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+            // Check for positive control saturation
+            bool positive_saturation =
+                ((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
+                ((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
+                ((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
+
+            // Check for negative control saturation
+            bool negative_saturation =
+                ((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
+                ((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
+                ((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
+
+            // prevent further positive control saturation
+            if (positive_saturation) {
+                att_err(i) = math::min(att_err(i), 0.0f);
+
+            }
+
+            // prevent further negative control saturation
+            if (negative_saturation) {
+                att_err(i) = math::max(att_err(i), 0.0f);
+
+            }
+
+            // Perform the integration using a first order method and do not propaate the result if out of range or invalid
+            float att_i = _att_int(i) + _params.att_i(i) * att_err(i) * dt;
+
+            if (PX4_ISFINITE(att_i) && att_i > -_params.att_int_lim(i) && att_i < _params.att_int_lim(i)) {
+                _att_int(i) = att_i;
+
+            }
+        }
+    }
+    /* explicitly limit the integrator state */
+    for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+        _att_int(i) = math::constrain(_att_int(i), -_params.att_int_lim(i), _params.att_int_lim(i));
+
+    }
+
+
 }
 
 /*
