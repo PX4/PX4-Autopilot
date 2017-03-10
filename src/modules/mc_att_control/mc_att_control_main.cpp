@@ -1227,9 +1227,9 @@ MulticopterAttitudeControl::task_main()
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
 
-				/* publish actuator controls */
 
-                //publish omegas
+
+                //publish omegas,by voliro
 
                 _omega.control[0] = (PX4_ISFINITE(_omega_des(0))) ? _omega_des(0) : 0.0f;
                 _omega.control[1] = (PX4_ISFINITE(_omega_des(1))) ? _omega_des(1) : 0.0f;
@@ -1247,6 +1247,16 @@ MulticopterAttitudeControl::task_main()
                 _alpha.control[3] = (PX4_ISFINITE(_alpha_des(3))) ? _alpha_des(3) : 0.0f;
                 _alpha.control[4] = (PX4_ISFINITE(_alpha_des(4))) ? _alpha_des(4) : 0.0f;
                 _alpha.control[5] = (PX4_ISFINITE(_alpha_des(5))) ? _alpha_des(5) : 0.0f;
+
+                /* publish actuator controls (can be removed?)*/
+
+                                _actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+                                _actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+                                _actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+                                _actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
+                                _actuators.control[7] = _v_att_sp.landing_gear;
+                                _actuators.timestamp = hrt_absolute_time();
+                                _actuators.timestamp_sample = _ctrl_state.timestamp;
 
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
@@ -1314,19 +1324,9 @@ MulticopterAttitudeControl::task_main()
 					_actuators.control[1] = 0.0f;
 					_actuators.control[2] = 0.0f;
                     _actuators.control[3] = 0.0f;
-                    _actuators.control[4] = 0.0f;
-                    _actuators.control[5] = 0.0f;
-                    _actuators.control[6] = 0.0f;
-                    _actuators.control[7] = 0.0f;
-                    _actuators.control[8] = 0.0f;
-//                    _actuators.control[9] = 0.0f;
-//                    _actuators.control[10] = 0.0f;
-//                    _actuators.control[11] = 0.0f;
-
-
-
 					_actuators.timestamp = hrt_absolute_time();
 					_actuators.timestamp_sample = _ctrl_state.timestamp;
+
 
 					if (!_actuators_0_circuit_breaker_enabled) {
 						if (_actuators_0_pub != nullptr) {
@@ -1339,6 +1339,22 @@ MulticopterAttitudeControl::task_main()
 						}
 					}
                     //added by voliro
+
+                    _omega.control[0] =  0.0f;
+                    _omega.control[1] =  0.0f;
+                    _omega.control[2] =  0.0f;
+                    _omega.control[3] =  0.0f;
+                    _omega.control[4] =  0.0f;
+                    _omega.control[5] =  0.0f;
+
+
+                    _alpha.control[0] =  0.0f;
+                    _alpha.control[1] =  0.0f;
+                    _alpha.control[2] =  0.0f;
+                    _alpha.control[3] =  0.0f;
+                    _alpha.control[4] =  0.0f;
+                    _alpha.control[5] =  0.0f;
+
 
 
                     if (!_actuators_0_circuit_breaker_enabled) {
