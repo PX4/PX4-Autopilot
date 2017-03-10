@@ -388,7 +388,24 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	}
 
 	/* check for timed-out operations */
-	if (_state != MAVLINK_WPM_STATE_IDLE && hrt_elapsed_time(&_time_last_recv) > _action_timeout) {
+	if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
+	    && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
+		// try to request item again after timeout
+		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+
+	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
+		   && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
+		if (_transfer_seq == 0) {
+			/* try to send items count again after timeout */
+			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count);
+
+		} else {
+			/* try to send item again after timeout */
+			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq - 1);
+		}
+
+	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
+		   && hrt_elapsed_time(&_time_last_recv) > _action_timeout) {
 		_mavlink->send_statustext_critical("Operation timeout");
 
 		if (_verbose) { warnx("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state); }
@@ -398,22 +415,10 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		// since we are giving up, reset this state also, so another request can be started.
 		_transfer_in_progress = false;
 
-	} else if (_state == MAVLINK_WPM_STATE_GETLIST && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
-		/* try to request item again after timeout,
-		 * toggle int32 or float protocol variant to try both */
-		_int_mode = !_int_mode;
-
-		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
-
-	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
-		if (_transfer_seq == 0) {
-			/* try to send items count again after timeout */
-			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count);
-
-		} else {
-			/* try to send item again after timeout */
-			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq - 1);
-		}
+	} else if (_state == MAVLINK_WPM_STATE_IDLE) {
+		// reset flags
+		_time_last_sent = 0;
+		_time_last_recv = 0;
 	}
 }
 
@@ -716,7 +721,10 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				/* looks like our MISSION_REQUEST was lost, try again */
 				if (_verbose) { warnx("WPM: MISSION_COUNT %u from ID %u (again)", wpc.count, msg->sysid); }
 
-				_mavlink->send_statustext_info("WP CMD OK TRY AGAIN");
+				// If the counterpart tries this, its an indication int mode might not be supported
+				if (_int_mode) {
+					_int_mode = false;
+				}
 
 			} else {
 				if (_verbose) { warnx("WPM: MISSION_COUNT ERROR: busy, already receiving seq %u", _transfer_seq); }
@@ -887,7 +895,15 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		struct mission_item_s *mission_item)
 {
 	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
+	    (_int_mode && (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
+			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT))) {
+
+		// Switch to int mode if that is what we are receiving
+		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
+		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
+			_int_mode = true;
+		}
 
 		if (_int_mode) {
 			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
@@ -967,6 +983,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
+
+			if (_verbose) {
+				PX4_ERR("Unsupported command %d", mavlink_mission_item->command);
+			}
+
 			return MAV_MISSION_UNSUPPORTED;
 		}
 
@@ -1011,12 +1032,21 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
+
+			if (_verbose) {
+				PX4_ERR("Unsupported command %d", mavlink_mission_item->command);
+			}
+
 			return MAV_MISSION_UNSUPPORTED;
 		}
 
 		mission_item->frame = MAV_FRAME_MISSION;
 
 	} else {
+		if (_verbose) {
+			PX4_ERR("Unsupported frame %d", mavlink_mission_item->frame);
+		}
+
 		return MAV_MISSION_UNSUPPORTED_FRAME;
 	}
 
