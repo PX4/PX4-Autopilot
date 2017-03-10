@@ -126,6 +126,7 @@ set(msg_file_names
 	collision_report.msg
   voliro_alpha.msg
   voliro_omega.msg
+  voliro_thrust_setpoint.msg
 	)
 
 # Get absolute paths

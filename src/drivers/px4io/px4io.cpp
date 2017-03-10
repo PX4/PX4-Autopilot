@@ -288,6 +288,8 @@ private:
 	int			_t_actuator_controls_1;	///< actuator controls group 1 topic
 	int			_t_actuator_controls_2;	///< actuator controls group 2 topic
 	int			_t_actuator_controls_3;	///< actuator controls group 3 topic
+
+
 	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
@@ -296,7 +298,7 @@ private:
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
-	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
+        orb_advert_t		_to_outputs;		///< mixed servo outputs topic
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
@@ -532,8 +534,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
-	_t_actuator_controls_3(-1),
-	_t_actuator_armed(-1),
+        _t_actuator_controls_3(-1),
+        _t_actuator_armed(-1),
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
 	_param_update_force(false),
@@ -957,8 +959,10 @@ PX4IO::task_main()
 	_t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
 	orb_set_interval(_t_actuator_controls_2, 33);		/* default to 30Hz */
 	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
-	orb_set_interval(_t_actuator_controls_3, 33);		/* default to 30Hz */
-	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+        orb_set_interval(_t_actuator_controls_3, 33);		/* default to 30Hz */
+
+
+        _t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
 	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
@@ -1362,6 +1366,9 @@ PX4IO::io_set_control_state(unsigned group)
 			}
 		}
 		break;
+
+
+
 	}
 
 	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
@@ -1403,7 +1410,6 @@ PX4IO::io_set_control_state(unsigned group)
 		return OK;
 	}
 }
-
 
 int
 PX4IO::io_set_arming_state()
@@ -1989,7 +1995,7 @@ int
 PX4IO::io_publish_pwm_outputs()
 {
 	/* data we are going to fetch */
-	actuator_outputs_s outputs = {};
+        actuator_outputs_s outputs = {};
 	multirotor_motor_limits_s motor_limits;
 
 	outputs.timestamp = hrt_absolute_time();
@@ -2005,6 +2011,7 @@ PX4IO::io_publish_pwm_outputs()
 	/* convert from register format to float */
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		outputs.output[i] = ctl[i];
+                outputs_omega.output[i]=ctl[i];
 	}
 
 	outputs.noutputs = _max_actuators;
@@ -2016,8 +2023,13 @@ PX4IO::io_publish_pwm_outputs()
 						  &outputs, &instance, ORB_PRIO_MAX);
 
 	} else {
-		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
+                orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
 	}
+
+
+
+
+
 
 	/* get mixer status flags from IO */
 	uint16_t mixer_status;

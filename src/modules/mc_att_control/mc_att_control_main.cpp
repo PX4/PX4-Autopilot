@@ -68,8 +68,11 @@
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/voliro_thrust_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/voliro_alpha.h>
+#include <uORB/topics/voliro_omega.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
@@ -123,8 +126,7 @@ public:
 
 	/**
 	 * Start the multicopter attitude control task.
-	 *
-	 * @return		OK on success.
+	 *	 * @return		OK on success.
 	 */
 	int		start();
 
@@ -135,6 +137,7 @@ private:
 
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
+    int     _vol_thrust_sp_sub;     /**< vehicle thrust setpoint subscription, added by voliro */
 	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
 	int		_params_sub;			/**< parameter updates subscription */
@@ -146,24 +149,39 @@ private:
 
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
+    orb_advert_t	_alpha_0_pub;           /**< alpha actuator controls publication, added by voliro */
+    orb_advert_t	_omega_0_pub;           /**< omega actuator controls publication, added by voliro */
 	orb_advert_t	_controller_status_pub;	/**< controller status publication */
 
 	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
+    orb_id_t _alpha_id;	/**< pointer to correct actuator omega0 uORB metadata structure, added by voliro */
+    orb_id_t _omega_id;	/**< pointer to correct actuator alpha0 uORB metadata structure, added by voliro */
+
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
-	struct control_state_s				_ctrl_state;		/**< control state */
-	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
+
+    struct control_state_s              _ctrl_state;		/**< control state */
+    struct vehicle_attitude_setpoint_s	_v_att_sp;		/**< vehicle attitude setpoint */
+    struct voliro_thrust_setpoint_s     _vol_thrust_sp;          /**< vehicle thrust setpoint, added by voliro */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
-	struct actuator_controls_s			_actuators;			/**< actuator controls */
-	struct actuator_armed_s				_armed;				/**< actuator arming status */
-	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
+    struct actuator_controls_s          _actuators;		/**< actuator controls */
+    struct voliro_alpha_s               _alpha;                 /**< alpha controls, added by voliro */
+    struct voliro_omega_s               _omega;                  /**< omega controls, added by voliro */
+    struct actuator_armed_s             _armed;			/**< actuator arming status */
+    struct vehicle_status_s             _vehicle_status;	/**< vehicle status */
 	struct multirotor_motor_limits_s	_motor_limits;		/**< motor limits */
-	struct mc_att_ctrl_status_s 		_controller_status; /**< controller status */
-	struct battery_status_s				_battery_status;	/**< battery status */
+    struct mc_att_ctrl_status_s 		_controller_status;     /**< controller status */
+    struct battery_status_s				_battery_status;/**< battery status */
+
+    struct _vol_att_sp_s{
+            float x; float y; float z;
+    };
+
+    _vol_att_sp_s _vol_att_sp;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
@@ -172,10 +190,10 @@ private:
 	math::Vector<3>		_rates_sp_prev; /**< previous rates setpoint */
 	math::Vector<3>		_rates_sp;		/**< angular rates setpoint */
 	math::Vector<3>		_rates_int;		/**< angular rates integral error */
-	float				_thrust_sp;		/**< thrust setpoint */
+    float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
-    math::Vector<6>      alpha_des;     /**< alpha_des, is sent to actuator control */
-    math::Vector<6>      omega_des;     /**< omega_des, is sent to actuator control */
+    math::Vector<6>     _alpha_des;     /**< _alpha_des, is sent to actuator control */
+    math::Vector<6>     _omega_des;     /**< omega_des, is sent to actuator control */
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
 	struct {
@@ -283,6 +301,11 @@ private:
 	 */
 	void		vehicle_attitude_setpoint_poll();
 
+    /**
+     * Check for thrust setpoint updates.
+     */
+    void        voliro_thrust_setpoint_poll();
+
 	/**
 	 * Check for rates setpoint updates.
 	 */
@@ -353,6 +376,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* subscriptions */
 	_ctrl_state_sub(-1),
 	_v_att_sp_sub(-1),
+    _vol_thrust_sp_sub(-1),
 	_v_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
@@ -361,13 +385,44 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	/* publications */
 	_v_rates_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
+        _actuators_0_pub(nullptr),
+        _alpha_0_pub(nullptr), //added by voliro
+        _omega_0_pub(nullptr), //added by voliro
 	_controller_status_pub(nullptr),
+<<<<<<< HEAD
 	_rates_sp_id(0),
 	_actuators_id(0),
 
 	_actuators_0_circuit_breaker_enabled(false),
 
+=======
+	_rates_sp_id(nullptr),
+	_actuators_id(nullptr),
+        _alpha_id(nullptr), //added by voliro
+        _omega_id(nullptr), //added by voliro
+
+
+	_actuators_0_circuit_breaker_enabled(false),
+
+	_ctrl_state{},
+	_v_att_sp{},
+        _vol_thrust_sp{},
+	_v_rates_sp{},
+	_manual_control_sp{},
+	_v_control_mode{},
+	_actuators{},
+        _alpha{},   //added by voliro
+        _omega{},   //added by voliro
+        _armed{},
+	_vehicle_status{},
+	_motor_limits{},
+	_controller_status{},
+	_battery_status{},
+	_sensor_gyro{},
+	_sensor_correction{},
+
+	_saturation_status{},
+>>>>>>> f3d412b... added voliro_thrust_setpoint.msg and voliro_alpha.msg and voliro_omega.msg
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
@@ -653,6 +708,18 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 }
 
 void
+MulticopterAttitudeControl::voliro_thrust_setpoint_poll()
+{
+    /* check if there is a new setpoint */
+    bool updated;
+    orb_check(_vol_thrust_sp_sub, &updated);
+
+    if (updated) {
+        orb_copy(ORB_ID(voliro_thrust_setpoint), _vol_thrust_sp_sub, &_vol_thrust_sp);
+    }
+}
+
+void
 MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -695,6 +762,9 @@ MulticopterAttitudeControl::vehicle_status_poll()
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_0);
+                _alpha_id = ORB_ID(voliro_alpha_0);
+                _omega_id = ORB_ID(voliro_omega_0);
+
 			}
 		}
 	}
@@ -730,12 +800,18 @@ MulticopterAttitudeControl::battery_status_poll()
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
  * Output: '_rates_sp' vector, '_thrust_sp'
  */
+
+/* voliro: use _vol_thrust_sp.x, _vol_thrust_sp.y, _vol_thrust_sp.z as input, published by position controller.
+    give out _vol_att_sp.x,  _vol_att_sp.y , _vol_att_sp.z they will be entered into allocation at topic _voliro_omega_0 und _voliro_alpha_o*/;
+
 void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
 	vehicle_attitude_setpoint_poll();
+    voliro_thrust_setpoint_poll();
 
-	_thrust_sp = _v_att_sp.thrust;
+
+    _thrust_sp = _v_att_sp.thrust;
 
 	/* construct attitude setpoint rotation matrix */
 	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
@@ -820,6 +896,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 	}
 
+
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 
@@ -886,55 +963,55 @@ void MulticopterAttitudeControl::alpha (float dt)
  //alpha destiny lookup table
 
     float al[6]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-alpha_des=(al);
+_alpha_des=(al);
 
 //alpha infinity
 
 
-math::Vector<6> alpha_des_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+math::Vector<6> _alpha_des_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
 
 for (int i=0;i<6;i++)
 {
-    float a=fmod((alpha_des_prev(i)+(float)M_PI),2*(float)M_PI);
+    float a=fmod((_alpha_des_prev(i)+(float)M_PI),2*(float)M_PI);
 
-   int k=(alpha_des_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
+   int k=(_alpha_des_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
 
-    alpha_des_prev(i)=alpha_des_prev(i)-k*2*(float)M_PI;
+    _alpha_des_prev(i)=_alpha_des_prev(i)-k*2*(float)M_PI;
 
-    if (alpha_des(i)*alpha_des_prev(i)<0 && abs(alpha_des(i)-alpha_des_prev(i))>(double)M_PI)
+    if (_alpha_des(i)*_alpha_des_prev(i)<0 && abs(_alpha_des(i)-_alpha_des_prev(i))>(double)M_PI)
        {
-        if (alpha_des_prev(i)<alpha_des(i))
-            {alpha_des(i)=alpha_des(i)-2*(float)M_PI;}
+        if (_alpha_des_prev(i)<_alpha_des(i))
+            {_alpha_des(i)=_alpha_des(i)-2*(float)M_PI;}
         else
-            {alpha_des(i)=alpha_des(i)+2*(float)M_PI;}
+            {_alpha_des(i)=_alpha_des(i)+2*(float)M_PI;}
         }
     else
     {
-        alpha_des(i)=alpha_des(i);
+        _alpha_des(i)=_alpha_des(i);
     }
 
-    alpha_des(i)=alpha_des(i)+k*2*(float)M_PI;
-    alpha_des_prev(i)=alpha_des(i);
+    _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
+    _alpha_des_prev(i)=_alpha_des(i);
 
 }
 
 
  //alpha motor dynamics
- math::Vector<6> alpha_sim(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+ math::Vector<6> _alpha_sim(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
 
-math::Vector<6> alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+math::Vector<6> _alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
 
 
 for (int i=0;i<6;i++)
 {
 
-  if(alpha_des(i)-alpha_sim_prev(i)>_params.tau_servo*dt)
+  if(_alpha_des(i)-_alpha_sim_prev(i)>_params.tau_servo*dt)
   {
-    alpha_sim(i)=(alpha_des(i)-alpha_sim_prev(i))*_params.tau_servo*dt + alpha_sim_prev(i);
+    _alpha_sim(i)=(_alpha_des(i)-_alpha_sim_prev(i))*_params.tau_servo*dt + _alpha_sim_prev(i);
   }
-  else { alpha_sim(i)=alpha_des(i);}
+  else { _alpha_sim(i)=_alpha_des(i);}
 
-  alpha_sim_prev(i)=alpha_sim(i);}
+  _alpha_sim_prev(i)=_alpha_sim(i);}
 
 
 }
@@ -950,6 +1027,7 @@ MulticopterAttitudeControl::control_allocation(float dt)
     //U=[_thrust_sp m_des];
     math::Vector<6> u;
     //to be changed
+<<<<<<< HEAD
     math::Vector<3> f_des;
     math::Vector<3> m_des;
 
@@ -961,18 +1039,29 @@ MulticopterAttitudeControl::control_allocation(float dt)
     u(3)=m_des(0);
     u(4)=m_des(1);
     u(5)=m_des(2);
+=======
+    //math::Vector<3> f_des;
+    //math::Vector<3> m_des;
+
+    u(0)=_vol_thrust_sp.x;
+    u(1)=_vol_thrust_sp.y;
+    u(2)=_vol_thrust_sp.z;
+    u(3)=_vol_att_sp.x;
+    u(4)=_vol_att_sp.y;
+    u(5)=_vol_att_sp.z;
+>>>>>>> f3d412b... added voliro_thrust_setpoint.msg and voliro_alpha.msg and voliro_omega.msg
     //u={f_des,m_des};
 
 
-    float alloc [6][6]= {{-sinf(alpha_des(0)),                          sinf(alpha_des(1)),                          0.5f*sinf(alpha_des(2)),                                               -0.5f*sinf(alpha_des(3)),                                               -0.5f*sinf(alpha_des(4)),                                               0.5f*sinf(alpha_des(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(alpha_des(2)),                                      -sqrtf(3)*0.5f*sinf(alpha_des(3)),                                      sqrtf(3)*0.5f*sinf(alpha_des(4)),                                       -sqrtf(3)*0.5f*sinf(alpha_des(5))},
-                         {-cosf(alpha_des(0)),                          -cosf(alpha_des(1)),                         -cosf(alpha_des(2)),                                                   -cosf(alpha_des(3)),                                                    -cosf(alpha_des(4)),                                                    -cosf(alpha_des(5))},
-                         {-l*cosf(alpha_des(0))-k*sinf(alpha_des(0)),   l*cosf(alpha_des(1))-k*sinf(alpha_des(1)),   l*0.5f*cosf(alpha_des(2))+k*0.5f*sinf(alpha_des(2)),                   -l*0.5f*cosf(alpha_des(3))+k*0.5f*sinf(alpha_des(3)),                   -l*0.5f*cosf(alpha_des(4))+k*0.5f*sinf(alpha_des(4)),                   l*0.5f*cosf(alpha_des(5))+k*0.5f*sinf(alpha_des(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(alpha_des(2))+sqrtf(3)*0.5f*k*sinf(alpha_des(2)), -l*sqrtf(3)*0.5f*cosf(alpha_des(3))+k*sqrtf(3)*0.5f*sinf(alpha_des(3)), sqrtf(3)*0.5f*l*cosf(alpha_des(4))-sqrtf(3)*0.5f*k*sinf(alpha_des(4)),  -sqrtf(3)*0.5f*l*cosf(alpha_des(5))-sqrtf(3)*0.5f*k*sinf(alpha_des(5))},
-                         {l*sinf(alpha_des(0))-k*cosf(alpha_des(0)),    l*sinf(alpha_des(1))+k*cosf(alpha_des(2)),   l*sinf(alpha_des(2))-k*cosf(alpha_des(2)),                             l*sinf(alpha_des(3))+k*cosf(alpha_des(3)),                              l*sinf(alpha_des(4))+k*cosf(alpha_des(4)),                              l*sinf(alpha_des(5))-k*cosf(alpha_des(5))}};
+    float alloc [6][6]= {{-sinf(_alpha_des(0)),                          sinf(_alpha_des(1)),                          0.5f*sinf(_alpha_des(2)),                                               -0.5f*sinf(_alpha_des(3)),                                               -0.5f*sinf(_alpha_des(4)),                                               0.5f*sinf(_alpha_des(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_des(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_des(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_des(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_des(5))},
+                         {-cosf(_alpha_des(0)),                          -cosf(_alpha_des(1)),                         -cosf(_alpha_des(2)),                                                   -cosf(_alpha_des(3)),                                                    -cosf(_alpha_des(4)),                                                    -cosf(_alpha_des(5))},
+                         {-l*cosf(_alpha_des(0))-k*sinf(_alpha_des(0)),   l*cosf(_alpha_des(1))-k*sinf(_alpha_des(1)),   l*0.5f*cosf(_alpha_des(2))+k*0.5f*sinf(_alpha_des(2)),                   -l*0.5f*cosf(_alpha_des(3))+k*0.5f*sinf(_alpha_des(3)),                   -l*0.5f*cosf(_alpha_des(4))+k*0.5f*sinf(_alpha_des(4)),                   l*0.5f*cosf(_alpha_des(5))+k*0.5f*sinf(_alpha_des(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(_alpha_des(2))+sqrtf(3)*0.5f*k*sinf(_alpha_des(2)), -l*sqrtf(3)*0.5f*cosf(_alpha_des(3))+k*sqrtf(3)*0.5f*sinf(_alpha_des(3)), sqrtf(3)*0.5f*l*cosf(_alpha_des(4))-sqrtf(3)*0.5f*k*sinf(_alpha_des(4)),  -sqrtf(3)*0.5f*l*cosf(_alpha_des(5))-sqrtf(3)*0.5f*k*sinf(_alpha_des(5))},
+                         {l*sinf(_alpha_des(0))-k*cosf(_alpha_des(0)),    l*sinf(_alpha_des(1))+k*cosf(_alpha_des(2)),   l*sinf(_alpha_des(2))-k*cosf(_alpha_des(2)),                             l*sinf(_alpha_des(3))+k*cosf(_alpha_des(3)),                              l*sinf(_alpha_des(4))+k*cosf(_alpha_des(4)),                              l*sinf(_alpha_des(5))-k*cosf(_alpha_des(5))}};
 
     math::Matrix<6,6> A(alloc);
-    omega_des=A.inversed()*u;
+    _omega_des=A.inversed()*u;
 
 }
 
@@ -1140,24 +1229,24 @@ MulticopterAttitudeControl::task_main()
 
 				/* publish actuator controls */
 
-                //omegas
+                //publish omegas
 
-                _actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
-//                _actuators.control[3] = (PX4_ISFINITE(_att_control(3))) ? _att_control(3) : 0.0f;
-//                _actuators.control[4] = (PX4_ISFINITE(_att_control(4))) ? _att_control(4) : 0.0f;
-//                _actuators.control[5] = (PX4_ISFINITE(_att_control(5))) ? _att_control(5) : 0.0f;
+                _omega.control[0] = (PX4_ISFINITE(_omega_des(0))) ? _omega_des(0) : 0.0f;
+                _omega.control[1] = (PX4_ISFINITE(_omega_des(1))) ? _omega_des(1) : 0.0f;
+                _omega.control[2] = (PX4_ISFINITE(_omega_des(2))) ? _omega_des(2) : 0.0f;
+                _omega.control[3] = (PX4_ISFINITE(_omega_des(3))) ? _omega_des(3) : 0.0f;
+                _omega.control[4] = (PX4_ISFINITE(_omega_des(4))) ? _omega_des(4) : 0.0f;
+                _omega.control[5] = (PX4_ISFINITE(_omega_des(5))) ? _omega_des(5) : 0.0f;
 
 
-               //alphas
+               //publish alphas
 
-                _actuators.control[8] = (PX4_ISFINITE(alpha_des(0))) ? alpha_des(0) : 0.0f;
-//                _actuators.control[7] = (PX4_ISFINITE(alpha_des(1))) ? alpha_des(1) : 0.0f;
-//                _actuators.control[8] = (PX4_ISFINITE(alpha_des(2))) ? alpha_des(2) : 0.0f;
-//                _actuators.control[9] = (PX4_ISFINITE(alpha_des(3))) ? alpha_des(3) : 0.0f;
-//                _actuators.control[10] = (PX4_ISFINITE(alpha_des(4))) ? alpha_des(4) : 0.0f;
-//                _actuators.control[11] = (PX4_ISFINITE(alpha_des(5))) ? alpha_des(5) : 0.0f;
+                _alpha.control[0] = (PX4_ISFINITE(_alpha_des(0))) ? _alpha_des(0) : 0.0f;
+                _alpha.control[1] = (PX4_ISFINITE(_alpha_des(1))) ? _alpha_des(1) : 0.0f;
+                _alpha.control[2] = (PX4_ISFINITE(_alpha_des(2))) ? _alpha_des(2) : 0.0f;
+                _alpha.control[3] = (PX4_ISFINITE(_alpha_des(3))) ? _alpha_des(3) : 0.0f;
+                _alpha.control[4] = (PX4_ISFINITE(_alpha_des(4))) ? _alpha_des(4) : 0.0f;
+                _alpha.control[5] = (PX4_ISFINITE(_alpha_des(5))) ? _alpha_des(5) : 0.0f;
 
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
@@ -1186,6 +1275,21 @@ MulticopterAttitudeControl::task_main()
 					}
 
 				}
+                    /* publish omegas, added by voliro */
+
+                if (!_actuators_0_circuit_breaker_enabled) {
+                    if (_omega_0_pub != nullptr) {
+
+                        orb_publish(_omega_id, _omega_0_pub, &_actuators);
+                        perf_end(_controller_latency_perf);
+
+                    } else if (_omega_id) {
+                        _omega_0_pub = orb_advertise(_omega_id, &_actuators);
+                    }
+
+                }
+
+
 
 				/* publish controller status */
 				if (_controller_status_pub != nullptr) {
@@ -1234,7 +1338,31 @@ MulticopterAttitudeControl::task_main()
 							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 						}
 					}
+                    //added by voliro
 
+
+                    if (!_actuators_0_circuit_breaker_enabled) {
+                        if (_alpha_0_pub != nullptr) {
+
+                            orb_publish(_alpha_id, _alpha_0_pub, &_actuators);
+                            perf_end(_controller_latency_perf);
+
+                        } else if (_alpha_id) {
+                            _alpha_0_pub = orb_advertise(_alpha_id, &_actuators);
+                        }
+                    }
+
+                    if (!_actuators_0_circuit_breaker_enabled) {
+                        if (_omega_0_pub != nullptr) {
+
+                            orb_publish(_omega_id, _omega_0_pub, &_actuators);
+                            perf_end(_controller_latency_perf);
+
+                        } else if (_omega_id) {
+                            _omega_0_pub = orb_advertise(_omega_id, &_actuators);
+                        }
+                    }
+                    //
 					_controller_status.roll_rate_integ = _rates_int(0);
 					_controller_status.pitch_rate_integ = _rates_int(1);
 					_controller_status.yaw_rate_integ = _rates_int(2);

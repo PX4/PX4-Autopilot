@@ -53,6 +53,7 @@
 #include "topics/vehicle_local_position_setpoint.h"
 #include "topics/vehicle_local_position.h"
 #include "topics/vehicle_attitude_setpoint.h"
+#include "topics/voliro_thrust_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
 #include "topics/rc_channels.h"
 #include "topics/battery_status.h"
@@ -171,6 +172,7 @@ template class __EXPORT Subscription<log_message_s>;
 template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
 template class __EXPORT Subscription<vehicle_local_position_s>;
 template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;
+template class __EXPORT Subscription<voliro_thrust_setpoint_s>;
 template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
 template class __EXPORT Subscription<rc_channels_s>;
 template class __EXPORT Subscription<vehicle_control_mode_s>;

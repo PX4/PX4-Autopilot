@@ -44,6 +44,7 @@
 #include "topics/actuator_controls.h"
 #include "topics/vehicle_global_velocity_setpoint.h"
 #include "topics/vehicle_attitude_setpoint.h"
+#include "topics/voliro_thrust_setpoint.h"
 #include "topics/vehicle_rates_setpoint.h"
 #include "topics/actuator_outputs.h"
 #include "topics/actuator_direct.h"
@@ -115,6 +116,7 @@ template class __EXPORT Publication<debug_key_value_s>;
 template class __EXPORT Publication<actuator_controls_s>;
 template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
 template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
+template class __EXPORT Publication<voliro_thrust_setpoint_s>;
 template class __EXPORT Publication<vehicle_rates_setpoint_s>;
 template class __EXPORT Publication<actuator_outputs_s>;
 template class __EXPORT Publication<actuator_direct_s>;

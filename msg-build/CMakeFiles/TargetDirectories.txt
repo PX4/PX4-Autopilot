@@ -1,0 +1,2 @@
+/home/parallels/src/Firmware/msg-build/CMakeFiles/edit_cache.dir
+/home/parallels/src/Firmware/msg-build/CMakeFiles/rebuild_cache.dir
