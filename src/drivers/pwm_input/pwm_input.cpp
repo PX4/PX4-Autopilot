@@ -294,8 +294,9 @@ PWMIN::~PWMIN()
  * pin as PWM output
  */
 
-static void _freeze_test() {
-  g_dev->_freeze_test();
+static void _freeze_test()
+{
+	g_dev->_freeze_test();
 }
 
 int
@@ -311,8 +312,8 @@ PWMIN::init()
 		return -ENOMEM;
 	}
 
-  /* Schedule freeze check to invoke periodically */
-  hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, (hrt_callout)(::_freeze_test), this);
+	/* Schedule freeze check to invoke periodically */
+	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, (hrt_callout)(::_freeze_test), this);
 
 	return OK;
 }
@@ -406,15 +407,16 @@ PWMIN::_turn_off()
 }
 
 // XXX refactor this out of this driver
- static void _turn_on() {
-   g_dev->_turn_on();
- }
+static void _turn_on()
+{
+	g_dev->_turn_on();
+}
 
 void
 PWMIN::hard_reset()
 {
-  _turn_off();
-  hrt_call_after(&_hard_reset_call, 9000, (hrt_callout)(::_turn_on), this);
+	_turn_off();
+	hrt_call_after(&_hard_reset_call, 9000, (hrt_callout)(::_turn_on), this);
 }
 
 /*

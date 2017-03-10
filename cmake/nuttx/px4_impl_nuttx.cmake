@@ -426,6 +426,7 @@ function(px4_nuttx_add_romfs)
 	add_custom_target(collect_extras DEPENDS ${extras})
 
 	string(REPLACE ";" "\ " gcc_c_flags_2 "${gcc_c_flags}")
+
 	add_custom_command(OUTPUT romfs.o
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
@@ -607,9 +608,11 @@ function(px4_os_add_flags)
 			)
 	endif()
 
+	list(APPEND gcc_c_flags ${cpu_flags})
+
 	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*" OR ${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
 		set(gcc_paths ${PX4_SOURCE_DIR}/cmake/nuttx/gcc_paths.py)
-		set(gcc_cpu_flags ${cpu_flags})
+		set(gcc_cpu_flags)
 		string(REPLACE ";" "\ " gcc_cpu_flags "${cpu_flags}")
 
 		execute_process(COMMAND ${PYTHON_EXECUTABLE} ${gcc_paths}
