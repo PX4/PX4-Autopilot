@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/voliro_thrust_setpoint.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -147,7 +148,7 @@ private:
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
 	orb_id_t _attitude_setpoint_id;
-    orb_id_t _voliro_thrust_setpoint_id;
+    	orb_id_t _voliro_thrust_setpoint_id;
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
@@ -397,8 +398,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vehicle_status{},
 	_vehicle_land_detected{},
 	_ctrl_state{},
-    _vol_thrust_sp{},
 	_att_sp{},
+	_vol_thrust_sp{},
 	_manual{},
 	_control_mode{},
 	_arming{},
@@ -674,7 +675,7 @@ MulticopterPositionControl::poll_subscriptions()
     /* set correct uORB ID, added by voliro */
     if (!_voliro_thrust_setpoint_id) {
 
-            _voliro_thurst_setpoint_id = ORB_ID(voliro_thrust_setpoint);
+            _voliro_thrust_setpoint_id = ORB_ID(voliro_thrust_setpoint);
 
 }
 

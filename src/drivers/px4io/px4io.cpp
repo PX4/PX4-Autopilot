@@ -2011,7 +2011,6 @@ PX4IO::io_publish_pwm_outputs()
 	/* convert from register format to float */
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		outputs.output[i] = ctl[i];
-                outputs_omega.output[i]=ctl[i];
 	}
 
 	outputs.noutputs = _max_actuators;
