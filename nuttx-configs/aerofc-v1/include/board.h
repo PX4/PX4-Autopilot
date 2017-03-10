@@ -271,6 +271,8 @@
 #define GPIO_SPI1_SCK   (GPIO_SPI1_SCK_1  | GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MISO  (GPIO_SPI1_MISO_1 | GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MOSI  (GPIO_SPI1_MOSI_1 | GPIO_SPEED_50MHz)
+#define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_1
+#define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_1
 
 /* The following Pin Mapping is just for completeness */
 /*
