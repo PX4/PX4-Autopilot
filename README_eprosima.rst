@@ -105,9 +105,20 @@ Now we need to do some modifications to use the both codes together.
 
 -  *sensor_combined_PubSubMain.cxx*
 
+line 60
 .. code-block:: shell
+         
+         sensor_combined_Publisher mypub;
+         if (mypub.init())
+         {
 
-    $ /path/to/Fast-RTPS/fastrtpsgen/scripts/fastrtpsgen -example x64Linux2.6gcc sensor_combined_.idl
+         ...
+
+         sensor_combined_Publisher mypub;
+         std::string uart = "/dev/ttyACM0";
+         if (argc > 2) uart = std::string(argv[2]);
+         if (mypub.init(uart))
+         {
 
 
 
