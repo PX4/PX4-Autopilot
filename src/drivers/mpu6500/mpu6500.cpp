@@ -159,7 +159,7 @@
 #define BIT_INT_STATUS_DATA		0x01
 
 
-#define MPU6500_ACCEL_DEFAULT_RANGE_G			8
+#define MPU6500_ACCEL_DEFAULT_RANGE_G			16
 #define MPU6500_ACCEL_DEFAULT_RATE				1000
 #define MPU6500_ACCEL_MAX_OUTPUT_RATE			280
 #define MPU6500_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
@@ -753,7 +753,7 @@ int MPU6500::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	set_accel_range(8);
+	set_accel_range(MPU6500_ACCEL_DEFAULT_RANGE_G);
 
 	usleep(1000);
 
