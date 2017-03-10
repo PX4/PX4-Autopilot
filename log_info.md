@@ -13,3 +13,18 @@ sess02
 Motivation:
  reverted back to fw_pos and att control apps, to check if that controls the yaw.
 Result: it works, my changes were too drastic.
+---------
+sess03
+---------
+Motivation:
+ enabled yaw control from the beginning of control_position function. 
+Result: 
+ This seems to work somehow, meaning that now the steering output has something different than zero but it now displays a bang bang behaviour. Apparently the correct behaviour observed yesterday and in session 2 is due to the fact that the app behaves like the car is taking off so it enables the rudder steering to keep the plane straight. This should also explain why the magnitude of the yaw output is not very big and very noisy.
+ The trottle in manual mode is 1000 because the disarm switch wasaccidentaly triggered. This test interrupted quickly for unknown reasons, the LED was blinking red and it disarmed. The question is: was it because of some issue or because my disarming code worked? I need to check the log data and mavlink console to really see ths.
+---------
+sess04
+---------
+Motivation:
+ Unexpected end of session 3 so I decided to repeat the same test. No changes in the code. 
+Result: 
+ I forgot to choose mission mode at the first run, I had to do a second run and the steering channel behaves as explained above. I need to inspect this or change the whole thing altogether.
