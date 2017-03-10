@@ -62,6 +62,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
+	_sonar_fixed_distance(this, "SONAR_DIST"),
 	_lidar_z_stddev(this, "LDR_Z"),
 	_lidar_z_offset(this, "LDR_OFF_Z"),
 	_accel_xy_stddev(this, "ACC_XY"),

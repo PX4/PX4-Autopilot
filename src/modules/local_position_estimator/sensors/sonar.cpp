@@ -6,7 +6,7 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 		REQ_SONAR_INIT_COUNT = 10;
+static const int 	REQ_SONAR_INIT_COUNT = 10;
 static const uint32_t 	SONAR_TIMEOUT =   5000000; // 2.0 s
 static const float  	SONAR_MAX_INIT_STD =   0.3f; // meters
 
@@ -46,10 +46,18 @@ void BlockLocalPositionEstimator::sonarInit()
 
 int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
-	// measure
-	float d = _sub_sonar->get().current_distance;
+	float d;
+	if (_sonar_fixed_distance.get() > 0.0f ) {
+		//warnx("param is greater than zero finally");
+		d =  _sonar_fixed_distance.get();
+
+	} else {
+		// measure
+		d = _sub_sonar->get().current_distance;
+	}
+
 	float eps = 0.01f; // 1 cm
-	float min_dist = _sub_sonar->get().min_distance + eps;
+	float min_dist = eps; // _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
 
 	// prevent driver from setting min dist below eps
@@ -66,9 +74,8 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_sonarStats.update(Scalarf(d));
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = (d + _sonar_z_offset.get()) *
-	       cosf(_eul(0)) *
-	       cosf(_eul(1));
+	y(0) = (d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
+
 	return OK;
 }
 

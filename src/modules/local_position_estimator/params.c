@@ -452,3 +452,11 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * @bit 7 fuse baro
  */
 PARAM_DEFINE_INT32(LPE_FUSION, 247);
+
+
+/**
+ *  Fixed distance of the sonar from the ground for a rover
+ *  less than zero disables it
+ *  distance in cm
+ */
+PARAM_DEFINE_FLOAT(LPE_SONAR_DIST, -1.0f);

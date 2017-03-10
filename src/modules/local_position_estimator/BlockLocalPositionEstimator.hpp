@@ -266,6 +266,7 @@ private:
 	// sonar parameters
 	BlockParamFloat  _sonar_z_stddev;
 	BlockParamFloat  _sonar_z_offset;
+	BlockParamFloat  _sonar_fixed_distance;
 
 	// lidar parameters
 	BlockParamFloat  _lidar_z_stddev;
