@@ -118,7 +118,7 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 		return ERROR;
 	}
 
-	/* Allow a rate of 0 to enter onshot mode */
+	/* Allow a rate of 0 to enter oneshot mode */
 
 	if (rate != 0) {
 

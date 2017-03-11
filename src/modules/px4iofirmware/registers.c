@@ -635,7 +635,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_PWM_ALTRATE:
 
 			/* For PWM constrain to [25,400]Hz
-			 * For Onshot there is no rate, 0 is therefore used to select Oneshot mode
+			 * For Oneshot there is no rate, 0 is therefore used to select Oneshot mode
 			 */
 			if (value != 0) {
 				if (value < 25) {
