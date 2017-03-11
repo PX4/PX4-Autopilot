@@ -1023,15 +1023,6 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 void PX4FMU::rc_io_invert(bool invert)
 {
 	INVERT_RC_INPUT(invert);
-
-#ifdef GPIO_RC_OUT
-
-	if (!invert) {
-		// set FMU_RC_OUTPUT high to pull RC_INPUT up
-		px4_arch_gpiowrite(GPIO_RC_OUT, 1);
-	}
-
-#endif
 }
 #endif
 
@@ -2413,7 +2404,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#ifdef GPIO_SPEKTRUM_PWR_EN
+#ifdef SPEKTRUM_POWER
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
