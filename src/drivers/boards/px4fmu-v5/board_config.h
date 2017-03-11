@@ -338,18 +338,26 @@ __BEGIN_DECLS
 #define GPIO_LED_SAFETY         /* PE12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
 #define GPIO_BTN_SAFETY         /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 
-#define INVERT_RC_INPUT(_s)		board_rc_input(_s);
+#define INVERT_RC_INPUT(_invert_true)      board_rc_input(_invert_true);
 
 
 /* Power switch controls ******************************************************/
 
-#define POWER_SPEKTRUM(_s)      px4_arch_gpiowrite(GPIO_SPEKTRUM_POWER_EN, (1-_s))
-#define SPEKTRUM_RX_AS_UART()   px4_arch_configgpio(GPIO_USART6_RX) /* NOT FMUv5 test HW ONLY*/
+#define SPEKTRUM_POWER(_on_true)           px4_arch_gpiowrite(GPIO_SPEKTRUM_POWER_EN, (_on_true))
 
-// FMUv5 has a separate GPIO for serial RC output
-#define GPIO_RC_OUT            /* PG9 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN9)
-#define SPEKTRUM_RX_AS_GPIO()   px4_arch_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)    px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
+/*
+ * FMUv5 has a separate RC_IN
+ *
+ * GPIO PPM_IN on PI5 T8CH1
+ * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PG9 (NOT FMUv5 test HW ONLY)
+ *   In version is possible in the UART
+ * and can drive  GPIO PPM_IN as an output
+ */
+
+#define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN5)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
+#define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
+#define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0

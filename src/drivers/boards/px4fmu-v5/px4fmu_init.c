@@ -257,10 +257,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_LED_SAFETY);
 	stm32_configgpio(GPIO_BTN_SAFETY);
 
-#ifdef GPIO_RC_OUT
-	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
-#endif
-
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
