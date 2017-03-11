@@ -200,7 +200,7 @@
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTA|GPIO_PIN9)
 
 #define RC_SERIAL_PORT		"/dev/ttyS5"
-#define INVERT_RC_INPUT(_s)		while(0)
+#define INVERT_RC_INPUT(_invert_true)		while(0)
 
 /* High-resolution timer
  */
