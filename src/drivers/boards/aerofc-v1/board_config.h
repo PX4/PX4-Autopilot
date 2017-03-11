@@ -124,7 +124,7 @@
 /* RC Serial port
  */
 #define RC_SERIAL_PORT		"/dev/ttyS3"
-#define INVERT_RC_INPUT(_s)		while(0)
+#define INVERT_RC_INPUT(_invert_true)		while(0)
 
 /* High-resolution timer
  */
