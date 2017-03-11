@@ -827,7 +827,7 @@ MulticopterAttitudeControl::battery_status_poll()
  */
 
 /* voliro: use _vol_thrust_sp.x, _vol_thrust_sp.y, _vol_thrust_sp.z as input, published by position controller.
-    give out _vol_att_sp.x,  _vol_att_sp.y , _vol_att_sp.z they will be entered into allocation at topic _voliro_omega_0 und _voliro_alpha_o*/;
+    give out _vol_att_sp.x,  _vol_att_sp.y , _vol_att_sp.z they will be entered into allocation at topic _voliro_omega_0 und _voliro_alpha_o*/
 
 void
 MulticopterAttitudeControl::control_attitude(float dt)
@@ -1100,12 +1100,12 @@ math::Vector<6> _alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
 
     for (int i=0;i<6;i++)
     {
-
-  if(_alpha_des(i)-_alpha_sim_prev(i)>_params.tau_servo*dt)
-  {
-    _alpha_sim(i)=(_alpha_des(i)-_alpha_sim_prev(i))*_params.tau_servo*dt + _alpha_sim_prev(i);
-  }
-  else { _alpha_sim(i)=_alpha_des(i);}
+          if(fabsf(_alpha_des(i)-_alpha_sim_prev(i))>_params.tau_servo*dt)
+          {
+                _alpha_sim(i)=(_alpha_des(i)-_alpha_sim_prev(i))/fabsf((_alpha_des(i)-_alpha_sim_prev(i)))
+                        *_params.tau_servo*dt + _alpha_sim_prev(i);
+          }
+          else { _alpha_sim(i)=_alpha_des(i);}
 
   _alpha_sim_prev(i)=_alpha_sim(i);}
 
