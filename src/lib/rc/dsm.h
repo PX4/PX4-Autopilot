@@ -63,7 +63,7 @@ __EXPORT bool	dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool
 __EXPORT bool	dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t *values,
 			  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, uint16_t max_channels);
 
-#ifdef GPIO_SPEKTRUM_PWR_EN
+#ifdef SPEKTRUM_POWER
 __EXPORT void	dsm_bind(uint16_t cmd, int pulses);
 #endif
 

@@ -235,9 +235,9 @@ dsm_guess_format(bool reset)
 int
 dsm_config(int fd)
 {
-#ifdef GPIO_SPEKTRUM_PWR_EN
+#ifdef SPEKTRUM_POWER
 	// enable power on DSM connector
-	POWER_SPEKTRUM(true);
+	SPEKTRUM_POWER(true);
 #endif
 
 	int ret = -1;
@@ -315,7 +315,7 @@ dsm_deinit()
 	dsm_fd = -1;
 }
 
-#ifdef GPIO_SPEKTRUM_PWR_EN
+#if defined(SPEKTRUM_POWER)
 /**
  * Handle DSM satellite receiver bind mode handler
  *
@@ -334,20 +334,20 @@ dsm_bind(uint16_t cmd, int pulses)
 	case DSM_CMD_BIND_POWER_DOWN:
 
 		/*power down DSM satellite*/
-		POWER_SPEKTRUM(0);
+		SPEKTRUM_POWER(false);
 		break;
 
 	case DSM_CMD_BIND_POWER_UP:
 
 		/*power up DSM satellite*/
-		POWER_SPEKTRUM(1);
+		SPEKTRUM_POWER(true);
 		dsm_guess_format(true);
 		break;
 
 	case DSM_CMD_BIND_SET_RX_OUT:
 
 		/*Set UART RX pin to active output mode*/
-		SPEKTRUM_RX_AS_GPIO();
+		SPEKTRUM_RX_AS_GPIO_OUTPUT();
 		break;
 
 	case DSM_CMD_BIND_SEND_PULSES:
@@ -355,9 +355,9 @@ dsm_bind(uint16_t cmd, int pulses)
 		/*Pulse RX pin a number of times*/
 		for (int i = 0; i < pulses; i++) {
 			dsm_udelay(120);
-			SPEKTRUM_RX_HIGH(false);
+			SPEKTRUM_OUT(false);
 			dsm_udelay(120);
-			SPEKTRUM_RX_HIGH(true);
+			SPEKTRUM_OUT(true);
 		}
 
 		break;
