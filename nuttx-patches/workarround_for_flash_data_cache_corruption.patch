@@ -1,0 +1,81 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/Kconfig NuttX/nuttx/arch/arm/src/stm32/Kconfig
+index b6c0458649..d9fb0aeaa2 100644
+--- NuttX/nuttx/arch/arm/src/stm32/Kconfig
++++ NuttX/nuttx/arch/arm/src/stm32/Kconfig
+@@ -2514,6 +2514,12 @@ config STM32_FLASH_PREFETCH
+ 	on F1 parts).  Some early revisions of F4 parts do not support FLASH pre-fetch
+ 	properly and enabling this option may interfere with ADC accuracy.
+ 
++config STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW
++    bool "Enable the workaround to fix flash data cache corruption when reading from one flash bank while writing on other flash bank"
++    default n
++    ---help---
++    See your STM32 errata to check if your STM32 is affected by this problem.
++
+ choice
+ 	prompt "JTAG Configuration"
+ 	default STM32_JTAG_DISABLE
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
+index 73f1419506..fd0b05d624 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
+@@ -294,6 +294,37 @@ ssize_t up_progmem_ispageerased(size_t page)
+   return bwritten;
+ }
+ 
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++static void data_cache_disable(void)
++{
++  uint32_t value = getreg32(STM32_FLASH_ACR);
++
++  if (value & FLASH_ACR_DCEN)
++    {
++      value &= ~FLASH_ACR_DCEN;
++      putreg32(value, STM32_FLASH_ACR);
++    }
++}
++
++static void data_cache_enable(void)
++{
++  uint32_t value = getreg32(STM32_FLASH_ACR);
++  if (value & FLASH_ACR_DCEN)
++    {
++      return;
++    }
++
++  /* reset data cache */
++  value |= FLASH_ACR_DCRST;
++  putreg32(value, STM32_FLASH_ACR);
++
++  /* enable data cache */
++  value = getreg32(STM32_FLASH_ACR);
++  value |= FLASH_ACR_DCEN;
++  putreg32(value, STM32_FLASH_ACR);
++}
++#endif
++
+ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+ {
+   uint16_t *hword = (uint16_t *)buf;
+@@ -327,6 +358,10 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+ 
+   stm32_flash_unlock();
+ 
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++  data_cache_disable();
++#endif
++
+   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PG);
+ 
+ #if defined(CONFIG_STM32_STM32F40XX)
+@@ -358,6 +393,10 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+     }
+ 
+   modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
++
++#if defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW)
++  data_cache_enable();
++#endif
+   return written;
+ }
+ 
