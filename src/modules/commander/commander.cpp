@@ -3361,9 +3361,18 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
 		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
 
-		// update these fields for the geofence system
+		// store the last manual control setpoint set by the pilot in a manual state
+		// if the system now later enters an autonomous state the pilot can move
+		// the sticks to break out of the autonomous state
 
-		if (!warning_action_on) {
+		if (!warning_action_on
+			&& (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_ACRO ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_STAB)) {
+
 			_last_sp_man.timestamp = sp_man.timestamp;
 			_last_sp_man.x = sp_man.x;
 			_last_sp_man.y = sp_man.y;
