@@ -393,7 +393,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* subscriptions */
 	_ctrl_state_sub(-1),
 	_v_att_sp_sub(-1),
-    _vol_thrust_sp_sub(-1),
+  _vol_thrust_sp_sub(-1),
 	_v_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sp_sub(-1),
@@ -402,9 +402,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	/* publications */
 	_v_rates_sp_pub(nullptr),
-        _actuators_0_pub(nullptr),
-        _alpha_0_pub(nullptr), //added by voliro
-        _omega_0_pub(nullptr), //added by voliro
+  _actuators_0_pub(nullptr),
+  _alpha_0_pub(nullptr), //added by voliro
+  _omega_0_pub(nullptr), //added by voliro
 	_controller_status_pub(nullptr),
 	_rates_sp_id(0),
 	_actuators_id(0),
@@ -435,7 +435,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_controller_status, 0, sizeof(_controller_status));
 	_vehicle_status.is_rotary_wing = true;
 
-	_params.att_p.zero();
+    _params.att_p.zero();
     _params.att_d.zero();   //AbV
     _params.att_i.zero();   //AbV
     _params.att_int_lim.zero();   //AbV
