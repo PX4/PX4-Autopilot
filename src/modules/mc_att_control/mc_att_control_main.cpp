@@ -202,17 +202,17 @@ private:
 
 	struct {
 		param_t roll_p;
-        param_t roll_d;     //AbV
-        param_t roll_i;     //AbV
-        param_t roll_integ_lim;  //AbV
+    param_t roll_d;     //AbV
+    param_t roll_i;     //AbV
+    param_t roll_integ_lim;  //AbV
 		param_t roll_rate_p;
 		param_t roll_rate_i;
 		param_t roll_rate_d;
 		param_t roll_rate_ff;
 		param_t pitch_p;
-        param_t pitch_d;     //AbV
-        param_t pitch_i;     //AbV
-        param_t pitch_integ_lim;  //AbV
+    param_t pitch_d;     //AbV
+    param_t pitch_i;     //AbV
+    param_t pitch_integ_lim;  //AbV
 		param_t pitch_rate_p;
 		param_t pitch_rate_i;
 		param_t pitch_rate_d;
@@ -223,6 +223,7 @@ private:
         param_t yaw_d;     //AbV
         param_t yaw_i;     //AbV
         param_t yaw_integ_lim;  //AbV
+
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
@@ -249,16 +250,16 @@ private:
     param_t tau_servo; //added by Voliro
 
         //added by Voliro
-        param_t length_axis;
-        param_t torque_coeff;
+    param_t length_axis;
+		param_t torque_coeff;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
 		math::Vector<3> att_p;					/**< P gain for angular error */
-        math::Vector<3> att_d;	//AbV		/**< D gain for angular error */
-        math::Vector<3> att_i;	//AbV		/**< I gain for angular error */
-        math::Vector<3> att_int_lim; //AbV	/**< integrator state limit for angular loop */
+    math::Vector<3> att_d;	//AbV		/**< D gain for angular error */
+    math::Vector<3> att_i;	//AbV		/**< I gain for angular error */
+    math::Vector<3> att_int_lim; //AbV	/**< integrator state limit for angular loop */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
@@ -286,9 +287,7 @@ private:
         float length_axis;
         float torque_coeff;
         float tau_servo;
-
-
-
+				
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
@@ -435,11 +434,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_controller_status, 0, sizeof(_controller_status));
 	_vehicle_status.is_rotary_wing = true;
 
-    _params.att_p.zero();
-    _params.att_d.zero();   //AbV
-    _params.att_i.zero();   //AbV
-    _params.att_int_lim.zero();   //AbV
-    _params.rate_p.zero();
+  _params.att_p.zero();
+  _params.att_d.zero();   //AbV
+  _params.att_i.zero();   //AbV
+  _params.att_int_lim.zero();   //AbV
+  _params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
 	_params.rate_ff.zero();
@@ -456,11 +455,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.bat_scale_en = 0;
 
 	_rates_prev.zero();
-    _att_err_prev.zero();   //AbV
+  _att_err_prev.zero();   //AbV
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
 	_rates_int.zero();
-    _att_int.zero();    //AbV
+  _att_int.zero();    //AbV
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
@@ -471,19 +470,19 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
   _params.torque_coeff = 0.016f;
   _params.tau_servo = 0.0f;
 
-	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
-    _params_handles.roll_d			= 	param_find("MC_ROLL_D");    //AbV
-    _params_handles.roll_i			= 	param_find("MC_ROLL_I");    //AbV
-    _params_handles.roll_integ_lim	= 	param_find("MC_R_INT_LIM"); //AbV
-    _params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
+	_params_handles.roll_p				= 	param_find("MC_ROLL_P");
+  _params_handles.roll_d				= 	param_find("MC_ROLL_D");    //AbV
+  _params_handles.roll_i				= 	param_find("MC_ROLL_I");    //AbV
+  _params_handles.roll_integ_lim	= 	param_find("MC_R_INT_LIM"); //AbV
+  _params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
-    _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
+  _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
 	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
 	_params_handles.roll_rate_ff	= 	param_find("MC_ROLLRATE_FF");
-    _params_handles.pitch_p			= 	param_find("MC_PITCH_P");
-    _params_handles.pitch_d			= 	param_find("MC_PITCH_D");   //AbV
-    _params_handles.pitch_i			= 	param_find("MC_PITCH_I");   //AbV
-    _params_handles.pitch_integ_lim	= 	param_find("MC_P_INT_LIM"); //AbV
+  _params_handles.pitch_p				= 	param_find("MC_PITCH_P");
+  _params_handles.pitch_d				= 	param_find("MC_PITCH_D");   //AbV
+  _params_handles.pitch_i				= 	param_find("MC_PITCH_I");   //AbV
+  _params_handles.pitch_integ_lim	= 	param_find("MC_P_INT_LIM"); //AbV
 	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
@@ -498,18 +497,18 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_rate_ff	 	= 	param_find("MC_YAWRATE_FF");
-	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
+	_params_handles.yaw_ff				= 	param_find("MC_YAW_FF");
 	_params_handles.roll_rate_max	= 	param_find("MC_ROLLRATE_MAX");
-	_params_handles.pitch_rate_max	= 	param_find("MC_PITCHRATE_MAX");
+	_params_handles.pitch_rate_max= 	param_find("MC_PITCHRATE_MAX");
 	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
 	_params_handles.yaw_auto_max	= 	param_find("MC_YAWRAUTO_MAX");
 	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
-	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
+	_params_handles.acro_pitch_max= 	param_find("MC_ACRO_P_MAX");
 	_params_handles.acro_yaw_max	= 	param_find("MC_ACRO_Y_MAX");
 	_params_handles.rattitude_thres = 	param_find("MC_RATT_TH");
-	_params_handles.vtol_type 		= 	param_find("VT_TYPE");tc
-	_params_handles.roll_tc			= 	param_find("MC_ROLL_TC");
-	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
+	_params_handles.vtol_type 		= 	param_find("VT_TYPE");
+	_params_handles.roll_tc				= 	param_find("MC_ROLL_TC");
+	_params_handles.pitch_tc			= 	param_find("MC_PITCH_TC");
 	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
 	_params_handles.bat_scale_en		= param_find("MC_BAT_SCALE_EN");
