@@ -283,38 +283,45 @@ __BEGIN_DECLS
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER		3	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
+#define HRT_TIMER           3 /* use timer 3 for the HRT */
+#define HRT_TIMER_CHANNEL   4 /* use capture/compare channel 4 */
 
-#define HRT_PPM_CHANNEL		3	/* use capture/compare channel 2 */
-#define GPIO_PPM_IN			(GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
+#define HRT_PPM_CHANNEL     3	/* use capture/compare channel 3 */
+#define GPIO_PPM_IN         (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
 //#define RC_SERIAL_PORT		"/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-#define PWMIN_TIMER			4
-#define PWMIN_TIMER_CHANNEL		2
+#define PWMIN_TIMER         4
+#define PWMIN_TIMER_CHANNEL 2
 #define GPIO_PWM_IN			GPIO_TIM4_CH2IN_2
 
 #define GPIO_RSSI_IN 			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 #define GPIO_BTN_SAFETY_FMU		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s)
+#define INVERT_RC_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
 
 #define GPIO_8266_GPIO0			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
-//TODO:VET#define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
+//TODO: fo not see on schematic #define GPIO_SPEKTRUM_PWR_EN		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 #define GPIO_8266_PD			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_8266_RST			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 
 /* Power switch controls ******************************************************/
 
-#define POWER_SPEKTRUM(_s)		px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
-#define SPEKTRUM_RX_AS_UART()		px4_arch_configgpio(GPIO_USART1_RX)
+//#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
 
-// FMUv4-pro has a separate GPIO for serial RC output
-#define GPIO_RC_OUT			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
-#define SPEKTRUM_RX_AS_GPIO()		px4_arch_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)		px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
+/* FMUv4-pro has RC_IN to the FMU and to the PX4IO:
+ *
+ * GPIO PPM_IN to the FMU on PB0 T3C 3
+ * SPEKTRUM_RX (it's TX or RX in Bind) on UART3 on the PX4IO
+ * Inversion is possible via the 74LVC2G86 controlled by the FMU
+ * The FMU can drive  GPIO PPM_IN as an output
+ */
+
+#define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
+#define SPEKTRUM_RX_AS_UART()          px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 
 #define	BOARD_NAME "PX4FMU_V4PRO"
