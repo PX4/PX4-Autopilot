@@ -288,6 +288,15 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 
 /**
+ * Enable wheel steering controller
+ *
+ * @boolean
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_W_EN, 0);
+
+
+/**
  * Wheel steering rate proportional gain
  *
  * This defines how much the wheel steering input will be commanded depending on the

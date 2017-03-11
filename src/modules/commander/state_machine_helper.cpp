@@ -493,138 +493,8 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY
 			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 
-#ifdef __PX4_NUTTX
-				/* Disable publication of all attached sensors */
-				/* list directory */
-				DIR		*d;
-				d = opendir("/dev");
-
-				if (d) {
-					struct dirent	*direntry;
-					char devname[24];
-
-					while ((direntry = readdir(d)) != NULL) {
-
-						/* skip serial ports */
-						if (!strncmp("tty", direntry->d_name, 3)) {
-							continue;
-						}
-
-						/* skip mtd devices */
-						if (!strncmp("mtd", direntry->d_name, 3)) {
-							continue;
-						}
-
-						/* skip ram devices */
-						if (!strncmp("ram", direntry->d_name, 3)) {
-							continue;
-						}
-
-						/* skip MMC devices */
-						if (!strncmp("mmc", direntry->d_name, 3)) {
-							continue;
-						}
-
-						/* skip mavlink */
-						if (!strcmp("mavlink", direntry->d_name)) {
-							continue;
-						}
-
-						/* skip console */
-						if (!strcmp("console", direntry->d_name)) {
-							continue;
-						}
-
-						/* skip null */
-						if (!strcmp("null", direntry->d_name)) {
-							continue;
-						}
-
-						snprintf(devname, sizeof(devname), "/dev/%s", direntry->d_name);
-
-						int sensfd = ::open(devname, 0);
-
-						if (sensfd < 0) {
-							warn("failed opening device %s", devname);
-							continue;
-						}
-
-						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
-						close(sensfd);
-
-						printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
-					}
-
-					closedir(d);
-
-					ret = TRANSITION_CHANGED;
-					mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
-
-				} else {
-					/* failed opening dir */
-					mavlink_log_info(mavlink_log_pub, "FAILED LISTING DEVICE ROOT DIRECTORY");
-					ret = TRANSITION_DENIED;
-				}
-
-#else
-
-				// Handle VDev devices
-				const char *devname;
-				unsigned int handle = 0;
-
-				for (;;) {
-					devname = px4_get_device_names(&handle);
-
-					if (devname == nullptr) {
-						break;
-					}
-
-					/* skip mavlink */
-					if (!strcmp("/dev/mavlink", devname)) {
-						continue;
-					}
-
-
-					int sensfd = px4_open(devname, 0);
-
-					if (sensfd < 0) {
-						warn("failed opening device %s", devname);
-						continue;
-					}
-
-					int block_ret = px4_ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
-					px4_close(sensfd);
-
-					printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
-				}
-
-
-				// Handle DF devices
-				const char *df_dev_path;
-				unsigned int index = 0;
-
-				for (;;) {
-					if (DevMgr::getNextDeviceName(index, &df_dev_path) < 0) {
-						break;
-					}
-
-					DevHandle h;
-					DevMgr::getHandle(df_dev_path, h);
-
-					if (!h.isValid()) {
-						warn("failed opening device %s", df_dev_path);
-						continue;
-					}
-
-					int block_ret = h.ioctl(DEVIOCSPUBBLOCK, 1);
-					DevMgr::releaseHandle(h);
-
-					printf("Disabling %s: %s\n", df_dev_path, (block_ret == OK) ? "OK" : "ERROR");
-				}
-
 				ret = TRANSITION_CHANGED;
 				mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
-#endif
 
 			} else {
 				mavlink_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
@@ -844,10 +714,10 @@ bool set_nav_state(struct vehicle_status_s *status,
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
-			/* also go into failsafe if just datalink is lost */
+			/* also go into failsafe if just datalink is lost, and we're actually in air */
 
-		} else if (status->data_link_lost && data_link_loss_act_configured) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
 
 			set_data_link_loss_nav_state(status, armed, status_flags, data_link_loss_act);
 

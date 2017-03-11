@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
+#include <vtol_att_control/vtol_type.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -177,6 +178,8 @@ private:
 		float roll_to_yaw_ff;
 		int32_t y_coordinated_method;
 		float y_rmax;
+
+		bool w_en;
 		float w_p;
 		float w_i;
 		float w_ff;
@@ -209,11 +212,11 @@ private:
 
 		float rattitude_thres;
 
-		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
+		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
-		int bat_scale_en;			/**< Battery scaling enabled */
+		int32_t bat_scale_en;			/**< Battery scaling enabled */
 
-	}		_parameters;			/**< local copies of interesting parameters */
+	}		_parameters{};			/**< local copies of interesting parameters */
 
 	struct {
 
@@ -238,6 +241,8 @@ private:
 		param_t roll_to_yaw_ff;
 		param_t y_coordinated_method;
 		param_t y_rmax;
+
+		param_t w_en;
 		param_t w_p;
 		param_t w_i;
 		param_t w_ff;
@@ -272,7 +277,7 @@ private:
 
 		param_t bat_scale_en;
 
-	}		_parameter_handles;		/**< handles for interesting parameters */
+	}		_parameter_handles{};		/**< handles for interesting parameters */
 
 	// Rotation matrix and euler angles to extract from control state
 	math::Matrix<3, 3> _R;
@@ -429,6 +434,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
 	_parameter_handles.roll_to_yaw_ff = param_find("FW_RLL_TO_YAW_FF");
 
+	_parameter_handles.w_en = param_find("FW_W_EN");
 	_parameter_handles.w_p = param_find("FW_WR_P");
 	_parameter_handles.w_i = param_find("FW_WR_I");
 	_parameter_handles.w_ff = param_find("FW_WR_FF");
@@ -528,6 +534,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
+
+	int32_t wheel_enabled = 0;
+	param_get(_parameter_handles.w_en, &wheel_enabled);
+	_parameters.w_en = (wheel_enabled == 1);
 
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
@@ -806,7 +816,7 @@ FixedwingAttitudeControl::task_main()
 			_pitch   = euler_angles(1);
 			_yaw     = euler_angles(2);
 
-			if (_vehicle_status.is_vtol && _parameters.vtol_type == 0) {
+			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to
@@ -1001,10 +1011,7 @@ FixedwingAttitudeControl::task_main()
 					_att_sp.thrust = _manual.z;
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-					_att_sp.q_d[0] = q(0);
-					_att_sp.q_d[1] = q(1);
-					_att_sp.q_d[2] = q(2);
-					_att_sp.q_d[3] = q(3);
+					q.copyTo(_att_sp.q_d);
 					_att_sp.q_d_valid = true;
 
 					int instance;
@@ -1035,8 +1042,12 @@ FixedwingAttitudeControl::task_main()
 					_wheel_ctrl.reset_integrator();
 				}
 
-				/* If the aircraft is on ground reset the integrators */
-				if (_vehicle_land_detected.landed || _vehicle_status.is_rotary_wing) {
+				/* Reset integrators if the aircraft is on ground
+				 * or a multicopter (but not transitioning VTOL)
+				 */
+				if (_vehicle_land_detected.landed
+				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
+
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
@@ -1117,7 +1128,7 @@ FixedwingAttitudeControl::task_main()
 
 						float yaw_u = 0.0f;
 
-						if (_att_sp.fw_control_yaw == true) {
+						if (_parameters.w_en && _att_sp.fw_control_yaw) {
 							yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 
 						} else {

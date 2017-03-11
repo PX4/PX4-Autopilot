@@ -298,11 +298,11 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
  */
 void *commander_low_prio_loop(void *arg);
 
-void answer_command(struct vehicle_command_s &cmd, unsigned result,
+static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 					orb_advert_t &command_ack_pub, vehicle_command_ack_s &command_ack);
 
 /* publish vehicle status flags from the global variable status_flags*/
-void publish_status_flags(orb_advert_t vehicle_status_flags_pub);
+static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
 /**
  * check whether autostart ID is in the reserved range for HIL setups
@@ -1504,6 +1504,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
+	bool emergency_battery_voltage_actions_done = false;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -2254,13 +2255,11 @@ int commander_thread_main(int argc, char *argv[])
 
 					if (!armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
-						usleep(200000);
-						px4_board_pwr(false);
 
 					} else {
-						if (low_bat_action == 1) {
+						if (low_bat_action == 1 || low_bat_action == 3) {
 							// let us send the critical message even if already in RTL
-							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
+							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
 
@@ -2269,7 +2268,7 @@ int commander_thread_main(int argc, char *argv[])
 							}
 
 						} else if (low_bat_action == 2) {
-							if (warning_action_on || TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
 
@@ -2278,7 +2277,34 @@ int commander_thread_main(int argc, char *argv[])
 							}
 
 						} else {
-							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING ADVISED!");
+							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURN TO LAUNCH ADVISED!");
+						}
+					}
+
+					status_changed = true;
+
+				} else if (!status_flags.usb_connected &&
+					   battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
+					   !emergency_battery_voltage_actions_done) {
+					emergency_battery_voltage_actions_done = true;
+
+					if (!armed.armed) {
+						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+						usleep(200000);
+						px4_board_pwr(false);
+
+					} else {
+						if (low_bat_action == 2 || low_bat_action == 3) {
+							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
+								warning_action_on = true;
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
+
+							} else {
+								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED");
+							}
+
+						} else {
+							mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
 						}
 					}
 
@@ -2522,8 +2548,7 @@ int commander_thread_main(int argc, char *argv[])
 		// abort landing or auto or loiter if sticks are moved significantly
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
-			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL) {
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
 				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
@@ -4109,7 +4134,8 @@ void *commander_low_prio_loop(void *arg)
 						// board offset calibration
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_level_calibration(&mavlink_log_pub);
-					} else if ((int)(cmd.param6) == 1) {
+					} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
+						// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 						/* airspeed calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_airspeed_calibration(&mavlink_log_pub);
@@ -4269,7 +4295,7 @@ void *commander_low_prio_loop(void *arg)
 	return nullptr;
 }
 
-void publish_status_flags(orb_advert_t vehicle_status_flags_pub){
+void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
 	struct vehicle_status_flags_s v_flags;
 	memset(&v_flags, 0, sizeof(v_flags));
 	/* set condition status flags */
@@ -4386,7 +4412,7 @@ void publish_status_flags(orb_advert_t vehicle_status_flags_pub){
 	/* publish vehicle_status_flags */
 	if (vehicle_status_flags_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_status_flags), vehicle_status_flags_pub, &v_flags);
-	}else{
+	} else {
 		vehicle_status_flags_pub = orb_advertise(ORB_ID(vehicle_status_flags), &v_flags);
 	}
 }

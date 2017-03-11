@@ -386,12 +386,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		{
 			hil_attitude.timestamp = timestamp;
 
-			math::Quaternion q(hil_state.attitude_quaternion);
-
-			hil_attitude.q[0] = q(0);
-			hil_attitude.q[1] = q(1);
-			hil_attitude.q[2] = q(2);
-			hil_attitude.q[3] = q(3);
+			matrix::Quatf q(hil_state.attitude_quaternion);
+			q.copyTo(hil_attitude.q);
 
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;

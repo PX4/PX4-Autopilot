@@ -100,8 +100,6 @@ void FollowTarget::on_inactive()
 
 void FollowTarget::on_activation()
 {
-	updateParams();
-
 	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
 
 	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);

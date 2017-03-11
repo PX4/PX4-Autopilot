@@ -2340,10 +2340,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-				_att_sp.q_d[0] = q(0);
-				_att_sp.q_d[1] = q(1);
-				_att_sp.q_d[2] = q(2);
-				_att_sp.q_d[3] = q(3);
+				q.copyTo(_att_sp.q_d);
 				_att_sp.q_d_valid = true;
 
 				if (!_control_mode.flag_control_offboard_enabled ||

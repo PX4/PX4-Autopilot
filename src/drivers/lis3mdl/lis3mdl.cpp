@@ -941,6 +941,11 @@ LIS3MDL::collect()
 	new_report.temperature = report.t;
 	new_report.temperature = 25 + (report.t / (16 * 8.0f));
 
+	// XXX revisit for SPI part, might require a bus type IOCTL
+
+	unsigned dummy;
+	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+
 	/*
 	 * RAW outputs
 	 *
@@ -1228,12 +1233,7 @@ int LIS3MDL::check_calibration()
 	}
 
 	/* return 0 if calibrated, 1 else */
-	if (!_calibrated) {
-		return 0;
-
-	} else {
-		return 1;
-	}
+	return !_calibrated;
 }
 
 int LIS3MDL::set_excitement(unsigned enable)

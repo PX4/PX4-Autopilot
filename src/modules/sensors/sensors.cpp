@@ -91,7 +91,6 @@
 
 #include <DevMgr.hpp>
 
-#include "sensors_init.h"
 #include "parameters.h"
 #include "rc_update.h"
 #include "voted_sensors_update.h"
@@ -140,7 +139,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Sensors();
+	Sensors(bool hil_enabled);
 
 	/**
 	 * Destructor, also kills the sensors task.
@@ -158,15 +157,13 @@ public:
 	void	print_status();
 
 private:
-	/* XXX should not be here - should be own driver */
 	DevHandle 	_h_adc;				/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
-	bool 		_task_should_exit;		/**< if true, sensor task should exit */
+	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
 	int 		_sensors_task;			/**< task handle for sensor task */
 
-	bool		_hil_enabled;			/**< if true, HIL is active */
-	bool		_publishing;			/**< if true, we are publishing sensor data (in HIL mode, we don't) */
+	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed;				/**< arming status of the vehicle */
 
 	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
@@ -250,14 +247,13 @@ namespace sensors
 Sensors	*g_sensors = nullptr;
 }
 
-Sensors::Sensors() :
+Sensors::Sensors(bool hil_enabled) :
 	_h_adc(),
 	_last_adc(0),
 
 	_task_should_exit(true),
 	_sensors_task(-1),
-	_hil_enabled(false),
-	_publishing(true),
+	_hil_enabled(hil_enabled),
 	_armed(false),
 
 	_actuator_ctrl_0_sub(-1),
@@ -277,7 +273,7 @@ Sensors::Sensors() :
 	_airspeed_validator(),
 
 	_rc_update(_parameters),
-	_voted_sensors_update(_parameters)
+	_voted_sensors_update(_parameters, hil_enabled)
 {
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
@@ -334,8 +330,10 @@ Sensors::parameters_update()
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
-		PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-		ret = PX4_ERROR;
+		if (!_hil_enabled) { // in HIL we don't have a baro
+			PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
+			ret = PX4_ERROR;
+		}
 
 	} else {
 		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
@@ -412,25 +410,12 @@ Sensors::vehicle_control_mode_poll()
 	struct vehicle_control_mode_s vcontrol_mode;
 	bool vcontrol_mode_updated;
 
-	/* Check HIL state if vehicle control mode has changed */
 	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
 	if (vcontrol_mode_updated) {
 
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 		_armed = vcontrol_mode.flag_armed;
-
-		/* switching from non-HIL to HIL mode */
-		if (vcontrol_mode.flag_system_hil_enabled && !_hil_enabled) {
-			_hil_enabled = true;
-			_publishing = false;
-
-			/* switching from HIL to non-HIL mode */
-
-		} else if (!_publishing && !_hil_enabled) {
-			_hil_enabled = false;
-			_publishing = true;
-		}
 	}
 }
 
@@ -473,8 +458,8 @@ Sensors::parameter_update_poll(bool forced)
 void
 Sensors::adc_poll(struct sensor_combined_s &raw)
 {
-	/* only read if publishing */
-	if (!_publishing) {
+	/* only read if not in HIL mode */
+	if (_hil_enabled) {
 		return;
 	}
 
@@ -566,19 +551,12 @@ void
 Sensors::task_main()
 {
 
-	/* start individual sensors */
 	int ret = 0;
 
-	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
-	ret = sensors_init();
-
+	if (!_hil_enabled) {
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
-	// TODO: move adc_init into the sensors_init call.
-	ret = ret || adc_init();
+		adc_init();
 #endif
-
-	if (ret) {
-		PX4_ERR("sensor initialization failed");
 	}
 
 	struct sensor_combined_s raw = {};
@@ -670,7 +648,7 @@ Sensors::task_main()
 
 		diff_pres_poll(raw);
 
-		if (_publishing && raw.timestamp > 0) {
+		if (raw.timestamp > 0) {
 
 			_voted_sensors_update.set_relative_timestamps(raw);
 
@@ -771,7 +749,13 @@ int sensors_main(int argc, char *argv[])
 			return 0;
 		}
 
-		sensors::g_sensors = new Sensors;
+		bool hil_enabled = false;
+
+		if (argc > 2 && !strcmp(argv[2], "-hil")) {
+			hil_enabled = true;
+		}
+
+		sensors::g_sensors = new Sensors(hil_enabled);
 
 		if (sensors::g_sensors == nullptr) {
 			PX4_ERR("alloc failed");

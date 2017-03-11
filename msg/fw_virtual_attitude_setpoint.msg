@@ -15,14 +15,9 @@ float32 yaw_body				# body angle in NED frame
 
 float32 yaw_sp_move_rate		# rad/s (commanded by user)
 
-float32[9] R_body				# Rotation matrix describing the setpoint as rotation from the current body frame
-bool R_valid					# Set to true if rotation matrix is valid
-
 # For quaternion-based attitude control
 float32[4] q_d					# Desired quaternion for quaternion control
 bool q_d_valid					# Set to true if quaternion vector is valid
-float32[4] q_e					# Attitude error in quaternion
-bool q_e_valid					# Set to true if quaternion error vector is valid
 
 float32 thrust					# Thrust in Newton the power system should generate
 
@@ -34,6 +29,8 @@ bool fw_control_yaw					# control heading with rudder (used for auto takeoff on 
 bool disable_mc_yaw_control			# control yaw for mc (used for vtol weather-vane mode)
 
 bool apply_flaps
+
+float32 landing_gear
 
 # WAS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
 # TOPICS fw_virtual_attitude_setpoint

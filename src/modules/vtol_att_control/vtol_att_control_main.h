@@ -210,6 +210,8 @@ private:
 		param_t vtol_type;
 		param_t elevons_mc_lock;
 		param_t fw_min_alt;
+		param_t fw_qc_max_pitch;
+		param_t fw_qc_max_roll;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
 	} _params_handles;

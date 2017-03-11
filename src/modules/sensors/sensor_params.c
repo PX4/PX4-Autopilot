@@ -884,6 +884,16 @@ PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
  */
 PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 
+/**
+ * Threshold (of RMS) to warn about high vibration levels
+ *
+ * @group Sensor Calibration
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);
+
 
 /**
  * RC Channel 1 Minimum

@@ -169,7 +169,7 @@ private:
 namespace
 {
 
-PWMSim	*g_pwm_sim;
+PWMSim	*g_pwm_sim = nullptr;
 
 } // namespace
 

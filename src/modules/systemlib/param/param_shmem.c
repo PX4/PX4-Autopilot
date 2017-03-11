@@ -165,20 +165,23 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
-static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+// TODO: not working on Snappy just yet
+//static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
 
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	do {} while (px4_sem_wait(&param_sem) != 0);
+	// TODO: this doesn't seem to work on Snappy
+	//do {} while (px4_sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	px4_sem_post(&param_sem);
+	// TODO: this doesn't seem to work on Snappy
+	//px4_sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
@@ -191,7 +194,8 @@ param_assert_locked(void)
 void
 param_init(void)
 {
-	px4_sem_init(&param_sem, 0, 1);
+	// TODO: not needed on Snappy yet.
+	// px4_sem_init(&param_sem, 0, 1);
 }
 
 /**
@@ -548,7 +552,7 @@ param_get(param_t param, void *val)
 
 	const void *v = param_get_value_ptr(param);
 
-	if (val != NULL) {
+	if (val && v) {
 		memcpy(val, v, param_size(param));
 		result = 0;
 	}

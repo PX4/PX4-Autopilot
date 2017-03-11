@@ -659,7 +659,7 @@ struct log_VER_s {
 /* --- PARM - PARAMETER --- */
 #define LOG_PARM_MSG 131
 struct log_PARM_s {
-	char name[16];
+	char name[64];
 	float value;
 };
 #pragma pack(pop)
@@ -736,7 +736,7 @@ static const struct log_format_s log_formats[] = {
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
-	LOG_FORMAT(PARM, "Nf", "Name,Value")
+	LOG_FORMAT(PARM, "Zf", "Name,Value")
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);

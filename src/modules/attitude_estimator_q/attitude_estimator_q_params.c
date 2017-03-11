@@ -134,13 +134,3 @@ PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
-
-/**
- * Threshold (of RMS) to warn about high vibration levels
- *
- * @group Attitude Q estimator
- * @min 0.01
- * @max 10
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);

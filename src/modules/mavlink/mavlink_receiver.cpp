@@ -137,11 +137,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
-	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_prev_gyro{},
-	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -1164,19 +1161,14 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	struct vehicle_attitude_s vision_attitude = {};
 
-	math::Quaternion q;
-	q.from_euler(pos.roll, pos.pitch, pos.yaw);
+	vision_attitude.timestamp = sync_stamp(pos.usec);
 
-	vision_attitude.q[0] = q(0);
-	vision_attitude.q[1] = q(1);
-	vision_attitude.q[2] = q(2);
-	vision_attitude.q[3] = q(3);
+	matrix::Quatf q(matrix::Eulerf(pos.roll, pos.pitch, pos.yaw));
+	q.copyTo(vision_attitude.q);
 
-	int instance_id = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id,
-			 ORB_PRIO_DEFAULT);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id,
-			 ORB_PRIO_DEFAULT);
+	int inst = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_DEFAULT);
 }
 
 void
@@ -1688,7 +1680,7 @@ MavlinkReceiver::get_message_interval(int msgId)
 {
 	unsigned interval = 0;
 
-	MavlinkStream *stream;
+	MavlinkStream *stream = nullptr;
 	LL_FOREACH(_mavlink->get_streams(), stream) {
 		if (stream->get_id() == msgId) {
 			interval = stream->get_interval();
@@ -1706,7 +1698,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_system_time_t time;
 	mavlink_msg_system_time_decode(msg, &time);
 
-	timespec tv;
+	timespec tv = {};
 	px4_clock_gettime(CLOCK_REALTIME, &tv);
 
 	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
@@ -1730,11 +1722,10 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 {
-	mavlink_timesync_t tsync;
+	mavlink_timesync_t tsync = {};
 	mavlink_msg_timesync_decode(msg, &tsync);
 
-	struct time_offset_s tsync_offset;
-	memset(&tsync_offset, 0, sizeof(tsync_offset));
+	struct time_offset_s tsync_offset = {};
 
 	uint64_t now_ns = hrt_absolute_time() * 1000LL ;
 
@@ -1781,24 +1772,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
 	uint64_t timestamp = hrt_absolute_time();
-
-	float dt;
-
-	if (_hil_last_frame == 0 ||
-	    (timestamp <= _hil_last_frame) ||
-	    (timestamp - _hil_last_frame) > (0.1f * 1e6f) ||
-	    (_hil_last_frame >= timestamp)) {
-		dt = 0.01f; /* default to 100 Hz */
-		memset(&_hil_prev_gyro[0], 0, sizeof(_hil_prev_gyro));
-		_hil_prev_accel[0] = 0.0f;
-		_hil_prev_accel[1] = 0.0f;
-		_hil_prev_accel[2] = 9.866f;
-
-	} else {
-		dt = (timestamp - _hil_last_frame) / 1e6f;
-	}
-
-	_hil_last_frame = timestamp;
 
 	/* airspeed */
 	{
@@ -1902,46 +1875,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		}
 	}
 
-	/* sensor combined */
-	{
-		struct sensor_combined_s hil_sensors = {};
-
-		hil_sensors.gyro_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]);
-		hil_sensors.gyro_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]);
-		hil_sensors.gyro_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]);
-		_hil_prev_gyro[0] = imu.xgyro;
-		_hil_prev_gyro[1] = imu.ygyro;
-		_hil_prev_gyro[2] = imu.zgyro;
-		hil_sensors.gyro_integral_dt = dt;
-		hil_sensors.timestamp = timestamp;
-
-		hil_sensors.accelerometer_m_s2[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]);
-		hil_sensors.accelerometer_m_s2[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]);
-		hil_sensors.accelerometer_m_s2[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]);
-		_hil_prev_accel[0] = imu.xacc;
-		_hil_prev_accel[1] = imu.yacc;
-		_hil_prev_accel[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_dt = dt;
-		hil_sensors.accelerometer_timestamp_relative = 0;
-
-		hil_sensors.magnetometer_ga[0] = imu.xmag;
-		hil_sensors.magnetometer_ga[1] = imu.ymag;
-		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_timestamp_relative = 0;
-
-		hil_sensors.baro_alt_meter = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp_relative = 0;
-
-		/* publish combined sensor topic */
-		if (_sensors_pub == nullptr) {
-			_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-
-		} else {
-			orb_publish(ORB_ID(sensor_combined), _sensors_pub, &hil_sensors);
-		}
-	}
-
 	/* battery status */
 	{
 		struct battery_status_s hil_battery_status = {};
@@ -1979,8 +1912,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_gps_position_s hil_gps;
-	memset(&hil_gps, 0, sizeof(hil_gps));
+	struct vehicle_gps_position_s hil_gps = {};
 
 	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
@@ -2015,7 +1947,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 {
 	mavlink_follow_target_t follow_target_msg;
-	follow_target_s follow_target_topic = { };
+	follow_target_s follow_target_topic = {};
 
 	mavlink_msg_follow_target_decode(msg, &follow_target_msg);
 
@@ -2036,7 +1968,7 @@ void MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 {
 	mavlink_adsb_vehicle_t adsb;
-	transponder_report_s t = { };
+	transponder_report_s t = {};
 
 	mavlink_msg_adsb_vehicle_decode(msg, &adsb);
 
@@ -2069,7 +2001,7 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 void MavlinkReceiver::handle_message_collision(mavlink_message_t *msg)
 {
 	mavlink_collision_t collision;
-	collision_report_s t = { };
+	collision_report_s t = {};
 
 	mavlink_msg_collision_decode(msg, &collision);
 
@@ -2092,11 +2024,10 @@ void MavlinkReceiver::handle_message_collision(mavlink_message_t *msg)
 
 void MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 {
-	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
-	gps_inject_data_s gps_inject_data_topic;
-
+	mavlink_gps_rtcm_data_t gps_rtcm_data_msg = {};
 	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
+	gps_inject_data_s gps_inject_data_topic = {};
 	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
 					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
 	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
@@ -2125,8 +2056,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* airspeed */
 	{
-		struct airspeed_s airspeed;
-		memset(&airspeed, 0, sizeof(airspeed));
+		struct airspeed_s airspeed = {};
 
 		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
@@ -2143,17 +2073,11 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* attitude */
 	struct vehicle_attitude_s hil_attitude;
 	{
-		memset(&hil_attitude, 0, sizeof(hil_attitude));
-		math::Quaternion q(hil_state.attitude_quaternion);
-		math::Matrix<3, 3> C_nb = q.to_dcm();
-		math::Vector<3> euler = C_nb.to_euler();
-
+		hil_attitude = {};
 		hil_attitude.timestamp = timestamp;
 
-		hil_attitude.q[0] = q(0);
-		hil_attitude.q[1] = q(1);
-		hil_attitude.q[2] = q(2);
-		hil_attitude.q[3] = q(3);
+		matrix::Quatf q(hil_state.attitude_quaternion);
+		q.copyTo(hil_attitude.q);
 
 		hil_attitude.rollspeed = hil_state.rollspeed;
 		hil_attitude.pitchspeed = hil_state.pitchspeed;
@@ -2169,9 +2093,9 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* global position */
 	{
-		struct vehicle_global_position_s hil_global_pos;
-		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
+		struct vehicle_global_position_s hil_global_pos = {};
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
+
 		hil_global_pos.timestamp = timestamp;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
@@ -2206,8 +2130,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 			hil_local_pos.ref_alt = _hil_local_alt0;
 		}
 
-		float x;
-		float y;
+		float x = 0.0f;
+		float y = 0.0f;
 		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
 		hil_local_pos.timestamp = timestamp;
 		hil_local_pos.xy_valid = true;
@@ -2252,8 +2176,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel;
-		memset(&accel, 0, sizeof(accel));
+		struct accel_report accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;
@@ -2274,8 +2197,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* battery status */
 	{
-		struct battery_status_s	hil_battery_status;
-		memset(&hil_battery_status, 0, sizeof(hil_battery_status));
+		struct battery_status_s	hil_battery_status = {};
 
 		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
@@ -2293,8 +2215,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* control state */
 	control_state_s ctrl_state = {};
-	matrix::Quaternion<float> q(hil_state.attitude_quaternion);
-	matrix::Dcm<float> R_to_body(q.inversed());
+	matrix::Quatf q(hil_state.attitude_quaternion);
+	matrix::Dcmf R_to_body(q.inversed());
 
 	//Time
 	ctrl_state.timestamp = hrt_absolute_time();
@@ -2309,8 +2231,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	// Local Position NED:
 	//ctrl_state: position in local earth frame
 	//hil_state : Latitude/Longitude expressed as * 1E7
-	float x;
-	float y;
+	float x = 0.0f;
+	float y = 0.0f;
 	double lat = hil_state.lat * 1e-7;
 	double lon = hil_state.lon * 1e-7;
 	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
@@ -2319,10 +2241,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	ctrl_state.z_pos = hil_state.alt / 1000.0f;
 
 	// Attitude quaternion
-	ctrl_state.q[0] = q(0);
-	ctrl_state.q[1] = q(1);
-	ctrl_state.q[2] = q(2);
-	ctrl_state.q[3] = q(3);
+	q.copyTo(ctrl_state.q);
 
 	// Velocity
 	//ctrl_state: velocity in body frame (x forward/y right/z down)

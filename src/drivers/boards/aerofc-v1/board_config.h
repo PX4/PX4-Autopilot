@@ -134,6 +134,7 @@
 #define	BOARD_NAME "AEROFC_V1"
 
 #define  FLASH_BASED_PARAMS
+#define  FLASH_BASED_DATAMAN
 
 /*
  * The following defined is a workaround and replaces CONFIG_ARCH_BOARD_AEROFC_V1
@@ -145,6 +146,8 @@
  * when final HW is debugged to dermine the root cause of ignoring the verify
  */
 #define TAP_ESC_NO_VERIFY_CONFIG /* This board can not tolerated verifying the tap esc got it's config */
+
+#define MEMORY_CONSTRAINED_SYSTEM
 
 __BEGIN_DECLS
 
