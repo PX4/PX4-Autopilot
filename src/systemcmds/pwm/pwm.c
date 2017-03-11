@@ -83,7 +83,7 @@ usage(const char *reason)
 		"arm\t\t\t\tArm output\n"
 		"disarm\t\t\t\tDisarm output\n"
 		"\n"
-		"oneshot ...\t\t\tConfigure Onshot\n"
+		"oneshot ...\t\t\tConfigure Oneshot\n"
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
 		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 		"\t[-a]\t\t\tConfigure all outputs\n"

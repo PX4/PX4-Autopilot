@@ -76,8 +76,8 @@
 #define BOARD_PWM_FREQ 1000000
 #endif
 
-#if !defined(BOARD_ONSHOT_FREQ)
-#define BOARD_ONSHOT_FREQ 8000000
+#if !defined(BOARD_ONESHOT_FREQ)
+#define BOARD_ONESHOT_FREQ 8000000
 #endif
 
 #define MAX_CHANNELS_PER_TIMER 4
@@ -466,7 +466,7 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	 */
 
 	rARR(timer) = 0xffffffff;
-	rPSC(timer) = (io_timers[timer].clock_freq / BOARD_ONSHOT_FREQ) - 1;
+	rPSC(timer) = (io_timers[timer].clock_freq / BOARD_ONESHOT_FREQ) - 1;
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
