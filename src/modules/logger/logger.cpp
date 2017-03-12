@@ -566,7 +566,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_attitude");
 	add_topic("battery_status", 300);
 	add_topic("system_power", 300);
-	add_topic("position_setpoint_triplet", 30);
+	add_topic("position_setpoint_triplet", 200);
 	add_topic("att_pos_mocap", 50);
 	add_topic("optical_flow", 50);
 	add_topic("rc_channels", 100);
