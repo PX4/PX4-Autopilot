@@ -554,12 +554,12 @@ void Logger::add_default_topics()
 	add_topic("vtol_vehicle_status", 100);
 	add_topic("commander_state", 100);
 	add_topic("satellite_info");
-	add_topic("vehicle_attitude_setpoint", 50);
+	add_topic("vehicle_attitude_setpoint", 30);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 200);
+	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_global_velocity_setpoint", 200);
 	add_topic("vehicle_vision_position");
