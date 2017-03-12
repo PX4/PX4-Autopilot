@@ -41,8 +41,7 @@
 
 #include "ekf.h"
 #include "mathlib.h"
-
-using std::abs;
+#include <cstdlib>
 
 // Reset the velocity states. If we have a recent and valid
 // gps measurement then use for velocity initialisation
@@ -231,7 +230,7 @@ void Ekf::resetHeight()
 		// use the most recent data if it's time offset from the fusion time horizon is smaller
 		int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
 		int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
-		if (abs(dt_newest) < abs(dt_delayed)) {
+		if (std::abs(dt_newest) < std::abs(dt_delayed)) {
 			_state.pos(2) = ev_newest.posNED(2);
 		} else {
 			_state.pos(2) = _ev_sample_delayed.posNED(2);
