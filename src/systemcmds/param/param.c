@@ -368,7 +368,7 @@ do_find(const char *name)
 		return 1;
 	}
 
-	PARAM_PRINT("Found param %s at index %" PRIxPTR "\n", name, ret);
+	PARAM_PRINT("Found param %s at index %i\n", name, (int)ret);
 	return 0;
 }
 
