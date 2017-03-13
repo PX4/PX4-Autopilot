@@ -46,6 +46,21 @@
  */
 
 /**
+ * Quaterion Control Proporional Part
+ *
+ * This defines the proportional part of a P - Controller for the Quaternion Control
+ *
+ * @unit s
+ * @min 0.4
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Attitude Control
+ */
+
+PARAM_DEFINE_FLOAT(FW_Q_P_QCON, 0.4f);
+
+/**
  * Attitude Roll Time Constant
  *
  * This defines the latency between a roll step input and the achieved setpoint

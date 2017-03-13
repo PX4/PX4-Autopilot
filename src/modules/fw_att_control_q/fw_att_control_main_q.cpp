@@ -216,6 +216,8 @@ private:
 		float flaps_scale;				/**< Scale factor for flaps */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
+                float q_p;
+
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 	}		_parameters;			/**< local copies of interesting parameters */
@@ -267,6 +269,8 @@ private:
 		param_t flaps_scale;
 		param_t flaperon_scale;
 
+                param_t q_p;
+
 		param_t vtol_type;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
@@ -280,7 +284,7 @@ private:
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
-	ECL_WheelController			_wheel_ctrl;
+        ECL_WheelController                             _wheel_ctrl;
 
 
 	/**
@@ -451,6 +455,8 @@ FixedwingAttitudeControlQ::FixedwingAttitudeControlQ() :
         _parameter_handles.flaps_scale = param_find("FW_Q_FLAPS_SCL");
         _parameter_handles.flaperon_scale = param_find("FW_Q_FLAPER_SCL");
 
+        _parameter_handles.q_p = param_find("FW_Q_P_QCON");
+
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	/* fetch initial parameter values */
@@ -541,6 +547,8 @@ FixedwingAttitudeControlQ::parameters_update()
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
+
+        param_get(_parameter_handles.q_p, &_parameters.q_p);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -726,7 +734,7 @@ FixedwingAttitudeControlQ::task_main()
 
 	_task_running = true;
 
-	while (!_task_should_exit) {
+        while (!_task_should_exit) {
 
 		static int loop_counter = 0;
 
@@ -1004,6 +1012,15 @@ FixedwingAttitudeControlQ::task_main()
 				float speed_body_u = _R(0, 0) * _global_pos.vel_n + _R(1, 0) * _global_pos.vel_e + _R(2, 0) * _global_pos.vel_d;
 				float speed_body_v = _R(0, 1) * _global_pos.vel_n + _R(1, 1) * _global_pos.vel_e + _R(2, 1) * _global_pos.vel_d;
 				float speed_body_w = _R(0, 2) * _global_pos.vel_n + _R(1, 2) * _global_pos.vel_e + _R(2, 2) * _global_pos.vel_d;
+
+                                /*Creating desired Quaternion from roll pitch yaw set points for testing, later one should pushlish a desired Quaternion directly in the higher order controler*/
+                                math::Quaternion q_des = from_euler(roll_sp,pitch_sp,yaw_sp);
+
+                                /*Calculating the Quaternion error*/
+                                math::Quaternion q_err = q_att*q_des.conjugated(); //double check
+
+                                /*Apply P Controller*/
+                                math::Vector Mdes = _parameters.q_p * q_err.imag();
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
