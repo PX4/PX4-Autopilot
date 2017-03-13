@@ -97,6 +97,25 @@ enum MS5611_BUS {
 /*
  * MS5611/MS5607 internal constants and data structures.
  */
+#define ADDR_CMD_CONVERT_D1_OSR256		0x40	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR512		0x42	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR1024		0x44	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR2048		0x46	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR4096		0x48	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D2_OSR256		0x50	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR512		0x52	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR1024		0x54	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR2048		0x56	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR4096		0x58	/* write to this address to start temperature conversion */
+
+/*
+  use an OSR of 1024 to reduce the self-heating effect of the
+  sensor. Information from MS tells us that some individual sensors
+  are quite sensitive to this effect and that reducing the OSR can
+  make a big difference
+ */
+#define ADDR_CMD_CONVERT_D1			ADDR_CMD_CONVERT_D1_OSR1024
+#define ADDR_CMD_CONVERT_D2			ADDR_CMD_CONVERT_D2_OSR1024
 
 /*
  * Maximum internal conversion time for OSR 1024 is 2.28 ms. We set an update
