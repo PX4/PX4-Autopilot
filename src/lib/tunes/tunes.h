@@ -87,9 +87,12 @@ public:
 	 */
 	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
 
+	unsigned int get_default_tunes_size() {return _default_tunes_size;}
+
 private:
-	static const char *_default_tunes[TONE_NUMBER_OF_TUNES];
+	static const char *_default_tunes[];
 	static const uint8_t _note_tab[];
+	static const unsigned int _default_tunes_size;
 	bool _repeat;	///< if true, tune restarts at end
 
 	const char *_tune = nullptr; ///< current tune string
