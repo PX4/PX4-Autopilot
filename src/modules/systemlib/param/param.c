@@ -157,18 +157,55 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
+// the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
+// priority to readers, meaning a writer could suffer from starvation, but in our use-case
+// we only have short periods of reads and writes are rare.
 static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+static int reader_lock_holders = 0;
+static px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
 
-/** lock the parameter store */
+/** lock the parameter store for read access */
 static void
-param_lock(void)
+param_lock_reader(void)
+{
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	++reader_lock_holders;
+
+	if (reader_lock_holders == 1) {
+		// the first reader takes the lock, the next ones are allowed to just continue
+		do {} while (px4_sem_wait(&param_sem) != 0);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+}
+
+/** lock the parameter store for write access */
+static void
+param_lock_writer(void)
 {
 	do {} while (px4_sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
-param_unlock(void)
+param_unlock_reader(void)
+{
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	--reader_lock_holders;
+
+	if (reader_lock_holders == 0) {
+		// the last reader releases the lock
+		px4_sem_post(&param_sem);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+}
+
+/** unlock the parameter store */
+static void
+param_unlock_writer(void)
 {
 	px4_sem_post(&param_sem);
 }
@@ -184,6 +221,7 @@ void
 param_init(void)
 {
 	px4_sem_init(&param_sem, 0, 1);
+	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 }
 
 /**
@@ -435,9 +473,9 @@ bool
 param_value_is_default(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
-	param_unlock();
+	param_unlock_reader();
 	return s ? false : true;
 }
 
@@ -445,10 +483,10 @@ bool
 param_value_unsaved(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
 	bool ret = s && s->unsaved;
-	param_unlock();
+	param_unlock_reader();
 	return ret;
 }
 
@@ -527,7 +565,7 @@ param_get(param_t param, void *val)
 {
 	int result = -1;
 
-	param_lock();
+	param_lock_reader();
 
 	const void *v = param_get_value_ptr(param);
 
@@ -536,7 +574,7 @@ param_get(param_t param, void *val)
 		result = 0;
 	}
 
-	param_unlock();
+	param_unlock_reader();
 
 	return result;
 }
@@ -547,7 +585,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	int result = -1;
 	bool params_changed = false;
 
-	param_lock();
+	param_lock_writer();
 
 	if (param_values == NULL) {
 		utarray_new(param_values, &param_icd);
@@ -616,7 +654,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 out:
-	param_unlock();
+	param_unlock_writer();
 
 	/*
 	 * If we set something, now that we have unlocked, go ahead and advertise that
@@ -680,6 +718,7 @@ void param_set_used_internal(param_t param)
 		return;
 	}
 
+	// FIXME: this needs locking too
 	param_changed_storage[param_index / bits_per_allocation_unit] |=
 		(1 << param_index % bits_per_allocation_unit);
 }
@@ -690,7 +729,7 @@ param_reset(param_t param)
 	struct param_wbuf_s *s = NULL;
 	bool param_found = false;
 
-	param_lock();
+	param_lock_writer();
 
 	if (handle_in_range(param)) {
 
@@ -706,7 +745,7 @@ param_reset(param_t param)
 		param_found = true;
 	}
 
-	param_unlock();
+	param_unlock_writer();
 
 	if (s != NULL) {
 		_param_notify_changes(false);
@@ -718,7 +757,7 @@ param_reset(param_t param)
 void
 param_reset_all(void)
 {
-	param_lock();
+	param_lock_writer();
 
 	if (param_values != NULL) {
 		utarray_free(param_values);
@@ -727,7 +766,7 @@ param_reset_all(void)
 	/* mark as reset / deleted */
 	param_values = NULL;
 
-	param_unlock();
+	param_unlock_writer();
 
 	_param_notify_changes(false);
 }
@@ -816,9 +855,9 @@ param_save_default(void)
 
 	PARAM_CLOSE(fd);
 #else
-	param_lock();
+	param_lock_writer();
 	res = flash_param_save();
-	param_unlock();
+	param_unlock_writer();
 #endif
 	return res;
 }
@@ -896,7 +935,7 @@ param_export(int fd, bool only_unsaved)
 	struct bson_encoder_s encoder;
 	int	result = -1;
 
-	param_lock();
+	param_lock_reader();
 
 	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
@@ -994,7 +1033,7 @@ param_export(int fd, bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
+	param_unlock_reader();
 
 	if (result == 0) {
 		result = bson_encoder_fini(&encoder);
@@ -1194,7 +1233,7 @@ uint32_t param_hash_check(void)
 {
 	uint32_t param_hash = 0;
 
-	param_lock();
+	param_lock_reader();
 
 	/* compute the CRC32 over all string param names and 4 byte values */
 	for (param_t param = 0; handle_in_range(param); param++) {
@@ -1208,7 +1247,7 @@ uint32_t param_hash_check(void)
 		param_hash = crc32part(val, param_size(param), param_hash);
 	}
 
-	param_unlock();
+	param_unlock_reader();
 
 	return param_hash;
 }
