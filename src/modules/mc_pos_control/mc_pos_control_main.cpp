@@ -653,6 +653,7 @@ void MulticopterPositionControl::update_bezier_line(const matrix::Vector3f &prev
 	matrix::Vector3f vel_at_loiter(0.0f, 0.0f, 0.0f);
 	matrix::Vector3f vel_at_max = (curr_sp - prev_sp).normalized() * _params.vel_cruise(0);
 
+
 	/* compute bez_1 and bez_2
 	 * we assume that max velocity is achieved when reaching the end of bez_1
 	 */
@@ -660,7 +661,7 @@ void MulticopterPositionControl::update_bezier_line(const matrix::Vector3f &prev
 			0.1f; // this value serves as tuning parameter and defines how fast it should decelerate
 	float duration = (vel_at_max - vel_at_loiter).length() / max_acc;
 	_bez_2.setBezFromVel(curr_sp, vel_at_max, vel_at_loiter, duration);
-	_bez_1.setBezier(prev_sp, prev_sp, _bez_2.getPt0());
+	_bez_1.setBezier(prev_sp, _bez_2.getPt0(), _bez_2.getPt0());
 
 }
 
@@ -1693,6 +1694,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		if (_vehicle_status.is_rotary_wing) {
 
+
 			/* if want to follow target,
 			 * then use carrot style approach
 			 * */
@@ -1708,10 +1710,20 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* if loiter, we just want to go along straight line
 			 * if position type but no next_sp, just want to go along straight line
 			*/
-			bool straight_line = previous_setpoint_valid && (_pos_sp_triplet.current.type
+			bool straight_line = _pos_sp_triplet.previous.valid &&(_pos_sp_triplet.current.type
 					     == position_setpoint_s::SETPOINT_TYPE_LOITER
 					     || (_pos_sp_triplet.current.type
 						 == position_setpoint_s::SETPOINT_TYPE_POSITION));
+
+			/*
+			 * if we just want to go to a specific location (i.e. in hold)
+			 */
+			bool go_to_pos = !_pos_sp_triplet.previous.valid &&(_pos_sp_triplet.current.type
+					     == position_setpoint_s::SETPOINT_TYPE_LOITER
+					     || (_pos_sp_triplet.current.type
+						 == position_setpoint_s::SETPOINT_TYPE_POSITION));
+
+
 			//&& !next_setpoint_valid)); this will be used once smoothed corner is actaully being used
 
 			/* if all setpoints valid
@@ -1721,7 +1733,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			smoothed_corner = false;
 
 			/* default */
-			bool default_sp = !(follow_target || takeoff || straight_line || smoothed_corner);
+			bool default_sp = !(follow_target || takeoff || straight_line || smoothed_corner || go_to_pos);
 
 			/* compute distance to closest point on _bez_1 and _bez_2 to know where we are on trajectory */
 			float dist_1 = _bez_1.getDistToClosestPoint(_pos.data);
@@ -1751,6 +1763,19 @@ void MulticopterPositionControl::control_auto(float dt)
 				_bez_1.setBezier(curr_sp.data, next_sp.data, next_sp.data);
 			}
 
+			if (go_to_pos){
+				/*
+				* we dont have previous setpoint, but we still
+				* want to decelerate when close to current setpoint
+				*/
+				if(_triplet_update){
+					update_bezier_line(_pos.data, curr_sp.data);
+					_triplet_curr_sp_prev = curr_sp;
+					_triplet_update = false;
+				}
+
+			}
+
 			/* compute straight line if triplet has updated */
 			if (straight_line) {
 
@@ -1778,6 +1803,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					_triplet_update = false;
 					_on_bez_2 = false;
 				}
+
 			}
 
 			/* not implemented because navigator needs to update tripled based on different criteria */
@@ -1818,21 +1844,17 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			if (!default_sp) {
 
-				matrix::Vector3f pos_sp = _pos_sp.data;
-				matrix::Vector3f vel_ff = _vel_ff.data;
+				matrix::Vector3f pos_sp;//= _pos_sp.data;
+				matrix::Vector3f vel_ff;// = _vel_ff.data;
 
 				/* we are in bez_1 */
 				if (!_on_bez_2) {
-					//PX4_INFO("on bez 1");
 					/* compute desired states */
-
 					_bez_1.getStatesClosest(pos_sp, vel_ff, acc_request,
 								_pos.data);
 
-					/* we are in bez_2 */
-
+				/* we are in bez_2 */
 				} else {
-					//PX4_INFO("on bez 2");
 					/* compute desired states */
 					_bez_2.getStatesClosest(pos_sp, vel_ff, acc_request,
 								_pos.data);
