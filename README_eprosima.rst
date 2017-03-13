@@ -10,8 +10,6 @@ Automatic code generation
 
 The support for the new functionality added is mainly carried on inside three new (automatic generated) code blocks.
 
-.. image:: doc/2_trasnmitter-white.png
-
 -  It's added a CDR serialization support directly on the original type support of the uORB topic adding a new interface to the code that do this directly. For *sensor_combined.msg* topic looks like this:
 
 .. code-block:: shell
@@ -20,9 +18,11 @@ The support for the new functionality added is mainly carried on inside three ne
 
 -  We have the capability under demand of the generation of an application to send through a selected UART the serializated info from the topic (*sensor_combined_uRTPS_UART_transmitter.cpp*).
 
-.. image:: doc/3_receiver-white.png
+.. image:: doc/2_trasnmitter-white.png
 
 -  Now we also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS**. For the case of *sensor_combined* topic it's generated a class *sensor_combined_uRTPS_UART_receiver* and a *sensor_combined_.idl* file.
+
+.. image:: doc/3_receiver-white.png
 
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the new script **generate_microRTPS_support.py** placed in *Tools* folder, on this way:
 
