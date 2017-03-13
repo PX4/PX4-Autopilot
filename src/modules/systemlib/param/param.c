@@ -111,8 +111,8 @@ static const struct param_info_s *param_info_base = (const struct param_info_s *
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t			param;
 	union param_value_u	val;
+	param_t			param;
 	bool			unsaved;
 };
 
