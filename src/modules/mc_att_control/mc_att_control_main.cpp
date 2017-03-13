@@ -223,7 +223,6 @@ private:
         param_t yaw_d;     //AbV
         param_t yaw_i;     //AbV
         param_t yaw_integ_lim;  //AbV
-
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
@@ -287,7 +286,7 @@ private:
         float length_axis;
         float torque_coeff;
         float tau_servo;
-				
+
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
