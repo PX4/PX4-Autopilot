@@ -1300,6 +1300,8 @@ MulticopterAttitudeControl::task_main()
 
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
+                alpha(dt);
+                control_allocation(dt);
 
 
 
