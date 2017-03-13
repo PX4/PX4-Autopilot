@@ -49,26 +49,6 @@
 #define BEAT_TIME_CONVERSION_US BEAT_TIME_CONVERSION_MS * 1000
 #define BEAT_TIME_CONVERSION BEAT_TIME_CONVERSION_US
 
-// initialise default tunes
-const char *Tunes::_default_tunes[] = {
-	"", // empty to align with the index
-	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc", // startup tune
-	"MBT200a8a8a8PaaaP", // ERROR tone
-	"MFT200e8a8a", // Notify Positive tone
-	"MFT200e8e", // Notify Neutral tone
-	"MFT200e8c8e8c8e8c8", // Notify Negative tone
-	"MNT75L1O2G", //arming warning
-	"MBNT100a8", //battery warning slow
-	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8", //battery warning fast
-	"MFT255L4AAAL1F#", //gps warning slow
-	"MFT255L4<<<BAP", // arming failure tune
-	"MFT255L16agagagag", // parachute release
-	"MFT255L8ddd#d#eeff", // ekf warning
-	"MFT255L4gf#fed#d", // baro warning
-	"MFT100a8", // single beep
-	"MFT100L4>G#6A#6B#4", // home set tune
-};
-
 // semitone offsets from C for the characters 'A'-'G'
 const uint8_t Tunes::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
@@ -102,40 +82,46 @@ void Tunes::set_control(const tune_control_s &tune_control)
 {
 	bool reset_playing_tune = false;
 
-	switch (tune_control.tune_id) {
-	case tune_control_s::TUNE_ID_STARTUP:
-	case tune_control_s::TUNE_ID_ERROR:
-	case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
-	case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
-	case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
-		reset_playing_tune = true;
-		config_tone();
+	if (tune_control.tune_id < _default_tunes_size) {
+		switch (tune_control.tune_id) {
+		case tune_control_s::TUNE_ID_CUSTOM:
+			_frequency = (unsigned)tune_control.frequency;
+			_duration = (unsigned)tune_control.duration;
+			_using_custom_msg = true;
+			break;
 
-	case tune_control_s::TUNE_ID_ARMING_WARNING:
-	case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-	case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-	case tune_control_s::TUNE_ID_GPS_WARNING:
-	case tune_control_s::TUNE_ID_PARACHUTE_RELEASE:
-	case tune_control_s::TUNE_ID_EKF_WARNING:
-	case tune_control_s::TUNE_ID_BARO_WARNING:
-	case tune_control_s::TUNE_ID_SINGLE_BEEP:
-	case tune_control_s::TUNE_ID_HOME_SET:
+		case tune_control_s::TUNE_ID_STARTUP:
+		case tune_control_s::TUNE_ID_ERROR:
+		case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
+		case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
+		case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
+			reset_playing_tune = true;
+			config_tone();
 
-		// TODO: come up with a better strategy
-		if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
-			_tune = _default_tunes[tune_control.tune_id];
-			_next = _tune;
+		case tune_control_s::TUNE_ID_ARMING_WARNING:
+		case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
+		case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
+		case tune_control_s::TUNE_ID_GPS_WARNING:
+		case tune_control_s::TUNE_ID_PARACHUTE_RELEASE:
+		case tune_control_s::TUNE_ID_EKF_WARNING:
+		case tune_control_s::TUNE_ID_BARO_WARNING:
+		case tune_control_s::TUNE_ID_SINGLE_BEEP:
+		case tune_control_s::TUNE_ID_HOME_SET:
+		default:
+
+			// TODO: come up with a better strategy
+			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
+				_tune = _default_tunes[tune_control.tune_id];
+				_next = _tune;
+			}
+
+			break;
 		}
 
-		break;
-
-	case tune_control_s::TUNE_ID_CUSTOM:
-	default:
-		_frequency = (unsigned)tune_control.frequency;
-		_duration = (unsigned)tune_control.duration;
-		_using_custom_msg = true;
-		break;
+	} else {
+		PX4_WARN("Tune ID not recognized.");
 	}
+
 }
 
 void Tunes::set_string(const char *string)
