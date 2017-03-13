@@ -40,7 +40,6 @@ px4_add_module(
 		../common/stm32/board_mcu_version.c
 		aerofc_init.c
 		aerofc_spi.c
-		aerofc_usb.c
 		aerofc_led.c
 		aerofc_timer_config.c
 	DEPENDS
