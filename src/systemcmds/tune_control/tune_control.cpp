@@ -121,7 +121,7 @@ tune_control_main(int argc, char *argv[])
 		case 't':
 			value = (uint8_t)(strtol(myoptarg, NULL, 0));
 
-			if (value >= 1 && value <= 15) {
+			if (value > 0 && value < tunes.get_default_tunes_size()) {
 				tune_control.tune_id = value;
 
 			} else {
