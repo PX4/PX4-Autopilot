@@ -197,6 +197,9 @@ private:
 	float				_thrust_sp;		/**< thrust setpoint */
 	math::Vector<3>		_att_control;	/**< attitude control vector */
     math::Vector<6>     _alpha_des;     /**< _alpha_des, is sent to actuator control */
+    math::Vector<6>     _alpha_prev;     /**< Previous desired alpha*/
+    math::Vector<6>     _alpha_sim;     /**< Simulated alpha*/
+    math::Vector<6>     _alpha_sim_prev; /**< Previous simulated alpha */
     math::Vector<6>     _omega_des;     /**< omega_des, is sent to actuator control */
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
 
@@ -454,11 +457,14 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.bat_scale_en = 0;
 
 	_rates_prev.zero();
-  _att_err_prev.zero();   //AbV
+    _att_err_prev.zero();   //AbV
 	_rates_sp.zero();
 	_rates_sp_prev.zero();
 	_rates_int.zero();
-  _att_int.zero();    //AbV
+    _att_int.zero();    //AbV
+    _alpha_prev.zero();
+    _alpha_sim.zero();
+    _alpha_sim_prev.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
@@ -1062,39 +1068,30 @@ void MulticopterAttitudeControl::alpha (float dt)
     //alpha infinity
 
 
-math::Vector<6> _alpha_des_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
-
-for (int i=0;i<6;i++)
-{
-    float a=fmod((_alpha_des_prev(i)+(float)M_PI),2*(float)M_PI);
-
-   int k=(_alpha_des_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
-
-    _alpha_des_prev(i)=_alpha_des_prev(i)-k*2*(float)M_PI;
-
-    if (_alpha_des(i)*_alpha_des_prev(i)<0 && abs(_alpha_des(i)-_alpha_des_prev(i))>(double)M_PI)
-       {
-        if (_alpha_des_prev(i)<_alpha_des(i))
-            {_alpha_des(i)=_alpha_des(i)-2*(float)M_PI;}
-        else
-            {_alpha_des(i)=_alpha_des(i)+2*(float)M_PI;}
-        }
-    else
+    for (int i=0;i<6;i++)
     {
-        _alpha_des(i)=_alpha_des(i);
-    }
+        float a=fmod((_alpha_prev(i)+(float)M_PI),2*(float)M_PI);
+
+        int k=(_alpha_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
+
+        _alpha_prev(i)=_alpha_prev(i)-k*2*(float)M_PI;
+
+        if (_alpha_des(i)*_alpha_prev(i)<0 && abs(_alpha_des(i)-_alpha_prev(i))>(double)M_PI)
+				{
+					if (_alpha_prev(i)<_alpha_des(i))
+					{_alpha_des(i)=_alpha_des(i)-2*(float)M_PI;
+					}
+					else
+					{_alpha_des(i)=_alpha_des(i)+2*(float)M_PI;}
+				}
+				else
+				{
+					_alpha_des(i)=_alpha_des(i);
+				}
 
     _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
-    _alpha_des_prev(i)=_alpha_des(i);
-  }
-
-
- //alpha motor dynamics
- math::Vector<6> _alpha_sim(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
-
-math::Vector<6> _alpha_sim_prev(0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
-
-
+    _alpha_prev(i)=_alpha_des(i);
+    }
 
     for (int i=0;i<6;i++)
     {
@@ -1130,12 +1127,12 @@ MulticopterAttitudeControl::control_allocation(float dt)
     u(4)=_vol_att_sp.y;
     u(5)=_vol_att_sp.z;
 
-    float alloc [6][6]= {{-sinf(_alpha_des(0)),                          sinf(_alpha_des(1)),                          0.5f*sinf(_alpha_des(2)),                                               -0.5f*sinf(_alpha_des(3)),                                               -0.5f*sinf(_alpha_des(4)),                                               0.5f*sinf(_alpha_des(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_des(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_des(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_des(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_des(5))},
-                         {-cosf(_alpha_des(0)),                          -cosf(_alpha_des(1)),                         -cosf(_alpha_des(2)),                                                   -cosf(_alpha_des(3)),                                                    -cosf(_alpha_des(4)),                                                    -cosf(_alpha_des(5))},
-                         {-l*cosf(_alpha_des(0))-k*sinf(_alpha_des(0)),   l*cosf(_alpha_des(1))-k*sinf(_alpha_des(1)),   l*0.5f*cosf(_alpha_des(2))+k*0.5f*sinf(_alpha_des(2)),                   -l*0.5f*cosf(_alpha_des(3))+k*0.5f*sinf(_alpha_des(3)),                   -l*0.5f*cosf(_alpha_des(4))+k*0.5f*sinf(_alpha_des(4)),                   l*0.5f*cosf(_alpha_des(5))+k*0.5f*sinf(_alpha_des(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(_alpha_des(2))+sqrtf(3)*0.5f*k*sinf(_alpha_des(2)), -l*sqrtf(3)*0.5f*cosf(_alpha_des(3))+k*sqrtf(3)*0.5f*sinf(_alpha_des(3)), sqrtf(3)*0.5f*l*cosf(_alpha_des(4))-sqrtf(3)*0.5f*k*sinf(_alpha_des(4)),  -sqrtf(3)*0.5f*l*cosf(_alpha_des(5))-sqrtf(3)*0.5f*k*sinf(_alpha_des(5))},
-                         {l*sinf(_alpha_des(0))-k*cosf(_alpha_des(0)),    l*sinf(_alpha_des(1))+k*cosf(_alpha_des(2)),   l*sinf(_alpha_des(2))-k*cosf(_alpha_des(2)),                             l*sinf(_alpha_des(3))+k*cosf(_alpha_des(3)),                              l*sinf(_alpha_des(4))+k*cosf(_alpha_des(4)),                              l*sinf(_alpha_des(5))-k*cosf(_alpha_des(5))}};
+    float alloc [6][6]= {{-sinf(_alpha_sim(0)),                          sinf(_alpha_sim(1)),                          0.5f*sinf(_alpha_sim(2)),                                               -0.5f*sinf(_alpha_sim(3)),                                               -0.5f*sinf(_alpha_sim(4)),                                               0.5f*sinf(_alpha_sim(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_sim(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_sim(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_sim(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_sim(5))},
+                         {-cosf(_alpha_sim(0)),                          -cosf(_alpha_sim(1)),                         -cosf(_alpha_sim(2)),                                                   -cosf(_alpha_sim(3)),                                                    -cosf(_alpha_sim(4)),                                                    -cosf(_alpha_sim(5))},
+                         {-l*cosf(_alpha_sim(0))-k*sinf(_alpha_sim(0)),   l*cosf(_alpha_sim(1))-k*sinf(_alpha_sim(1)),   l*0.5f*cosf(_alpha_sim(2))+k*0.5f*sinf(_alpha_sim(2)),                   -l*0.5f*cosf(_alpha_sim(3))+k*0.5f*sinf(_alpha_sim(3)),                   -l*0.5f*cosf(_alpha_sim(4))+k*0.5f*sinf(_alpha_sim(4)),                   l*0.5f*cosf(_alpha_sim(5))+k*0.5f*sinf(_alpha_sim(5))},
+                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(_alpha_sim(2))+sqrtf(3)*0.5f*k*sinf(_alpha_sim(2)), -l*sqrtf(3)*0.5f*cosf(_alpha_sim(3))+k*sqrtf(3)*0.5f*sinf(_alpha_sim(3)), sqrtf(3)*0.5f*l*cosf(_alpha_sim(4))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(4)),  -sqrtf(3)*0.5f*l*cosf(_alpha_sim(5))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(5))},
+                         {l*sinf(_alpha_sim(0))-k*cosf(_alpha_sim(0)),    l*sinf(_alpha_sim(1))+k*cosf(_alpha_sim(2)),   l*sinf(_alpha_sim(2))-k*cosf(_alpha_sim(2)),                             l*sinf(_alpha_sim(3))+k*cosf(_alpha_sim(3)),                              l*sinf(_alpha_sim(4))+k*cosf(_alpha_sim(4)),                              l*sinf(_alpha_sim(5))-k*cosf(_alpha_sim(5))}};
 
     math::Matrix<6,6> A(alloc);
     _omega_des=A.inversed()*u;
