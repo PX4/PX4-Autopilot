@@ -306,23 +306,10 @@ __BEGIN_DECLS
 #define GPIO_8266_PD			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_8266_RST			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 
-/* Power switch controls ******************************************************/
-
-//#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
-
-/* FMUv4-pro has RC_IN to the FMU and to the PX4IO:
- *
- * GPIO PPM_IN to the FMU on PB0 T3C 3
- * SPEKTRUM_RX (it's TX or RX in Bind) on UART3 on the PX4IO
- * Inversion is possible via the 74LVC2G86 controlled by the FMU
- * The FMU can drive  GPIO PPM_IN as an output
+/* No Power switch controls or binding control *********************************************
+ * V4 Pro does not have control to bind SPEKTRUM - there is only 5V VCC on
+ * the connector interface and Spektrum requires VDD 3v3 to be controllable
  */
-
-#define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
-#define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()          px4_arch_configgpio(GPIO_USART1_RX)
-#define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
-
 
 #define	BOARD_NAME "PX4FMU_V4PRO"
 
