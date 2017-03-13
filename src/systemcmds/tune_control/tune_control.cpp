@@ -94,7 +94,7 @@ tune_control_main(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = NULL;
-	uint8_t value;
+	unsigned int value;
 	tune_control_s tune_control = {};
 	tune_control.tune_id = 0;
 	tune_control.strength = 40;
@@ -102,8 +102,10 @@ tune_control_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'f':
-			if ((uint16_t)(strtol(myoptarg, NULL, 0)) > 0 && (uint16_t)(strtol(myoptarg, NULL, 0)) < 22000) {
-				tune_control.frequency = (uint16_t)(strtol(myoptarg, NULL, 0));
+			value = (uint16_t)(strtol(myoptarg, NULL, 0));
+
+			if (value > 0 && value < 22000) {
+				tune_control.frequency = value;
 
 			} else {
 				usage();
@@ -142,7 +144,15 @@ tune_control_main(int argc, char *argv[])
 			break;
 
 		case 's':
-			tune_control.strength = (uint16_t)(strtol(myoptarg, NULL, 0));
+			value = (uint16_t)(strtol(myoptarg, NULL, 0));
+
+			if (value > 0 && value < 100) {
+				tune_control.strength = value;
+
+			} else {
+				tune_control.strength = 40;
+			}
+
 			break;
 
 		default:
