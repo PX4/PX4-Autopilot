@@ -741,8 +741,23 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 
 	}
 
-	// report dead reckoning if it is more than a second since we fused in position measurements
-	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6);
+	// report dead reckoning if it is more than a second since we fused in measurements that constrain velocity drift
+	uint64_t dead_reckoning_duration = math::min(math::min((_time_last_imu - _time_last_pos_fuse),(_time_last_imu - _time_last_vel_fuse)),(_time_last_imu - _time_last_of_fuse));
+	bool is_dead_reckoning = dead_reckoning_duration > 1e6;
+
+	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal velocity error
+	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
+	// and using state variances for accuracy reporting is overly optimistic in these situations
+	float pos_err_alt = 0.0f;
+	if (is_dead_reckoning) {
+		// calculate a conservative estimate of the error in our position
+		if (_control_status.flags.gps || _control_status.flags.ev_pos) {
+			pos_err_alt = math::max(pos_err_alt, sqrtf(_vel_pos_innov[3]*_vel_pos_innov[3] + _vel_pos_innov[4]*_vel_pos_innov[4]));
+
+		}
+		hpos_err = math::max(hpos_err, pos_err_alt);
+
+	}
 
 	memcpy(ekf_eph, &hpos_err, sizeof(float));
 	memcpy(ekf_epv, &vpos_err, sizeof(float));
@@ -766,8 +781,23 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv, bool *dead_recko
 
 	}
 
-	// report dead reckoning if it is more than a second since we fused in position measurements
-	bool is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > 1e6);
+	// report dead reckoning if it is more than a second since we fused in measurements that constrain velocity drift
+	uint64_t dead_reckoning_duration = math::min(math::min((_time_last_imu - _time_last_pos_fuse),(_time_last_imu - _time_last_vel_fuse)),(_time_last_imu - _time_last_of_fuse));
+	bool is_dead_reckoning = dead_reckoning_duration > 1e6;
+
+	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal velocity error
+	// The reason is that complete rejection of measurements is often casued by heading misalignment or inertial sensing errors
+	// and using state variances for accuracy reporting is overly optimistic in these situations
+	float pos_err_alt = 0.0f;
+	if (is_dead_reckoning) {
+		// calculate a conservative estimate of the error in our position
+		if (_control_status.flags.gps || _control_status.flags.ev_pos) {
+			pos_err_alt = math::max(pos_err_alt, sqrtf(_vel_pos_innov[3]*_vel_pos_innov[3] + _vel_pos_innov[4]*_vel_pos_innov[4]));
+
+		}
+		hpos_err = math::max(hpos_err, pos_err_alt);
+
+	}
 
 	memcpy(ekf_eph, &hpos_err, sizeof(float));
 	memcpy(ekf_epv, &vpos_err, sizeof(float));
