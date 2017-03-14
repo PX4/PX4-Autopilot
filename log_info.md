@@ -59,4 +59,25 @@ sess02
 Motivation:
  Testing if the newly calibrated controller paired with the new mixer reacts to roll.
 Result:
- It doesn't, but steering is very noisy. Enough to collect the data for manual control.
+ It doesn't, but steering is very noisy. Probably because not in any controlled mode, need to test mission. Enough to collect the data for manual control.
+---------
+sess03
+---------
+Motivation:
+ x
+Result:
+ x
+
+
+
+
+
+
+
+---------
+sess
+---------
+Motivation:
+ x
+Result:
+ x
