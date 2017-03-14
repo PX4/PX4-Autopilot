@@ -1962,7 +1962,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* PARAM_VALUE stream */
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
-	_parameters_manager->set_interval(interval_from_rate(120.0f));
+	_parameters_manager->set_interval(interval_from_rate(300.0f));
 	LL_APPEND(_streams, _parameters_manager);
 
 	/* MAVLINK_FTP stream */
