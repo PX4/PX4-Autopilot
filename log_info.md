@@ -27,4 +27,15 @@ sess04
 Motivation:
  Unexpected end of session 3 so I decided to repeat the same test. No changes in the code. 
 Result: 
- I forgot to choose mission mode at the first run, I had to do a second run and the steering channel behaves as explained above. I need to inspect this or change the whole thing altogether.
+ I forgot to choose mission mode at the first run, I had to do a second run and the steering channel behaves as explained above. I need to inspect this or change the whole thing altogether. 
+
+********************************************
+Day: 13-03-2017
+---------
+sess01-2-3-4
+---------
+Motivation:
+ Testing if setting the circuit breaker for the gps, as advised by James, works and runs the mission.   
+Result:
+ In session 2 it is possible to see that it controls the actuators.
+---------
