@@ -65,10 +65,10 @@ public:
 
 	/**
 	 * Set tune to be played.
-	 *
 	 * @param  tune_control struct containig the uORB message
+	 * @return              return -EINVAL if the default tune does not exist.
 	 */
-	void set_control(const tune_control_s &tune_control);
+	int set_control(const tune_control_s &tune_control);
 
 	/**
 	 * Parse a tune string, formatted with the syntax of the Microsoft GWBasic/QBasic.
