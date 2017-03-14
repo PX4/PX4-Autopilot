@@ -69,23 +69,55 @@ typedef enum param_type_e {
 	PARAM_TYPE_UNKNOWN = 0xffff
 } param_type_t;
 
+
+#ifdef __PX4_NUTTX // on NuttX use 16 bits to save RAM
 /**
  * Parameter handle.
  *
  * Parameters are represented by parameter handles, which can
- * be obtained by looking up (or creating?) parameters.
+ * be obtained by looking up parameters. They are an offset into a global
+ * constant parameter array.
  */
-typedef uintptr_t	param_t;
+typedef uint16_t	param_t;
 
 /**
  * Handle returned when a parameter cannot be found.
  */
-#define PARAM_INVALID	((uintptr_t)0xffffffff)
+#define PARAM_INVALID	((uint16_t)0xffff)
 
 /**
  * Magic handle for hash check param
  */
-#define PARAM_HASH      ((uintptr_t)INT32_MAX)
+#define PARAM_HASH      ((uint16_t)INT16_MAX)
+
+#else // on other platforms use 32 bits for better performance
+
+/**
+ * Parameter handle.
+ *
+ * Parameters are represented by parameter handles, which can
+ * be obtained by looking up parameters. They are an offset into a global
+ * constant parameter array.
+ */
+typedef uint32_t	param_t;
+
+/**
+ * Handle returned when a parameter cannot be found.
+ */
+#define PARAM_INVALID	((uint32_t)0xffffffff)
+
+/**
+ * Magic handle for hash check param
+ */
+#define PARAM_HASH      ((uint32_t)INT32_MAX)
+
+#endif /* __PX4_NUTTX */
+
+
+/**
+ * Initialize the param backend. Call this on startup before calling any other methods.
+ */
+__EXPORT void		param_init(void);
 
 /**
  * Look up a parameter by name.

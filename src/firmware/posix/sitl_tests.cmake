@@ -9,6 +9,7 @@ set(tests
 	commander
 	controllib
 	conv
+	dataman
 	file2
 	float
 	gpio
@@ -51,6 +52,7 @@ foreach(test_name ${tests})
 			${PX4_BINARY_DIR}
 			WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
+	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
 	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
 endforeach()
 

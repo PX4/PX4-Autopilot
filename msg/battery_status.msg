@@ -12,6 +12,8 @@ bool connected			# Wether or not a battery is connected
 
 uint8 BATTERY_WARNING_NONE = 0       # no battery low voltage warning active
 uint8 BATTERY_WARNING_LOW = 1        # warning of low voltage
-uint8 BATTERY_WARNING_CRITICAL = 2   # alerting of critical voltage
+uint8 BATTERY_WARNING_CRITICAL = 2   # critical voltage, return / abort immediately
+uint8 BATTERY_WARNING_EMERGENCY = 3   # immediate landing required
+uint8 BATTERY_WARNING_FAILED = 4   # the battery has failed completely
 
 uint8 warning    # current battery warning

@@ -221,6 +221,7 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
+#define BOARD_HAS_POWER_CONTROL	1
 
 /* This board provides a DMA pool and APIs */
 
@@ -349,7 +350,7 @@ bool board_pwr_button_down(void);
  *
  ****************************************************************************/
 
-void board_pwr(bool on_not_off);
+__EXPORT bool px4_board_pwr(bool on_not_off);
 
 #include "../common/board_common.h"
 

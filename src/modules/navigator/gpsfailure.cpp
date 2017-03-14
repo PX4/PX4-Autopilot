@@ -89,7 +89,6 @@ GpsFailure::on_activation()
 {
 	_gpsf_state = GPSF_STATE_NONE;
 	_timestamp_activation = hrt_absolute_time();
-	updateParams();
 	advance_gpsf();
 	set_gpsf_item();
 }
@@ -160,8 +159,6 @@ GpsFailure::set_gpsf_item()
 void
 GpsFailure::advance_gpsf()
 {
-	updateParams();
-
 	switch (_gpsf_state) {
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;

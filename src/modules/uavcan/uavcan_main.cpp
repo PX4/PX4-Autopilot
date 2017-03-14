@@ -191,9 +191,9 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 			; // All other values of px4_board_name() resolve to zero
 		}
 
-		raw_uuid_byte_t udid = {};
-		get_board_serial(udid);
-		uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
+		mfguid_t mfgid = {};
+		board_get_mfguid(mfgid);
+		uavcan::copy(mfgid, mfgid + sizeof(mfgid), hwver.unique_id.begin());
 		rv = 0;
 	}
 
@@ -991,7 +991,7 @@ int UavcanNode::run()
 
 			// Update the armed status and check that we're not locked down and motor
 			// test is not running
-			bool set_armed = _armed.armed && !_armed.lockdown && !_test_in_progress;
+			bool set_armed = _armed.armed && !_armed.lockdown && !_armed.manual_lockdown && !_test_in_progress;
 
 			arm_actuators(set_armed);
 		}

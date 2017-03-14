@@ -6,7 +6,6 @@ param set SYS_RESTART_TYPE 0
 dataman start
 
 simulator start -t
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -27,5 +26,8 @@ mavlink start -u 14556 -r 2000000
 mavlink boot_complete
 
 tests @test_name@
+
+dataman status
+dataman stop
 
 shutdown

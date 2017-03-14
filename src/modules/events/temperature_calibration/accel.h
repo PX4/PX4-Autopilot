@@ -39,7 +39,7 @@
 class TemperatureCalibrationAccel : public TemperatureCalibrationCommon<3, 3>
 {
 public:
-	TemperatureCalibrationAccel(float min_temperature_rise);
+	TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
 	virtual ~TemperatureCalibrationAccel();
 
 	/**

@@ -54,10 +54,12 @@ uint8 rattitude_switch	 # rattitude control 2 position switch (optional): _MANUA
 uint8 posctl_switch		 # position control 2 position switch (optional): _ALTCTL_, POSCTL
 uint8 loiter_switch		 # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 acro_switch		 # acro 2 position switch (optional): _MANUAL_, ACRO
-uint8 offboard_switch	 # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
+uint8 offboard_switch	 	 # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
 uint8 kill_switch		 # throttle kill: _NORMAL_, KILL
 uint8 arm_switch		 # arm/disarm switch: _DISARMED_, ARMED
 uint8 transition_switch	 # VTOL transition switch: _HOVER, FORWARD_FLIGHT
 uint8 gear_switch	 # landing gear switch: _DOWN_, UP
 int8 mode_slot			 # the slot a specific model selector is in
 uint8 data_source		 # where this input is coming from
+uint8 stab_switch 		 # stabilize switch (only relevant for fixed wings, optional): _MANUAL, STABILIZED
+uint8 man_switch		 # manual switch (only relevant for fixed wings, optional): _STABILIZED_, MANUAL

@@ -51,7 +51,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
-#include <semaphore.h>
+#include <px4_sem.h>
 
 #include <sys/stat.h>
 
@@ -96,8 +96,8 @@ static struct param_info_s *param_info_base = (struct param_info_s *) &px4_param
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t			param;
 	union param_value_u	val;
+	param_t			param;
 	bool			unsaved;
 };
 
@@ -165,10 +165,14 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
+// TODO: not working on Snappy just yet
+//static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
+	// TODO: this doesn't seem to work on Snappy
 	//do {} while (px4_sem_wait(&param_sem) != 0);
 }
 
@@ -176,6 +180,7 @@ param_lock(void)
 static void
 param_unlock(void)
 {
+	// TODO: this doesn't seem to work on Snappy
 	//px4_sem_post(&param_sem);
 }
 
@@ -184,6 +189,13 @@ static void
 param_assert_locked(void)
 {
 	/* TODO */
+}
+
+void
+param_init(void)
+{
+	// TODO: not needed on Snappy yet.
+	// px4_sem_init(&param_sem, 0, 1);
 }
 
 /**
@@ -431,15 +443,22 @@ param_name(param_t param)
 bool
 param_value_is_default(param_t param)
 {
-	return param_find_changed(param) ? false : true;
+	struct param_wbuf_s *s;
+	param_lock();
+	s = param_find_changed(param);
+	param_unlock();
+	return s ? false : true;
 }
 
 bool
 param_value_unsaved(param_t param)
 {
-	static struct param_wbuf_s *s;
+	struct param_wbuf_s *s;
+	param_lock();
 	s = param_find_changed(param);
-	return (s && s->unsaved) ? true : false;
+	bool ret = s && s->unsaved;
+	param_unlock();
+	return ret;
 }
 
 enum param_type_e
@@ -533,7 +552,7 @@ param_get(param_t param, void *val)
 
 	const void *v = param_get_value_ptr(param);
 
-	if (val != NULL) {
+	if (val && v) {
 		memcpy(val, v, param_size(param));
 		result = 0;
 	}
@@ -773,8 +792,6 @@ param_reset_all(void)
 void
 param_reset_excludes(const char *excludes[], int num_excludes)
 {
-	param_lock();
-
 	param_t	param;
 
 	for (param = 0; handle_in_range(param); param++) {
@@ -797,8 +814,6 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 		}
 	}
 
-	param_unlock();
-
 	_param_notify_changes(false);
 }
 
@@ -813,6 +828,7 @@ int
 param_set_default_file(const char *filename)
 {
 	if (param_user_file != NULL) {
+		// we assume this is not in use by some other thread
 		free(param_user_file);
 		param_user_file = NULL;
 	}

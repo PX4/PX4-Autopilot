@@ -47,20 +47,25 @@
 
 #define SENSOR_COUNT_MAX		3
 
+
+#define TC_ERROR_INITIAL_TEMP_TOO_HIGH 110 ///< starting temperature was above the configured allowed temperature
+
 /**
  * Base class for temperature calibration types with abstract methods (for all different sensor types)
  */
 class TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationBase(float min_temperature_rise)
-		: _min_temperature_rise(min_temperature_rise) {}
+	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature),
+		  _max_start_temperature(max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationBase() {}
 
 	/**
 	 * check & update new sensor data.
-	 * @return progress in range [0, 100], 110 when finished, <0 on error
+	 * @return progress in range [0, 100], 110 when finished, <0 on error,
+	 *         -TC_ERROR_INITIAL_TEMP_TOO_HIGH if starting temperature is too hot
 	 */
 	virtual int update() = 0;
 
@@ -85,6 +90,8 @@ protected:
 	inline int set_parameter(const char *format_str, unsigned index, const void *value);
 
 	float _min_temperature_rise; ///< minimum difference in temperature before the process finishes
+	float _min_start_temperature; ///< minimum temperature before the process starts
+	float _max_start_temperature; ///< maximum temperature above which the process does not start and an error is declared
 };
 
 
@@ -110,8 +117,8 @@ template <int Dim, int PolyfitOrder>
 class TemperatureCalibrationCommon : public TemperatureCalibrationBase
 {
 public:
-	TemperatureCalibrationCommon(float min_temperature_rise)
-		: TemperatureCalibrationBase(min_temperature_rise) {}
+	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature, max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationCommon() {}
 
@@ -123,7 +130,16 @@ public:
 		int num_not_complete = 0;
 
 		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-			num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
+			int status = update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
+
+			if (status == -1) {
+				return -1;
+
+			} else if (status == -TC_ERROR_INITIAL_TEMP_TOO_HIGH) {
+				return -TC_ERROR_INITIAL_TEMP_TOO_HIGH;
+			}
+
+			num_not_complete += status;
 		}
 
 		if (num_not_complete > 0) {
@@ -149,21 +165,24 @@ protected:
 	struct PerSensorData {
 		float sensor_sample_filt[Dim + 1]; ///< last value is the temperature
 		polyfitter < PolyfitOrder + 1 > P[Dim];
-		unsigned hot_soak_sat = 0;
-		uint32_t device_id = 0;
-		bool cold_soaked = false;
-		bool hot_soaked = false;
-		bool tempcal_complete = false;
-		float low_temp = 0.f;
-		float high_temp = 0.f;
-		float ref_temp = 0.f;
+		unsigned hot_soak_sat = 0; /**< counter that increments every time the sensor temperature reduces
+									from the last reading */
+		uint32_t device_id = 0; ///< ID for the sensor being calibrated
+		bool cold_soaked = false; ///< true when the sensor cold soak starting temperature condition had been
+		/// verified and the starting temperature set
+		bool hot_soaked = false; ///< true when the sensor has achieved the specified temperature increase
+		bool tempcal_complete = false; ///< true when the calibration has been completed
+		float low_temp = 0.f; ///< low temperature recorded at start of calibration (deg C)
+		float high_temp = 0.f; ///< highest temperature recorded during calibration (deg C)
+		float ref_temp = 0.f; /**< calibration reference temperature, nominally in the middle of the
+							calibration temperature range (deg C) */
 	};
 
 	PerSensorData _data[SENSOR_COUNT_MAX];
 
 	/**
 	 * update a single sensor instance
-	 * @return 0 when done, 1 not finished yet
+	 * @return 0 when done, 1 not finished yet, <0 for an error
 	 */
 	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
 

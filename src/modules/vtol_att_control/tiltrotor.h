@@ -73,6 +73,8 @@ private:
 		float front_trans_dur_p2;
 		int fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 		int airspeed_mode;
+		int diff_thrust;
+		float diff_thrust_scale;
 	} _params_tiltrotor;
 
 	struct {
@@ -87,6 +89,8 @@ private:
 		param_t front_trans_dur_p2;
 		param_t fw_motors_off;
 		param_t airspeed_mode;
+		param_t diff_thrust;
+		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {

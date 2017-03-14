@@ -17,12 +17,12 @@ This repository holds the [PX4 Pro](http://px4.io) flight control solution for d
 
 The PX4 Dev Team syncs up on its weekly dev call (connect via [Mumble](http://mumble.info) client).
 
-  * TIME: 19:00h Zurich time, 1 p.m. Eastern Time, 10 a.m. Pacific Standard Time
+  * When: Tuesday 17:00 Central European Time, 11:00 Eastern Time, 08:00 Pacific Standard Time
   * Server: sitl01.dronetest.io
   * Port: 64738
   * Password: px4
   * The agenda is announced in advance on the [PX4 Discuss](http://discuss.px4.io/c/weekly-dev-call)
-  * Issues and PRs may be labelled "devcall" to flag them for discussion### Users ###
+  * Issues and PRs may be labelled "devcall" to flag them for discussion
 
 Please refer to the [user documentation](http://px4.io/user-guide/) and [user forum](http://discuss.px4.io) for flying drones with the PX4 flight stack.
 
@@ -31,6 +31,7 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * [Developer Forum](http://discuss.px4.io)
   * [Guide for Contributions](https://github.com/PX4/Firmware/blob/master/CONTRIBUTING.md)
   * [Developer guide](http://dev.px4.io)
+  * [Build instructions](https://dev.px4.io/starting-building.html)
 
 ## Maintenance Team
 
@@ -41,11 +42,11 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * Multicopter Flight Control - [Dennis Mannhart](http://github.com/Stifael), [Matthias Grob](http://github.com/MaEtUgR)
   * VTOL Flight Control - [Roman Bapst](http://github.com/tumbili), [Andreas Antener](http://github.com/AndreasAntener), [Sander Smeets](http://github.com/sanderux)
   * Fixed Wing Flight Control - [Daniel Agar](http://github.com/dagar), [Paul Riseborough](http://github.com/priseborough)
-  * Racers - Anton Matosov / [Mark Whitehorn](http://github.com/kd0aij)
+  * Racers - [Anton Matosov](http://github.com/anton-matosov) / [Mark Whitehorn](http://github.com/kd0aij)
   * OS / drivers - [David Sidrane](http://github.com/david_s5)
   * UAVCAN / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
   * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
-  * VIO - Christoph Tobler
+  * VIO - [Mohammed Kabir](http://github.com/mhkabir), [Christoph Tobler](http://github.com/ChristophTobler)
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](http://github.com/vilhjalmur89)
   * Snapdragon - [Mark Charlebois](http://github.com/mcharleb)
   * Intel Aero - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
@@ -58,7 +59,7 @@ This repository contains code supporting these boards:
   * [Snapdragon Flight](http://dev.px4.io/hardware-snapdragon.html)
   * Intel Aero
   * Raspberry PI with Navio 2
-  * [Parrot Bebop](http://dev.px4.io/starting-building.html#parrot-bebop)
+  * [Parrot Bebop 2](http://dev.px4.io/starting-building.html#parrot-bebop)
   * FMUv1.x
   * FMUv2.x ([Pixhawk](http://dev.px4.io/hardware-pixhawk.html) and [Pixfalcon](http://dev.px4.io/hardware-pixfalcon.html))
   * FMUv3.x ([Pixhawk 2](http://dev.px4.io/hardware-pixhawk.html))

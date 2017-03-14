@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission_result.h>
@@ -133,19 +134,20 @@ public:
 	/**
 	 * Getters
 	 */
-	struct vehicle_status_s	    *get_vstatus() { return &_vstatus; }
-	struct vehicle_land_detected_s	    *get_land_detected() { return &_land_detected; }
-	struct vehicle_control_mode_s	    *get_control_mode() { return &_control_mode; }
-	struct vehicle_global_position_s   *get_global_position() { return &_global_pos; }
-	struct vehicle_gps_position_s	    *get_gps_position() { return &_gps_pos; }
-	struct sensor_combined_s	    *get_sensor_combined() { return &_sensor_combined; }
-	struct home_position_s		    *get_home_position() { return &_home_pos; }
-	bool				    home_position_valid() { return (_home_pos.timestamp > 0); }
+	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
+	struct vehicle_control_mode_s *get_control_mode() { return &_control_mode; }
+	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
+	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
+	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
+	struct sensor_combined_s *get_sensor_combined() { return &_sensor_combined; }
+	struct home_position_s *get_home_position() { return &_home_pos; }
+	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
-	struct mission_result_s	    *get_mission_result() { return &_mission_result; }
-	struct geofence_result_s		    *get_geofence_result() { return &_geofence_result; }
+	struct mission_result_s *get_mission_result() { return &_mission_result; }
+	struct geofence_result_s *get_geofence_result() { return &_geofence_result; }
 	struct vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
@@ -238,6 +240,7 @@ private:
 	orb_advert_t	_mavlink_log_pub;		/**< the uORB advert to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
+	int		_local_pos_sub;		/**< local position subscription */
 	int		_gps_pos_sub;		/**< gps position subscription */
 	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
@@ -261,6 +264,7 @@ private:
 	vehicle_land_detected_s				_land_detected;		/**< vehicle land_detected */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
+	vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	vehicle_gps_position_s				_gps_pos;		/**< gps position */
 	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
@@ -323,6 +327,11 @@ private:
 	 * Retrieve global position
 	 */
 	void		global_position_update();
+
+	/**
+	 * Retrieve local position
+	 */
+	void		local_position_update();
 
 	/**
 	 * Retrieve gps position

@@ -50,6 +50,7 @@ set(msg_file_names
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_replay.msg
+	ekf2_timestamps.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -66,6 +67,7 @@ set(msg_file_names
 	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
@@ -125,7 +127,7 @@ set(msg_file_names
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
-	vision_position_estimate.msg
+	vehicle_status_flags.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	)

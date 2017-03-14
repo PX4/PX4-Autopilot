@@ -49,9 +49,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <mathlib/mathlib.h>
-#include <nuttx/clock.h>
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_workqueue.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -67,6 +65,7 @@
 #include <drivers/drv_hrt.h>
 #include <board_config.h>
 
+#include "interfaces/src/camera_interface.h"
 #include "interfaces/src/pwm.h"
 #include "interfaces/src/relay.h"
 
@@ -74,10 +73,11 @@
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
-typedef enum {
+typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_RELAY,
-	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM
+	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
+	CAMERA_INTERFACE_MODE_MAVLINK
 } camera_interface_mode_t;
 
 class CameraTrigger
@@ -124,9 +124,9 @@ public:
 	void		stop();
 
 	/**
-	 * Display info.
+	 * Display status.
 	 */
-	void		info();
+	void		status();
 
 	/**
 	 * Trigger one image
@@ -143,8 +143,6 @@ private:
 	struct hrt_call		_keepalivecall_down;
 
 	static struct work_s	_work;
-
-	int 			_gpio_fd;
 
 	int			_mode;
 	float			_activation_time;
@@ -164,7 +162,6 @@ private:
 	param_t			_p_activation_time;
 	param_t			_p_interval;
 	param_t			_p_distance;
-	param_t			_p_pin;
 	param_t			_p_interface;
 
 	camera_interface_mode_t	_camera_interface_mode;
@@ -216,7 +213,6 @@ CameraTrigger::CameraTrigger() :
 	_disengage_turn_on_off_call {},
 	_keepalivecall_up {},
 	_keepalivecall_down {},
-	_gpio_fd(-1),
 	_mode(0),
 	_activation_time(0.5f /* ms */),
 	_interval(100.0f /* ms */),
@@ -254,15 +250,25 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_interface, &_camera_interface_mode);
 
 	switch (_camera_interface_mode) {
+#ifdef __PX4_NUTTX
+
 	case CAMERA_INTERFACE_MODE_RELAY:
-		_camera_interface = new CameraInterfaceRelay;
+		_camera_interface = new CameraInterfaceRelay();
 		break;
 
 	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:
-		_camera_interface = new CameraInterfacePWM;
+		_camera_interface = new CameraInterfacePWM();
+		break;
+
+#endif
+
+	case CAMERA_INTERFACE_MODE_MAVLINK:
+		/* start an interface that does nothing. Instead mavlink will listen to the camera_trigger uORB message */
+		_camera_interface = new CameraInterface();
 		break;
 
 	default:
+		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
 		break;
 	}
 
@@ -581,7 +587,7 @@ CameraTrigger::keep_alive_down(void *arg)
 }
 
 void
-CameraTrigger::info()
+CameraTrigger::status()
 {
 	PX4_INFO("state : %s", _trigger_enabled ? "enabled" : "disabled");
 	PX4_INFO("mode : %i", _mode);
@@ -593,7 +599,7 @@ CameraTrigger::info()
 
 static int usage()
 {
-	PX4_ERR("usage: camera_trigger {start|stop|info|test}\n");
+	PX4_INFO("usage: camera_trigger {start|stop|status|test}\n");
 	return 1;
 }
 
@@ -628,8 +634,8 @@ int camera_trigger_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "stop")) {
 		camera_trigger::g_camera_trigger->stop();
 
-	} else if (!strcmp(argv[1], "info")) {
-		camera_trigger::g_camera_trigger->info();
+	} else if (!strcmp(argv[1], "status")) {
+		camera_trigger::g_camera_trigger->status();
 
 	} else if (!strcmp(argv[1], "enable")) {
 		camera_trigger::g_camera_trigger->control(true);

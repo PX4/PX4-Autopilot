@@ -51,6 +51,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/battery_status.h>
 
 #include "LandDetector.h"
 
@@ -74,6 +75,8 @@ protected:
 	virtual bool _get_ground_contact_state() override;
 
 	virtual bool _get_freefall_state() override;
+
+	virtual float _get_max_altitude() override;
 private:
 
 	/**
@@ -89,6 +92,9 @@ private:
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
+		param_t manual_stick_down_threshold;
+		param_t altitude_max;
+		param_t manual_stick_up_position_takeoff_threshold;
 	} _paramHandle;
 
 	struct {
@@ -101,6 +107,9 @@ private:
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
+		float manual_stick_down_threshold;
+		float altitude_max;
+		float manual_stick_up_position_takeoff_threshold;
 	} _params;
 
 	int _vehicleLocalPositionSub;
@@ -110,6 +119,7 @@ private:
 	int _manualSub;
 	int _ctrl_state_sub;
 	int _vehicle_control_mode_sub;
+	int _battery_sub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
 	struct actuator_controls_s		_actuators;
@@ -118,15 +128,16 @@ private:
 	struct manual_control_setpoint_s	_manual;
 	struct control_state_s			_ctrl_state;
 	struct vehicle_control_mode_s		_control_mode;
+	struct battery_status_s _battery;
 
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 	uint64_t _arming_time;
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
-	bool _get_position_lock_available();
-	bool _get_manual_control_present();
-	bool _get_minimal_thrust();
+	bool _has_position_lock();
+	bool _has_manual_control_present();
+	bool _has_minimal_thrust();
 };
 
 

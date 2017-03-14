@@ -835,7 +835,7 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	}
 
 	/* update the latest gyro selection */
-	if (_sensor_correction.selected_gyro_instance < sizeof(_sensor_gyro_sub) / sizeof(_sensor_gyro_sub[0])) {
+	if (_sensor_correction.selected_gyro_instance < _gyro_count) {
 		_selected_gyro = _sensor_correction.selected_gyro_instance;
 	}
 }
@@ -1109,6 +1109,10 @@ MulticopterAttitudeControl::task_main()
 
 	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
 
+	if (_gyro_count == 0) {
+		_gyro_count = 1;
+	}
+
 	for (unsigned s = 0; s < _gyro_count; s++) {
 		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
 	}
@@ -1120,10 +1124,11 @@ MulticopterAttitudeControl::task_main()
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
-	poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 	poll_fds.events = POLLIN;
 
 	while (!_task_should_exit) {
+
+		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&poll_fds, 1, 100);

@@ -20,7 +20,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/att_pos_mocap.h>
 
 // uORB Publications
@@ -240,7 +239,7 @@ private:
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<manual_control_setpoint_s> _sub_manual;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vision_position_estimate_s> _sub_vision_pos;
+	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
 	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
@@ -317,6 +316,7 @@ private:
 	BlockParamFloat  _t_max_grade;
 
 	// init origin
+	BlockParamInt  	 _fake_origin;
 	BlockParamFloat  _init_origin_lat;
 	BlockParamFloat  _init_origin_lon;
 

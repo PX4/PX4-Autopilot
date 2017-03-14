@@ -65,26 +65,10 @@
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t                 param;
 	union param_value_u     val;
+	param_t                 param;
 	bool                    unsaved;
 };
-
-
-/** lock the parameter store */
-static void
-param_lock(void)
-{
-	//do {} while (sem_wait(&param_sem) != 0);
-}
-
-/** unlock the parameter store */
-static void
-param_unlock(void)
-{
-	//sem_post(&param_sem);
-}
-
 
 static int
 param_export_internal(bool only_unsaved)
@@ -92,8 +76,6 @@ param_export_internal(bool only_unsaved)
 	struct param_wbuf_s *s = NULL;
 	struct bson_encoder_s encoder;
 	int     result = -1;
-
-	param_lock();
 
 	/* Use realloc */
 
@@ -125,7 +107,7 @@ param_export_internal(bool only_unsaved)
 		switch (param_type(s->param)) {
 
 		case PARAM_TYPE_INT32:
-			param_get(s->param, &i);
+			i = s->val.i;
 
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
@@ -135,7 +117,7 @@ param_export_internal(bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			param_get(s->param, &f);
+			f = s->val.f;
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
@@ -165,7 +147,6 @@ param_export_internal(bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
 
 	if (result == 0) {
 
@@ -361,11 +342,6 @@ int flash_param_save(void)
 }
 
 
-int flash_param_save_default(void)
-{
-	return param_export_internal(false);
-}
-
 
 int flash_param_load(void)
 {
@@ -375,5 +351,5 @@ int flash_param_load(void)
 
 int flash_param_import(void)
 {
-	return 0;
+	return -1;
 }

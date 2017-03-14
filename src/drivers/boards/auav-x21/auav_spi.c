@@ -74,12 +74,12 @@ __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
 
-	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
 	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
-	px4_arch_configgpio(GPIO_EXTI_ICM_20608_G_DRDY);
+	px4_arch_configgpio(GPIO_EXTI_ICM_2060X_DRDY);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
@@ -94,23 +94,27 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	switch (devid) {
 
-	case PX4_SPIDEV_ICM:
+	/* intended fallthrough */
+	case PX4_SPIDEV_ICM_20602:
+
+	/* intended fallthrough */
+	case PX4_SPIDEV_ICM_20608:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, !selected);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, 1);
 		break;
 
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
-		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_BARO, 1);
 		px4_arch_gpiowrite(GPIO_SPI_CS_MPU, !selected);
 		break;
@@ -144,11 +148,11 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
-	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G_OFF);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X_OFF);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO_OFF);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU_OFF);
 
-	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_20608_G_OFF, 0);
+	px4_arch_gpiowrite(GPIO_SPI_CS_ICM_2060X_OFF, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
 	px4_arch_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
@@ -160,10 +164,10 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
 	px4_arch_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	px4_arch_configgpio(GPIO_EXTI_ICM_20608_G_DRDY_OFF);
+	px4_arch_configgpio(GPIO_EXTI_ICM_2060X_DRDY_OFF);
 	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
 
-	px4_arch_gpiowrite(GPIO_EXTI_ICM_20608_G_DRDY_OFF, 0);
+	px4_arch_gpiowrite(GPIO_EXTI_ICM_2060X_DRDY_OFF, 0);
 	px4_arch_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	/* set the sensor rail off */
@@ -184,7 +188,7 @@ __EXPORT void board_spi_reset(int ms)
 
 	/* reconfigure the SPI pins */
 #ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
@@ -194,7 +198,7 @@ __EXPORT void board_spi_reset(int ms)
 
 	// // XXX bring up the EXTI pins again
 	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
-	// px4_arch_configgpio(GPIO_EXTI_ICM_20608_G_DRDY);
+	// px4_arch_configgpio(GPIO_EXTI_ICM_2060X_DRDY);
 
 #endif
 }

@@ -1008,6 +1008,9 @@ endfunction()
 #
 #	Input:
 #		BOARD : the board
+#		MODULES : a list of px4 modules used to limit scope of the paramaters
+#		OVERRIDES : A json dict with param names as keys and param default
+# 			overrides as values
 #
 #	Output:
 #		OUT	: the generated xml file
@@ -1018,8 +1021,9 @@ endfunction()
 function(px4_generate_parameters_xml)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_xml
-		ONE_VALUE OUT BOARD SCOPE OVERRIDES
-		REQUIRED OUT BOARD
+		ONE_VALUE OUT BOARD OVERRIDES
+		MULTI_VALUE MODULES
+		REQUIRED MODULES OUT BOARD
 		ARGN ${ARGN})
 	set(path ${PX4_SOURCE_DIR}/src)
 	file(GLOB_RECURSE param_src_files
@@ -1028,10 +1032,11 @@ function(px4_generate_parameters_xml)
 	if (NOT OVERRIDES)
 		set(OVERRIDES "{}")
 	endif()
+	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml --scope ${SCOPE}
-			--overrides ${OVERRIDES}
+			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
+			--overrides ${OVERRIDES} --modules ${module_list}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
@@ -1045,36 +1050,36 @@ endfunction()
 #	Generates a source file with all parameters.
 #
 #	Usage:
-#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> [SCOPE <cmake file for scoping>])
+#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> MODULES px4 module list)
 #
 #	Input:
 #		XML   : the parameters.xml file
-#		SCOPE : the cmake file used to limit scope of the paramaters
+#		MODULES : a list of px4 modules used to limit scope of the paramaters
 #		DEPS  : target dependencies
 #
 #	Output:
 #		OUT	: the generated source files
 #
 #	Example:
-#		px4_generate_parameters_source(OUT param_files XML parameters.xml SCOPE ${OS}_${BOARD}_${LABEL}.cmake )
+#		px4_generate_parameters_source(OUT param_files XML parameters.xml MODULES lib/controllib modules/ekf2)
 #
 function(px4_generate_parameters_source)
 	px4_parse_function_args(
 		NAME px4_generate_parameters_source
-		ONE_VALUE OUT XML SCOPE DEPS
-		REQUIRED OUT XML
+		ONE_VALUE OUT XML DEPS
+		MULTI_VALUE MODULES
+		REQUIRED MODULES OUT XML
 		ARGN ${ARGN})
 	set(generated_files
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.h
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
-	if ("${config_generate_parameters_scope}" STREQUAL "ALL")
-		set(SCOPE "")
-	endif()
+	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
 	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py ${XML} ${SCOPE}
-		DEPENDS ${XML} ${DEPS} ${SCOPE}
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+		--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
+		DEPENDS ${XML} ${DEPS}
 		)
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
@@ -1258,5 +1263,44 @@ function(px4_add_library target)
 	# Pass variable to the parent px4_add_module.
 	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
 endfunction()
+
+#=============================================================================
+#
+#	px4_find_python_module
+#
+#	Find a required python module
+#
+#   Usage
+#		px4_find_python_module(module_name [REQUIRED])
+#
+function(px4_find_python_module module)
+	string(TOUPPER ${module} module_upper)
+	if(NOT PY_${module_upper})
+		if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
+			set(PY_${module}_FIND_REQUIRED TRUE)
+		endif()
+		# A module's location is usually a directory, but for binary modules
+		# it's a .so file.
+		execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+			"import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
+			RESULT_VARIABLE _${module}_status
+			OUTPUT_VARIABLE _${module}_location
+			ERROR_QUIET 
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
+		if(NOT _${module}_status)
+			set(PY_${module_upper} ${_${module}_location} CACHE STRING
+				"Location of Python module ${module}")
+		endif()
+	endif()
+	find_package_handle_standard_args(PY_${module}
+		"couldn't find python module ${module}:
+		\nfor debian systems try: \
+		\n\tsudo apt-get install python-${module} \
+		\nor for all other OSs/debian: \
+		\n\tpip install ${module}\n" PY_${module_upper})
+	#if (NOT PY_${module}_FOUND)
+		#message(FATAL_ERROR "python module not found, exitting")
+	#endif()
+endfunction(px4_find_python_module)
 
 # vim: set noet fenc=utf-8 ff=unix nowrap:

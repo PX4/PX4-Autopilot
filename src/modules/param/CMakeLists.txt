@@ -35,7 +35,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 px4_generate_parameters_source(OUT param_files
 	XML ${PX4_BINARY_DIR}/parameters.xml
-	SCOPE ${PX4_SOURCE_DIR}/cmake/configs/${OS}_${BOARD}_${LABEL}.cmake
+	MODULES ${config_module_list}
 	DEPS xml_gen
 	)
 

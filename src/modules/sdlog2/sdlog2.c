@@ -87,7 +87,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
@@ -1188,7 +1187,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct att_pos_mocap_s att_pos_mocap;
-		struct vision_position_estimate_s vision_pos;
+		struct vehicle_local_position_s vision_pos;
+		struct vehicle_attitude_s vision_att;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -1305,6 +1305,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int sat_info_sub;
 		int att_pos_mocap_sub;
 		int vision_pos_sub;
+		int vision_att_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1350,6 +1351,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.triplet_sub = -1;
 	subs.att_pos_mocap_sub = -1;
 	subs.vision_pos_sub = -1;
+	subs.vision_att_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
 	subs.airspeed_sub = -1;
@@ -1588,7 +1590,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			if (replay_updated) {
 				log_msg.msg_type = LOG_RPL1_MSG;
-				log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
+				log_msg.body.log_RPL1.time_ref = buf.replay.timestamp;
 				log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
 				log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
 				log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
@@ -1609,7 +1611,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				if (buf.replay.time_usec > 0) {
 					log_msg.msg_type = LOG_RPL2_MSG;
 					log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec;
 					log_msg.body.log_RPL2.lat = buf.replay.lat;
 					log_msg.body.log_RPL2.lon = buf.replay.lon;
 					log_msg.body.log_RPL2.alt = buf.replay.alt;
@@ -1990,7 +1992,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- VISION POSITION --- */
-			if (copy_if_updated(ORB_ID(vision_position_estimate), &subs.vision_pos_sub, &buf.vision_pos)) {
+			if (copy_if_updated(ORB_ID(vehicle_vision_position), &subs.vision_pos_sub, &buf.vision_pos) ||
+			    copy_if_updated(ORB_ID(vehicle_vision_attitude), &subs.vision_att_sub, &buf.vision_att)) {
 				log_msg.msg_type = LOG_VISN_MSG;
 				log_msg.body.log_VISN.x = buf.vision_pos.x;
 				log_msg.body.log_VISN.y = buf.vision_pos.y;
@@ -1998,10 +2001,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_VISN.vx = buf.vision_pos.vx;
 				log_msg.body.log_VISN.vy = buf.vision_pos.vy;
 				log_msg.body.log_VISN.vz = buf.vision_pos.vz;
-				log_msg.body.log_VISN.qw = buf.vision_pos.q[0]; // vision_position_estimate uses [w,x,y,z] convention
-				log_msg.body.log_VISN.qx = buf.vision_pos.q[1];
-				log_msg.body.log_VISN.qy = buf.vision_pos.q[2];
-				log_msg.body.log_VISN.qz = buf.vision_pos.q[3];
+				log_msg.body.log_VISN.qw = buf.vision_att.q[0]; // vision_position_estimate uses [w,x,y,z] convention
+				log_msg.body.log_VISN.qx = buf.vision_att.q[1];
+				log_msg.body.log_VISN.qy = buf.vision_att.q[2];
+				log_msg.body.log_VISN.qz = buf.vision_att.q[3];
 				LOGBUFFER_WRITE_AND_COUNT(VISN);
 			}
 

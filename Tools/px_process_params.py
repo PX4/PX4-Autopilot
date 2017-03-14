@@ -50,7 +50,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc, scope, cmakeparser
+from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc
 
 import re
 import json
@@ -112,11 +112,12 @@ def main():
                         default="Automagically updated parameter documentation from code.",
                         help="DokuWiki page edit summary")
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
-    parser.add_argument('--scope', default=None, action='store', help="pass the scope (list of compiled modules)")
     parser.add_argument("-o", "--overrides",
                         default="{}",
                         metavar="OVERRIDES",
                         help="a dict of overrides in the form of a json string")
+    parser.add_argument('--modules', default=None, action='store', help="list of compiled modules")
+
 
     args = parser.parse_args()
 
@@ -133,22 +134,8 @@ def main():
     # Scan directories, and parse the files
     if (args.verbose): print("Scanning source path " + args.src_path)
     
-    use_scope = False
-    cmake_scope = scope.Scope();
-    
-    if args.scope:
-        with codecs.open(args.scope, 'r', 'utf-8') as f:
-            try:
-                contents = f.read()
-                f.close()
-                cmake_parser = cmakeparser.CMakeParser()
-                cmake_parser.Parse(cmake_scope, contents)
-                use_scope = True
-            except:
-                use_scope = False
-                pass
-    if use_scope and len(cmake_scope.scope) > 0:
-        if not scanner.ScanDir([os.path.join(args.src_path, p) for p in cmake_scope.scope], parser):
+    if args.modules is not None:
+        if not scanner.ScanDir([os.path.join(args.src_path, p) for p in args.modules.split(',')], parser):
             sys.exit(1)
     else:
         if not scanner.ScanDir([args.src_path], parser):

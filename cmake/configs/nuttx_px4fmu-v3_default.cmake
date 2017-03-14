@@ -64,6 +64,7 @@ set(config_module_list
 	systemcmds/dumpfile
 	systemcmds/esc_calib
 	systemcmds/hardfault_log
+	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/motor_ramp
 	systemcmds/mtd
@@ -146,16 +147,19 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
+	lib/led
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-	platforms/nuttx
 
-	# had to add for cmake, not sure why wasn't in original config
+	#
+	# Platform
+	#
 	platforms/common
+	platforms/nuttx
 	platforms/nuttx/px4_layer
 
 	#
@@ -169,27 +173,32 @@ set(config_module_list
 	examples/rover_steering_control
 
 	#
+	# Segway
+	#
+	examples/segway
+
+	#
 	# Demo apps
 	#
-	#examples/math_demo
+
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 	examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
+	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	#examples/px4_mavlink_debug
+	examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	#examples/fixedwing_control
+	examples/fixedwing_control
 
 	# Hardware test
-	#examples/hwtest
+	examples/hwtest
 
 	# EKF
 	examples/ekf_att_pos_estimator

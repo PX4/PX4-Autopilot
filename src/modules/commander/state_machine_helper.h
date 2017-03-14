@@ -105,7 +105,7 @@ struct status_flags_s {
     bool ever_had_barometer_data;                        // Set to true if ever had valid barometer data before
 };
 
-bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
+bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    struct battery_status_s *battery,
@@ -123,7 +123,7 @@ transition_result_t
 main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
 		      status_flags_s *status_flags, struct commander_state_s *internal_state);
 
-transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_state, orb_advert_t *mavlink_log_pub);
+transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
 
 void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
 		     orb_advert_t *mavlink_log_pub, const char *reason);

@@ -179,6 +179,21 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
 /**
+ * RC stick override threshold
+ *
+ * If an RC stick is moved more than by this amount the system will interpret this as
+ * override request by the pilot.
+ *
+ * @group Commander
+ # @unit %
+ * @min 5
+ * @max 40
+ * @decimal 0
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
+
+/**
  * Home set horizontal threshold
  *
  * The home position will be set if the estimated positioning accuracy is below the threshold.
@@ -300,8 +315,9 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  *
  * @group Commander
  * @value 0 Warning
- * @value 1 Return to Land
+ * @value 1 Return to land
  * @value 2 Land at current position
+ * @value 3 Return to land at critically low level, land at current position if reaching dangerously low levels
  * @decimal 0
  * @increment 1
  */

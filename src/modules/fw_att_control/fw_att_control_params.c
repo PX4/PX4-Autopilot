@@ -273,6 +273,30 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
 
 /**
+ * Roll control to yaw control feedforward gain.
+ *
+ * This gain can be used to counteract the "adverse yaw" effect for fixed wings.
+ * When the plane enters a roll it will tend to yaw the nose out of the turn.
+ * This gain enables the use of a yaw actuator (rudder, airbrakes, ...) to counteract
+ * this effect.
+ *
+ * @min 0.0
+ * @decimal 1
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
+
+/**
+ * Enable wheel steering controller
+ *
+ * @boolean
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_W_EN, 0);
+
+
+/**
  * Wheel steering rate proportional gain
  *
  * This defines how much the wheel steering input will be commanded depending on the
@@ -575,3 +599,56 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
+
+/**
+ * Acro body x max rate.
+ *
+ * This is the rate the controller is trying to achieve if the user applies full roll
+ * stick input in acro mode.
+ *
+ * @min 45
+ * @max 720
+ * @unit degrees
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
+
+/**
+ * Acro body y max rate.
+ *
+ * This is the body y rate the controller is trying to achieve if the user applies full pitch
+ * stick input in acro mode.
+ *
+ * @min 45
+ * @max 720
+ * @unit degrees
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
+
+/**
+ * Acro body z max rate.
+ *
+ * This is the body z rate the controller is trying to achieve if the user applies full yaw
+ * stick input in acro mode.
+ *
+ * @min 10
+ * @max 180
+ * @unit degrees
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
+
+/**
+ * Threshold for Rattitude mode
+ *
+ * Manual input needed in order to override attitude control rate setpoints
+ * and instead pass manual stick inputs as rate setpoints
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RATT_TH, 0.8f);

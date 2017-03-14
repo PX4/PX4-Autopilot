@@ -150,7 +150,7 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 
 		for (unsigned i = 0; i < 16; i++) {
 			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
-				if (i != 3) {
+				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
@@ -386,12 +386,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		{
 			hil_attitude.timestamp = timestamp;
 
-			math::Quaternion q(hil_state.attitude_quaternion);
-
-			hil_attitude.q[0] = q(0);
-			hil_attitude.q[1] = q(1);
-			hil_attitude.q[2] = q(2);
-			hil_attitude.q[3] = q(3);
+			matrix::Quatf q(hil_state.attitude_quaternion);
+			q.copyTo(hil_attitude.q);
 
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;

@@ -450,11 +450,11 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* store board ID */
-	raw_uuid_uint32_t mcu_id;
-	board_get_uuid_raw32(mcu_id, NULL);
+	uuid_uint32_t mcu_id;
+	board_get_uuid32(mcu_id);
 
 	/* store last 32bit number - not unique, but unique in a given set */
-	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[2]);
+	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[PX4_CPU_UUID_WORD32_UNIQUE_H]);
 
 	if (res == PX4_OK) {
 		/* auto-save to EEPROM */

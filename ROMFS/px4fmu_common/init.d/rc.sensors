@@ -73,6 +73,11 @@ then
 	then
 	fi
 
+	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	if mpu6000 -R 2 -T 20602 start
+	then
+	fi
+
 	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 	if mpu6000 -R 2 -T 20608 start
 	then
@@ -193,6 +198,11 @@ then
 	then
 	fi
 
+	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	if mpu6000 -R 2 -T 20602 start
+	then
+	fi
+
 	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
@@ -281,7 +291,7 @@ fi
 
 if ver hwcmp AEROFC_V1
 then
-	if ms5611 start
+	if ms5611 -T 0 start
 	then
 	fi
 
@@ -295,6 +305,10 @@ then
 	fi
 
 	if ist8310 -C -b 1 -R 4 start
+	then
+	fi
+
+	if aerofc_adc start
 	then
 	fi
 fi
@@ -311,15 +325,16 @@ then
 	then
 	fi
 
+	# Internal SPI bus
+	if lis3mdl -R 0 start
+	then
+	fi
+	
 	# Possible external compasses
 	if hmc5883 -X start
 	then
 	fi
 
-	# Internal SPI bus
-	if lis3mdl -R 2 start
-	then
-	fi
 fi
 
 if ver hwcmp PX4FMU_V5
@@ -342,10 +357,6 @@ then
 
 	# Possible external compasses
 	if hmc5883 -X start
-	then
-	fi
-
-	if aerofc_adc start
 	then
 	fi
 fi

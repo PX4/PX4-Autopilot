@@ -76,7 +76,7 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(const Parameters &parameters);
+	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled);
 
 	/**
 	 * initialize subscriptions etc.
@@ -246,7 +246,7 @@ private:
 	orb_advert_t	_mavlink_log_pub = nullptr;
 
 	float _last_baro_pressure[SENSOR_COUNT_MAX]; /**< pressure from last baro sensors */
-	float _last_best_baro_pressure = 0.f; /**< pressure from last best baro */
+	float _last_best_baro_pressure = 0.0f; /**< pressure from last best baro */
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
 	uint64_t _last_accel_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
 	uint64_t _last_mag_timestamp[SENSOR_COUNT_MAX]; /**< latest full timestamp */
@@ -259,6 +259,7 @@ private:
 	math::Matrix<3, 3>	_mag_rotation[SENSOR_COUNT_MAX] = {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	const Parameters &_parameters;
+	const bool _hil_enabled; /**< is hardware-in-the-loop mode enabled? */
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */

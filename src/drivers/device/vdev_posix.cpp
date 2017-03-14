@@ -168,6 +168,11 @@ extern "C" {
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
 			ret = dev->close(filemap[fd]);
+
+			if (filemap[fd] != nullptr) {
+				delete filemap[fd];
+			}
+
 			filemap[fd] = nullptr;
 			pthread_mutex_unlock(&filemutex);
 			PX4_DEBUG("px4_close fd = %d", fd);
@@ -435,6 +440,11 @@ extern "C" {
 	bool px4_sim_delay_enabled()
 	{
 		return sim_delay;
+	}
+
+	bool px4_board_pwr(bool on)
+	{
+		return false;
 	}
 
 	const char *px4_get_device_names(unsigned int *handle)

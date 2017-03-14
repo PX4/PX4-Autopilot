@@ -344,6 +344,10 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 			MTT_ROTARY_WING,
 			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ACRO, TRANSITION_CHANGED },
 
+		{ "transition: MANUAL to ACRO - not rotary",
+			MTT_ALL_NOT_VALID,
+			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ACRO, TRANSITION_CHANGED },
+
 		{ "transition: ACRO to MANUAL",
 			MTT_ALL_NOT_VALID,
 			commander_state_s::MAIN_STATE_ACRO, commander_state_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
@@ -401,10 +405,6 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 			commander_state_s::MAIN_STATE_POSCTL, commander_state_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
 		// TRANSITION_DENIED tests
-
-		{ "transition: MANUAL to ACRO - not rotary",
-			MTT_ALL_NOT_VALID,
-			commander_state_s::MAIN_STATE_MANUAL, commander_state_s::MAIN_STATE_ACRO, TRANSITION_DENIED },
 
 		{ "no transition: MANUAL to AUTO_MISSION - global position not valid",
 			MTT_ALL_NOT_VALID,
@@ -477,7 +477,6 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 
 bool StateMachineHelperTest::isSafeTest()
 {
-	struct vehicle_status_s current_state = {};
 	struct safety_s safety = {};
 	struct actuator_armed_s armed = {};
 
@@ -485,31 +484,31 @@ bool StateMachineHelperTest::isSafeTest()
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_compare("is safe: not armed", is_safe(&current_state, &safety, &armed), true);
+	ut_compare("is safe: not armed", is_safe(&safety, &armed), true);
 
 	armed.armed = false;
 	armed.lockdown = true;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_compare("is safe: software lockdown", is_safe(&current_state, &safety, &armed), true);
+	ut_compare("is safe: software lockdown", is_safe(&safety, &armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = true;
-	ut_compare("not safe: safety off", is_safe(&current_state, &safety, &armed), false);
+	ut_compare("not safe: safety off", is_safe(&safety, &armed), false);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = true;
 	safety.safety_off = false;
-	ut_compare("is safe: safety off", is_safe(&current_state, &safety, &armed), true);
+	ut_compare("is safe: safety off", is_safe(&safety, &armed), true);
 
 	armed.armed = true;
 	armed.lockdown = false;
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
-	ut_compare("not safe: no safety switch", is_safe(&current_state, &safety, &armed), false);
+	ut_compare("not safe: no safety switch", is_safe(&safety, &armed), false);
 
 	return true;
 }

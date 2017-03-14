@@ -1,9 +1,11 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <controllib/blocks.hpp>
 #include <controllib/uorb/blocks.hpp>
 
-using namespace control;
+using control::BlockPI;
+using control::BlockP;
 
 class BlockSegwayController : public control::BlockUorbEnabledAutopilot
 {
@@ -18,12 +20,15 @@ public:
 		_attPoll.fd = _att.getHandle();
 		_attPoll.events = POLLIN;
 	}
+
 	void update();
+
 private:
 	enum {CH_LEFT, CH_RIGHT};
+
 	BlockPI th2v;
 	BlockP q2v;
+
 	px4_pollfd_struct_t _attPoll;
 	uint64_t _timeStamp;
 };
-

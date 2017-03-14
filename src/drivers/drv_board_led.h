@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,40 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file sensors_init.h
+ * @file drv_board_led.h
  *
- * Sensor initialization code declaration, the specific implementations are
- * in the respective cpp files..
- *
- * @author Julian Oes <julian@oes.ch>
+ * LED driver API to control the onboard LED(s) via ioctl() interface
  */
 
-namespace sensors
-{
+#pragma once
 
-int sensors_init(void);
+#include <px4_defines.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-} /* namespace sensors */
+#define LED_BASE_DEVICE_PATH		"/dev/led"
+#define LED0_DEVICE_PATH		"/dev/led0"
+
+#define _LED_BASE		0x2800
+
+/* PX4 LED colour codes */
+#define LED_AMBER		1
+#define LED_RED			1	/* some boards have red rather than amber */
+#define LED_BLUE		0
+#define LED_SAFETY		2
+#define LED_GREEN		3
+
+
+#define LED_ON			_PX4_IOC(_LED_BASE, 0)
+#define LED_OFF			_PX4_IOC(_LED_BASE, 1)
+#define LED_TOGGLE		_PX4_IOC(_LED_BASE, 2)
+
+__BEGIN_DECLS
+
+/*
+ * Initialise the LED driver.
+ */
+__EXPORT void drv_led_start(void);
+
+__END_DECLS

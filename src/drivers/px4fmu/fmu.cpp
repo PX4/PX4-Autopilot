@@ -3421,6 +3421,7 @@ fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
+	bool fmu_was_running = false;
 
 	if (!strcmp(verb, "bind")) {
 		bind_spektrum();
@@ -3450,12 +3451,7 @@ fmu_main(int argc, char *argv[])
 		errx(0, "FMU driver stopped");
 	}
 
-	if (!strcmp(verb, "id")) {
-		char uid_fmt_buffer[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
-		board_get_uuid_formated32(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%0X", " ", &px4_legacy_word32_order);
-		printf("Board serial:\n %s\n", uid_fmt_buffer);
-		exit(0);
-	}
+	fmu_was_running = (g_fmu != nullptr);
 
 	if (fmu_start() != OK) {
 		errx(1, "failed to start the FMU driver");
@@ -3551,6 +3547,13 @@ fmu_main(int argc, char *argv[])
 			warnx("resettet default time");
 		}
 
+		// When we are done resetting, we should clean up the fmu drivers if they
+		// weren't active at the beginning of the reset.
+		// Failure to do so prevents other devices (HIL sim driver) from starting
+		if (!fmu_was_running) {
+			fmu_stop();
+		}
+
 		exit(0);
 	}
 
@@ -3562,6 +3565,13 @@ fmu_main(int argc, char *argv[])
 		} else {
 			peripheral_reset(0);
 			warnx("resettet default time");
+		}
+
+		// When we are done resetting, we should clean up the fmu drivers if they
+		// weren't active at the beginning of the reset.
+		// Failure to do so prevents other devices (HIL sim driver) from starting
+		if (!fmu_was_running) {
+			fmu_stop();
 		}
 
 		exit(0);

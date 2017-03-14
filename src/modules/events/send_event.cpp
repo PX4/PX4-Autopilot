@@ -39,9 +39,39 @@
 #include <drivers/drv_hrt.h>
 
 static SendEvent *send_event_obj = nullptr;
+struct work_s SendEvent::_work = {};
 
 // Run it at 30 Hz.
 const unsigned SEND_EVENT_INTERVAL_US = 33000;
+
+
+int SendEvent::initialize()
+{
+	int ret = work_queue(LPWORK, &_work, (worker_t)&SendEvent::initialize_trampoline, nullptr, 0);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	int i = 0;
+
+	do {
+		/* wait up to 1s */
+		usleep(2500);
+
+	} while ((!send_event_obj || !send_event_obj->is_running()) && ++i < 400);
+
+	if (i == 400) {
+		PX4_ERR("failed to start");
+		return -1;
+	}
+
+	return 0;
+}
+
+SendEvent::SendEvent()
+{
+}
 
 int SendEvent::start()
 {
@@ -52,8 +82,12 @@ int SendEvent::start()
 	_task_is_running = true;
 	_task_should_exit = false;
 
-	/* Schedule a cycle to start things. */
-	return work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this, 0);
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	// Kick off the cycling. We can call it directly because we're already in the work queue context
+	cycle();
+
+	return 0;
 }
 
 void SendEvent::stop()
@@ -77,6 +111,18 @@ void SendEvent::stop()
 	}
 }
 
+void SendEvent::initialize_trampoline(void *arg)
+{
+	send_event_obj = new SendEvent();
+
+	if (!send_event_obj) {
+		PX4_ERR("alloc failed");
+		return;
+	}
+
+	send_event_obj->start();
+}
+
 void
 SendEvent::cycle_trampoline(void *arg)
 {
@@ -95,11 +141,6 @@ void SendEvent::cycle()
 
 		_task_is_running = false;
 		return;
-	}
-
-	// check if not yet initialized. we have to do it here, because it's running in a different context than initialisation
-	if (_vehicle_command_sub < 0) {
-		_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	}
 
 	process_commands();
@@ -124,17 +165,17 @@ void SendEvent::process_commands()
 
 	switch (cmd.command) {
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
-		if ((int)(cmd.param1) == 2) { //TODO: this (and the others) needs to be specified in mavlink...
+		if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			gyro = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param5) == 2) {
+		if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			accel = true;
 			got_temperature_calibration_command = true;
 		}
 
-		if ((int)(cmd.param7) == 2) {
+		if ((int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 			baro = true;
 			got_temperature_calibration_command = true;
 		}
@@ -206,17 +247,9 @@ int send_event_main(int argc, char *argv[])
 		if (send_event_obj) {
 			PX4_INFO("already running");
 			return -1;
-
-		} else {
-			send_event_obj = new SendEvent();
-
-			if (!send_event_obj) {
-				PX4_ERR("alloc failed");
-				return -1;
-			}
-
-			return send_event_obj->start();
 		}
+
+		return SendEvent::initialize();
 
 	} else if (!strcmp(argv[1], "stop_listening")) {
 		if (send_event_obj) {
@@ -275,13 +308,13 @@ int send_event_main(int argc, char *argv[])
 		cmd.target_component = -1;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
-		cmd.param1 = (gyro_calib || calib_all) ? 2 : NAN;
+		cmd.param1 = (gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 		cmd.param2 = NAN;
 		cmd.param3 = NAN;
 		cmd.param4 = NAN;
-		cmd.param5 = (accel_calib || calib_all) ? 2 : NAN;
+		cmd.param5 = (accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 		cmd.param6 = NAN;
-		cmd.param7 = (baro_calib || calib_all) ? 2 : NAN;
+		cmd.param7 = (baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);

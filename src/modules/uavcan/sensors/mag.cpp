@@ -155,6 +155,7 @@ void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<ua
 	 * The proper solution is to be developed.
 	 */
 	_report.timestamp = hrt_absolute_time();
+	_report.device_id = _device_id.devid;
 
 	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
 	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;

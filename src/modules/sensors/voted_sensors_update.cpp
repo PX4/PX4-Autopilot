@@ -53,8 +53,8 @@ using namespace DriverFramework;
 
 const double VotedSensorsUpdate::_msl_pressure = 101.325f;
 
-VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
-	: _parameters(parameters)
+VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
+	: _parameters(parameters), _hil_enabled(hil_enabled)
 {
 	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
@@ -82,6 +82,11 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters)
 	_baro.voter.set_timeout(300000);
 	_mag.voter.set_timeout(300000);
 	_mag.voter.set_equal_value_threshold(1000);
+
+	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
+		_gyro.voter.set_timeout(200000);
+		_accel.voter.set_timeout(200000);
+	}
 }
 
 int VotedSensorsUpdate::init(sensor_combined_s &raw)
@@ -579,9 +584,11 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			}
 
 			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
+			if (!_hil_enabled) {
+				if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
+						offsets[uorb_index], scales[uorb_index]) == 2) {
+					_corrections_changed = true;
+				}
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -677,9 +684,11 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 			}
 
 			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
+			if (!_hil_enabled) {
+				if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
+						offsets[uorb_index], scales[uorb_index]) == 2) {
+					_corrections_changed = true;
+				}
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -785,9 +794,11 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 			float corrected_pressure = 100.0f * baro_report.pressure;
 
 			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
+			if (!_hil_enabled) {
+				if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
+						offsets[uorb_index], scales[uorb_index]) == 2) {
+					_corrections_changed = true;
+				}
 			}
 
 			// First publication with data
@@ -1013,7 +1024,7 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw)
 	baro_poll(raw);
 
 	// publish sensor corrections if necessary
-	if (_corrections_changed) {
+	if (!_hil_enabled && _corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
 		if (_sensor_correction_pub == nullptr) {
@@ -1039,15 +1050,17 @@ void VotedSensorsUpdate::check_failover()
 void VotedSensorsUpdate::set_relative_timestamps(sensor_combined_s &raw)
 {
 	if (_last_accel_timestamp[_accel.last_best_vote]) {
-		raw.accelerometer_timestamp_relative = (int32_t)(_last_accel_timestamp[_accel.last_best_vote] - raw.timestamp);
+		raw.accelerometer_timestamp_relative = (int32_t)((int64_t)_last_accel_timestamp[_accel.last_best_vote] -
+						       (int64_t)raw.timestamp);
 	}
 
 	if (_last_mag_timestamp[_mag.last_best_vote]) {
-		raw.magnetometer_timestamp_relative = (int32_t)(_last_mag_timestamp[_mag.last_best_vote] - raw.timestamp);
+		raw.magnetometer_timestamp_relative = (int32_t)((int64_t)_last_mag_timestamp[_mag.last_best_vote] -
+						      (int64_t)raw.timestamp);
 	}
 
 	if (_last_baro_timestamp[_baro.last_best_vote]) {
-		raw.baro_timestamp_relative = (int32_t)(_last_baro_timestamp[_baro.last_best_vote] - raw.timestamp);
+		raw.baro_timestamp_relative = (int32_t)((int64_t)_last_baro_timestamp[_baro.last_best_vote] - (int64_t)raw.timestamp);
 	}
 }
 

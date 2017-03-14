@@ -41,6 +41,7 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 		drivers__navio_gpio
+		lib__led
 	)
 
 #add_subdirectory(test)

@@ -77,6 +77,12 @@ private:
 	 */
 	void		advance_rtl();
 
+	/**
+	 * Get rtl altitude
+	 */
+	float 		get_rtl_altitude();
+
+
 	enum RTLState {
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
@@ -91,6 +97,7 @@ private:
 	bool _rtl_start_lock;
 
 	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_min_loiter_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;

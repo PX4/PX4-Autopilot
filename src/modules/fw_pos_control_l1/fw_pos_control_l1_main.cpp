@@ -115,6 +115,9 @@ static int	_control_task = -1;			/**< task handle for sensor task */
 #define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
 #define ALTHOLD_EPV_RESET_THRESH 5.0f
 
+using matrix::Eulerf;
+using matrix::Quatf;
+
 /**
  * L1 control app start / stop handling function
  *
@@ -1506,32 +1509,27 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			// we want the plane to keep tracking the desired flight path until we start flaring
 			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
-			//if (land_noreturn_vertical) {
-			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || _land_noreturn_horizontal) {
+			if (!_land_noreturn_horizontal &&
+			    ((wp_distance < _parameters.land_heading_hold_horizontal_distance) || _land_noreturn_vertical)) {
 
-				/* heading hold, along the line connecting this and the last waypoint */
+				if (pos_sp_triplet.previous.valid) {
+					/* heading hold, along the line connecting this and the last waypoint */
+					_target_bearing = bearing_lastwp_currwp;
 
-				if (!_land_noreturn_horizontal) {
-					// set target_bearing in first occurrence
-					if (pos_sp_triplet.previous.valid) {
-						_target_bearing = bearing_lastwp_currwp;
-
-					} else {
-						_target_bearing = _yaw;
-					}
-
-					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
+				} else {
+					_target_bearing = _yaw;
 				}
 
-//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
+				_land_noreturn_horizontal = true;
+				mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
+			}
 
+			if (_land_noreturn_horizontal) {
+				// heading hold
 				_l1_control.navigate_heading(_target_bearing, _yaw, nav_speed_2d);
 
-				_land_noreturn_horizontal = true;
-
 			} else {
-
-				/* normal navigation */
+				// normal navigation
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
 			}
 
@@ -1619,8 +1617,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				throttle_max = _parameters.throttle_max;
 
 				/* enable direct yaw control using rudder/wheel */
-				_att_sp.yaw_body = _target_bearing;
-				_att_sp.fw_control_yaw = true;
+				if (_land_noreturn_horizontal) {
+					_att_sp.yaw_body = _target_bearing;
+					_att_sp.fw_control_yaw = true;
+				}
 
 				if (_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt() || _land_motor_lim) {
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
@@ -2339,14 +2339,24 @@ FixedwingPositionControl::task_main()
 					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
 				}
 
-				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr) {
-					/* publish the attitude setpoint */
-					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+				q.copyTo(_att_sp.q_d);
+				_att_sp.q_d_valid = true;
 
-				} else if (_attitude_setpoint_id) {
-					/* advertise and publish */
-					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				if (!_control_mode.flag_control_offboard_enabled ||
+				    _control_mode.flag_control_position_enabled ||
+				    _control_mode.flag_control_velocity_enabled ||
+				    _control_mode.flag_control_acceleration_enabled) {
+
+					/* lazily publish the setpoint only once available */
+					if (_attitude_sp_pub != nullptr) {
+						/* publish the attitude setpoint */
+						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+
+					} else if (_attitude_setpoint_id) {
+						/* advertise and publish */
+						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+					}
 				}
 
 				/* XXX check if radius makes sense here */

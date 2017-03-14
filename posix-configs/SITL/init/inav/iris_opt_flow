@@ -48,7 +48,6 @@ param set INAV_W_XY_GPS_V 0.0
 param set INAV_W_Z_GPS_P 0.0
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -56,7 +55,6 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 land_detector start multicopter

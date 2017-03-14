@@ -572,7 +572,7 @@ TAP_ESC::cycle()
 		_current_update_rate = 0;
 		/* advertise the mixed control outputs, insist on the first group output */
 		_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-		_esc_feedback_pub = orb_advertise(ORB_ID(esc_report), &_esc_feedback);
+		_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
 		multirotor_motor_limits_s multirotor_motor_limits = {};
 		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
 		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
@@ -1096,7 +1096,7 @@ void start()
 	_task_handle = px4_task_spawn_cmd("tap_esc_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
-					  1000,
+					  1100,
 					  (px4_main_t)&task_main_trampoline,
 					  nullptr);
 

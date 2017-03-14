@@ -291,6 +291,7 @@ int px4_task_delete(px4_task_t id)
 
 	// If current thread then exit, otherwise cancel
 	if (pthread_self() == pid) {
+		pthread_join(pid, nullptr);
 		taskmap[id].isused = false;
 		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(nullptr);

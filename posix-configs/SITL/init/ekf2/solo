@@ -42,7 +42,6 @@ param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -50,7 +49,6 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 land_detector start multicopter

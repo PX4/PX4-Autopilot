@@ -59,6 +59,17 @@
 
 #include <logger/messages.h>
 
+// for ekf2 replay
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+
 #include "replay.hpp"
 
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
@@ -291,6 +302,7 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		PX4_WARN("Formats for %s don't match. Will ignore it.", topic_name.c_str());
 		PX4_WARN(" Internal format: %s", orb_meta->o_fields);
 		PX4_WARN(" File format    : %s", file_format.c_str());
+		return true; // not a fatal error
 	}
 
 	Subscription subscription;
@@ -358,6 +370,8 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	}
 
 	_subscriptions[msg_id] = subscription;
+
+	onSubscriptionAdded(_subscriptions[msg_id], msg_id);
 
 	return true;
 }
@@ -626,6 +640,8 @@ void Replay::task_main()
 		return;
 	}
 
+	onEnterMainLoop();
+
 	_replay_start_time = hrt_absolute_time();
 
 	PX4_INFO("Replay in progress...");
@@ -658,7 +674,7 @@ void Replay::task_main()
 		for (size_t i = 0; i < _subscriptions.size(); ++i) {
 			const Subscription &subscription = _subscriptions[i];
 
-			if (subscription.orb_meta) {
+			if (subscription.orb_meta && !subscription.ignored) {
 				if (next_file_time == 0 || subscription.next_timestamp < next_file_time) {
 					next_msg_id = (int)i;
 					next_file_time = subscription.next_timestamp;
@@ -686,55 +702,18 @@ void Replay::task_main()
 		last_additional_message_pos = next_additional_message_pos;
 
 
-		//wait if necessary
-		const uint64_t publish_timestamp = next_file_time + timestamp_offset;
-		uint64_t cur_time = hrt_absolute_time();
+		const uint64_t publish_timestamp = handleTopicDelay(next_file_time, timestamp_offset);
 
-		if (cur_time < publish_timestamp) {
-			usleep(publish_timestamp - cur_time);
-		}
 
 		//It's time to publish
-		const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
-		const size_t msg_write_size = sub.orb_meta->o_size;
-		_read_buffer.reserve(msg_write_size);
-		replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2)); //skip header & msg id
-		replay_file.read((char *)_read_buffer.data(), msg_read_size);
-		*(uint64_t *)(_read_buffer.data() + sub.timestamp_offset) = publish_timestamp;
+		readTopicDataToBuffer(sub, replay_file);
+		memcpy(_read_buffer.data() + sub.timestamp_offset, &publish_timestamp, sizeof(uint64_t)); //adjust the timestamp
 
-		if (sub.orb_advert) {
-			orb_publish(sub.orb_meta, sub.orb_advert, _read_buffer.data());
+		if (handleTopicUpdate(sub, _read_buffer.data(), replay_file)) {
 			++nr_published_messages;
-
-		} else {
-			if (sub.multi_id == 0) {
-				sub.orb_advert = orb_advertise(sub.orb_meta, _read_buffer.data());
-				++nr_published_messages;
-
-			} else {
-				// make sure the other instances are advertised already so that we get the correct instance
-				bool advertised = false;
-
-				for (const auto &subscription : _subscriptions) {
-					if (subscription.orb_meta) {
-						if (strcmp(sub.orb_meta->o_name, subscription.orb_meta->o_name) == 0 &&
-						    subscription.orb_advert && subscription.multi_id == sub.multi_id - 1) {
-							advertised = true;
-						}
-					}
-				}
-
-				if (advertised) {
-					int instance;
-					sub.orb_advert = orb_advertise_multi(sub.orb_meta, _read_buffer.data(),
-									     &instance, ORB_PRIO_DEFAULT);
-					++nr_published_messages;
-				}
-			}
 		}
 
-
-		nextDataMessage(replay_file, _subscriptions[next_msg_id], next_msg_id);
+		nextDataMessage(replay_file, sub, next_msg_id);
 
 		//TODO: output status (eg. every sec), including total duration...
 	}
@@ -752,11 +731,274 @@ void Replay::task_main()
 
 		//TODO: should we close the log file & exit (optionally, by adding a parameter -q) ?
 	}
+
+	onExitMainLoop();
+}
+
+void Replay::readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file)
+{
+	const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
+	const size_t msg_write_size = sub.orb_meta->o_size;
+	_read_buffer.reserve(msg_write_size);
+	replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2)); //skip header & msg id
+	replay_file.read((char *)_read_buffer.data(), msg_read_size);
+}
+
+bool Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
+{
+	return publishTopic(sub, data);
+}
+
+uint64_t Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
+{
+
+	const uint64_t publish_timestamp = next_file_time + timestamp_offset;
+
+	//wait if necessary
+	uint64_t cur_time = hrt_absolute_time();
+
+	// if some topics have a timestamp smaller than the log file start, publish them immediately
+	if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
+		usleep(publish_timestamp - cur_time);
+	}
+
+	return publish_timestamp;
+}
+
+bool Replay::publishTopic(Subscription &sub, void *data)
+{
+	bool published = false;
+
+	if (sub.orb_advert) {
+		orb_publish(sub.orb_meta, sub.orb_advert, data);
+		published = true;
+
+	} else {
+		if (sub.multi_id == 0) {
+			sub.orb_advert = orb_advertise(sub.orb_meta, data);
+			published = true;
+
+		} else {
+			// make sure the other instances are advertised already so that we get the correct instance
+			bool advertised = false;
+
+			for (const auto &subscription : _subscriptions) {
+				if (subscription.orb_meta) {
+					if (strcmp(sub.orb_meta->o_name, subscription.orb_meta->o_name) == 0 &&
+					    subscription.orb_advert && subscription.multi_id == sub.multi_id - 1) {
+						advertised = true;
+					}
+				}
+			}
+
+			if (advertised) {
+				int instance;
+				sub.orb_advert = orb_advertise_multi(sub.orb_meta, data, &instance, ORB_PRIO_DEFAULT);
+				published = true;
+			}
+		}
+	}
+
+	if (published) {
+		++sub.publication_counter;
+	}
+
+	return published;
+}
+
+bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
+{
+	if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
+		ekf2_timestamps_s ekf2_timestamps;
+		memcpy(&ekf2_timestamps, data, sub.orb_meta->o_size);
+
+		if (!publishEkf2Topics(ekf2_timestamps, replay_file)) {
+			return false;
+		}
+
+		px4_pollfd_struct_t fds[1];
+		fds[0].fd = _vehicle_attitude_sub;
+		fds[0].events = POLLIN;
+		// wait for a response from the estimator
+		int pret = px4_poll(fds, 1, 1000);
+
+		// introduce some breaks to make sure the logger can keep up
+		if (++_topic_counter == 50) {
+			usleep(1000);
+			_topic_counter = 0;
+		}
+
+		if (pret == 0) {
+			PX4_WARN("poll timeout");
+
+		} else if (pret < 0) {
+			PX4_ERR("poll failed (%i)", pret);
+
+		} else {
+			if (fds[0].revents & POLLIN) {
+				vehicle_attitude_s att;
+				// need to to an orb_copy so that poll will not return immediately
+				orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &att);
+			}
+		}
+
+		return true;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)) {
+		return publishTopic(sub, data);
+	} // else: do not publish
+
+	return false;
+}
+
+void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
+{
+	if (sub.orb_meta == ORB_ID(sensor_combined)) {
+		_sensors_combined_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+		_gps_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
+		_optical_flow_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
+		_distance_sensor_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(airspeed)) {
+		_airspeed_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_vision_position)) {
+		_vehicle_vision_position_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_vision_attitude)) {
+		_vehicle_vision_attitude_msg_id = msg_id;
+	}
+
+	// the main loop should only handle publication of the following topics, the sensor topics are
+	// handled separately in publishEkf2Topics()
+	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
+		      && sub.orb_meta != ORB_ID(vehicle_land_detected);
+}
+
+bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file)
+{
+	auto handle_sensor_publication = [&](int16_t timestamp_relative, uint16_t msg_id) {
+		if (timestamp_relative != ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID) {
+			// timestamp_relative is already given in 0.1 ms
+			uint64_t t = timestamp_relative + ekf2_timestamps.timestamp / 100; // in 0.1 ms
+			findTimestampAndPublish(t, msg_id, replay_file);
+		}
+	};
+	handle_sensor_publication(ekf2_timestamps.gps_timestamp_rel, _gps_msg_id); // gps
+	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id); // optical flow
+	handle_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_id); // distance sensor
+	handle_sensor_publication(ekf2_timestamps.airspeed_timestamp_rel, _airspeed_msg_id); // airspeed
+	handle_sensor_publication(ekf2_timestamps.vision_position_timestamp_rel,
+				  _vehicle_vision_position_msg_id); // vision position
+	handle_sensor_publication(ekf2_timestamps.vision_attitude_timestamp_rel,
+				  _vehicle_vision_attitude_msg_id); // vision attitude
+
+	// sensor_combined: publish last because ekf2 is polling on this
+	if (!findTimestampAndPublish(ekf2_timestamps.timestamp / 100, _sensors_combined_msg_id, replay_file)) {
+		if (_sensors_combined_msg_id == msg_id_invalid) {
+			// subscription not found yet or sensor_combined not contained in log
+			return false;
+
+		} else if (!_subscriptions[_sensors_combined_msg_id].orb_meta) {
+			return false; // read past end of file
+
+		} else {
+			// we should publish a topic, just publish the same again
+			readTopicDataToBuffer(_subscriptions[_sensors_combined_msg_id], replay_file);
+			publishTopic(_subscriptions[_sensors_combined_msg_id], _read_buffer.data());
+		}
+	}
+
+	return true;
+
+}
+
+bool ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file)
+{
+	if (msg_id == msg_id_invalid) {
+		// could happen if a topic is not logged
+		return false;
+	}
+
+	Subscription &sub = _subscriptions[msg_id];
+
+	while (sub.next_timestamp / 100 < timestamp && sub.orb_meta) {
+		nextDataMessage(replay_file, sub, msg_id);
+	}
+
+	if (!sub.orb_meta) { // no messages anymore
+		return false;
+	}
+
+	if (sub.next_timestamp / 100 != timestamp) {
+		// this can happen in beginning of the log or on a dropout
+		PX4_DEBUG("No timestamp match found for topic %s (%i, %i)", sub.orb_meta->o_name, (int)sub.next_timestamp / 100,
+			  timestamp);
+		++sub.error_counter;
+		return false;
+	}
+
+	readTopicDataToBuffer(sub, replay_file);
+	publishTopic(sub, _read_buffer.data());
+	return true;
+}
+
+void ReplayEkf2::onEnterMainLoop()
+{
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+}
+
+void ReplayEkf2::onExitMainLoop()
+{
+	// print statistics
+	auto print_sensor_statistics = [this](uint16_t msg_id, const char *name) {
+		if (msg_id != msg_id_invalid) {
+			Subscription &sub = _subscriptions[msg_id];
+
+			if (sub.publication_counter > 0 || sub.error_counter > 0) {
+				PX4_INFO("%s: %i, %i", name, sub.publication_counter, sub.error_counter);
+			}
+		}
+	};
+
+	PX4_INFO("");
+	PX4_INFO("Topic, Num Published, Num Error (no timestamp match found):");
+	print_sensor_statistics(_sensors_combined_msg_id, "sensor_combined");
+	print_sensor_statistics(_gps_msg_id, "vehicle_gps_position");
+	print_sensor_statistics(_optical_flow_msg_id, "optical_flow");
+	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
+	print_sensor_statistics(_airspeed_msg_id, "airspeed");
+	print_sensor_statistics(_vehicle_vision_position_msg_id, "vehicle_vision_position");
+	print_sensor_statistics(_vehicle_vision_attitude_msg_id, "vehicle_vision_attitude");
+
+	orb_unsubscribe(_vehicle_attitude_sub);
+	_vehicle_attitude_sub = -1;
+}
+
+uint64_t ReplayEkf2::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
+{
+	// no need for usleep
+	return next_file_time;
 }
 
 void Replay::task_main_trampoline(int argc, char *argv[])
 {
-	replay::instance = new Replay();
+	// check the replay mode
+	const char *replay_mode = getenv(replay::ENV_MODE);
+
+	if (replay_mode && strcmp(replay_mode, "ekf2") == 0) {
+		PX4_INFO("Ekf2 replay mode");
+		replay::instance = new ReplayEkf2();
+
+	} else {
+		replay::instance = new Replay();
+	}
 
 	if (replay::instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -861,7 +1103,7 @@ int replay_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (PX4_OK != replay::instance->start(quiet, apply_params_only)) {
+		if (PX4_OK != Replay::start(quiet, apply_params_only)) {
 			PX4_ERR("start failed");
 			return 1;
 		}

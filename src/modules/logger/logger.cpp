@@ -55,6 +55,7 @@
 #include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
+#include <px4_posix.h>
 #include <px4_sem.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
@@ -189,8 +190,10 @@ void Logger::usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x -m <mode> -q <size>\n"
+	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>]\n"
+		 "                         [-p <topic>] -e -a -t -x -m <mode> -q <size>\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+		 "\t-p\tPoll on a topic instead of running with fixed rate (Log rate and topic interval are ignored if this is set)\n"
 		 "\t-b\tLog buffer size in KiB, default is 12\n"
 		 "\t-e\tEnable logging right after start until disarm (otherwise only when armed)\n"
 		 "\t-f\tLog until shutdown (implies -e)\n"
@@ -265,12 +268,13 @@ void Logger::run_trampoline(int argc, char *argv[])
 	unsigned int queue_size = 14; //TODO: we might be able to reduce this if mavlink polled on the topic and/or
 	// topic sizes get reduced
 	LogWriter::Backend backend = LogWriter::BackendAll;
+	const char *poll_topic = nullptr;
 
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, nullptr, 10);
@@ -324,6 +328,10 @@ void Logger::run_trampoline(int argc, char *argv[])
 
 			break;
 
+		case 'p':
+			poll_topic = myoptarg;
+			break;
+
 		case 'q':
 			queue_size = strtoul(myoptarg, nullptr, 10);
 
@@ -349,7 +357,7 @@ void Logger::run_trampoline(int argc, char *argv[])
 		return;
 	}
 
-	logger_ptr = new Logger(backend, log_buffer_size, log_interval, log_on_start,
+	logger_ptr = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_on_start,
 				log_until_shutdown, log_name_timestamp, queue_size);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
@@ -376,8 +384,8 @@ void Logger::run_trampoline(int argc, char *argv[])
 }
 
 
-Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, bool log_on_start,
-	       bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size) :
+Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
+	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size) :
 	_arm_override(false),
 	_log_on_start(log_on_start),
 	_log_until_shutdown(log_until_shutdown),
@@ -388,6 +396,21 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 	_sdlog_mode_handle = param_find("SDLOG_MODE");
+
+	if (poll_topic_name) {
+		const orb_metadata **topics = orb_get_topics();
+
+		for (size_t i = 0; i < orb_topics_count(); i++) {
+			if (strcmp(poll_topic_name, topics[i]->o_name) == 0) {
+				_polling_topic_meta = topics[i];
+				break;
+			}
+		}
+
+		if (!_polling_topic_meta) {
+			PX4_ERR("Failed to find topic %s", poll_topic_name);
+		}
+	}
 }
 
 Logger::~Logger()
@@ -436,7 +459,7 @@ int Logger::add_topic(const orb_metadata *topic)
 	fd = orb_subscribe(topic);
 
 	if (fd < 0) {
-		PX4_WARN("logger: orb_subscribe failed");
+		PX4_WARN("logger: orb_subscribe failed (%i)", errno);
 		return -1;
 	}
 
@@ -462,8 +485,11 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 		}
 	}
 
-	if (fd >= 0 && interval != 0) {
-		orb_set_interval(fd, interval);
+	// if we poll on a topic, we don't set the interval and let the polled topic define the maximum interval
+	if (!_polling_topic_meta) {
+		if (fd >= 0 && interval != 0) {
+			orb_set_interval(fd, interval);
+		}
 	}
 
 	return fd;
@@ -521,49 +547,51 @@ void Logger::add_default_topics()
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 
-	add_topic("vehicle_attitude", 10);
-	add_topic("actuator_outputs", 50);
+	add_topic("vehicle_attitude", 30);
+	add_topic("actuator_outputs", 100);
 	add_topic("telemetry_status");
 	add_topic("vehicle_command");
-	add_topic("vehicle_status");
 	add_topic("vtol_vehicle_status", 100);
 	add_topic("commander_state", 100);
 	add_topic("satellite_info");
-	add_topic("vehicle_attitude_setpoint", 20);
-	add_topic("vehicle_rates_setpoint", 10);
-	add_topic("actuator_controls_0", 20);
-	add_topic("actuator_controls_1", 20);
+	add_topic("vehicle_attitude_setpoint", 30);
+	add_topic("vehicle_rates_setpoint", 30);
+	add_topic("actuator_controls_0", 100);
+	add_topic("actuator_controls_1", 100);
 	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 50);
-	add_topic("vehicle_global_position", 100);
-	add_topic("vehicle_global_velocity_setpoint", 100);
+	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("vehicle_global_position", 200);
+	add_topic("vehicle_global_velocity_setpoint", 200);
+	add_topic("vehicle_vision_position");
+	add_topic("vehicle_vision_attitude");
 	add_topic("battery_status", 300);
 	add_topic("system_power", 300);
-	add_topic("position_setpoint_triplet", 10);
+	add_topic("position_setpoint_triplet", 200);
 	add_topic("att_pos_mocap", 50);
-	add_topic("vision_position_estimate", 50);
 	add_topic("optical_flow", 50);
-	add_topic("rc_channels");
-	add_topic("input_rc");
-	add_topic("airspeed", 50);
+	add_topic("rc_channels", 100);
+	add_topic("input_rc", 100);
 	add_topic("differential_pressure", 50);
-	add_topic("distance_sensor", 20);
-	add_topic("esc_status", 20);
-	add_topic("estimator_status", 50); //this one is large
-	add_topic("ekf2_innovations", 20);
+	add_topic("esc_status", 250);
+	add_topic("estimator_status", 200); //this one is large
+	add_topic("ekf2_innovations", 50);
 	add_topic("tecs_status", 20);
 	add_topic("wind_estimate", 100);
-	add_topic("control_state", 20);
+	add_topic("control_state", 100);
 	add_topic("camera_trigger");
 	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
-	add_topic("sensor_preflight");
+	add_topic("sensor_preflight", 50);
 	add_topic("task_stack_info");
 
 	/* for estimator replay (need to be at full rate) */
+	add_topic("airspeed");
+	add_topic("distance_sensor");
+	add_topic("ekf2_timestamps");
 	add_topic("sensor_combined");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
+	add_topic("vehicle_status");
 }
 
 void Logger::add_calibration_topics()
@@ -718,6 +746,10 @@ void Logger::run()
 		max_msg_size = sizeof(ulog_message_logging_s);
 	}
 
+	if (_polling_topic_meta && _polling_topic_meta->o_size > max_msg_size) {
+		max_msg_size = _polling_topic_meta->o_size;
+	}
+
 	if (max_msg_size > _msg_buffer_len) {
 		if (_msg_buffer) {
 			delete[](_msg_buffer);
@@ -756,13 +788,21 @@ void Logger::run()
 	memset(&timer_call, 0, sizeof(hrt_call));
 	px4_sem_t timer_semaphore;
 	px4_sem_init(&timer_semaphore, 0, 0);
-
 	/* timer_semaphore use case is a signal */
-
 	px4_sem_setprotocol(&timer_semaphore, SEM_PRIO_NONE);
 
+	int polling_topic_sub = -1;
 
-	hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
+	if (_polling_topic_meta) {
+		polling_topic_sub = orb_subscribe(_polling_topic_meta);
+
+		if (polling_topic_sub < 0) {
+			PX4_ERR("Failed to subscribe (%i)", errno);
+		}
+
+	} else {
+		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_semaphore);
+	}
 
 	// check for new subscription data
 	hrt_abstime next_subscribe_check = 0;
@@ -954,14 +994,33 @@ void Logger::run()
 
 		}
 
-		/*
-		 * We wait on the semaphore, which periodically gets updated by a high-resolution timer.
-		 * The simpler alternative would be:
-		 *   usleep(max(300, _log_interval - elapsed_time_since_loop_start));
-		 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
-		 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
-		 */
-		while (px4_sem_wait(&timer_semaphore) != 0);
+		// wait for next loop iteration...
+		if (polling_topic_sub >= 0) {
+			px4_pollfd_struct_t fds[1];
+			fds[0].fd = polling_topic_sub;
+			fds[0].events = POLLIN;
+			int pret = px4_poll(fds, 1, 1000);
+
+			if (pret < 0) {
+				PX4_ERR("poll failed (%i)", pret);
+
+			} else if (pret != 0) {
+				if (fds[0].revents & POLLIN) {
+					// need to to an orb_copy so that poll will not return immediately
+					orb_copy(_polling_topic_meta, polling_topic_sub, _msg_buffer);
+				}
+			}
+
+		} else {
+			/*
+			 * We wait on the semaphore, which periodically gets updated by a high-resolution timer.
+			 * The simpler alternative would be:
+			 *   usleep(max(300, _log_interval - elapsed_time_since_loop_start));
+			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
+			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
+			 */
+			while (px4_sem_wait(&timer_semaphore) != 0);
+		}
 	}
 
 	hrt_cancel(&timer_call);
@@ -978,6 +1037,10 @@ void Logger::run()
 				sub.fd[instance] = -1;
 			}
 		}
+	}
+
+	if (polling_topic_sub >= 0) {
+		orb_unsubscribe(polling_topic_sub);
 	}
 
 	if (_mavlink_log_pub) {
@@ -1438,8 +1501,8 @@ void Logger::write_version()
 		param_get(write_uuid_param, &write_uuid);
 
 		if (write_uuid == 1) {
-			char uuid_string[PX4_CPU_UUID_WORD32_LEGACY_FORMAT_SIZE];
-			board_get_uuid_formated32(uuid_string, sizeof(uuid_string), "%08X", NULL, &px4_legacy_word32_order);
+			char uuid_string[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
+			board_get_uuid32_formated(uuid_string, sizeof(uuid_string), "%08X", NULL);
 			write_info("sys_uuid", uuid_string);
 		}
 	}
