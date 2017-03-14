@@ -55,6 +55,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/sensor_combined.h>
 
+#include <drivers/drv_tone_alarm.h>
+
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 #include "commander_helper.h"
@@ -782,7 +784,10 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
-		tune_neutral(true);
+		// output neutral tune
+		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
+		// temporary priority boost for the white blinking led to come trough
+		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 1);
 		usleep(200000);
 	}
 
