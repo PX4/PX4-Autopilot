@@ -64,11 +64,87 @@ Result:
 sess03
 ---------
 Motivation:
- x
+ Getting the feeling of the new controller
 Result:
- x
-
-
+ ok, quick and easy
+---------
+sess44
+---------
+Motivation:
+ logging dynamics of the system while driving manually to better tune the controller and keep the data for offline analysis and comparison
+Result:
+ I did 10 sections in this log, they can be distinguished in the acquisition by 3 turns of the rc car around teh roll axis, usually around 90 degrees. The test done were the following
+ 1) step response to full throttle forward 3 times
+ 2) step response to full throttle backwards 1 time as it was very unstable
+ 3) driving straight at a slow speed and applying a step on the steering to the right
+ 4) driving straight at a slow speed and applying a step on the steering to the left
+ 5) driving straight at a medium speed and applying a step on the steering to the right
+ 6) driving straight at a medium speed and applying a step on the steering to the left
+ 7) driving straight at a fast speed and applying a step on the steering to the right
+ 8) driving straight at a fast speed and applying a step on the steering to the left
+ 9) fast driving in circle at increasing speed, in both right and left directions
+ 10) breaking down hard from a high velocity
+ All these tests were carried out with a pwm limit of 1800 upper and 1200 lower and pwm disarmed of 1500. In addition, the ESC is set in training mode which limits the power to 50%. During these tests I checked repeatedly the temperature all the power cables and the esc heat sink: they were always cold to the touch.
+ ---------
+sess05
+---------
+Motivation:
+ Testing the mission
+Result:
+ As soon as the mission starts the wheels start to spin quite fast. I decided to lower the pwm limit even more to 1600. In this session i mistakenly set the PWM_AUX channel instead of the main one.
+ ---------
+sess06-07-08
+---------
+Motivation:
+ Setting 1600 as limit on the upper pwm
+Result:
+ This generates a wierd offset on the wheels so that at a neutral position of the remote throttle lever the wheels start spinning in reverse. I figured out it is due to an imbalance in the pwm limits.
+ ---------
+sess09
+---------
+Motivation:
+ Testing simmetric PWM limits.
+Result:
+ It now works, at 0 the wheels don't spin.
+ ---------
+sess10
+---------
+Motivation:
+ Tuning control gains
+Result:
+ increased itegrator (mistakenly), increased the roll proportional to 0.2, reduced cruising throttle, reduced max throttle
+ ---------
+sess11
+---------
+Motivation:
+ Testing the mission 
+Result:
+ They are better but no steering though, I realized that my roll controller was too low and was not commanding the steering. Not sure about gps plot as the pwm was reversed.
+---------
+sess12
+---------
+Motivation:
+ Testing the mission. Reversed the pwm on the throttle and added 0.2 to the roll feed forward
+Result:
+ I realized that wheels were spinning in the wrong direction while moving forward. I decided to change the PWM_MAIN_REV4 parameter to 1. This means that the throttle lever on the remote is now inverted but it doesn't hurt as long as the pilot knows it.  I also added 0.2 in the roll feedforward which seems to behave 
+ ---------
+sess13
+---------
+Motivation:
+ Testing the missio again
+Result:
+ There must have been an issue, the LED turned flashing red for some reason and the logging stopped.
+ ---------
+sess14
+---------
+BAD
+---------
+sess15
+---------
+Motivation:
+ Testing the mission
+Result:
+ By looking at the car I saw steering but the log did not work. weird
 
 
 
