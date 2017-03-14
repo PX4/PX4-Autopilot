@@ -78,7 +78,7 @@ void Tunes::config_tone()
 	_octave = _default_octave;
 }
 
-void Tunes::set_control(const tune_control_s &tune_control)
+int Tunes::set_control(const tune_control_s &tune_control)
 {
 	bool reset_playing_tune = false;
 
@@ -120,8 +120,10 @@ void Tunes::set_control(const tune_control_s &tune_control)
 
 	} else {
 		PX4_WARN("Tune ID not recognized.");
+		return -EINVAL;
 	}
 
+	return OK;
 }
 
 void Tunes::set_string(const char *string)
