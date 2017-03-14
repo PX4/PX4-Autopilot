@@ -109,28 +109,51 @@ MavlinkMixersManager::get_size_avg()
 int16_t
 MavlinkMixersManager::open_group_as_device(uint16_t group)
 {
+	int ret = -1;
+
 	if (!_has_checked_px4io) {
 		struct stat st;
 		_has_px4io = (stat("/dev/px4io", &st) == 0);
+
+		if (_has_px4io) {
+			PX4_INFO("Found px4io at /dev/px4io");
+		}
+
 		_has_checked_px4io = true;
 	}
 
 	if (_has_px4io) {
 		switch (group) {
 		case 0:
-			return px4_open("/dev/pwm_output1", 0);
+			ret = px4_open("/dev/pwm_output1", 0);
+
+			if (ret == -1) {
+				PX4_WARN("Mavlink mixers could not open device /dev/pwm_output1 for group 0");
+			}
+
+			break;
 
 		case 1:
-			return px4_open("/dev/px4io", 0);
+			ret = px4_open("/dev/px4io", 0);
+
+			if (ret == -1) {
+				PX4_WARN("Mavlink mixers could not open device /dev/px4io for group 1");
+			}
+
+			break;
 		}
 
 	} else {
 		if (group == 0) {
-			return px4_open("/dev/pwm_output0", 0);
+			ret = px4_open("/dev/pwm_output0", 0);
+
+			if (ret == -1) {
+				PX4_WARN("Mavlink mixers could not open device /dev/pwm_output0 for group 0");
+			}
 		}
 	}
 
-	return -1;
+	return ret;
 }
 
 void
@@ -302,51 +325,6 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 			break;
 		}
 
-//    case MAV_CMD_REQUEST_MIXER_CONN: {
-//        PX4_INFO("Received mixer connection request");
-//        _msg_mixer_data_immediate.mixer_group = cmd.param1;
-//        _msg_mixer_data_immediate.mixer_index = cmd.param2;
-//        _msg_mixer_data_immediate.mixer_sub_index = cmd.param3;
-//        _msg_mixer_data_immediate.connection_type = cmd.param4;
-//        _msg_mixer_data_immediate.parameter_index = cmd.param5;
-
-//        _msg_mixer_data_immediate.data_type = MIXER_DATA_TYPE_CONNECTION;
-//        _msg_mixer_data_immediate.connection_group = 0;
-
-//        _msg_mixer_data_immediate.param_value = 0.0;
-//        _msg_mixer_data_immediate.param_type = 0;
-//        _msg_mixer_data_immediate.data_value = 0;
-//        _send_all_state = MIXERS_SEND_ALL_NONE;
-
-//        int dev;
-//        dev = open_group_as_device(_msg_mixer_data_immediate.mixer_group);
-
-//        if (dev < 0) {
-//            _msg_mixer_data_immediate.data_value = -1;
-//            _msg_mixer_data_immediate.param_value = 0.0;
-//            _send_data_immediate = true;
-//            return;
-//        }
-
-//        mixer_connection_s conn;
-//        conn.mix_index = _msg_mixer_data_immediate.mixer_index;
-//        conn.mix_sub_index = _msg_mixer_data_immediate.mixer_sub_index;
-//        conn.connection_type = _msg_mixer_data_immediate.connection_type;
-//        conn.connection_index = _msg_mixer_data_immediate.parameter_index;
-//        int ret = px4_ioctl(dev, MIXERIOCGETIOCONNECTION, (unsigned long)&conn);
-//        px4_close(dev);
-
-//        if (ret < 0) {
-//            _msg_mixer_data_immediate.data_value = ret;
-
-//        } else {
-//            _msg_mixer_data_immediate.connection_group = conn.connection_group;
-//            _msg_mixer_data_immediate.data_value = conn.connection;
-//        }
-
-//        break;
-//    }
-
 	case MAV_CMD_REQUEST_MIXER_STORE: {
 			_msg_mixer_data_immediate.mixer_group = cmd.param1;
 			_msg_mixer_data_immediate.mixer_index = 0;
@@ -473,6 +451,7 @@ MavlinkMixersManager::handle_message(const mavlink_message_t *msg)
 
 	case MAV_CMD_REQUEST_MIXER_SEND_ALL:
 		_msg_mixer_data_immediate.mixer_group = cmd.param1;
+		PX4_INFO("Mavlink request for mixer send all for group:%u", _msg_mixer_data_immediate.mixer_group);
 		_send_all_state = MIXERS_SEND_ALL_START;
 		break;
 
