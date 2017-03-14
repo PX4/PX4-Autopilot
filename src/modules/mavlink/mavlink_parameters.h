@@ -91,6 +91,10 @@ protected:
 
 	void send(const hrt_abstime t);
 
+	/// send a single param if a PARAM_REQUEST_LIST is in progress
+	/// @return true if a parameter was sent
+	bool send_one();
+
 	int send_param(param_t param, int component_id = -1);
 
 	// Item of a single-linked list to store requested uavcan parameters
