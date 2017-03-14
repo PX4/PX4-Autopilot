@@ -797,7 +797,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv, bool *dead_reckon
 	// The reason is that complete rejection of measurements is often be casued by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting provides an overly optimistic assessment in these situations
 	float vel_err_alt = 0.0f;
-	if (dead_reckoning) {
+	if (is_dead_reckoning) {
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
 			vel_err_alt = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * sqrtf(_flow_innov[0]*_flow_innov[0] + _flow_innov[1]*_flow_innov[1]);
