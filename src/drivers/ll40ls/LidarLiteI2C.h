@@ -110,7 +110,6 @@ private:
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _comms_errors;
-	perf_counter_t      _buffer_overflows;
 	perf_counter_t      _sensor_resets;
 	perf_counter_t      _sensor_zero_resets;
 	uint16_t        _last_distance;
