@@ -49,9 +49,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-// Snapdraogon: use J15 (next to USB)
-#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"
-
 #define UNUSED(x) (void)(x)
 
 extern "C" { __EXPORT int spektrum_rc_main(int argc, char *argv[]); }
