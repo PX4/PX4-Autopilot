@@ -359,6 +359,11 @@ then
 	if hmc5883 -X start
 	then
 	fi
+	
+	# Possible external airspeed sensor
+	if meas_airspeed start -b 2
+	then
+	fi	
 fi
 
 if meas_airspeed start
