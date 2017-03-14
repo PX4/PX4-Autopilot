@@ -360,7 +360,7 @@ then
 	then
 	fi
 	
-	# Possible eternal airspeed sensor
+	# Possible external airspeed sensor
 	if meas_airspeed start -b 2
 	then
 	fi	
