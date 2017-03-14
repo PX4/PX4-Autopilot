@@ -48,7 +48,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
 	float d;
 	if (_sonar_fixed_distance.get() > 0.0f ) {
-		//warnx("param is greater than zero finally");
+		
 		d =  _sonar_fixed_distance.get();
 
 	} else {
@@ -56,9 +56,16 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 		d = _sub_sonar->get().current_distance;
 	}
 
+	
+
 	float eps = 0.01f; // 1 cm
-	float min_dist = eps; // _sub_sonar->get().min_distance + eps;
+	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
+
+	// warnx("%d.%.6d", (int)d, (int)((d-(int)d)*1000000));
+	// warnx("min dist: %d.%.6d", (int)min_dist, (int)((min_dist-(int)min_dist)*1000000));
+	// warnx("max dist: %d.%.6d", (int)max_dist, (int)((max_dist-(int)max_dist)*1000000));
+	
 
 	// prevent driver from setting min dist below eps
 	if (min_dist < eps) {
@@ -74,7 +81,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_sonarStats.update(Scalarf(d));
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = (d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
+	y(0) = d;//(d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
 
 	return OK;
 }
@@ -111,6 +118,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	R(0, 0) = cov;
 
 	// residual
+	_x(X_z) = _sonar_fixed_distance.get();
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
 	_pub_innov.get().hagl_innov_var = R(0, 0);

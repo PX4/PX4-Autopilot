@@ -69,7 +69,7 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
-#include "landingslope.h"
+//#include "landingslope.h"
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
@@ -215,7 +215,7 @@ private:
 	bool _land_onslope;
 	bool _land_useterrain;
 
-	Landingslope _landingslope;
+	//Landingslope _landingslope;
 
 	hrt_abstime _time_started_landing;	//*< time at which landing started */
 
@@ -620,7 +620,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_land_motor_lim(false),
 	_land_onslope(false),
 	_land_useterrain(false),
-	_landingslope(),
+	//_landingslope(),
 	_time_started_landing(0),
 	_t_alt_prev_valid(0),
 	_time_last_t_alt(0),
@@ -858,13 +858,13 @@ GroundRoverPositionControl::parameters_update()
 	*/
 
 	/* Update the landing slope */
-	_landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
-			     _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
+	// _landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
+	// 		     _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
 
 	/* Update and publish the navigation capabilities */
-	_fw_pos_ctrl_status.landing_slope_angle_rad = _landingslope.landing_slope_angle_rad();
-	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = _landingslope.horizontal_slope_displacement();
-	_fw_pos_ctrl_status.landing_flare_length = _landingslope.flare_length();
+	_fw_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
+	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
+	_fw_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
 	fw_pos_ctrl_status_publish();
 
 	/* Update Launch Detector Parameters */
@@ -1550,7 +1550,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 	bool setpoint = true;
 
-	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
+	_att_sp.fw_control_yaw = true;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
@@ -1620,8 +1620,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		_was_in_air = false;
 	}
 
-	if (_control_mode.flag_control_auto_enabled &&
-	    pos_sp_triplet.current.valid) {
+	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
@@ -1768,6 +1767,9 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= math::radians(90.0f)) {
 				wp_distance_save = 0.0f;
 			}
+			if (( (wp_distance_save < 5.0f)) || _land_noreturn_vertical) { 
+			    warnx("Inside if line 1771 gnd_pos_control");  //checking for land_noreturn to avoid unwanted climb out
+			}
 
 			// create virtual waypoint which is on the desired flight path but
 			// some distance behind landing waypoint. This will make sure that the plane
@@ -1871,15 +1873,16 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			float L_altitude_rel = pos_sp_triplet.previous.valid ?
 					       pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
-			float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
-							      bearing_lastwp_currwp, bearing_airplane_currwp);
+			float landing_slope_alt_rel_desired = 10.0f ;
+			//_landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
+			//				      bearing_lastwp_currwp, bearing_airplane_currwp);
 
 			/* Check if we should start flaring with a vertical and a
 			 * horizontal limit (with some tolerance)
 			 * The horizontal limit is only applied when we are in front of the wp
 			 */
-			if (((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) &&
-			     (wp_distance_save < _landingslope.flare_length() + 5.0f)) ||
+			if (((_global_pos.alt < terrain_alt /*+ _landingslope.flare_relative_alt()*/) &&
+			     (wp_distance_save < /*_landingslope.flare_length() + */ 5.0f)) ||
 			    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 				/* land with minimal speed */
@@ -1896,7 +1899,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 					_att_sp.fw_control_yaw = true;
 				}
 
-				if (_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt() || _land_motor_lim) {
+				if (_global_pos.alt < terrain_alt /*+ _landingslope.motor_lim_relative_alt() */|| _land_motor_lim) {
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 
 					if (!_land_motor_lim) {
@@ -1906,8 +1909,9 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 				}
 
-				float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
-							    bearing_airplane_currwp);
+				float flare_curve_alt_rel = 1.0f ; 
+				//_landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
+				//			    bearing_airplane_currwp);
 
 				/* avoid climbout */
 				if ((_flare_curve_alt_rel_last < flare_curve_alt_rel && _land_noreturn_vertical) || _land_stayonground) {
@@ -1915,7 +1919,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 					_land_stayonground = true;
 				}
 
-				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
+				tecs_update_pitch_throttle(terrain_alt ,// + flare_curve_alt_rel,
 							   calculate_target_airspeed(airspeed_land),
 							   eas2tas,
 							   math::radians(_parameters.land_flare_pitch_min_deg),
@@ -1947,7 +1951,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 					}
 				}
 
-				_flare_curve_alt_rel_last = flare_curve_alt_rel;
+				_flare_curve_alt_rel_last = 0;//flare_curve_alt_rel;
 
 			} else {
 
@@ -2167,7 +2171,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 
 	} else if (_control_mode.flag_control_velocity_enabled &&
-		   _control_mode.flag_control_altitude_enabled) {
+		   _control_mode.flag_control_altitude_enabled)
+	{
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -2484,6 +2489,8 @@ GroundRoverPositionControl::task_main()
 	_task_running = true;
 
 	while (!_task_should_exit) {
+
+		//warnx("Looping....");
 
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);

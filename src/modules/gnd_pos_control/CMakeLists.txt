@@ -38,7 +38,6 @@ px4_add_module(
 		-Weffc++
 	SRCS
 		gnd_pos_control_main.cpp
-		landingslope.cpp
 	DEPENDS
 		platforms__common
 		git_ecl
