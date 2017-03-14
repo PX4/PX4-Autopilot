@@ -60,7 +60,6 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, int address) :
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_i2c_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_i2c_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_i2c_overflows")),
 	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls_i2c_resets")),
 	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_i2c_zero_resets")),
 	_last_distance(0),
@@ -98,7 +97,6 @@ LidarLiteI2C::~LidarLiteI2C()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 	perf_free(_sensor_resets);
 	perf_free(_sensor_zero_resets);
 }
@@ -465,9 +463,7 @@ int LidarLiteI2C::collect()
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
 
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -561,7 +557,6 @@ void LidarLiteI2C::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);
 	printf("poll interval:  %u ticks\n", getMeasureTicks());
