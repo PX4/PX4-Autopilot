@@ -1270,8 +1270,8 @@ void MulticopterAttitudeControl::alpha (float dt)
  {
 
     //calculate spherical coordinates from the thrust vector
-    float phi = atan2(_vol_thrust_sp.y,_vol_thrust_sp.x);
-    float theta = atan2(_vol_thrust_sp.z,_vol_thrust_sp.y*_vol_thrust_sp.y+_vol_thrust_sp.x*_vol_thrust_sp.x);
+    float phi = atan2(_vol_thrust_sp.f[1],_vol_thrust_sp.f[0]);
+    float theta = atan2(_vol_thrust_sp.f[2],_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]);
 
     //get lookup values of alpha
     lookup(theta,phi,_alpha_des);
@@ -1326,17 +1326,7 @@ MulticopterAttitudeControl::control_allocation(float dt)
     float k=_params.torque_coeff;
     float l=_params.length_axis;
 
-    math::Vector<6> u;
-    //to be changed
-
-		math::Vector<6> alpha_des;
-
-    u(0)=_vol_thrust_sp.f[0];
-    u(1)=_vol_thrust_sp.f[1];
-    u(2)=_vol_thrust_sp.f[2];
-    u(3)=_vol_att_sp(0);
-    u(4)=_vol_att_sp(1);
-    u(5)=_vol_att_sp(2);
+    math::Vector<6> u{_vol_thrust_sp.f,_vol_att_sp};
 
     float alloc [6][6]= {{-sinf(_alpha_sim(0)),                          sinf(_alpha_sim(1)),                          0.5f*sinf(_alpha_sim(2)),                                               -0.5f*sinf(_alpha_sim(3)),                                               -0.5f*sinf(_alpha_sim(4)),                                               0.5f*sinf(_alpha_sim(5))},
                          {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_sim(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_sim(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_sim(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_sim(5))},
