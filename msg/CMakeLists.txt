@@ -117,15 +117,14 @@ set(msg_file_names
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
 	vehicle_rates_setpoint.msg
+	vehicle_roi.msg
 	vehicle_status.msg
 	vision_position_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
-	vehicle_roi.msg
 	mount_orientation.msg
 	collision_report.msg
-  voliro_alpha.msg
-  voliro_omega.msg
+  voliro_actuator_controls.msg
   voliro_thrust_setpoint.msg
 	)
 

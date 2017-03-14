@@ -71,8 +71,7 @@
 #include <uORB/topics/voliro_thrust_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/voliro_alpha.h>
-#include <uORB/topics/voliro_omega.h>
+#include <uORB/topics/voliro_actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/fw_virtual_rates_setpoint.h>
 #include <uORB/topics/mc_virtual_rates_setpoint.h>
@@ -150,14 +149,14 @@ private:
 
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
-    orb_advert_t	_alpha_0_pub;           /**< alpha actuator controls publication, added by voliro */
-    orb_advert_t	_omega_0_pub;           /**< omega actuator controls publication, added by voliro */
+    orb_advert_t	_alpha_pub;           /**< alpha actuator controls publication, added by voliro */
+    orb_advert_t	_omega_pub;           /**< omega actuator controls publication, added by voliro */
 	orb_advert_t	_controller_status_pub;	/**< controller status publication */
 
 	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
-    orb_id_t _alpha_id;	/**< pointer to correct actuator omega0 uORB metadata structure, added by voliro */
-    orb_id_t _omega_id;	/**< pointer to correct actuator alpha0 uORB metadata structure, added by voliro */
+    orb_id_t _alpha_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
+    orb_id_t _omega_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
 
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
@@ -170,19 +169,16 @@ private:
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
     struct actuator_controls_s          _actuators;		/**< actuator controls */
-    struct voliro_alpha_s               _alpha;                 /**< alpha controls, added by voliro */
-    struct voliro_omega_s               _omega;                  /**< omega controls, added by voliro */
+    struct voliro_actuator_controls_s   _alpha;                /**< alpha controls, added by voliro */
+    struct voliro_actuator_controls_s   _omega;                /**< omega controls, added by voliro */
     struct actuator_armed_s             _armed;			/**< actuator arming status */
     struct vehicle_status_s             _vehicle_status;	/**< vehicle status */
 	struct multirotor_motor_limits_s	_motor_limits;		/**< motor limits */
     struct mc_att_ctrl_status_s 		_controller_status;     /**< controller status */
     struct battery_status_s				_battery_status;/**< battery status */
 
-    struct _vol_att_sp_s{
-            float x; float y; float z;
-    };
 
-    _vol_att_sp_s _vol_att_sp;
+
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_controller_latency_perf;
@@ -202,6 +198,7 @@ private:
     math::Vector<6>     _alpha_sim_prev; /**< Previous simulated alpha */
     math::Vector<6>     _omega_des;     /**< omega_des, is sent to actuator control */
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
+    math::Vector<3>     _vol_att_sp;      /**< attitude setpoint, added by voliro*/
 
 	struct {
 		param_t roll_p;
@@ -404,8 +401,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* publications */
 	_v_rates_sp_pub(nullptr),
   _actuators_0_pub(nullptr),
-  _alpha_0_pub(nullptr), //added by voliro
-  _omega_0_pub(nullptr), //added by voliro
+  _alpha_pub(nullptr), //added by voliro
+  _omega_pub(nullptr), //added by voliro
 	_controller_status_pub(nullptr),
 	_rates_sp_id(0),
 	_actuators_id(0),
@@ -791,8 +788,8 @@ MulticopterAttitudeControl::vehicle_status_poll()
 			} else {
 				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
 				_actuators_id = ORB_ID(actuator_controls_0);
-                _alpha_id = ORB_ID(voliro_alpha_0);
-                _omega_id = ORB_ID(voliro_omega_0);
+                _alpha_id = ORB_ID(voliro_actuator_controls_1);
+                _omega_id = ORB_ID(voliro_actuator_controls_0);
 
 			}
 		}
@@ -830,8 +827,8 @@ MulticopterAttitudeControl::battery_status_poll()
  * Output: '_rates_sp' vector, '_thrust_sp'
  */
 
-/* voliro: use _vol_thrust_sp.x, _vol_thrust_sp.y, _vol_thrust_sp.z as input, published by position controller.
-    give out _vol_att_sp.x,  _vol_att_sp.y , _vol_att_sp.z they will be entered into allocation at topic _voliro_omega_0 und _voliro_alpha_o*/
+/* voliro: use _vol_thrust_sp.f[0-2] as input, published by position controller.
+    give out _vol_att_sp(0-2) they will be entered into allocation at topic _voliro_actuator_controls_0(omega) und _voliro_actuator_controls_1 (alpha)*/
 
 void
 MulticopterAttitudeControl::control_attitude(float dt)
@@ -1120,12 +1117,12 @@ MulticopterAttitudeControl::control_allocation(float dt)
 
 		math::Vector<6> alpha_des;
 
-    u(0)=_vol_thrust_sp.x;
-    u(1)=_vol_thrust_sp.y;
-    u(2)=_vol_thrust_sp.z;
-    u(3)=_vol_att_sp.x;
-    u(4)=_vol_att_sp.y;
-    u(5)=_vol_att_sp.z;
+    u(0)=_vol_thrust_sp.f[0];
+    u(1)=_vol_thrust_sp.f[1];
+    u(2)=_vol_thrust_sp.f[2];
+    u(3)=_vol_att_sp(0);
+    u(4)=_vol_att_sp(1);
+    u(5)=_vol_att_sp(2);
 
     float alloc [6][6]= {{-sinf(_alpha_sim(0)),                          sinf(_alpha_sim(1)),                          0.5f*sinf(_alpha_sim(2)),                                               -0.5f*sinf(_alpha_sim(3)),                                               -0.5f*sinf(_alpha_sim(4)),                                               0.5f*sinf(_alpha_sim(5))},
                          {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_sim(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_sim(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_sim(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_sim(5))},
@@ -1364,13 +1361,13 @@ MulticopterAttitudeControl::task_main()
                     /* publish omegas, added by voliro */
 
                 if (!_actuators_0_circuit_breaker_enabled) {
-                    if (_omega_0_pub != nullptr) {
+                    if (_omega_pub != nullptr) {
 
-                        orb_publish(_omega_id, _omega_0_pub, &_actuators);
+                        orb_publish(_omega_id, _omega_pub, &_actuators);
                         perf_end(_controller_latency_perf);
 
                     } else if (_omega_id) {
-                        _omega_0_pub = orb_advertise(_omega_id, &_actuators);
+                        _omega_pub = orb_advertise(_omega_id, &_actuators);
                     }
 
                 }
@@ -1434,24 +1431,24 @@ MulticopterAttitudeControl::task_main()
 
 
                     if (!_actuators_0_circuit_breaker_enabled) {
-                        if (_alpha_0_pub != nullptr) {
+                        if (_alpha_pub != nullptr) {
 
-                            orb_publish(_alpha_id, _alpha_0_pub, &_actuators);
+                            orb_publish(_alpha_id, _alpha_pub, &_actuators);
                             perf_end(_controller_latency_perf);
 
                         } else if (_alpha_id) {
-                            _alpha_0_pub = orb_advertise(_alpha_id, &_actuators);
+                            _alpha_pub = orb_advertise(_alpha_id, &_actuators);
                         }
                     }
 
                     if (!_actuators_0_circuit_breaker_enabled) {
-                        if (_omega_0_pub != nullptr) {
+                        if (_omega_pub != nullptr) {
 
-                            orb_publish(_omega_id, _omega_0_pub, &_actuators);
+                            orb_publish(_omega_id, _omega_pub, &_actuators);
                             perf_end(_controller_latency_perf);
 
                         } else if (_omega_id) {
-                            _omega_0_pub = orb_advertise(_omega_id, &_actuators);
+                            _omega_pub = orb_advertise(_omega_id, &_actuators);
                         }
                     }
                     //

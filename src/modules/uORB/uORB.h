@@ -248,3 +248,5 @@ typedef uint8_t navigation_state_t;
 typedef uint8_t switch_pos_t;
 
 #endif /* _UORB_UORB_H */
+
+

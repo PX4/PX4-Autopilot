@@ -1017,9 +1017,9 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.yaw_body = _yaw;
 		_att_sp.thrust = 0.0f;
 
-        _vol_thrust_sp.x=0.0f;
-        _vol_thrust_sp.y=0.0f;
-        _vol_thrust_sp.z=0.0f;
+        _vol_thrust_sp.f[0]=0.0f;
+        _vol_thrust_sp.f[1]=0.0f;
+        _vol_thrust_sp.f[2]=0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
 
@@ -1146,9 +1146,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 
 		_att_sp.timestamp = hrt_absolute_time();
 
-        _vol_thrust_sp.x=0.0f;
-        _vol_thrust_sp.y=0.0f;
-        _vol_thrust_sp.z=0.0f;
+        _vol_thrust_sp.f[0]=0.0f;
+        _vol_thrust_sp.f[1]=0.0f;
+        _vol_thrust_sp.f[2]=0.0f;
 
 	} else {
 		control_position(dt);
@@ -1968,7 +1968,7 @@ MulticopterPositionControl::task_main()
 	}
 }
 /*voliro: save F_des in _vol_thrust_sp, will be published in topic voliro_thrust_setpoint
- * save values _vol_thrust_sp.x, _vol_thrust_sp.y, _vol_thrust_sp.z
+ * save values _vol_thrust_sp.f[0-2]
  * */
 >>>>>>> f3d412b... added voliro_thrust_setpoint.msg and voliro_alpha.msg and voliro_omega.msg
 
