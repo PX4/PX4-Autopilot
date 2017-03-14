@@ -107,9 +107,14 @@ void Ekf::controlFusionModes()
 	controlAirDataFusion();
 	controlBetaFusion();
 
-	// for efficiency, fusion of direct state observations for position ad velocity is performed sequentially
+	// for efficiency, fusion of direct state observations for position and velocity is performed sequentially
 	// in a single function using sensor data from multiple sources (GPS, external vision, baro, range finder, etc)
 	controlVelPosFusion();
+
+	// report dead reckoning if we are no longer fusing measurements that constrain velocity drift
+	_is_dead_reckoning = (_time_last_imu - _time_last_pos_fuse > _params.no_aid_timeout_max)
+			&& (_time_last_imu - _time_last_vel_fuse > _params.no_aid_timeout_max)
+			&& (_time_last_imu - _time_last_of_fuse > _params.no_aid_timeout_max);
 
 }
 

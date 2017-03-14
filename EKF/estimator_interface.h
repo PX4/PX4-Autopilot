@@ -336,8 +336,10 @@ protected:
 	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
 	float _tas_test_ratio;		// tas innovation consistency check ratio
 	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
-	float _beta_test_ratio;			// sideslip innovation consistency check ratio
+	float _beta_test_ratio;		// sideslip innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
+
+	bool _is_dead_reckoning;	// true if we are no longer fusing measurements that constrain horizontal velocity drift
 
 	// IMU vibration monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement

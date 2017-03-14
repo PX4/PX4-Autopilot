@@ -276,7 +276,9 @@ struct parameters {
 	float acc_bias_learn_tc;	// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	unsigned no_gps_timeout_max;	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
-									// rejected
+					// rejected before attempting to reset the states to the GPS measurement (usec)
+	unsigned no_aid_timeout_max;	// maximum lapsed time from last fusion of measurements that constrain drift before
+					// the EKF will report that it is dead-reckoning (usec)
 
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
@@ -385,7 +387,9 @@ struct parameters {
 		acc_bias_learn_gyr_lim = 3.0f;
 		acc_bias_learn_tc = 0.5f;
 
-		no_gps_timeout_max = 7e6;	// maximum seven seconds of dead reckoning time for gps
+		// dead reckoning timers
+		no_gps_timeout_max = 7e6;
+		no_aid_timeout_max = 1e6;
 
 	}
 };
