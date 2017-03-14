@@ -39,3 +39,24 @@ Motivation:
 Result:
  In session 2 it is possible to see that it controls the actuators.
 ---------
+All the other sessions
+---------
+Testing the local position estimator lock going around the lab and investigating the sonar fault.
+
+********************************************
+Day: 14-03-2017
+---------
+sess01
+---------
+Motivation:
+ The new ESC arrived and today I will test outside collecting a log of the behaviour.
+ This thest was to check that the pwm commands where working.
+Result:
+ PWM 1 needs to be reversed in QGC, set limits on pwm, it works.
+---------
+sess02
+---------
+Motivation:
+ Testing if the newly calibrated controller paired with the new mixer reacts to roll.
+Result:
+ It doesn't, but steering is very noisy. Enough to collect the data for manual control.
