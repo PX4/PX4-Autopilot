@@ -49,7 +49,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-#define UNUSED(x) (void)(x)
+#include <systemlib/px4_macros.h>
 
 extern "C" { __EXPORT int spektrum_rc_main(int argc, char *argv[]); }
 
