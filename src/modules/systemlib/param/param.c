@@ -270,7 +270,7 @@ _param_notify_changes(bool is_saved)
 void
 param_notify_changes(void)
 {
-	_param_notify_changes(true);
+	_param_notify_changes(false);
 }
 
 param_t
