@@ -1517,7 +1517,7 @@ MulticopterAttitudeControl::task_main()
 				if (_params.bat_scale_en && _battery_status.scale > 0.0f) {
                     for (int i = 0; i < 6; i++) {
 						_actuators.control[i] *= _battery_status.scale;
-                        _actuators_1.control[i] *= _battery_status.scale;
+
 					}
 				}
 
