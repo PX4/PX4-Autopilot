@@ -295,8 +295,8 @@ private:
 	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
     orb_id_t _actuators_1_id;	/**< pointer to correct actuator controls1 uORB metadata structure, added by voliro */
 
-	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
-
+    bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
+    bool		_actuators_1_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
     struct control_state_s              _ctrl_state;		/**< control state */
     struct vehicle_attitude_setpoint_s	_v_att_sp;		/**< vehicle attitude setpoint */
@@ -558,6 +558,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
     _actuators_1_id(0),//added by voliro
 
 	_actuators_0_circuit_breaker_enabled(false),
+    _actuators_1_circuit_breaker_enabled(false),
 
 
 	/* performance counters */
@@ -572,7 +573,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
 	memset(&_actuators, 0, sizeof(_actuators));
-    memset(&_actuators_1, 0, sizeof(_actuators_1);
+    memset(&_actuators_1, 0, sizeof(_actuators_1));
 	memset(&_armed, 0, sizeof(_armed));
 	memset(&_vehicle_status, 0, sizeof(_vehicle_status));
 	memset(&_motor_limits, 0, sizeof(_motor_limits));
@@ -817,7 +818,7 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
-
+    _actuators_1_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 	param_get(_params_handles.tau_servo, &(_params_handles.tau_servo));
 
   /*Parameters added by voliro*/
@@ -1273,6 +1274,7 @@ void MulticopterAttitudeControl::alpha (float dt)
 
     _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
     _alpha_prev(i)=_alpha_des(i);
+
     }
 
     for (int i=0;i<6;i++)
@@ -1477,7 +1479,7 @@ MulticopterAttitudeControl::task_main()
 
 
 
-                //publish omegas,by voliro
+                //publish omegas, by voliro, omega equals thrust in kg
 
                 _actuators.control[0] = (PX4_ISFINITE(_omega_des(0))) ? _omega_des(0) : 0.0f;
                 _actuators.control[1] = (PX4_ISFINITE(_omega_des(1))) ? _omega_des(1) : 0.0f;
@@ -1487,7 +1489,13 @@ MulticopterAttitudeControl::task_main()
                 _actuators.control[5] = (PX4_ISFINITE(_omega_des(5))) ? _omega_des(5) : 0.0f;
 
 
-               //publish alphas
+               //maps alpha_des from -1 to 1
+                for(int i=0;i<6; i++)
+               {
+                    _alpha_des(i)=_alpha_des(i)/(2*(float)M_PI);
+                   }
+
+                //publish alphas
 
                 _actuators_1.control[0] = (PX4_ISFINITE(_alpha_des(0))) ? _alpha_des(0) : 0.0f;
                 _actuators_1.control[1] = (PX4_ISFINITE(_alpha_des(1))) ? _alpha_des(1) : 0.0f;
@@ -1532,7 +1540,7 @@ MulticopterAttitudeControl::task_main()
 				}
                     /* publish alphas, added by voliro */
 
-                if (!_actuators_0_circuit_breaker_enabled) {
+                if (!_actuators_1_circuit_breaker_enabled) {
                     if (_actuators_1_pub != nullptr) {
 
                         orb_publish(_actuators_1_id, _actuators_1_pub, &_actuators_1);

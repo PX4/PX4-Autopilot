@@ -124,7 +124,6 @@ set(msg_file_names
 	wind_estimate.msg
 	mount_orientation.msg
 	collision_report.msg
-  voliro_actuator_controls.msg
   voliro_thrust_setpoint.msg
 	)
 
