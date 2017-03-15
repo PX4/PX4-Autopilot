@@ -295,7 +295,7 @@ then
 	then
 	fi
 
-	if mpu6500 -R 14 start
+	if mpu9250 -s -R 14 start
 	then
 	fi
 
