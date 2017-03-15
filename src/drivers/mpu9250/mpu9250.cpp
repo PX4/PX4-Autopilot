@@ -328,7 +328,9 @@ MPU9250::init()
 #endif
 
 	/* do CDev init for the mag device node, keep it optional */
-	ret = _mag->init();
+	if (_whoami == MPU_WHOAMI_9250) {
+		ret = _mag->init();
+	}
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -450,6 +452,7 @@ MPU9250::probe()
 	// verify product revision
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
+	case MPU_WHOAMI_6500:
 		memset(_checked_values, 0, sizeof(_checked_values));
 		memset(_checked_bad, 0, sizeof(_checked_bad));
 		_checked_values[0] = _whoami;

@@ -265,8 +265,28 @@ int
 MPU9250_SPI::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+
+	warnx("probe!");
+	int ret = read(MPUREG_WHOAMI, &whoami, 1);
+
+	if (ret != OK) {
+		return -EIO;
+	}
+
+	warnx("probe!");
+
+	switch (whoami) {
+	case MPU_WHOAMI_9250:
+	case MPU_WHOAMI_6500:
+		ret = 0;
+		break;
+
+	default:
+		warnx("probe failed! %u", whoami);
+		ret = -EIO;
+	}
+
+	return ret;
 }
 
 #endif // PX4_SPIDEV_MPU
