@@ -1,3 +1,4 @@
+
 ############################################################################
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
@@ -39,4 +40,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

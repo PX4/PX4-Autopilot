@@ -1,9 +1,9 @@
-Passthrough mixer for PX4IO
+  Passthrough mixer for PX4IO
 ============================
 
-This file defines passthrough mixers suitable for testing.
+This file defines passthrough mixer for the motors
 
-Channel group 0, channels 0-7 are passed directly through to the outputs.
+Channel group 0, channels 0-5 are passed directly through to the outputs.
 
 M: 1
 O:      10000  10000      0 -10000  10000

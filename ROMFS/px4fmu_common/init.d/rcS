@@ -1,4 +1,4 @@
-#!nsh
+		#!nsh
 #
 # PX4FMU startup script.
 #
@@ -300,7 +300,7 @@ then
 		fi
 	fi
 
-	#
+	#at
 	# Set default output if not set
 	#
 	if [ $OUTPUT_MODE == none ]
@@ -769,6 +769,33 @@ then
 		sh /etc/init.d/rc.fw_apps
 	fi
 
+
+	#
+	# Voliro setup (similar to fixed wing setup)
+	#
+	if [ $VEHICLE_TYPE == voliro ]
+	then
+		if [ $MIXER == none ]
+		then
+			# Set default mixer voliro
+			set MIXER voliro
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 1 (fixed wing) if not defined
+			set MAV_TYPE 1
+		fi
+
+		param set MAV_TYPE ${MAV_TYPE}
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard voliro apps
+		sh /etc/init.d/rc.voliro_apps
+	fi
+
 	#
 	# Multicopters setup
 	#
@@ -836,6 +863,7 @@ then
 		sh /etc/init.d/rc.mc_apps
 	fi
 
+
 	#
 	# VTOL setup
 	#
@@ -877,23 +905,6 @@ then
 
 		# Start standard vtol apps
 		sh /etc/init.d/rc.vtol_apps
-	fi
-
-	#
-	# Rover setup
-	#
-	if [ $VEHICLE_TYPE == rover ]
-	then
-		# 10 is MAV_TYPE_GROUND_ROVER
-		set MAV_TYPE 10
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard rover apps
-		sh /etc/init.d/rc.axialracing_ax10_apps
-
-		param set MAV_TYPE 10
 	fi
 
 	#

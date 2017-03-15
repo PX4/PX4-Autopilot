@@ -417,4 +417,166 @@ PARAM_DEFINE_FLOAT(MC_TPA_SLOPE, 1.0f);
  * @boolean
  * @group Multicopter Attitude Control
  */
+
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
+
+
+
+/** The following parameters have been added by Voliro--------------------------
+ */
+
+/**
+ * Tilting motor time constant tau
+ *
+ *
+ * @min 0.0
+ * @max
+ * @decimal
+ * @increment
+ * @group Multicopter Attitude Control
+ */
+
+PARAM_DEFINE_FLOAT(TAU_SERVO, 7.9587f);
+
+/**
+ * Torque coefficient
+ *
+ * Ratio of torque produced by rotor and thrust produced by rotor. In unit [Nm/N]
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_TORQUE_COEFF, 0.016f);
+
+/**
+ * Length axis
+ *
+ * Length from rotor to body center of gravity in meters
+ *
+ * @min 0.0
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_LENGTH_AXIS, 0.375f);
+
+/**
+ * Roll D gain
+ *
+ * Roll differential gain,
+ *
+ * @unit 1/s
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_D, 0.0f);
+
+/**
+ * Roll I gain
+ *
+ * Roll integral gain,
+ *
+ * @unit 1/s
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_I, 0.0f);
+
+/**
+ * Pitch D gain
+ *
+ * Pitch differential gain,
+ *
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_D, 0.0f);
+
+/**
+ * Pitch I gain
+ *
+ * Pitch integral gain,
+ *
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_I, 0.0f);
+
+/**
+ * Yaw D gain
+ *
+ * Yaw differential gain,
+ *
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAW_D, 0.0f);
+
+/**
+ * Yaw I gain
+ *
+ * Yaw integral gain,
+ *
+ * @min 0.0
+ * @max 8
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAW_I, 0.0f);
+
+/**
+ * Roll integrator limit
+ *
+ * Roll integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+ *
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_R_INT_LIM, 0.30f);
+
+/**
+ * Pitch integrator limit
+ *
+ * Pitch integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+ *
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_P_INT_LIM, 0.30f);
+
+/**
+ * Yaw integrator limit
+ *
+ * Yaw integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+ *
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_Y_INT_LIM, 0.30f);
+
