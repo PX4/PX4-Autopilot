@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/voliro_thrust_setpoint.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -131,6 +132,7 @@ private:
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
+    int		_vol_thrust_sp_sub;			/**< voliro thrust setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_sub;			/**< notification of manual control updates */
@@ -141,15 +143,18 @@ private:
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
+    orb_advert_t	_vol_thrust_sp_pub;			/**< thrust setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
 	orb_id_t _attitude_setpoint_id;
+    orb_id_t _voliro_thrust_setpoint_id;
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
 	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
+    struct voliro_thrust_setpoint_s		_vol_thrust_sp;		/**< added by voliro, in body frame */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
@@ -370,6 +375,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* subscriptions */
 	_ctrl_state_sub(-1),
 	_att_sp_sub(-1),
+    _vol_thrust_sp_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
@@ -383,10 +389,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
 	_attitude_setpoint_id(0),
+    _voliro_thrust_setpoint_id(0),
 	_vehicle_status{},
 	_vehicle_land_detected{},
 	_ctrl_state{},
 	_att_sp{},
+    _vol_thrust_sp{},
 	_manual{},
 	_control_mode{},
 	_arming{},
@@ -668,6 +676,13 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+}
+
+    orb_check(_vol_thrust_sp_sub, &updated);
+
+  if (updated) {
+            orb_copy(ORB_ID(voliro_thrust_setpoint), _vol_thrust_sp_sub, &_vol_thrust_sp);
+}
 
 		/* get current rotation matrix and euler angles from control state quaternions */
 		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
@@ -688,13 +703,19 @@ MulticopterPositionControl::poll_subscriptions()
 			}
 		}
 
-	}
+
 
 	orb_check(_att_sp_sub, &updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
+
+    orb_check(_vol_thrust_sp_sub, &updated);
+
+    if (updated) {
+        orb_copy(ORB_ID(voliro_thrust_setpoint), _vol_thrust_sp_sub, &_vol_thrust_sp);
+    }
 
 	orb_check(_control_mode_sub, &updated);
 
@@ -1311,6 +1332,7 @@ MulticopterPositionControl::task_main()
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+    _vol_thrust_sp_sub = orb_subscribe(ORB_ID(voliro_thrust_setpoint));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -1516,6 +1538,18 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
+                _vol_thrust_sp.f[0]= 0.0f;
+                _vol_thrust_sp.f[1]= 0.0f;
+                _vol_thrust_sp.f[2]= 0.0f;
+                /* publish thrust setpoint */
+                if (_att_sp_pub != nullptr) {
+                    orb_publish(_voliro_thrust_setpoint_id, _vol_thrust_sp_pub, &_vol_thrust_sp);
+
+                } else if (_voliro_thrust_setpoint_id) {
+                    _att_sp_pub = orb_advertise(_voliro_thrust_setpoint_id, &_vol_thrust_sp);
+                }
+
+
 			} else if (_control_mode.flag_control_manual_enabled
 				   && _vehicle_land_detected.landed) {
 				/* don't run controller when landed */
@@ -1534,6 +1568,17 @@ MulticopterPositionControl::task_main()
 				_att_sp.thrust = 0.0f;
 
 				_att_sp.timestamp = hrt_absolute_time();
+
+                _vol_thrust_sp.f[0]= 0.0f;
+                _vol_thrust_sp.f[1]= 0.0f;
+                _vol_thrust_sp.f[2]= 0.0f;
+
+                if (_vol_thrust_sp_pub != nullptr) {
+                    orb_publish(_voliro_thrust_setpoint_id, _vol_thrust_sp_pub, &_vol_thrust_sp);
+
+                } else if (_attitude_setpoint_id) {
+                    _att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+                }
 
 				/* publish attitude setpoint */
 				if (_att_sp_pub != nullptr) {
@@ -1949,7 +1994,10 @@ MulticopterPositionControl::task_main()
 						}
 
 						thrust_abs = thr_max;
+
 					}
+
+
 
 					/* update integrals */
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
@@ -2204,11 +2252,18 @@ MulticopterPositionControl::task_main()
 			_control_mode.flag_control_acceleration_enabled))) {
 
 			if (_att_sp_pub != nullptr) {
-				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+                orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 			} else if (_attitude_setpoint_id) {
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
+
+            if (_vol_thrust_sp_pub != nullptr) {
+                orb_publish(_voliro_thrust_setpoint_id, _vol_thrust_sp_pub, &_vol_thrust_sp);
+
+            } else if (_voliro_thrust_setpoint_id) {
+                _vol_thrust_sp_pub = orb_advertise(_voliro_thrust_setpoint_id, &_vol_thrust_sp);
+            }
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
