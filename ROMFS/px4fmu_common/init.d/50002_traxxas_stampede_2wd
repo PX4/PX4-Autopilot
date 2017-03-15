@@ -50,7 +50,6 @@ then
 	param set FW_AIRSPD_MAX 8
 	
 
-	param set NAV_DLL_ACT 2
 	param set NAV_ACC_RAD 1.0
 	param set NAV_LOITER_RAD 2
 
@@ -73,5 +72,5 @@ set PWM_RATE 50
 set PWM_DISARMED 1500
 set PWM_MAIN_REV2 1
 set PWM_MAIN_REV4 1
-set PWM_MAX 1700
-set PWM_MIN 1300
+set PWM_MAX 2000
+set PWM_MIN 1000

@@ -205,10 +205,67 @@ sess08
 Motivation:
  Lorenz suggested setting the throttle trim to 0
 Result:
- 
+ this was arming to try to get the lock, disregard this session.
 
 
+---------
+sess09
+---------
+Motivation:
+ testing new params
+Result:
+ looks good, disarming problem, recompiled fw. From log analysis it was found that in all the afternoon sessions (from 8 to 14),   the NAV_DLL_ACT parameter should not be set to 2, but let disabled. This test is overall quite good, the proportional gain of 0.5 and no FF term looks decent. Unfortunately the disarming problem and the parameter issue perturbed the mission.
+Msg file: msgs_2017_03_15_13_36_00.txt
+Log file: http://logs.uaventure.com/view/TZj2Ym9kvyU6jSe8v8v9Tg#Actuators_PLOT
+  
 
+---------
+sess10-11
+---------
+Motivation:
+ Increasing pwm limit and roll control
+Result:
+ two logs, one wasn't getting lock. Looks good but it was kinda entering failsafe mode and loitering. steering was not agressive enough, putting the FF term again. Also increasing the pwm. It looks like the mixer worked. It seems promising except for the issues with the parameter and the 
+MSG file: msgs_2017_03_15_13_44_54.txt 
+MSG file 2: msgs_2017_03_15_13_54_05.txt
+Log file: http://logs.uaventure.com/view/SemB6BwzbBFDf3oE4J5PqE
+
+
+---------
+sess12
+---------
+Motivation:
+ Added back the feedforward and increased the pwm limits
+Result:
+ The actuators outputs for the steering are saturated all the time, I'm guessing too much amplification. Same problems with wrong parameter causing circles all the time.
+MSG File: msgs_2017_03_15_14_02_26.txt
+Log file: http://logs.uaventure.com/view/CgSHdcBg3gXQvbGHdX9NaF#Actuators_PLOT
+
+---------
+sess13
+---------
+Motivation:
+ Increasing PWM limits to the maximum to see if it still behaves
+Result:
+ yes it is ok, still same issues as before
+MSG file: msgs_2017_03_15_14_08_14.txt
+Log file: http://logs.uaventure.com/view/uQsa9SGBc6ejbDFNzmtF39
+
+---------
+sess14
+---------
+Motivation:
+ Tested a second time as before but this time I was running along the car to see why it was not doing the mission. I realized the LED was turning purple and flashing while in mission mode.
+Result:
+ same as before
+
+---------
+sess15
+---------
+Motivation:
+ Increased cruising speed, removed Feed forward term, set roll proportional gain to 1 just to log the data.
+Result:
+ As noted in previous sessions the Proportional gain is now too big. The throotle seems increased a bit. The parameter for the cruising speed is the one responsible now.
 
 ---------
 sess
