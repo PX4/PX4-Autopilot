@@ -973,14 +973,19 @@ MulticopterPositionControl::control_manual(float dt)
 		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_xy_dz);
 		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_xy_dz);
 
+		/* saturarate such that magnitude is never larger than 1 */
+		if (req_vel_sp_xy.length() > 1.0f) {
+			req_vel_sp_xy = req_vel_sp_xy.normalized();
+		}
+
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
 	}
 
 	/* scale requested velocity setpoint to cruisespeed and rotate around yaw */
-	math::Vector<3> vel_cruise(_params.vel_cruise_xy,
-				   _params.vel_cruise_xy,
-				   (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
+	math::Vector<3> cruising_scale(_params.vel_cruise_xy,
+				       _params.vel_cruise_xy,
+				       (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 	math::Vector<3> req_vel_sp_scaled(req_vel_sp_xy(0), req_vel_sp_xy(1), req_vel_sp_z);
 
 	/* scale velocity setpoint to cruise speed (m/s) and rotate around yaw to NED frame */
@@ -995,7 +1000,7 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(
-				    vel_cruise); // in NED and scaled to actual velocity;
+				    cruising_scale); // in NED and scaled to actual velocity;
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
