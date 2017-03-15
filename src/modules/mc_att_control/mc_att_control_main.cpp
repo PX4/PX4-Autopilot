@@ -295,12 +295,11 @@ private:
 
 	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
-    orb_id_t _alpha_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
-    orb_id_t _omega_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
-
 
 	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
+    orb_id_t _alpha_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
+    orb_id_t _omega_id;	/**< pointer to correct voliro actuator controls topic uORB metadata structure, added by voliro */
 
     struct control_state_s              _ctrl_state;		/**< control state */
     struct vehicle_attitude_setpoint_s	_v_att_sp;		/**< vehicle attitude setpoint */
@@ -632,7 +631,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
   _params_handles.roll_integ_lim	= 	param_find("MC_R_INT_LIM"); //AbV
   _params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
-  _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
+  // _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
 	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
 	_params_handles.roll_rate_ff	= 	param_find("MC_ROLLRATE_FF");
   _params_handles.pitch_p				= 	param_find("MC_PITCH_P");
@@ -1118,43 +1117,22 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
     _att_err_prev = att_err;
 
+		/* update integral only if not saturated on low limit and if motor commands are not saturated */
+		if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
+			for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+				if (fabsf(_att_control(i)) < _thrust_sp) {
+					float rate_i = _rates_int(i) + _params.rate_i(i) * att_err(i) * dt;
 
-    /* update integral only if motors are providing enough thrust to be effective */
-    if (_thrust_sp > MIN_TAKEOFF_THRUST) {
-        for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
-            // Check for positive control saturation
-            bool positive_saturation =
-                ((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
-                ((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
-                ((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
+					if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
+					/* if the axis is the yaw axis, do not update the integral if the limit is hit */
+					!((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
+						_att_int(i) = rate_i;
+					}
+				}
+			}
+		}
 
-            // Check for negative control saturation
-            bool negative_saturation =
-                ((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
-                ((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
-                ((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
-
-            // prevent further positive control saturation
-            if (positive_saturation) {
-                att_err(i) = math::min(att_err(i), 0.0f);
-
-            }
-
-            // prevent further negative control saturation
-            if (negative_saturation) {
-                att_err(i) = math::max(att_err(i), 0.0f);
-
-            }
-
-            // Perform the integration using a first order method and do not propaate the result if out of range or invalid
-            float att_i = _att_int(i) + _params.att_i(i) * att_err(i) * dt;
-
-            if (PX4_ISFINITE(att_i) && att_i > -_params.att_int_lim(i) && att_i < _params.att_int_lim(i)) {
-                _att_int(i) = att_i;
-
-            }
-        }
-    }
     /* explicitly limit the integrator state */
     for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
         _att_int(i) = math::constrain(_att_int(i), -_params.att_int_lim(i), _params.att_int_lim(i));
@@ -1643,18 +1621,16 @@ MulticopterAttitudeControl::task_main()
                         } else if (_alpha_id) {
                             _alpha_pub = orb_advertise(_alpha_id, &_actuators);
                         }
+												if (_omega_pub != nullptr) {
+
+														orb_publish(_omega_id, _omega_pub, &_actuators);
+														perf_end(_controller_latency_perf);
+
+												} else if (_omega_id) {
+														_omega_pub = orb_advertise(_omega_id, &_actuators);
+												}
                     }
 
-                    if (!_actuators_0_circuit_breaker_enabled) {
-                        if (_omega_pub != nullptr) {
-
-                            orb_publish(_omega_id, _omega_pub, &_actuators);
-                            perf_end(_controller_latency_perf);
-
-                        } else if (_omega_id) {
-                            _omega_pub = orb_advertise(_omega_id, &_actuators);
-                        }
-                    }
                     //
 					_controller_status.roll_rate_integ = _rates_int(0);
 					_controller_status.pitch_rate_integ = _rates_int(1);
