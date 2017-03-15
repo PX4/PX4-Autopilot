@@ -169,6 +169,9 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+    control::BlockDerivative _pos_x_deriv;
+    control::BlockDerivative _pos_y_deriv;
+    control::BlockDerivative _pos_z_deriv;
 
 	struct {
 		param_t thr_min;
@@ -176,14 +179,18 @@ private:
 		param_t thr_hover;
 		param_t alt_ctl_dz;
 		param_t alt_ctl_dy;
-		param_t z_p;
+        param_t z_pos_p; //AbV
+        param_t z_pos_i; //AbV
+        param_t z_pos_d; //AbV
 		param_t z_vel_p;
 		param_t z_vel_i;
 		param_t z_vel_d;
 		param_t z_vel_max_up;
 		param_t z_vel_max_down;
 		param_t z_ff;
-		param_t xy_p;
+        param_t xy_pos_p; //AbV
+        param_t xy_pos_i; //AbV
+        param_t xy_pos_d; //AbV
 		param_t xy_vel_p;
 		param_t xy_vel_i;
 		param_t xy_vel_d;
@@ -233,7 +240,9 @@ private:
 
 		int opt_recover;
 
-		math::Vector<3> pos_p;
+        math::Vector<3> pos_p;
+        math::Vector<3> pos_i;
+        math::Vector<3> pos_d;
 		math::Vector<3> vel_p;
 		math::Vector<3> vel_i;
 		math::Vector<3> vel_d;
@@ -258,6 +267,7 @@ private:
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
+    math::Vector<3> _pos_prev;
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
@@ -407,6 +417,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+    _pos_x_deriv(this, "VELD"),
+    _pos_y_deriv(this, "VELD"),
+    _pos_z_deriv(this, "VELD"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -1363,7 +1376,9 @@ MulticopterPositionControl::task_main()
 	hrt_abstime t_prev = 0;
 
 	math::Vector<3> thrust_int;
+    math::Vector<3> vel_int;
 	thrust_int.zero();
+    vel_int.zero();
 
 	// Let's be safe and have the landing gear down by default
 	_att_sp.landing_gear = -1.0f;
