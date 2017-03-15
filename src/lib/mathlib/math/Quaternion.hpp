@@ -109,7 +109,7 @@ public:
 	/**
 	 * derivative
 	 */
-	const Quaternion derivative(const Vector<3> &w) {
+        const Quaternion derivative(    const Vector<3> &w) {
 		float dataQ[] = {
 			data[0], -data[1], -data[2], -data[3],
 			data[1],  data[0], -data[3],  data[2],
