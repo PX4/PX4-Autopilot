@@ -603,29 +603,30 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 
 	} else {
 
-		if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED ) {
-			item->nav_cmd = NAV_CMD_COMPONENT_ARM_DISARM;
-			item->params[0] = 0;
-			item->params[1] = 21196;
+		// if (false ) { //& _navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED ) {
+		// 	item->nav_cmd = NAV_CMD_COMPONENT_ARM_DISARM;
+		// 	item->params[0] = 0;
+		// 	item->params[1] = 21196;
 			
 
-			/********************/
-			PX4_INFO("forwarding command %d", item->nav_cmd);
-			struct vehicle_command_s cmd = {};
-			mission_item_to_vehicle_command(item, &cmd);
-			_action_start = hrt_absolute_time();
+		// 	/********************/
+		// 	PX4_INFO("forwarding command %d", item->nav_cmd);
+		// 	struct vehicle_command_s cmd = {};
+		// 	mission_item_to_vehicle_command(item, &cmd);
+		// 	_action_start = hrt_absolute_time();
 
-			if (_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
+		// 	if (_cmd_pub != nullptr) {
+		// 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
 
-			} else {
-				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-			}
-			return;
-		} else {
+		// 	} else {
+		// 		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		// 	}
+		// 	return;
+		// } else {
+		// 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		// }
+
 			item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		}
-
 
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
