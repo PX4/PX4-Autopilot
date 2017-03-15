@@ -57,8 +57,7 @@ struct print_load_s {
 
 	uint64_t new_time;
 	uint64_t interval_start_time;
-	uint64_t last_times[CONFIG_MAX_TASKS];
-	float curr_loads[CONFIG_MAX_TASKS];
+	uint32_t last_times[CONFIG_MAX_TASKS]; // in [ms]. This wraps if a process needs more than 49 days of CPU
 	float interval_time_ms_inv;
 };
 

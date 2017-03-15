@@ -210,21 +210,21 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	}
 
 	interval_runtime = (print_state->last_times[i] > 0 &&
-				    system_load.tasks[i].total_runtime > print_state->last_times[i])
-				   ? (system_load.tasks[i].total_runtime - print_state->last_times[i]) / 1000
+				    system_load.tasks[i].total_runtime / 1000 > print_state->last_times[i])
+				   ? (system_load.tasks[i].total_runtime / 1000 - print_state->last_times[i])
 				   : 0;
 
-		print_state->last_times[i] = system_load.tasks[i].total_runtime;
+		print_state->last_times[i] = system_load.tasks[i].total_runtime / 1000;
+
+		float current_load = 0.f;
 
 		if (print_state->new_time > print_state->interval_start_time) {
-		print_state->curr_loads[i] = interval_runtime * print_state->interval_time_ms_inv;
+		current_load = interval_runtime * print_state->interval_time_ms_inv;
 
-			if (tcb_pid != 0) {
+		if (tcb_pid != 0) {
 				print_state->total_user_time += interval_runtime;
 			}
 
-		} else {
-			print_state->curr_loads[i] = 0;
 		}
 
 
@@ -239,8 +239,8 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		float task_load;
 		float sched_load;
 
-		idle = print_state->curr_loads[i];
-			task_load = (float)(print_state->total_user_time) * print_state->interval_time_ms_inv;
+		idle = current_load;
+		task_load = (float)(print_state->total_user_time) * print_state->interval_time_ms_inv;
 
 			/* this can happen if one tasks total runtime was not computed
 			   correctly by the scheduler instrumentation TODO */
@@ -301,8 +301,8 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 			tcb_pid,
 			CONFIG_TASK_NAME_SIZE, tcb_name,
 			(system_load.tasks[i].total_runtime / 1000),
-			(int)(print_state->curr_loads[i] * 100.0f),
-			(int)((print_state->curr_loads[i] * 100.0f - (int)(print_state->curr_loads[i] * 100.0f)) * 1000),
+			(int)(current_load * 100.0f),
+			(int)((current_load * 100.0f - (int)(current_load * 100.0f)) * 1000),
 			stack_size - stack_free,
 			stack_size,
 			tcb_sched_priority,
