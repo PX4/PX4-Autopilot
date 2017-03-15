@@ -424,7 +424,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_timestamp(0),
 
 	_reset_pos_sp(true),
-	_reset_alt_sp(true),
+    _reset_alt_sp(true),
 	_do_reset_alt_pos_flag(true),
 	_mode_auto(false),
 	_pos_hold_engaged(false),
@@ -475,7 +475,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
 	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
 	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
-	_params_handles.z_p		= param_find("MPC_Z_P");
+    _params_handles.z_pos_p		= param_find("MPC_Z_POS_P");
+    _params_handles.z_pos_i		= param_find("MPC_Z_POS_I");
+    _params_handles.z_pos_d		= param_find("MPC_Z_POS_D");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
@@ -490,10 +492,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
+//	_params_handles.xy_p		= param_find("MPC_XY_P");
+    _params_handles.xy_pos_p		= param_find("MPC_XY_POS_P");
+    _params_handles.xy_pos_i		= param_find("MPC_XY_POS_I");
+    _params_handles.xy_pos_d		= param_find("MPC_XY_POS_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
 	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
@@ -572,11 +574,21 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		float v;
 		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);
+        param_get(_params_handles.xy_pos_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
-		param_get(_params_handles.z_p, &v);
+        param_get(_params_handles.z_pos_p, &v);
 		_params.pos_p(2) = v;
+        param_get(_params_handles.xy_pos_i, &v);
+        _params.pos_p(0) = v;
+        _params.pos_p(1) = v;
+        param_get(_params_handles.z_pos_i, &v);
+        _params.pos_p(2) = v;
+        param_get(_params_handles.xy_pos_d, &v);
+        _params.pos_p(0) = v;
+        _params.pos_p(1) = v;
+        param_get(_params_handles.z_pos_d, &v);
+        _params.pos_p(2) = v;
 		param_get(_params_handles.xy_vel_p, &v);
 		_params.vel_p(0) = v;
 		_params.vel_p(1) = v;
