@@ -527,6 +527,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
 
+
 	/* fetch initial parameter values */
 	parameters_update(true);
 }
@@ -642,6 +643,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.xy_vel_man_expo = v;
 
 
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
 
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
@@ -1456,17 +1459,15 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
+
+		float cruising_speed_xy = (_pos_sp_triplet.current.cruising_speed > 0.1f) ? math::min(
+						  _pos_sp_triplet.current.cruising_speed, _params.vel_cruise_xy) : _params.vel_cruise_xy ;
+		float cruising_speed_z = (curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
+
 		/* scaled space: 1 == position error resulting max allowed speed */
-
-		math::Vector<3> cruising_speed(_params.vel_cruise_xy,
-					       _params.vel_cruise_xy,
-					       _params.vel_max_up);
-
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
-			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
-		}
+		math::Vector<3> cruising_speed(cruising_speed_xy,
+					       cruising_speed_xy,
+					       cruising_speed_z);
 
 		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
