@@ -139,6 +139,13 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	print_state->blocked_count = 0;
 	print_state->total_user_time = 0;
 
+	// create a copy of the runtimes because this could be updated during the print output
+	uint32_t total_runtime[CONFIG_MAX_TASKS];
+
+	for (i = 0; i < CONFIG_MAX_TASKS; i++) {
+		total_runtime[i] = (uint32_t)(system_load.tasks[i].total_runtime / 1000);
+	}
+
 	for (i = 0; i < CONFIG_MAX_TASKS; i++) {
 
 		sched_lock(); // need to lock the tcb access (but make it as short as possible)
@@ -209,12 +216,10 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 		break;
 	}
 
-	interval_runtime = (print_state->last_times[i] > 0 &&
-				    system_load.tasks[i].total_runtime / 1000 > print_state->last_times[i])
-				   ? (system_load.tasks[i].total_runtime / 1000 - print_state->last_times[i])
-				   : 0;
+	interval_runtime = (print_state->last_times[i] > 0 && total_runtime[i] > print_state->last_times[i])
+				   ? (total_runtime[i] - print_state->last_times[i]) : 0;
 
-		print_state->last_times[i] = system_load.tasks[i].total_runtime / 1000;
+		print_state->last_times[i] = total_runtime[i];
 
 		float current_load = 0.f;
 
@@ -296,11 +301,11 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 			       );
 		}
 
-		dprintf(fd, "%s%4d %*-s %8lld %2d.%03d %5u/%5u %3u (%3u) ",
+		dprintf(fd, "%s%4d %*-s %8d %2d.%03d %5u/%5u %3u (%3u) ",
 			clear_line,
 			tcb_pid,
 			CONFIG_TASK_NAME_SIZE, tcb_name,
-			(system_load.tasks[i].total_runtime / 1000),
+			total_runtime[i],
 			(int)(current_load * 100.0f),
 			(int)((current_load * 100.0f - (int)(current_load * 100.0f)) * 1000),
 			stack_size - stack_free,
