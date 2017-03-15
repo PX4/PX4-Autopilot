@@ -87,6 +87,20 @@
 #define IST8310_BUS_I2C_ADDR		0xE
 #define IST8310_DEFAULT_BUS_SPEED	400000
 
+/*
+ * FSR:
+ *   x, y: +- 1600 µT
+ *   z:    +- 2500 µT
+ *
+ * Resolution according to datasheet is 0.3µT/LSB
+ */
+#define IST8310_RESOLUTION	0.3
+
+static const int16_t IST8310_MAX_VAL_XY	= (1600 / IST8310_RESOLUTION) + 1;
+static const int16_t IST8310_MIN_VAL_XY	= -IST8310_MAX_VAL_XY;
+static const int16_t IST8310_MAX_VAL_Z  = (2500 / IST8310_RESOLUTION) + 1;
+static const int16_t IST8310_MIN_VAL_Z  = -IST8310_MAX_VAL_Z;
+
 /* Hardware definitions */
 
 #define ADDR_WAI                0		/* WAI means 'Who Am I'*/
@@ -920,7 +934,7 @@ IST8310::collect()
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("data/status read error");
+		DEVICE_DEBUG("I2C read error");
 		goto out;
 	}
 
@@ -929,11 +943,27 @@ IST8310::collect()
 	report.y = (((int16_t)report_buffer.y[1]) << 8) | (int16_t)report_buffer.y[0];
 	report.z = (((int16_t)report_buffer.z[1]) << 8) | (int16_t)report_buffer.z[0];
 
+
+	/*
+	 * Check if value makes sense according to the FSR and Resolution of
+	 * this sensor, discarding outliers
+	 */
+	if (report.x > IST8310_MAX_VAL_XY || report.x < IST8310_MIN_VAL_XY ||
+	    report.y > IST8310_MAX_VAL_XY || report.y < IST8310_MIN_VAL_XY ||
+	    report.z > IST8310_MAX_VAL_Z  || report.z < IST8310_MIN_VAL_Z) {
+		perf_count(_range_errors);
+		DEVICE_DEBUG("data/status read error");
+		goto out;
+	}
+
 	/* temperature measurement is not available on IST8310 */
 	new_report.temperature = 0;
 
 	/*
 	 * raw outputs
+	 *
+	 * Sensor doesn't follow right hand rule, swap x and y to make it obey
+	 * it.
 	 */
 	new_report.x_raw = report.y;
 	new_report.y_raw = report.x;
