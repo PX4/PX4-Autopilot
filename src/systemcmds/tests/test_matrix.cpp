@@ -4,7 +4,6 @@
 #include <matrix/math.hpp>
 #include <matrix/filter.hpp>
 #include <matrix/integration.hpp>
-#include <matrix/Quaternion.hpp>
 
 using namespace matrix;
 
@@ -208,7 +207,7 @@ bool MatrixTest::attitudeTests(void)
 	ut_test(isEqual(q_from_m, m4));
 
 	// quaternion derivate
-    Vector<float, 4> q_dot = q.derivative1(Vector3f(1, 2, 3));
+	Vector<float, 4> q_dot = q.derivative(Vector3f(1, 2, 3));
 
 	// quaternion product
 	Quatf q_prod_check(
