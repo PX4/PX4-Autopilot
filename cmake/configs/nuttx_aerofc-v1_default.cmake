@@ -16,7 +16,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/aerofc-v1
 	drivers/tap_esc
-	drivers/mpu6500
+	drivers/mpu9250
 	drivers/ms5611
 	drivers/hmc5883
 	drivers/gps
