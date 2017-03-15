@@ -82,7 +82,7 @@
 
 /* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150
  * The datasheet gives 200Hz maximum measurement rate, but it's not true according to tech support from iSentek*/
-#define IST8310_CONVERSION_INTERVAL (1000000 / 150) /* microseconds */
+#define IST8310_CONVERSION_INTERVAL	(1000000 / 100) /* microseconds */
 
 #define IST8310_BUS_I2C_ADDR     	0xE
 #define IST8310_DEFAULT_BUS_SPEED 	400000
