@@ -414,9 +414,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
-	_vel_x_deriv(this, "VELD"),
-	_vel_y_deriv(this, "VELD"),
-	_vel_z_deriv(this, "VELD"),
+    _vel_x_deriv(this, "POSD"),
+    _vel_y_deriv(this, "POSD"),
+    _vel_z_deriv(this, "POSD"),
     _pos_x_deriv(this, "VELD"),
     _pos_y_deriv(this, "VELD"),
     _pos_z_deriv(this, "VELD"),
@@ -492,7 +492,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
 
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
-//	_params_handles.xy_p		= param_find("MPC_XY_P");
     _params_handles.xy_pos_p		= param_find("MPC_XY_POS_P");
     _params_handles.xy_pos_i		= param_find("MPC_XY_POS_I");
     _params_handles.xy_pos_d		= param_find("MPC_XY_POS_D");
