@@ -101,7 +101,6 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
-#define ATT_I_LIMIT	0.5f
 #define RATES_I_LIMIT	0.3f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ATTITUDE_TC_DEFAULT 0.2f
@@ -305,7 +304,6 @@ private:
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
-
     struct actuator_controls_s          _actuators;		/**< actuator controls, omega */
     struct actuator_controls_s          _actuators_1;            /**< alpha controls, added by voliro */
     struct actuator_armed_s             _armed;			/**< actuator arming status */
@@ -395,6 +393,7 @@ private:
 		math::Vector<3> att_p;					/**< P gain for angular error */
     math::Vector<3> att_d;	//AbV		/**< D gain for angular error */
     math::Vector<3> att_i;	//AbV		/**< I gain for angular error */
+    math::Vector<3> att_int_lim; //AbV	/**< integrator state limit for angular loop */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
@@ -551,15 +550,15 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* publications */
 	_v_rates_sp_pub(nullptr),
   _actuators_0_pub(nullptr),
-  _actuators_1_pub(nullptr),
+  _actuators_1_pub(nullptr), //added by voliro
 
 	_controller_status_pub(nullptr),
 	_rates_sp_id(0),
-	_actuators_id(0),
-  _actuators_id_1(0),
+    _actuators_id(0),
+    _actuators_1_id(0),//added by voliro
 
 	_actuators_0_circuit_breaker_enabled(false),
-  _actuators_1_circuit_breaker_enabled(false),
+    _actuators_1_circuit_breaker_enabled(false),
 
 
 	/* performance counters */
@@ -584,6 +583,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
   _params.att_p.zero();
   _params.att_d.zero();   //AbV
   _params.att_i.zero();   //AbV
+  _params.att_int_lim.zero();   //AbV
   _params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
@@ -622,13 +622,16 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.roll_p				= 	param_find("MC_ROLL_P");
   _params_handles.roll_d				= 	param_find("MC_ROLL_D");    //AbV
   _params_handles.roll_i				= 	param_find("MC_ROLL_I");    //AbV
+  _params_handles.roll_integ_lim	= 	param_find("MC_R_INT_LIM"); //AbV
   _params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
 	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
+  // _params_handles.roll_rate_integ_lim	= 	param_find("MC_RR_INT_LIM");
 	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
 	_params_handles.roll_rate_ff	= 	param_find("MC_ROLLRATE_FF");
   _params_handles.pitch_p				= 	param_find("MC_PITCH_P");
   _params_handles.pitch_d				= 	param_find("MC_PITCH_D");   //AbV
   _params_handles.pitch_i				= 	param_find("MC_PITCH_I");   //AbV
+  _params_handles.pitch_integ_lim	= 	param_find("MC_P_INT_LIM"); //AbV
 	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
 	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
 	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
@@ -638,6 +641,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_p			=	param_find("MC_YAW_P");
     _params_handles.yaw_d			=	param_find("MC_YAW_D");   //AbV
     _params_handles.yaw_i			=	param_find("MC_YAW_I");   //AbV
+    _params_handles.yaw_integ_lim	= 	param_find("MC_Y_INT_LIM");//AbV
 	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
@@ -661,7 +665,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
     //Added by Voliro
     _params_handles.length_axis     =   param_find("MC_LENGTH_AXIS");
     _params_handles.torque_coeff    =   param_find("MC_TORQUE_COEFF");
-    _params_handles.tau_servo       =   param_find("MC_TAU_SERVO");
+    _params_handles.tau_servo       =   param_find("TAU_SERVO");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -720,6 +724,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.att_p(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
     param_get(_params_handles.roll_i, &v); //AbV
     _params.att_i(0) = v;
+    param_get(_params_handles.roll_integ_lim, &v); //AbV
+    _params.att_int_lim(0) = v;
     param_get(_params_handles.roll_d, &v); //AbV
     _params.att_d(0) = v * (ATTITUDE_TC_DEFAULT / roll_tc);
     param_get(_params_handles.roll_rate_p, &v);
@@ -736,6 +742,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.att_p(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
     param_get(_params_handles.pitch_i, &v); //AbV
     _params.att_i(1) = v;
+    param_get(_params_handles.pitch_integ_lim, &v); //AbV
+    _params.att_int_lim(1) = v;
     param_get(_params_handles.pitch_d, &v); //AbV
     _params.att_d(1) = v * (ATTITUDE_TC_DEFAULT / pitch_tc);
 	param_get(_params_handles.pitch_rate_p, &v);
@@ -757,6 +765,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.att_p(2) = v;
     param_get(_params_handles.yaw_i, &v); //AbV
     _params.att_i(2) = v;
+    param_get(_params_handles.yaw_integ_lim, &v); //AbV
+    _params.att_int_lim(2) = v;
     param_get(_params_handles.yaw_d, &v); //AbV
     _params.att_d(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
@@ -808,8 +818,7 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
-  _actuators_1_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
-
+    _actuators_1_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 	param_get(_params_handles.tau_servo, &(_params_handles.tau_servo));
 
   /*Parameters added by voliro*/
@@ -979,7 +988,102 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 
     _thrust_sp = _v_att_sp.thrust;
+/*
+    / construct attitude setpoint rotation matrix /
+	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
+    math::Matrix<3, 3> R_sp = q_sp.to_dcm();
 
+    / get current rotation matrix from control state quaternions /
+	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+    math::Matrix<3, 3> R = q_att.to_dcm();
+
+    / all input data is ready, run controller itself /
+
+    / try to move thrust vector shortest way, because yaw response is slower than roll/pitch /
+	math::Vector<3> R_z(R(0, 2), R(1, 2), R(2, 2));
+	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+    / axis and sin(angle) of desired rotation /
+	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
+
+    / calculate angle error /
+	float e_R_z_sin = e_R.length();
+	float e_R_z_cos = R_z * R_sp_z;
+
+    / calculate weight for yaw control /
+	float yaw_w = R_sp(2, 2) * R_sp(2, 2);
+
+    / calculate rotation matrix after roll/pitch only rotation /
+	math::Matrix<3, 3> R_rp;
+
+	if (e_R_z_sin > 0.0f) {
+        / get axis-angle representation /
+		float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
+		math::Vector<3> e_R_z_axis = e_R / e_R_z_sin;
+
+		e_R = e_R_z_axis * e_R_z_angle;
+
+        / cross product matrix for e_R_axis /
+		math::Matrix<3, 3> e_R_cp;
+		e_R_cp.zero();
+		e_R_cp(0, 1) = -e_R_z_axis(2);
+		e_R_cp(0, 2) = e_R_z_axis(1);
+		e_R_cp(1, 0) = e_R_z_axis(2);
+		e_R_cp(1, 2) = -e_R_z_axis(0);
+		e_R_cp(2, 0) = -e_R_z_axis(1);
+		e_R_cp(2, 1) = e_R_z_axis(0);
+
+        / rotation matrix for roll/pitch only rotation /
+		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+
+	} else {
+        / zero roll/pitch rotation /
+		R_rp = R;
+	}
+
+    / R_rp and R_sp has the same Z axis, calculate yaw error /
+	math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
+	math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
+	e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
+
+	if (e_R_z_cos < 0.0f) {
+        / for large thrust vector rotations use another rotation method:
+          calculate angle and axis for R -> R_sp rotation directly /
+		math::Quaternion q_error;
+		q_error.from_dcm(R.transposed() * R_sp);
+		math::Vector<3> e_R_d = q_error(0) >= 0.0f ? q_error.imag()  * 2.0f : -q_error.imag() * 2.0f;
+
+        / use fusion of Z axis based rotation and direct rotation /
+		float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
+		e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;
+	}
+
+    / calculate angular rates setpoint /
+	_rates_sp = _params.att_p.emult(e_R);
+
+    / limit rates /
+	for (int i = 0; i < 3; i++) {
+		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
+		    !_v_control_mode.flag_control_manual_enabled) {
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.auto_rate_max(i), _params.auto_rate_max(i));
+
+		} else {
+			_rates_sp(i) = math::constrain(_rates_sp(i), -_params.mc_rate_max(i), _params.mc_rate_max(i));
+		}
+	}
+
+	/ feed forward yaw setpoint rate /
+	_rates_sp(2) += _v_att_sp.yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+
+    / weather-vane mode, dampen yaw rate /
+	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
+	    _v_att_sp.disable_mc_yaw_control == true && !_v_control_mode.flag_control_manual_enabled) {
+		float wv_yaw_rate_max = _params.auto_rate_max(2) * _params.vtol_wv_yaw_rate_scale;
+		_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
+		// prevent integrator winding up in weathervane mode
+		_rates_int(2) = 0.0f;
+    }
+*/
     //create quaternion setpoint
     math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
 
@@ -1011,18 +1115,23 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		if (_thrust_sp > MIN_TAKEOFF_THRUST && !_motor_limits.lower_limit && !_motor_limits.upper_limit) {
 			for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 				if (fabsf(_att_control(i)) < _thrust_sp) {
-                    float att_i = _att_int(i) + _params.att_i(i) * att_err(i) * dt;
+					float rate_i = _rates_int(i) + _params.rate_i(i) * att_err(i) * dt;
 
-                    if (PX4_ISFINITE(att_i) && att_i > -ATT_I_LIMIT && att_i < ATT_I_LIMIT &&
-                    _att_control(i) > -ATT_I_LIMIT && _att_control(i) < ATT_I_LIMIT &&
+					if (PX4_ISFINITE(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT &&
 					/* if the axis is the yaw axis, do not update the integral if the limit is hit */
 					!((i == AXIS_INDEX_YAW) && _motor_limits.yaw)) {
-                        _att_int(i) = att_i;
+						_att_int(i) = rate_i;
 					}
 				}
 			}
 		}
 
+    /* explicitly limit the integrator state */
+    for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
+        _att_int(i) = math::constrain(_att_int(i), -_params.att_int_lim(i), _params.att_int_lim(i));
+
+    }
 
 
 }
@@ -1095,7 +1204,7 @@ void MulticopterAttitudeControl::lookup(float theta, float phi, math::Vector<6> 
     unsigned phi_index=0;
 
     /*Get the indices of the neighbouring values*/
-    for(int i=1; i<sizeof(theta_range)/sizeof(theta_range[0]);i++)
+    for(int i=0; i<sizeof(theta_range)/sizeof(theta_range[0]);i++)
     {
         if (theta_range[i]>=theta)
         {
@@ -1103,7 +1212,7 @@ void MulticopterAttitudeControl::lookup(float theta, float phi, math::Vector<6> 
             break;
         }
     }
-    for(int i=1; i<sizeof(phi_range)/sizeof(phi_range[0]);i++)
+    for(int i=0; i<sizeof(phi_range)/sizeof(phi_range[0]);i++)
     {
         if (phi_range[i]>=phi)
         {
@@ -1140,32 +1249,34 @@ void MulticopterAttitudeControl::alpha (float dt)
     lookup(theta,phi,_alpha_des);
 
     //alpha infinity
+
+
     for (int i=0;i<6;i++)
     {
         float a=fmod((_alpha_prev(i)+(float)M_PI),2*(float)M_PI);
 
-        int k=round((_alpha_prev(i)-a+(float)M_PI)/(2*(float)M_PI)); //calculate number of rotation
+        int k=(_alpha_prev(i)-a+(float)M_PI)/(2*(float)M_PI); //calculate number of rotation
 
         _alpha_prev(i)=_alpha_prev(i)-k*2*(float)M_PI;
 
         if (_alpha_des(i)*_alpha_prev(i)<0 && abs(_alpha_des(i)-_alpha_prev(i))>(double)M_PI)
-        {
-            if (_alpha_prev(i)<_alpha_des(i))
-            {
-                _alpha_des(i)=_alpha_des(i)-2*(float)M_PI;
-            }
-            else
-            {
-                _alpha_des(i)=_alpha_des(i)+2*(float)M_PI;
-            }
-        }
+				{
+					if (_alpha_prev(i)<_alpha_des(i))
+					{_alpha_des(i)=_alpha_des(i)-2*(float)M_PI;
+					}
+					else
+					{_alpha_des(i)=_alpha_des(i)+2*(float)M_PI;}
+				}
+				else
+				{
+					_alpha_des(i)=_alpha_des(i);
+				}
 
-
-        _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
-        _alpha_prev(i)=_alpha_des(i);
+    _alpha_des(i)=_alpha_des(i)+k*2*(float)M_PI;
+    _alpha_prev(i)=_alpha_des(i);
 
     }
-    //Simulate Motor Dynamics
+
     for (int i=0;i<6;i++)
     {
           if(fabsf(_alpha_des(i)-_alpha_sim_prev(i))>_params.tau_servo*dt)

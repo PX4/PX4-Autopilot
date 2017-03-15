@@ -585,7 +585,7 @@ void Ekf2::task_main()
 
 				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
-                    _ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);
+					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, &balt_data_avg);
 					_balt_time_ms_last_used = balt_time_ms;
 					_balt_time_sum_ms = 0;
 					_balt_sample_count = 0;
@@ -625,7 +625,7 @@ void Ekf2::task_main()
 
 		if (fuse_airspeed) {
 			float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
-            _ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
+			_ekf.setAirspeedData(airspeed.timestamp, &airspeed.true_airspeed_m_s, &eas2tas);
 		}
 
 		// only fuse synthetic sideslip measurements if conditions are met
@@ -649,7 +649,7 @@ void Ekf2::task_main()
 		}
 
 		if (range_finder_updated) {
-            _ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+			_ekf.setRangeData(range_finder.timestamp, &range_finder.current_distance);
 		}
 
 		// get external vision data
