@@ -436,7 +436,7 @@ PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
  * @group Multicopter Attitude Control
  */
 
-PARAM_DEFINE_FLOAT(TAU_SERVO, 7.9587f);
+PARAM_DEFINE_FLOAT(MC_TAU_SERVO, 7.9587f);
 
 /**
  * Torque coefficient
@@ -544,39 +544,5 @@ PARAM_DEFINE_FLOAT(MC_YAW_D, 0.0f);
  */
 PARAM_DEFINE_FLOAT(MC_YAW_I, 0.0f);
 
-/**
- * Roll integrator limit
- *
- * Roll integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
- *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_R_INT_LIM, 0.30f);
 
-/**
- * Pitch integrator limit
- *
- * Pitch integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
- *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_P_INT_LIM, 0.30f);
-
-/**
- * Yaw integrator limit
- *
- * Yaw integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
- *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_Y_INT_LIM, 0.30f);
 
