@@ -1424,7 +1424,6 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
@@ -1437,7 +1436,10 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> cruising_speed(cruising_speed_xy,
 					       cruising_speed_xy,
 					       cruising_speed_z);
-
+		/* if previous is valid, we want to follow line */
+		if (previous_setpoint_valid
+		    && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+			_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
 
 			math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
@@ -1457,7 +1459,8 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* we are close to current setpoint */
 			if (curr_pos_s_len < 1.0f) {
 
-				if ((next_sp - curr_sp).length() > MIN_DIST) {
+				/* if next is valid, we want to have smooth transition */
+				if ( next_setpoint_valid && (next_sp - curr_sp).length() > MIN_DIST) {
 
 					math::Vector<3> next_sp_s = next_sp.emult(scale);
 
@@ -1496,8 +1499,23 @@ void MulticopterPositionControl::control_auto(float dt)
 				}
 			}
 
+			/* move setpoint not faster than max allowed speed */
+			math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
+
+			/* difference between current and desired position setpoints, 1 = max speed */
+			math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+			float d_pos_m_len = d_pos_m.length();
+
+			if (d_pos_m_len > dt) {
+				pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
+			}
+
 			/* scale back */
 			_pos_sp = pos_sp_s.edivide(scale);
+
+		/* default */
+		} else {
+			_pos_sp = curr_sp;
 		}
 
 		/* update yaw setpoint if needed */
