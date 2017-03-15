@@ -308,6 +308,7 @@ private:
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
     struct actuator_controls_s          _actuators;		/**< actuator controls */
+    struct actuator_controls_s          _actuators_1;		/**< actuator controls */
     struct voliro_actuator_controls_s   _alpha;                /**< alpha controls, added by voliro */
     struct voliro_actuator_controls_s   _omega;                /**< omega controls, added by voliro */
     struct actuator_armed_s             _armed;			/**< actuator arming status */
@@ -554,13 +555,17 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* publications */
 	_v_rates_sp_pub(nullptr),
   _actuators_0_pub(nullptr),
+  _actuators_1_pub(nullptr),
   _alpha_pub(nullptr), //added by voliro
   _omega_pub(nullptr), //added by voliro
 	_controller_status_pub(nullptr),
 	_rates_sp_id(0),
 	_actuators_id(0),
+  _actuators_id_1(0),
 
 	_actuators_0_circuit_breaker_enabled(false),
+  _actuators_1_circuit_breaker_enabled(false),
+
 
         _alpha_id(nullptr), //added by voliro
         _omega_id(nullptr), //added by voliro
@@ -824,6 +829,8 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.bat_scale_en, &_params.bat_scale_en);
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
+  _actuators_1_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
+
 
 	param_get(_params_handles.tau_servo, &(_params_handles.tau_servo));
 
