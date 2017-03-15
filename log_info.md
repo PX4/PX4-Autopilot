@@ -145,7 +145,67 @@ Motivation:
  Testing the mission
 Result:
  By looking at the car I saw steering but the log did not work. weird
+***************************************************
+Day: 15-03-2017
 
+---------
+sess01
+---------
+Motivation:
+ First mission test
+Result:
+ it moves but it steers quite slowly. Increasing the gain to 0.5
+---------
+sess02
+---------
+Motivation:
+ testing different parameters as inverting the pwm of the steering. This did not improve the quality.
+Result:
+ x
+---------
+sess03
+---------
+Motivation:
+ Increasing the pwm limit to allow for more steering.
+Result:
+ This worked MUCH better! It was actually able to finish the mission and it entered loitering mode but it does not disarm as it was doing in the simulator. It does not steer enough probably, so I'll try to increase the roll gain.
+---------
+sess04
+---------
+Motivation:
+ Changin airspeed minimum, maximum and trim so to be able to cruise at a decent velocity and allowing the full range of the pwm. 1700 is too high for going full power but hopefully the airspeed trim works. leaving pwm to 1700 for now. also, removing the disarming commando from mission_block.cpp as it does not work and the only effect it has is to kill the logging. Roll gains kept to 0.5
+Result:
+ The mission is executed but there are 2 issues: acc radius too small and still too fast, trimming down airspeed again.
+---------
+sess05
+---------
+Motivation:
+ Reducing airspeed trim and reducing acc radius
+Result:
+still fast but it looks a bit slower, the mission looked better, check daq
+---------
+sess06
+---------
+Motivation:
+ reducing airspd trim again to 0.2
+Result:
+
+---------
+sess07
+---------
+Motivation:
+ I could not connect to the px4, tried arming hoping something would happen
+Result:
+ not working.
+++++++++++++++++++++++++++ DELETING ALL LOGS FROM SD ++++++++++++++++++++++++++++++++++++
+
+---------
+sess08
+---------
+Motivation:
+ Lorenz suggested setting the throttle trim to 0
+Result:
+ 
 
 
 
