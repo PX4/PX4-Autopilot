@@ -1443,7 +1443,7 @@ void Logger::initialize_load_output()
 	perf_callback_data_t callback_data;
 	callback_data.logger = this;
 	callback_data.counter = 0;
-	callback_data.buffer = NULL;
+	callback_data.buffer = nullptr;
 	char buffer[140];
 	hrt_abstime curr_time = hrt_absolute_time();
 	init_print_load_s(curr_time, &_load);
