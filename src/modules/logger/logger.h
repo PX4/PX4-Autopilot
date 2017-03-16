@@ -40,6 +40,7 @@
 #include <uORB/Subscription.hpp>
 #include <version/version.h>
 #include <systemlib/param/param.h>
+#include <systemlib/printload.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -177,6 +178,22 @@ private:
 
 	void write_formats();
 
+	/**
+	 * write performance counters
+	 * @param preflight preflight if true, postflight otherwise
+	 */
+	void write_perf_data(bool preflight);
+
+	/**
+	 * callback to write the performance counters
+	 */
+	static void perf_iterate_callback(perf_counter_t handle, void *user);
+
+	/**
+	 * callback for print_load_buffer() to print the process load
+	 */
+	static void print_load_callback(void *user);
+
 	void write_version();
 
 	void write_info(const char *name, const char *value);
@@ -220,6 +237,17 @@ private:
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
 
+	/**
+	 * initialize the output for the process load, so that ~1 second later it will be written to the log
+	 */
+	void initialize_load_output();
+
+	/**
+	 * write the process load, which was previously initialized with initialize_load_output()
+	 */
+	void write_load_output(bool preflight);
+
+
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -257,6 +285,10 @@ private:
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
 	char						*_replay_file_name = nullptr;
+	bool						_should_stop_file_log = false; /**< if true _next_load_print is set and file logging
+											will be stopped after load printing */
+	print_load_s					_load; ///< process load data
+	hrt_abstime					_next_load_print = 0; ///< timestamp when to print the process load
 
 	// control
 	param_t _sdlog_mode_handle;
