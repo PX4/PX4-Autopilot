@@ -154,11 +154,13 @@ void Ekf::predictCovariance()
 	// convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
 	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
-	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities
+	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	float alpha = 1.0f - math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
 	_ang_rate_mag_filt = fmax(_imu_sample_delayed.delta_ang.norm(), alpha * _ang_rate_mag_filt);
 	_accel_mag_filt = fmax(_imu_sample_delayed.delta_vel.norm(), alpha * _accel_mag_filt);
-	if (_ang_rate_mag_filt > dt * _params.acc_bias_learn_gyr_lim || _accel_mag_filt > dt * _params.acc_bias_learn_acc_lim) {
+	if (_ang_rate_mag_filt > dt * _params.acc_bias_learn_gyr_lim
+			|| _accel_mag_filt > dt * _params.acc_bias_learn_acc_lim
+			|| _bad_vert_accel_detected) {
 		// store the bias state variances to be reinstated later
 		if (!_accel_bias_inhibit) {
 			_prev_dvel_bias_var(0) = P[13][13];
@@ -232,6 +234,10 @@ void Ekf::predictCovariance()
 	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
 	daxVar = dayVar = dazVar = sq(dt * gyro_noise);
 	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
+	if (_bad_vert_accel_detected) {
+		// increase accelerometer process noise if bad accel data is detected
+		accel_noise *= BADACC_BIAS_PNOISE_MULT;
+	}
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
 	// predict the covariance

@@ -468,9 +468,26 @@ void Ekf::controlHeightSensorTimeouts()
 	// record time of last bad vert accel
 	if (bad_vert_accel) {
 		_time_bad_vert_accel =  _time_last_imu;
+	} else {
+		_time_good_vert_accel = _time_last_imu;
 	}
 
-	if ((P[9][9] > sq(_params.hgt_reset_lim)) && ((_time_last_imu - _time_last_hgt_fuse) > 5e6)) {
+	// declare a bad vertical acceleration measurement and make the declaration persist
+	// for a minimum of 10 seconds
+	if (_bad_vert_accel_detected) {
+		_bad_vert_accel_detected = (_time_last_imu - _time_bad_vert_accel < BADACC_PROBATION);
+	} else {
+		_bad_vert_accel_detected = bad_vert_accel;
+	}
+
+	// check if height is continuously failing becasue of accel errors
+	bool continuous_bad_accel_hgt = ((_time_last_imu - _time_good_vert_accel) > BADACC_HGT_RESET);
+
+	// check if height has been inertial deadreckoning for too long
+	bool hgt_fusion_timeout = ((_time_last_imu - _time_last_hgt_fuse) > 5e6);
+
+	// reset the vertical position and velocity states
+	if ((P[9][9] > sq(_params.hgt_reset_lim)) && (hgt_fusion_timeout || continuous_bad_accel_hgt)) {
 		// boolean that indicates we will do a height reset
 		bool reset_height = false;
 
@@ -484,7 +501,7 @@ void Ekf::controlHeightSensorTimeouts()
 			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// check for inertial sensing errors in the last 10 seconds
-			bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < 10E6);
+			bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < BADACC_PROBATION);
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
 			bool reset_to_gps = gps_hgt_available && gps_hgt_accurate && !_gps_hgt_faulty && !prev_bad_vert_accel;

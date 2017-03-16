@@ -169,6 +169,11 @@ struct extVisionSample {
 #define RNG_MAX_INTERVAL	2e5
 #define EV_MAX_INTERVAL		2e5
 
+// bad accelerometer detection and mitigation
+#define BADACC_PROBATION	10E6	// Number of usec that accel data declared bad must continuously pass checks to be declared good
+#define BADACC_HGT_RESET	1E6	// Number of usec that accel data must continuously fail checks to trigger a height reset
+#define BADACC_BIAS_PNOISE_MULT 2.0f	// The delta velocity process noise is multiplied by this value when accel data is declared bad
+
 struct parameters {
 	// measurement source control
 	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
