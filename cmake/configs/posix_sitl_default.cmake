@@ -57,6 +57,9 @@ set(config_module_list
 	modules/uORB
 	modules/vtol_att_control
 
+	modules/omar_app
+	modules/test_daemon
+
 	lib/controllib
 	lib/conversion
 	lib/DriverFramework/framework
@@ -128,4 +131,3 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
-
