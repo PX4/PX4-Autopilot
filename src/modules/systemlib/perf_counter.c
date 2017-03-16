@@ -496,6 +496,59 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	}
 }
 
+
+int
+perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
+{
+	int num_written = 0;
+
+	if (handle == NULL) {
+		return 0;
+	}
+
+	switch (handle->type) {
+	case PC_COUNT:
+		num_written = snprintf(buffer, length, "%s: %llu events",
+				       handle->name,
+				       (unsigned long long)((struct perf_ctr_count *)handle)->event_count);
+		break;
+
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
+			num_written = snprintf(buffer, length, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms",
+					       handle->name,
+					       (unsigned long long)pce->event_count,
+					       (unsigned long long)pce->time_total,
+					       (pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
+					       (unsigned long long)pce->time_least,
+					       (unsigned long long)pce->time_most,
+					       (double)(1e6f * rms));
+			break;
+		}
+
+	case PC_INTERVAL: {
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
+
+			num_written = snprintf(buffer, length, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms",
+					       handle->name,
+					       (unsigned long long)pci->event_count,
+					       (pci->event_count == 0) ? 0 : (unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
+					       (unsigned long long)pci->time_least,
+					       (unsigned long long)pci->time_most,
+					       (double)(1e6f * rms));
+			break;
+		}
+
+	default:
+		break;
+	}
+
+	buffer[length - 1] = 0; // ensure 0-termination
+	return num_written;
+}
+
 uint64_t
 perf_event_count(perf_counter_t handle)
 {
@@ -522,6 +575,20 @@ perf_event_count(perf_counter_t handle)
 	}
 
 	return 0;
+}
+
+void
+perf_iterate_all(perf_callback cb, void *user)
+{
+	pthread_mutex_lock(&perf_counters_mutex);
+	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
+
+	while (handle != NULL) {
+		cb(handle, user);
+		handle = (perf_counter_t)sq_next(&handle->link);
+	}
+
+	pthread_mutex_unlock(&perf_counters_mutex);
 }
 
 void
