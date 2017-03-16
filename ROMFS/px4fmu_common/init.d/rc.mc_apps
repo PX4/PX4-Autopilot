@@ -6,7 +6,7 @@
 
 
 #---------------------------------------
-# Estimator group selection
+# Estimator group selction
 #
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
