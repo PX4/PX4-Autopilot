@@ -74,7 +74,7 @@ TEST(Multiset, Basic)
 {
     using uavcan::Multiset;
 
-    static const int POOL_BLOCKS = 3;
+    static const int POOL_BLOCKS = 4;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
     typedef Multiset<std::string> MultisetType;
@@ -98,7 +98,7 @@ TEST(Multiset, Basic)
     {
         StringConcatenationOperator op;
         mset->forEach<StringConcatenationOperator&>(op);
-        ASSERT_EQ("12", op.accumulator);
+        ASSERT_EQ(2, op.accumulator.size());
     }
 
     // Dynamic addition
@@ -139,7 +139,7 @@ TEST(Multiset, Basic)
         std::string* res = mset->emplace(value);  // Will NOT override above
         if (res == UAVCAN_NULLPTR)
         {
-            ASSERT_LT(2, i);
+            ASSERT_LT(1, i);
             break;
         }
         else
