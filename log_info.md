@@ -267,6 +267,71 @@ Motivation:
 Result:
  As noted in previous sessions the Proportional gain is now too big. The throotle seems increased a bit. The parameter for the cruising speed is the one responsible now.
 
+*************************************************
+Day: 16-03-2017
+---------
+sess01
+---------
+Motivation:
+ Testing mission withouth NAV_DLL_ACT and with P gain at 0.5. No disarming code.
+Result:
+ Very fast but seems ok, lowered speed and also acceptance radius
+---------
+sess02
+---------
+Moivation:
+ test lower acc radius and lower speed. at half log increased P to 0.7.
+Result:
+ disarm and rearm
+
+ ---------
+sess03
+---------
+Motivation:
+ Testing higher P and lower speed.
+Result:
+ didn't really slow down, mission goes through soccer door, changing mission.
+
+ ---------
+sess04
+---------
+Motivation:
+ changed mission, speed at 3% and max at 5%
+Result:
+ Crashed. changing mission again
+
+ ---------
+sess05
+---------
+Motivation:
+ Changing mission and reducing airspd
+Result:
+ x
+
+---------
+sess
+---------
+Motivation:
+ testing again
+Result:
+ x
+
+---------
+sess08??
+---------
+Motivation:
+ Added integrator after trying gain 1 (too strong) and P is set to .6
+Result:
+ x
+
+---------
+sess
+---------
+Motivation:
+ removing integrator P to 0.6. different times the whole thing is shutting down when there are power surges.
+Result:
+ x
+
 ---------
 sess
 ---------
