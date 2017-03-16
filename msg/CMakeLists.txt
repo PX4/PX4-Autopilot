@@ -125,6 +125,7 @@ set(msg_file_names
 	mount_orientation.msg
 	collision_report.msg
   voliro_thrust_setpoint.msg
+	voliro_ao.msg
 	)
 
 # Get absolute paths

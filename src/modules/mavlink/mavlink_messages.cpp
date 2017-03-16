@@ -93,6 +93,9 @@
 #include <uORB/topics/collision_report.h>
 #include <uORB/uORB.h>
 
+#include <uORB/topics/voliro_ao.h>
+#include <v2.0/common/mavlink_msg_voliro_ao.h>
+
 
 static uint16_t cm_uint16_from_m_float(float m);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
@@ -668,6 +671,85 @@ protected:
 		}
 	}
 };
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// VOLIRO messages
+
+class MavlinkStreamVoliroAo : public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamVoliroAo::get_name_static();
+    }
+    static const char *get_name_static()
+    {
+        return "VOLIRO_AO";
+    }
+
+		static uint16_t get_id_static()
+		{
+			return MAVLINK_MSG_ID_VOLIRO_AO;
+		}
+
+		uint16_t get_id()
+		{
+			return get_id_static();
+		}
+
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamVoliroAo(mavlink);
+    }
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_VOLIRO_AO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+    MavlinkOrbSubscription *_sub;
+    uint64_t _voliro_ao_time;
+
+    /* do not allow top copying this class */
+    MavlinkStreamVoliroAo(MavlinkStreamVoliroAo &);
+    MavlinkStreamVoliroAo& operator = (const MavlinkStreamVoliroAo &);
+
+protected:
+    explicit MavlinkStreamVoliroAo(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(voliro_ao))),  // make sure you enter the name of your uorb topic here
+        _voliro_ao_time(0)
+    {}
+
+    void send(const hrt_abstime t)
+    {
+			//Not sure about with _struct_ or not /Omar
+      struct voliro_ao_s _voliro_ao;    //make sure ca_traj_struct_s is the definition of your uorb topic
+
+      if (_sub->update(&_voliro_ao_time, &_voliro_ao)) {
+        mavlink_voliro_ao_t _msg_voliro_ao;  //make sure mavlink_ca_trajectory_t is the definition of your custom mavlink message
+
+        //_msg_voliro_ao.timestamp = _voliro_ao.timestamp;
+        _msg_voliro_ao.alpha[0] = _voliro_ao.alpha[0];
+				_msg_voliro_ao.alpha[1] = _voliro_ao.alpha[1];
+				_msg_voliro_ao.alpha[2] = _voliro_ao.alpha[2];
+				_msg_voliro_ao.alpha[3] = _voliro_ao.alpha[3];
+				_msg_voliro_ao.alpha[4] = _voliro_ao.alpha[4];
+				_msg_voliro_ao.alpha[5] = _voliro_ao.alpha[5];
+
+        _msg_voliro_ao.omega[0]  = _voliro_ao.omega[0];
+				_msg_voliro_ao.omega[1]  = _voliro_ao.omega[1];
+				_msg_voliro_ao.omega[2]  = _voliro_ao.omega[2];
+				_msg_voliro_ao.omega[3]  = _voliro_ao.omega[3];
+				_msg_voliro_ao.omega[4]  = _voliro_ao.omega[4];
+				_msg_voliro_ao.omega[5]  = _voliro_ao.omega[5];
+
+        mavlink_msg_voliro_ao_send_struct(_mavlink->get_channel(), &_msg_voliro_ao);
+				//warnx("WORK!");
+      }
+    }
+};
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 class MavlinkStreamHighresIMU : public MavlinkStream
@@ -3638,5 +3720,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
 	new StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	new StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
+	new StreamListItem(&MavlinkStreamVoliroAo::new_instance, &MavlinkStreamVoliroAo::get_name_static, &MavlinkStreamVoliroAo::get_id_static),
 	nullptr
 };
