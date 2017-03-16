@@ -274,6 +274,7 @@ private:
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+    math::Vector<3> _pos_err_d; //abV
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -414,12 +415,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_global_vel_sp{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
-    _vel_x_deriv(this, "POSD"),
-    _vel_y_deriv(this, "POSD"),
-    _vel_z_deriv(this, "POSD"),
-    _pos_x_deriv(this, "VELD"),
-    _pos_y_deriv(this, "VELD"),
-    _pos_z_deriv(this, "VELD"),
+    _vel_x_deriv(this, "VELD"),
+    _vel_y_deriv(this, "VELD"),
+    _vel_z_deriv(this, "VELD"),
+    _pos_x_deriv(this, "POSD"),
+    _pos_y_deriv(this, "POSD"),
+    _pos_z_deriv(this, "POSD"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -467,6 +468,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_ff.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+    _pos_err_d.zero();
 
 	_R.identity();
 
@@ -1492,6 +1494,10 @@ MulticopterPositionControl::task_main()
 			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
 			_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
+
+            _pos_err_d(0) = _pos_x_deriv.update(-_pos(0));
+            _pos_err_d(1) = _pos_y_deriv.update(-_pos(1));
+            _pos_err_d(2) = _pos_z_deriv.update(-_pos(2));
 		}
 
 		// reset the horizontal and vertical position hold flags for non-manual modes
@@ -1616,9 +1622,14 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-				if (_run_pos_control) {
-					_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-					_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+
+                math::Vector<3> pos_err = _pos_sp - _pos;
+                if (_run_pos_control) {
+
+                  _vel_sp(0) = pos_err(0)*_params.pos_p(0) + _pos_err_d(0)*_params.pos_d(0)
+                                  + vel_int(0);
+                  _vel_sp(1) = pos_err(1)*_params.pos_p(1) + _pos_err_d(1)*_params.pos_d(1)
+                             + vel_int(1);
 				}
 
 				// guard against any bad velocity values
@@ -1661,8 +1672,10 @@ MulticopterPositionControl::task_main()
 					_vel_sp(1) = _pos_sp_triplet.current.vy;
 				}
 
+
 				if (_run_alt_control) {
-					_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+                    _vel_sp(2) = pos_err(2)*_params.pos_p(2) + _pos_err_d(2)*_params.pos_d(2)
+                                + vel_int(2);
 				}
 
 				/* make sure velocity setpoint is saturated in xy*/
@@ -1941,6 +1954,10 @@ MulticopterPositionControl::task_main()
 						_in_landing = false;
 						_lnd_reached_ground = false;
 					}
+                    _vol_thrust_sp.f[0]=thrust_sp(0); //added by voliro
+                    _vol_thrust_sp.f[1]=thrust_sp(1); //added by voliro
+                    _vol_thrust_sp.f[2]=thrust_sp(2); //added by voliro
+
 
 					/* limit min lift */
 					if (-thrust_sp(2) < thr_min) {
@@ -2029,10 +2046,14 @@ MulticopterPositionControl::task_main()
 					if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
 						thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
 						thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
+                        vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
+                        vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
+
 					}
 
 					if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
 						thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
+                        vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
 
 						/* protection against flipping on ground when landing */
 						if (thrust_int(2) > 0.0f) {
@@ -2271,11 +2292,37 @@ MulticopterPositionControl::task_main()
 		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
 		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 		 * attitude setpoints for the transition).
-		 */
-		if (!(_control_mode.flag_control_offboard_enabled &&
+        */
+
+
+
+
+
+
+
+if (!(_control_mode.flag_control_offboard_enabled &&
 		      !(_control_mode.flag_control_position_enabled ||
 			_control_mode.flag_control_velocity_enabled ||
 			_control_mode.flag_control_acceleration_enabled))) {
+
+
+            if(_control_mode.flag_control_manual_enabled)
+             {
+             _att_sp.yaw_body=_manual.r;
+             _att_sp.roll_body=_manual.aux1;
+             _att_sp.pitch_body=_manual.aux2;
+             _att_sp.thrust=sqrtf(_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]+_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[2]*_vol_thrust_sp.f[2]);
+
+             math::Matrix<3,3> R_vol;
+             R_vol.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+             math::Quaternion Q_vol;
+             Q_vol.from_dcm(R_vol);
+            _att_sp.q_d[0]=Q_vol(0);
+            _att_sp.q_d[1]=Q_vol(1);
+            _att_sp.q_d[2]=Q_vol(2);
+            _att_sp.q_d[3]=Q_vol(3);
+            }
+
 
 			if (_att_sp_pub != nullptr) {
                 orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
