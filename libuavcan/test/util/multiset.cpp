@@ -95,10 +95,6 @@ TEST(Multiset, Basic)
     ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
     ASSERT_EQ(2, mset->getSize());
 
-    // Ordering
-    ASSERT_TRUE(*mset->getByIndex(0) == "1");
-    ASSERT_TRUE(*mset->getByIndex(1) == "2");
-
     {
         StringConcatenationOperator op;
         mset->forEach<StringConcatenationOperator&>(op);
@@ -107,7 +103,6 @@ TEST(Multiset, Basic)
 
     // Dynamic addition
     ASSERT_EQ("3", *mset->emplace("3"));
-    ASSERT_EQ("3", *mset->getByIndex(2));
     ASSERT_LE(1, pool.getNumUsedBlocks());      // One or more
 
     ASSERT_EQ("4", *mset->emplace("4"));

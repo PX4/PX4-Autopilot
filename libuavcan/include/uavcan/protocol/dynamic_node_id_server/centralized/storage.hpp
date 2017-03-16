@@ -55,7 +55,7 @@ class Storage
             {
                 if (mask[byte * 8U + bit])
                 {
-                    array[byte] |= static_cast<uint8_t>(1U << bit);
+                    array[byte] = static_cast<uint8_t>(array[byte] | (1U << bit));
                 }
             }
         }

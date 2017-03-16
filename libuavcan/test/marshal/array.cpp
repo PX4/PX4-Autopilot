@@ -4,6 +4,7 @@
 
 #if __GNUC__
 # pragma GCC diagnostic ignored "-Wfloat-equal"
+# pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
 #include <gtest/gtest.h>
