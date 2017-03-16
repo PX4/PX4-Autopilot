@@ -320,7 +320,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_POS_P, 0.09f);
 PARAM_DEFINE_FLOAT(MPC_XY_POS_I, 0.0f);
 
 /**
- * Differential gain for postition velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Differential gain for position velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *added by voliro
  * @min 0.005
  * @max 0.1
