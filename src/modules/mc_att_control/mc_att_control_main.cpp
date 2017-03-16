@@ -334,6 +334,7 @@ private:
     math::Vector<6>     _omega_des;     /**< omega_des, is sent to actuator control */
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
     math::Vector<3>     _vol_att_sp;      /**< attitude setpoint, added by voliro*/
+    math::Vector<3>     _vol_thrust_bf_sp;  /**< Thrust setpoint in bodyframe*/
 
 	struct {
 		param_t roll_p;
@@ -610,6 +611,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
     _alpha_sim.zero();
     _alpha_sim_prev.zero();
 	_thrust_sp = 0.0f;
+    _vol_thrust_bf_sp.zero();   //AbV
 	_att_control.zero();
 
 	_I.identity();
@@ -1189,10 +1191,15 @@ float MulticopterAttitudeControl::value_lookup(unsigned index_phi, unsigned inde
     switch(iterator)
     {
         case 0: result = alpha_lookup1[index_phi][index_theta];
+                break;
         case 1: result = alpha_lookup2[index_phi][index_theta];
+                break;
         case 2: result = alpha_lookup3[index_phi][index_theta];
+                break;
         case 3: result = alpha_lookup4[index_phi][index_theta];
+                break;
         case 4: result = alpha_lookup5[index_phi][index_theta];
+                break;
         case 5: result = alpha_lookup6[index_phi][index_theta];
     }
     return result;
@@ -1240,10 +1247,14 @@ void MulticopterAttitudeControl::lookup(float theta, float phi, math::Vector<6> 
 
 void MulticopterAttitudeControl::alpha (float dt)
  {
+    //Rotate thrust setpoint into body frame
+    math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+    math::Matrix<3,3> R = q_att.to_dcm();
+    _vol_thrust_bf_sp = R*_vol_thrust_sp.f;
 
-    //calculate spherical coordinates from the thrust vector
-    float phi = atan2(_vol_thrust_sp.f[1],_vol_thrust_sp.f[0]);
-    float theta = atan2(_vol_thrust_sp.f[2],_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]);
+    //calculate spherical coordinates from the thrust vector in body frame
+    float phi = atan2(_vol_thrust_bf_sp(1),_vol_thrust_bf_sp(0));
+    float theta = atan2(_vol_thrust_bf_sp(2),_vol_thrust_bf_sp(1)*_vol_thrust_bf_sp(1)+_vol_thrust_bf_sp(0)*_vol_thrust_bf_sp(0));
 
     //get lookup values of alpha
     lookup(theta,phi,_alpha_des);
@@ -1296,20 +1307,29 @@ void MulticopterAttitudeControl::alpha (float dt)
 void
 MulticopterAttitudeControl::control_allocation(float dt)
 {
-    float k=_params.torque_coeff;
-    float l=_params.length_axis;
+    /*Check if position controller want to produce thrust*/
+    if(_thrust_sp>MIN_TAKEOFF_THRUST)
+    {
+        float k=_params.torque_coeff;
+        float l=_params.length_axis;
 
-    math::Vector<6> u{_vol_thrust_sp.f,_vol_att_sp};
+        math::Vector<6> u{_vol_thrust_bf_sp,_vol_att_sp};
 
-  float alloc [6][6]= {{-sinf(_alpha_sim(0)),                          sinf(_alpha_sim(1)),                          0.5f*sinf(_alpha_sim(2)),                                               -0.5f*sinf(_alpha_sim(3)),                                               -0.5f*sinf(_alpha_sim(4)),                                               0.5f*sinf(_alpha_sim(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_sim(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_sim(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_sim(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_sim(5))},
-                         {-cosf(_alpha_sim(0)),                          -cosf(_alpha_sim(1)),                         -cosf(_alpha_sim(2)),                                                   -cosf(_alpha_sim(3)),                                                    -cosf(_alpha_sim(4)),                                                    -cosf(_alpha_sim(5))},
-                         {-l*cosf(_alpha_sim(0))-k*sinf(_alpha_sim(0)),   l*cosf(_alpha_sim(1))-k*sinf(_alpha_sim(1)),   l*0.5f*cosf(_alpha_sim(2))+k*0.5f*sinf(_alpha_sim(2)),                   -l*0.5f*cosf(_alpha_sim(3))+k*0.5f*sinf(_alpha_sim(3)),                   -l*0.5f*cosf(_alpha_sim(4))+k*0.5f*sinf(_alpha_sim(4)),                   l*0.5f*cosf(_alpha_sim(5))+k*0.5f*sinf(_alpha_sim(5))},
-                         {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(_alpha_sim(2))+sqrtf(3)*0.5f*k*sinf(_alpha_sim(2)), -l*sqrtf(3)*0.5f*cosf(_alpha_sim(3))+k*sqrtf(3)*0.5f*sinf(_alpha_sim(3)), sqrtf(3)*0.5f*l*cosf(_alpha_sim(4))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(4)),  -sqrtf(3)*0.5f*l*cosf(_alpha_sim(5))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(5))},
-                         {l*sinf(_alpha_sim(0))-k*cosf(_alpha_sim(0)),    l*sinf(_alpha_sim(1))+k*cosf(_alpha_sim(2)),   l*sinf(_alpha_sim(2))-k*cosf(_alpha_sim(2)),                             l*sinf(_alpha_sim(3))+k*cosf(_alpha_sim(3)),                              l*sinf(_alpha_sim(4))+k*cosf(_alpha_sim(4)),                              l*sinf(_alpha_sim(5))-k*cosf(_alpha_sim(5))}};
+        float alloc [6][6]= {{-sinf(_alpha_sim(0)),                          sinf(_alpha_sim(1)),                          0.5f*sinf(_alpha_sim(2)),                                               -0.5f*sinf(_alpha_sim(3)),                                               -0.5f*sinf(_alpha_sim(4)),                                               0.5f*sinf(_alpha_sim(5))},
+                             {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*sinf(_alpha_sim(2)),                                      -sqrtf(3)*0.5f*sinf(_alpha_sim(3)),                                      sqrtf(3)*0.5f*sinf(_alpha_sim(4)),                                       -sqrtf(3)*0.5f*sinf(_alpha_sim(5))},
+                             {-cosf(_alpha_sim(0)),                          -cosf(_alpha_sim(1)),                         -cosf(_alpha_sim(2)),                                                   -cosf(_alpha_sim(3)),                                                    -cosf(_alpha_sim(4)),                                                    -cosf(_alpha_sim(5))},
+                             {-l*cosf(_alpha_sim(0))-k*sinf(_alpha_sim(0)),   l*cosf(_alpha_sim(1))-k*sinf(_alpha_sim(1)),   l*0.5f*cosf(_alpha_sim(2))+k*0.5f*sinf(_alpha_sim(2)),                   -l*0.5f*cosf(_alpha_sim(3))+k*0.5f*sinf(_alpha_sim(3)),                   -l*0.5f*cosf(_alpha_sim(4))+k*0.5f*sinf(_alpha_sim(4)),                   l*0.5f*cosf(_alpha_sim(5))+k*0.5f*sinf(_alpha_sim(5))},
+                             {0.0f,                                         0.0f,                                        sqrtf(3)*0.5f*l*cosf(_alpha_sim(2))+sqrtf(3)*0.5f*k*sinf(_alpha_sim(2)), -l*sqrtf(3)*0.5f*cosf(_alpha_sim(3))+k*sqrtf(3)*0.5f*sinf(_alpha_sim(3)), sqrtf(3)*0.5f*l*cosf(_alpha_sim(4))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(4)),  -sqrtf(3)*0.5f*l*cosf(_alpha_sim(5))-sqrtf(3)*0.5f*k*sinf(_alpha_sim(5))},
+                             {l*sinf(_alpha_sim(0))-k*cosf(_alpha_sim(0)),    l*sinf(_alpha_sim(1))+k*cosf(_alpha_sim(2)),   l*sinf(_alpha_sim(2))-k*cosf(_alpha_sim(2)),                             l*sinf(_alpha_sim(3))+k*cosf(_alpha_sim(3)),                              l*sinf(_alpha_sim(4))+k*cosf(_alpha_sim(4)),                              l*sinf(_alpha_sim(5))-k*cosf(_alpha_sim(5))}};
 
-    math::Matrix<6,6> A(alloc);
-    _omega_des=A.inversed()*u;
+        math::Matrix<6,6> A(alloc);
+        _omega_des=A.inversed()*u;
+
+    }
+    else
+    {
+        _omega_des.zero();
+    }
 
 }
 
