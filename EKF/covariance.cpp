@@ -380,7 +380,7 @@ void Ekf::predictCovariance()
 		nextP[i][i] += process_noise[i];
 	}
 
-	// Don't calculate these covariance terms if IMU delta vlocity bias estimation is inhibited
+	// Don't calculate these covariance terms if IMU delta velocity bias estimation is inhibited
 	if (!(_params.fusion_mode & MASK_INHIBIT_ACC_BIAS) && !_accel_bias_inhibit) {
 
 		// calculate variances and upper diagonal covariances for IMU delta velocity bias states
@@ -436,10 +436,13 @@ void Ekf::predictCovariance()
 		}
 
 	} else {
+		// Inhibit delta velocity bias learning. Zero the covariance terms but preserve the variances from the
+		// previous prediction step which prevents these states being updated by any of the measurement fusion
+		// processes, but  allows estimation to be resumed later.
 		zeroRows(nextP,13,15);
 		zeroCols(nextP,13,15);
-		nextP[13][13] = P[14][14];
-		nextP[14][14] = P[15][15];
+		nextP[13][13] = P[13][13];
+		nextP[14][14] = P[14][14];
 		nextP[15][15] = P[15][15];
 
 	}
@@ -740,7 +743,8 @@ void Ekf::fixCovarianceErrors()
 			_fault_status.flags.bad_acc_bias = true;
 		}
 
-		// if we have failed for 7 seconds continuously, reset the accel bias covariance
+		// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
+		// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
 		if (_time_last_imu - _time_acc_bias_check > 7E6) {
 			float varX = P[13][13];
 			float varY = P[14][14];
