@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(GND_P_TC, 0.4f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_PR_P, 0.08f);
+PARAM_DEFINE_FLOAT(GND_PR_P, 0.005f);
 
 /**
  * Pitch rate integrator gain.
@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(GND_PR_P, 0.08f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_PR_I, 0.02f);
+PARAM_DEFINE_FLOAT(GND_PR_I, 0.005f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -153,7 +153,7 @@ PARAM_DEFINE_FLOAT(GND_P_RMAX_NEG, 60.0f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_PR_IMAX, 0.4f);
+PARAM_DEFINE_FLOAT(GND_PR_IMAX, 0.0f);
 
 /**
  * Roll rate proportional Gain
@@ -168,7 +168,7 @@ PARAM_DEFINE_FLOAT(GND_PR_IMAX, 0.4f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_RR_P, 0.05f);
+PARAM_DEFINE_FLOAT(GND_RR_P, 0.7f);
 
 /**
  * Roll rate integrator Gain
@@ -183,7 +183,7 @@ PARAM_DEFINE_FLOAT(GND_RR_P, 0.05f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_RR_I, 0.01f);
+PARAM_DEFINE_FLOAT(GND_RR_I, 0.005f);
 
 /**
  * Roll Integrator Anti-Windup
@@ -196,7 +196,7 @@ PARAM_DEFINE_FLOAT(GND_RR_I, 0.01f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_RR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(GND_RR_IMAX, 0.0f);
 
 /**
  * Maximum Roll Rate
@@ -226,7 +226,7 @@ PARAM_DEFINE_FLOAT(GND_R_RMAX, 70.0f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_YR_P, 0.05f);
+PARAM_DEFINE_FLOAT(GND_YR_P, 0.32f);
 
 /**
  * Yaw rate integrator gain
@@ -255,7 +255,7 @@ PARAM_DEFINE_FLOAT(GND_YR_I, 0.0f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.0f);
 
 /**
  * Maximum Yaw Rate
@@ -300,7 +300,7 @@ PARAM_DEFINE_FLOAT(GND_RL_TO_YAW_FF, 0.0f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_P, 0.5f);
+PARAM_DEFINE_FLOAT(GND_WR_P, 0.32f);
 
 /**
  * Wheel steering rate integrator gain
@@ -360,7 +360,7 @@ PARAM_DEFINE_FLOAT(GND_W_RMAX, 0.0f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_RR_FF, 0.5f);
+PARAM_DEFINE_FLOAT(GND_RR_FF, 0.0f);
 
 /**
  * Pitch rate feed forward
@@ -374,7 +374,7 @@ PARAM_DEFINE_FLOAT(GND_RR_FF, 0.5f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_PR_FF, 0.5f);
+PARAM_DEFINE_FLOAT(GND_PR_FF, 0.0f);
 
 /**
  * Yaw rate feed forward
@@ -388,7 +388,7 @@ PARAM_DEFINE_FLOAT(GND_PR_FF, 0.5f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_YR_FF, 0.3f);
+PARAM_DEFINE_FLOAT(GND_YR_FF, 0.0f);
 
 /**
  * Wheel steering rate feed forward
@@ -402,7 +402,7 @@ PARAM_DEFINE_FLOAT(GND_YR_FF, 0.3f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_FF, 0.2f);
+PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
 
 /**
  * Minimal speed for yaw coordination
@@ -478,7 +478,7 @@ PARAM_DEFINE_FLOAT(GND_PSP_OFF, 0.0f);
  * @increment 0.5
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_MAN_R_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(GND_MAN_R_MAX, 90.0f);
 
 /**
  * Max Manual Pitch
@@ -492,7 +492,7 @@ PARAM_DEFINE_FLOAT(GND_MAN_R_MAX, 45.0f);
  * @increment 0.5
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_MAN_P_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(GND_MAN_P_MAX, 90.0f);
 
 /**
  * Scale factor for flaps
@@ -516,7 +516,7 @@ PARAM_DEFINE_FLOAT(GND_FLAPS_SCL, 1.0f);
  * @increment 0.01
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_FLAPERON_SCL, 0.0f);
+PARAM_DEFINE_FLOAT(GND_FLAPERON_SCL, 1.0f);
 
 /**
  * Airspeed mode

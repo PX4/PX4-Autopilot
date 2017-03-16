@@ -478,7 +478,15 @@ Result:
  MSG file: msgs_2017_03_16_08_19_50.txt
  Log file: http://logs.uaventure.com/view/DXZSzLYt6bve6KCqNaeTFg
 
-
+---------
+sess21
+---------
+Motivation:
+ Testing the new mixer with yaw and the response to a change of heading.
+Result:
+ The new mixer is ok, but cannot see the controller without gps lock and mission mode
+ MSG file: x
+ Log file: http://logs.uaventure.com/view/zFb6Pq5EAMLDe4ftYYVDtH
 
 
 

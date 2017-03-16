@@ -284,7 +284,7 @@ private:
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
-	ECL_WheelController			_wheel_ctrl;
+	ECL_WheelController			    _wheel_ctrl;
 
 
 	/**
@@ -1070,14 +1070,16 @@ GroundRoverAttitudeControl::task_main()
 							}
 						}
 
-						float yaw_u = 0.0f;
+						// TODO: implement a PID here.
+						
+						float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+						// float yaw_u = 0.0f;
+						// if (_att_sp.fw_control_yaw == true) {
+						// 	yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 
-						if (_att_sp.fw_control_yaw == true) {
-							yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-
-						} else {
-							yaw_u = _yaw_ctrl.control_euler_rate(control_input);
-						}
+						// } else {
+						// 	yaw_u = _yaw_ctrl.control_euler_rate(control_input);
+						// }
 
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;
@@ -1136,7 +1138,8 @@ GroundRoverAttitudeControl::task_main()
 					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch :
 							_parameters.trim_pitch;
 
-					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
+					float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+					// float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;
 
