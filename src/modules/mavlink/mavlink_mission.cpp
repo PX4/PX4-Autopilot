@@ -73,7 +73,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_time_last_reached(0),
 	_action_timeout(MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT),
 	_retry_timeout(MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT),
-	_int_mode(true),
+	_int_mode(false),
 	_max_count(DM_KEY_WAYPOINTS_OFFBOARD_0_MAX),
 	_filesystem_errcount(0),
 	_my_dataman_id(0),
@@ -86,7 +86,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
-	_slow_rate_limiter(_interval / 10.0f),
+	_slow_rate_limiter(_interval / 5.0f),
 	_verbose(false)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
@@ -297,6 +297,7 @@ void
 MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
 	if (seq < _max_count) {
+
 		_time_last_sent = hrt_absolute_time();
 
 		if (_int_mode) {
@@ -490,6 +491,16 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 				}
 
 				_state = MAVLINK_WPM_STATE_IDLE;
+
+			} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
+
+				// INT mode is not supported
+				if (_int_mode && wpa.type != MAV_MISSION_ACCEPTED) {
+					_int_mode = false;
+
+				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
+					_int_mode = true;
+				}
 			}
 
 		} else {
@@ -720,11 +731,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			if (_transfer_seq == 0) {
 				/* looks like our MISSION_REQUEST was lost, try again */
 				if (_verbose) { warnx("WPM: MISSION_COUNT %u from ID %u (again)", wpc.count, msg->sysid); }
-
-				// If the counterpart tries this, its an indication int mode might not be supported
-				if (_int_mode) {
-					_int_mode = false;
-				}
 
 			} else {
 				if (_verbose) { warnx("WPM: MISSION_COUNT ERROR: busy, already receiving seq %u", _transfer_seq); }
