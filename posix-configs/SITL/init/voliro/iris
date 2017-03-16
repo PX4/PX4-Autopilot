@@ -1,5 +1,6 @@
 uorb start
 param load
+param set MAV_PROTO_VER 2
 param set MAV_TYPE 2
 param set SYS_AUTOSTART 4010
 param set SYS_RESTART_TYPE 2
@@ -67,6 +68,8 @@ mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_w.main.mix
 
 mavlink start -u 14556 -r 4000000
 mavlink start -u 14557 -r 4000000 -m onboard -o 14540
+
+mavlink stream -r 50 -s VOLIRO_AO -u 14556
 
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
