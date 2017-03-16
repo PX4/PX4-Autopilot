@@ -1,6 +1,8 @@
 #pragma once
 
-#ifdef __cplusplus
+#if defined(MAVLINK_USE_CXX_NAMESPACE)
+namespace mavlink {
+#elif defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -88,6 +90,6 @@ static inline void crc_accumulate_buffer(uint16_t *crcAccum, const char *pBuffer
         }
 }
 
-#ifdef __cplusplus
+#if defined(MAVLINK_USE_CXX_NAMESPACE) || defined(__cplusplus)
 }
 #endif

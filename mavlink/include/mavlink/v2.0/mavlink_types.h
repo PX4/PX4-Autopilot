@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef MAVLINK_USE_CXX_NAMESPACE
+namespace mavlink {
+#endif
+
 // Macro to define packed structures
 #ifdef __GNUC__
   #define MAVPACKED( __Declaration__ ) __Declaration__ __attribute__((packed))
@@ -289,4 +293,6 @@ typedef struct __mavlink_msg_entry {
 #define MAVLINK_IFLAG_SIGNED  0x01
 #define MAVLINK_IFLAG_MASK    0x01 // mask of all understood bits
 
-
+#ifdef MAVLINK_USE_CXX_NAMESPACE
+} // namespace mavlink
+#endif

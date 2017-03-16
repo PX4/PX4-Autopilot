@@ -1,52 +1,56 @@
 <?xml version="1.0"?>
-<mavlink>
-  <include>common.xml</include>
-  <!-- note that UDB specific messages should use the command id
+	<mavlink>
+	<include>common.xml</include>
+	<!-- note that UDB specific messages should use the command id
       range from 150 to 250, to leave plenty of room for growth
       of common.xml 
 
       If you prototype a message here, then you should consider if it
       is general enough to move into common.xml later
     -->
-  <enums>
-    <enum name="MAV_PREFLIGHT_STORAGE_ACTION">
-      <description>Action required when performing CMD_PREFLIGHT_STORAGE</description>
-      <entry value="0" name="MAV_PFS_CMD_READ_ALL">
-        <description>Read all parameters from storage</description>
-      </entry>
-      <entry value="1" name="MAV_PFS_CMD_WRITE_ALL">
-        <description>Write all parameters to storage</description>
-      </entry>
-      <entry value="2" name="MAV_PFS_CMD_CLEAR_ALL">
-        <description>Clear all  parameters in storage</description>
-      </entry>
-      <entry value="3" name="MAV_PFS_CMD_READ_SPECIFIC">
-        <description>Read specific parameters from storage</description>
-      </entry>
-      <entry value="4" name="MAV_PFS_CMD_WRITE_SPECIFIC">
-        <description>Write specific parameters to storage</description>
-      </entry>
-      <entry value="5" name="MAV_PFS_CMD_CLEAR_SPECIFIC">
-        <description>Clear specific parameters in storage</description>
-      </entry>
-      <entry value="6" name="MAV_PFS_CMD_DO_NOTHING">
-        <description>do nothing</description>
-      </entry>
-    </enum>
-    <enum name="MAV_CMD">
-      <entry value="0" name="MAV_CMD_PREFLIGHT_STORAGE_ADVANCED">
-        <description>Request storage of different parameter values and logs. This command will be only accepted if in pre-flight mode.</description>
-        <param index="1">Storage action: Action defined by MAV_PREFLIGHT_STORAGE_ACTION_ADVANCED</param>
-        <param index="2">Storage area as defined by parameter database</param>
-        <param index="3">Storage flags as defined by parameter database</param>
-        <param index="4">Empty</param>
-        <param index="5">Empty</param>
-        <param index="6">Empty</param>
-        <param index="7">Empty</param>
-      </entry>
-    </enum>
-  </enums>
-  <messages>
+
+     <enums>
+          <enum name="MAV_PREFLIGHT_STORAGE_ACTION">
+               <description>Action required when performing CMD_PREFLIGHT_STORAGE</description>
+               <entry value="0" name="MAV_PFS_CMD_READ_ALL">
+                    <description>Read all parameters from storage</description>
+               </entry>
+               <entry value="1" name="MAV_PFS_CMD_WRITE_ALL">
+                    <description>Write all parameters to storage</description>
+               </entry>
+               <entry value="2" name="MAV_PFS_CMD_CLEAR_ALL">
+                    <description>Clear all  parameters in storage</description>
+               </entry>
+               <entry value="3" name="MAV_PFS_CMD_READ_SPECIFIC">
+                    <description>Read specific parameters from storage</description>
+               </entry>
+               <entry value="4" name="MAV_PFS_CMD_WRITE_SPECIFIC">
+                    <description>Write specific parameters to storage</description>
+               </entry>
+               <entry value="5" name="MAV_PFS_CMD_CLEAR_SPECIFIC">
+                    <description>Clear specific parameters in storage</description>
+               </entry>
+               <entry value="6" name="MAV_PFS_CMD_DO_NOTHING">
+                    <description>do nothing</description>
+               </entry>
+          </enum>
+
+          <enum name="MAV_CMD" >
+            <entry value="0" name="MAV_CMD_PREFLIGHT_STORAGE_ADVANCED">
+                <description>Request storage of different parameter values and logs. This command will be only accepted if in pre-flight mode.</description>
+                <param index="1">Storage action: Action defined by MAV_PREFLIGHT_STORAGE_ACTION_ADVANCED</param>
+                <param index="2">Storage area as defined by parameter database</param>
+                <param index="3">Storage flags as defined by parameter database</param>
+                <param index="4">Empty</param>
+                <param index="5">Empty</param>
+                <param index="6">Empty</param>
+                <param index="7">Empty</param>
+             </entry>
+          </enum>
+     </enums>
+
+
+    <messages>
     <message id="150" name="FLEXIFUNCTION_SET">
       <description>Depreciated but used as a compiler flag.  Do not remove</description>
       <field type="uint8_t" name="target_system">System ID</field>
@@ -76,7 +80,7 @@
       <field type="uint16_t" name="func_index">Function index</field>
       <field type="uint16_t" name="result">result of acknowledge, 0=fail, 1=good</field>
     </message>
-    <message id="155" name="FLEXIFUNCTION_DIRECTORY">
+     <message id="155" name="FLEXIFUNCTION_DIRECTORY">
       <description>Acknowldge sucess or failure of a flexifunction command</description>
       <field type="uint8_t" name="target_system">System ID</field>
       <field type="uint8_t" name="target_component">Component ID</field>
@@ -207,6 +211,7 @@
       <field type="float" name="sue_YAWKD_AILERON">Serial UDB YAWKD_AILERON Gain for Rate control of navigation</field>
       <field type="float" name="sue_ROLLKP">Serial UDB Extra ROLLKP Gain for Proportional control of roll stabilization</field>
       <field type="float" name="sue_ROLLKD">Serial UDB Extra ROLLKD Gain for Rate control of roll stabilization</field>
+
     </message>
     <message id="174" name="SERIAL_UDB_EXTRA_F6">
       <description>Backwards compatible version of SERIAL_UDB_EXTRA F6: format</description>
@@ -262,88 +267,88 @@
       <field type="uint8_t[20]" name="sue_ID_VEHICLE_REGISTRATION">Serial UDB Extra Registraton Number of Vehicle</field>
     </message>
     <message id="180" name="SERIAL_UDB_EXTRA_F16">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F16 format</description>
+        <description>Backwards compatible version of SERIAL_UDB_EXTRA F16 format</description>
       <field type="uint8_t[40]" name="sue_ID_LEAD_PILOT">Serial UDB Extra Name of Expected Lead Pilot</field>
-      <field type="uint8_t[70]" name="sue_ID_DIY_DRONES_URL">Serial UDB Extra URL of Lead Pilot or Team</field>
+      <field type="uint8_t[70]" name="sue_ID_DIY_DRONES_URL">Serial UDB Extra URL of Lead Pilot or Team</field>	
     </message>
     <message id="181" name="ALTITUDES">
-      <description>The altitude measured by sensors and IMU</description>
-      <field type="uint32_t" name="time_boot_ms">Timestamp (milliseconds since system boot)</field>
-      <field type="int32_t" name="alt_gps">GPS altitude in meters, expressed as * 1000 (millimeters), above MSL</field>
-      <field type="int32_t" name="alt_imu">IMU altitude above ground in meters, expressed as * 1000 (millimeters)</field>
-      <field type="int32_t" name="alt_barometric">barometeric altitude above ground in meters, expressed as * 1000 (millimeters)</field>
-      <field type="int32_t" name="alt_optical_flow">Optical flow altitude above ground in meters, expressed as * 1000 (millimeters)</field>
-      <field type="int32_t" name="alt_range_finder">Rangefinder Altitude above ground in meters, expressed as * 1000 (millimeters)</field>
-      <field type="int32_t" name="alt_extra">Extra altitude above ground in meters, expressed as * 1000 (millimeters)</field>
-    </message>
-    <message id="182" name="AIRSPEEDS">
-      <description>The airspeed measured by sensors and IMU</description>
-      <field type="uint32_t" name="time_boot_ms">Timestamp (milliseconds since system boot)</field>
-      <field type="int16_t" name="airspeed_imu">Airspeed estimate from IMU, cm/s</field>
-      <field type="int16_t" name="airspeed_pitot">Pitot measured forward airpseed, cm/s</field>
-      <field type="int16_t" name="airspeed_hot_wire">Hot wire anenometer measured airspeed, cm/s</field>
-      <field type="int16_t" name="airspeed_ultrasonic">Ultrasonic measured airspeed, cm/s</field>
-      <field type="int16_t" name="aoa">Angle of attack sensor, degrees * 10</field>
-      <field type="int16_t" name="aoy">Yaw angle sensor, degrees * 10</field>
-    </message>
-    <message id="183" name="SERIAL_UDB_EXTRA_F17">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F17 format</description>
-      <field type="float" name="sue_feed_forward">SUE Feed Forward Gain</field>
-      <field type="float" name="sue_turn_rate_nav">SUE Max Turn Rate when Navigating</field>
-      <field type="float" name="sue_turn_rate_fbw">SUE Max Turn Rate in Fly By Wire Mode</field>
-    </message>
-    <message id="184" name="SERIAL_UDB_EXTRA_F18">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F18 format</description>
-      <field type="float" name="angle_of_attack_normal">SUE Angle of Attack Normal</field>
-      <field type="float" name="angle_of_attack_inverted">SUE Angle of Attack Inverted</field>
-      <field type="float" name="elevator_trim_normal">SUE Elevator Trim Normal</field>
-      <field type="float" name="elevator_trim_inverted">SUE Elevator Trim Inverted</field>
-      <field type="float" name="reference_speed">SUE reference_speed</field>
-    </message>
-    <message id="185" name="SERIAL_UDB_EXTRA_F19">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F19 format</description>
-      <field type="uint8_t" name="sue_aileron_output_channel">SUE aileron output channel</field>
-      <field type="uint8_t" name="sue_aileron_reversed">SUE aileron reversed</field>
-      <field type="uint8_t" name="sue_elevator_output_channel">SUE elevator output channel</field>
-      <field type="uint8_t" name="sue_elevator_reversed">SUE elevator reversed</field>
-      <field type="uint8_t" name="sue_throttle_output_channel">SUE throttle output channel</field>
-      <field type="uint8_t" name="sue_throttle_reversed">SUE throttle reversed</field>
-      <field type="uint8_t" name="sue_rudder_output_channel">SUE rudder output channel</field>
-      <field type="uint8_t" name="sue_rudder_reversed">SUE rudder reversed</field>
-    </message>
-    <message id="186" name="SERIAL_UDB_EXTRA_F20">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F20 format</description>
-      <field type="uint8_t" name="sue_number_of_inputs">SUE Number of Input Channels</field>
-      <field type="int16_t" name="sue_trim_value_input_1">SUE UDB PWM Trim Value on Input 1</field>
-      <field type="int16_t" name="sue_trim_value_input_2">SUE UDB PWM Trim Value on Input 2</field>
-      <field type="int16_t" name="sue_trim_value_input_3">SUE UDB PWM Trim Value on Input 3</field>
-      <field type="int16_t" name="sue_trim_value_input_4">SUE UDB PWM Trim Value on Input 4</field>
-      <field type="int16_t" name="sue_trim_value_input_5">SUE UDB PWM Trim Value on Input 5</field>
-      <field type="int16_t" name="sue_trim_value_input_6">SUE UDB PWM Trim Value on Input 6</field>
-      <field type="int16_t" name="sue_trim_value_input_7">SUE UDB PWM Trim Value on Input 7</field>
-      <field type="int16_t" name="sue_trim_value_input_8">SUE UDB PWM Trim Value on Input 8</field>
-      <field type="int16_t" name="sue_trim_value_input_9">SUE UDB PWM Trim Value on Input 9</field>
-      <field type="int16_t" name="sue_trim_value_input_10">SUE UDB PWM Trim Value on Input 10</field>
-      <field type="int16_t" name="sue_trim_value_input_11">SUE UDB PWM Trim Value on Input 11</field>
-      <field type="int16_t" name="sue_trim_value_input_12">SUE UDB PWM Trim Value on Input 12</field>
-    </message>
-    <message id="187" name="SERIAL_UDB_EXTRA_F21">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F21 format</description>
-      <field type="int16_t" name="sue_accel_x_offset">SUE X accelerometer offset</field>
-      <field type="int16_t" name="sue_accel_y_offset">SUE Y accelerometer offset</field>
-      <field type="int16_t" name="sue_accel_z_offset">SUE Z accelerometer offset</field>
-      <field type="int16_t" name="sue_gyro_x_offset">SUE X gyro offset</field>
-      <field type="int16_t" name="sue_gyro_y_offset">SUE Y gyro offset</field>
-      <field type="int16_t" name="sue_gyro_z_offset">SUE Z gyro offset</field>
-    </message>
-    <message id="188" name="SERIAL_UDB_EXTRA_F22">
-      <description>Backwards compatible version of SERIAL_UDB_EXTRA F22 format</description>
-      <field type="int16_t" name="sue_accel_x_at_calibration">SUE X accelerometer at calibration time</field>
-      <field type="int16_t" name="sue_accel_y_at_calibration">SUE Y accelerometer at calibration time</field>
-      <field type="int16_t" name="sue_accel_z_at_calibration">SUE Z accelerometer at calibration time</field>
-      <field type="int16_t" name="sue_gyro_x_at_calibration">SUE X gyro at calibration time</field>
-      <field type="int16_t" name="sue_gyro_y_at_calibration">SUE Y gyro at calibration time</field>
-      <field type="int16_t" name="sue_gyro_z_at_calibration">SUE Z gyro at calibration time</field>
-    </message>
-  </messages>
+        <description>The altitude measured by sensors and IMU</description>
+        <field type="uint32_t" name="time_boot_ms">Timestamp (milliseconds since system boot)</field>
+        <field type="int32_t" name="alt_gps">GPS altitude in meters, expressed as * 1000 (millimeters), above MSL</field>
+        <field type="int32_t" name="alt_imu">IMU altitude above ground in meters, expressed as * 1000 (millimeters)</field>
+        <field type="int32_t" name="alt_barometric">barometeric altitude above ground in meters, expressed as * 1000 (millimeters)</field>
+        <field type="int32_t" name="alt_optical_flow">Optical flow altitude above ground in meters, expressed as * 1000 (millimeters)</field>
+        <field type="int32_t" name="alt_range_finder">Rangefinder Altitude above ground in meters, expressed as * 1000 (millimeters)</field>
+        <field type="int32_t" name="alt_extra">Extra altitude above ground in meters, expressed as * 1000 (millimeters)</field>
+     </message>
+     <message id="182" name="AIRSPEEDS">
+        <description>The airspeed measured by sensors and IMU</description>
+        <field type="uint32_t" name="time_boot_ms">Timestamp (milliseconds since system boot)</field>
+        <field type="int16_t" name="airspeed_imu">Airspeed estimate from IMU, cm/s</field>
+        <field type="int16_t" name="airspeed_pitot">Pitot measured forward airpseed, cm/s</field>
+        <field type="int16_t" name="airspeed_hot_wire">Hot wire anenometer measured airspeed, cm/s</field>
+        <field type="int16_t" name="airspeed_ultrasonic">Ultrasonic measured airspeed, cm/s</field>
+        <field type="int16_t" name="aoa">Angle of attack sensor, degrees * 10</field>
+        <field type="int16_t" name="aoy">Yaw angle sensor, degrees * 10</field>
+     </message>
+     <message id="183" name="SERIAL_UDB_EXTRA_F17">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F17 format</description>
+         <field type="float" name="sue_feed_forward">SUE Feed Forward Gain</field>
+         <field type="float" name="sue_turn_rate_nav">SUE Max Turn Rate when Navigating</field>
+         <field type="float" name="sue_turn_rate_fbw">SUE Max Turn Rate in Fly By Wire Mode</field>
+     </message>
+     <message id="184" name="SERIAL_UDB_EXTRA_F18">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F18 format</description>
+         <field type="float" name="angle_of_attack_normal">SUE Angle of Attack Normal</field>
+         <field type="float" name="angle_of_attack_inverted">SUE Angle of Attack Inverted</field>
+         <field type="float" name="elevator_trim_normal">SUE Elevator Trim Normal</field>
+         <field type="float" name="elevator_trim_inverted">SUE Elevator Trim Inverted</field>
+         <field type="float" name="reference_speed">SUE reference_speed</field>
+     </message>
+     <message id="185" name="SERIAL_UDB_EXTRA_F19">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F19 format</description>
+         <field type="uint8_t" name="sue_aileron_output_channel">SUE aileron output channel</field>
+         <field type="uint8_t" name="sue_aileron_reversed">SUE aileron reversed</field>
+         <field type="uint8_t" name="sue_elevator_output_channel">SUE elevator output channel</field>
+         <field type="uint8_t" name="sue_elevator_reversed">SUE elevator reversed</field>
+         <field type="uint8_t" name="sue_throttle_output_channel">SUE throttle output channel</field>
+         <field type="uint8_t" name="sue_throttle_reversed">SUE throttle reversed</field>
+         <field type="uint8_t" name="sue_rudder_output_channel">SUE rudder output channel</field>
+         <field type="uint8_t" name="sue_rudder_reversed">SUE rudder reversed</field>
+     </message>
+     <message id="186" name="SERIAL_UDB_EXTRA_F20">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F20 format</description>
+         <field type="uint8_t" name="sue_number_of_inputs">SUE Number of Input Channels</field>
+         <field type="int16_t" name="sue_trim_value_input_1">SUE UDB PWM Trim Value on Input 1</field>
+         <field type="int16_t" name="sue_trim_value_input_2">SUE UDB PWM Trim Value on Input 2</field>
+         <field type="int16_t" name="sue_trim_value_input_3">SUE UDB PWM Trim Value on Input 3</field>
+         <field type="int16_t" name="sue_trim_value_input_4">SUE UDB PWM Trim Value on Input 4</field>
+         <field type="int16_t" name="sue_trim_value_input_5">SUE UDB PWM Trim Value on Input 5</field>
+         <field type="int16_t" name="sue_trim_value_input_6">SUE UDB PWM Trim Value on Input 6</field>
+         <field type="int16_t" name="sue_trim_value_input_7">SUE UDB PWM Trim Value on Input 7</field>
+         <field type="int16_t" name="sue_trim_value_input_8">SUE UDB PWM Trim Value on Input 8</field>
+         <field type="int16_t" name="sue_trim_value_input_9">SUE UDB PWM Trim Value on Input 9</field>
+         <field type="int16_t" name="sue_trim_value_input_10">SUE UDB PWM Trim Value on Input 10</field>
+         <field type="int16_t" name="sue_trim_value_input_11">SUE UDB PWM Trim Value on Input 11</field>
+         <field type="int16_t" name="sue_trim_value_input_12">SUE UDB PWM Trim Value on Input 12</field>
+     </message>
+     <message id="187" name="SERIAL_UDB_EXTRA_F21">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F21 format</description>
+         <field type="int16_t" name="sue_accel_x_offset">SUE X accelerometer offset</field>
+         <field type="int16_t" name="sue_accel_y_offset">SUE Y accelerometer offset</field>
+         <field type="int16_t" name="sue_accel_z_offset">SUE Z accelerometer offset</field>
+         <field type="int16_t" name="sue_gyro_x_offset">SUE X gyro offset</field>
+         <field type="int16_t" name="sue_gyro_y_offset">SUE Y gyro offset</field>
+         <field type="int16_t" name="sue_gyro_z_offset">SUE Z gyro offset</field>
+     </message>
+     <message id="188" name="SERIAL_UDB_EXTRA_F22">
+         <description>Backwards compatible version of SERIAL_UDB_EXTRA F22 format</description>
+         <field type="int16_t" name="sue_accel_x_at_calibration">SUE X accelerometer at calibration time</field>
+         <field type="int16_t" name="sue_accel_y_at_calibration">SUE Y accelerometer at calibration time</field>
+         <field type="int16_t" name="sue_accel_z_at_calibration">SUE Z accelerometer at calibration time</field>
+         <field type="int16_t" name="sue_gyro_x_at_calibration">SUE X gyro at calibration time</field>
+         <field type="int16_t" name="sue_gyro_y_at_calibration">SUE Y gyro at calibration time</field>
+         <field type="int16_t" name="sue_gyro_z_at_calibration">SUE Z gyro at calibration time</field>
+     </message>
+   </messages>
 </mavlink>
