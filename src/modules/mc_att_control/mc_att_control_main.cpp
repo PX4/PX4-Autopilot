@@ -335,7 +335,7 @@ private:
 	math::Matrix<3, 3>  _I;				/**< identity matrix */
     math::Vector<3>     _vol_att_sp;      /**< attitude setpoint, added by voliro*/
     math::Vector<3>     _vol_thrust_bf_sp;  /**< Thrust setpoint in bodyframe*/
-
+    int _alpha_counter=0;       //AbV to reduce alpha publishing rate
 	struct {
 		param_t roll_p;
     param_t roll_d;     //AbV
@@ -1517,12 +1517,20 @@ MulticopterAttitudeControl::task_main()
 
                 //publish alphas
 
+                if(_alpha_counter==0)
+                {
                 _actuators_1.control[0] = (PX4_ISFINITE(_alpha_des(0))) ? _alpha_des(0) : 0.0f;
                 _actuators_1.control[1] = (PX4_ISFINITE(_alpha_des(1))) ? _alpha_des(1) : 0.0f;
                 _actuators_1.control[2] = (PX4_ISFINITE(_alpha_des(2))) ? _alpha_des(2) : 0.0f;
                 _actuators_1.control[3] = (PX4_ISFINITE(_alpha_des(3))) ? _alpha_des(3) : 0.0f;
                 _actuators_1.control[4] = (PX4_ISFINITE(_alpha_des(4))) ? _alpha_des(4) : 0.0f;
                 _actuators_1.control[5] = (PX4_ISFINITE(_alpha_des(5))) ? _alpha_des(5) : 0.0f;
+
+                }
+
+                _alpha_counter++;
+                if (_alpha_counter==10) //rate can be adapted, now 1/10 of omega rate
+                {_alpha_counter=0;}
 
                 /* publish actuator controls */
 
