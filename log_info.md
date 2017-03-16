@@ -1,4 +1,4 @@
-********************************************
+***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 Day: 10-03-2017
 ---------
 sess01
@@ -29,7 +29,8 @@ Motivation:
 Result: 
  I forgot to choose mission mode at the first run, I had to do a second run and the steering channel behaves as explained above. I need to inspect this or change the whole thing altogether. 
 
-********************************************
+***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+
 Day: 13-03-2017
 ---------
 sess01-2-3-4
@@ -43,7 +44,7 @@ All the other sessions
 ---------
 Testing the local position estimator lock going around the lab and investigating the sonar fault.
 
-********************************************
+***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 Day: 14-03-2017
 ---------
 sess01
@@ -145,7 +146,9 @@ Motivation:
  Testing the mission
 Result:
  By looking at the car I saw steering but the log did not work. weird
-***************************************************
+
+*************************************************************************************************************************************************************************
+**************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 Day: 15-03-2017
 
 ---------
@@ -258,6 +261,8 @@ Motivation:
  Tested a second time as before but this time I was running along the car to see why it was not doing the mission. I realized the LED was turning purple and flashing while in mission mode.
 Result:
  same as before
+MSG file: msgs_2017_03_15_14_15_34.txt
+Log file: http://logs.uaventure.com/view/JyU55jLLaEqCLyeh3YChEE
 
 ---------
 sess15
@@ -266,76 +271,228 @@ Motivation:
  Increased cruising speed, removed Feed forward term, set roll proportional gain to 1 just to log the data.
 Result:
  As noted in previous sessions the Proportional gain is now too big. The throotle seems increased a bit. The parameter for the cruising speed is the one responsible now.
+MSG file: msgs_2017_03_15_14_35_25.txt
+Log file: http://logs.uaventure.com/view/FRocYZ79vHwsi6QJnWWT83
 
-*************************************************
+***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+
 Day: 16-03-2017
+NOTE: battery was not completely charged, which shows some voltage drops. In the last logs this effect was noticeable
 ---------
 sess01
 ---------
 Motivation:
  Testing mission withouth NAV_DLL_ACT and with P gain at 0.5. No disarming code.
 Result:
- Very fast but seems ok, lowered speed and also acceptance radius
+ Very fast but seems ok. The speed is now increased without changing anything from yesterday. That is quite weird. From the logs it looks like the pwm sent out is 1700 while on the last log of yesterday it clearly reads 1600. Mission finished i 3 seconds (?)
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/tTtqMWxcfUmceBPZsbqxPo
+
 ---------
 sess02
 ---------
 Moivation:
- test lower acc radius and lower speed. at half log increased P to 0.7.
+ test lower acc radius and lower cruising throttle. at half log increased P to 0.7.
 Result:
- disarm and rearm
+The speed did not lower which is even more suspicious. Nevertheless this log is useful to see that even though the roll proportional gain changed from 0.5 to 0.7 the results are pretty much similar. in fact from the map in the log file is possible to see how the first run (with 0.5, the farthest one from the starting location) has the same turning radius as the second one. the car was going towards a waypoint of an unfinished mission so it allowed to record this good comparison. Mission finished i 3 seconds (?)
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/eJZmDdaDB6uofqynzqyfQA
 
- ---------
+---------
 sess03
 ---------
 Motivation:
- Testing higher P and lower speed.
+ Testing higher P and lower speed, changes made before disarming in the previous log. P = 0.7 
 Result:
- didn't really slow down, mission goes through soccer door, changing mission.
+ Best result so far but still going fast for some reason. Mission finished i 3 seconds (?). It could be that it was loitering but this does not seem likely as the shape of the gps curve is quite similar to the path, even to the last moment
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/EpmaLDk2ZJrv3xP84NwvXd
 
- ---------
+---------
 sess04
 ---------
 Motivation:
- changed mission, speed at 3% and max at 5%
+ changed mission, speed at 3%. The mission was made to be a more squared because the car was passing quite close to the soccer goal.
 Result:
- Crashed. changing mission again
+ Crashed. changing mission again. It was loitering after the crash.
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/oR6MY5bPyigZxgbLkX6zq4
 
- ---------
+---------
 sess05
 ---------
 Motivation:
- Changing mission and reducing airspd
+ Changing mission and reducing max throttle to 5%
 Result:
- x
+ The speed definitely did not reduce. Interrupted because too close to the soccer door. Mission took 5 seconds(?)
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/XwsFqTguLNEUthunoBnSD7
+
+---------
+sess06
+---------
+Motivation:
+ Reduced airspeed trim to 2% and airspeed max to 4% to see if it slows down.
+Result:
+ Does not slow down. Had to stop mission to prevent a crash. Looks good though. This looks plausible as mission times are in the range of 15 seconds.
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/MdskidvXE9rt5x5oqVBzSM
+
+---------
+sess07
+---------
+Motivation:
+ testing again with reduced airspeed
+Result:
+ Looks ok even with the midd interruption.
+MSG file: msgs_2017_03_16_07_35_57.txt
+Log file: http://logs.uaventure.com/view/Lz3voycrX57E4GVnWQfp9f#AS_Roll_PLOT
+
+---------
+sess08
+---------
+Motivation:
+ Given the amount of noise in the steering I decided to try a lower gain. P = 0.3
+Result:
+  It does not steer properly anymore. The msg log doesn't say executing mission which is quite weird. It looks like the setpoints for the angles are not generated. Not sure what happened here. Cannot rule out a low parameter like this.
+ MSG file: msgs_2017_03_16_07_59_30.txt
+ Log file: http://logs.uaventure.com/view/pr5QAQSKQsmqsKjREGLLm3
+
+---------
+sess09
+---------
+Motivation:
+ Restored airspeed as the position control app was crashing and the speed was not reducing anyway. reflashed the fw and it started working again. Also set gain higher to 1.
+Result:
+ From the logs the angles are still not being generated. why? mission started but unfinished. Steering quite saturated. Power shutdown when I attempted to restart the mission
+MSG file: msgs_2017_03_16_08_08_09.txt
+Log file: http://logs.uaventure.com/view/FiGZNkHVQWWoxpTKEjGDHd
+
+---------
+sess10
+---------
+Motivation:
+ Just driving the car back after shutdown.
+Result:
+ This is a good example of how the steering should look like.
+MSG file: msgs_2017_03_16_08_09_22.txt
+Log file: http://logs.uaventure.com/view/KUHEPtRtHMBrWUHCVTsHZE
+
+ ---------
+sess11
+---------
+Motivation:
+ Flashing light purple, it was an in-air restore.
+Result:
+ Short log, not useful
+MSG file: msgs_2017_03_16_08_10_13.txt
+Log file: http://logs.uaventure.com/view/V5rHD96jNyxNzYLxKwQGWY
+
+---------
+sess12
+---------
+Motivation:
+ Added integrator after trying gain 1 (this could be inspected further if roll is being produced) and P is set to .6. 
+Result:
+ Shutdown for power reason
+MSG file: msgs_2017_03_16_08_11_10.txt
+Log file: http://logs.uaventure.com/view/Wq4AtuLmhDc6ZytsRKsWYe
+
+---------
+sess13
+---------
+Motivation:
+ Removing integrator P to 0.6. different times the whole thing is shutting down when there are power surges.
+Result:
+ It shut down as soon as I triggered the mission because it required too much power
+MSG file: msgs_2017_03_16_08_13_51.txt
+Log file: http://logs.uaventure.com/view/mDoTMQgTL2PTxtmEez96vB#Actuators_PLOT
+
+---------
+sess14
+---------
+Motivation:
+ trying to test mission
+Result:
+ it died again
+MSG file: msgs_2017_03_16_08_14_46.txt
+Log file: http://logs.uaventure.com/view/eU3RPmJT84LXL2kac8YqnB
+
+---------
+sess15
+---------
+Motivation:
+ Trying to test mission
+Result:
+ Still not generated roll setpoint. It died wen I started again. Somehow the SYS_RESTART_TYPE changed by itself
+MSG file: msgs_2017_03_16_08_14_46.txt
+Log file: http://logs.uaventure.com/view/hg8GgNFb4qGxZsjSKy9krk
+
+---------
+sess16
+---------
+Motivation:
+ Driving back
+Result:
+ Dummy log
+MSG file: msgs_2017_03_16_08_15_49.txt
+Log file: http://logs.uaventure.com/view/M5J4qu5ter963f5edEoyRg
+
+---------
+sess17
+---------
+Motivation:
+ Removed the integrator to see if that was the one responsible.
+Result:
+ The setpoints are still not being generated so obviously not steering
+MSG file: msgs_2017_03_16_08_15_49.txt
+Log file: http://logs.uaventure.com/view/Rg2vHMdHNx56Sexap3mj9S
+
+---------
+sess18
+---------
+Motivation:
+ Trying to run.
+Result:
+ here it died again, still not generating sp
+MSG file: msgs_2017_03_16_08_15_49.txt
+Log file: http://logs.uaventure.com/view/nReKoJXP2K73Nwke6dsArh
+
+---------
+sess19
+---------
+Motivation:
+ empty log
+Result:
+ empty log
+ MSG file: msgs_2017_03_16_08_19_27.txt
+ Log file: http://logs.uaventure.com/view/KyiMtPdMEKqEQuDmePrDMB
+
+ ---------
+sess20
+---------
+Motivation:
+ Driving back to go back to the lab
+Result:
+ no result
+ MSG file: msgs_2017_03_16_08_19_50.txt
+ Log file: http://logs.uaventure.com/view/DXZSzLYt6bve6KCqNaeTFg
+
+
+
+
+
+
+
+
+
 
 ---------
 sess
 ---------
 Motivation:
- testing again
-Result:
- x
-
----------
-sess08??
----------
-Motivation:
- Added integrator after trying gain 1 (too strong) and P is set to .6
-Result:
- x
-
----------
-sess
----------
-Motivation:
- removing integrator P to 0.6. different times the whole thing is shutting down when there are power surges.
-Result:
- x
-
----------
-sess
----------
-Motivation:
  x
 Result:
  x
+ MSG file: x
+ Log file: x
