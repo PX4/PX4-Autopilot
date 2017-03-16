@@ -247,8 +247,8 @@ for s, f in sorted(stacks.items(), key=lambda (s, f): s):
 
 print('Total stack frames:', num_stack_frames, file=sys.stderr)
 print('Top consumers (distribution of the stack tops):', file=sys.stderr)
-for name,num in sorted(stack_tops.items(), key=lambda (name, num): num, reverse=True)[:10]:
-    print('% 5.1f%%   ' % (100 * num / num_stack_frames), name, file=sys.stderr)
+for name,num in sorted(stack_tops.items(), key=lambda (name, num): num, reverse=True)[:300]:
+    print('% 7.3f%%   ' % (100 * num / num_stack_frames), name, file=sys.stderr)
 EOF
 
 cat $stacksfile | python /tmp/pmpn-folder.py > $foldfile
