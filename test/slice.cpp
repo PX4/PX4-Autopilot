@@ -1,8 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
 
-using matrix::Matrix;
-using matrix::SquareMatrix;
+using namespace matrix;
 
 int main()
 {

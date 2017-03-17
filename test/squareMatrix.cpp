@@ -2,8 +2,7 @@
 
 #include <matrix/math.hpp>
 
-using matrix::SquareMatrix;
-using matrix::Vector3;
+using namespace matrix;
 
 int main()
 {

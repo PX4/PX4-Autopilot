@@ -1,8 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
 
-using matrix::SquareMatrix;
-using matrix::zeros;
+using namespace matrix;
 
 static const size_t n_large = 50;
 

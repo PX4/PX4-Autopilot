@@ -2,10 +2,7 @@
 
 #include <matrix/math.hpp>
 
-using matrix::isEqual;
-using matrix::isEqualF;
-using matrix::Matrix;
-using matrix::Vector3f;
+using namespace matrix;
 
 int main()
 {

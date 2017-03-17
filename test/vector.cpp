@@ -2,8 +2,7 @@
 
 #include <matrix/math.hpp>
 
-using matrix::isEqualF;
-using matrix::Vector;
+using namespace matrix;
 
 int main()
 {

@@ -1,10 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
 
-using matrix::Dcm;
-using matrix::Euler;
-using matrix::isEqual;
-using matrix::Vector3;
+using namespace matrix;
 
 int main()
 {

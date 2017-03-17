@@ -1,7 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
 
-using matrix::Matrix3f;
+using namespace matrix;
 
 int main()
 {
@@ -11,10 +11,10 @@ int main()
     for (size_t i = 0; i < 3; i++) {
         for (size_t j = 0; j < 3; j++) {
             if (i == j) {
-                TEST(fabsf(A(i, j) -  1) < 1e-7);
+                TEST(fabs(A(i, j) -  1) < 1e-7);
 
             } else {
-                TEST(fabsf(A(i, j) -  0) < 1e-7);
+                TEST(fabs(A(i, j) -  0) < 1e-7);
             }
         }
     }
@@ -25,10 +25,10 @@ int main()
     for (size_t i = 0; i < 3; i++) {
         for (size_t j = 0; j < 3; j++) {
             if (i == j) {
-                TEST(fabsf(B(i, j) -  1) < 1e-7);
+                TEST(fabs(B(i, j) -  1) < 1e-7);
 
             } else {
-                TEST(fabsf(B(i, j) -  0) < 1e-7);
+                TEST(fabs(B(i, j) -  0) < 1e-7);
             }
         }
     }

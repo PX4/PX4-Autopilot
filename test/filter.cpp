@@ -1,11 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/filter.hpp>
 
-using matrix::Matrix;
-using matrix::kalman_correct;
-using matrix::eye;
-using matrix::SquareMatrix;
-using matrix::Vector;
+using namespace matrix;
 
 int main()
 {

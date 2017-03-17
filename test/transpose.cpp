@@ -2,7 +2,7 @@
 
 #include <matrix/math.hpp>
 
-using matrix::Matrix;
+using namespace matrix;
 
 int main()
 {

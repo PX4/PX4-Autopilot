@@ -1,8 +1,7 @@
 #include "test_macros.hpp"
 #include <matrix/math.hpp>
 
-using matrix::Matrix3f;
-using matrix::eye;
+using namespace matrix;
 
 int main()
 {
