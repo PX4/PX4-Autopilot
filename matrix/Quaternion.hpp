@@ -97,28 +97,28 @@ public:
         Quaternion &q = *this;
         Type t = R.trace();
         if (t > Type(0)) {
-            t = sqrtf(Type(1) + t);
+            t = sqrt(Type(1) + t);
             q(0) = Type(0.5) * t;
             t = Type(0.5) / t;
             q(1) = (R(2,1) - R(1,2)) * t;
             q(2) = (R(0,2) - R(2,0)) * t;
             q(3) = (R(1,0) - R(0,1)) * t;
         } else if (R(0,0) > R(1,1) && R(0,0) > R(2,2)) {
-            t = sqrtf(Type(1) + R(0,0) - R(1,1) - R(2,2));
+            t = sqrt(Type(1) + R(0,0) - R(1,1) - R(2,2));
             q(1) = Type(0.5) * t;
             t = Type(0.5) / t;
             q(0) = (R(2,1) - R(1,2)) * t;
             q(2) = (R(1,0) + R(0,1)) * t;
             q(3) = (R(0,2) + R(2,0)) * t;
         } else if (R(1,1) > R(2,2)) {
-            t = sqrtf(Type(1) - R(0,0) + R(1,1) - R(2,2));
+            t = sqrt(Type(1) - R(0,0) + R(1,1) - R(2,2));
             q(2) = Type(0.5) * t;
             t = Type(0.5) / t;
             q(0) = (R(0,2) - R(2,0)) * t;
             q(1) = (R(1,0) + R(0,1)) * t;
             q(3) = (R(2,1) + R(1,2)) * t;
         } else {
-            t = sqrtf(Type(1) - R(0,0) - R(1,1) + R(2,2));
+            t = sqrt(Type(1) - R(0,0) - R(1,1) + R(2,2));
             q(3) = Type(0.5) * t;
             t = Type(0.5) / t;
             q(0) = (R(1,0) - R(0,1)) * t;
@@ -171,8 +171,8 @@ public:
             q(0) = Type(1.0);
             q(1) = q(2) = q(3) = 0;
         } else {
-            Type magnitude = sinf(angle / 2.0f);
-            q(0) = cosf(angle / 2.0f);
+            Type magnitude = sin(angle / 2.0f);
+            q(0) = cos(angle / 2.0f);
             q(1) = axis(0) * magnitude;
             q(2) = axis(1) * magnitude;
             q(3) = axis(2) * magnitude;
@@ -389,9 +389,9 @@ public:
             q(1) = q(2) = q(3) = 0;
         }
 
-        Type magnitude = sinf(theta / 2.0f);
+        Type magnitude = sin(theta / 2.0f);
 
-        q(0) = cosf(theta / 2.0f);
+        q(0) = cos(theta / 2.0f);
         q(1) = axis(0) * magnitude;
         q(2) = axis(1) * magnitude;
         q(3) = axis(2) * magnitude;
@@ -418,7 +418,7 @@ public:
 
         if (axis_magnitude >= Type(1e-10)) {
             vec = vec / axis_magnitude;
-            vec = vec * wrap_pi(Type(2.0) * atan2f(axis_magnitude, q(0)));
+            vec = vec * wrap_pi(Type(2.0) * atan2(axis_magnitude, q(0)));
         }
 
         return vec;

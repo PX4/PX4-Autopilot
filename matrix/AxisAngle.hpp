@@ -76,9 +76,9 @@ public:
         Vector<Type, 3>()
     {
         AxisAngle &v = *this;
-        Type ang = Type(2.0f)*acosf(q(0));
-        Type mag = sinf(ang/2.0f);
-        if (fabsf(mag) > 0) {
+        Type ang = Type(2.0f)*acos(q(0));
+        Type mag = sin(ang/2.0f);
+        if (fabs(mag) > 0) {
             v(0) = ang*q(1)/mag;
             v(1) = ang*q(2)/mag;
             v(2) = ang*q(3)/mag;

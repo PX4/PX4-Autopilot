@@ -136,12 +136,12 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     for (size_t n = 0; n < M; n++) {
 
         // if diagonal is zero, swap with row below
-        if (fabsf(static_cast<float>(U(n, n))) < 1e-8f) {
+        if (fabs(static_cast<float>(U(n, n))) < 1e-8f) {
             //printf("trying pivot for row %d\n",n);
             for (size_t i = n + 1; i < M; i++) {
 
                 //printf("\ttrying row %d\n",i);
-                if (fabsf(static_cast<float>(U(i, n))) > 1e-8f) {
+                if (fabs(static_cast<float>(U(i, n))) > 1e-8f) {
                     //printf("swapped %d\n",i);
                     U.swapRows(i, n);
                     P.swapRows(i, n);
@@ -157,11 +157,11 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
         //printf("U:\n"); U.print();
         //printf("P:\n"); P.print();
         //fflush(stdout);
-        //ASSERT(fabsf(U(n, n)) > 1e-8f);
+        //ASSERT(fabs(U(n, n)) > 1e-8f);
 #endif
 
         // failsafe, return zero matrix
-        if (fabsf(static_cast<float>(U(n, n))) < 1e-8f) {
+        if (fabs(static_cast<float>(U(n, n))) < 1e-8f) {
             return false;
         }
 
@@ -280,7 +280,7 @@ SquareMatrix <Type, M> cholesky(const SquareMatrix<Type, M> & A)
                 if (res <= 0) {
                     L(j, j) = 0;
                 } else {
-                    L(j, j) = sqrtf(res);
+                    L(j, j) = sqrt(res);
                 }
             } else {
                 float sum = 0;
