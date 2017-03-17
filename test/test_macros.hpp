@@ -30,9 +30,8 @@
 # pragma GCC poison frexpf ldexpf modff scalbnf ilogbf logbf nextafterf
 # pragma GCC poison copysignf
 
-// double functions
-// this list is scarce because otherwise most functions from std:: would be also poisoned, which we don't want
-# pragma GCC poison fabs
+// the list of double functions is missing because otherwise most functions from std:: would be also poisoned,
+// which we don't want
 
 // long double functions
 # pragma GCC poison fabsl fabsl fabsl fmodl
