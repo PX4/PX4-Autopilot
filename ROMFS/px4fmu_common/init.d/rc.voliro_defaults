@@ -1,0 +1,28 @@
+#!nsh
+
+set VEHICLE_TYPE voliro
+
+echo "AUTOCNF="
+echo $AUTOCNF
+
+#if [ $AUTOCNF == yes ]
+#then
+#	param set PWM_MIN 1100
+#	param set PWM_MAX 2000
+#	param set PWM_RATE 400
+#	param set PWM_DISARMED 950
+#
+#fi
+
+
+# This is the gimbal pass mixer
+set PWM_MIN 1100
+set PWM_MAX 1600
+set PWM_RATE 400
+set PWM_DISARMED 1000
+set MIXER_AUX voliro
+set PWM_AUX_RATE 1000
+set PWM_AUX_MIN 100
+set PWM_AUX_MAX 900
+set PWM_AUX_DISARMED 500
+set PWM_AUX_OUT 123456
