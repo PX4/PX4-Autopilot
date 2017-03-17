@@ -80,6 +80,10 @@
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/collision_report.h>
 
+//VOLIRO WAS HERE
+#include <uORB/topics/voliro_ao.h>
+#include <v2.0/common/mavlink_msg_voliro_ao.h>
+
 
 #include "mavlink_ftp.h"
 
@@ -149,6 +153,7 @@ private:
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_logging_ack(mavlink_message_t *msg);
+	void handle_message_voliro_ao_msg(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -227,6 +232,7 @@ private:
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
 	orb_advert_t _control_state_pub;
+	orb_advert_t _voliro_ao_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
