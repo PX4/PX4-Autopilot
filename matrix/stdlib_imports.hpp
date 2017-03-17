@@ -40,7 +40,7 @@ using std::frexp;
 using std::ldexp;
 using std::modf;
 
-#if __cplusplus >= 201103L
+#if (__cplusplus >= 201103L) && !defined(__PX4_NUTTX)
 
 using std::imaxabs;
 using std::imaxdiv;
