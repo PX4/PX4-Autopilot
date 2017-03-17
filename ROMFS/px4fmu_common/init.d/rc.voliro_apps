@@ -7,6 +7,16 @@
 # Start the attitude and position estimator
 #
 
+# For Vicon this one is needed
+#
+# attitude_estimator_q start
+#
+# local_position_estimator start
+#
+
+
+# For Outdoors this one is used
+#
 ekf2 start
 
 #
