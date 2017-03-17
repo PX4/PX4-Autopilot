@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <cmath>
-
 #include "math.hpp"
 
 namespace matrix

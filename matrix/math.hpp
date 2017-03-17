@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stdlib_imports.hpp"
 #ifdef __PX4_QURT
 #include "dspal_math.h"
 #endif
