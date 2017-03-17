@@ -22,12 +22,12 @@ namespace matrix {
 #define MATRIX_NUTTX_WRAP_MATH_FUN_UNARY(name)                                   \
 	inline float       name(float x)       { return ::name##f(x); }          \
 	inline double      name(double x)      { return ::name(x); }             \
-        inline long double name(long double x) { return ::name##l(x); }
+	inline long double name(long double x) { return ::name##l(x); }
 
 #define MATRIX_NUTTX_WRAP_MATH_FUN_BINARY(name)                                                    \
 	inline float       name(float x, float y)             { return ::name##f(x, y); }          \
 	inline double      name(double x, double y)           { return ::name(x, y); }             \
-        inline long double name(long double x, long double y) { return ::name##l(x, y); }
+	inline long double name(long double x, long double y) { return ::name##l(x, y); }
 
 MATRIX_NUTTX_WRAP_MATH_FUN_UNARY(fabs)
 MATRIX_NUTTX_WRAP_MATH_FUN_UNARY(log)
