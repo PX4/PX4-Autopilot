@@ -317,9 +317,9 @@ bool MatrixTest::filterTests()
 
 bool MatrixTest::helperTests()
 {
-	ut_test(fabs(wrap_pi(4.0) - (4.0 - 2 * M_PI)) < 1e-5);
-	ut_test(fabs(wrap_pi(-4.0) - (-4.0 + 2 * M_PI)) < 1e-5);
-	ut_test(fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
+	ut_test(::fabs(wrap_pi(4.0) - (4.0 - 2 * M_PI)) < 1e-5);
+	ut_test(::fabs(wrap_pi(-4.0) - (-4.0 + 2 * M_PI)) < 1e-5);
+	ut_test(::fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
 	wrap_pi(NAN);
 
 	Vector3f a(1, 2, 3);
