@@ -1,6 +1,9 @@
 /**
  * @file stdlib_imports.hpp
  *
+ * This file is needed to shadow the C standard library math functions with ones provided by the C++ standard library.
+ * This way we can guarantee that unwanted functions from the C library will never creep back in unexpectedly.
+ *
  * @author Pavel Kirienko <pavel.kirienko@zubax.com>
  */
 
@@ -36,18 +39,6 @@ using std::floor;
 using std::frexp;
 using std::ldexp;
 using std::modf;
-using std::fpclassify;
-using std::isfinite;
-using std::isinf;
-using std::isnan;
-using std::isnormal;
-using std::signbit;
-using std::isgreater;
-using std::isgreaterequal;
-using std::isless;
-using std::islessequal;
-using std::islessgreater;
-using std::isunordered;
 
 #if __cplusplus >= 201103L
 
@@ -84,6 +75,18 @@ using std::ilogb;
 using std::logb;
 using std::nextafter;
 using std::copysign;
+using std::fpclassify;
+using std::isfinite;
+using std::isinf;
+using std::isnan;
+using std::isnormal;
+using std::signbit;
+using std::isgreater;
+using std::isgreaterequal;
+using std::isless;
+using std::islessequal;
+using std::islessgreater;
+using std::isunordered;
 
 #endif
 
