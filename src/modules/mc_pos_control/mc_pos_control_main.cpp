@@ -205,7 +205,11 @@ private:
 		param_t man_pitch_max;
 		param_t man_yaw_max;
 		param_t global_yaw_max;
+        param_t global_roll_max;
+        param_t global_pitch_max;
 		param_t mc_att_yaw_p;
+        param_t mc_att_roll_p;
+        param_t mc_att_pitch_p;
 		param_t hold_xy_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
@@ -229,7 +233,11 @@ private:
 		float man_pitch_max;
 		float man_yaw_max;
 		float global_yaw_max;
+        float global_roll_max;
+        float global_pitch_max;
 		float mc_att_yaw_p;
+        float mc_att_roll_p;
+        float mc_att_pitch_p;
 		float hold_xy_dz;
 		float hold_max_xy;
 		float hold_max_z;
@@ -278,6 +286,8 @@ private:
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
+    float _roll;				/**< roll angle (euler), abV */
+    float _pitch;				/**< pitch angle (euler), abV */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
 	bool _takeoff_jumped;
@@ -433,6 +443,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_run_pos_control(true),
 	_run_alt_control(true),
 	_yaw(0.0f),
+    _roll(0.0f),
+    _pitch(0.0f),
 	_in_landing(false),
 	_lnd_reached_ground(false),
 	_takeoff_jumped(false),
@@ -508,7 +520,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
+    _params_handles.global_roll_max = param_find("MC_ROLLRATE_MAX"); //abV
+    _params_handles.global_pitch_max = param_find("MC_PITCHRATE_MAX"); //abV
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
+    _params_handles.mc_att_yaw_p = param_find("MC_ROLL_P");
+    _params_handles.mc_att_yaw_p = param_find("MC_PITCH_P");
 	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
@@ -655,10 +671,14 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
+        param_get(_params_handles.global_roll_max, &_params.global_roll_max);
+        param_get(_params_handles.global_pitch_max, &_params.global_pitch_max);
 		_params.man_roll_max = math::radians(_params.man_roll_max);
 		_params.man_pitch_max = math::radians(_params.man_pitch_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
 		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+        _params.global_roll_max = math::radians(_params.global_roll_max);
+        _params.global_pitch_max = math::radians(_params.global_pitch_max);
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
@@ -716,6 +736,8 @@ MulticopterPositionControl::poll_subscriptions()
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
+        _roll= euler_angles(0); //abV
+        _pitch= euler_angles(1); //abV
 
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
@@ -2196,11 +2218,13 @@ MulticopterPositionControl::task_main()
 				/* we want to know the real constraint, and global overrides manual */
 				const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
 							   _params.global_yaw_max;
-				const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+                const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
 				_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-				float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
+                float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
 				float yaw_offs = _wrap_pi(yaw_target - _yaw);
+
+
 
 				// If the yaw offset became too big for the system to track stop
 				// shifting it, only allow if it would make the offset smaller again.
@@ -2208,8 +2232,47 @@ MulticopterPositionControl::task_main()
 				    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
 				    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
 					_att_sp.yaw_body = yaw_target;
+
 				}
+
+                 //abV, manual setpoints for roll and pitch rate. _manual.aux1: roll rate between 0 and 1, set by user
+
+                const float roll_rate_max = (_params.man_roll_max < _params.global_roll_max) ? _params.man_roll_max :
+                               _params.global_roll_max;
+                const float roll_offset_max = roll_rate_max / _params.mc_att_roll_p;
+
+                float roll_sp_move_rate = _manual.aux1 * roll_rate_max;
+                float roll_target = _wrap_pi(_att_sp.roll_body + roll_sp_move_rate * dt);
+                float roll_offs = _wrap_pi(roll_target - _roll);
+
+                // If the roll offset became too big for the system to track stop
+                // shifting it, only allow if it would make the offset smaller again.
+                if (fabsf(roll_offs) < roll_offset_max ||
+                    (roll_sp_move_rate > 0 && roll_offs < 0) ||
+                    (roll_sp_move_rate < 0 && roll_offs > 0)) {
+                    _att_sp.roll_body = roll_target;
+
 			}
+
+
+
+                const float pitch_rate_max = (_params.man_pitch_max < _params.global_pitch_max) ? _params.man_pitch_max :
+                               _params.global_pitch_max;
+                const float pitch_offset_max = pitch_rate_max / _params.mc_att_pitch_p;
+
+                float pitch_sp_move_rate = _manual.aux1 * pitch_rate_max;
+                float pitch_target = _wrap_pi(_att_sp.pitch_body + pitch_sp_move_rate * dt);
+                float pitch_offs = _wrap_pi(pitch_target - _pitch);
+
+                // If the pitch offset became too big for the system to track stop
+                // shifting it, only allow if it would make the offset smaller again.
+                if (fabsf(pitch_offs) < pitch_offset_max ||
+                    (pitch_sp_move_rate > 0 && pitch_offs < 0) ||
+                    (pitch_sp_move_rate < 0 && pitch_offs > 0)) {
+                    _att_sp.pitch_body = pitch_target;
+
+            }
+            }
 
 			/* control throttle directly if no climb rate controller is active */
 			if (!_control_mode.flag_control_climb_rate_enabled) {
@@ -2308,9 +2371,8 @@ if (!(_control_mode.flag_control_offboard_enabled &&
 
             if(_control_mode.flag_control_manual_enabled)
              {
-             _att_sp.yaw_body=_manual.r;
-             _att_sp.roll_body=_manual.aux1;
-             _att_sp.pitch_body=_manual.aux2;
+
+
              _att_sp.thrust=sqrtf(_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]+_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[2]*_vol_thrust_sp.f[2]);
 
              math::Matrix<3,3> R_vol;
@@ -2349,8 +2411,7 @@ if (!(_control_mode.flag_control_offboard_enabled &&
 	_control_task = -1;
 }
 
-int
-MulticopterPositionControl::start()
+int MulticopterPositionControl::start()
 {
 	ASSERT(_control_task == -1);
 
