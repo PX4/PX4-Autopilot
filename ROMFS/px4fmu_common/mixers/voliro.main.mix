@@ -1,8 +1,8 @@
 motor1/motor2/motor3/motor4/motor5/motor6 mixer for PX4FMU
 ==================================================
 
-This file defines mixers suitable for controlling voliro motoes with
-the 6 actuators controls using PX4FMU. This configuration just passes
+This file defines mixers suitable for controlling voliro motors with
+the 6 actuators controls using PX4IO. This configuration just passes
 the signal through to the motors, while the control allocation to the
 motors is done before.
 

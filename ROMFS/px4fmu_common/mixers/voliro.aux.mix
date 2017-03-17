@@ -1,4 +1,4 @@
-# Manual pass through mixer for servo outputs 1-4
+# Manual pass through mixer for DC motor outputs 1-6
 
 # AUX1 channel (select RC channel with RC_MAP_AUX1 param)
 M: 1
