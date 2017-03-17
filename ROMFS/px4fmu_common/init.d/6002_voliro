@@ -1,0 +1,45 @@
+#!nsh
+#
+# @name Volliro Mixer
+#
+# @type voliro
+#
+# @output MAIN1 motor1
+# @output MAIN2 motor2
+# @output MAIN3 motor3
+# @output MAIN4 motor4
+# @output MAIN5 motor5
+# @output MAIN6 motor6
+#
+# @output AUX1 DC Servo1
+# @output AUX2 DC Servo2
+# @output AUX3 DC Servo3
+# @output AUX4 DC Servo4
+# @output AUX5 DC Servo5
+# @output AUX6 DC Servo6
+#
+# @maintainer Alexis Mueller <alexis@voliro.ch>
+#
+
+echo "AUTOCNF="
+echo $AUTOCNF
+
+set VEHICLE_TYPE voliro
+set MAV_TYPE 13
+set MIXER voliro
+set MIXER_AUX voliro
+
+
+# PWM parameters for throttle in MAIN channel
+set PWM_MIN 1100
+set PWM_MAX 1600
+set PWM_RATE 400
+set PWM_DISARMED 1000
+set PWM_OUT 12345678
+
+# PWM parameters for tilting in AUX channel
+set PWM_AUX_RATE 1000
+set PWM_AUX_MIN 100
+set PWM_AUX_MAX 900
+set PWM_AUX_DISARMED 500
+set PWM_AUX_OUT 123456
