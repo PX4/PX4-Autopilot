@@ -1508,6 +1508,14 @@ MulticopterAttitudeControl::task_main()
                 _actuators.control[4] = (PX4_ISFINITE(_omega_des(4))) ? _omega_des(4) : 0.0f;
                 _actuators.control[5] = (PX4_ISFINITE(_omega_des(5))) ? _omega_des(5) : 0.0f;
 
+                    _actuators.control[0] = 0.2f;
+                    _actuators.control[1] = 0.4f;
+                    _actuators.control[2] = 0.6f;
+                    _actuators.control[3] = 0.8f;
+                    _actuators.control[4] = 1.0f;
+                    _actuators.control[5] = 0.5f;
+
+
 
                //maps alpha_des from -1 to 1
                 for(int i=0;i<6; i++)
@@ -1531,6 +1539,13 @@ MulticopterAttitudeControl::task_main()
                 _alpha_counter++;
                 if (_alpha_counter==10) //rate can be adapted, now 1/10 of omega rate
                 {_alpha_counter=0;}
+
+                _actuators_1.control[0] = 1.0f;
+                _actuators_1.control[1] = 0.8f;
+                _actuators_1.control[2] = 0.6f;
+                _actuators_1.control[3] = 0.4f;
+                _actuators_1.control[4] = 0.2f;
+                _actuators_1.control[5] = 1.0f;
 
                 /* publish actuator controls */
 

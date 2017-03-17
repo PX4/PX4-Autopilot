@@ -1,0 +1,29 @@
+#!nsh
+#
+# @name Volliro Mixer
+#
+# @type voliro
+#
+# @output MAIN1 motor1
+# @output MAIN2 motor2
+# @output MAIN3 motor3
+# @output MAIN4 motor4
+# @output MAIN5 motor5
+# @output MAIN6 motor6
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC AUX4 channel
+# @output AUX5 feed-through of RC AUX5 channel
+# @output AUX6 feed-through of RC AUX6 channel
+#
+#
+
+sh /etc/init.d/rc.voliro_defaults
+
+set MAV_TYPE 13
+set MIXER voliro
+
+# use PWM parameters for throttle channel
+set PWM_OUT 12345678
