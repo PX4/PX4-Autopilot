@@ -2260,7 +2260,7 @@ MulticopterPositionControl::task_main()
                                _params.global_pitch_max;
                 const float pitch_offset_max = pitch_rate_max / _params.mc_att_pitch_p;
 
-                float pitch_sp_move_rate = _manual.aux1 * pitch_rate_max;
+                float pitch_sp_move_rate = _manual.aux2 * pitch_rate_max;
                 float pitch_target = _wrap_pi(_att_sp.pitch_body + pitch_sp_move_rate * dt);
                 float pitch_offs = _wrap_pi(pitch_target - _pitch);
 
