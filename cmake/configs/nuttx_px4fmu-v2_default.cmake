@@ -96,6 +96,8 @@ set(config_module_list
 	#
 	# Estimation modules
 	#
+	# ATTENTION: if this one should be used, please adapt in ROMFS/px4fmu_common/init.d/rc.voliro_apps
+	#
 	#modules/attitude_estimator_q
 	#modules/position_estimator_inav
 	#modules/local_position_estimator
