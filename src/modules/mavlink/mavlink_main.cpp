@@ -1992,7 +1992,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
-		configure_stream("VOLIRO_AO",10.0f);
+		configure_stream("VOLIRO_AO", 50.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -2026,7 +2026,7 @@ Mavlink::task_main(int argc, char *argv[])
 		//camera trigger is rate limited at the source, do not limit here
 		configure_stream("CAMERA_TRIGGER", 500.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		configure_stream("VOLIRO_AO",10.0f);
+		configure_stream("VOLIRO_AO", 50.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -2044,7 +2044,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 25.0f);
 		configure_stream("WIND_COV", 2.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
-		configure_stream("VOLIRO_AO",10.0f);
+		configure_stream("VOLIRO_AO", 50.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -2081,7 +2081,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("MISSION_ITEM", 50.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
-		configure_stream("VOLIRO_AO",10.0f);
+		configure_stream("VOLIRO_AO", 50.0f);
 
 	default:
 		break;
