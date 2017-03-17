@@ -489,10 +489,65 @@ Result:
  Log file: http://logs.uaventure.com/view/zFb6Pq5EAMLDe4ftYYVDtH
 
 
+---------
+sess22
+---------
+Motivation:
+ Went on polyterasse to see wether the new two lines of code were doing something. For some reason the EKF2 parameters changed, I did not realize until 17-03-2017
+Result:
+ Arming to help to get the lock - not useful
+MSG file: x
+Log file: http://logs.uaventure.com/view/9WXu9Mhu9DZv2rSvDB8voj
 
+---------
+sess23
+---------
+Motivation:
+ as 22
+Result:
+ as above - not useful
+MSG file: x
+Log file: http://logs.uaventure.com/view/PyWayE7Az6t7judiLE2JbK
 
+---------
+sess24
+---------
+Motivation:
+ as 22
+Result:
+ The car took off, while trying to recover it crashed and rolled 3 times. Nevertheless the new output does something but it just slams to the negative side. It is not safe to test the car on a hard surface if the speed is not under control.
+MSG file: x
+Log file: http://logs.uaventure.com/view/aN5r5GmYTxC3567zsHgbM5
 
+---------
+sess25
+---------
+Motivation:
+ Trying to test the other channel so to see the behaviour with the other pwm steering. Limited pwm to 1600 and 1400. 
+Result:
+ The car still ran off like crazy and the steering went to the full side as well. Cannot explain why.
+MSG file: x
+Log file: http://logs.uaventure.com/view/rsoyhWmJ5iJjSiETLFZ4rQ
 
+---------
+sess26
+---------
+Motivation:
+ Testing new mission execution with the old steering channel
+Result:
+ Still goes off like crazy
+MSG file: x
+Log file: http://logs.uaventure.com/view/7tC4LuZg48VazLEtv37evM
+
+---------
+sess27
+---------
+Motivation:
+ As before
+Result:
+ Not worth testing in these conditions.
+MSG file: x
+Log file: http://logs.uaventure.com/view/rKr7zhyw46sDpUjBXjpzF8
 
 
 ---------
@@ -502,5 +557,5 @@ Motivation:
  x
 Result:
  x
- MSG file: x
- Log file: x
+MSG file: x
+Log file: x

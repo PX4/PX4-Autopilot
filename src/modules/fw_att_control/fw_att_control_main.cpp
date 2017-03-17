@@ -387,7 +387,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 #endif
 	/* states */
 	_setpoint_valid(false),
-	_debug(false),
+	_debug(true),
 	_flaps_applied(0),
 	_flaperons_applied(0),
 	_roll(0.0f),
