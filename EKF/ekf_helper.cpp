@@ -862,6 +862,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	bool gps_pos_innov_bad = (_vel_pos_test_ratio[3] > 1.0f) || (_vel_pos_test_ratio[4] > 1.0f);
 	bool mag_innov_good = (_mag_test_ratio[0] < 1.0f) && (_mag_test_ratio[1] < 1.0f) && (_mag_test_ratio[2] < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
+	soln_status.flags.accel_error = _bad_vert_accel_detected;
 	*status = soln_status.value;
 }
 

@@ -506,6 +506,7 @@ union ekf_solution_status {
 	uint16_t pred_pos_horiz_rel : 1; // 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	uint16_t pred_pos_horiz_abs : 1; // 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
 	uint16_t gps_glitch         : 1; // 10 - True if the EKF has detected a GPS glitch
+	uint16_t accel_error        : 1; // 11 - True if the EKF has detected bad accelerometer data
     } flags;
     uint16_t value;
 };
