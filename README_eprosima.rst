@@ -55,17 +55,18 @@ Steps to use the auto generated application:
     # eProsima app
     examples/micrortps_transmitter
     
--  Copy the above generated application to the example folder:
+-  Create a folder in *src/examples* and copy the above generated application inside:
 
 .. code-block:: shell
 
-    $ cp msgenerated/sensor_combined_uRTPS_UART_transmitter.cpp src/examples/micrortps_transmitter
+   $ mkdir src/examples/micrortps_transmitter
+   $ cp msgenerated/sensor_combined_uRTPS_UART_transmitter.cpp src/examples/micrortps_transmitter
 
 -  Also copy and rename the CMakeList to the example folder:
 
 .. code-block:: shell
 
-    $ cp msgenerated/sensor_combined_CMakeLists.txt src/examples/CMakeLists.txt
+   $ cp msgenerated/sensor_combined_CMakeLists.txt src/examples/CMakeLists.txt
     
 -  Construct and upload the firmware executing:
 
