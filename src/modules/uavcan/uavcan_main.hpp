@@ -209,10 +209,6 @@ private:
 	// index into _poll_fds for each _control_subs handle
 	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 
-	perf_counter_t _perfcnt_node_spin_elapsed		= perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
-	perf_counter_t _perfcnt_esc_mixer_output_elapsed	= perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
-	perf_counter_t _perfcnt_esc_mixer_total_elapsed		= perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
-
 	void handle_time_sync(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
