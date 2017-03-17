@@ -64,17 +64,18 @@
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/mc_virtual_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/manual_control_setpoint.h>            //--> DO CARE!!!!! INPUT FOR MANUAL
+#include <uORB/topics/vehicle_rates_setpoint.h>                 //--> sets velocity & yaw setpoint (not used)
+#include <uORB/topics/control_state.h>                      //--> DO CARE!!!! CURRENT STATE FROM EKF
+#include <uORB/topics/mc_virtual_attitude_setpoint.h>           //--> do not care, only publishing (to whatever) ->used for VTOL
+#include <uORB/topics/vehicle_control_mode.h>                   //--> Control mode (auto, manual,....)
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>             // Maybe care
-#include <uORB/topics/position_setpoint_triplet.h>          //--> DO CARE!!!!! INPUT
-#include <uORB/topics/vehicle_global_velocity_setpoint.h>   //--> do not care, only logging
-#include <uORB/topics/vehicle_local_position_setpoint.h>    //--> do not care, only logging
+#include <uORB/topics/vehicle_local_position.h>             // --> do care a bit, used for manual mode (reseting setpoint) and calculating
+                                                            //      position and velocity derivatives (all modes)
+#include <uORB/topics/position_setpoint_triplet.h>          //--> DO CARE!!!!! INPUT FOR AUTO and OFFBOARD
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>       //--> do not care, only logging
+#include <uORB/topics/vehicle_local_position_setpoint.h>        //--> do not care, only logging
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/voliro_thrust_setpoint.h>
 
@@ -1058,9 +1059,12 @@ MulticopterPositionControl::control_offboard(float dt)
 
 		if (_pos_sp_triplet.current.yaw_valid) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+            _att_sp.roll_body = _pos_sp_triplet.current.yaw;    //AbV
+            _att_sp.pitch_body = _pos_sp_triplet.current.yaw;   //AbV
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
+
 		}
 
 		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
@@ -1168,7 +1172,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	bool previous_setpoint_valid = false;
 
 	math::Vector<3> prev_sp;
-	math::Vector<3> curr_sp;
+    math::Vector<3> curr_sp;    //latitude, longitude, altitude AMSL
 
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1307,6 +1311,9 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+            _att_sp.roll_body = _pos_sp_triplet.current.a_x;    //AbV a_x overwritten to use as roll input
+            _att_sp.pitch_body = _pos_sp_triplet.current.a_y;   //AbV a_y overwritten to use as pitch input
+
 		}
 
 		/*
@@ -1429,7 +1436,7 @@ MulticopterPositionControl::task_main()
 		float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
 		t_prev = t;
 
-		// set dt for control blocks
+        // set dt for control blocks (used for derivative)
 		setDt(dt);
 
 		if (_control_mode.flag_armed && !was_armed) {
@@ -1491,6 +1498,7 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
+            //This function BlockDerivative::Update calculates derivative from current value and stored previous value
 			_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
 			_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
@@ -1620,11 +1628,13 @@ MulticopterPositionControl::task_main()
 					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 				}
 
-			} else {
+            } else
+            {
 				/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 
                 math::Vector<3> pos_err = _pos_sp - _pos;
-                if (_run_pos_control) {
+                if (_run_pos_control)
+                {
 
                   _vel_sp(0) = pos_err(0)*_params.pos_p(0) + _pos_err_d(0)*_params.pos_d(0)
                                   + vel_int(0);
@@ -2154,6 +2164,8 @@ MulticopterPositionControl::task_main()
 			_local_pos_sp.y = _pos_sp(1);
 			_local_pos_sp.z = _pos_sp(2);
 			_local_pos_sp.yaw = _att_sp.yaw_body;
+            _local_pos_sp.acc_x = _att_sp.roll_body;  //AbV
+            _local_pos_sp.acc_y = _att_sp.pitch_body; //AbV
 			_local_pos_sp.vx = _vel_sp(0);
 			_local_pos_sp.vy = _vel_sp(1);
 			_local_pos_sp.vz = _vel_sp(2);
@@ -2224,8 +2236,8 @@ MulticopterPositionControl::task_main()
 
 			/* control roll and pitch directly if no aiding velocity controller is active */
 			if (!_control_mode.flag_control_velocity_enabled) {
-				_att_sp.roll_body = _manual.y * _params.man_roll_max;
-				_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+                _att_sp.roll_body = _manual.aux1 * _params.man_roll_max;    //Changed by Voliro
+                _att_sp.pitch_body = -_manual.aux2 * _params.man_pitch_max; //Changed by Voliro
 
 				/* only if optimal recovery is not used, modify roll/pitch */
 				if (_params.opt_recover <= 0) {
@@ -2300,7 +2312,7 @@ MulticopterPositionControl::task_main()
 
 
 
-if (!(_control_mode.flag_control_offboard_enabled &&
+        if (!(_control_mode.flag_control_offboard_enabled &&
 		      !(_control_mode.flag_control_position_enabled ||
 			_control_mode.flag_control_velocity_enabled ||
 			_control_mode.flag_control_acceleration_enabled))) {
@@ -2315,12 +2327,12 @@ if (!(_control_mode.flag_control_offboard_enabled &&
 
              math::Matrix<3,3> R_vol;
              R_vol.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-             math::Quaternion Q_vol;
-             Q_vol.from_dcm(R_vol);
-            _att_sp.q_d[0]=Q_vol(0);
-            _att_sp.q_d[1]=Q_vol(1);
-            _att_sp.q_d[2]=Q_vol(2);
-            _att_sp.q_d[3]=Q_vol(3);
+             math::Quaternion q_vol;
+             q_vol.from_dcm(R_vol);
+            _att_sp.q_d[0]=q_vol(0);
+            _att_sp.q_d[1]=q_vol(1);
+            _att_sp.q_d[2]=q_vol(2);
+            _att_sp.q_d[3]=q_vol(3);
             }
 
 
