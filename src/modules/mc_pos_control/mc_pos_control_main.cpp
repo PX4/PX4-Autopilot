@@ -1311,8 +1311,8 @@ void MulticopterPositionControl::control_auto(float dt)
 
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-            _att_sp.roll_body = _pos_sp_triplet.current.a_x;    //AbV
-            _att_sp.pitch_body = _pos_sp_triplet.current.a_y;   //AbV
+            _att_sp.roll_body = _pos_sp_triplet.current.a_x;    //AbV a_x overwritten to use as roll input
+            _att_sp.pitch_body = _pos_sp_triplet.current.a_y;   //AbV a_y overwritten to use as pitch input
 
 		}
 
