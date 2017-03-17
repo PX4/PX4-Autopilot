@@ -1508,22 +1508,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-
-	/* scaled space: 1 == position error resulting max allowed speed */
-	math::Vector<3> cruising_speed(_params.vel_cruise(0),
-				       _params.vel_cruise(1),
-				       _params.vel_max_up);
-
-	if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-	    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-		cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
-		cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
-	}
-
 	/* set velocity limit if close to current setpoint and
 	* no next setpoint available: we only consider updated if xy is updated
 	*/
-
 	_limit_vel_xy = (!next_setpoint_valid || (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 			&& ((_curr_sp - _pos).length() <= _params.target_threshold_xy);
 
@@ -1554,47 +1541,51 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* by default use current setpoint as is */
 			math::Vector<3> pos_sp_s = curr_sp_s;
 
-			/* find X - cross point of unit sphere and trajectory */
-			math::Vector<3> pos_s = _pos.emult(scale);
-			math::Vector<3> prev_sp_s = prev_sp.emult(scale);
-			math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
-			math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
-			float curr_pos_s_len = curr_pos_s.length();
+			if ((_curr_sp - prev_sp).length() > MIN_DIST) {
 
-			/* we are close to current setpoint */
-			if (curr_pos_s_len < 1.0f) {
+				/* find X - cross point of unit sphere and trajectory */
+				math::Vector<3> pos_s = _pos.emult(scale);
+				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
+				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
+				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
+				float curr_pos_s_len = curr_pos_s.length();
 
-				/* if next is valid, we want to have smooth transition */
-				if (next_setpoint_valid && (next_sp - _curr_sp).length() > MIN_DIST) {
+				/* we are close to current setpoint */
+				if (curr_pos_s_len < 1.0f) {
 
-					math::Vector<3> next_sp_s = next_sp.emult(scale);
+					/* if next is valid, we want to have smooth transition */
+					if (next_setpoint_valid && (next_sp - _curr_sp).length() > MIN_DIST) {
 
-					/* calculate angle prev - curr - next */
-					math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-					math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
+						math::Vector<3> next_sp_s = next_sp.emult(scale);
 
-					/* cos(a) * curr_next, a = angle between current and next trajectory segments */
-					float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
+						/* calculate angle prev - curr - next */
+						math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
+						math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
 
-					/* cos(b), b = angle pos - _curr_sp - prev_sp */
-					float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
+						/* cos(a) * curr_next, a = angle between current and next trajectory segments */
+						float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
 
-					if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
-						float curr_next_s_len = curr_next_s.length();
+						/* cos(b), b = angle pos - _curr_sp - prev_sp */
+						float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
 
-						/* if curr - next distance is larger than unit radius, limit it */
-						if (curr_next_s_len > 1.0f) {
-							cos_a_curr_next /= curr_next_s_len;
+						if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
+							float curr_next_s_len = curr_next_s.length();
+
+							/* if curr - next distance is larger than unit radius, limit it */
+							if (curr_next_s_len > 1.0f) {
+								cos_a_curr_next /= curr_next_s_len;
+							}
+
+							/* feed forward position setpoint offset */
+							math::Vector<3> pos_ff = prev_curr_s_norm *
+										 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
+										 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
+							pos_sp_s += pos_ff;
 						}
-
-						/* feed forward position setpoint offset */
-						math::Vector<3> pos_ff = prev_curr_s_norm *
-									 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
-									 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
-						pos_sp_s += pos_ff;
 					}
 
 				} else {
+					/* if not close to current setpoint, check if we are within cross_sphere_line */
 					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 
 					if (!near) {
@@ -1618,9 +1609,8 @@ void MulticopterPositionControl::control_auto(float dt)
 			/* scale back */
 			_pos_sp = pos_sp_s.edivide(scale);
 
-			/* default */
-
 		} else {
+			/* we just have a current setpoint that we want to go to */
 			_pos_sp = _curr_sp;
 
 			/* set max velocity to cruise */

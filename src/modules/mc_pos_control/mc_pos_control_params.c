@@ -300,7 +300,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.0f);
 
 /**
  * Distance Threshold Horizontal Auto
@@ -316,7 +316,7 @@ PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
 
 /**
  * Maximum horizontal velocity
