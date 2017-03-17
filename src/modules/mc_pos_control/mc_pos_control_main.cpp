@@ -2381,9 +2381,6 @@ MulticopterPositionControl::task_main()
 			_control_mode.flag_control_acceleration_enabled))) {
 
 
-            if(_control_mode.flag_control_manual_enabled)
-             {
-
 
              _att_sp.thrust=sqrtf(_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]+_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[2]*_vol_thrust_sp.f[2]);
 
@@ -2395,7 +2392,7 @@ MulticopterPositionControl::task_main()
             _att_sp.q_d[1]=q_vol(1);
             _att_sp.q_d[2]=q_vol(2);
             _att_sp.q_d[3]=q_vol(3);
-            }
+
 
 
 			if (_att_sp_pub != nullptr) {
