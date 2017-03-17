@@ -33,8 +33,7 @@
 
 /**
  * @file mc_pos_control_params.c
- * Multicopter position controller parameters.
- *
+ * Multicopter position controller parameters
  * @author Anton Babushkin <anton@px4.io>
  */
 
