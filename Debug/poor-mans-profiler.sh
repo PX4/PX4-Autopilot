@@ -1,20 +1,12 @@
 #!/bin/bash
 #
-# Author: Pavel Kirienko <pavel.kirienko@zubax.com>
-#
 # Poor man's sampling profiler for NuttX.
 #
 # Usage: Install flamegraph.pl in your PATH, configure your .gdbinit, run the script with proper arguments and go
 #        have a coffee. When you're back, you'll see the flamegraph. Note that frequent calls to GDB significantly
 #        interfere with normal operation of the target, which means that you can't profile real-time tasks with it.
-#        For best results, ensure that the PC is not overloaded, the USB host controller to which the debugger is
-#        connected is not congested. You should also allow the current user to set negative nice values.
 #
-# The FlameGraph script can be downloaded from https://github.com/brendangregg/FlameGraph. Thanks Mr. Gregg.
-#
-# Requirements: ARM GDB with Python support. You can get one by downloading the sources from
-#               https://launchpad.net/gcc-arm-embedded and building them with correct flags.
-#               Note that Python support is not required if no per-task sampling is needed.
+# Requirements: ARM GDB with Python support
 #
 
 set -e
@@ -41,7 +33,7 @@ which flamegraph.pl > /dev/null || die "Install flamegraph.pl first"
 nsamples=0
 sleeptime=0.1    # Doctors recommend 7-8 hours a day
 taskname=
-elf=
+elf=$root/Build/px4fmu-v2_default.build/firmware.elf
 append=0
 fgfontsize=10
 fgwidth=1900
@@ -76,8 +68,6 @@ do
     esac
     shift
 done
-
-[[ -z "$elf" ]] && die "Please specify the ELF file location, e.g.: build_px4fmu-v4_default/src/firmware/nuttx/firmware_nuttx"
 
 #
 # Temporary files
@@ -247,8 +237,8 @@ for s, f in sorted(stacks.items(), key=lambda (s, f): s):
 
 print('Total stack frames:', num_stack_frames, file=sys.stderr)
 print('Top consumers (distribution of the stack tops):', file=sys.stderr)
-for name,num in sorted(stack_tops.items(), key=lambda (name, num): num, reverse=True)[:300]:
-    print('% 7.3f%%   ' % (100 * num / num_stack_frames), name, file=sys.stderr)
+for name,num in sorted(stack_tops.items(), key=lambda (name, num): num, reverse=True)[:10]:
+    print('% 5.1f%%   ' % (100 * num / num_stack_frames), name, file=sys.stderr)
 EOF
 
 cat $stacksfile | python /tmp/pmpn-folder.py > $foldfile

@@ -25,5 +25,4 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set MIXER quad_x_can
 set OUTPUT_MODE uavcan_esc

@@ -107,7 +107,6 @@ private:
 	 * ESC states
 	 */
 	uint32_t 			_armed_mask = 0;
-	uint8_t				_max_number_of_nonzero_outputs = 0;
 
 	/*
 	 * Perf counters
