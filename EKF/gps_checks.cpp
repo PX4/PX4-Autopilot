@@ -57,11 +57,12 @@
 
 bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 {
-	// If we have defined the WGS-84 position of the NED origin, run gps quality checks until they pass, then define the origins WGS-84 position using the last GPS fix
-	if (!_NED_origin_initialised) {
-		// we have good GPS data so can now set the origin's WGS-84 position
-		if (gps_is_good(gps) && !_NED_origin_initialised) {
-			// Set the origin's WGS-84 position to the last gps fix
+	// Run GPS checks whenever the WGS-84 origin is not set or the vehicle is not using GPS
+	// Also run checks if the vehicle is on-ground as the check data can be used by vehicle pre-flight checks
+	if (!_control_status.flags.in_air || !_NED_origin_initialised || !_control_status.flags.gps) {
+		bool gps_checks_pass = gps_is_good(gps);
+		if (!_NED_origin_initialised && gps_checks_pass) {
+			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 			double lat = gps->lat / 1.0e7;
 			double lon = gps->lon / 1.0e7;
 			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
