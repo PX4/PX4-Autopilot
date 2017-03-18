@@ -110,18 +110,6 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	}
 	/* _server_command_sem use case is a signal */
 	px4_sem_setprotocol(&_server_command_sem, SEM_PRIO_NONE);
-
-	if (_perfcnt_node_spin_elapsed == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_node_spin_elapsed");
-	}
-
-	if (_perfcnt_esc_mixer_output_elapsed == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_output_elapsed");
-	}
-
-	if (_perfcnt_esc_mixer_total_elapsed == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_esc_mixer_total_elapsed");
-	}
 }
 
 UavcanNode::~UavcanNode()
@@ -164,9 +152,6 @@ UavcanNode::~UavcanNode()
 
 	_instance = nullptr;
 
-	perf_free(_perfcnt_node_spin_elapsed);
-	perf_free(_perfcnt_esc_mixer_output_elapsed);
-	perf_free(_perfcnt_esc_mixer_total_elapsed);
 	pthread_mutex_destroy(&_node_mutex);
 	px4_sem_destroy(&_server_command_sem);
 
@@ -697,7 +682,6 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 void UavcanNode::node_spin_once()
 {
-	perf_begin(_perfcnt_node_spin_elapsed);
 	const int spin_res = _node.spinOnce();
 
 	if (spin_res < 0) {
@@ -708,8 +692,6 @@ void UavcanNode::node_spin_once()
 	if (_tx_injector != nullptr) {
 		_tx_injector->injectTxFramesInto(_node);
 	}
-
-	perf_end(_perfcnt_node_spin_elapsed);
 }
 
 /*
@@ -868,11 +850,7 @@ int UavcanNode::run()
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
 		(void)pthread_mutex_unlock(&_node_mutex);
 
-		perf_end(_perfcnt_esc_mixer_total_elapsed); // end goes first, it's not a mistake
-
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
-
-		perf_begin(_perfcnt_esc_mixer_total_elapsed);
 
 		(void)pthread_mutex_lock(&_node_mutex);
 
@@ -965,9 +943,7 @@ int UavcanNode::run()
 
 			// Output to the bus
 			_outputs.timestamp = hrt_absolute_time();
-			perf_begin(_perfcnt_esc_mixer_output_elapsed);
 			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
-			perf_end(_perfcnt_esc_mixer_output_elapsed);
 		}
 
 
