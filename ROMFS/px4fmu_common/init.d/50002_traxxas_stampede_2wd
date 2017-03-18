@@ -46,8 +46,8 @@ then
 	param set FW_THR_MAX 5.0
 
 	param set FW_AIRSPD_MIN 0
-	param set FW_AIRSPD_TRIM 6
-	param set FW_AIRSPD_MAX 8
+	param set FW_AIRSPD_TRIM 1
+	param set FW_AIRSPD_MAX 3
 	
 
 	param set NAV_ACC_RAD 1.0
@@ -71,6 +71,5 @@ set PWM_OUT 4
 set PWM_RATE 50
 set PWM_DISARMED 1500
 set PWM_MAIN_REV2 1
-set PWM_MAIN_REV4 1
 set PWM_MAX 2000
 set PWM_MIN 1000

@@ -917,10 +917,10 @@ GroundRoverAttitudeControl::task_main()
 
 				} else {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.0f, _ctrl_state.airspeed);
+					airspeed = math::max(0.01f, _ctrl_state.airspeed);
 				}
-
-				airspeed = 0.0f;
+				// warnx("airspd: %.4f", (double)airspeed);
+				//airspeed = 0.0f;
 				/*
 				 * For scaling our actuators using anything less than the min (close to stall)
 				 * speed doesn't make any sense - its the strongest reasonable deflection we
