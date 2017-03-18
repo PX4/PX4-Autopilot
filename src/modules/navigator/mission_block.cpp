@@ -270,9 +270,6 @@ MissionBlock::is_mission_item_reached()
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
 					curr_sp->alt = altitude_amsl;
-					curr_sp->vx = 0.0f;
-					curr_sp->vy = 0.0f;
-					curr_sp->vz = 0.0f;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
@@ -385,10 +382,6 @@ MissionBlock::is_mission_item_reached()
 				struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 				curr_sp->lat = _navigator->get_global_position()->lat;
 				curr_sp->lon = _navigator->get_global_position()->lon;
-				curr_sp->vx = 0.0f;
-				curr_sp->vy = 0.0f;
-				curr_sp->vz = 0.0f;
-
 			}
 
 			return true;
