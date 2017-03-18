@@ -270,6 +270,9 @@ MissionBlock::is_mission_item_reached()
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
 					curr_sp->alt = altitude_amsl;
+					curr_sp->vx = 0.0f;
+					curr_sp->vy = 0.0f;
+					curr_sp->vz = 0.0f;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
@@ -382,6 +385,10 @@ MissionBlock::is_mission_item_reached()
 				struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 				curr_sp->lat = _navigator->get_global_position()->lat;
 				curr_sp->lon = _navigator->get_global_position()->lon;
+				curr_sp->vx = 0.0f;
+				curr_sp->vy = 0.0f;
+				curr_sp->vz = 0.0f;
+
 			}
 
 			return true;
@@ -562,11 +569,18 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		// initially use current altitude, and switch to mission item altitude once in loiter position
 		sp->alt = math::max(_navigator->get_global_position()->alt,
 				    _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
+		sp->vx = 0.0f;
+		sp->vy = 0.0f;
+		sp->vz = 0.0f;
+
 
 	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		sp->vx = 0.0f;
+		sp->vy = 0.0f;
+		sp->vz = 0.0f;
 
 		if (_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()) {
 			sp->disable_mc_yaw_control = true;
