@@ -1,6 +1,3 @@
-[submodule "mavlink/include/mavlink/v1.0"]
-	path = mavlink/include/mavlink/v1.0
-	url = https://github.com/voliro-ethz/mavlink/tree/master/message_header.git
 [submodule "NuttX"]
 	path = NuttX
 	url = https://github.com/PX4/NuttX.git

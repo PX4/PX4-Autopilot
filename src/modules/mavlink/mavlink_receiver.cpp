@@ -444,8 +444,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
+				// warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				      // mavlink_system.sysid, mavlink_system.compid);	Commented out by Voliro
 				return;
 			}
 
@@ -532,8 +532,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				      mavlink_system.sysid, mavlink_system.compid);
+				// warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				      // mavlink_system.sysid, mavlink_system.compid);	Commented out by Voliro
 				return;
 			}
 
@@ -1665,7 +1665,7 @@ MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
 
 		if (dt > 10000000LL || dt < -10000000LL) { // 10 millisecond skew
 			_time_offset = offset_ns;
-			warnx("[timesync] Hard setting offset.");
+			// warnx("[timesync] Hard setting offset."); Commented out by Voliro
 
 		} else {
 			smooth_time_offset(offset_ns);
