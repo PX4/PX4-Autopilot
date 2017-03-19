@@ -1072,8 +1072,13 @@ GroundRoverAttitudeControl::task_main()
 						}
 
 						// TODO: implement a PID here.
-						
-						float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+						float yaw_error = _wrap_pi(control_input.yaw_setpoint - control_input.yaw);
+						//warnx("yaw_error: %.4f ", (double) yaw_error);
+						float yaw_u = _parameters.w_p * yaw_error;
+
+						//float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+						//warnx("yaw_u: %.4f", (double)yaw_u);
+
 						// float yaw_u = 0.0f;
 						// if (_att_sp.fw_control_yaw == true) {
 						// 	yaw_u = _wheel_ctrl.control_bodyrate(control_input);
@@ -1140,6 +1145,7 @@ GroundRoverAttitudeControl::task_main()
 							_parameters.trim_pitch;
 
 					float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+					//warnx("yaw_u: %.4f", (double)yaw_u);
 					// float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;

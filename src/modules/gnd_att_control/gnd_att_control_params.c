@@ -270,7 +270,7 @@ PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.0f);
  * @increment 0.5
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_Y_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(GND_Y_RMAX, 90.0f);
 
 /**
  * Roll control to yaw control feedforward gain.
@@ -300,7 +300,7 @@ PARAM_DEFINE_FLOAT(GND_RL_TO_YAW_FF, 0.0f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_P, 0.32f);
+PARAM_DEFINE_FLOAT(GND_WR_P, 1.0f);
 
 /**
  * Wheel steering rate integrator gain
@@ -315,7 +315,7 @@ PARAM_DEFINE_FLOAT(GND_WR_P, 0.32f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_I, 0.1f);
+PARAM_DEFINE_FLOAT(GND_WR_I, 0.005f);
 
 /**
  * Wheel steering rate integrator limit
@@ -329,7 +329,7 @@ PARAM_DEFINE_FLOAT(GND_WR_I, 0.1f);
  * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_IMAX, 1.0f);
+PARAM_DEFINE_FLOAT(GND_WR_IMAX, 0.0f);
 
 /**
  * Maximum wheel steering rate
@@ -344,7 +344,7 @@ PARAM_DEFINE_FLOAT(GND_WR_IMAX, 1.0f);
  * @increment 0.5
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_W_RMAX, 0.0f);
+PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
 
 /**
  * Roll rate feed forward
