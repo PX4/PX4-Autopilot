@@ -1003,7 +1003,7 @@ MulticopterPositionControl::control_manual(float dt)
 		R_input_fame.from_euler(0.0f, 0.0f, _yaw_takeoff);
 
 	} else {
-		R_input_fame.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+		R_input_fame.from_euler(0.0f, 0.0f, _local_pos.yaw);
 
 	}
 
