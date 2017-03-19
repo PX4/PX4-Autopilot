@@ -19,9 +19,6 @@
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
-[submodule "Tools/sitl_gazebo"]
-	path = Tools/sitl_gazebo
-	url = https://github.com/PX4/sitl_gazebo.git
 [submodule "unittests/googletest"]
 	path = unittests/googletest
 	url = https://github.com/google/googletest.git
@@ -41,3 +38,12 @@
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
+[submodule "Tools/rotors_simulator"]
+	path = Tools/rotors_simulator
+	url = https://github.com/ethz-asl/rotors_simulator
+[submodule "Tools/OpticalFlow"]
+	path = Tools/OpticalFlow
+	url = https://github.com/PX4/OpticalFlow
+[submodule "Tools/mav_comm"]
+	path = Tools/mav_comm
+	url = https://github.com/ethz-asl/mav_comm

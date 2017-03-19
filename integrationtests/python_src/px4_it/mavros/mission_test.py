@@ -99,6 +99,7 @@ class MavrosMissionTest(unittest.TestCase):
     """
 
     def setUp(self):
+
         rospy.init_node('test_node', anonymous=True)
 
         self.rate = rospy.Rate(10) # 10hz

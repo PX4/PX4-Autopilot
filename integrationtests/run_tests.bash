@@ -14,15 +14,17 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 # Initialize our own variables:
 do_clean=true
 gui=false
+verbose=false
 
-while getopts "h?og" opt; do
+while getopts "h?ogv" opt; do
     case "$opt" in
     h|\?)
 		echo """
-		$0 [-h] [-o] [-g]
+		$0 [-h] [-o] [-g] [-v]
 		-h show help
 		-o don't clean before building (to save time)
 		-g run gazebo gui
+		-v verbose output
 		"""
         exit 0
         ;;
@@ -31,8 +33,15 @@ while getopts "h?og" opt; do
         ;;
     g)  gui=true
         ;;
+    v)  verbose=true
+		;;
     esac
 done
+
+if $verbose 
+	then
+	echo "run_tests.bash called."
+fi
 
 
 # determine the directory of the source given the directory of this script
@@ -41,6 +50,44 @@ SCRIPTPATH=`pwd`
 popd > /dev/null
 ORIG_SRC=$(dirname $SCRIPTPATH)
 
+# =============================================================================================== #
+# =================================== Install/build OpticalFlow ================================= #
+# =============================================================================================== #
+echo "=====> Building/installing OpticalFlow"
+
+# OpticalFlow is not a catkin package, so we just use a standard CMake build/install
+# procedure for it, before passing a modified CMAKE_MODULE_PATH to catkin
+
+OPTICAL_FLOW_BUILD_DIR=$HOME/OpticalFlow_build/
+OPTICAL_FLOW_INSTALL_DIR=$HOME/OpticalFlow_install/
+
+if $do_clean
+then
+	echo "Deleting OpticalFlow build and install directories..."
+	rm -rf $OPTICAL_FLOW_BUILD_DIR
+	rm -rf $OPTICAL_FLOW_INSTALL_DIR
+fi
+
+# Create new directory for OpticalFlow build output
+mkdir -p $OPTICAL_FLOW_BUILD_DIR
+cd $OPTICAL_FLOW_BUILD_DIR
+
+# Generate Makefiles and FindOpticalFlow.cmake, specifying a custom install directory
+# (so it doesn't pollute the system space and install to /usr/local/)
+cmake $ORIG_SRC/Tools/OpticalFlow -DCMAKE_INSTALL_PREFIX=$OPTICAL_FLOW_INSTALL_DIR
+
+# Build OpticalFlow
+make
+
+# Install OpticalFlow
+make install
+
+# debug
+#exit 0
+
+# =============================================================================================== #
+# ======================================== ROS/catkin Setup ===================================== #
+# =============================================================================================== #
 # set paths
 JOB_DIR=$(dirname $ORIG_SRC)
 CATKIN_DIR=$JOB_DIR/catkin
@@ -79,6 +126,8 @@ else
 	echo skipping clean step
 fi
 
+
+
 echo "=====> compile ($SRC_DIR)"
 mkdir -p $ROS_HOME
 mkdir -p $CATKIN_DIR/src
@@ -86,10 +135,33 @@ mkdir -p $TEST_RESULT_TARGET_DIR
 if ! [ -d $SRC_DIR ]
 then
 	ln -s $ORIG_SRC $SRC_DIR
-	ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	# Symbolic links to catkin packages below. Note that submodules like
+	# rotors_simulator and mav_comm contain many catkin packages.
+	# Symbolic link for the rotors_simulation sub-module
+	#ln -s $ORIG_SRC/Tools/sitl_gazebo ${CATKIN_DIR}/src/mavlink_sitl_gazebo
+	ln -s $ORIG_SRC/Tools/rotors_simulator/rotors_gazebo ${CATKIN_DIR}/src/rotors_gazebo
+	ln -s $ORIG_SRC/Tools/rotors_simulator/rotors_gazebo_plugins ${CATKIN_DIR}/src/rotors_gazebo_plugins
+	ln -s $ORIG_SRC/Tools/mav_comm/mav_msgs ${CATKIN_DIR}/src/mav_msgs
+	
 fi
 cd $CATKIN_DIR
-catkin_make
+
+# These build parameters are used by the CMakeLists.txt in the
+# rotors_gazebo_plugins and rotors_gazebo packages.
+# ADDITIONAL_INCLUDE_DIRS=...				This assumes mav_msgs has been symlinked to the catkin workspace as per above
+# BUILD_MAVLINK_INTERFACE_PLUGIN=TRUE		Build the MAVLink interface plugin for Gazebo
+# BUILD_OCTOMAP_PLUGIN=FALSE				Do not build the Octomap plugin for Gazebo
+# BUILD_OPTICAL_FLOW_PLUGIN=TRUE			Build the optical flow plugin for Gazebo
+# NO_ROS=TRUE 								Instruct the Gazebo plugins to build without ROS dependencies. Note that even though ROS is used for these tests, PX4 uses the Gazebo plugins without any ROS dependencies.
+# CMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR		Tell catkin where to find the OpticalFlow installation, so find(OpticalFlow) works.
+catkin_make \
+	-DADDITIONAL_INCLUDE_DIRS=$CATKIN_DIR/src/mav_msgs/include/	\
+	-DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE \
+	-DMAVLINK_HEADER_DIR=$ORIG_SRC/mavlink/include/mavlink/v1.0/ \
+	-DBUILD_OCTOMAP_PLUGIN=FALSE \
+	-DBUILD_OPTICAL_FLOW_PLUGIN=TRUE -DNO_ROS=TRUE \
+	-DCMAKE_MODULE_PATH=$OPTICAL_FLOW_INSTALL_DIR
+
 . ./devel/setup.bash
 echo "<====="
 
@@ -106,6 +178,8 @@ echo -e "TEST_RESULT_TARGET_DIR\t: $TEST_RESULT_TARGET_DIR"
 
 # don't exit on error anymore (because single tests or exports might fail)
 # however, stop executing tests after the first failure
+# --text can be added to display more debug info to the rostest command, although it
+#			affects performance and should not be enabled in production build!
 set +e
 echo "=====> run tests"
 test $? -eq 0 && rostest px4 mavros_posix_tests_iris.launch gui:=$gui
