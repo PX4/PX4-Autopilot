@@ -664,16 +664,11 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("GND_L1_DAMPING");
 
-	_parameter_handles.airspeed_min = param_find("GND_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("GND_AIRSPD_TRIM");
-	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
+	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
+	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
+	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 	_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
-	_parameter_handles.airspeed_mode = param_find("GND_ARSP_MODE");
-
-	_parameter_handles.gpsspeed_min = param_find("GND_GPSSPD_MIN");
-	_parameter_handles.gpsspeed_trim = param_find("GND_GPSSPD_TRIM");
-	_parameter_handles.gpsspeed_max = param_find("GND_GPSSPD_MAX");
-	_parameter_handles.gpsspeed_mode = param_find("GND_ARSP_MODE");
+	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 
 	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");
@@ -684,10 +679,10 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.throttle_slew_max = param_find("GND_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("GND_THR_LND_MAX");
-	_parameter_handles.man_roll_max_deg = param_find("GND_MAN_R_MAX");
-	_parameter_handles.man_pitch_max_deg = param_find("GND_MAN_P_MAX");
-	_parameter_handles.rollsp_offset_deg = param_find("GND_RSP_OFF");
-	_parameter_handles.pitchsp_offset_deg = param_find("GND_PSP_OFF");
+	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
+	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
+	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
 	_parameter_handles.land_slope_angle = param_find("GND_LND_ANG");
 	_parameter_handles.land_H1_virt = param_find("GND_LND_HVIRT");
@@ -697,26 +692,27 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("GND_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("GND_LND_HHDIST");
 	_parameter_handles.land_use_terrain_estimate = param_find("GND_LND_USETER");
-	_parameter_handles.land_airspeed_scale = param_find("GND_LND_AIRSP_SC");
+	_parameter_handles.land_airspeed_scale = param_find("GND_LND_AIRSPD_SC");
 
-	_parameter_handles.time_const = 			param_find("GND_T_TIME_CONST");
-	_parameter_handles.time_const_throt = 			param_find("GND_T_THRO_CONST");
-	_parameter_handles.min_sink_rate = 			param_find("GND_T_SINK_MIN");
-	_parameter_handles.max_sink_rate =			param_find("GND_T_SINK_MAX");
-	_parameter_handles.max_climb_rate =			param_find("GND_T_CLMB_MAX");
-	_parameter_handles.climbout_diff =			param_find("GND_CLMBOUT_DIFF");
-	_parameter_handles.throttle_damp = 			param_find("GND_T_THR_DAMP");
-	_parameter_handles.integrator_gain =			param_find("GND_T_INTEG_GAIN");
-	_parameter_handles.vertical_accel_limit =		param_find("GND_T_VERT_ACC");
-	_parameter_handles.height_comp_filter_omega =		param_find("GND_T_HGT_OMEGA");
-	_parameter_handles.speed_comp_filter_omega =		param_find("GND_T_SPD_OMEGA");
-	_parameter_handles.roll_throttle_compensation = 	param_find("GND_T_RLL2THR");
-	_parameter_handles.speed_weight = 			param_find("GND_T_SPDWEIGHT");
-	_parameter_handles.pitch_damping = 			param_find("GND_T_PTCH_DAMP");
-	_parameter_handles.heightrate_p =			param_find("GND_T_HRATE_P");
-	_parameter_handles.heightrate_ff =			param_find("GND_T_HRATE_FF");
-	_parameter_handles.speedrate_p =			param_find("GND_T_SRATE_P");
+	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
+	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
+	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
+	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
+	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
+	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
+	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
+	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
+	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
+	_parameter_handles.height_comp_filter_omega =		param_find("FW_T_HGT_OMEGA");
+	_parameter_handles.speed_comp_filter_omega =		param_find("FW_T_SPD_OMEGA");
+	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
+	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
+	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
+	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
+	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
+	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 	_parameter_handles.vtol_type = 				param_find("VT_TYPE");
+
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -1708,6 +1704,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						    pos_sp_triplet.current.loiter_direction, nav_speed_2d);
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
+			//_att_sp.thrust = 0;
+			//mission_airspeed = 0;
 
 			float alt_sp = pos_sp_triplet.current.alt;
 
@@ -1732,9 +1730,12 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						   eas2tas,
 						   math::radians(_parameters.pitch_limit_min),
 						   math::radians(_parameters.pitch_limit_max),
-						   _parameters.throttle_min,
-						   _parameters.throttle_max,
-						   _parameters.throttle_cruise,
+						   // _parameters.throttle_min,
+						   // _parameters.throttle_max,
+						   // _parameters.throttle_cruise,
+						   0,
+						   0,
+						   0,
 						   false,
 						   math::radians(_parameters.pitch_limit_min),
 						   _global_pos.alt,

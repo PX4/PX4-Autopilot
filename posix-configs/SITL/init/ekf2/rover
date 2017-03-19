@@ -24,7 +24,7 @@ param set SENS_DPRES_OFF 0.001
 param set SENS_BOARD_X_OFF 0.000001
 param set COM_RC_IN_MODE 1
 param set NAV_DLL_ACT 0
-param set NAV_ACC_RAD 0.2
+param set NAV_ACC_RAD 0.5
 param set NAV_LOITER_RAD 2
 param set MIS_LTRMIN_ALT 0.01
 param set MIS_TAKEOFF_ALT 0.01
@@ -35,8 +35,8 @@ param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
 param set FW_AIRSPD_TRIM 1
 param set FW_AIRSPD_MAX 3
-param set FW_PR_I 0.0
-param set FW_RR_I 0.0
+param set GND_PR_I 0.0
+param set GND_RR_I 0.0
 replay tryapplyparams
 simulator start -s
 tone_alarm start
@@ -52,7 +52,7 @@ sensors start
 commander start
 navigator start
 ekf2 start
-fw_pos_control_l1 start
+gnd_pos_control start
 gnd_att_control start
 land_detector start rover
 mixer load /dev/pwm_output0 ROMFS/sitl/mixers/rover_sitl.main.mix

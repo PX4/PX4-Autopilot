@@ -43,6 +43,7 @@ set(config_module_list
 	modules/fw_att_control
 	modules/gnd_att_control
 	modules/fw_pos_control_l1
+	modules/gnd_pos_control
 	modules/land_detector
 	modules/logger
 	modules/mavlink

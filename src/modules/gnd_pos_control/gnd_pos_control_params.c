@@ -57,7 +57,7 @@
  * @max 50.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 20.0f);
 
@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 20.0f);
  * @max 0.9
  * @decimal 2
  * @increment 0.05
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
 
@@ -84,9 +84,9 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.6f);
+PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.3f);
 
 /**
  * Throttle max slew rate
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.6f);
  *
  * @min 0.0
  * @max 1.0
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_THR_SLEW_MAX, 0.0f);
 
@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(GND_THR_SLEW_MAX, 0.0f);
  * @max 0.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -45.0f);
 
@@ -123,7 +123,7 @@ PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -45.0f);
  * @max 60.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 45.0f);
 
@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 45.0f);
  * @max 65.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_R_LIM, 50.0f);
 
@@ -153,9 +153,9 @@ PARAM_DEFINE_FLOAT(GND_R_LIM, 50.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.5f);
 
 /**
  * Throttle limit min
@@ -174,7 +174,7 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 1.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 
@@ -191,9 +191,9 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  * @max 0.4
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.15f);
+PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
 
 /**
  * Throttle limit value before flare
@@ -206,9 +206,9 @@ PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.15f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_LND_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(GND_THR_LND_MAX, 0.0f);
 
 /**
  * Climbout Altitude difference
@@ -223,7 +223,7 @@ PARAM_DEFINE_FLOAT(GND_THR_LND_MAX, 1.0f);
  * @max 150.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_CLMBOUT_DIFF, 10.0f);
 
@@ -235,7 +235,7 @@ PARAM_DEFINE_FLOAT(GND_CLMBOUT_DIFF, 10.0f);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_ANG, 5.0f);
 
@@ -247,7 +247,7 @@ PARAM_DEFINE_FLOAT(GND_LND_ANG, 5.0f);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_HVIRT, 10.0f);
 
@@ -259,7 +259,7 @@ PARAM_DEFINE_FLOAT(GND_LND_HVIRT, 10.0f);
  * @max 25.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_FLALT, 8.0f);
 
@@ -274,7 +274,7 @@ PARAM_DEFINE_FLOAT(GND_LND_FLALT, 8.0f);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_TLALT, -1.0f);
 
@@ -286,7 +286,7 @@ PARAM_DEFINE_FLOAT(GND_LND_TLALT, -1.0f);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_HHDIST, 15.0f);
 
@@ -294,7 +294,7 @@ PARAM_DEFINE_FLOAT(GND_LND_HHDIST, 15.0f);
  * Use terrain estimate during landing
  *
  * @boolean
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_INT32(GND_LND_USETER, 0);
 
@@ -309,7 +309,7 @@ PARAM_DEFINE_INT32(GND_LND_USETER, 0);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_FL_PMIN, 2.5f);
 
@@ -324,7 +324,7 @@ PARAM_DEFINE_FLOAT(GND_LND_FL_PMIN, 2.5f);
  * @max 45.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_FL_PMAX, 15.0f);
 
@@ -340,310 +340,7 @@ PARAM_DEFINE_FLOAT(GND_LND_FL_PMAX, 15.0f);
  * @max 1.5
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_LND_AIRSP_SC, 1.3f);
 
-
-
-/*
- * TECS parameters
- *
- */
-
-
-/**
- * Minimum Airspeed
- *
- * If the airspeed falls below this value, the TECS controller will try to
- * increase airspeed more aggressively.
- *
- * @unit m/s
- * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_AIRSPD_MIN, 10.0f);
-
-/**
- * Maximum Airspeed
- *
- * If the airspeed is above this value, the TECS controller will try to decrease
- * airspeed more aggressively.
- *
- * @unit m/s
- * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_AIRSPD_MAX, 20.0f);
-
-/**
- * Maximum climb rate
- *
- * This is the best climb rate that the aircraft can achieve with
- * the throttle set to THR_MAX and the airspeed set to the
- * default value. For electric aircraft make sure this number can be
- * achieved towards the end of flight when the battery voltage has reduced.
- * The setting of this parameter can be checked by commanding a positive
- * altitude change of 100m in loiter, RTL or guided mode. If the throttle
- * required to climb is close to THR_MAX and the aircraft is maintaining
- * airspeed, then this parameter is set correctly. If the airspeed starts
- * to reduce, then the parameter is set to high, and if the throttle
- * demand required to climb and maintain speed is noticeably less than
- * GND_THR_MAX, then either GND_T_CLMB_MAX should be increased or
- * GND_THR_MAX reduced.
- *
- * @unit m/s
- * @min 1.0
- * @max 15.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_CLMB_MAX, 5.0f);
-
-/**
- * Minimum descent rate
- *
- * This is the sink rate of the aircraft with the throttle
- * set to THR_MIN and flown at the same airspeed as used
- * to measure GND_T_CLMB_MAX.
- *
- * @unit m/s
- * @min 1.0
- * @max 5.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_SINK_MIN, 2.0f);
-
-/**
- * Maximum descent rate
- *
- * This sets the maximum descent rate that the controller will use.
- * If this value is too large, the aircraft can over-speed on descent.
- * This should be set to a value that can be achieved without
- * exceeding the lower pitch angle limit and without over-speeding
- * the aircraft.
- *
- * @unit m/s
- * @min 2.0
- * @max 15.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_SINK_MAX, 5.0f);
-
-/**
- * TECS time constant
- *
- * This is the time constant of the TECS control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_TIME_CONST, 5.0f);
-
-/**
- * TECS Throttle time constant
- *
- * This is the time constant of the TECS throttle control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_THRO_CONST, 8.0f);
-
-/**
- * Throttle damping factor
- *
- * This is the damping gain for the throttle demand loop.
- * Increase to add damping to correct for oscillations in speed and height.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 1
- * @increment 0.1
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_THR_DAMP, 0.5f);
-
-/**
- * Integrator gain
- *
- * This is the integrator gain on the control loop.
- * Increasing this gain increases the speed at which speed
- * and height offsets are trimmed out, but reduces damping and
- * increases overshoot.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.05
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_INTEG_GAIN, 0.1f);
-
-/**
- * Maximum vertical acceleration
- *
- * This is the maximum vertical acceleration (in m/s/s)
- * either up or down that the controller will use to correct speed
- * or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g)
- * allows for reasonably aggressive pitch changes if required to recover
- * from under-speed conditions.
- *
- * @unit m/s/s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_VERT_ACC, 7.0f);
-
-/**
- * Complementary filter "omega" parameter for height
- *
- * This is the cross-over frequency (in radians/second) of the complementary
- * filter used to fuse vertical acceleration and barometric height to obtain
- * an estimate of height rate and height. Increasing this frequency weights
- * the solution more towards use of the barometer, whilst reducing it weights
- * the solution more towards use of the accelerometer data.
- *
- * @unit rad/s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_HGT_OMEGA, 3.0f);
-
-/**
- * Complementary filter "omega" parameter for speed
- *
- * This is the cross-over frequency (in radians/second) of the complementary
- * filter used to fuse longitudinal acceleration and airspeed to obtain an
- * improved airspeed estimate. Increasing this frequency weights the solution
- * more towards use of the airspeed sensor, whilst reducing it weights the
- * solution more towards use of the accelerometer data.
- *
- * @unit rad/s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_SPD_OMEGA, 2.0f);
-
-/**
- * Roll -> Throttle feedforward
- *
- * Increasing this gain turn increases the amount of throttle that will
- * be used to compensate for the additional drag created by turning.
- * Ideally this should be set to  approximately 10 x the extra sink rate
- * in m/s created by a 45 degree bank turn. Increase this gain if
- * the aircraft initially loses energy in turns and reduce if the
- * aircraft initially gains energy in turns. Efficient high aspect-ratio
- * aircraft (eg powered sailplanes) can use a lower value, whereas
- * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
- *
- * @min 0.0
- * @max 20.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_RLL2THR, 15.0f);
-
-/**
- * Speed <--> Altitude priority
- *
- * This parameter adjusts the amount of weighting that the pitch control
- * applies to speed vs height errors. Setting it to 0.0 will cause the
- * pitch control to control height and ignore speed errors. This will
- * normally improve height accuracy but give larger airspeed errors.
- * Setting it to 2.0 will cause the pitch control loop to control speed
- * and ignore height errors. This will normally reduce airspeed errors,
- * but give larger height errors. The default value of 1.0 allows the pitch
- * control to simultaneously control height and speed.
- * Note to Glider Pilots - set this parameter to 2.0 (The glider will
- * adjust its pitch angle to maintain airspeed, ignoring changes in height).
- *
- * @min 0.0
- * @max 2.0
- * @decimal 1
- * @increment 1.0
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_SPDWEIGHT, 1.0f);
-
-/**
- * Pitch damping factor
- *
- * This is the damping gain for the pitch demand loop. Increase to add
- * damping to correct for oscillations in height. The default value of 0.0
- * will work well provided the pitch to servo controller has been tuned
- * properly.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 1
- * @increment 0.1
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_PTCH_DAMP, 0.0f);
-
-/**
- * Height rate P factor
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.05
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_HRATE_P, 0.05f);
-
-/**
- * Height rate FF factor
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.05
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_HRATE_FF, 0.0f);
-
-/**
- * Speed rate P factor
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(GND_T_SRATE_P, 0.02f);
