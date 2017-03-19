@@ -1,0 +1,33 @@
+#!nsh
+#
+# Standard apps for  voliro
+#
+
+#
+# Start the attitude and position estimator
+#
+
+# For Vicon this one is needed
+#
+# attitude_estimator_q start
+#
+# local_position_estimator start
+#
+
+
+# For Outdoors this one is used
+#
+ekf2 start
+
+#
+# Start attitude controller
+#
+
+mc_att_control start
+
+mc_pos_control start
+
+#
+# Start Land Detector
+#
+#land_detector start multicopter

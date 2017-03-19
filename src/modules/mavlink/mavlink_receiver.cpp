@@ -130,6 +130,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
 	_control_state_pub(nullptr),
+	_voliro_ao_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
@@ -279,6 +280,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_logging_ack(msg);
 		break;
 
+	case MAVLINK_MSG_ID_VOLIRO_AO:
+    handle_message_voliro_ao_msg(msg);
+	  break;
+
 	default:
 		break;
 	}
@@ -351,6 +356,41 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 
 	return target_ok;
 }
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//                   VOLIRO WAS HERE
+
+
+
+void
+MavlinkReceiver::handle_message_voliro_ao_msg(mavlink_message_t *msg)
+{
+    mavlink_voliro_ao_t volo;
+    mavlink_msg_voliro_ao_decode(msg, &volo);
+
+    struct voliro_ao_s f;
+    memset(&f, 0, sizeof(f));
+
+    f.timestamp = hrt_absolute_time();
+
+		for (int i = 0; i < 6; ++i){
+			f.alpha[i] = volo.alpha[i];
+			f.omega[i] = volo.omega[i];
+		}
+
+    if (_voliro_ao_pub == nullptr) {
+        _voliro_ao_pub = orb_advertise(ORB_ID(voliro_ao), &f);
+
+	// TEMPORARY !@!@!@!@ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@!@!@!@!@!@!@!@! TEMPORARY!
+				//_voliro_ao_pub = orb_advertise(ORB_ID(alphaomega), &f);
+
+    } else {
+        orb_publish(ORB_ID(voliro_ao), _voliro_ao_pub, &f);
+    }
+}
+
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)

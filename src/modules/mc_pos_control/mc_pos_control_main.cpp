@@ -71,10 +71,10 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_global_velocity_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>             // Maybe care
+#include <uORB/topics/position_setpoint_triplet.h>          //--> DO CARE!!!!! INPUT
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>   //--> do not care, only logging
+#include <uORB/topics/vehicle_local_position_setpoint.h>    //--> do not care, only logging
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/voliro_thrust_setpoint.h>
 
