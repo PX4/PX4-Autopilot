@@ -19,7 +19,7 @@
     <arg name="headless" default="false"/>
     <arg name="gui" default="true"/>
     <arg name="ns" default="/"/>
-    <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+    <arg name="fcu_url" default="udp://:14540@127.0.0.1:14557"/>
 
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>

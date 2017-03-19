@@ -59,6 +59,7 @@ set(config_module_list
 
 	modules/omar_app
 	modules/test_daemon
+	#modules/batman
 
 	lib/controllib
 	lib/conversion

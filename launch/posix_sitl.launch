@@ -6,7 +6,7 @@
     <arg name="z" default="0"/>
     <arg name="R" default="0"/>
     <arg name="P" default="0"/>
-    <arg name="Y" default="0"/> 
+    <arg name="Y" default="0"/>
     <arg name="est" default="lpe"/>
     <arg name="vehicle" default="iris"/>
     <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
@@ -33,6 +33,13 @@
         <arg name="verbose" value="$(arg verbose)" />
         <arg name="paused" value="$(arg paused)" />
     </include>
+
+    <!-- <arg name="mavlink_bridge_url" default="udp://localhost:14553@localhost:14560" />
+
+    <include file="$(find mavros)/launch/mavlink_bridge.launch">
+    <arg name="mavlink_bridge_url" value="$(arg mavlink_bridge_url)" />
+    <arg name="ns" value="$(arg ns)"/>
+    </include> -->
 
     <node name="$(anon vehicle_spawn)" output="screen" pkg="gazebo_ros" type="spawn_model"
         args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>

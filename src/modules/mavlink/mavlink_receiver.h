@@ -82,6 +82,7 @@
 
 //VOLIRO WAS HERE
 #include <uORB/topics/voliro_ao.h>
+// TEMPORARY !@!@! #include <uORB/topics/alphaomega.h>
 #include <v2.0/common/mavlink_msg_voliro_ao.h>
 
 
