@@ -675,7 +675,7 @@ bool AttitudeEstimatorQ::update(float dt)
 		const float fifty_dps = 0.873f;
 
 		if (spinRate > fifty_dps) {
-			gainMult = fmin(spinRate / fifty_dps, 10.0f);
+			gainMult = math::min(spinRate / fifty_dps, 10.0f);
 		}
 
 		// Project magnetometer correction to body frame

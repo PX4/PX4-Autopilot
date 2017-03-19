@@ -475,7 +475,7 @@ int blockRandGaussTest()
 		mean = newMean;
 	}
 
-	float stdDev = sqrt(sum / (n - 1));
+	float stdDev = sqrtf(sum / (n - 1));
 	(void)(stdDev);
 	ASSERT_CL(equal(mean, blockRandGauss.getMean(), 1e-1));
 	ASSERT_CL(equal(stdDev, blockRandGauss.getStdDev(), 1e-1));
