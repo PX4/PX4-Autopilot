@@ -33,8 +33,7 @@
 
 /**
  * @file mc_pos_control_params.c
- * Multicopter position controller parameters.
- *
+ * Multicopter position controller parameters
  * @author Anton Babushkin <anton@px4.io>
  */
 
@@ -495,6 +494,17 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
+
+/**
+ * Low pass filter cut freq. for numerical position derivative
+ *
+ * @unit Hz
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_POSD_LP, 5.0f);
 
 /**
  * Maximum horizonal acceleration in velocity controlled modes
