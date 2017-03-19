@@ -64,9 +64,11 @@ using matrix::Quatf;
 using matrix::Eulerf;
 using matrix::Vector3f;
 
+using std::fabs;
+
 bool MatrixTest::attitudeTests()
 {
-	double eps = 1e-6;
+	float eps = 1e-6;
 
 	// check data
 	Eulerf euler_check(0.1f, 0.2f, 0.3f);
@@ -207,8 +209,9 @@ bool MatrixTest::attitudeTests()
 	Quatf q_from_m(m4);
 	ut_test(isEqual(q_from_m, m4));
 
-	// quaternion derivate
+	// quaternion derivative
 	Vector<float, 4> q_dot = q.derivative1(Vector3f(1, 2, 3));
+	(void)q_dot;
 
 	// quaternion product
 	Quatf q_prod_check(0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
