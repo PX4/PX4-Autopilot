@@ -1,0 +1,202 @@
+<?xml version='1.0'?>
+<!-- ASLUAV Mavlink Message Definition File -->
+<!-- Used for the ASLUAV fixed-wing autopilot (www.asl.ethz.ch), which implements extensions to the Pixhawk (www.pixhawk.org) autopilot -->
+<mavlink>
+     <include>common.xml</include>
+     <enums>
+       <enum name="MAV_CMD">
+          <!-- ASLUAV specific MAV_CMD_* commands -->
+          <entry name="MAV_CMD_RESET_MPPT" value="40001">
+            <description>Mission command to reset Maximum Power Point Tracker (MPPT)</description>
+            <param index="1">MPPT number</param>
+            <param index="2">Empty</param>
+            <param index="3">Empty</param>
+            <param index="4">Empty</param>
+            <param index="5">Empty</param>
+            <param index="6">Empty</param>
+            <param index="7">Empty</param>
+          </entry>
+          <entry name="MAV_CMD_PAYLOAD_CONTROL" value="40002">
+            <description>Mission command to perform a power cycle on payload</description>
+            <param index="1">Complete power cycle</param>
+            <param index="2">VISensor power cycle</param>
+            <param index="3">Empty</param>
+            <param index="4">Empty</param>
+            <param index="5">Empty</param>
+            <param index="6">Empty</param>
+            <param index="7">Empty</param>
+          </entry>
+       </enum>
+     </enums>
+     <messages>
+          <message id="201" name="SENS_POWER">
+              <description>Voltage and current sensor data</description>
+              <field type="float" name="adc121_vspb_volt"> Power board voltage sensor reading in volts</field>
+              <field type="float" name="adc121_cspb_amp"> Power board current sensor reading in amps</field>
+              <field type="float" name="adc121_cs1_amp"> Board current sensor 1 reading in amps</field>
+              <field type="float" name="adc121_cs2_amp"> Board current sensor 2 reading in amps</field>
+          </message>     
+          <message id="202" name="SENS_MPPT">
+              <description>Maximum Power Point Tracker (MPPT) sensor data for solar module power performance tracking</description>
+              <field type="uint64_t" name="mppt_timestamp"> MPPT last timestamp </field>
+              <field type="float" name="mppt1_volt"> MPPT1 voltage </field>
+              <field type="float" name="mppt1_amp"> MPPT1 current </field>
+              <field type="uint16_t" name="mppt1_pwm"> MPPT1 pwm </field>
+              <field type="uint8_t" name="mppt1_status"> MPPT1 status </field>
+              <field type="float" name="mppt2_volt"> MPPT2 voltage </field>
+              <field type="float" name="mppt2_amp"> MPPT2 current </field>
+              <field type="uint16_t" name="mppt2_pwm"> MPPT2 pwm </field>
+              <field type="uint8_t" name="mppt2_status"> MPPT2 status </field>
+              <field type="float" name="mppt3_volt"> MPPT3 voltage </field>
+              <field type="float" name="mppt3_amp"> MPPT3 current </field>
+              <field type="uint16_t" name="mppt3_pwm"> MPPT3 pwm </field>
+              <field type="uint8_t" name="mppt3_status"> MPPT3 status </field>     
+          </message>
+          <message id="203" name="ASLCTRL_DATA">
+              <description>ASL-fixed-wing controller data</description>
+              <field type="uint64_t" name="timestamp"> Timestamp</field>
+              <field type="uint8_t" name="aslctrl_mode"> ASLCTRL control-mode (manual, stabilized, auto, etc...)</field>
+              <field type="float" name="h"> See sourcecode for a description of these values... </field>
+              <field type="float" name="hRef"> </field>
+              <field type="float" name="hRef_t"> </field>
+              <field type="float" name="PitchAngle">Pitch angle [deg]</field>
+              <field type="float" name="PitchAngleRef">Pitch angle reference[deg] </field>
+              <field type="float" name="q"> </field>
+              <field type="float" name="qRef"> </field>
+              <field type="float" name="uElev"> </field>
+              <field type="float" name="uThrot"> </field>
+              <field type="float" name="uThrot2"> </field>
+              <field type="float" name="nZ"> </field>
+              <field type="float" name="AirspeedRef">Airspeed reference [m/s]</field>
+              <field type="uint8_t" name="SpoilersEngaged"> </field>
+              <field type="float" name="YawAngle">Yaw angle [deg]</field>
+              <field type="float" name="YawAngleRef">Yaw angle reference[deg]</field>
+              <field type="float" name="RollAngle">Roll angle [deg]</field>
+              <field type="float" name="RollAngleRef">Roll angle reference[deg]</field>
+              <field type="float" name="p"> </field>
+              <field type="float" name="pRef"> </field>
+              <field type="float" name="r"> </field>
+              <field type="float" name="rRef"> </field>
+              <field type="float" name="uAil"> </field>
+              <field type="float" name="uRud"> </field> 
+          </message>
+          <message id="204" name="ASLCTRL_DEBUG">
+              <description>ASL-fixed-wing controller debug data</description>
+              <field type="uint32_t" name="i32_1"> Debug data</field>
+              <field type="uint8_t" name="i8_1"> Debug data</field>
+              <field type="uint8_t" name="i8_2"> Debug data</field>
+              <field type="float" name="f_1"> Debug data </field>
+              <field type="float" name="f_2"> Debug data</field>
+              <field type="float" name="f_3"> Debug data</field>
+              <field type="float" name="f_4"> Debug data</field>
+              <field type="float" name="f_5"> Debug data</field>
+              <field type="float" name="f_6"> Debug data</field>
+              <field type="float" name="f_7"> Debug data</field>
+              <field type="float" name="f_8"> Debug data</field>
+          </message>
+          <message id="205" name="ASLUAV_STATUS">
+              <description>Extended state information for ASLUAVs</description>
+              <field type="uint8_t" name="LED_status"> Status of the position-indicator LEDs</field>
+              <field type="uint8_t" name="SATCOM_status"> Status of the IRIDIUM satellite communication system</field>
+              <field type="uint8_t[8]" name="Servo_status"> Status vector for up to 8 servos</field>
+              <field type="float" name="Motor_rpm"> Motor RPM </field>
+              <!-- to be extended-->
+          </message>
+          <message id="206" name="EKF_EXT">
+              <description>Extended EKF state estimates for ASLUAVs</description>
+              <field type="uint64_t" name="timestamp"> Time since system start [us]</field>
+              <field type="float" name="Windspeed"> Magnitude of wind velocity (in lateral inertial plane) [m/s]</field>
+              <field type="float" name="WindDir"> Wind heading angle from North [rad]</field>
+              <field type="float" name="WindZ"> Z (Down) component of inertial wind velocity [m/s]</field>
+              <field type="float" name="Airspeed"> Magnitude of air velocity [m/s]</field>
+              <field type="float" name="beta"> Sideslip angle [rad]</field>
+              <field type="float" name="alpha"> Angle of attack [rad]</field>
+          </message>
+          <message id="207" name="ASL_OBCTRL">
+              <description>Off-board controls/commands for ASLUAVs</description>
+              <field type="uint64_t" name="timestamp"> Time since system start [us]</field>
+              <field type="float" name="uElev"> Elevator command [~]</field>
+              <field type="float" name="uThrot"> Throttle command [~]</field>
+              <field type="float" name="uThrot2"> Throttle 2 command [~]</field>
+              <field type="float" name="uAilL"> Left aileron command [~]</field>
+              <field type="float" name="uAilR"> Right aileron command [~]</field>
+              <field type="float" name="uRud"> Rudder command [~]</field>
+              <field type="uint8_t" name="obctrl_status"> Off-board computer status</field>
+          </message>
+          <message id="208" name="SENS_ATMOS">
+              <description>Atmospheric sensors (temperature, humidity, ...) </description>
+              <field type="float" name="TempAmbient"> Ambient temperature [degrees Celsius]</field>
+              <field type="float" name="Humidity"> Relative humidity [%]</field>
+          </message>
+          <message id="209" name="SENS_BATMON">
+              <description>Battery pack monitoring data for Li-Ion batteries</description>
+              <field type="float" name="temperature">Battery pack temperature in [deg C]</field>
+              <field type="uint16_t" name="voltage">Battery pack voltage in [mV]</field>
+              <field type="int16_t" name="current">Battery pack current in [mA]</field>
+              <field type="uint8_t" name="SoC">Battery pack state-of-charge</field>
+              <field type="uint16_t" name="batterystatus">Battery monitor status report bits in Hex</field>
+              <field type="uint16_t" name="serialnumber">Battery monitor serial number in Hex</field>
+              <field type="uint16_t" name="hostfetcontrol">Battery monitor sensor host FET control in Hex</field>
+              <field type="uint16_t" name="cellvoltage1">Battery pack cell 1 voltage in [mV]</field>
+              <field type="uint16_t" name="cellvoltage2">Battery pack cell 2 voltage in [mV]</field>
+              <field type="uint16_t" name="cellvoltage3">Battery pack cell 3 voltage in [mV]</field>
+              <field type="uint16_t" name="cellvoltage4">Battery pack cell 4 voltage in [mV]</field>
+              <field type="uint16_t" name="cellvoltage5">Battery pack cell 5 voltage in [mV]</field>
+              <field type="uint16_t" name="cellvoltage6">Battery pack cell 6 voltage in [mV]</field>
+           </message>
+           <message id="210" name="FW_SOARING_DATA">
+              <description>Fixed-wing soaring (i.e. thermal seeking) data</description>
+              <field type="uint64_t" name="timestamp">Timestamp [ms]</field>
+              <field type="uint64_t" name="timestampModeChanged">Timestamp since last mode change[ms]</field>
+              <field type="float" name="xW">Thermal core updraft strength [m/s]</field>
+              <field type="float" name="xR">Thermal radius [m]</field>
+              <field type="float" name="xLat">Thermal center latitude [deg]</field>
+              <field type="float" name="xLon">Thermal center longitude [deg]</field>
+              <field type="float" name="VarW">Variance W</field>
+              <field type="float" name="VarR">Variance R</field>
+              <field type="float" name="VarLat">Variance Lat</field>
+              <field type="float" name="VarLon">Variance Lon </field>
+              <field type="float" name="LoiterRadius">Suggested loiter radius [m]</field>
+              <field type="float" name="LoiterDirection">Suggested loiter direction</field>
+              <field type="float" name="DistToSoarPoint">Distance to soar point [m]</field>
+              <field type="float" name="vSinkExp">Expected sink rate at current airspeed, roll and throttle [m/s]</field>
+              <field type="float" name="z1_LocalUpdraftSpeed">Measurement / updraft speed at current/local airplane position [m/s]</field>
+              <field type="float" name="z2_DeltaRoll">Measurement / roll angle tracking error [deg]</field>
+              <field type="float" name="z1_exp">Expected measurement 1</field>
+              <field type="float" name="z2_exp">Expected measurement 2</field>
+              <field type="float" name="ThermalGSNorth">Thermal drift (from estimator prediction step only) [m/s]</field>
+              <field type="float" name="ThermalGSEast">Thermal drift (from estimator prediction step only) [m/s]</field>
+              <field type="float" name="TSE_dot"> Total specific energy change (filtered) [m/s]</field>
+              <field type="float" name="DebugVar1"> Debug variable 1</field>
+              <field type="float" name="DebugVar2"> Debug variable 2</field>
+              <field type="uint8_t" name="ControlMode">Control Mode [-]</field>
+              <field type="uint8_t" name="valid">Data valid [-]</field>
+           </message>
+           <message id="211" name="SENSORPOD_STATUS">
+              <description>Monitoring of sensorpod status</description>
+              <field type="uint64_t" name="timestamp">Timestamp in linuxtime [ms] (since 1.1.1970)</field>
+              <field type="uint8_t" name="visensor_rate_1">Rate of ROS topic 1</field>
+              <field type="uint8_t" name="visensor_rate_2">Rate of ROS topic 2</field>
+              <field type="uint8_t" name="visensor_rate_3">Rate of ROS topic 3</field>
+              <field type="uint8_t" name="visensor_rate_4">Rate of ROS topic 4</field>
+              <field type="uint8_t" name="recording_nodes_count">Number of recording nodes</field>
+              <field type="uint8_t" name="cpu_temp">Temperature of sensorpod CPU in [deg C]</field>
+              <field type="uint16_t" name="free_space">Free space available in recordings directory in [Gb] * 1e2</field>
+           </message>
+           <message id="212" name="SENS_POWER_BOARD">
+              <description>Monitoring of power board status</description>
+              <field type="uint64_t" name="timestamp">Timestamp</field>
+              <field type="uint8_t" name="pwr_brd_status">Power board status register</field>
+              <field type="uint8_t" name="pwr_brd_led_status">Power board leds status</field>
+              <field type="float" name="pwr_brd_system_volt">Power board system voltage</field>
+              <field type="float" name="pwr_brd_servo_volt">Power board servo voltage</field>
+              <field type="float" name="pwr_brd_mot_l_amp">Power board left motor current sensor</field>
+              <field type="float" name="pwr_brd_mot_r_amp">Power board right motor current sensor</field>
+              <field type="float" name="pwr_brd_servo_1_amp">Power board servo1 current sensor</field>
+              <field type="float" name="pwr_brd_servo_2_amp">Power board servo1 current sensor</field>
+              <field type="float" name="pwr_brd_servo_3_amp">Power board servo1 current sensor</field>
+              <field type="float" name="pwr_brd_servo_4_amp">Power board servo1 current sensor</field>
+              <field type="float" name="pwr_brd_aux_amp">Power board aux current sensor</field>
+           </message>
+     </messages>
+</mavlink>
