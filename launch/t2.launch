@@ -1,0 +1,16 @@
+<launch>
+
+    <!-- Posix SITL environment launch script -->
+    <arg name="est" default="lpe"/>
+    <arg name="vehicle" default="iris"/>
+
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
+
+
+    <node name="sitl" pkg="px4" type="px4" output="screen"
+        args="$(find px4) $(arg rcS)">
+    </node>
+
+</launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->
