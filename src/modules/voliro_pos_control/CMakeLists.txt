@@ -31,11 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__mc_pos_control__mc_pos_control_tests
-	MAIN mc_pos_control_tests
+	MODULE modules__voliro_pos_control
+	MAIN voliro_pos_control
+	COMPILE_FLAGS
+	STACK_MAIN 1200
 	SRCS
-		mc_pos_control_tests.cpp
-		../mc_pos_control_main.cpp
+		voliro_pos_control_main.cpp
 	DEPENDS
 		platforms__common
 	)

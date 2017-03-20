@@ -1,4 +1,4 @@
-/****************************************************************************
+voliro_pos_control/****************************************************************************
  *
  *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_pos_control_params.c
+ * @file voliro_pos_control_params.c
  * Multicopter position controller parameters.
  *
  * @author Anton Babushkin <anton@px4.io>

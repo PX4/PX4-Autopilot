@@ -27,6 +27,10 @@ mc_att_control start
 
 mc_pos_control start
 
+voliro_att_control start
+
+voliro_pos_control start
+
 #
 # Start Land Detector
 #
