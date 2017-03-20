@@ -427,7 +427,7 @@ private:
 	/**
 	 * Publish navigation capabilities
 	 */
-	void		fw_pos_ctrl_status_publish();
+	void		gnd_pos_ctrl_status_publish();
 
 	/**
 	 * Get a new waypoint based on heading and distance from current position
@@ -766,7 +766,7 @@ GroundRoverPositionControl::parameters_update()
 	_fw_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
 	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
 	_fw_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
-	fw_pos_ctrl_status_publish();
+	gnd_pos_ctrl_status_publish();
 
 	/* Update Launch Detector Parameters */
 	_launchDetector.updateParams();
@@ -1010,8 +1010,7 @@ GroundRoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> 
 	}
 }
 
-
-void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
+void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 {
 	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
 
@@ -1023,14 +1022,6 @@ void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
 	}
 }
 
-/**
- * Get a new waypoint based on heading and distance from current position
- *
- * @param heading the heading to fly to
- * @param distance the distance of the generated waypoint
- * @param waypoint_prev the waypoint at the current position
- * @param waypoint_next the waypoint in the heading direction
- */
 void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, float distance,
 		struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init)
 {
@@ -1073,10 +1064,6 @@ void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, fl
 	waypoint_next = temp_next;
 	waypoint_next.alt = _hold_alt;
 }
-
-
-
-
 
 void
 GroundRoverPositionControl::handle_command()
@@ -1712,7 +1699,7 @@ GroundRoverPositionControl::task_main()
 					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
 								      curr_wp(1));
 
-					fw_pos_ctrl_status_publish();
+					gnd_pos_ctrl_status_publish();
 				}
 
 			}
