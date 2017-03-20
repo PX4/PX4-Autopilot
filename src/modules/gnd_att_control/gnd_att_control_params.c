@@ -495,18 +495,6 @@ PARAM_DEFINE_FLOAT(GND_MAN_R_MAX, 90.0f);
 PARAM_DEFINE_FLOAT(GND_MAN_P_MAX, 90.0f);
 
 /**
- * Scale factor for flaps
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_FLAPS_SCL, 1.0f);
-
-/**
  * Airspeed mode
  *
  * The param value sets the method used to publish the control state airspeed.

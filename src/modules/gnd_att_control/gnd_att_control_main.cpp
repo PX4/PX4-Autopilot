@@ -205,8 +205,6 @@ private:
 		float acro_max_y_rate_rad;
 		float acro_max_z_rate_rad;
 
-		float flaps_scale;				/**< Scale factor for flaps */
-
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int bat_scale_en;			/**< Battery scaling enabled */
@@ -260,8 +258,6 @@ private:
 		param_t acro_max_x_rate;
 		param_t acro_max_y_rate;
 		param_t acro_max_z_rate;
-
-		param_t flaps_scale;
 
 		param_t vtol_type;
 
@@ -453,8 +449,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.acro_max_y_rate = param_find("GND_ACRO_Y_MAX");
 	_parameter_handles.acro_max_z_rate = param_find("GND_ACRO_Z_MAX");
 
-	_parameter_handles.flaps_scale = param_find("GND_FLAPS_SCL");
-
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	_parameter_handles.bat_scale_en = param_find("GND_BAT_SCALE_EN");
@@ -552,8 +546,6 @@ GroundRoverAttitudeControl::parameters_update()
 	_parameters.acro_max_x_rate_rad = math::radians(_parameters.acro_max_x_rate_rad);
 	_parameters.acro_max_y_rate_rad = math::radians(_parameters.acro_max_y_rate_rad);
 	_parameters.acro_max_z_rate_rad = math::radians(_parameters.acro_max_z_rate_rad);
-
-	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -836,16 +828,6 @@ GroundRoverAttitudeControl::task_main()
 
 			/* default flaps to center */
 			float flap_control = 0.0f;
-
-			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabsf(_parameters.flaps_scale) > 0.01f) {
-				flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
-
-			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabsf(_parameters.flaps_scale) > 0.01f) {
-				flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
-			}
 
 			// move the actual control value continuous with time, full flap travel in 1sec
 			if (fabsf(_flaps_applied - flap_control) > 0.01f) {
