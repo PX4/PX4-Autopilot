@@ -667,7 +667,6 @@ GroundRoverAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
-
 			/* get current rotation matrix and euler angles from control state quaternions */
 			math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
 			_R = q_att.to_dcm();
