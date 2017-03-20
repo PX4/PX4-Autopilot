@@ -481,16 +481,6 @@ private:
 	void		task_main();
 
 	/*
-	 * Reset takeoff state
-	 */
-	void		reset_takeoff_state();
-
-	/*
-	 * Reset landing state
-	 */
-	void		reset_landing_state();
-
-	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
 	 */
 	void tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
@@ -1107,40 +1097,6 @@ GroundRoverPositionControl::handle_command()
 
 
 /*********************************************************************************************************/
-/****************************************** TAKEOFF AND LANDING ******************************************/
-/*********************************************************************************************************/
-void GroundRoverPositionControl::reset_takeoff_state()
-{
-	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-	_launchDetector.reset();
-	_runway_takeoff.reset();
-}
-
-void GroundRoverPositionControl::reset_landing_state()
-{
-	_time_started_landing = 0;
-
-	// reset terrain estimation relevant values
-	_time_last_t_alt = 0;
-
-	_land_noreturn_horizontal = false;
-	_land_noreturn_vertical = false;
-	_land_stayonground = false;
-	_land_motor_lim = false;
-	_land_onslope = false;
-	_land_useterrain = false;
-
-	// reset abort land, unless loitering after an abort
-	if (_fw_pos_ctrl_status.abort_landing == true
-	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
-
-		_fw_pos_ctrl_status.abort_landing = false;
-	}
-
-}
-
-
-/*********************************************************************************************************/
 /*********************************************** TECS FUNCTIONS ******************************************/
 /*********************************************************************************************************/
 
@@ -1500,15 +1456,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						   ground_speed);
 		}
 
-		/* reset landing state */
-		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LAND) {
-			reset_landing_state();
-		}
-
-		/* reset takeoff/launch state */
-		if (pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			reset_takeoff_state();
-		}
+	
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
 			/* just kicked out of loiter, reset roll integrals */
@@ -1524,11 +1472,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		// reset hold altitude
 		_hold_alt = _global_pos.alt;
 
-		/* reset landing and takeoff state */
-		if (!_last_manual) {
-			reset_landing_state();
-			reset_takeoff_state();
-		}
 	}
 
 	/* Copy thrust output for publication */

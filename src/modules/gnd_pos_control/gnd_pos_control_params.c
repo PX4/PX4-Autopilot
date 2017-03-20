@@ -45,6 +45,21 @@
  */
 
 /**
+ * L1 distance
+ *
+ * This is the waypoint radius
+ *
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group GND POS Control
+ */
+PARAM_DEFINE_FLOAT(GND_L1_DIST, 5.0f);
+
+/**
  * L1 period
  *
  * This is the L1 distance and defines the tracking
@@ -86,7 +101,23 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
  * @increment 0.01
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.3f);
+PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
+
+/**
+ * Throttle limit max
+ *
+ * This is the maximum throttle % that can be used by the controller.
+ * For overpowered aircraft, this should be reduced to a value that
+ * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group GND POS Control
+ */
+PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.2f);
 
 /**
  * Throttle max slew rate
@@ -139,23 +170,7 @@ PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 20.0f);
  * @increment 0.5
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_R_LIM, 50.0f);
-
-/**
- * Throttle limit max
- *
- * This is the maximum throttle % that can be used by the controller.
- * For overpowered aircraft, this should be reduced to a value that
- * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.5f);
+PARAM_DEFINE_FLOAT(GND_R_LIM, 35.0f);
 
 /**
  * Throttle limit min
@@ -195,17 +210,3 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  */
 PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
 
-/**
- * L1 distance
- *
- * This is the waypoint radius
- *
- *
- * @unit m
- * @min 0.0
- * @max 100.0
- * @decimal 1
- * @increment 0.1
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_L1_DIST, 2.0f);
