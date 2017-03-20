@@ -509,3 +509,27 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
+
+/**
+ * Maximum horizontal jerk for thrust
+ *
+ * @unit m/s/s/s
+ * @min 0.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_JERK, 1.0f);
+
+/**
+ * Maximum vertical jerk for thrust
+ *
+ * @unit m/s/s/s
+ * @min 0.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_JERK, 1.0f);

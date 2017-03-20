@@ -205,6 +205,8 @@ private:
 		param_t acc_hor_max;
 		param_t acc_up_max;
 		param_t acc_down_max;
+		param_t jerk_hor_max;
+		param_t jerk_z_max;
 		param_t alt_mode;
 		param_t opt_recover;
 		param_t xy_vel_man_expo;
@@ -232,6 +234,8 @@ private:
 		float acc_hor_max;
 		float acc_up_max;
 		float acc_down_max;
+		float jerk_hor_max;
+		float jerk_z_max;
 		float vel_max_up;
 		float vel_max_down;
 		float xy_vel_man_expo;
@@ -279,6 +283,8 @@ private:
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+
+	math::Vector<3> _thrust_sp_prev;
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -360,7 +366,7 @@ private:
 
 	void control_position(float dt);
 
-	void vel_sp_slewrate(float dt);
+	void  setpoint_slewrate(math::Vector<3> &sp, const math::Vector<3> prev, const float dt, const float max_xy, const float max_z);
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
@@ -484,6 +490,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
 
+	_thrust_sp_prev.zero();
+
 	_R.identity();
 
 	_R_setpoint.identity();
@@ -525,6 +533,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.acc_up_max = param_find("MPC_ACC_UP_MAX");
 	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
+	_params_handles.jerk_hor_max = param_find("MPC_JERK_HOR_MAX");
+	_params_handles.jerk_z_max = param_find("MPC_JERK_Z_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
@@ -643,6 +653,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
 		_params.acc_down_max = v;
+		param_get(_params_handles.jerk_hor_max, &v);
+		_params.jerk_hor_max = v;
+		param_get(_params_handles.jerk_z_max, &v);
+		_params.jerk_z_max = v;
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
 
@@ -652,7 +666,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
 		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
+		//_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
@@ -1340,23 +1354,22 @@ MulticopterPositionControl::control_offboard(float dt)
 }
 
 void
-MulticopterPositionControl::vel_sp_slewrate(float dt)
-{
-	math::Vector<3> acc = (_vel_sp - _vel_sp_prev) / dt;
-	float acc_xy_mag = sqrtf(acc(0) * acc(0) + acc(1) * acc(1));
+MulticopterPositionControl::setpoint_slewrate(math::Vector<3> &sp, const math::Vector<3> sp_prev, const float dt, const float max_xy, const float max_z){
 
-	/* limit total horizontal acceleration */
-	if (acc_xy_mag > _params.acc_hor_max) {
-		_vel_sp(0) = _params.acc_hor_max * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
-		_vel_sp(1) = _params.acc_hor_max * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
-	}
+	math::Vector<3> diff = (sp - sp_prev) / dt;
+	float diff_xy_mag = sqrtf(diff(0) * diff(0) + diff(1) * diff(1));
 
-	/* limit vertical acceleration */
-	float max_acc_z = acc(2) < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
+		/* limit total horizontal acceleration */
+		if (diff_xy_mag > max_xy) {
+			sp(0) = max_xy * diff(0) / diff_xy_mag * dt + sp_prev(0);
+			sp(1) = max_xy * diff(1) / diff_xy_mag * dt + sp_prev(1);
+		}
 
-	if (fabsf(acc(2)) > fabsf(max_acc_z)) {
-		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
-	}
+		/* limit vertical acceleration */
+		if (fabsf(diff(2)) > fabsf(max_z)) {
+			sp(2) = max_z * dt + sp_prev(2);
+		}
+
 }
 
 bool
@@ -1757,7 +1770,7 @@ MulticopterPositionControl::control_position(float dt)
 		_takeoff_thrust_sp = 0.0f;
 	}
 
-	vel_sp_slewrate(dt);
+	//vel_sp_slewrate(dt);
 
 	_vel_sp_prev = _vel_sp;
 
@@ -2032,6 +2045,16 @@ MulticopterPositionControl::control_position(float dt)
 
 			thrust_body_z = thr_max;
 		}
+
+
+
+
+		/* limit thrust jerk */
+		//MulticopterPositionControl::setpoint_slewrate(math::Vector<3> &sp, const math::Vector<3> sp_prev, const float dt, const float max_xy, const float max_z){
+		float max_jerk_z = ((thrust_sp(2) - _thrust_sp_prev(2))/dt) < 0.0f ? -_params.jerk_z_max: _params.jerk_z_max;
+		setpoint_slewrate(thrust_sp, _thrust_sp_prev, dt, _params.jerk_hor_max, max_jerk_z );
+
+		_thrust_sp_prev = thrust_sp;
 
 		_att_sp.thrust = math::max(thrust_body_z, thr_min);
 
