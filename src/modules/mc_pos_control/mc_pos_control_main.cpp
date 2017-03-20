@@ -211,7 +211,8 @@ private:
 		param_t hold_max_z;
 		param_t acc_hor_max;
 		param_t alt_mode;
-		param_t opt_recover;
+        param_t opt_recover;
+        param_t mass;       //AbV
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -237,6 +238,7 @@ private:
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
+        float mass;
 
 		int opt_recover;
 
@@ -515,6 +517,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
+    _params_handles.mass		= param_find("MPC_MASS");           //AbV
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -930,7 +933,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
+        req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
@@ -1058,6 +1061,10 @@ MulticopterPositionControl::control_offboard(float dt)
 
 		if (_pos_sp_triplet.current.yaw_valid) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+
+            _att_sp.roll_body = _pos_sp_triplet.current.a_x;    //AbV
+            _att_sp.pitch_body = _pos_sp_triplet.current.a_y;   //AbV
+
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
@@ -2293,8 +2300,46 @@ MulticopterPositionControl::task_main()
 		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
 		 * attitude setpoints for the transition).
         */
+        if (_control_mode.flag_control_voliro_auto_enabled)
+        {
+            math::Vector<3> pos_err = _pos_sp - _pos;
+              _vel_sp(0) = pos_err(0)*_params.pos_p(0) + _pos_err_d(0)*_params.pos_d(0)
+                              + vel_int(0);
+              _vel_sp(1) = pos_err(1)*_params.pos_p(1) + _pos_err_d(1)*_params.pos_d(1)
+                         + vel_int(1);
+              _vel_sp(2) = pos_err(2)*_params.pos_p(2) + _pos_err_d(2)*_params.pos_d(2)
+                         + vel_int(2);
+
+              math::Vector<3> vel_err = _vel_sp - _vel;
+              math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + thrust_int;
+              thrust_sp(2) -= _params.mass * ONE_G;
+
+              thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
+              thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
+              thrust_int(1) += vel_err(2) * _params.vel_i(2) * dt;
+              vel_int(0) += pos_err(0) * _params.pos_i(0) * dt;
+              vel_int(1) += pos_err(1) * _params.pos_i(1) * dt;
+              vel_int(2) += pos_err(2) * _params.pos_i(2) * dt;
 
 
+              _vol_thrust_sp.f[0]=thrust_sp(0); //added by voliro
+              _vol_thrust_sp.f[1]=thrust_sp(1); //added by voliro
+              _vol_thrust_sp.f[2]=thrust_sp(2); //added by voliro
+
+              _att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+              _att_sp.roll_body = _pos_sp_triplet.current.a_x;    //AbV
+              _att_sp.pitch_body = _pos_sp_triplet.current.a_y;   //AbV
+              _att_sp.thrust=sqrtf(_vol_thrust_sp.f[0]*_vol_thrust_sp.f[0]+_vol_thrust_sp.f[1]*_vol_thrust_sp.f[1]+_vol_thrust_sp.f[2]*_vol_thrust_sp.f[2]);
+
+              math::Matrix<3,3> R_vol;
+              R_vol.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+              math::Quaternion q_vol;
+              q_vol.from_dcm(R_vol);
+             _att_sp.q_d[0]=q_vol(0);
+             _att_sp.q_d[1]=q_vol(1);
+             _att_sp.q_d[2]=q_vol(2);
+             _att_sp.q_d[3]=q_vol(3);
+        }
 
 
 

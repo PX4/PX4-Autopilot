@@ -3553,6 +3553,7 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
+        control_mode.flag_control_voliro_auto_enabled = false;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
@@ -3569,7 +3570,8 @@ set_control_mode()
 		control_mode.flag_control_termination_enabled = false;
 		/* override is not ok in stabilized mode */
 		control_mode.flag_external_manual_override_ok = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
 		control_mode.flag_control_manual_enabled = true;
@@ -3583,7 +3585,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		control_mode.flag_control_manual_enabled = true;
@@ -3597,7 +3600,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		control_mode.flag_control_manual_enabled = true;
@@ -3611,7 +3615,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
@@ -3636,7 +3641,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 		control_mode.flag_control_manual_enabled = false;
@@ -3650,7 +3656,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		control_mode.flag_control_manual_enabled = true;
@@ -3664,7 +3671,8 @@ set_control_mode()
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		/* TODO: check if this makes sense */
@@ -3679,7 +3687,8 @@ set_control_mode()
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_termination_enabled = false;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		/* disable all controllers on termination */
@@ -3694,12 +3703,14 @@ set_control_mode()
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_termination_enabled = true;
-		break;
+        control_mode.flag_control_voliro_auto_enabled = false;
+        break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_offboard_enabled = true;
+        control_mode.flag_control_voliro_auto_enabled = false;
 
 		/*
 		 * The control flags depend on what is ignored according to the offboard control mode topic
@@ -3736,6 +3747,21 @@ set_control_mode()
 
 		break;
 
+    case vehicle_status_s::NAVIGATION_STATE_VOL_AUTO:
+        /* Voliro Auto */
+        control_mode.flag_control_manual_enabled = false;
+        control_mode.flag_control_auto_enabled = false;
+        control_mode.flag_control_rates_enabled = false;
+        control_mode.flag_control_attitude_enabled = false;
+        control_mode.flag_control_rattitude_enabled = false;
+        control_mode.flag_control_position_enabled = false;
+        control_mode.flag_control_velocity_enabled = false;
+        control_mode.flag_control_acceleration_enabled = false;
+        control_mode.flag_control_altitude_enabled = false;
+        control_mode.flag_control_climb_rate_enabled = false;
+        control_mode.flag_control_termination_enabled = false;
+        control_mode.flag_control_voliro_auto_enabled = true;
+        break;
 	default:
 		break;
 	}
