@@ -1,4 +1,4 @@
-/****************************************************************************
+voliro_pos_control/****************************************************************************
  *
  *   Copyright (c) 2013 - 2016 PX4 Development Team. All rights reserved.
  *
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_pos_control_main.cpp
+ * @file voliro_pos_control_main.cpp
  * Multicopter position controller.
  *
  * Original publication for the desired attitude generation:
@@ -98,7 +98,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int voliro_pos_control_main(int argc, char *argv[]);
 
 class MulticopterPositionControl : public control::SuperBlock
 {
@@ -2400,7 +2400,7 @@ MulticopterPositionControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("mc_pos_control",
+	_control_task = px4_task_spawn_cmd("voliro_pos_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
 					   1900,
@@ -2415,10 +2415,10 @@ MulticopterPositionControl::start()
 	return OK;
 }
 
-int mc_pos_control_main(int argc, char *argv[])
+int voliro_pos_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: mc_pos_control {start|stop|status}");
+		warnx("usage: voliro_pos_control {start|stop|status}");
 		return 1;
 	}
 

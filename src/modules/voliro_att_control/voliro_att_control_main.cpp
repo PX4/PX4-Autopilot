@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.cpp
+ * @file voliro_att_control_main.cpp
  * Multicopter attitude controller.
  *
  * Publication for the desired attitude tracking:
@@ -97,7 +97,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int voliro_att_control_main(int argc, char *argv[]);
 
 #define YAW_DEADZONE	0.05f
 #define MIN_TAKEOFF_THRUST    0.2f
@@ -527,7 +527,7 @@ private:
 
 
 
-namespace mc_att_control
+namespace voliro_att_control
 {
 
 MulticopterAttitudeControl	*g_control;
@@ -563,7 +563,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "voliro_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_ts_opt_recovery(nullptr)
 
@@ -706,7 +706,7 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 		delete _ts_opt_recovery;
 	}
 
-	mc_att_control::g_control = nullptr;
+	voliro_att_control::g_control = nullptr;
 }
 
 
@@ -1337,7 +1337,7 @@ MulticopterAttitudeControl::control_allocation(float dt)
 void
 MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
-	mc_att_control::g_control->task_main();
+	voliro_att_control::g_control->task_main();
 }
 
 void
@@ -1705,7 +1705,7 @@ MulticopterAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("mc_att_control",
+	_control_task = px4_task_spawn_cmd("voliro_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
 					   1500,
@@ -1720,30 +1720,30 @@ MulticopterAttitudeControl::start()
 	return OK;
 }
 
-int mc_att_control_main(int argc, char *argv[])
+int voliro_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: mc_att_control {start|stop|status}");
+		warnx("usage: voliro_att_control {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (mc_att_control::g_control != nullptr) {
+		if (voliro_att_control::g_control != nullptr) {
 			warnx("already running");
 			return 1;
 		}
 
-		mc_att_control::g_control = new MulticopterAttitudeControl;
+		voliro_att_control::g_control = new MulticopterAttitudeControl;
 
-		if (mc_att_control::g_control == nullptr) {
+		if (voliro_att_control::g_control == nullptr) {
 			warnx("alloc failed");
 			return 1;
 		}
 
-		if (OK != mc_att_control::g_control->start()) {
-			delete mc_att_control::g_control;
-			mc_att_control::g_control = nullptr;
+		if (OK != voliro_att_control::g_control->start()) {
+			delete voliro_att_control::g_control;
+			voliro_att_control::g_control = nullptr;
 			warnx("start failed");
 			return 1;
 		}
@@ -1752,18 +1752,18 @@ int mc_att_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (mc_att_control::g_control == nullptr) {
+		if (voliro_att_control::g_control == nullptr) {
 			warnx("not running");
 			return 1;
 		}
 
-		delete mc_att_control::g_control;
-		mc_att_control::g_control = nullptr;
+		delete voliro_att_control::g_control;
+		voliro_att_control::g_control = nullptr;
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (mc_att_control::g_control) {
+		if (voliro_att_control::g_control) {
 			warnx("running");
 			return 0;
 
