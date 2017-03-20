@@ -88,20 +88,6 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
 
 /**
- * ALTCTL throttle curve breakpoint height
- *
- * Controls the slope of the reduced sensitivity region.
- * This is the height of the ALTCTL throttle
- * curve at center-dz and center+dz.
- *
- * @min 0.0
- * @max 0.2
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ALTCTL_DY, 0.0f);
-
-/**
  * Maximum thrust in auto thrust control
  *
  * Limit max allowed thrust. Setting a value of one can put
@@ -509,3 +495,19 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
+
+/**
+ * Manual control stick vertical exponential curve
+ *
+ * The higher the value the less sensitivity the stick has around zero
+ * while still reaching the maximum value with full stick deflection.
+ *
+ * 0 Purely linear input curve (default)
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);

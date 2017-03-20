@@ -164,6 +164,7 @@ private:
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
 	control::BlockParamFloat _manual_land_alt;
+	control::BlockParamFloat _z_vel_man_expo;
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -174,7 +175,6 @@ private:
 		param_t thr_max;
 		param_t thr_hover;
 		param_t alt_ctl_dz;
-		param_t alt_ctl_dy;
 		param_t z_p;
 		param_t z_vel_p;
 		param_t z_vel_i;
@@ -215,7 +215,6 @@ private:
 		float thr_max;
 		float thr_hover;
 		float alt_ctl_dz;
-		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
 		float tko_speed;
@@ -315,7 +314,6 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	static float	scale_control(float ctl, float end, float dz, float dy);
 	static float    throttle_curve(float ctl, float ctr);
 
 	/**
@@ -434,6 +432,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
+	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -492,7 +491,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
 	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
-	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
 	_params_handles.z_p		= param_find("MPC_Z_P");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
@@ -578,7 +576,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
 		_params.thr_hover = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
 		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
-		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
@@ -817,25 +814,6 @@ MulticopterPositionControl::poll_subscriptions()
 }
 
 float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
-{
-	if (ctl > dz) {
-		return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
-
-	} else if (ctl < -dz) {
-		return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
-
-	} else {
-		if (dz < FLT_EPSILON) {
-			return 0;
-
-		} else {
-			return ctl * (dy / dz);
-		}
-	}
-}
-
-float
 MulticopterPositionControl::throttle_curve(float ctl, float ctr)
 {
 	/* piecewise linear mapping: 0:ctr -> 0:0.5
@@ -965,7 +943,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp_z = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
+		req_vel_sp_z = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _params.alt_ctl_dz);
 
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
@@ -1015,7 +993,7 @@ MulticopterPositionControl::control_manual(float dt)
 	if (_alt_hold_engaged) {
 
 		/* only switch back to velocity control if user moves stick */
-		_alt_hold_engaged = _control_mode.flag_control_altitude_enabled && (fabsf(req_vel_sp_z) < _params.hold_z_dz);
+		_alt_hold_engaged = _control_mode.flag_control_altitude_enabled && (fabsf(req_vel_sp_z) < FLT_EPSILON);
 
 	} else {
 
