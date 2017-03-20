@@ -174,7 +174,6 @@ private:
 		float y_i;
 		float y_ff;
 		float y_integrator_max;
-		float y_coordinated_min_speed;
 		float roll_to_yaw_ff;
 		int32_t y_coordinated_method;
 		float y_rmax;
@@ -226,7 +225,6 @@ private:
 		param_t y_i;
 		param_t y_ff;
 		param_t y_integrator_max;
-		param_t y_coordinated_min_speed;
 		param_t roll_to_yaw_ff;
 		param_t y_coordinated_method;
 		param_t y_rmax;
@@ -422,7 +420,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.airspeed_trim = param_find("GND_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
 
-	_parameter_handles.y_coordinated_min_speed = param_find("GND_YCO_VMIN");
 	_parameter_handles.y_coordinated_method = param_find("GND_YCO_METHOD");
 
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
@@ -498,7 +495,6 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_i, &(_parameters.y_i));
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_coordinated_min_speed, &(_parameters.y_coordinated_min_speed));
 	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
@@ -554,7 +550,6 @@ GroundRoverAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_i(_parameters.y_i);
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
 	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 

@@ -405,21 +405,6 @@ PARAM_DEFINE_FLOAT(GND_YR_FF, 0.0f);
 PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
 
 /**
- * Minimal speed for yaw coordination
- *
- * For airspeeds above this value, the yaw rate is calculated for a coordinated
- * turn. Set to a very high value to disable.
- *
- * @unit m/s
- * @min 0.0
- * @max 1000.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_YCO_VMIN, 1000.0f);
-
-/**
  * Method used for yaw coordination
  *
  * The param value sets the method used to calculate the yaw rate
