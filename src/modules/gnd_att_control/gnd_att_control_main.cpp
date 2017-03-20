@@ -208,8 +208,6 @@ private:
 		float flaps_scale;				/**< Scale factor for flaps */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
-		float rattitude_thres;
-
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int bat_scale_en;			/**< Battery scaling enabled */
@@ -266,8 +264,6 @@ private:
 
 		param_t flaps_scale;
 		param_t flaperon_scale;
-
-		param_t rattitude_thres;
 
 		param_t vtol_type;
 
@@ -462,8 +458,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.flaps_scale = param_find("GND_FLAPS_SCL");
 	_parameter_handles.flaperon_scale = param_find("GND_FLAPERON_SCL");
 
-	_parameter_handles.rattitude_thres = param_find("GND_RATT_TH");
-
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	_parameter_handles.bat_scale_en = param_find("GND_BAT_SCALE_EN");
@@ -564,8 +558,6 @@ GroundRoverAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
-
-	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -841,8 +833,8 @@ GroundRoverAttitudeControl::task_main()
 				//warnx("_actuators_airframe.control[1] = 1.0f;");
 			} 
 
-			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
+			/* if we are in rotary wing mode or vehicle is vtol do nothing */
+			if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
 				continue;
 			}
 
@@ -888,13 +880,6 @@ GroundRoverAttitudeControl::task_main()
 				_flaperons_applied = flaperon_control;
 			}
 
-			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual.y) > _parameters.rattitude_thres ||
-				    fabsf(_manual.x) > _parameters.rattitude_thres) {
-					_vcontrol_mode.flag_control_attitude_enabled = false;
-				}
-			}
 
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {

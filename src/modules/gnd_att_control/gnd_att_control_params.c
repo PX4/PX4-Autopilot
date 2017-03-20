@@ -629,17 +629,3 @@ PARAM_DEFINE_FLOAT(GND_ACRO_Y_MAX, 90);
  * @group GND Attitude Control
  */
 PARAM_DEFINE_FLOAT(GND_ACRO_Z_MAX, 45);
-
-/**
- * Threshold for Rattitude mode
- *
- * Manual input needed in order to override attitude control rate setpoints
- * and instead pass manual stick inputs as rate setpoints
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RATT_TH, 0.8f);
