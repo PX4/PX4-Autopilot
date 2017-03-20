@@ -1459,7 +1459,8 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		float cruising_speed_xy = (_pos_sp_triplet.current.cruising_speed > 0.1f) ?
+		float cruising_speed_xy = (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed)
+					   && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
 					  _pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy ;
 		float cruising_speed_z = (curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
 
