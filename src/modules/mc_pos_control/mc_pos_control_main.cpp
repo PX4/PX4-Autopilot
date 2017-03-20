@@ -174,7 +174,6 @@ private:
 		param_t thr_min;
 		param_t thr_max;
 		param_t thr_hover;
-		param_t alt_ctl_dz;
 		param_t z_p;
 		param_t z_vel_p;
 		param_t z_vel_i;
@@ -198,8 +197,7 @@ private:
 		param_t man_yaw_max;
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
-		param_t hold_xy_dz;
-		param_t hold_z_dz;
+		param_t hold_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
@@ -214,7 +212,6 @@ private:
 		float thr_min;
 		float thr_max;
 		float thr_hover;
-		float alt_ctl_dz;
 		float tilt_max_air;
 		float land_speed;
 		float tko_speed;
@@ -224,8 +221,7 @@ private:
 		float man_yaw_max;
 		float global_yaw_max;
 		float mc_att_yaw_p;
-		float hold_xy_dz;
-		float hold_z_dz;
+		float hold_dz;
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
@@ -490,7 +486,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
-	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
 	_params_handles.z_p		= param_find("MPC_Z_P");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
@@ -514,8 +509,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
-	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
+	_params_handles.hold_dz = param_find("MPC_HOLD_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
@@ -575,7 +569,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
 		_params.thr_hover = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
-		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
@@ -620,12 +613,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
-		param_get(_params_handles.hold_xy_dz, &v);
+		param_get(_params_handles.hold_dz, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_xy_dz = v;
-		param_get(_params_handles.hold_z_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_z_dz = v;
+		_params.hold_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -943,7 +933,7 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp_z = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _params.alt_ctl_dz);
+		req_vel_sp_z = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _params.hold_dz);
 
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
@@ -951,8 +941,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_xy_dz);
-		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_xy_dz);
+		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_dz);
+		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_dz);
 
 		/* saturarate such that magnitude is never larger than 1 */
 		if (req_vel_sp_xy.length() > 1.0f) {
