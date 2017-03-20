@@ -280,6 +280,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_logging_ack(msg);
 		break;
 
+	case MAVLINK_MSG_ID_VOLIRO_AO:
+    handle_message_voliro_ao_msg(msg);
+	  break;
+
 	default:
 		break;
 	}
@@ -371,10 +375,14 @@ MavlinkReceiver::handle_message_voliro_ao_msg(mavlink_message_t *msg)
 
 		for (int i = 0; i < 6; ++i){
 			f.alpha[i] = volo.alpha[i];
+			f.omega[i] = volo.omega[i];
 		}
 
     if (_voliro_ao_pub == nullptr) {
         _voliro_ao_pub = orb_advertise(ORB_ID(voliro_ao), &f);
+
+	// TEMPORARY !@!@!@!@ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@!@!@!@!@!@!@!@! TEMPORARY!
+				//_voliro_ao_pub = orb_advertise(ORB_ID(alphaomega), &f);
 
     } else {
         orb_publish(ORB_ID(voliro_ao), _voliro_ao_pub, &f);
