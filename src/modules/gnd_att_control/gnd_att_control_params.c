@@ -45,23 +45,6 @@
  *
  */
 
-/**
- * Attitude Roll Time Constant
- *
- * This defines the latency between a roll step input and the achieved setpoint
- * (inverse to a P gain). Half a second is a good start value and fits for
- * most average systems. Smaller systems may require smaller values, but as
- * this will wear out servos faster, the value should only be decreased as
- * needed.
- *
- * @unit s
- * @min 0.4
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_R_TC, 0.4f);
 
 /**
  * Attitude Pitch Time Constant
@@ -155,63 +138,7 @@ PARAM_DEFINE_FLOAT(GND_P_RMAX_NEG, 60.0f);
  */
 PARAM_DEFINE_FLOAT(GND_PR_IMAX, 0.0f);
 
-/**
- * Roll rate proportional Gain
- *
- * This defines how much the aileron input will be commanded depending on the
- * current body angular rate error.
- *
- * @unit %/rad/s
- * @min 0.005
- * @max 1.0
- * @decimal 3
- * @increment 0.005
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RR_P, 0.7f);
 
-/**
- * Roll rate integrator Gain
- *
- * This gain defines how much control response will result out of a steady
- * state error. It trims any constant error.
- *
- * @unit %/rad
- * @min 0.005
- * @max 0.2
- * @decimal 3
- * @increment 0.005
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RR_I, 0.005f);
-
-/**
- * Roll Integrator Anti-Windup
- *
- * The portion of the integrator part in the control surface deflection is limited to this value.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RR_IMAX, 0.0f);
-
-/**
- * Maximum Roll Rate
- *
- * This limits the maximum roll rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
- *
- * @unit deg/s
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_R_RMAX, 70.0f);
 
 /**
  * Yaw rate proportional gain
@@ -273,21 +200,6 @@ PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.0f);
 PARAM_DEFINE_FLOAT(GND_Y_RMAX, 90.0f);
 
 /**
- * Roll control to yaw control feedforward gain.
- *
- * This gain can be used to counteract the "adverse yaw" effect for fixed wings.
- * When the plane enters a roll it will tend to yaw the nose out of the turn.
- * This gain enables the use of a yaw actuator (rudder, airbrakes, ...) to counteract
- * this effect.
- *
- * @min 0.0
- * @decimal 1
- * @increment 0.01
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RL_TO_YAW_FF, 0.0f);
-
-/**
  * Wheel steering rate proportional gain
  *
  * This defines how much the wheel steering input will be commanded depending on the
@@ -347,22 +259,6 @@ PARAM_DEFINE_FLOAT(GND_WR_IMAX, 0.0f);
 PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
 
 /**
- * Roll rate feed forward
- *
- * Direct feed forward from rate setpoint to control surface output. Use this
- * to obtain a tigher response of the controller without introducing
- * noise amplification.
- *
- * @unit %/rad/s
- * @min 0.0
- * @max 10.0
- * @decimal 2
- * @increment 0.05
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RR_FF, 0.0f);
-
-/**
  * Pitch rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output
@@ -405,22 +301,6 @@ PARAM_DEFINE_FLOAT(GND_YR_FF, 0.0f);
 PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
 
 /**
- * Roll Setpoint Offset
- *
- * An airframe specific offset of the roll setpoint in degrees, the value is
- * added to the roll setpoint and should correspond to the typical cruise speed
- * of the airframe.
- *
- * @unit deg
- * @min -90.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_RSP_OFF, 0.0f);
-
-/**
  * Pitch Setpoint Offset
  *
  * An airframe specific offset of the pitch setpoint in degrees, the value is
@@ -435,20 +315,6 @@ PARAM_DEFINE_FLOAT(GND_RSP_OFF, 0.0f);
  * @group GND Attitude Control
  */
 PARAM_DEFINE_FLOAT(GND_PSP_OFF, 0.0f);
-
-/**
- * Max Manual Roll
- *
- * Max roll for manual control in attitude stabilized mode
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_MAN_R_MAX, 90.0f);
 
 /**
  * Max Manual Pitch
@@ -479,21 +345,6 @@ PARAM_DEFINE_FLOAT(GND_MAN_P_MAX, 90.0f);
  * @group GND Attitude Control
  */
 PARAM_DEFINE_INT32(GND_ARSP_MODE, 0);
-
-/**
- * Manual roll scale
- *
- * Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
- * to adjust the throws of the control surfaces.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_MAN_R_SC, 1.0f);
 
 /**
  * Manual pitch scale

@@ -164,17 +164,10 @@ private:
 		float p_rmax_pos;
 		float p_rmax_neg;
 		float p_integrator_max;
-		float r_tc;
-		float r_p;
-		float r_i;
-		float r_ff;
-		float r_integrator_max;
-		float r_rmax;
 		float y_p;
 		float y_i;
 		float y_ff;
 		float y_integrator_max;
-		float roll_to_yaw_ff;
 		float y_rmax;
 		float w_p;
 		float w_i;
@@ -214,17 +207,10 @@ private:
 		param_t p_rmax_pos;
 		param_t p_rmax_neg;
 		param_t p_integrator_max;
-		param_t r_tc;
-		param_t r_p;
-		param_t r_i;
-		param_t r_ff;
-		param_t r_integrator_max;
-		param_t r_rmax;
 		param_t y_p;
 		param_t y_i;
 		param_t y_ff;
 		param_t y_integrator_max;
-		param_t roll_to_yaw_ff;
 		param_t y_rmax;
 		param_t w_p;
 		param_t w_i;
@@ -259,7 +245,6 @@ private:
 	float _pitch;
 	float _yaw;
 
-	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			    _wheel_ctrl;
@@ -394,19 +379,11 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.p_rmax_neg = param_find("GND_P_RMAX_NEG");
 	_parameter_handles.p_integrator_max = param_find("GND_PR_IMAX");
 
-	_parameter_handles.r_tc = param_find("GND_R_TC");
-	_parameter_handles.r_p = param_find("GND_RR_P");
-	_parameter_handles.r_i = param_find("GND_RR_I");
-	_parameter_handles.r_ff = param_find("GND_RR_FF");
-	_parameter_handles.r_integrator_max = param_find("GND_RR_IMAX");
-	_parameter_handles.r_rmax = param_find("GND_R_RMAX");
-
 	_parameter_handles.y_p = param_find("GND_YR_P");
 	_parameter_handles.y_i = param_find("GND_YR_I");
 	_parameter_handles.y_ff = param_find("GND_YR_FF");
 	_parameter_handles.y_integrator_max = param_find("GND_YR_IMAX");
 	_parameter_handles.y_rmax = param_find("GND_Y_RMAX");
-	_parameter_handles.roll_to_yaw_ff = param_find("GND_RL_TO_YAW_FF");
 
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
@@ -479,20 +456,11 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
 	param_get(_parameter_handles.p_integrator_max, &(_parameters.p_integrator_max));
 
-	param_get(_parameter_handles.r_tc, &(_parameters.r_tc));
-	param_get(_parameter_handles.r_p, &(_parameters.r_p));
-	param_get(_parameter_handles.r_i, &(_parameters.r_i));
-	param_get(_parameter_handles.r_ff, &(_parameters.r_ff));
-
-	param_get(_parameter_handles.r_integrator_max, &(_parameters.r_integrator_max));
-	param_get(_parameter_handles.r_rmax, &(_parameters.r_rmax));
-
 	param_get(_parameter_handles.y_p, &(_parameters.y_p));
 	param_get(_parameter_handles.y_i, &(_parameters.y_i));
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
-	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
 
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
@@ -531,14 +499,6 @@ GroundRoverAttitudeControl::parameters_update()
 	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
 	_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 	_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
-
-	/* roll control parameters */
-	_roll_ctrl.set_time_constant(_parameters.r_tc);
-	_roll_ctrl.set_k_p(_parameters.r_p);
-	_roll_ctrl.set_k_i(_parameters.r_i);
-	_roll_ctrl.set_k_ff(_parameters.r_ff);
-	_roll_ctrl.set_integrator_max(_parameters.r_integrator_max);
-	_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 
 	/* yaw control parameters */
 	_yaw_ctrl.set_k_p(_parameters.y_p);
@@ -891,11 +851,6 @@ GroundRoverAttitudeControl::task_main()
 					yaw_manual = _manual.r;
 				}
 
-				/* reset integrals where needed */
-				if (_att_sp.roll_reset_integral) {
-					_roll_ctrl.reset_integrator();
-				}
-
 				if (_att_sp.pitch_reset_integral) {
 					_pitch_ctrl.reset_integrator();
 				}
@@ -911,7 +866,6 @@ GroundRoverAttitudeControl::task_main()
 				if (_vehicle_land_detected.landed
 				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
-					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
 					_yaw_ctrl.reset_integrator();
 					_wheel_ctrl.reset_integrator();
@@ -939,29 +893,13 @@ GroundRoverAttitudeControl::task_main()
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
-						_roll_ctrl.control_attitude(control_input);
 						_pitch_ctrl.control_attitude(control_input);
 						_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
 						_wheel_ctrl.control_attitude(control_input);
 
 						/* Update input data for rate controllers */
-						control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
 						control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 						control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
-
-						/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-						float roll_u = _roll_ctrl.control_euler_rate(control_input);
-						_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll :
-								_parameters.trim_roll;
-
-						if (!PX4_ISFINITE(roll_u)) {
-							_roll_ctrl.reset_integrator();
-							perf_count(_nonfinite_output_perf);
-
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("roll_u %.4f", (double)roll_u);
-							}
-						}
 
 						float pitch_u = _pitch_ctrl.control_euler_rate(control_input);
 						_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch :
@@ -975,13 +913,11 @@ GroundRoverAttitudeControl::task_main()
 								warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 								      " airspeed %.4f, airspeed_scaling %.4f,"
 								      " roll_sp %.4f, pitch_sp %.4f,"
-								      " _roll_ctrl.get_desired_rate() %.4f,"
 								      " _pitch_ctrl.get_desired_rate() %.4f"
 								      " att_sp.roll_body %.4f",
 								      (double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
 								      (double)airspeed, (double)airspeed_scaling,
 								      (double)roll_sp, (double)pitch_sp,
-								      (double)_roll_ctrl.get_desired_rate(),
 								      (double)_pitch_ctrl.get_desired_rate(),
 								      (double)_att_sp.roll_body);
 							}
@@ -1052,7 +988,6 @@ GroundRoverAttitudeControl::task_main()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
 				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
 				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
 
