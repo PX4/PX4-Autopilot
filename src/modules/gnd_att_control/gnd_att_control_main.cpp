@@ -803,15 +803,8 @@ GroundRoverAttitudeControl::task_main()
 					yaw_manual = _manual.r;
 				}
 
-				if (_att_sp.yaw_reset_integral) {
-					_yaw_ctrl.reset_integrator();
-					_wheel_ctrl.reset_integrator();
-				}
-
-				/* Reset integrators if the aircraft is on ground
-				 * or a multicopter (but not transitioning VTOL)
-				 */
-				if (_vehicle_land_detected.landed
+				if (_att_sp.yaw_reset_integral
+					|| _vehicle_land_detected.landed
 				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
 					_yaw_ctrl.reset_integrator();
@@ -847,25 +840,17 @@ GroundRoverAttitudeControl::task_main()
 						control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 						// TODO: implement a PID here.
-						float yaw_error = _wrap_pi(control_input.yaw_setpoint - control_input.yaw);
+						// float yaw_error = _wrap_pi(control_input.yaw_setpoint - control_input.yaw);
 						//warnx("yaw_error: %.4f ", (double) yaw_error);
-						float yaw_u = _parameters.w_p * yaw_error;
+						// float yaw_u = _parameters.w_p * yaw_error;
 
-						//float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+						float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 						//warnx("yaw_u: %.4f", (double)yaw_u);
-
-						// float yaw_u = 0.0f;
-						// if (_att_sp.fw_control_yaw == true) {
-						// 	yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-
-						// } else {
-						// 	yaw_u = _yaw_ctrl.control_euler_rate(control_input);
-						// }
 
 						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 								_parameters.trim_yaw;
 
-						/* add in manual rudder control */
+						/* add in manual steering control */
 						_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
 
 						if (!PX4_ISFINITE(yaw_u)) {
@@ -889,7 +874,6 @@ GroundRoverAttitudeControl::task_main()
 						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 						}
-
 
 						if (!PX4_ISFINITE(throttle_sp)) {
 							if (_debug && loop_counter % 10 == 0) {
