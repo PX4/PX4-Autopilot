@@ -72,22 +72,6 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
- * ALTCTL throttle curve breakpoint
- *
- * Halfwidth of deadband or reduced sensitivity center portion of curve.
- * This is the halfwidth of the center region of the ALTCTL throttle
- * curve. It extends from center-dz to center+dz.
- *
- * @unit norm
- * @min 0.0
- * @max 0.2
- * @decimal 2
- * @increment 0.05
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ALTCTL_DZ, 0.1f);
-
-/**
  * Maximum thrust in auto thrust control
  *
  * Limit max allowed thrust. Setting a value of one can put
@@ -380,25 +364,14 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
 PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 
 /**
- * Deadzone of X,Y sticks where position hold is enabled
+ * Deadzone of sticks where position hold is enabled
  *
  * @min 0.0
  * @max 1.0
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
-
-
-/**
- * Deadzone of Z stick where altitude hold is enabled
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_HOLD_Z_DZ, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
 
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
