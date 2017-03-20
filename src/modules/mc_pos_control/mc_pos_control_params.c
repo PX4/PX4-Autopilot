@@ -214,16 +214,6 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
  * @max 4.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 1.0f);
-
-/**
- * Transitional support, do not change / use
- *
- * @unit m/s
- * @min 0.5
- * @max 4.0
- * @group Multicopter Position Control
- */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 
 /**
