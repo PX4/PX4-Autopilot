@@ -229,8 +229,6 @@ private:
 
 	// Rotation matrix and euler angles to extract from control state
 	math::Matrix<3, 3> _R;
-	float _roll;
-	float _pitch;
 	float _yaw;
 
 	ECL_YawController				_yaw_ctrl;
@@ -341,8 +339,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_debug(false),
 	_flaps_applied(0),
 	_flaperons_applied(0),
-	_roll(0.0f),
-	_pitch(0.0f),
 	_yaw(0.0f)
 {
 	/* safely initialize structs */
@@ -678,8 +674,6 @@ GroundRoverAttitudeControl::task_main()
 
 			math::Vector<3> euler_angles;
 			euler_angles = _R.to_euler();
-			_roll    = euler_angles(0);
-			_pitch   = euler_angles(1);
 			_yaw     = euler_angles(2);
 
 			vehicle_setpoint_poll();
@@ -762,17 +756,7 @@ GroundRoverAttitudeControl::task_main()
 					/* prevent numerical drama by setting 0.01 m/s minimal speed */
 					airspeed = math::max(0.01f, _ctrl_state.airspeed);
 				}
-				// warnx("airspd: %.4f", (double)airspeed);
-				//airspeed = 0.0f;
-				/*
-				 * For scaling our actuators using anything less than the min (close to stall)
-				 * speed doesn't make any sense - its the strongest reasonable deflection we
-				 * want to do in flight and its the baseline a human pilot would choose.
-				 *
-				 * Forcing the scaling to this value allows reasonable handheld tests.
-				 */
-				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
-							 airspeed);
+
 
 				/* Use min airspeed to calculate ground speed scaling region.
 				 * Don't scale below gspd_scaling_trim
@@ -784,32 +768,10 @@ GroundRoverAttitudeControl::task_main()
 				float gspd_scaling_trim = _parameters.gspd_scaling_trim;
 				float groundspeed_scaler =  gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
-				float roll_sp = _parameters.rollsp_offset_rad;
-				float pitch_sp = _parameters.pitchsp_offset_rad;
 				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
-
-				// in STABILIZED mode we need to generate the attitude setpoint
-				// from manual user inputs
-				if (!_vcontrol_mode.flag_control_climb_rate_enabled && !_vcontrol_mode.flag_control_offboard_enabled) {
-					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
-					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
-					_att_sp.yaw_body = 0.0f;
-					_att_sp.thrust = _manual.z;
-
-					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-					q.copyTo(_att_sp.q_d);
-					_att_sp.q_d_valid = true;
-
-					int instance;
-					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
-				}
-
-				roll_sp = _att_sp.roll_body;
-				pitch_sp = _att_sp.pitch_body;
+	
 				yaw_sp = _att_sp.yaw_body;
 				throttle_sp = _att_sp.thrust;
 
@@ -828,84 +790,67 @@ GroundRoverAttitudeControl::task_main()
 
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
-				control_input.roll = _roll;
-				control_input.pitch = _pitch;
+				control_input.roll = 0.0f;//_roll;
+				control_input.pitch = 0.0f;//_pitch;
 				control_input.yaw = _yaw;
 				control_input.body_x_rate = _ctrl_state.roll_rate;
 				control_input.body_y_rate = _ctrl_state.pitch_rate;
 				control_input.body_z_rate = _ctrl_state.yaw_rate;
-				control_input.roll_setpoint = roll_sp;
-				control_input.pitch_setpoint = pitch_sp;
+				control_input.roll_setpoint = 0.0f;
+				control_input.pitch_setpoint = 0.0f;
 				control_input.yaw_setpoint = yaw_sp;
 				control_input.airspeed_min = _parameters.airspeed_min;
 				control_input.airspeed_max = _parameters.airspeed_max;
 				control_input.airspeed = airspeed;
-				control_input.scaler = airspeed_scaling;
+				control_input.scaler = 0.0f;//airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
 
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
-					if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
-						_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
-						_wheel_ctrl.control_attitude(control_input);
+					_yaw_ctrl.control_attitude(control_input);
+					_wheel_ctrl.control_attitude(control_input);
 
-						/* Update input data for rate controllers */
-						control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
+					/* Update input data for rate controllers */
+					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
-						// TODO: implement a PID here.
-						// float yaw_error = _wrap_pi(control_input.yaw_setpoint - control_input.yaw);
-						//warnx("yaw_error: %.4f ", (double) yaw_error);
-						// float yaw_u = _parameters.w_p * yaw_error;
+					float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
+					//warnx("yaw_u: %.4f", (double)yaw_u);
 
-						// warnx("body_z_rate: %.4f | groundspeed: %.4f | groundspeed_scaler: %.4f", (double)control_input.body_z_rate, (double)groundspeed, (double)groundspeed_scaler);
+					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
+							_parameters.trim_yaw;
 
-						float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-						//warnx("yaw_u: %.4f", (double)yaw_u);
+					/* add in manual steering control */
+					_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
 
-						_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
-								_parameters.trim_yaw;
-
-						/* add in manual steering control */
-						_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
-
-						if (!PX4_ISFINITE(yaw_u)) {
-							_yaw_ctrl.reset_integrator();
-							_wheel_ctrl.reset_integrator();
-							perf_count(_nonfinite_output_perf);
-
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("yaw_u %.4f", (double)yaw_u);
-							}
-						}
-
-						/* throttle passed through if it is finite and if no engine failure was detected */
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
-								!(_vehicle_status.engine_failure ||
-								  _vehicle_status.engine_failure_cmd)) ?
-								throttle_sp : 0.0f;
-
-						/* scale effort by battery status */
-						if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
-						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
-							_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
-						}
-
-						if (!PX4_ISFINITE(throttle_sp)) {
-							if (_debug && loop_counter % 10 == 0) {
-								warnx("throttle_sp %.4f", (double)throttle_sp);
-							}
-						}
-
-					} else {
-						perf_count(_nonfinite_input_perf);
+					if (!PX4_ISFINITE(yaw_u)) {
+						_yaw_ctrl.reset_integrator();
+						_wheel_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
+							warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
 
+					/* throttle passed through if it is finite and if no engine failure was detected */
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
+							!(_vehicle_status.engine_failure ||
+							  _vehicle_status.engine_failure_cmd)) ?
+							throttle_sp : 0.0f;
+
+					/* scale effort by battery status */
+					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
+					    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
+					}
+
+					if (!PX4_ISFINITE(throttle_sp)) {
+						if (_debug && loop_counter % 10 == 0) {
+							warnx("throttle_sp %.4f", (double)throttle_sp);
+						}
+					}
 				}
 
 				/*
