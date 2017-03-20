@@ -880,7 +880,6 @@ GroundRoverAttitudeControl::task_main()
 				_flaperons_applied = flaperon_control;
 			}
 
-
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 				/* scale around tuning airspeed */
@@ -897,7 +896,7 @@ GroundRoverAttitudeControl::task_main()
 					}
 
 				} else {
-					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+					/* prevent numerical drama by setting 0.01 m/s minimal speed */
 					airspeed = math::max(0.01f, _ctrl_state.airspeed);
 				}
 				// warnx("airspd: %.4f", (double)airspeed);
@@ -1164,17 +1163,6 @@ GroundRoverAttitudeControl::task_main()
 				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
-
-			// Add feed-forward from roll control output to yaw control output
-			// This can be used to counteract the adverse yaw effect when rolling the plane
-			_actuators.control[actuator_controls_s::INDEX_YAW] += _parameters.roll_to_yaw_ff * math::constrain(
-						_actuators.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
-
-			_actuators.control[actuator_controls_s::INDEX_FLAPS] = _flaps_applied;
-			_actuators.control[5] = _manual.aux1;
-			_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = _flaperons_applied;
-			// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
-			_actuators.control[7] = _manual.aux3;
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
