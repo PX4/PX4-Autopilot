@@ -111,7 +111,7 @@ PARAM_DEFINE_FLOAT(GND_THR_SLEW_MAX, 0.0f);
  * @increment 0.5
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -45.0f);
+PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -20.0f);
 
 /**
  * Positive pitch limit
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -45.0f);
  * @increment 0.5
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 20.0f);
 
 /**
  * Controller roll limit
