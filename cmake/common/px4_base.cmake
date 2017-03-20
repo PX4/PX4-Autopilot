@@ -797,6 +797,7 @@ function(px4_add_common_flags)
 			-ffunction-sections
 			-fdata-sections
 			${PIC_FLAG}
+			-ffast-math
 			)
 	endif()
 

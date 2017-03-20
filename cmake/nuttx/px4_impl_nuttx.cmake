@@ -541,10 +541,12 @@ function(px4_os_add_flags)
 	set(added_c_flags
 		-nodefaultlibs
 		-nostdlib
+		-ffast-math
 		)
 	set(added_cxx_flags
 		-nodefaultlibs
 		-nostdlib
+		-ffast-math
 		)
 
 	set(added_exe_linker_flags) # none currently
