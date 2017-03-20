@@ -194,3 +194,18 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
+
+/**
+ * L1 distance
+ *
+ * This is the waypoint radius
+ *
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group GND POS Control
+ */
+PARAM_DEFINE_FLOAT(GND_L1_DIST, 2.0f);

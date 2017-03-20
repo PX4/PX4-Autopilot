@@ -273,6 +273,7 @@ private:
 	struct {
 		float l1_period;
 		float l1_damping;
+		float l1_distance;
 
 		float time_const;
 		float time_const_throt;
@@ -324,6 +325,7 @@ private:
 
 		param_t l1_period;
 		param_t l1_damping;
+		param_t l1_distance;
 
 		param_t time_const;
 		param_t time_const_throt;
@@ -636,6 +638,8 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("GND_L1_DAMPING");
+	_parameter_handles.l1_distance = param_find("GND_L1_DIST");
+
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -714,6 +718,7 @@ GroundRoverPositionControl::parameters_update()
 	/* L1 control parameters */
 	param_get(_parameter_handles.l1_damping, &(_parameters.l1_damping));
 	param_get(_parameter_handles.l1_period, &(_parameters.l1_period));
+	param_get(_parameter_handles.l1_distance, &(_parameters.l1_distance));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
@@ -1833,7 +1838,7 @@ GroundRoverPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _gnd_control.switch_distance(100.0f);
+				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
