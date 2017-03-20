@@ -690,10 +690,6 @@ GroundRoverAttitudeControl::task_main()
 
 			battery_status_poll();
 
-			// the position controller will not emit attitude setpoints in some modes
-			// we need to make sure that this flag is reset
-			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
-
 			/* lock integrator until control is started */
 			bool lock_integrator;
 
@@ -713,28 +709,6 @@ GroundRoverAttitudeControl::task_main()
 			/* if we are in rotary wing mode or vehicle is vtol do nothing */
 			if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
 				continue;
-			}
-
-			/* default flaps to center */
-			float flap_control = 0.0f;
-
-			// move the actual control value continuous with time, full flap travel in 1sec
-			if (fabsf(_flaps_applied - flap_control) > 0.01f) {
-				_flaps_applied += (_flaps_applied - flap_control) < 0 ? deltaT : -deltaT;
-
-			} else {
-				_flaps_applied = flap_control;
-			}
-
-			/* default flaperon to center */
-			float flaperon_control = 0.0f;
-
-			// move the actual control value continuous with time, full flap travel in 1sec
-			if (fabsf(_flaperons_applied - flaperon_control) > 0.01f) {
-				_flaperons_applied += (_flaperons_applied - flaperon_control) < 0 ? deltaT : -deltaT;
-
-			} else {
-				_flaperons_applied = flaperon_control;
 			}
 
 			/* decide if in stabilized or full manual control */
