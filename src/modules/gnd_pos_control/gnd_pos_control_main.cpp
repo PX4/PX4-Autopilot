@@ -1060,14 +1060,6 @@ void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
 	}
 }
 
-/**
- * Get a new waypoint based on heading and distance from current position
- *
- * @param heading the heading to fly to
- * @param distance the distance of the generated waypoint
- * @param waypoint_prev the waypoint at the current position
- * @param waypoint_next the waypoint in the heading direction
- */
 void GroundRoverPositionControl::get_waypoint_heading_distance(float heading, float distance,
 		struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init)
 {
@@ -1384,7 +1376,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	bool setpoint = true;
 
 	_att_sp.fw_control_yaw = true;		// by default we don't want yaw to be contoller directly with rudder
-	_att_sp.apply_flaps = false;		// by default we don't use flaps
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
@@ -1547,12 +1538,9 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						   eas2tas,
 						   math::radians(_parameters.pitch_limit_min),
 						   math::radians(_parameters.pitch_limit_max),
-						   // _parameters.throttle_min,
-						   // _parameters.throttle_max,
-						   // _parameters.throttle_cruise,
-						   0,
-						   0,
-						   0,
+						   0, // _parameters.throttle_min,
+						   0, // _parameters.throttle_max,
+						   0, // _parameters.throttle_cruise,
 						   false,
 						   math::radians(_parameters.pitch_limit_min),
 						   _global_pos.alt,
@@ -1789,8 +1777,6 @@ GroundRoverPositionControl::task_main()
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
 			vehicle_manual_control_setpoint_poll();
-			// vehicle_baro_poll();
-
 
 			/******************************************************************************
 			* MARCO HERE: here the gps speed is parsed in the NED frame
@@ -1798,8 +1784,6 @@ GroundRoverPositionControl::task_main()
 			******************************************************************************/
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
-
-
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
