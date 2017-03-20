@@ -35,8 +35,6 @@ param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
 param set FW_AIRSPD_TRIM 1
 param set FW_AIRSPD_MAX 3
-param set GND_PR_I 0.0
-param set GND_RR_I 0.0
 replay tryapplyparams
 simulator start -s
 tone_alarm start
