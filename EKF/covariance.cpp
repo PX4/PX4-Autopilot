@@ -737,7 +737,7 @@ void Ekf::fixCovarianceErrors()
 
 		// record the pass/fail
 		if (!bad_acc_bias) {
-			_fault_status.flags.bad_acc_bias = true;
+			_fault_status.flags.bad_acc_bias = false;
 			_time_acc_bias_check = _time_last_imu;
 		} else {
 			_fault_status.flags.bad_acc_bias = true;
