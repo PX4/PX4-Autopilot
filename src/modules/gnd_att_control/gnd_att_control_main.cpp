@@ -835,15 +835,11 @@ GroundRoverAttitudeControl::task_main()
 				lock_integrator = true;
 			}
 
-			/* Simple handling of failsafe: deploy parachute if failsafe is on */
+			/* Simple handling of failsafe: stop motors */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[7] = 1.0f;
+				_actuators_airframe.control[3] = 0.0f;
 				//warnx("_actuators_airframe.control[1] = 1.0f;");
-
-			} else {
-				_actuators_airframe.control[7] = 0.0f;
-				//warnx("_actuators_airframe.control[1] = -1.0f;");
-			}
+			} 
 
 			/* if we are in rotary wing mode, do nothing */
 			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {

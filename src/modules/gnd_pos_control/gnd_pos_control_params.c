@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
 /**
  * Cruise throttle
  *
- * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
+ * This is the throttle setting required to achieve the desired cruise speed.
  *
  * @unit norm
  * @min 0.0
