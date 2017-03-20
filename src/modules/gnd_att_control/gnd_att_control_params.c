@@ -405,21 +405,6 @@ PARAM_DEFINE_FLOAT(GND_YR_FF, 0.0f);
 PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
 
 /**
- * Method used for yaw coordination
- *
- * The param value sets the method used to calculate the yaw rate
- * 0: open-loop zero lateral acceleration based on kinematic constraints
- * 1: closed-loop: try to reduce lateral acceleration to 0 by measuring the acceleration
- *
- * @min 0
- * @max 1
- * @value 0 open-loop
- * @value 1 closed-loop
- * @group GND Attitude Control
- */
-PARAM_DEFINE_INT32(GND_YCO_METHOD, 0);
-
-/**
  * Roll Setpoint Offset
  *
  * An airframe specific offset of the roll setpoint in degrees, the value is

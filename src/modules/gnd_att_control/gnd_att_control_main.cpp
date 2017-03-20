@@ -175,7 +175,6 @@ private:
 		float y_ff;
 		float y_integrator_max;
 		float roll_to_yaw_ff;
-		int32_t y_coordinated_method;
 		float y_rmax;
 		float w_p;
 		float w_i;
@@ -226,7 +225,6 @@ private:
 		param_t y_ff;
 		param_t y_integrator_max;
 		param_t roll_to_yaw_ff;
-		param_t y_coordinated_method;
 		param_t y_rmax;
 		param_t w_p;
 		param_t w_i;
@@ -420,8 +418,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.airspeed_trim = param_find("GND_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
 
-	_parameter_handles.y_coordinated_method = param_find("GND_YCO_METHOD");
-
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
@@ -495,7 +491,6 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_i, &(_parameters.y_i));
 	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_coordinated_method, &(_parameters.y_coordinated_method));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
 
@@ -550,7 +545,6 @@ GroundRoverAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_i(_parameters.y_i);
 	_yaw_ctrl.set_k_ff(_parameters.y_ff);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	/* wheel control parameters */
@@ -941,8 +935,6 @@ GroundRoverAttitudeControl::task_main()
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
-
-				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
