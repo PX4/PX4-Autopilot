@@ -86,6 +86,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+#include <bezier/BezierQuad.hpp>
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -168,6 +169,10 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+	bezier::BezierQuad _bez_1;   /**< specifies the first part of the trajectory: is always a straight line */
+	bezier::BezierQuad
+	_bez_2;	 /**< specifies the second part of the trajectory: is smoothed corner or straight line with deceleration */
 
 	struct {
 		param_t thr_min;
@@ -269,6 +274,9 @@ private:
 	bool _hold_offboard_xy = false;
 	bool _hold_offboard_z = false;
 
+	bool _triplet_update = false; // changes when position triplet have updated (in position)
+	bool _on_bez_2 = false; // specifies if vehicle does a turner when in mission
+
 	math::Vector<3> _thrust_int;
 
 	math::Vector<3> _pos;
@@ -279,6 +287,9 @@ private:
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+
+	math::Vector<3>
+	_triplet_curr_sp_prev; /**< needed for mission to know when triplet is updated: this logic should be moved to navigator */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -317,6 +328,28 @@ private:
 
 	static float	scale_control(float ctl, float end, float dz, float dy);
 	static float    throttle_curve(float ctl, float ctr);
+
+
+	/*
+	 * update Bezier points for corner: this is only done in mission mode when
+	 * the waypoints are normal position type and the goal is to pass
+	 * the current waypoint (in contrast to loiter waypoint)
+	 */
+	void		update_bezier_corner(const matrix::Vector3f &prev_sp, const matrix::Vector3f &curr_sp,
+					     const matrix::Vector3f &next_sp);
+
+	/*
+	 * update Bezier points along line: this is done only in mission mode when
+	 * waypoints are loiter or no next setpoint is available
+	*/
+	void 		update_bezier_line(const matrix::Vector3f &prev_sp, const matrix::Vector3f &curr_sp);
+
+	/*
+	 * computes desired position when in auto mode
+	 * and tracking is enabled
+	 */
+	void 		compute_desired_tracking_position(const math::Vector<3> &prev_sp, const math::Vector<3> &curr_sp,
+			const math::Vector<3> &next_sp, const bool next_setpoint_valid, const float dt);
 
 	/**
 	 * Update reference for local position projection
@@ -437,6 +470,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_bez_1(),
+	_bez_2(),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 
@@ -483,6 +518,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_ff.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_triplet_curr_sp_prev.zero();
+
 
 	_R.identity();
 
@@ -555,6 +592,175 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	}
 
 	pos_control::g_control = nullptr;
+}
+
+void
+MulticopterPositionControl::update_bezier_corner(const matrix::Vector3f &prev_sp, const matrix::Vector3f &curr_sp,
+		const matrix::Vector3f &next_sp)
+{
+	/* initalize bezier points */
+	matrix::Vector3f prev_pt;
+	matrix::Vector3f ctrl_pt;
+	matrix::Vector3f next_pt;
+
+	/* set bezier points in between current and previous, next and current */
+	prev_pt = (curr_sp - prev_sp) / 2.0 + prev_sp;
+	ctrl_pt = curr_sp;
+	next_pt = (next_sp - curr_sp) / 2.0f + curr_sp;
+	_bez_2.setBezier(prev_pt, ctrl_pt, next_pt);
+
+	/* adjust duration assuming we go with full speed along entire path */
+	float length = _bez_2.getArcLength(0.005f);
+	float duration = length / _params.vel_cruise(0);
+	_bez_2.setDuration(duration);
+
+	/* check acceleration: we don't want to accelerate more than
+	 * vehicle capable of
+	 */
+	float max_acc = 0.5f;
+	matrix::Vector3f acc_request = _bez_2.getAcceleration();
+
+	if (acc_request.length() > max_acc) {
+
+		/* compute time required for turn with max acceleration from bezier points*/
+		duration = sqrtf((_bez_2.getPt0() - _bez_2.getCtrl() * 2.0f + _bez_2.getPt1()).length() * 2.0f / max_acc);
+
+		/* update bezier points with new time */
+		_bez_2.setDuration(duration);
+
+	}
+
+	/* set bez_1 based on bez_2: we just go straight
+	 * with max speed. The speed will be saturated
+	 * later in code
+	 */
+	_bez_1.setBezier(prev_sp, prev_sp, _bez_2.getPt0());
+
+}
+
+void MulticopterPositionControl::update_bezier_line(const matrix::Vector3f &prev_sp, const matrix::Vector3f &curr_sp)
+{
+
+	/* deisred velocity before deceleration and at loiter */
+	matrix::Vector3f vel_at_loiter(0.0f, 0.0f, 0.0f);
+	matrix::Vector3f vel_at_max = (curr_sp - prev_sp).normalized() * _params.vel_cruise(0);
+
+
+	/* compute bez_1 and bez_2
+	 * we assume that max velocity is achieved when reaching the end of bez_1
+	 */
+	float max_acc = _params.acc_hor_max *
+			0.1f; // this value serves as tuning parameter and defines how fast it should decelerate
+	float duration = (vel_at_max - vel_at_loiter).length() / max_acc;
+	_bez_2.setBezFromVel(curr_sp, vel_at_max, vel_at_loiter, duration);
+	_bez_1.setBezier(prev_sp, _bez_2.getPt0(), _bez_2.getPt0());
+
+}
+
+void
+MulticopterPositionControl::compute_desired_tracking_position(const math::Vector<3> &prev_sp,
+		const math::Vector<3> &curr_sp, const math::Vector<3> &next_sp, const bool next_setpoint_valid, const float dt)
+{
+
+	// get cruising speed
+	float vel_cruise_z = (curr_sp(2) > prev_sp(2)) ? _params.vel_max_down : _params.vel_max_up;
+	math::Vector<3> cruising_speed(_params.vel_cruise(0), _params.vel_cruise(1),  vel_cruise_z) ;
+
+	if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+	    _pos_sp_triplet.current.cruising_speed > 0.1f) {
+		cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
+		cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
+	}
+
+	math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+
+	/* convert current setpoint to scaled space */
+	math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+
+	/* by default use current setpoint as is */
+	math::Vector<3> pos_sp_s = curr_sp_s;
+
+
+	if ((curr_sp - prev_sp).length() > MIN_DIST) {
+
+		/* find X - cross point of unit sphere and trajectory */
+		math::Vector<3> pos_s = _pos.emult(scale);
+		math::Vector<3> prev_sp_s = prev_sp.emult(scale);
+		math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
+		math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
+		float curr_pos_s_len = curr_pos_s.length();
+
+		if (curr_pos_s_len < 1.0f) {
+			/* copter is closer to waypoint than unit radius */
+			/* check next waypoint and use it to avoid slowing down when passing via waypoint */
+
+			if (next_setpoint_valid) {
+
+				if ((next_sp - curr_sp).length() > MIN_DIST) {
+					math::Vector<3> next_sp_s = next_sp.emult(scale);
+
+					/* calculate angle prev - curr - next */
+					math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
+					math::Vector<3> prev_curr_s_norm =
+						prev_curr_s.normalized();
+
+					/* cos(a) * curr_next, a = angle between current and next trajectory segments */
+					float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
+
+					/* cos(b), b = angle pos - curr_sp - prev_sp */
+					float cos_b = -curr_pos_s * prev_curr_s_norm
+						      / curr_pos_s_len;
+
+					if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
+						float curr_next_s_len = curr_next_s.length();
+
+						/* if curr - next distance is larger than unit radius, limit it */
+						if (curr_next_s_len > 1.0f) {
+							cos_a_curr_next /= curr_next_s_len;
+						}
+
+						/* feed forward position setpoint offset */
+						math::Vector<3> pos_ff = prev_curr_s_norm
+									 * cos_a_curr_next * cos_b * cos_b
+									 * (1.0f - curr_pos_s_len)
+									 * (1.0f
+									    - expf(
+										    -curr_pos_s_len
+										    * curr_pos_s_len
+										    * 20.0f));
+						pos_sp_s += pos_ff;
+					}
+				}
+			}
+
+		} else {
+			bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s,
+						      pos_sp_s);
+
+			if (!near) {
+				/* we're far away from trajectory, pos_sp_s is set to the nearest point on the trajectory */
+				pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
+			}
+		}
+	}
+
+
+
+	/* move setpoint not faster than max allowed speed */
+	math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
+
+	/* difference between current and desired position setpoints, 1 = max speed */
+	math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+	float d_pos_m_len = d_pos_m.length();
+
+	if (d_pos_m_len > dt) {
+		pos_sp_s = pos_sp_old_s
+			   + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
+	}
+
+	/* scale result back to normal space */
+	_pos_sp = pos_sp_s.edivide(scale);
+
 }
 
 int
@@ -1421,9 +1627,11 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
+	bool next_setpoint_valid = false;
 
 	math::Vector<3> prev_sp;
 	math::Vector<3> curr_sp;
+	math::Vector<3> next_sp;
 
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1437,6 +1645,12 @@ void MulticopterPositionControl::control_auto(float dt)
 		    PX4_ISFINITE(curr_sp(1)) &&
 		    PX4_ISFINITE(curr_sp(2))) {
 			current_setpoint_valid = true;
+		}
+
+		/* check if new triplets are available */
+		if ((curr_sp - _triplet_curr_sp_prev).length() > SIGMA) {
+			_triplet_update = true;
+			_triplet_curr_sp_prev = curr_sp;
 		}
 	}
 
@@ -1453,111 +1667,220 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
+	if (_pos_sp_triplet.next.valid) {
+		map_projection_project(&_ref_pos,
+				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+				       &next_sp.data[0], &next_sp.data[1]);
+		next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+
+		if (PX4_ISFINITE(next_sp(0)) &&
+		    PX4_ISFINITE(next_sp(1)) &&
+		    PX4_ISFINITE(next_sp(2))) {
+			next_setpoint_valid = true;
+		}
+	}
+
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		/* scaled space: 1 == position error resulting max allowed speed */
 
-		math::Vector<3> cruising_speed(_params.vel_cruise(0),
-					       _params.vel_cruise(1),
-					       _params.vel_max_up);
+		if (_vehicle_status.is_rotary_wing) {
 
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
-			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
-		}
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+			/* if want to follow target,
+			 * then use carrot style approach
+			 * */
+			bool follow_target = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET
+					      &&  previous_setpoint_valid);
 
-		/* convert current setpoint to scaled space */
-		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+			/*
+			 * if takeoff type, just go straight up
+			*/
+			bool takeoff = _pos_sp_triplet.current.type
+				       == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
-		/* by default use current setpoint as is */
-		math::Vector<3> pos_sp_s = curr_sp_s;
+			/* if loiter, we just want to go along straight line
+			 * if position type but no next_sp, just want to go along straight line
+			*/
+			bool straight_line = _pos_sp_triplet.previous.valid &&(_pos_sp_triplet.current.type
+					     == position_setpoint_s::SETPOINT_TYPE_LOITER
+					     || (_pos_sp_triplet.current.type
+						 == position_setpoint_s::SETPOINT_TYPE_POSITION));
 
-		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
-		    previous_setpoint_valid) {
+			/*
+			 * if we just want to go to a specific location (i.e. in hold)
+			 */
+			bool go_to_pos = !_pos_sp_triplet.previous.valid &&(_pos_sp_triplet.current.type
+					     == position_setpoint_s::SETPOINT_TYPE_LOITER
+					     || (_pos_sp_triplet.current.type
+						 == position_setpoint_s::SETPOINT_TYPE_POSITION));
 
-			/* follow "previous - current" line */
 
-			if ((curr_sp - prev_sp).length() > MIN_DIST) {
+			//&& !next_setpoint_valid)); this will be used once smoothed corner is actaully being used
 
-				/* find X - cross point of unit sphere and trajectory */
-				math::Vector<3> pos_s = _pos.emult(scale);
-				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
-				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
-				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
-				float curr_pos_s_len = curr_pos_s.length();
+			/* if all setpoints valid
+			 * then do a smoothed corner
+			*/
+			bool smoothed_corner = (previous_setpoint_valid && next_setpoint_valid);
+			smoothed_corner = false;
 
-				if (curr_pos_s_len < 1.0f) {
-					/* copter is closer to waypoint than unit radius */
-					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
-					if (_pos_sp_triplet.next.valid) {
-						math::Vector<3> next_sp;
-						map_projection_project(&_ref_pos,
-								       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
-								       &next_sp.data[0], &next_sp.data[1]);
-						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+			/* default */
+			bool default_sp = !(follow_target || takeoff || straight_line || smoothed_corner || go_to_pos);
 
-						if ((next_sp - curr_sp).length() > MIN_DIST) {
-							math::Vector<3> next_sp_s = next_sp.emult(scale);
+			/* compute distance to closest point on _bez_1 and _bez_2 to know where we are on trajectory */
+			float dist_1 = _bez_1.getDistToClosestPoint(_pos.data);
+			float dist_2 = _bez_2.getDistToClosestPoint(_pos.data);
 
-							/* calculate angle prev - curr - next */
-							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
+			/* we are in bez_2 if distance to bez_1 is greater than to bez_2 or
+			* we are 1m close to previous point of bez_2
+			 */
+			_on_bez_2 = ((dist_1 >= dist_2));// || ((_pos - _bez_2.getPt0()).length() < 1.0f) );
 
-							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
-							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
-
-							/* cos(b), b = angle pos - curr_sp - prev_sp */
-							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
-
-							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
-								float curr_next_s_len = curr_next_s.length();
-
-								/* if curr - next distance is larger than unit radius, limit it */
-								if (curr_next_s_len > 1.0f) {
-									cos_a_curr_next /= curr_next_s_len;
-								}
-
-								/* feed forward position setpoint offset */
-								math::Vector<3> pos_ff = prev_curr_s_norm *
-											 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
-											 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
-								pos_sp_s += pos_ff;
-							}
-						}
-					}
-
-				} else {
-					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
-
-					if (!near) {
-						/* we're far away from trajectory, pos_sp_s is set to the nearest point on the trajectory */
-						pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
-					}
-				}
+			/* if we are on bez_2, we can set bez_1 equal bez_2 since
+			 * bez_1  is already passed and the vehicle should not go back to bez_1
+			* until new update
+			*/
+			if (_on_bez_2) {
+				_bez_1 = _bez_2;
 			}
+
+
+			if (follow_target) {
+				compute_desired_tracking_position(prev_sp, curr_sp, next_sp, previous_setpoint_valid, dt);
+			}
+
+			if (takeoff) {
+				/* just set bezier points as target point */
+				_bez_2.setBezier(curr_sp.data, curr_sp.data, curr_sp.data);
+				_bez_1.setBezier(curr_sp.data, next_sp.data, next_sp.data);
+			}
+
+			if (go_to_pos){
+				/*
+				* we dont have previous setpoint, but we still
+				* want to decelerate when close to current setpoint
+				*/
+				if(_triplet_update){
+					update_bezier_line(_pos.data, curr_sp.data);
+					_triplet_curr_sp_prev = curr_sp;
+					_triplet_update = false;
+				}
+
+			}
+
+			/* compute straight line if triplet has updated */
+			if (straight_line) {
+
+				/* case 1:
+				 * if we are in bez 1,
+				 * we can do update once triplet is updated. this can happen during in flight waypoint updates
+				 */
+				bool case_1 = (_triplet_update && !_on_bez_2);
+
+				/* case 2:
+				 *  since the triplet updates before we finished bez_2,
+				 * we only want to update once close to the end of bez_2 such
+				 * that the vehicle finishes its smoothed path
+				 */
+				bool close_to_bez_2_end = ((_bez_2.getPt1() - _pos.data).length() < 1.0f);
+				math::Vector<3> n = (curr_sp - prev_sp).normalized(); // unit vector n along to the line from curr_sp to next_sp
+				float dist_to_n = ((prev_sp - _pos) - n * ((prev_sp - _pos) * n)).length(); // distance to line defined by n and curr_sp
+				bool case_2 = (_triplet_update && _on_bez_2 && (close_to_bez_2_end || dist_to_n < 1.0f));
+
+				/* do update if case1 or case2 are true */
+				if (case_1 || case_2) {
+					update_bezier_line(prev_sp.data, curr_sp.data);
+
+					/* since just updated, we are again on bez_1 */
+					_triplet_update = false;
+					_on_bez_2 = false;
+				}
+
+			}
+
+			/* not implemented because navigator needs to update tripled based on different criteria */
+			smoothed_corner = false;
+
+			if (smoothed_corner) {
+				/* case 1:
+				 * if we are in bez_1,
+				 * we can update once _triplet has updated (this could occur during flight)
+				 */
+				bool case_1 = (_triplet_update && !_on_bez_2);
+
+				/* case 2:
+				 * since the triplet updates before we finished bez_2,
+				 * we only want to update once close to the end of bez_2 such
+				 * that the vehicle finishes its smoothed path: ToDo: somehow it should not be allowed to change waypoints once the vehicle is close to current setpoint
+				 */
+				bool close_to_bez_2_end = ((_bez_2.getPt1() - _pos.data).length()
+							   < 5.0f);
+				bool case_2 = (_triplet_update && _on_bez_2
+					       && close_to_bez_2_end);
+
+				/* do update if case1 or case2 are true */
+				if (case_1 || case_2) {
+					update_bezier_corner(prev_sp.data, curr_sp.data, next_sp.data);
+
+					/* since just updated, we are again on bez_1 */
+					_triplet_update = false;
+					_on_bez_2 = false;
+				}
+
+			}
+
+			/* set position setpoint and velocity feedforward */
+			_pos_sp = curr_sp;
+			_vel_ff.zero();
+			matrix::Vector3f acc_request; // not used currently for anything
+
+			if (!default_sp) {
+
+				matrix::Vector3f pos_sp;//= _pos_sp.data;
+				matrix::Vector3f vel_ff;// = _vel_ff.data;
+
+				/* we are in bez_1 */
+				if (!_on_bez_2) {
+					/* compute desired states */
+					_bez_1.getStatesClosest(pos_sp, vel_ff, acc_request,
+								_pos.data);
+
+				/* we are in bez_2 */
+				} else {
+					/* compute desired states */
+					_bez_2.getStatesClosest(pos_sp, vel_ff, acc_request,
+								_pos.data);
+
+				}
+
+				/* assign back to math::Vector */
+				_pos_sp(0) = pos_sp(0);
+				_pos_sp(1) = pos_sp(1);
+				_pos_sp(2) = pos_sp(2);
+				_vel_ff(0) = vel_ff(0);
+				_vel_ff(1) = vel_ff(1);
+				_vel_ff(2) = vel_ff(2);
+				/* always saturate velocity feed forward */
+				_vel_ff = (_vel_ff.length() > _params.vel_cruise(0)) ?
+					  _vel_ff.normalized() * _params.vel_cruise(0) :
+					  _vel_ff;
+
+			}
+
+			/* not multicotper */
+
+		} else {
+
+			if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+			     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
+			    previous_setpoint_valid) {
+
+				compute_desired_tracking_position(prev_sp, curr_sp, next_sp, previous_setpoint_valid, dt);
+			}
+
 		}
-
-		/* move setpoint not faster than max allowed speed */
-		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
-
-		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
-		float d_pos_m_len = d_pos_m.length();
-
-		if (d_pos_m_len > dt) {
-			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
-		}
-
-		/* scale result back to normal space */
-		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
-
 		if (_pos_sp_triplet.current.yawspeed_valid
 		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
@@ -1689,14 +2012,14 @@ MulticopterPositionControl::control_position(float dt)
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 
 	if (_run_pos_control) {
-		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0) + _vel_ff(0);
+		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1) + _vel_ff(1);
 	}
 
 	limit_altitude();
 
 	if (_run_alt_control) {
-		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2) + _vel_ff(2);
 	}
 
 	/* make sure velocity setpoint is saturated in xy*/
