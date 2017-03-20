@@ -107,6 +107,24 @@ PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.0f);
 PARAM_DEFINE_FLOAT(GND_Y_RMAX, 90.0f);
 
 /**
+ * Attitude Wheel Time Constant
+ *
+ * This defines the latency between a steering step input and the achieved setpoint
+ * (inverse to a P gain). Half a second is a good start value and fits for
+ * most average systems. Smaller systems may require smaller values, but as
+ * this will wear out servos faster, the value should only be decreased as
+ * needed.
+ *
+ * @unit s
+ * @min 0.4
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_WR_TC, 0.4f);
+
+/**
  * Wheel steering rate proportional gain
  *
  * This defines how much the wheel steering input will be commanded depending on the
@@ -223,6 +241,20 @@ PARAM_DEFINE_INT32(GND_ARSP_MODE, 0);
  * @group GND Attitude Control
  */
 PARAM_DEFINE_FLOAT(GND_MAN_Y_SC, 1.0f);
+
+/**
+ * Groundspeed speed trim
+ *
+ * This allows to scale the turning radius depending on the speed.
+ *
+ * @unit norm
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.1
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_GSPD_SP_TRIM, 2.0f);
+
 
 /**
  * Whether to scale throttle by battery power level

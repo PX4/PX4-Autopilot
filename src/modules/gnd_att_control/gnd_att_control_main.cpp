@@ -162,6 +162,7 @@ private:
 		float y_ff;
 		float y_integrator_max;
 		float y_rmax;
+		float w_tc;
 		float w_p;
 		float w_i;
 		float w_ff;
@@ -171,6 +172,8 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
+
+		float gspd_scaling_trim;
 
 		float trim_roll;
 		float trim_pitch;
@@ -196,6 +199,7 @@ private:
 		param_t y_ff;
 		param_t y_integrator_max;
 		param_t y_rmax;
+		param_t w_tc;
 		param_t w_p;
 		param_t w_i;
 		param_t w_ff;
@@ -205,6 +209,8 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
+
+		param_t gspd_scaling_trim;
 
 		param_t trim_roll;
 		param_t trim_pitch;
@@ -358,6 +364,7 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.y_integrator_max = param_find("GND_YR_IMAX");
 	_parameter_handles.y_rmax = param_find("GND_Y_RMAX");
 
+	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
 	_parameter_handles.w_ff = param_find("GND_WR_FF");
@@ -367,6 +374,8 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.airspeed_min = param_find("GND_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("GND_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
+
+	_parameter_handles.gspd_scaling_trim = param_find("GND_GSPD_SP_TRIM");
 
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
@@ -425,6 +434,7 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
+	param_get(_parameter_handles.w_tc, &(_parameters.w_tc));
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
 	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
@@ -434,6 +444,8 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
+
+	param_get(_parameter_handles.gspd_scaling_trim, &(_parameters.gspd_scaling_trim));
 
 	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
 	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
@@ -460,6 +472,7 @@ GroundRoverAttitudeControl::parameters_update()
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	/* wheel control parameters */
+	_wheel_ctrl.set_time_constant(_parameters.w_tc);
 	_wheel_ctrl.set_k_p(_parameters.w_p);
 	_wheel_ctrl.set_k_i(_parameters.w_i);
 	_wheel_ctrl.set_k_ff(_parameters.w_ff);
@@ -766,8 +779,10 @@ GroundRoverAttitudeControl::task_main()
 				 */
 				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
 							  _global_pos.vel_e * _global_pos.vel_e);
-				float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
-				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
+				// TODO: this should be changed: I don't want to reduce steering because of the speed,
+				// I want to reduce the speed because of the desired steering angle.
+				float gspd_scaling_trim = _parameters.gspd_scaling_trim;
+				float groundspeed_scaler =  gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
@@ -843,6 +858,8 @@ GroundRoverAttitudeControl::task_main()
 						// float yaw_error = _wrap_pi(control_input.yaw_setpoint - control_input.yaw);
 						//warnx("yaw_error: %.4f ", (double) yaw_error);
 						// float yaw_u = _parameters.w_p * yaw_error;
+
+						// warnx("body_z_rate: %.4f | groundspeed: %.4f | groundspeed_scaler: %.4f", (double)control_input.body_z_rate, (double)groundspeed, (double)groundspeed_scaler);
 
 						float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 						//warnx("yaw_u: %.4f", (double)yaw_u);
