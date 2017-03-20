@@ -206,7 +206,6 @@ private:
 		float acro_max_z_rate_rad;
 
 		float flaps_scale;				/**< Scale factor for flaps */
-		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
@@ -263,7 +262,6 @@ private:
 		param_t acro_max_z_rate;
 
 		param_t flaps_scale;
-		param_t flaperon_scale;
 
 		param_t vtol_type;
 
@@ -456,7 +454,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.acro_max_z_rate = param_find("GND_ACRO_Z_MAX");
 
 	_parameter_handles.flaps_scale = param_find("GND_FLAPS_SCL");
-	_parameter_handles.flaperon_scale = param_find("GND_FLAPERON_SCL");
 
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
@@ -557,7 +554,6 @@ GroundRoverAttitudeControl::parameters_update()
 	_parameters.acro_max_z_rate_rad = math::radians(_parameters.acro_max_z_rate_rad);
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
-	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -861,16 +857,6 @@ GroundRoverAttitudeControl::task_main()
 
 			/* default flaperon to center */
 			float flaperon_control = 0.0f;
-
-			/* map flaperons by default to manual if valid */
-			if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
-			    && fabsf(_parameters.flaperon_scale) > 0.01f) {
-				flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
-
-			} else if (_vcontrol_mode.flag_control_auto_enabled
-				   && fabsf(_parameters.flaperon_scale) > 0.01f) {
-				flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
-			}
 
 			// move the actual control value continuous with time, full flap travel in 1sec
 			if (fabsf(_flaperons_applied - flaperon_control) > 0.01f) {
