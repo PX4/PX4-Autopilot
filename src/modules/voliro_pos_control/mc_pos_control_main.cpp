@@ -705,13 +705,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-}
 
-    orb_check(_vol_thrust_sp_sub, &updated);
-
-  if (updated) {
-            orb_copy(ORB_ID(voliro_thrust_setpoint), _vol_thrust_sp_sub, &_vol_thrust_sp);
-}
 
 		/* get current rotation matrix and euler angles from control state quaternions */
 		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
@@ -732,7 +726,7 @@ MulticopterPositionControl::poll_subscriptions()
 			}
 		}
 
-
+}
 
 	orb_check(_att_sp_sub, &updated);
 
@@ -1581,11 +1575,11 @@ MulticopterPositionControl::task_main()
                 _vol_thrust_sp.f[1]= 0.0f;
                 _vol_thrust_sp.f[2]= 0.0f;
                 /* publish thrust setpoint */
-                if (_att_sp_pub != nullptr) {
+                if (_vol_thrust_sp_pub != nullptr) {
                     orb_publish(_voliro_thrust_setpoint_id, _vol_thrust_sp_pub, &_vol_thrust_sp);
 
                 } else if (_voliro_thrust_setpoint_id) {
-                    _att_sp_pub = orb_advertise(_voliro_thrust_setpoint_id, &_vol_thrust_sp);
+                    _vol_thrust_sp_pub = orb_advertise(_voliro_thrust_setpoint_id, &_vol_thrust_sp);
                 }
 
 
@@ -1615,8 +1609,8 @@ MulticopterPositionControl::task_main()
                 if (_vol_thrust_sp_pub != nullptr) {
                     orb_publish(_voliro_thrust_setpoint_id, _vol_thrust_sp_pub, &_vol_thrust_sp);
 
-                } else if (_attitude_setpoint_id) {
-                    _att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+                } else if (_voliro_thrust_setpoint_id) {
+                    _vol_thrust_sp_pub = orb_advertise(_voliro_thrust_setpoint_id, &_vol_thrust_sp);
                 }
 
 				/* publish attitude setpoint */
