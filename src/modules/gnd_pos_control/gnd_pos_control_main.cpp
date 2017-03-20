@@ -442,28 +442,7 @@ private:
 	void		get_waypoint_heading_distance(float heading, float distance,
 			struct position_setpoint_s &waypoint_prev, struct position_setpoint_s &waypoint_next, bool flag_init);
 
-	/**
-	 * Return the terrain estimate during landing: uses the wp altitude value or the terrain estimate if available
-	 */
-	//float		get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
-
-	/**
-	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
-	 */
-	//float		get_terrain_altitude_takeoff(float takeoff_alt, const struct vehicle_global_position_s &global_pos);
-
-	/**
-	 * Check if we are in a takeoff situation
-	 */
-	bool 		in_takeoff_situation();
-
-	/**
-	 * Do takeoff help when in altitude controlled modes
-	 * @param hold_altitude altitude setpoint for controller
-	 * @param pitch_limit_min minimum pitch allowed
-	 */
-	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
-
+	
 	/**
 	 * Update desired altitude base on user pitch stick input
 	 *
@@ -1158,32 +1137,6 @@ void GroundRoverPositionControl::reset_landing_state()
 		_fw_pos_ctrl_status.abort_landing = false;
 	}
 
-}
-
-bool GroundRoverPositionControl::in_takeoff_situation()
-{
-	// in air for < 10s
-	const hrt_abstime delta_takeoff = 10000000;
-
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
-	    && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
-
-		return true;
-	}
-
-	return false;
-}
-
-void GroundRoverPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
-{
-	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
-	if (in_takeoff_situation()) {
-		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
-		*pitch_limit_min = math::radians(10.0f);
-
-	} else {
-		*pitch_limit_min = _parameters.pitch_limit_min;
-	}
 }
 
 
