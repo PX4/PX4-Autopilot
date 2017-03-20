@@ -201,10 +201,6 @@ private:
 		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
 		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
 
-		float acro_max_x_rate_rad;
-		float acro_max_y_rate_rad;
-		float acro_max_z_rate_rad;
-
 		int vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int bat_scale_en;			/**< Battery scaling enabled */
@@ -254,10 +250,6 @@ private:
 		param_t man_roll_scale;
 		param_t man_pitch_scale;
 		param_t man_yaw_scale;
-
-		param_t acro_max_x_rate;
-		param_t acro_max_y_rate;
-		param_t acro_max_z_rate;
 
 		param_t vtol_type;
 
@@ -445,10 +437,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.man_pitch_scale = param_find("GND_MAN_P_SC");
 	_parameter_handles.man_yaw_scale = param_find("GND_MAN_Y_SC");
 
-	_parameter_handles.acro_max_x_rate = param_find("GND_ACRO_X_MAX");
-	_parameter_handles.acro_max_y_rate = param_find("GND_ACRO_Y_MAX");
-	_parameter_handles.acro_max_z_rate = param_find("GND_ACRO_Z_MAX");
-
 	_parameter_handles.vtol_type = param_find("VT_TYPE");
 
 	_parameter_handles.bat_scale_en = param_find("GND_BAT_SCALE_EN");
@@ -539,13 +527,6 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.man_roll_scale, &(_parameters.man_roll_scale));
 	param_get(_parameter_handles.man_pitch_scale, &(_parameters.man_pitch_scale));
 	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
-
-	param_get(_parameter_handles.acro_max_x_rate, &(_parameters.acro_max_x_rate_rad));
-	param_get(_parameter_handles.acro_max_y_rate, &(_parameters.acro_max_y_rate_rad));
-	param_get(_parameter_handles.acro_max_z_rate, &(_parameters.acro_max_z_rate_rad));
-	_parameters.acro_max_x_rate_rad = math::radians(_parameters.acro_max_x_rate_rad);
-	_parameters.acro_max_y_rate_rad = math::radians(_parameters.acro_max_y_rate_rad);
-	_parameters.acro_max_z_rate_rad = math::radians(_parameters.acro_max_z_rate_rad);
 
 	param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
 
@@ -1078,30 +1059,6 @@ GroundRoverAttitudeControl::task_main()
 						}
 					}
 
-				} else {
-					// pure rate control
-					_roll_ctrl.set_bodyrate_setpoint(_manual.y * _parameters.acro_max_x_rate_rad);
-					_pitch_ctrl.set_bodyrate_setpoint(-_manual.x * _parameters.acro_max_y_rate_rad);
-					_yaw_ctrl.set_bodyrate_setpoint(_manual.r * _parameters.acro_max_z_rate_rad);
-
-					float roll_u = _roll_ctrl.control_bodyrate(control_input);
-					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll :
-							_parameters.trim_roll;
-
-					float pitch_u = _pitch_ctrl.control_bodyrate(control_input);
-					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + _parameters.trim_pitch :
-							_parameters.trim_pitch;
-
-					float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-					//warnx("yaw_u: %.4f", (double)yaw_u);
-					// float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
-					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
-							_parameters.trim_yaw;
-
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
-							//!(_vehicle_status.engine_failure ||
-							!_vehicle_status.engine_failure_cmd) ?
-							throttle_sp : 0.0f;
 				}
 
 				/*
