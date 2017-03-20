@@ -645,14 +645,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_down_max = v;
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
-
-
-
-		/*
-		 * increase the maximum horizontal acceleration such that stopping
-		 * within 1 s from full speed is feasible
-		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
