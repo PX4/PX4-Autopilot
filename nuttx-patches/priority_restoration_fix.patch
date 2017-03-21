@@ -60,7 +60,7 @@ index f4037d3..ec7de27 100644
  #endif
        return OK;
 diff --git NuttX/nuttx/sched/semaphore/sem_holder.c NuttX/nuttx/sched/semaphore/sem_holder.c
-index 6b9f05a..bc5c186 100644
+index 6b9f05a..7b4e3e3 100644
 --- NuttX/nuttx/sched/semaphore/sem_holder.c
 +++ NuttX/nuttx/sched/semaphore/sem_holder.c
 @@ -93,7 +93,7 @@ static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
@@ -126,7 +126,7 @@ index 6b9f05a..bc5c186 100644
 +  int i;
 +  pholder = NULL;
 +
-+  /* We have two hard-allocated holder structuse in sem_t */
++  /* We have two hard-allocated holder structures in sem_t */
 +
 +  for (i = 0; i < 2; i++)
      {
@@ -243,7 +243,7 @@ index 6b9f05a..bc5c186 100644
    if (!sched_verifytcb(htcb))
      {
        serr("ERROR: TCB 0x%08x is a stale handle, counts lost\n", htcb);
-+      DEBUGASSERT(!sched_verifytcb(htcb));
++      DEBUGASSERT(sched_verifytcb(htcb));
        sem_freeholder(sem, pholder);
      }
  
@@ -297,7 +297,7 @@ index 6b9f05a..bc5c186 100644
      {
        serr("ERROR: TCB 0x%08x is a stale handle, counts lost\n", htcb);
 -      sem_freeholder(sem, pholder);
-+      DEBUGASSERT(!sched_verifytcb(htcb));
++      DEBUGASSERT(sched_verifytcb(htcb));
 +      pholder = sem_findholder(sem, htcb);
 +      if (pholder != NULL)
 +        {
@@ -411,14 +411,14 @@ index 6b9f05a..bc5c186 100644
 +  if (sem->hhead != NULL)
      {
        serr("ERROR: Semaphore destroyed with holders\n");
-+      DEBUGASSERT(sem->hhead != NULL);
++      DEBUGASSERT(sem->hhead == NULL);
        (void)sem_foreachholder(sem, sem_recoverholders, NULL);
      }
  #else
 -  if (sem->holder.htcb)
-+  if (sem->holder[0].htcb != NULL || sem->holder[0].htcb != NULL)
++  if (sem->holder[0].htcb != NULL || sem->holder[1].htcb != NULL)
      {
-+      DEBUGASSERT(sem->holder[0].htcb != NULL || sem->holder[0].htcb != NULL);
++      DEBUGASSERT(sem->holder[0].htcb == NULL || sem->holder[1].htcb == NULL);
        serr("ERROR: Semaphore destroyed with holder\n");
      }
  
