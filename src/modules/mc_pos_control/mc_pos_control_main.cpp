@@ -164,6 +164,7 @@ private:
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
 	control::BlockParamFloat _manual_land_alt;
+	control::BlockParamFloat _deceleration_hor_max;
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -434,6 +435,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
+	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -608,14 +610,18 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
-		param_get(_params_handles.xy_vel_max, &v);
-		_params.vel_max_xy = v;
 		param_get(_params_handles.z_vel_max_up, &v);
 		_params.vel_max_up = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
+		param_get(_params_handles.xy_vel_max, &v);
+		_params.vel_max_xy = v;
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise_xy = v;
+
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
+
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -641,16 +647,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_down_max = v;
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
-
-
-		/* make sure that vel_cruise_xy is always smaller than vel_max */
-		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
-
-		/*
-		 * increase the maximum horizontal acceleration such that stopping
-		 * within 1 s from full speed is feasible
-		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise_xy, _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
@@ -1348,10 +1344,17 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	math::Vector<3> acc = (_vel_sp - _vel_sp_prev) / dt;
 	float acc_xy_mag = sqrtf(acc(0) * acc(0) + acc(1) * acc(1));
 
+	float acc_limit = _params.acc_hor_max;
+
+	/* adapt slew rate if we are decelerating */
+	if (_vel * acc < 0) {
+		acc_limit = _deceleration_hor_max.get();
+	}
+
 	/* limit total horizontal acceleration */
-	if (acc_xy_mag > _params.acc_hor_max) {
-		_vel_sp(0) = _params.acc_hor_max * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
-		_vel_sp(1) = _params.acc_hor_max * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
+	if (acc_xy_mag > acc_limit) {
+		_vel_sp(0) = acc_limit * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
+		_vel_sp(1) = acc_limit * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
 	}
 
 	/* limit vertical acceleration */

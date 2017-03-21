@@ -460,6 +460,18 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
+ * Maximum horizonal braking deceleration in velocity controlled modes
+ *
+ * @unit m/s/s
+ * @min 2.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 10.0f);
+
+/**
  * Maximum vertical acceleration in velocity controlled modes upward
  *
  * @unit m/s/s
