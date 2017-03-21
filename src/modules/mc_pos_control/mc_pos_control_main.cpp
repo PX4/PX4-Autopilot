@@ -161,10 +161,12 @@ private:
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
 
-	control::BlockParamFloat _manual_thr_min;
-	control::BlockParamFloat _manual_thr_max;
-	control::BlockParamFloat _manual_land_alt;
-	control::BlockParamFloat _z_vel_man_expo;
+	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
+	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
+	control::BlockParamFloat _manual_land_alt; /**< altitude where landing is likely flying with sticks but in pos mode */
+	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -197,7 +199,6 @@ private:
 		param_t man_yaw_max;
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
-		param_t hold_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
@@ -205,7 +206,6 @@ private:
 		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
-		param_t xy_vel_man_expo;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -221,7 +221,6 @@ private:
 		float man_yaw_max;
 		float global_yaw_max;
 		float mc_att_yaw_p;
-		float hold_dz;
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
@@ -231,7 +230,6 @@ private:
 		float vel_cruise_xy;
 		float vel_max_up;
 		float vel_max_down;
-		float xy_vel_man_expo;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -428,7 +426,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
+	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
+	_hold_dz(this, "HOLD_DZ"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -509,7 +509,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_dz = param_find("MPC_HOLD_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
@@ -517,7 +516,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
-	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
 
 
 	/* fetch initial parameter values */
@@ -598,14 +596,18 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
-		param_get(_params_handles.xy_vel_max, &v);
-		_params.vel_max_xy = v;
 		param_get(_params_handles.z_vel_max_up, &v);
 		_params.vel_max_up = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
+		param_get(_params_handles.xy_vel_max, &v);
+		_params.vel_max_xy = v;
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise_xy = v;
+
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
+
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -613,9 +615,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
-		param_get(_params_handles.hold_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -626,12 +625,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
 		_params.acc_down_max = v;
-		param_get(_params_handles.xy_vel_man_expo, &v);
-		_params.xy_vel_man_expo = v;
-
-
-		/* make sure that vel_cruise_xy is always smaller than vel_max */
-		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
 
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
@@ -929,8 +922,8 @@ MulticopterPositionControl::control_manual(float dt)
 	matrix::Vector3f man_vel_sp;
 
 	if (_control_mode.flag_control_altitude_enabled) {
-		/* set vertical velocity setpoint with throttle stick */
-		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _params.hold_dz);
+		/* set vertical velocity setpoint with throttle stick, remapping of manual.z [0,1] to up and down command [-1,1] */
+		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _hold_dz.get());
 
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
@@ -938,8 +931,8 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		man_vel_sp(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_dz);
-		man_vel_sp(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_dz);
+		man_vel_sp(0) = math::expo_deadzone(_manual.x, _xy_vel_man_expo.get(), _hold_dz.get());
+		man_vel_sp(1) = math::expo_deadzone(_manual.y, _xy_vel_man_expo.get(), _hold_dz.get());
 
 		const float man_vel_hor_length = ((matrix::Vector2f)man_vel_sp.slice<2, 1>(0, 0)).length();
 
