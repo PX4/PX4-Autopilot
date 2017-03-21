@@ -512,3 +512,33 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
+
+/**
+ * Altitude for 1. step of slow landing (descend)
+ *
+ * Below this altitude descending velocity gets limited
+ * to a value between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * to enable a smooth descent experience
+ * Value needs to be higher than "MPC_LAND_ALT2"
+ *
+ * @unit m
+ * @min 0
+ * @max 122
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
+
+/**
+ * Altitude for 2. step of slow landing (landing)
+ *
+ * Below this altitude descending velocity gets limited to "MPC_LAND_SPEED"
+ * Value needs to be lower than "MPC_LAND_ALT1"
+ *
+ * @unit m
+ * @min 0
+ * @max 122
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
