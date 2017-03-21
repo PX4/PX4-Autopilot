@@ -1474,23 +1474,16 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 	}
 
-	if (_control_mode_current == FW_POSCTRL_MODE_AUTO)
-	{
-		warnx("5");
-	}
-
 	/* Copy thrust output for publication */
 	if (_vehicle_status.engine_failure ||
 		_vehicle_status.engine_failure_cmd ||
 		   ( _control_mode_current == FW_POSCTRL_MODE_AUTO &&
-		   	 pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE )
+		   	 pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE ) ||
+		   _control_mode_current == FW_POSCTRL_MODE_OTHER
 		) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 		warnx("1..");
-	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
-		warnx("2..");
 	} else {
 			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
 	}
