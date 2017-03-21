@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include "simulator.h"
 

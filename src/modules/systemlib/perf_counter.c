@@ -73,11 +73,10 @@ struct perf_ctr_count {
 struct perf_ctr_elapsed {
 	struct perf_ctr_header	hdr;
 	uint64_t		event_count;
-	uint64_t		event_overruns;
 	uint64_t		time_start;
 	uint64_t		time_total;
-	uint64_t		time_least;
-	uint64_t		time_most;
+	uint32_t		time_least;
+	uint32_t		time_most;
 	float			mean;
 	float			M2;
 };
@@ -91,8 +90,8 @@ struct perf_ctr_interval {
 	uint64_t		time_event;
 	uint64_t		time_first;
 	uint64_t		time_last;
-	uint64_t		time_least;
-	uint64_t		time_most;
+	uint32_t		time_least;
+	uint32_t		time_most;
 	float			mean;
 	float			M2;
 };
@@ -192,8 +191,8 @@ perf_count(perf_counter_t handle)
 				break;
 
 			case 1:
-				pci->time_least = now - pci->time_last;
-				pci->time_most = now - pci->time_last;
+				pci->time_least = (uint32_t)(now - pci->time_last);
+				pci->time_most = (uint32_t)(now - pci->time_last);
 				pci->mean = pci->time_least / 1e6f;
 				pci->M2 = 0;
 				break;
@@ -201,12 +200,12 @@ perf_count(perf_counter_t handle)
 			default: {
 					hrt_abstime interval = now - pci->time_last;
 
-					if (interval < pci->time_least) {
-						pci->time_least = interval;
+					if ((uint32_t)interval < pci->time_least) {
+						pci->time_least = (uint32_t)interval;
 					}
 
-					if (interval > pci->time_most) {
-						pci->time_most = interval;
+					if ((uint32_t)interval > pci->time_most) {
+						pci->time_most = (uint32_t)interval;
 					}
 
 					// maintain mean and variance of interval in seconds
@@ -260,19 +259,16 @@ perf_end(perf_counter_t handle)
 			if (pce->time_start != 0) {
 				int64_t elapsed = hrt_absolute_time() - pce->time_start;
 
-				if (elapsed < 0) {
-					pce->event_overruns++;
-
-				} else {
+				if (elapsed >= 0) {
 
 					pce->event_count++;
 					pce->time_total += elapsed;
 
-					if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0)) {
+					if ((pce->time_least > (uint32_t)elapsed) || (pce->time_least == 0)) {
 						pce->time_least = elapsed;
 					}
 
-					if (pce->time_most < (uint64_t)elapsed) {
+					if (pce->time_most < (uint32_t)elapsed) {
 						pce->time_most = elapsed;
 					}
 
@@ -307,19 +303,16 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-			if (elapsed < 0) {
-				pce->event_overruns++;
-
-			} else {
+			if (elapsed >= 0) {
 
 				pce->event_count++;
 				pce->time_total += elapsed;
 
-				if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0)) {
+				if ((pce->time_least > (uint32_t)elapsed) || (pce->time_least == 0)) {
 					pce->time_least = elapsed;
 				}
 
-				if (pce->time_most < (uint64_t)elapsed) {
+				if (pce->time_most < (uint32_t)elapsed) {
 					pce->time_most = elapsed;
 				}
 
@@ -443,10 +436,9 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
+			dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pce->event_count,
-				(unsigned long long)pce->event_overruns,
 				(unsigned long long)pce->time_total,
 				(pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
 				(unsigned long long)pce->time_least,

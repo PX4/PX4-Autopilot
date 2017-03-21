@@ -70,7 +70,7 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -194,7 +194,7 @@ stm32_boardinitialize(void)
 //	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
 
 #ifdef GPIO_RC_OUT
 	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */

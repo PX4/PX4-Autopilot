@@ -150,7 +150,6 @@ protected:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -234,8 +233,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "ms5611_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buf_of"))
+	_comms_errors(perf_alloc(PC_COUNT, "ms5611_com_err"))
 {
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -267,7 +265,6 @@ MS5611::~MS5611()
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 
 	delete _interface;
 }
@@ -860,9 +857,7 @@ MS5611::collect()
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}
 
-		if (_reports->force(&report)) {
-			perf_count(_buffer_overflows);
-		}
+		_reports->force(&report);
 
 		/* notify anyone waiting for data */
 		poll_notify(POLLIN);
@@ -881,7 +876,6 @@ MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");

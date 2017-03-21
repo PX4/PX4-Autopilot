@@ -232,6 +232,8 @@ private:
 		float acc_hor_max;
 		float acc_up_max;
 		float acc_down_max;
+		float vel_max_xy;
+		float vel_cruise_xy;
 		float vel_max_up;
 		float vel_max_down;
 		float xy_vel_man_expo;
@@ -244,8 +246,6 @@ private:
 		math::Vector<3> vel_i;
 		math::Vector<3> vel_d;
 		math::Vector<3> vel_ff;
-		math::Vector<3> vel_max;
-		math::Vector<2> vel_cruise;
 	}		_params;
 
 	struct map_projection_reference_s _ref_pos;
@@ -471,8 +471,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params.vel_p.zero();
 	_params.vel_i.zero();
 	_params.vel_d.zero();
-	_params.vel_max.zero();
-	_params.vel_cruise.zero();
 	_params.vel_ff.zero();
 
 	_pos.zero();
@@ -500,15 +498,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
 	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
 	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
-	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
-
-	// transitional support: Copy param values from max to down
-	// param so that max param can be renamed in 1-2 releases
-	// (currently at 1.3.0)
-	float p;
-	param_get(param_find("MPC_Z_VEL_MAX"), &p);
-	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
-
+	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX_DN");
 	_params_handles.z_ff		= param_find("MPC_Z_FF");
 	_params_handles.xy_p		= param_find("MPC_XY_P");
 	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
@@ -536,6 +526,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
+
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -618,16 +609,13 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
 		param_get(_params_handles.xy_vel_max, &v);
-		_params.vel_max(0) = v;
-		_params.vel_max(1) = v;
+		_params.vel_max_xy = v;
 		param_get(_params_handles.z_vel_max_up, &v);
 		_params.vel_max_up = v;
-		_params.vel_max(2) = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
 		param_get(_params_handles.xy_vel_cruise, &v);
-		_params.vel_cruise(0) = v;
-		_params.vel_cruise(1) = v;
+		_params.vel_cruise_xy = v;
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -655,12 +643,14 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.xy_vel_man_expo = v;
 
 
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
 
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
 		 * within 1 s from full speed is feasible
 		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
+		_params.acc_hor_max = math::max(_params.vel_cruise_xy, _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
@@ -986,14 +976,19 @@ MulticopterPositionControl::control_manual(float dt)
 		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_xy_dz);
 		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_xy_dz);
 
+		/* saturarate such that magnitude is never larger than 1 */
+		if (req_vel_sp_xy.length() > 1.0f) {
+			req_vel_sp_xy = req_vel_sp_xy.normalized();
+		}
+
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
 	}
 
 	/* scale requested velocity setpoint to cruisespeed and rotate around yaw */
-	math::Vector<3> vel_cruise(_params.vel_cruise(0),
-				   _params.vel_cruise(1),
-				   (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
+	math::Vector<3> cruising_scale(_params.vel_cruise_xy,
+				       _params.vel_cruise_xy,
+				       (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 	math::Vector<3> req_vel_sp_scaled(req_vel_sp_xy(0), req_vel_sp_xy(1), req_vel_sp_z);
 
 	/* scale velocity setpoint to cruise speed (m/s) and rotate around yaw to NED frame */
@@ -1003,12 +998,12 @@ MulticopterPositionControl::control_manual(float dt)
 		R_input_fame.from_euler(0.0f, 0.0f, _yaw_takeoff);
 
 	} else {
-		R_input_fame.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+		R_input_fame.from_euler(0.0f, 0.0f, _local_pos.yaw);
 
 	}
 
 	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(
-				    vel_cruise); // in NED and scaled to actual velocity;
+				    cruising_scale); // in NED and scaled to actual velocity;
 
 	/*
 	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
@@ -1464,17 +1459,15 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
+		float cruising_speed_xy = (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed)
+					   && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
+					  _pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy ;
+		float cruising_speed_z = (curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
+
 		/* scaled space: 1 == position error resulting max allowed speed */
-
-		math::Vector<3> cruising_speed(_params.vel_cruise(0),
-					       _params.vel_cruise(1),
-					       _params.vel_max_up);
-
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
-			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
-		}
+		math::Vector<3> cruising_speed(cruising_speed_xy,
+					       cruising_speed_xy,
+					       cruising_speed_z);
 
 		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
@@ -1711,10 +1704,9 @@ MulticopterPositionControl::control_position(float dt)
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
 				  _vel_sp(1) * _vel_sp(1));
 
-	if (vel_norm_xy > _params.vel_max(0)) {
-		/* note assumes vel_max(0) == vel_max(1) */
-		_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
+	if (vel_norm_xy > _params.vel_max_xy) {
+		_vel_sp(0) = _vel_sp(0) * _params.vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _params.vel_max_xy / vel_norm_xy;
 	}
 
 	/* make sure velocity setpoint is saturated in z*/

@@ -65,8 +65,8 @@
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t                 param;
 	union param_value_u     val;
+	param_t                 param;
 	bool                    unsaved;
 };
 

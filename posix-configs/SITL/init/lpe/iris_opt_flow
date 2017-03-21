@@ -65,7 +65,6 @@ param set LPE_FUSION 246
 
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start

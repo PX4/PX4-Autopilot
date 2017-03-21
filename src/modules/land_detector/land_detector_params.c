@@ -128,6 +128,7 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
  *
  * @min 0
  * @max 1
+ * @unit norm
  * @decimal 2
  *
  * @group Land Detector
@@ -142,6 +143,7 @@ PARAM_DEFINE_FLOAT(LNDMC_MAN_DWNTHR, 0.15f);
  *
  * @min 0
  * @max 1
+ * @unit norm
  * @decimal 2
  *
  * @group Land Detector

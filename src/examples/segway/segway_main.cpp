@@ -112,7 +112,7 @@ int segway_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 10,
 						 5120,
 						 segway_thread_main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		exit(0);
 	}
 

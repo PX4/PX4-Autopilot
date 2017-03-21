@@ -218,7 +218,6 @@ private:
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _comms_errors;
-	perf_counter_t      _buffer_overflows;
 	perf_counter_t      _range_errors;
 	perf_counter_t      _conf_errors;
 
@@ -430,7 +429,6 @@ IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation ro
 	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ist8310_buf_of")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
 	_conf_errors(perf_alloc(PC_COUNT, "ist8310_conf_err")),
 	_sensor_ok(false),
@@ -474,7 +472,6 @@ IST8310::~IST8310()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
 }
@@ -1031,9 +1028,7 @@ IST8310::collect()
 	_last_report = new_report;
 
 	/* post a report to the ring */
-	if (_reports->force(&new_report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&new_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1447,7 +1442,6 @@ IST8310::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);

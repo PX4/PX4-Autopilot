@@ -31,11 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE platforms__posix__drivers__rgbledsim
-	MAIN rgbledsim
-	COMPILE_FLAGS
+	MODULE examples__segway
+	MAIN segway
+	STACK_MAIN 1300
+	STACK_MAX 1300
 	SRCS
-		rgbled.cpp
+		segway_main.cpp
+		BlockSegwayController.cpp
+		params.c
 	DEPENDS
 		platforms__common
 	)

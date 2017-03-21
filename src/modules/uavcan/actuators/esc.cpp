@@ -137,6 +137,25 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	}
 
 	/*
+	 * Remove channels that are always zero.
+	 * The objective of this optimization is to avoid broadcasting multi-frame transfers when a single frame
+	 * transfer would be enough. This is a valid optimization as the UAVCAN specification implies that all
+	 * non-specified ESC setpoints should be considered zero.
+	 * The positive outcome is a (marginally) lower bus traffic and lower CPU load.
+	 *
+	 * From the standpoint of the PX4 architecture, however, this is a hack. It should be investigated why
+	 * the mixer returns more outputs than are actually used.
+	 */
+	for (int index = int(msg.cmd.size()) - 1; index >= _max_number_of_nonzero_outputs; index--) {
+		if (msg.cmd[index] != 0) {
+			_max_number_of_nonzero_outputs = index + 1;
+			break;
+		}
+	}
+
+	msg.cmd.resize(_max_number_of_nonzero_outputs);
+
+	/*
 	 * Publish the command message to the bus
 	 * Note that for a quadrotor it takes one CAN frame
 	 */

@@ -214,16 +214,6 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
  * @max 4.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 1.0f);
-
-/**
- * Transitional support, do not change / use
- *
- * @unit m/s
- * @min 0.5
- * @max 4.0
- * @group Multicopter Position Control
- */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 
 /**
@@ -510,10 +500,11 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
  *
+ * 0 Purely linear input curve (default)
+ * 1 Purely cubic input curve
+ *
  * @min 0
  * @max 1
- * @value 0 Purely linear input curve (default)
- * @value 1 Purely cubic input curve
  * @decimal 2
  * @group Multicopter Position Control
  */
