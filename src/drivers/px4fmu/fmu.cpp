@@ -3280,6 +3280,11 @@ fmu_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(verb, "bind")) {
+		bind_spektrum();
+		exit(0);
+	}
+
 	/* does not operate on a FMU instance */
 	if (!strcmp(verb, "i2c")) {
 		if (argc > 3) {
