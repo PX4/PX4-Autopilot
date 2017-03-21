@@ -188,7 +188,6 @@ private:
 		param_t xy_vel_d;
 		param_t xy_vel_max;
 		param_t xy_vel_cruise;
-		param_t xy_vel_cruise_min;
 		param_t xy_target_threshold;
 		param_t xy_ff;
 		param_t tilt_max_air;
@@ -239,7 +238,6 @@ private:
 		float vel_cruise_xy;
 		float vel_max_up;
 		float vel_max_down;
-		float vel_cruise_xy_min;
 		float target_threshold_xy;
 		float xy_vel_man_expo;
 		uint32_t alt_mode;
@@ -382,6 +380,8 @@ private:
 
 	void generate_attitude_setpoint(float dt);
 
+	float get_cruising_speed_xy();
+
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -523,7 +523,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
 	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
-	_params_handles.xy_vel_cruise_min = param_find("MPC_CRUISE_MIN");
 	_params_handles.xy_target_threshold = param_find("MPC_TARGET_THRE");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
@@ -635,8 +634,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_max_down = v;
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise_xy = v;
-		param_get(_params_handles.xy_vel_cruise_min, &v);
-		_params.vel_cruise_xy_min = v;
 		param_get(_params_handles.xy_target_threshold, &v);
 		_params.target_threshold_xy = v;
 		param_get(_params_handles.xy_ff, &v);
@@ -964,12 +961,22 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 	 * the max velocity is defined by the linear line
 	 * with x= (curr_sp - pos) and y = _vel_sp
 	 */
-	float slope = (_params.vel_cruise(0) - _params.vel_cruise_xy_min) / _params.target_threshold_xy;
-	float vel_limit =  slope * (_curr_sp - _pos).length() + _params.vel_cruise_xy_min;
+	float slope = get_cruising_speed_xy()  / _params.target_threshold_xy;
+	float vel_limit =  slope * (_curr_sp - _pos).length();
 	float vel_mag_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 	float vel_mag_valid = math::min(vel_mag_xy, vel_limit);
 	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_mag_valid;
 	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_mag_valid;
+}
+
+float
+MulticopterPositionControl::get_cruising_speed_xy()
+{
+	/*
+	 * in mission the user can choose cruising speed different to default
+	 */
+	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
+		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
 }
 
 
@@ -987,7 +994,6 @@ MulticopterPositionControl::control_manual(float dt)
 			_reset_alt_sp = true;
 		}
 	}
-
 
 	/*
 	* Map from stick input to velocity setpoint
@@ -1517,10 +1523,8 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		float cruising_speed_xy = (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed)
-					   && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
-					  _pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy ;
-		float cruising_speed_z = (curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
+		float cruising_speed_xy = get_cruising_speed_xy();
+		float cruising_speed_z = (_curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
 
 		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> cruising_speed(cruising_speed_xy,
@@ -2377,7 +2381,7 @@ MulticopterPositionControl::task_main()
 		setDt(dt);
 
 		/* set default max velocity in xy to vel_max */
-		_vel_max_xy = _params.vel_max(0);
+		_vel_max_xy = _params.vel_max_xy;
 
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
