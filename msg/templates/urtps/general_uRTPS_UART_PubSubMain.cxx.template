@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 @[end for]
 
     std::string uart = "/dev/ttyACM0";
-    if (argc > 2) uart = std::string(argv[2]);
+    if (argc > 1) uart = std::string(argv[1]);
     m_uartReceiver.init_uart(std::string(uart));
 
     char topic_ID = 127;

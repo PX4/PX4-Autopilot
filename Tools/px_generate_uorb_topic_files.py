@@ -82,13 +82,7 @@ OUTPUT_FILE_EXT = ['.h', '.cpp']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
-uRTPS_TRANS_APP_TEMPL_FILE = 'uRTPS_UART_transmitter.cpp.template'
-uRTPS_TRANS_CML_TEMPL_FILE = 'transmitter_CMakeLists.txt.template'
 IDL_TEMPLATE_FILE = 'msg.idl.template'
-uRTPS_RECEV_SRC_TEMPL_FILE = 'uRTPS_UART_receiver.cxx.template'
-uRTPS_RECEV_H_TEMPL_FILE = 'uRTPS_UART_receiver.h.template'
-
-
 
 def get_multi_topics(filename):
         """
@@ -147,38 +141,6 @@ def generate_output_from_file(format_idx, filename, outputdir, templatedir, incl
 
         return generate_by_template(output_file, template_file, em_globals)
 
-def generate_uRTPS_application_file(filename_msg, outputdir, templatedir, includepath):
-        """
-        Generates an application to send by UART msg content
-        """
-        em_globals = get_em_globals(filename_msg, includepath)
-        spec_short_name = em_globals["spec"].short_name
-
-        # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, uRTPS_TRANS_APP_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_TRANS_APP_TEMPL_FILE.replace(".cpp.template", ".cpp"))
-
-        return generate_by_template(output_file, template_file, em_globals)
-
-def generate_uRTPS_app_CMList_file(filename_msg, outputdir, templatedir, includepath):
-        """
-        Generates an application to send by UART msg content
-        """
-        em_globals = get_em_globals(filename_msg, includepath)
-        spec_short_name = em_globals["spec"].short_name
-
-        # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, uRTPS_TRANS_CML_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec_short_name + "_CMakeLists.txt")
-
-        return generate_by_template(output_file, template_file, em_globals)
-
 def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
         """
         Generates an .idl from .msg file
@@ -192,38 +154,6 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
 
         template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
         output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace("msg.idl.template", str(spec_short_name + "_.idl")))
-
-        return generate_by_template(output_file, template_file, em_globals)
-
-def generate_uRTPS_receiver_source(filename_msg, outputdir, templatedir, includepath):
-        """
-        Generates receiver .cpp by UART msg content
-        """
-        em_globals = get_em_globals(filename_msg, includepath)
-        spec_short_name = em_globals["spec"].short_name
-
-        # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, uRTPS_RECEV_SRC_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_RECEV_SRC_TEMPL_FILE.replace(".cxx.template", ".cxx"))
-
-        return generate_by_template(output_file, template_file, em_globals)
-    
-def generate_uRTPS_receiver_header(filename_msg, outputdir, templatedir, includepath):
-        """
-        Generates receiver .h by UART msg content
-        """
-        em_globals = get_em_globals(filename_msg, includepath)
-        spec_short_name = em_globals["spec"].short_name
-
-        # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, uRTPS_RECEV_H_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_RECEV_H_TEMPL_FILE.replace(".h.template", ".h"))
 
         return generate_by_template(output_file, template_file, em_globals)
 
