@@ -1453,8 +1453,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						   ground_speed);
 		}
 
-	
-
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
 			/* just kicked out of loiter, reset roll integrals */
 			_att_sp.roll_reset_integral = true;
@@ -1468,7 +1466,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		// reset hold altitude
 		_hold_alt = _global_pos.alt;
-
 	}
 
 	/* Copy thrust output for publication */
@@ -1492,18 +1489,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	use_tecs_pitch &= !(_control_mode_current ==  FW_POSCTRL_MODE_AUTO &&
 			    pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 			    (_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled()));
-
-
-	// flaring during landing
-	use_tecs_pitch &= !(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND &&
-			    _land_noreturn_vertical);
-
-	// manual attitude control
-	use_tecs_pitch &= !(_control_mode_current == FW_POSCTRL_MODE_OTHER);
-
-	if (use_tecs_pitch) {
-		_att_sp.pitch_body = get_tecs_pitch();
-	}
 
 	return setpoint;
 }
