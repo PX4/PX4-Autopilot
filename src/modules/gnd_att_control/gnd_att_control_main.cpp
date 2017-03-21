@@ -793,7 +793,7 @@ GroundRoverAttitudeControl::task_main()
 					float yaw_u = _wheel_ctrl.control_attitude(control_input);
 					// float yaw_u = _yaw_ctrl.control_attitude(control_input);
 					
-					warnx("yaw_u: %.4f", (double)yaw_u);
+					// warnx("yaw_u: %.4f", (double)yaw_u);
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;
@@ -810,6 +810,8 @@ GroundRoverAttitudeControl::task_main()
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
+
+					// float throttle_u = _speed_ctrl
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&

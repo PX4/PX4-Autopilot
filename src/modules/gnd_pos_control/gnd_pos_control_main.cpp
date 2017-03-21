@@ -1474,44 +1474,25 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 	}
 
+	if (_control_mode_current == FW_POSCTRL_MODE_AUTO)
+	{
+		warnx("5");
+	}
+
 	/* Copy thrust output for publication */
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
+	if (_vehicle_status.engine_failure ||
+		_vehicle_status.engine_failure_cmd ||
+		   ( _control_mode_current == FW_POSCTRL_MODE_AUTO &&
+		   	 pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE )
+		) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
-
-	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-		   !_runway_takeoff.runwayTakeoffEnabled()) {
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust = (_launchDetector.launchDetectionEnabled()) ? _launchDetector.getThrottlePreTakeoff() :
-				 _parameters.throttle_idle;
-
-	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _runway_takeoff.runwayTakeoffEnabled()) {
-		_att_sp.thrust = _runway_takeoff.getThrottle(math::min(get_tecs_thrust(), throttle_max));
-
-	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
-		   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-		_att_sp.thrust = 0.0f;
-
+		warnx("1..");
 	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 		_att_sp.thrust = math::min(_att_sp.thrust, _parameters.throttle_max);
-
+		warnx("2..");
 	} else {
-		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_land_detected.landed) {
-			// when we are landed state we want the motor to spin at idle speed
-			_att_sp.thrust = math::min(_parameters.throttle_idle, throttle_max);
-
-		} else {
 			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
-		}
-
-
 	}
 
 	// decide when to use pitch setpoint from TECS because in some cases pitch
