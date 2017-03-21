@@ -738,8 +738,8 @@ GroundRoverAttitudeControl::task_main()
 							  _global_pos.vel_e * _global_pos.vel_e);
 				// TODO: this should be changed: I don't want to reduce steering because of the speed,
 				// I want to reduce the speed because of the desired steering angle.
-				float gspd_scaling_trim = _parameters.gspd_scaling_trim;
-				float groundspeed_scaler =  gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
+				// float gspd_scaling_trim = _parameters.gspd_scaling_trim;
+				float groundspeed_scaler =  _parameters.gspd_scaling_trim;//gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;

@@ -253,7 +253,7 @@ PARAM_DEFINE_FLOAT(GND_MAN_Y_SC, 1.0f);
  * @increment 0.1
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_GSPD_SP_TRIM, 2.0f);
+PARAM_DEFINE_FLOAT(GND_GSPD_SP_TRIM, 1.0f);
 
 
 /**
