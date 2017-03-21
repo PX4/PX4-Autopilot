@@ -789,9 +789,11 @@ GroundRoverAttitudeControl::task_main()
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 					/* Calculate the error */
-					float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
-					//float yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-					//warnx("yaw_u: %.4f", (double)yaw_u);
+					// float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
+					float yaw_u = _wheel_ctrl.control_attitude(control_input);
+					// float yaw_u = _yaw_ctrl.control_attitude(control_input);
+					
+					warnx("yaw_u: %.4f", (double)yaw_u);
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;
