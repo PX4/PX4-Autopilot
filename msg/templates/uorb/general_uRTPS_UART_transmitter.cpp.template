@@ -1,0 +1,156 @@
+@###############################################
+@#
+@# EmPy template for generating <msg>_uRTPS_UART.cpp file
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@###############################################
+@{
+import genmsg.msgs
+import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
+
+topic_names = [single_spec.short_name for single_spec in spec]
+num_topics = len(topic_names)
+}@
+#include <px4_config.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <poll.h>
+#include <string.h>
+#include <termios.h>
+
+#include <microcdr/microCdr.h>
+#include <uORB/uORB.h>
+
+@[for topic in topic_names]
+#include <uORB/topics/@(topic).h>
+@[end for]
+
+int uart_init(const char *uart_name, uint32_t speed);
+
+extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
+
+int general_trans_main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        errx(1, "need a serial port name as argument");
+    }
+    
+    int serial_fd = uart_init(argv[1], 115200);
+
+    /* subscribe to topics */
+    px4_pollfd_struct_t fds[@(num_topics)];
+
+@[for id, topic in enumerate(topic_names)]
+    int @(topic)_fd = orb_subscribe(ORB_ID(@(topic)));
+    orb_set_interval(@(topic)_fd, 1000);
+    fds[@(id)].fd = @(topic)_fd;
+    fds[@(id)].events = POLLIN;
+@[end for]
+
+    int error_counter = 0;
+
+    for (int i = 0; i < 50; ++i)
+    {
+        int poll_ret = px4_poll(fds, 2, 1000);
+
+        if (poll_ret == 0)
+        {
+            PX4_ERR("Got no data within a second");
+        }
+        else if (poll_ret < 0)
+        {
+            if (error_counter < 10 || error_counter % 50 == 0)
+            {
+                PX4_ERR("ERROR return value from poll(): %d", poll_ret);
+            }
+            ++error_counter;
+        }
+        else
+        {
+@[for id, topic in enumerate(topic_names)]
+            if (fds[@(id)].revents & POLLIN)
+            {
+                /* obtained data for the first file descriptor */
+                struct @(topic)_s data;
+                /* copy raw data into local buffer */
+                orb_copy(ORB_ID(@(topic)), @(topic)_fd, &data);
+                
+                char buffer[MICROCDR_INIT_BUF_LENGTH];
+                uint32_t length = 0;
+                serialize_@(topic)(&data, buffer, &length);
+
+                // Write serialized data trough UART
+                dprintf(serial_fd, ">>>");
+                dprintf(serial_fd, "%c", @(id));    // topic_ID
+                for(int j=0; j < length; j++)
+                {
+                    dprintf(serial_fd, "%c", buffer[j]);
+                }
+                dprintf(serial_fd, "<<<");
+            }
+@[end for]
+        }
+    }
+
+    PX4_INFO("exiting");
+    close(serial_fd);
+    fflush(stdout);
+    return OK;
+}
+
+
+int uart_init(const char * uart_name, uint32_t speed)
+{
+
+    // Open a serial port
+    int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
+
+    if (serial_fd < 0)
+    {
+        err(1, "failed to open port: %s", uart_name);
+    }
+
+    // Try to set baud rate
+    struct termios uart_config;
+    int termios_state;
+    // Back up the original uart configuration to restore it after exit
+    if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0)
+    {
+        warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+        close(serial_fd);
+        return -1;
+    }
+
+    // Clear ONLCR flag (which appends a CR for every LF)
+    uart_config.c_oflag &= ~ONLCR;
+
+    // USB serial is indicated by /dev/ttyACM0
+    if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK)
+    {
+        // Set baud rate
+        if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0)
+        {
+            warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+            close(serial_fd);
+            return -1;
+        }
+    }
+
+    if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0)
+    {
+        warnx("ERR SET CONF %s\n", uart_name);
+        close(serial_fd);
+        return -1;
+    }
+    
+    return serial_fd;
+}

@@ -227,6 +227,23 @@ def generate_uRTPS_receiver_header(filename_msg, outputdir, templatedir, include
 
         return generate_by_template(output_file, template_file, em_globals)
 
+def generate_uRTPS_general(filename_msgs, outputdir, templatedir, includepath, template_name):
+        """
+        Generates source file by UART msg content
+        """
+        em_globals_list = [get_em_globals(f, includepath) for f in filename_msgs]
+        merged_em_globals = merge_em_globals_list(em_globals_list)
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, template_name)
+        output_file = os.path.join(outputdir, template_name.replace(".template", ""))
+
+        return generate_by_template(output_file, template_file, merged_em_globals)
+
+
 def get_em_globals(filename_msg, includepath):
         """
         Generates em globals dictionary
@@ -253,6 +270,21 @@ def get_em_globals(filename_msg, includepath):
         }
 
         return em_globals
+
+def merge_em_globals_list(em_globals_list):
+    """
+        Merges a list of em_globals to a single dictionary where each attribute is a list
+    """
+    if len(em_globals_list) < 1:
+        return {}
+
+    merged_em_globals = {}
+    for name in em_globals_list[0]:
+        merged_em_globals[name] = [em_globals[name] for em_globals in em_globals_list]
+
+    return merged_em_globals
+
+
     
 def generate_by_template(output_file, template_file, em_globals):
         """
