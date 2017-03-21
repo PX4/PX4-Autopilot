@@ -169,12 +169,11 @@ private:
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
+	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
-
-	control::BlockParamFloat _target_threshold_xy;
 
 	struct {
 		param_t thr_min;
@@ -232,7 +231,6 @@ private:
 		float vel_cruise_xy;
 		float vel_max_up;
 		float vel_max_down;
-		float xy_vel_man_expo;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -444,10 +442,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
+	_target_threshold_xy(this, "MPC_TARGET_THRE"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_target_threshold_xy(this, "MPC_TARGET_THRE"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_reset_pos_sp(true),
@@ -628,8 +626,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
 		param_get(_params_handles.hold_max_xy, &v);
+		_params.hold_max_xy = math::max(0.f, v);
 		param_get(_params_handles.hold_max_z, &v);
-		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
+		_params.hold_max_z = math::max(0.f, v);
 		param_get(_params_handles.acc_up_max, &v);
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
@@ -911,8 +910,9 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 	 * the max velocity is defined by the linear line
 	 * with x= (curr_sp - pos) and y = _vel_sp
 	 */
+	math::Vector<3> dist = _curr_pos_sp - _pos;
 	float slope = get_cruising_speed_xy()  / _target_threshold_xy.get();
-	float vel_limit =  slope * (_curr_pos_sp - _pos).length();
+	float vel_limit =  slope * sqrtf(dist(0) * dist(0) + dist(1) * dist(1));
 	float vel_mag_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 	float vel_mag_valid = math::min(vel_mag_xy, vel_limit);
 	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_mag_valid;
@@ -1462,9 +1462,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
-	/* set velocity limit if close to current setpoint and
-	* no next setpoint available: we only consider updated if xy is updated
-	*/
+	/* set velocity limit if close to current setpoint and no next setpoint available */
 	_limit_vel_xy = (!next_setpoint_valid || (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 			&& ((_curr_pos_sp - _pos).length() <= _target_threshold_xy.get());
 
