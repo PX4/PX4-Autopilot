@@ -167,6 +167,8 @@ private:
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
+	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
+	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -201,7 +203,6 @@ private:
 		param_t mc_att_yaw_p;
 		param_t hold_max_xy;
 		param_t hold_max_z;
-		param_t acc_hor_max;
 		param_t acc_up_max;
 		param_t acc_down_max;
 		param_t alt_mode;
@@ -223,7 +224,6 @@ private:
 		float mc_att_yaw_p;
 		float hold_max_xy;
 		float hold_max_z;
-		float acc_hor_max;
 		float acc_up_max;
 		float acc_down_max;
 		float vel_max_xy;
@@ -429,6 +429,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
+	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
+	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -511,7 +513,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
 	_params_handles.acc_up_max = param_find("MPC_ACC_UP_MAX");
 	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
@@ -619,18 +620,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
-		param_get(_params_handles.acc_hor_max, &v);
-		_params.acc_hor_max = v;
 		param_get(_params_handles.acc_up_max, &v);
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
 		_params.acc_down_max = v;
-
-		/*
-		 * increase the maximum horizontal acceleration such that stopping
-		 * within 1 s from full speed is feasible
-		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise_xy, _params.acc_hor_max);
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
@@ -1011,12 +1004,12 @@ MulticopterPositionControl::control_manual(float dt)
 		/* during transition predict setpoint forward */
 		if (smooth_pos_transition) {
 			/* time to travel from current velocity to zero velocity */
-			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _params.acc_hor_max;
+			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _acceleration_hor_max.get();
 
 			/* p pos_sp in xy from max acceleration and current velocity */
 			math::Vector<2> pos(_pos(0), _pos(1));
 			math::Vector<2> vel(_vel(0), _vel(1));
-			math::Vector<2> pos_sp = pos + vel * delta_t -  vel.normalized() * 0.5f * _params.acc_hor_max * delta_t *delta_t;
+			math::Vector<2> pos_sp = pos + vel * delta_t - vel.normalized() * 0.5f * _acceleration_hor_max.get() * delta_t *delta_t;
 			_pos_sp(0) = pos_sp(0);
 			_pos_sp(1) = pos_sp(1);
 
@@ -1300,10 +1293,17 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	math::Vector<3> acc = (_vel_sp - _vel_sp_prev) / dt;
 	float acc_xy_mag = sqrtf(acc(0) * acc(0) + acc(1) * acc(1));
 
+	float acc_limit = _acceleration_hor_max.get();
+
+	/* adapt slew rate if we are decelerating */
+	if (_vel * acc < 0) {
+		acc_limit = _deceleration_hor_max.get();
+	}
+
 	/* limit total horizontal acceleration */
-	if (acc_xy_mag > _params.acc_hor_max) {
-		_vel_sp(0) = _params.acc_hor_max * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
-		_vel_sp(1) = _params.acc_hor_max * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
+	if (acc_xy_mag > acc_limit) {
+		_vel_sp(0) = acc_limit * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
+		_vel_sp(1) = acc_limit * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
 	}
 
 	/* limit vertical acceleration */
