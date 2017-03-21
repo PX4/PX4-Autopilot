@@ -234,8 +234,6 @@ private:
 
 	runwaytakeoff::RunwayTakeoff _runway_takeoff;
 
-	bool _last_manual;				///< true if the last iteration was in manual mode (used to determine when a reset is needed)
-
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
@@ -576,7 +574,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_launchDetector(),
 	_launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	_runway_takeoff(),
-	_last_manual(false),
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
 	_airspeed_last_received(0),
@@ -1483,9 +1480,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
-		warnx("1..");
 	} else {
-			_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
+		_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
 	}
 
 	// decide when to use pitch setpoint from TECS because in some cases pitch
@@ -1508,14 +1504,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	if (use_tecs_pitch) {
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
-
-	if (_control_mode.flag_control_position_enabled) {
-		_last_manual = false;
-
-	} else {
-		_last_manual = true;
-	}
-
 
 	return setpoint;
 }
