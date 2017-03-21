@@ -210,3 +210,28 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  */
 PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
 
+/**
+ * Control mode for speed
+ *
+ * This allows the user to choose between closed loop gps speed or open loop cruise throttle speed
+ * @min 0
+ * @max 1
+ * @value 0 open loop control
+ * @value 1 Close the loop with gps speed
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 0);
+
+/**
+ * Speed proportional gain
+ *
+ * This is the proportional gain for the speed closed loop controller
+ *
+ * @unit %m/s
+ * @min 0.005
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_P, 1.0f);
