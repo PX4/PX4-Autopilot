@@ -965,6 +965,7 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
+		up_pwm_set_oneshot_mode(true);
 		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
@@ -1075,10 +1076,12 @@ PX4FMU::cycle()
 
 		/* get controls for required topics */
 		unsigned poll_id = 0;
+		unsigned n_updates = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] > 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
+					n_updates++;
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
 #if defined(DEBUG_BUILD)
@@ -1122,12 +1125,9 @@ PX4FMU::cycle()
 				_pwm_limit.state = PWM_LIMIT_STATE_ON;
 			}
 		}
-	} // poll_fds
 
-	/* run the mixers on every cycle */
-	{
-		/* can we mix? */
-		if (_mixers != nullptr) {
+		// only mix if we have a new actuator_controls message
+		if ((n_updates > 0) && (_mixers != nullptr)) {
 
 			size_t num_outputs;
 
@@ -1237,11 +1237,16 @@ PX4FMU::cycle()
 				pwm_output_set(i, pwm_limited[i]);
 			}
 
+			// force an update if in oneshot mode
+			if (up_pwm_get_oneshot_mode()) {
+				up_pwm_force_update();
+			}
+
 			publish_pwm_outputs(pwm_limited, num_outputs);
 			perf_end(_ctl_latency);
-		}
-	}
-//	} // poll_fds
+		} // new actuator_controls message
+
+	} // poll_fds
 
 	_cycle_timestamp = hrt_absolute_time();
 
@@ -3154,18 +3159,18 @@ test(void)
 			}
 		}
 
-		/* readback servo values */
-		for (unsigned i = 0; i < servo_count; i++) {
-			servo_position_t value;
-
-			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %d", i);
-			}
-
-			if (value != servos[i]) {
-				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
-			}
-		}
+//		/* readback servo values */
+//		for (unsigned i = 0; i < servo_count; i++) {
+//			servo_position_t value;
+//
+//			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
+//				err(1, "error reading PWM servo %d", i);
+//			}
+//
+//			if (value != servos[i]) {
+//				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+//			}
+//		}
 
 		if (capture_count != 0 && (++rate_limit % 500 == 0)) {
 			for (unsigned i = 0; i < capture_count; i++) {
