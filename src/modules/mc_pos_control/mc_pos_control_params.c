@@ -287,6 +287,22 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Distance Threshold Horizontal Auto
+ *
+ * The distance defines at which point the vehicle
+ * has to slow down to reach target if no direct
+ * passing to the next target is desired
+ *
+ * @unit m
+ * @min 1.0
+ * @max 50.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
+
+/**
  * Maximum horizontal velocity
  *
  * Maximum horizontal velocity in AUTO mode. If higher speeds

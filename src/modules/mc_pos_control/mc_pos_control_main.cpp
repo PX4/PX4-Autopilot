@@ -169,6 +169,8 @@ private:
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
 
+	control::BlockParamFloat _target_threshold_xy;
+
 	struct {
 		param_t thr_min;
 		param_t thr_max;
@@ -208,6 +210,7 @@ private:
 		param_t alt_mode;
 		param_t opt_recover;
 		param_t xy_vel_man_expo;
+
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -268,6 +271,7 @@ private:
 
 	bool _hold_offboard_xy = false;
 	bool _hold_offboard_z = false;
+	bool _limit_vel_xy = false;
 
 	math::Vector<3> _thrust_int;
 
@@ -279,6 +283,7 @@ private:
 	math::Vector<3> _vel_ff;
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
+	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -289,6 +294,7 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
+	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -373,10 +379,17 @@ private:
 
 	void generate_attitude_setpoint(float dt);
 
+	float get_cruising_speed_xy();
+
 	/**
 	 * limit altitude based on several conditions
 	 */
 	void limit_altitude();
+
+	/*
+	 * limit vel horizontally when close to target
+	 */
+	void limit_vel_xy_gradually();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -437,9 +450,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_target_threshold_xy(this, "MPC_TARGET_THRE"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
-
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
 	_do_reset_alt_pos_flag(true),
@@ -456,6 +469,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
+	_vel_max_xy(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -481,6 +495,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_ff.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_curr_pos_sp.zero();
 
 	_R.identity();
 
@@ -630,7 +645,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.hold_z_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
-		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.acc_hor_max, &v);
@@ -641,7 +655,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_down_max = v;
 		param_get(_params_handles.xy_vel_man_expo, &v);
 		_params.xy_vel_man_expo = v;
-
 
 		/* make sure that vel_cruise_xy is always smaller than vel_max */
 		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
@@ -936,6 +949,31 @@ MulticopterPositionControl::limit_altitude()
 	}
 }
 
+void
+MulticopterPositionControl::limit_vel_xy_gradually()
+{
+	/*
+	 * the max velocity is defined by the linear line
+	 * with x= (curr_sp - pos) and y = _vel_sp
+	 */
+	float slope = get_cruising_speed_xy()  / _target_threshold_xy.get();
+	float vel_limit =  slope * (_curr_pos_sp - _pos).length();
+	float vel_mag_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+	float vel_mag_valid = math::min(vel_mag_xy, vel_limit);
+	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_mag_valid;
+	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_mag_valid;
+}
+
+float
+MulticopterPositionControl::get_cruising_speed_xy()
+{
+	/*
+	 * in mission the user can choose cruising speed different to default
+	 */
+	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
+		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
+}
+
 
 
 void
@@ -951,7 +989,6 @@ MulticopterPositionControl::control_manual(float dt)
 			_reset_alt_sp = true;
 		}
 	}
-
 
 	/*
 	* Map from stick input to velocity setpoint
@@ -1424,23 +1461,25 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
+	bool next_setpoint_valid = false;
 
 	math::Vector<3> prev_sp;
-	math::Vector<3> curr_sp;
+	math::Vector<3> next_sp;
 
 	if (_pos_sp_triplet.current.valid) {
 
 		/* project setpoint to local frame */
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-				       &curr_sp.data[0], &curr_sp.data[1]);
-		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+				       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
+		_curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
-		if (PX4_ISFINITE(curr_sp(0)) &&
-		    PX4_ISFINITE(curr_sp(1)) &&
-		    PX4_ISFINITE(curr_sp(2))) {
+		if (PX4_ISFINITE(_curr_pos_sp(0)) &&
+		    PX4_ISFINITE(_curr_pos_sp(1)) &&
+		    PX4_ISFINITE(_curr_pos_sp(2))) {
 			current_setpoint_valid = true;
 		}
+
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
@@ -1456,34 +1495,52 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 	}
 
+
+	if (_pos_sp_triplet.next.valid) {
+		map_projection_project(&_ref_pos,
+				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+				       &next_sp.data[0], &next_sp.data[1]);
+		next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+
+		if (PX4_ISFINITE(next_sp(0)) &&
+		    PX4_ISFINITE(next_sp(1)) &&
+		    PX4_ISFINITE(next_sp(2))) {
+			next_setpoint_valid = true;
+		}
+	}
+
+	/* set velocity limit if close to current setpoint and
+	* no next setpoint available: we only consider updated if xy is updated
+	*/
+	_limit_vel_xy = (!next_setpoint_valid || (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
+			&& ((_curr_pos_sp - _pos).length() <= _target_threshold_xy.get());
+
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		float cruising_speed_xy = (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed)
-					   && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
-					  _pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy ;
-		float cruising_speed_z = (curr_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
+		float cruising_speed_xy = get_cruising_speed_xy();
+		float cruising_speed_z = (_curr_pos_sp(2) > _pos(2)) ? _params.vel_max_down : _params.vel_max_up;
 
 		/* scaled space: 1 == position error resulting max allowed speed */
 		math::Vector<3> cruising_speed(cruising_speed_xy,
 					       cruising_speed_xy,
 					       cruising_speed_z);
 
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
+		/* if previous is valid, we want to follow line */
+		if (previous_setpoint_valid
+		    && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+			_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+			_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET)) {
 
-		/* convert current setpoint to scaled space */
-		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+			math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
-		/* by default use current setpoint as is */
-		math::Vector<3> pos_sp_s = curr_sp_s;
+			/* convert current setpoint to scaled space */
+			math::Vector<3> curr_sp_s = _curr_pos_sp.emult(scale);
 
-		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
-		    previous_setpoint_valid) {
+			/* by default use current setpoint as is */
+			math::Vector<3> pos_sp_s = curr_sp_s;
 
-			/* follow "previous - current" line */
-
-			if ((curr_sp - prev_sp).length() > MIN_DIST) {
+			if ((_curr_pos_sp - prev_sp).length() > MIN_DIST) {
 
 				/* find X - cross point of unit sphere and trajectory */
 				math::Vector<3> pos_s = _pos.emult(scale);
@@ -1492,47 +1549,42 @@ void MulticopterPositionControl::control_auto(float dt)
 				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
 				float curr_pos_s_len = curr_pos_s.length();
 
+				/* we are close to current setpoint */
 				if (curr_pos_s_len < 1.0f) {
-					/* copter is closer to waypoint than unit radius */
-					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
-					if (_pos_sp_triplet.next.valid) {
-						math::Vector<3> next_sp;
-						map_projection_project(&_ref_pos,
-								       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
-								       &next_sp.data[0], &next_sp.data[1]);
-						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
 
-						if ((next_sp - curr_sp).length() > MIN_DIST) {
-							math::Vector<3> next_sp_s = next_sp.emult(scale);
+					/* if next is valid, we want to have smooth transition */
+					if (next_setpoint_valid && (next_sp - _curr_pos_sp).length() > MIN_DIST) {
 
-							/* calculate angle prev - curr - next */
-							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
+						math::Vector<3> next_sp_s = next_sp.emult(scale);
 
-							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
-							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
+						/* calculate angle prev - curr - next */
+						math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
+						math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
 
-							/* cos(b), b = angle pos - curr_sp - prev_sp */
-							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
+						/* cos(a) * curr_next, a = angle between current and next trajectory segments */
+						float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
 
-							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
-								float curr_next_s_len = curr_next_s.length();
+						/* cos(b), b = angle pos - _curr_pos_sp - prev_sp */
+						float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
 
-								/* if curr - next distance is larger than unit radius, limit it */
-								if (curr_next_s_len > 1.0f) {
-									cos_a_curr_next /= curr_next_s_len;
-								}
+						if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
+							float curr_next_s_len = curr_next_s.length();
 
-								/* feed forward position setpoint offset */
-								math::Vector<3> pos_ff = prev_curr_s_norm *
-											 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
-											 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
-								pos_sp_s += pos_ff;
+							/* if curr - next distance is larger than unit radius, limit it */
+							if (curr_next_s_len > 1.0f) {
+								cos_a_curr_next /= curr_next_s_len;
 							}
+
+							/* feed forward position setpoint offset */
+							math::Vector<3> pos_ff = prev_curr_s_norm *
+										 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
+										 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
+							pos_sp_s += pos_ff;
 						}
 					}
 
 				} else {
+					/* if not close to current setpoint, check if we are within cross_sphere_line */
 					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 
 					if (!near) {
@@ -1541,24 +1593,30 @@ void MulticopterPositionControl::control_auto(float dt)
 					}
 				}
 			}
+
+			/* move setpoint not faster than max allowed speed */
+			math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
+
+			/* difference between current and desired position setpoints, 1 = max speed */
+			math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
+			float d_pos_m_len = d_pos_m.length();
+
+			if (d_pos_m_len > dt) {
+				pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
+			}
+
+			/* scale back */
+			_pos_sp = pos_sp_s.edivide(scale);
+
+		} else {
+			/* we just have a current setpoint that we want to go to */
+			_pos_sp = _curr_pos_sp;
+
+			/* set max velocity to cruise */
+			_vel_max_xy = cruising_speed(0);
 		}
-
-		/* move setpoint not faster than max allowed speed */
-		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
-
-		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
-		float d_pos_m_len = d_pos_m.length();
-
-		if (d_pos_m_len > dt) {
-			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
-		}
-
-		/* scale result back to normal space */
-		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
-
 		if (_pos_sp_triplet.current.yawspeed_valid
 		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
@@ -1670,6 +1728,11 @@ MulticopterPositionControl::do_control(float dt)
 	_run_pos_control = true;
 	_run_alt_control = true;
 
+	/* if not in auto mode, we reset limit_vel_xy flag */
+	if (_control_mode.flag_control_manual_enabled || _control_mode.flag_control_offboard_enabled) {
+		_limit_vel_xy = false;
+	}
+
 	if (_control_mode.flag_control_manual_enabled) {
 		/* manual control */
 		control_manual(dt);
@@ -1704,9 +1767,15 @@ MulticopterPositionControl::control_position(float dt)
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
 				  _vel_sp(1) * _vel_sp(1));
 
-	if (vel_norm_xy > _params.vel_max_xy) {
-		_vel_sp(0) = _vel_sp(0) * _params.vel_max_xy / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _params.vel_max_xy / vel_norm_xy;
+	if (vel_norm_xy > _vel_max_xy) {
+		/* note assumes vel_max(0) == vel_max(1) */
+		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
+	}
+
+	/* we are close to target and want to limit velocity in xy */
+	if (_limit_vel_xy) {
+		limit_vel_xy_gradually();
 	}
 
 	/* make sure velocity setpoint is saturated in z*/
@@ -2306,6 +2375,9 @@ MulticopterPositionControl::task_main()
 		// set dt for control blocks
 		setDt(dt);
 
+		/* set default max velocity in xy to vel_max */
+		_vel_max_xy = _params.vel_max_xy;
+
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
 			_reset_pos_sp = true;
@@ -2380,6 +2452,7 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			_reset_int_z = true;
 			_reset_int_xy = true;
+			_limit_vel_xy = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;
