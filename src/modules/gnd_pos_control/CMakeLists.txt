@@ -38,6 +38,7 @@ px4_add_module(
 		-Weffc++
 	SRCS
 		gnd_pos_control_main.cpp
+		pid/pidlib.cpp
 	DEPENDS
 		platforms__common
 		git_ecl

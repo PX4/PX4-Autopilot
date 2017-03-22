@@ -117,7 +117,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
  * @increment 0.01
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.2f);
+PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.6f);
 
 /**
  * Throttle max slew rate
@@ -234,4 +234,64 @@ PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 0);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_SPEED_P, 1.0f);
+PARAM_DEFINE_FLOAT(GND_SPEED_P, 2.0f);
+
+/**
+ * Speed Integral gain
+ *
+ * This is the integral gain for the speed closed loop controller
+ *
+ * @unit %m/s
+ * @min 0.005
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_I, 0.1f);
+
+/**
+ * Speed proportional gain
+ *
+ * This is the derivative gain for the speed closed loop controller
+ *
+ * @unit %m/s
+ * @min 0.00
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_D, 0.0f);
+
+/**
+ * Speed integral maximum value
+ *
+ * This is the maxim value the integral can reach to prevent wind-up.
+ *
+ * @unit %m/s
+ * @min 0.005
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
+
+/**
+ * Airspeed to throttle scaler
+ *
+ * This is a gain to map the airspeed control output to the throttle linearly.
+ * Needs to be checked.
+ *
+ * @unit %m/s
+ * @min 0.005
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_AIRSP_THR_SC, 1.0f);
+
+
+
