@@ -62,44 +62,6 @@ index 5e2ba73..adda863 100644
  
    /* Wait until the HSI is ready (or until a timeout elapsed) */
  
-diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
-index 73f1419..9ac38a1 100644
---- NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
-+++ NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
-@@ -231,12 +231,14 @@ ssize_t up_progmem_erasepage(size_t page)
-       return -EFAULT;
-     }
- 
--  /* Get flash ready and begin erasing single page */
--
-+#if !defined(CONFIG_STM32_STM32F40XX)
-   if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
-     {
-       return -EPERM;
-     }
-+#endif
-+
-+  /* Get flash ready and begin erasing single page */
- 
-   stm32_flash_unlock();
- 
-@@ -318,12 +320,14 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
-       return -EFAULT;
-     }
- 
--  /* Get flash ready and begin flashing */
--
-+#if !defined(CONFIG_STM32_STM32F40XX)
-   if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
-     {
-       return -EPERM;
-     }
-+#endif
-+
-+  /* Get flash ready and begin flashing */
- 
-   stm32_flash_unlock();
- 
 diff --git NuttX/nuttx/drivers/mtd/ramtron.c NuttX/nuttx/drivers/mtd/ramtron.c
 index ad448c8..236084f 100644
 --- NuttX/nuttx/drivers/mtd/ramtron.c
