@@ -51,12 +51,16 @@ float Pid::calculate( float setpoint, float control_feedback )
         _integral += error * _dt;
     }
 
-    // Derivative term
-    float derivative = (error - _pre_error) / _dt;
-
     // Calculate total output
-    float output = _Kp * error + _Ki * _integral + _Kd * derivative;
+    float output = _Kp * error + _Ki * _integral;
 
+    if ( fabsf(_dt) > 0.00001f ) {
+        // Derivative term
+        float derivative = (error - _pre_error) / _dt;
+        output += _Kd * derivative;
+    }
+    
+    
     // Restrict to max/min
     if( output > _max )
         output = _max;

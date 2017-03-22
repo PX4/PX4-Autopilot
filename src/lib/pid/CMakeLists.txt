@@ -31,18 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__gnd_pos_control
-	MAIN gnd_pos_control
-	STACK_MAIN 1200
+	MODULE lib__pid
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
-		gnd_pos_control_main.cpp
+		pidlib.cpp
 	DEPENDS
 		platforms__common
-		git_ecl
-		lib__external_lgpl
-		lib__ecl
-		lib__pid
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

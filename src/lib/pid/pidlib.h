@@ -1,7 +1,7 @@
 #ifndef _PID_H_
 #define _PID_H_
 
-class Pid
+class __EXPORT Pid
 {
 private:
     bool  _param_set;

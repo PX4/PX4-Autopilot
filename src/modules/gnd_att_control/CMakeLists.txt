@@ -41,5 +41,6 @@ px4_add_module(
 		platforms__common
 		git_ecl
 		lib__ecl
+		lib__pid
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

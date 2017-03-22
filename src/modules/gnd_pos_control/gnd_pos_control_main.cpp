@@ -70,7 +70,7 @@
 #include <px4_posix.h>
 
 //#include "landingslope.h"
-#include "pid/pidlib.h"
+#include <pid/pidlib.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>

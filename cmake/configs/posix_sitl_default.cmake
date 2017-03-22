@@ -66,6 +66,7 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
+	lib/pid
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup

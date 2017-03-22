@@ -71,6 +71,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
+#include <pid/pidlib.h>
+
+
 using matrix::Eulerf;
 using matrix::Quatf;
 
@@ -165,6 +168,7 @@ private:
 		float w_tc;
 		float w_p;
 		float w_i;
+		float w_d;
 		float w_ff;
 		float w_integrator_max;
 		float w_rmax;
@@ -202,6 +206,7 @@ private:
 		param_t w_tc;
 		param_t w_p;
 		param_t w_i;
+		param_t w_d;
 		param_t w_ff;
 		param_t w_integrator_max;
 		param_t w_rmax;
@@ -233,6 +238,7 @@ private:
 
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			    _wheel_ctrl;
+	Pid 							_steering_ctrl;
 
 
 	/**
@@ -363,6 +369,7 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
+	_parameter_handles.w_d = param_find("GND_WR_D");
 	_parameter_handles.w_ff = param_find("GND_WR_FF");
 	_parameter_handles.w_integrator_max = param_find("GND_WR_IMAX");
 	_parameter_handles.w_rmax = param_find("GND_W_RMAX");
@@ -433,6 +440,7 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.w_tc, &(_parameters.w_tc));
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
+	param_get(_parameter_handles.w_d, &(_parameters.w_d));
 	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
 	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
 	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
@@ -474,6 +482,14 @@ GroundRoverAttitudeControl::parameters_update()
 	_wheel_ctrl.set_k_ff(_parameters.w_ff);
 	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
 	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
+
+	_steering_ctrl.update_gains(0.01f, 
+								1.0f, 
+								-1.0f,
+								_parameters.w_p,
+								_parameters.w_d,
+								_parameters.w_i,
+								_parameters.w_integrator_max);
 
 	return PX4_OK;
 }
@@ -660,9 +676,13 @@ GroundRoverAttitudeControl::task_main()
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f) {
+			if (deltaT > 1.0f || 
+				fabsf(deltaT)<0.00001f ||
+				!PX4_ISFINITE(deltaT)) {
 				deltaT = 0.01f;
 			}
+
+			 _steering_ctrl.update_dt(deltaT);
 
 			/* load local copies */
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
@@ -790,10 +810,13 @@ GroundRoverAttitudeControl::task_main()
 
 					/* Calculate the error */
 					// float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
-					float yaw_u = _wheel_ctrl.control_attitude(control_input);
+					// float yaw_u = _wheel_ctrl.control_attitude(control_input);
+					float yaw_u = _steering_ctrl.calculate(yaw_sp, _yaw);
+
+
 					// float yaw_u = _yaw_ctrl.control_attitude(control_input);
 					
-					// warnx("yaw_u: %.4f", (double)yaw_u);
+					warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;
@@ -810,8 +833,6 @@ GroundRoverAttitudeControl::task_main()
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
-
-					// float throttle_u = _speed_ctrl
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&

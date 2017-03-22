@@ -139,6 +139,7 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
+	lib/pid
 	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup

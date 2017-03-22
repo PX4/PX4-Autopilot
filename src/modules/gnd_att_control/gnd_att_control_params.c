@@ -146,13 +146,28 @@ PARAM_DEFINE_FLOAT(GND_WR_P, 1.0f);
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.00
  * @max 0.5
  * @decimal 3
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_WR_I, 0.005f);
+PARAM_DEFINE_FLOAT(GND_WR_I, 0.00f);
+
+/**
+ * Wheel steering rate integrator gain
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @unit %/rad
+ * @min 0.00
+ * @max 30
+ * @decimal 3
+ * @increment 0.005
+ * @group GND Attitude Control
+ */
+PARAM_DEFINE_FLOAT(GND_WR_D, 0.00f);
 
 /**
  * Wheel steering rate integrator limit
