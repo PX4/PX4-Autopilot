@@ -161,9 +161,12 @@ private:
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
 
-	control::BlockParamFloat _manual_thr_min;
-	control::BlockParamFloat _manual_thr_max;
-	control::BlockParamFloat _manual_land_alt;
+	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
+	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
+	control::BlockParamFloat _manual_land_alt; /**< altitude where landing is likely flying with sticks but in pos mode */
+	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
+	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -173,8 +176,6 @@ private:
 		param_t thr_min;
 		param_t thr_max;
 		param_t thr_hover;
-		param_t alt_ctl_dz;
-		param_t alt_ctl_dy;
 		param_t z_p;
 		param_t z_vel_p;
 		param_t z_vel_i;
@@ -198,8 +199,6 @@ private:
 		param_t man_yaw_max;
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
-		param_t hold_xy_dz;
-		param_t hold_z_dz;
 		param_t hold_max_xy;
 		param_t hold_max_z;
 		param_t acc_hor_max;
@@ -207,15 +206,12 @@ private:
 		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
-		param_t xy_vel_man_expo;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
 		float thr_min;
 		float thr_max;
 		float thr_hover;
-		float alt_ctl_dz;
-		float alt_ctl_dy;
 		float tilt_max_air;
 		float land_speed;
 		float tko_speed;
@@ -225,8 +221,6 @@ private:
 		float man_yaw_max;
 		float global_yaw_max;
 		float mc_att_yaw_p;
-		float hold_xy_dz;
-		float hold_z_dz;
 		float hold_max_xy;
 		float hold_max_z;
 		float acc_hor_max;
@@ -236,7 +230,6 @@ private:
 		float vel_cruise_xy;
 		float vel_max_up;
 		float vel_max_down;
-		float xy_vel_man_expo;
 		uint32_t alt_mode;
 
 		int opt_recover;
@@ -315,7 +308,6 @@ private:
 	 */
 	void		poll_subscriptions();
 
-	static float	scale_control(float ctl, float end, float dz, float dy);
 	static float    throttle_curve(float ctl, float ctr);
 
 	/**
@@ -434,6 +426,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
+	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
+	_z_vel_man_expo(this, "Z_MAN_EXPO"),
+	_hold_dz(this, "HOLD_DZ"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -491,8 +486,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
 	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
-	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
-	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
 	_params_handles.z_p		= param_find("MPC_Z_P");
 	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
 	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
@@ -516,8 +509,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
-	_params_handles.hold_z_dz = param_find("MPC_HOLD_Z_DZ");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
 	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
@@ -525,7 +516,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
-	_params_handles.xy_vel_man_expo = param_find("MPC_XY_MAN_EXPO");
 
 
 	/* fetch initial parameter values */
@@ -577,8 +567,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.thr_hover, &_params.thr_hover);
 		_params.thr_hover = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
-		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
-		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
 		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
 		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
@@ -608,14 +596,18 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_d(1) = v;
 		param_get(_params_handles.z_vel_d, &v);
 		_params.vel_d(2) = v;
-		param_get(_params_handles.xy_vel_max, &v);
-		_params.vel_max_xy = v;
 		param_get(_params_handles.z_vel_max_up, &v);
 		_params.vel_max_up = v;
 		param_get(_params_handles.z_vel_max_down, &v);
 		_params.vel_max_down = v;
+		param_get(_params_handles.xy_vel_max, &v);
+		_params.vel_max_xy = v;
 		param_get(_params_handles.xy_vel_cruise, &v);
 		_params.vel_cruise_xy = v;
+
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
+
 		param_get(_params_handles.xy_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
@@ -623,12 +615,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_ff, &v);
 		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
-		param_get(_params_handles.hold_xy_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_xy_dz = v;
-		param_get(_params_handles.hold_z_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_z_dz = v;
 		param_get(_params_handles.hold_max_xy, &v);
 		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
 		param_get(_params_handles.hold_max_z, &v);
@@ -639,12 +625,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.acc_up_max = v;
 		param_get(_params_handles.acc_down_max, &v);
 		_params.acc_down_max = v;
-		param_get(_params_handles.xy_vel_man_expo, &v);
-		_params.xy_vel_man_expo = v;
-
-
-		/* make sure that vel_cruise_xy is always smaller than vel_max */
-		_params.vel_cruise_xy = math::min(_params.vel_cruise_xy, _params.vel_max_xy);
 
 		/*
 		 * increase the maximum horizontal acceleration such that stopping
@@ -817,25 +797,6 @@ MulticopterPositionControl::poll_subscriptions()
 }
 
 float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
-{
-	if (ctl > dz) {
-		return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
-
-	} else if (ctl < -dz) {
-		return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
-
-	} else {
-		if (dz < FLT_EPSILON) {
-			return 0;
-
-		} else {
-			return ctl * (dy / dz);
-		}
-	}
-}
-
-float
 MulticopterPositionControl::throttle_curve(float ctl, float ctr)
 {
 	/* piecewise linear mapping: 0:ctr -> 0:0.5
@@ -954,18 +915,15 @@ MulticopterPositionControl::control_manual(float dt)
 
 
 	/*
-	* Map from stick input to velocity setpoint
-	* xy in local frame, z in global frame
-	*/
+	 * Map from stick input to velocity setpoint
+	 */
 
-	/*  setpoint in normalized range [-1,1]  */
-	math::Vector<2> req_vel_sp_xy;
-	req_vel_sp_xy.zero();
-	float req_vel_sp_z = 0.0f;
+	/* velocity setpoint commanded by user stick input */
+	matrix::Vector3f man_vel_sp;
 
 	if (_control_mode.flag_control_altitude_enabled) {
-		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp_z = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
+		/* set vertical velocity setpoint with throttle stick, remapping of manual.z [0,1] to up and down command [-1,1] */
+		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _hold_dz.get());
 
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
@@ -973,55 +931,53 @@ MulticopterPositionControl::control_manual(float dt)
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp_xy(0) = math::expo_deadzone(_manual.x, _params.xy_vel_man_expo, _params.hold_xy_dz);
-		req_vel_sp_xy(1) = math::expo_deadzone(_manual.y, _params.xy_vel_man_expo, _params.hold_xy_dz);
+		man_vel_sp(0) = math::expo_deadzone(_manual.x, _xy_vel_man_expo.get(), _hold_dz.get());
+		man_vel_sp(1) = math::expo_deadzone(_manual.y, _xy_vel_man_expo.get(), _hold_dz.get());
 
-		/* saturarate such that magnitude is never larger than 1 */
-		if (req_vel_sp_xy.length() > 1.0f) {
-			req_vel_sp_xy = req_vel_sp_xy.normalized();
+		const float man_vel_hor_length = ((matrix::Vector2f)man_vel_sp.slice<2, 1>(0, 0)).length();
+
+		/* saturate such that magnitude is never larger than 1 */
+		if (man_vel_hor_length > 1.0f) {
+			man_vel_sp(0) /= man_vel_hor_length;
+			man_vel_sp(1) /= man_vel_hor_length;
 		}
 
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
 	}
 
-	/* scale requested velocity setpoint to cruisespeed and rotate around yaw */
-	math::Vector<3> cruising_scale(_params.vel_cruise_xy,
-				       _params.vel_cruise_xy,
-				       (req_vel_sp_z > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
-	math::Vector<3> req_vel_sp_scaled(req_vel_sp_xy(0), req_vel_sp_xy(1), req_vel_sp_z);
+	/* prepare yaw to rotate into NED frame */
+	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _local_pos.yaw;
 
-	/* scale velocity setpoint to cruise speed (m/s) and rotate around yaw to NED frame */
-	math::Matrix<3, 3> R_input_fame;
+	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
+	matrix::Vector3f vel_cruise_scale(_params.vel_cruise_xy,
+					  _params.vel_cruise_xy,
+					  (man_vel_sp(2) > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 
-	if (_control_mode.flag_control_fixed_hdg_enabled) {
-		R_input_fame.from_euler(0.0f, 0.0f, _yaw_takeoff);
+	/* setpoint in NED frame and scaled to cruise velocity */
+	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_fame)) * man_vel_sp.emult(vel_cruise_scale);
 
-	} else {
-		R_input_fame.from_euler(0.0f, 0.0f, _local_pos.yaw);
-
-	}
-
-	req_vel_sp_scaled = R_input_fame * req_vel_sp_scaled.emult(
-				    cruising_scale); // in NED and scaled to actual velocity;
 
 	/*
-	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
+	 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
 
+	/* want to get/stay in altitude hold if user has z stick in the middle (accounted for deadzone already) */
+	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && fabsf(man_vel_sp(2)) < FLT_EPSILON;
+
+	/* want to get/stay in position hold if user has xy stick in the middle (accounted for deadzone already) */
+	const bool pos_hold_desired = _control_mode.flag_control_position_enabled &&
+				      fabsf(man_vel_sp(0)) < FLT_EPSILON && fabsf(man_vel_sp(1)) < FLT_EPSILON;
 
 	/* check vertical hold engaged flag */
 	if (_alt_hold_engaged) {
-
-		/* only switch back to velocity control if user moves stick */
-		_alt_hold_engaged = _control_mode.flag_control_altitude_enabled && (fabsf(req_vel_sp_z) < _params.hold_z_dz);
+		_alt_hold_engaged = alt_hold_desired;
 
 	} else {
 
 		/* check if we switch to alt_hold_engaged */
-		bool smooth_alt_transition = _control_mode.flag_control_altitude_enabled &&
-					     fabsf(req_vel_sp_z) < FLT_EPSILON &&
+		bool smooth_alt_transition = alt_hold_desired &&
 					     (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
 
 		/* during transition predict setpoint forward */
@@ -1043,17 +999,13 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* check horizontal hold engaged flag */
 	if (_pos_hold_engaged) {
-
-		/* only switch back to velocity control if user moves stick */
-		_pos_hold_engaged = _control_mode.flag_control_position_enabled && (fabsf(req_vel_sp_xy(0)) < FLT_EPSILON)
-				    && (fabsf(req_vel_sp_xy(1)) < FLT_EPSILON);
+		_pos_hold_engaged = pos_hold_desired;
 
 	} else {
 
 		/* check if we switch to pos_hold_engaged */
 		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-		bool smooth_pos_transition = _control_mode.flag_control_position_enabled &&
-					     (fabsf(req_vel_sp_xy(0)) < FLT_EPSILON && fabsf(req_vel_sp_xy(1)) < FLT_EPSILON) &&
+		bool smooth_pos_transition = pos_hold_desired &&
 					     (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
 
 		/* during transition predict setpoint forward */
@@ -1078,15 +1030,15 @@ MulticopterPositionControl::control_manual(float dt)
 	if (!_alt_hold_engaged) {
 		_pos_sp(2) = _pos(2);
 		_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
-		_vel_sp(2) = req_vel_sp_scaled(2);
+		_vel_sp(2) = man_vel_sp(2);
 	}
 
 	if (!_pos_hold_engaged) {
 		_pos_sp(0) = _pos(0);
 		_pos_sp(1) = _pos(1);
 		_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-		_vel_sp(0) = req_vel_sp_scaled(0);
-		_vel_sp(1) = req_vel_sp_scaled(1);
+		_vel_sp(0) = man_vel_sp(0);
+		_vel_sp(1) = man_vel_sp(1);
 	}
 
 	if (_vehicle_land_detected.landed) {
