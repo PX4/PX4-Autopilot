@@ -429,10 +429,10 @@ private:
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
 	 */
-	void tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+	void tecs_update_throttle(float alt_sp, float v_sp, float eas2tas,
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
-					bool climbout_mode, float climbout_pitch_min_rad,
+					float climbout_pitch_min_rad,
 					float altitude,
 					const math::Vector<3> &ground_speed,
 					unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
@@ -888,10 +888,10 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 /*********************************************** TECS FUNCTIONS ******************************************/
 /*********************************************************************************************************/
 
-void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, float eas2tas,
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
-		bool climbout_mode, float climbout_pitch_min_rad,
+		float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
 		unsigned mode)
@@ -923,7 +923,7 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 
 	_tecs.update_pitch_throttle(_R_nb, 0.0f , altitude, alt_sp, v_sp,
 				    _ctrl_state.airspeed, eas2tas,
-				    climbout_mode, climbout_pitch_min_rad,
+				    false /*climbout_mode*/, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
 
@@ -1122,7 +1122,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			}
 
 			// at this point we have the target throttle anyway
-			
+
 		}
 
 
@@ -1150,10 +1150,10 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
-			// tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_target_speed), eas2tas,
-			// 			   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-			// 			   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-			// 			   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+			tecs_update_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_target_speed), eas2tas,
+						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
+						   math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -1165,7 +1165,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 			float alt_sp = pos_sp_triplet.current.alt;
 
-			tecs_update_pitch_throttle(alt_sp,
+			tecs_update_throttle(alt_sp,
 						   calculate_target_airspeed(mission_target_speed),
 						   eas2tas,
 						   math::radians(_parameters.pitch_limit_min),
@@ -1173,7 +1173,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 						   0, // _parameters.throttle_min,
 						   0, // _parameters.throttle_max,
 						   0, // _parameters.throttle_cruise,
-						   false,
 						   math::radians(_parameters.pitch_limit_min),
 						   _global_pos.alt,
 						   ground_speed);
