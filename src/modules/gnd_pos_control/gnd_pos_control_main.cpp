@@ -413,7 +413,6 @@ private:
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
-	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
 
 	/**
@@ -436,6 +435,8 @@ private:
 					float altitude,
 					const math::Vector<3> &ground_speed,
 					unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
+
+
 
 };
 
@@ -823,28 +824,6 @@ GroundRoverPositionControl::vehicle_setpoint_poll()
 	if (pos_sp_triplet_updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 	}
-}
-
-float
-GroundRoverPositionControl::get_demanded_airspeed()
-{
-	float altctrl_airspeed = 0;
-
-	// neutral throttle corresponds to trim airspeed
-	if (_manual.z < 0.5f) {
-		// lower half of throttle is min to trim airspeed
-		altctrl_airspeed = _parameters.airspeed_min +
-				   (_parameters.airspeed_trim - _parameters.airspeed_min) *
-				   _manual.z * 2;
-
-	} else {
-		// upper half of throttle is trim to max airspeed
-		altctrl_airspeed = _parameters.airspeed_trim +
-				   (_parameters.airspeed_max - _parameters.airspeed_trim) *
-				   (_manual.z * 2 - 1);
-	}
-
-	return altctrl_airspeed;
 }
 
 float
