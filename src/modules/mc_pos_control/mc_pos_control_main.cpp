@@ -923,7 +923,7 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 	 * with x= (curr_sp - pos) and y = _vel_sp with min limit of 0.01
 	 */
 	math::Vector<3> dist = _curr_pos_sp - _pos;
-	float slope = get_cruising_speed_xy()  / _target_threshold_xy.get();
+	float slope = (get_cruising_speed_xy() - 0.01f)  / _target_threshold_xy.get();
 	float vel_limit =  slope * sqrtf(dist(0) * dist(0) + dist(1) * dist(1)) + 0.01f;
 	float vel_mag_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
