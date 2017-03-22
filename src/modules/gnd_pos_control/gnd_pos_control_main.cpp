@@ -237,7 +237,7 @@ private:
 	runwaytakeoff::RunwayTakeoff _runway_takeoff;
 
 	/* throttle and airspeed states */
-	float _airspeed_error;				///< airspeed error to setpoint in m/s
+	float _speed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
 	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
 	
@@ -245,7 +245,6 @@ private:
 	bool _gpsspeed_valid;				///< flag if a valid gpsspeed estimate exists
 	uint64_t _gpsspeed_last_received;		///< last time gpsspeed was received. Used to detect timeouts.
 	
-	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
 	float _roll;
@@ -465,8 +464,6 @@ private:
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed_2d,
-			const struct position_setpoint_triplet_s &pos_sp_triplet);
 
 	/**
 	 * Handle incoming vehicle commands
@@ -579,14 +576,13 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_launchDetector(),
 	_launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	_runway_takeoff(),
-	_airspeed_error(0.0f),
+	_speed_error(0.0f),
 	_airspeed_valid(false),
 	_airspeed_last_received(0),
 	_gpsspeed_error(0.0f),
 	_gpsspeed_valid(false),
 	_gpsspeed_last_received(0),
 
-	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_R_nb(),
 	_roll(0.0f),
@@ -944,76 +940,26 @@ GroundRoverPositionControl::get_demanded_airspeed()
 }
 
 float
-GroundRoverPositionControl::calculate_target_airspeed(float airspeed_demand)
+GroundRoverPositionControl::calculate_target_airspeed(float speed_demand)
 {
-	float airspeed;
+	float ground_speed;
 
 	if (_airspeed_valid) {
-		airspeed = _ctrl_state.airspeed;
-
+		ground_speed = _ctrl_state.airspeed;
 	} else {
-		airspeed = _parameters.airspeed_min + (_parameters.airspeed_max - _parameters.airspeed_min) / 2.0f;
+		ground_speed = _parameters.airspeed_min + (_parameters.airspeed_max - _parameters.airspeed_min) / 2.0f;
 	}
 
-	/* cruise airspeed for all modes unless modified below */
-	float target_airspeed = airspeed_demand;
-
-	/* add minimum ground speed undershoot (only non-zero in presence of sufficient wind) */
-	target_airspeed += _groundspeed_undershoot;
+	/* cruise ground_speed for all modes unless modified below */
+	float target_speed = speed_demand;
 
 	/* sanity check: limit to range */
-	target_airspeed = math::constrain(target_airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
+	target_speed = math::constrain(target_speed, _parameters.airspeed_min, _parameters.airspeed_max);
 
-	/* plain airspeed error */
-	_airspeed_error = target_airspeed - airspeed;
+	/* plain ground_speed error */
+	_speed_error = target_speed - ground_speed;
 
-	return target_airspeed;
-}
-
-void
-GroundRoverPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position,
-		const math::Vector<2> &ground_speed_2d, const struct position_setpoint_triplet_s &pos_sp_triplet)
-{
-
-	if (pos_sp_triplet.current.valid && !_gnd_control.circle_mode()) {
-
-		/* rotate ground speed vector with current attitude */
-		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
-		yaw_vector.normalize();
-		float ground_speed_body = yaw_vector * ground_speed_2d;
-
-		/* The minimum desired ground speed is the minimum airspeed projected on to the ground using the altitude and horizontal difference between the waypoints if available*/
-		float distance = 0.0f;
-		float delta_altitude = 0.0f;
-
-		if (pos_sp_triplet.previous.valid) {
-			distance = get_distance_to_next_waypoint(pos_sp_triplet.previous.lat, pos_sp_triplet.previous.lon,
-					pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
-			delta_altitude = pos_sp_triplet.current.alt - pos_sp_triplet.previous.alt;
-
-		} else {
-			distance = get_distance_to_next_waypoint(current_position(0), current_position(1), pos_sp_triplet.current.lat,
-					pos_sp_triplet.current.lon);
-			delta_altitude = pos_sp_triplet.current.alt -  _global_pos.alt;
-		}
-
-		float ground_speed_desired = _parameters.airspeed_min * cosf(atan2f(delta_altitude, distance));
-
-
-		/*
-		 * Ground speed undershoot is the amount of ground velocity not reached
-		 * by the plane. Consequently it is zero if airspeed is >= min ground speed
-		 * and positive if airspeed < min ground speed.
-		 *
-		 * This error value ensures that a plane (as long as its throttle capability is
-		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
-		 * by wind). Not countering this would lead to a fly-away.
-		 */
-		_groundspeed_undershoot = math::max(ground_speed_desired - ground_speed_body, 0.0f);
-
-	} else {
-		_groundspeed_undershoot = 0;
-	}
+	return target_speed;
 }
 
 
@@ -1303,7 +1249,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
-	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
 	// l1 navigation logic breaks down when wind speed exceeds max airspeed
 	// compute 2D groundspeed from airspeed-heading projection
@@ -1379,36 +1324,39 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			prev_wp(1) = (float)pos_sp_triplet.current.lon;
 
 		}
+
+		float mission_target_speed = _parameters.airspeed_trim;
+		float mission_throttle = _parameters.throttle_cruise;
+
+
 			/* Just control the throttle */
 		if ( _parameters.speed_control_mode == CLOSED_LOOP_CONTROL ) {
 			/* control the speed in closed loop fashion */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
 		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-				mission_airspeed = _pos_sp_triplet.current.cruising_speed;
-			} else {
-				//that's the target airspeed
-				mission_airspeed = _parameters.airspeed_trim;
-			}
-			
+				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
+			} 
+			// at this point we have the target airspeed no matter what 
 
 		} else {
 			/* Just control throttle in open loop */
+			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
+			    _pos_sp_triplet.current.cruising_throttle > 0.01f) {
+
+				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
+			}
+
+			// at this point we have the target throttle anyway
+
 		}
 
-		float mission_airspeed = _parameters.airspeed_trim;
 
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-			mission_airspeed = _pos_sp_triplet.current.cruising_speed;
-		}
+		// if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+		//     _pos_sp_triplet.current.cruising_speed > 0.1f) {
+		// 	mission_target_speed = _pos_sp_triplet.current.cruising_speed;
+		// }
 
-		float mission_throttle = _parameters.throttle_cruise;
 
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
-		    _pos_sp_triplet.current.cruising_throttle > 0.01f) {
-
-			mission_throttle = _pos_sp_triplet.current.cruising_throttle;
-		}
 
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
@@ -1427,7 +1375,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
-			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_airspeed), eas2tas,
+			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_target_speed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
@@ -1443,7 +1391,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			float alt_sp = pos_sp_triplet.current.alt;
 
 			tecs_update_pitch_throttle(alt_sp,
-						   calculate_target_airspeed(mission_airspeed),
+						   calculate_target_airspeed(mission_target_speed),
 						   eas2tas,
 						   math::radians(_parameters.pitch_limit_min),
 						   math::radians(_parameters.pitch_limit_max),
