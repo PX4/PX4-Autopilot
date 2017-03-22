@@ -251,7 +251,6 @@ private:
 		float min_sink_rate;
 		float max_sink_rate;
 		float max_climb_rate;
-		float climbout_diff;
 		float heightrate_p;
 		float heightrate_ff;
 		float speedrate_p;
@@ -267,7 +266,6 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
-		float airspeed_trans;
 		int airspeed_mode;
 		int speed_control_mode;
 
@@ -282,13 +280,10 @@ private:
 		float roll_limit;
 		float throttle_min;
 		float throttle_max;
-		float throttle_idle;
 		float throttle_cruise;
 		float throttle_slew_max;
 		float man_roll_max_rad;
 		float man_pitch_max_rad;
-		float rollsp_offset_rad;
-		float pitchsp_offset_rad;
 
 
 	} _parameters;			/**< local copies of interesting parameters */
@@ -304,7 +299,6 @@ private:
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
-		param_t climbout_diff;
 		param_t heightrate_p;
 		param_t heightrate_ff;
 		param_t speedrate_p;
@@ -320,7 +314,6 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
-		param_t airspeed_trans;
 		param_t airspeed_mode;
 
 		param_t speed_control_mode;
@@ -337,13 +330,10 @@ private:
 		param_t roll_limit;
 		param_t throttle_min;
 		param_t throttle_max;
-		param_t throttle_idle;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
 		param_t man_roll_max_deg;
 		param_t man_pitch_max_deg;
-		param_t rollsp_offset_deg;
-		param_t pitchsp_offset_deg;
 
 
 	} _parameter_handles;		/**< handles for interesting parameters */
@@ -549,7 +539,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
-	_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
 	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 
 	_parameter_handles.speed_control_mode = param_find("GND_SP_CTRL_MODE");
@@ -559,20 +548,16 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.roll_limit = param_find("GND_R_LIM");
 	_parameter_handles.throttle_min = param_find("GND_THR_MIN");
 	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
-	_parameter_handles.throttle_idle = param_find("GND_THR_IDLE");
 	_parameter_handles.throttle_slew_max = param_find("GND_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
 	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
-	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
-	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
 	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
-	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
 	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
 	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
 	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
@@ -630,7 +615,6 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
-	param_get(_parameter_handles.airspeed_trans, &(_parameters.airspeed_trans));
 	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_mode));
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
@@ -638,7 +622,6 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
-	param_get(_parameter_handles.throttle_idle, &(_parameters.throttle_idle));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
@@ -646,11 +629,6 @@ GroundRoverPositionControl::parameters_update()
 	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
 	param_get(_parameter_handles.man_pitch_max_deg, &_parameters.man_pitch_max_rad);
 	_parameters.man_pitch_max_rad = math::radians(_parameters.man_pitch_max_rad);
-	param_get(_parameter_handles.rollsp_offset_deg, &_parameters.rollsp_offset_rad);
-	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_rad);
-	param_get(_parameter_handles.pitchsp_offset_deg, &_parameters.pitchsp_offset_rad);
-	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_rad);
-
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
 	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
@@ -665,8 +643,6 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
-	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
-
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
 	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
@@ -1146,7 +1122,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			}
 
 			// at this point we have the target throttle anyway
-
+			
 		}
 
 
@@ -1174,10 +1150,10 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
-			tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_target_speed), eas2tas,
-						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+			// tecs_update_pitch_throttle(pos_sp_triplet.current.alt, calculate_target_airspeed(mission_target_speed), eas2tas,
+			// 			   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+			// 			   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
+			// 			   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -1374,10 +1350,6 @@ GroundRoverPositionControl::task_main()
 			 */
 			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
-
-				// add attitude setpoint offsets
-				_att_sp.roll_body += _parameters.rollsp_offset_rad;
-				_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
 
 				if (_control_mode.flag_control_manual_enabled) {
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
