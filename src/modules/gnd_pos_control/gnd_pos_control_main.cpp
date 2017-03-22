@@ -179,13 +179,13 @@ private:
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
-	orb_advert_t	_fw_pos_ctrl_status_pub;		/**< navigation capabilities publication */
+	orb_advert_t	_gnd_pos_ctrl_status_pub;		/**< navigation capabilities publication */
 
 	orb_id_t _attitude_setpoint_id;
 
 	struct control_state_s				_ctrl_state;			/**< control state */
 	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
-	struct fw_pos_ctrl_status_s			_fw_pos_ctrl_status;		/**< navigation capabilities */
+	struct fw_pos_ctrl_status_s			_gnd_pos_ctrl_status;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
 	struct vehicle_command_s			_vehicle_command;		/**< vehicle commands */
@@ -431,7 +431,7 @@ private:
 	/**
 	 * Publish navigation capabilities
 	 */
-	void		fw_pos_ctrl_status_publish();
+	void		gnd_pos_ctrl_status_publish();
 
 	
 	/**
@@ -516,7 +516,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* publications */
 	_attitude_sp_pub(nullptr),
 	_tecs_status_pub(nullptr),
-	_fw_pos_ctrl_status_pub(nullptr),
+	_gnd_pos_ctrl_status_pub(nullptr),
 
 	/* publication ID */
 	_attitude_setpoint_id(nullptr),
@@ -524,7 +524,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* states */
 	_ctrl_state(),
 	_att_sp(),
-	_fw_pos_ctrl_status(),
+	_gnd_pos_ctrl_status(),
 	_manual(),
 	_control_mode(),
 	_vehicle_command(),
@@ -590,7 +590,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameters(),
 	_parameter_handles()
 {
-	_fw_pos_ctrl_status = {};
+	_gnd_pos_ctrl_status = {};
 
 	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("GND_L1_DAMPING");
@@ -758,10 +758,10 @@ GroundRoverPositionControl::parameters_update()
 	*/
 
 	/* Update and publish the navigation capabilities */
-	_fw_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
-	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
-	_fw_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
-	fw_pos_ctrl_status_publish();
+	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
+	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
+	_gnd_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
+	gnd_pos_ctrl_status_publish();
 
 	/* Update Launch Detector Parameters */
 	_launchDetector.updateParams();
@@ -952,15 +952,15 @@ GroundRoverPositionControl::calculate_target_airspeed(float speed_demand)
 }
 
 
-void GroundRoverPositionControl::fw_pos_ctrl_status_publish()
+void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 {
-	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
+	_gnd_pos_ctrl_status.timestamp = hrt_absolute_time();
 
-	if (_fw_pos_ctrl_status_pub != nullptr) {
-		orb_publish(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_pub, &_fw_pos_ctrl_status);
+	if (_gnd_pos_ctrl_status_pub != nullptr) {
+		orb_publish(ORB_ID(fw_pos_ctrl_status), _gnd_pos_ctrl_status_pub, &_gnd_pos_ctrl_status);
 
 	} else {
-		_fw_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_fw_pos_ctrl_status);
+		_gnd_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_gnd_pos_ctrl_status);
 	}
 }
 
@@ -976,7 +976,7 @@ GroundRoverPositionControl::handle_command()
 				mavlink_log_info(&_mavlink_log_pub, "#Landing, can't abort after flare");
 
 			} else {
-				_fw_pos_ctrl_status.abort_landing = true;
+				_gnd_pos_ctrl_status.abort_landing = true;
 				mavlink_log_info(&_mavlink_log_pub, "#Landing, aborted");
 			}
 		}
@@ -1552,25 +1552,25 @@ GroundRoverPositionControl::task_main()
 				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
-				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _fw_pos_ctrl_status.turn_distance) > FLT_EPSILON
+				if ((hrt_elapsed_time(&_gnd_pos_ctrl_status.timestamp) > 1000000)
+				    || (fabsf(turn_distance - _gnd_pos_ctrl_status.turn_distance) > FLT_EPSILON
 					&& turn_distance > 0)) {
 
 					/* set new turn distance */
-					_fw_pos_ctrl_status.turn_distance = turn_distance;
+					_gnd_pos_ctrl_status.turn_distance = turn_distance;
 
-					_fw_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
-					_fw_pos_ctrl_status.nav_pitch = get_tecs_pitch();
-					_fw_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
+					_gnd_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
+					_gnd_pos_ctrl_status.nav_pitch = get_tecs_pitch();
+					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
-					_fw_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
-					_fw_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
+					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
 					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
-					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
+					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
 								      curr_wp(1));
 
-					fw_pos_ctrl_status_publish();
+					gnd_pos_ctrl_status_publish();
 				}
 
 			}
