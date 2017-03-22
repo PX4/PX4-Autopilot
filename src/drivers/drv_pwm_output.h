@@ -305,6 +305,9 @@ struct pwm_output_rc_config {
  * This is the low-level API to the platform-specific PWM driver.
  */
 
+__EXPORT extern void up_pwm_set_oneshot_mode(bool on);
+__EXPORT extern bool up_pwm_get_oneshot_mode(void);
+
 /**
  * Intialise the PWM servo outputs using the specified configuration.
  *
@@ -359,6 +362,13 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Force update of all timer channels in group.
+ *
+ * @param group		The rate group to update.
+ */
+__EXPORT extern void up_pwm_force_update(void);
 
 /**
  * Set the current output value for a channel.

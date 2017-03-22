@@ -63,6 +63,22 @@
 
 #include <stm32_tim.h>
 
+/* pwm_oneshot_mode true implies all servo outputs are oneshot */
+static bool pwm_oneshot_mode = false;
+
+/* this is a bitfield: if bit N is set, that timer is used for oneshot only */
+static uint8_t oneshot_timers;
+
+void up_pwm_set_oneshot_mode(bool value)
+{
+	pwm_oneshot_mode = value;
+}
+
+bool up_pwm_get_oneshot_mode()
+{
+	return pwm_oneshot_mode;
+}
+
 int up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
 	return io_timer_set_ccr(channel, value);
@@ -76,7 +92,13 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
-	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
+	io_timer_channel_mode_t chmode = IOTimerChanMode_PWMOut;
+
+	if (pwm_oneshot_mode) {
+		chmode = IOTimerChanMode_OneShot;
+	}
+
+	uint32_t current = io_timer_get_mode_channels(chmode);
 
 	// First free the current set of PWMs
 
@@ -86,6 +108,8 @@ int up_pwm_servo_init(uint32_t channel_mask)
 			current &= ~(1 << channel);
 		}
 	}
+
+	oneshot_timers = 0;
 
 	// Now allocate the new set
 
@@ -98,8 +122,13 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
+			io_timer_channel_init(channel, chmode, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+
+			if (pwm_oneshot_mode) {
+				// update the oneshot_timers bitfield
+				oneshot_timers |= (1 << timer_io_channels[channel].timer_index);
+			}
 		}
 	}
 
@@ -132,6 +161,15 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	return OK;
 }
 
+void up_pwm_force_update(void)
+{
+	for (unsigned i = 0; i < 8; i++) {
+		if (oneshot_timers & (1 << i)) {
+			io_timer_force_update(i);
+		}
+	}
+}
+
 int up_pwm_servo_set_rate(unsigned rate)
 {
 	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
@@ -149,5 +187,10 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 void
 up_pwm_servo_arm(bool armed)
 {
-	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	if (pwm_oneshot_mode) {
+		io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
+
+	} else {
+		io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	}
 }
