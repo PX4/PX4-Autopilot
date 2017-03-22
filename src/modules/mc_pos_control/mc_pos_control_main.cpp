@@ -447,7 +447,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
-	_target_threshold_xy(this, "MPC_TARGET_THRE"),
+	_target_threshold_xy(this, "TARGET_THRE"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -920,15 +920,19 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 {
 	/*
 	 * the max velocity is defined by the linear line
-	 * with x= (curr_sp - pos) and y = _vel_sp
+	 * with x= (curr_sp - pos) and y = _vel_sp with min limit of 0.01
 	 */
 	math::Vector<3> dist = _curr_pos_sp - _pos;
 	float slope = get_cruising_speed_xy()  / _target_threshold_xy.get();
-	float vel_limit =  slope * sqrtf(dist(0) * dist(0) + dist(1) * dist(1));
+	float vel_limit =  slope * sqrtf(dist(0) * dist(0) + dist(1) * dist(1)) + 0.01f;
 	float vel_mag_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
-	float vel_mag_valid = math::min(vel_mag_xy, vel_limit);
-	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_mag_valid;
-	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_mag_valid;
+
+	if (vel_mag_xy <= vel_limit) {
+		return;
+	}
+
+	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_limit;
+	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_limit;
 }
 
 float
