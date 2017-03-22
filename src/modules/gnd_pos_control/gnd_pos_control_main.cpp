@@ -80,7 +80,6 @@
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
-#include <runway_takeoff/RunwayTakeoff.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
@@ -198,43 +197,16 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float	_takeoff_ground_alt;			/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
 	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
 	float	_althold_epv;				/**< the position estimate accuracy when engaging alt hold */
-	bool	_was_in_deadband;			/**< wether the last stick input was in althold deadband */
 	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
 	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; 	/**<last call of control_position  */
 
-	/* Landing */
-	bool _land_noreturn_horizontal;
-	bool _land_noreturn_vertical;
-	bool _land_stayonground;
-	bool _land_motor_lim;
-	bool _land_onslope;
-	bool _land_useterrain;
-
-	//Landingslope _landingslope;
-
-	hrt_abstime _time_started_landing;	//*< time at which landing started */
-
-	float _t_alt_prev_valid;		//**< last terrain estimate which was valid */
-	hrt_abstime _time_last_t_alt; 		//*< time at which we had last valid terrain alt */
-
-	float _flare_height;				//*< estimated height to ground at which flare started */
-	float _flare_curve_alt_rel_last;
-	float _target_bearing;				//*< estimated height to ground at which flare started */
-
-	bool _was_in_air;	/**< indicated wether the plane was in the air in the previous interation*/
-	hrt_abstime _time_went_in_air;	/**< time at which the plane went in the air */
-
 	/* Takeoff launch detection and runway */
-	launchdetection::LaunchDetector _launchDetector;
 	LaunchDetectionResult _launch_detection_state;
-
-	runwaytakeoff::RunwayTakeoff _runway_takeoff;
 
 	/* throttle and airspeed states */
 	float _speed_error;				///< airspeed error to setpoint in m/s
@@ -455,11 +427,6 @@ private:
 	float		calculate_target_airspeed(float airspeed_demand);
 
 	/**
-	 * Handle incoming vehicle commands
-	 */
-	void		handle_command();
-
-	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -538,33 +505,15 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 	_hold_alt(0.0f),
-	_takeoff_ground_alt(0.0f),
 	_hdg_hold_yaw(0.0f),
 	_hdg_hold_enabled(false),
 	_yaw_lock_engaged(false),
 	_althold_epv(0.0f),
-	_was_in_deadband(false),
 	_hdg_hold_prev_wp{},
 	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
-	_land_noreturn_horizontal(false),
-	_land_noreturn_vertical(false),
-	_land_stayonground(false),
-	_land_motor_lim(false),
-	_land_onslope(false),
-	_land_useterrain(false),
-	//_landingslope(),
-	_time_started_landing(0),
-	_t_alt_prev_valid(0),
-	_time_last_t_alt(0),
-	_flare_height(0.0f),
-	_flare_curve_alt_rel_last(0.0f),
-	_target_bearing(0.0f),
-	_was_in_air(false),
-	_time_went_in_air(0),
-	_launchDetector(),
+
 	_launch_detection_state(LAUNCHDETECTION_RES_NONE),
-	_runway_takeoff(),
 	_speed_error(0.0f),
 	_airspeed_valid(false),
 	_airspeed_last_received(0),
@@ -746,27 +695,22 @@ GroundRoverPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	/* sanity check parameters 
+	/* sanity check parameters  */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    _parameters.airspeed_max < 5.0f ||
+	   // _parameters.airspeed_max < 5.0f ||
 	    _parameters.airspeed_min > 100.0f ||
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
 		warnx("error: airspeed parameters invalid");
 		return 1;
 	}
-	*/
+	
 
 	/* Update and publish the navigation capabilities */
 	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
 	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
 	_gnd_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
 	gnd_pos_ctrl_status_publish();
-
-	/* Update Launch Detector Parameters */
-	_launchDetector.updateParams();
-
-	_runway_takeoff.updateParams();
 
 	return OK;
 }
@@ -795,7 +739,6 @@ GroundRoverPositionControl::vehicle_command_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
-		handle_command();
 	}
 }
 
@@ -965,26 +908,6 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 }
 
 
-void
-GroundRoverPositionControl::handle_command()
-{
-	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
-		// only abort landing before point of no return (horizontal and vertical)
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-			if (_land_noreturn_vertical) {
-				mavlink_log_info(&_mavlink_log_pub, "#Landing, can't abort after flare");
-
-			} else {
-				_gnd_pos_ctrl_status.abort_landing = true;
-				mavlink_log_info(&_mavlink_log_pub, "#Landing, aborted");
-			}
-		}
-	}
-}
-
-
-
 /*********************************************************************************************************/
 /*********************************************** TECS FUNCTIONS ******************************************/
 /*********************************************************************************************************/
@@ -997,11 +920,6 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 		const math::Vector<3> &ground_speed,
 		unsigned mode)
 {
-	float dt = 0.01f; // prevent division with 0
-
-	if (_last_tecs_update > 0) {
-		dt = hrt_elapsed_time(&_last_tecs_update) * 1e-6;
-	}
 
 	_last_tecs_update = hrt_absolute_time();
 
@@ -1010,36 +928,8 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
-	if (_vehicle_status.is_vtol) {
-		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
-	}
-
-	// we're in transition
-	if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
-		_was_in_transition = true;
-
-		// set this to transition airspeed to init tecs correctly
-		if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
-			// some vtols fly without airspeed sensor
-			_asp_after_transition = _parameters.airspeed_trans;
-
-		} else {
-			_asp_after_transition = _ctrl_state.airspeed;
-		}
-
-		_asp_after_transition = math::constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
-
-	} else if (_was_in_transition) {
-		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-		_asp_after_transition += dt * 2; // increase 2m/s
-
-		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
-			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
-
-		} else {
-			_was_in_transition = false;
-			_asp_after_transition = 0;
-		}
+	if (_vehicle_status.is_vtol || _vehicle_status.is_rotary_wing) {
+		return;
 	}
 
 	_is_tecs_running = run_tecs;
@@ -1055,20 +945,7 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 		_reinitialize_tecs = false;
 	}
 
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-		/* Force the slow downwards spiral */
-		pitch_min_rad = M_DEG_TO_RAD_F * -1.0f;
-		pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
-	}
-
-	/* No underspeed protection in landing mode */
-	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
-					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
-
-	/* Using tecs library */
-	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
-
-	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs, altitude, alt_sp, v_sp,
+	_tecs.update_pitch_throttle(_R_nb, 0.0f , altitude, alt_sp, v_sp,
 				    _ctrl_state.airspeed, eas2tas,
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
@@ -1085,17 +962,8 @@ void GroundRoverPositionControl::tecs_update_pitch_throttle(float alt_sp, float 
 	case TECS::ECL_TECS_MODE_NORMAL:
 		t.mode = tecs_status_s::TECS_MODE_NORMAL;
 		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
+	default:
 		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
-
-	case TECS::ECL_TECS_MODE_CLIMBOUT:
-		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
 		break;
 	}
 
@@ -1205,18 +1073,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
-
-	/* save time when airplane is in air */
-	if (!_was_in_air && !_vehicle_land_detected.landed) {
-		_was_in_air = true;
-		_time_went_in_air = hrt_absolute_time();
-		_takeoff_ground_alt = _global_pos.alt;
-	}
-
-	/* reset flag when airplane landed */
-	if (_vehicle_land_detected.landed) {
-		_was_in_air = false;
-	}
 
 	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
