@@ -170,7 +170,7 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_BMA          9
 #define PX4_SPIDEV_EXT0         10
 #define PX4_SPIDEV_EXT1         11
-#define PX4_SPIDEV_EEPROM	      12
+#define PX4_SPIDEV_EEPROM	    12
 #define PX4_SPIDEV_ICM_20608    13
 
 /* I2C busses */
@@ -290,14 +290,11 @@ __BEGIN_DECLS
 #define HRT_PPM_CHANNEL     3	/* use capture/compare channel 3 */
 #define GPIO_PPM_IN         (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
-//#define RC_SERIAL_PORT		"/dev/ttyS4"
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER         4
 #define PWMIN_TIMER_CHANNEL 2
 #define GPIO_PWM_IN			GPIO_TIM4_CH2IN_2
 
-#define GPIO_RSSI_IN 			(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 #define GPIO_BTN_SAFETY_FMU		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_SBUS_INV			(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
 #define INVERT_RC_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
