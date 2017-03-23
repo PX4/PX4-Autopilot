@@ -135,6 +135,9 @@
 
 #include "mixer_load.h"
 
+#include "mixer_types.h"
+
+
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
@@ -212,6 +215,65 @@ public:
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {};
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	/**
+	 * Writes a description of the mixer configuration which can be read with from_text
+	 *
+	 * @param buf   		The buffer to write the description to.
+	 * @param buflen   		The buffer size available.  Modfied to buffer length used.
+	* @return              0 if succeeded. Otherwise non zero.
+	 */
+	virtual int             to_text(char *buf, unsigned &buflen) {return -1;}
+
+	/**
+	 * Get list of Mixer parameters
+	 *
+	 * @return              A type enumeration for this mixer
+	* @param submix_index  The index of the submixer. 0 if main mixer.
+	*/
+	virtual MIXER_TYPES     get_mixer_type(uint16_t submix_index) {return MIXER_TYPES_NONE;}
+
+	/**
+	 * Get list of Mixer parameters
+	 *
+	 * @return              A count of submixers for the mixer
+	 */
+	virtual int             count_submixers(void) {return 0;}
+
+	/**
+	 * gets a mixer parameter
+	 *
+	* @param index         The index of the parameter
+	* @param submix_index  The index of the submixer. 0 if main mixer.
+	* @return              The float value of the parameter
+	 */
+	virtual float       	get_parameter(uint16_t index, uint16_t submix_index) {return 0.0;}
+
+	/**
+	 * gets a mixer connection
+	 *
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
+	 * @param conn_input    Get input or output connection. false=output,true=input
+	 * @param conn_index    Index into the mixer connections
+	 * @param conn_group    Return the data group for the connection
+	 * @return              Mixer connection. -1 for error
+	 */
+	virtual int16_t         get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
+					       uint16_t *conn_group) {return -1;}
+
+#endif  //MIXER_REMOTE
+	/**
+	 * sets a mixer parameter
+	 *
+	 * @param index         The index of the parameter
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
+	 * @param value         The value of the parameter
+	 * @return              0 if set. -1 for error
+	 */
+	virtual int16_t         set_parameter(uint16_t index, float value, uint16_t submix_index) {return -1;}
+
+#endif //defined(MIXER_TUNING)
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -391,6 +453,77 @@ public:
 	 */
 	virtual void	set_thrust_factor(float val);
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	/**
+	* @brief               Generates text in buffer describing the mixer settings compatible
+	*                      with load_from_buf
+	 *
+	* @param[in]   buf		The mixer configuration buffer.
+	* @param       buflen	The length of the buffer, updated to reflect
+	 *                      the bytes written
+	 * @return              Zero on successful save, nonzero otherwise.
+	 *
+	 */
+	int                 save_to_buf(char *buf, unsigned &buflen);
+
+	/**
+	 * Get the type of a mixer from its index
+	 *
+	* @param[in] mix_index     Index of the mixer to get the type
+	* @param[in] submix_index  Option index into submixers
+	* @return                  The type of the mixer.
+	 */
+	MIXER_TYPES         get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index);
+
+
+	/**
+	 * Get the count of submixers for a mixer at index
+	 *
+	 * @param[in] mix_index     Index of the mixer to get the submixer count
+	 * @return                  The count of submixers.
+	 */
+	signed              count_mixers_submixer(uint16_t mix_index);
+
+	/**
+	* @brief                   Get the value of a mixer parameter
+	 *
+	* @param[in] mix_index     index of the mixer to get the param from
+	* @param[in] param_index   index of the parameter to get the value from
+	* @param[in] submix_index  Option index into submixers
+	* @return                  Value of the parameter. Return 0.0 if index out of range.
+	 */
+	float get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t submix_index);
+
+
+	/**
+	 * gets a mixer connection
+	 *
+	 * @param mix_index     The index of the mixer
+	 * @param submix_index  The index of the submixer. 0 if main mixer.
+	 * @param conn_input    Get input or output connection. false=output,true=input
+	 * @param conn_index    Index into the mixer connections
+	 * @param conn_group    Return the data group for the connection
+	 * @return              Mixer connection. -1 for error
+	 */
+	int16_t         get_connection(uint16_t mix_index, uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
+				       uint16_t *conn_group);
+
+#endif  //MIXER_REMOTE
+
+	/**
+	* @brief                       Set the value of a mixer parameter
+	 *
+	* @param[in]   mix_index       index of the mixer to get the param from
+	* @param[in]   param_index     index of the parameter to get the value from
+	* @param[in]   value           value to set indexed parameter to
+	* @param[in]   submix_index    Option index into submixers
+	* @return                      Zero on success, -1 on failure.
+	 */
+	int set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index);
+
+#endif //defined(MIXER_TUNING)
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
@@ -434,6 +567,15 @@ public:
 		return 0;
 	}
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index);
+#endif //MIXER_REMOTE
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
+#endif //defined(MIXER_TUNING)
 };
 
 /**
@@ -501,6 +643,18 @@ public:
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index);
+	int16_t                 get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
+					       uint16_t *conn_group);
+#endif //MIXER_REMOTE
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index);
+#endif //defined(MIXER_TUNING)
+
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
@@ -538,6 +692,17 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
+
+/** multirotor mixer info */
+struct mixer_multi_s {
+	float   roll_scale;
+	float   pitch_scale;
+	float   yaw_scale;
+	float   idle_speed;
+	MultirotorGeometry geometry;
+};
+
+
 /**
  * Multi-rotor mixer for pre-defined vehicle geometries.
  *
@@ -568,7 +733,7 @@ public:
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
-	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
+	 * @param yaw_scale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
 	 * @param idle_speed		Minimum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
@@ -581,6 +746,18 @@ public:
 			float pitch_scale,
 			float yaw_scale,
 			float idle_speed);
+
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle         Passed to control_cb.
+	 * @param mixer_multi_s*    mixer info
+	 */
+	MultirotorMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			mixer_multi_s *mixer_info);
+
 	~MultirotorMixer();
 
 	/**
@@ -632,6 +809,18 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	MIXER_TYPES             get_mixer_type(uint16_t submix_index = 0);
+	signed                  count_submixers(void);
+	float                   get_parameter(uint16_t index, uint16_t submix_index = 0);
+	int16_t                 get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
+					       uint16_t *conn_group);
+#endif //MIXER_REMOTE
+	int16_t                 set_parameter(uint16_t index, float value, uint16_t submix_index = 0);
+#endif //defined(MIXER_TUNING)
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
@@ -664,6 +853,8 @@ private:
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+	MultirotorGeometry  _geometry;
 
 	float 				*_outputs_prev = nullptr;
 

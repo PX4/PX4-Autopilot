@@ -79,6 +79,10 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
+#if defined(MIXER_TUNING)
+#include <uORB/topics/mixer_parameter_set.h>
+#include <uORB/topics/mixer_parameter.h>
+#endif // MIXER_TUNING
 
 #include <systemlib/err.h>
 
@@ -121,6 +125,10 @@ private:
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 	int		_armed_sub;
+#if defined(MIXER_TUNING)
+	int         _mixer_parameter_set_sub;
+	orb_advert_t	_mixer_parameter_pub;
+#endif // MIXER_TUNING
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -191,6 +199,10 @@ PWMSim::PWMSim() :
 	_poll_fds{},
 	_poll_fds_num(0),
 	_armed_sub(-1),
+#if defined(MIXER_TUNING)
+	_mixer_parameter_set_sub(-1),
+	_mixer_parameter_pub(nullptr),
+#endif // MIXER_TUNING
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -387,6 +399,10 @@ PWMSim::task_main()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
+#if defined(MIXER_TUNING)
+	_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
+#endif //MIXER_TUNING
+
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs = {};
 
@@ -548,6 +564,46 @@ PWMSim::task_main()
 			_failsafe = aa.force_failsafe;
 			_lockdown = aa.manual_lockdown;
 		}
+
+#if defined(MIXER_TUNING)
+
+		orb_check(_mixer_parameter_set_sub, &updated);
+
+		if (updated) {
+			mixer_parameter_set_s param;
+			orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
+
+			if (param.mixer_group == 0) {
+				ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
+							       (unsigned)param.mixer_sub_index);
+
+				mixer_parameter_s data;
+				data.mixer_group = param.mixer_group;
+				data.mixer_index = param.mixer_index;
+				data.mixer_sub_index = param.mixer_sub_index;
+				data.parameter_index = param.parameter_index;
+				data.int_value = 0;
+
+				if (ret == 0) {
+					data.real_value = param.real_value;
+
+				} else {
+					data.real_value = 0;
+				}
+
+				data.param_type = 9;    //FLOAT
+
+				if (_mixer_parameter_pub == 0) {
+					_mixer_parameter_pub = orb_advertise(ORB_ID(mixer_parameter), &data);
+
+				} else {
+					orb_publish(ORB_ID(mixer_parameter), _mixer_parameter_pub, &data);
+				}
+			}
+		}
+
+#endif //MIXER_TUNING
+
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -557,6 +613,10 @@ PWMSim::task_main()
 	}
 
 	orb_unsubscribe(_armed_sub);
+#if defined(MIXER_TUNING)
+	orb_unsubscribe(_mixer_parameter_set_sub);
+	orb_unadvertise(_mixer_parameter_pub);
+#endif //MIXER_TUNING
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();
@@ -836,6 +896,93 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
+
+	case MIXERIOCGETMIXERCOUNT: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			unsigned *count = (unsigned *)arg;
+			*count = _mixers->count();
+
+			break;
+		}
+
+	case MIXERIOCGETSUBMIXERCOUNT:  {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			signed *count = (signed *)arg;
+			*count = _mixers->count_mixers_submixer(*count);
+
+			break;
+		}
+
+
+	case MIXERIOCGETTYPE: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_type_s *mixer_type = (mixer_type_s *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
+
+			if (mixer_type->mix_type == MIXER_TYPES_NONE) {
+				ret = -EINVAL;
+
+			} else {
+				ret = 0;
+			}
+
+			break;
+		}
+
+	case MIXERIOCGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index, param->mix_sub_index);
+			break;
+		}
+
+	case MIXERIOCSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value, param->mix_sub_index);
+			break;
+		}
+
+	case MIXERIOCGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
+			break;
+		}
+
+	case MIXERIOCGETIOCONNECTION: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_connection_s *conn = (mixer_connection_s *)arg;
+
+			conn->connection = _mixers->get_connection(conn->mix_index, conn->mix_sub_index, conn->connection_type,
+					   conn->connection_index, &conn->connection_group);
+			ret = 0;
+			break;
+		}
+
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;

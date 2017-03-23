@@ -273,3 +273,143 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 		mixer = mixer->_next;
 	}
 }
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+int
+MixerGroup::save_to_buf(char *buf, unsigned &buflen)
+{
+	Mixer       *mixer = _first;
+	char       *bufpos = buf;
+	unsigned    remaining = buflen;
+	unsigned    len;
+
+	while (mixer != NULL) {
+		/* len is remaining buffer length but modified
+		 * to the actual bytes written to the buffer */
+		len = remaining;
+
+		if (mixer->to_text(bufpos, len) == 0) {
+			bufpos += len;
+			remaining -= len;
+
+		} else {
+			return -1;
+		}
+
+		mixer = mixer->_next;
+	}
+
+	return buflen -= remaining;
+}
+
+MIXER_TYPES
+MixerGroup::get_mixer_type_from_index(uint16_t mix_index, uint16_t submix_index)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+	MIXER_TYPES mix_type;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			mix_type = mixer->get_mixer_type(submix_index);
+			return mix_type;
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return MIXER_TYPES_NONE;
+}
+
+signed
+MixerGroup::count_mixers_submixer(uint16_t mix_index)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->count_submixers();
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return -1;
+}
+
+
+float
+MixerGroup::get_mixer_param(uint16_t mix_index, uint16_t param_index, uint16_t submix_index)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->get_parameter(param_index, submix_index);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return 0.0;
+}
+
+
+int16_t
+MixerGroup::get_connection(uint16_t mix_index, uint16_t submix_index, uint16_t conn_type, uint16_t conn_index,
+			   uint16_t *conn_group)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+	*conn_group = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			// Special case for SimpleMixer since it doesn't know its output connection
+			if (mixer->get_mixer_type(submix_index) == MIXER_TYPES_SIMPLE) {
+				if (conn_type == 0) {
+					if (conn_index == 0) { return index; }
+				}
+
+				return -1;
+			}
+
+			return mixer->get_connection(submix_index, conn_type, conn_index, conn_group);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	// Out of mixer range
+	return -1;
+}
+
+#endif //MIXER_REMOTE
+
+int
+MixerGroup::set_mixer_param(uint16_t mix_index, uint16_t param_index, float value, uint16_t submix_index)
+{
+	Mixer	*mixer = _first;
+	uint16_t index = 0;
+
+	while ((mixer != nullptr)) {
+		if (mix_index == index) {
+			return mixer->set_parameter(param_index, value, submix_index);
+		}
+
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return -1;
+}
+
+
+#endif //defined(MIXER_TUNING)

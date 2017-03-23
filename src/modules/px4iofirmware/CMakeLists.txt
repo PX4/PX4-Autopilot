@@ -37,6 +37,7 @@ set_directory_properties(PROPERTIES
 	LINK_DIRECTORIES ""
 	COMPILE_DEFINITIONS ""
 	)
+
 set(c_flags)
 set(exe_linker_flags)
 set(cxx_flags)

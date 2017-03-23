@@ -223,3 +223,58 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 
 	return nm;
 }
+
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+int
+NullMixer::to_text(char *buf, unsigned &buflen)
+{
+	char *bufpos = buf;
+	unsigned remaining = buflen;
+
+	int written = snprintf(bufpos, remaining, "Z:\n");
+	bufpos += written;
+	remaining -= written;
+
+	if (remaining < 1) {
+		return -1;
+	}
+
+	buflen = bufpos - buf;
+	return 0;
+}
+MIXER_TYPES
+NullMixer::get_mixer_type(uint16_t submix_index)
+{
+	if (submix_index == 0) {
+		return MIXER_TYPES_NULL;
+
+	} else {
+		return MIXER_TYPES_NONE;
+	}
+}
+
+
+signed
+NullMixer::count_submixers(void)
+{
+	return 0;
+}
+
+float
+NullMixer::get_parameter(uint16_t index, uint16_t submix_index)
+{
+	return 0.0;		// No parameters to get
+}
+
+#endif //MIXER_REMOTE
+
+int16_t
+NullMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
+{
+	return -1;		// No parameters to set
+
+}
+
+#endif //defined(MIXER_TUNING)

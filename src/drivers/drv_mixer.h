@@ -116,4 +116,77 @@ struct mixer_simple_s {
  * - save/serialise for saving tuned mixers.
  */
 
+
+/**
+ * Get the count of mixers in the group as (unsigned *)arg
+ */
+#define   MIXERIOCGETMIXERCOUNT         _MIXERIOC(10)
+
+
+/**
+ * Get the count of submixers mixers in the group mixer index
+ * mixer index as (signed *)arg, return as (signed *)arg
+ */
+#define   MIXERIOCGETSUBMIXERCOUNT         _MIXERIOC(11)
+
+/**
+ * Get the parameter identifiers for a mixer at index (mixer_type_s *)arg
+ * set the the mixer index in the union
+ */
+struct mixer_type_s {
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        mix_type;
+};
+#define   MIXERIOCGETTYPE		_MIXERIOC(12)
+
+/**
+ * Get the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return the value in the struct
+ */
+struct mixer_param_s {
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        param_index;
+	float           value;
+};
+#define   MIXERIOCGETPARAM		_MIXERIOC(13)
+
+
+/**
+ * Set the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return 0 if success, -1 if fail.  Fail can indicate out of range.
+ * If failed then real value MAY be set in the mixer_param_s struct.
+ */
+#define MIXERIOCSETPARAM                 _MIXERIOC(14)
+
+
+/**
+ * Get mixer configuration text for serialization
+ */
+struct mixer_config_s {
+	char           *buff;
+	unsigned        size;
+};
+#define MIXERIOCGETCONFIG               _MIXERIOC(15)
+
+/**
+ * Get detail of a single mixer connection at index (mixer_connection_s*)arg
+ * Set mix_index, mix_sub_index, connection_type, connection_index and connection_group
+ * return value in connection. -1 if failed or out of range
+ */
+struct mixer_connection_s {
+	uint16_t        mix_index;
+	uint16_t        mix_sub_index;
+	uint16_t        connection_type;
+	uint16_t        connection_index;
+	uint16_t        connection_group;
+	uint16_t        connection;
+};
+#define MIXERIOCGETIOCONNECTION         _MIXERIOC(16)
+
+
+
 #endif /* _DRV_ACCEL_H */

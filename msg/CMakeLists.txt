@@ -76,6 +76,8 @@ set(msg_file_names
 	mc_virtual_rates_setpoint.msg
 	mission.msg
 	mission_result.msg
+    mixer_parameter.msg
+    mixer_parameter_set.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
 	offboard_control_mode.msg

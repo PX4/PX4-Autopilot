@@ -90,6 +90,10 @@
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 
+#include <uORB/topics/mixer_parameter.h>
+#include <uORB/topics/mixer_parameter_set.h>
+
+
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
@@ -192,6 +196,10 @@ private:
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
+#if defined(MIXER_TUNING)
+	int             _mixer_parameter_set_sub;
+	orb_advert_t	_mixer_parameter_pub;
+#endif // MIXER_TUNING
 	struct rc_input_values	_rc_in;
 	float		_analog_rc_rssi_volt;
 	bool		_analog_rc_rssi_stable;
@@ -327,7 +335,11 @@ PX4FMU::PX4FMU() :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
-	_rc_in{},
+#if defined(MIXER_TUNING)
+	_mixer_parameter_set_sub(-1),
+	_mixer_parameter_pub(nullptr),
+#endif // MIXER_TUNING
+	_rc_in {},
 	_analog_rc_rssi_volt(-1.0f),
 	_analog_rc_rssi_stable(false),
 	_to_input_rc(nullptr),
@@ -984,6 +996,10 @@ PX4FMU::cycle()
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 		_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
+#if defined(MIXER_TUNING)
+		_mixer_parameter_set_sub = orb_subscribe(ORB_ID(mixer_parameter_set));
+#endif //MIXER_TUNING
+
 		/* initialize PWM limit lib */
 		pwm_limit_init(&_pwm_limit);
 
@@ -1364,6 +1380,44 @@ PX4FMU::cycle()
 		}
 	}
 
+#if defined(MIXER_TUNING)
+	orb_check(_mixer_parameter_set_sub, &updated);
+
+	if (updated) {
+		mixer_parameter_set_s param;
+		orb_copy(ORB_ID(mixer_parameter_set), _mixer_parameter_set_sub, &param);
+
+		if (param.mixer_group == 0) {
+			ret = _mixers->set_mixer_param((unsigned)param.mixer_index, (unsigned)param.parameter_index, param.real_value,
+						       (unsigned)param.mixer_sub_index);
+
+			mixer_parameter_s data;
+			data.mixer_group = param.mixer_group;
+			data.mixer_index = param.mixer_index;
+			data.mixer_sub_index = param.mixer_sub_index;
+			data.parameter_index = param.parameter_index;
+			data.int_value = 0;
+
+			if (ret == 0) {
+				data.real_value = param.real_value;
+
+			} else {
+				data.real_value = 0;
+			}
+
+			data.param_type = 9;    //FLOAT
+
+			if (_mixer_parameter_pub == 0) {
+				_mixer_parameter_pub = orb_advertise(ORB_ID(mixer_parameter), &data);
+
+			} else {
+				orb_publish(ORB_ID(mixer_parameter), _mixer_parameter_pub, &data);
+			}
+		}
+	}
+
+#endif //MIXER_TUNING
+
 	/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
 	orb_check(_adc_sub, &updated);
@@ -1647,6 +1701,11 @@ void PX4FMU::work_stop()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+
+#if defined(MIXER_TUNING)
+	orb_unsubscribe(_mixer_parameter_set_sub);
+	orb_unadvertise(_mixer_parameter_pub);
+#endif //MIXER_TUNING
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -2387,6 +2446,95 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			break;
 		}
+
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
+
+	case MIXERIOCGETMIXERCOUNT: {
+			if (_mixers == nullptr) {
+				PX4_DEBUG("_mixers not found");
+				ret = -EINVAL;
+			}
+
+			unsigned *count = (unsigned *)arg;
+			*count = _mixers->count();
+
+			break;
+		}
+
+	case MIXERIOCGETSUBMIXERCOUNT:  {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			signed *count = (signed *)arg;
+			*count = _mixers->count_mixers_submixer(*count);
+
+			break;
+		}
+
+	case MIXERIOCGETTYPE: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_type_s *mixer_type = (mixer_type_s *)arg;
+			mixer_type->mix_type =  _mixers->get_mixer_type_from_index(mixer_type->mix_index, mixer_type->mix_sub_index);
+
+			if (mixer_type->mix_type == MIXER_TYPES_NONE) {
+				ret = -EINVAL;
+
+			} else {
+				ret = 0;
+			}
+
+			break;
+		}
+
+	case MIXERIOCGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			param->value = _mixers->get_mixer_param(param->mix_index, param->param_index, param->mix_sub_index);
+			break;
+		}
+
+	case MIXERIOCSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			PX4_INFO("FMU set mixer parameter");
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->set_mixer_param(param->mix_index, param->param_index, param->value, param->mix_sub_index);
+			break;
+		}
+
+	case MIXERIOCGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
+			break;
+		}
+
+	case MIXERIOCGETIOCONNECTION: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_connection_s *conn = (mixer_connection_s *)arg;
+
+			conn->connection = _mixers->get_connection(conn->mix_index, conn->mix_sub_index, conn->connection_type,
+					   conn->connection_index, &conn->connection_group);
+			ret = 0;
+			break;
+		}
+
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;

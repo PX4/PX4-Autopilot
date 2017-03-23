@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,17 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * @file mixer_types.h
  *
- * SITL internal definitions
+ * Descripition of mixer types
  */
 
-#pragma once
 
-#define BOARD_NAME "SITL"
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-#define MIXER_TUNING
+#ifndef _SYSTEMLIB_MIXER_TYPES_H
+#define _SYSTEMLIB_MIXER_TYPES_H value
 
+
+typedef enum {
+	MIXER_TYPES_NONE = 0,
+	MIXER_TYPES_NULL,
+	MIXER_TYPES_SIMPLE,
+	MIXER_TYPES_MULTIROTOR,
+	MIXER_TYPES_HELICOPTER,
+	MIXER_TYPES_SIMPLE_INPUT,
+	MIXER_TYPES_ROTOR,
+	MIXER_TYPES_COUNT    // MUST BE AT END
+} MIXER_TYPES;
+
+
+#endif

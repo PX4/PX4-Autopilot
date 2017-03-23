@@ -96,10 +96,32 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
+	_geometry(geometry),
 	_outputs_prev(new float[_rotor_count])
 {
 	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
 }
+
+
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
+				 uintptr_t cb_handle,
+				 mixer_multi_s *mixer_info) :
+	Mixer(control_cb, cb_handle),
+	_roll_scale(mixer_info->roll_scale),
+	_pitch_scale(mixer_info->pitch_scale),
+	_yaw_scale(mixer_info->yaw_scale),
+	_idle_speed(-1.0f + mixer_info->idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_delta_out_max(0.0f),
+	_thrust_factor(0.0f),
+	_limits_pub(),
+	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)mixer_info->geometry]),
+	_geometry(mixer_info->geometry),
+	_outputs_prev(new float[_rotor_count])
+{
+	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
+}
+
 
 MultirotorMixer::~MultirotorMixer()
 {
@@ -210,6 +232,98 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		       s[2] / 10000.0f,
 		       s[3] / 10000.0f);
 }
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+int
+MultirotorMixer::to_text(char *buf, unsigned &buflen)
+{
+
+	char geomname[8];
+
+	switch (_geometry) {
+	case MultirotorGeometry::QUAD_PLUS:
+		strcpy(geomname, "4+");
+		break;
+
+	case MultirotorGeometry::QUAD_X:
+		strcpy(geomname, "4x");
+		break;
+
+	case MultirotorGeometry::QUAD_H:
+		strcpy(geomname, "4");
+		break;
+
+	case MultirotorGeometry::QUAD_V:
+		strcpy(geomname, "4v");
+		break;
+
+	case MultirotorGeometry::QUAD_WIDE:
+		strcpy(geomname, "4w");
+		break;
+
+	case MultirotorGeometry::QUAD_DEADCAT:
+		strcpy(geomname, "4dc");
+		break;
+
+	case MultirotorGeometry::HEX_PLUS:
+		strcpy(geomname, "6+");
+		break;
+
+	case MultirotorGeometry::HEX_X:
+		strcpy(geomname, "6x");
+		break;
+
+	case MultirotorGeometry::HEX_COX:
+		strcpy(geomname, "6c");
+		break;
+
+	case MultirotorGeometry::OCTA_PLUS:
+		strcpy(geomname, "8+");
+		break;
+
+	case MultirotorGeometry::OCTA_X:
+		strcpy(geomname, "8x");
+		break;
+
+	case MultirotorGeometry::OCTA_COX:
+		strcpy(geomname, "8c");
+		break;
+
+	case MultirotorGeometry::OCTA_COX_WIDE:
+		strcpy(geomname, "8cw");
+		break;
+
+	case MultirotorGeometry::TWIN_ENGINE:
+		strcpy(geomname, "2-");
+		break;
+
+	case MultirotorGeometry::TRI_Y:
+		strcpy(geomname, "3y");
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+
+	int written = snprintf(buf, buflen, "R: %s %d %d %d %d\n",
+			       geomname,
+			       (int)(_roll_scale * 10000.0f),
+			       (int)(_pitch_scale * 10000.0f),
+			       (int)(_yaw_scale * 10000.0f),
+			       (int)(_idle_speed * 1000.0f)
+			      );
+
+	if (written >= buflen - 1) {
+		return -1;
+	}
+
+	buflen = written;
+	return 0;
+}
+#endif //MIXER_REMOTE
+#endif //defined(MIXER_TUNING)
 
 unsigned
 MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
@@ -524,3 +638,132 @@ uint16_t MultirotorMixer::get_saturation_status()
 {
 	return _saturation_status.value;
 }
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+MIXER_TYPES
+MultirotorMixer::get_mixer_type(uint16_t submix_index)
+{
+	if (submix_index == 0) {
+		return MIXER_TYPES_MULTIROTOR;
+
+	} else if (submix_index <= _rotor_count) {
+		return MIXER_TYPES_ROTOR;
+
+	} else {
+		return MIXER_TYPES_NONE;
+	}
+}
+
+signed
+MultirotorMixer::count_submixers(void)
+{
+	return _rotor_count;
+}
+
+float
+MultirotorMixer::get_parameter(uint16_t index, uint16_t submix_index)
+{
+	if (submix_index == 0) {
+		switch (index) {
+		case 0:
+			return _roll_scale;
+			break;
+
+		case 1:
+			return _pitch_scale;
+			break;
+
+		case 2:
+			return _yaw_scale;
+			break;
+
+		case 3:
+			return _idle_speed;
+			break;
+		}
+
+	} else if (submix_index <= _rotor_count) {
+		switch (index) {
+		case 0:
+			return _rotors[submix_index - 1].roll_scale;
+			break;
+
+		case 1:
+			return _rotors[submix_index - 1].pitch_scale;
+			break;
+
+		case 2:
+			return _rotors[submix_index - 1].yaw_scale;
+			break;
+
+		case 3:
+			return _rotors[submix_index - 1].out_scale;
+			break;
+		}
+	}
+
+	return 0.0;
+}
+
+int16_t
+MultirotorMixer::get_connection(uint16_t submix_index, uint16_t conn_type, uint16_t conn_index, uint16_t *conn_group)
+{
+	*conn_group = 0;
+
+	// Case for the main mixer
+	if (submix_index == 0) {
+		if (conn_type == 1) {
+			if (conn_index < 4) {
+				return conn_index;
+
+			} else { return -1; }
+
+			// No output connections for main mixer
+			return -1;
+		}
+	}
+
+	//case for rotor submixers of output type
+	if (conn_type == 0) {
+		if (conn_index == 0) {
+			return submix_index - 1;
+		}
+	}
+
+	return -1;
+}
+
+#endif  //MIXER_REMOTE
+
+int16_t
+MultirotorMixer::set_parameter(uint16_t index, float value, uint16_t submix_index)
+{
+	if (submix_index != 0) { return -1; }
+
+	switch (index) {
+	case 0:
+		_roll_scale = value;
+		break;
+
+	case 1:
+		_pitch_scale = value;
+		break;
+
+	case 2:
+		_yaw_scale = value;
+		break;
+
+	case 3:
+		_idle_speed = value;
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+
+	return 0;
+}
+
+#endif //defined(MIXER_TUNING)

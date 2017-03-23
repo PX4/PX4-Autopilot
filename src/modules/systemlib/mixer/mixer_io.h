@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,17 +32,63 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * @file mixer_parameters.h
  *
- * SITL internal definitions
+ * Descripition of mixer parameters
  */
 
-#pragma once
 
-#define BOARD_NAME "SITL"
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-#define MIXER_TUNING
+#ifndef _SYSTEMLIB_MIXER_IO_H
+#define _SYSTEMLIB_MIXER_IO_H value
 
+//#include "mixer_types.h"
+
+
+#define MIXER_IO_MIXER_TYPE_COUNT 7
+
+#ifndef MIXER_NONE_INPUT_COUNT
+#define MIXER_NONE_INPUT_COUNT 0
+#define MIXER_NONE_OUTPUT_COUNT 0
+#endif
+
+#ifndef MIXER_NULL_INPUT_COUNT
+#define MIXER_NULL_INPUT_COUNT 1
+#define MIXER_NULL_OUTPUT_COUNT 0
+#endif
+
+#ifndef MIXER_SIMPLE_INPUT_COUNT
+#define MIXER_SIMPLE_INPUT_COUNT 0
+#define MIXER_SIMPLE_OUTPUT_COUNT 1
+#endif
+
+#ifndef MIXER_MULTI_INPUT_COUNT
+#define MIXER_MULTI_INPUT_COUNT 4
+#define MIXER_MULTI_OUTPUT_COUNT 0
+#endif
+
+#ifndef MIXER_HELI_INPUT_COUNT
+#define MIXER_HELI_INPUT_COUNT 4
+#define MIXER_HELI_OUTPUT_COUNT 6
+#endif
+
+#ifndef MIXER_SIMPLE_INPUT_INPUT_COUNT
+#define MIXER_SIMPLE_INPUT_INPUT_COUNT 1
+#define MIXER_SIMPLE_INPUT_OUTPUT_COUNT 0
+#endif
+
+#ifndef MIXER_ROTOR_INPUT_COUNT
+#define MIXER_ROTOR_INPUT_COUNT 0
+#define MIXER_ROTOR_OUTPUT_COUNT 1
+#endif
+
+
+#ifndef MIXER_INPUT_COUNTS
+#define MIXER_INPUT_COUNTS {MIXER_NONE_INPUT_COUNT, MIXER_NULL_INPUT_COUNT, MIXER_SIMPLE_INPUT_COUNT, MIXER_MULTI_INPUT_COUNT, MIXER_HELI_INPUT_COUNT, MIXER_SIMPLE_INPUT_INPUT_COUNT, MIXER_ROTOR_INPUT_COUNT}
+#endif
+
+#ifndef MIXER_OUTPUT_COUNTS
+#define MIXER_OUTPUT_COUNTS {MIXER_NONE_OUTPUT_COUNT, MIXER_NULL_OUTPUT_COUNT, MIXER_SIMPLE_OUTPUT_COUNT, MIXER_MULTI_OUTPUT_COUNT, MIXER_HELI_OUTPUT_COUNT, MIXER_SIMPLE_INPUT_OUTPUT_COUNT, MIXER_ROTOR_OUTPUT_COUNT}
+#endif
+
+
+#endif
