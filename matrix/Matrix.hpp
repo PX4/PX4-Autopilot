@@ -59,6 +59,11 @@ public:
         return _data[0];
     }
 
+    const Type *data() const
+    {
+        return _data[0];
+    }
+
     inline Type operator()(size_t i, size_t j) const
     {
         return _data[i][j];
