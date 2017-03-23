@@ -55,7 +55,7 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
- #include <systemlib/pid/pid.h>
+#include <systemlib/pid/pid.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
