@@ -55,6 +55,7 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
+ #include <systemlib/pid/pid.h>
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -71,7 +72,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
-#include <pid/pidlib.h>
 
 
 using matrix::Eulerf;
@@ -238,7 +238,7 @@ private:
 
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			    _wheel_ctrl;
-	Pid 							_steering_ctrl;
+	PID_t 							_steering_ctrl;
 
 
 	/**
@@ -483,13 +483,14 @@ GroundRoverAttitudeControl::parameters_update()
 	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
 	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
-	_steering_ctrl.update_gains(0.01f, 
-								1.0f, 
-								-1.0f,
-								_parameters.w_p,
-								_parameters.w_d,
-								_parameters.w_i,
-								_parameters.w_integrator_max);
+
+	pid_init(&_steering_ctrl, PID_MODE_DERIVATIV_SET, 0.01f);
+	pid_set_parameters(&_steering_ctrl, 
+						_parameters.w_p,
+						_parameters.w_i,
+						_parameters.w_d,
+						_parameters.w_integrator_max,
+						1.0f);
 
 	return PX4_OK;
 }
@@ -682,7 +683,7 @@ GroundRoverAttitudeControl::task_main()
 				deltaT = 0.01f;
 			}
 
-			 _steering_ctrl.update_dt(deltaT);
+			 // _steering_ctrl.update_dt(deltaT);
 
 			/* load local copies */
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
@@ -811,7 +812,7 @@ GroundRoverAttitudeControl::task_main()
 					/* Calculate the error */
 					// float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
 					// float yaw_u = _wheel_ctrl.control_attitude(control_input);
-					float yaw_u = 2.0f * _steering_ctrl.calculate(yaw_sp, _yaw);
+					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
 
 
 					// float yaw_u = _yaw_ctrl.control_attitude(control_input);
