@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file gnd_att_control_main.c
- * Implementation of a generic attitude controller based on classic orthogonal PIDs.
- *
- * @author Lorenz Meier 	<lm@inf.ethz.ch>
- * @author Thomas Gubler 	<thomasgubler@gmail.com>
- * @author Roman Bapst		<bapstr@ethz.ch>
- * @author Marco Zorzi		<mzorzi@student.ethz.ch>
- *
+ * 
+ * This module is a modification of the fixed wing module and it is designed for ground rovers.
+ * It has been developed starting from the fw module, simplified and improved with dedicated items.
+ * 
+ * All the ackowledgments and credits for the fw wing app are reported in those files.  
+ * 
+ * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
+
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -483,7 +483,7 @@ GroundRoverAttitudeControl::parameters_update()
 	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
 	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
-
+	/* Steering pid parameters*/
 	pid_init(&_steering_ctrl, PID_MODE_DERIVATIV_SET, 0.01f);
 	pid_set_parameters(&_steering_ctrl, 
 						_parameters.w_p,
@@ -683,8 +683,6 @@ GroundRoverAttitudeControl::task_main()
 				deltaT = 0.01f;
 			}
 
-			 // _steering_ctrl.update_dt(deltaT);
-
 			/* load local copies */
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
@@ -723,7 +721,6 @@ GroundRoverAttitudeControl::task_main()
 			/* Simple handling of failsafe: stop motors */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[3] = 0.0f;
-				//warnx("_actuators_airframe.control[1] = 1.0f;");
 			} 
 
 			/* if we are in rotary wing mode or vehicle is vtol do nothing */
@@ -809,15 +806,11 @@ GroundRoverAttitudeControl::task_main()
 					/* Update input data for rate controllers */
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
-					/* Calculate the error */
-					// float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
-					// float yaw_u = _wheel_ctrl.control_attitude(control_input);
+					/* Calculate the control output for the steering as yaw */
 					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
 
-
-					// float yaw_u = _yaw_ctrl.control_attitude(control_input);
-					
-					warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
+					/* possibly useful debug*/
+					// warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
 							_parameters.trim_yaw;

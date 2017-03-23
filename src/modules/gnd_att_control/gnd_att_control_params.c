@@ -34,10 +34,14 @@
 /**
  * @file gnd_att_control_params.c
  *
- * Parameters defined by the ground-based wheel rover attitude control task
+ * Parameters defined by the position control task for ground rovers
+ *
+ * This is a modification of the fixed wing params and it is designed for ground rovers.
+ * It has been developed starting from the fw  module, simplified and improved with dedicated items.
+ * 
+ * All the ackowledgments and credits for the fw wing app are reported in those files.  
+ * 
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Thomas Gubler <thomas@px4.io>
  */
 
 /*

@@ -33,23 +33,12 @@
 
 
 /**
- * @file gnd_pos_control_l1_main.c
- * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
- * angle, equivalent to a lateral motion (for copters and rovers).
- *
- * Original publication for horizontal control class:
- *    S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
- *    Proceedings of the AIAA Guidance, Navigation and Control
- *    Conference, Aug 2004. AIAA-2004-4900.
- *
- * Original implementation for total energy control class:
- *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
- *
- * More details and acknowledgements in the referenced library headers.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Andreas Antener <andreas@uaventure.com>
+ * 
+ * This module is a modification of the fixed wing module and it is designed for ground rovers.
+ * It has been developed starting from the fw module, simplified and improved with dedicated items.
+ * 
+ * All the ackowledgments and credits for the fw wing app are reported in those files.  
+ * 
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
@@ -68,9 +57,6 @@
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-
-//#include "landingslope.h"
-//#include <pid/pidlib.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
@@ -209,9 +195,8 @@ private:
 	/* Takeoff launch detection and runway */
 	LaunchDetectionResult _launch_detection_state;
 
-	/* Pid controller for the speed. Here we assume we can control airspeed but the controller is actually on
+	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
-	// Pid _speed_ctrl;
 	PID_t _speed_ctrl;
 
 	/* throttle and airspeed states */
@@ -411,15 +396,6 @@ private:
 	 */
 	void		gnd_pos_ctrl_status_publish();
 
-	
-	/**
-	 * Update desired altitude base on user pitch stick input
-	 *
-	 * @param dt Time step
-	 * @return true if climbout mode was requested by user (climb with max rate and min airspeed)
-	 */
-	// bool		update_desired_altitude(float dt);
-
 	/**
 	 * Control position.
 	 */
@@ -462,13 +438,6 @@ namespace gnd_control
 GroundRoverPositionControl	*g_control = nullptr;
 }
 
-/*********************************************************************************************************/
-/******************************************* CONSTRUCTOR DESTRUCTOR **************************************/
-/*********************************************************************************************************/
-
-/**
- * @brief      Constructs the object.
- */
 GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	_mavlink_log_pub(nullptr),
@@ -623,9 +592,6 @@ GroundRoverPositionControl::~GroundRoverPositionControl()
 	gnd_control::g_control = nullptr;
 }
 
-/*********************************************************************************************************/
-/********************************************** PARAMETERS UPDATE ****************************************/
-/*********************************************************************************************************/
 int
 GroundRoverPositionControl::parameters_update()
 {
@@ -702,15 +668,6 @@ GroundRoverPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	// _speed_ctrl.update_gains(0.01, _parameters.airspeed_max,
-	// 							_parameters.airspeed_min,
-	// 							_parameters.speed_p,
-	// 							_parameters.speed_d,
-	// 							_parameters.speed_i,
-	// 							_parameters.speed_imax);
-	
-	// pid_mode_t pid_mode = PID_MODE_DERIVATIV_CALC;
-
 	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 	pid_set_parameters(&_speed_ctrl, 
 						_parameters.speed_p,
@@ -721,7 +678,6 @@ GroundRoverPositionControl::parameters_update()
 
 	/* sanity check parameters  */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	   // _parameters.airspeed_max < 5.0f ||
 	    _parameters.airspeed_min > 100.0f ||
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
@@ -731,17 +687,14 @@ GroundRoverPositionControl::parameters_update()
 	
 
 	/* Update and publish the navigation capabilities */
-	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;//_landingslope.landing_slope_angle_rad();
-	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;// _landingslope.horizontal_slope_displacement();
-	_gnd_pos_ctrl_status.landing_flare_length = 0;// _landingslope.flare_length();
+	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;
+	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;
+	_gnd_pos_ctrl_status.landing_flare_length = 0;
 	gnd_pos_ctrl_status_publish();
 
 	return OK;
 }
 
-/*********************************************************************************************************/
-/************************************************* POLLINGS **********************************************/
-/*********************************************************************************************************/
 void
 GroundRoverPositionControl::vehicle_control_mode_poll()
 {
@@ -910,10 +863,6 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 }
 
 
-/*********************************************************************************************************/
-/*********************************************** TECS FUNCTIONS ******************************************/
-/*********************************************************************************************************/
-
 void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, float eas2tas,
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
@@ -928,8 +877,7 @@ void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, 
 	// do not run TECS if we are not in air
 	bool run_tecs = !_vehicle_land_detected.landed;
 
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
+	//If the wrong vehicle type is selected return because we want to use it for rovers only.
 	if (_vehicle_status.is_vtol || _vehicle_status.is_rotary_wing) {
 		return;
 	}
@@ -1021,9 +969,6 @@ GroundRoverPositionControl::get_tecs_thrust()
 	}
 }
 
-/*********************************************************************************************************/
-/****************************************** MAIN CONTROL LOOP ********************************************/
-/*********************************************************************************************************/
 bool
 GroundRoverPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
@@ -1032,48 +977,37 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	if (_control_position_last_called > 0) {
 	 	dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
 	 }
-	 // _speed_ctrl.update_dt(dt);
-	 // warnx("dt %.4f", dt);
 
 	_control_position_last_called = hrt_absolute_time();
 
-	/* only run position controller in fixed-wing mode and during transitions for VTOL */
-	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+	/* only run position controller if we are in fixed wing configuration */
+	//TODO: add a vehicle status for ground based robots, less safety required.
+	if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode || _vehicle_status.is_vtol) {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 		return false;
 	}
 
 	bool setpoint = true;
 
-	_att_sp.fw_control_yaw = true;		// by default we don't want yaw to be contoller directly with rudder
+	_att_sp.fw_control_yaw = true;		// We want to control yaw to turn the car
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
-
-	/* update TECS filters */
+	/* tell TECS to update its state and update TECS filters */
 	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
-			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
+			   accel_body, accel_earth, (_global_pos.timestamp > 0), true);
 
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
 
-	// l1 navigation logic breaks down when wind speed exceeds max airspeed
 	// compute 2D groundspeed from airspeed-heading projection
 	math::Vector<2> air_speed_2d = {_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
 	math::Vector<2> nav_speed_2d = {0, 0};
 	
 	nav_speed_2d = ground_speed_2d;
 	float nav_speed = 0.0f;
-	/* define altitude error */
-	// float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
@@ -1150,20 +1084,14 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			}
 
 			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
-			// mission_throttle = _parameters.speed_p * ( mission_target_speed - nav_speed );
 			
-			// mission_throttle = _parameters.speed_throttle_airspeed_scaler * _speed_ctrl.calculate(mission_target_speed, nav_speed);
+			//Compute airspeed control out and just scale it as a constant
+			//TODO: think-test this
 			mission_throttle = _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
 
-			// Constrain throttle between min and cruise for initial testing,
-			// If the controller works we can change this to max throttle and use cruise as a fallback.
+			// Constrain throttle between min and max
 			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
-			// warnx("SPD ctrl - TH: %.4f | NAV_SP: %.4f | TARG_SP: %.4f", (double) mission_throttle, (double)nav_speed ,(double) mission_target_speed);
-			// float temp_kp = _speed_ctrl.pre_error();
-			// float temp_ki = _speed_ctrl.ki();
-			// warnx("speed ctrl - kp: %.4f | ki: %.4f", (double) temp_kp, (double) temp_ki  );
-			// at this point we have the target airspeed no matter what 
-
+			
 		} else {
 			/* Just control throttle in open loop */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
@@ -1171,11 +1099,9 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 			}
-
-			// at this point we have the target throttle anyway
-
 		}
 
+		// at this point we have a target throttle no matter what
 
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust = 0.0f;
@@ -1194,12 +1120,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
-			if (_parameters.speed_control_mode == CLOSED_LOOP_CONTROL)
-			{
-				/* code */
-			} else {
-
-			}
+			/* Apply control output */
 			tecs_update_throttle(pos_sp_triplet.current.alt, calculate_target_speed(mission_target_speed), eas2tas,
 						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
 						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
@@ -1207,7 +1128,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
-			/* waypoint is a loiter waypoint */
+			/* waypoint is a loiter waypoint so we want to stop*/
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
 						    pos_sp_triplet.current.loiter_direction, nav_speed_2d);
 			_att_sp.roll_body = _gnd_control.nav_roll();
@@ -1229,8 +1150,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
-			/* just kicked out of loiter, reset roll integrals */
-			_att_sp.roll_reset_integral = true;
+			/* just kicked out of loiter, reset integrals */
+			_att_sp.yaw_reset_integral = true;
 		}
 
 	}else {
@@ -1259,12 +1180,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 }
 
 
-/*********************************************************************************************************/
-/*********************************************** MAIN LOOP ***********************************************/
-/*********************************************************************************************************/
-/**
- * @brief      Main task which starts the control loop
- */
 void
 GroundRoverPositionControl::task_main()
 {
@@ -1460,16 +1375,6 @@ GroundRoverPositionControl::task_main()
 	_control_task = -1;
 }
 
-
-/*********************************************************************************************************/
-/********************************************** APP STARTING *********************************************/
-/*********************************************************************************************************/
-/**
- * @brief      this creates a new object and starts the main task which loops
- *
- * @param[in]  argc  number of starting strings, not used
- * @param      argv  starting characters, not used
- */
 void
 GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
@@ -1487,11 +1392,6 @@ GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 }
 
 
-/**
- * @brief      Spawns a new task for the PX4
- *
- * @return     OK or error
- */
 int
 GroundRoverPositionControl::start()
 {
@@ -1515,14 +1415,6 @@ GroundRoverPositionControl::start()
 	return OK;
 }
 
-/**
- * @brief      Lander function that starts the application
- *
- * @param[in]  argc  number of appended strings
- * @param      argv  The string commands attached
- *
- * @return     success or not
- */
 int gnd_pos_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {

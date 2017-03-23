@@ -32,11 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file GND_pos_control_l1_params.c
+ * @file gnd_pos_control_params.c
  *
- * Parameters defined by the L1 position control task
+ * Parameters defined by the position control task for ground rovers
  *
- * @author Lorenz Meier <lorenz@px4.io>
+ * This is a modification of the fixed wing params and it is designed for ground rovers.
+ * It has been developed starting from the fw  module, simplified and improved with dedicated items.
+ * 
+ * All the ackowledgments and credits for the fw wing app are reported in those files.  
+ * 
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
