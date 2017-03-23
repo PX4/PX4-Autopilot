@@ -569,7 +569,10 @@ _ram_flash_write(dm_item_t item, unsigned index, dm_persitence_t persistence, co
 		return ret;
 	}
 
-	_ram_flash_update_flush_timeout();
+	if (persistence == DM_PERSIST_POWER_ON_RESET) {
+		_ram_flash_update_flush_timeout();
+	}
+
 	return ret;
 }
 #endif
@@ -883,47 +886,7 @@ _file_restart(dm_reset_reason reason)
 static int
 _ram_flash_restart(dm_reset_reason reason)
 {
-	uint8_t *buffer = dm_operations_data.ram.data;
-	bool need_flush = false;
-
-	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
-
-	/* Loop through all of the data segments and delete those that are not persistent */
-
-	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
-		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
-			/* check if segment contains data */
-			if (buffer[0]) {
-				bool clear_entry = false;
-
-				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-				if (reason == DM_INIT_REASON_POWER_ON) {
-					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-						clear_entry = true;
-					}
-
-				} else {
-					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-						clear_entry = true;
-					}
-				}
-
-				/* Set segment to unused if data does not persist */
-				if (clear_entry) {
-					buffer[0] = 0;
-					need_flush = true;
-				}
-			}
-
-			buffer += g_per_item_size[item];
-		}
-	}
-
-	if (need_flush) {
-		_ram_flash_update_flush_timeout();
-	}
-
-	return 0;
+	return dm_ram_operations.restart(reason);
 }
 #endif
 
