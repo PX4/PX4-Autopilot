@@ -112,6 +112,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_LED4);
 
 	stm32_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_SAFETY_PD);
 
 	/* spektrum power enable is active high - enable it by default */
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
