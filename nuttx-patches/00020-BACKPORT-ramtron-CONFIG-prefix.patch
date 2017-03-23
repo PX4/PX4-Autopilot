@@ -1,0 +1,47 @@
+diff --git NuttX/nuttx/drivers/mtd/ramtron.c NuttX/nuttx/drivers/mtd/ramtron.c
+index ad448c8..236084f 100644
+--- NuttX/nuttx/drivers/mtd/ramtron.c
++++ NuttX/nuttx/drivers/mtd/ramtron.c
+@@ -539,7 +539,7 @@ static inline int ramtron_pagewrite(struct ramtron_dev_s *priv, FAR const uint8_
+ 
+   finfo("page: %08lx offset: %08lx\n", (long)page, (long)offset);
+ 
+-#ifndef RAMTRON_WRITEWAIT
++#ifndef CONFIG_RAMTRON_WRITEWAIT
+   /* Wait for any preceding write to complete.  We could simplify things by
+    * perform this wait at the end of each write operation (rather than at
+    * the beginning of ALL operations), but have the wait first will slightly
+@@ -574,7 +574,7 @@ static inline int ramtron_pagewrite(struct ramtron_dev_s *priv, FAR const uint8_
+   SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+   finfo("Written\n");
+ 
+-#ifdef RAMTRON_WRITEWAIT
++#ifdef CONFIG_RAMTRON_WRITEWAIT
+   /* Wait for write completion now so we can report any errors to the caller. Thus
+    * the caller will know whether or not if the data is on stable storage
+    */
+@@ -657,13 +657,13 @@ static ssize_t ramtron_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbyt
+                             FAR uint8_t *buffer)
+ {
+   FAR struct ramtron_dev_s *priv = (FAR struct ramtron_dev_s *)dev;
+-#ifdef RAMTRON_WRITEWAIT
++#ifdef CONFIG_RAMTRON_WRITEWAIT
+   uint8_t status;
+ #endif
+ 
+   finfo("offset: %08lx nbytes: %d\n", (long)offset, (int)nbytes);
+ 
+-#ifndef RAMTRON_WRITEWAIT
++#ifndef CONFIG_RAMTRON_WRITEWAIT
+   /* Wait for any preceding write to complete.  We could simplify things by
+    * perform this wait at the end of each write operation (rather than at
+    * the beginning of ALL operations), but have the wait first will slightly
+@@ -690,7 +690,7 @@ static ssize_t ramtron_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbyt
+ 
+   SPI_RECVBLOCK(priv->dev, buffer, nbytes);
+ 
+-#ifdef RAMTRON_WRITEWAIT
++#ifdef CONFIG_RAMTRON_WRITEWAIT
+   /* Read the status register. This isn't strictly needed, but it gives us a
+    * chance to detect if SPI transactions are operating correctly, which
+    * allows us to catch complete device failures in the read path. We expect
