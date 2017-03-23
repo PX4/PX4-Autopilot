@@ -23,8 +23,6 @@ public:
 
     typedef Matrix<Type, 2, 1> Matrix21;
 
-    virtual ~Vector2() {};
-
     Vector2() :
         Vector<Type, 2>()
     {

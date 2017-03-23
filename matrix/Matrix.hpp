@@ -32,8 +32,6 @@ public:
 
     Type _data[M][N];
 
-    virtual ~Matrix() {};
-
     // Constructors
     Matrix() : _data() {}
 

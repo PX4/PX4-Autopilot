@@ -40,8 +40,6 @@ template<typename Type>
 class Euler : public Vector<Type, 3>
 {
 public:
-    virtual ~Euler() {};
-
     /**
      * Standard constructor
      */

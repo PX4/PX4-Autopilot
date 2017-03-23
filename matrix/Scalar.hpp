@@ -17,8 +17,6 @@ template<typename Type>
 class Scalar
 {
 public:
-    virtual ~Scalar() {};
-
     Scalar() : _value()
     {
     }

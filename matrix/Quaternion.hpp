@@ -45,8 +45,6 @@ template<typename Type>
 class Quaternion : public Vector<Type, 4>
 {
 public:
-    virtual ~Quaternion() {};
-
     typedef Matrix<Type, 4, 1> Matrix41;
     typedef Matrix<Type, 3, 1> Matrix31;
 

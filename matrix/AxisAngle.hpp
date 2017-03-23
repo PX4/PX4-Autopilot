@@ -31,8 +31,6 @@ template<typename Type>
 class AxisAngle : public Vector<Type, 3>
 {
 public:
-    ~AxisAngle() override = default;
-
     typedef Matrix<Type, 3, 1> Matrix31;
 
     /**

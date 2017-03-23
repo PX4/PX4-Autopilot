@@ -39,8 +39,6 @@ template<typename Type>
 class Dcm : public SquareMatrix<Type, 3>
 {
 public:
-    virtual ~Dcm() {};
-
     typedef Matrix<Type, 3, 1> Vector3;
 
     /**

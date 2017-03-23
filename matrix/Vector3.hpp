@@ -29,8 +29,6 @@ public:
 
     typedef Matrix<Type, 3, 1> Matrix31;
 
-    virtual ~Vector3() {};
-
     Vector3() :
         Vector<Type, 3>()
     {

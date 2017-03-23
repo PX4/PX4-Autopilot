@@ -20,8 +20,6 @@ template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
 {
 public:
-    ~Vector() override = default;
-
     typedef Matrix<Type, M, 1> MatrixM1;
 
     Vector() : MatrixM1()
