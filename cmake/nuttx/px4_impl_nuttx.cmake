@@ -252,6 +252,7 @@ function(px4_nuttx_add_export)
 
 	# all patches
 	file(GLOB nuttx_patches ${PX4_SOURCE_DIR}/nuttx-patches/*.patch)
+	list(SORT nuttx_patches)
 
 	# copy
 	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
