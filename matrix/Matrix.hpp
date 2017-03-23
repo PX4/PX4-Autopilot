@@ -413,7 +413,7 @@ public:
         }
     }
 
-    Matrix<Type, M, N> abs()
+    Matrix<Type, M, N> abs() const
     {
         Matrix<Type, M, N> r;
         for (size_t i=0; i<M; i++) {
@@ -424,7 +424,7 @@ public:
         return r;
     }
 
-    Type max()
+    Type max() const
     {
         Type max_val = (*this)(0,0);
         for (size_t i=0; i<M; i++) {
@@ -438,7 +438,7 @@ public:
         return max_val;
     }
 
-    Type min()
+    Type min() const
     {
         Type min_val = (*this)(0,0);
         for (size_t i=0; i<M; i++) {
