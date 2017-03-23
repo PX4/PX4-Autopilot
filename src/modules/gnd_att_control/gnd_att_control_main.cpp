@@ -811,7 +811,7 @@ GroundRoverAttitudeControl::task_main()
 					/* Calculate the error */
 					// float yaw_u = _parameters.w_p * _wrap_pi(control_input.yaw_setpoint - control_input.yaw);	
 					// float yaw_u = _wheel_ctrl.control_attitude(control_input);
-					float yaw_u = _steering_ctrl.calculate(yaw_sp, _yaw);
+					float yaw_u = 2.0f * _steering_ctrl.calculate(yaw_sp, _yaw);
 
 
 					// float yaw_u = _yaw_ctrl.control_attitude(control_input);

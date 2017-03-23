@@ -70,7 +70,7 @@
 #include <px4_posix.h>
 
 //#include "landingslope.h"
-#include <pid/pidlib.h>
+//#include <pid/pidlib.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
@@ -211,7 +211,8 @@ private:
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the controller is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
-	Pid _speed_ctrl;
+	// Pid _speed_ctrl;
+	PID_t _speed_ctrl;
 
 	/* throttle and airspeed states */
 	float _speed_error;				///< airspeed error to setpoint in m/s
@@ -701,12 +702,22 @@ GroundRoverPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	_speed_ctrl.update_gains(0.01, _parameters.airspeed_max,
-								_parameters.airspeed_min,
-								_parameters.speed_p,
-								_parameters.speed_d,
-								_parameters.speed_i,
-								_parameters.speed_imax);
+	// _speed_ctrl.update_gains(0.01, _parameters.airspeed_max,
+	// 							_parameters.airspeed_min,
+	// 							_parameters.speed_p,
+	// 							_parameters.speed_d,
+	// 							_parameters.speed_i,
+	// 							_parameters.speed_imax);
+	
+	// pid_mode_t pid_mode = PID_MODE_DERIVATIV_CALC;
+
+	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
+	pid_set_parameters(&_speed_ctrl, 
+						_parameters.speed_p,
+						_parameters.speed_d,
+						_parameters.speed_i,
+						_parameters.speed_imax,
+						_parameters.airspeed_max); 
 
 	/* sanity check parameters  */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
@@ -1021,7 +1032,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	if (_control_position_last_called > 0) {
 	 	dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
 	 }
-	 _speed_ctrl.update_dt(dt);
+	 // _speed_ctrl.update_dt(dt);
+	 // warnx("dt %.4f", dt);
 
 	_control_position_last_called = hrt_absolute_time();
 
@@ -1140,7 +1152,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
 			// mission_throttle = _parameters.speed_p * ( mission_target_speed - nav_speed );
 			
-			mission_throttle = _parameters.speed_throttle_airspeed_scaler * _speed_ctrl.calculate(mission_target_speed, nav_speed);
+			// mission_throttle = _parameters.speed_throttle_airspeed_scaler * _speed_ctrl.calculate(mission_target_speed, nav_speed);
+			mission_throttle = _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
 
 			// Constrain throttle between min and cruise for initial testing,
 			// If the controller works we can change this to max throttle and use cruise as a fallback.
