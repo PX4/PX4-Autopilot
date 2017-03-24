@@ -646,8 +646,8 @@ function(px4_os_add_flags)
 			-fno-builtin
 		)
 
-		set(clang_c_flags ${gcc_c_inc_dirs})
-		set(clang_cxx_flags ${gcc_cxx_inc_dirs})
+		set(clang_c_flags ${gcc_c_inc_dirs} -ccc-gcc-name arm-none-eabi-gcc)
+		set(clang_cxx_flags ${gcc_cxx_inc_dirs} -ccc-gcc-name arm-none-eabi-gcc)
 		string(REPLACE " " ";" gcc_link_dirs_list "${gcc_link_dirs}")
 		list(APPEND added_link_dirs ${gcc_link_dirs_list})
 	endif()
