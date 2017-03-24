@@ -60,6 +60,7 @@ set(msg_file_names
 	fw_virtual_attitude_setpoint.msg
 	fw_virtual_rates_setpoint.msg
 	geofence_result.msg
+	geofence_update.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	hil_sensor.msg

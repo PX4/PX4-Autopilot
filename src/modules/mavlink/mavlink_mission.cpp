@@ -51,6 +51,7 @@
 #include <px4_defines.h>
 
 #include <navigator/navigation.h>
+#include <uORB/topics/geofence_update.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
@@ -87,6 +88,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
+	_geofence_update_pub(nullptr),
 	_slow_rate_limiter(_interval / 5.0f),
 	_verbose(false)
 {
@@ -100,6 +102,7 @@ MavlinkMissionManager::~MavlinkMissionManager()
 {
 	orb_unsubscribe(_mission_result_sub);
 	orb_unadvertise(_offboard_mission_pub);
+	orb_unadvertise(_geofence_update_pub);
 }
 
 unsigned
@@ -223,7 +226,9 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 
 	if (res == sizeof(mission_stats_entry_s)) {
 		_count[(uint8_t)MAV_MISSION_TYPE_FENCE] = count;
-		// TODO: notify via orb
+
+		geofence_update_s geofence_update{};
+		orb_publish_auto(ORB_ID(geofence_update), &_geofence_update_pub, &geofence_update, nullptr, ORB_PRIO_DEFAULT);
 
 	} else {
 		warnx("WPM: ERROR: can't save mission state");

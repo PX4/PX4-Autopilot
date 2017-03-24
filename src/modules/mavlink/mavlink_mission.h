@@ -139,6 +139,7 @@ private:
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
 	orb_advert_t		_offboard_mission_pub;
+	orb_advert_t		_geofence_update_pub;
 
 	MavlinkRateLimiter	_slow_rate_limiter;
 

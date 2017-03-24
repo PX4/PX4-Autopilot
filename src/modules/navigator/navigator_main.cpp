@@ -67,10 +67,10 @@
 #include <arch/board/board.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/geofence_update.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
@@ -117,6 +117,7 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
 	_vehicle_command_sub(-1),
+	_geofence_update_sub(-1),
 	_pos_sp_triplet_pub(nullptr),
 	_mission_result_pub(nullptr),
 	_geofence_result_pub(nullptr),
@@ -319,6 +320,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_geofence_update_sub = orb_subscribe(ORB_ID(geofence_update));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -412,6 +414,15 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
+		}
+
+		/* geofence updated */
+		orb_check(_geofence_update_sub, &updated);
+
+		if (updated) {
+			geofence_update_s geofence_update;
+			orb_copy(ORB_ID(geofence_update), _geofence_update_sub, &geofence_update);
+			_geofence.updateFence();
 		}
 
 		/* vehicle control mode updated */
@@ -715,6 +726,35 @@ Navigator::task_main()
 
 		perf_end(_loop_perf);
 	}
+
+	orb_unsubscribe(_global_pos_sub);
+	_global_pos_sub = -1;
+	orb_unsubscribe(_local_pos_sub);
+	_local_pos_sub = -1;
+	orb_unsubscribe(_gps_pos_sub);
+	_gps_pos_sub = -1;
+	orb_unsubscribe(_sensor_combined_sub);
+	_sensor_combined_sub = -1;
+	orb_unsubscribe(_fw_pos_ctrl_status_sub);
+	_fw_pos_ctrl_status_sub = -1;
+	orb_unsubscribe(_vstatus_sub);
+	_vstatus_sub = -1;
+	orb_unsubscribe(_land_detected_sub);
+	_land_detected_sub = -1;
+	orb_unsubscribe(_control_mode_sub);
+	_control_mode_sub = -1;
+	orb_unsubscribe(_home_pos_sub);
+	_home_pos_sub = -1;
+	orb_unsubscribe(_onboard_mission_sub);
+	_onboard_mission_sub = -1;
+	orb_unsubscribe(_offboard_mission_sub);
+	_offboard_mission_sub = -1;
+	orb_unsubscribe(_param_update_sub);
+	_param_update_sub = -1;
+	orb_unsubscribe(_vehicle_command_sub);
+	_vehicle_command_sub = -1;
+	orb_unsubscribe(_geofence_update_sub);
+	_geofence_update_sub = -1;
 
 	PX4_INFO("exiting");
 
