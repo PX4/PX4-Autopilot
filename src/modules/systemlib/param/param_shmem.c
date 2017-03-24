@@ -640,6 +640,21 @@ static void param_autosave(void)
 	autosave_scheduled = true;
 	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, NULL, USEC2TICK(delay));
 }
+
+void
+param_control_autosave(bool enable)
+{
+	param_lock();
+
+	if (!enable && autosave_scheduled) {
+		work_cancel(LPWORK, &autosave_work);
+		autosave_scheduled = false;
+	}
+
+	autosave_disabled = !enable;
+	param_unlock();
+}
+
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
