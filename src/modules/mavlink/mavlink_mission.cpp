@@ -123,23 +123,15 @@ MavlinkMissionManager::init_offboard_mission()
 
 	if (!_dataman_init) {
 		_dataman_init = true;
-		int ret = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) == sizeof(mission_s);
+		int ret = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
 
 		if (ret > 0) {
 			_dataman_id = mission_state.dataman_id;
 			_count[(uint8_t)MAV_MISSION_TYPE_MISSION] = mission_state.count;
 			_current_seq = mission_state.current_seq;
 
-		} else if (ret == 0) {
-			_dataman_id = 0;
-			_count = 0;
-			_current_seq = 0;
-
-		} else {
-			PX4_WARN("offboard mission init failed");
-			_dataman_id = 0;
-			_count = 0;
-			_current_seq = 0;
+		} else if (ret < 0) {
+			PX4_ERR("offboard mission init failed (%i)", errno);
 		}
 
 		load_geofence_stats();
