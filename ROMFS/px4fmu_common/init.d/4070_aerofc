@@ -36,6 +36,10 @@ then
 	param set MC_YAW_FF 0.5
 	param set MPC_XY_CRUISE 8
 
+	param set EKF2_BARO_GATE 10.0
+	param set EKF2_BARO_NOISE 5.0
+	param set EKF2_ACC_NOISE 0.7
+
 	param set SYS_LOGGER 1
 fi
 
