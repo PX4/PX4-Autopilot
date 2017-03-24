@@ -236,6 +236,7 @@ private:
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
+	int		_geofence_update_sub{-1};	/**< geofence updates */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
 	orb_advert_t	_att_sp_pub{nullptr};
@@ -256,7 +257,7 @@ private:
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
-	vehicle_local_position_s			_local_pos;		/**< local vehicle position */
+	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
