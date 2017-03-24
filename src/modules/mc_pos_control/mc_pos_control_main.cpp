@@ -1310,10 +1310,10 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	float acc_limit = _acceleration_hor_max.get();
 
 	/* deceleration but no direction change */
-	bool slow_deceleration = ((vel_xy * acc_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f);
+	bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f);
 
 	/* deceleration with direction change */
-	bool fast_deceleration = ((vel_xy * acc_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f);
+	bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f);
 
 	if (slow_deceleration) {
 		acc_limit = _deceleration_hor_slow.get();
