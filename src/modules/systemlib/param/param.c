@@ -1004,7 +1004,7 @@ param_export(int fd, bool only_unsaved)
 	struct bson_encoder_s encoder;
 	int	result = -1;
 
-	param_lock_reader();
+	param_lock_writer();
 
 	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
@@ -1102,7 +1102,7 @@ param_export(int fd, bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock_reader();
+	param_unlock_writer();
 
 	if (result == 0) {
 		result = bson_encoder_fini(&encoder);
