@@ -4242,17 +4242,10 @@ void *commander_low_prio_loop(void *arg)
 
 						/* reset parameters and save empty file */
 						param_reset_all();
-						int ret = param_save_default();
 
-						if (ret == OK) {
-							/* do not spam MAVLink, but provide the answer / green led mechanism */
-							mavlink_log_critical(&mavlink_log_pub, "onboard parameters reset");
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
-
-						} else {
-							mavlink_log_critical(&mavlink_log_pub, "param reset error");
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub, command_ack);
-						}
+						/* do not spam MAVLink, but provide the answer / green led mechanism */
+						mavlink_log_critical(&mavlink_log_pub, "onboard parameters reset");
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 					}
 
 					break;
