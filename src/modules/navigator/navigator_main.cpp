@@ -297,18 +297,12 @@ Navigator::task_main()
 	bool have_geofence_position_data = false;
 
 	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file
-	 * else clear geofence data in datamanager */
+	 * if /fs/microsd/etc/geofence.txt load from this file */
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		PX4_INFO("Try to load geofence.txt");
+		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
-
-	} else {
-		if (_geofence.clearDm() != OK) {
-			mavlink_log_critical(&_mavlink_log_pub, "failed clearing geofence");
-		}
 	}
 
 	/* do subscriptions */
@@ -596,8 +590,8 @@ Navigator::task_main()
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
-						       home_position_valid());
+			bool inside = _geofence.check(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
+						      home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -763,16 +757,6 @@ Navigator::status()
 	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
-	if (_geofence.valid()) {
-		PX4_INFO("Geofence is valid");
-		/* TODO: needed? */
-//		PX4_INFO("Vertex longitude latitude");
-//		for (unsigned i = 0; i < _fence.count; i++)
-//		PX4_INFO("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
-
-	} else {
-		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
-	}
 }
 
 void
@@ -891,12 +875,6 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 }
 
 void
-Navigator::add_fence_point(int argc, char *argv[])
-{
-	_geofence.addPoint(argc, argv);
-}
-
-void
 Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
@@ -923,7 +901,7 @@ Navigator::abort_landing()
 
 static void usage()
 {
-	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile}");
+	PX4_INFO("usage: navigator {start|stop|status|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -968,9 +946,6 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
-
-	} else if (!strcmp(argv[1], "fence")) {
-		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
 
 	} else if (!strcmp(argv[1], "fencefile")) {
 		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);

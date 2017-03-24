@@ -104,11 +104,6 @@ public:
 	void		status();
 
 	/**
-	 * Add point to geofence
-	 */
-	void		add_fence_point(int argc, char *argv[]);
-
-	/**
 	 * Load fence from file
 	 */
 	void		load_fence_from_file(const char *filename);
