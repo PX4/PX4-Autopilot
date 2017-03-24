@@ -145,6 +145,7 @@ private:
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
+	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
@@ -417,6 +418,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
+	_deceleration_hor_slow(this, "DEC_HOR_SLOW", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
@@ -1300,26 +1302,40 @@ MulticopterPositionControl::control_offboard(float dt)
 void
 MulticopterPositionControl::vel_sp_slewrate(float dt)
 {
-	math::Vector<3> acc = (_vel_sp - _vel_sp_prev) / dt;
-	float acc_xy_mag = sqrtf(acc(0) * acc(0) + acc(1) * acc(1));
+	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
+	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
+	matrix::Vector2f vel_xy(_vel(0), _vel(1));
+	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
 	float acc_limit = _acceleration_hor_max.get();
 
-	/* adapt slew rate if we are decelerating */
-	if (_vel * acc < 0) {
+	/* deceleration but no direction change */
+	bool slow_deceleration = ((vel_xy * acc_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f);
+
+	/* deceleration with direction change */
+	bool fast_deceleration = ((vel_xy * acc_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f);
+
+	if (slow_deceleration) {
+		acc_limit = _deceleration_hor_slow.get();
+	}
+
+	if (fast_deceleration) {
 		acc_limit = _deceleration_hor_max.get();
 	}
 
 	/* limit total horizontal acceleration */
-	if (acc_xy_mag > acc_limit) {
-		_vel_sp(0) = acc_limit * acc(0) / acc_xy_mag * dt + _vel_sp_prev(0);
-		_vel_sp(1) = acc_limit * acc(1) / acc_xy_mag * dt + _vel_sp_prev(1);
+	if (acc_xy.length() > acc_limit) {
+		vel_sp_xy = acc_limit * acc_xy.normalized() * dt + vel_sp_prev_xy;
+		_vel_sp(0) = vel_sp_xy(0);
+		_vel_sp(1) = vel_sp_xy(1);
 	}
 
 	/* limit vertical acceleration */
-	float max_acc_z = acc(2) < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
 
-	if (fabsf(acc(2)) > fabsf(max_acc_z)) {
+	float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+	float max_acc_z = acc_z < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
+
+	if (fabsf(acc_z) > fabsf(max_acc_z)) {
 		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
 	}
 }
