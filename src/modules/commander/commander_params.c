@@ -222,18 +222,6 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
 PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
 
 /**
- * Autosaving of params
- *
- * If not equal to zero the commander will automatically save parameters to persistent storage once changed.
- * Default is on, as the interoperability with currently deployed GCS solutions depends on parameters
- * being sticky. Developers can default it to off.
- *
- * @group Commander
- * @boolean
- */
-PARAM_DEFINE_INT32(COM_AUTOS_PAR, 1);
-
-/**
  * RC control input mode
  *
  * The default value of 0 requires a valid RC transmitter setup.
