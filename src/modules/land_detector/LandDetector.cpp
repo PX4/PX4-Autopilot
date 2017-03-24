@@ -152,7 +152,6 @@ void LandDetector::_cycle()
 			param_set_no_notification(_p_total_flight_time_high, &flight_time);
 			flight_time = _total_flight_time & 0xffffffff;
 			param_set_no_notification(_p_total_flight_time_low, &flight_time);
-			param_notify_changes(); // this will notify the commander, who will save the params
 		}
 
 		_landDetected.timestamp = hrt_absolute_time();
