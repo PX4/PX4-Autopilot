@@ -51,7 +51,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <uORB/topics/fence.h>
 
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_log_pub(nullptr),

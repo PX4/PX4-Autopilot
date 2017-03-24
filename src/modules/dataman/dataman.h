@@ -42,8 +42,6 @@
 #include <string.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/fence.h>
-#include <uORB/topics/fence_vertex.h>
 
 #ifdef __cplusplus
 extern "C" {
