@@ -69,6 +69,13 @@
 
 #include "shmem.h"
 
+#ifdef __PX4_QURT
+static const char *param_default_file = "/dev/fs/params";
+#else
+static const char *param_default_file = "/usr/share/data/adsp/params";
+#endif
+static char *param_user_file = NULL;
+
 #define debug(fmt, args...)		do { } while(0)
 
 #ifdef __PX4_QURT
@@ -902,13 +909,6 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	_param_notify_changes();
 }
-
-#ifdef __PX4_QURT
-static const char *param_default_file = "/dev/fs/params";
-#else
-static const char *param_default_file = "/usr/share/data/adsp/params";
-#endif
-static char *param_user_file = NULL;
 
 int
 param_set_default_file(const char *filename)
