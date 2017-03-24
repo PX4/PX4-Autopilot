@@ -31,7 +31,6 @@ then
 	param set VT_F_TRANS_DUR 1
 	param set VT_IDLE_PWM_MC 1025
 
-
 	param set FW_ARSP_MODE 2
 	param set FW_L1_PERIOD 25
 	param set FW_PR_FF 0.7
@@ -50,7 +49,6 @@ then
 	param set LNDMC_ALT_MAX 9999
 	param set LNDMC_XY_VEL_MAX 1
 	param set LNDMC_Z_VEL_MAX 0.7
-
 
 	param set MC_ROLL_P 6.5
 	param set MC_ROLLRATE_P 0.16
@@ -94,7 +92,6 @@ then
 	param set EKF2_TAU_VEL 0.5
 
 	param set SYS_COMPANION 57600
-
 fi
 
 set MIXER vtol_quad_x
