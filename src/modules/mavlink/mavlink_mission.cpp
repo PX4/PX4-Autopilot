@@ -1384,9 +1384,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 
-	/* reset DO_JUMP count */
-	mission_item->do_jump_current_count = 0;
-
 	mission_item->origin = ORIGIN_MAVLINK;
 
 	return MAV_MISSION_ACCEPTED;
