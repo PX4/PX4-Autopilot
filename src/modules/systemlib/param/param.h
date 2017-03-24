@@ -383,6 +383,14 @@ __EXPORT int 		param_load_default(void);
  */
 __EXPORT uint32_t	param_hash_check(void);
 
+
+/**
+ * Enable/disable the param autosaving.
+ * Re-enabling with changed params will not cause an autosave.
+ * @param enable true: enable autosaving, false: disable autosaving
+ */
+__EXPORT void	param_control_autosave(bool enable);
+
 /*
  * Macros creating static parameter definitions.
  *
