@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,22 +114,31 @@ void up_pwm_servo_deinit(void)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
-	/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
-	if (rate < 1) {
-		return -ERANGE;
-	}
-
-	if (rate > 10000) {
-		return -ERANGE;
-	}
-
 	if ((group >= MAX_IO_TIMERS) || (io_timers[group].base == 0)) {
 		return ERROR;
 	}
 
-	io_timer_set_rate(group, rate);
+	/* Allow a rate of 0 to enter oneshot mode */
 
-	return OK;
+	if (rate != 0) {
+
+		/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
+
+		if (rate < 1) {
+			return -ERANGE;
+		}
+
+		if (rate > 10000) {
+			return -ERANGE;
+		}
+	}
+
+	return io_timer_set_rate(group, rate);
+}
+
+void up_pwm_update(void)
+{
+	io_timer_trigger();
 }
 
 int up_pwm_servo_set_rate(unsigned rate)
@@ -149,5 +158,6 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 void
 up_pwm_servo_arm(bool armed)
 {
+	io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
 	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
 }
