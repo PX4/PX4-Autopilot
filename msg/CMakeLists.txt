@@ -54,8 +54,6 @@ set(msg_file_names
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	fence.msg
-	fence_vertex.msg
 	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg

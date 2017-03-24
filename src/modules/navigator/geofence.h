@@ -41,7 +41,6 @@
 #ifndef GEOFENCE_H_
 #define GEOFENCE_H_
 
-#include <uORB/topics/fence.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/sensor_combined.h>
@@ -101,8 +100,6 @@ public:
 	 */
 	void addPoint(int argc, char *argv[]);
 
-	void publishFence(unsigned vertices);
-
 	int loadFromFile(const char *filename);
 
 	bool isEmpty() {return _vertices_count == 0;}
@@ -115,8 +112,6 @@ public:
 
 private:
 	Navigator	*_navigator;
-
-	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
 	home_position_s _home_pos;
 	bool _home_pos_set;

@@ -60,7 +60,6 @@
 Geofence::Geofence(Navigator *navigator) :
 	SuperBlock(navigator, "GF"),
 	_navigator(navigator),
-	_fence_pub(nullptr),
 	_home_pos{},
 	_home_pos_set(false),
 	_last_horizontal_range_warning(0),
@@ -268,7 +267,6 @@ Geofence::addPoint(int argc, char *argv[])
 
 	if ((argc == 1) && (strcmp("-clear", argv[0]) == 0)) {
 		dm_clear(DM_KEY_FENCE_POINTS);
-		publishFence(0);
 		return;
 	}
 
@@ -296,7 +294,6 @@ Geofence::addPoint(int argc, char *argv[])
 
 	if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
 		if (last) {
-			publishFence((unsigned)ix + 1);
 		}
 
 		return;
@@ -305,16 +302,6 @@ Geofence::addPoint(int argc, char *argv[])
 	PX4_WARN("can't store fence point");
 }
 
-void
-Geofence::publishFence(unsigned vertices)
-{
-	if (_fence_pub == nullptr) {
-		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
-
-	} else {
-		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
-	}
-}
 
 int
 Geofence::loadFromFile(const char *filename)
