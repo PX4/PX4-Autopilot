@@ -31,7 +31,7 @@ then
 
 	param set MPC_HOLD_MAX_XY 0.25
 	param set MPC_THR_MIN 0.15
-	param set MPC_Z_VEL_MAX 2.0
+	param set MPC_Z_VEL_MAX_DN 2.0
 
 	param set BAT_N_CELLS 4
 fi

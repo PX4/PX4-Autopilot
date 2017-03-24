@@ -60,9 +60,10 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Process parameter documentation.")
     parser.add_argument("-s", "--src-path",
-                        default="../src",
+                        default=["../src"],
                         metavar="PATH",
-                        help="path to source files to scan for parameters")
+                        nargs='*',
+                        help="one or more paths to source files to scan for parameters")
     parser.add_argument("-x", "--xml",
                         nargs='?',
                         const="parameters.xml",
@@ -116,7 +117,6 @@ def main():
                         default="{}",
                         metavar="OVERRIDES",
                         help="a dict of overrides in the form of a json string")
-    parser.add_argument('--modules', default=None, action='store', help="list of compiled modules")
 
 
     args = parser.parse_args()
@@ -132,14 +132,11 @@ def main():
     parser = srcparser.SourceParser()
 
     # Scan directories, and parse the files
-    if (args.verbose): print("Scanning source path " + args.src_path)
+    if (args.verbose): print("Scanning source path " + str(args.src_path))
     
-    if args.modules is not None:
-        if not scanner.ScanDir([os.path.join(args.src_path, p) for p in args.modules.split(',')], parser):
-            sys.exit(1)
-    else:
-        if not scanner.ScanDir([args.src_path], parser):
-            sys.exit(1)
+    if not scanner.ScanDir(args.src_path, parser):
+        sys.exit(1)
+
     if not parser.Validate():
         sys.exit(1)
     param_groups = parser.GetParamGroups()
@@ -160,7 +157,9 @@ def main():
     # Output to XML file
     if args.xml:
         if args.verbose: print("Creating XML file " + args.xml)
-        out = xmlout.XMLOutput(param_groups, args.board, os.path.join(args.src_path, args.inject_xml))
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        out = xmlout.XMLOutput(param_groups, args.board,
+                               os.path.join(cur_dir, args.inject_xml))
         out.Save(args.xml)
 
     # Output to DokuWiki tables

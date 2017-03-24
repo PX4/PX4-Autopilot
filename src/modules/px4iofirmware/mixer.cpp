@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
 #include "mixer.h"
 
 extern "C" {
-//#define DEBUG
+	/* #define DEBUG */
 #include "px4io.h"
 }
 
@@ -74,6 +74,9 @@ static volatile bool should_arm = false;
 static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
 static volatile bool in_mixer = false;
+
+static bool new_fmu_data = false;
+static uint64_t last_fmu_update = 0;
 
 extern int _sbus_fd;
 
@@ -133,6 +136,11 @@ mixer_tick(void)
 
 		/* this flag is never cleared once OK */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
+
+		if (system_state.fmu_data_received_time > last_fmu_update) {
+			new_fmu_data = true;
+			last_fmu_update = system_state.fmu_data_received_time;
+		}
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -270,8 +278,9 @@ mixer_tick(void)
 		unsigned mixed;
 
 		if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-			// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-			// factor 2 is needed because actuator ouputs are in the range [-1,1]
+			/*  maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+			 * factor 2 is needed because actuator outputs are in the range [-1,1]
+			 */
 			float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 						      r_setup_slew_max);
 			mixer_group.set_max_delta_out_once(delta_out_max);
@@ -300,6 +309,17 @@ mixer_tick(void)
 		/* store normalized outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+		}
+
+
+		if (mixed  && new_fmu_data) {
+			new_fmu_data = false;
+
+			/* Trigger all timer's channels in Oneshot mode to fire
+			 * the oneshots with updated values.
+			 */
+
+			up_pwm_update();
 		}
 	}
 
@@ -564,8 +584,9 @@ mixer_set_failsafe()
 	unsigned mixed;
 
 	if (REG_TO_FLOAT(r_setup_slew_max) > FLT_EPSILON) {
-		// maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
-		// factor 2 is needed because actuator ouputs are in the range [-1,1]
+		/* maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+		 * factor 2 is needed because actuator outputs are in the range [-1,1]
+		 */
 		float delta_out_max = 2.0f * 1000.0f * dt / (r_page_servo_control_max[0] - r_page_servo_control_min[0]) / REG_TO_FLOAT(
 					      r_setup_slew_max);
 		mixer_group.set_max_delta_out_once(delta_out_max);

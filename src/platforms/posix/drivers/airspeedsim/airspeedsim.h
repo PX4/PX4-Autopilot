@@ -96,7 +96,6 @@ public:
 
 private:
 	ringbuffer::RingBuffer		*_reports;
-	perf_counter_t		_buffer_overflows;
 
 	unsigned _retries;	// XXX this should come from the SIM class
 
