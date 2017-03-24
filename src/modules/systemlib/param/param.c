@@ -78,6 +78,9 @@
 #include "px4_parameters.h"
 #include <crc32.h>
 
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
+static char *param_user_file = NULL;
+
 
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -882,9 +885,6 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 
 	_param_notify_changes();
 }
-
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
-static char *param_user_file = NULL;
 
 int
 param_set_default_file(const char *filename)
