@@ -29,7 +29,7 @@ set(startup_libs)
 if("${config_nuttx_config}" STREQUAL "bootloader")
 	set(nuttx_ld_prefix "bootloader")
 	set(nuttx_startup_files ${nuttx_export_dir}/startup/${nuttx_startup_files})
-	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer")
+	set(nuttx_bootloader_wrapers "-Wl,-wrap,sched_process_timer -Wl,-wrap,sem_post -Wl,-wrap,sem_wait")
 
 	add_custom_command(OUTPUT
 		${nuttx_startup_files}
