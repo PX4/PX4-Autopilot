@@ -169,7 +169,6 @@ static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
-static bool need_param_autosave = false;		/**< Flag set to true if parameters should be autosaved in next iteration (happens on param update and if functionality is enabled) */
 static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
 
@@ -1298,7 +1297,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
-	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
@@ -1700,8 +1698,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
-
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
 
@@ -1809,9 +1805,6 @@ int commander_thread_main(int argc, char *argv[])
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
 
-			/* Parameter autosave setting */
-			param_get(_param_autosave_params, &autosave_params);
-
 			/* EPH / EPV */
 			param_get(_param_eph, &eph_threshold);
 			param_get(_param_epv, &epv_threshold);
@@ -1837,12 +1830,6 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
 
 			param_init_forced = false;
-
-			/* Set flag to autosave parameters if necessary */
-			if (updated && autosave_params != 0 && param_changed.saved == false) {
-				/* trigger an autosave */
-				need_param_autosave = true;
-			}
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -4011,9 +3998,6 @@ void *commander_low_prio_loop(void *arg)
 	struct vehicle_command_ack_s command_ack;
 	memset(&command_ack, 0, sizeof(command_ack));
 
-	/* timeout for param autosave */
-	hrt_abstime need_param_autosave_timeout = 0;
-
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
 
@@ -4025,30 +4009,11 @@ void *commander_low_prio_loop(void *arg)
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
-		/* timed out - periodic check for thread_should_exit, etc. */
-		if (pret == 0) {
-			/* trigger a param autosave if required */
-			if (need_param_autosave) {
-				if (need_param_autosave_timeout > 0 && hrt_elapsed_time(&need_param_autosave_timeout) > 200000ULL) {
-					int ret = param_save_default();
-
-					if (ret != OK) {
-						mavlink_log_critical(&mavlink_log_pub, "settings auto save error");
-					} else {
-						PX4_DEBUG("commander: settings saved.");
-					}
-
-					need_param_autosave = false;
-					need_param_autosave_timeout = 0;
-				} else {
-					need_param_autosave_timeout = hrt_absolute_time();
-				}
-			}
-		} else if (pret < 0) {
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
+		if (pret < 0) {
+			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			warn("commander: poll error %d, %d", pret, errno);
 			continue;
-		} else {
+		} else if (pret != 0) {
 
 			/* if we reach here, we have a valid command */
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
@@ -4256,11 +4221,6 @@ void *commander_low_prio_loop(void *arg)
 						int ret = param_save_default();
 
 						if (ret == OK) {
-							if (need_param_autosave) {
-								need_param_autosave = false;
-								need_param_autosave_timeout = 0;
-							}
-
 							/* do not spam MAVLink, but provide the answer / green led mechanism */
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 
