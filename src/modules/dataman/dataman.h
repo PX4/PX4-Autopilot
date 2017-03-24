@@ -106,17 +106,21 @@ struct dataman_compat_s {
 /* increment this define whenever a binary incompatible change is performed */
 #define DM_COMPAT_VERSION	1ULL
 
-#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
+		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
+		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_save_point_s) << 4) + \
+		       sizeof(struct dataman_compat_s))
 
 /** Maximum size in bytes of a single item instance is
  * defined by adding the structure type to the union below
  */
 
 typedef union dataman_max_size_t {
-	struct mission_item_s		mission_item;
+	struct mission_item_s			mission_item;
 	struct mission_s			mission;
-	struct fence_vertex_s		vertex;
-	struct dataman_compat_s		compat;
+	struct mission_fence_point_s		fence_point;
+	struct mission_save_point_s		save_point;
+	struct dataman_compat_s			compat;
 } dataman_max_size_t;
 
 
