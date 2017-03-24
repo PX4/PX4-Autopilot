@@ -1033,13 +1033,29 @@ function(px4_generate_parameters_xml)
 		set(OVERRIDES "{}")
 	endif()
 	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
-	add_custom_command(OUTPUT ${OUT}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
-			--overrides ${OVERRIDES} --modules ${module_list}
-		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
+
+	if("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
+		# If the board is a Snapdragon Flight "Eagle" or "Excelsior" board
+		# then include all parameters defined by all modules.  This is required
+		# for parameter synchronization between the ARM and DSP processors.
+		message("Generating parameter XML file for board: ${BOARD}")
+		add_custom_command(OUTPUT ${OUT}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py 
+				-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
+				--overrides ${OVERRIDES} -v
+			DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
+				${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+		)
+	else()
+		add_custom_command(OUTPUT ${OUT}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
+				-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
+				--overrides ${OVERRIDES} --modules ${module_list}
+			DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
 		)
+	endif()
+
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
 
@@ -1076,11 +1092,25 @@ function(px4_generate_parameters_source)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
 	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
-	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
-		DEPENDS ${XML} ${DEPS}
+
+	if("${BOARD}" STREQUAL "eagle" OR "${BOARD}" STREQUAL "excelsior")
+		# If the board is a Snapdragon Flight "Eagle" or "Excelsior" board
+		# then include all parameters defined by all modules.  This is required
+		# for parameter synchronization between the ARM and DSP processors.
+		message("Generating parameter source files for board: ${BOARD}")
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
 		)
+	else()
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
+		)
+	endif()
+
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
 
