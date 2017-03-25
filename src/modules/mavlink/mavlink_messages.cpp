@@ -1440,7 +1440,7 @@ protected:
 				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
 				mavlink_command_long_t digicam_ctrl_cmd;
 
-				digicam_ctrl_cmd.target_system = mavlink_system.sysid;
+				digicam_ctrl_cmd.target_system = 0; // 0 for broadcast
 				digicam_ctrl_cmd.target_component = MAV_COMP_ID_CAMERA;
 				digicam_ctrl_cmd.command = MAV_CMD_DO_DIGICAM_CONTROL;
 				digicam_ctrl_cmd.confirmation = 0;
