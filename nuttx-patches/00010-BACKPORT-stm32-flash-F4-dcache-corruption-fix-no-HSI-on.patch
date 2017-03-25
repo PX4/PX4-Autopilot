@@ -35,7 +35,7 @@ index 70e6d62..82d8f09 100644
  #endif
  #  define FLASH_CR_PSIZE_SHIFT      (8)                     /* Bits 8-9: Program size */
 diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
-index 73f1419..3b4ebd8 100644
+index 73f1419..fb1e1ca 100644
 --- NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
 +++ NuttX/nuttx/arch/arm/src/stm32/stm32_flash.c
 @@ -47,6 +47,10 @@
@@ -102,14 +102,14 @@ index 73f1419..3b4ebd8 100644
 +static void data_cache_enable(void)
 +{
 +  /* Reset data cache */
- 
++
 +  modifyreg32(STM32_FLASH_ACR, 0, FLASH_ACR_DCRST);
 +
 +  /* Enable data cache */
 +
 +  modifyreg32(STM32_FLASH_ACR, 0, FLASH_ACR_DCEN);
 +}
-+#endif
++#endif /* defined(CONFIG_STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW) */
 +
 +/************************************************************************************
 + * Public Functions
@@ -121,7 +121,7 @@ index 73f1419..3b4ebd8 100644
 +  flash_unlock();
 +  sem_unlock();
 +}
-+
+ 
 +void stm32_flash_lock(void)
 +{
 +  sem_lock();
@@ -133,7 +133,7 @@ index 73f1419..3b4ebd8 100644
  size_t up_progmem_pagesize(size_t page)
  {
    return STM32_FLASH_PAGESIZE;
-@@ -231,14 +285,18 @@ ssize_t up_progmem_erasepage(size_t page)
+@@ -231,14 +285,19 @@ ssize_t up_progmem_erasepage(size_t page)
        return -EFAULT;
      }
  
@@ -143,6 +143,7 @@ index 73f1419..3b4ebd8 100644
 +#if !defined(CONFIG_STM32_STM32F40XX)
    if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
      {
++      sem_unlock();
        return -EPERM;
      }
 +#endif
@@ -154,7 +155,7 @@ index 73f1419..3b4ebd8 100644
  
    modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PAGE_ERASE);
  
-@@ -257,6 +315,7 @@ ssize_t up_progmem_erasepage(size_t page)
+@@ -257,6 +316,7 @@ ssize_t up_progmem_erasepage(size_t page)
    while (getreg32(STM32_FLASH_SR) & FLASH_SR_BSY) up_waste();
  
    modifyreg32(STM32_FLASH_CR, FLASH_CR_PAGE_ERASE, 0);
@@ -162,7 +163,7 @@ index 73f1419..3b4ebd8 100644
  
    /* Verify */
    if (up_progmem_ispageerased(page) == 0)
-@@ -318,14 +377,23 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+@@ -318,14 +378,23 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
        return -EFAULT;
      }
  
@@ -188,7 +189,7 @@ index 73f1419..3b4ebd8 100644
  
    modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PG);
  
-@@ -347,17 +415,25 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
+@@ -347,17 +416,25 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
        if (getreg32(STM32_FLASH_SR) & FLASH_SR_WRITE_PROTECTION_ERROR)
          {
            modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
