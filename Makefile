@@ -195,7 +195,7 @@ checks_bootloaders: \
 	check_px4esc-v1_bootloader \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
-	check_zubaxgnss-v1_bootloader \
+# not fitting in flash	check_zubaxgnss-v1_bootloader \
 	check_sizes
 
 uavcan_firmware:
