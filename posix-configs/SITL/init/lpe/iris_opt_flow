@@ -59,8 +59,9 @@ param set MPC_XY_P 0.5
 param set MIS_TAKEOFF_ALT 2
 param set NAV_ACC_RAD 1.0
 param set CBRK_GPSFAIL 240024
-param set LPE_FUSION 246
-# 11110110 no vis yaw (1 << 3) and no gps (1 << 0)
+# Flow-only mode
+param set LPE_FUSION 242
+param set FAKE_ORIGIN 1
 
 replay tryapplyparams
 simulator start -s
