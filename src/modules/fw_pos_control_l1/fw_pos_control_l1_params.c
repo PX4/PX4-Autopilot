@@ -634,7 +634,7 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
 
 /**
  * Speed rate P factor
