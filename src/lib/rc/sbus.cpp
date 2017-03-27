@@ -54,6 +54,11 @@
 
 #define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
 
+#if defined(__PX4_POSIX_OCPOC)
+#include <sys/ioctl.h>
+#include <linux/serial_core.h>
+#endif
+
 #define SBUS_START_SYMBOL	0x0f
 
 #define SBUS_INPUT_CHANNELS	16
@@ -152,6 +157,54 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_config(int sbus_fd, bool singlewire)
 {
+#if defined(__PX4_POSIX_OCPOC)
+	struct termios options;
+	
+	if (tcgetattr(sbus_fd, &options) != 0) {
+		return -1;
+	}
+	
+	tcflush(sbus_fd, TCIFLUSH);
+	bzero(&options, sizeof(options));
+
+	options.c_cflag |= (CLOCAL | CREAD);
+	options.c_cflag &= ~CSIZE;
+	options.c_cflag |= CS8;
+	options.c_cflag |= PARENB;
+	options.c_cflag &= ~PARODD;
+	options.c_iflag |= INPCK;
+	options.c_cflag |= CSTOPB;
+
+	options.c_cc[VTIME] = 0;
+	options.c_cc[VMIN] = 0;
+
+	cfsetispeed(&options, B38400);
+	cfsetospeed(&options, B38400);
+
+	tcflush(sbus_fd, TCIFLUSH);
+	if ((tcsetattr(sbus_fd, TCSANOW, &options)) != 0) {
+		return -1;
+	}
+
+	int baud = 100000;
+	struct serial_struct serials;
+	
+	if ((ioctl(sbus_fd, TIOCGSERIAL, &serials)) < 0) {
+		return -1;
+	}
+	
+	serials.flags = ASYNC_SPD_CUST;
+	serials.custom_divisor = serials.baud_base / baud;
+	
+	if ((ioctl(sbus_fd, TIOCSSERIAL, &serials)) < 0) {
+		return -1;
+	}
+	
+	ioctl(sbus_fd, TIOCGSERIAL, &serials);
+
+	tcflush(sbus_fd, TCIFLUSH);
+	return 0;
+#else
 	int ret = -1;
 
 	if (sbus_fd >= 0) {
@@ -180,6 +233,7 @@ sbus_config(int sbus_fd, bool singlewire)
 	}
 
 	return ret;
+#endif
 }
 
 void
@@ -231,6 +285,31 @@ bool
 sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
+#if defined(__PX4_POSIX_OCPOC)
+	hrt_abstime	now;
+	now = hrt_absolute_time();
+	last_rx_time = now;
+	partial_frame_count = 0;
+
+	ssize_t n;
+	uint8_t buf[SBUS_FRAME_SIZE * 4];
+	if ((n = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE*4)) <= 0){
+		return false;
+	}
+
+	for (int i=0; i<n; i++) {
+		if (buf[i] == 0x0f && (i+24 < n) && buf[i+23] == 0x00) {
+			memcpy(&sbus_frame[0], &buf[i], 25);
+
+			if (sbus_decode(now, sbus_frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels) 
+				&& *num_values >= 5) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+#else
 	int		ret = 1;
 	hrt_abstime	now;
 
@@ -275,8 +354,10 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	}
 
 	return sbus_decoded;
+#endif
 }
 
+#if !defined(__PX4_POSIX_OCPOC)
 bool
 sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels)
@@ -482,6 +563,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	/* return false as default */
 	return decode_ret;
 }
+#endif
 
 /*
  * S.bus decoder matrix.
