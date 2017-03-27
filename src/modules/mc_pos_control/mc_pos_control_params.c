@@ -423,7 +423,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 
 /**
- * Maximum horizonal acceleration in velocity controlled modes
+ * Maximum horizonal manual acceleration in velocity controlled modes
  *
  * @unit m/s/s
  * @min 2.0
@@ -435,7 +435,8 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
- * Maximum horizontal braking deceleration in velocity controlled modes
+ * Maximum horizontal manual braking deceleration in velocity controlled modes
+ * Maximum acceleration for non-manual control modes
  *
  * @unit m/s/s
  * @min 2.0
@@ -447,7 +448,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 10.0f);
 
 /**
- * Slow horizontal braking deceleration in velocity controlled modes
+ * Slow horizontal manual braking deceleration in velocity controlled modes
  *
  * @unit m/s/s
  * @min 0.5

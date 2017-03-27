@@ -1372,20 +1372,26 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	matrix::Vector2f vel_xy(_vel(0), _vel(1));
 	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
-	float acc_limit = _acceleration_hor_max.get();
+	/* as default we use max deceleration as acc limit */
+	float acc_limit = _deceleration_hor_max.get();
 
-	/* deceleration but no direction change and not position control*/
-	bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f) && !_run_pos_control;
+	if (_control_mode.flag_control_manual_enabled) {
+		/* default for manual */
+		acc_limit = _acceleration_hor_max.get();
 
-	/* deceleration with direction change and not position control*/
-	bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f) && !_run_pos_control;
+		/* deceleration but no direction change and not position control*/
+		bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f) && !_run_pos_control;
 
-	if (slow_deceleration) {
-		acc_limit = _deceleration_hor_slow.get();
-	}
+		/* deceleration with direction change and not position control*/
+		bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f) && !_run_pos_control;
 
-	if (fast_deceleration) {
-		acc_limit = _deceleration_hor_max.get();
+		if (slow_deceleration) {
+			acc_limit = _deceleration_hor_slow.get();
+		}
+
+		if (fast_deceleration) {
+			acc_limit = _deceleration_hor_max.get();
+		}
 	}
 
 	/* limit total horizontal acceleration */
