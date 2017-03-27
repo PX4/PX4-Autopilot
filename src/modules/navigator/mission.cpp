@@ -1497,7 +1497,6 @@ Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, fl
 		1000000.0f,
 		&(setpoint->lat),
 		&(setpoint->lon));
-	setpoint->alt = _navigator->get_global_position()->alt;
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
 }
