@@ -712,7 +712,6 @@ GPS::task_main()
 
 			if (_helper != nullptr) {
 				delete (_helper);
-				/* set to zero to ensure parser is not used while not instantiated */
 				_helper = nullptr;
 			}
 
@@ -742,7 +741,7 @@ GPS::task_main()
 			 * MTK driver is not well tested, so we really only trust the UBX
 			 * driver for an advance publication
 			 */
-			if (_helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
+			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
@@ -840,11 +839,15 @@ GPS::task_main()
 
 				case GPS_DRIVER_MODE_ASHTECH:
 					_mode = GPS_DRIVER_MODE_UBX;
+					usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
 
 				default:
 					break;
 				}
+
+			} else {
+				usleep(500000);
 			}
 
 		}
