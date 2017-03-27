@@ -333,7 +333,9 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 			break;
 		}
 
-		if (temp_vertex_i.frame != MAV_FRAME_GLOBAL && temp_vertex_i.frame != MAV_FRAME_GLOBAL_INT) {
+		if (temp_vertex_i.frame != MAV_FRAME_GLOBAL && temp_vertex_i.frame != MAV_FRAME_GLOBAL_INT
+		    && temp_vertex_i.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT
+		    && temp_vertex_i.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 			// TODO: handle different frames
 			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
 			break;
