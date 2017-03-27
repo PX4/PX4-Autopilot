@@ -344,8 +344,6 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 		     (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
 			c = !c;
 		}
-
-		// TODO: handle altitude
 	}
 
 	return c;
@@ -405,7 +403,7 @@ Geofence::loadFromFile(const char *filename)
 			vertex.frame = MAV_FRAME_GLOBAL;
 			vertex.nav_cmd = MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION;
 			vertex.vertex_count = 0; // this will be filled in a second pass
-			vertex.alt = 0; // TODO: does this make sense?
+			vertex.alt = 0; // alt is not used
 
 			/* if the line starts with DMS, this means that the coordinate is given as degree minute second instead of decimal degrees */
 			if (line[textStart] == 'D' && line[textStart + 1] == 'M' && line[textStart + 2] == 'S') {
