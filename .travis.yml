@@ -67,7 +67,7 @@ script:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     elif [[ "${BUILD_TARGET}" = "px4_clang" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make px4fmu-v2_default';
+      PX4_DOCKER_REPO=px4io/px4-dev-nuttx-clang ./Tools/docker_run.sh 'make px4fmu-v2_default';
     fi
 
 after_success:
