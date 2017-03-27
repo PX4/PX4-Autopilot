@@ -64,6 +64,9 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
+//#define PARAM_NO_ORB ///< if defined, avoid uorb depenency. This disables publication of parameter_update on param change
+//#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
+
 #if !defined(PARAM_NO_ORB)
 # include "uORB/uORB.h"
 # include "uORB/topics/parameter_update.h"
@@ -96,12 +99,14 @@ static char *param_user_file = NULL;
 #define PARAM_CLOSE	close
 #endif
 
+#ifndef PARAM_NO_AUTOSAVE
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 struct work_s autosave_work;
 static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
+#endif /* PARAM_NO_AUTOSAVE */
 
 /**
  * Array of static parameter info.
@@ -588,11 +593,14 @@ param_get(param_t param, void *val)
 	return result;
 }
 
+
+#ifndef PARAM_NO_AUTOSAVE
 /**
  * worker callback method to save the parameters
  * @param arg unused
  */
-static void autosave_worker(void *arg)
+static void
+autosave_worker(void *arg)
 {
 	bool disabled = false;
 
@@ -613,6 +621,7 @@ static void autosave_worker(void *arg)
 		PX4_ERR("param save failed (%i)", ret);
 	}
 }
+#endif /* PARAM_NO_AUTOSAVE */
 
 /**
  * Automatically save the parameters after a timeout and limited rate.
@@ -620,8 +629,11 @@ static void autosave_worker(void *arg)
  * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
  * needs to be the same lock as autosave_worker() and param_control_autosave() use).
  */
-static void param_autosave(void)
+static void
+param_autosave(void)
 {
+#ifndef PARAM_NO_AUTOSAVE
+
 	if (autosave_scheduled || autosave_disabled) {
 		return;
 	}
@@ -641,11 +653,13 @@ static void param_autosave(void)
 
 	autosave_scheduled = true;
 	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, NULL, USEC2TICK(delay));
+#endif /* PARAM_NO_AUTOSAVE */
 }
 
 void
 param_control_autosave(bool enable)
 {
+#ifndef PARAM_NO_AUTOSAVE
 	param_lock_writer();
 
 	if (!enable && autosave_scheduled) {
@@ -655,7 +669,9 @@ param_control_autosave(bool enable)
 
 	autosave_disabled = !enable;
 	param_unlock_writer();
+#endif /* PARAM_NO_AUTOSAVE */
 }
+
 
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
