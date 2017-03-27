@@ -260,8 +260,10 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 	}
 
 	/* Vertical check */
-	if (altitude > _altitude_max || altitude < _altitude_min) {
-		return false;
+	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
+		if (altitude > _altitude_max || altitude < _altitude_min) {
+			return false;
+		}
 	}
 
 	/* Horizontal check: iterate all polygons */
