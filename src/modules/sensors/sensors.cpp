@@ -158,6 +158,7 @@ public:
 
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
+
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
@@ -324,7 +325,7 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_OCPOC)
 
 	// TODO: this needs fixing for QURT and Raspberry Pi
 	if (!h_baro.isValid()) {
@@ -351,7 +352,6 @@ Sensors::parameters_update()
 int
 Sensors::adc_init()
 {
-
 	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
 	if (!_h_adc.isValid()) {
