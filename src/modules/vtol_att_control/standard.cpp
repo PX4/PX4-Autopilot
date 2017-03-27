@@ -63,6 +63,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 
 	_params_handles_standard.front_trans_dur = param_find("VT_F_TRANS_DUR");
 	_params_handles_standard.back_trans_dur = param_find("VT_B_TRANS_DUR");
+	_params_handles_standard.back_trans_ramp = param_find("VT_B_TRANS_RAMP");
 	_params_handles_standard.pusher_trans = param_find("VT_TRANS_THR");
 	_params_handles_standard.airspeed_blend = param_find("VT_ARSP_BLEND");
 	_params_handles_standard.airspeed_trans = param_find("VT_ARSP_TRANS");
@@ -86,11 +87,15 @@ Standard::parameters_update()
 
 	/* duration of a forwards transition to fw mode */
 	param_get(_params_handles_standard.front_trans_dur, &v);
-	_params_standard.front_trans_dur = math::constrain(v, 0.0f, 5.0f);
+	_params_standard.front_trans_dur = math::constrain(v, 0.0f, 20.0f);
 
 	/* duration of a back transition to mc mode */
 	param_get(_params_handles_standard.back_trans_dur, &v);
-	_params_standard.back_trans_dur = math::constrain(v, 0.0f, 5.0f);
+	_params_standard.back_trans_dur = math::constrain(v, 0.0f, 20.0f);
+
+	/* ramp up time of a back transition to mc mode */
+	param_get(_params_handles_standard.back_trans_ramp, &v);
+	_params_standard.back_trans_ramp = math::constrain(v, 0.0f, 20.0f);
 
 	/* target throttle value for pusher motor during the transition to fw mode */
 	param_get(_params_handles_standard.pusher_trans, &v);
@@ -315,9 +320,10 @@ void Standard::update_transition_state()
 		_v_att_sp->q_d_valid = true;
 
 		// continually increase mc attitude control as we transition back to mc mode
-		if (_params_standard.back_trans_dur > 0.0f) {
-			float weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.back_trans_dur *
+		if (_params_standard.back_trans_ramp > 0.0f) {
+			float weight = (float)hrt_elapsed_time(&_vtol_schedule.transition_start) / (_params_standard.back_trans_ramp *
 					1000000.0f);
+			weight = math::constrain(weight, 0.0f, 1.0f);
 			_mc_roll_weight = weight;
 			_mc_pitch_weight = weight;
 			_mc_yaw_weight = weight;

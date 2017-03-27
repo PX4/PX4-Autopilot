@@ -69,6 +69,7 @@ private:
 	struct {
 		float front_trans_dur;
 		float back_trans_dur;
+		float back_trans_ramp;
 		float pusher_trans;
 		float airspeed_blend;
 		float airspeed_trans;
@@ -83,6 +84,7 @@ private:
 	struct {
 		param_t front_trans_dur;
 		param_t back_trans_dur;
+		param_t back_trans_ramp;
 		param_t pusher_trans;
 		param_t airspeed_blend;
 		param_t airspeed_trans;
