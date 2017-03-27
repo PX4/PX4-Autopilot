@@ -944,7 +944,7 @@ MulticopterPositionControl::get_yaw_setpoint(float dt)
 {
 	/* do not move yaw while sitting on the ground */
 	if (!_vehicle_land_detected.landed &&
-	    !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+	    (_control_mode.flag_control_altitude_enabled || !(_manual.z < 0.1f))) {
 
 		/* we want to know the real constraint, and global overrides manual */
 		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
@@ -963,7 +963,6 @@ MulticopterPositionControl::get_yaw_setpoint(float dt)
 			_att_sp.yaw_body = yaw_target;
 		}
 	}
-
 }
 
 float
