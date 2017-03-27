@@ -279,6 +279,7 @@ private:
 	math::Vector<3> _vel_sp_prev;
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
+	math::Vector<3> _thrust_sp;
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -375,6 +376,8 @@ private:
 	void generate_attitude_setpoint(float dt);
 
 	float get_cruising_speed_xy();
+
+	void get_yaw_setpoint(float dt);
 
 	/**
 	 * limit altitude based on several conditions
@@ -496,6 +499,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
 	_curr_pos_sp.zero();
+	_thrust_sp.zero();
 
 	_R.identity();
 
@@ -935,6 +939,33 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_limit;
 }
 
+void
+MulticopterPositionControl::get_yaw_setpoint(float dt)
+{
+	/* do not move yaw while sitting on the ground */
+	if (!_vehicle_land_detected.landed &&
+	    !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+
+		/* we want to know the real constraint, and global overrides manual */
+		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
+					   _params.global_yaw_max;
+		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
+		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
+		float yaw_offs = _wrap_pi(yaw_target - _yaw);
+
+		// If the yaw offset became too big for the system to track stop
+		// shifting it, only allow if it would make the offset smaller again.
+		if (fabsf(yaw_offs) < yaw_offset_max ||
+		    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
+		    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
+			_att_sp.yaw_body = yaw_target;
+		}
+	}
+
+}
+
 float
 MulticopterPositionControl::get_cruising_speed_xy()
 {
@@ -1013,6 +1044,8 @@ MulticopterPositionControl::control_manual(float dt)
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
 	}
+
+	get_yaw_setpoint(dt);
 
 	/* prepare yaw to rotate into NED frame */
 	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _local_pos.yaw;
@@ -2080,6 +2113,8 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		_att_sp.thrust = math::max(thrust_body_z, thr_min);
+		_att_sp.timestamp = hrt_absolute_time();
+		_thrust_sp = thrust_sp;
 
 		/* update integrals */
 		if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
@@ -2091,84 +2126,11 @@ MulticopterPositionControl::control_position(float dt)
 			_thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
 		}
 
-		/* calculate attitude setpoint from thrust vector */
-		if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
-			/* desired body_z axis = -normalize(thrust_vector) */
-			math::Vector<3> body_x;
-			math::Vector<3> body_y;
-			math::Vector<3> body_z;
-
-			if (thrust_sp.length() > SIGMA) {
-				body_z = -thrust_sp.normalized();
-
-			} else {
-				/* no thrust, set Z axis to safe value */
-				body_z.zero();
-				body_z(2) = 1.0f;
-			}
-
-			/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-			math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
-
-			if (fabsf(body_z(2)) > SIGMA) {
-				/* desired body_x axis, orthogonal to body_z */
-				body_x = y_C % body_z;
-
-				/* keep nose to front while inverted upside down */
-				if (body_z(2) < 0.0f) {
-					body_x = -body_x;
-				}
-
-				body_x.normalize();
-
-			} else {
-				/* desired thrust is in XY plane, set X downside to construct correct matrix,
-				 * but yaw component will not be used actually */
-				body_x.zero();
-				body_x(2) = 1.0f;
-			}
-
-			/* desired body_y axis */
-			body_y = body_z % body_x;
-
-			/* fill rotation matrix */
-			for (int i = 0; i < 3; i++) {
-				_R_setpoint(i, 0) = body_x(i);
-				_R_setpoint(i, 1) = body_y(i);
-				_R_setpoint(i, 2) = body_z(i);
-			}
-
-			/* copy quaternion setpoint to attitude setpoint topic */
-			matrix::Quatf q_sp = _R_setpoint;
-			memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-			_att_sp.q_d_valid = true;
-
-			/* calculate euler angles, for logging only, must not be used for control */
-			matrix::Eulerf euler = _R_setpoint;
-			_att_sp.roll_body = euler(0);
-			_att_sp.pitch_body = euler(1);
-			/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
-
-		} else if (!_control_mode.flag_control_manual_enabled) {
-			/* autonomous altitude control without position control (failsafe landing),
-			 * force level attitude, don't change yaw */
-			_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
-
-			/* copy quaternion setpoint to attitude setpoint topic */
-			matrix::Quatf q_sp = _R_setpoint;
-			memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-			_att_sp.q_d_valid = true;
-
-			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = 0.0f;
-		}
-
 		/* save thrust setpoint for logging */
 		_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
 		_local_pos_sp.acc_y = thrust_sp(1) * ONE_G;
 		_local_pos_sp.acc_z = thrust_sp(2) * ONE_G;
 
-		_att_sp.timestamp = hrt_absolute_time();
 
 
 	} else {
@@ -2179,32 +2141,77 @@ MulticopterPositionControl::control_position(float dt)
 void
 MulticopterPositionControl::generate_attitude_setpoint(float dt)
 {
-	/* reset yaw setpoint to current position if needed */
-	if (_reset_yaw_sp) {
-		_reset_yaw_sp = false;
-		_att_sp.yaw_body = _yaw;
-	}
 
-	/* do not move yaw while sitting on the ground */
-	else if (!_vehicle_land_detected.landed &&
-		 !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+	/* calculate attitude setpoint from thrust vector */
+	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
+		/* desired body_z axis = -normalize(thrust_vector) */
+		math::Vector<3> body_x;
+		math::Vector<3> body_y;
+		math::Vector<3> body_z;
 
-		/* we want to know the real constraint, and global overrides manual */
-		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
-					   _params.global_yaw_max;
-		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+		if (_thrust_sp.length() > SIGMA) {
+			body_z = -_thrust_sp.normalized();
 
-		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
-		float yaw_offs = _wrap_pi(yaw_target - _yaw);
-
-		// If the yaw offset became too big for the system to track stop
-		// shifting it, only allow if it would make the offset smaller again.
-		if (fabsf(yaw_offs) < yaw_offset_max ||
-		    (_att_sp.yaw_sp_move_rate > 0 && yaw_offs < 0) ||
-		    (_att_sp.yaw_sp_move_rate < 0 && yaw_offs > 0)) {
-			_att_sp.yaw_body = yaw_target;
+		} else {
+			/* no thrust, set Z axis to safe value */
+			body_z.zero();
+			body_z(2) = 1.0f;
 		}
+
+		/* vector of desired yaw direction in XY plane, rotated by PI/2 */
+		math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
+
+		if (fabsf(body_z(2)) > SIGMA) {
+			/* desired body_x axis, orthogonal to body_z */
+			body_x = y_C % body_z;
+
+			/* keep nose to front while inverted upside down */
+			if (body_z(2) < 0.0f) {
+				body_x = -body_x;
+			}
+
+			body_x.normalize();
+
+		} else {
+			/* desired thrust is in XY plane, set X downside to construct correct matrix,
+			 * but yaw component will not be used actually */
+			body_x.zero();
+			body_x(2) = 1.0f;
+		}
+
+		/* desired body_y axis */
+		body_y = body_z % body_x;
+
+		/* fill rotation matrix */
+		for (int i = 0; i < 3; i++) {
+			_R_setpoint(i, 0) = body_x(i);
+			_R_setpoint(i, 1) = body_y(i);
+			_R_setpoint(i, 2) = body_z(i);
+		}
+
+		/* copy quaternion setpoint to attitude setpoint topic */
+		matrix::Quatf q_sp = _R_setpoint;
+		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+		_att_sp.q_d_valid = true;
+
+		/* calculate euler angles, for logging only, must not be used for control */
+		matrix::Eulerf euler = _R_setpoint;
+		_att_sp.roll_body = euler(0);
+		_att_sp.pitch_body = euler(1);
+		/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
+
+	} else if (!_control_mode.flag_control_manual_enabled) {
+		/* autonomous altitude control without position control (failsafe landing),
+		 * force level attitude, don't change yaw */
+		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
+
+		/* copy quaternion setpoint to attitude setpoint topic */
+		matrix::Quatf q_sp = _R_setpoint;
+		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+		_att_sp.q_d_valid = true;
+
+		_att_sp.roll_body = 0.0f;
+		_att_sp.pitch_body = 0.0f;
 	}
 
 	/* control throttle directly if no climb rate controller is active */
@@ -2220,8 +2227,10 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
 	if (!_control_mode.flag_control_velocity_enabled) {
+
 		_att_sp.roll_body = _manual.y * _params.man_roll_max;
 		_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+		get_yaw_setpoint(dt);
 
 		/* only if optimal recovery is not used, modify roll/pitch */
 		if (_params.opt_recover <= 0) {
@@ -2377,6 +2386,12 @@ MulticopterPositionControl::task_main()
 			_vel_sp_prev = _vel;
 		}
 
+		/* reset yaw setpoint to current position if needed */
+		if (_reset_yaw_sp) {
+			_reset_yaw_sp = false;
+			_att_sp.yaw_body = _yaw;
+		}
+
 		//Update previous arming state
 		was_armed = _control_mode.flag_armed;
 
@@ -2436,8 +2451,7 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
-
+		if (_control_mode.flag_control_attitude_enabled) {
 			generate_attitude_setpoint(dt);
 
 		} else {
