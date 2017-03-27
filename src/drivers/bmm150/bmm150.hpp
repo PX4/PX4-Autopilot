@@ -43,7 +43,7 @@
 
 #define BMM150_SLAVE_ADDRESS                 PX4_I2C_OBDEV_BMM150
 
-#define BMM150_BUS_SPEED                     1000*1000
+#define BMM150_BUS_SPEED                     1000*100
 
 /* Chip Identification number */
 #define BMM150_CHIP_ID                       0x32
@@ -84,44 +84,54 @@
 
 
 /* Data rate value definitions */
-#define BMM050_DATA_RATE_10HZ                0x00
-#define BMM050_DATA_RATE_02HZ                0x08
-#define BMM050_DATA_RATE_06HZ                0x10
-#define BMM050_DATA_RATE_08HZ                0x18
-#define BMM050_DATA_RATE_15HZ                0x20
-#define BMM050_DATA_RATE_20HZ                0x28
-#define BMM050_DATA_RATE_25HZ                0x30
-#define BMM050_DATA_RATE_30HZ                0x38
+#define BMM150_DATA_RATE_10HZ                0x00
+#define BMM150_DATA_RATE_02HZ                0x08
+#define BMM150_DATA_RATE_06HZ                0x10
+#define BMM150_DATA_RATE_08HZ                0x18
+#define BMM150_DATA_RATE_15HZ                0x20
+#define BMM150_DATA_RATE_20HZ                0x28
+#define BMM150_DATA_RATE_25HZ                0x30
+#define BMM150_DATA_RATE_30HZ                0x38
+
+/* Advance self-test settings Definitions */
+#define BMM150_ADV_ST_OFF                    0x00
+#define BMM150_ADV_ST_NEG                    0x80
+#define BMM150_ADV_ST_POS                    0xC0
+
+
+/* Interrupt settings and axes enable bits definitions */
+#define BMM150_CHANNEL_X_ENABLE              0x08
+#define BMM150_CHANNEL_Y_ENABLE              0x10
 
 
 /*Overflow Definitions */
 /* compensated output value returned if sensor had overflow */
-#define BMM050_OVERFLOW_OUTPUT               -32768
-#define BMM050_OVERFLOW_OUTPUT_S32           ((int32_t)(-2147483647-1))
-#define BMM050_OVERFLOW_OUTPUT_FLOAT         0.0f
-#define BMM050_FLIP_OVERFLOW_ADCVAL          -4096
-#define BMM050_HALL_OVERFLOW_ADCVAL          -16384
+#define BMM150_OVERFLOW_OUTPUT               -32768
+#define BMM150_OVERFLOW_OUTPUT_S32           ((int32_t)(-2147483647-1))
+#define BMM150_OVERFLOW_OUTPUT_FLOAT         0.0f
+#define BMM150_FLIP_OVERFLOW_ADCVAL          -4096
+#define BMM150_HALL_OVERFLOW_ADCVAL          -16384
 
 
 /* Preset modes - Repetitions-XY Rates */
-#define BMM050_LOWPOWER_REPXY                 1
-#define BMM050_REGULAR_REPXY                  4
-#define BMM050_HIGHACCURACY_REPXY             23
-#define BMM050_ENHANCED_REPXY                 7
+#define BMM150_LOWPOWER_REPXY                 1
+#define BMM150_REGULAR_REPXY                  4
+#define BMM150_HIGHACCURACY_REPXY             23
+#define BMM150_ENHANCED_REPXY                 7
 
 /* Preset modes - Repetitions-Z Rates */
-#define BMM050_LOWPOWER_REPZ                  2
-#define BMM050_REGULAR_REPZ                   14
-#define BMM050_HIGHACCURACY_REPZ              82
-#define BMM050_ENHANCED_REPZ                  26
+#define BMM150_LOWPOWER_REPZ                  2
+#define BMM150_REGULAR_REPZ                   14
+#define BMM150_HIGHACCURACY_REPZ              82
+#define BMM150_ENHANCED_REPZ                  26
 
 /* Preset modes - Data rates */
-#define BMM050_LOWPOWER_DR                   BMM050_DATA_RATE_20HZ
-#define BMM050_REGULAR_DR                    BMM050_DATA_RATE_20HZ
-#define BMM050_HIGHACCURACY_DR               BMM050_DATA_RATE_20HZ
-#define BMM050_ENHANCED_DR                   BMM050_DATA_RATE_10HZ
+#define BMM150_LOWPOWER_DR                   BMM150_DATA_RATE_30HZ
+#define BMM150_REGULAR_DR                    BMM150_DATA_RATE_30HZ
+#define BMM150_HIGHACCURACY_DR               BMM150_DATA_RATE_25HZ
+#define BMM150_ENHANCED_DR                   BMM150_DATA_RATE_10HZ
 
-/* Power modes value defintions */
+/* Power modes value definitions */
 #define BMM150_NORMAL_MODE                   0x00
 #define BMM150_FORCED_MODE                   0x02
 #define BMM150_SLEEP_MODE                    0x06
@@ -130,31 +140,31 @@
 #define BMM150_DEFAULT_POWER_MODE           BMM150_NORMAL_MODE
 
 /* Default output data rate */
-#define BMM150_DEFAULT_ODR                  BMM050_DATA_RATE_20HZ
+#define BMM150_DEFAULT_ODR                  BMM150_DATA_RATE_30HZ
 
-/* Max output data rate in forced power mode in regular preset mode */
-#define BMM150_MAX_DATA_RATE                100
+/* Maximum output data rate */
+#define BMM150_MAX_DATA_RATE                30
 
 /* Default BMM150_INT_SETT_CTRL_REG Value */
 #define BMM150_DEFAULT_INT_SETT             0x3F
 
 /* Trim Extended Registers */
-#define BMM050_DIG_X1                       0x5D
-#define BMM050_DIG_Y1                       0x5E
-#define BMM050_DIG_Z4_LSB                   0x62
-#define BMM050_DIG_Z4_MSB                   0x63
-#define BMM050_DIG_X2                       0x64
-#define BMM050_DIG_Y2                       0x65
-#define BMM050_DIG_Z2_LSB                   0x68
-#define BMM050_DIG_Z2_MSB                   0x69
-#define BMM050_DIG_Z1_LSB                   0x6A
-#define BMM050_DIG_Z1_MSB                   0x6B
-#define BMM050_DIG_XYZ1_LSB                 0x6C
-#define BMM050_DIG_XYZ1_MSB                 0x6D
-#define BMM050_DIG_Z3_LSB                   0x6E
-#define BMM050_DIG_Z3_MSB                   0x6F
-#define BMM050_DIG_XY2                      0x70
-#define BMM050_DIG_XY1                      0x71
+#define BMM150_DIG_X1                       0x5D
+#define BMM150_DIG_Y1                       0x5E
+#define BMM150_DIG_Z4_LSB                   0x62
+#define BMM150_DIG_Z4_MSB                   0x63
+#define BMM150_DIG_X2                       0x64
+#define BMM150_DIG_Y2                       0x65
+#define BMM150_DIG_Z2_LSB                   0x68
+#define BMM150_DIG_Z2_MSB                   0x69
+#define BMM150_DIG_Z1_LSB                   0x6A
+#define BMM150_DIG_Z1_MSB                   0x6B
+#define BMM150_DIG_XYZ1_LSB                 0x6C
+#define BMM150_DIG_XYZ1_MSB                 0x6D
+#define BMM150_DIG_Z3_LSB                   0x6E
+#define BMM150_DIG_Z3_MSB                   0x6F
+#define BMM150_DIG_XY2                      0x70
+#define BMM150_DIG_XY1                      0x71
 
 
 /* Mask definitions for power mode */
@@ -168,9 +178,8 @@
 /* Mask definitions for Soft-Reset */
 #define BMM150_SOFT_RESET_MASK              0x82
 
-/* This value is set based on Max output data rate value
- * in forced power mode in regular preset mode */
-#define BMM150_CONVERSION_INTERVAL          (10000) /* microseconds */
+/* This value is set based on Max output data rate value */
+#define BMM150_CONVERSION_INTERVAL          (1000000 / 30) /* microseconds */
 
 
 
@@ -184,7 +193,7 @@ struct bmm150_data {
 class BMM150 : public device::I2C
 {
 public:
-	BMM150(int bus, const char *path, bool external);
+	BMM150(int bus, const char *path, bool external, enum Rotation rotation);
 	virtual ~BMM150();
 
 	bool is_external();
@@ -205,7 +214,6 @@ protected:
 private:
 	work_s            _work;
 	bool _external;
-	bool            _collect_phase;
 
 	/* altitude conversion calibration */
 	unsigned        _call_interval;
@@ -222,6 +230,7 @@ private:
 	int         _class_instance;
 	uint8_t     _power;
 	uint8_t     _output_data_rate;
+	bool        _calibrated;        /**< the calibration is valid */
 
 	int8_t dig_x1;/**< trim x1 data */
 	int8_t dig_y1;/**< trim y1 data */
@@ -239,23 +248,17 @@ private:
 
 	uint16_t dig_xyz1;/**< trim xyz1 data */
 
-	perf_counter_t      _mag_reads;
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
-	perf_counter_t      _bad_registers;
 	perf_counter_t      _good_transfers;
-	perf_counter_t      _reset_retries;
 	perf_counter_t      _duplicates;
-	perf_counter_t      _controller_latency_perf;
-	perf_counter_t      _measure_perf;
-	perf_counter_t      _comms_errors;
 
+	enum Rotation       _rotation;
 	bool            _got_duplicate;
 
 	struct mag_report   _last_report;           /**< used for info() */
 
 	int             init_trim_registers(void);
-	void            read_mag_data();
 
 	/**
 	 * Start automatic measurement.
@@ -268,7 +271,6 @@ private:
 	void            stop();
 
 
-	int     measure(); //start measure
 	int     collect(); //get results and publish
 
 	static void     cycle_trampoline(void *arg);
@@ -285,9 +287,9 @@ private:
 	int             get_data(uint8_t reg, uint8_t *data, unsigned len);
 
 	/**
-	 * Reset chip.
+	 * Resets the chip.
 	 */
-        int             reset();
+	int             reset();
 
 	/**
 	 * Measurement self test
@@ -335,9 +337,14 @@ private:
 	int             set_data_rate(uint8_t data_rate);
 
 	/*
-	  Set the XY-repetitions number and Z- repetitions number
+	  Set the XY-repetitions
 	 */
-	int             set_rep_xyz(uint8_t rep_xy, uint8_t rep_z);
+	int             set_rep_xy(uint8_t rep_xy);
+
+	/*
+	  Set the Z- repetitions number
+	 */
+	int             set_rep_z(uint8_t rep_z);
 
 	/*
 	   Set the preset modes for BMM150 sensor.The preset mode setting is
