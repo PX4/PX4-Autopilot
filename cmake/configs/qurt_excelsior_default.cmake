@@ -8,5 +8,6 @@ include(configs/qurt_sdflight_default)
 
 # This definition allows to differentiate the specific board.
 add_definitions(
-	-D__PX4_QURT_EXCELSIOR
+    -D__PX4_QURT
+    -D__PX4_QURT_EXCELSIOR
 )

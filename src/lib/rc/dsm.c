@@ -467,7 +467,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 		 *
 		 * Specifically, the first four channels in rc_channel_data are roll, pitch, thrust, yaw,
 		 * but the first four channels from the DSM receiver are thrust, roll, pitch, yaw.
-		 */
+		 
 		switch (channel) {
 		case 0:
 			channel = 2;
@@ -483,7 +483,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 		default:
 			break;
 		}
-
+             */
 		values[channel] = value;
 	}
 
