@@ -571,6 +571,9 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 #elif defined(__PX4_POSIX_BEBOP)
 	PX4_WARN("Preflight checks always pass on Bebop.");
 	return true;
+#elif defined(__PX4_POSIX_OCPOC)
+	PX4_WARN("Preflight checks always pass on OcPoC.");
+	return true;
 #endif
 
 	bool failed = false;
