@@ -159,11 +159,11 @@ sbus_config(int sbus_fd, bool singlewire)
 {
 #if defined(__PX4_POSIX_OCPOC)
 	struct termios options;
-	
+
 	if (tcgetattr(sbus_fd, &options) != 0) {
 		return -1;
 	}
-	
+
 	tcflush(sbus_fd, TCIFLUSH);
 	bzero(&options, sizeof(options));
 
@@ -182,24 +182,25 @@ sbus_config(int sbus_fd, bool singlewire)
 	cfsetospeed(&options, B38400);
 
 	tcflush(sbus_fd, TCIFLUSH);
+
 	if ((tcsetattr(sbus_fd, TCSANOW, &options)) != 0) {
 		return -1;
 	}
 
 	int baud = 100000;
 	struct serial_struct serials;
-	
+
 	if ((ioctl(sbus_fd, TIOCGSERIAL, &serials)) < 0) {
 		return -1;
 	}
-	
+
 	serials.flags = ASYNC_SPD_CUST;
 	serials.custom_divisor = serials.baud_base / baud;
-	
+
 	if ((ioctl(sbus_fd, TIOCSSERIAL, &serials)) < 0) {
 		return -1;
 	}
-	
+
 	ioctl(sbus_fd, TIOCGSERIAL, &serials);
 
 	tcflush(sbus_fd, TCIFLUSH);
@@ -293,16 +294,17 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 
 	ssize_t n;
 	uint8_t buf[SBUS_FRAME_SIZE * 4];
-	if ((n = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE*4)) <= 0){
+
+	if ((n = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE * 4)) <= 0) {
 		return false;
 	}
 
-	for (int i=0; i<n; i++) {
-		if (buf[i] == 0x0f && (i+24 < n) && buf[i+23] == 0x00) {
+	for (int i = 0; i < n; i++) {
+		if (buf[i] == 0x0f && (i + 24 < n) && buf[i + 23] == 0x00) {
 			memcpy(&sbus_frame[0], &buf[i], 25);
 
-			if (sbus_decode(now, sbus_frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels) 
-				&& *num_values >= 5) {
+			if (sbus_decode(now, sbus_frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels)
+			    && *num_values >= 5) {
 				return true;
 			}
 		}

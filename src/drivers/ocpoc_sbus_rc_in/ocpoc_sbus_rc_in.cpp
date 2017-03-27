@@ -115,7 +115,7 @@ int RcInput::ocpoc_subs_rc_init()
 	_sbus_fd = sbus_init(RCINPUT_DEVICE_PATH, true); //jly
 
 
-	for (i=_channels; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
+	for (i = _channels; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
 		_data.values[i] = UINT16_MAX;
 	}
 
@@ -179,11 +179,11 @@ void RcInput::_measure(void)
 	 * Gather R/C control inputs from sbus
 	 */
 	bool sbus_failsafe, sbus_frame_drop;
-	uint16_t values[SBUS_INPUT_CHANNELS*2];
+	uint16_t values[SBUS_INPUT_CHANNELS * 2];
 	uint16_t num_values;
 
 	bool sbus_updated = sbus_input(_sbus_fd, values, &num_values, &sbus_failsafe, &sbus_frame_drop,
-					   _channels);
+				       _channels);
 
 	if (sbus_updated) {
 

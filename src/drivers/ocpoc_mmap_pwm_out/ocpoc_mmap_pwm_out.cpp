@@ -70,11 +70,11 @@ static bool _is_running = false;
 struct s_period_hi {
 	uint32_t period;
 	uint32_t hi;
-	};
+};
 
 struct pwm_cmd {
 	struct s_period_hi periodhi[MAX_ZYNQ_PWMS];
-	};
+};
 
 volatile struct pwm_cmd *sharedMem_cmd = nullptr; // jly
 static char _device[32] = "/dev/mem";
@@ -186,8 +186,8 @@ int initialize_mixer(const char *mixer_filename)
 		float deadband = 0.13;
 
 		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-						 MultirotorGeometry::QUAD_X,
-						 roll_scale, pitch_scale, yaw_scale, deadband);
+					     MultirotorGeometry::QUAD_X,
+					     roll_scale, pitch_scale, yaw_scale, deadband);
 
 		// TODO: temporary hack to make this compile
 		(void)_config_index[0];
@@ -203,7 +203,7 @@ int initialize_mixer(const char *mixer_filename)
 
 unsigned long freq2tick(uint16_t freq_hz)
 {
-	unsigned long duty = TICK_PER_S/(unsigned long)freq_hz;
+	unsigned long duty = TICK_PER_S / (unsigned long)freq_hz;
 	return duty;
 }
 
@@ -214,9 +214,9 @@ int pwm_initialize(const char *device)
 	int i;
 	uint32_t mem_fd;
 	//signal(SIGBUS,catch_sigbus);
-	mem_fd = open(device, O_RDWR|O_SYNC);
-	sharedMem_cmd = (struct pwm_cmd *) mmap(0, 0x1000, PROT_READ|PROT_WRITE, 
-											MAP_SHARED, mem_fd, RCOUT_ZYNQ_PWM_BASE);
+	mem_fd = open(device, O_RDWR | O_SYNC);
+	sharedMem_cmd = (struct pwm_cmd *) mmap(0, 0x1000, PROT_READ | PROT_WRITE,
+						MAP_SHARED, mem_fd, RCOUT_ZYNQ_PWM_BASE);
 	close(mem_fd);
 
 	if (sharedMem_cmd == nullptr) {
@@ -226,7 +226,7 @@ int pwm_initialize(const char *device)
 
 	for (i = 0; i < NUM_PWM; ++i) {
 		sharedMem_cmd->periodhi[i].period   =  freq2tick(FREQUENCY_PWM);
-		sharedMem_cmd->periodhi[i].hi = freq2tick(FREQUENCY_PWM)/2;  // i prefer it is zero at the beginning
+		sharedMem_cmd->periodhi[i].hi = freq2tick(FREQUENCY_PWM) / 2; // i prefer it is zero at the beginning
 		//PX4_ERR("initialize pwm pointer failed.%d, %d", sharedMem_cmd->periodhi[i].period, sharedMem_cmd->periodhi[i].hi);
 	}
 
@@ -252,7 +252,7 @@ void send_outputs_pwm(const uint16_t *pwm)
 	for (unsigned i = 0; i < NUM_PWM; ++i) {
 		//n = ::asprintf(&data, "%u", pwm[i] * 1000);
 		//::write(_pwm_fd[i], data, n);
-		sharedMem_cmd->periodhi[i].hi = TICK_PER_US*pwm[i];
+		sharedMem_cmd->periodhi[i].hi = TICK_PER_US * pwm[i];
 		//printf("ch:%d, val:%d*%d ", ch, period_us, TICK_PER_US);
 	}
 }
@@ -298,8 +298,9 @@ void task_main(int argc, char *argv[])
 		// Set up poll topic
 		if (_armed.in_esc_calibration_mode == true) {
 			fds[0].fd     = _rc_channels_sub;
-		}else{
-			fds[0].fd     = _controls_sub;  
+
+		} else {
+			fds[0].fd     = _controls_sub;
 		}
 
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10);
@@ -324,7 +325,8 @@ void task_main(int argc, char *argv[])
 				_controls.control[1] = 0;
 				_controls.control[2] = 0;
 				_controls.control[3] = _rc.channels[_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE]];
-			}else{
+
+			} else {
 				orb_copy(ORB_ID(actuator_controls_0), _controls_sub, &_controls);
 			}
 
@@ -338,8 +340,8 @@ void task_main(int argc, char *argv[])
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = _outputs.noutputs;
-				 i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
-				 i++) {
+			     i < sizeof(_outputs.output) / sizeof(_outputs.output[0]);
+			     i++) {
 				_outputs.output[i] = NAN;
 			}
 
@@ -358,33 +360,37 @@ void task_main(int argc, char *argv[])
 
 			// TODO FIXME: pre-armed seems broken
 			pwm_limit_calc(_armed.armed,
-					   false/*_armed.prearmed*/,
-					   _outputs.noutputs,
-					   reverse_mask,
-					   disarmed_pwm,
-					   min_pwm,
-					   max_pwm,
-					   _outputs.output,
-					   pwm,
-					   &_pwm_limit);
+				       false/*_armed.prearmed*/,
+				       _outputs.noutputs,
+				       reverse_mask,
+				       disarmed_pwm,
+				       min_pwm,
+				       max_pwm,
+				       _outputs.output,
+				       pwm,
+				       &_pwm_limit);
 
 
 			if (_armed.lockdown) {
 				send_outputs_pwm(disarmed_pwm);
-			}else if (_armed.in_esc_calibration_mode) {
-				if (_controls.control[3]*1000 > 0.5f) {
+
+			} else if (_armed.in_esc_calibration_mode) {
+				if (_controls.control[3] * 1000 > 0.5f) {
 					pwm[0] = _pwm_max;
 					pwm[1] = _pwm_max;
 					pwm[2] = _pwm_max;
 					pwm[3] = _pwm_max;
-				}else{
+
+				} else {
 					pwm[0] = _pwm_min;
 					pwm[1] = _pwm_min;
 					pwm[2] = _pwm_min;
 					pwm[3] = _pwm_min;
 				}
+
 				send_outputs_pwm(pwm);
-				PX4_WARN("calib pwm %d:%d:%d:%d.", pwm[0],pwm[1],pwm[2],pwm[3]);
+				PX4_WARN("calib pwm %d:%d:%d:%d.", pwm[0], pwm[1], pwm[2], pwm[3]);
+
 			} else {
 				send_outputs_pwm(pwm);
 			}
