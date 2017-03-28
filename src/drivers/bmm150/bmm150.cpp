@@ -113,7 +113,7 @@ void start(bool external_bus, enum Rotation rotation)
 fail:
 
 	if (*g_dev_ptr != nullptr) {
-		delete(*g_dev_ptr);
+		delete (*g_dev_ptr);
 		*g_dev_ptr = nullptr;
 	}
 
