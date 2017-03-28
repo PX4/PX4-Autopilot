@@ -1314,11 +1314,15 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 		/* default for manual */
 		acc_limit = _acceleration_hor_max.get();
 
-		/* deceleration but no direction change and not position control*/
-		bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) > 0.0f) && !_run_pos_control;
+		/* get normalized direction */
+		matrix::Vector2f vel_sp_xy_norm = (vel_sp_xy.length() > 0.0f) ? vel_sp_xy.normalized() : vel_sp_xy_norm;
+		matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
 
-		/* deceleration with direction change and not position control*/
-		bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy * vel_xy) <= 0.0f) && !_run_pos_control;
+		/* deceleration but direction change does not exceed 60degrees (= 0.5)*/
+		bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy_norm * vel_xy_norm) > 0.5f) && !_run_pos_control;
+
+		/* deceleration but direction change does exceed 60degrees (= 0.5)*/
+		bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy_norm * vel_xy_norm) <= 0.5f) && !_run_pos_control;
 
 		if (slow_deceleration) {
 			acc_limit = _deceleration_hor_slow.get();
