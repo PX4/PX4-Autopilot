@@ -37,8 +37,7 @@
 
 // Following is hack to prevent duplicate parameter definition error in param parser
 /**
- * @board QuRT_App
+ * Default MAV type of multirotor for Snapdragon Flight.
  */
-// TODO-JYW: Temporarily removed to remove duplicate definition.
-// PARAM_DEFINE_INT32(MAV_TYPE, 2);
+PARAM_DEFINE_INT32(MAV_TYPE, 2);
 
