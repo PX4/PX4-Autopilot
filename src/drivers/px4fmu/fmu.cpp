@@ -1764,6 +1764,11 @@ void PX4FMU::stop()
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
 
+	orb_unadvertise(_to_input_rc);
+	orb_unadvertise(_outputs_pub);
+	orb_unadvertise(_to_safety);
+	orb_unadvertise(_to_mixer_status);
+
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
