@@ -236,6 +236,10 @@ then
 	then
 	fi
 	
+	# expansion i2c used for BMP285
+	if bmp285 start
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V1
