@@ -458,7 +458,7 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
 
 
-	if (_vtol_schedule.flight_mode != MC_MODE ) {
+	if (_vtol_schedule.flight_mode != MC_MODE) {
 
 		//roll
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
