@@ -1032,12 +1032,16 @@ function(px4_generate_parameters_xml)
 	if (NOT OVERRIDES)
 		set(OVERRIDES "{}")
 	endif()
-
+	
 	# get full path for each module
 	set(module_list)
-	foreach(module ${MODULES})
-		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
-	endforeach()
+	if(DISABLE_PARAMS_MODULE_SCOPING)
+		set(module_list ${path})
+	else()
+		foreach(module ${MODULES})
+			list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
+		endforeach()
+	endif()
 
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
@@ -1046,7 +1050,8 @@ function(px4_generate_parameters_xml)
 			--overrides ${OVERRIDES}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		)
+	)
+
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
 
@@ -1082,12 +1087,22 @@ function(px4_generate_parameters_source)
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
-	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
-	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
-		DEPENDS ${XML} ${DEPS}
+
+	if(DISABLE_PARAMS_MODULE_SCOPING)
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
 		)
+	else()
+		px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
+		)
+	endif()
+
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
 
