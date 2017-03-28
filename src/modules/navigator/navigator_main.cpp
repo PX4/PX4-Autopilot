@@ -61,6 +61,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <float.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
