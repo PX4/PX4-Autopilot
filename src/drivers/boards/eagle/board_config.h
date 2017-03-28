@@ -42,3 +42,6 @@
 #define BOARD_NAME "EAGLE"
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
+// Snapdragon: use J15 (next to USB)
+#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"

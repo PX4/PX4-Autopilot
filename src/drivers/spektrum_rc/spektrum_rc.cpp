@@ -42,6 +42,7 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
+#include <poll.h>
 #include <lib/rc/dsm.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_hrt.h>
@@ -49,10 +50,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-// Snapdraogon: use J15 (next to USB)
-#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"
-
-#define UNUSED(x) (void)(x)
+#include <systemlib/px4_macros.h>
 
 extern "C" { __EXPORT int spektrum_rc_main(int argc, char *argv[]); }
 
@@ -92,17 +90,35 @@ void task_main(int argc, char *argv[])
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count = 0;
 
+#if !defined(__PX4_QURT)
+	pollfd fds[1];
+	fds[0].fd = uart_fd;
+	fds[0].events = POLLIN;
+#endif
+
 	// Main loop
 	while (!_task_should_exit) {
 
-		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
+#if !defined(__PX4_QURT)
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 
-		if (newbytes < 0) {
-			PX4_WARN("read failed");
+		if (ret < 1) {
 			continue;
 		}
 
-		if (newbytes == 0) {
+		if (!(fds[0].revents & POLLIN)) {
+			continue;
+		}
+
+#else
+		// sleep since no poll for qurt
+		usleep(10000);
+#endif
+
+		int newbytes = ::read(uart_fd, rx_buf, sizeof(rx_buf));
+
+		if (newbytes < 1) {
+			PX4_WARN("read failed errno=%i", errno);
 			continue;
 		}
 
@@ -133,10 +149,6 @@ void task_main(int argc, char *argv[])
 				orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
 			}
 		}
-
-		// sleep since no poll for qurt
-		usleep(10000);
-
 	}
 
 	orb_unadvertise(rc_pub);
