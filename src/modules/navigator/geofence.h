@@ -134,6 +134,11 @@ public:
 
 	bool isHomeRequired();
 
+	/**
+	 * print Geofence status to the console
+	 */
+	void printStatus();
+
 private:
 	Navigator	*_navigator{nullptr};
 
