@@ -55,6 +55,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
+#include <uORB/topics/sensor_selection.h>
 
 #include <DevMgr.hpp>
 
@@ -268,6 +269,15 @@ private:
 	struct sensor_correction_s _corrections; /**< struct containing the sensor corrections to be published to the uORB*/
 	orb_advert_t _sensor_correction_pub = nullptr; /**< handle to the sensor correction uORB topic */
 	bool _corrections_changed = false;
+
+	/* sensor selection publication */
+	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
+	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
+	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
+	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {};
+	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};
+	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] = {};
+	uint32_t _mag_device_id[SENSOR_COUNT_MAX] = {};
 
 	static const double	_msl_pressure;	/** average sea-level pressure in kPa */
 };
