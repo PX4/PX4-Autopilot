@@ -182,7 +182,6 @@ if(UNIX AND APPLE)
 		-D__PX4_DARWIN
 		-D__DF_DARWIN
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
-		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
 	set(added_cxx_flags)
@@ -209,7 +208,6 @@ else()
 		-D__PX4_LINUX
 		-D__DF_LINUX
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
-		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
 	# Use -pthread For linux/g++.
