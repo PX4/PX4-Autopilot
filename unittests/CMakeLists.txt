@@ -44,6 +44,7 @@ include_directories(${PX4_SRC}/drivers/device)
 include_directories(${PX4_SRC}/lib)
 include_directories(${PX4_SRC}/lib/DriverFramework/framework/include)
 include_directories(${PX4_SRC}/modules)
+include_directories(${PX4_SRC}/include)
 include_directories(${PX4_SRC}/modules/uORB)
 include_directories(${PX4_SRC}/platforms)
 include_directories(${PX4_SRC}/platforms/posix/include)
@@ -66,6 +67,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
 	add_definitions(-D__PX4_LINUX)
 endif()
+
+# the following flags only apply to the PX4 source
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include visibility.h")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include visibility.h")
 
 set(PX4_PLATFORM
 	${PX4_SITL_BUILD}/libmsg_gen.a
