@@ -31,7 +31,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <systemlib/visibility.h>
 
 __BEGIN_DECLS
 void rgb_led(int r, int g, int b, int freqs);

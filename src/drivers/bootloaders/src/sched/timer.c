@@ -45,7 +45,6 @@
 
 #include <boot_config.h>
 
-#include <systemlib/visibility.h>
 
 #include <sys/types.h>
 #include <stdint.h>
