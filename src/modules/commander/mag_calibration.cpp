@@ -113,6 +113,24 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 	char str[30];
 
+	// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
+	//  sensor calibration and will be invalidated by a new sensor calibration
+	(void)sprintf(str, "EKF2_MAGBIAS_X");
+	result = param_set(param_find(str), &mscale_null.x_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+	(void)sprintf(str, "EKF2_MAGBIAS_Y");
+	result = param_set(param_find(str), &mscale_null.y_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+	(void)sprintf(str, "EKF2_MAGBIAS_Z");
+	result = param_set(param_find(str), &mscale_null.z_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+
 	for (size_t i = 0; i < max_mags; i++) {
 		device_ids[i] = 0; // signals no mag
 	}
