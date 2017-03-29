@@ -370,12 +370,15 @@ void Logger::run_trampoline(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 
 	} else {
+#ifndef __PX4_NUTTX
 		//check for replay mode
 		const char *logfile = getenv(px4::replay::ENV_FILENAME);
 
 		if (logfile) {
 			logger_ptr->setReplayFile(logfile);
 		}
+
+#endif /* __PX4_NUTTX */
 
 		logger_ptr->run();
 	}
