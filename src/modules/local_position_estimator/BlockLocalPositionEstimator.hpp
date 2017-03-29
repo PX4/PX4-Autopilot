@@ -385,4 +385,6 @@ private:
 	Matrix<float, n_x, n_u>  _B; // input matrix
 	Matrix<float, n_u, n_u>  _R; // input covariance
 	Matrix<float, n_x, n_x>  _Q; // process noise covariance
+	                             // 
+	uint64_t _counter;
 };

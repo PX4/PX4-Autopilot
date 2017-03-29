@@ -33,8 +33,12 @@ param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
-param set FW_AIRSPD_TRIM 2
-param set FW_AIRSPD_MAX 3
+param set FW_AIRSPD_TRIM 3
+param set FW_AIRSPD_MAX 5
+param set GND_WR_P 10
+param set GND_WR_I 0
+param set GND_WR_D 0
+param set GND_SP_CTRL_MODE 1
 replay tryapplyparams
 simulator start -s
 tone_alarm start

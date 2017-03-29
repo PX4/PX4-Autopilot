@@ -6,8 +6,8 @@
 #
 # Start the attitude and position estimator
 #
-ekf2 start
-#attitude_estimator_q start
+#ekf2 start
+attitude_estimator_q start
 #local_position_estimator start
 
 

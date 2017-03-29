@@ -65,7 +65,7 @@ then
 		fi
   else
     # Start playing the startup tune
-    tone_alarm start
+    # tone_alarm start
  fi
 else
 	tone_alarm MBAGP

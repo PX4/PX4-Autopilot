@@ -152,7 +152,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_estimatorInitialized(0),
 
 	// kf matrices
-	_x(), _u(), _P(), _R_att(), _eul()
+	_x(), _u(), _P(), _R_att(), _eul(),
+
+	_counter(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -183,14 +185,15 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
-	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d\n",
+	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, baro: %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
 	       (_fusion.get() & FUSE_FLOW) != 0,
 	       (_fusion.get() & FUSE_VIS_POS) != 0,
 	       (_fusion.get() & FUSE_VIS_YAW) != 0,
 	       (_fusion.get() & FUSE_LAND) != 0,
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
-	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0);
+	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
+	       	(_fusion.get() & FUSE_BARO) != 0);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -306,9 +309,8 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
-	bool landUpdated = landed()
-			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
-
+	bool landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
+	
 	// get new data
 	updateSubscriptions();
 
@@ -321,6 +323,12 @@ void BlockLocalPositionEstimator::update()
 	// is xy valid?
 	bool vxy_stddev_ok = false;
 
+	if (_counter % 20 < 1.0e-4f)
+	{
+		warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
+	}
+
+	
 	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
 		vxy_stddev_ok = true;
 	}
@@ -332,17 +340,29 @@ void BlockLocalPositionEstimator::update()
 		}
 
 	} else {
-		if (vxy_stddev_ok) {
-			if (!(_sensorTimeout & SENSOR_GPS)
-			    || !(_sensorTimeout & SENSOR_FLOW)
-			    || !(_sensorTimeout & SENSOR_VISION)
-			    || !(_sensorTimeout & SENSOR_MOCAP)
-			    || !(_sensorTimeout & SENSOR_LAND)
-			   ) {
-				_estimatorInitialized |= EST_XY;
+		// if ( (_estimatorInitialized < 1.0f) ) {
+			if (vxy_stddev_ok) {
+			warnx("1.1");	
+			// _estimatorInitialized |= EST_XY;
+
+				if (!(_sensorTimeout & SENSOR_GPS)
+				    || !(_sensorTimeout & SENSOR_FLOW)
+				    || !(_sensorTimeout & SENSOR_VISION)
+				    || !(_sensorTimeout & SENSOR_MOCAP)
+				    || !(_sensorTimeout & SENSOR_LAND)
+				   ) {
+					_estimatorInitialized |= EST_XY;
+					warnx("1.2");	
+				}
 			}
-		}
+		// }
 	}
+
+	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
+	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
+	// }
+
+
 
 	// is z valid?
 	bool z_stddev_ok = sqrtf(_P(X_z, X_z)) < _z_pub_thresh.get();
@@ -351,13 +371,21 @@ void BlockLocalPositionEstimator::update()
 		// if valid and baro has timed out, set to not valid
 		if (!z_stddev_ok && (_sensorTimeout & SENSOR_BARO)) {
 			_estimatorInitialized &= ~EST_Z;
+			warnx("2.1");
 		}
 
 	} else {
 		if (z_stddev_ok) {
 			_estimatorInitialized |= EST_Z;
+			warnx("2.2");
 		}
 	}
+
+	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
+	// 	warnx("2: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
+	// }
+
+
 
 	// is terrain valid?
 	bool tz_stddev_ok = sqrtf(_P(X_tz, X_tz)) < _z_pub_thresh.get();
@@ -365,13 +393,21 @@ void BlockLocalPositionEstimator::update()
 	if (_estimatorInitialized & EST_TZ) {
 		if (!tz_stddev_ok) {
 			_estimatorInitialized &= ~EST_TZ;
+			warnx("3.1");
 		}
 
 	} else {
 		if (tz_stddev_ok) {
 			_estimatorInitialized |= EST_TZ;
+			warnx("3.2");
 		}
 	}
+
+
+	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
+	// warnx("3: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
+	// }
+
 
 	// check timeouts
 	checkTimeouts();
@@ -520,17 +556,26 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	_counter++;
+
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
 		_pub_innov.update();
 
+		// if (_counter % 10 < 1.0e-6f)
+		// {
+		// 	warnx("_estimatorInitialized & EST_XY: %.4f | init_done: %.4f | fk_or: %.4f ", (double)(_estimatorInitialized & EST_XY), (double) _map_ref.init_done, (double) _fake_origin.get());
+		// }
+		
+
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
 			publishGlobalPos();
+			// warnx("counter: %d",  _counter);
 		}
 	}
-
+	// _counter = _estimatorInitialized;
 	// propagate delayed state, no matter what
 	// if state is frozen, delayed state still
 	// needs to be propagated with frozen state
