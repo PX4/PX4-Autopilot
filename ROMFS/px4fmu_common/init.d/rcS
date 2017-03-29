@@ -832,7 +832,7 @@ then
 			then
 				set LOGGER_ARGS "-m mavlink"
 			fi
-			if logger start -b 12 -t ${LOGGER_ARGS}
+			if logger start -b 16 -t ${LOGGER_ARGS}
 			then
 			fi
 			unset LOGGER_ARGS
