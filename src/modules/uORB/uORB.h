@@ -43,8 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Hack until everything is using this header
-#include <systemlib/visibility.h>
 
 /**
  * Object metadata.
