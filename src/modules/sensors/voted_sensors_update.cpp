@@ -99,6 +99,7 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 	initialize_sensors();
 
 	_corrections_changed = true; //make sure to initially publish the corrections topic
+	_selection_changed = true;
 
 	return 0;
 }
@@ -556,6 +557,8 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				_accel.priority[uorb_index] = (uint8_t)priority;
 			}
 
+			_accel_device_id[uorb_index] = accel_report.device_id;
+
 			math::Vector<3> accel_data;
 
 			if (accel_report.integral_dt != 0) {
@@ -625,6 +628,11 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			_corrections_changed = true;
 		}
 
+		if (_selection.accel_device_id != _accel_device_id[best_index]) {
+			_selection_changed = true;
+			_selection.accel_device_id = _accel_device_id[best_index];
+		}
+
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
 		}
@@ -655,6 +663,8 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				orb_priority(_gyro.subscription[uorb_index], &priority);
 				_gyro.priority[uorb_index] = (uint8_t)priority;
 			}
+
+			_gyro_device_id[uorb_index] = gyro_report.device_id;
 
 			math::Vector<3> gyro_rate;
 
@@ -726,6 +736,11 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 			_corrections_changed = true;
 		}
 
+		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
+			_selection_changed = true;
+			_selection.gyro_device_id = _gyro_device_id[best_index];
+		}
+
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
 		}
@@ -754,6 +769,8 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				_mag.priority[i] = (uint8_t)priority;
 			}
 
+			_mag_device_id[i] = mag_report.device_id;
+
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 			vect = _mag_rotation[i] * vect;
 
@@ -775,6 +792,11 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_ga[1] = _last_sensor_data[best_index].magnetometer_ga[1];
 		raw.magnetometer_ga[2] = _last_sensor_data[best_index].magnetometer_ga[2];
 		_mag.last_best_vote = (uint8_t)best_index;
+	}
+
+	if (_selection.mag_device_id != _mag_device_id[best_index]) {
+		_selection_changed = true;
+		_selection.mag_device_id = _mag_device_id[best_index];
 	}
 }
 
@@ -815,6 +837,8 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_baro.priority[uorb_index] = (uint8_t)priority;
 			}
 
+			_baro_device_id[uorb_index] = baro_report.device_id;
+
 			got_update = true;
 			math::Vector<3> vect(baro_report.altitude, 0.f, 0.f);
 
@@ -840,6 +864,11 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_baro.last_best_vote = (uint8_t)best_index;
 				_corrections.selected_baro_instance = (uint8_t)best_index;
 				_corrections_changed = true;
+			}
+
+			if (_selection.baro_device_id != _baro_device_id[best_index]) {
+				_selection_changed = true;
+				_selection.baro_device_id = _baro_device_id[best_index];
 			}
 
 			/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
@@ -1041,10 +1070,23 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw)
 
 		} else {
 			orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
-
 		}
 
 		_corrections_changed = false;
+	}
+
+	// publish sensor selection if changed
+	if (_selection_changed) {
+		_selection.timestamp = hrt_absolute_time();
+
+		if (_sensor_selection_pub == nullptr) {
+			_sensor_selection_pub = orb_advertise(ORB_ID(sensor_selection), &_selection);
+
+		} else {
+			orb_publish(ORB_ID(sensor_selection), _sensor_selection_pub, &_selection);
+		}
+
+		_selection_changed = false;
 	}
 }
 
