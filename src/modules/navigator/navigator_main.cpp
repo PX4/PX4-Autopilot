@@ -797,6 +797,8 @@ Navigator::status()
 	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
+	_geofence.printStatus();
+
 }
 
 void

@@ -492,3 +492,23 @@ int Geofence::clearDm()
 	updateFence();
 	return PX4_OK;
 }
+
+void Geofence::printStatus()
+{
+	int num_inclusion_polygons = 0, num_exclusion_polygons = 0, total_num_vertices = 0;
+
+	for (int i = 0; i < _num_polygons; ++i) {
+		total_num_vertices += _polygons[i].vertex_count;
+
+		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION) {
+			++num_inclusion_polygons;
+		}
+
+		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+			++num_exclusion_polygons;
+		}
+	}
+
+	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i total vertices",
+		 num_inclusion_polygons, num_exclusion_polygons, total_num_vertices);
+}

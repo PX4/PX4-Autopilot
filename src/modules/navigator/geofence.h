@@ -130,6 +130,11 @@ public:
 
 	int getGeofenceAction() { return _param_action.get(); }
 
+	/**
+	 * print Geofence status to the console
+	 */
+	void printStatus();
+
 private:
 	Navigator	*_navigator;
 
