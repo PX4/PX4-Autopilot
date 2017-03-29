@@ -167,9 +167,10 @@ private:
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
-	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
-	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
-	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate while decelerating */
+	control::BlockParamFloat
+	_acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto acceleration and manual deceleration */
+	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
+	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 
 	control::BlockDerivative _vel_x_deriv;
@@ -447,7 +448,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
-	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
+	_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
 	_deceleration_hor_slow(this, "DEC_HOR_SLOW", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
 	_vel_x_deriv(this, "VELD"),
@@ -1372,29 +1373,33 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	matrix::Vector2f vel_xy(_vel(0), _vel(1));
 	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
-	/* as default we use max deceleration as acc limit */
-	float acc_limit = _deceleration_hor_max.get();
+	/* as default we use max acceleration as acc limit */
+	float acc_limit = _acceleration_hor_max.get();
 
-	if (_control_mode.flag_control_manual_enabled) {
+	/*In manual mode but not position control, we apply acceleration limit depending on direction*/
+	if (_control_mode.flag_control_manual_enabled && !_run_pos_control) {
+
 		/* default for manual */
-		acc_limit = _acceleration_hor_max.get();
+		acc_limit = _acceleration_hor_manual.get();
 
 		/* get normalized direction */
 		matrix::Vector2f vel_sp_xy_norm = (vel_sp_xy.length() > 0.0f) ? vel_sp_xy.normalized() : vel_sp_xy_norm;
 		matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
 
-		/* deceleration but direction change does not exceed 60degrees (= 0.5)*/
-		bool slow_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy_norm * vel_xy_norm) > 0.5f) && !_run_pos_control;
+		/* check if deceleration is required */
+		bool deceleration = (acc_xy * vel_xy) < 0.0f;
 
-		/* deceleration but direction change does exceed 60degrees (= 0.5)*/
-		bool fast_deceleration = ((acc_xy * vel_xy) < 0.0f) && ((vel_sp_xy_norm * vel_xy_norm) <= 0.5f) && !_run_pos_control;
+		/* check if velocity setpoint direction differs more than 60degrees (= 0.5) from current velocity direction*/
+		bool direction_change_60 = (vel_sp_xy_norm * vel_xy_norm) <= 0.5f;
 
-		if (slow_deceleration) {
+		/* slow deceleration*/
+		if (deceleration && !direction_change_60) {
 			acc_limit = _deceleration_hor_slow.get();
 		}
 
-		if (fast_deceleration) {
-			acc_limit = _deceleration_hor_max.get();
+		/* fast deceleration */
+		if (deceleration && direction_change_60) {
+			acc_limit = _acceleration_hor_max.get();
 		}
 	}
 
