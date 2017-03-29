@@ -80,6 +80,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/sensor_selection.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -137,6 +138,7 @@ private:
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint64_t _timestamp_mag_us = 0;
 	uint64_t _timestamp_balt_us = 0;
+	uint8_t _invalid_mag_id_count = 0;
 
 	// Used to down sample magnetometer data
 	float _mag_data_sum[3];			// summed magnetometer readings (Ga)
@@ -154,6 +156,12 @@ private:
 	bool	_prev_landed = true;	// landed status from the previous frame
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
+
+	// Used to check, save and use learned magnetometer biases
+	uint64_t _last_invalid_magcal_us = 0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
+	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
+	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
+	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
@@ -285,6 +293,15 @@ private:
 	// airspeed mode parameter
 	control::BlockParamInt _airspeed_mode;
 
+	// EKF saved XYZ magnetometer bias values
+	control::BlockParamFloat _mag_bias_x; // X bias (mGauss)
+	control::BlockParamFloat _mag_bias_y; // Y bias (mGauss)
+	control::BlockParamFloat _mag_bias_z; // Z bias (mGauss)
+	control::BlockParamInt _mag_bias_id; // ID for the sensor used to learn the bias values
+	control::BlockParamFloat
+	_mag_bias_saved_variance; // Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
+	control::BlockParamFloat _mag_bias_alpha; // maximum fraction of the learned bias that is applied each disarm
+
 	int update_subscriptions();
 
 };
@@ -386,7 +403,14 @@ Ekf2::Ekf2():
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, _params->switch_on_gyro_bias),
 	_acc_bias_init(this, "EKF2_ABIAS_INIT", false, _params->switch_on_accel_bias),
 	_ang_err_init(this, "EKF2_ANGERR_INIT", false, _params->initial_tilt_err),
-	_airspeed_mode(this, "FW_ARSP_MODE", false)
+	_airspeed_mode(this, "FW_ARSP_MODE", false),
+	_mag_bias_x(this, "EKF2_MAGBIAS_X", false),
+	_mag_bias_y(this, "EKF2_MAGBIAS_Y", false),
+	_mag_bias_z(this, "EKF2_MAGBIAS_Z", false),
+	_mag_bias_id(this, "EKF2_MAGBIAS_ID", false),
+	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
+	_mag_bias_alpha(this, "EKF2_MAGB_K", false)
+
 {
 
 }
@@ -415,6 +439,7 @@ void Ekf2::task_main()
 	int ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 
 	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = sensors_sub;
@@ -437,6 +462,7 @@ void Ekf2::task_main()
 	vehicle_local_position_s ev_pos = {};
 	vehicle_attitude_s ev_att = {};
 	vehicle_status_s vehicle_status = {};
+	sensor_selection_s sensor_selection = {};
 
 	while (!_task_should_exit) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -555,6 +581,39 @@ void Ekf2::task_main()
 			if ((sensors.timestamp + sensors.magnetometer_timestamp_relative) != _timestamp_mag_us) {
 				_timestamp_mag_us = sensors.timestamp + sensors.magnetometer_timestamp_relative;
 
+				// Reset learned bias parameters if there has been a persistant change in magnetometer ID
+				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
+				// and notification events
+				// Check if there has been a persistant change in magnetometer ID
+				orb_copy(ORB_ID(sensor_selection), sensor_selection_sub, &sensor_selection);
+
+				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != _mag_bias_id.get()) {
+					if (_invalid_mag_id_count < 200) {
+						_invalid_mag_id_count++;
+					}
+
+				} else {
+					if (_invalid_mag_id_count > 0) {
+						_invalid_mag_id_count--;
+					}
+				}
+
+				if ((vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
+					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
+					// this means we need to reset the learned bias values to zero
+					_mag_bias_x.set(0.f);
+					_mag_bias_x.commit();
+					_mag_bias_y.set(0.f);
+					_mag_bias_y.commit();
+					_mag_bias_z.set(0.f);
+					_mag_bias_z.commit();
+					_mag_bias_id.set(sensor_selection.mag_device_id);
+					_mag_bias_id.commit();
+					_invalid_mag_id_count = 0;
+
+					PX4_WARN("Mag sensor ID changed to %i", _mag_bias_id.get());
+				}
+
 				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the 50msec is reached.
 				_mag_time_sum_ms += _timestamp_mag_us / 1000;
@@ -566,7 +625,11 @@ void Ekf2::task_main()
 
 				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
 					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
-					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv, _mag_data_sum[1] *mag_sample_count_inv, _mag_data_sum[2] *mag_sample_count_inv};
+					// calculate mean of measurements and correct for learned bias offsets
+					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
+								    _mag_data_sum[1] *mag_sample_count_inv - _mag_bias_y.get(),
+								    _mag_data_sum[2] *mag_sample_count_inv - _mag_bias_z.get()
+								   };
 					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
 					_mag_time_ms_last_used = mag_time_ms;
 					_mag_time_sum_ms = 0;
@@ -705,7 +768,7 @@ void Ekf2::task_main()
 				control_state_s ctrl_state = {};
 				float gyro_bias[3] = {};
 				_ekf.get_gyro_bias(gyro_bias);
-				ctrl_state.timestamp = _replay_mode ? now : hrt_absolute_time();
+				ctrl_state.timestamp = now;
 				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
 				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
 				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
@@ -757,7 +820,7 @@ void Ekf2::task_main()
 				// use estimated velocity for airspeed estimate
 				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
 					// use measured airspeed
-					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - airspeed.timestamp < 1e6
+					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
 					    && airspeed.timestamp > 0) {
 						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
 						ctrl_state.airspeed_valid = true;
@@ -787,7 +850,7 @@ void Ekf2::task_main()
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
-				att.timestamp = _replay_mode ? now : hrt_absolute_time();
+				att.timestamp = now;
 
 				q.copyTo(att.q);
 
@@ -808,7 +871,7 @@ void Ekf2::task_main()
 			struct vehicle_local_position_s lpos = {};
 			float pos[3] = {};
 
-			lpos.timestamp = _replay_mode ? now : hrt_absolute_time();
+			lpos.timestamp = now;
 
 			// Position of body origin in local NED frame
 			_ekf.get_position(pos);
@@ -842,7 +905,7 @@ void Ekf2::task_main()
 			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);
 			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
-			lpos.surface_bottom_timestamp	= hrt_absolute_time(); // Time when new bottom surface found
+			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
@@ -866,7 +929,7 @@ void Ekf2::task_main()
 				// generate and publish global position data
 				struct vehicle_global_position_s global_pos = {};
 
-				global_pos.timestamp = _replay_mode ? now : hrt_absolute_time();
+				global_pos.timestamp = now;
 				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
@@ -918,7 +981,7 @@ void Ekf2::task_main()
 			// publish estimator status
 			{
 				struct estimator_status_s status = {};
-				status.timestamp = hrt_absolute_time();
+				status.timestamp = now;
 				_ekf.get_state_delayed(status.states);
 				_ekf.get_covariances(status.covariances);
 				_ekf.get_gps_check_status(&status.gps_check_fail_flags);
@@ -941,9 +1004,61 @@ void Ekf2::task_main()
 					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
 				}
 
+				/*
+				 * Check if conditions are OK to save learned magnetometer bias values after 3min of the following:
+				 * Armed, In air, using 3-axis mag fusion, no filter faults
+				 * Also check for changes in Mag ID, but do not apply 3-min rule to this check to allow for
+				 * occasional in-flight mag sensor timeouts which can cause switching from primary to secondary mag
+				*/
+				bool mag_cal_active = status.control_mode_flags & (1 << 5);
+
+				if (vehicle_land_detected.landed
+				    || (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED)
+				    || (status.filter_fault_flags != 0)
+				    || !mag_cal_active) {
+					_last_invalid_magcal_us = now;
+
+				} else if (((now - _last_invalid_magcal_us) > 180E6)
+					   && (_invalid_mag_id_count == 0)) {
+					// we have sufficient continuous valid flight time to form a bias estimate
+					// Don't record bias estimates to save later if variances are outside the valid range
+					float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
+					float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
+					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+						if (status.covariances[axis_index + 19] > min_var_allowed
+						    && status.covariances[axis_index + 19] < max_var_allowed) {
+							_last_valid_mag_cal[axis_index] = status.states[axis_index + 19];
+							_valid_cal_available[axis_index] = true;
+							_last_valid_variance[axis_index] = status.covariances[axis_index + 19];
+						}
+					}
+				}
+
+				// Check and save the last valid calibration when we are disarmed
+				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
+
+					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+						if (_valid_cal_available[axis_index]) {
+							// calculate weighting using ratio of variances and update stored bias values
+							float weighting = _mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
+									  _last_valid_variance[axis_index]);
+							weighting = math::constrain(weighting, 0.0f, _mag_bias_alpha.get());
+							float mag_bias_saved = mag_biases[axis_index]->get();
+							_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
+							mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
+							mag_biases[axis_index]->commit_no_notification();
+							_valid_cal_available[axis_index] = false;
+						}
+					}
+
+					// reset the timer to prevent possible race condition causing data to be saved too frequently
+					_last_invalid_magcal_us = now;
+				}
+
 				// Publish wind estimate
 				struct wind_estimate_s wind_estimate = {};
-				wind_estimate.timestamp = hrt_absolute_time();
+				wind_estimate.timestamp = now;
 				wind_estimate.windspeed_north = status.states[22];
 				wind_estimate.windspeed_east = status.states[23];
 				wind_estimate.covariance_north = status.covariances[22];
@@ -960,7 +1075,7 @@ void Ekf2::task_main()
 			// publish estimator innovation data
 			{
 				struct ekf2_innovations_s innovations = {};
-				innovations.timestamp = hrt_absolute_time();
+				innovations.timestamp = now;
 				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
 				_ekf.get_mag_innov(&innovations.mag_innov[0]);
 				_ekf.get_heading_innov(&innovations.heading_innov);
@@ -1175,6 +1290,7 @@ void Ekf2::task_main()
 	orb_unsubscribe(ev_pos_sub);
 	orb_unsubscribe(vehicle_land_detected_sub);
 	orb_unsubscribe(status_sub);
+	orb_unsubscribe(sensor_selection_sub);
 
 	delete ekf2::instance;
 	ekf2::instance = nullptr;
