@@ -33,7 +33,7 @@ param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
-param set FW_AIRSPD_TRIM 1
+param set FW_AIRSPD_TRIM 2
 param set FW_AIRSPD_MAX 3
 replay tryapplyparams
 simulator start -s
