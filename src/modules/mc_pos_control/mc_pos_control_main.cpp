@@ -167,8 +167,7 @@ private:
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
-	control::BlockParamFloat
-	_acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto acceleration and manual deceleration */
+	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
@@ -1376,7 +1375,7 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	/* as default we use max acceleration as acc limit */
 	float acc_limit = _acceleration_hor_max.get();
 
-	/*In manual mode but not position control, we apply acceleration limit depending on direction*/
+	/* In manual mode but not position control, we apply acceleration limit depending on direction */
 	if (_control_mode.flag_control_manual_enabled && !_run_pos_control) {
 
 		/* default for manual */
@@ -1389,7 +1388,7 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 		/* check if deceleration is required */
 		bool deceleration = (acc_xy * vel_xy) < 0.0f;
 
-		/* check if velocity setpoint direction differs more than 60degrees (= 0.5) from current velocity direction*/
+		/* check if velocity setpoint direction differs more than 60° (cos(60°) = 0.5) from current velocity direction*/
 		bool direction_change_60 = (vel_sp_xy_norm * vel_xy_norm) <= 0.5f;
 
 		/* slow deceleration*/
