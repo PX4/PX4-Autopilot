@@ -1317,7 +1317,7 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 		acc_limit = _acceleration_hor_manual.get();
 
 		/* get normalized direction */
-		matrix::Vector2f vel_sp_xy_norm = (vel_sp_xy.length() > 0.0f) ? vel_sp_xy.normalized() : vel_sp_xy_norm;
+		matrix::Vector2f vel_sp_xy_norm = (vel_sp_xy.length() > 0.0f) ? vel_sp_xy.normalized() : vel_sp_xy;
 		matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
 
 		/* check if deceleration is required */
