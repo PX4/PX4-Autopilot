@@ -1015,7 +1015,7 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* prepare yaw to rotate into NED frame */
-	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _local_pos.yaw;
+	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
 	matrix::Vector3f vel_cruise_scale(_params.vel_cruise_xy,
