@@ -3230,7 +3230,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	/* driving rgbled */
 	if (changed || last_overload != overload) {
 		uint8_t led_mode = led_control_s::MODE_OFF;
-		uint8_t led_color;
+		uint8_t led_color = led_control_s::COLOR_WHITE;
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
@@ -3242,7 +3242,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			led_color = led_control_s::COLOR_PURPLE;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			led_color = led_control_s::MODE_ON;
+			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR ||
@@ -3257,9 +3257,11 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		} else if (!status_flags.condition_system_sensors_initialized && !hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
-		}else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			// if in init status it should not be in the error state
 			led_mode = led_control_s::MODE_OFF;
+
 		} else {	// STANDBY_ERROR and other states
 			led_mode = led_control_s::MODE_BLINK_NORMAL;
 			led_color = led_control_s::COLOR_RED;
