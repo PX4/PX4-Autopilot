@@ -57,12 +57,10 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	}
 
 	
-
 	float eps = 0.01f; // 1 cm
-	float min_dist = _sub_sonar->get().min_distance + eps;
+	float min_dist = eps;//_sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
 
-	// warnx("%d.%.6d", (int)d, (int)((d-(int)d)*1000000));
 	// warnx("min dist: %d.%.6d", (int)min_dist, (int)((min_dist-(int)min_dist)*1000000));
 	// warnx("max dist: %d.%.6d", (int)max_dist, (int)((max_dist-(int)max_dist)*1000000));
 	
@@ -79,9 +77,12 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 
 	// update stats
 	_sonarStats.update(Scalarf(d));
+	// _sonarStats.reset();
 	_time_last_sonar = _timeStamp;
 	y.setZero();
 	y(0) = d;//(d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
+	
+	// warnx("d: %.4f" (double)d );
 
 	return OK;
 }
@@ -117,8 +118,10 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	R.setZero();
 	R(0, 0) = cov;
 
-	// residual
+	// _x(X_z) = _sub_sonar->get().current_distance;
+	//  warnx("_x(X_z): %.4f", (double)_x(X_z) );
 	_x(X_z) = _sonar_fixed_distance.get();
+	// residual	
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
 	_pub_innov.get().hagl_innov_var = R(0, 0);
@@ -129,7 +132,6 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
-
 	if (beta > BETA_TABLE[n_y_sonar]) {
 		if (!(_sensorFault & SENSOR_SONAR)) {
 			_sensorFault |= SENSOR_SONAR;

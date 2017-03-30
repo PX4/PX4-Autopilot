@@ -263,25 +263,33 @@ void BlockLocalPositionEstimator::update()
 	// selection param, but is really not helping outdoors
 	// right now.
 
-	// if (!_lastArmedState && armedState) {
+	if (!_lastArmedState && armedState) {
 
-	// 	// we just armed, we are at origin on the ground
-	// 	_x(X_x) = 0;
-	// 	_x(X_y) = 0;
-	// 	// reset Z or not? _x(X_z) = 0;
+		// we just armed, we are at origin on the ground
+		_x(X_x) = 0;
+		_x(X_y) = 0;
+		// reset Z or not? _x(X_z) = 0;
+		_P(X_x,X_x) = 0;
+		_P(X_y, X_y) = 0;
+		
+		// we aren't moving, all velocities are zero
+		_x(X_vx) = 0;
+		_x(X_vy) = 0;
+		_x(X_vz) = 0;
 
-	// 	// we aren't moving, all velocities are zero
-	// 	_x(X_vx) = 0;
-	// 	_x(X_vy) = 0;
-	// 	_x(X_vz) = 0;
+		_P(X_vx,X_vx) = 0;
+		_P(X_vy, X_vy) = 0;
+		_P(X_vz, X_vz) = 0;
 
-	// 	// assume we are on the ground, so terrain alt is local alt
-	// 	_x(X_tz) = _x(X_z);
 
-	// 	// reset lowpass filter as well
-	// 	_xLowPass.setState(_x);
-	// 	_aglLowPass.setState(0);
-	// }
+
+		// assume we are on the ground, so terrain alt is local alt
+		_x(X_tz) = _x(X_z);
+
+		// reset lowpass filter as well
+		_xLowPass.setState(_x);
+		_aglLowPass.setState(0);
+	}
 
 	_lastArmedState = armedState;
 
@@ -323,9 +331,14 @@ void BlockLocalPositionEstimator::update()
 	// is xy valid?
 	bool vxy_stddev_ok = false;
 
-	if (_counter % 20 < 1.0e-4f)
+	if (_counter % 500 < 1.0e-4f)
 	{
-		warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
+		// warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
+		// warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
+		
+		float qual = _sub_flow.get().quality;
+
+		warnx("Still alive, qual: %.4f", (double)qual);
 	}
 
 	
@@ -362,7 +375,9 @@ void BlockLocalPositionEstimator::update()
 	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 	// }
 
-
+	if (_sensorTimeout & SENSOR_FLOW) {
+		flowInit();
+	}
 
 	// is z valid?
 	bool z_stddev_ok = sqrtf(_P(X_z, X_z)) < _z_pub_thresh.get();
