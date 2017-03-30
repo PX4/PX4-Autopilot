@@ -4,9 +4,5 @@
 # the DSP side.
 
 # The config between different QURT builds is shared.
-include(configs/qurt_sdflight_default)
-
-# This definition allows to differentiate the specific board.
-add_definitions(
-	-D__PX4_QURT_EAGLE
-)
+include(configs/qcom/qurt_eagle_common)
+include(configs/qcom/qurt_modules_default)

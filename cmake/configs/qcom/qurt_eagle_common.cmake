@@ -2,13 +2,11 @@
 #
 # This cmake config builds for QURT which is the operating system running on
 # the DSP side.
+include(configs/qcom/qurt_common)
 
 # The config between different QURT builds is shared.
-include(configs/qurt_sdflight_legacy)
 
 add_definitions(
-   -D__USING_SNAPDRAGON_LEGACY_DRIVER
-   -D__PX4_QURT
-   -D__PX4_QURT_EXCELSIOR
+   -D__PX4_QURT_EAGLE
    )
 

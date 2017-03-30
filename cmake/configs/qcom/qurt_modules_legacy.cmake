@@ -1,19 +1,22 @@
 include(configs/qcom/qurt_eagle_common)
 
+add_definitions(
+   -D__USING_SNAPDRAGON_LEGACY_DRIVER
+   )
+
 set(config_module_list
+	#
+	# Board support modules
+	#
 	drivers/device
-	drivers/boards/sitl
-	drivers/pwm_out_sim
-	drivers/led
-	drivers/rgbled
 	modules/sensors
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_bmp280_wrapper
 
 	#
 	# System commands
 	#
 	systemcmds/param
-	systemcmds/led
-	systemcmds/mixer
 
 	#
 	# Estimation modules
@@ -37,20 +40,34 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 	modules/commander
+	modules/land_detector
+
+	#
+	# PX4 drivers
+	#
+	drivers/gps
+	drivers/pwm_out_rc_in
+	drivers/qshell/qurt
+
+	#
+	# FC_ADDON drivers
+	#
+	platforms/qurt/fc_addon/rc_receiver
+	platforms/qurt/fc_addon/uart_esc
 
 	#
 	# Libraries
 	#
+	lib/controllib
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/geo
+	lib/ecl
 	lib/geo_lookup
 	lib/conversion
-	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
-	lib/controllib
 	lib/version
 	lib/DriverFramework/framework
 
@@ -65,4 +82,9 @@ set(config_module_list
 	# sources for muorb over fastrpc
 	#
 	modules/muorb/adsp
+	)
+
+set(config_df_driver_list
+	mpu9250
+	bmp280
 	)

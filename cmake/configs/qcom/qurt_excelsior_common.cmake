@@ -2,11 +2,11 @@
 #
 # This cmake config builds for QURT which is the operating system running on
 # the DSP side.
+include(configs/qcom/qurt_common)
 
 # The config between different QURT builds is shared.
-include(configs/qurt_sdflight_default)
 
-# This definition allows to differentiate the specific board.
 add_definitions(
-	-D__PX4_QURT_EXCELSIOR
-)
+   -D__PX4_QURT_EXCELSIOR
+   )
+
