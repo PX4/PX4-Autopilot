@@ -376,6 +376,8 @@ private:
 
 	float get_cruising_speed_xy();
 
+	bool in_auto_takeoff();
+
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -933,6 +935,17 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 
 	_vel_sp(0) = _vel_sp(0) / vel_mag_xy * vel_limit;
 	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_limit;
+}
+
+bool
+MulticopterPositionControl::in_auto_takeoff()
+{
+	/*
+	 * in auto mode, check if we do a takeoff
+	 */
+	return (_pos_sp_triplet.current.valid &&
+		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
+	       _control_mode.flag_control_offboard_enabled;
 }
 
 float
@@ -1871,7 +1884,7 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		/* if still or already on ground command zero xy velcoity and zero xy thrust_sp in body frame to consider uneven ground */
-		if (_vehicle_land_detected.ground_contact) {
+		if (_vehicle_land_detected.ground_contact && !in_auto_takeoff()) {
 
 			/* thrust setpoint in body frame*/
 			math::Vector<3> thrust_sp_body = _R.transposed() * thrust_sp;
@@ -1920,11 +1933,7 @@ MulticopterPositionControl::control_position(float dt)
 		// We can only run the control if we're already in-air, have a takeoff setpoint,
 		// or if we're in offboard control.
 		// Otherwise, we should just bail out
-		const bool got_takeoff_setpoint = (_pos_sp_triplet.current.valid &&
-						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
-						  _control_mode.flag_control_offboard_enabled;
-
-		if (_vehicle_land_detected.landed && !got_takeoff_setpoint) {
+		if (_vehicle_land_detected.landed && !in_auto_takeoff()) {
 			// Keep throttle low while still on ground.
 			thr_max = 0.0f;
 
