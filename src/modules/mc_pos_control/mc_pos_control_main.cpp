@@ -160,6 +160,7 @@ private:
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
+	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -440,6 +441,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
+	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -1021,8 +1023,8 @@ MulticopterPositionControl::control_manual(float dt)
 	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
-	matrix::Vector3f vel_cruise_scale(_params.vel_cruise_xy,
-					  _params.vel_cruise_xy,
+	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
+	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag,
 					  (man_vel_sp(2) > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 
 	/* setpoint in NED frame and scaled to cruise velocity */
