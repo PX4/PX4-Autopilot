@@ -76,12 +76,28 @@ RTL::on_inactive()
 {
 	// reset RTL state
 	_rtl_state = RTL_STATE_NONE;
+
+	if (!mission_landing()) {
+		_rtl_state = RTL_STATE_NONE;
+	}
 }
 
 float
 RTL::get_rtl_altitude()
 {
 	return min(_param_return_alt.get(), _navigator->get_land_detected()->alt_max);
+}
+
+bool
+RTL::mission_landing()
+{
+	if (_param_rtl_land_type.get() == 1) {
+		if (_rtl_state >= RTL_STATE_RETURN) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void
@@ -175,7 +191,8 @@ RTL::set_rtl_item()
 			if (_param_rtl_land_type.get() == 1) {
 				// landing using planned mission landing, fly to DO_LAND_START instead of returning HOME
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
-				_mission_item.nav_cmd = NAV_CMD_DO_LAND_START;
+				//_mission_item.nav_cmd = NAV_CMD_DO_LAND_START;
+				// do nothing, wait for mission
 
 			} else {
 				_mission_item.lat = home.lat;

@@ -627,7 +627,25 @@ Navigator::task_main()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
+
 			_navigation_mode = &_rtl;
+
+			if (_rtl.mission_landing() && get_mission_result()->valid) {
+				// only set the new mission index once
+				if (_navigation_mode != &_mission) {
+					int land_start = _mission.find_offboard_land_start();
+
+					if (land_start != -1) {
+						_mission.set_current_offboard_mission_index(land_start);
+					}
+				}
+
+				_navigation_mode = &_mission;
+
+			} else {
+				_navigation_mode = &_rtl;
+			}
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:

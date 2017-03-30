@@ -12,3 +12,6 @@ bool item_do_jump_changed	# true if the number of do jumps remaining has changed
 uint32 item_changed_index	# indicate which item has changed
 uint32 item_do_jump_remaining	# set to the number of do jumps remaining for that item
 bool mission_failure		# true if the mission cannot continue or be completed for some reason
+
+bool mission_landing_valid	# if mission contains valid landing
+bool mission_is_landing

@@ -63,6 +63,8 @@ public:
 
 	virtual void on_active();
 
+	bool mission_landing();
+
 private:
 	/**
 	 * Set the RTL item
