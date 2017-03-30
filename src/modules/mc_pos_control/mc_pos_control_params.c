@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
- * Nominal horizontal velocity
+ * Nominal horizontal velocity in mission
  *
  * Normal horizontal velocity in AUTO modes (includes
  * also RTL / hold / etc.) and endpoint for
@@ -255,6 +255,18 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
+
+/**
+ * Nominal horizontal velocity for manual controlled mode
+ *
+ * @unit m/s
+ * @min 3.0
+ * @max 20.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_MAX, 10.0f);
 
 /**
  * Distance Threshold Horizontal Auto
