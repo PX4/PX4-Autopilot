@@ -549,6 +549,45 @@ Result:
 MSG file: x
 Log file: http://logs.uaventure.com/view/rKr7zhyw46sDpUjBXjpzF8
 
+***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+
+Day: 31-03-2017
+---------
+sess01
+---------
+Testing mission wheelspeed
+
+---------
+sess02
+---------
+Crap
+
+---------
+sess03
+---------
+Testing mission just going straight. 
+
+---------
+sess04
+---------
+This was a mission with 3 waypoints, the last one to come back. For some reason it stopped during the mission: maybe app crashed?
+
+---------
+sess05
+---------
+Driving back and triggering mission, ignore.
+
+---------
+sess06
+---------
+Very short mission. proabably testing some minor detail.
+
+---------
+sess07-08-09
+---------
+Mission executed correctly, it works! Last one executed for the video.
+
+
 
 ---------
 sess
