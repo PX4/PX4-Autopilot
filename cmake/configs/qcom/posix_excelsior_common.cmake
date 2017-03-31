@@ -1,4 +1,3 @@
-
 # This cmake config builds for POSIX, so the part of the flight stack running
 # on the Linux side of the Snapdragon.
 include(configs/qcom/posix_common)

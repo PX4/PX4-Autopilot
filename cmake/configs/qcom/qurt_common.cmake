@@ -1,3 +1,4 @@
+# This cmake config is for QuRT which is the RTOS running on the Hexagon DSP
 include(qurt/px4_impl_qurt)
 
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
