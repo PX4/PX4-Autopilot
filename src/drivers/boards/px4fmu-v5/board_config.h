@@ -324,7 +324,7 @@ __BEGIN_DECLS
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 #define RC_UXART_BASE        STM32_USART6_BASE /* NOT FMUv5 test HW ONLY*/
-#define RC_SERIAL_PORT       "/dev/ttyS5"      /* NOT FMUv5 test HW ONLY*/
+#define RC_SERIAL_PORT       "/dev/ttyS4"      /* NOT FMUv5 test HW ONLY*/
 
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
 
