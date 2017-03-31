@@ -1,11 +1,12 @@
-# Eagle is the code name of a board currently in development.
+# The Eagle board is the first generation Snapdragon Flight board by Qualcomm
 #
-# This cmake config builds for POSIX, so the part of the flight stack running
-# on the Linux side of the Snapdragon.
+# This cmake config is for ARM POSIX and the resulting build runs on 
+# the ARM application processor of the Snapdragon SoC
 
 include(configs/qcom/posix_eagle_common)
 include(configs/qcom/posix_modules_default)
 
+# This config uses the legacy (binary) drivers
 add_definitions(
     -D__USING_SNAPDRAGON_LEGACY_DRIVER
 )

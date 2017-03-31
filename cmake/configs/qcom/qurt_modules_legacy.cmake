@@ -1,3 +1,5 @@
+# Modules used for legacy (binary driver) QuRT build
+
 include(configs/qcom/qurt_modules_common)
 
 add_definitions(

@@ -1,3 +1,4 @@
+# Common modules used for QuRT build
 set(config_module_list
 	#
 	# Board support modules

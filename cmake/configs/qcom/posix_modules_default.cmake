@@ -1,3 +1,4 @@
+# Modules used for POSIX build
 set(config_module_list
 	drivers/device
 	drivers/blinkm

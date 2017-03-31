@@ -1,3 +1,5 @@
+# Modules used for default QuRT build
+
 include(configs/qcom/qurt_modules_common)
 
 set(config_module_list ${config_module_list}

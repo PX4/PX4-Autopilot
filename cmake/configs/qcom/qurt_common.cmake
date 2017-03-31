@@ -1,4 +1,5 @@
 # This cmake config is for QuRT which is the RTOS running on the Hexagon DSP
+
 include(qurt/px4_impl_qurt)
 
 if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
@@ -7,6 +8,7 @@ else()
 	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
 endif()
 
+# Enable syncing parameters between Hexagon DSP and ARM processor
 set(CONFIG_SHMEM "1")
 
 # Get $QC_SOC_TARGET from environment if existing.

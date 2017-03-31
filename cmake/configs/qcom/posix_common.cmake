@@ -1,3 +1,6 @@
+# This cmake config is for ARM POSIX and the resulting build runs on 
+# the ARM application processor of the Snapdragon SoC
+
 include(posix/px4_impl_posix)
 
 # Get $QC_SOC_TARGET from environment if existing.
@@ -23,4 +26,5 @@ else()
 	set(QC_SOC_TARGET "APQ8074")
 endif()
 
+# Enable syncing parameters between Hexagon DSP and ARM processor
 set(CONFIG_SHMEM "1")
