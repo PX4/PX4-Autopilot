@@ -167,10 +167,6 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		_gps_check_fail_status.flags.hdrift = false;
 	}
 
-	// Save current position as the reference for next time
-	map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
-	_last_gps_origin_time_us = _time_last_imu;
-
 	// Calculate the vertical drift velocity and limit to 10x the threshold
 	vel_limit = 10.0f * _params.req_vdrift;
 	float velD = fminf(fmaxf((_gps_alt_ref - 1e-3f * (float)gps->alt) / dt, -vel_limit), vel_limit);
