@@ -58,12 +58,20 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_PWMOut  = 1,
 	IOTimerChanMode_PWMIn   = 2,
 	IOTimerChanMode_Capture = 3,
+	IOTimerChanMode_OneShot = 4,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
 typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
 
-/* array of timers dedicated to PWM in and out and capture use */
+/* array of timers dedicated to PWM in and out and capture use
+ *** Note that the clock_freq is set to the source in the clock tree that
+ *** feeds this specific timer. This can differs by Timer!
+ *** In PWM  mode the timer's prescaler is set to achieve a counter frequency of 1MHz
+ *** In OneShot mode the timer's prescaler is set to achieve a counter frequency of 8MHz
+ *** Other prescaler rates can be achieved by fore instance by setting the clock_freq = 1Mhz
+ *** the resulting PSC will be one and the timer will count at it's clock frequency.
+ */
 typedef struct io_timers_t {
 	uint32_t	base;
 	uint32_t	clock_register;
@@ -106,6 +114,9 @@ __EXPORT int io_timer_handler3(int irq, void *context, void *args);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
+
+__EXPORT int io_timer_init_timer(unsigned timer);
+
 __EXPORT int io_timer_set_rate(unsigned timer, unsigned rate);
 __EXPORT int io_timer_set_enable(bool state, io_timer_channel_mode_t mode,
 				 io_timer_channel_allocation_t masks);
@@ -118,4 +129,6 @@ __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
+__EXPORT extern void io_timer_trigger(void);
+
 __END_DECLS
