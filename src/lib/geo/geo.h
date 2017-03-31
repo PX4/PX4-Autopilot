@@ -58,9 +58,10 @@
 
 // XXX remove
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
+    bool past_start;    // Flag indicationg that projection of the point is out of line and before the first point
+    bool past_end;      // Flag indicating we are past the end of the line/arc segment
+    float distance;     // Distance in meters to closest point on line/arc
+    float bearing;      // Bearing in radians to closest point on line/arc
 } ;
 
 /* lat/lon are in radians */
@@ -286,6 +287,21 @@ __EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, d
 __EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
 		double *lon_res);
 
+/**
+ * Modifies crosstrack_error to show distance to the nearest point on the line segment.
+ * crosstrack_error.distance is positive if point is on the left from line (start->end direction), negative otherwise
+ * crosstrack_error.distance is equal to NOW-START distance if point NOW projects to line before START point
+ * crosstrack_error.distance is equal to NOW-END distance if point NOW projects to line after END point
+ * Returns OK on success, ERROR on failure
+ *
+ * @param crossrack_error - pointer to result storing variable
+ * @param lat_now current position in degrees (47.1234567°, not 471234567°)
+ * @param lon_now current position in degrees (8.1234567°, not 81234567°)
+ * @param lat_start start of the line segment in degrees (47.1234567°, not 471234567°)
+ * @param lon_start start of the line segment in degrees (47.1234567°, not 471234567°)
+ * @param lat_end end of the line segment in degrees (47.1234567°, not 471234567°)
+ * @param lon_end end of the line segment in degrees (47.1234567°, not 471234567°)
+ */
 __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
 				  double lat_start, double lon_start, double lat_end, double lon_end);
 
