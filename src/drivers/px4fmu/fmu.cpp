@@ -494,17 +494,15 @@ PX4FMU::init()
 		return ret;
 	}
 
-	if (_mode != MODE_NONE) {
-		/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-		_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
+    /* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+    _class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
-		if (_class_instance == CLASS_DEVICE_PRIMARY) {
-			/* lets not be too verbose */
-		} else if (_class_instance < 0) {
-			warnx("FAILED registering class device");
-
-		}
-	}
+    if (_class_instance == CLASS_DEVICE_PRIMARY) {
+        /* lets not be too verbose */
+    } else if (_class_instance < 0) {
+        warnx("FAILED registering class device");
+        
+    }
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
