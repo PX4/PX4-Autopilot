@@ -333,12 +333,12 @@ void BlockLocalPositionEstimator::update()
 
 	if (_counter % 500 < 1.0e-4f)
 	{
-		// warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
+		warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
 		// warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 		
 		float qual = _sub_flow.get().quality;
 
-		warnx("Still alive, qual: %.4f", (double)qual);
+		warnx("flow qual: %.4f | _estimatorInitialized : %.4f", (double)qual, (double) _estimatorInitialized );
 	}
 
 	
@@ -375,9 +375,18 @@ void BlockLocalPositionEstimator::update()
 	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 	// }
 
-	if (_sensorTimeout & SENSOR_FLOW) {
-		flowInit();
-	}
+	// if (_sensorTimeout & SENSOR_FLOW) {
+	// 	flowInit();
+	// }
+
+	// if (_sensorTimeout & SENSOR_SONAR) {
+	// 	sonarInit();
+	// }
+
+	// if (_sensorTimeout & SENSOR_BARO) {
+	// 	baroInit();
+	// }
+
 
 	// is z valid?
 	bool z_stddev_ok = sqrtf(_P(X_z, X_z)) < _z_pub_thresh.get();

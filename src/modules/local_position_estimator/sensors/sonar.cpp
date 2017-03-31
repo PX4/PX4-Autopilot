@@ -143,7 +143,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	} else if (_sensorFault & SENSOR_SONAR) {
 		_sensorFault &= ~SENSOR_SONAR;
-		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
 	}
 
 	// kalman filter correction if no fault
