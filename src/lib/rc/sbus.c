@@ -51,6 +51,8 @@
 #include "sbus.h"
 #include <drivers/drv_hrt.h>
 
+#define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
+
 #define SBUS_START_SYMBOL	0x0f
 
 #define SBUS_INPUT_CHANNELS	16
@@ -88,8 +90,8 @@
 #define SBUS_TARGET_MIN 1000.0f
 #define SBUS_TARGET_MAX 2000.0f
 
-#ifdef SBUS_DEBUG
-#include <stdio.h>
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
+#  include <stdio.h>
 #endif
 
 /* pre-calculate the floating point stuff as far as possible at compile time */
@@ -293,7 +295,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 		if (partial_frame_count == sizeof(sbus_frame) / sizeof(sbus_frame[0])) {
 			partial_frame_count = 0;
 			sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 			printf("SBUS2: RESET (BUF LIM)\n");
 #endif
 		}
@@ -301,13 +303,12 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 		if (partial_frame_count == SBUS_FRAME_SIZE) {
 			partial_frame_count = 0;
 			sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 			printf("SBUS2: RESET (PACKET LIM)\n");
 #endif
 		}
 
-#ifdef SBUS_DEBUG
-#if 0
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 1
 		printf("sbus state: %s%s%s%s%s%s, count: %d, val: %02x\n",
 		       (sbus_decode_state == SBUS2_DECODE_STATE_DESYNC) ? "SBUS2_DECODE_STATE_DESYNC" : "",
 		       (sbus_decode_state == SBUS2_DECODE_STATE_SBUS_START) ? "SBUS2_DECODE_STATE_SBUS_START" : "",
@@ -317,7 +318,6 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 		       (sbus_decode_state == SBUS2_DECODE_STATE_SBUS2_GPS) ? "SBUS2_DECODE_STATE_SBUS2_GPS" : "",
 		       partial_frame_count,
 		       (unsigned)frame[d]);
-#endif
 #endif
 
 		switch (sbus_decode_state) {
@@ -376,7 +376,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 						partial_frame_count -= start_index;
 						sbus_decode_state = SBUS2_DECODE_STATE_SBUS_START;
 
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 						printf("DECODE RECOVERY: %d\n", start_index);
 #endif
 					}
@@ -413,9 +413,9 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 						// (frame[0] == 0x3 && frame[1] == 0xc4 && frame[2] == 0x0)
 						// (frame[0] == 0x3 && frame[1] == 0x80 && frame[2] == 0x2f)
 						// (frame[0] == 0x3 && frame[1] == 0xc0 && frame[2] == 0x2f)
-#ifdef SBUS_DEBUG
-						//uint16_t rx_voltage = (sbus_frame[1] << 8) | sbus_frame[2];
-						//printf("rx_voltage %d\n", (int)rx_voltage);
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 2
+						uint16_t rx_voltage = (sbus_frame[1] << 8) | sbus_frame[2];
+						printf("rx_voltage %d\n", (int)rx_voltage);
 #endif
 					}
 
@@ -446,7 +446,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				/* find out which payload we're dealing with in this slot */
 				switch (sbus_frame[0]) {
 				case 0x13: {
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 						uint16_t gps_something = (frame[1] << 8) | frame[2];
 						printf("gps_something %d\n", (int)gps_something);
 #endif
@@ -465,7 +465,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 			break;
 
 		default:
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 			printf("UNKNOWN PROTO STATE");
 #endif
 			decode_ret = false;
@@ -526,7 +526,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != SBUS_START_SYMBOL)) {
 		sbus_frame_drops++;
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 		printf("DECODE FAIL: ");
 
 		for (unsigned i = 0; i < SBUS_FRAME_SIZE; i++) {
@@ -566,7 +566,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 		break;
 
 	default:
-#ifdef SBUS_DEBUG
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 		printf("DECODE FAIL: END MARKER\n");
 #endif
 		sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
