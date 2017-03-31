@@ -263,6 +263,12 @@ void BlockLocalPositionEstimator::update()
 	// selection param, but is really not helping outdoors
 	// right now.
 
+	// if (!armedState) {
+	// 	_P(X_vx, X_vx) = 0.001f;
+	// 	_P(X_vy, X_vy) = 0.001f;
+
+	// }
+
 	if (!_lastArmedState && armedState) {
 
 		// we just armed, we are at origin on the ground
@@ -271,6 +277,7 @@ void BlockLocalPositionEstimator::update()
 		// reset Z or not? _x(X_z) = 0;
 		_P(X_x,X_x) = 0;
 		_P(X_y, X_y) = 0;
+		// _P(X_z, X_z) = 0;
 		
 		// we aren't moving, all velocities are zero
 		_x(X_vx) = 0;
@@ -280,7 +287,6 @@ void BlockLocalPositionEstimator::update()
 		_P(X_vx,X_vx) = 0;
 		_P(X_vy, X_vy) = 0;
 		_P(X_vz, X_vz) = 0;
-
 
 
 		// assume we are on the ground, so terrain alt is local alt
@@ -375,9 +381,9 @@ void BlockLocalPositionEstimator::update()
 	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 	// }
 
-	// if (_sensorTimeout & SENSOR_FLOW) {
-	// 	flowInit();
-	// }
+	if (_sensorTimeout & SENSOR_FLOW) {
+		flowInit();
+	}
 
 	// if (_sensorTimeout & SENSOR_SONAR) {
 	// 	sonarInit();
@@ -408,7 +414,6 @@ void BlockLocalPositionEstimator::update()
 	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
 	// 	warnx("2: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 	// }
-
 
 
 	// is terrain valid?
@@ -946,9 +951,23 @@ void BlockLocalPositionEstimator::predict()
 		}
 	}
 
+
+
 	_P += dP;
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
+
+
+	// if (_sonar_fixed_distance.get() > 0.0f) 
+	// {
+	// 	_x(X_z) = _sonar_fixed_distance.get();
+	// 	_x(X_tz) = _sonar_fixed_distance.get();
+	// 	_x(X_vz) = 0;
+	// 	_P(X_z, X_z) = 0.0001f;
+	// 	_P(X_vz, X_vz) = 0.001f;
+
+	// }
+
 }
 
 int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)

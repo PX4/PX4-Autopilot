@@ -120,7 +120,16 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	// _x(X_z) = _sub_sonar->get().current_distance;
 	//  warnx("_x(X_z): %.4f", (double)_x(X_z) );
-	_x(X_z) = _sonar_fixed_distance.get();
+	
+	if (_sonar_fixed_distance.get() > 0.0f) 
+	{
+		_x(X_z) = _sonar_fixed_distance.get();
+		_x(X_tz) = _sonar_fixed_distance.get();
+		_x(X_vz) = 0;
+		_P(X_z, X_z) = 0.0001f;
+		_P(X_vz, X_vz) = 0.001f;
+
+	}
 	// residual	
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
