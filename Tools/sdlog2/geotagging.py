@@ -26,6 +26,8 @@ from optparse import OptionParser
 from numpy import genfromtxt
 import shutil
 import csv
+from datetime import datetime,timedelta
+from pytz import timezone
 
 class TriggerList( object ):
     def __init__( self ):
@@ -34,6 +36,7 @@ class TriggerList( object ):
         self.GPOS_Lat = []
         self.GPOS_Lon = []
         self.GPOS_Alt = []
+        self.GPS_GPSTime = []
 
 class ImageList( object ):
     def __init__( self ):
@@ -54,7 +57,7 @@ def to_degree(value, loc):
     sec = round((t1 - min)* 60, 5)
     return (deg, min, sec, loc_value)
 
-def SetGpsLocation(file_name, lat, lng, alt):
+def SetGpsLocation(file_name, gps_datetime, lat, lng, alt):
     """
         Adding GPS tag
 
@@ -67,6 +70,16 @@ def SetGpsLocation(file_name, lat, lng, alt):
 
     exiv_image = pyexiv2.ImageMetadata(file_name)
     exiv_image.read()
+
+    date_tag = exiv_image['Exif.Image.DateTime']
+
+    date_max = max(date_tag.value, gps_datetime)
+    date_min = min(date_tag.value, gps_datetime)
+    time_diff = date_max - date_min
+    if (time_diff > timedelta(seconds=5)):
+        print("WARNING, camera trigger and photo time different by {}".format(time_diff))
+        print("  Photo tag time: {}".format(date_tag.value))
+        print("  Camera trigger time: {}".format(gps_datetime))
 
     exiv_image["Exif.GPSInfo.GPSLatitude"] = exiv_lat
     exiv_image["Exif.GPSInfo.GPSLatitudeRef"] = lat_deg[3]
@@ -84,7 +97,7 @@ def LoadPX4log(px4_log_file):
     """
        load px4 log file and extract trigger locations
     """
-    os.system('python sdlog2_dump.py ' + px4_log_file + ' -f log.csv')
+    os.system('python sdlog2_dump.py ' + px4_log_file + ' -t time -m TIME -m CAMT -m GPOS -m GPS -f log.csv')
     f = open('log.csv', 'rb')
     reader = csv.reader(f)
     headers = reader.next()
@@ -104,6 +117,8 @@ def LoadPX4log(px4_log_file):
             trigger_list.GPOS_Lat.append(line['GPOS_Lat'][seq + 1])
             trigger_list.GPOS_Lon.append(line['GPOS_Lon'][seq + 1])
             trigger_list.GPOS_Alt.append(line['GPOS_Alt'][seq + 1])
+            trigger_list.GPS_GPSTime.append(line['GPS_GPSTime'][seq + 1])
+
     return trigger_list
 
 def LoadImageList(input_folder):
@@ -129,9 +144,18 @@ def FilterTrigger(trigger_list, image_list):
     """
        filter triggers to allow exact matching with recorded images
     """
-    if len(image_list.jpg) != len(trigger_list.CAMT_seq) and len(image_list.raw) != len(trigger_list.CAMT_seq):
-        # filter trigger list to match the number of pics
-        print("No trigger filter implemented yet.")
+    # filter trigger list to match the number of pics
+    if len(image_list.jpg) != len(trigger_list.CAMT_seq):
+        print('WARNING! differ number of jpg images ({}) and camera triggers ({})'.format(len(image_list.jpg), len(trigger_list.CAMT_seq)))
+
+        n_overlap = min(len(image_list.jpg), len(trigger_list.CAMT_seq))
+        del image_list.jpg[n_overlap:]
+
+    if len(image_list.raw) != len(trigger_list.CAMT_seq):
+        print('WARNING! differ number of raw images ({}) and camera triggers ({})'.format(len(image_list.raw), len(trigger_list.CAMT_seq)))
+
+        n_overlap = min(len(image_list.raw), len(trigger_list.CAMT_seq))
+        del image_list.raw[n_overlap:]
 
     return trigger_list
 
@@ -140,13 +164,28 @@ def TagImages(trigger_list, image_list, output_folder):
        load px4 log file and extract trigger locations
     """
     for image in range(len(image_list.jpg)):
+
+        print("############################################################")
+	print('Photo {}: {}'.format(image, image_list.jpg[image]))
+
+        cam_time = int(trigger_list.GPS_GPSTime[image]) / 1000000
+        gps_datetime = datetime.fromtimestamp(cam_time)
+
         base_path, filename = os.path.split(image_list.jpg[image])
         copyfile(image_list.jpg[image], output_folder + "/" + filename)
-        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
+        SetGpsLocation(output_folder + "/" + filename, gps_datetime, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
+
     for image in range(len(image_list.raw)):
+
+        print("############################################################")
+	print('Photo {}: {}'.format(image, image_list.raw[image]))
+
+        cam_time = int(trigger_list.GPS_GPSTime[image]) / 1000000
+        gps_datetime = datetime.fromtimestamp(cam_time)
+
         base_path, filename = os.path.split(image_list.raw[image])
         copyfile(image_list.raw[image], output_folder + "/" + filename)
-        SetGpsLocation(output_folder + "/" + filename, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
+        SetGpsLocation(output_folder + "/" + filename, gps_datetime, float(trigger_list.GPOS_Lat[image]), float(trigger_list.GPOS_Lon[image]), float(trigger_list.GPOS_Alt[image]))
 
 def main():
     """
