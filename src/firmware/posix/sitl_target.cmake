@@ -57,14 +57,50 @@ add_custom_target(run_config
 		)
 add_dependencies(run_config px4)
 
-# project to build sitl_gazebo if necessary
-ExternalProject_Add(sitl_gazebo
-	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sitl_gazebo
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+# Add OpticalFlow as an external project
+#message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+ExternalProject_Add(optical_flow
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/OpticalFlow/
+	CMAKE_CACHE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${PX4_BINARY_DIR}/install_optical_flow
+	BINARY_DIR ${PX4_BINARY_DIR}/build_optical_flow
+	INSTALL_DIR ${PX4_BINARY_DIR}/install_optical_flow
+	)
+set_target_properties(optical_flow PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Append build dir to CMAKE_MODULE_PATH, so find_package(OpticalFlow) can find FindOpticalFlow.cmake
+message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_MODULE_PATH.")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
+message(STATUS "Appending ${PX4_BINARY_DIR}/build_optical_flow to CMAKE_PREFIX_PATH.")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${PX4_BINARY_DIR}/build_optical_flow")
+
+# Add rotors_simulator/rotors_gazebo_plugins as a "external project" (part of the rotors_simulator repo)
+# NOTE: Changed from targetting sitl_gazebo to packages within the rotors_simulator repo
+# sitl_gazebo had a global CMakeLists.txt which built everything, while
+# rotors_simulator has many discreet catkin packages, each with it's own
+# CMakeLists.txt
+ExternalProject_Add(rotors_simulator_rotors_gazebo_plugins
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo_plugins/
+	# NO_ROS argument will build rotors_gazebo_plugins without any ROS dependencies
+	# MAVLINK_INTERFACE will build with gazebo_mavlink_interface
+	# BUILD_OPTICAL_FLOW_PLUGIN will build the optical flow plugin
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE -DBUILD_MAVLINK_INTERFACE_PLUGIN=TRUE -DBUILD_OPTICAL_FLOW_PLUGIN=TRUE
+	CMAKE_CACHE_ARGS -DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH} -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH} -DADDITIONAL_INCLUDE_DIRS:PATH=${PX4_SOURCE_DIR}/Tools/mav_comm/mav_msgs/include/ -DMAVLINK_HEADER_DIR:PATH=${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	)
-set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
+# When rotors_simulator_rotors_gazebo_plugins is passed BUILD_OPTICAL_FLOW_PLUGIN=TRUE is depends on the OpticalFlow library.
+add_dependencies(rotors_simulator_rotors_gazebo_plugins optical_flow)
+set_target_properties(rotors_simulator_rotors_gazebo_plugins PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Add rotors_simulator/rotors_gazebo as a "external project" (part of the rotors_simulator repo)
+ExternalProject_Add(rotors_simulator_rotors_gazebo
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/rotors_simulator/rotors_gazebo/
+	# NO_ROS argument will build rotors_gazebo without any ROS dependencies
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DNO_ROS=TRUE
+	BINARY_DIR ${PX4_BINARY_DIR}/build_test
+	INSTALL_COMMAND ""
+	)
+set_target_properties(rotors_simulator_rotors_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ExternalProject_Add_Step(sitl_gazebo forceconfigure
 	DEPENDEES update
@@ -121,7 +157,7 @@ foreach(viewer ${viewers})
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
-				add_dependencies(${_targ_name} sitl_gazebo)
+				add_dependencies(${_targ_name} rotors_simulator_rotors_gazebo rotors_simulator_rotors_gazebo_plugins)
 				if (viewer STREQUAL "gazebo")
 					add_dependencies(${_targ_name} px4_${model})
 				endif()

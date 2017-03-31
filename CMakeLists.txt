@@ -334,11 +334,13 @@ message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "cmake/cmake_hexagon")
 px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
 px4_add_git_submodule(TARGET git_ecl PATH "src/lib/ecl")
-px4_add_git_submodule(TARGET git_gazebo PATH "Tools/sitl_gazebo")
 px4_add_git_submodule(TARGET git_gencpp PATH "Tools/gencpp")
 px4_add_git_submodule(TARGET git_genmsg PATH "Tools/genmsg")
 px4_add_git_submodule(TARGET git_gtest PATH "unittests/gtest")
 px4_add_git_submodule(TARGET git_jmavsim PATH "Tools/jMAVSim")
+px4_add_git_submodule(TARGET git_rotors_simulator PATH "Tools/rotors_simulator")	# Used for builds involving Gazebo
+px4_add_git_submodule(TARGET git_mav_comm PATH "Tools/mav_comm")					# mav_comm is a dependency of rotors_simulator
+px4_add_git_submodule(TARGET git_optical_flow PATH "Tools/OpticalFlow") 			# OpticalFlow is a dependency of the OpticalFlow plugin in rotors_simulator
 px4_add_git_submodule(TARGET git_matrix PATH "src/lib/matrix")
 px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")

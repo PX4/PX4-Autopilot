@@ -7,6 +7,8 @@
 #
 # License: according to LICENSE.md in the root directory of the PX4 Firmware repository
 
+echo "setup_gazebo.bash called."
+
 if [ "$#" != 2 ]
 then
     echo usage: source setup_gazebo.bash src_dir build_dir
@@ -19,10 +21,22 @@ BUILD_DIR=$2
 
 # setup Gazebo env and update package path
 export GAZEBO_PLUGIN_PATH=${BUILD_DIR}/build_gazebo:${GAZEBO_PLUGIN_PATH}
-export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sitl_gazebo/models
+
+# Set model directory to folder within rotors_simulator sub-module
+# (contains .model and .sdf files)
+MODEL_DIRECTORY=${SRC_DIR}/Tools/rotors_simulator/rotors_gazebo/models
+
+if [ ! -d "$MODEL_DIRECTORY" ]; then
+   echo "ERROR: The MODEL_DIRECTORY '${MODEL_DIRECTORY}' was not found."
+   # Return error
+   return 1
+fi
+export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${MODEL_DIRECTORY}
+
 # Disabling the remote model download seems only necessary with Gazebo 6
 #export GAZEBO_MODEL_DATABASE_URI=""
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msgs/:${BUILD_DIR}/build_gazebo
+
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${BUILD_DIR}/build_gazebo
 echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
 echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
 echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
