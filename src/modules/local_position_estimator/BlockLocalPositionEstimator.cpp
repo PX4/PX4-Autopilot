@@ -269,7 +269,7 @@ void BlockLocalPositionEstimator::update()
 
 	// }
 
-	if (!_lastArmedState && armedState) {
+	if (false && !_lastArmedState && armedState) {
 
 		// we just armed, we are at origin on the ground
 		_x(X_x) = 0;
@@ -284,10 +284,9 @@ void BlockLocalPositionEstimator::update()
 		_x(X_vy) = 0;
 		_x(X_vz) = 0;
 
-		_P(X_vx,X_vx) = 0;
-		_P(X_vy, X_vy) = 0;
-		_P(X_vz, X_vz) = 0;
-
+		_P(X_vx,X_vx) = 0.001f;
+		_P(X_vy, X_vy) = 0.001f;
+		_P(X_vz, X_vz) = 0.001f;
 
 		// assume we are on the ground, so terrain alt is local alt
 		_x(X_tz) = _x(X_z);
@@ -337,14 +336,16 @@ void BlockLocalPositionEstimator::update()
 	// is xy valid?
 	bool vxy_stddev_ok = false;
 
-	if (_counter % 500 < 1.0e-4f)
+	if ((_counter % 100 < 1.0e-4f) /*|| flowUpdated */)
 	{
+		// warnx("EST_XY: %d | EST_Z: %d | EST_TZ: %d", EST_XY, EST_Z, EST_TZ);
+
 		warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
 		// warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 		
 		float qual = _sub_flow.get().quality;
 
-		warnx("flow qual: %.4f | _estimatorInitialized : %.4f", (double)qual, (double) _estimatorInitialized );
+		warnx("flowUpdated: %d | flow qual: %.4f | _estimatorInitialized : %.4f", flowUpdated, (double)qual, (double) _estimatorInitialized );
 	}
 
 	
@@ -354,25 +355,20 @@ void BlockLocalPositionEstimator::update()
 
 	if (_estimatorInitialized & EST_XY) {
 		// if valid and gps has timed out, set to not valid
-		if (!vxy_stddev_ok && (_sensorTimeout & SENSOR_GPS)) {
+		if (!vxy_stddev_ok ) {
 			_estimatorInitialized &= ~EST_XY;
-		}
+		} //else do nothing
 
 	} else {
 		// if ( (_estimatorInitialized < 1.0f) ) {
 			if (vxy_stddev_ok) {
-			warnx("1.1");	
+			// warnx("1.1");	
 			// _estimatorInitialized |= EST_XY;
 
-				if (!(_sensorTimeout & SENSOR_GPS)
-				    || !(_sensorTimeout & SENSOR_FLOW)
-				    || !(_sensorTimeout & SENSOR_VISION)
-				    || !(_sensorTimeout & SENSOR_MOCAP)
-				    || !(_sensorTimeout & SENSOR_LAND)
-				   ) {
+				if (!(_sensorTimeout & SENSOR_FLOW)) {
 					_estimatorInitialized |= EST_XY;
 					warnx("1.2");	
-				}
+				} 
 			}
 		// }
 	}
@@ -381,9 +377,9 @@ void BlockLocalPositionEstimator::update()
 	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 	// }
 
-	if (_sensorTimeout & SENSOR_FLOW) {
-		flowInit();
-	}
+	// if (_sensorTimeout & SENSOR_FLOW) {
+	// 	flowInit();
+	// }
 
 	// if (_sensorTimeout & SENSOR_SONAR) {
 	// 	sonarInit();
@@ -429,6 +425,7 @@ void BlockLocalPositionEstimator::update()
 		if (tz_stddev_ok) {
 			_estimatorInitialized |= EST_TZ;
 			warnx("3.2");
+
 		}
 	}
 
@@ -442,7 +439,7 @@ void BlockLocalPositionEstimator::update()
 	checkTimeouts();
 
 	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
-	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _fake_origin.get()) {
+	if (!_map_ref.init_done && /*(_estimatorInitialized & EST_XY)*/( !armedState ) && _fake_origin.get()) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
@@ -552,7 +549,6 @@ void BlockLocalPositionEstimator::update()
 	if (flowUpdated) {
 		if (_sensorTimeout & SENSOR_FLOW) {
 			flowInit();
-
 		} else {
 			flowCorrect();
 		}
@@ -604,7 +600,7 @@ void BlockLocalPositionEstimator::update()
 			// warnx("counter: %d",  _counter);
 		}
 	}
-	// _counter = _estimatorInitialized;
+
 	// propagate delayed state, no matter what
 	// if state is frozen, delayed state still
 	// needs to be propagated with frozen state
@@ -958,12 +954,15 @@ void BlockLocalPositionEstimator::predict()
 	_aglLowPass.update(agl());
 
 
-	// if (_sonar_fixed_distance.get() > 0.0f) 
-	// {
+	// if ((_sonar_fixed_distance.get() > 0.0f) && !_lastArmedState) {
 	// 	_x(X_z) = _sonar_fixed_distance.get();
 	// 	_x(X_tz) = _sonar_fixed_distance.get();
-	// 	_x(X_vz) = 0;
-	// 	_P(X_z, X_z) = 0.0001f;
+	// 	_x(X_vx) = 0.0f;
+	// 	_x(X_vy) = 0.0f;
+	// 	_x(X_vz) = 0.0f;
+	// 	_P(X_z, X_z) = 0.001f;
+	// 	_P(X_vx, X_vx) = 0.001f;
+	// 	_P(X_vy, X_vy) = 0.001f;
 	// 	_P(X_vz, X_vz) = 0.001f;
 
 	// }

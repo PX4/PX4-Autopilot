@@ -17,8 +17,10 @@ void BlockLocalPositionEstimator::flowInit()
 {
 	// measure
 	Vector<float, n_y_flow> y;
+	int result= flowMeasure(y);
+	warnx("flowMeasure(y): %d | OK: %d" , result, OK);
 
-	if (flowMeasure(y) != OK) {
+	if (result != OK) {
 		_flowQStats.reset();
 		return;
 	}
@@ -38,29 +40,33 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
 	// check for sane pitch/roll
 	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
+		warnx("f1");
 		return -1;
 	}
 
-	// check for agl
-	if (agl() < flow_min_agl) {
-		return -1;
-	}
+	// // check for agl
+	// if (agl() < flow_min_agl) {
+	// 	warnx("f2");
+	// 	return -1;
+	// }
 
 	// check quality
 	float qual = _sub_flow.get().quality;
 
 	if (qual < _flow_min_q.get()) {
+		warnx("f2");
 		return -1;
 	}
 
 	// calculate range to center of image for flow
 	if (!(_estimatorInitialized & EST_TZ)) {
+		warnx("f3");
 		return -1;
 	}
 
 	matrix::Eulerf euler = matrix::Quatf(_sub_att.get().q);
 
-	float d = agl() * cosf(euler.phi()) * cosf(euler.theta());
+	float d = 0.16f;//agl() * cosf(euler.phi()) * cosf(euler.theta());
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter

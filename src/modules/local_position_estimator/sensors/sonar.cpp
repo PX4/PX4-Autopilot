@@ -109,6 +109,8 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	Matrix<float, n_y_sonar, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
+	
+	 
 	// TODO could add trig to make this an EKF correction
 	C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
 	C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
@@ -128,8 +130,8 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		_x(X_vz) = 0;
 		_P(X_z, X_z) = 0.0001f;
 		_P(X_vz, X_vz) = 0.001f;
-
 	}
+	
 	// residual	
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
