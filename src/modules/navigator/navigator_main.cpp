@@ -352,7 +352,7 @@ Navigator::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 200ms for data */
+		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
 		if (pret == 0) {
