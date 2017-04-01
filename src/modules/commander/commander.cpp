@@ -129,21 +129,18 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define COMMANDER_MONITORING_INTERVAL 10000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
 
-#define MAVLINK_OPEN_INTERVAL 50000
+static constexpr float STICK_ON_OFF_LIMIT = 0.9f;
 
-#define STICK_ON_OFF_LIMIT 0.9f
+static constexpr hrt_abstime POSITION_TIMEOUT = (1 * 1000 * 1000);	/**< consider the local or global position estimate invalid after 1000ms */
+static constexpr hrt_abstime FAILSAFE_DEFAULT_TIMEOUT = (3 * 1000 * 1000);	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
+static constexpr hrt_abstime OFFBOARD_TIMEOUT = 500000;
+static constexpr hrt_abstime DIFFPRESS_TIMEOUT = 2000000;
 
-#define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
-#define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
-#define OFFBOARD_TIMEOUT		500000
-#define DIFFPRESS_TIMEOUT		2000000
+static constexpr hrt_abstime HOTPLUG_SENS_TIMEOUT = (8 * 1000 * 1000);	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
-#define HOTPLUG_SENS_TIMEOUT		(8 * 1000 * 1000)	/**< wait for hotplug sensors to come online for upto 8 seconds */
+static constexpr hrt_abstime PRINT_MODE_REJECT_INTERVAL = 500000;
 
-#define PRINT_INTERVAL	5000000
-#define PRINT_MODE_REJECT_INTERVAL	500000
-
-#define INAIR_RESTART_HOLDOFF_INTERVAL	500000
+static constexpr hrt_abstime INAIR_RESTART_HOLDOFF_INTERVAL = 500000;
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
@@ -155,7 +152,6 @@ static orb_advert_t mavlink_log_pub = nullptr;
 static int autostart_id;
 
 /* flags */
-static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
@@ -165,7 +161,7 @@ static hrt_abstime commander_boot_timestamp = 0;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
-static uint64_t last_print_mode_reject_time = 0;
+static hrt_abstime last_print_mode_reject_time = 0;
 
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
@@ -185,35 +181,34 @@ static float max_imu_acc_diff = 0.7f;
 static float max_imu_gyr_diff = 0.09f;
 static float min_stick_change = 0.25f;
 
-static struct vehicle_status_s status = {};
-static struct vehicle_roi_s _roi = {};
-static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
-static struct safety_s safety = {};
-static struct vehicle_control_mode_s control_mode = {};
-static struct offboard_control_mode_s offboard_control_mode = {};
-static struct home_position_s _home = {};
-static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
+static struct battery_status_s battery = {};
 static struct commander_state_s internal_state = {};
+static struct cpuload_s cpuload = {};
+static struct home_position_s _home = {};
+static struct manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
+static struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
+static struct mission_result_s _mission_result = {};
+static struct offboard_control_mode_s offboard_control_mode = {};
+static struct safety_s safety = {};
+static struct status_flags_s status_flags = {};
+static struct vehicle_control_mode_s control_mode = {};
+static struct vehicle_roi_s _roi = {};
+static struct vehicle_status_s status = {};
+static struct vtol_vehicle_status_s vtol_status = {};
 
-struct mission_result_s _mission_result;
+static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
-static unsigned _last_mission_instance = 0;
-struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
-static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
-static uint8_t _last_sp_man_arm_switch = 0;
+static uint32_t _last_mission_instance = 0;
 
-static struct vtol_vehicle_status_s vtol_status = {};
-static struct cpuload_s cpuload = {};
+static uint8_t _last_sp_man_arm_switch = 0;
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
 
 // led overload
 static bool last_overload = false;
-
-static struct status_flags_s status_flags = {};
 
 static hrt_abstime rc_signal_lost_timestamp;		// Time at which the RC reception was lost
 
@@ -1245,9 +1240,6 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 int commander_thread_main(int argc, char *argv[])
 {
-	/* not yet initialized */
-	commander_initialized = false;
-
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
 	bool was_landed = true;
@@ -1621,7 +1613,6 @@ int commander_thread_main(int argc, char *argv[])
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
 	/* now initialized */
-	commander_initialized = true;
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
@@ -2602,7 +2593,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed */
-			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f;
+			const bool stick_in_lower_left = (sp_man.r < -STICK_ON_OFF_LIMIT) && sp_man.z < 0.1f;
 			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
