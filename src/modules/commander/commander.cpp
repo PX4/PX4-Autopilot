@@ -65,31 +65,21 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
-#include <navigator/navigation.h>
-#include <px4_defines.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
-#include <systemlib/state_table.h>
-#include <float.h>
-#include <systemlib/hysteresis/hysteresis.h>
 
-#include <board_config.h>
-
-#include <sys/stat.h>
-#include <string.h>
-#include <math.h>
-#include <poll.h>
 #include <float.h>
 #include <matrix/math.hpp>
 
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -102,8 +92,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/sensor_combined.h>
@@ -117,8 +105,10 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -217,14 +207,15 @@ static uint8_t _last_sp_man_arm_switch = 0;
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
 
-
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
+
+// led overload
 static bool last_overload = false;
 
 static struct status_flags_s status_flags = {};
 
-static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was lost
+static hrt_abstime rc_signal_lost_timestamp;		// Time at which the RC reception was lost
 
 static float avionics_power_rail_voltage;		// voltage of the avionics power rail
 
@@ -1608,11 +1599,6 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
-	/* Subscribe to position setpoint triplet */
-	int pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	struct position_setpoint_triplet_s pos_sp_triplet;
-	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
-
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 	struct system_power_s system_power;
@@ -2137,27 +2123,21 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
 		/* hysteresis for EPH */
-		bool local_eph_good;
+		bool local_eph_good = false;
 
 		if (status_flags.condition_local_position_valid) {
-			if (local_position.eph > eph_threshold * 2.5f) {
-				local_eph_good = false;
-
-			} else {
+			if (local_position.eph < eph_threshold * 2.5f) {
 				local_eph_good = true;
 			}
 
 		} else {
 			if (local_position.eph < eph_threshold) {
 				local_eph_good = true;
-
-			} else {
-				local_eph_good = false;
 			}
 		}
 
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid
-			    && local_eph_good, &(status_flags.condition_local_position_valid), &status_changed);
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, (local_position.xy_valid && local_eph_good),
+				&(status_flags.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
@@ -2181,12 +2161,9 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
-
-
 
 		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
 		hrt_abstime timeout_time = disarm_when_landed * 1000000;
@@ -2349,13 +2326,6 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 		}
 
-		/* update position setpoint triplet */
-		orb_check(pos_sp_triplet_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
-		}
-
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status,
@@ -2376,9 +2346,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* do not complain if not allowed into standby */
 				arming_ret = TRANSITION_NOT_CHANGED;
 			}
-
 		}
-
 
 		/*
 		 * Check for valid position information.
@@ -2400,7 +2368,7 @@ int commander_thread_main(int argc, char *argv[])
 		    && (gps_position.eph < eph_threshold)
 		    && (gps_position.epv < epv_threshold)
 		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
-			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
+			/* set reference for global coordinates <--> local coordinates conversion and map_projection */
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
 						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
@@ -3026,8 +2994,7 @@ int commander_thread_main(int argc, char *argv[])
 											   offboard_loss_act,
 											   offboard_loss_rc_act);
 
-		if (status.failsafe != failsafe_old)
-		{
+		if (status.failsafe != failsafe_old) {
 			status_changed = true;
 
 			if (status.failsafe) {
