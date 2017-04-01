@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -149,7 +149,7 @@ static constexpr hrt_abstime INAIR_RESTART_HOLDOFF_INTERVAL = 500000;
 static orb_advert_t mavlink_log_pub = nullptr;
 
 /* System autostart ID */
-static int autostart_id;
+static int32_t autostart_id;
 
 /* flags */
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -184,7 +184,6 @@ static float min_stick_change = 0.25f;
 static struct actuator_armed_s armed = {};
 static struct battery_status_s battery = {};
 static struct commander_state_s internal_state = {};
-static struct cpuload_s cpuload = {};
 static struct home_position_s _home = {};
 static struct manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
 static struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
@@ -242,7 +241,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
-			orb_advert_t *roi_pub);
+		    orb_advert_t *roi_pub);
 
 /**
  * Mainloop of commander.
@@ -292,7 +291,8 @@ static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 /**
  * check whether autostart ID is in the reserved range for HIL setups
  */
-static bool is_hil_setup(int id) {
+static bool is_hil_setup(int id)
+{
 	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
 }
 
@@ -676,7 +676,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-			struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
+		    struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -1227,8 +1227,9 @@ int commander_thread_main(int argc, char *argv[])
 #endif
 
 	if (argc > 2) {
-		if (!strcmp(argv[2],"-hil")) {
+		if (!strcmp(argv[2], "-hil")) {
 			startup_in_hil = true;
+
 		} else {
 			PX4_ERR("Argument %s not supported, abort.", argv[2]);
 			thread_should_exit = true;
@@ -1282,40 +1283,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
 	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
 
-	// These are too verbose, but we will retain them a little longer
-	// until we are sure we really don't need them.
-
-	// const char *main_states_str[commander_state_s::MAIN_STATE_MAX];
-	// main_states_str[commander_state_s::MAIN_STATE_MANUAL]			= "MANUAL";
-	// main_states_str[commander_state_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_POSCTL]			= "POSCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
-	// main_states_str[commander_state_s::MAIN_STATE_ACRO]			= "ACRO";
-	// main_states_str[commander_state_s::MAIN_STATE_STAB]			= "STAB";
-	// main_states_str[commander_state_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
-
-	// const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF]		= "AUTO_TAKEOFF";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ACRO]			= "ACRO";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LAND]			= "LAND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
-
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1329,7 +1296,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* vehicle status topic */
-	memset(&status, 0, sizeof(status));
+	status = {};
 
 	// We want to accept RC inputs as default
 	status_flags.rc_input_blocked = false;
@@ -1393,36 +1360,32 @@ int commander_thread_main(int argc, char *argv[])
 		px4_task_exit(PX4_ERROR);
 	}
 
-	/* Initialize armed with all false */
-	memset(&armed, 0, sizeof(armed));
 	/* armed topic */
+	armed = {};
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* vehicle control mode topic */
-	memset(&control_mode, 0, sizeof(control_mode));
+	control_mode = {};
 	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	/* home position */
+	_home = {};
 	orb_advert_t home_pub = nullptr;
-	memset(&_home, 0, sizeof(_home));
 
 	/* region of interest */
+	_roi = {};
 	orb_advert_t roi_pub = nullptr;
-	memset(&_roi, 0, sizeof(_roi));
 
 	/* command ack */
+	struct vehicle_command_ack_s command_ack = {};
 	orb_advert_t command_ack_pub = nullptr;
-	struct vehicle_command_ack_s command_ack;
-	memset(&command_ack, 0, sizeof(command_ack));
+
+	orb_advert_t commander_state_pub = nullptr;
+	orb_advert_t vehicle_status_flags_pub = nullptr;
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	orb_advert_t mission_pub = nullptr;
-	mission_s mission;
-
-	orb_advert_t commander_state_pub = nullptr;
-
-	orb_advert_t vehicle_status_flags_pub = nullptr;
-
+	mission_s mission = {};
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
 			if (mission.count > 0) {
@@ -1446,8 +1409,6 @@ int commander_thread_main(int argc, char *argv[])
 		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
 
-	int ret;
-
 	/* Start monitoring loop */
 	unsigned counter = 0;
 	unsigned stick_off_counter = 0;
@@ -1464,7 +1425,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
-	memset(&safety, 0, sizeof(safety));
+	safety = {};
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
 
@@ -1473,21 +1434,20 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to geofence result topic */
 	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
-	struct geofence_result_s geofence_result;
-	memset(&geofence_result, 0, sizeof(geofence_result));
+	struct geofence_result_s geofence_result = {};
 
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	memset(&sp_man, 0, sizeof(sp_man));
+	sp_man = {};
 
 	/* Subscribe to offboard control data */
 	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
+	offboard_control_mode = {};
 
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	hrt_abstime telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
+	hrt_abstime telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
 
@@ -1501,8 +1461,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to global position */
 	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	struct vehicle_global_position_s global_position;
-	memset(&global_position, 0, sizeof(global_position));
+	struct vehicle_global_position_s global_position = {};
 	/* Init EPH and EPV */
 	global_position.eph = 1000.0f;
 	global_position.epv = 1000.0f;
@@ -1528,56 +1487,48 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to GPS topic */
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps_position;
-	memset(&gps_position, 0, sizeof(gps_position));
+	struct vehicle_gps_position_s gps_position = {};
 	gps_position.eph = FLT_MAX;
 	gps_position.epv = FLT_MAX;
 
 	/* Subscribe to sensor topic */
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s sensors;
-	memset(&sensors, 0, sizeof(sensors));
+	struct sensor_combined_s sensors = {};
 
 	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s diff_pres;
-	memset(&diff_pres, 0, sizeof(diff_pres));
+	struct differential_pressure_s diff_pres = {};
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
+	struct vehicle_command_s cmd = {};
 
 	/* Subscribe to parameters changed topic */
 	int param_changed_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Subscribe to battery topic */
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
-	memset(&battery, 0, sizeof(battery));
+	battery = {};
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
-	struct subsystem_info_s info;
-	memset(&info, 0, sizeof(info));
+	struct subsystem_info_s info = {};
 
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
-	struct system_power_s system_power;
-	memset(&system_power, 0, sizeof(system_power));
+	struct system_power_s system_power = {};
 
 	/* Subscribe to actuator controls (outputs) */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	struct actuator_controls_s actuator_controls;
-	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	struct actuator_controls_s actuator_controls = {};
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-	//struct vtol_vehicle_status_s vtol_status;
-	memset(&vtol_status, 0, sizeof(vtol_status));
+	vtol_status = {};
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
-	memset(&cpuload, 0, sizeof(cpuload));
+	struct cpuload_s cpuload = {};
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
@@ -1585,7 +1536,10 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	param_get(_param_sys_type, &(status.system_type)); // get system type
+	int32_t mav_type = 0;
+	param_get(_param_sys_type, &mav_type); // get system type
+	status.system_type = mav_type;
+
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1598,16 +1552,22 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
-	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
-	int32_t arm_without_gps = 0;
+
 	param_get(_param_autostart_id, &autostart_id);
-	param_get(_param_rc_in_off, &rc_in_off);
+
+	int32_t rc_input_mode = 0;
+	param_get(_param_rc_in_off, &rc_input_mode);
+	status.rc_input_mode = rc_input_mode;
+
+	int32_t arm_without_gps = 0;
 	param_get(_param_arm_without_gps, &arm_without_gps);
+	can_arm_without_gps = (arm_without_gps == 1);
+
 	int32_t arm_switch_is_button = 0;
 	param_get(_param_arm_switch_is_button, &arm_switch_is_button);
 	can_arm_without_gps = (arm_without_gps == 1);
-	status.rc_input_mode = rc_in_off;
+
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
@@ -1627,8 +1587,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	commander_boot_timestamp = hrt_absolute_time();
 
-	transition_result_t arming_ret;
-
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
@@ -1644,9 +1602,9 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+	hrt_abstime timestamp_engine_healthy = 0; /**< absolute time when engine was healthy */
 
-	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
+	int32_t autosave_params = 0; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
@@ -1677,9 +1635,7 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_destroy(&commander_low_prio_attr);
 
 	while (!thread_should_exit) {
-
-		arming_ret = TRANSITION_NOT_CHANGED;
-
+		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
@@ -1692,8 +1648,11 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
+				if (param_get(_param_sys_type, &mav_type) == PX4_OK) {
+					status.system_type = mav_type;
+				} else {
 					warnx("failed getting new system type");
+					mav_type = 0;
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
@@ -1708,8 +1667,13 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
-				param_get(_param_system_id, &(status.system_id));
-				param_get(_param_component_id, &(status.component_id));
+				int32_t system_id = 0;
+				param_get(_param_system_id, &system_id);
+				status.system_id = system_id;
+
+				int32_t component_id = 0;
+				param_get(_param_component_id, &component_id);
+				status.component_id = component_id;
 
 				get_circuit_breaker_params();
 
@@ -1721,10 +1685,14 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
-			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
+
+			rc_input_mode = 0;
+			param_get(_param_rc_in_off, &rc_input_mode);
+			status.rc_input_mode = rc_input_mode;
+
 			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 			param_get(_param_min_stick_change, &min_stick_change);
+
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
@@ -1740,16 +1708,16 @@ int commander_thread_main(int argc, char *argv[])
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000);
+				auto_disarm_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)disarm_when_landed * 1000000);
 			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
 			param_get(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
-			param_get(_param_arm_without_gps, &arm_without_gps);
 			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
+
+			param_get(_param_arm_without_gps, &arm_without_gps);
 			can_arm_without_gps = (arm_without_gps == 1);
 
 			/* Autostart id */
@@ -1785,7 +1753,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
-			if (updated && autosave_params != 0 && param_changed.saved == false) {
+			if (updated && autosave_params != 0 && !param_changed.saved) {
 				/* trigger an autosave */
 				need_param_autosave = true;
 			}
@@ -1844,8 +1812,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_check(telemetry_subs[i], &updated);
 
 			if (updated) {
-				struct telemetry_status_s telemetry;
-				memset(&telemetry, 0, sizeof(telemetry));
+				struct telemetry_status_s telemetry = {};
 
 				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
@@ -2097,7 +2064,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, (local_position.xy_valid && local_eph_good),
-				&(status_flags.condition_local_position_valid), &status_changed);
+			    &(status_flags.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
@@ -3044,7 +3011,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update timeout flag */
-		if(!(hotplug_timeout == status_flags.condition_system_hotplug_timeout)) {
+		if (!(hotplug_timeout == status_flags.condition_system_hotplug_timeout)) {
 			status_flags.condition_system_hotplug_timeout = hotplug_timeout;
 			status_changed = true;
 		}
@@ -3087,7 +3054,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	ret = pthread_join(commander_low_prio_thread, nullptr);
+	int ret = pthread_join(commander_low_prio_thread, nullptr);
 
 	if (ret) {
 		warn("join failed: %d", ret);
@@ -3932,13 +3899,11 @@ void *commander_low_prio_loop(void *arg)
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
+	struct vehicle_command_s cmd = {};
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
-	struct vehicle_command_ack_s command_ack;
-	memset(&command_ack, 0, sizeof(command_ack));
+	struct vehicle_command_ack_s command_ack = {};
 
 	/* timeout for param autosave */
 	hrt_abstime need_param_autosave_timeout = 0;
@@ -4245,8 +4210,8 @@ void *commander_low_prio_loop(void *arg)
 }
 
 void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
-	struct vehicle_status_flags_s v_flags;
-	memset(&v_flags, 0, sizeof(v_flags));
+	struct vehicle_status_flags_s v_flags = {};
+
 	/* set condition status flags */
 	if (status_flags.condition_calibration_enabled) {
 		v_flags.conditions |= vehicle_status_flags_s::CONDITION_CALIBRATION_ENABLE_MASK;

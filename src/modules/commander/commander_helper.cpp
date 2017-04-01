@@ -120,7 +120,8 @@ int buzzer_init()
 {
 	tune_end = 0;
 	tune_current = 0;
-	memset(tune_durations, 0, sizeof(tune_durations));
+
+	tune_durations = {};
 	tune_durations[TONE_NOTIFY_POSITIVE_TUNE] = 800000;
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
