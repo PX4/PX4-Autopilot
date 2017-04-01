@@ -96,7 +96,8 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
+bool is_vtol(const struct vehicle_status_s *current_status)
+{
 	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
@@ -120,8 +121,7 @@ int buzzer_init()
 {
 	tune_end = 0;
 	tune_current = 0;
-
-	tune_durations = {};
+	memset(tune_durations, 0, sizeof(tune_durations));
 	tune_durations[TONE_NOTIFY_POSITIVE_TUNE] = 800000;
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
@@ -333,6 +333,7 @@ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint
 	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }
 
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode){
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
+{
 	rgbled_set_color_and_mode(color, mode, 0, 0);
 }
