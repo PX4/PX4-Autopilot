@@ -31,8 +31,12 @@
  *
  ****************************************************************************/
 
-/// @file mavlink_ftp.cpp
-///	@author px4dev, Don Gagne <don@thegagnes.com>
+/* @file mavlink_ftp.cpp
+ *
+ * File Transfer Protocol（文件传输协议）
+ *
+ * @author px4dev, Don Gagne <don@thegagnes.com>
+ */
 
 #include <crc32.h>
 #include <unistd.h>

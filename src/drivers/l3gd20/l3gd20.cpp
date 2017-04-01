@@ -489,7 +489,7 @@ L3GD20::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report)); // 环形缓冲区ringbuffer
 
 	if (_reports == nullptr) {
 		goto out;
@@ -595,11 +595,11 @@ L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
+L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg) // 设置传感器更新速率
 {
 	switch (cmd) {
 
-	case SENSORIOCSPOLLRATE: {
+	case SENSORIOCSPOLLRATE: { //0x2000
 			switch (arg) {
 
 			/* switching to manual polling */
@@ -631,7 +631,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* convert hz to hrt interval via microseconds */
 					unsigned ticks = 1000000 / arg;
-
+					
 					/* check against maximum sane rate */
 					if (ticks < 1000) {
 						return -EINVAL;

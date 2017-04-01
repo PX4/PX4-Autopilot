@@ -38,6 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+/****************************
 #ifndef NAVIGATOR_TAKEOFF_H
 #define NAVIGATOR_TAKEOFF_H
 
@@ -62,6 +63,68 @@ public:
 
 private:
 	control::BlockParamFloat _param_min_alt;
+
+	void set_takeoff_position();
+};
+
+#endif
+***************************************/
+
+#ifndef NAVIGATOR_TAKEOFF_H
+#define NAVIGATOR_TAKEOFF_H
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <navigator/navigation.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+
+#include "navigator_mode.h"
+#include "mission_block.h"
+
+class Takeoff : public MissionBlock
+{
+public:
+	Takeoff(Navigator *navigator, const char *name);
+
+	~Takeoff();
+	void advance_takeoff();
+
+	void set_takeoff_item_add();
+
+	virtual void on_inactive();
+
+	virtual void on_activation();
+
+	virtual void on_active();
+
+private:
+	enum TAKEOFF_STATE{
+		TAKEOFF_STATE_TAKEOFF_NONE=0,
+		TAKEOFF_STATE_TAKEOFF,
+		TAKEOFF_STATE_TAKEOFF_ED_LOITER,
+		TAKEOFF_STATE_NAVIGATION,
+		TAKEOFF_STATE_NAVIGATION_ED_LOITER,
+		///////////////////////////////////////////////C轨迹时需要
+//		TAKEOFF_STATE_NAVIGATION_1,
+//		TAKEOFF_STATE_NAVIGATION_1_ED_LOITER,
+//		TAKEOFF_STATE_NAVIGATION_2,
+//		TAKEOFF_STATE_NAVIGATION_2_ED_LOITER,
+		/////////////////////////////////////////////
+		TAKEOFF_STATE_LAND,
+		TAKEOFF_STATE_LAND_ED,
+	}takeoff_state;//takeoff状态标志位
+
+	bool take_off_lock;//起飞解锁标志位
+	bool takeoff_ed_flag;
+
+	uint64_t takeoff_timestamp_takeoff_ed;
+
+
+
+	control::BlockParamFloat _param_min_alt;
+	control::BlockParamFloat _param_rtl_min_dist;
 
 	void set_takeoff_position();
 };

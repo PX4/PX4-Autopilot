@@ -1736,6 +1736,11 @@ MPU6000::cycle()
 }
 #endif
 
+// 周期性延迟100ms后以_call_intercal这个周期调用MPU6000::measure_trampoline这个函数
+// measure_trampoline又调用measure。
+// 从而实现一直读取传感器的数值
+// 即可以通过MPU000::ioctl来调用measure函数
+
 void
 MPU6000::measure_trampoline(void *arg)
 {
@@ -1838,6 +1843,10 @@ MPU6000::measure()
 	 */
 
 	// sensor transfer at high clock speed
+	// 时钟频率
+
+	// set_frequency(MPU6000_HIGH_BUS_SPEED);
+	
 
 	if (sizeof(mpu_report) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED),
 			(uint8_t *)&mpu_report,

@@ -1230,6 +1230,7 @@ MPU6500::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU6500_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
+			// 设置测量的采样周期
 			default: {
 					/* do we need to start internal polling? */
 					bool want_start = (_call_interval == 0);
@@ -1270,6 +1271,7 @@ MPU6500::ioctl(struct file *filp, int cmd, unsigned long arg)
 					_call.period = _call_interval - MPU6500_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
+					// 传感器开始工作
 					if (want_start) {
 						start();
 					}
@@ -2058,6 +2060,7 @@ void	usage();
 void
 start(bool external_bus, enum Rotation rotation, int range)
 {
+	// 路径
 	int fd;
 	MPU6500 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 	const char *path_accel = external_bus ? MPU_DEVICE_PATH_ACCEL_EXT : MPU_DEVICE_PATH_ACCEL;
@@ -2085,10 +2088,12 @@ start(bool external_bus, enum Rotation rotation, int range)
 		goto fail;
 	}
 
+	// 注册设备名
 	if (OK != (*g_dev_ptr)->init()) {
 		goto fail;
 	}
 
+	// 打开设备
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(path_accel, O_RDONLY);
 
@@ -2096,6 +2101,7 @@ start(bool external_bus, enum Rotation rotation, int range)
 		goto fail;
 	}
 
+	// 操作传感器
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}

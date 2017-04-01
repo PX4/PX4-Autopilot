@@ -25,6 +25,12 @@ enum spi_mode_e {
 	SPIDEV_MODE2,       /* CPOL=1 CHPHA=0 */
 	SPIDEV_MODE3        /* CPOL=1 CHPHA=1 */
 };
+// CPOL 时钟极性 
+// CPOL=0时， SCK在空闲状态时为低电平，CPOL=1时，则相反。
+// CPHA 时钟相位
+// 时钟相位CPHA是指数据的采样的时刻，
+// 当CPHA=0时，MOSI或MISO数据线上的信号将会在SCK时钟线的奇数跳变沿被采样
+
 struct spi_dev_s {
 	int unused;
 };

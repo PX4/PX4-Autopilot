@@ -33,6 +33,11 @@
 
 /**
  * UTC offset (unit: min)
+ * 世界时偏移量
+ *
+ * 北京时区为东八区，比世界时快8个小时
+ *
+ * 本地时间 = UTC + 时间差
  *
  * the difference in hours and minutes from Coordinated
  * Universal Time (UTC) for a your place and date.

@@ -125,7 +125,7 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_MPU		4
 #define PX4_SPIDEV_HMC		5
 #define PX4_SPIDEV_LIS		7
-#define	PX4_SPIDEV_BMI		8
+#define PX4_SPIDEV_BMI		8
 
 /* External bus */
 #define PX4_SPIDEV_EXT0		1
