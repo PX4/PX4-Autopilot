@@ -43,11 +43,19 @@
 #include <sys/queue.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
+#include <time.h>
 #include "perf_counter.h"
 
 #ifdef __PX4_QURT
 // There is presumably no dprintf on QURT. Therefore use the usual output to mini-dm.
 #define dprintf(_fd, _text, ...) ((_fd) == 1 ? PX4_INFO((_text), ##__VA_ARGS__) : (void)(_fd))
+#endif
+
+#ifdef __PX4_POSIX
+#define HRT_ABSOLUTE_TIME(type) \
+	(((type) == PC_CONSUMED) ? hrt_cpu_time() : hrt_absolute_time())
+#else
+#define HRT_ABSOLUTE_TIME(type) hrt_absolute_time()
 #endif
 
 /**
@@ -68,7 +76,7 @@ struct perf_ctr_count {
 };
 
 /**
- * PC_ELAPSED counter.
+ * PC_ELAPSED counter. (PC_CONSUMED uses the same structure)
  */
 struct perf_ctr_elapsed {
 	struct perf_ctr_header	hdr;
@@ -114,6 +122,13 @@ perf_alloc(enum perf_counter_type type, const char *name)
 
 	case PC_ELAPSED:
 		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+		break;
+
+	case PC_CONSUMED:
+
+#ifdef __PX4_POSIX
+		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+#endif
 		break;
 
 	case PC_INTERVAL:
@@ -183,7 +198,7 @@ perf_count(perf_counter_t handle)
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			hrt_abstime now = hrt_absolute_time();
+			hrt_abstime now = HRT_ABSOLUTE_TIME(PC_INTERVAL);
 
 			switch (pci->event_count) {
 			case 0:
@@ -237,7 +252,11 @@ perf_begin(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_ELAPSED:
-		((struct perf_ctr_elapsed *)handle)->time_start = hrt_absolute_time();
+		((struct perf_ctr_elapsed *)handle)->time_start = HRT_ABSOLUTE_TIME(PC_ELAPSED);
+		break;
+
+	case PC_CONSUMED:
+		((struct perf_ctr_elapsed *)handle)->time_start = HRT_ABSOLUTE_TIME(PC_CONSUMED);
 		break;
 
 	default:
@@ -253,11 +272,12 @@ perf_end(perf_counter_t handle)
 	}
 
 	switch (handle->type) {
-	case PC_ELAPSED: {
+	case PC_ELAPSED:
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			if (pce->time_start != 0) {
-				int64_t elapsed = hrt_absolute_time() - pce->time_start;
+				int64_t elapsed = HRT_ABSOLUTE_TIME(handle->type) - pce->time_start;
 
 				if (elapsed >= 0) {
 
@@ -360,7 +380,8 @@ perf_cancel(perf_counter_t handle)
 	}
 
 	switch (handle->type) {
-	case PC_ELAPSED: {
+	case PC_ELAPSED:
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			pce->time_start = 0;
@@ -386,7 +407,8 @@ perf_reset(perf_counter_t handle)
 		((struct perf_ctr_count *)handle)->event_count = 0;
 		break;
 
-	case PC_ELAPSED: {
+	case PC_ELAPSED:
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			pce->event_count = 0;
 			pce->time_start = 0;
@@ -433,7 +455,8 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 			(unsigned long long)((struct perf_ctr_count *)handle)->event_count);
 		break;
 
-	case PC_ELAPSED: {
+	case PC_ELAPSED:
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
@@ -477,7 +500,8 @@ perf_event_count(perf_counter_t handle)
 	case PC_COUNT:
 		return ((struct perf_ctr_count *)handle)->event_count;
 
-	case PC_ELAPSED: {
+	case PC_ELAPSED:
+	case PC_CONSUMED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			return pce->event_count;
 		}

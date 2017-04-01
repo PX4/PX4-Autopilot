@@ -224,6 +224,32 @@ __EXPORT hrt_abstime hrt_reset(void)
 }
 
 /*
+ * Get cpu time.
+ */
+hrt_abstime hrt_cpu_time(void)
+{
+#ifdef __PX4_POSIX
+	clockid_t cid;
+	int s;
+
+	s = pthread_getcpuclockid(pthread_self(), &cid);
+
+	if (s == 0) {
+		struct timespec ts;
+
+		if (clock_gettime(cid, &ts) == 0) {
+			return ts_to_abstime(&ts);
+		}
+	}
+
+	return 0;
+#else
+	PX4_ERR("hrt_cpu_time: not Implemented for current platform");
+	return -1;
+#endif
+}
+
+/*
  * Convert a timespec to absolute time.
  */
 hrt_abstime ts_to_abstime(struct timespec *ts)
@@ -587,4 +613,3 @@ hrt_call_invoke(void)
 
 	hrt_unlock();
 }
-

@@ -83,6 +83,11 @@ typedef struct hrt_call {
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
 
 /**
+ * Get cpu time in [us].
+ */
+__EXPORT extern hrt_abstime hrt_cpu_time(void);
+
+/**
  * Convert a timespec to absolute time.
  */
 __EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
