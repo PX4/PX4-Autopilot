@@ -2,7 +2,12 @@ include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+
+if("$ENV{PX4_USE_CLANG}" STREQUAL "1")
+	set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi-clang.cmake)
+else()
+	set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+endif()
 
 set(config_uavcan_num_ifaces 2)
 

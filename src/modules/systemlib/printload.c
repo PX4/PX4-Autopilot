@@ -231,8 +231,8 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 #endif
 				dprintf(fd, "%sUptime: %.3fs total, %.3fs idle\n%s\n",
 					clear_line,
-					(double)curr_time_us / 1000000.d,
-					(double)idle_time_us / 1000000.d,
+					(double)curr_time_us / 1000000.,
+					(double)idle_time_us / 1000000.,
 					clear_line);
 				/* header for task list */
 				dprintf(fd, "%s%4s %*-s %8s %6s %11s %10s %-6s\n",

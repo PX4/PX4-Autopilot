@@ -240,6 +240,8 @@ public:
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void print_info(void);
 	void hard_reset();
+	void _turn_on();
+	void _freeze_test();
 
 private:
 	uint32_t _error_count;
@@ -255,10 +257,7 @@ private:
 	hrt_call _freeze_test_call;	/* HRT callout for note completion */
 
 	void _timer_init(void);
-
-	void _turn_on();
 	void _turn_off();
-	void _freeze_test();
 
 };
 
@@ -294,6 +293,12 @@ PWMIN::~PWMIN()
  * to be started in init scripts when the user may be using the input
  * pin as PWM output
  */
+
+static void _freeze_test()
+{
+	g_dev->_freeze_test();
+}
+
 int
 PWMIN::init()
 {
@@ -308,7 +313,7 @@ PWMIN::init()
 	}
 
 	/* Schedule freeze check to invoke periodically */
-	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, reinterpret_cast<hrt_callout>(&PWMIN::_freeze_test), this);
+	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, (hrt_callout)(::_freeze_test), this);
 
 	return OK;
 }
@@ -402,11 +407,16 @@ PWMIN::_turn_off()
 }
 
 // XXX refactor this out of this driver
+static void _turn_on()
+{
+	g_dev->_turn_on();
+}
+
 void
 PWMIN::hard_reset()
 {
 	_turn_off();
-	hrt_call_after(&_hard_reset_call, 9000, reinterpret_cast<hrt_callout>(&PWMIN::_turn_on), this);
+	hrt_call_after(&_hard_reset_call, 9000, (hrt_callout)(::_turn_on), this);
 }
 
 /*

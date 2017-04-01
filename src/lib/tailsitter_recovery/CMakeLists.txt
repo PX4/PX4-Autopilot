@@ -32,7 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE lib__tailsitter_recovery
-	STACK_MAIN 400
+	STACK_MAIN 600
 	COMPILE_FLAGS
 	SRCS
 		tailsitter_recovery.cpp

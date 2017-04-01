@@ -60,6 +60,11 @@ if(${OS} STREQUAL "nuttx")
 		flashparams/flashfs.c
 		up_cxxinitialize.c
 		)
+
+	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*" OR ${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
+		list(APPEND SRCS clang.c)
+	endif()
+
 elseif ("${CONFIG_SHMEM}" STREQUAL "1")
 	list(APPEND SRCS
 		param/param_shmem.c

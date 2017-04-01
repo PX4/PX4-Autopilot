@@ -99,6 +99,10 @@ set(srcs
 	../../drivers/boards/${config_io_board}/px4io_timer_config.c
 	)
 
+if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*" OR ${CMAKE_CXX_COMPILER_ID} MATCHES ".*Clang.*")
+	list(APPEND srcs ../systemlib/clang.c)
+endif()
+
 if(${config_io_board} STREQUAL "px4io-v1")
 	list(APPEND srcs
 		i2c.c
@@ -144,4 +148,4 @@ add_custom_target(fw_io
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin)
 
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
