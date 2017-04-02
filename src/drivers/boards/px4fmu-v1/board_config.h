@@ -56,6 +56,7 @@
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       1
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
+#define PX4_FLASH_CONSTRAINED_SYSTEM
 
 //#ifdef CONFIG_STM32_SPI2
 //#  error "SPI2 is not supported on this board"

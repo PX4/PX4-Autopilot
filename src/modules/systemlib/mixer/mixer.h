@@ -135,6 +135,9 @@
 
 #include "mixer_load.h"
 
+#include "mixer_types.h"
+
+
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
@@ -212,6 +215,52 @@ public:
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {};
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	/**
+	 * Writes a description of the mixer configuration which can be read with from_text
+	 *
+	 * @param buf   		The buffer to write the description to.
+	 * @param buflen   		The buffer size available.  Modfied to buffer length used.
+	* @return              0 if succeeded. Otherwise non zero.
+	 */
+	virtual int             to_text(char *buf, unsigned &buflen) {return -1;}
+
+	/**
+	* gets a mixer parameter and metadata
+	 *
+	* @param param         Contains parameter address.  Data returned in structure.
+	* @return              Count of parameters read.  -1 if error
+	 */
+	virtual int16_t        get_parameter(mixer_param_s *param) {return false;}
+
+	/**
+	 * sets mixer parameter array values
+	 *
+	* @param param         Message including all information required to set values
+	* @return              Count of parameters written.  <0 if error
+	 */
+	virtual int16_t         set_parameter(mixer_param_s *param) {return -1;}
+#endif  //MIXER_REMOTE
+
+	/**
+	* Get a count of parameters for this mixer
+	 *
+	* @return              A count of parameters for the mixer
+	 */
+	virtual int16_t         parameter_count(void) {return 0;}
+
+	/**
+	 * sets an array value in a mixer parameter
+	 *
+	* @param paramIndex    The mixer index for the parameter
+	* @param arrayIndex    Index of the array value to set
+	* @param value         The value to set
+	* @return              negative on error
+	 */
+	virtual int16_t        set_param_value(int16_t paramIndex, int16_t arrayIndex, float value) {return -1;}
+
+#endif //defined(MIXER_TUNING)
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -391,6 +440,58 @@ public:
 	 */
 	virtual void	set_thrust_factor(float val);
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	/**
+	* @brief               Generates text in buffer describing the mixer settings compatible
+	*                      with load_from_buf
+	 *
+	* @param[in]   buf		The mixer configuration buffer.
+	* @param       buflen	The length of the buffer, updated to reflect
+	 *                      the bytes written
+	 * @return              Zero on successful save, nonzero otherwise.
+	 *
+	 */
+	int                 save_to_buf(char *buf, unsigned &buflen);
+
+	/**
+	* @brief                   Get the value of a mixer parameter
+	 *
+	* @param[in] index         Index to get the parameter from
+	* @param[out] values       Array of parameter values
+	* @return                  0 if ok, <0 for failure
+	 */
+	int16_t group_get_param(mixer_param_s *param);
+
+	/**
+	* @brief                       Get the count of parameters in the group
+	* @return                      Return count, -1 on failure.
+	 */
+	int16_t group_param_count();
+
+	/**
+	* @brief                       Set the value of a mixer parameter
+	 *
+	* @param[in]   index           index of param to set
+	* @param[in]   values          values to set parameter to
+	* @return                      Zero on success, -1 on failure.
+	 */
+	int16_t group_set_param(mixer_param_s *param);
+
+#endif  //MIXER_REMOTE
+
+	/**
+	 * sets an array value in a mixer parameter
+	 *
+	* @param index         The group parameter index
+	* @param arrayIndex    Index of the array value to set
+	* @param value         The value to set
+	* @return              negative on error
+	 */
+	int16_t        group_set_param_value(int16_t index, int16_t arrayIndex, float value);
+
+#endif //defined(MIXER_TUNING)
+
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
@@ -434,6 +535,11 @@ public:
 		return 0;
 	}
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+#endif //MIXER_REMOTE
+#endif //defined(MIXER_TUNING)
 };
 
 /**
@@ -501,6 +607,16 @@ public:
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	int16_t                 get_parameter(mixer_param_s *param);
+	int16_t                 set_parameter(mixer_param_s *param);
+#endif //MIXER_REMOTE
+	int16_t                 parameter_count(void);
+	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);
+#endif //defined(MIXER_TUNING)
+
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
 	 *
@@ -538,6 +654,17 @@ private:
 typedef unsigned int MultirotorGeometryUnderlyingType;
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
 
+
+/** multirotor mixer info */
+struct mixer_multi_s {
+	float   roll_scale;
+	float   pitch_scale;
+	float   yaw_scale;
+	float   idle_speed;
+	MultirotorGeometry geometry;
+};
+
+
 /**
  * Multi-rotor mixer for pre-defined vehicle geometries.
  *
@@ -568,7 +695,7 @@ public:
 	 *				compared to thrust.
 	 * @param pitch_scale		Scaling factor applied to pitch inputs
 	 *				compared to thrust.
-	 * @param yaw_wcale		Scaling factor applied to yaw inputs compared
+	 * @param yaw_scale		Scaling factor applied to yaw inputs compared
 	 *				to thrust.
 	 * @param idle_speed		Minimum rotor control output value; usually
 	 *				tuned to ensure that rotors never stall at the
@@ -581,6 +708,18 @@ public:
 			float pitch_scale,
 			float yaw_scale,
 			float idle_speed);
+
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle         Passed to control_cb.
+	 * @param mixer_multi_s*    mixer info
+	 */
+	MultirotorMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			mixer_multi_s *mixer_info);
+
 	~MultirotorMixer();
 
 	/**
@@ -632,6 +771,16 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	int                     to_text(char *buf, unsigned &buflen);
+	int16_t                 get_parameter(mixer_param_s *param);
+	int16_t                 set_parameter(mixer_param_s *param);
+#endif //MIXER_REMOTE
+	int16_t                 parameter_count(void);
+	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);
+#endif //defined(MIXER_TUNING)
+
 private:
 	float				_roll_scale;
 	float				_pitch_scale;
@@ -664,6 +813,8 @@ private:
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+
+	MultirotorGeometry  _geometry;
 
 	float 				*_outputs_prev = nullptr;
 

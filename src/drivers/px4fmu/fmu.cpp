@@ -336,7 +336,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
-	_rc_in{},
+	_rc_in {},
 	_analog_rc_rssi_volt(-1.0f),
 	_analog_rc_rssi_stable(false),
 	_to_input_rc(nullptr),
@@ -2503,6 +2503,51 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			break;
 		}
+
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
+
+	case MIXERIOCGETPARAMCOUNT: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			int *count = (int *)arg;
+			*count = _mixers->group_param_count();
+
+			break;
+		}
+
+	case MIXERIOCGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->group_get_param(param);
+			break;
+		}
+
+	case MIXERIOCSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->group_set_param(param);
+			break;
+		}
+
+	case MIXERIOCGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
+			break;
+		}
+
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;

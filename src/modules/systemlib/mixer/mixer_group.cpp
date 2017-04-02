@@ -273,3 +273,126 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 		mixer = mixer->_next;
 	}
 }
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+int
+MixerGroup::save_to_buf(char *buf, unsigned &buflen)
+{
+	Mixer       *mixer = _first;
+	char       *bufpos = buf;
+	unsigned    remaining = buflen;
+	unsigned    len;
+
+	while (mixer != NULL) {
+		/* len is remaining buffer length but modified
+		 * to the actual bytes written to the buffer */
+		len = remaining;
+
+		if (mixer->to_text(bufpos, len) == 0) {
+			bufpos += len;
+			remaining -= len;
+
+		} else {
+			return -1;
+		}
+
+		mixer = mixer->_next;
+	}
+
+	return buflen -= remaining;
+}
+
+int16_t
+MixerGroup::group_param_count()
+{
+	Mixer	*mixer = _first;
+	int16_t param_count = 0;
+
+	while ((mixer != nullptr)) {
+		param_count += mixer->parameter_count();
+		mixer = mixer->_next;
+	}
+
+	return param_count;
+}
+
+
+int16_t
+MixerGroup::group_get_param(mixer_param_s *param)
+{
+	Mixer	 *mixer = _first;
+	uint16_t remaining = param->index;
+	uint16_t mix_param_count;
+	param->mix_sub_index = -1;
+	param->mix_type = MIXER_TYPES_NONE;
+	strcpy(param->name, "NONE");
+	param->mix_index = 0;
+
+	while ((mixer != nullptr)) {
+		mix_param_count = mixer->parameter_count();
+
+		if (remaining < mix_param_count) {
+			param->param_index = remaining;
+			return mixer->get_parameter(param);
+		}
+
+		remaining -= mix_param_count;
+		param->mix_index++;
+		mixer = mixer->_next;
+	}
+
+	return -1;
+}
+
+
+int16_t
+MixerGroup::group_set_param(mixer_param_s *param)
+{
+	Mixer	 *mixer = _first;
+	uint16_t remaining = param->index;
+	uint16_t mix_param_count;
+
+	param->mix_index = 0;
+
+	while ((mixer != nullptr)) {
+		mix_param_count = mixer->parameter_count();
+
+		if (remaining < mix_param_count) {
+			param->param_index = remaining;
+			return mixer->set_parameter(param);
+		}
+
+		remaining -= mix_param_count;
+		param->mix_index++;
+		mixer = mixer->_next;
+	}
+
+	return -1;
+}
+
+#endif //MIXER_REMOTE
+
+int16_t
+MixerGroup::group_set_param_value(int16_t index, int16_t arrayIndex, float value)
+{
+	Mixer	 *mixer = _first;
+	uint16_t remaining = index;
+	uint16_t mix_param_count;
+
+	while ((mixer != nullptr)) {
+		mix_param_count = mixer->parameter_count();
+
+		if (remaining < mix_param_count) {
+			return mixer->set_param_value(remaining, arrayIndex, value);
+		}
+
+		remaining -= mix_param_count;
+		mixer = mixer->_next;
+	}
+
+	return -1;
+}
+
+
+#endif //defined(MIXER_TUNING)
