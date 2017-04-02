@@ -15,7 +15,7 @@
 # include <nuttx/irq.h>
 # include <arch/board/board.h>
 #elif UAVCAN_STM32_BAREMETAL
-#include <chip.h>
+#include <chip.h>	// See http://uavcan.org/Implementations/Libuavcan/Platforms/STM32/
 #elif UAVCAN_STM32_FREERTOS
 #else
 # error "Unknown OS"

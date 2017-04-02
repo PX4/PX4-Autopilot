@@ -14,7 +14,7 @@
 # include <chip/stm32_tim.h>
 # include <syslog.h>
 #elif UAVCAN_STM32_BAREMETAL
-#include <chip.h>
+#include <chip.h>	// See http://uavcan.org/Implementations/Libuavcan/Platforms/STM32/
 #elif UAVCAN_STM32_FREERTOS
 # include <chip.h>
 # include <cmsis_os.h>
