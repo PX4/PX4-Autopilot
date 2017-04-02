@@ -310,17 +310,6 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
-
-
-		if (mixed  && new_fmu_data) {
-			new_fmu_data = false;
-
-			/* Trigger all timer's channels in Oneshot mode to fire
-			 * the oneshots with updated values.
-			 */
-
-			up_pwm_update();
-		}
 	}
 
 	/* set arming */
@@ -380,6 +369,26 @@ mixer_tick(void)
 			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
+
+#if defined(MIXER_TUNING)
+
+	if (update_mixer_param) {
+		union {
+			uint16_t words[2];
+			float	 value;
+		} unpack;
+
+		unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
+		unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
+
+		mixer_group.group_set_param_value(r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+						  r_page_setup[PX4IO_P_SETUP_PARAMETER_ARRAY_INDEX],
+						  unpack.value);
+		update_mixer_param = false;
+	}
+
+#endif //MIXER_TUNING			r_mixer_crc_ok = 0;
+
 }
 
 static int
@@ -615,4 +624,22 @@ mixer_set_failsafe()
 		r_page_servo_failsafe[i] = 0;
 	}
 
+#if defined(MIXER_TUNING)
+
+	if (update_mixer_param) {
+		union {
+			uint16_t words[2];
+			float	 value;
+		} unpack;
+
+		unpack.words[0] = r_page_setup[PX4IO_P_SETUP_PARAMETER];
+		unpack.words[1] = r_page_setup[PX4IO_P_SETUP_PARAMETER_HIGH];
+
+		mixer_group.group_set_param_value(r_page_setup[PX4IO_P_SETUP_PARAMETER_INDEX],
+						  r_page_setup[PX4IO_P_SETUP_PARAMETER_ARRAY_INDEX],
+						  unpack.value);
+		update_mixer_param = false;
+	}
+
+#endif //MIXER_TUNING			r_mixer_crc_ok = 0;
 }

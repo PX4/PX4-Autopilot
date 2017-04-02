@@ -51,16 +51,6 @@
 #include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
-//#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
-//#include <systemlib/mixer/mixer_parameters.h>
-//#include <systemlib/mixer/mixer_type_id.h>
-//#include <systemlib/mixer/mixer_io.h>
-//static const char *mixer_parameter_table[][MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_TABLE;
-//static const unsigned mixer_parameter_count[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_PARAMETER_COUNTS;
-//static const unsigned mixer_input_counts[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_INPUT_COUNTS;
-//static const unsigned mixer_output_counts[MIXER_PARAMETERS_MIXER_TYPE_COUNT] = MIXER_OUTPUT_COUNTS;
-//#endif //defined(MIXER_TUNING)
-
 /**
  * Mixer utility for loading mixer files to devices
  *
@@ -128,7 +118,7 @@ mixer_main(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(argv[1], "params")) {
-		if (argc < 2) {
+		if (argc < 3) {
 			usage("missing device");
 			return 1;
 		}
@@ -167,7 +157,7 @@ mixer_main(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(argv[1], "config")) {
-		if (argc < 2) {
+		if (argc < 3) {
 			usage("missing device: usage 'mixer config <device>'");
 			return 1;
 		}
