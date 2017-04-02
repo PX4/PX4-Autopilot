@@ -15,14 +15,14 @@
 # include <nuttx/irq.h>
 # include <arch/board/board.h>
 #elif UAVCAN_STM32_BAREMETAL
-#include <chip.h>
+#include <chip.h>	// See http://uavcan.org/Implementations/Libuavcan/Platforms/STM32/
 #elif UAVCAN_STM32_FREERTOS
 #else
 # error "Unknown OS"
 #endif
 
 #if (UAVCAN_STM32_CHIBIOS && CH_KERNEL_MAJOR == 2) || UAVCAN_STM32_BAREMETAL
-# if !(defined(STM32F10X_CL) || defined(STM32F2XX) || defined(STM32F4XX))
+# if !(defined(STM32F10X_CL) || defined(STM32F2XX) || defined(STM32F3XX)  || defined(STM32F4XX))
 // IRQ numbers
 #  define CAN1_RX0_IRQn USB_LP_CAN1_RX0_IRQn
 #  define CAN1_TX_IRQn USB_HP_CAN1_TX_IRQn
@@ -64,6 +64,9 @@ static int can2_irq(const int irq, void*);
 #define CAN1_TX_IRQn           CAN_TX_IRQn
 #define CAN1_RX0_IRQn          CAN_RX0_IRQn
 #define CAN1_RX1_IRQn          CAN_RX1_IRQn
+#define CAN1_TX_IRQHandler     CAN_TX_IRQHandler
+#define CAN1_RX0_IRQHandler    CAN_RX0_IRQHandler
+#define CAN1_RX1_IRQHandler    CAN_RX1_IRQHandler
 #endif
 
 
