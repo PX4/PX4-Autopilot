@@ -928,10 +928,11 @@ pwm_main(int argc, char *argv[])
 			if (group_mask != 0) {
 				printf("channel group %u: channels", i);
 
-				for (unsigned j = 0; j < 32; j++)
+				for (unsigned j = 0; j < 32; j++) {
 					if (group_mask & (1 << j)) {
 						printf(" %u", j + 1);
 					}
+				}
 
 				printf("\n");
 			}
