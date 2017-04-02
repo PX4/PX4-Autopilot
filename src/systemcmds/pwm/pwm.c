@@ -680,11 +680,13 @@ pwm_main(int argc, char *argv[])
 
 			usleep(2542);
 
+#ifdef __PX4_NUTTX
 			/* Trigger all timer's channels in Oneshot mode to fire
 			 * the oneshots with updated values.
 			 */
 
 			up_pwm_update();
+#endif
 		}
 
 		return 0;
