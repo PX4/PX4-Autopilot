@@ -221,18 +221,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
- * Back transition MC motor ramp up time
- *
- * @unit s
- * @min 0.00
- * @max 20.00
- * @increment 1
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 2.0f);
-
-/**
  * Transition blending airspeed
  *
  * Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
