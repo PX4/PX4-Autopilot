@@ -1105,7 +1105,7 @@ void Ekf::controlMagFusion()
 			// do no magnetometer fusion at all
 			_control_status.flags.mag_hdg = false;
 			_control_status.flags.mag_3D = false;
-		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO) {
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO || _params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			bool height_achieved = (_last_on_ground_posD - _state.pos(2)) > 1.5f;
 
