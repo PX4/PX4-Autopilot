@@ -307,7 +307,7 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 
 
 void
-MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count)
+MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type)
 {
 	_time_last_sent = hrt_absolute_time();
 
@@ -316,6 +316,7 @@ MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_
 	wpc.target_system = sysid;
 	wpc.target_component = compid;
 	wpc.count = count;
+	wpc.mission_type = mission_type;
 
 	mavlink_msg_mission_count_send_struct(_mavlink->get_channel(), &wpc);
 
@@ -542,7 +543,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		   && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
 		if (_transfer_seq == 0) {
 			/* try to send items count again after timeout */
-			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count);
+			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count, _mission_type);
 
 		} else {
 			/* try to send item again after timeout */
@@ -750,7 +751,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 				if (_verbose) { warnx("WPM: MISSION_REQUEST_LIST OK nothing to send, mission is empty"); }
 			}
 
-			send_mission_count(msg->sysid, msg->compid, _transfer_count);
+			send_mission_count(msg->sysid, msg->compid, _transfer_count, _mission_type);
 
 		} else {
 			if (_verbose) { warnx("WPM: MISSION_REQUEST_LIST ERROR: busy"); }
@@ -1530,6 +1531,7 @@ void MavlinkMissionManager::check_active_mission()
 		if (_verbose) { warnx("WPM: New mission detected (possibly over different Mavlink instance) Updating"); }
 
 		_my_dataman_id = _dataman_id;
-		send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[(uint8_t)MAV_MISSION_TYPE_MISSION]);
+		send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[(uint8_t)MAV_MISSION_TYPE_MISSION],
+				   MAV_MISSION_TYPE_MISSION);
 	}
 }
