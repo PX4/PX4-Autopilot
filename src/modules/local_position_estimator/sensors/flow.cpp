@@ -39,28 +39,26 @@ void BlockLocalPositionEstimator::flowInit()
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
 	// check for sane pitch/roll
+	// TODO: allow user to specify range with a parameter
 	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
-		warnx("f1");
 		return -1;
 	}
 
-	// // check for agl
-	// if (agl() < flow_min_agl) {
-	// 	warnx("f2");
-	// 	return -1;
-	// }
+	// check for agl only if fusing it
+	if (FUSE_PUB_AGL_Z && (agl() < flow_min_agl)) {
+		warnx("f2");
+		return -1;
+	}
 
 	// check quality
 	float qual = _sub_flow.get().quality;
 
 	if (qual < _flow_min_q.get()) {
-		warnx("f2");
 		return -1;
 	}
 
 	// calculate range to center of image for flow
 	if (!(_estimatorInitialized & EST_TZ)) {
-		warnx("f3");
 		return -1;
 	}
 

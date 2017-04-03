@@ -48,6 +48,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_sonar(nullptr),
 
 	// publications
+	_lpe_est_pub(nullptr),
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
@@ -269,6 +270,7 @@ void BlockLocalPositionEstimator::update()
 
 	// }
 
+	// TODO: check if useful this
 	if (false && !_lastArmedState && armedState) {
 
 		// we just armed, we are at origin on the ground
@@ -347,6 +349,17 @@ void BlockLocalPositionEstimator::update()
 
 		warnx("flowUpdated: %d | flow qual: %.4f | _estimatorInitialized : %.4f", flowUpdated, (double)qual, (double) _estimatorInitialized );
 	}
+
+
+	// /* lazily publish data only once available */
+	// if (_lpe_est_pub != nullptr) {
+	// 	/* publish the attitude rates setpoint */
+	// 	orb_publish(_rates_sp_id, _lpe_est_pub, &_rates_sp);
+
+	// } else if (_rates_sp_id) {
+	// 	/* advertise the attitude rates setpoint */
+	// 	_lpe_est_pub = orb_advertise(_rates_sp_id, &_rates_sp);
+	// }
 
 	
 	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {

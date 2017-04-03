@@ -250,6 +250,7 @@ private:
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
 
 	// publications
+	orb_advert_t	_lpe_est_pub;			/**< lpe estimator data publication */
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
