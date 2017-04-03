@@ -729,7 +729,7 @@ MultirotorMixer::set_parameter(mixer_param_s *param)
 
 
 int16_t
-MultirotorMixer::parameter_count(void)
+MultirotorMixer::parameter_count()
 {
 	return 4 + _rotor_count * 4;
 }

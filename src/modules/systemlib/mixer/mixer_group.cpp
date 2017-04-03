@@ -284,7 +284,7 @@ MixerGroup::save_to_buf(char *buf, unsigned &buflen)
 	unsigned    remaining = buflen;
 	unsigned    len;
 
-	while (mixer != NULL) {
+	while (mixer != nullptr) {
 		/* len is remaining buffer length but modified
 		 * to the actual bytes written to the buffer */
 		len = remaining;
