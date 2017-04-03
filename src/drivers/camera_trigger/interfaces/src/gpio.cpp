@@ -1,9 +1,9 @@
 #ifdef __PX4_NUTTX
-#include "relay.h"
+#include "gpio.h"
 
-constexpr uint32_t CameraInterfaceRelay::_gpios[6];
+constexpr uint32_t CameraInterfaceGPIO::_gpios[6];
 
-CameraInterfaceRelay::CameraInterfaceRelay():
+CameraInterfaceGPIO::CameraInterfaceGPIO():
 	CameraInterface(),
 	_pins{},
 	_polarity(0)
@@ -39,11 +39,11 @@ CameraInterfaceRelay::CameraInterfaceRelay():
 	setup();
 }
 
-CameraInterfaceRelay::~CameraInterfaceRelay()
+CameraInterfaceGPIO::~CameraInterfaceGPIO()
 {
 }
 
-void CameraInterfaceRelay::setup()
+void CameraInterfaceGPIO::setup()
 {
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
 		px4_arch_configgpio(_gpios[_pins[i]]);
@@ -51,7 +51,7 @@ void CameraInterfaceRelay::setup()
 	}
 }
 
-void CameraInterfaceRelay::trigger(bool enable)
+void CameraInterfaceGPIO::trigger(bool enable)
 {
 	if (enable) {
 		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
@@ -71,9 +71,10 @@ void CameraInterfaceRelay::trigger(bool enable)
 	}
 }
 
-void CameraInterfaceRelay::info()
+void CameraInterfaceGPIO::info()
 {
-	warnx("Relay - camera triggering, pins 1-3 : %d,%d,%d polarity : %s", _pins[0], _pins[1], _pins[2],
+	warnx("GPIO trigger mode, AUX pin state 1-6 : [%d][%d][%d][%d][%d][%d], polarity : %s",
+	      _pins[0], _pins[1], _pins[2], _pins[3], _pins[4], _pins[5],
 	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 }
 

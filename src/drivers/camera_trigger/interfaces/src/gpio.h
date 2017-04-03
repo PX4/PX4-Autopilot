@@ -15,11 +15,11 @@
 #include "camera_interface.h"
 
 
-class CameraInterfaceRelay : public CameraInterface
+class CameraInterfaceGPIO : public CameraInterface
 {
 public:
-	CameraInterfaceRelay();
-	virtual ~CameraInterfaceRelay();
+	CameraInterfaceGPIO();
+	virtual ~CameraInterfaceGPIO();
 
 	void trigger(bool enable);
 
