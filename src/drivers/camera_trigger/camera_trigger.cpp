@@ -67,7 +67,7 @@
 
 #include "interfaces/src/camera_interface.h"
 #include "interfaces/src/pwm.h"
-#include "interfaces/src/relay.h"
+#include "interfaces/src/gpio.h"
 
 #define TRIGGER_PIN_DEFAULT 1
 
@@ -75,7 +75,7 @@ extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
 typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
-	CAMERA_INTERFACE_MODE_RELAY,
+	CAMERA_INTERFACE_MODE_GPIO,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
 	CAMERA_INTERFACE_MODE_MAVLINK
 } camera_interface_mode_t;
@@ -224,7 +224,7 @@ CameraTrigger::CameraTrigger() :
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
 	_trigger_pub(nullptr),
-	_camera_interface_mode(CAMERA_INTERFACE_MODE_RELAY),
+	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
 	_camera_interface(nullptr)
 {
 	//Initiate Camera interface basedon camera_interface_mode
@@ -252,8 +252,8 @@ CameraTrigger::CameraTrigger() :
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
 
-	case CAMERA_INTERFACE_MODE_RELAY:
-		_camera_interface = new CameraInterfaceRelay();
+	case CAMERA_INTERFACE_MODE_GPIO:
+		_camera_interface = new CameraInterfaceGPIO();
 		break;
 
 	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:

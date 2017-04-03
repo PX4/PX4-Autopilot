@@ -39,7 +39,7 @@ px4_add_module(
 		camera_trigger.cpp
                 interfaces/src/camera_interface.cpp
                 interfaces/src/pwm.cpp
-                interfaces/src/relay.cpp
+                interfaces/src/gpio.cpp
 	DEPENDS
 		platforms__common
 	)
