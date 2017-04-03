@@ -462,16 +462,24 @@ then
 	fi
 
 	# Sensors on the PWM interface bank
-	# clear pins 5 and 6
 	if param compare SENS_EN_LL40LS 1
 	then
+		# clear pins 5 and 6
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
 	if param greater TRIG_MODE 0
 	then
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
+		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output
+		if param compare TRIG_PINS 56
+		then
+			# clear pins 5 and 6
+			set FMU_MODE pwm4
+			set AUX_MODE pwm4
+		else
+			set FMU_MODE none
+			set AUX_MODE none
+		fi
 		camera_trigger start
 	fi
 
