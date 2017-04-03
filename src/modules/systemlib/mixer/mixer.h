@@ -248,7 +248,7 @@ public:
 	 *
 	* @return              A count of parameters for the mixer
 	 */
-	virtual int16_t         parameter_count(void) {return 0;}
+	virtual int16_t         parameter_count() {return 0;}
 
 	/**
 	 * sets an array value in a mixer parameter
@@ -613,7 +613,7 @@ public:
 	int16_t                 get_parameter(mixer_param_s *param);
 	int16_t                 set_parameter(mixer_param_s *param);
 #endif //MIXER_REMOTE
-	int16_t                 parameter_count(void);
+	int16_t                 parameter_count();
 	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);
 #endif //defined(MIXER_TUNING)
 
@@ -777,7 +777,7 @@ public:
 	int16_t                 get_parameter(mixer_param_s *param);
 	int16_t                 set_parameter(mixer_param_s *param);
 #endif //MIXER_REMOTE
-	int16_t                 parameter_count(void);
+	int16_t                 parameter_count();
 	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);
 #endif //defined(MIXER_TUNING)
 

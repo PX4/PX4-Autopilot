@@ -542,7 +542,7 @@ SimpleMixer::set_parameter(mixer_param_s *param)
 #endif //MIXER_REMOTE
 
 int16_t
-SimpleMixer::parameter_count(void)
+SimpleMixer::parameter_count()
 {
 	return 5 + _pinfo->control_count * 6;
 }

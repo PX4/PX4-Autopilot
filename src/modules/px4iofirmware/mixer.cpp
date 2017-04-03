@@ -310,6 +310,7 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 		}
+
 	}
 
 	/* set arming */

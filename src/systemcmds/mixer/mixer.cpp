@@ -140,13 +140,14 @@ mixer_main(int argc, char *argv[])
 
 		int ret;
 		float params[8];
-		params[0] = (float) strtod(argv[4], 0);
+		params[0] = (float) strtod(argv[4], nullptr);
 
-		if (argc == 5)
+		if (argc == 5) {
 			ret = mixer_param_set(argv[2],
-					      strtoul(argv[3], 0, 10),
+					      strtoul(argv[3], nullptr, 10),
 					      params);
-		else {
+
+		} else {
 			PX4_INFO("No support for more than one array value", argc);
 			return 1;
 		}
