@@ -342,12 +342,12 @@ void BlockLocalPositionEstimator::update()
 	{
 		// warnx("EST_XY: %d | EST_Z: %d | EST_TZ: %d", EST_XY, EST_Z, EST_TZ);
 
-		warnx("_P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
+		warnx("_x(X_z) %.4f | _x(X_tz): %.4f | _P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _x(X_z), (double) _x(X_tz),  (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
 		// warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
 		
 		float qual = _sub_flow.get().quality;
 
-		warnx("flowUpdated: %d | flow qual: %.4f | _estimatorInitialized : %.4f", flowUpdated, (double)qual, (double) _estimatorInitialized );
+		warnx(" flow qual: %.4f | _estimatorInitialized : %.4f", (double)qual, (double) _estimatorInitialized );
 	}
 
 
@@ -553,7 +553,6 @@ void BlockLocalPositionEstimator::update()
 	if (sonarUpdated) {
 		if (_sensorTimeout & SENSOR_SONAR) {
 			sonarInit();
-
 		} else {
 			sonarCorrect();
 		}

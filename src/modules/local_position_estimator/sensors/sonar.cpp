@@ -51,9 +51,11 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 		
 		d =  _sonar_fixed_distance.get();
 
+
 	} else {
 		// measure
 		d = _sub_sonar->get().current_distance;
+		// warnx("d: %.4f", (double) d);
 	}
 
 	
@@ -80,9 +82,9 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	// _sonarStats.reset();
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = d;//(d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
+	y(0) = (d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
 	
-	// warnx("d: %.4f" (double)d );
+	 // warnx("d: %.4f", (double)d );
 
 	return OK;
 }
@@ -123,15 +125,17 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	// _x(X_z) = _sub_sonar->get().current_distance;
 	//  warnx("_x(X_z): %.4f", (double)_x(X_z) );
 	
-	if (_sonar_fixed_distance.get() > 0.0f) 
-	{
-		_x(X_z) = _sonar_fixed_distance.get();
-		_x(X_tz) = _sonar_fixed_distance.get();
-		_x(X_vz) = 0;
-		_P(X_z, X_z) = 0.0001f;
-		_P(X_vz, X_vz) = 0.001f;
-	}
+	// if (_sonar_fixed_distance.get() > 0.0f) 
+	// {
+	// 	_x(X_z) = _sonar_fixed_distance.get();
+	// 	// _x(X_tz) = _sonar_fixed_distance.get() + _baroAltOrigin;
+	// 	warnx("_x(X_tz): %.4f", (double)_x(X_tz));
+	// 	// _x(X_vz) = 0;
+	// 	// _P(X_z, X_z) = 0.02f; //2 cm std deviation
+	// 	// _P(X_vz, X_vz) = 0.001f;
+	// }
 	
+
 	// residual	
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
@@ -164,6 +168,11 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
+
+		// if (_sonar_fixed_distance.get() > 0.0f ) {
+		// 	_x(X_z) = _sonar_fixed_distance.get();
+		// }
+		
 	}
 }
 

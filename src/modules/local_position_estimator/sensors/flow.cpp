@@ -11,14 +11,14 @@ static const uint32_t 		REQ_FLOW_INIT_COUNT = 10;
 static const uint32_t 		FLOW_TIMEOUT = 1000000;	// 1 s
 
 // minimum flow altitude
-static const float flow_min_agl = 0.3;
+static const float flow_min_agl = 0.1f;
 
 void BlockLocalPositionEstimator::flowInit()
 {
 	// measure
 	Vector<float, n_y_flow> y;
 	int result= flowMeasure(y);
-	warnx("flowMeasure(y): %d | OK: %d" , result, OK);
+	// warnx("flowMeasure(y): %d | OK: %d" , result, OK);
 
 	if (result != OK) {
 		_flowQStats.reset();
@@ -45,8 +45,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// check for agl only if fusing it
-	if (FUSE_PUB_AGL_Z && (agl() < flow_min_agl)) {
-		warnx("f2");
+	if ( (_fusion.get() & FUSE_PUB_AGL_Z) && (agl() < flow_min_agl)) {
+		warnx("f2| agl(): %.4f", (double) agl());
 		return -1;
 	}
 
@@ -64,7 +64,14 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 
 	matrix::Eulerf euler = matrix::Quatf(_sub_att.get().q);
 
-	float d = 0.16f;//agl() * cosf(euler.phi()) * cosf(euler.theta());
+	float d;	
+	if (_sonar_fixed_distance.get() > 0.0f) 
+	{
+		d = _sonar_fixed_distance.get();
+	} else {
+		d = agl() * cosf(euler.phi()) * cosf(euler.theta());
+	}
+
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter
