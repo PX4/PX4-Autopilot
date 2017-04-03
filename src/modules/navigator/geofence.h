@@ -43,10 +43,6 @@
 
 #include <cfloat>
 
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/home_position.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 #include <controllib/blocks.hpp>
@@ -141,9 +137,6 @@ public:
 
 private:
 	Navigator	*_navigator{nullptr};
-
-	home_position_s _home_pos{0};
-	bool _home_pos_set{false};
 
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};
