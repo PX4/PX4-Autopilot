@@ -4,10 +4,13 @@
 #  a PX4 binary log file.
 #
 #  This file accepts *.jpg format images and reads position information
-#  from a *.bin file
+#  from a *.px4log file
 #
 #  Example Syntax:
-#  python geotag.py --logfile=log001.bin --input=images/ --output=imagesWithTag/ --offset=-0.4 -v
+#  python geo_tag_images.py --logfile=log001.px4log --input=images/ --output=imagesWithTag/ --offset=-0.4 -v
+#
+#  Optional: Correct image times first
+#              jhead -exonly -ft -n%Y-%m-%d\ %H.%M.%S -ta+HH:MM:SS *.JPG
 #
 #   Author: Hector Azpurua hector@azpurua.com
 #   Based on the script of Andreas Bircher
@@ -54,7 +57,7 @@ class Main:
         self.kml = args['kml']
         self.verbose = args['verbose']
         self.offset = args['offset']
-        self.time_tresh = args['treshold']
+        self.time_thresh = args['threshold']
 
         self.tdiff_list = []
         self.non_processed_files = []
@@ -122,6 +125,21 @@ class Main:
         elapsed = datetime.timedelta(days=(gpsweek * 7), milliseconds=(gpsmillis + leapmillis))
 
         return Main.utc_to_local(epoch + elapsed)
+
+    @staticmethod
+    def unix_microseconds_to_datetime(unix_us, offset=0):
+        """
+        Convert unix microseconds to datetime object, using offset milliseconds if necessary
+        :param unix_us:
+        :param offset:
+        :return:
+        """
+
+        # time in seconds
+        time_s = int(unix_us) / 1000000 + (offset / 1000)
+        datetime_from_unix = datetime.datetime.fromtimestamp(time_s)
+
+        return datetime_from_unix
 
     @staticmethod
     def utc_to_local(utc_dt):
@@ -224,7 +242,7 @@ class Main:
         date = datetime_list[i]
         diff = abs((date - elem).total_seconds())
 
-        if diff > self.time_tresh:
+        if diff > self.time_thresh:
             return -1, diff
 
         return i, diff
@@ -285,13 +303,13 @@ class Main:
                 if len(e) == 2:
                     vdict[e[0]] = float(e[1])
 
-            gps_time = vdict['TimeMS']
-            gps_week = vdict['Week']
+            # PX4 GPS.GPSTime is unix time in microseconds
+            gps_time = vdict['GPSTime']
             gps_lat = vdict['Lat']
-            gps_lon = vdict['Lng']
+            gps_lon = vdict['Lon']
             gps_alt = vdict['Alt']
 
-            date = self.gps_week_seconds_to_datetime(gps_week, gps_time, leapmillis=offset)
+            date = self.unix_microseconds_to_datetime(gps_time, offset)
             gps_list.append(GpsPosition(date, gps_lat, gps_lon, gps_alt))
 
         return gps_list
@@ -380,12 +398,12 @@ class Main:
             '-o', '--output', help='Output folder to contain tagged images.', required=True
         )
         parser.add_argument(
-            '-t', '--treshold', help='Time treshold between the GPS time and the local image time.',
+            '-t', '--threshold', help='Time threshold between the GPS time and the local image time.',
             default=1, required=False, type=float
         )
         parser.add_argument(
             '-of', '--offset', help='Time offset in MILLISECONDS between the GPS time and the local time.',
-            default=-17000, required=False, type=float
+            default=0, required=False, type=float
         )
         parser.add_argument(
             '-kml', '--kml', help='Save the in KML format the information of all tagged images.',
