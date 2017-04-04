@@ -145,7 +145,8 @@ void CameraInterfacePWM::turn_on_off(bool enable)
 
 void CameraInterfacePWM::info()
 {
-	warnx("PWM trigger mode - pin config: %d,%d,%d", _pins[0] + 1, _pins[1] + 1, _pins[2] + 1);
+	PX4_INFO("PWM trigger mode, pins enabled : [%d][%d][%d][%d][%d][%d]",
+		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0]);
 }
 
 #endif /* ifdef __PX4_NUTTX */

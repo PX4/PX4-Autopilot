@@ -73,9 +73,9 @@ void CameraInterfaceGPIO::trigger(bool enable)
 
 void CameraInterfaceGPIO::info()
 {
-	warnx("GPIO trigger mode, AUX pin state 1-6 : [%d][%d][%d][%d][%d][%d], polarity : %s",
-	      _pins[0], _pins[1], _pins[2], _pins[3], _pins[4], _pins[5],
-	      _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
+	PX4_INFO("GPIO trigger mode, pins enabled : [%d][%d][%d][%d][%d][%d], polarity : %s",
+		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0],
+		 _polarity ? "ACTIVE_HIGH" : "ACTIVE_LOW");
 }
 
 #endif /* ifdef __PX4_NUTTX */
