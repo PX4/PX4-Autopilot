@@ -796,39 +796,42 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	irqstate_t flags = px4_enter_critical_section();
 
-	for (unsigned actions = 0; actions < arraySize(action_cache) && action_cache[actions].base != 0 ; actions++) {
-		uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
-		rvalue &= ~action_cache[actions].ccer_clearbits;
-		rvalue |= action_cache[actions].ccer_setbits;
-		_REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET) = rvalue;
-		uint32_t after = rvalue & (GTIM_CCER_CC1E | GTIM_CCER_CC2E | GTIM_CCER_CC3E | GTIM_CCER_CC4E);
 
-		rvalue = _REG32(action_cache[actions].base, STM32_GTIM_DIER_OFFSET);
-		rvalue &= ~action_cache[actions].dier_clearbits;
-		rvalue |= action_cache[actions].dier_setbits;
-		_REG32(action_cache[actions].base, STM32_GTIM_DIER_OFFSET) = rvalue;
+	for (unsigned actions = 0; actions < arraySize(action_cache); actions++) {
+		if (action_cache[actions].base != 0) {
+			uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
+			rvalue &= ~action_cache[actions].ccer_clearbits;
+			rvalue |= action_cache[actions].ccer_setbits;
+			_REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET) = rvalue;
+			uint32_t after = rvalue & (GTIM_CCER_CC1E | GTIM_CCER_CC2E | GTIM_CCER_CC3E | GTIM_CCER_CC4E);
+
+			rvalue = _REG32(action_cache[actions].base, STM32_GTIM_DIER_OFFSET);
+			rvalue &= ~action_cache[actions].dier_clearbits;
+			rvalue |= action_cache[actions].dier_setbits;
+			_REG32(action_cache[actions].base, STM32_GTIM_DIER_OFFSET) = rvalue;
 
 
-		/* Any On ?*/
+			/* Any On ?*/
 
-		if (after != 0) {
+			if (after != 0) {
 
-			/* force an update to preload all registers */
-			rEGR(actions) = GTIM_EGR_UG;
+				/* force an update to preload all registers */
+				rEGR(actions) = GTIM_EGR_UG;
 
-			for (unsigned chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
-				if (action_cache[actions].gpio[chan]) {
-					px4_arch_configgpio(action_cache[actions].gpio[chan]);
-					action_cache[actions].gpio[chan] = 0;
+				for (unsigned chan = 0; chan < arraySize(action_cache[actions].gpio); chan++) {
+					if (action_cache[actions].gpio[chan]) {
+						px4_arch_configgpio(action_cache[actions].gpio[chan]);
+						action_cache[actions].gpio[chan] = 0;
+					}
 				}
+
+				/* arm requires the timer be enabled */
+				rCR1(actions) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
+
+			} else 	{
+
+				rCR1(actions) = 0;
 			}
-
-			/* arm requires the timer be enabled */
-			rCR1(actions) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
-
-		} else 	{
-
-			rCR1(actions) = 0;
 		}
 	}
 
