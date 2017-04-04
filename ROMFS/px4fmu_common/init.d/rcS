@@ -38,7 +38,9 @@ mount -t procfs /proc
 #
 # Start CDC/ACM serial driver
 #
-sercon
+if sercon
+then
+fi
 
 #
 # Default to auto-start mode.
