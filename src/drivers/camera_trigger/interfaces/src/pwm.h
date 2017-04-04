@@ -10,6 +10,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/param/param.h>
+#include <px4_log.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include "camera_interface.h"

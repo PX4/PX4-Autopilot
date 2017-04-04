@@ -11,6 +11,7 @@
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <board_config.h>
+#include <px4_log.h>
 
 #include "camera_interface.h"
 
