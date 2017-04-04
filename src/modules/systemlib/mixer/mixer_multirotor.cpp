@@ -688,6 +688,8 @@ MultirotorMixer::get_parameter(mixer_param_s *param)
 	}
 
 	if (param->mix_sub_index <= _rotor_count) {
+		param->mix_type = MIXER_TYPES_ROTOR;
+
 		switch (param_index) {
 		case 0:
 			param->values[0] =  _rotors[param->mix_sub_index - 1].roll_scale;
