@@ -68,6 +68,10 @@
 
 #include "drv_tap_esc.h"
 
+#if !defined(BOARD_TAP_ESC_NO_VERIFY_CONFIG)
+#  define BOARD_TAP_ESC_NO_VERIFY_CONFIG 0
+#endif
+
 /*
  * This driver connects to TAP ESCs via serial.
  */
@@ -266,7 +270,7 @@ TAP_ESC::init()
 		return ret;
 	}
 
-#if !defined(TAP_ESC_NO_VERIFY_CONFIG)
+#if !BOARD_TAP_ESC_NO_VERIFY_CONFIG
 
 	/* Verify All ESC got the config */
 
@@ -313,7 +317,7 @@ TAP_ESC::init()
 
 	}
 
-#endif //
+#endif
 
 	/* To Unlock the ESC from the Power up state we need to issue 10
 	 * ESCBUS_MSG_ID_RUN request with all the values 0;
