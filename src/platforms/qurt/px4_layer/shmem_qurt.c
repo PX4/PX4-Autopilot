@@ -77,8 +77,8 @@ static unsigned log2_for_int(unsigned v)
 }
 
 struct param_wbuf_s {
-	param_t param;
 	union param_value_u val;
+	param_t param;
 	bool unsaved;
 };
 extern struct param_wbuf_s *param_find_changed(param_t param);

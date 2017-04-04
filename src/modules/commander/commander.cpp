@@ -3230,7 +3230,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	/* driving rgbled */
 	if (changed || last_overload != overload) {
 		uint8_t led_mode = led_control_s::MODE_OFF;
-		uint8_t led_color;
+		uint8_t led_color = led_control_s::COLOR_WHITE;
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
@@ -3242,7 +3242,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			led_color = led_control_s::COLOR_PURPLE;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			led_color = led_control_s::MODE_ON;
+			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
 		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED_ERROR ||
@@ -3257,9 +3257,11 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		} else if (!status_flags.condition_system_sensors_initialized && !hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
-		}else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			// if in init status it should not be in the error state
 			led_mode = led_control_s::MODE_OFF;
+
 		} else {	// STANDBY_ERROR and other states
 			led_mode = led_control_s::MODE_BLINK_NORMAL;
 			led_color = led_control_s::COLOR_RED;
@@ -3361,9 +3363,18 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
 		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
 
-		// update these fields for the geofence system
+		// store the last manual control setpoint set by the pilot in a manual state
+		// if the system now later enters an autonomous state the pilot can move
+		// the sticks to break out of the autonomous state
 
-		if (!warning_action_on) {
+		if (!warning_action_on
+			&& (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_ACRO ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_STAB)) {
+
 			_last_sp_man.timestamp = sp_man.timestamp;
 			_last_sp_man.x = sp_man.x;
 			_last_sp_man.y = sp_man.y;

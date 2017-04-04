@@ -1436,6 +1436,23 @@ protected:
 				msg_cmd.param7 = NAN;
 
 				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg_cmd);
+
+				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
+				mavlink_command_long_t digicam_ctrl_cmd;
+
+				digicam_ctrl_cmd.target_system = 0; // 0 for broadcast
+				digicam_ctrl_cmd.target_component = MAV_COMP_ID_CAMERA;
+				digicam_ctrl_cmd.command = MAV_CMD_DO_DIGICAM_CONTROL;
+				digicam_ctrl_cmd.confirmation = 0;
+				digicam_ctrl_cmd.param1 = NAN;
+				digicam_ctrl_cmd.param2 = NAN;
+				digicam_ctrl_cmd.param3 = NAN;
+				digicam_ctrl_cmd.param4 = NAN;
+				digicam_ctrl_cmd.param5 = 1;   // take 1 picture
+				digicam_ctrl_cmd.param6 = NAN;
+				digicam_ctrl_cmd.param7 = NAN;
+
+				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &digicam_ctrl_cmd);
 			}
 		}
 	}

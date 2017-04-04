@@ -94,9 +94,6 @@ BlockParam<T>::BlockParam(Block *block, const char *name,
 }
 
 template <class T>
-T BlockParam<T>::get() { return _val; }
-
-template <class T>
 void BlockParam<T>::set(T val)
 {
 	_val = val;

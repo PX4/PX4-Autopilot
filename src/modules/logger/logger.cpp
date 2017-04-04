@@ -370,12 +370,15 @@ void Logger::run_trampoline(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 
 	} else {
+#ifndef __PX4_NUTTX
 		//check for replay mode
 		const char *logfile = getenv(px4::replay::ENV_FILENAME);
 
 		if (logfile) {
 			logger_ptr->setReplayFile(logfile);
 		}
+
+#endif /* __PX4_NUTTX */
 
 		logger_ptr->run();
 	}
@@ -825,6 +828,12 @@ void Logger::run()
 				_was_armed = armed;
 
 				if (armed) {
+
+					if (_should_stop_file_log) { // happens on quick arming after disarm
+						_should_stop_file_log = false;
+						stop_log_file();
+					}
+
 					start_log_file();
 
 #ifdef DBGPRINT
@@ -833,7 +842,9 @@ void Logger::run()
 #endif /* DBGPRINT */
 
 				} else {
-					stop_log_file();
+					// delayed stop: we measure the process loads and then stop
+					initialize_load_output();
+					_should_stop_file_log = true;
 				}
 			}
 		}
@@ -872,6 +883,23 @@ void Logger::run()
 
 
 		if (_writer.is_started()) {
+
+			hrt_abstime loop_time = hrt_absolute_time();
+
+			/* check if we need to output the process load */
+			if (_next_load_print != 0 && loop_time >= _next_load_print) {
+				_next_load_print = 0;
+
+				if (_should_stop_file_log) {
+					_should_stop_file_log = false;
+					write_load_output(false);
+					stop_log_file();
+					continue; // skip to next loop iteration
+
+				} else {
+					write_load_output(true);
+				}
+			}
 
 			bool data_written = false;
 
@@ -967,10 +995,10 @@ void Logger::run()
 			if (next_subscribe_topic_index != -1) {
 				if (++next_subscribe_topic_index >= _subscriptions.size()) {
 					next_subscribe_topic_index = -1;
-					next_subscribe_check = hrt_absolute_time() + TRY_SUBSCRIBE_INTERVAL;
+					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
 
-			} else if (hrt_absolute_time() > next_subscribe_check) {
+			} else if (loop_time > next_subscribe_check) {
 				next_subscribe_topic_index = 0;
 			}
 
@@ -1022,6 +1050,8 @@ void Logger::run()
 			while (px4_sem_wait(&timer_semaphore) != 0);
 		}
 	}
+
+	stop_log_file();
 
 	hrt_cancel(&timer_call);
 	px4_sem_destroy(&timer_semaphore);
@@ -1292,16 +1322,29 @@ void Logger::start_log_file()
 	write_version();
 	write_formats();
 	write_parameters();
+	write_perf_data(true);
 	write_all_add_logged_msg();
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
 
+	/* reset performance counters to get in-flight min and max values in post flight log */
+	perf_reset_all();
+
 	_start_time_file = hrt_absolute_time();
+
+	initialize_load_output();
 }
 
 void Logger::stop_log_file()
 {
+	if (!_writer.is_started(LogWriter::BackendFile)) {
+		return;
+	}
+
+	_writer.set_need_reliable_transfer(true);
+	write_perf_data(false);
+	_writer.set_need_reliable_transfer(false);
 	_writer.stop_log_file();
 }
 
@@ -1320,16 +1363,109 @@ void Logger::start_log_mavlink()
 	write_version();
 	write_formats();
 	write_parameters();
+	write_perf_data(true);
 	write_all_add_logged_msg();
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
+
+	initialize_load_output();
 }
 
 void Logger::stop_log_mavlink()
 {
+	// don't write perf data since a client does not expect more data after a stop command
 	PX4_INFO("Stop mavlink log");
 	_writer.stop_log_mavlink();
+}
+
+struct perf_callback_data_t {
+	Logger *logger;
+	int counter;
+	bool preflight;
+	char *buffer;
+};
+
+void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
+{
+	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
+	const int buffer_length = 256;
+	char buffer[buffer_length];
+	char perf_name[32];
+
+	perf_print_counter_buffer(buffer, buffer_length, handle);
+
+	if (callback_data->preflight) {
+		snprintf(perf_name, 32, "perf_counter_preflight-%02i", callback_data->counter);
+
+	} else {
+		snprintf(perf_name, 32, "perf_counter_postflight-%02i", callback_data->counter);
+	}
+
+	callback_data->logger->write_info(perf_name, buffer);
+	++callback_data->counter;
+}
+
+void Logger::write_perf_data(bool preflight)
+{
+	perf_callback_data_t callback_data;
+	callback_data.logger = this;
+	callback_data.counter = 0;
+	callback_data.preflight = preflight;
+
+	// write the perf counters
+	perf_iterate_all(perf_iterate_callback, &callback_data);
+}
+
+
+void Logger::print_load_callback(void *user)
+{
+	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
+	char perf_name[32];
+
+	if (!callback_data->buffer) {
+		return;
+	}
+
+	if (callback_data->preflight) {
+		snprintf(perf_name, 32, "perf_top_preflight-%02i", callback_data->counter);
+
+	} else {
+		snprintf(perf_name, 32, "perf_top_postflight-%02i", callback_data->counter);
+	}
+
+	callback_data->logger->write_info(perf_name, callback_data->buffer);
+	++callback_data->counter;
+}
+
+void Logger::initialize_load_output()
+{
+	perf_callback_data_t callback_data;
+	callback_data.logger = this;
+	callback_data.counter = 0;
+	callback_data.buffer = nullptr;
+	char buffer[140];
+	hrt_abstime curr_time = hrt_absolute_time();
+	init_print_load_s(curr_time, &_load);
+	// this will not yet print anything
+	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
+	_next_load_print = curr_time + 1000000;
+}
+
+void Logger::write_load_output(bool preflight)
+{
+	perf_callback_data_t callback_data;
+	char buffer[140];
+	callback_data.logger = this;
+	callback_data.counter = 0;
+	callback_data.buffer = buffer;
+	callback_data.preflight = preflight;
+	hrt_abstime curr_time = hrt_absolute_time();
+	_writer.set_need_reliable_transfer(true);
+	// TODO: maybe we should restrict the output to a selected backend (eg. when file logging is running
+	// and mavlink log is started, this will be added to the file as well)
+	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
+	_writer.set_need_reliable_transfer(false);
 }
 
 void Logger::write_formats()

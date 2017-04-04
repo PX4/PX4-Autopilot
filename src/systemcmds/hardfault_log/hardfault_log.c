@@ -54,7 +54,6 @@
 #include <stm32_bbsram.h>
 
 #include <systemlib/px4_macros.h>
-#include <systemlib/visibility.h>
 #include <systemlib/hardfault_log.h>
 #include <lib/version/version.h>
 

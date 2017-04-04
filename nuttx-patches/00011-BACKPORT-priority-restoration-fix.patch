@@ -1,0 +1,448 @@
+diff --git NuttX/nuttx/include/semaphore.h NuttX/nuttx/include/semaphore.h
+index 8821b12..0056909 100644
+--- NuttX/nuttx/include/semaphore.h
++++ NuttX/nuttx/include/semaphore.h
+@@ -93,7 +93,7 @@ struct sem_s
+ # if CONFIG_SEM_PREALLOCHOLDERS > 0
+   FAR struct semholder_s *hhead; /* List of holders of semaphore counts */
+ # else
+-  struct semholder_s holder;     /* Single holder */
++  struct semholder_s holder[2];  /* Slot for old and new holder */
+ # endif
+ #endif
+ };
+@@ -104,12 +104,15 @@ typedef struct sem_s sem_t;
+ 
+ #ifdef CONFIG_PRIORITY_INHERITANCE
+ # if CONFIG_SEM_PREALLOCHOLDERS > 0
+-#  define SEM_INITIALIZER(c) {(c), 0, NULL}  /* semcount, flags, hhead */
++#  define SEM_INITIALIZER(c) \
++    {(c), 0, NULL}                 /* semcount, flags, hhead */
+ # else
+-#  define SEM_INITIALIZER(c) {(c), 0, SEMHOLDER_INITIALIZER} /* semcount, flags, holder */
++#  define SEM_INITIALIZER(c) \
++    {(c), 0, {SEMHOLDER_INITIALIZER, SEMHOLDER_INITIALIZER}} /* semcount, flags, holder[2] */
+ # endif
+ #else
+-#  define SEM_INITIALIZER(c) {(c)} /* semcount */
++#  define SEM_INITIALIZER(c) \
++    {(c)}                         /* semcount */
+ #endif
+ 
+ /****************************************************************************
+diff --git NuttX/nuttx/libc/semaphore/sem_init.c NuttX/nuttx/libc/semaphore/sem_init.c
+index f4037d3..ec7de27 100644
+--- NuttX/nuttx/libc/semaphore/sem_init.c
++++ NuttX/nuttx/libc/semaphore/sem_init.c
+@@ -83,17 +83,19 @@ int sem_init(FAR sem_t *sem, int pshared, unsigned int value)
+     {
+       /* Initialize the seamphore count */
+ 
+-      sem->semcount      = (int16_t)value;
++      sem->semcount         = (int16_t)value;
+ 
+       /* Initialize to support priority inheritance */
+ 
+ #ifdef CONFIG_PRIORITY_INHERITANCE
+-      sem->flags         = 0;
++      sem->flags            = 0;
+ #  if CONFIG_SEM_PREALLOCHOLDERS > 0
+-      sem->hhead         = NULL;
++      sem->hhead            = NULL;
+ #  else
+-      sem->holder.htcb   = NULL;
+-      sem->holder.counts = 0;
++      sem->holder[0].htcb   = NULL;
++      sem->holder[0].counts = 0;
++      sem->holder[1].htcb   = NULL;
++      sem->holder[1].counts = 0;
+ #  endif
+ #endif
+       return OK;
+diff --git NuttX/nuttx/sched/semaphore/sem_holder.c NuttX/nuttx/sched/semaphore/sem_holder.c
+index 6b9f05a..7b4e3e3 100644
+--- NuttX/nuttx/sched/semaphore/sem_holder.c
++++ NuttX/nuttx/sched/semaphore/sem_holder.c
+@@ -93,7 +93,7 @@ static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
+ 
+ #if CONFIG_SEM_PREALLOCHOLDERS > 0
+   pholder = g_freeholders;
+-  if (pholder)
++  if (pholder != NULL)
+     {
+       /* Remove the holder from the free list an put it into the semaphore's
+        * holder list
+@@ -108,18 +108,24 @@ static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
+       pholder->counts  = 0;
+     }
+ #else
+-  if (!sem->holder.htcb)
++  if (sem->holder[0].htcb == NULL)
+     {
+-      pholder          = &sem->holder;
++      pholder          = &sem->holder[0];
++      pholder->counts  = 0;
++    }
++  else if (sem->holder[1].htcb == NULL)
++    {
++      pholder          = &sem->holder[1];
+       pholder->counts  = 0;
+     }
+ #endif
+   else
+     {
+       serr("ERROR: Insufficient pre-allocated holders\n");
+-      pholder = NULL;
++      pholder          = NULL;
+     }
+ 
++  DEBUGASSERT(pholder != NULL);
+   return pholder;
+ }
+ 
+@@ -132,16 +138,29 @@ static FAR struct semholder_s *sem_findholder(sem_t *sem,
+ {
+   FAR struct semholder_s *pholder;
+ 
++#if CONFIG_SEM_PREALLOCHOLDERS > 0
+   /* Try to find the holder in the list of holders associated with this
+    * semaphore
+    */
+ 
+-#if CONFIG_SEM_PREALLOCHOLDERS > 0
+-  for (pholder = sem->hhead; pholder; pholder = pholder->flink)
++  for (pholder = sem->hhead; pholder != NULL; pholder = pholder->flink)
++    {
++      if (pholder->htcb == htcb)
++        {
++          /* Got it! */
++
++          return pholder;
++        }
++    }
+ #else
+-  pholder = &sem->holder;
+-#endif
++  int i;
++  pholder = NULL;
++
++  /* We have two hard-allocated holder structures in sem_t */
++
++  for (i = 0; i < 2; i++)
+     {
++      pholder = &sem->holder[i];
+       if (pholder->htcb == htcb)
+         {
+           /* Got it! */
+@@ -149,6 +168,7 @@ static FAR struct semholder_s *sem_findholder(sem_t *sem,
+           return pholder;
+         }
+     }
++#endif
+ 
+   /* The holder does not appear in the list */
+ 
+@@ -194,11 +214,11 @@ static inline void sem_freeholder(sem_t *sem, FAR struct semholder_s *pholder)
+        curr && curr != pholder;
+        prev = curr, curr = curr->flink);
+ 
+-  if (curr)
++  if (curr != NULL)
+     {
+       /* Remove the holder from the list */
+ 
+-      if (prev)
++      if (prev != NULL)
+         {
+           prev->flink = pholder->flink;
+         }
+@@ -216,6 +236,24 @@ static inline void sem_freeholder(sem_t *sem, FAR struct semholder_s *pholder)
+ }
+ 
+ /****************************************************************************
++ * Name: sem_findandfreeholder
++ ****************************************************************************/
++
++static inline void sem_findandfreeholder(sem_t *sem, FAR struct tcb_s *htcb)
++{
++  FAR struct semholder_s *pholder = sem_findholder(sem, htcb);
++
++  /* When no more counts are held, remove the holder from the list.  The
++   * count was decremented in sem_releaseholder.
++   */
++
++  if (pholder != NULL && pholder->counts <= 0)
++    {
++      sem_freeholder(sem, pholder);
++    }
++}
++
++/****************************************************************************
+  * Name: sem_foreachholder
+  ****************************************************************************/
+ 
+@@ -223,31 +261,47 @@ static int sem_foreachholder(FAR sem_t *sem, holderhandler_t handler,
+                              FAR void *arg)
+ {
+   FAR struct semholder_s *pholder;
+-#if CONFIG_SEM_PREALLOCHOLDERS > 0
+-  FAR struct semholder_s *next;
+-#endif
+   int ret = 0;
+ 
+ #if CONFIG_SEM_PREALLOCHOLDERS > 0
++  FAR struct semholder_s *next;
++
+   for (pholder = sem->hhead; pholder && ret == 0; pholder = next)
+-#else
+-  pholder = &sem->holder;
+-#endif
+     {
+-#if CONFIG_SEM_PREALLOCHOLDERS > 0
+       /* In case this holder gets deleted */
+ 
+       next = pholder->flink;
+-#endif
+-      /* The initial "built-in" container may hold a NULL holder */
+ 
+-      if (pholder->htcb)
++      /* Check if there is a handler... there should always be one
++       * in this configuration.
++       */
++
++      if (pholder->htcb != NULL)
++        {
++          /* Call the handler */
++
++          ret = handler(pholder, sem, arg);
++        }
++    }
++#else
++  int i;
++
++  /* We have two hard-allocated holder structures in sem_t */
++
++  for (i = 0; i < 2; i++)
++    {
++      pholder = &sem->holder[i];
++
++      /* The hard-allocated containers may hold a NULL holder */
++
++      if (pholder->htcb != NULL)
+         {
+           /* Call the handler */
+ 
+           ret = handler(pholder, sem, arg);
+         }
+     }
++#endif
+ 
+   return ret;
+ }
+@@ -284,11 +338,11 @@ static int sem_boostholderprio(FAR struct semholder_s *pholder,
+   if (!sched_verifytcb(htcb))
+     {
+       serr("ERROR: TCB 0x%08x is a stale handle, counts lost\n", htcb);
++      DEBUGASSERT(sched_verifytcb(htcb));
+       sem_freeholder(sem, pholder);
+     }
+ 
+ #if CONFIG_SEM_NNESTPRIO > 0
+-
+   /* If the priority of the thread that is waiting for a count is greater
+    * than the base priority of the thread holding a count, then we may need
+    * to adjust the holder's priority now or later to that priority.
+@@ -322,6 +376,7 @@ static int sem_boostholderprio(FAR struct semholder_s *pholder,
+               else
+                 {
+                   serr("ERROR: CONFIG_SEM_NNESTPRIO exceeded\n");
++                  DEBUGASSERT(htcb->npend_reprio < CONFIG_SEM_NNESTPRIO);
+                 }
+             }
+ 
+@@ -342,8 +397,16 @@ static int sem_boostholderprio(FAR struct semholder_s *pholder,
+            * saved priority and not to the base priority.
+            */
+ 
+-          htcb->pend_reprios[htcb->npend_reprio] = rtcb->sched_priority;
+-          htcb->npend_reprio++;
++          if (htcb->npend_reprio < CONFIG_SEM_NNESTPRIO)
++            {
++              htcb->pend_reprios[htcb->npend_reprio] = rtcb->sched_priority;
++              htcb->npend_reprio++;
++            }
++          else
++            {
++              serr("ERROR: CONFIG_SEM_NNESTPRIO exceeded\n");
++              DEBUGASSERT(htcb->npend_reprio < CONFIG_SEM_NNESTPRIO);
++            }
+         }
+     }
+ 
+@@ -415,10 +478,10 @@ static int sem_dumpholder(FAR struct semholder_s *pholder, FAR sem_t *sem,
+  * Name: sem_restoreholderprio
+  ****************************************************************************/
+ 
+-static int sem_restoreholderprio(FAR struct semholder_s *pholder,
++static int sem_restoreholderprio(FAR struct tcb_s *htcb,
+                                  FAR sem_t *sem, FAR void *arg)
+ {
+-  FAR struct tcb_s *htcb = (FAR struct tcb_s *)pholder->htcb;
++  FAR struct semholder_s *pholder = 0;
+ #if CONFIG_SEM_NNESTPRIO > 0
+   FAR struct tcb_s *stcb = (FAR struct tcb_s *)arg;
+   int rpriority;
+@@ -435,7 +498,12 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder,
+   if (!sched_verifytcb(htcb))
+     {
+       serr("ERROR: TCB 0x%08x is a stale handle, counts lost\n", htcb);
+-      sem_freeholder(sem, pholder);
++      DEBUGASSERT(sched_verifytcb(htcb));
++      pholder = sem_findholder(sem, htcb);
++      if (pholder != NULL)
++        {
++          sem_freeholder(sem, pholder);
++        }
+     }
+ 
+   /* Was the priority of the holder thread boosted? If so, then drop its
+@@ -555,6 +623,20 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder,
+ }
+ 
+ /****************************************************************************
++ * Name: sem_restoreholderprioall
++ *
++ * Description:
++ *   Reprioritize all holders
++ *
++ ****************************************************************************/
++
++static int sem_restoreholderprioall(FAR struct semholder_s *pholder,
++                                  FAR sem_t *sem, FAR void *arg)
++{
++  return sem_restoreholderprio(pholder->htcb, sem, arg);
++}
++
++/****************************************************************************
+  * Name: sem_restoreholderprioA
+  *
+  * Description:
+@@ -568,7 +650,7 @@ static int sem_restoreholderprioA(FAR struct semholder_s *pholder,
+   FAR struct tcb_s *rtcb = this_task();
+   if (pholder->htcb != rtcb)
+     {
+-      return sem_restoreholderprio(pholder, sem, arg);
++      return sem_restoreholderprio(pholder->htcb, sem, arg);
+     }
+ 
+   return 0;
+@@ -586,9 +668,22 @@ static int sem_restoreholderprioB(FAR struct semholder_s *pholder,
+                                   FAR sem_t *sem, FAR void *arg)
+ {
+   FAR struct tcb_s *rtcb = this_task();
++
+   if (pholder->htcb == rtcb)
+     {
+-      (void)sem_restoreholderprio(pholder, sem, arg);
++
++   /* The running task has given up a count on the semaphore */
++
++#if CONFIG_SEM_PREALLOCHOLDERS == 0
++      /* In the case where there are only 2 holders. This step
++       * is necessary to insure we have space. Release the holder
++       * if all counts have been given up. before reprioritizing
++       * causes a context switch.
++       */
++
++       sem_findandfreeholder(sem, rtcb);
++#endif
++      (void)sem_restoreholderprio(rtcb, sem, arg);
+       return 1;
+     }
+ 
+@@ -637,11 +732,11 @@ static inline void sem_restorebaseprio_irq(FAR struct tcb_s *stcb,
+    * next highest pending priority.
+    */
+ 
+-  if (stcb)
++  if (stcb != NULL)
+     {
+       /* Drop the priority of all holder threads */
+ 
+-      (void)sem_foreachholder(sem, sem_restoreholderprio, stcb);
++      (void)sem_foreachholder(sem, sem_restoreholderprioall, stcb);
+     }
+ 
+   /* If there are no tasks waiting for available counts, then all holders
+@@ -701,7 +796,7 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
+    * next highest pending priority.
+    */
+ 
+-  if (stcb)
++  if (stcb != NULL)
+     {
+       /* The currently executed thread should be the lower priority
+        * thread that just posted the count and caused this action.
+@@ -735,18 +830,8 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
+    * counts, then we need to remove it from the list of holders.
+    */
+ 
+-  pholder = sem_findholder(sem, rtcb);
+-  if (pholder)
+-    {
+-      /* When no more counts are held, remove the holder from the list.  The
+-       * count was decremented in sem_releaseholder.
+-       */
++  sem_findandfreeholder(sem, rtcb);
+ 
+-      if (pholder->counts <= 0)
+-        {
+-          sem_freeholder(sem, pholder);
+-        }
+-    }
+ }
+ 
+ /****************************************************************************
+@@ -817,18 +902,21 @@ void sem_destroyholder(FAR sem_t *sem)
+    */
+ 
+ #if CONFIG_SEM_PREALLOCHOLDERS > 0
+-  if (sem->hhead)
++  if (sem->hhead != NULL)
+     {
+       serr("ERROR: Semaphore destroyed with holders\n");
++      DEBUGASSERT(sem->hhead == NULL);
+       (void)sem_foreachholder(sem, sem_recoverholders, NULL);
+     }
+ #else
+-  if (sem->holder.htcb)
++  if (sem->holder[0].htcb != NULL || sem->holder[1].htcb != NULL)
+     {
++      DEBUGASSERT(sem->holder[0].htcb == NULL || sem->holder[1].htcb == NULL);
+       serr("ERROR: Semaphore destroyed with holder\n");
+     }
+ 
+-  sem->holder.htcb = NULL;
++  sem->holder[0].htcb = NULL;
++  sem->holder[1].htcb = NULL;
+ #endif
+ }
+ 
+@@ -952,7 +1040,7 @@ void sem_releaseholder(FAR sem_t *sem)
+   /* Find the container for this holder */
+ 
+   pholder = sem_findholder(sem, rtcb);
+-  if (pholder && pholder->counts > 0)
++  if (pholder != NULL && pholder->counts > 0)
+     {
+       /* Decrement the counts on this holder -- the holder will be freed
+        * later in sem_restorebaseprio.
+@@ -1048,7 +1136,7 @@ void sem_canceled(FAR struct tcb_s *stcb, FAR sem_t *sem)
+ 
+   /* Adjust the priority of every holder as necessary */
+ 
+-  (void)sem_foreachholder(sem, sem_restoreholderprio, stcb);
++  (void)sem_foreachholder(sem, sem_restoreholderprioall, stcb);
+ }
+ #endif
+ 

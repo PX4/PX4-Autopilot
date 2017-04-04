@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,9 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_getopt.h>
+#include <px4_defines.h>
+#include <px4_log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +73,7 @@ static void
 usage(const char *reason)
 {
 	if (reason != NULL) {
-		warnx("%s", reason);
+		PX4_WARN("%s", reason);
 	}
 
 	PX4_INFO(
@@ -79,6 +82,11 @@ usage(const char *reason)
 		"\n"
 		"arm\t\t\t\tArm output\n"
 		"disarm\t\t\t\tDisarm output\n"
+		"\n"
+		"oneshot ...\t\t\tConfigure Oneshot\n"
+		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
+		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
+		"\t[-a]\t\t\tConfigure all outputs\n"
 		"\n"
 		"rate ...\t\t\tConfigure PWM rates\n"
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
@@ -166,6 +174,7 @@ pwm_main(int argc, char *argv[])
 	bool alt_channels_set = false;
 	bool print_verbose = false;
 	bool error_on_warn = false;
+	bool oneshot = false;
 	int ch;
 	int ret;
 	char *ep;
@@ -180,17 +189,20 @@ pwm_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = getopt(argc - 1, &argv[1], "d:vec:g:m:ap:r:")) != EOF) {
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "d:vec:g:m:ap:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'd':
-			if (NULL == strstr(optarg, "/dev/")) {
-				warnx("device %s not valid", optarg);
+			if (NULL == strstr(myoptarg, "/dev/")) {
+				PX4_WARN("device %s not valid", myoptarg);
 				usage(NULL);
 				return 1;
 			}
 
-			dev = optarg;
+			dev = myoptarg;
 			break;
 
 		case 'v':
@@ -203,7 +215,7 @@ pwm_main(int argc, char *argv[])
 
 		case 'c':
 			/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
-			channels = strtoul(optarg, &ep, 0);
+			channels = strtoul(myoptarg, &ep, 0);
 
 			while ((single_ch = channels % 10)) {
 
@@ -214,7 +226,7 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'g':
-			group = strtoul(optarg, &ep, 0);
+			group = strtoul(myoptarg, &ep, 0);
 
 			if ((*ep != '\0') || (group >= 32)) {
 				usage("bad channel_group value");
@@ -223,12 +235,12 @@ pwm_main(int argc, char *argv[])
 
 			alt_channel_groups |= (1 << group);
 			alt_channels_set = true;
-			warnx("alt channels set, group: %d", group);
+			PX4_INFO("alt channels set, group: %d", group);
 			break;
 
 		case 'm':
 			/* Read in mask directly */
-			set_mask = strtoul(optarg, &ep, 0);
+			set_mask = strtoul(myoptarg, &ep, 0);
 
 			if (*ep != '\0') {
 				usage("BAD set_mask VAL");
@@ -245,21 +257,29 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			pwm_value = get_parameter_value(optarg, "PWM Value");
+			pwm_value = get_parameter_value(myoptarg, "PWM Value");
 			break;
 
 		case 'r':
-			alt_rate = get_parameter_value(optarg, "PWM Rate");
+			alt_rate = get_parameter_value(myoptarg, "PWM Rate");
 
 			break;
 
 		default:
-			break;
+			usage(NULL);
+			return 1;
 		}
 	}
 
+	if (myoptind >= argc) {
+		usage(NULL);
+		return 1;
+	}
+
+	const char *command = argv[myoptind];
+
 	if (print_verbose && set_mask > 0) {
-		warnx("Channels: ");
+		PX4_INFO("Channels: ");
 		printf("    ");
 
 		for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
@@ -288,7 +308,9 @@ pwm_main(int argc, char *argv[])
 		return error_on_warn;
 	}
 
-	if (!strcmp(argv[1], "arm")) {
+	oneshot = !strcmp(command, "oneshot");
+
+	if (!strcmp(command, "arm")) {
 		/* tell safety that its ok to disable it with the switch */
 		ret = px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 
@@ -304,12 +326,12 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (print_verbose) {
-			warnx("Outputs armed");
+			PX4_INFO("Outputs armed");
 		}
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "disarm")) {
+	} else if (!strcmp(command, "disarm")) {
 		/* disarm, but do not revoke the SET_ARM_OK flag */
 		ret = px4_ioctl(fd, PWM_SERVO_DISARM, 0);
 
@@ -318,16 +340,16 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (print_verbose) {
-			warnx("Outputs disarmed");
+			PX4_INFO("Outputs disarmed");
 		}
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "rate")) {
+	} else if (oneshot || !strcmp(command, "rate")) {
 
-		/* change alternate PWM rate */
-		if (alt_rate > 0) {
-			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+		/* change alternate PWM rate or set oneshot */
+		if (oneshot || alt_rate > 0) {
+			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, oneshot ? 0 : alt_rate);
 
 			if (ret != OK) {
 				PX4_ERR("PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
@@ -374,7 +396,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "min")) {
+	} else if (!strcmp(command, "min")) {
 
 		if (set_mask == 0) {
 			usage("min: no channels set");
@@ -405,7 +427,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: min PWM: %d", i + 1, pwm_value);
+					PX4_INFO("Channel %d: min PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -426,7 +448,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "max")) {
+	} else if (!strcmp(command, "max")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -457,7 +479,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: max PWM: %d", i + 1, pwm_value);
+					PX4_INFO("Channel %d: max PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -478,7 +500,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "disarmed")) {
+	} else if (!strcmp(command, "disarmed")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -486,7 +508,7 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_value == 0) {
-			warnx("reading disarmed value of zero, disabling disarmed PWM");
+			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
 		}
 
 		struct pwm_output_values pwm_values;
@@ -508,7 +530,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("chan %d: disarmed PWM: %d", i + 1, pwm_value);
+					PX4_INFO("chan %d: disarmed PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -529,7 +551,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "failsafe")) {
+	} else if (!strcmp(command, "failsafe")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -560,7 +582,7 @@ pwm_main(int argc, char *argv[])
 				pwm_values.values[i] = pwm_value;
 
 				if (print_verbose) {
-					warnx("Channel %d: failsafe PWM: %d", i + 1, pwm_value);
+					PX4_INFO("Channel %d: failsafe PWM: %d", i + 1, pwm_value);
 				}
 			}
 		}
@@ -581,7 +603,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "test")) {
+	} else if (!strcmp(command, "test")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -614,7 +636,7 @@ pwm_main(int argc, char *argv[])
 		fds.fd = 0; /* stdin */
 		fds.events = POLLIN;
 
-		warnx("Press CTRL-C or 'c' to abort.");
+		PX4_INFO("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
 			for (unsigned i = 0; i < servo_count; i++) {
@@ -634,7 +656,7 @@ pwm_main(int argc, char *argv[])
 
 			if (ret > 0) {
 
-				read(0, &c, 1);
+				ret = read(0, &c, 1);
 
 				if (c == 0x03 || c == 0x63 || c == 'q') {
 					/* reset output to the last value */
@@ -649,18 +671,28 @@ pwm_main(int argc, char *argv[])
 						}
 					}
 
-					warnx("User abort\n");
+					PX4_INFO("User abort\n");
 					return 0;
 				}
 			}
 
-			usleep(2000);
+			/* Delay longer than the max Oneshot duration */
+
+			usleep(2542);
+
+#ifdef __PX4_NUTTX
+			/* Trigger all timer's channels in Oneshot mode to fire
+			 * the oneshots with updated values.
+			 */
+
+			up_pwm_update();
+#endif
 		}
 
 		return 0;
 
 
-	} else if (!strcmp(argv[1], "steps")) {
+	} else if (!strcmp(command, "steps")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -687,7 +719,7 @@ pwm_main(int argc, char *argv[])
 		fds.fd = 0; /* stdin */
 		fds.events = POLLIN;
 
-		warnx("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
+		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
 		sleep(5);
 
 		unsigned off = 900;
@@ -703,7 +735,7 @@ pwm_main(int argc, char *argv[])
 		     steps_timing_index < sizeof(steps_timings_us) / sizeof(steps_timings_us[0]);
 		     steps_timing_index++) {
 
-			warnx("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
+			PX4_INFO("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
 
 			while (1) {
 				for (unsigned i = 0; i < servo_count; i++) {
@@ -752,7 +784,7 @@ pwm_main(int argc, char *argv[])
 							}
 						}
 
-						warnx("User abort\n");
+						PX4_INFO("User abort\n");
 						return 0;
 					}
 				}
@@ -782,7 +814,7 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 
-	} else if (!strcmp(argv[1], "info")) {
+	} else if (!strcmp(command, "info")) {
 
 		printf("device: %s\n", dev);
 
@@ -896,10 +928,11 @@ pwm_main(int argc, char *argv[])
 			if (group_mask != 0) {
 				printf("channel group %u: channels", i);
 
-				for (unsigned j = 0; j < 32; j++)
+				for (unsigned j = 0; j < 32; j++) {
 					if (group_mask & (1 << j)) {
 						printf(" %u", j + 1);
 					}
+				}
 
 				printf("\n");
 			}
@@ -907,7 +940,7 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "forcefail")) {
+	} else if (!strcmp(command, "forcefail")) {
 
 		if (argc < 3) {
 			PX4_ERR("arg missing [on|off]");
@@ -925,13 +958,13 @@ pwm_main(int argc, char *argv[])
 			}
 
 			if (ret != OK) {
-				warnx("FAILED setting forcefail %s", argv[2]);
+				PX4_ERR("FAILED setting forcefail %s", argv[2]);
 			}
 		}
 
 		return 0;
 
-	} else if (!strcmp(argv[1], "terminatefail")) {
+	} else if (!strcmp(command, "terminatefail")) {
 
 		if (argc < 3) {
 			PX4_ERR("arg missing [on|off]");
@@ -949,7 +982,7 @@ pwm_main(int argc, char *argv[])
 			}
 
 			if (ret != OK) {
-				warnx("FAILED setting termination failsafe %s", argv[2]);
+				PX4_ERR("FAILED setting termination failsafe %s", argv[2]);
 			}
 		}
 

@@ -36,7 +36,7 @@
  * @file spektrum_rc.cpp
  *
  * This is a driver for a Spektrum satellite receiver connected to a Snapdragon
- * on the serial port. By default port J15 (next to USB) is used.
+ * on the serial port. By default port J12 (next to J13, power module side) is used.
  */
 
 #include <px4_tasks.h>
@@ -49,8 +49,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
-// Snapdraogon: use J15 (next to USB)
-#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-1"
+// Snapdraogon: use J12 (next to J13, power module side)
+#define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
 
 #define UNUSED(x) (void)(x)
 

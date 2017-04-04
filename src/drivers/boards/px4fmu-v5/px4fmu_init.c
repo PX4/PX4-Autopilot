@@ -156,7 +156,7 @@ __EXPORT void board_rc_input(bool invert_on)
 		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
 	}
 
-	putreg32(cr2, STM32_USART_CR1_OFFSET + RC_UXART_BASE);
+	putreg32(cr2, STM32_USART_CR2_OFFSET + RC_UXART_BASE);
 	putreg32(cr1, STM32_USART_CR1_OFFSET + RC_UXART_BASE);
 
 	leave_critical_section(irqstate);

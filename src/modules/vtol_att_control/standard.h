@@ -77,6 +77,7 @@ private:
 		float down_pitch_max;
 		float forward_thrust_scale;
 		int airspeed_mode;
+		float pitch_setpoint_offset;
 	} _params_standard;
 
 	struct {
@@ -90,6 +91,7 @@ private:
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
 		param_t airspeed_mode;
+		param_t pitch_setpoint_offset;
 	} _params_handles_standard;
 
 	enum vtol_mode {

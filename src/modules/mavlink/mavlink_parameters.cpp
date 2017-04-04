@@ -319,6 +319,21 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send(const hrt_abstime t)
 {
+	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
+		send_one();
+
+	} else {
+		// speed up parameter loading via UDP, TCP or USB: try to send 5 at once
+		int i = 0;
+
+		while (i++ < 5 && send_one());
+	}
+}
+
+
+bool
+MavlinkParametersManager::send_one()
+{
 	bool space_available = _mavlink->get_free_tx_buf() >= get_size();
 
 	/* Send parameter values received from the UAVCAN topic */
@@ -374,7 +389,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 
 		/* skip if no space is available */
 		if (!space_available) {
-			return;
+			return false;
 		}
 
 		/* The first thing we send is a hash of all values for the ground
@@ -397,7 +412,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 			_send_all_index = 0;
 
 			/* No further action, return now */
-			return;
+			return true;
 		}
 
 		/* look for the first parameter which is used */
@@ -415,6 +430,10 @@ MavlinkParametersManager::send(const hrt_abstime t)
 
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
+			return false;
+
+		} else {
+			return true;
 		}
 
 	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
@@ -422,6 +441,8 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
 		_mavlink->set_boot_complete();
 	}
+
+	return false;
 }
 
 int

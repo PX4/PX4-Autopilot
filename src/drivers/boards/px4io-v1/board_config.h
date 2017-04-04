@@ -96,5 +96,5 @@
  */
 #define HRT_TIMER		1	/* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTE|GPIO_PIN9)
+#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 PA8 */
+#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTA|GPIO_PIN8)

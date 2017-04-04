@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,15 +31,45 @@
  *
  ****************************************************************************/
 
-#include <systemlib/param/param.h>
-
-// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
-// running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
-
-// Following is hack to prevent duplicate parameter definition error in param parser
 /**
- * @board QuRT_App
+ * @file RoverLandDetector.h
+ * Land detection implementation for VTOL also called hybrids.
+ *
+ * @author Roman Bapst <bapstr@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
-// TODO-JYW: Temporarily removed to remove duplicate definition.
-// PARAM_DEFINE_INT32(MAV_TYPE, 2);
 
+#pragma once
+
+#include <uORB/topics/airspeed.h>
+
+#include "LandDetector.h"
+
+namespace land_detector
+{
+
+class RoverLandDetector : public LandDetector
+{
+public:
+	RoverLandDetector();
+
+protected:
+	virtual void _initialize_topics() override;
+
+	virtual void _update_params() override;
+
+	virtual void _update_topics() override;
+
+	virtual bool _get_landed_state() override;
+
+	virtual bool  _get_ground_contact_state() override;
+
+	virtual bool _get_freefall_state() override;
+
+	virtual float _get_max_altitude() override;
+
+private:
+};
+
+
+} // namespace land_detector

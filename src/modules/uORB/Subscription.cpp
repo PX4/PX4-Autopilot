@@ -151,9 +151,6 @@ bool Subscription<T>::check_updated()
 	return SubscriptionBase::updated();
 }
 
-template <class T>
-const T &Subscription<T>::get() { return _data; }
-
 template class __EXPORT Subscription<actuator_armed_s>;
 template class __EXPORT Subscription<actuator_controls_s>;
 template class __EXPORT Subscription<att_pos_mocap_s>;

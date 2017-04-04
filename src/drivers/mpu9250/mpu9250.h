@@ -482,7 +482,7 @@ private:
 	bool			is_external()
 	{
 		unsigned dummy;
-		return !_interface->ioctl(ACCELIOCGEXTERNAL, dummy);
+		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
 	}
 
 	/**

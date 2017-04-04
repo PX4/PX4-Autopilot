@@ -32,7 +32,6 @@
  ****************************************************************************/
 #pragma once
 
-#include <systemlib/visibility.h>
 #include <stdint.h>
 
 extern "C" {

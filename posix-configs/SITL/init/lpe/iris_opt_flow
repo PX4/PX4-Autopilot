@@ -36,7 +36,6 @@ param set MC_ROLL_P 5.5
 param set MC_ROLLRATE_I 0.1
 param set MC_PITCHRATE_I 0.1
 param set MPC_HOLD_MAX_Z 2.0
-param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_P 0.8
 param set MPC_Z_VEL_I 0.15
 param set MPC_XY_VEL_P 0.15
@@ -53,15 +52,16 @@ param set LPE_GPS_ON 0
 param set MPC_ALT_MODE 1
 param set LPE_T_MAX_GRADE 0
 param set MPC_XY_VEL_MAX 2
-param set MPC_Z_VEL_MAX 2
+param set MPC_Z_VEL_MAX_DN 2
 param set MPC_TILTMAX_AIR 10
 param set MPC_TILTMAX_LND 10
 param set MPC_XY_P 0.5
 param set MIS_TAKEOFF_ALT 2
 param set NAV_ACC_RAD 1.0
 param set CBRK_GPSFAIL 240024
-param set LPE_FUSION 246
-# 11110110 no vis yaw (1 << 3) and no gps (1 << 0)
+# Flow-only mode
+param set LPE_FUSION 242
+param set FAKE_ORIGIN 1
 
 replay tryapplyparams
 simulator start -s

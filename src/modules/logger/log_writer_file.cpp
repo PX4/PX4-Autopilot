@@ -54,8 +54,8 @@ LogWriterFile::LogWriterFile(size_t buffer_size) :
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 	/* allocate write performance counters */
-	_perf_write = perf_alloc(PC_ELAPSED, "sd write");
-	_perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
+	_perf_write = perf_alloc(PC_ELAPSED, "logger_sd_write");
+	_perf_fsync = perf_alloc(PC_ELAPSED, "logger_sd_fsync");
 }
 
 bool LogWriterFile::init()
@@ -119,7 +119,7 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1050));
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1060));
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);

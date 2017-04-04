@@ -32,7 +32,6 @@
  *
  ****************************************************************************/
 
-#include <systemlib/visibility.h>
 #include <stdbool.h>
 
 __BEGIN_DECLS

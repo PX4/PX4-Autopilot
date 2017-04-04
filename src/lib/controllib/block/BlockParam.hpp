@@ -82,7 +82,7 @@ public:
 	BlockParam(const BlockParam &) = delete;
 	BlockParam &operator=(const BlockParam &) = delete;
 
-	T get();
+	inline T get() const { return _val; }
 	void commit();
 	void set(T val);
 	void update() override;

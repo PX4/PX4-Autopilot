@@ -377,7 +377,7 @@ private:
 	bool			is_external()
 	{
 		unsigned dummy;
-		return !_interface->ioctl(ACCELIOCGEXTERNAL, dummy);
+		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
 	}
 
 	/**
@@ -796,7 +796,7 @@ int MPU6000::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	set_accel_range(8);
+	set_accel_range(16);
 
 	usleep(1000);
 

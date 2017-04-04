@@ -124,7 +124,6 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 
 	struct bmp280::calibration_s *_cal; //stored calibration constants
 	struct bmp280::fcalibration_s _fcal; //pre processed calibration constants
@@ -160,8 +159,7 @@ BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmp280_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "bmp280_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors"))
 {
 	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_BMP280;
 
@@ -187,7 +185,6 @@ BMP280::~BMP280()
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 
 	delete _interface;
 
@@ -575,9 +572,7 @@ BMP280::collect()
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 	}
 
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -592,7 +587,6 @@ BMP280::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u us \n", _report_ticks * USEC_PER_TICK);
 	_reports->print_info("report queue");
 	printf("P Pa:              %.3f\n", (double)_P);

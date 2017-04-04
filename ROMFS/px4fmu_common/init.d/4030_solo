@@ -23,7 +23,7 @@ then
     param set MC_ROLLRATE_P     0.11
     param set MPC_MANTHR_MIN    0.08
     param set MPC_XY_VEL_MAX    3.0
-    param set MPC_Z_VEL_MAX     2.0
+    param set MPC_Z_VEL_MAX_DN     2.0
 
     # INAV: higher GPS weights for better altitude control
     param set INAV_W_Z_BARO     0.3

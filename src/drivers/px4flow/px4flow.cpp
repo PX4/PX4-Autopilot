@@ -133,7 +133,6 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 
 	enum Rotation				_sensor_rotation;
 
@@ -193,7 +192,6 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4f_buf_of")),
 	_sensor_rotation(rotation)
 {
 	// disable debug() calls
@@ -215,7 +213,6 @@ PX4FLOW::~PX4FLOW()
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 }
 
 int
@@ -568,9 +565,7 @@ PX4FLOW::collect()
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 
 	/* post a report to the ring */
-	if (_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -647,7 +642,6 @@ PX4FLOW::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }

@@ -322,12 +322,16 @@ int led_off(int led)
 	return h_leds.ioctl(LED_OFF, led);
 }
 
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
 {
 	led_control.mode = mode;
 	led_control.color = color;
-	led_control.num_blinks = 0;
-	led_control.priority = 0;
+	led_control.num_blinks = blinks;
+	led_control.priority = prio;
 	led_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
+}
+
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode){
+	rgbled_set_color_and_mode(color, mode, 0, 0);
 }

@@ -137,11 +137,3 @@ PARAM_DEFINE_INT32(UART_ESC_MOTOR3, 1);
  * @group Snapdragon UART ESC
  */
 PARAM_DEFINE_INT32(UART_ESC_MOTOR4, 3);
-
-/**
- * TODO-JYW: Temporary change until the reason can be determined why this
- * same parameters is not read from src/platforms/px4_layer/params.c
- *
- * @group Snapdragon UART ESC
- */
-PARAM_DEFINE_INT32(MAV_TYPE, 2);

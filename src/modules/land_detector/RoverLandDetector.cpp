@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file visibility.h
+ * @file RoverLandDetector.cpp
+ * Land detection algorithm for Rovers
  *
- * Definitions controlling symbol naming and visibility.
- *
- * This file is normally included automatically by the build system.
+ * @author Roman Bapst <bapstroma@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef __SYSTEMLIB_VISIBILITY_H
-#define __SYSTEMLIB_VISIBILITY_H
+#include <drivers/drv_hrt.h>
 
-#ifdef __EXPORT
-#  undef __EXPORT
-#endif
-#define __EXPORT __attribute__ ((visibility ("default")))
+#include "RoverLandDetector.h"
 
-#ifdef __PRIVATE
-#  undef __PRIVATE
-#endif
-#define __PRIVATE __attribute__ ((visibility ("hidden")))
+namespace land_detector
+{
 
-#ifdef __cplusplus
-#  define __BEGIN_DECLS		extern "C" {
-#  define __END_DECLS		}
-#else
-#  define __BEGIN_DECLS
-#  define __END_DECLS
-#endif
-#endif
+RoverLandDetector::RoverLandDetector() : LandDetector()
+{
+}
+
+void RoverLandDetector::_initialize_topics()
+{
+}
+
+void RoverLandDetector::_update_topics()
+{
+}
+
+void RoverLandDetector::_update_params()
+{
+}
+
+bool RoverLandDetector::_get_ground_contact_state()
+{
+	return false;
+}
+
+bool RoverLandDetector::_get_landed_state()
+{
+	return false;
+}
+
+bool RoverLandDetector::_get_freefall_state()
+{
+	return false;
+}
+
+float RoverLandDetector::_get_max_altitude()
+{
+	return 0.0f;
+}
+
+}
