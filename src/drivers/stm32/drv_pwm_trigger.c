@@ -73,12 +73,10 @@ int up_pwm_trigger_init(uint32_t channel_mask)
 			// First free any that were not trigger mode before
 			if (-EBUSY == io_timer_is_channel_free(channel)) {
 				io_timer_free_channel(channel);
-				PX4_INFO("FREE PIN");
 			}
 
 			io_timer_channel_init(channel, IOTimerChanMode_Trigger, NULL, NULL);
 			channel_mask &= ~(1 << channel);
-			PX4_INFO("SET PIN TO TRIGGER");
 		}
 	}
 
@@ -88,15 +86,25 @@ int up_pwm_trigger_init(uint32_t channel_mask)
 	return OK;
 }
 
-void up_pwm_trigger_deinit(void)
+void up_pwm_trigger_deinit()
 {
 	/* disable the timers */
 	up_pwm_trigger_arm(false);
+
+	/* Deinit channels */
+	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_Trigger);
+
+	for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+		if (current & (1 << channel)) {
+
+			io_timer_channel_init(channel, IOTimerChanMode_NotUsed, NULL, NULL);
+			current &= ~(1 << channel);
+		}
+	}
 }
 
 void
 up_pwm_trigger_arm(bool armed)
 {
 	io_timer_set_enable(armed, IOTimerChanMode_Trigger, IO_TIMER_ALL_MODES_CHANNELS);
-	PX4_INFO("ENABLE PIN : %d", (int)armed);
 }
