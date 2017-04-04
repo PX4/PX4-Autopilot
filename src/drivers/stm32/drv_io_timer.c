@@ -578,6 +578,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 	/* Check that all channels are either in PWM or Oneshot */
 
 	if ((channels & (channel_allocations[IOTimerChanMode_PWMOut] |
+			 channel_allocations[IOTimerChanMode_Trigger] |
 			 channel_allocations[IOTimerChanMode_OneShot] |
 			 channel_allocations[IOTimerChanMode_NotUsed])) ==
 	    channels) {
@@ -637,6 +638,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	// intentional fallthrough
 	case IOTimerChanMode_OneShot:
 	case IOTimerChanMode_PWMOut:
+	case IOTimerChanMode_Trigger:
 		ccer_setbits = 0;
 		dier_setbits = 0;
 		setbits = CCMR_C1_PWMOUT_INIT;
@@ -744,8 +746,9 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	switch (mode) {
 	case IOTimerChanMode_NotUsed:
-	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_OneShot:
+	case IOTimerChanMode_PWMOut:
+	case IOTimerChanMode_Trigger:
 		dier_bit = 0;
 		break;
 
@@ -788,7 +791,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			action_cache[timer].dier_clearbits |= GTIM_DIER_CC1IE  << shifts;
 			action_cache[timer].dier_setbits   |= dier_bit << shifts;
 
-			if ((state && (mode == IOTimerChanMode_PWMOut || mode == IOTimerChanMode_OneShot))) {
+			if ((state && (mode == IOTimerChanMode_PWMOut || mode == IOTimerChanMode_OneShot || mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
 		}
@@ -846,7 +849,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	int mode = io_timer_get_channel_mode(channel);
 
 	if (rv == 0) {
-		if ((mode != IOTimerChanMode_PWMOut) && (mode != IOTimerChanMode_OneShot)) {
+		if ((mode != IOTimerChanMode_PWMOut) && (mode != IOTimerChanMode_OneShot) && (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;
 
@@ -868,7 +871,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 	if (io_timer_validate_channel_index(channel) == 0) {
 		int mode = io_timer_get_channel_mode(channel);
 
-		if ((mode == IOTimerChanMode_PWMOut) || (mode == IOTimerChanMode_OneShot)) {
+		if ((mode == IOTimerChanMode_PWMOut) || (mode == IOTimerChanMode_OneShot) || (mode == IOTimerChanMode_Trigger)) {
 			value = REG(channels_timer(channel), timer_io_channels[channel].ccr_offset);
 		}
 	}
