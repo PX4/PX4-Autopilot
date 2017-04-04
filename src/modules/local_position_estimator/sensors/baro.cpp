@@ -32,6 +32,7 @@ void BlockLocalPositionEstimator::baroInit()
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
 			_altOrigin = _baroAltOrigin;
+			warnx("_altOrigin: %.4f", (double)_altOrigin);
 		}
 	}
 }
@@ -54,7 +55,9 @@ void BlockLocalPositionEstimator::baroCorrect()
 	if (baroMeasure(y) != OK) { return; }
 
 	// subtract baro origin alt
-	y -= _baroAltOrigin;
+	// y -= _baroAltOrigin;
+	y(0) = 0.0f;
+	// warnx("y baro: %.4f", (double) y(0));
 
 	// baro measurement matrix
 	Matrix<float, n_y_baro, n_x> C;
