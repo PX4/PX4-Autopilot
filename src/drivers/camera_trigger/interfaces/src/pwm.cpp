@@ -75,20 +75,10 @@ void CameraInterfacePWM::trigger(bool enable)
 		return;
 	}
 
-	if (enable) {
-		// Set all valid pins to shoot level
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_INSTANT_SHOOT, 1000, 2000));
-			}
-		}
-
-	} else {
-		// Set all valid pins back to neutral level
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-			}
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
+			// Set all valid pins to shoot or neutral levels
+			up_pwm_trigger_set(_pins[i + 1], math::constrain(enable ? PWM_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
 }
@@ -101,46 +91,26 @@ void CameraInterfacePWM::keep_alive(bool signal_on)
 		return;
 	}
 
-	if (signal_on) {
-		// Set channel 2 pin to keep_alive signal
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i], math::constrain(PWM_2_CAMERA_KEEP_ALIVE, 1000, 2000));
-			}
-		}
-
-	} else {
-		// Set channel 2 pin to neutral signal
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-			}
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
+			// Set channel 2 pin to keep_alive or netural signal
+			up_pwm_trigger_set(_pins[i], math::constrain(signal_on ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
 }
 
 void CameraInterfacePWM::turn_on_off(bool enable)
 {
-	if (enable) {
-		// For now, set channel one on neutral upon startup.
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-				up_pwm_trigger_set(_pins[i], math::constrain(PWM_2_CAMERA_ON_OFF, 1000, 2000));
-			}
-		}
 
-	} else {
-		// For now, set channel one on neutral upon startup.
-		for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
-			if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-				up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-				up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
-			}
+	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
+			// For now, set channel one to neutral upon startup.
+			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_2_CAMERA_ON_OFF : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
-
-		_camera_is_on = !_camera_is_on;
 	}
+
+	if (!enable) { _camera_is_on = !_camera_is_on; }
 }
 
 void CameraInterfacePWM::info()

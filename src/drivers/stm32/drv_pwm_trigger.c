@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,7 +80,7 @@ int up_pwm_trigger_init(uint32_t channel_mask)
 		}
 	}
 
-	/* enable the timers */
+	/* Enable the timers */
 	up_pwm_trigger_arm(true);
 
 	return OK;
@@ -88,7 +88,7 @@ int up_pwm_trigger_init(uint32_t channel_mask)
 
 void up_pwm_trigger_deinit()
 {
-	/* disable the timers */
+	/* Disable the timers */
 	up_pwm_trigger_arm(false);
 
 	/* Deinit channels */
