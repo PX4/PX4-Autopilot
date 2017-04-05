@@ -319,7 +319,33 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.vel_ned_valid = true;
 
 	report.timestamp_time_relative = 0;
-	report.time_utc_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
+
+	const std::uint64_t gnss_ts_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
+
+	switch (msg.gnss_time_standard) {
+	case FixType::GNSS_TIME_STANDARD_UTC: {
+		report.time_utc_usec = gnss_ts_usec;
+		break;
+	}
+
+	case FixType::GNSS_TIME_STANDARD_GPS: {
+		if (msg.num_leap_seconds > 0) {
+			report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
+		}
+		break;
+	}
+
+	case FixType::GNSS_TIME_STANDARD_TAI: {
+		if (msg.num_leap_seconds > 0) {
+			report.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
+		}
+		break;
+	}
+
+	default: {
+		break;
+	}
+	}
 
 	report.satellites_used = msg.sats_used;
 
