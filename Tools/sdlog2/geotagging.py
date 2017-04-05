@@ -17,18 +17,10 @@
 import glob
 import os
 import pyexiv2
-import fractions
-from PIL import Image
-from PIL.ExifTags import TAGS
-import sys
 from shutil import copyfile
 from optparse import OptionParser
-from numpy import genfromtxt
-import shutil
 import csv
 from datetime import datetime, timedelta
-from pytz import timezone
-
 
 class TriggerList(object):
 
