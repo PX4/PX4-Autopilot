@@ -59,6 +59,7 @@
 #include "dataman/dataman.h"
 
 static px4_sem_t *sems;
+static bool *task_returned_error;
 int test_dataman(int argc, char *argv[]);
 
 #define NUM_MISSIONS_TEST 50
@@ -152,6 +153,7 @@ fail:
 	PX4_ERR("test_dataman FAILED: task %d, buffer %02x %02x %02x %02x %02x %02x",
 		my_id, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 	px4_sem_post(sems + my_id);
+	task_returned_error[my_id] = true;
 	return -1;
 }
 
@@ -166,6 +168,7 @@ int test_dataman(int argc, char *argv[])
 	}
 
 	sems = (px4_sem_t *)malloc(num_tasks * sizeof(px4_sem_t));
+	task_returned_error = (bool *)calloc(num_tasks, sizeof(bool));
 	PX4_INFO("Running %d tasks", num_tasks);
 
 	for (i = 0; i < num_tasks; i++) {
@@ -192,6 +195,22 @@ int test_dataman(int argc, char *argv[])
 	}
 
 	free(sems);
+
+	bool got_error = false;
+
+	for (i = 0; i < num_tasks; i++) {
+		if (task_returned_error[i]) {
+			got_error = true;
+			break;
+		}
+	}
+
+	free(task_returned_error);
+
+	if (got_error) {
+		return -1;
+	}
+
 	dm_restart(DM_INIT_REASON_IN_FLIGHT);
 
 	for (i = 0; i < NUM_MISSIONS_TEST; i++) {
