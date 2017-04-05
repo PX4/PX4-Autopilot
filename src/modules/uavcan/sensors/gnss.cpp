@@ -49,6 +49,7 @@ const char *const UavcanGnssBridge::NAME = "gnss";
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	_node(node),
 	_sub_fix(node),
+	_sub_fix2(node),
 	_report_pub(nullptr)
 {
 }
@@ -56,9 +57,14 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 int UavcanGnssBridge::init()
 {
 	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
-
 	if (res < 0) {
 		warnx("GNSS fix sub failed %i", res);
+		return res;
+	}
+
+	res = _sub_fix2.start(Fix2CbBinder(this, &UavcanGnssBridge::gnss_fix2_sub_cb));
+	if (res < 0) {
+		warnx("GNSS fix2 sub failed %i", res);
 		return res;
 	}
 
@@ -83,6 +89,137 @@ void UavcanGnssBridge::print_status() const
 }
 
 void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
+{
+	const bool valid_pos_cov = !msg.position_covariance.empty();
+	const bool valid_vel_cov = !msg.velocity_covariance.empty();
+
+	float pos_cov[9];
+	msg.position_covariance.unpackSquareMatrix(pos_cov);
+
+	float vel_cov[9];
+	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
+
+	process_fixx(msg, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov);
+}
+
+void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg)
+{
+	if (_old_fix_subscriber_active) {
+		warnx("GNSS Fix2 message detected, disabling support for the old Fix message");
+		_sub_fix.stop();
+		_old_fix_subscriber_active = false;
+		_receiver_node_id = -1;
+	}
+
+	float pos_cov[9]{};
+	float vel_cov[9]{};
+	bool valid_covariances = true;
+
+	switch (msg.covariance.size()) {
+	// Scalar matrix
+	case 1: {
+		const auto x = msg.covariance[0];
+
+		pos_cov[0] = x;
+		pos_cov[4] = x;
+		pos_cov[8] = x;
+
+		vel_cov[0] = x;
+		vel_cov[4] = x;
+		vel_cov[8] = x;
+		break;
+	}
+
+	// Diagonal matrix (the most common case)
+	case 6: {
+		pos_cov[0] = msg.covariance[0];
+		pos_cov[4] = msg.covariance[1];
+		pos_cov[8] = msg.covariance[2];
+
+		vel_cov[0] = msg.covariance[3];
+		vel_cov[4] = msg.covariance[4];
+		vel_cov[8] = msg.covariance[5];
+		break;
+	}
+
+	// Upper triangular matrix.
+	// This code has been carefully optimized by hand. We could use unpackSquareMatrix(), but it's slow.
+	// Sub-matrix indexes (empty squares contain velocity-position covariance data):
+	// 0  1  2
+	// 1  6  7
+	// 2  7 11
+	//         15 16 17
+	//         16 18 19
+	//         17 19 20
+	case 21: {
+		pos_cov[0] = msg.covariance[0];
+		pos_cov[1] = msg.covariance[1];
+		pos_cov[2] = msg.covariance[2];
+		pos_cov[3] = msg.covariance[1];
+		pos_cov[4] = msg.covariance[6];
+		pos_cov[5] = msg.covariance[7];
+		pos_cov[6] = msg.covariance[2];
+		pos_cov[7] = msg.covariance[7];
+		pos_cov[8] = msg.covariance[11];
+
+		vel_cov[0] = msg.covariance[15];
+		vel_cov[1] = msg.covariance[16];
+		vel_cov[2] = msg.covariance[17];
+		vel_cov[3] = msg.covariance[16];
+		vel_cov[4] = msg.covariance[18];
+		vel_cov[5] = msg.covariance[19];
+		vel_cov[6] = msg.covariance[17];
+		vel_cov[7] = msg.covariance[19];
+		vel_cov[8] = msg.covariance[20];
+	}
+
+	// Full matrix 6x6.
+	// This code has been carefully optimized by hand. We could use unpackSquareMatrix(), but it's slow.
+	// Sub-matrix indexes (empty squares contain velocity-position covariance data):
+	//  0  1  2
+	//  6  7  8
+	// 12 13 14
+	//          21 22 23
+	//          27 28 29
+	//          33 34 35
+	case 36: {
+		pos_cov[0] = msg.covariance[0];
+		pos_cov[1] = msg.covariance[1];
+		pos_cov[2] = msg.covariance[2];
+		pos_cov[3] = msg.covariance[6];
+		pos_cov[4] = msg.covariance[7];
+		pos_cov[5] = msg.covariance[8];
+		pos_cov[6] = msg.covariance[12];
+		pos_cov[7] = msg.covariance[13];
+		pos_cov[8] = msg.covariance[14];
+
+		vel_cov[0] = msg.covariance[21];
+		vel_cov[1] = msg.covariance[22];
+		vel_cov[2] = msg.covariance[23];
+		vel_cov[3] = msg.covariance[27];
+		vel_cov[4] = msg.covariance[28];
+		vel_cov[5] = msg.covariance[29];
+		vel_cov[6] = msg.covariance[33];
+		vel_cov[7] = msg.covariance[34];
+		vel_cov[8] = msg.covariance[35];
+	}
+
+	// Either empty or invalid sized, interpret as zero matrix
+	default: {
+		valid_covariances = false;
+		break;	// Nothing to do
+	}
+	}
+
+	process_fixx(msg, pos_cov, vel_cov, valid_covariances, valid_covariances);
+}
+
+template <typename FixType>
+void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
+                                    const float (&pos_cov)[9],
+                                    const float (&vel_cov)[9],
+                                    const bool valid_pos_cov,
+                                    const bool valid_vel_cov)
 {
 	// This bridge does not support redundant GNSS receivers yet.
 	if (_receiver_node_id < 0) {
@@ -110,15 +247,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.lon = msg.longitude_deg_1e8 / 10;
 	report.alt = msg.height_msl_mm;
 
-
-	// Check if the msg contains valid covariance information
-	const bool valid_position_covariance = !msg.position_covariance.empty();
-	const bool valid_velocity_covariance = !msg.velocity_covariance.empty();
-
-	if (valid_position_covariance) {
-		float pos_cov[9];
-		msg.position_covariance.unpackSquareMatrix(pos_cov);
-
+	if (valid_pos_cov) {
 		// Horizontal position uncertainty
 		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
 		report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
@@ -131,9 +260,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		report.epv = -1.0F;
 	}
 
-	if (valid_velocity_covariance) {
-		float vel_cov[9];
-		msg.velocity_covariance.unpackSquareMatrix(vel_cov);
+	if (valid_vel_cov) {
 		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
@@ -165,8 +292,9 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	report.vel_n_m_s = msg.ned_velocity[0];
 	report.vel_e_m_s = msg.ned_velocity[1];
 	report.vel_d_m_s = msg.ned_velocity[2];
-	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s + report.vel_e_m_s * report.vel_e_m_s + report.vel_d_m_s *
-			       report.vel_d_m_s);
+	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s +
+	                       report.vel_e_m_s * report.vel_e_m_s +
+	                       report.vel_d_m_s * report.vel_d_m_s);
 	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
 	report.vel_ned_valid = true;
 
