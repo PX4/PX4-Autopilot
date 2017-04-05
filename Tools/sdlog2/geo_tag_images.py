@@ -23,7 +23,8 @@ import bisect
 import pyexiv2
 import argparse
 from lxml import etree
-import datetime, calendar
+import datetime
+import calendar
 from shutil import copyfile
 from subprocess import check_output
 from pykml.factory import KML_ElementMaker as KML
@@ -31,6 +32,7 @@ from pykml.factory import GX_ElementMaker as GX
 
 
 class GpsPosition(object):
+
     def __init__(self, timestamp, lat, lon, alt):
         self.timestamp = timestamp
         self.lat = float(lat)
@@ -39,6 +41,7 @@ class GpsPosition(object):
 
 
 class Main:
+
     def __init__(self):
         """
 
@@ -105,7 +108,7 @@ class Main:
 
         absolute_value = abs(value)
         deg = int(absolute_value)
-        t1 = (absolute_value-deg) * 60
+        t1 = (absolute_value - deg) * 60
         minute = int(t1)
         sec = round((t1 - minute) * 60, 5)
 
@@ -121,8 +124,10 @@ class Main:
         :return:
         """
         datetimeformat = "%Y-%m-%d %H:%M:%S.%f"
-        epoch = datetime.datetime.strptime("1980-01-06 00:00:00.000", datetimeformat)
-        elapsed = datetime.timedelta(days=(gpsweek * 7), milliseconds=(gpsmillis + leapmillis))
+        epoch = datetime.datetime.strptime(
+            "1980-01-06 00:00:00.000", datetimeformat)
+        elapsed = datetime.timedelta(
+            days=(gpsweek * 7), milliseconds=(gpsmillis + leapmillis))
 
         return Main.utc_to_local(epoch + elapsed)
 
@@ -148,7 +153,8 @@ class Main:
         :param utc_dt:
         :return:
         """
-        timestamp = calendar.timegm(utc_dt.timetuple())  # use integer timestamp to avoid precision lost
+        # use integer timestamp to avoid precision loss
+        timestamp = calendar.timegm(utc_dt.timetuple())
         local_dt = datetime.datetime.fromtimestamp(timestamp)
         assert utc_dt.resolution >= datetime.timedelta(microseconds=1)
 
@@ -169,7 +175,8 @@ class Main:
                     KML.IconStyle(
                         KML.scale(0.4),
                         KML.Icon(
-                            KML.href("http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png")
+                            KML.href(
+                                "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png")
                         ),
                     ),
                     id=style_dot,
@@ -181,7 +188,7 @@ class Main:
                         GX.labelVisibility('1'),
                     ),
                     id=style_path
-                )   
+                )
             )
         )
 
@@ -194,9 +201,11 @@ class Main:
                         KML.Point(
                             KML.extrude(True),
                             KML.altitudeMode('absolute'),
-                            KML.coordinates("{},{},{}".format(gps.lon, gps.lat, gps.alt))
+                            KML.coordinates(
+                                "{},{},{}".format(gps.lon, gps.lat, gps.alt))
                         ),
-                        KML.name(str(ii)) if ii % 5 == 0 or ii == 1 else KML.name()
+                        KML.name(
+                            str(ii)) if ii % 5 == 0 or ii == 1 else KML.name()
                     )
                 )
 
@@ -207,7 +216,8 @@ class Main:
                 KML.LineString(
                     KML.altitudeMode('absolute'),
                     KML.coordinates(
-                        ' '.join(["{},{},{}".format(gps.lon, gps.lat, gps.alt) for gps in self.tagged_gps])
+                        ' '.join(["{},{},{}".format(gps.lon, gps.lat, gps.alt)
+                                 for gps in self.tagged_gps])
                     )
                 )
             )
@@ -216,7 +226,7 @@ class Main:
         s = etree.tostring(doc)
 
         file_path = self.output + 'GoogleEarth_points.kml'
-        f = open(file_path,'w')
+        f = open(file_path, 'w')
         f.write(s)
         f.close()
 
@@ -233,11 +243,11 @@ class Main:
 
         i = bisect.bisect_left(datetime_list, elem)
 
-        # Cleanup of the indices 
-        if i < 0: 
-            i = 0 
+        # Cleanup of the indices
+        if i < 0:
+            i = 0
         elif i >= dlist_len:
-            i = dlist_len - 1 
+            i = dlist_len - 1
 
         date = datetime_list[i]
         diff = abs((date - elem).total_seconds())
@@ -290,7 +300,8 @@ class Main:
         :return:
         """
         gps_list = []
-        out = check_output(["python", "sdlog2_dump.py", log_file, "-m GPS", "-v"])
+        out = check_output(
+            ["python", "sdlog2_dump.py", log_file, "-m GPS", "-v"])
 
         for line in out.splitlines():
             if not line.startswith("MSG GPS:"):
@@ -337,7 +348,7 @@ class Main:
         :return:
         """
         self.img_list = [input_folder + filename for filename in os.listdir(input_folder)
-                         if re.search(r'\.'+file_type+'$', filename, re.IGNORECASE)]
+                         if re.search(r'\.' + file_type + '$', filename, re.IGNORECASE)]
         self.img_list = sorted(self.img_list)
         return self.img_list
 
@@ -369,12 +380,14 @@ class Main:
 
             if self.verbose:
                 msg = "[DEBUG] %s/%s) %s\n\timg %s -> gps %s (%ss)\n\tlat:%s, lon:%s, alt:%s".ljust(60) %\
-                        (i+1, img_size, filename, cdate, closest_gps.timestamp, img_tdiff, closest_gps.lat, closest_gps.lon, closest_gps.alt)
+                    (i + 1, img_size, filename, cdate, closest_gps.timestamp,
+                     img_tdiff, closest_gps.lat, closest_gps.lon, closest_gps.alt)
                 print msg
 
             output_filename = self.output + str(img_seq) + '_' + filename
             copyfile(self.img_list[i], output_filename)
-            self.set_gps_location(output_filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
+            self.set_gps_location(
+                output_filename, closest_gps.lat, closest_gps.lon, closest_gps.alt)
             self.tagged_gps.append(closest_gps)
             img_seq += 1
 
@@ -384,7 +397,7 @@ class Main:
     @staticmethod
     def get_arg():
         parser = argparse.ArgumentParser(
-            description='Geotag script to add GPS info to pictures from PX4 binary log files.'\
+            description='Geotag script to add GPS info to pictures from PX4 binary log files.'
                         'It uses synchronized time to allocate GPS positions.'
         )
 
