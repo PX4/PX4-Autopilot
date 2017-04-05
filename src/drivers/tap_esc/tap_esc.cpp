@@ -247,6 +247,8 @@ TAP_ESC::init()
 	ConfigInfoBasicRequest   &config = packet.d.reqConfigInfoBasic;
 	memset(&config, 0, sizeof(ConfigInfoBasicRequest));
 	config.maxChannelInUse = _channels_count;
+	/* Enable closed-loop control */
+	config.controlMode = 1;
 
 	/* Asign the id's to the ESCs to match the mux */
 

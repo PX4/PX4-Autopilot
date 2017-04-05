@@ -41,6 +41,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -82,20 +83,24 @@
 
 /* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150
  * The datasheet gives 200Hz maximum measurement rate, but it's not true according to tech support from iSentek*/
-#define IST8310_CONVERSION_INTERVAL (1000000 / 150) /* microseconds */
+#define IST8310_CONVERSION_INTERVAL	(1000000 / 100) /* microseconds */
 
-#define IST8310_BUS_I2C_ADDR     	0xE
-#define IST8310_DEFAULT_BUS_SPEED 	400000
+#define IST8310_BUS_I2C_ADDR		0xE
+#define IST8310_DEFAULT_BUS_SPEED	400000
 
-/* compensation matrix scalar */
-#define IST8310_COMPENSATION_MATRIX_M	3/20.0f
+/*
+ * FSR:
+ *   x, y: +- 1600 µT
+ *   z:    +- 2500 µT
+ *
+ * Resolution according to datasheet is 0.3µT/LSB
+ */
+#define IST8310_RESOLUTION	0.3
 
-/* Cross-axis calibration sensitivity and bit shift setting */
-#define OTPsensitivity 			(330)
-#define CROSSAXISINV_BITSHIFT	(16)
-
-/* Use float calculation */
-#define IST_CROSS_AXIS_CALI_FLOAT
+static const int16_t IST8310_MAX_VAL_XY	= (1600 / IST8310_RESOLUTION) + 1;
+static const int16_t IST8310_MIN_VAL_XY	= -IST8310_MAX_VAL_XY;
+static const int16_t IST8310_MAX_VAL_Z  = (2500 / IST8310_RESOLUTION) + 1;
+static const int16_t IST8310_MIN_VAL_Z  = -IST8310_MAX_VAL_Z;
 
 /* Hardware definitions */
 
@@ -174,12 +179,6 @@ enum IST8310_BUS {
 	IST8310_BUS_I2C_INTERNAL = 2,
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -232,15 +231,6 @@ private:
 
 	uint8_t 		_ctl3_reg;
 	uint8_t			_ctl4_reg;
-
-
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-	float crossaxis_inv[9];
-#else
-	int64_t crossaxis_inv[9];
-#endif
-
-	int32_t crossaxis_det[1];
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -389,22 +379,6 @@ private:
 	*/
 	int         set_selftest(unsigned enable);
 
-	/**
-	 * Initiate cross-axis matrix
-	 *
-	 * @param bitshift		The bit shift configuration for different chip, used when using integer calculation
-	 * @param enable		Enable cross-axis compensation
-	 * @return				Initialization succeed
-	 */
-	bool		crossaxis_matrix_init(int bitshift, int enable);
-
-	/**
-	 * Transfer the raw sensor data using cross-axis matrix
-	 *
-	 * @param xyz		The pointer of the sensor buffer
-	 */
-	void		crossaxis_transformation(int16_t *xyz);
-
 	/* this class has pointer data members, do not allow copying it */
 	IST8310(const IST8310 &);
 	IST8310 operator=(const IST8310 &);
@@ -479,7 +453,7 @@ IST8310::~IST8310()
 int
 IST8310::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	ret = I2C::init();
 
@@ -813,27 +787,6 @@ IST8310::reset()
 	_ctl4_reg = CTRL4_SRPD;
 	write_reg(ADDR_CTRL4, _ctl4_reg);
 
-	/* initiate cross-axis matrix */
-//    uint8_t wbuffer1[2] = {0};
-//    uint8_t wbuffer2[2] = {0};
-//    uint8_t try_times = 0;
-//    while (++try_times <= 10) {
-//		if (read(ADDR_Y11_Low, wbuffer1, 2) == OK) {
-//			if (read(ADDR_Y11_Low, wbuffer2, 2) == OK) {
-//				if ((wbuffer1[0] == wbuffer2[0]) && (wbuffer1[1] == wbuffer2[1])) {
-//					int crossaxis_enable = 0;
-//					uint8_t cross_mask = 0xFF;
-//					if ((wbuffer1[0] == cross_mask) && (wbuffer1[1] == cross_mask))	crossaxis_enable = 0;
-//					else												            crossaxis_enable = 1;
-//
-//					if (crossaxis_matrix_init(CROSSAXISINV_BITSHIFT, crossaxis_enable)) {
-//						return OK;
-//					}
-//				}
-//			}
-//		}
-//    }
-
 	return OK;
 }
 
@@ -976,7 +929,7 @@ IST8310::collect()
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("data/status read error");
+		DEVICE_DEBUG("I2C read error");
 		goto out;
 	}
 
@@ -985,14 +938,27 @@ IST8310::collect()
 	report.y = (((int16_t)report_buffer.y[1]) << 8) | (int16_t)report_buffer.y[0];
 	report.z = (((int16_t)report_buffer.z[1]) << 8) | (int16_t)report_buffer.z[0];
 
-	/* perform cross-axis compensation */
-//	crossaxis_transformation((int16_t *)&report);
+
+	/*
+	 * Check if value makes sense according to the FSR and Resolution of
+	 * this sensor, discarding outliers
+	 */
+	if (report.x > IST8310_MAX_VAL_XY || report.x < IST8310_MIN_VAL_XY ||
+	    report.y > IST8310_MAX_VAL_XY || report.y < IST8310_MIN_VAL_XY ||
+	    report.z > IST8310_MAX_VAL_Z  || report.z < IST8310_MIN_VAL_Z) {
+		perf_count(_range_errors);
+		DEVICE_DEBUG("data/status read error");
+		goto out;
+	}
 
 	/* temperature measurement is not available on IST8310 */
 	new_report.temperature = 0;
 
 	/*
 	 * raw outputs
+	 *
+	 * Sensor doesn't follow right hand rule, swap x and y to make it obey
+	 * it.
 	 */
 	new_report.x_raw = report.y;
 	new_report.y_raw = report.x;
@@ -1172,7 +1138,7 @@ out:
 		if (check_scale()) {
 			/* failed */
 			PX4_WARN("FAILED: SCALE");
-			ret = ERROR;
+			ret = PX4_ERROR;
 		}
 
 	}
@@ -1249,164 +1215,6 @@ IST8310::set_selftest(unsigned enable)
 	return !(str == str_reg_ret);
 }
 
-bool
-IST8310::crossaxis_matrix_init(int bitshift, int enable)
-{
-	int i = 0;
-	uint8_t crossxbuf[6];
-	uint8_t crossybuf[6];
-	uint8_t crosszbuf[6];
-	uint8_t crossxbuf2[6];
-	uint8_t crossybuf2[6];
-	uint8_t crosszbuf2[6];
-	int16_t OTPcrossaxis[9] = {0};
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-	float inv[9] = {0};
-#else
-	int64_t inv[9] = {0};
-#endif
-
-	if (enable == 0) {
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-		*crossaxis_inv = 1;
-#else
-		*crossaxis_inv = (1 << bitshift);
-#endif
-		*(crossaxis_inv + 1) = 0;
-		*(crossaxis_inv + 2) = 0;
-		*(crossaxis_inv + 3) = 0;
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-		*(crossaxis_inv + 4) = 1;
-#else
-		*(crossaxis_inv + 4) = (1 << bitshift);
-#endif
-		*(crossaxis_inv + 5) = 0;
-		*(crossaxis_inv + 6) = 0;
-		*(crossaxis_inv + 7) = 0;
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-		*(crossaxis_inv + 8) = 1;
-#else
-		*(crossaxis_inv + 8) = (1 << bitshift);
-#endif
-		*crossaxis_det = 1;
-
-		return true;
-
-	} else {
-		bool pass_all = false;
-		uint8_t retry_times = 0;
-
-		do {
-			pass_all = true;
-
-			if (read(ADDR_Y11_Low, crossxbuf, 6) && read(ADDR_Y21_Low, crossybuf, 6) && read(ADDR_Y31_Low, crosszbuf, 6)) {
-				if (read(ADDR_Y11_Low, crossxbuf2, 6) && read(ADDR_Y21_Low, crossybuf2, 6) && read(ADDR_Y31_Low, crosszbuf2, 6)) {
-					for (i = 0; i < 6; ++i) {
-						if (crossxbuf[i] != crossxbuf2[i]) {
-							pass_all = false;
-						}
-					}
-				}
-			}
-
-			if (pass_all) { break; }
-		} while (++retry_times < 5);
-
-		if (retry_times >= 5 && !pass_all) { return false; }
-
-		OTPcrossaxis[0] = ((int16_t) crossxbuf[1]) << 8 | ((int16_t) crossxbuf[0]);
-		OTPcrossaxis[3] = ((int16_t) crossxbuf[3]) << 8 | ((int16_t) crossxbuf[2]);
-		OTPcrossaxis[6] = ((int16_t) crossxbuf[5]) << 8 | ((int16_t) crossxbuf[4]);
-		OTPcrossaxis[1] = ((int16_t) crossybuf[1]) << 8 | ((int16_t) crossybuf[0]);
-		OTPcrossaxis[4] = ((int16_t) crossybuf[3]) << 8 | ((int16_t) crossybuf[2]);
-		OTPcrossaxis[7] = ((int16_t) crossybuf[5]) << 8 | ((int16_t) crossybuf[4]);
-		OTPcrossaxis[2] = ((int16_t) crosszbuf[1]) << 8 | ((int16_t) crosszbuf[0]);
-		OTPcrossaxis[5] = ((int16_t) crosszbuf[3]) << 8 | ((int16_t) crosszbuf[2]);
-		OTPcrossaxis[8] = ((int16_t) crosszbuf[5]) << 8 | ((int16_t) crosszbuf[4]);
-		*crossaxis_det = ((int32_t)OTPcrossaxis[0]) * OTPcrossaxis[4] * OTPcrossaxis[8] +
-				 ((int32_t)OTPcrossaxis[1]) * OTPcrossaxis[5] * OTPcrossaxis[6] +
-				 ((int32_t)OTPcrossaxis[2]) * OTPcrossaxis[3] * OTPcrossaxis[7] -
-				 ((int32_t)OTPcrossaxis[0]) * OTPcrossaxis[5] * OTPcrossaxis[7] -
-				 ((int32_t)OTPcrossaxis[2]) * OTPcrossaxis[4] * OTPcrossaxis[6] -
-				 ((int32_t)OTPcrossaxis[1]) * OTPcrossaxis[3] * OTPcrossaxis[8];
-
-		if (*crossaxis_det == 0) {
-			return false;
-		}
-
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-		inv[0] = (float)OTPcrossaxis[4] * OTPcrossaxis[8] - (float)OTPcrossaxis[5] * OTPcrossaxis[7];
-		inv[1] = (float)OTPcrossaxis[2] * OTPcrossaxis[7] - (float)OTPcrossaxis[1] * OTPcrossaxis[8];
-		inv[2] = (float)OTPcrossaxis[1] * OTPcrossaxis[5] - (float)OTPcrossaxis[2] * OTPcrossaxis[4];
-		inv[3] = (float)OTPcrossaxis[5] * OTPcrossaxis[6] - (float)OTPcrossaxis[3] * OTPcrossaxis[8];
-		inv[4] = (float)OTPcrossaxis[0] * OTPcrossaxis[8] - (float)OTPcrossaxis[2] * OTPcrossaxis[6];
-		inv[5] = (float)OTPcrossaxis[2] * OTPcrossaxis[3] - (float)OTPcrossaxis[0] * OTPcrossaxis[5];
-		inv[6] = (float)OTPcrossaxis[3] * OTPcrossaxis[7] - (float)OTPcrossaxis[4] * OTPcrossaxis[6];
-		inv[7] = (float)OTPcrossaxis[1] * OTPcrossaxis[6] - (float)OTPcrossaxis[0] * OTPcrossaxis[7];
-		inv[8] = (float)OTPcrossaxis[0] * OTPcrossaxis[4] - (float)OTPcrossaxis[1] * OTPcrossaxis[3];
-
-		for (i = 0; i < 9; i++) {
-			crossaxis_inv[i] = inv[i] * OTPsensitivity / (*crossaxis_det);
-		}
-
-#else
-		inv[0] = (int64_t)OTPcrossaxis[4] * OTPcrossaxis[8] - (int64_t)OTPcrossaxis[5] * OTPcrossaxis[7];
-		inv[1] = (int64_t)OTPcrossaxis[2] * OTPcrossaxis[7] - (int64_t)OTPcrossaxis[1] * OTPcrossaxis[8];
-		inv[2] = (int64_t)OTPcrossaxis[1] * OTPcrossaxis[5] - (int64_t)OTPcrossaxis[2] * OTPcrossaxis[4];
-		inv[3] = (int64_t)OTPcrossaxis[5] * OTPcrossaxis[6] - (int64_t)OTPcrossaxis[3] * OTPcrossaxis[8];
-		inv[4] = (int64_t)OTPcrossaxis[0] * OTPcrossaxis[8] - (int64_t)OTPcrossaxis[2] * OTPcrossaxis[6];
-		inv[5] = (int64_t)OTPcrossaxis[2] * OTPcrossaxis[3] - (int64_t)OTPcrossaxis[0] * OTPcrossaxis[5];
-		inv[6] = (int64_t)OTPcrossaxis[3] * OTPcrossaxis[7] - (int64_t)OTPcrossaxis[4] * OTPcrossaxis[6];
-		inv[7] = (int64_t)OTPcrossaxis[1] * OTPcrossaxis[6] - (int64_t)OTPcrossaxis[0] * OTPcrossaxis[7];
-		inv[8] = (int64_t)OTPcrossaxis[0] * OTPcrossaxis[4] - (int64_t)OTPcrossaxis[1] * OTPcrossaxis[3];
-
-		for (i = 0; i < 9; i++) {
-			crossaxis_inv[i] = (inv[i] << bitshift) * OTPsensitivity;
-		}
-
-#endif
-	}
-
-	return true;
-}
-
-void
-IST8310::crossaxis_transformation(int16_t *xyz)
-{
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-	float outputtmp[3];
-#else
-	int64_t outputtmp[3];
-#endif
-
-	outputtmp[0] = xyz[0] * crossaxis_inv[0] +
-		       xyz[1] * crossaxis_inv[1] +
-		       xyz[2] * crossaxis_inv[2];
-
-	outputtmp[1] = xyz[0] * crossaxis_inv[3] +
-		       xyz[1] * crossaxis_inv[4] +
-		       xyz[2] * crossaxis_inv[5];
-
-	outputtmp[2] = xyz[0] * crossaxis_inv[6] +
-		       xyz[1] * crossaxis_inv[7] +
-		       xyz[2] * crossaxis_inv[8];
-#ifdef IST_CROSS_AXIS_CALI_FLOAT
-	xyz[0] = (short)(outputtmp[0]);
-	xyz[1] = (short)(outputtmp[1]);
-	xyz[2] = (short)(outputtmp[2]);
-#else
-	int i = 0;
-
-	for (i = 0; i < 3; i++) {
-		outputtmp[i] = outputtmp[i] / (*crossaxis_det);
-	}
-
-	xyz[0] = (short)(outputtmp[0] >> CROSSAXISINV_BITSHIFT);
-	xyz[1] = (short)(outputtmp[1] >> CROSSAXISINV_BITSHIFT);
-	xyz[2] = (short)(outputtmp[2] >> CROSSAXISINV_BITSHIFT);
-#endif
-}
-
 int
 IST8310::write_reg(uint8_t reg, uint8_t val)
 {
@@ -1457,12 +1265,6 @@ IST8310::print_info()
  */
 namespace ist8310
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 /*
   list of supported bus configurations
