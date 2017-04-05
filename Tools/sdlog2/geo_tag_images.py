@@ -18,7 +18,6 @@
 import os
 import re
 import sys
-import csv
 import bisect
 import pyexiv2
 import argparse
