@@ -78,7 +78,8 @@ unsigned UavcanGnssBridge::get_num_redundant_channels() const
 
 void UavcanGnssBridge::print_status() const
 {
-	printf("RX errors: %d, receiver node id: ", _sub_fix.getFailureCount());
+	printf("RX errors: %d, using old Fix: %d, receiver node id: ",
+		_sub_fix.getFailureCount(), int(_old_fix_subscriber_active));
 
 	if (_receiver_node_id < 0) {
 		printf("N/A\n");
