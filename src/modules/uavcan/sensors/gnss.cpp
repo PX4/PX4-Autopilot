@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
+#include <algorithm>
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
@@ -50,13 +51,26 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	_node(node),
 	_sub_fix(node),
 	_sub_fix2(node),
+	_pub_fix2(node),
+	_orb_to_uavcan_pub_timer(node, TimerCbBinder(this, &UavcanGnssBridge::broadcast_from_orb)),
 	_report_pub(nullptr)
 {
 }
 
+UavcanGnssBridge::~UavcanGnssBridge()
+{
+	(void) orb_unsubscribe(_orb_sub_gnss);
+}
+
 int UavcanGnssBridge::init()
 {
-	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
+	int res = _pub_fix2.init(uavcan::TransferPriority::MiddleLower);
+	if (res < 0) {
+		warnx("GNSS fix2 pub failed %i", res);
+		return res;
+	}
+
+	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0) {
 		warnx("GNSS fix sub failed %i", res);
 		return res;
@@ -67,6 +81,9 @@ int UavcanGnssBridge::init()
 		warnx("GNSS fix2 sub failed %i", res);
 		return res;
 	}
+
+	_orb_to_uavcan_pub_timer.startPeriodic(
+		uavcan::MonotonicDuration::fromUSec(1000000U / ORB_TO_UAVCAN_FREQUENCY_HZ));
 
 	return res;
 }
@@ -244,9 +261,11 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	 * The proper solution is to be developed.
 	 */
 	report.timestamp = hrt_absolute_time();
-	report.lat = msg.latitude_deg_1e8 / 10;
-	report.lon = msg.longitude_deg_1e8 / 10;
-	report.alt = msg.height_msl_mm;
+
+	report.lat           = msg.latitude_deg_1e8 / 10;
+	report.lon           = msg.longitude_deg_1e8 / 10;
+	report.alt           = msg.height_msl_mm;
+	report.alt_ellipsoid = msg.height_ellipsoid_mm;
 
 	if (valid_pos_cov) {
 		// Horizontal position uncertainty
@@ -313,4 +332,74 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	int32_t gps_orb_instance;
 	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_pub, &report, &gps_orb_instance,
 				 ORB_PRIO_HIGH);
+
+	// Doing less time critical stuff here
+	if (_orb_to_uavcan_pub_timer.isRunning()) {
+		_orb_to_uavcan_pub_timer.stop();
+		warnx("GNSS ORB->UAVCAN bridge stopped, because there are other GNSS publishers");
+	}
+}
+
+void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
+{
+	if (_orb_sub_gnss < 0) {
+		// ORB subscription stops working if this is relocated into init()
+		_orb_sub_gnss = orb_subscribe(ORB_ID(vehicle_gps_position));
+		if (_orb_sub_gnss < 0) {
+			warnx("GNSS ORB sub errno %d", errno);
+			return;
+		}
+		warnx("GNSS ORB fd %d", _orb_sub_gnss);
+	}
+
+	{
+		bool updated = false;
+		const int res = orb_check(_orb_sub_gnss, &updated);
+		if (res < 0) {
+			warnx("GNSS ORB check err %d %d", res, errno);
+			return;
+		}
+
+		if (!updated) {
+			return;
+		}
+	}
+
+	auto orb_msg = ::vehicle_gps_position_s();
+	const int res = orb_copy(ORB_ID(vehicle_gps_position), _orb_sub_gnss, &orb_msg);
+	if (res < 0) {
+		warnx("GNSS ORB read errno %d", errno);
+		return;
+	}
+
+	// Convert to UAVCAN
+	using uavcan::equipment::gnss::Fix2;
+	Fix2 msg;
+
+	msg.gnss_timestamp = uavcan::UtcTime::fromUSec(orb_msg.time_utc_usec);
+	msg.gnss_time_standard = Fix2::GNSS_TIME_STANDARD_UTC;
+
+	msg.longitude_deg_1e8   = std::int64_t(orb_msg.lon) * 10LL;
+	msg.latitude_deg_1e8    = std::int64_t(orb_msg.lat) * 10LL;
+	msg.height_ellipsoid_mm = orb_msg.alt_ellipsoid;
+	msg.height_msl_mm       = orb_msg.alt;
+
+	msg.ned_velocity[0] = orb_msg.vel_n_m_s;
+	msg.ned_velocity[1] = orb_msg.vel_e_m_s;
+	msg.ned_velocity[2] = orb_msg.vel_d_m_s;
+
+	msg.sats_used = orb_msg.satellites_used;
+	msg.status    = orb_msg.fix_type;
+	// mode skipped
+	// sub mode skipped
+
+	// diagonal covariance matrix
+	msg.covariance.resize(2, orb_msg.eph * orb_msg.eph);
+	msg.covariance.resize(3, orb_msg.epv * orb_msg.epv);
+	msg.covariance.resize(6, orb_msg.s_variance_m_s * orb_msg.s_variance_m_s);
+
+	msg.pdop = std::max(orb_msg.hdop, orb_msg.vdop);  // this is a hack :(
+
+	// Publishing now
+	(void) _pub_fix2.broadcast(msg);
 }

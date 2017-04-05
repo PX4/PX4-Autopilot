@@ -55,10 +55,13 @@
 
 class UavcanGnssBridge : public IUavcanSensorBridge
 {
+	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 10;
+
 public:
 	static const char *const NAME;
 
 	UavcanGnssBridge(uavcan::INode &node);
+	~UavcanGnssBridge();
 
 	const char *get_name() const override { return NAME; }
 
@@ -82,6 +85,8 @@ private:
 	                  const bool valid_pos_cov,
 	                  const bool valid_vel_cov);
 
+	void broadcast_from_orb(const uavcan::TimerEvent &);
+
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &) >
 		FixCbBinder;
@@ -90,12 +95,20 @@ private:
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &) >
 		Fix2CbBinder;
 
+	typedef uavcan::MethodBinder<UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::TimerEvent &)>
+		TimerCbBinder;
+
 	uavcan::INode &_node;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
+	uavcan::Publisher<uavcan::equipment::gnss::Fix2> _pub_fix2;
+	uavcan::TimerEventForwarder<TimerCbBinder> _orb_to_uavcan_pub_timer;
 	int _receiver_node_id = -1;
 
 	bool _old_fix_subscriber_active = true;
 
 	orb_advert_t _report_pub;                ///< uORB pub for gnss position
+
+	int _orb_sub_gnss = -1;                  ///< uORB sub for gnss position, used for bridging uORB --> UAVCAN
 };
