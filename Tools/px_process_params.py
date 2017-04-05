@@ -50,7 +50,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc
+from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc, markdownout
 
 import re
 import json
@@ -81,6 +81,12 @@ def main():
                          const="",
                          metavar="BOARD",
                          help="Board to create xml parameter xml for")
+    parser.add_argument("-m", "--markdown",
+                        nargs='?',
+                        const="parameters.md",
+                        metavar="FILENAME",
+                        help="Create Markdown file"
+                             " (default FILENAME: parameters.md)")
     parser.add_argument("-w", "--wiki",
                         nargs='?',
                         const="parameters.wiki",
@@ -122,7 +128,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml or args.wiki or args.wiki_update):
+    if not (args.xml or args.wiki or args.wiki_update or args.markdown):
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -175,6 +181,13 @@ def main():
                 xmlrpc.wiki.putPage(args.wiki_update, out.output, {'sum': args.wiki_summary})
             else:
                 print("Error: You need to specify DokuWiki XML-RPC username and password!")
+
+    # Output to Markdown/HTML tables
+    if args.markdown:
+        out = markdownout.MarkdownTablesOutput(param_groups)
+        if args.markdown:
+            print("Creating markdown file " + args.markdown)
+            out.Save(args.markdown)
 
     #print("All done!")
 
