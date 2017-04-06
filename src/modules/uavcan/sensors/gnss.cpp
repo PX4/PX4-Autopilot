@@ -43,7 +43,6 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
-#include <algorithm>
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
@@ -424,7 +423,7 @@ void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 	msg.covariance.resize(3, orb_msg.epv * orb_msg.epv);
 	msg.covariance.resize(6, orb_msg.s_variance_m_s * orb_msg.s_variance_m_s);
 
-	msg.pdop = std::max(orb_msg.hdop, orb_msg.vdop);  // this is a hack :(
+	msg.pdop = (orb_msg.hdop > orb_msg.vdop) ? orb_msg.hdop : orb_msg.vdop;  // this is a hack :(
 
 	// Publishing now
 	(void) _pub_fix2.broadcast(msg);
