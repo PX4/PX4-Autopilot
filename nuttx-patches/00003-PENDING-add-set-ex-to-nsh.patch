@@ -65,7 +65,7 @@ index eef16ed..013357a 100644
  
 +#ifndef CONFIG_NSH_DISABLESCRIPT
 +#  define NSH_NP_SET_OPTIONS "ex"    /* Maintain order see nsh_npflags_e */
-+#  define NSH_NP_SET_OPTIONS_INIT    (NSH_PFALG_SILENT)
++#  define NSH_NP_SET_OPTIONS_INIT    (NSH_PFLAG_SILENT)
 +#endif
 +
 +#if defined(CONFIG_DISABLE_ENVIRON) && defined(CONFIG_NSH_DISABLESCRIPT)
@@ -87,9 +87,9 @@ index eef16ed..013357a 100644
 +
 +enum nsh_npflags_e
 +{
-+	NSH_PFALG_IGNORE = 1,      /*  set for +e no exit on errors,
++	NSH_PFLAG_IGNORE = 1,      /*  set for +e no exit on errors,
 +	                            *  cleared -e exit on error */
-+	NSH_PFALG_SILENT = 2,      /*  cleared -x  print a trace of commands
++	NSH_PFLAG_SILENT = 2,      /*  cleared -x  print a trace of commands
 +	                            *  when parsing.
 +	                            *  set +x no print a trace of commands */
 +};
@@ -283,7 +283,7 @@ index 97c2d04..4bc6794 100644
  
            envstr = nsh_envexpand(vtbl, ptr);
  
-+          if ((vtbl->np.np_flags & NSH_PFALG_SILENT) == 0)
++          if ((vtbl->np.np_flags & NSH_PFLAG_SILENT) == 0)
 +            {
 +              nsh_output(vtbl,"  %s=%s\n", ptr, envstr ? envstr :"(null)");
 +            }
@@ -299,7 +299,7 @@ index 2c4a369..cc20a82 100644
                 * considerable amount of stack may be used.
                 */
  
-+              if ((vtbl->np.np_flags & NSH_PFALG_SILENT) == 0)
++              if ((vtbl->np.np_flags & NSH_PFLAG_SILENT) == 0)
 +                {
 +                  nsh_output(vtbl,"%s", buffer);
 +                }
@@ -308,7 +308,7 @@ index 2c4a369..cc20a82 100644
              }
          }
 -      while (pret && ret == OK);
-+      while (pret && (ret == OK || (vtbl->np.np_flags & NSH_PFALG_IGNORE)));
++      while (pret && (ret == OK || (vtbl->np.np_flags & NSH_PFLAG_IGNORE)));
  
        /* Close the script file */
  
