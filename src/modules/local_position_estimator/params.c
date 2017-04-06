@@ -108,7 +108,7 @@ PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
  * Larger than data sheet to account for tilt error.
  *
  * @group Local Position Estimator
- * @unit m/s^2/srqt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.012f);
  * Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
  *
  * @group Local Position Estimator
- * @unit m/s^2/srqt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
