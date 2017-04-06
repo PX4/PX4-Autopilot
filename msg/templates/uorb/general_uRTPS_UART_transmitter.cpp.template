@@ -26,8 +26,12 @@ num_topics = len(topic_names)
 #include <string.h>
 #include <termios.h>
 
+
 #include <microcdr/microCdr.h>
 #include <uORB/uORB.h>
+
+#include "UART_node.h"
+
 
 @[for topic in topic_names]
 #include <uORB/topics/@(topic).h>
@@ -44,7 +48,10 @@ int general_trans_main(int argc, char *argv[])
         errx(1, "need a serial port name as argument");
     }
     
-    int serial_fd = uart_init(argv[1], 115200);
+    UART_node m_uartNode;
+    m_uartNode.init_uart(argv[1]);
+    char rx_buffer[210];
+    char buffer[MICROCDR_INIT_BUF_LENGTH];
 
     /* subscribe to topics */
     px4_pollfd_struct_t fds[@(num_topics)];
@@ -60,7 +67,7 @@ int general_trans_main(int argc, char *argv[])
 
     for (int i = 0; i < 50; ++i)
     {
-        int poll_ret = px4_poll(fds, 2, 1000);
+        int poll_ret = px4_poll(fds, @(num_topics), 1000);
 
         if (poll_ret == 0)
         {
@@ -84,22 +91,38 @@ int general_trans_main(int argc, char *argv[])
                 /* copy raw data into local buffer */
                 orb_copy(ORB_ID(@(topic)), @(topic)_fd, &data);
                 
-                char buffer[MICROCDR_INIT_BUF_LENGTH];
                 uint32_t length = 0;
                 serialize_@(topic)(&data, buffer, &length);
 
-                // Write serialized data trough UART
-                dprintf(serial_fd, ">>>");
-                dprintf(serial_fd, "%c", @(id));    // topic_ID
-                write(serial_fd, buffer, length);
-                dprintf(serial_fd, "<<<");
+
+                printf("<-@(id): ");
+                for (int c=0; c < 20; ++c) printf("%d ", buffer[c]);
+                printf("\n");
+                m_uartNode.writeToUART((char)@(id), buffer, length);
             }
 @[end for]
         }
-    }
 
+        char topic_ID = 255;
+        uint8_t ret = m_uartNode.readFromUART(&topic_ID, rx_buffer, rx_buffer);
+        if (0 == ret) 
+        {
+@[for id, topic in enumerate(topic_names)]
+            if (topic_IC == id) {
+                printf("->%d: ", topic_ID);
+                for (int c=0; c < 20; ++c) printf("%d ", buffer[c]);
+                printf("\n");
+                // printf("Received @(topic) \n");
+
+                // struct @(topic)_s data;
+                // deserialize_@(topic)(&data, buffer);
+                // publish...
+            }
+@[end for]
+        }
+        usleep(10000);
+    }
     PX4_INFO("exiting");
-    close(serial_fd);
     fflush(stdout);
     return OK;
 }

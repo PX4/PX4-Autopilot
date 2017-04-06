@@ -65,11 +65,12 @@ Steps to use the auto generated application:
    $ mkdir src/examples/micrortps_transmitter
    $ cp msgenerated/general_uRTPS_UART_transmitter.cpp src/examples/micrortps_transmitter
 
--  Also copy and rename the CMakeList to the example folder:
+-  Also copy and rename the CMakeList UART_Node to the example folder:
 
 .. code-block:: shell
 
    $ cp msgenerated/general_transmitter_CMakeLists.txt src/examples/micrortps_transmitter/CMakeLists.txt
+   $ cp msg/templates/urtps/UART_node.* src/examples/micrortps_transmitter/
     
 -  Construct and upload the firmware executing:
 
@@ -112,6 +113,7 @@ For create the application:
     $ mkdir my_app && cd my_app
     $ cp /path/to/Firmware/msgenerated/*.idl .
     $ cp /path/to/Firmware/msgenerated/general_uRTPS_UART_receiver.* .
+    $ cp msg/templates/urtps/UART_node.* .
 
 -  Generate the base application with *fastrtpsgen*:
 
@@ -136,7 +138,7 @@ For create the application:
 
     
 Now we need to do some modifications to use the both codes together.
-Add a publish method to all publisher on that way:
+Add a publish method to all publisher
 
 -  *sensor_combined_Publisher.h*
 
@@ -177,6 +179,7 @@ Add a publish method to all publisher on that way:
       
       return 0;
    }
+
 
 -  In *sensor_combined_Subscriber.cxx* we can add some code to print some info on the screen, for example:
 

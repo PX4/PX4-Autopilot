@@ -42,7 +42,12 @@ topic_names = [single_spec.short_name for single_spec in spec]
 #include "@(topic)_Subscriber.h"
 @[end for]
 
-#include "general_uRTPS_UART_receiver.h"
+// #include "general_uRTPS_UART_receiver.h"
+#include "UART_node.h"
+
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastCdr.h>
+#include <fastcdr/exceptions/Exception.h>
 
 #include <fastrtps/utils/eClock.h>
 #include <unistd.h>
@@ -54,28 +59,66 @@ using namespace eprosima::fastrtps;
 
 int main(int argc, char** argv)
 {   
-    general_UART_receiver m_uartReceiver;
+    UART_node m_uartNode;
+    char buffer[210];
+    std::string uart = "/dev/ttyACM0";
+    if (argc > 2) uart = std::string(argv[2]);
+    m_uartNode.init_uart(uart.c_str());
 
+// Create subscribers
+@[for id, topic in enumerate(topic_names)]
+    cout << "@(topic) subscriber created" << endl;
+    @(topic)_Subscriber @(topic)_sub;
+    if (@(topic)_sub.init())
+    {
+        // @(topic)_sub.run();
+    }
+@[end for]
+
+// Create subscribers
 @[for topic in topic_names]
     @(topic)_Publisher @(topic)_pub;
     @(topic)_pub.init();
 @[end for]
 
-    std::string uart = "/dev/ttyACM0";
-    if (argc > 1) uart = std::string(argv[1]);
-    m_uartReceiver.init_uart(std::string(uart));
 
-    char topic_ID = 127;
+    char topic_ID = 255;
     do
     {
-        if (0 == m_uartReceiver.readFromUART(&topic_ID))
+        if (0 == m_uartNode.readFromUART(&topic_ID, buffer, buffer))
         {
+// Publish message received from UART
 @[for id, topic in enumerate(topic_names)]
             if (topic_ID == @(id)) {
                 cout << "Published @(topic)" << endl;
+
                 @(topic)_ st;
-                m_uartReceiver.fill_@(topic)(st);
+                memset(&st, 0, sizeof(st));
+                eprosima::fastcdr::FastBuffer cdrbuffer(buffer, sizeof(buffer));
+                eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+                st.deserialize(cdr_des);
                 @(topic)_pub.publish(&st);
+            }
+@[end for]
+
+// Send subscribed topics over UART
+@[for id, topic in enumerate(topic_names)]
+            if (@(topic)_sub.hasMsg()) {
+                cout << "Received loop-msg" << endl;
+                @(topic)_ msg = @(topic)_sub.getMsg();
+                eprosima::fastcdr::FastBuffer cdrbuffer(buffer, sizeof(buffer));
+                eprosima::fastcdr::Cdr scdr(cdrbuffer);
+                msg.serialize(scdr);
+                auto len = scdr.getSerializedDataLength();
+                cout << "len: " << len << endl;
+                uint8_t ret = m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
+
+                if (ret == 0) {
+                    // cout << "Wrote to UART" << endl << endl;
+                }
+                else {
+                    cout << "Failed to write to UART" << endl << endl;
+                }
             }
 @[end for]
         }
