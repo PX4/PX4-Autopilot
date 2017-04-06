@@ -182,7 +182,7 @@ public:
      * It's not recommended to override default timeouts.
      * Change of this value will not affect pending calls.
      */
-    static MonotonicDuration getDefaultRequestTimeout() { return MonotonicDuration::fromMSec(500); }
+    static MonotonicDuration getDefaultRequestTimeout() { return MonotonicDuration::fromMSec(1000); }
     static MonotonicDuration getMinRequestTimeout() { return MonotonicDuration::fromMSec(10); }
     static MonotonicDuration getMaxRequestTimeout() { return MonotonicDuration::fromMSec(60000); }
 };
