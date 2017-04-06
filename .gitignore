@@ -87,3 +87,5 @@ coverage-html/
 coverage.info
 
 posix-configs/SITL/init/test/*_generated
+
+parameters.md
