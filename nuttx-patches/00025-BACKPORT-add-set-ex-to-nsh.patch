@@ -21,7 +21,7 @@ index 151387a..28e1247 100644
      nsh>
  
 +  Set the 'exit on error control' and/or 'print a trace' of commands when parsing
-+  scripts in NSH.  The settinngs are in effect from the point of exection, until
++  scripts in NSH.  The settings are in effect from the point of exection, until
 +  they are changed again, or in the case of the init script, the settings are
 +  returned to the default settings when it exits. Included child scripts will run
 +  with the parents settings and changes made in the child script will effect the
