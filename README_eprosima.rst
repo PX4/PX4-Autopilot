@@ -30,7 +30,7 @@ The support for the new functionality added is mainly carried on inside three ne
 .. image:: doc/4_both-white.png
 
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the new script **generate_microRTPS_support_general.py** placed in *Tools* folder, on this way:
--
+
 .. code-block:: shell
     
     $ python Tools/generate_microRTPS_support_general.py [messages...]
