@@ -153,7 +153,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, Basic)
     node_status.uptime_sec += 5U;
     ASSERT_LE(0, node_status_pub.broadcast(node_status));
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1150));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1250));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
@@ -256,7 +256,7 @@ TEST(dynamic_node_id_server_NodeDiscoverer, RestartAndMaxAttempts)
     /*
      * Waiting for timeout
      */
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1600));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(3100));
 
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryNewNodeFound));
     ASSERT_EQ(1, tracer.countEvents(TraceDiscoveryTimerStart));
