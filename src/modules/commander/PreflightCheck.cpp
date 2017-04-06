@@ -166,8 +166,11 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	// get the sensor preflight data
 	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
 	struct sensor_preflight_s sensors = {};
-	orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors);
-	px4_close(sensors_sub);
+	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != 0) {
+		// can happen if not advertised (yet)
+		return true;
+	}
+	orb_unsubscribe(sensors_sub);
 
 	// Use the difference between IMU's to detect a bad calibration. If a single IMU is fitted, the value being checked will be zero so this check will always pass.
 	bool success = true;
@@ -409,7 +412,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	}
 
 out:
-	px4_close(fd);
+	orb_unsubscribe(fd);
 	return success;
 }
 
@@ -441,7 +444,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 		}
 	}
 
-	px4_close(gpsSub);
+	orb_unsubscribe(gpsSub);
 	return success;
 }
 
@@ -454,7 +457,6 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	struct estimator_status_s status;
 	orb_copy(ORB_ID(estimator_status), sub, &status);
 	orb_unsubscribe(sub);
-	px4_close(sub);
 
 	bool success = true; // start with a pass and change to a fail if any test fails
 	float test_limit; // pass limit re-used for each test
