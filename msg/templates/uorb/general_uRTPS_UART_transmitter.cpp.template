@@ -1,3 +1,4 @@
+from docutils.parsers.rst.directives import length_or_percentage_or_unitless
 @###############################################
 @#
 @# EmPy template for generating <msg>_uRTPS_UART.cpp file
@@ -37,8 +38,6 @@ num_topics = len(topic_names)
 #include <uORB/topics/@(topic).h>
 @[end for]
 
-int uart_init(const char *uart_name, uint32_t speed);
-
 extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
 
 int general_trans_main(int argc, char *argv[])
@@ -61,6 +60,13 @@ int general_trans_main(int argc, char *argv[])
     orb_set_interval(@(topic)_fd, 1000);
     fds[@(id)].fd = @(topic)_fd;
     fds[@(id)].events = POLLIN;
+@[end for]
+
+    /* advertise topics */
+@[for id, topic in enumerate(topic_names)]
+    struct @(topic)_s @(topic)_data;
+    memset(&@(topic)_data, 0, sizeof(@(topic)_data));
+    orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
 @[end for]
 
     int error_counter = 0;
@@ -96,7 +102,7 @@ int general_trans_main(int argc, char *argv[])
 
 
                 printf("<-@(id): ");
-                for (int c=0; c < 20; ++c) printf("%d ", buffer[c]);
+                for (int c=0; c < sizeof(data); ++c) printf("%hhu ", buffer[c]);
                 printf("\n");
                 m_uartNode.writeToUART((char)@(id), buffer, length);
             }
@@ -104,19 +110,19 @@ int general_trans_main(int argc, char *argv[])
         }
 
         char topic_ID = 255;
-        uint8_t ret = m_uartNode.readFromUART(&topic_ID, rx_buffer, rx_buffer);
-        if (0 == ret) 
+        uint8_t length = m_uartNode.readFromUART(&topic_ID, rx_buffer, rx_buffer);
+        if (0 != length)
         {
 @[for id, topic in enumerate(topic_names)]
-            if (topic_IC == id) {
+            if (topic_ID == @(id)) {
                 printf("->%d: ", topic_ID);
-                for (int c=0; c < 20; ++c) printf("%d ", buffer[c]);
+                for (int c=0; c < length; ++c) printf("%hhu ", rx_buffer[c]);
                 printf("\n");
                 // printf("Received @(topic) \n");
 
-                // struct @(topic)_s data;
-                // deserialize_@(topic)(&data, buffer);
-                // publish...
+                deserialize_@(topic)(&@(topic)_data, buffer);
+                orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+
             }
 @[end for]
         }
@@ -125,52 +131,4 @@ int general_trans_main(int argc, char *argv[])
     PX4_INFO("exiting");
     fflush(stdout);
     return OK;
-}
-
-
-int uart_init(const char * uart_name, uint32_t speed)
-{
-
-    // Open a serial port
-    int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
-
-    if (serial_fd < 0)
-    {
-        err(1, "failed to open port: %s", uart_name);
-    }
-
-    // Try to set baud rate
-    struct termios uart_config;
-    int termios_state;
-    // Back up the original uart configuration to restore it after exit
-    if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0)
-    {
-        warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
-        close(serial_fd);
-        return -1;
-    }
-
-    // Clear ONLCR flag (which appends a CR for every LF)
-    uart_config.c_oflag &= ~ONLCR;
-
-    // USB serial is indicated by /dev/ttyACM0
-    if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK)
-    {
-        // Set baud rate
-        if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0)
-        {
-            warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
-            close(serial_fd);
-            return -1;
-        }
-    }
-
-    if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0)
-    {
-        warnx("ERR SET CONF %s\n", uart_name);
-        close(serial_fd);
-        return -1;
-    }
-    
-    return serial_fd;
 }

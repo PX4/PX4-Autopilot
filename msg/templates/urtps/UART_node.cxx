@@ -103,13 +103,12 @@ uint8_t UART_node::readFromUART(char* topic_ID, char buffer[], char rx_buffer[])
 
     while (pos_to_write <= max_size) // Not enough
     {
-        rx_length = read(m_uart_filestream, (void*)&aux, 1);
-        if (1 != rx_length) 
+        if (1 != read(m_uart_filestream, (void*)&aux, 1))
         {
             // int errsv = errno;
             // printf("UART Fail %d %d\n", rx_length, errsv);
             // printf("%d %d %d %d %d %d %d \n", EAGAIN, EBADF, EFAULT, EINTR, EINVAL, EIO, EISDIR);
-            return 1;
+            return 0;
         }
 
         rx_buffer[pos_to_write++] = aux;
@@ -131,23 +130,23 @@ uint8_t UART_node::readFromUART(char* topic_ID, char buffer[], char rx_buffer[])
             if (0 == strncmp(rx_buffer + (pos_to_write - 3), "<<<", 3) &&
                 0 == strncmp(rx_buffer, ">>>", 3))
             {
-                rx_length = pos_to_write;
+                rx_length = pos_to_write - 7;
                 break;
             }
         }
         if (pos_to_write > max_size)
         {
             pos_to_write = 0;
-            return 1;
+            return 0;
         }
     }
 
     // memset(buffer, 0, max_size);
     // Now rx_buffer is [<,<,<,topic_ID,payloadStart, ... ,payloadEnd,>,>,>]
     *topic_ID = rx_buffer[3];
-    memmove(buffer, rx_buffer + 4, pos_to_write - 7);
+    memmove(buffer, rx_buffer + 4, rx_length);
 
-    return 0;
+    return rx_length;
 }
 
 

@@ -34,7 +34,7 @@ type_serialize_map = {
     'uint64': 'UnsignedLong',
     'float32': 'Float',
     'float64': 'Double',
-    'bool': 'UnsignedChar',
+    'bool': 'Bool',
     'char': 'Char',
 }
 

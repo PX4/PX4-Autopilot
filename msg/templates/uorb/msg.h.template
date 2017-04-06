@@ -137,6 +137,7 @@ for constant in spec.constants:
 
 
 void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length);
+void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@

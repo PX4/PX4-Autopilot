@@ -42,17 +42,17 @@ topic_names = [single_spec.short_name for single_spec in spec]
 #include "@(topic)_Subscriber.h"
 @[end for]
 
-// #include "general_uRTPS_UART_receiver.h"
 #include "UART_node.h"
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 #include <fastcdr/exceptions/Exception.h>
-
 #include <fastrtps/utils/eClock.h>
+#include <fastrtps/Domain.h>
+
 #include <unistd.h>
 
-#include <fastrtps/Domain.h>
+
 
 using namespace eprosima;
 using namespace eprosima::fastrtps;
@@ -62,12 +62,12 @@ int main(int argc, char** argv)
     UART_node m_uartNode;
     char buffer[210];
     std::string uart = "/dev/ttyACM0";
-    if (argc > 2) uart = std::string(argv[2]);
+    if (argc > 1) uart = std::string(argv[1]);
     m_uartNode.init_uart(uart.c_str());
 
 // Create subscribers
 @[for id, topic in enumerate(topic_names)]
-    cout << "@(topic) subscriber created" << endl;
+    std::cout << "@(topic) subscriber created" << std::endl;
     @(topic)_Subscriber @(topic)_sub;
     if (@(topic)_sub.init())
     {
@@ -85,12 +85,12 @@ int main(int argc, char** argv)
     char topic_ID = 255;
     do
     {
-        if (0 == m_uartNode.readFromUART(&topic_ID, buffer, buffer))
+        if (0 != m_uartNode.readFromUART(&topic_ID, buffer, buffer))
         {
 // Publish message received from UART
 @[for id, topic in enumerate(topic_names)]
             if (topic_ID == @(id)) {
-                cout << "Published @(topic)" << endl;
+                std::cout << "Published @(topic)" << std::endl;
 
                 @(topic)_ st;
                 memset(&st, 0, sizeof(st));
@@ -104,20 +104,20 @@ int main(int argc, char** argv)
 // Send subscribed topics over UART
 @[for id, topic in enumerate(topic_names)]
             if (@(topic)_sub.hasMsg()) {
-                cout << "Received loop-msg" << endl;
+                std::cout << "Received loop-msg" << std::endl;
                 @(topic)_ msg = @(topic)_sub.getMsg();
                 eprosima::fastcdr::FastBuffer cdrbuffer(buffer, sizeof(buffer));
                 eprosima::fastcdr::Cdr scdr(cdrbuffer);
                 msg.serialize(scdr);
                 auto len = scdr.getSerializedDataLength();
-                cout << "len: " << len << endl;
+                std::cout << "len: " << len << std::endl;
                 uint8_t ret = m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
 
                 if (ret == 0) {
-                    // cout << "Wrote to UART" << endl << endl;
+                    // std::cout << "Wrote to UART" << std::endl << std::endl;
                 }
                 else {
-                    cout << "Failed to write to UART" << endl << endl;
+                    std::cout << "Failed to write to UART" << std::endl << std::endl;
                 }
             }
 @[end for]

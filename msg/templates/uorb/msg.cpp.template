@@ -106,7 +106,6 @@ def get_serialization_type_name(type_name):
     else:
         raise Exception("Type {0} not supported, add to type_serialize_map!".format(type_name))
 
-
 def add_serialize_functions(fields, scope_name):
     for field in fields:
         if (not field.is_header):
@@ -114,11 +113,7 @@ def add_serialize_functions(fields, scope_name):
                 if (not field.is_array):
                     print "\tserialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);"
                 else:
-                    # FIXME: not support for bool arrays
-                    if (field.base_type == "bool"):
-                        print "//\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
-                    else:
-                        print "\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
+                    print "\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -129,15 +124,39 @@ def add_serialize_functions(fields, scope_name):
                     for i in xrange(field.array_len):
                         add_serialize_functions(children_fields, name + ('[%d].' %i))
 
+def add_deserialize_functions(fields, scope_name):
+    for field in fields:
+        if (not field.is_header):
+            if (field.is_builtin):
+                if (not field.is_array):
+                    print "\tdeserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);"
+                else:
+                    for i in xrange(field.array_len):
+                        print "\tdeserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);"
+            else:
+                name = field.name
+                children_fields = get_children_fields(field.base_type, search_path)
+                if (scope_name):  name = scope_name + name
+                if (not field.is_array):
+                    add_deserialize_functions(children_fields, name + '.')
+                else:
+                    for i in xrange(field.array_len):
+                        add_deserialize_functions(children_fields, name + ('[%d].' %i))
+
 def add_code_to_serialize():
     # sort fields (using a stable sort) as in the declaration of the type
     sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
     add_serialize_functions(sorted_fields, "")
+
+def add_code_to_deserialize():
+    # sort fields (using a stable sort) as in the declaration of the type
+    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+    add_deserialize_functions(sorted_fields, "")
 }@
 
-void serialize_@(topic_name)(const @(uorb_struct) *input, char *output, uint32_t *length)
+void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length)
 {
-    // TODO: check params
+    if (nullptr == input || nullptr == output || nullptr == length) return;
 
     // microBuffer using the user defined buffer (output)
     struct microBuffer *microBufferWriter = NULL;
@@ -154,4 +173,25 @@ void serialize_@(topic_name)(const @(uorb_struct) *input, char *output, uint32_t
 
     free(microBufferWriter);
     free(microCDRWriter);
+}
+
+void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input)
+{
+    if (nullptr == output || nullptr == input) return;
+
+    // microBuffer using the user defined buffer
+    struct microBuffer *microBufferReader = NULL;
+    newDeserializedAlignedBuffer(input, MICROCDR_INIT_BUF_LENGTH, &microBufferReader);
+
+    // microCDR struct for managing the microBuffers
+    struct microCDR *microCDRReader = NULL;
+    newMicroCDR(&microCDRReader, microBufferReader);
+
+    // deserialize
+    memset(output, 0, sizeof(*output));
+    deserializeUnsignedLong(&output->timestamp, microCDRReader);
+@add_code_to_deserialize()
+
+    free(microBufferReader);
+    free(microCDRReader);
 }

@@ -36,6 +36,7 @@ px4_add_module(
 	MAIN general_trans
 	STACK_MAIN 2000
 	SRCS
+		UART_node.cxx
 		general_uRTPS_UART_transmitter.cpp
 	DEPENDS
 		platforms__common
