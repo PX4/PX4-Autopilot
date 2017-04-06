@@ -513,6 +513,7 @@ bool Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, in
 		case (int)ULogMessageType::REMOVE_LOGGED_MSG: //skip these
 		case (int)ULogMessageType::PARAMETER:
 		case (int)ULogMessageType::DROPOUT:
+		case (int)ULogMessageType::INFO:
 		case (int)ULogMessageType::SYNC:
 		case (int)ULogMessageType::LOGGING:
 			file.seekg(message_header.msg_size, ios::cur);
