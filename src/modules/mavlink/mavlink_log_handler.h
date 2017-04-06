@@ -58,7 +58,7 @@ public:
 
 public:
 
-	bool        get_entry(int idx, uint32_t &size, uint32_t &date, char *filename = 0);
+	bool        get_entry(int idx, uint32_t &size, uint32_t &date, char *filename = 0, int filename_len = 0);
 	bool        open_for_transmit();
 	size_t      get_log_data(uint8_t len, uint8_t *buffer);
 
