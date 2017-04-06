@@ -109,12 +109,12 @@ private:
 	// subscriptions
 	int	_armed_sub;
 	int _test_motor_sub;
-	orb_advert_t        	_outputs_pub = nullptr;
+	orb_advert_t        	_outputs_pub;
 	actuator_outputs_s      _outputs;
-	static actuator_armed_s	_armed;
+	actuator_armed_s		_armed;
 
 	//todo:refactor dynamic based on _channels_count
-	// It needs to support the numbe of ESC
+	// It needs to support the number of ESC
 	int	_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -146,17 +146,14 @@ private:
 	int send_packet(EscPacket &p, int responder);
 	void read_data_from_uart();
 	bool parse_tap_esc_feedback(ESC_UART_BUF *serial_buf, EscPacket *packetdata);
-	static int control_callback(uintptr_t handle,
-				    uint8_t control_group,
-				    uint8_t control_index,
-				    float &input);
+	static int control_callback_trampoline(uintptr_t handle,
+					       uint8_t control_group, uint8_t control_index, float &input);
+	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 };
 
 const uint8_t TAP_ESC::crcTable[256] = TAP_ESC_CRC;
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
-
-actuator_armed_s TAP_ESC::_armed = {};
 
 namespace
 {
@@ -173,7 +170,7 @@ TAP_ESC::TAP_ESC(int channels_count):
 	_armed_sub(-1),
 	_test_motor_sub(-1),
 	_outputs_pub(nullptr),
-	_control_subs{ -1},
+	_armed{},
 	_esc_feedback_pub(nullptr),
 	_to_mixer_status(nullptr),
 	_esc_feedback{},
@@ -196,6 +193,10 @@ TAP_ESC::TAP_ESC(int channels_count):
 	uartbuf.tail = 0;
 	uartbuf.dat_cnt = 0;
 	memset(uartbuf.esc_feedback_buf, 0, sizeof(uartbuf.esc_feedback_buf));
+
+	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; ++i) {
+		_control_subs[i] = -1;
+	}
 
 	for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
 		_outputs.output[i] = NAN;
@@ -382,7 +383,7 @@ TAP_ESC::subscribe()
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
@@ -605,7 +606,7 @@ TAP_ESC::cycle()
 		DEVICE_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] > 0) {
+			if (_control_subs[i] >= 0) {
 				orb_set_interval(_control_subs[i], update_rate_in_ms);
 			}
 		}
@@ -630,7 +631,7 @@ TAP_ESC::cycle()
 		unsigned poll_id = 0;
 
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] > 0) {
+			if (_control_subs[i] >= 0) {
 				if (_poll_fds[poll_id].revents & POLLIN) {
 					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 
@@ -797,7 +798,7 @@ TAP_ESC::cycle()
 void TAP_ESC::work_stop()
 {
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -812,15 +813,15 @@ void TAP_ESC::work_stop()
 	_initialized = false;
 }
 
-int
-TAP_ESC::control_callback(uintptr_t handle,
-			  uint8_t control_group,
-			  uint8_t control_index,
-			  float &input)
+int TAP_ESC::control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
-	const actuator_controls_s *controls = (actuator_controls_s *)handle;
+	TAP_ESC *obj = (TAP_ESC *)handle;
+	return obj->control_callback(control_group, control_index, input);
+}
 
-	input = controls[control_group].control[control_index];
+int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, float &input)
+{
+	input = _controls[control_group].control[control_index];
 
 	/* limit control input */
 	if (input > 1.0f) {
@@ -876,7 +877,7 @@ TAP_ESC::ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strnlen(buf, 1024);
 
 			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
 			}
 
 			if (_mixers == nullptr) {
