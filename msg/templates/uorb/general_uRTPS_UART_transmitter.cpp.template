@@ -1,4 +1,3 @@
-from docutils.parsers.rst.directives import length_or_percentage_or_unitless
 @###############################################
 @#
 @# EmPy template for generating <msg>_uRTPS_UART.cpp file
