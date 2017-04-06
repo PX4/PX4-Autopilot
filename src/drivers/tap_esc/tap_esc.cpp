@@ -665,15 +665,15 @@ TAP_ESC::cycle()
 			/* iterate actuators */
 			for (unsigned i = 0; i < num_outputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
-				if (i < _outputs.noutputs &&
-				    PX4_ISFINITE(_outputs.output[i])) {
+				if (i < _outputs.noutputs && PX4_ISFINITE(_outputs.output[i])
+				    && !_armed.lockdown && !_armed.manual_lockdown) {
 					/* scale for PWM output 1200 - 1900us */
 					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i];
 					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
 
 				} else {
 					/*
-					 * Value is NaN, INF - stop the motor.
+					 * Value is NaN, INF, or we are in lockdown - stop the motor.
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
 					 * spinning motors. It would be deadly in flight.
 					 */
@@ -787,7 +787,6 @@ TAP_ESC::cycle()
 			}
 		}
 
-		/* do not obey the lockdown value, as lockdown is for PWMSim */
 		_is_armed = _armed.armed;
 
 	}
