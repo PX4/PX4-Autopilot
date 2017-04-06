@@ -65,19 +65,19 @@ int UavcanGnssBridge::init()
 {
 	int res = _pub_fix2.init(uavcan::TransferPriority::MiddleLower);
 	if (res < 0) {
-		warnx("GNSS fix2 pub failed %i", res);
+		PX4_WARN("GNSS fix2 pub failed %i", res);
 		return res;
 	}
 
 	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0) {
-		warnx("GNSS fix sub failed %i", res);
+		PX4_WARN("GNSS fix sub failed %i", res);
 		return res;
 	}
 
 	res = _sub_fix2.start(Fix2CbBinder(this, &UavcanGnssBridge::gnss_fix2_sub_cb));
 	if (res < 0) {
-		warnx("GNSS fix2 sub failed %i", res);
+		PX4_WARN("GNSS fix2 sub failed %i", res);
 		return res;
 	}
 
@@ -122,7 +122,7 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg)
 {
 	if (_old_fix_subscriber_active) {
-		warnx("GNSS Fix2 message detected, disabling support for the old Fix message");
+		PX4_WARN("GNSS Fix2 message detected, disabling support for the old Fix message");
 		_sub_fix.stop();
 		_old_fix_subscriber_active = false;
 		_receiver_node_id = -1;
@@ -241,7 +241,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// This bridge does not support redundant GNSS receivers yet.
 	if (_receiver_node_id < 0) {
 		_receiver_node_id = msg.getSrcNodeID().get();
-		warnx("GNSS receiver node ID: %d", _receiver_node_id);
+		PX4_WARN("GNSS receiver node ID: %d", _receiver_node_id);
 
 	} else {
 		if (_receiver_node_id != msg.getSrcNodeID().get()) {
@@ -361,7 +361,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// Doing less time critical stuff here
 	if (_orb_to_uavcan_pub_timer.isRunning()) {
 		_orb_to_uavcan_pub_timer.stop();
-		warnx("GNSS ORB->UAVCAN bridge stopped, because there are other GNSS publishers");
+		PX4_WARN("GNSS ORB->UAVCAN bridge stopped, because there are other GNSS publishers");
 	}
 }
 
@@ -371,17 +371,17 @@ void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 		// ORB subscription stops working if this is relocated into init()
 		_orb_sub_gnss = orb_subscribe(ORB_ID(vehicle_gps_position));
 		if (_orb_sub_gnss < 0) {
-			warnx("GNSS ORB sub errno %d", errno);
+			PX4_WARN("GNSS ORB sub errno %d", errno);
 			return;
 		}
-		warnx("GNSS ORB fd %d", _orb_sub_gnss);
+		PX4_WARN("GNSS ORB fd %d", _orb_sub_gnss);
 	}
 
 	{
 		bool updated = false;
 		const int res = orb_check(_orb_sub_gnss, &updated);
 		if (res < 0) {
-			warnx("GNSS ORB check err %d %d", res, errno);
+			PX4_WARN("GNSS ORB check err %d %d", res, errno);
 			return;
 		}
 
@@ -393,7 +393,7 @@ void UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 	auto orb_msg = ::vehicle_gps_position_s();
 	const int res = orb_copy(ORB_ID(vehicle_gps_position), _orb_sub_gnss, &orb_msg);
 	if (res < 0) {
-		warnx("GNSS ORB read errno %d", errno);
+		PX4_WARN("GNSS ORB read errno %d", errno);
 		return;
 	}
 
