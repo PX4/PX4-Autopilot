@@ -255,7 +255,7 @@ TEST(NodeInfoRetriever, MaxConcurrentRequests)
 
     ASSERT_EQ(40, retr.getRequestInterval().toMSec());
 
-    const unsigned MaxPendingRequests = 14;             // See class docs
+    const unsigned MaxPendingRequests = 26;             // See class docs
     const unsigned MinPendingRequestsAtFullLoad = 12;
 
     /*
