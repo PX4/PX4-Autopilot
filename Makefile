@@ -221,6 +221,13 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
+# Documentation
+# --------------------------------------------------------------------
+.PHONY: parameters_markdown
+
+parameters_markdown: posix_sitl_default
+	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
+
 # S3 upload helpers
 # --------------------------------------------------------------------
 # s3cmd uses these ENV variables
@@ -240,6 +247,9 @@ s3put_qgc_firmware: qgc_firmware
 	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/airframes.xml
 	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/parameters.xml
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_parameters_markdown: parameters_markdown
+	@$(SRC_DIR)/Tools/s3put.sh parameters.md
 
 # Astyle
 # --------------------------------------------------------------------

@@ -29,6 +29,11 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=clang-tidy
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=parameters_markdown
     - os: osx
       sudo: true
       osx_image: xcode8
@@ -59,6 +64,8 @@ script:
       ./Tools/docker_run.sh 'make tests';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
       PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy-parallel';
+    elif [[ "${BUILD_TARGET}" = "parameters_markdown" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+      PX4_DOCKER_REPO=px4io/px4-dev-base ./Tools/docker_run.sh 'make parameters_markdown';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
@@ -68,6 +75,9 @@ after_success:
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
       && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+    fi
+  - if [[ "${BUILD_TARGET}" = "parameters_markdown" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+         ./Tools/docker_run.sh 'make s3put_parameters_markdown AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
 
 deploy:
