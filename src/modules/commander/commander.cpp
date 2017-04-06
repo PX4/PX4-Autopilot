@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,31 +65,21 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <geo/geo.h>
-#include <navigator/navigation.h>
-#include <px4_defines.h>
 #include <px4_config.h>
+#include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
-#include <systemlib/state_table.h>
-#include <float.h>
-#include <systemlib/hysteresis/hysteresis.h>
 
-#include <board_config.h>
-
-#include <sys/stat.h>
-#include <string.h>
-#include <math.h>
-#include <poll.h>
 #include <float.h>
 #include <matrix/math.hpp>
 
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -102,8 +92,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/sensor_combined.h>
@@ -117,8 +105,10 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -139,21 +129,18 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define COMMANDER_MONITORING_INTERVAL 10000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
 
-#define MAVLINK_OPEN_INTERVAL 50000
+static constexpr float STICK_ON_OFF_LIMIT = 0.9f;
 
-#define STICK_ON_OFF_LIMIT 0.9f
+static constexpr hrt_abstime POSITION_TIMEOUT = (1 * 1000 * 1000);	/**< consider the local or global position estimate invalid after 1000ms */
+static constexpr hrt_abstime FAILSAFE_DEFAULT_TIMEOUT = (3 * 1000 * 1000);	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
+static constexpr hrt_abstime OFFBOARD_TIMEOUT = 500000;
+static constexpr hrt_abstime DIFFPRESS_TIMEOUT = 2000000;
 
-#define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
-#define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
-#define OFFBOARD_TIMEOUT		500000
-#define DIFFPRESS_TIMEOUT		2000000
+static constexpr hrt_abstime HOTPLUG_SENS_TIMEOUT = (8 * 1000 * 1000);	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
-#define HOTPLUG_SENS_TIMEOUT		(8 * 1000 * 1000)	/**< wait for hotplug sensors to come online for upto 8 seconds */
+static constexpr hrt_abstime PRINT_MODE_REJECT_INTERVAL = 500000;
 
-#define PRINT_INTERVAL	5000000
-#define PRINT_MODE_REJECT_INTERVAL	500000
-
-#define INAIR_RESTART_HOLDOFF_INTERVAL	500000
+static constexpr hrt_abstime INAIR_RESTART_HOLDOFF_INTERVAL = 500000;
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
@@ -162,10 +149,9 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 static orb_advert_t mavlink_log_pub = nullptr;
 
 /* System autostart ID */
-static int autostart_id;
+static int32_t autostart_id;
 
 /* flags */
-static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
@@ -175,7 +161,7 @@ static hrt_abstime commander_boot_timestamp = 0;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
-static uint64_t last_print_mode_reject_time = 0;
+static hrt_abstime last_print_mode_reject_time = 0;
 
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
@@ -195,36 +181,35 @@ static float max_imu_acc_diff = 0.7f;
 static float max_imu_gyr_diff = 0.09f;
 static float min_stick_change = 0.25f;
 
-static struct vehicle_status_s status = {};
-static struct vehicle_roi_s _roi = {};
-static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
-static struct safety_s safety = {};
-static struct vehicle_control_mode_s control_mode = {};
-static struct offboard_control_mode_s offboard_control_mode = {};
-static struct home_position_s _home = {};
-static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
+static struct battery_status_s battery = {};
 static struct commander_state_s internal_state = {};
+static struct home_position_s _home = {};
+static struct manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
+static struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
+static struct mission_result_s _mission_result = {};
+static struct offboard_control_mode_s offboard_control_mode = {};
+static struct safety_s safety = {};
+static struct status_flags_s status_flags = {};
+static struct vehicle_control_mode_s control_mode = {};
+static struct vehicle_roi_s _roi = {};
+static struct vehicle_status_s status = {};
+static struct vtol_vehicle_status_s vtol_status = {};
 
-struct mission_result_s _mission_result;
+static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
-static unsigned _last_mission_instance = 0;
-struct manual_control_setpoint_s sp_man = {};		///< the current manual control setpoint
-static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setpoint valid at the last mode switch
+static uint32_t _last_mission_instance = 0;
+
 static uint8_t _last_sp_man_arm_switch = 0;
-
-static struct vtol_vehicle_status_s vtol_status = {};
-static struct cpuload_s cpuload = {};
-
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
+
+// led overload
 static bool last_overload = false;
 
-static struct status_flags_s status_flags = {};
-
-static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was lost
+static hrt_abstime rc_signal_lost_timestamp;		// Time at which the RC reception was lost
 
 static float avionics_power_rail_voltage;		// voltage of the avionics power rail
 
@@ -256,7 +241,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		    struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack, struct vehicle_roi_s *roi,
-			orb_advert_t *roi_pub);
+		    orb_advert_t *roi_pub);
 
 /**
  * Mainloop of commander.
@@ -306,7 +291,8 @@ static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 /**
  * check whether autostart ID is in the reserved range for HIL setups
  */
-static bool is_hil_setup(int id) {
+static bool is_hil_setup(int id)
+{
 	return (id >= HIL_ID_MIN) && (id <= HIL_ID_MAX);
 }
 
@@ -690,7 +676,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, struct vehicle_attitude_s *attitude, orb_advert_t *home_pub,
 		    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
-			struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
+		    struct vehicle_roi_s *roi, orb_advert_t *roi_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id)
@@ -705,27 +691,29 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	switch (cmd->command) {
 	case vehicle_command_s::VEHICLE_CMD_DO_REPOSITION: {
 
-		// Just switch the flight mode here, the navigator takes care of
-		// doing something sensible with the coordinates. Its designed
-		// to not require navigator and command to receive / process
-		// the data at the exact same time.
+			// Just switch the flight mode here, the navigator takes care of
+			// doing something sensible with the coordinates. Its designed
+			// to not require navigator and command to receive / process
+			// the data at the exact same time.
 
-		// Check if a mode switch had been requested
-		if ((((uint32_t)cmd->param2) & 1) > 0) {
-			transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+			// Check if a mode switch had been requested
+			if ((((uint32_t)cmd->param2) & 1) > 0) {
+				transition_result_t main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
-			if ((main_ret != TRANSITION_DENIED)) {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				if ((main_ret != TRANSITION_DENIED)) {
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
+				}
 
 			} else {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
-		} else {
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		}
-	}
-	break;
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t)cmd->param1;
 			uint8_t custom_main_mode = (uint8_t)cmd->param2;
@@ -760,22 +748,27 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					if (custom_sub_mode > 0) {
-						switch(custom_sub_mode) {
+						switch (custom_sub_mode) {
 						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
 							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
 							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state);
 							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state);
 							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET, main_state_prev, &status_flags, &internal_state);
 							break;
@@ -898,38 +891,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_OVERRIDE_GOTO: {
-			// TODO listen vehicle_command topic directly from navigator (?)
-
-			// Increase by 0.5f and rely on the integer cast
-			// implicit floor(). This is the *safest* way to
-			// convert from floats representing small ints to actual ints.
-			unsigned int mav_goto = (cmd->param1 + 0.5f);
-
-			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
-				status_local->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-				mavlink_log_critical(&mavlink_log_pub, "Pause mission cmd");
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
-				status_local->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-				mavlink_log_critical(&mavlink_log_pub, "Continue mission cmd");
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-			} else {
-				mavlink_log_critical(&mavlink_log_pub, "REJ CMD: %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
-						     (double)cmd->param1,
-						     (double)cmd->param2,
-						     (double)cmd->param3,
-						     (double)cmd->param4,
-						     (double)cmd->param5,
-						     (double)cmd->param6,
-						     (double)cmd->param7);
-			}
-		}
-		break;
-
-		/* Flight termination */
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd->param1 > 1.5f) {
 				armed_local->lockdown = true;
@@ -1111,56 +1072,60 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI: {
 
-		roi->mode = cmd->param1;
+			roi->mode = cmd->param1;
 
-		if (roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
-			roi->mission_seq =  cmd->param2;
+			if (roi->mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
+				roi->mission_seq =  cmd->param2;
+
+			} else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
+				roi->lat = cmd->param5;
+				roi->lon = cmd->param6;
+				roi->alt = cmd->param7;
+
+			} else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
+				roi->target_seq = cmd->param2;
+			}
+
+			if (*roi_pub != nullptr) {
+				orb_publish(ORB_ID(vehicle_roi), *roi_pub, roi);
+
+			} else {
+				*roi_pub = orb_advertise(ORB_ID(vehicle_roi), roi);
+			}
+
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			break;
 		}
-		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-			roi->lat = cmd->param5;
-			roi->lon = cmd->param6;
-			roi->alt = cmd->param7;
-		}
-		else if (roi->mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
-			roi->target_seq = cmd->param2;
-		}
 
-		if (*roi_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_roi), *roi_pub, roi);
-
-		} else {
-			*roi_pub = orb_advertise(ORB_ID(vehicle_roi), roi);
-		}
-
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-		break;
-	}
 	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
 
-		cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 
-		// check if current mission and first item are valid
-		if (_mission_result.valid) {
+			// check if current mission and first item are valid
+			if (_mission_result.valid) {
 
-			// requested first mission item valid
-			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= 0) && (cmd->param1 < _mission_result.seq_total)) {
+				// requested first mission item valid
+				if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= 0) && (cmd->param1 < _mission_result.seq_total)) {
 
-				// switch to AUTO_MISSION and ARM
-				if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state))
-					&& (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "mission start command"))) {
+					// switch to AUTO_MISSION and ARM
+					if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state))
+					    && (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "mission start command"))) {
 
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-				} else {
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					mavlink_log_critical(&mavlink_log_pub, "Mission start denied");
+						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+						mavlink_log_critical(&mavlink_log_pub, "Mission start denied");
+					}
 				}
+
+			} else {
+				mavlink_log_critical(&mavlink_log_pub, "Mission start denied, no valid mission");
 			}
-		} else {
-			mavlink_log_critical(&mavlink_log_pub, "Mission start denied, no valid mission");
 		}
-	}
-	break;
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1254,9 +1219,6 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 int commander_thread_main(int argc, char *argv[])
 {
-	/* not yet initialized */
-	commander_initialized = false;
-
 	bool sensor_fail_tune_played = false;
 	bool arm_tune_played = false;
 	bool was_landed = true;
@@ -1275,8 +1237,9 @@ int commander_thread_main(int argc, char *argv[])
 #endif
 
 	if (argc > 2) {
-		if (!strcmp(argv[2],"-hil")) {
+		if (!strcmp(argv[2], "-hil")) {
 			startup_in_hil = true;
+
 		} else {
 			PX4_ERR("Argument %s not supported, abort.", argv[2]);
 			thread_should_exit = true;
@@ -1330,40 +1293,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
 	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
 
-	// These are too verbose, but we will retain them a little longer
-	// until we are sure we really don't need them.
-
-	// const char *main_states_str[commander_state_s::MAIN_STATE_MAX];
-	// main_states_str[commander_state_s::MAIN_STATE_MANUAL]			= "MANUAL";
-	// main_states_str[commander_state_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_POSCTL]			= "POSCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
-	// main_states_str[commander_state_s::MAIN_STATE_ACRO]			= "ACRO";
-	// main_states_str[commander_state_s::MAIN_STATE_STAB]			= "STAB";
-	// main_states_str[commander_state_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
-
-	// const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF]		= "AUTO_TAKEOFF";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ACRO]			= "ACRO";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LAND]			= "LAND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
-
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1377,7 +1306,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* vehicle status topic */
-	memset(&status, 0, sizeof(status));
+	status = {};
 
 	// We want to accept RC inputs as default
 	status_flags.rc_input_blocked = false;
@@ -1441,36 +1370,32 @@ int commander_thread_main(int argc, char *argv[])
 		px4_task_exit(PX4_ERROR);
 	}
 
-	/* Initialize armed with all false */
-	memset(&armed, 0, sizeof(armed));
 	/* armed topic */
+	armed = {};
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* vehicle control mode topic */
-	memset(&control_mode, 0, sizeof(control_mode));
+	control_mode = {};
 	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	/* home position */
+	_home = {};
 	orb_advert_t home_pub = nullptr;
-	memset(&_home, 0, sizeof(_home));
 
 	/* region of interest */
+	_roi = {};
 	orb_advert_t roi_pub = nullptr;
-	memset(&_roi, 0, sizeof(_roi));
 
 	/* command ack */
+	struct vehicle_command_ack_s command_ack = {};
 	orb_advert_t command_ack_pub = nullptr;
-	struct vehicle_command_ack_s command_ack;
-	memset(&command_ack, 0, sizeof(command_ack));
+
+	orb_advert_t commander_state_pub = nullptr;
+	orb_advert_t vehicle_status_flags_pub = nullptr;
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	orb_advert_t mission_pub = nullptr;
-	mission_s mission;
-
-	orb_advert_t commander_state_pub = nullptr;
-
-	orb_advert_t vehicle_status_flags_pub = nullptr;
-
+	mission_s mission = {};
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
 			if (mission.count > 0) {
@@ -1494,8 +1419,6 @@ int commander_thread_main(int argc, char *argv[])
 		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
 
-	int ret;
-
 	/* Start monitoring loop */
 	unsigned counter = 0;
 	unsigned stick_off_counter = 0;
@@ -1512,7 +1435,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
-	memset(&safety, 0, sizeof(safety));
+	safety = {};
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
 
@@ -1521,21 +1444,20 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to geofence result topic */
 	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
-	struct geofence_result_s geofence_result;
-	memset(&geofence_result, 0, sizeof(geofence_result));
+	struct geofence_result_s geofence_result = {};
 
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	memset(&sp_man, 0, sizeof(sp_man));
+	sp_man = {};
 
 	/* Subscribe to offboard control data */
 	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
-	memset(&offboard_control_mode, 0, sizeof(offboard_control_mode));
+	offboard_control_mode = {};
 
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
-	uint64_t telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
+	hrt_abstime telemetry_last_heartbeat[ORB_MULTI_MAX_INSTANCES];
+	hrt_abstime telemetry_last_dl_loss[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_preflight_checks_reported[ORB_MULTI_MAX_INSTANCES];
 	bool telemetry_lost[ORB_MULTI_MAX_INSTANCES];
 
@@ -1549,8 +1471,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to global position */
 	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	struct vehicle_global_position_s global_position;
-	memset(&global_position, 0, sizeof(global_position));
+	struct vehicle_global_position_s global_position = {};
 	/* Init EPH and EPV */
 	global_position.eph = 1000.0f;
 	global_position.epv = 1000.0f;
@@ -1576,70 +1497,59 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to GPS topic */
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps_position;
-	memset(&gps_position, 0, sizeof(gps_position));
+	struct vehicle_gps_position_s gps_position = {};
 	gps_position.eph = FLT_MAX;
 	gps_position.epv = FLT_MAX;
 
 	/* Subscribe to sensor topic */
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s sensors;
-	memset(&sensors, 0, sizeof(sensors));
+	struct sensor_combined_s sensors = {};
 
 	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s diff_pres;
-	memset(&diff_pres, 0, sizeof(diff_pres));
+	struct differential_pressure_s diff_pres = {};
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
+	struct vehicle_command_s cmd = {};
 
 	/* Subscribe to parameters changed topic */
 	int param_changed_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Subscribe to battery topic */
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
-	memset(&battery, 0, sizeof(battery));
+	battery = {};
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
-	struct subsystem_info_s info;
-	memset(&info, 0, sizeof(info));
-
-	/* Subscribe to position setpoint triplet */
-	int pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	struct position_setpoint_triplet_s pos_sp_triplet;
-	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+	struct subsystem_info_s info = {};
 
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
-	struct system_power_s system_power;
-	memset(&system_power, 0, sizeof(system_power));
+	struct system_power_s system_power = {};
 
 	/* Subscribe to actuator controls (outputs) */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	struct actuator_controls_s actuator_controls;
-	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	struct actuator_controls_s actuator_controls = {};
 
 	/* Subscribe to vtol vehicle status topic */
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-	//struct vtol_vehicle_status_s vtol_status;
-	memset(&vtol_status, 0, sizeof(vtol_status));
+	vtol_status = {};
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
-	memset(&cpuload, 0, sizeof(cpuload));
+	struct cpuload_s cpuload = {};
 
 	control_status_leds(&status, &armed, true, &battery, &cpuload);
 
 	/* now initialized */
-	commander_initialized = true;
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	param_get(_param_sys_type, &(status.system_type)); // get system type
+	int32_t mav_type = 0;
+	param_get(_param_sys_type, &mav_type); // get system type
+	status.system_type = mav_type;
+
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1652,16 +1562,22 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	// Run preflight check
-	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
-	int32_t arm_without_gps = 0;
+
 	param_get(_param_autostart_id, &autostart_id);
-	param_get(_param_rc_in_off, &rc_in_off);
+
+	int32_t rc_input_mode = 0;
+	param_get(_param_rc_in_off, &rc_input_mode);
+	status.rc_input_mode = rc_input_mode;
+
+	int32_t arm_without_gps = 0;
 	param_get(_param_arm_without_gps, &arm_without_gps);
+	can_arm_without_gps = (arm_without_gps == 1);
+
 	int32_t arm_switch_is_button = 0;
 	param_get(_param_arm_switch_is_button, &arm_switch_is_button);
 	can_arm_without_gps = (arm_without_gps == 1);
-	status.rc_input_mode = rc_in_off;
+
 	if (is_hil_setup(autostart_id)) {
 		// HIL configuration selected: real sensors will be disabled
 		status_flags.condition_system_sensors_initialized = false;
@@ -1681,8 +1597,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	commander_boot_timestamp = hrt_absolute_time();
 
-	transition_result_t arming_ret;
-
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
@@ -1698,9 +1612,9 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
 	int32_t ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
+	hrt_abstime timestamp_engine_healthy = 0; /**< absolute time when engine was healthy */
 
-	int autosave_params; /**< Autosave of parameters enabled/disabled, loaded from parameter */
+	int32_t autosave_params = 0; /**< Autosave of parameters enabled/disabled, loaded from parameter */
 
 	int32_t disarm_when_landed = 0;
 	int32_t low_bat_action = 0;
@@ -1731,9 +1645,7 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_destroy(&commander_low_prio_attr);
 
 	while (!thread_should_exit) {
-
-		arming_ret = TRANSITION_NOT_CHANGED;
-
+		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
@@ -1746,8 +1658,11 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
+				if (param_get(_param_sys_type, &mav_type) == PX4_OK) {
+					status.system_type = mav_type;
+				} else {
 					warnx("failed getting new system type");
+					mav_type = 0;
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
@@ -1762,8 +1677,13 @@ int commander_thread_main(int argc, char *argv[])
 				status.is_vtol = is_vtol(&status);
 
 				/* check and update system / component ID */
-				param_get(_param_system_id, &(status.system_id));
-				param_get(_param_component_id, &(status.component_id));
+				int32_t system_id = 0;
+				param_get(_param_system_id, &system_id);
+				status.system_id = system_id;
+
+				int32_t component_id = 0;
+				param_get(_param_component_id, &component_id);
+				status.component_id = component_id;
 
 				get_circuit_breaker_params();
 
@@ -1775,10 +1695,14 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
-			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
+
+			rc_input_mode = 0;
+			param_get(_param_rc_in_off, &rc_input_mode);
+			status.rc_input_mode = rc_input_mode;
+
 			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 			param_get(_param_min_stick_change, &min_stick_change);
+
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
@@ -1794,16 +1718,16 @@ int commander_thread_main(int argc, char *argv[])
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false,
-									(hrt_abstime)disarm_when_landed * 1000000);
+				auto_disarm_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)disarm_when_landed * 1000000);
 			}
 
 			param_get(_param_low_bat_act, &low_bat_action);
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
 			param_get(_param_offboard_loss_rc_act, &offboard_loss_rc_act);
-			param_get(_param_arm_without_gps, &arm_without_gps);
 			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
+
+			param_get(_param_arm_without_gps, &arm_without_gps);
 			can_arm_without_gps = (arm_without_gps == 1);
 
 			/* Autostart id */
@@ -1839,7 +1763,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_init_forced = false;
 
 			/* Set flag to autosave parameters if necessary */
-			if (updated && autosave_params != 0 && param_changed.saved == false) {
+			if (updated && autosave_params != 0 && !param_changed.saved) {
 				/* trigger an autosave */
 				need_param_autosave = true;
 			}
@@ -1898,8 +1822,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_check(telemetry_subs[i], &updated);
 
 			if (updated) {
-				struct telemetry_status_s telemetry;
-				memset(&telemetry, 0, sizeof(telemetry));
+				struct telemetry_status_s telemetry = {};
 
 				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
@@ -2137,27 +2060,21 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
 		/* hysteresis for EPH */
-		bool local_eph_good;
+		bool local_eph_good = false;
 
 		if (status_flags.condition_local_position_valid) {
-			if (local_position.eph > eph_threshold * 2.5f) {
-				local_eph_good = false;
-
-			} else {
+			if (local_position.eph < eph_threshold * 2.5f) {
 				local_eph_good = true;
 			}
 
 		} else {
 			if (local_position.eph < eph_threshold) {
 				local_eph_good = true;
-
-			} else {
-				local_eph_good = false;
 			}
 		}
 
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid
-			    && local_eph_good, &(status_flags.condition_local_position_valid), &status_changed);
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, (local_position.xy_valid && local_eph_good),
+			    &(status_flags.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid,
 			    &(status_flags.condition_local_altitude_valid), &status_changed);
 
@@ -2181,12 +2098,9 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
-
-
 
 		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
 		hrt_abstime timeout_time = disarm_when_landed * 1000000;
@@ -2349,13 +2263,6 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 		}
 
-		/* update position setpoint triplet */
-		orb_check(pos_sp_triplet_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
-		}
-
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 			arming_ret = arming_state_transition(&status,
@@ -2376,9 +2283,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* do not complain if not allowed into standby */
 				arming_ret = TRANSITION_NOT_CHANGED;
 			}
-
 		}
-
 
 		/*
 		 * Check for valid position information.
@@ -2400,7 +2305,7 @@ int commander_thread_main(int argc, char *argv[])
 		    && (gps_position.eph < eph_threshold)
 		    && (gps_position.epv < epv_threshold)
 		    && hrt_elapsed_time((hrt_abstime *)&gps_position.timestamp) < 1e6) {
-			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
+			/* set reference for global coordinates <--> local coordinates conversion and map_projection */
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
 						  (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
@@ -2476,27 +2381,33 @@ int commander_thread_main(int argc, char *argv[])
 					last_geofence_violation = hrt_absolute_time();
 
 					switch (geofence_result.geofence_action) {
-						case (geofence_result_s::GF_ACTION_NONE) : {
+					case (geofence_result_s::GF_ACTION_NONE) : {
 							// do nothing
 							break;
 						}
-						case (geofence_result_s::GF_ACTION_WARN) : {
+
+					case (geofence_result_s::GF_ACTION_WARN) : {
 							// do nothing, mavlink critical messages are sent by navigator
 							break;
 						}
-						case (geofence_result_s::GF_ACTION_LOITER) : {
+
+					case (geofence_result_s::GF_ACTION_LOITER) : {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state)) {
 								geofence_loiter_on = true;
 							}
+
 							break;
 						}
-						case (geofence_result_s::GF_ACTION_RTL) : {
+
+					case (geofence_result_s::GF_ACTION_RTL) : {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 								geofence_rtl_on = true;
 							}
+
 							break;
 						}
-						case (geofence_result_s::GF_ACTION_TERMINATE) : {
+
+					case (geofence_result_s::GF_ACTION_TERMINATE) : {
 							warnx("Flight termination because of geofence");
 							mavlink_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
 							armed.force_failsafe = true;
@@ -2509,15 +2420,15 @@ int commander_thread_main(int argc, char *argv[])
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			geofence_loiter_on = geofence_loiter_on
-									&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
-									&& (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
-										|| sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
+					     && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
+					     && (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+						 || sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			// reset if no longer in RTL or if manually switched to RTL
 			geofence_rtl_on = geofence_rtl_on
-								&& (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
-								&& (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
-									|| sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
+					  && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
+					  && (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+					      || sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
 		}
@@ -2525,19 +2436,19 @@ int commander_thread_main(int argc, char *argv[])
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
 		// but only if not in a low battery handling action
 		if (!critical_battery_voltage_actions_done && (warning_action_on &&
-		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
-			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
+				(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
+				 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+				 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
+				 main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+				 main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
+				 main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
 
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
-				((fabsf(sp_man.x - _last_sp_man.x) > min_stick_change) ||
-				 (fabsf(sp_man.y - _last_sp_man.y) > min_stick_change) ||
-				 (fabsf(sp_man.z - _last_sp_man.z) > min_stick_change) ||
-				 (fabsf(sp_man.r - _last_sp_man.r) > min_stick_change))) {
+			    ((fabsf(sp_man.x - _last_sp_man.x) > min_stick_change) ||
+			     (fabsf(sp_man.y - _last_sp_man.y) > min_stick_change) ||
+			     (fabsf(sp_man.z - _last_sp_man.z) > min_stick_change) ||
+			     (fabsf(sp_man.r - _last_sp_man.r) > min_stick_change))) {
 
 				// revert to position control in any case
 				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
@@ -2634,7 +2545,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed */
-			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f;
+			const bool stick_in_lower_left = (sp_man.r < -STICK_ON_OFF_LIMIT) && sp_man.z < 0.1f;
 			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
@@ -2702,6 +2613,7 @@ int commander_thread_main(int argc, char *argv[])
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
 						) {
+
 						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
 					} else if (!status_flags.condition_home_position_valid &&
@@ -3026,8 +2938,7 @@ int commander_thread_main(int argc, char *argv[])
 											   offboard_loss_act,
 											   offboard_loss_rc_act);
 
-		if (status.failsafe != failsafe_old)
-		{
+		if (status.failsafe != failsafe_old) {
 			status_changed = true;
 
 			if (status.failsafe) {
@@ -3117,7 +3028,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update timeout flag */
-		if(!(hotplug_timeout == status_flags.condition_system_hotplug_timeout)) {
+		if (!(hotplug_timeout == status_flags.condition_system_hotplug_timeout)) {
 			status_flags.condition_system_hotplug_timeout = hotplug_timeout;
 			status_changed = true;
 		}
@@ -3160,7 +3071,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	ret = pthread_join(commander_low_prio_thread, nullptr);
+	int ret = pthread_join(commander_low_prio_thread, nullptr);
 
 	if (ret) {
 		warn("join failed: %d", ret);
@@ -4005,13 +3916,11 @@ void *commander_low_prio_loop(void *arg)
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
+	struct vehicle_command_s cmd = {};
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
-	struct vehicle_command_ack_s command_ack;
-	memset(&command_ack, 0, sizeof(command_ack));
+	struct vehicle_command_ack_s command_ack = {};
 
 	/* timeout for param autosave */
 	hrt_abstime need_param_autosave_timeout = 0;
@@ -4047,7 +3956,7 @@ void *commander_low_prio_loop(void *arg)
 				}
 			}
 		} else if (pret < 0) {
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
+			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			warn("commander: poll error %d, %d", pret, errno);
 			continue;
 		} else {
@@ -4121,8 +4030,8 @@ void *commander_low_prio_loop(void *arg)
 						calib_ret = do_gyro_calibration(&mavlink_log_pub);
 
 					} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
-							(int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
-							(int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+						   (int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+						   (int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 						/* temperature calibration: handled in events module */
 						break;
 
@@ -4152,10 +4061,12 @@ void *commander_low_prio_loop(void *arg)
 						/* accelerometer calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_accel_calibration(&mavlink_log_pub);
+
 					} else if ((int)(cmd.param5) == 2) {
 						// board offset calibration
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_level_calibration(&mavlink_log_pub);
+
 					} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 						// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 						/* airspeed calibration */
@@ -4174,9 +4085,11 @@ void *commander_low_prio_loop(void *arg)
 							status_flags.rc_input_blocked = false;
 							mavlink_log_info(&mavlink_log_pub, "CAL: Re-enabling RC IN");
 						}
+
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						/* this always succeeds */
 						calib_ret = OK;
+
 					} else {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub, command_ack);
 					}
@@ -4193,6 +4106,7 @@ void *commander_low_prio_loop(void *arg)
 
 						bool checkAirspeed = false;
 						bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
+
 						/* Perform airspeed check only if circuit breaker is not
 						 * engaged and it's not a rotary wing */
 						if (!status_flags.circuit_breaker_engaged_airspd_check &&
@@ -4212,7 +4126,7 @@ void *commander_low_prio_loop(void *arg)
 									false /* fRunPreArmChecks */,
 									&mavlink_log_pub,
 									&status_flags,
-								        avionics_power_rail_voltage,
+									avionics_power_rail_voltage,
 									can_arm_without_gps,
 									hrt_elapsed_time(&commander_boot_timestamp));
 
@@ -4280,6 +4194,7 @@ void *commander_low_prio_loop(void *arg)
 
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub, command_ack);
 						}
+
 					} else if (((int)(cmd.param1)) == 2) {
 
 						/* reset parameters and save empty file */
@@ -4318,8 +4233,8 @@ void *commander_low_prio_loop(void *arg)
 }
 
 void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
-	struct vehicle_status_flags_s v_flags;
-	memset(&v_flags, 0, sizeof(v_flags));
+	struct vehicle_status_flags_s v_flags = {};
+
 	/* set condition status flags */
 	if (status_flags.condition_calibration_enabled) {
 		v_flags.conditions |= vehicle_status_flags_s::CONDITION_CALIBRATION_ENABLE_MASK;
