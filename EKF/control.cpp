@@ -704,9 +704,9 @@ void Ekf::controlHeightFusion()
 
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-		bool can_use_range = rangeAidConditionsMet();
+        _in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (can_use_range && _range_data_ready && !_rng_hgt_faulty) {
+        if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -716,7 +716,7 @@ void Ekf::controlHeightFusion()
 				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
 			}
 
-		} else if (_baro_data_ready && !_baro_hgt_faulty && !can_use_range) {
+        } else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
 			setControlBaroHeight();
 			_fuse_height = true;
 
@@ -736,9 +736,9 @@ void Ekf::controlHeightFusion()
 
 	// Determine if GPS should be used as the height source
 	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-		bool can_use_range = rangeAidConditionsMet();
+        _in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-		if (can_use_range && _range_data_ready && !_rng_hgt_faulty) {
+        if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -748,7 +748,7 @@ void Ekf::controlHeightFusion()
 				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
 			}
 
-		} else if (_gps_data_ready && !_gps_hgt_faulty && !can_use_range) {
+        } else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
 			setControlGPSHeight();
 			_fuse_height = true;
 
@@ -786,7 +786,7 @@ void Ekf::controlHeightFusion()
 
 }
 
-bool Ekf::rangeAidConditionsMet()
+bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 {
 	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
 	// under the following conditions
@@ -794,8 +794,15 @@ bool Ekf::rangeAidConditionsMet()
 	// 2) our ground speed is not higher than max_vel_for_dual_fusion
 	// 3) Our terrain estimate is stable (needs better checks)
 	if (_params.range_aid) {
-		// check if we should use range finder measurements to estimate height
-		bool use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
+        // check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
+        bool use_range_finder;
+        if (in_range_aid_mode) {
+            use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
+        } else {
+            // if we were not using range aid in the previous iteration then require the current height above terrain to be
+            // smaller than 70 % of the maximum allowed ground distance for range aid
+            use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && _terrain_initialised;
+        }
 
 		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
 				      && (_fault_status.value == 0);
@@ -803,14 +810,21 @@ bool Ekf::rangeAidConditionsMet()
 		if (horz_vel_valid) {
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
 
-			use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
+            if (in_range_aid_mode) {
+                use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
+
+            } else {
+                // if we were not using range aid in the previous iteration then require the ground velocity to be
+                // smaller than 70 % of the maximum allowed ground velocity for range aid
+                use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
+
+            }
 
 		} else {
 			use_range_finder = false;
 		}
 
-		// XXX need a way to tell if terrain is stable
-		use_range_finder &= fabsf(_hagl_innov) < 0.3f;
+        use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
 
 		return use_range_finder;
 	} else {
