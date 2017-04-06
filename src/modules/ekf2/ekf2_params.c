@@ -994,3 +994,16 @@ PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);
+
+/**
+ * Range sensor aid.
+ *
+ * If this parameter is enabled then the estimator will make use of the range finder measurements
+ * to estimate it's height even if range sensor is not the primary height source. It will only do so if conditions
+ * for range measurement fusion are met.
+ *
+ * @group EKF2
+ * @value 0 Range aid disabled
+ * @value 1 Range aid enabled
+ */
+PARAM_DEFINE_INT32(EKF2_RNG_AID, 0.0f);
