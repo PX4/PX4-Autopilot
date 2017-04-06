@@ -375,6 +375,9 @@ private:
 	uint64_t _time_good_vert_accel{0};	// last time a good vertical accel was detected (usec)
 	bool _bad_vert_accel_detected{false};	// true when bad vertical accelerometer data has been detected
 
+    // variables used to control range aid functionality
+    bool _in_range_aid_mode;
+
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
 	void calculateOutputStates();
@@ -505,7 +508,7 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-	bool rangeAidConditionsMet();
+    bool rangeAidConditionsMet(bool in_range_aid_mode);
 
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
