@@ -66,7 +66,7 @@ int general_trans_main(int argc, char *argv[])
 @[for id, topic in enumerate(topic_names)]
     struct @(topic)_s @(topic)_data;
     memset(&@(topic)_data, 0, sizeof(@(topic)_data));
-    orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+    //orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
 @[end for]
 
     int error_counter = 0;
@@ -121,7 +121,7 @@ int general_trans_main(int argc, char *argv[])
                 // printf("Received @(topic) \n");
 
                 deserialize_@(topic)(&@(topic)_data, buffer);
-                orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                //orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
 
             }
 @[end for]
