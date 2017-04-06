@@ -143,7 +143,7 @@ void Ekf::predictCovariance()
 	float dvy_b = _state.accel_bias(1);
 	float dvz_b = _state.accel_bias(2);
 
-	float dt = _imu_sample_delayed.delta_ang_dt;
+	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.0005f * FILTER_UPDATE_PERIOD_MS, 0.002f * FILTER_UPDATE_PERIOD_MS);
 
 	// compute noise variance for stationary processes
 	float process_noise[_k_num_states] = {};
