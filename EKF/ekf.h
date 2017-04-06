@@ -325,6 +325,7 @@ private:
 	bool _accel_bias_inhibit;	// true when the accel bias learning is being inhibited
 	float _accel_mag_filt;		// acceleration magnitude after application of a decaying envelope filter (m/sec**2)
 	float _ang_rate_mag_filt;	// angular rate magnitude after application of a decaying envelope filter (rad/sec)
+	Vector3f _prev_dvel_bias_var;	// saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation
 	float _terrain_vpos;		// estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
