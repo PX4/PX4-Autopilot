@@ -1,5 +1,8 @@
 #!nsh
-#
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+#set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
 # PX4FMU startup script.
 #
 # NOTE: environment variable references:
