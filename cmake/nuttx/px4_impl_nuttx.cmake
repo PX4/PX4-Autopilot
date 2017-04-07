@@ -300,7 +300,7 @@ function(px4_nuttx_add_export)
 	add_custom_command(OUTPUT ${nuttx_src}/nuttx/.config
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/*.mk ${nuttx_src}/nuttx/
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_src}/nuttx/configs
-		COMMAND cd ${nuttx_src}/nuttx/tools && ./configure.sh ${CONFIG}/${config_nuttx_config}
+		COMMAND cd ${nuttx_src}/nuttx/tools && sh configure.sh ${CONFIG}/${config_nuttx_config}
 		DEPENDS ${DEPENDS} nuttx_patch_${CONFIG} ${config_files}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
