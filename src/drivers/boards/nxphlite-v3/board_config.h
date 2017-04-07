@@ -65,50 +65,75 @@ __BEGIN_DECLS
  *   BLUE   CMP0_IN2/ FB_AD7 / I2S0_MCLK/ FTM3_CH4/ ADC1_SE4b/ PTC8
  */
 
-#define GPIO_LED_R         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTD | PIN1)
-#define GPIO_LED_G         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN9)
-#define GPIO_LED_B         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN8)
+#define GPIO_LED_R             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTD | PIN1)
+#define GPIO_LED_G             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN9)
+#define GPIO_LED_B             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN8)
+
+
+#define GPIO_LED_D9            (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN14)
+#define GPIO_LED_D10           (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN13)
+
+#define GPIO_NFC_IO            (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN26)
+#define GPIO_SENSOR_P_EN       (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTB | PIN8)
+
+
+/* UART tty Mapping
+ * Device   tty        alt           Connector Name
+ * ------- ---------- -------------- --------- -------------------------
+ * LPUART0 /dev/tty0  /dev/console    P16      DCD-Mini
+ * UART0   /dev/tty1      ---         P7       IR transmitter & receiver
+ * UART1   /dev/tty2      ---         P14,P15  SERIAL4/FrSky, RC_IN
+ * UART2   /dev/tty3      ---         P3       GPS connector
+ * UART4   /dev/tty4      ---         P10      UART (Bluetooth)
+ */
+
+#define GPS_DEFAULT_UART_PORT  "/dev/ttyS3"      /* UART2 */
 
 /* High-resolution timer */
-#define HRT_TIMER          3  /* use timer 2 for the HRT */
-#define HRT_TIMER_CHANNEL  1  /* use capture/compare channel */
+#define HRT_TIMER              3  /* TBD: use timer 3 for the HRT */
+#define HRT_TIMER_CHANNEL      1  /* TBD: use capture/compare channel */
 
 /* PPM IN
- *
  */
 
-#define HRT_PPM_CHANNEL     0   /* use capture/compare channel */
-#define GPIO_PPM_IN         PIN_FTM2_CH0_1    /* PTA10 220R to P4-1 */
+#define HRT_PPM_CHANNEL        0                 /* TBD use capture/compare channel */
+#define GPIO_PPM_IN            PIN_FTM0_CH2_2    /* PTC3 USART1 RX or FTM0_CH2 AKA RC_INPUT */
 
 
-/* IR transmitter & receiver
- *
- * Rx could be on UART0 RX
- * TX is On PTA24
- * Usage TBD - both left as inputs for now.
- *
+/* Spektrum controls ******************************************************/
+
+/* Power is a p-Channel FET */
+
+#define GPIO_SPEKTRUM_P_EN     (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN7)
+#define POWER_SPEKTRUM(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_P_EN, (!_on_true))
+
+/* For binding the Spektrum 3-pin interfaces is used with it TX (output)
+ * as an input Therefore we drive are UARTx_RX (normaly an input) as an
+ * output
  */
-#define GPIO_IR_TRANSMITTER                (GPIO_PULLUP | PIN_PORTA | PIN24)
-#define GPIO_IR_RRCEIVER                   (GPIO_PULLUP | PIN_PORTA | PIN21)
 
-/* SBUS Control
- *
- * SBUS is brought out on P4-4 and controlled buy the following.
- * */
+#define GPIO_UART2_RX_AS_OUTPUT (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
+#define SPEKTRUM_RX_AS_UART()   px4_arch_configgpio(PIN_UART2_RX)
+#define SPEKTRUM_RX_AS_GPIO()   px4_arch_configgpio(GPIO_UART2_RX_AS_OUTPUT)
+#define SPEKTRUM_RX_HIGH(_s)    px4_arch_gpiowrite(GPIO_UART2_RX_AS_OUTPUT, (_s))
 
-#define GPIO_SBUS_EN                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN2)
-#define GPIO_SBUS_IN  /* Not usable 0 needs UART */  (GPIO_PULLUP            | PIN_PORTA | PIN8)
-#define GPIO_SBUS_OUT /* Not usable 0 needs UART */  (GPIO_INPUT             | PIN_PORTA | PIN9)
-#define GPIO_RSSI_IN  /* Needs s/b on ADC/Timer  */  (GPIO_INPUT             | PIN_PORTA | PIN25)
+/* RC input */
+
+#define RC_UXART_BASE           KINETIS_UART1_BASE
+#define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
+#define INVERT_RC_INPUT(_s)     board_rc_input(_s);
+
+#define GPIO_RSSI_IN            PIN_ADC1_SE13
 
 /* Ethernet Control
  *
- * Unintalized to Reset Disabled and Inhibited
+ * Uninitialized to Reset Disabled and Inhibited
  */
 
-#define GPIO_E_RST                         (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
-#define GPIO_E_EN                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
-#define GPIO_E_INH                         (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN2)
+#define GPIO_E_RST              (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN28)
+#define GPIO_E_EN               (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN29)
+#define GPIO_E_INH              (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN8)
+#define GPIO_ENET_CONFIG0       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN24)
 
 
 /* CAN Control
@@ -116,41 +141,27 @@ __BEGIN_DECLS
  * high-speed mode (Low) or silent mode (high)
  */
 
-#define GPIO_CAN0_STB                     (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN4)
+#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN19)
+#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN18)
 
 
-/* URF Connector
- * TBD
+/* P13 Ultrasonic Sensors
+ * This is used as IIC ad booted with theses as inputs
  */
 
-#define GPIO_ECH                           (GPIO_PULLUP | PIN_PORTC | PIN8)
-#define GPIO_TRI                           (GPIO_PULLUP | PIN_PORTC | PIN9)
-
-/* GPIO on UART P10
- * TBD
- */
-
-#define GPIO_PTD11                        (GPIO_PULLUP | PIN_PORTD | PIN11)
-#define GPIO_PTD12                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN11)
-
-/* GPIO on UART P14
- * TBD
- */
-
-#define GPIO_PTD15                        (GPIO_PULLUP | PIN_PORTD | PIN15)
-#define GPIO_PTE4                         (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTE | PIN4)
+#define GPIO_ECH                 (GPIO_PULLUP | PIN_PORTB | PIN2)
+#define GPIO_TRI                 (GPIO_PULLUP | PIN_PORTB | PIN3)
 
 /* Safety Switch
  * TBD
  */
-#define GPIO_LED_SAFETY                   (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN13)
-#define GPIO_BTN_SAFETY                   (GPIO_PULLUP | PIN_PORTD | PIN14)
+#define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN27)
+#define GPIO_BTN_SAFETY         (GPIO_PULLUP | PIN_PORTE | PIN28)
 
 /* NXPHlite-v3 GPIOs ****************************************************************/
 
-/*	SDIO
+/*	SDHC
  *
- *				NOT IN Current HW t uses SPI
  * A micro Secure Digital (SD) card slot is available on the board connected to
  * the SD Host Controller (SDHC) signals of the MCU. This slot will accept micro
  * format SD memory cards. The SD card detect pin (PTE6) is an open switch that
@@ -159,17 +170,18 @@ __BEGIN_DECLS
  *   ------------ ------------- --------
  *    SD Card Slot Board Signal  K66 Pin
  *    ------------ ------------- --------
- *    DAT0         SDHC0_D0      PTE0
- *    DAT1         SDHC0_D1      PTE1
+ *    DAT0         SDHC0_D0      PTE1
+ *    DAT1         SDHC0_D1      PTE0
  *    DAT2         SDHC0_D2      PTE5
  *    CD/DAT3      SDHC0_D3      PTE4
  *    CMD          SDHC0_CMD     PTE3
  *    CLK          SDHC0_DCLK    PTE2
- *    SWITCH       D_CARD_DETECT PTE6
+ *    SWITCH       D_CARD_DETECT PTD10
  *    ------------ ------------- --------
  *
- * There is no Write Protect pin available to the K66 Or Card detect.
+ * There is no Write Protect pin available to the K66
  */
+#define GPIO_SD_CARDDETECT (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN10)
 
 /* SPI
  *
@@ -180,65 +192,74 @@ __BEGIN_DECLS
 
 /* SPI Bus assignments */
 
-#define PX4_SPI_BUS_SDCARD                  0
-#define PX4_SPI_BUS_ACCEL_MAG               1
-#define PX4_SPI_BUS_GYRO                    2
+#define PX4_SPI_BUS_MEMORY                  0
+#define PX4_SPI_BUS_SENSORS                 1
+#define PX4_SPI_BUS_EXTERNAL                2
+#define PX4_SPI_BUS_RAMTRON                 PX4_SPI_BUS_MEMORY
+#define PX4_SPI_BUS_EXT                     PX4_SPI_BUS_EXTERNAL
 
 
 /* SPI chip selects */
 
-#define GPIO_SPI_CS_FXAS21002CQ_GYRO        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN20)
+#define GPIO_SPI_CS_MEMORY                  (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN2)
+#define GPIO_SPI_CS_FXAS21002CQ_GYRO        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN9)
 #define GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG    (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN10)
-#define GPIO_SPI_CS_SDCARD                  (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN4)
+#define GPIO_SPI2_CS                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN20)
+#define GPIO_SPI2_EXT                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN15)
 
 /* SPI device reset signals
  * In Inactive state
  */
 
-#define GPIO_GM_RST                         (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTC | PIN0)
-#define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN7)
+#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN12)
+#define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN25)
 
 /* Sensor interrupts */
 
-#define GPIO_EXTI_GYRO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTC | PIN1)
-#define GPIO_EXTI_GYRO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTC | PIN2)
-#define GPIO_EXTI_ACCEL_MAG_INT1            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTB | PIN8)
-#define GPIO_EXTI_ACCEL_MAG_INT2            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTB | PIN9)
-#define GPIO_EXTI_BARO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN26)
-#define GPIO_EXTI_BARO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN27)
-
-#define PX4_MK_SPI_SEL(b,d)      ((((b) & 0xf) << 4) + ((d) & 0xf))
-#define PX4_SPI_BUS_ID(bd)       (((bd) >> 4) & 0xf)
-#define PX4_SPI_DEV_ID(bd)       ((bd) & 0xf)
+#undef  GPIO_EXTI_GYRO_INT1                 /* NC */
+#undef  GPIO_EXTI_GYRO_INT2                 /* NC */
+#undef  GPIO_EXTI_ACCEL_MAG_INT1            /* NC */
+#undef  GPIO_EXTI_ACCEL_MAG_INT2            /* NC */
+#define GPIO_EXTI_BARO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN11)
+#undef  GPIO_EXTI_BARO_INT2                 /* NC */
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
 
-#define PX4_SPIDEV_SDCARD        PX4_MK_SPI_SEL(PX4_SPI_BUS_SDCARD,0)
-#define PX4_SDCARD_BUS_CS_GPIO   {GPIO_SPI_CS_SDCARD}
-#define PX4_SDCARD_BUS_FIRST_CS  PX4_SPIDEV_SDCARD
-#define PX4_SDCARD_BUS_LAST_CS   PX4_SPIDEV_SDCARD
+#define PX4_SPIDEV_MEMORY                   PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
+#define PX4_MEMORY_BUS_CS_GPIO              {GPIO_SPI_CS_MEMORY}
+#define PX4_MEMORY_BUS_FIRST_CS             PX4_SPIDEV_MEMORY
+#define PX4_MEMORY_BUS_LAST_CS              PX4_SPIDEV_MEMORY
 
-#define PX4_SPIDEV_ACCEL_MAG        PX4_MK_SPI_SEL(PX4_SPI_BUS_ACCEL_MAG,0)
-#define PX4_ACCEL_MAG_BUS_CS_GPIO   {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG}
-#define PX4_ACCEL_MAG_BUS_FIRST_CS  PX4_SPIDEV_ACCEL_MAG
-#define PX4_ACCEL_MAG_BUS_LAST_CS   PX4_SPIDEV_ACCEL_MAG
+#define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
+#define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
+#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO}
+#define PX4_SENSOR_BUS_FIRST_CS             PX4_SPIDEV_ACCEL_MAG
+#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_GYRO
 
-#define PX4_SPIDEV_GYRO          PX4_MK_SPI_SEL(PX4_SPI_BUS_GYRO,0)
-#define PX4_GYRO_BUS_CS_GPIO     {GPIO_SPI_CS_FXAS21002CQ_GYRO}
-#define PX4_GYRO_BUS_FIRST_CS    PX4_SPIDEV_GYRO
-#define PX4_GYRO_BUS_LAST_CS     PX4_SPIDEV_GYRO
+#define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,0)
+#define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,1)
+#define PX4_EXTERNAL_BUS_CS_GPIO            {GPIO_SPI2_CS, GPIO_SPI2_EXT}
+#define PX4_EXTERNAL_BUS_FIRST_CS           PX4_SPIDEV_EXTERNAL1
+#define PX4_EXTERNAL_BUS_LAST_CS            PX4_SPIDEV_EXTERNAL2
 
+#define PX4_SPIDEV_ICM_20602                PX4_SPIDEV_EXTERNAL1
+#define PX4_SPIDEV_ICM_20608                PX4_SPIDEV_EXTERNAL1
+#define PX4_SPIDEV_ICM_20689                PX4_SPIDEV_EXTERNAL1
+#define PX4_SPIDEV_EXT_MPU                  PX4_SPIDEV_EXTERNAL1
+#define PX4_SPIDEV_MPU                      PX4_SPIDEV_EXTERNAL1
 
 /* I2C busses */
 
-#define PX4_I2C_BUS_ONBOARD     1
-#define PX4_I2C_BUS_EXPANSION   2
+#define GPIO_P_INT             (GPIO_PULLUP | PIN_PORTD | PIN11)
 
-#define PX4_I2C_BUS_LED         PX4_I2C_BUS_EXPANSION
+#define PX4_I2C_BUS_EXPANSION               0
+#define PX4_I2C_BUS_ONBOARD                 1
 
-#define PX4_I2C_OBDEV_LED       0x55
-#define PX4_I2C_OBDEV_HMC5883   0x1e
-#define PX4_I2C_OBDEV_LIS3MDL   0x1e
+#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
+
+#define PX4_I2C_OBDEV_LED                   0x55
+#define PX4_I2C_OBDEV_HMC5883               0x1e
+#define PX4_I2C_OBDEV_LIS3MDL               0x1e
 
 /*
  * ADC channels
@@ -247,16 +268,21 @@ __BEGIN_DECLS
  */
 #define ADC_CHANNELS 1 << 0 // TBD
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
+/* ADC defines to be used in sensors.cpp to read from a particular channel
 
-// BAT_VSENS ADC1_SE16 or ADC0_SE22
-// BAT_ISENS ADC0_SE16 or ADC0_SE21
-// V5_VSENS  ADC1_SE18
-
-// AD1  ADC1_SE5a
-// AD2  ADC1_SE7a
-// AD3  ADC0_SE10
-// AD4  ADC1_SE12
+ * PTB4    85   ADC1_SE10  BAT_VSENS
+ * PTB5    86   ADC1_SE11  BAT_ISENS
+ * PTB6    87   ADC1_SE12  5V_VSENS
+ * PTB7    88   ADC1_SE13  RSSI_IN
+ *         37   ADC1_SE18  AD2
+ *         36   ADC0_SE21  USB_VBUS_VALID
+ *         35   ADC0_SE22  AD1
+ *         39   ADC1_SE23  AD3
+*/
+#define GPIO_BAT_VSENS   PIN_ADC1_SE10
+#define GPIO_BAT_ISENS   PIN_ADC1_SE11
+#define GPIO_5V_VSENS    PIN_ADC1_SE12
+#define GPIO_RSSI_IN     PIN_ADC1_SE13
 
 #define ADC_BATTERY_VOLTAGE_CHANNEL 22
 #define ADC_BATTERY_CURRENT_CHANNEL 21
@@ -265,45 +291,46 @@ __BEGIN_DECLS
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
+
 /* User GPIOs
  *
  * GPIO-
  * Define as GPIO input / GPIO outputs and timers IO
  */
 
-#define PX4_MK_GPIO(pin_ftmx, io)    ((pin_ftmx) & (((uint32_t) ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | (uint32_t)(io)))
+#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
 #define PX4_MK_GPIO_INPUT(pin_ftmx)    PX4_MK_GPIO(pin_ftmx, GPIO_PULLUP)
 #define PX4_MK_GPIO_OUTPUT(pin_ftmx)   PX4_MK_GPIO(pin_ftmx, GPIO_HIGHDRIVE)
 
-#define GPIO_GPIO0_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH0OUT)
-#define GPIO_GPIO1_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH1OUT)
-#define GPIO_GPIO2_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH2OUT)
-#define GPIO_GPIO3_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH3OUT)
-#define GPIO_GPIO4_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH4OUT)
-#define GPIO_GPIO5_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH5OUT)
-#define GPIO_GPIO6_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH6OUT)
-#define GPIO_GPIO7_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH0OUT)
-#define GPIO_GPIO8_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH4OUT)
-#define GPIO_GPIO9_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH5OUT)
-#define GPIO_GPIO10_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM0_CH6OUT)
-#define GPIO_GPIO11_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM0_CH7OUT)
-#define GPIO_GPIO12_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM0_CH3OUT)
-#define GPIO_GPIO13_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM0_CH2OUT)
+#define GPIO_GPIO0_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH0OUT)
+#define GPIO_GPIO1_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH3OUT)
+#define GPIO_GPIO2_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH4OUT)
+#define GPIO_GPIO3_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH5OUT)
+#define GPIO_GPIO4_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH6OUT)
+#define GPIO_GPIO5_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH7OUT)
+#define GPIO_GPIO6_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH0OUT)
+#define GPIO_GPIO7_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH1OUT)
+#define GPIO_GPIO8_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH2OUT)
+#define GPIO_GPIO9_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH3OUT)
+#define GPIO_GPIO10_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM3_CH4OUT)
+#define GPIO_GPIO11_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM3_CH5OUT)
+#define GPIO_GPIO12_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM3_CH6OUT)
+#define GPIO_GPIO13_INPUT   PX4_MK_GPIO_INPUT(GPIO_FTM3_CH7OUT)
 
-#define GPIO_GPIO0_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH0OUT)
-#define GPIO_GPIO1_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH1OUT)
-#define GPIO_GPIO2_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH2OUT)
-#define GPIO_GPIO3_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH3OUT)
-#define GPIO_GPIO4_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH4OUT)
-#define GPIO_GPIO5_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH5OUT)
-#define GPIO_GPIO6_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH6OUT)
-#define GPIO_GPIO7_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH0OUT)
-#define GPIO_GPIO8_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH4OUT)
-#define GPIO_GPIO9_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH5OUT)
-#define GPIO_GPIO10_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH6OUT)
-#define GPIO_GPIO11_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH7OUT)
-#define GPIO_GPIO12_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH3OUT)
-#define GPIO_GPIO13_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH2OUT)
+#define GPIO_GPIO0_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH0OUT)
+#define GPIO_GPIO1_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH3OUT)
+#define GPIO_GPIO2_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH4OUT)
+#define GPIO_GPIO3_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH5OUT)
+#define GPIO_GPIO4_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH6OUT)
+#define GPIO_GPIO5_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH7OUT)
+#define GPIO_GPIO6_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH0OUT)
+#define GPIO_GPIO7_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH1OUT)
+#define GPIO_GPIO8_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH2OUT)
+#define GPIO_GPIO9_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH3OUT)
+#define GPIO_GPIO10_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH4OUT)
+#define GPIO_GPIO11_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH5OUT)
+#define GPIO_GPIO12_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH6OUT)
+#define GPIO_GPIO13_OUTPUT  PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH7OUT)
 
 /* Timer I/O PWM and capture
  *
@@ -313,7 +340,7 @@ __BEGIN_DECLS
  * Pins:
  *      Defined in board.h
  */
-// todo:Desine this!
+// todo:Design this!
 
 #define DIRECT_PWM_OUTPUT_CHANNELS	14
 #define DIRECT_INPUT_TIMER_CHANNELS 14
@@ -323,19 +350,18 @@ __BEGIN_DECLS
 
 #define GPIO_PERIPH_3V3_EN  0
 
-#define GPIO_SBUS_INV       0
-#define INVERT_RC_INPUT(_s) px4_arch_gpiowrite(GPIO_SBUS_INV, _s)
 
-
-/* Tone alarm output is On E28 */
+/* Tone alarm output PTA11 - FTM2_CH1 is On P12-4, P12-5
+ * It is driving a PNP
+ */
 #define TONE_ALARM_TIMER    2   /* timer */
-#define TONE_ALARM_CHANNEL  3   /* channel  */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTE | PIN28)
-#define GPIO_TONE_ALARM			(GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTE | PIN28)
+#define TONE_ALARM_CHANNEL  1   /* channel  */
+#define GPIO_TONE_ALARM_IDLE	(GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN11)
+#define GPIO_TONE_ALARM			(GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN11)
 
 /* USB
  *
- *  Note No external VBUD detection
+ *  VBUS detection is on 36   ADC0_SE21  USB_VBUS_VALID
  */
 
 
@@ -348,12 +374,12 @@ __BEGIN_DECLS
 
 #define BOARD_NAME "NXPHLITE_V3"
 
-/* Not Supported in V1 HW
+/*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
-#define BOARD_ADC_USB_CONNECTED (0)
+#define BOARD_ADC_USB_CONNECTED board_read_VBUS_state()
 #define BOARD_ADC_BRICK_VALID   (1)
 #define BOARD_ADC_SERVO_VALID   (1)
 #define BOARD_ADC_PERIPH_5V_OC  (0)
@@ -400,6 +426,44 @@ __BEGIN_DECLS
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
+/* Automounter */
+
+#define HAVE_MMCSD      1
+#define HAVE_AUTOMOUNTER 1
+#if !defined(CONFIG_FS_AUTOMOUNTER) || !defined(HAVE_MMCSD)
+#  undef HAVE_AUTOMOUNTER
+#  undef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
+#endif
+
+#ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
+#  undef HAVE_AUTOMOUNTER
+#endif
+
+/* Automounter defaults */
+
+#ifdef HAVE_AUTOMOUNTER
+
+#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_FSTYPE
+#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_FSTYPE "vfat"
+#  endif
+
+#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_BLKDEV
+#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_BLKDEV "/dev/mmcds0"
+#  endif
+
+#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_MOUNTPOINT
+#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_MOUNTPOINT "/mnt/sdcard"
+#  endif
+
+#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_DDELAY
+#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_DDELAY 1000
+#  endif
+
+#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_UDELAY
+#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_UDELAY 2000
+#  endif
+#endif /* HAVE_AUTOMOUNTER */
 
 
 /************************************************************************************
@@ -472,21 +536,7 @@ int nxphlite_bringup(void);
  *
  ****************************************************************************/
 
-#ifdef HAVE_MMCSD
 int nxphlite_sdhc_initialize(void);
-#else
-#  define nxphlite_sdhc_initialize() (OK)
-#endif
-
-/****************************************************************************
- * Name: nxphlite_sdhc_initialize
- *
- * Description:
- *   Inititialize the SDHC SD card slot
- *
- ****************************************************************************/
-
-int nxphlite_sdio_initialize(void);
 
 /************************************************************************************
  * Name: nxphlite_cardinserted
