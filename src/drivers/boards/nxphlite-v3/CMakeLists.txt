@@ -41,7 +41,6 @@ px4_add_module(
 		../common/board_dma_alloc.c
 		nxphlite_autoleds.c
 		nxphlite_automount.c
-		nxphlite_bringup.c
 		nxphlite_can.c
 		nxphlite_init.c
 		nxphlite_led.c
