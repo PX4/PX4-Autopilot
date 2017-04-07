@@ -66,6 +66,8 @@ public:
 
 	virtual void on_active();
 
+	void set_return_alt_min(bool min);
+
 private:
 	/**
 	 * Set the RTL item
@@ -95,6 +97,7 @@ private:
 	} _rtl_state;
 
 	bool _rtl_start_lock;
+	bool _rtl_alt_min;
 
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_min_loiter_alt;

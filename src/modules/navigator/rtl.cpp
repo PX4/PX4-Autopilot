@@ -61,6 +61,7 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
 	_rtl_start_lock(false),
+	_rtl_alt_min(false),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
 	_param_min_loiter_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
@@ -103,12 +104,12 @@ RTL::on_activation()
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
 
 		/* if lower than return altitude, climb up first */
 
-	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
-			+ get_rtl_altitude())) {
+	} else if (_rtl_alt_min || (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
+				    + get_rtl_altitude()))) {
 		_rtl_state = RTL_STATE_CLIMB;
 
 		/* otherwise go straight to return */
@@ -130,6 +131,12 @@ RTL::on_active()
 		advance_rtl();
 		set_rtl_item();
 	}
+}
+
+void
+RTL::set_return_alt_min(bool min)
+{
+	_rtl_alt_min = min;
 }
 
 void
@@ -304,6 +311,7 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_LANDED: {
 			set_idle_item(&_mission_item);
+			set_return_alt_min(false);
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, landed");
 			break;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  * Handles mission items, geo fencing and failsafe navigation behavior.
  * Published the position setpoint triplet for the position controller.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Jean Cyr <jean.m.cyr@gmail.com>
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -73,6 +73,7 @@
 #include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/transponder_report.h>
 #include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
@@ -117,6 +118,7 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
 	_vehicle_command_sub(-1),
+	_traffic_sub(-1),
 	_pos_sp_triplet_pub(nullptr),
 	_mission_result_pub(nullptr),
 	_geofence_result_pub(nullptr),
@@ -160,6 +162,7 @@ Navigator::Navigator() :
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
 	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
+	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),
@@ -325,6 +328,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -588,6 +592,9 @@ Navigator::task_main()
 				}
 			}
 		}
+
+		/* Check for traffic */
+		check_traffic();
 
 		/* Check geofence violation */
 		static hrt_abstime last_geofence_check = 0;
@@ -902,6 +909,139 @@ Navigator::load_fence_from_file(const char *filename)
 	_geofence.loadFromFile(filename);
 }
 
+/**
+ * Creates a fake traffic measurement with supplied parameters.
+ *
+ */
+void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
+			     float altitude_diff, float hor_velocity, float ver_velocity)
+{
+	double lat, lon;
+	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, direction, distance, &lat,
+					   &lon);
+	float alt = get_global_position()->alt + altitude_diff;
+
+	// float vel_n = get_global_position()->vel_n;
+	// float vel_e = get_global_position()->vel_e;
+	// float vel_d = get_global_position()->vel_d;
+
+	transponder_report_s tr = {};
+	tr.timestamp = hrt_absolute_time();
+	tr.ICAO_address = 1234;
+	tr.lat = lat; // Latitude, expressed as degrees
+	tr.lon = lon; // Longitude, expressed as degrees
+	tr.altitude_type = 0;
+	tr.altitude = alt;
+	tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
+	tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
+	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
+	strcpy(&tr.callsign[0], callsign);
+	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
+	tr.tslc = 2; // Time since last communication in seconds
+	tr.flags = 0; // Flags to indicate various statuses including valid data fields
+	tr.squawk = 6667;
+
+	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
+	(void)orb_unadvertise(h);
+}
+
+void Navigator::check_traffic()
+{
+	double lat = get_global_position()->lat;
+	double lon = get_global_position()->lon;
+	float alt = get_global_position()->alt;
+
+	// TODO for non-multirotors predicting the future
+	// position as accurately as possible will become relevant
+	// float vel_n = get_global_position()->vel_n;
+	// float vel_e = get_global_position()->vel_e;
+	// float vel_d = get_global_position()->vel_d;
+
+	bool changed;
+	orb_check(_traffic_sub, &changed);
+
+	float horizontal_separation = 500;
+	float vertical_separation = 500;
+
+	while (changed) {
+
+		transponder_report_s tr;
+		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
+
+		float d_hor, d_vert;
+		get_distance_to_point_global_wgs84(lat, lon, alt,
+						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+
+		// predict final altitude (positive is up) in prediction time frame
+		float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
+
+		// Predict until the vehicle would have passed this system at its current speed
+		float prediction_distance = d_hor + 1000;
+
+		// If the altitude is not getting close to us, do not calculate
+		// the horizontal separation
+		// since commercial flights do most of the time keep flight levels
+		// check for the current and for the predicted flight level.
+		// we also make the implicit assumption that this system is on the lowest
+		// flight level close to ground in the
+		// (end_alt - horizontal_separation < alt) condition. If this system should
+		// ever be used in normal airspace this implementation would anyway be
+		// inappropriate as it should be replaced with a TCAS compliant solution.
+
+		if ((fabsf(alt - tr.altitude) < vertical_separation) || ((end_alt - horizontal_separation) < alt)) {
+
+			double end_lat, end_lon;
+			waypoint_from_heading_and_distance(tr.lat, tr.lon, tr.heading, prediction_distance, &end_lat, &end_lon);
+
+			struct crosstrack_error_s cr;
+
+			if (!get_distance_to_line(&cr, lat, lon, tr.lat, tr.lon, end_lat, end_lon)) {
+
+				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
+
+					// direction of traffic in human-readable 0..360 degree in earth frame
+					int traffic_direction = math::degrees(tr.heading) + 180;
+
+					switch (_param_traffic_avoidance_mode.get()) {
+
+					case 0: {
+							/* ignore */
+							PX4_WARN("TRAFFIC %s, hdg: %d", tr.callsign, traffic_direction);
+							break;
+						}
+
+					case 1: {
+							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately", tr.callsign,
+									     traffic_direction);
+							break;
+						}
+
+					case 2: {
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home", tr.callsign,
+									     traffic_direction);
+
+							// set the return altitude to minimum
+							_rtl.set_return_alt_min(true);
+
+							// ask the commander to execute an RTL
+							vehicle_command_s vcmd = {};
+							vcmd.target_system = get_vstatus()->system_id;
+							vcmd.target_component = get_vstatus()->component_id;
+							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+
+							orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+							(void)orb_unadvertise(pub);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		orb_check(_traffic_sub, &changed);
+	}
+}
+
 bool
 Navigator::abort_landing()
 {
@@ -974,6 +1114,11 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "fencefile")) {
 		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
+
+	} else if (!strcmp(argv[1], "fake_traffic")) {
+		navigator::g_navigator->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
+		navigator::g_navigator->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
+		navigator::g_navigator->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
 
 	} else {
 		usage();

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #ifndef NAVIGATOR_H
@@ -117,6 +118,24 @@ public:
 	 * Publish the geofence result
 	 */
 	void		publish_geofence_result();
+
+	/**
+	 * Generate an artificial traffic indication
+	 *
+	 * @param distance Horizontal distance to this vehicle
+	 * @param direction Direction in earth frame from this vehicle in radians
+	 * @param traffic_heading Travel direction of the traffic in earth frame in radians
+	 * @param altitude_diff Altitude difference, positive is up
+	 * @param hor_velocity Horizontal velocity of traffic, in m/s
+	 * @param ver_velocity Vertical velocity of traffic, in m/s
+	 */
+	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
+				     float hor_velocity, float ver_velocity);
+
+	/**
+	 * Check nearby traffic for potential collisions
+	 */
+	void		check_traffic();
 
 	/**
 	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
@@ -252,6 +271,7 @@ private:
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
 	int		_param_update_sub;		/**< param update subscription */
 	int		_vehicle_command_sub;		/**< vehicle commands (onboard and offboard) */
+	int		_traffic_sub;			/**< other vehicles / transponder data */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
@@ -314,6 +334,7 @@ private:
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt _param_traffic_avoidance_mode;	/**< avoiding other aircraft is enabled */
 
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
