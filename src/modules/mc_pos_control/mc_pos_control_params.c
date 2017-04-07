@@ -484,6 +484,18 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 5.0f);
 
 /**
+ * Maximum jerk in manual controlled mode for braking to zero
+ *
+ * @unit m/s/s/s
+ * @min 2.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 6.6f);
+
+/**
  * Altitude control mode, note mode 1 only tested with LPE
  *
  * @min 0
