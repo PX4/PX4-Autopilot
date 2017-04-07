@@ -72,12 +72,12 @@
 
 /* PLL Configuration.  Either the external clock or crystal frequency is used to
  * select the PRDIV value. Only reference clock frequencies are supported that will
- * produce a KINETIS_MCG_PLL_REF_MIN >= PLLIN <=KINETIS_MCG_PLL_REF_MAX
+ * produce a KINETIS_MCG_PLL_REF_MIN=8MHz >= PLLIN <=KINETIS_MCG_PLL_REF_MAX=16Mhz
  * reference clock to the PLL.
  *
  *   PLL Input frequency:   PLLIN  = REFCLK / PRDIV = 16 MHz  / 2 = 8Mhz MHz
  *   PLL Output frequency:  PLLOUT = PLLIN  * VDIV  = 8 MHz  * 42 = 336 MHz
- *   MCG Frequency:         PLLOUT = 168 Mhz = 336 MHz / KINETIS_MCG_PLL_INTERNAL_DIVBY
+ *   MCG Frequency:         PLLOUT = 168 Mhz = 336 MHz / KINETIS_MCG_PLL_INTERNAL_DIVBY=2
  *
  * PRDIV register value is the divider minus KINETIS_MCG_C5_PRDIV_BASE.
  * VDIV  register value is offset by KINETIS_MCG_C6_VDIV_BASE.
@@ -154,11 +154,19 @@
  *   SDCLK  frequency = (base clock) / (prescaler * divisor)
  *
  * The SDHC module is always configure configured so that the core clock is the base
- * clock.  Possible values for presscaler and divisor are:
+ * clock.  Possible values for prescaler and divisor are:
  *
  *   SDCLKFS: {2, 4, 8, 16, 32, 63, 128, 256}
  *   DVS:     {1..16}
  */
+
+/* SDHC pull-up resistors **********************************************************/
+
+/* There are no external pull-ups on the NXPhlite
+ * So enable them.
+ */
+
+#define BOARD_SDHC_ENABLE_PULLUPS 1
 
 /* Identification mode:  Optimal 400KHz, Actual 168Mhz / (32 * 14) = 375 KHz */
 
@@ -186,6 +194,7 @@
 #  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
 #  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(5)
 #endif
+
 
 /* LED definitions ******************************************************************/
 /* The NXPHlite-v3 has a separate Red, Green and Blue LEDs driven by the K66 as
@@ -240,24 +249,54 @@
  */
 
 /* CAN
+ * Signal Conn      Port Pin   Name
+ * ------- -------- ----- ----- --------
+ * CAN0TX  P8-2(H)  PTB18  97   CAN0_TX
+ * CAN0RX  P8-3(L)  PTB19  98   CAN0_RX
+ * CAN1TX  P19-2(H) PTC16  123  CAN1_TX
+ * CAN1RX  P19-3(L) PTC17  124  CAN1_RX
  *
  */
 #define PIN_CAN0_RX       PIN_CAN0_RX_2
 #define PIN_CAN0_TX       PIN_CAN0_TX_2
+#define PIN_CAN1_RX       PIN_CAN1_RX_2
+#define PIN_CAN1_TX       PIN_CAN1_TX_2
 
 /* 12C
  *
  */
 
-/* I2C0 MPL3115A2 Pressure Sensor */
+/* I2C0
+ *
+ * This device can be pinned out to be either or
 
-#define PIN_I2C0_SCL     PIN_I2C0_SCL_4   /* PTE24 P_SCL */
-#define PIN_I2C0_SDA     PIN_I2C0_SDA_4   /* PTE25 P_SDA */
+ * Bit   Pin Device   Signal Usage                 Conn
+ * ----- --- -------  --------------------------- ------
+ * PTB2   83 I2C0_SCL U_ECH Ultrasonic            P13-3
+ * PTB3   84 I2C0_SDA U_TRI Ultrasonic            P13-2
+ * ----- --- -------  --------------------------- ------
+ *
+ * Bit   Pin Device   Signal Usage                 Conn
+ * ----- --- -------  --------------------------- ------
+ * PTE24  45 I2C0_SCL IIC_SCL NFC Connector, IIC  P2-2
+ * PTE25  46 I2C0_SDA IIC_SDA NFC Connector, IIC  P2-3
+ * ----- --- -------  --------------------------- ------
+ */
 
-/* I2C1 NFC Connector */
+#define PIN_I2C0_SCL     PIN_I2C0_SCL_4   /* PTE24  IIC_SCL */
+#define PIN_I2C0_SDA     PIN_I2C0_SDA_4   /* PTE25  IIC_SDA */
 
-#define PIN_I2C1_SCL     PIN_I2C1_SCL_1   /* PTC10 NFC_SCL P2-2 */
-#define PIN_I2C1_SDA     PIN_I2C1_SDA_1   /* PTC11 NFC_SDA P2-3 */
+/* I2C1
+ *
+ * Bit   Pin Device   Signal         Usage         Conn
+ * ----- --- -------  -------------- ------------- ------
+ * PTC10 115 I2C1_SCL P_SCL, GPS_SCL Pressure, GPS P3-4
+ * PTC11 116 I2C1_SDA P_SDA, GPS_SDA Pressure, GPS P3-5
+ * ----- --- -------  -------------- ------------- ------
+ */
+
+#define PIN_I2C1_SCL     PIN_I2C1_SCL_1   /* PTC10 GPS / Pressure Sensor*/
+#define PIN_I2C1_SDA     PIN_I2C1_SDA_1   /* PTC11 GPS / Pressure Sensor */
 
 
 /* PWM
@@ -266,90 +305,83 @@
 
 /* PWM Channels */
 
-#define GPIO_FTM3_CH0OUT PIN_FTM3_CH0_2  /* PTE5  PWM1  P4-34 */
-#define GPIO_FTM3_CH1OUT PIN_FTM3_CH1_2  /* PTE6  PWM2  P4-31 */
-#define GPIO_FTM3_CH2OUT PIN_FTM3_CH2_2  /* PTE7  PWM3  P4-28 */
-#define GPIO_FTM3_CH3OUT PIN_FTM3_CH3_2  /* PTE8  PWM4  P4-25 */
-#define GPIO_FTM3_CH4OUT PIN_FTM3_CH4_2  /* PTE9  PWM5  P4-22 */
-#define GPIO_FTM3_CH5OUT PIN_FTM3_CH5_2  /* PTE10 PWM6  P4-29 */
-#define GPIO_FTM3_CH6OUT PIN_FTM3_CH6_2  /* PTE11 PWM7  P4-26 */
-#define GPIO_FTM3_CH7OUT PIN_FTM3_CH7_2  /* PTE12 PWM8  P4-13 */
+#define GPIO_FTM0_CH0OUT PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-34 */
+#define GPIO_FTM0_CH3OUT PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-41 */
+#define GPIO_FTM0_CH4OUT PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-35 */
+#define GPIO_FTM0_CH5OUT PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-32 */
+#define GPIO_FTM0_CH6OUT PIN_FTM0_CH6_2  /* PTD6  FMU_CH5 P4-29 */
+#define GPIO_FTM0_CH7OUT PIN_FTM0_CH7_2  /* PTD7  FMU_CH6 P4-26 */
 
-#define GPIO_FTM0_CH4OUT PIN_FTM0_CH4_3  /* PTD4  PWM0  P4-46 */
-#define GPIO_FTM0_CH5OUT PIN_FTM0_CH5_3  /* PTD5  PWM10 P4-43 */
-#define GPIO_FTM0_CH6OUT PIN_FTM0_CH6_2  /* PTD6  PWM11 P4-40 */
-#define GPIO_FTM0_CH7OUT PIN_FTM0_CH7_2  /* PTD7  PWM12 P4-37 */
+#define GPIO_FTM3_CH0OUT PIN_FTM3_CH0_1  /* PTD0  IO_CH1 P4-23 */
+#define GPIO_FTM3_CH1OUT PIN_FTM3_CH1_2  /* PTE6  IO_CH2 P4-20 */
+#define GPIO_FTM3_CH2OUT PIN_FTM3_CH2_2  /* PTE7  IO_CH3 P4-17 */
+#define GPIO_FTM3_CH3OUT PIN_FTM3_CH3_2  /* PTE8  IO_CH4 P4-14 */
+#define GPIO_FTM3_CH4OUT PIN_FTM3_CH4_2  /* PTE9  IO_CH5 P4-11 */
+#define GPIO_FTM3_CH5OUT PIN_FTM3_CH5_2  /* PTE10 IO_CH6 P4-8 */
+#define GPIO_FTM3_CH6OUT PIN_FTM3_CH6_2  /* PTE11 IO_CH7 P4-5 */
+#define GPIO_FTM3_CH7OUT PIN_FTM3_CH7_2  /* PTE12 IO_CH8 P4-2 */
 
-#define GPIO_FTM0_CH3OUT PIN_FTM0_CH3_1  /* PTA6  PWM13 P4-7 */
-#define GPIO_FTM0_CH2OUT PIN_FTM0_CH2_2  /* PTC3  PWM14 P4-10 */
+//todo:This is a Guess on timer utilization
 
-//todo:This is a Guess on timer utilisation
-#define GPIO_FTM3_CH0IN  PIN_FTM3_CH0_2  /* PTE5  PWM1  P4-34 */
-#define GPIO_FTM3_CH1IN  PIN_FTM3_CH1_2  /* PTE6  PWM2  P4-31 */
-#define GPIO_FTM3_CH2IN  PIN_FTM3_CH2_2  /* PTE7  PWM3  P4-28 */
-#define GPIO_FTM3_CH3IN  PIN_FTM3_CH3_2  /* PTE8  PWM4  P4-25 */
-#define GPIO_FTM3_CH4IN  PIN_FTM3_CH4_2  /* PTE9  PWM5  P4-22 */
-#define GPIO_FTM3_CH5IN  PIN_FTM3_CH5_2  /* PTE10 PWM6  P4-29 */
-#define GPIO_FTM3_CH6IN  PIN_FTM3_CH6_2  /* PTE11 PWM7  P4-26 */
-#define GPIO_FTM3_CH7IN  PIN_FTM3_CH7_2  /* PTE12 PWM8  P4-13 */
+#define GPIO_FTM0_CH0IN  PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-34 */
+#define GPIO_FTM0_CH3IN  PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-41 */
+#define GPIO_FTM0_CH4IN  PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-35 */
+#define GPIO_FTM0_CH5IN  PIN_FTM0_CH5_3  /* PTD5  FMU_CH4 P4-32 */
+#define GPIO_FTM0_CH6IN  PIN_FTM0_CH6_2  /* PTD6  FMU_CH5 P4-29 */
+#define GPIO_FTM0_CH7IN  PIN_FTM0_CH7_2  /* PTD7  FMU_CH6 P4-26 */
 
-#define GPIO_FTM0_CH4IN  PIN_FTM0_CH4_3  /* PTD4  PWM0  P4-46 */
-#define GPIO_FTM0_CH5IN  PIN_FTM0_CH5_3  /* PTD5  PWM10 P4-43 */
-#define GPIO_FTM0_CH6IN  PIN_FTM0_CH6_2  /* PTD6  PWM11 P4-40 */
-#define GPIO_FTM0_CH7IN  PIN_FTM0_CH7_2  /* PTD7  PWM12 P4-37 */
+#define GPIO_FTM3_CH0IN  PIN_FTM3_CH0_1  /* PTD0  IO_CH1 P4-23 */
+#define GPIO_FTM3_CH1IN  PIN_FTM3_CH1_2  /* PTE6  IO_CH2 P4-20 */
+#define GPIO_FTM3_CH2IN  PIN_FTM3_CH2_2  /* PTE7  IO_CH3 P4-17 */
+#define GPIO_FTM3_CH3IN  PIN_FTM3_CH3_2  /* PTE8  IO_CH4 P4-14 */
+#define GPIO_FTM3_CH4IN  PIN_FTM3_CH4_2  /* PTE9  IO_CH5 P4-11 */
+#define GPIO_FTM3_CH5IN  PIN_FTM3_CH5_2  /* PTE10 IO_CH6 P4-8 */
+#define GPIO_FTM3_CH6IN  PIN_FTM3_CH6_2  /* PTE11 IO_CH7 P4-5 */
+#define GPIO_FTM3_CH7IN  PIN_FTM3_CH7_2  /* PTE12 IO_CH8 P4-2 */
 
-#define GPIO_FTM0_CH3IN  PIN_FTM0_CH3_1  /* PTA6  PWM13 P4-7 */
-#define GPIO_FTM0_CH2IN  PIN_FTM0_CH2_2  /* PTC3  PWM14 P4-10 */
 
 /* SPI
  *
  */
 
-/* SPI0 SD Card */
+/* SPI0 FRAM */
 
-#define PIN_SPI0_PCS0    PIN_SPI0_PCS0_2  /* PTC4 SPI_CS  SD1-2 */
-#define PIN_SPI0_SCK     PIN_SPI0_SCK_2   /* PTC5 SPI_CLK SD1-5 */
-#define PIN_SPI0_OUT     PIN_SPI0_SOUT_2  /* PTC6 SPI_OUT SD1-3 */
-#define PIN_SPI0_SIN     PIN_SPI0_SIN_2   /* PTC7 SPI_IN  SD1-5 */
+#define PIN_SPI0_PCS0    PIN_SPI0_PCS2_1  /* PTC2 SPI_CS  FRAM_CS   */
+#define PIN_SPI0_SCK     PIN_SPI0_SCK_2   /* PTC5 SPI_CLK FRAM_SCK  */
+#define PIN_SPI0_OUT     PIN_SPI0_SOUT_2  /* PTC6 SPI_OUT FRAM_MOSI */
+#define PIN_SPI0_SIN     PIN_SPI0_SIN_2   /* PTC7 SPI_IN  FRAM_MISO */
 
-/* SPI1 FXOS8700CQ Accelerometer */
+/* SPI1
+ * FXOS8700CQ Accelerometer
+ * FXAS21002CQ Gyroscope
+ */
 
 #define PIN_SPI1_PCS0    PIN_SPI1_PCS0_1  /* PTB10 A_CS   */
+#define PIN_SPI1_PCS1    PIN_SPI1_PCS1_1  /* PTB9  GM_CS  */
 #define PIN_SPI1_SCK     PIN_SPI1_SCK_1   /* PTB11 A_SCLK */
 #define PIN_SPI1_OUT     PIN_SPI1_SOUT_1  /* PTB16 A_MOSI */
 #define PIN_SPI1_SIN     PIN_SPI1_SIN_1   /* PTB17 A_MISO */
 
-/* SPI2 FXAS21002CQ Gyroscope */
+/* SPI2
+ * Bit   Pin Device   Signal     Conn
+ * ----- --- -------  --------- ------
+ * PTB20 99  SPI2_PCS0 SPI2_CS  P18-5
+ * PTB21 100 SPI2_SCK  SPI2_CLK P18-2
+ * PTB22 101 SPI2_SOUT SPI2_OUT P18-3
+ * PTB23 102 SPI2_SIN SPI2_IN   P18-4
+ *
+ */
 
-#define PIN_SPI2_PCS0    PIN_SPI2_PCS0_1  /* PTB20 GM_CS   */
-#define PIN_SPI2_SCK     PIN_SPI2_SCK_1   /* PTB21 GM_SCLK */
-#define PIN_SPI2_OUT     PIN_SPI2_SOUT_1  /* PTB22 GM_MOSI */
-#define PIN_SPI2_SIN     PIN_SPI2_SIN_1   /* PTB23 GM_MISO */
+#define PIN_SPI2_PCS0    PIN_SPI2_PCS0_1  /* PTB20 SPI2_CS  */
+#define PIN_SPI2_SCK     PIN_SPI2_SCK_1   /* PTB21 SPI2_CLK */
+#define PIN_SPI2_OUT     PIN_SPI2_SOUT_1  /* PTB22 SPI2_OUT */
+#define PIN_SPI2_SIN     PIN_SPI2_SIN_1   /* PTB23 SPI2_IN  */
 
 /* UART
  *
- * NuttX Will use UART4 as the Console
- */
-
-#define PIN_UART0_RX      PIN_UART0_RX_4   /* PTD6 P4-40 PWM11 */
-#define PIN_UART0_TX      PIN_UART0_TX_4   /* PTD7 P4-37 PWM12 */
-
-#define PIN_UART1_RX      PIN_UART1_RX_2  /* PTE1 UART P14-3 */
-#define PIN_UART1_TX      PIN_UART1_TX_2  /* PTE0 UART P14-2 */
-
-/* No Alternative pins for UART2
- * PD2 BL P1-5
- * PD3 BL P1-4
- */
-
-#define PIN_UART3_RX      PIN_UART3_RX_2 /* PTC16 GPS P3-3 */
-#define PIN_UART3_TX      PIN_UART3_TX_2 /* PTC17 GPS P3-2 */
-
-#define PIN_UART4_RX      PIN_UART4_RX_1  /* PTC14 UART P10-3 */
-#define PIN_UART4_TX      PIN_UART4_TX_1  /* PTC15 UART P10-2 */
-
-/* LPUART
+ * NuttX Will use LPUART0 as the Console
  *
+ * LPUAR0
  *  P16 Pin     Name        K66   Name
  *  -------- ------------ ------ ---------
  *      2    UART_TX       PTD9 LPUART0_TX
@@ -360,8 +392,106 @@
 #define PIN_LPUART0_RX      PIN_LPUART0_RX_3
 #define PIN_LPUART0_TX      PIN_LPUART0_TX_3
 
-/* UART5 is not connected on V1
+/* UART0
+ *
+ *  P7   Pin     Name        K66 Name
+ *  -------- ------------ ------- ---------
+ *      2    IR_Transmitter PTA2  UART0_TX
+ *      4    IR_Receiver    PTA1  UART0_RX
+ *  -------- ------------ ------- ---------
  */
+
+#define PIN_UART0_RX      PIN_UART0_RX_1
+#define PIN_UART0_TX      PIN_UART0_TX_1
+
+/* UART1
+ *
+ *     Pin        Name           K66   Name
+ *  ------------- -------------- ----- ---------
+ *  P14-3,P15-2   FrSky_IN_RC_IN PTC3  UART1_RX
+ *  P14-2         FrSky_OUT      PTC4  UART1_TX
+ *  ------------- ------------ ----- ---------
+ */
+
+#define PIN_UART1_RX      PIN_UART1_RX_1
+#define PIN_UART1_TX      PIN_UART1_TX_1
+
+/* UART2
+ * No Alternative pins for UART2
+ *
+ *  P7   Pin     Name        K66 Name
+ *  -------- ------------ ------- ---------
+ *      2    GPS_TX       PTD3  UART2_TX
+ *      3    GPS_RX       PTD2  UART2_RX
+ *  -------- ------------ ------- ---------
+ */
+
+/* UART3
+ *
+ *  P10  Pin   Name        K66 Name
+ *  -------- ------------ ------- ---------
+ *      2    UART4_TX     PTC15  UART4_TX
+ *      3    UART4_RX     PTC14  UART4_RX
+ *      4    UART4_CTS    PTC13  UART4_CTS
+ *      5    UART4_RTS    PTC12  UART4_RTS
+ *  -------- ------------ ------- ---------
+ */
+
+#define PIN_UART4_RX      PIN_UART4_RX_1
+#define PIN_UART4_TX      PIN_UART4_TX_1
+#define PIN_UART4_RTS     PIN_UART4_RTS_1
+#define PIN_UART4_CTS     PIN_UART4_CTS_1
+
+/*
+ * Ethernet TJA1100 OPEN Alliance BroadR-Reach PHY for Automotive Ethernet
+ * -----------------------------------------------------------------------
+ *
+ *  -------------- ----------------- -----------------------------------------
+ * TJA1100        Board Signal(s)   K66F Pin
+ * Pin Signal                       Function               pinmux Name
+ * --- ---------- ----------------- ------------------------------------------
+ * 1   MDC        RMII0_MDC         PTB1/RMII0_MDC         PIN_RMII0_MDC
+ * 2   INT        RMII0_INT_B,      PTA27                  PTA27
+ * 3   nRST       ENET_RST          PTA28                  PTA28
+ * 4   VDDA(1V8)  Cap to GND         ---                    ---
+ * 5   XO         25Mhz OSC          ---                    ---
+ * 6   XI         25Mhz OSC          ---                    ---
+ * 7   VDDA(3V3)  E_3V3              ---                    ---
+ * 8   LED (LED_ENABLE = 1)  WAKE (LED_ENABLE = 0)          ---
+ * 8   VBAT       E_3V3              ---                    ---
+ * 10  nINH       ENET_INH          PTA8                   PTA8
+ * 11  VDDA(TX)   E_3V3              ---                    ---
+ * 12  TRX_P      ENET_P             ---                    ---
+ * 13  TRX_M      ENET_P             ---                    ---
+ * 14  VDDD(3V3)  E_3V3              ---                    ---
+ * 15  GND         ---               ---                    ---
+ * 16  VDDD(1V8)  Cap to GND         ---                    ---
+ * 17  RXER       RMII0_RXER        PTA5/RMII0_RXER        PIN_RMII0_RXER
+ * 18  CRS_DIV    RMII_CRSDV        PTA14/RMII0_CRS_DV     PIN_RMII0_CRS_DV
+ * 19  TXEN       RMII0_TXEN        PTA15/RMII0_TXEN       PIN_RMII0_TXEN
+ * 20  GND         ---               ---                    ---
+ * 21  CONFIG1    ENET_CON1    THIS PIN IS A NO CONNECT
+ * 22  CONFIG0    ENET_CONFIG0      PTA24                  PTA24
+ * 23  RXD1       RMII0_RXD_1       PTA12/RMII0_RXD1       PIN_RMII0_RXD1
+ * 24  RXD0       RMII0_RXD_0       PTA13/RMII0_RXD0       PIN_RMII0_RXD0
+ * 25  REF_CLK    E_REF_CLK         PTE26/ENET_1588_CLKIN  PIN_ENET_1588_CLKIN
+ * 26  GND2        ---               ---                    ---
+ * 27  VDD(IO)    E_3V3              ---                    ---
+ * 28  TXC         ---               ---                    ---
+ * 29  TXEN       RMII_TXEN         PTA15/RMII0_TXEN       PIN_RMII0_TXEN
+ * 30  TXD3
+ * 31  TXD2
+ * 32  TXD1       RMII0_TXD_1       PTA17/RMII0_TXD1       PIN_RMII0_TXD1
+ * 33  TXD0       RMII0_TXD_0       PTA16/RMII0_TXD0       PIN_RMII0_TXD0
+ * 34  TXER
+ * 35  EN         ENET_EN           PTA29                  PTA29
+ * 36  MDIO       RMII0_MDIO        PTB0/RMII0_MDIO        PIN_RMII0_MDIO
+ * --- ---------- ----------------- ------------------------------------
+ *
+ */
+
+#define PIN_RMII0_MDIO  PIN_RMII0_MDIO_1
+#define PIN_RMII0_MDC   PIN_RMII0_MDC_1
 
 /************************************************************************************
  * Public Data

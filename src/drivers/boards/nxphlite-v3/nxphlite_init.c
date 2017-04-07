@@ -62,12 +62,14 @@
 #include <nuttx/analog/adc.h>
 
 #include <kinetis.h>
+#include <chip/kinetis_uart.h>
 #include "board_config.h"
 
+#include "up_arch.h"
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -121,6 +123,60 @@ __END_DECLS
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/************************************************************************************
+ * Name: board_read_VBUS_state
+ *
+ * Description:
+ *   All boards must provide a way to read the state of VBUS, this my be simple
+ *   digital input on a GPIO. Or something more complicated like a Analong input
+ *   or reading a bit from a USB controller register.
+ *
+ * Returns -  0 if connected.
+ *
+ ************************************************************************************/
+
+int board_read_VBUS_state(void)
+{
+	// read  *         36   ADC0_SE21  USB_VBUS_VALID
+	return 0;
+}
+
+/************************************************************************************
+ * Name: board_rc_input
+ *
+ * Description:
+ *   All boards my optionally provide this API to invert the Serial RC input.
+ *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
+ *   and external XOR controlled by a GPIO
+ *
+ ************************************************************************************/
+
+__EXPORT void board_rc_input(bool invert_on)
+{
+
+	irqstate_t irqstate = px4_enter_critical_section();
+
+	uint32_t s2 =  getreg32(KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
+	uint32_t c3 =  getreg32(KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+
+	/* {R|T}XINV bit fields can written any time */
+
+	if (invert_on) {
+		s2 |= (UART_S2_RXINV);
+		c3 |= (UART_C3_TXINV);
+
+	} else {
+		s2 &= ~(UART_S2_RXINV);
+		c3 &= ~(UART_C3_TXINV);
+	}
+
+	putreg32(s2, KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
+	putreg32(c3, KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+
+	leave_critical_section(irqstate);
+}
+
 /************************************************************************************
  * Name: board_peripheral_reset
  *
@@ -190,7 +246,32 @@ kinetis_boardinitialize(void)
 	kinetis_pinconfig(GPIO_GPIO12_OUTPUT);
 	kinetis_pinconfig(GPIO_GPIO13_OUTPUT);
 
+	/* Disable Phy for now */
+
+	kinetis_pinconfig(GPIO_E_RST);
+	kinetis_pinconfig(GPIO_E_EN);
+	kinetis_pinconfig(GPIO_E_INH);
+	kinetis_pinconfig(GPIO_ENET_CONFIG0);
+
+	kinetis_pinconfig(GPIO_CAN0_STB);
+	kinetis_pinconfig(GPIO_CAN1_STB);
+
+	kinetis_pinconfig(GPIO_ECH);
+	kinetis_pinconfig(GPIO_TRI);
+
+	kinetis_pinconfig(GPIO_LED_SAFETY);
+	kinetis_pinconfig(GPIO_BTN_SAFETY);
+
+	kinetis_pinconfig(GPIO_NFC_IO);
+	kinetis_pinconfig(GPIO_SENSOR_P_EN);
+
+	kinetis_pinconfig(GPIO_LED_D9);
+	kinetis_pinconfig(GPIO_LED_D10);
+
+
+
 	/* configure SPI interfaces */
+
 	nxphlite_spidev_initialize();
 }
 
@@ -281,6 +362,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
+
+	param_init();
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -451,10 +534,26 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
+	int ret = nxphlite_sdhc_initialize();
+
+	if (ret != OK) {
+		board_autoled_on(LED_RED);
+		return ret;
+	}
+
+#ifdef HAVE_AUTOMOUNTER
+	/* Initialize the auto-mounter */
+
+	nxphlite_automount_initialize();
+#endif
+
+
+	nxphlite_usbinitialize();
+
 	/* Configure SPI-based devices */
 
 #ifdef CONFIG_SPI
-	int ret = nxphlite_spi_bus_initialize();
+	ret = nxphlite_spi_bus_initialize();
 
 	if (ret != OK) {
 		board_autoled_on(LED_RED);
@@ -463,17 +562,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-#ifdef KINETIS_SDHC
-	ret = nxphlite_sdhc_initialize();
-
-	if (ret != OK) {
-		board_autoled_on(LED_RED);
-		return ret;
-	}
-
-#endif
-
-	nxphlite_usbinitialize();
 
 	return OK;
 }
