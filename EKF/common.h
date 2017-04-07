@@ -172,7 +172,7 @@ struct extVisionSample {
 // bad accelerometer detection and mitigation
 #define BADACC_PROBATION	10E6	// Number of usec that accel data declared bad must continuously pass checks to be declared good
 #define BADACC_HGT_RESET	1E6	// Number of usec that accel data must continuously fail checks to trigger a height reset
-#define BADACC_BIAS_PNOISE_MULT 2.0f	// The delta velocity process noise is multiplied by this value when accel data is declared bad
+#define BADACC_BIAS_PNOISE	4.9f	// The delta velocity process noise is set to this when accel data is declared bad (m/s**2)
 
 struct parameters {
 	// measurement source control
