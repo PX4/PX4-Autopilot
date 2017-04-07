@@ -35,6 +35,7 @@
 #include "logger.h"
 #include "messages.h"
 
+#include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
@@ -1135,15 +1136,15 @@ int Logger::create_log_dir(tm *tt)
 		}
 
 	} else {
-		uint16_t dir_number = 1; // start with dir sess001
+		uint16_t dir_number = _sess_dir_index;
 
 		/* look for the next dir that does not exist */
-		while (!_has_log_dir && dir_number <= MAX_NO_LOGFOLDER) {
+		while (!_has_log_dir) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			int n = snprintf(_log_dir, sizeof(_log_dir), "%s/sess%03u", LOG_ROOT, dir_number);
 
 			if (n >= sizeof(_log_dir)) {
-				PX4_ERR("log path too long");
+				PX4_ERR("log path too long (%i)", n);
 				return -1;
 			}
 
@@ -1160,12 +1161,6 @@ int Logger::create_log_dir(tm *tt)
 
 			/* dir exists already */
 			dir_number++;
-		}
-
-		if (dir_number >= MAX_NO_LOGFOLDER) {
-			/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-			PX4_ERR("All %d possible dirs exist already", MAX_NO_LOGFOLDER);
-			return -1;
 		}
 
 		_has_log_dir = true;
@@ -1773,12 +1768,110 @@ void Logger::write_changed_parameters()
 
 int Logger::check_free_space()
 {
-	/* use statfs to determine the number of blocks left */
 	struct statfs statfs_buf;
 
-	if (statfs(LOG_ROOT, &statfs_buf) != 0) {
-		return PX4_ERROR;
-	}
+	/* remove old logs if the free space falls below a threshold */
+	do {
+		if (statfs(LOG_ROOT, &statfs_buf) != 0) {
+			return PX4_ERROR;
+		}
+
+		DIR *dp = opendir(LOG_ROOT);
+
+		if (dp == nullptr) {
+			break; // ignore if we cannot access the log directory
+		}
+
+		struct dirent *result = nullptr;
+
+		int num_sess = 0, num_dates = 0;
+
+		// There are 2 directory naming schemes: sess<i> or <year>-<month>-<day>.
+		// For both we find the oldest and then remove the one which has more directories.
+		int year_min = 10000, month_min = 99, day_min = 99, sess_idx_min = 99999999, sess_idx_max = 0;
+
+		while ((result = readdir(dp))) {
+			int year, month, day, sess_idx;
+
+			if (sscanf(result->d_name, "sess%d", &sess_idx) == 1) {
+				++num_sess;
+
+				if (sess_idx > sess_idx_max) {
+					sess_idx_max = sess_idx;
+				}
+
+				if (sess_idx < sess_idx_min) {
+					sess_idx_min = sess_idx;
+				}
+
+			} else if (sscanf(result->d_name, "%d-%d-%d", &year, &month, &day) == 3) {
+				++num_dates;
+
+				if (year < year_min) {
+					year_min = year;
+					month_min = month;
+					day_min = day;
+
+				} else if (year == year_min) {
+					if (month < month_min) {
+						month_min = month;
+						day_min = day;
+
+					} else if (month == month_min) {
+						if (day < day_min) {
+							day_min = day;
+						}
+					}
+				}
+			}
+		}
+
+		closedir(dp);
+
+		_sess_dir_index = sess_idx_max + 1;
+
+
+		uint64_t min_free_bytes = 300ULL * 1024ULL * 1024ULL;
+		uint64_t total_bytes = statfs_buf.f_blocks * statfs_buf.f_bsize / 10;
+
+		if (total_bytes / 10 < min_free_bytes) { // reduce the minimum if it's larger than 10% of the disk size
+			min_free_bytes = total_bytes / 10;
+		}
+
+		if (statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
+			break; // enough free space
+		}
+
+		if (num_sess == 0 && num_dates == 0) {
+			break; // nothing to delete
+		}
+
+		char directory_to_delete[LOG_DIR_LEN];
+		int n;
+
+		if (num_sess >= num_dates) {
+			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/sess%03u", LOG_ROOT, sess_idx_min);
+
+		} else {
+			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/%04u-%02u-%02u", LOG_ROOT, year_min, month_min,
+				     day_min);
+		}
+
+		if (n >= sizeof(directory_to_delete)) {
+			PX4_ERR("log path too long (%i)", n);
+			break;
+		}
+
+		PX4_WARN("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
+			 (unsigned int)(statfs_buf.f_bavail / 1024U * statfs_buf.f_bsize / 1024U));
+
+		if (remove_directory(directory_to_delete)) {
+			PX4_ERR("Failed to delete directory");
+			break;
+		}
+
+	} while (true);
+
 
 	/* use a threshold of 50 MiB */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
@@ -1789,6 +1882,58 @@ int Logger::check_free_space()
 	}
 
 	return PX4_OK;
+}
+
+int Logger::remove_directory(const char *dir)
+{
+	DIR *d = opendir(dir);
+	size_t dir_len = strlen(dir);
+	struct dirent *p;
+	int ret = 0;
+
+	if (!d) {
+		return -1;
+	}
+
+	while (!ret && (p = readdir(d))) {
+		int ret2 = -1;
+		char *buf;
+		size_t len;
+
+		if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+			continue;
+		}
+
+		len = dir_len + strlen(p->d_name) + 2;
+		buf = new char[len];
+
+		if (buf) {
+			struct stat statbuf;
+
+			snprintf(buf, len, "%s/%s", dir, p->d_name);
+
+			if (!stat(buf, &statbuf)) {
+				if (S_ISDIR(statbuf.st_mode)) {
+					ret2 = remove_directory(buf);
+
+				} else {
+					ret2 = unlink(buf);
+				}
+			}
+
+			delete[] buf;
+		}
+
+		ret = ret2;
+	}
+
+	closedir(d);
+
+	if (!ret) {
+		ret = rmdir(dir);
+	}
+
+	return ret;
 }
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
