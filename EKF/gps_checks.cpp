@@ -135,18 +135,22 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	double lat = gps->lat * 1.0e-7;
 	double lon = gps->lon * 1.0e-7;
 
-	if (_pos_ref.init_done) {
-		map_projection_project(&_pos_ref, lat, lon, &delta_posN, &delta_PosE);
-
+	// calculate position movement since last GPS fix
+	if (_gps_pos_prev.timestamp > 0) {
+		map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_PosE);
 	} else {
-		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
-		_gps_alt_ref = 1e-3f * (float)gps->alt;
+		// no previous position has been set
+		map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+		_gps_alt_prev = 1e-3f * (float)gps->alt;
 	}
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
 	const float filt_time_const = 10.0f;
-	float dt = fminf(fmaxf(float(_time_last_imu - _last_gps_origin_time_us) * 1e-6f, 0.001f), filt_time_const);
+	float dt = fminf(fmaxf(float(_time_last_imu - _gps_pos_prev.timestamp) * 1e-6f, 0.001f), filt_time_const);
 	float filter_coef = dt / filt_time_const;
+
+	// save GPS fix for next time
+	map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
 
 	// Calculate the horizontal drift velocity components and limit to 10x the threshold
 	float vel_limit = 10.0f * _params.req_hdrift;
@@ -169,10 +173,9 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// Calculate the vertical drift velocity and limit to 10x the threshold
 	vel_limit = 10.0f * _params.req_vdrift;
-	float velD = fminf(fmaxf((_gps_alt_ref - 1e-3f * (float)gps->alt) / dt, -vel_limit), vel_limit);
-
-	// Save the current height as the reference for next time
-	_gps_alt_ref = 1e-3f * (float)gps->alt;
+	float gps_alt_m = 1e-3f * (float)gps->alt;
+	float velD = math::constrain(((_gps_alt_prev - gps_alt_m) / dt), -vel_limit, vel_limit);
+	_gps_alt_prev = gps_alt_m;
 
 	// Apply a low pass filter to the vertical velocity
 	_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);

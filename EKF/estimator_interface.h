@@ -328,7 +328,9 @@ protected:
 	bool _gps_speed_valid;
 	float _gps_origin_eph; // horizontal position uncertainty of the GPS origin
 	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
-	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians)
+	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
+	struct map_projection_reference_s _gps_pos_prev;    // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
+	float _gps_alt_prev;	// height from the previous GPS message (m)
 
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio;          // yaw innovation consistency check ratio

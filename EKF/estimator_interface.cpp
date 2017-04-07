@@ -67,6 +67,8 @@ EstimatorInterface::EstimatorInterface():
 	_gps_origin_eph(0.0f),
 	_gps_origin_epv(0.0f),
 	_pos_ref{},
+	_gps_pos_prev{},
+	_gps_alt_prev(0.0f),
 	_yaw_test_ratio(0.0f),
 	_mag_test_ratio{},
 	_vel_pos_test_ratio{},
