@@ -489,10 +489,10 @@ SimpleMixer::get_parameter(mixer_param_s *param)
 
 	switch (param_index) {
 	case 0:
-		snprintf(param->name, 16, "IN_GRP:%1u_IDX:%.2u",
-			 _pinfo->controls[param->mix_sub_index - 1].control_group,
-			 _pinfo->controls[param->mix_sub_index - 1].control_index);
-		param->array_size = 0;
+		strncpy(param->name, "INPUT", 16);
+		param->values[0] = _pinfo->controls[param->mix_sub_index - 1].control_group,
+				   param->values[1] = _pinfo->controls[param->mix_sub_index - 1].control_index;
+		param->array_size = 2;
 		param->flags = 1;
 		return 0;
 		break;
