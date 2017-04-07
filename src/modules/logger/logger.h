@@ -215,7 +215,7 @@ private:
 
 	void write_changed_parameters();
 
-	bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe);
+	inline bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe);
 
 	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
