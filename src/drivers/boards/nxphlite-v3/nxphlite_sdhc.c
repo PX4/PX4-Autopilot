@@ -40,8 +40,8 @@
  *   ------------ ------------- --------
  *    SD Card Slot Board Signal  K66 Pin
  *    ------------ ------------- --------
- *    DAT0         SDHC0_D0      PTE0
- *    DAT1         SDHC0_D1      PTE1
+ *    DAT0         SDHC0_D0      PTE1
+ *    DAT1         SDHC0_D1      PTE0
  *    DAT2         SDHC0_D2      PTE5
  *    CD/DAT3      SDHC0_D3      PTE4
  *    CMD          SDHC0_CMD     PTE3
@@ -71,7 +71,7 @@
 
 #include "board_config.h"
 
-#ifdef KINETIS_SDHC
+#ifdef CONFIG_KINETIS_SDHC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -103,7 +103,7 @@ static struct nxphlite_sdhc_state_s g_sdhc;
  * Name: nxphlite_mediachange
  ****************************************************************************/
 
-static void nxphlite_mediachange(void)
+static void nxphlite_mediachange(struct nxphlite_sdhc_state_s *sdhc)
 {
 	bool inserted;
 
@@ -116,13 +116,13 @@ static void nxphlite_mediachange(void)
 
 	/* Has the pin changed state? */
 
-	if (inserted != g_sdhc.inserted) {
-		mcinfo("Media change: %d->%d\n",  g_sdhc.inserted, inserted);
+	if (inserted != sdhc->inserted) {
+		mcinfo("Media change: %d->%d\n",  sdhc->inserted, inserted);
 
 		/* Yes.. perform the appropriate action (this might need some debounce). */
 
-		g_sdhc.inserted = inserted;
-		sdhc_mediachange(g_sdhc.sdhc, inserted);
+		sdhc->inserted = inserted;
+		sdhc_mediachange(sdhc->sdhc, inserted);
 
 #ifdef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
 		/* Let the automounter know about the insertion event */
@@ -136,11 +136,11 @@ static void nxphlite_mediachange(void)
  * Name: nxphlite_cdinterrupt
  ****************************************************************************/
 
-static int nxphlite_cdinterrupt(int irq, FAR void *context)
+static int nxphlite_cdinterrupt(int irq, FAR void *context, FAR void *args)
 {
 	/* All of the work is done by nxphlite_mediachange() */
 
-	nxphlite_mediachange();
+	nxphlite_mediachange((struct nxphlite_sdhc_state_s *) args);
 	return OK;
 }
 
@@ -159,34 +159,34 @@ static int nxphlite_cdinterrupt(int irq, FAR void *context)
 int nxphlite_sdhc_initialize(void)
 {
 	int ret;
-
+	struct nxphlite_sdhc_state_s   *sdhc = &g_sdhc;
 	/* Configure GPIO pins */
 
 	kinetis_pinconfig(GPIO_SD_CARDDETECT);
 
 	/* Attached the card detect interrupt (but don't enable it yet) */
 
-	kinetis_pinirqattach(GPIO_SD_CARDDETECT, nxphlite_cdinterrupt);
+	kinetis_pinirqattach(GPIO_SD_CARDDETECT, nxphlite_cdinterrupt, sdhc);
 
 	/* Configure the write protect GPIO -- None */
 
 	/* Mount the SDHC-based MMC/SD block driver */
 	/* First, get an instance of the SDHC interface */
 
-	mcinfo("Initializing SDHC slot %d\n", MMCSD_SLOTNO);
+	mcinfo("Initializing SDHC slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 
-	g_sdhc.sdhc = sdhc_initialize(MMCSD_SLOTNO);
+	sdhc->sdhc = sdhc_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
-	if (!g_sdhc.sdhc) {
-		mcerr("ERROR: Failed to initialize SDHC slot %d\n", MMCSD_SLOTNO);
+	if (!sdhc->sdhc) {
+		mcerr("ERROR: Failed to initialize SDHC slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
 	/* Now bind the SDHC interface to the MMC/SD driver */
 
-	mcinfo("Bind SDHC to the MMC/SD driver, minor=%d\n", MMSCD_MINOR);
+	mcinfo("Bind SDHC to the MMC/SD driver, minor=%d\n", CONFIG_NSH_MMCSDMINOR);
 
-	ret = mmcsd_slotinitialize(MMSCD_MINOR, g_sdhc.sdhc);
+	ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdhc->sdhc);
 
 	if (ret != OK) {
 		syslog(LOG_ERR, "ERROR: Failed to bind SDHC to the MMC/SD driver: %d\n", ret);
@@ -197,7 +197,7 @@ int nxphlite_sdhc_initialize(void)
 
 	/* Handle the initial card state */
 
-	nxphlite_mediachange();
+	nxphlite_mediachange(sdhc);
 
 	/* Enable CD interrupts to handle subsequent media changes */
 
