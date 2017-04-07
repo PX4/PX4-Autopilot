@@ -74,6 +74,7 @@ endforeach()
 
 set(LINKER_FLAGS "-Wl,-gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS ${LINKER_FLAGS})
+add_definitions(-DARM_CLANG_STACK_SIZE)
 
 # where is the target environment
 set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))

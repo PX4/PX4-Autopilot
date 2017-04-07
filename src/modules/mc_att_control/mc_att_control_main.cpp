@@ -1368,7 +1368,11 @@ MulticopterAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("mc_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,
+#ifdef ARM_CLANG_STACK_SIZE
 					   2200,
+#else
+					   1700,
+#endif
 					   (px4_main_t)&MulticopterAttitudeControl::task_main_trampoline,
 					   nullptr);
 

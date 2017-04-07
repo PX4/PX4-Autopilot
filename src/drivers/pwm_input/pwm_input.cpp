@@ -240,8 +240,9 @@ public:
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void print_info(void);
 	void hard_reset();
-	void _turn_on();
-	void _freeze_test();
+	void turn_on();
+	void freeze_test();
+	void freeze_test_trampoline(void *arg);
 
 private:
 	uint32_t _error_count;
@@ -287,18 +288,17 @@ PWMIN::~PWMIN()
 	}
 }
 
+static void freeze_trampoline_test(void *args)
+{
+	((PWMIN *)args)->freeze_test();
+}
+
 /*
  * initialise the driver. This doesn't actually start the timer (that
  * is done on open). We don't start the timer to allow for this driver
  * to be started in init scripts when the user may be using the input
  * pin as PWM output
  */
-
-static void _freeze_test()
-{
-	g_dev->_freeze_test();
-}
-
 int
 PWMIN::init()
 {
@@ -313,7 +313,7 @@ PWMIN::init()
 	}
 
 	/* Schedule freeze check to invoke periodically */
-	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, (hrt_callout)(::_freeze_test), this);
+	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, (hrt_callout)(::freeze_trampoline_test), this);
 
 	return OK;
 }
@@ -384,7 +384,7 @@ void PWMIN::_timer_init(void)
 
 // XXX refactor this out of this driver
 void
-PWMIN::_freeze_test()
+PWMIN::freeze_test()
 {
 	/* reset if last poll time was way back and a read was recently requested */
 	if (hrt_elapsed_time(&_last_poll_time) > TIMEOUT_POLL && hrt_elapsed_time(&_last_read_time) < TIMEOUT_READ) {
@@ -394,7 +394,7 @@ PWMIN::_freeze_test()
 
 // XXX refactor this out of this driver
 void
-PWMIN::_turn_on()
+PWMIN::turn_on()
 {
 	px4_arch_gpiowrite(GPIO_VDD_RANGEFINDER_EN, 1);
 }
@@ -407,16 +407,16 @@ PWMIN::_turn_off()
 }
 
 // XXX refactor this out of this driver
-static void _turn_on()
+static void turn_on(void *args)
 {
-	g_dev->_turn_on();
+	((PWMIN *) args)->turn_on();
 }
 
 void
 PWMIN::hard_reset()
 {
 	_turn_off();
-	hrt_call_after(&_hard_reset_call, 9000, (hrt_callout)(::_turn_on), this);
+	hrt_call_after(&_hard_reset_call, 9000, (hrt_callout)(::turn_on), this);
 }
 
 /*

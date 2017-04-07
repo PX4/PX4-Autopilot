@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-This converts a binary imagge to an object file
+This finds the appropriate library paths for cross-compiling using GNU Toolchain + Clang.
 """
 from __future__ import print_function
 import subprocess
