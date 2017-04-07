@@ -268,21 +268,23 @@ function(px4_nuttx_add_export)
 	add_custom_target(nuttx_copy_${CONFIG} DEPENDS ${PX4_BINARY_DIR}/nuttx_copy_${CONFIG}.stamp)
 
 	# patch
+    unset (last_patch )
 	add_custom_target(nuttx_patch_${CONFIG})
 	foreach(patch ${nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
-		message(STATUS "${CONFIG} NuttX patch: nuttx-patches/${patch_file_name}")
 		string(REPLACE "/" "_" patch_name "nuttx_patch_${patch_file_name}-${CONFIG}")
 		set(patch_stamp ${nuttx_src}/${patch_name}.stamp)
 
 		add_custom_command(OUTPUT ${patch_stamp}
 			COMMAND ${PATCH} -d ${nuttx_src} -s -p1 -N < ${patch}
 			COMMAND ${TOUCH} ${patch_stamp}
-			DEPENDS ${DEPENDS} nuttx_copy_${CONFIG} ${patch}
-			COMMENT "Applying ${patch}")
+			DEPENDS ${last_patch} ${DEPENDS} nuttx_copy_${CONFIG} ${patch}
+			USES_TERMINAL
+			COMMENT "${CONFIG} Applying NuttX patch: nuttx-patches/${patch_file_name}")
 
 		add_custom_target(${patch_name} DEPENDS ${patch_stamp})
 		add_dependencies(nuttx_patch_${CONFIG} ${patch_name})
+        set (last_patch ${patch_name})
 	endforeach()
 
 	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
