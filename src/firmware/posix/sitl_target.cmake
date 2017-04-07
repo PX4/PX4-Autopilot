@@ -43,6 +43,12 @@ px4_add_sitl_app(APP_NAME px4
 set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
 file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
+# add a symlink to the logs dir to make it easier to find them
+add_custom_target(logs_symlink ALL
+                  COMMAND ${CMAKE_COMMAND} -E create_symlink tmp/rootfs/fs/microsd/log logs
+				  WORKING_DIRECTORY ${PX4_BINARY_DIR}
+				  )
+
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
