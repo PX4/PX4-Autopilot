@@ -254,6 +254,8 @@ ADC::init()
 			DEVICE_LOG("sample timeout");
 			return -1;
 		}
+
+		break;
 	}
 
 
