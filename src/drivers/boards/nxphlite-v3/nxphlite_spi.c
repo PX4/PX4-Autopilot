@@ -71,6 +71,11 @@
 #  endif
 #endif
 
+/* Define CS GPIO array */
+static const uint32_t spi0selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
+static const uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;
+static const uint32_t spi2selects_gpio[] = PX4_EXTERNAL_BUS_CS_GPIO;
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -90,19 +95,29 @@ __EXPORT void board_spi_reset(int ms)
 
 void nxphlite_spidev_initialize(void)
 {
-	kinetis_pinconfig(GPIO_SPI_CS_SDCARD);
-	kinetis_pinconfig(GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG);
-	kinetis_pinconfig(GPIO_SPI_CS_FXAS21002CQ_GYRO);
 
-	kinetis_pinconfig(GPIO_GM_RST);
+	kinetis_pinconfig(GPIO_GM_nRST);
 	kinetis_pinconfig(GPIO_A_RST);
-
-	kinetis_pinconfig(GPIO_EXTI_GYRO_INT1);
-	kinetis_pinconfig(GPIO_EXTI_GYRO_INT2);
-	kinetis_pinconfig(GPIO_EXTI_ACCEL_MAG_INT1);
-	kinetis_pinconfig(GPIO_EXTI_ACCEL_MAG_INT2);
 	kinetis_pinconfig(GPIO_EXTI_BARO_INT1);
-	kinetis_pinconfig(GPIO_EXTI_BARO_INT2);
+	kinetis_pinconfig(GPIO_P_INT);
+
+	for (int cs = 0; cs < arraySize(spi0selects_gpio); cs++) {
+		if (spi0selects_gpio[cs] != 0) {
+			kinetis_pinconfig(spi0selects_gpio[cs]);
+		}
+	}
+
+	for (int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
+		if (spi1selects_gpio[cs] != 0) {
+			kinetis_pinconfig(spi1selects_gpio[cs]);
+		}
+	}
+
+	for (int cs = 0; cs < arraySize(spi2selects_gpio); cs++) {
+		if (spi2selects_gpio[cs] != 0) {
+			kinetis_pinconfig(spi2selects_gpio[cs]);
+		}
+	}
 }
 
 /************************************************************************************
@@ -112,50 +127,72 @@ void nxphlite_spidev_initialize(void)
  *   Called to configure SPI chip select GPIO pins for the NXPHLITEV1 board.
  *
  ************************************************************************************/
-static struct spi_dev_s *spi_accel_mag;
-static struct spi_dev_s *spi_baro;
+static struct spi_dev_s *spi_sensors;
+static struct spi_dev_s *spi_memory;
+static struct spi_dev_s *spi_ext;
 
 __EXPORT int nxphlite_spi_bus_initialize(void)
 {
 	/* Configure SPI-based devices */
 
-	spi_accel_mag = kinetis_spibus_initialize(PX4_SPI_BUS_ACCEL_MAG);
+	spi_sensors = kinetis_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
-	if (!spi_accel_mag) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_ACCEL_MAG);
+	if (!spi_sensors) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		return -ENODEV;
 	}
 
-	/* Default PX4_SPI_BUS_ACCEL_MAG to 1MHz and de-assert the known chip selects.
+	/* Default PX4_SPI_BUS_SENSORS to 1MHz and de-assert the known chip selects.
 	 */
 
-	SPI_SETFREQUENCY(spi_accel_mag, 1 * 1000 * 1000);
-	SPI_SETBITS(spi_accel_mag, 8);
-	SPI_SETMODE(spi_accel_mag, SPIDEV_MODE3);
+	SPI_SETFREQUENCY(spi_sensors, 1 * 1000 * 1000);
+	SPI_SETBITS(spi_sensors, 8);
+	SPI_SETMODE(spi_sensors, SPIDEV_MODE0);
 
-	for (int cs = PX4_ACCEL_MAG_BUS_FIRST_CS; cs <= PX4_ACCEL_MAG_BUS_LAST_CS; cs++) {
-		SPI_SELECT(spi_accel_mag, cs, false);
+	for (int cs = PX4_SENSOR_BUS_FIRST_CS; cs <= PX4_SENSOR_BUS_LAST_CS; cs++) {
+		SPI_SELECT(spi_sensors, cs, false);
 	}
 
-	/* Get the SPI port for the GYRO */
+	/* Get the SPI port for the Memory */
 
-	spi_baro = kinetis_spibus_initialize(PX4_SPI_BUS_GYRO);
+	spi_memory = kinetis_spibus_initialize(PX4_SPI_BUS_MEMORY);
 
-	if (!spi_baro) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_GYRO);
+	if (!spi_memory) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
 		return -ENODEV;
 	}
 
-	/* FXAS21002CQ has max SPI clock speed of 2MHz and uses MODE 0 (CPOL = 0, and CPHA = 0)
+	/* Default PX4_SPI_BUS_MEMORY to 12MHz and de-assert the known chip selects.
 	 */
 
-	SPI_SETFREQUENCY(spi_baro, 2 * 1000 * 1000);
-	SPI_SETBITS(spi_baro, 8);
-	SPI_SETMODE(spi_baro, SPIDEV_MODE0);
+	SPI_SETFREQUENCY(spi_memory, 12 * 1000 * 1000);
+	SPI_SETBITS(spi_memory, 8);
+	SPI_SETMODE(spi_memory, SPIDEV_MODE3);
 
-	for (int cs = PX4_GYRO_BUS_FIRST_CS; cs <= PX4_GYRO_BUS_LAST_CS; cs++) {
-		SPI_SELECT(spi_baro, cs, false);
+	for (int cs = PX4_MEMORY_BUS_FIRST_CS; cs <= PX4_MEMORY_BUS_LAST_CS; cs++) {
+		SPI_SELECT(spi_memory, cs, false);
 	}
+
+	/* Configure EXTERNAL SPI-based devices */
+
+	spi_ext = kinetis_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
+
+	if (!spi_ext) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
+		return -ENODEV;
+	}
+
+	/* Default PX4_SPI_BUS_SENSORS to 1MHz and de-assert the known chip selects.
+	 */
+
+	SPI_SETFREQUENCY(spi_ext, 8 * 1000 * 1000);
+	SPI_SETBITS(spi_ext, 8);
+	SPI_SETMODE(spi_ext, SPIDEV_MODE3);
+
+	for (int cs = PX4_EXTERNAL_BUS_FIRST_CS; cs <= PX4_EXTERNAL_BUS_LAST_CS; cs++) {
+		SPI_SELECT(spi_ext, cs, false);
+	}
+
 
 	return OK;
 
@@ -189,8 +226,6 @@ __EXPORT int nxphlite_spi_bus_initialize(void)
  *
  ************************************************************************************/
 
-static const uint32_t spi0selects_gpio[] = PX4_SDCARD_BUS_CS_GPIO;
-
 void kinetis_spi0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
@@ -198,7 +233,12 @@ void kinetis_spi0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_SDCARD);
+
+	if (devid == SPIDEV_FLASH) {
+		sel = PX4_SPIDEV_MEMORY;
+	}
+
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_MEMORY);
 
 	/* Making sure the other peripherals are not selected */
 
@@ -220,8 +260,6 @@ uint8_t kinetis_spi0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 	return SPI_STATUS_PRESENT;
 }
 
-static const uint32_t spi1selects_gpio[] = PX4_ACCEL_MAG_BUS_CS_GPIO;
-
 void kinetis_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
@@ -229,7 +267,7 @@ void kinetis_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_ACCEL_MAG);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_SENSORS);
 
 	/* Making sure the other peripherals are not selected */
 
@@ -251,8 +289,6 @@ uint8_t kinetis_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 	return SPI_STATUS_PRESENT;
 }
 
-static const uint32_t spi2selects_gpio[] = PX4_GYRO_BUS_CS_GPIO;
-
 void kinetis_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
@@ -260,7 +296,7 @@ void kinetis_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_GYRO);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL);
 
 	/* Making sure the other peripherals are not selected */
 
