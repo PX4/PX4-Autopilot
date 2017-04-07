@@ -1,6 +1,6 @@
 /************************************************************************************
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
  *
@@ -44,26 +44,18 @@
 #endif
 
 #include <debug.h>
+#include <stddef.h>
 
 #include <nuttx/irq.h>
 #include <nuttx/clock.h>
 #include <nuttx/fs/automount.h>
 
 #include "board_config.h"
-
 #ifdef HAVE_AUTOMOUNTER
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-
-#ifndef NULL
-#  define NULL (FAR void *)0
-#endif
-
-#ifndef OK
-#  define OK 0
-#endif
 
 /************************************************************************************
  * Private Types
