@@ -159,6 +159,15 @@ private:
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
 
+	enum manual_stick_input {
+		brake,
+		direction_change,
+		acceleration,
+		deceleration
+	};
+
+	manual_stick_input _user_intention; /**< defines what the user intends to do derived from the stick input */
+
 	struct {
 		param_t thr_min;
 		param_t thr_max;
@@ -252,8 +261,6 @@ private:
 	bool _hold_offboard_xy = false;
 	bool _hold_offboard_z = false;
 	bool _limit_vel_xy = false;
-	bool _manual_go_to_zero = false;
-	bool _manual_direction_change = false;
 
 	bool _transition_to_non_manual = false;
 
@@ -442,6 +449,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_deriv(this, "VELD"),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
+	_user_intention(brake),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_reset_pos_sp(true),
@@ -979,7 +987,7 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	matrix::Vector2f stick_xy_prev_norm = (_stick_input_xy_prev.length() > 0.0f) ? _stick_input_xy_prev.normalized() :
 					      _stick_input_xy_prev;
 
-	/* check if stick direction and current velocity are within 45angle */
+	/* check if stick direction and current velocity are within 60angle */
 	const bool is_aligned = (stick_xy_norm * stick_xy_prev_norm) > 0.5f;
 
 	/* check if zero input stick */
@@ -990,57 +998,101 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	const bool do_acceleration = is_prev_zero || (is_aligned &&
 				     ((stick_xy.length() > _stick_input_xy_prev.length()) || (fabsf(stick_xy.length() - 1.0f) < FLT_EPSILON)));
 
-	const bool do_deceleration = (is_aligned && ((stick_xy.length() < _stick_input_xy_prev.length()) ||
-				      (stick_xy.length() - _stick_input_xy_prev.length()) < FLT_EPSILON));
+	const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
 
-	/* only adjust acceleraiton if not direction change or stop is required*/
-	if (!_manual_direction_change || !_manual_go_to_zero) {
-		if (is_current_zero) {
-			/* we want to stop */
-			_manual_go_to_zero = true;
 
-		} else if (do_acceleration) {
-			/* we do manual acceleration */
-			_acceleration_state_dependent_xy = _acceleration_hor_manual.get();
+	manual_stick_input intention;
 
-		} else if (do_deceleration) {
-			/* we do manual deceleration */
-			_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+	if (is_current_zero) {
+		/* we want to stop */
+		intention = brake;
 
-		} else {
-			/* we have a direciton change */
-			_manual_direction_change = true;
+	} else if (do_acceleration) {
+		/* we do manual acceleration */
+		intention = acceleration;
+
+	} else if (do_deceleration) {
+		/* we do manual deceleration */
+		intention = deceleration;
+
+	} else {
+		/* we have a direciton change */
+		intention = direction_change;
+	}
+
+
+	/* update user intention */
+	switch (_user_intention) {
+	case brake:
+		_user_intention = intention;
+		break;
+
+	case direction_change: {
+			/* only exit direction change if brake or aligned */
+			matrix::Vector2f vel_xy_norm(_vel(0), _vel(1));
+			vel_xy_norm = (vel_xy_norm.length() > 0.0f) ? vel_xy_norm.normalized() : vel_xy_norm;
+
+			if (intention == brake) {
+				_user_intention = intention;
+
+			} else if (vel_xy_norm * stick_xy_norm > 0.0f) {
+				_user_intention = acceleration;
+			}
+
+			break;
+		}
+
+	case acceleration:
+		_user_intention = intention;
+		break;
+
+	case deceleration: {
+			/* only exit deceleration if brake, direction change or stick input increased*/
+			if ((intention == brake) || (intention == direction_change)) {
+				_user_intention = intention;
+
+			} else if (stick_xy.length() > _stick_input_xy_prev.length()) {
+				_user_intention = acceleration;
+
+			} else {
+				_user_intention = deceleration;
+			}
+
+			break;
 		}
 	}
 
-	/* user wants to stop */
-	if (_manual_go_to_zero) {
+	/* apply acceleration based on state */
+	switch (_user_intention) {
+	case brake: {
+			/* limit jerk when braking to zero */
+			float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
 
-		/* limit jerk when braking to zero */
-		float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
+			if (jerk > _jerk_hor_max.get()) {
+				_acceleration_state_dependent_xy = _jerk_hor_max.get() * dt + _acceleration_state_dependent_xy;
 
-		if (jerk > _jerk_hor_max.get()) {
-			_acceleration_state_dependent_xy = _jerk_hor_max.get() * dt + _acceleration_state_dependent_xy;
+			} else {
+				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+			}
 
-		} else {
-			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+			break;
 		}
 
-		/* check if stop condition still true */
-		_manual_go_to_zero = is_current_zero;
-
-	}
-
-	/* user wants quick direction change */
-	if (_manual_direction_change) {
-
-		/* accelerate with max acceleration */
+	case direction_change:
 		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		break;
 
-		/* check if direction change condition is still true */
-		matrix::Vector2f vel_xy_norm(_vel(0), _vel(1));
-		vel_xy_norm = (vel_xy_norm.length() > 0.0f) ? vel_xy_norm.normalized() : vel_xy_norm;
-		_manual_direction_change = (!is_current_zero) && (vel_xy_norm * stick_xy_norm < 0.0f);
+	case acceleration:
+		_acceleration_state_dependent_xy = _acceleration_hor_manual.get();
+		break;
+
+	case deceleration:
+		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+		break;
+
+	default :
+		PX4_WARN("User intention not recognized");
+		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 
 	}
 
@@ -1148,7 +1200,7 @@ MulticopterPositionControl::control_manual(float dt)
 	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && fabsf(man_vel_sp(2)) < FLT_EPSILON;
 
 	/* want to get/stay in position hold if user has xy stick in the middle (accounted for deadzone already) */
-	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && _manual_go_to_zero;
+	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && (_user_intention ==  brake);
 
 	/* check vertical hold engaged flag */
 	if (_alt_hold_engaged) {
