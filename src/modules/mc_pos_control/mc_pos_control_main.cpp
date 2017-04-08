@@ -1179,7 +1179,12 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* check horizontal hold engaged flag */
 	if (_pos_hold_engaged) {
+
+		/* check if contition still true */
 		_pos_hold_engaged = pos_hold_desired;
+
+		/* use max acceleration */
+		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 
 	} else {
 
