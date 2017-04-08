@@ -81,7 +81,12 @@ endif
 ifdef NINJA_BUILD
 	PX4_CMAKE_GENERATOR := Ninja
 	PX4_MAKE := $(NINJA_BIN)
-	PX4_MAKE_ARGS :=
+
+	ifdef VERBOSE
+		PX4_MAKE_ARGS := -v
+	else
+		PX4_MAKE_ARGS :=
+	endif
 else
 	ifdef SYSTEMROOT
 		# Windows
@@ -100,6 +105,17 @@ ifdef replay
 	BUILD_DIR_SUFFIX := _replay
 else
 	BUILD_DIR_SUFFIX :=
+endif
+
+# NuttX verbose output
+ifdef VN
+	export PX4_NUTTX_BUILD_VERBOSE=1
+	export V=1
+endif
+
+# NuttX verbose patches output
+ifdef VNP
+	export PX4_NUTTX_PATCHES_VERBOSE=1
 endif
 
 # additional config parameters passed to cmake
@@ -327,9 +343,15 @@ clean:
 	-@$(MAKE) --no-print-directory -C NuttX/nuttx clean
 
 submodulesclean:
+	@git submodule foreach --quiet --recursive git clean -ff -x -d
+	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
-	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
+
+submodulesupdate:
+	@git submodule update --quiet --init --recursive || true
+	@git submodule sync --recursive
+	@git submodule update --init --recursive
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
