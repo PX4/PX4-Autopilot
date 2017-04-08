@@ -1021,6 +1021,9 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 		if (jerk > _jerk_hor_max.get()) {
 			_acceleration_state_dependent_xy = _jerk_hor_max.get() * dt + _acceleration_state_dependent_xy;
+
+		} else {
+			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 		}
 
 		/* check if stop condition still true */
@@ -1182,11 +1185,13 @@ MulticopterPositionControl::control_manual(float dt)
 
 		/* check if we switch to pos_hold_engaged */
 		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
-		bool smooth_pos_transition = pos_hold_desired &&
+		bool smooth_pos_transition = pos_hold_desired
+					     && (fabsf(_acceleration_hor_max.get() - _acceleration_state_dependent_xy) < FLT_EPSILON) &&
 					     (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy);
 
 		/* during transition predict setpoint forward */
 		if (smooth_pos_transition) {
+
 			/* time to travel from current velocity to zero velocity */
 			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _acceleration_hor_max.get();
 
