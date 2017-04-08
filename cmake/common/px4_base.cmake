@@ -986,10 +986,29 @@ function(px4_create_git_hash_header)
 
 	set(px4_git_ver_header ${PX4_BINARY_DIR}/build_git_version.h)
 
+	# check if px4 source is a git repo
+	if(EXISTS ${PX4_SOURCE_DIR}/.git)
+		if (IS_DIRECTORY ${PX4_SOURCE_DIR}/.git)
+			# standard git repo
+			set(git_dir_path ${PX4_SOURCE_DIR}/.git)
+		else()
+			# git submodule
+			file(READ ${PX4_SOURCE_DIR}/.git git_sub_path)
+			set(git_dir_path ${PX4_SOURCE_DIR}/${git_sub_path})
+		endif()
+	else()
+		message(FATAL_ERROR "can't find .git directory")
+	endif()
+
+	set(deps
+		${PX4_SOURCE_DIR}/Tools/px_update_git_header.py
+		${git_dir_path}/index
+		${git_dir_path}/HEAD)
+
 	add_custom_command(
 		OUTPUT ${px4_git_ver_header}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${px4_git_ver_header} > ${PX4_BINARY_DIR}/git_header.log
-		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${PX4_SOURCE_DIR}/.git/index ${PX4_SOURCE_DIR}/.git/HEAD
+		DEPENDS ${deps}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating git hash header"
 		)
