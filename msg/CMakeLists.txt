@@ -54,14 +54,13 @@ set(msg_file_names
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	fence.msg
-	fence_vertex.msg
 	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg
 	fw_virtual_attitude_setpoint.msg
 	fw_virtual_rates_setpoint.msg
 	geofence_result.msg
+	geofence_update.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	hil_sensor.msg

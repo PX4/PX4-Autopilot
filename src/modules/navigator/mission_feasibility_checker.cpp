@@ -51,7 +51,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <uORB/topics/fence.h>
 
 MissionFeasibilityChecker::MissionFeasibilityChecker() :
 	_mavlink_log_pub(nullptr),
@@ -174,7 +173,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 					       : missionitem.altitude;
 
 			if (MissionBlock::item_contains_position(&missionitem) &&
-			    !geofence.inside(missionitem)) {
+			    !geofence.check(missionitem)) {
 
 				mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i + 1);
 				return false;

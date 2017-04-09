@@ -354,8 +354,8 @@ Mission::update_offboard_mission()
 	bool failed = true;
 
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
-		warnx("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id,
-		      _offboard_mission.count, _offboard_mission.current_seq);
+		PX4_INFO("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id,
+			 _offboard_mission.count, _offboard_mission.current_seq);
 
 		/* determine current index */
 		if (_offboard_mission.current_seq >= 0 && _offboard_mission.current_seq < (int)_offboard_mission.count) {
@@ -392,7 +392,7 @@ Mission::update_offboard_mission()
 		}
 
 	} else {
-		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
+		PX4_ERR("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
 	}
 
 	if (failed) {

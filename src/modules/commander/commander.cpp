@@ -1462,7 +1462,6 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&command_ack, 0, sizeof(command_ack));
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	orb_advert_t mission_pub = nullptr;
 	mission_s mission;
 
 	orb_advert_t commander_state_pub = nullptr;
@@ -1477,9 +1476,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 		} else {
-			const char *missionfail = "reading mission state failed";
-			warnx("%s", missionfail);
-			mavlink_log_critical(&mavlink_log_pub, missionfail);
+			mavlink_log_critical(&mavlink_log_pub, "reading mission state failed");
 
 			/* initialize mission state in dataman */
 			mission.dataman_id = 0;
@@ -1488,8 +1485,8 @@ int commander_thread_main(int argc, char *argv[])
 			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
 
-		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
-		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
+		orb_advert_t mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		orb_unadvertise(mission_pub);
 	}
 
 	int ret;

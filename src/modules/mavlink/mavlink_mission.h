@@ -33,7 +33,10 @@
 
 /**
  * @file mavlink_mission.h
- * MAVLink mission manager interface definition.
+ * Implementation of the MAVLink mission protocol.
+ * Documentation:
+ * - http://qgroundcontrol.org/mavlink/mission_interface
+ * - http://qgroundcontrol.org/mavlink/waypoint_protocol
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@px4.io>
@@ -42,6 +45,7 @@
 
 #pragma once
 
+#include <dataman/dataman.h>
 #include <uORB/uORB.h>
 
 #include "mavlink_bridge_header.h"
@@ -102,6 +106,7 @@ public:
 
 private:
 	enum MAVLINK_WPM_STATES _state;					///< Current state
+	enum MAV_MISSION_TYPE _mission_type;				///< mission type of current transmission (only one at a time possible)
 
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
@@ -112,14 +117,13 @@ private:
 
 	bool			_int_mode;				///< Use accurate int32 instead of float
 
-	unsigned		_max_count;				///< Maximum number of mission items
 	unsigned		_filesystem_errcount;			///< File system error count
 
 	static int		_dataman_id;				///< Global Dataman storage ID for active mission
 	int			_my_dataman_id;				///< class Dataman storage ID
 	static bool		_dataman_init;				///< Dataman initialized
 
-	static unsigned		_count;					///< Count of items in active mission
+	static unsigned		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
 	static int		_current_seq;				///< Current item sequence in active mission
 
 	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
@@ -135,6 +139,7 @@ private:
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
 	orb_advert_t		_offboard_mission_pub;
+	orb_advert_t		_geofence_update_pub;
 
 	MavlinkRateLimiter	_slow_rate_limiter;
 
@@ -142,6 +147,18 @@ private:
 
 	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
 		2;	///< Error count limit before stopping to report FS errors
+	static constexpr unsigned	MAX_COUNT[] = {
+		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
+		DM_KEY_FENCE_POINTS_MAX - 1,
+		DM_KEY_SAFE_POINTS_MAX - 1
+	};	/**< Maximum number of mission items for each type
+					(fence & save points use the first item for the stats) */
+
+	/** get the maximum number of item count for the current _mission_type */
+	inline unsigned current_max_item_count();
+
+	/** get the number of item count for the current _mission_type */
+	inline unsigned current_item_count();
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
@@ -150,6 +167,18 @@ private:
 	void init_offboard_mission();
 
 	int update_active_mission(int dataman_id, unsigned count, int seq);
+
+	/** store the geofence count to dataman */
+	int update_geofence_count(unsigned count);
+
+	/** store the safepoint count to dataman */
+	int update_safepoint_count(unsigned count);
+
+	/** load geofence stats from dataman */
+	int load_geofence_stats();
+
+	/** load safe point stats from dataman */
+	int load_safepoint_stats();
 
 	/**
 	 *  @brief Sends an waypoint ack message
@@ -167,7 +196,7 @@ private:
 	 */
 	void send_mission_current(uint16_t seq);
 
-	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count);
+	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type);
 
 	void send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq);
 

@@ -67,10 +67,10 @@
 #include <arch/board/board.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/geofence_update.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <drivers/drv_baro.h>
@@ -117,6 +117,7 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
 	_vehicle_command_sub(-1),
+	_geofence_update_sub(-1),
 	_pos_sp_triplet_pub(nullptr),
 	_mission_result_pub(nullptr),
 	_geofence_result_pub(nullptr),
@@ -297,18 +298,12 @@ Navigator::task_main()
 	bool have_geofence_position_data = false;
 
 	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file
-	 * else clear geofence data in datamanager */
+	 * if /fs/microsd/etc/geofence.txt load from this file */
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		PX4_INFO("Try to load geofence.txt");
+		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
-
-	} else {
-		if (_geofence.clearDm() != OK) {
-			mavlink_log_critical(&_mavlink_log_pub, "failed clearing geofence");
-		}
 	}
 
 	/* do subscriptions */
@@ -325,6 +320,7 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_geofence_update_sub = orb_subscribe(ORB_ID(geofence_update));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -418,6 +414,15 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
+		}
+
+		/* geofence updated */
+		orb_check(_geofence_update_sub, &updated);
+
+		if (updated) {
+			geofence_update_s geofence_update;
+			orb_copy(ORB_ID(geofence_update), _geofence_update_sub, &geofence_update);
+			_geofence.updateFence();
 		}
 
 		/* vehicle control mode updated */
@@ -596,8 +601,8 @@ Navigator::task_main()
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
-						       home_position_valid());
+			bool inside = _geofence.check(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
+						      home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
@@ -722,6 +727,35 @@ Navigator::task_main()
 		perf_end(_loop_perf);
 	}
 
+	orb_unsubscribe(_global_pos_sub);
+	_global_pos_sub = -1;
+	orb_unsubscribe(_local_pos_sub);
+	_local_pos_sub = -1;
+	orb_unsubscribe(_gps_pos_sub);
+	_gps_pos_sub = -1;
+	orb_unsubscribe(_sensor_combined_sub);
+	_sensor_combined_sub = -1;
+	orb_unsubscribe(_fw_pos_ctrl_status_sub);
+	_fw_pos_ctrl_status_sub = -1;
+	orb_unsubscribe(_vstatus_sub);
+	_vstatus_sub = -1;
+	orb_unsubscribe(_land_detected_sub);
+	_land_detected_sub = -1;
+	orb_unsubscribe(_control_mode_sub);
+	_control_mode_sub = -1;
+	orb_unsubscribe(_home_pos_sub);
+	_home_pos_sub = -1;
+	orb_unsubscribe(_onboard_mission_sub);
+	_onboard_mission_sub = -1;
+	orb_unsubscribe(_offboard_mission_sub);
+	_offboard_mission_sub = -1;
+	orb_unsubscribe(_param_update_sub);
+	_param_update_sub = -1;
+	orb_unsubscribe(_vehicle_command_sub);
+	_vehicle_command_sub = -1;
+	orb_unsubscribe(_geofence_update_sub);
+	_geofence_update_sub = -1;
+
 	PX4_INFO("exiting");
 
 	_navigator_task = -1;
@@ -763,16 +797,8 @@ Navigator::status()
 	// 	PX4_INFO("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	// }
 
-	if (_geofence.valid()) {
-		PX4_INFO("Geofence is valid");
-		/* TODO: needed? */
-//		PX4_INFO("Vertex longitude latitude");
-//		for (unsigned i = 0; i < _fence.count; i++)
-//		PX4_INFO("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+	_geofence.printStatus();
 
-	} else {
-		PX4_INFO("Geofence not set (no /etc/geofence.txt on microsd) or not valid");
-	}
 }
 
 void
@@ -891,12 +917,6 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 }
 
 void
-Navigator::add_fence_point(int argc, char *argv[])
-{
-	_geofence.addPoint(argc, argv);
-}
-
-void
 Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
@@ -923,7 +943,7 @@ Navigator::abort_landing()
 
 static void usage()
 {
-	PX4_INFO("usage: navigator {start|stop|status|fence|fencefile}");
+	PX4_INFO("usage: navigator {start|stop|status|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
@@ -968,9 +988,6 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
-
-	} else if (!strcmp(argv[1], "fence")) {
-		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
 
 	} else if (!strcmp(argv[1], "fencefile")) {
 		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
