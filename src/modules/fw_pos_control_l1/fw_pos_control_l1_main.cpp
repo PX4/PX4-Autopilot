@@ -88,7 +88,6 @@
 #include <systemlib/systemlib.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>

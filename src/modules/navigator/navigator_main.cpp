@@ -43,46 +43,33 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include "navigator.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <float.h>
-#include <poll.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <cfloat>
 
+#include <arch/board/board.h>
+#include <dataman/dataman.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/mission.h>
+#include <geo/geo.h>
+#include <mathlib/mathlib.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <systemlib/systemlib.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_command.h>
-#include <drivers/drv_baro.h>
-
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <geo/geo.h>
-#include <dataman/dataman.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/mavlink_log.h>
-
-#include "navigator.h"
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 /**
  * navigator app start / stop handling function
@@ -778,9 +765,6 @@ Navigator::status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	/* update navigation state */
-	_pos_sp_triplet.nav_state = _vstatus.nav_state;
-
 	/* do not publish an empty triplet */
 	if (!_pos_sp_triplet.current.valid) {
 		return;
