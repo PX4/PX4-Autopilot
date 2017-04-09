@@ -1229,7 +1229,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 		if (!_takeoff_jumped) {
 			// ramp thrust setpoint up
 			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-				_takeoff_thrust_sp += 0.5f * dt;
+
+				// ramp up to hover throttle in one second
+				_takeoff_thrust_sp += _params.thr_hover * dt;
 				_vel_sp.zero();
 				_vel_prev.zero();
 
@@ -1242,10 +1244,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 				_takeoff_jumped = true;
 				_reset_int_z = false;
 			}
-		}
-
-		if (_takeoff_jumped) {
-			_vel_sp(2) = -_params.tko_speed;
 		}
 
 	} else {
@@ -1781,8 +1779,17 @@ MulticopterPositionControl::control_position(float dt)
 	}
 
 	/* make sure velocity setpoint is saturated in z*/
-	if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && _control_mode.flag_armed
+	    && _takeoff_jumped
+	    && (_vel_sp(2) < -_params.tko_speed)) {
+
+		_vel_sp(2) = -_params.tko_speed;
+
+	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
 		_vel_sp(2) = -1.0f * _params.vel_max_up;
+
 	}
 
 	_slow_land_gradual_velocity_limit();
