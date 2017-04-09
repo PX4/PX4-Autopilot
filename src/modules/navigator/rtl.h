@@ -94,8 +94,6 @@ private:
 		RTL_STATE_LANDED,
 	} _rtl_state;
 
-	bool _rtl_start_lock;
-
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_min_loiter_alt;
 	control::BlockParamFloat _param_descend_alt;
