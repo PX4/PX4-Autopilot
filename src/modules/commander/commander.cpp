@@ -3018,10 +3018,10 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 
 			if (status.failsafe) {
-				mavlink_log_critical(&mavlink_log_pub, "failsafe mode on");
+				mavlink_log_info(&mavlink_log_pub, "Failsafe mode enabled");
 
 			} else {
-				mavlink_log_critical(&mavlink_log_pub, "failsafe mode off");
+				mavlink_log_info(&mavlink_log_pub, "Failsafe mode disabled");
 			}
 
 			failsafe_old = status.failsafe;

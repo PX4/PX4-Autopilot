@@ -526,7 +526,7 @@ void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe, orb_adv
 		     const char *reason)
 {
 	if (!old_failsafe) {
-		mavlink_and_console_log_info(mavlink_log_pub, reason);
+		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
 	}
 
 	status->failsafe = true;
