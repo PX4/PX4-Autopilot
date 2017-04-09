@@ -94,6 +94,12 @@ public:
 	// gets the innovation of the flow measurement
 	void get_flow_innov(float flow_innov[2]);
 
+	// gets the innovation variance of the drag specific force measurement
+	void get_drag_innov_var(float drag_innov_var[2]);
+
+	// gets the innovation of the drag specific force measurement
+	void get_drag_innov(float drag_innov[2]);
+
 	// gets the innovation variance of the HAGL measurement
 	void get_hagl_innov_var(float *hagl_innov_var);
 
@@ -272,6 +278,9 @@ private:
 	float _beta_innov;		// synthetic sideslip measurement innovation
  	float _beta_innov_var;	// synthetic sideslip measurement innovation variance
 
+	float _drag_innov[2];		// multirotor drag measurement innovation
+	float _drag_innov_var[2];	// multirotor drag measurement innovation variance
+
 	float _heading_innov;		// heading measurement innovation
 	float _heading_innov_var;	// heading measurement innovation variance
 
@@ -383,6 +392,9 @@ private:
 	// fuse synthetic zero sideslip measurement
  	void fuseSideslip();
 
+	// fuse body frame drag specific forces for multi-rotor wind estimation
+	void fuseDrag();
+
 	// fuse velocity and position measurements (also barometer height)
 	void fuseVelPosHeight();
 
@@ -463,6 +475,9 @@ private:
 
 	// control fusion of synthetic sideslip observations
 	void controlBetaFusion();
+
+	// control fusion of multi-rotor drag specific force observations
+	void controlDragFusion();
 
 	// control fusion of pressure altitude observations
 	void controlBaroFusion();

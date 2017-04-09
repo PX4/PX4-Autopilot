@@ -157,6 +157,7 @@ struct extVisionSample {
 #define MASK_INHIBIT_ACC_BIAS (1<<2)  // set to true to inhibit estimation of accelerometer delta velocity bias
 #define MASK_USE_EVPOS	(1<<3)  // set to true to use external vision NED position data
 #define MASK_USE_EVYAW  (1<<4)	// set to true to use exernal vision quaternion data for yaw
+#define MASK_USE_DRAG  (1<<5)	// set to true to use the multi-rotor drag model to estimate wind
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0   // The selection of either heading or 3D magnetometer fusion will be automatic
@@ -176,7 +177,7 @@ struct extVisionSample {
 
 struct parameters {
 	// measurement source control
-	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
+	int fusion_mode;		// bitmasked integer that selects which aiding sources will be used
 	int vdist_sensor_type;		// selects the primary source for height data
 	int sensor_interval_min_ms;	// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
 
@@ -447,7 +448,7 @@ union innovation_fault_status_u {
 		bool reject_sideslip: 1;	// 8 - true if the synthetic sideslip observation has been rejected
 		bool reject_hagl: 1;		// 9 - true if the height above ground observation has been rejected
 		bool reject_optflow_X: 1;	// 10 - true if the X optical flow observation has been rejected
-		bool reject_optflow_Y: 1;	// 11 - true if the Y optical flow observation has been rejected
+		bool reject_optflow_Y: 1;	// 11 - true if the Y optical flow observation has been rejected		
 	} flags;
 	uint16_t value;
 

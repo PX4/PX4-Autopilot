@@ -71,6 +71,7 @@ set(SRCS
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
 	vel_pos_fusion.cpp
+	drag_fusion.cpp
 	)
 
 add_definitions(-DPOSIX_SHARED)

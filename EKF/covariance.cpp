@@ -864,8 +864,8 @@ void Ekf::resetWindCovariance()
 
 	} else {
 		// without airspeed, start with a small initial uncertainty to improve the initial estimate
-		P[22][22] = sq(5.0f);
-		P[23][23] = sq(5.0f);
+		P[22][22] = sq(1.0f);
+		P[23][23] = sq(1.0f);
 
 	}
 

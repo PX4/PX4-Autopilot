@@ -54,6 +54,7 @@ px4_add_module(
 		EKF/sideslip_fusion.cpp
 		EKF/terrain_estimator.cpp
 		EKF/vel_pos_fusion.cpp
+		EKF/drag_fusion.cpp
 		l1/ecl_l1_pos_controller.cpp
 		validation/data_validator.cpp
 		validation/data_validator_group.cpp

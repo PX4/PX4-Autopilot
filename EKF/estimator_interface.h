@@ -107,6 +107,12 @@ public:
 	// gets the innovation of the flow measurement
 	virtual void get_flow_innov(float flow_innov[2]) = 0;
 
+	// gets the innovation variance of the drag specific force measurement
+	virtual void get_drag_innov_var(float drag_innov_var[2]) = 0;
+
+	// gets the innovation of the drag specific force measurement
+	virtual void get_drag_innov(float drag_innov[2]) = 0;
+
 	// gets the innovation variance of the HAGL measurement
 	virtual void get_hagl_innov_var(float *flow_innov_var) = 0;
 
@@ -339,6 +345,7 @@ protected:
 	float _tas_test_ratio;		// tas innovation consistency check ratio
 	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
 	float _beta_test_ratio;		// sideslip innovation consistency check ratio
+	float _drag_test_ratio[2];	// drag innovation cinsistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _is_dead_reckoning;	// true if we are no longer fusing measurements that constrain horizontal velocity drift

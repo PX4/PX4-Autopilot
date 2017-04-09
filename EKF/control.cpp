@@ -106,6 +106,7 @@ void Ekf::controlFusionModes()
 	controlRangeFinderFusion();
 	controlAirDataFusion();
 	controlBetaFusion();
+	controlDragFusion();
 
 	// for efficiency, fusion of direct state observations for position and velocity is performed sequentially
 	// in a single function using sensor data from multiple sources (GPS, external vision, baro, range finder, etc)
@@ -793,7 +794,7 @@ void Ekf::controlAirDataFusion()
         // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
         bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
         bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
-        if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out) {
+	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
                 // if the airspeed or sideslip measurements have timed out for 10 seconds we declare the wind estimate to be invalid
 		_control_status.flags.wind = false;
 
@@ -827,7 +828,7 @@ void Ekf::controlBetaFusion()
         // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
         bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
         bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
-        if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out){
+	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)){
                 _control_status.flags.wind = false;
 
         }
@@ -858,6 +859,22 @@ void Ekf::controlBetaFusion()
 
  	
 
+}
+
+void Ekf::controlDragFusion()
+{
+	if (_params.fusion_mode & MASK_USE_DRAG && _control_status.flags.in_air) {
+		if (!_control_status.flags.wind) {
+			_control_status.flags.wind = true;
+			resetWindStates();
+			resetWindCovariance();
+
+		} else {
+			fuseDrag();
+		}
+	} else {
+		_control_status.flags.wind = false;
+	}
 }
 
 void Ekf::controlMagFusion()

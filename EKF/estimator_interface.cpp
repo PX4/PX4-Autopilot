@@ -75,6 +75,7 @@ EstimatorInterface::EstimatorInterface():
 	_tas_test_ratio(0.0f),
 	_terr_test_ratio(0.0f),
 	_beta_test_ratio(0.0f),
+	_drag_test_ratio{},
 	_is_dead_reckoning(false),
 	_vibe_metrics{},
 	_time_last_imu(0),
