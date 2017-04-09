@@ -1965,7 +1965,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (buf.triplet.current.valid) {
 					log_msg.msg_type = LOG_GPSP_MSG;
-					log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
 					log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * (double)1e7);
 					log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * (double)1e7);
 					log_msg.body.log_GPSP.alt = buf.triplet.current.alt;

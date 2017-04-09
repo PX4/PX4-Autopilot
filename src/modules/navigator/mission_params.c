@@ -90,7 +90,7 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  * waypoint is more distant than MIS_DIS_1WP from the current position.
  *
  * @unit m
- * @min 0
+ * @min -1
  * @max 1000
  * @decimal 1
  * @increment 0.5

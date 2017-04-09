@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,24 +45,21 @@
 #ifndef NAVIGATOR_MISSION_H
 #define NAVIGATOR_MISSION_H
 
-#include <drivers/drv_hrt.h>
-
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <dataman/dataman.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
-
 #include "navigator_mode.h"
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
+
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
+#include <dataman/dataman.h>
+#include <drivers/drv_hrt.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 class Navigator;
 
@@ -71,7 +68,7 @@ class Mission : public MissionBlock
 public:
 	Mission(Navigator *navigator, const char *name);
 
-	virtual ~Mission();
+	virtual ~Mission() = default;
 
 	virtual void on_inactive();
 
@@ -94,7 +91,7 @@ public:
 
 	bool set_current_offboard_mission_index(unsigned index);
 
-	unsigned find_offboard_land_start();
+	int find_offboard_land_start();
 
 private:
 	/**
@@ -221,7 +218,6 @@ private:
 	 */
 	void check_mission_valid(bool force);
 
-
 	/**
 	 * Reset offboard mission
 	 */
@@ -244,6 +240,7 @@ private:
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_fw_climbout_diff;
+	control::BlockParamInt _param_rtl_land_type;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;

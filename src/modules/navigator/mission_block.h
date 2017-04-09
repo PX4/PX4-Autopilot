@@ -41,18 +41,17 @@
 #ifndef NAVIGATOR_MISSION_BLOCK_H
 #define NAVIGATOR_MISSION_BLOCK_H
 
+#include "navigator_mode.h"
+
 #include <drivers/drv_hrt.h>
-
 #include <navigator/navigation.h>
-
-#include <uORB/topics/mission.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/follow_target.h>
-
-#include "navigator_mode.h"
+#include <uORB/topics/mission.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 class Navigator;
 
@@ -70,10 +69,9 @@ public:
 	/**
 	 * Destructor
 	 */
-	virtual ~MissionBlock();
+	virtual ~MissionBlock() = default;
 
-	/* TODO: move this to a helper class in navigator */
-	static bool item_contains_position(const struct mission_item_s *item);
+	static bool position_cmd(const NAV_CMD cmd);
 
 protected:
 	/**
@@ -81,6 +79,7 @@ protected:
 	 * @return true if successfully reached
 	 */
 	bool is_mission_item_reached();
+
 	/**
 	 * Reset all reached flags
 	 */
@@ -92,7 +91,7 @@ protected:
 	 * @param the mission item to convert
 	 * @param the position setpoint that needs to be set
 	 */
-	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
+	bool mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
 	/**
 	 * Set previous position setpoint to current setpoint
@@ -122,27 +121,27 @@ protected:
 	void set_idle_item(struct mission_item_s *item);
 
 	/**
-	 * Convert a mission item to a command
-	 */
-	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
-
-	/**
 	 * Set follow_target item
 	 */
 	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 
+	/**
+	 * Convert a mission item to a command
+	 */
+	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+
 	void issue_command(const struct mission_item_s *item);
 
-	mission_item_s _mission_item;
-	bool _waypoint_position_reached;
-	bool _waypoint_yaw_reached;
-	hrt_abstime _time_first_inside_orbit;
-	hrt_abstime _action_start;
-	hrt_abstime _time_wp_reached;
+	mission_item_s _mission_item{};
 
-	actuator_controls_s _actuators;
-	orb_advert_t    _actuator_pub;
-	orb_advert_t	_cmd_pub;
+	bool _waypoint_position_reached{false};
+	bool _waypoint_yaw_reached{false};
+
+	hrt_abstime _time_first_inside_orbit{0};
+	hrt_abstime _action_start{0};
+	hrt_abstime _time_wp_reached{0};
+
+	orb_advert_t    _actuator_pub{nullptr};
 
 	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;

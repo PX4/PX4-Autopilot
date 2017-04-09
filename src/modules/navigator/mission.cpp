@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "mission.h"
 #include "navigator.h"
@@ -75,6 +76,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
+	_param_rtl_land_type(this, "RTL_LAND_TYPE", false),
 	_onboard_mission{},
 	_offboard_mission{},
 	_current_onboard_mission_index(-1),
@@ -91,10 +93,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 {
 	/* load initial params */
 	updateParams();
-}
-
-Mission::~Mission()
-{
 }
 
 void
@@ -230,7 +228,6 @@ Mission::on_active()
 		}
 	}
 
-
 	/* check if a cruise speed change has been commanded */
 	if (_mission_type != MISSION_TYPE_NONE) {
 		cruising_speed_sp_update();
@@ -251,7 +248,6 @@ Mission::on_active()
 
 		do_abort_landing();
 	}
-
 }
 
 bool Mission::set_current_offboard_mission_index(unsigned index)
@@ -275,7 +271,7 @@ bool Mission::set_current_offboard_mission_index(unsigned index)
 	return false;
 }
 
-unsigned
+int
 Mission::find_offboard_land_start()
 {
 	/* find the first MAV_CMD_DO_LAND_START and return the index
@@ -287,7 +283,7 @@ Mission::find_offboard_land_start()
 	dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
 	for (size_t i = 0; i < _offboard_mission.count; i++) {
-		struct mission_item_s missionitem;
+		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(missionitem);
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
@@ -538,7 +534,7 @@ Mission::set_mission_items()
 	/*********************************** handle mission item *********************************************/
 
 	/* handle position mission items */
-	if (item_contains_position(&_mission_item)) {
+	if (position_cmd(_mission_item.nav_cmd)) {
 
 		/* force vtol land */
 		if (_mission_item.nav_cmd == NAV_CMD_LAND && _param_force_vtol.get() == 1
@@ -1148,7 +1144,7 @@ void
 Mission::do_abort_landing()
 {
 	// Abort FW landing
-	//  turn the land waypoint into a loiter and stay there
+	//  first climb out then loiter over intended landing location
 
 	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
 		return;
@@ -1157,30 +1153,46 @@ Mission::do_abort_landing()
 	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(),
-				 _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
+	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
 
+	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
-	_mission_item.yaw = NAN;
 	_mission_item.loiter_radius = _navigator->get_loiter_radius();
-	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;
 
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-
 	_navigator->set_position_setpoint_triplet_updated();
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %dm above landing)", (int)(alt_sp - alt_landing));
 
-	// move mission index back 1 (landing approach point) so that re-entering
-	//  the mission doesn't try to land from the loiter above land
-	// TODO: reset index to MAV_CMD_DO_LAND_START
-	_current_offboard_mission_index -= 1;
+	// reset mission index to start of landing
+	int land_start_index = find_offboard_land_start();
+
+	if (land_start_index != -1) {
+		_current_offboard_mission_index = land_start_index;
+
+	} else {
+		// move mission index back (landing approach point)
+		_current_offboard_mission_index -= 1;
+	}
+
+	// send reposition cmd to get out of mission
+	struct vehicle_command_s vcmd = {};
+	mission_item_to_vehicle_command(&_mission_item, &vcmd);
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vcmd.param1 = -1;
+	vcmd.param2 = 1;
+	vcmd.param5 = _mission_item.lat;
+	vcmd.param6 = _mission_item.lon;
+	vcmd.param7 = alt_sp;
+
+	_navigator->publish_vehicle_cmd(vcmd);
 }
 
 bool
@@ -1197,7 +1209,7 @@ Mission::prepare_mission_items(bool onboard, struct mission_item_s *mission_item
 		/* trying to find next position mission item */
 		while (read_mission_item(onboard, offset, next_position_mission_item)) {
 
-			if (item_contains_position(next_position_mission_item)) {
+			if (position_cmd(next_position_mission_item->nav_cmd)) {
 				*has_next_position_item = true;
 				break;
 			}
@@ -1413,7 +1425,8 @@ Mission::check_mission_valid(bool force)
 				_param_dist_1wp.get(),
 				_navigator->get_mission_result()->warning,
 				_navigator->get_default_acceptance_radius(),
-				_navigator->get_land_detected()->landed);
+				_navigator->get_land_detected()->landed,
+				(_param_rtl_land_type.get() == 1));
 
 		_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 		_navigator->increment_mission_instance_count();

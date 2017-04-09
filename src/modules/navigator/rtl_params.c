@@ -103,3 +103,14 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
+
+/**
+ * RTL land location
+ *
+ * Land at the home location or planned mission landing
+ *
+ * @value 0 Home Position
+ * @value 1 Planned Landing (Mission)
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_LAND_TYPE, 0);

@@ -2690,7 +2690,7 @@ Mavlink::set_boot_complete()
 		if ((inst->get_mode() != MAVLINK_MODE_ONBOARD) &&
 		    (!inst->broadcast_enabled()) &&
 		    ((inst->get_protocol() == UDP) || (inst->get_protocol() == TCP))) {
-			PX4_INFO("MAVLink only on localhost (set param MAV_BROADCAST = 1 to enable network)");
+			PX4_INFO("MAVLink only on localhost (param set MAV_BROADCAST 1 to enable network)");
 		}
 	}
 #endif

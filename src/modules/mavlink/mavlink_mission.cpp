@@ -1031,8 +1031,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_IMAGE_STOP_CAPTURE:
 		case MAV_CMD_VIDEO_START_CAPTURE:
 		case MAV_CMD_VIDEO_STOP_CAPTURE:
-		case NAV_CMD_DO_SET_ROI:
-		case NAV_CMD_ROI:
+		case MAV_CMD_DO_SET_ROI:
+		case MAV_CMD_NAV_ROI:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case MAV_CMD_DO_VTOL_TRANSITION:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;

@@ -121,7 +121,7 @@ struct mission_item_s {
 		};
 		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
 	};
-	uint16_t nav_cmd;					/**< navigation command					*/
+	enum NAV_CMD nav_cmd;			/**< navigation command					*/
 	int16_t do_jump_mission_index;		/**< index where the do jump will go to                 */
 	uint16_t do_jump_repeat_count;		/**< how many times do jump needs to be done            */
 	uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/

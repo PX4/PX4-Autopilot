@@ -39,12 +39,8 @@
 
 #include "landingslope.h"
 
-#include <px4_config.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <math.h>
-#include <unistd.h>
 #include <mathlib/mathlib.h>
+#include <px4_config.h>
 
 Landingslope::Landingslope() :
 	_landing_slope_angle_rad(0.0f),
@@ -64,7 +60,6 @@ void Landingslope::update(float landing_slope_angle_rad_new,
 			  float motor_lim_relative_alt_new,
 			  float H1_virt_new)
 {
-
 	_landing_slope_angle_rad = landing_slope_angle_rad_new;
 	_flare_relative_alt = flare_relative_alt_new;
 	_motor_lim_relative_alt = motor_lim_relative_alt_new;
@@ -133,7 +128,6 @@ float Landingslope::getFlareCurveRelativeAltitudeSave(float wp_landing_distance,
 float Landingslope::getFlareCurveAbsoluteAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
 		float bearing_airplane_currwp, float wp_landing_altitude)
 {
-
 	return wp_landing_altitude + getFlareCurveRelativeAltitudeSave(wp_landing_distance, bearing_lastwp_currwp,
 			bearing_airplane_currwp);
 }

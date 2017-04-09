@@ -41,37 +41,34 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
-#include <systemlib/perf_counter.h>
-
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <navigator/navigation.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/mission_result.h>
-#include <uORB/topics/geofence_result.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_land_detected.h>
-
-#include "navigator_mode.h"
-#include "mission.h"
-#include "loiter.h"
-#include "takeoff.h"
-#include "land.h"
-#include "rtl.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
 #include "follow_target.h"
-#include "gpsfailure.h"
-#include "rcloss.h"
 #include "geofence.h"
+#include "gpsfailure.h"
+#include "land.h"
+#include "loiter.h"
+#include "mission.h"
+#include "navigator_mode.h"
+#include "rcloss.h"
+#include "rtl.h"
+#include "takeoff.h"
+
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
+#include <navigator/navigation.h>
+#include <systemlib/perf_counter.h>
+#include <uORB/topics/geofence_result.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/uORB.h>
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls
@@ -124,6 +121,8 @@ public:
 	 */
 	void		publish_att_sp();
 
+	void		publish_vehicle_cmd(const struct vehicle_command_s &vcmd);
+
 	/**
 	 * Setters
 	 */
@@ -136,7 +135,6 @@ public:
 	 */
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
-	struct vehicle_control_mode_s *get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
@@ -188,7 +186,7 @@ public:
 	 * Passing a negative value or leaving the parameter away will reset the cruising speed
 	 * to its default value.
 	 *
-	 * For VTOL: sets cuising speed for current mode only (multirotor or fixed-wing).
+	 * For VTOL: sets cruising speed for current mode only (multirotor or fixed-wing).
 	 *
 	 */
 	void		set_cruising_speed(float speed = -1.0f);
@@ -253,10 +251,11 @@ private:
 	int		_param_update_sub;		/**< param update subscription */
 	int		_vehicle_command_sub;		/**< vehicle commands (onboard and offboard) */
 
-	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
-	orb_advert_t	_mission_result_pub;
-	orb_advert_t	_geofence_result_pub;
-	orb_advert_t	_att_sp_pub;			/**< publish att sp
+	orb_advert_t	_pos_sp_triplet_pub{nullptr};		/**< publish position setpoint triplet */
+	orb_advert_t	_mission_result_pub{nullptr};
+	orb_advert_t	_geofence_result_pub{nullptr};
+	orb_advert_t	_vehicle_cmd_pub{nullptr};
+	orb_advert_t	_att_sp_pub{nullptr};			/**< publish att sp
 							  used only in very special failsafe modes
 							  when pos control is deactivated */
 
@@ -392,7 +391,6 @@ private:
 	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void		publish_position_setpoint_triplet();
-
 
 	/**
 	 * Publish the mission result so commander and mavlink know what is going on
