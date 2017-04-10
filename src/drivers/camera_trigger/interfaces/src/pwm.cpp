@@ -60,8 +60,6 @@ void CameraInterfacePWM::setup()
 {
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-			uint8_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
-			up_pwm_servo_init(pin_bitmask);
 			up_pwm_servo_set(_pins[i + 1], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
 			up_pwm_servo_set(_pins[i], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
 		}
