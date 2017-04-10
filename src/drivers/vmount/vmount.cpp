@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,11 @@
  * @file vmount.cpp
  * @author Leon Müller (thedevleon)
  * @author Beat Küng <beat-kueng@gmx.net>
- * MAV_MOUNT driver for controlling mavlink gimbals, rc gimbals/servors and
- * future kinds of mounts.
+ * @author Julian Oes <julian@oes.ch>
  *
+ * Driver for to control mounts such as gimbals or servos.
+ * Inputs for the mounts can RC and/or mavlink commands.
+ * Outputs to the mounts can be RC (PWM) output or mavlink.
  */
 
 #include <stdlib.h>
@@ -67,8 +69,11 @@ using namespace vmount;
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
+
+static constexpr unsigned input_objs_len = 3;
+
 struct ThreadData {
-	InputBase *input_obj = nullptr;
+	InputBase *input_objs[input_objs_len] = {nullptr, nullptr, nullptr};
 	OutputBase *output_obj = nullptr;
 };
 static volatile ThreadData *g_thread_data = nullptr;
@@ -80,7 +85,6 @@ struct Parameters {
 	int mnt_mav_compid;
 	int mnt_ob_lock_mode;
 	int mnt_ob_norm_mode;
-	int mnt_man_control;
 	int mnt_man_pitch;
 	int mnt_man_roll;
 	int mnt_man_yaw;
@@ -93,7 +97,6 @@ struct Parameters {
 		       mnt_mav_compid != p.mnt_mav_compid ||
 		       mnt_ob_lock_mode != p.mnt_ob_lock_mode ||
 		       mnt_ob_norm_mode != p.mnt_ob_norm_mode ||
-		       mnt_man_control != p.mnt_man_control ||
 		       mnt_man_pitch != p.mnt_man_pitch ||
 		       mnt_man_roll != p.mnt_man_roll ||
 		       mnt_man_yaw != p.mnt_man_yaw;
@@ -107,7 +110,6 @@ struct ParameterHandles {
 	param_t mnt_mav_compid;
 	param_t mnt_ob_lock_mode;
 	param_t mnt_ob_norm_mode;
-	param_t mnt_man_control;
 	param_t mnt_man_pitch;
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
@@ -193,49 +195,77 @@ static int vmount_thread_main(int argc, char *argv[])
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	thread_running = true;
 	ControlData *control_data = nullptr;
-	InputRC *manual_input = nullptr;
 	g_thread_data = &thread_data;
+
+	int last_active = -1;
 
 	while (!thread_should_exit) {
 
-		if (!thread_data.input_obj && (params.mnt_mode_in != 0 || test_input)) { //need to initialize
+		if (!thread_data.input_objs[0] && (params.mnt_mode_in != 0 || test_input)) { //need to initialize
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
+			bool alloc_failed = false;
+
 			if (test_input) {
-				thread_data.input_obj = test_input;
+				thread_data.input_objs[0] = test_input;
 
 			} else {
-				if (params.mnt_man_control) {
-					manual_input = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
-
-					if (!manual_input) {
-						PX4_ERR("memory allocation failed");
-						break;
-					}
-				}
-
 				switch (params.mnt_mode_in) {
-				case 1: //RC
-					if (manual_input) {
-						thread_data.input_obj = manual_input;
-						manual_input = nullptr;
+				case 0:
 
-					} else {
-						thread_data.input_obj = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					// Automatic
+					if (!thread_data.input_objs[0]) {
+						thread_data.input_objs[0] = new InputMavlinkCmdMount();
+
+						if (!thread_data.input_objs[0]) { alloc_failed = true; }
+					}
+
+					if (!thread_data.input_objs[1]) {
+						thread_data.input_objs[1] = new InputMavlinkROI();
+
+						if (!thread_data.input_objs[1]) { alloc_failed = true; }
+					}
+
+					// RC is on purpose last here so that if there are any mavlink
+					// messages, they will take precedence over RC.
+					// This logic is done further below while update() is called.
+					if (!thread_data.input_objs[2]) {
+						thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+
+						if (!thread_data.input_objs[2]) { alloc_failed = true; }
+					}
+
+					break;
+
+				case 1: //RC
+					if (!thread_data.input_objs[0]) {
+						thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+
+						if (!thread_data.input_objs[0]) { alloc_failed = true; }
 					}
 
 					break;
 
 				case 2: //MAVLINK_ROI
-					thread_data.input_obj = new InputMavlinkROI(manual_input);
+					if (!thread_data.input_objs[0]) {
+						thread_data.input_objs[0] = new InputMavlinkROI();
+
+						if (!thread_data.input_objs[0]) { alloc_failed = true; }
+					}
+
 					break;
 
 				case 3: //MAVLINK_DO_MOUNT
-					thread_data.input_obj = new InputMavlinkCmdMount(manual_input);
+					if (!thread_data.input_objs[0]) {
+						thread_data.input_objs[0] = new InputMavlinkCmdMount();
+
+						if (!thread_data.input_objs[0]) { alloc_failed = true; }
+					}
+
 					break;
 
 				default:
@@ -247,10 +277,16 @@ static int vmount_thread_main(int argc, char *argv[])
 			switch (params.mnt_mode_out) {
 			case 0: //AUX
 				thread_data.output_obj = new OutputRC(output_config);
+
+				if (!thread_data.output_obj) { alloc_failed = true; }
+
 				break;
 
 			case 1: //MAVLINK
 				thread_data.output_obj = new OutputMavlink(output_config);
+
+				if (!thread_data.output_obj) { alloc_failed = true; }
+
 				break;
 
 			default:
@@ -258,7 +294,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
-			if (!thread_data.input_obj || !thread_data.output_obj) {
+			if (alloc_failed) {
 				PX4_ERR("memory allocation failed");
 				thread_should_exit = true;
 				break;
@@ -273,19 +309,31 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (thread_data.input_obj) {
+		if (thread_data.input_objs[0]) {
 
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
-			int ret = thread_data.input_obj->update(50, &control_data);
 
-			if (ret) {
-				PX4_ERR("failed to read input (%i)", ret);
-				break;
+			for (int i = 0; i < input_objs_len; ++i) {
+
+				bool already_active = (last_active == i);
+
+				ControlData *control_data_to_check = nullptr;
+				int ret = thread_data.input_objs[i]->update(50, &control_data, already_active);
+
+				if (ret) {
+					PX4_ERR("failed to read input %i (ret: %i)", i, ret);
+					continue;
+				}
+
+				if (control_data_to_check != nullptr) {
+					control_data = control_data_to_check;
+					last_active = i;
+				}
 			}
 
 			//update output
-			ret = thread_data.output_obj->update(control_data);
+			int ret = thread_data.output_obj->update(control_data);
 
 			if (ret) {
 				PX4_ERR("failed to write output (%i)", ret);
@@ -315,19 +363,18 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				//re-init objects
-				if (thread_data.input_obj) {
-					delete (thread_data.input_obj);
-					thread_data.input_obj = nullptr;
+				for (int i = 0; i < input_objs_len; ++i) {
+					if (thread_data.input_objs[i]) {
+						delete (thread_data.input_objs[i]);
+						thread_data.input_objs[i] = nullptr;
+					}
 				}
+
+				last_active = -1;
 
 				if (thread_data.output_obj) {
 					delete (thread_data.output_obj);
 					thread_data.output_obj = nullptr;
-				}
-
-				if (manual_input) {
-					delete (manual_input);
-					manual_input = nullptr;
 				}
 			}
 		}
@@ -337,19 +384,16 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	orb_unsubscribe(parameter_update_sub);
 
-	if (thread_data.input_obj) {
-		delete (thread_data.input_obj);
-		thread_data.input_obj = nullptr;
+	for (int i = 0; i < input_objs_len; ++i) {
+		if (thread_data.input_objs[i]) {
+			delete (thread_data.input_objs[i]);
+			thread_data.input_objs[i] = nullptr;
+		}
 	}
 
 	if (thread_data.output_obj) {
 		delete (thread_data.output_obj);
 		thread_data.output_obj = nullptr;
-	}
-
-	if (manual_input) {
-		delete (manual_input);
-		manual_input = nullptr;
 	}
 
 	thread_running = false;
@@ -422,10 +466,16 @@ int vmount_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running && g_thread_data) {
 
-			if (g_thread_data->input_obj) {
-				g_thread_data->input_obj->print_status();
+			bool found_input = false;
 
-			} else {
+			for (int i = 0; i < input_objs_len; ++i) {
+				if (g_thread_data->input_objs[i]) {
+					g_thread_data->input_objs[i]->print_status();
+					found_input = true;
+				}
+			}
+
+			if (!found_input) {
 				PX4_INFO("Input: None");
 			}
 
@@ -457,7 +507,6 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mnt_mav_compid, &params.mnt_mav_compid);
 	param_get(param_handles.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
 	param_get(param_handles.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
-	param_get(param_handles.mnt_man_control, &params.mnt_man_control);
 	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
@@ -473,7 +522,6 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_mav_compid = param_find("MNT_MAV_COMPID");
 	param_handles.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
 	param_handles.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
-	param_handles.mnt_man_control = param_find("MNT_MAN_CONTROL");
 	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
@@ -484,7 +532,6 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_ob_lock_mode == PARAM_INVALID ||
 	    param_handles.mnt_ob_norm_mode == PARAM_INVALID ||
-	    param_handles.mnt_man_control == PARAM_INVALID ||
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID) {

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -54,18 +54,13 @@ namespace vmount
 class InputMavlinkROI : public InputBase
 {
 public:
-
-	/**
-	 * @param manual_control if non-null allow manual input as long as we have not received any mavlink
-	 * command yet or ROI mode is set to NONE.
-	 */
-	InputMavlinkROI(InputRC *manual_control = nullptr);
+	InputMavlinkROI();
 	virtual ~InputMavlinkROI();
 
 	virtual void print_status();
 
 protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data);
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
 	virtual int initialize();
 
 private:
@@ -73,8 +68,6 @@ private:
 
 	int _vehicle_roi_sub = -1;
 	int _position_setpoint_triplet_sub = -1;
-	bool _allow_manual_control = true;
-	InputRC *_manual_control;
 	uint8_t _cur_roi_mode = vehicle_roi_s::VEHICLE_ROI_NONE;
 };
 
@@ -86,26 +79,19 @@ private:
 class InputMavlinkCmdMount : public InputBase
 {
 public:
-
-	/**
-	 * @param manual_control if non-null allow manual input as long as we have not received any mavlink
-	 * command yet.
-	 */
-	InputMavlinkCmdMount(InputRC *manual_control = nullptr);
+	InputMavlinkCmdMount();
 	virtual ~InputMavlinkCmdMount();
 
 	virtual void print_status();
 
 protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data);
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
 	virtual int initialize();
 
 private:
 	void _ack_vehicle_command(uint16_t command);
 
 	int _vehicle_command_sub = -1;
-	bool _allow_manual_control = true;
-	InputRC *_manual_control;
 	orb_advert_t _vehicle_command_ack_pub = nullptr;
 	bool _stabilize[3] = { false, false, false };
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -73,8 +73,11 @@ int InputRC::initialize()
 	return 0;
 }
 
-int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data)
+int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
+	// Default to no change signalled by NULL.
+	*control_data = nullptr;
+
 	px4_pollfd_struct_t polls[1];
 	polls[0].fd = 		_manual_control_setpoint_sub;
 	polls[0].events = 	POLLIN;
@@ -86,32 +89,58 @@ int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data)
 	}
 
 	if (ret == 0) {
-		*control_data = nullptr;
-
+		// Timeout, leave NULL
 	} else {
 		if (polls[0].revents & POLLIN) {
-			_read_control_data_from_subscription(_control_data);
-			*control_data = &_control_data;
+			// Only if there was a change, we update the control data, otherwise leave it NULL.
+			if (_read_control_data_from_subscription(_control_data, already_active)) {
+				*control_data = &_control_data;
+			}
 		}
 	}
 
 	return 0;
 }
 
-void InputRC::_read_control_data_from_subscription(ControlData &control_data)
+bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	for (int i = 0; i < 3; ++i) {
-		control_data.type_data.angle.is_speed[i] = false;
-		control_data.type_data.angle.angles[i] = _get_aux_value(manual_control_setpoint, i) * M_PI_F;
+	float new_aux_values[3];
 
-		control_data.stabilize_axis[i] = false;
+	for (int i = 0; i < 3; ++i) {
+		new_aux_values[i] = _get_aux_value(manual_control_setpoint, i);
 	}
 
-	control_data.gimbal_shutter_retract = false;
+	// If we were already active previously, we just update normally. Otherwise, there needs to be
+	// a major stick movement to re-activate manual (or it's running for the very first time).
+	bool major_movement = false;
+
+	// Detect a big stick movement
+	for (int i = 0; i < 3; ++i) {
+		if (fabs(_last_set_aux_values[i] - new_aux_values[i]) > 0.25) {
+			major_movement = true;
+		}
+	}
+
+	if (already_active || major_movement || _first_time) {
+
+		for (int i = 0; i < 3; ++i) {
+			control_data.type_data.angle.is_speed[i] = false;
+			control_data.type_data.angle.angles[i] = new_aux_values[i] * M_PI_F;
+			control_data.stabilize_axis[i] = false;
+
+			_last_set_aux_values[i] = new_aux_values[i];
+		}
+
+		control_data.gimbal_shutter_retract = false;
+		return true;
+
+	} else {
+		return false;
+	}
 }
 
 float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx)
