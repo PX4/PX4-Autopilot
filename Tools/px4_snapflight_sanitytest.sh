@@ -77,7 +77,7 @@ verifypx4test() {
       echo -e "[WARNING] Skipping string checks for 8x96 platform"
       return
    fi
-   
+
    echo -e "Verifying test results..."
    
    # verify the presence of expected stings in the apps proc console log

@@ -60,4 +60,4 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     generate(xml_file=args.xml, modules=args.modules, dest=args.dest)
 
-#  vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 : 
+#  vim: set et fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
