@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 namespace vmount
 {
 
-int InputBase::update(unsigned int timeout_ms, ControlData **control_data)
+int InputBase::update(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
 	if (!_initialized) {
 		int ret = initialize();
@@ -60,7 +60,7 @@ int InputBase::update(unsigned int timeout_ms, ControlData **control_data)
 		return 0;
 	}
 
-	return update_impl(timeout_ms, control_data);
+	return update_impl(timeout_ms, control_data, already_active);
 }
 
 void InputBase::control_data_set_lon_lat(double lon, double lat, float altitude, float roll_angle,

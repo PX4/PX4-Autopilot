@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -55,8 +55,7 @@ namespace vmount
 {
 
 
-InputMavlinkROI::InputMavlinkROI(InputRC *manual_override)
-	: _manual_control(manual_override)
+InputMavlinkROI::InputMavlinkROI()
 {
 }
 
@@ -85,34 +84,24 @@ int InputMavlinkROI::initialize()
 		return -errno;
 	}
 
-	if (_manual_control) {
-		int ret = _manual_control->initialize();
-
-		if (ret) {
-			PX4_ERR("failed to initialize rc input");
-			return ret;
-		}
-	}
-
 	return 0;
 }
 
 
 
-int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_data)
+int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
-	px4_pollfd_struct_t polls[3];
+	// already_active is unused, we don't care what happened previously.
+
+	// Default to no change, set if we receive anything.
+	*control_data = nullptr;
+
+	const int num_poll = 2;
+	px4_pollfd_struct_t polls[num_poll];
 	polls[0].fd = 		_vehicle_roi_sub;
 	polls[0].events = 	POLLIN;
 	polls[1].fd = 		_position_setpoint_triplet_sub;
 	polls[1].events = 	POLLIN;
-	int num_poll = 2;
-
-	if (_manual_control && _allow_manual_control) {
-		polls[num_poll].fd = 		_manual_control->_get_subscription_fd();
-		polls[num_poll].events = 	POLLIN;
-		++num_poll;
-	}
 
 	int ret = px4_poll(polls, num_poll, timeout_ms);
 
@@ -121,7 +110,7 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 	}
 
 	if (ret == 0) {
-		*control_data = nullptr;
+		// Timeout, _control_data is already null
 
 	} else {
 		if (polls[0].revents & POLLIN) {
@@ -129,30 +118,20 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			orb_copy(ORB_ID(vehicle_roi), _vehicle_roi_sub, &vehicle_roi);
 
 			if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
-				_allow_manual_control = true;
-
-				if (!_manual_control) {
-					_control_data.type = ControlData::Type::Neutral;
-				}
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
-				_allow_manual_control = false;
 				_read_control_data_from_position_setpoint_sub();
 				_control_data.type_data.lonlat.roll_angle = 0.f;
 				_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
-				_allow_manual_control = false;
 				//TODO how to do this?
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
-				_allow_manual_control = false;
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
-				_allow_manual_control = false;
 				//TODO is this even suported?
-
 			}
 
 			_cur_roi_mode = vehicle_roi.mode;
@@ -163,9 +142,6 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			}
 
 			_control_data.gimbal_shutter_retract = false;
-
-		} else if (num_poll > 2 && (polls[2].revents & POLLIN)) {
-			_manual_control->_read_control_data_from_subscription(_control_data);
 		}
 
 		// check whether the position setpoint got updated
@@ -190,11 +166,10 @@ void InputMavlinkROI::_read_control_data_from_position_setpoint_sub()
 
 void InputMavlinkROI::print_status()
 {
-	PX4_INFO("Input: Mavlink (ROI)%s", _manual_control ? " (with manual)" : "");
+	PX4_INFO("Input: Mavlink (ROI)");
 }
 
-InputMavlinkCmdMount::InputMavlinkCmdMount(InputRC *manual_override)
-	: _manual_control(manual_override)
+InputMavlinkCmdMount::InputMavlinkCmdMount()
 {
 }
 
@@ -211,31 +186,19 @@ int InputMavlinkCmdMount::initialize()
 		return -errno;
 	}
 
-	if (_manual_control) {
-		int ret = _manual_control->initialize();
-
-		if (ret) {
-			PX4_ERR("failed to initialize rc input");
-			return ret;
-		}
-	}
-
 	return 0;
 }
 
 
-int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **control_data)
+int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
-	px4_pollfd_struct_t polls[2];
+	// Default to notify that there was no change.
+	*control_data = nullptr;
+
+	const int num_poll = 1;
+	px4_pollfd_struct_t polls[num_poll];
 	polls[0].fd = 		_vehicle_command_sub;
 	polls[0].events = 	POLLIN;
-	int num_poll = 1;
-
-	if (_manual_control && _allow_manual_control) {
-		polls[num_poll].fd = 		_manual_control->_get_subscription_fd();
-		polls[num_poll].events = 	POLLIN;
-		++num_poll;
-	}
 
 	int ret = px4_poll(polls, num_poll, timeout_ms);
 
@@ -244,7 +207,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 	}
 
 	if (ret == 0) {
-		*control_data = nullptr;
+		// Timeout control_data already null.
 
 	} else {
 		*control_data = &_control_data;
@@ -260,7 +223,6 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 			_control_data.gimbal_shutter_retract = false;
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL) {
-				_allow_manual_control = false;
 
 				switch ((int)vehicle_command.param7) {
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
@@ -283,7 +245,6 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-					_allow_manual_control = true;
 					*control_data = nullptr;
 
 					break;
@@ -304,9 +265,6 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 				_ack_vehicle_command(vehicle_command.command);
 			}
-
-		} else if (num_poll > 1 && (polls[1].revents & POLLIN)) {
-			_manual_control->_read_control_data_from_subscription(_control_data);
 		}
 
 	}
@@ -333,7 +291,7 @@ void InputMavlinkCmdMount::_ack_vehicle_command(uint16_t command)
 
 void InputMavlinkCmdMount::print_status()
 {
-	PX4_INFO("Input: Mavlink (CMD_MOUNT)%s", _manual_control ? " (with manual)" : "");
+	PX4_INFO("Input: Mavlink (CMD_MOUNT)");
 }
 
 
