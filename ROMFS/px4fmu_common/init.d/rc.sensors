@@ -311,6 +311,10 @@ then
 	if aerofc_adc start
 	then
 	fi
+
+	if ll40ls start i2c
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V4PRO

@@ -21,6 +21,7 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/gps
 	drivers/ist8310
+	drivers/ll40ls
 	drivers/aerofc_adc
 	modules/sensors
 	# dummy tone alarm
