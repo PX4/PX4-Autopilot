@@ -82,8 +82,8 @@ private:
 
 	int _aux_channels[3];
 	int _manual_control_setpoint_sub = -1;
-	bool _first_time = true;
 
+	bool _first_time = true;
 	float _last_set_aux_values[3] = {};
 };
 
