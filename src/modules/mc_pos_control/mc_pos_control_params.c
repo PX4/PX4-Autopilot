@@ -257,7 +257,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Nominal horizontal velocity for manual controlled mode
+ * Maximum horizontal velocity setpoint for manual controlled mode
  *
  * @unit m/s
  * @min 3.0
@@ -493,7 +493,19 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 6.6f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 9.6f);
+
+/**
+ * Minimum jerk in manual controlled mode for braking to zero
+ *
+ * @unit m/s/s/s
+ * @min 1.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 2.6f);
 
 /**
  * Altitude control mode, note mode 1 only tested with LPE

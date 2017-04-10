@@ -150,7 +150,7 @@ private:
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when breaking to zero */
-
+	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk in manual controlled mode when breaking to zero */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -286,6 +286,7 @@ private:
 	float _acc_z_lp;
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
 	float _acceleration_state_dependent_xy;
+	float _manual_jerk_limit; /**< jerk limit in manual mode dependent on stick input */
 
 	bool _in_takeoff; /**< flag for smooth velocity setpoint takeoff ramp */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
@@ -444,6 +445,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_jerk_hor_max(this, "JERK_MAX", true),
+	_jerk_hor_min(this, "JERK_MIN", true),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -469,6 +471,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_max_xy(0.0f),
 	_takeoff_vel_limit(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
+	_manual_jerk_limit(1.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -546,8 +549,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* fetch initial parameter values */
 	parameters_update(true);
 
-	/* default use max acceleration */
+	/* default limit for acceleration and manual jerk*/
 	_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+	_manual_jerk_limit = _jerk_hor_max.get();
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -1022,10 +1026,18 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 
 	/* update user intention */
+
 	switch (_user_intention) {
-	case brake:
-		_user_intention = intention;
-		break;
+	case brake: {
+			/* jerk limit depends linearly on horizontal velocity */
+			if (_user_intention != intention) {
+				_manual_jerk_limit = (_jerk_hor_max.get() - _jerk_hor_min.get()) / (_velocity_hor_manual.get()) * sqrtf(_vel(0) * _vel(
+							     0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+			}
+
+			_user_intention = intention;
+			break;
+		}
 
 	case direction_change: {
 			/* only exit direction change if brake or aligned */
@@ -1068,8 +1080,8 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 			/* limit jerk when braking to zero */
 			float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
 
-			if (jerk > _jerk_hor_max.get()) {
-				_acceleration_state_dependent_xy = _jerk_hor_max.get() * dt + _acceleration_state_dependent_xy;
+			if (jerk > _manual_jerk_limit) {
+				_acceleration_state_dependent_xy = _manual_jerk_limit * dt + _acceleration_state_dependent_xy;
 
 			} else {
 				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
