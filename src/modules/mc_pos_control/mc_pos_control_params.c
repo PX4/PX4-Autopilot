@@ -493,7 +493,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 9.6f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 5.0f);
 
 /**
  * Minimum jerk in manual controlled mode for braking to zero
@@ -505,7 +505,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 9.6f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 2.6f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
 
 /**
  * Altitude control mode, note mode 1 only tested with LPE

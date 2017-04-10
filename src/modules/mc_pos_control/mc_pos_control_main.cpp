@@ -1004,7 +1004,6 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
 
-
 	manual_stick_input intention;
 
 	if (is_current_zero) {
@@ -1025,17 +1024,24 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	}
 
 
-	/* update user intention */
+	/*
+	 * update user intention
+	 */
+
+	/* we always want to break starting with slow deceleraiton */
+	if ((_user_intention != brake) && (intention  == brake)) {
+		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+		_manual_jerk_limit = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() * sqrtf(_vel(0) * _vel(
+					     0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+
+	}
 
 	switch (_user_intention) {
 	case brake: {
-			/* jerk limit depends linearly on horizontal velocity */
-			if (_user_intention != intention) {
-				_manual_jerk_limit = (_jerk_hor_max.get() - _jerk_hor_min.get()) / (_velocity_hor_manual.get()) * sqrtf(_vel(0) * _vel(
-							     0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+			if (intention != brake) {
+				_user_intention = acceleration;
 			}
 
-			_user_intention = intention;
 			break;
 		}
 
@@ -1054,27 +1060,21 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 			break;
 		}
 
-	case acceleration:
-		_user_intention = intention;
-		break;
+	case acceleration: {
+			_user_intention = intention;
+			break;
+		}
 
 	case deceleration: {
-			/* only exit deceleration if brake, direction change or stick input increased*/
-			if ((intention == brake) || (intention == direction_change)) {
-				_user_intention = intention;
-
-			} else if (stick_xy.length() > _stick_input_xy_prev.length()) {
-				_user_intention = acceleration;
-
-			} else {
-				_user_intention = deceleration;
-			}
+			_user_intention = intention;
 
 			break;
 		}
 	}
 
-	/* apply acceleration based on state */
+	/*
+	 * apply acceleration based on state
+	*/
 	switch (_user_intention) {
 	case brake: {
 			/* limit jerk when braking to zero */
@@ -1094,13 +1094,18 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 		break;
 
-	case acceleration:
-		_acceleration_state_dependent_xy = _acceleration_hor_manual.get();
-		break;
+	case acceleration: {
+			/* limit acceleration linearly on stick input*/
+			_acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+							   _deceleration_hor_slow.get();
+			break;
+		}
 
-	case deceleration:
-		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
-		break;
+	case deceleration: {
+			_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+
+			break;
+		}
 
 	default :
 		PX4_WARN("User intention not recognized");
@@ -1112,10 +1117,10 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	_stick_input_xy_prev = matrix::Vector2f(_filter_manual_pitch.apply(stick_xy(0)),
 						_filter_manual_roll.apply(stick_xy(1)));
 
+
 	if (_stick_input_xy_prev.length() > 1.0f) {
 		_stick_input_xy_prev = _stick_input_xy_prev.normalized();
 	}
-
 }
 
 void
@@ -1248,7 +1253,9 @@ MulticopterPositionControl::control_manual(float dt)
 		_pos_hold_engaged = pos_hold_desired;
 
 		/* use max acceleration */
-		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		if (_pos_hold_engaged) {
+			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		}
 
 	} else {
 
