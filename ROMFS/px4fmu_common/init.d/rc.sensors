@@ -329,7 +329,7 @@ then
 	if lis3mdl -R 0 start
 	then
 	fi
-	
+
 	# Possible external compasses
 	if hmc5883 -X start
 	then
