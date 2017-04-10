@@ -289,6 +289,7 @@ private:
 	uint32_t					_log_interval;
 	const orb_metadata				*_polling_topic_meta = nullptr; ///< if non-null, poll on this topic instead of sleeping
 	param_t						_log_utc_offset;
+	param_t						_log_dirs_max;
 	orb_advert_t					_mavlink_log_pub = nullptr;
 	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
 	char						*_replay_file_name = nullptr;
