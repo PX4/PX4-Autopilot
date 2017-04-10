@@ -399,6 +399,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_sdlog_mode(0)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
+	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
 	_sdlog_mode_handle = param_find("SDLOG_MODE");
 
 	if (poll_topic_name) {
@@ -1770,6 +1771,16 @@ int Logger::check_free_space()
 {
 	struct statfs statfs_buf;
 
+	int32_t max_log_dirs_to_keep = 0;
+
+	if (_log_dirs_max != PARAM_INVALID) {
+		param_get(_log_dirs_max, &max_log_dirs_to_keep);
+	}
+
+	if (max_log_dirs_to_keep == 0) {
+		max_log_dirs_to_keep = INT32_MAX;
+	}
+
 	/* remove old logs if the free space falls below a threshold */
 	do {
 		if (statfs(LOG_ROOT, &statfs_buf) != 0) {
@@ -1838,8 +1849,9 @@ int Logger::check_free_space()
 			min_free_bytes = total_bytes / 10;
 		}
 
-		if (statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
-			break; // enough free space
+		if (num_sess + num_dates <= max_log_dirs_to_keep &&
+		    statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
+			break; // enough free space and limit not reached
 		}
 
 		if (num_sess == 0 && num_dates == 0) {
@@ -1873,7 +1885,7 @@ int Logger::check_free_space()
 	} while (true);
 
 
-	/* use a threshold of 50 MiB */
+	/* use a threshold of 50 MiB: if below, do not start logging */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_log_critical(&_mavlink_log_pub,
 				     "[logger] Not logging; SD almost full: %u MiB",
