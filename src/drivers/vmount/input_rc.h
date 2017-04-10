@@ -77,9 +77,9 @@ protected:
 
 	int _get_subscription_fd() const { return _manual_control_setpoint_sub; }
 
-private:
 	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
+private:
 	int _aux_channels[3];
 	int _manual_control_setpoint_sub = -1;
 
