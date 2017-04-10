@@ -48,22 +48,17 @@ void Ekf::fuseDrag()
 	float H_ACC[24] = {}; // Observation Jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	float Kfusion[24] = {}; // Kalman gain vector
-	float R_ACC = 2.5f; // observation noise in specific force drag (m/sec**2) TODO add tuning parameter
+	float R_ACC = _params.drag_noise; // observation noise in specific force drag (m/sec**2)
 
 	float eas2tas = 1.0f; // conversion factor from EAS to TAS - TODO calculate from barometric pressure
 	float rho = 1.225f / sqrtf(eas2tas); // air density (kg/m**3)
 
-	// measured steady state EAS at specified tilt angle in X and Y directions
-	// TODO make the speeds tuning parameters
-	const float max_spd_x = 15.0f;
-	const float max_spd_y = 15.0f;
-	const float tilt_ref_angle = math::radians(25.0f);
-
-	// calculate inverse of ballistic coefficient from max speed and tilt angle
-	// used to predict the acceleration for a given predicted state vector
-	float numerator = 2.0f*_gravity_mss*tanf(tilt_ref_angle);
-	float BC_inv_x = numerator / (rho * sq(max_spd_x));
-	float BC_inv_y = numerator / (rho * sq(max_spd_y));
+	// calculate inverse of ballistic coefficient
+	if (_params.bcoef_x < 1.0f || _params.bcoef_y < 1.0f) {
+		return;
+	}
+	float BC_inv_x = 1.0f / _params.bcoef_x;
+	float BC_inv_y = 1.0f / _params.bcoef_y;
 
 	// get latest estimated orientation
 	float q0 = _state.quat_nominal(0);

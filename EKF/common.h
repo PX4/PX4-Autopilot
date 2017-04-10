@@ -286,6 +286,11 @@ struct parameters {
 	unsigned no_aid_timeout_max;	// maximum lapsed time from last fusion of measurements that constrain drift before
 					// the EKF will report that it is dead-reckoning (usec)
 
+	// multi-rotor drag specific force fusion
+	float drag_noise;		// observation noise for drag specific force measurements (m/sec**2)
+	float bcoef_x;			// ballistic coefficient along the X-axis (kg/m**2)
+	float bcoef_y;			// ballistic coefficient along the Y-axis (kg/m**2)
+
 	// Initialize parameter values.  Initialization must be accomplished in the constructor to allow C99 compiler compatibility.
 	parameters()
 	{
@@ -396,6 +401,11 @@ struct parameters {
 		// dead reckoning timers
 		no_gps_timeout_max = 7e6;
 		no_aid_timeout_max = 1e6;
+
+		// multi-rotor drag specific force fusion
+		drag_noise =  2.5f;
+		bcoef_x = 25.0f;
+		bcoef_y = 25.0f;
 
 	}
 };
