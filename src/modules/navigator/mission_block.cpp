@@ -66,23 +66,23 @@ orb_advert_t actuator_pub_fd;
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
-	_mission_item( {0}),
-	       _waypoint_position_reached(false),
-	       _waypoint_yaw_reached(false),
-	       _time_first_inside_orbit(0),
-	       _action_start(0),
-	       _time_wp_reached(0),
-	       _actuators{},
-	       _actuator_pub(nullptr),
-	       _cmd_pub(nullptr),
-	       _param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
-	       _param_yaw_timeout(this, "MIS_YAW_TMT", false),
-	       _param_yaw_err(this, "MIS_YAW_ERR", false),
-	       _param_vtol_wv_land(this, "VT_WV_LND_EN", false),
-	       _param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
-	       _param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
-	       _param_force_vtol(this, "NAV_FORCE_VT", false),
-	       _param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
+	_mission_item{},
+	_waypoint_position_reached(false),
+	_waypoint_yaw_reached(false),
+	_time_first_inside_orbit(0),
+	_action_start(0),
+	_time_wp_reached(0),
+	_actuators{},
+	_actuator_pub(nullptr),
+	_cmd_pub(nullptr),
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
+	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
+	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
+	_param_force_vtol(this, "NAV_FORCE_VT", false),
+	_param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
 {
 }
 
