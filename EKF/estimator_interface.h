@@ -184,6 +184,9 @@ public:
 	// set flag if synthetic sideslip measurement should be fused
 	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = fuse_beta;}
 
+	// set air density used by the multi-rotor specific drag force fusion
+	void set_air_density(float air_density) {_air_density = air_density;}
+
 	// return true if the global position estimate is valid
 	virtual bool global_position_is_valid() = 0;
 
@@ -321,8 +324,11 @@ protected:
 	extVisionSample _ev_sample_delayed;
 	dragSample _drag_sample_delayed;
 	dragSample _drag_down_sampled;	// down sampled drag specific force data (filter prediction rate -> observation rate)
+
+	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count;	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt;	// time integral across all samples used to form _drag_down_sampled (sec)
+	float _air_density;		// air density (kg/m**3)
 
 	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
 	outputSample _output_new;	// filter output on the non-delayed time horizon

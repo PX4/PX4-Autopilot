@@ -63,6 +63,7 @@ EstimatorInterface::EstimatorInterface():
 	_drag_down_sampled{},
 	_drag_sample_count(0),
 	_drag_sample_time_dt(0.0f),
+	_air_density(1.225f),
 	_imu_ticks(0),
 	_imu_updated(false),
 	_initialised(false),

@@ -50,8 +50,7 @@ void Ekf::fuseDrag()
 	float Kfusion[24] = {}; // Kalman gain vector
 	float R_ACC = _params.drag_noise; // observation noise in specific force drag (m/sec**2)
 
-	float eas2tas = 1.0f; // conversion factor from EAS to TAS - TODO calculate from barometric pressure
-	float rho = 1.225f / sqrtf(eas2tas); // air density (kg/m**3)
+	float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
 
 	// calculate inverse of ballistic coefficient
 	if (_params.bcoef_x < 1.0f || _params.bcoef_y < 1.0f) {
