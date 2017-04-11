@@ -70,10 +70,11 @@ using namespace vmount;
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 
-static constexpr unsigned input_objs_len = 3;
+static constexpr unsigned input_objs_len_max = 3;
 
 struct ThreadData {
-	InputBase *input_objs[input_objs_len] = {nullptr, nullptr, nullptr};
+	InputBase *input_objs[input_objs_len_max] = {nullptr, nullptr, nullptr};
+	unsigned input_objs_len = 0;
 	OutputBase *output_obj = nullptr;
 };
 static volatile ThreadData *g_thread_data = nullptr;
@@ -209,6 +210,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
 
 			bool alloc_failed = false;
+			thread_data.input_objs_len = 1;
 
 			if (test_input) {
 				thread_data.input_objs[0] = test_input;
@@ -238,6 +240,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 						if (!thread_data.input_objs[2]) { alloc_failed = true; }
 					}
+					thread_data.input_objs_len = 3;
 
 					break;
 
@@ -295,6 +298,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 
 			if (alloc_failed) {
+				thread_data.input_objs_len = 0;
 				PX4_ERR("memory allocation failed");
 				thread_should_exit = true;
 				break;
@@ -309,12 +313,12 @@ static int vmount_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (thread_data.input_objs[0]) {
+		if (thread_data.input_objs_len > 0) {
 
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
 
-			for (int i = 0; i < input_objs_len; ++i) {
+			for (int i = 0; i < thread_data.input_objs_len; ++i) {
 
 				bool already_active = (last_active == i);
 
@@ -363,12 +367,13 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				//re-init objects
-				for (int i = 0; i < input_objs_len; ++i) {
+				for (int i = 0; i < input_objs_len_max; ++i) {
 					if (thread_data.input_objs[i]) {
 						delete (thread_data.input_objs[i]);
 						thread_data.input_objs[i] = nullptr;
 					}
 				}
+				thread_data.input_objs_len = 0;
 
 				last_active = -1;
 
@@ -384,12 +389,14 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	orb_unsubscribe(parameter_update_sub);
 
-	for (int i = 0; i < input_objs_len; ++i) {
+	for (int i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {
 			delete (thread_data.input_objs[i]);
 			thread_data.input_objs[i] = nullptr;
 		}
 	}
+
+	thread_data.input_objs_len = 0;
 
 	if (thread_data.output_obj) {
 		delete (thread_data.output_obj);
@@ -466,16 +473,11 @@ int vmount_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running && g_thread_data) {
 
-			bool found_input = false;
-
-			for (int i = 0; i < input_objs_len; ++i) {
-				if (g_thread_data->input_objs[i]) {
-					g_thread_data->input_objs[i]->print_status();
-					found_input = true;
-				}
+			for (int i = 0; i < g_thread_data->input_objs_len; ++i) {
+				g_thread_data->input_objs[i]->print_status();
 			}
 
-			if (!found_input) {
+			if (g_thread_data->input_objs_len == 0) {
 				PX4_INFO("Input: None");
 			}
 
