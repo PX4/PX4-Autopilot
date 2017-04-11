@@ -1,7 +1,7 @@
 /**
- * @file pwm.h
+ * @file seagull_map2.h
  *
- * Interface with cameras via pwm.
+ * Interface supported cameras using a Seagull MAP2 interface.
  *
  */
 #pragma once
@@ -15,11 +15,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include "camera_interface.h"
 
-class CameraInterfacePWM : public CameraInterface
+class CameraInterfaceSeagull : public CameraInterface
 {
 public:
-	CameraInterfacePWM();
-	virtual ~CameraInterfacePWM();
+	CameraInterfaceSeagull();
+	virtual ~CameraInterfaceSeagull();
 
 	void trigger(bool enable);
 	void keep_alive(bool signal_on);
