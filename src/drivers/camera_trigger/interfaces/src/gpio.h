@@ -15,7 +15,6 @@
 
 #include "camera_interface.h"
 
-
 class CameraInterfaceGPIO : public CameraInterface
 {
 public:

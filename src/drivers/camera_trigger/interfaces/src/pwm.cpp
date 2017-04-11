@@ -18,7 +18,7 @@ CameraInterfacePWM::CameraInterfacePWM():
 	param_get(_p_pin, &pin_list);
 
 	// Set all pins as invalid
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		_pins[i] = -1;
 	}
 
@@ -82,7 +82,6 @@ void CameraInterfacePWM::trigger(bool enable)
 
 void CameraInterfacePWM::info()
 {
-	// TODO : cleanup this output for all trigger types
 	PX4_INFO("PWM trigger mode (generic), pins enabled : [%d][%d][%d][%d][%d][%d]",
 		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0]);
 }

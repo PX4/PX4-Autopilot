@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+
 class CameraInterface
 {
 public:
