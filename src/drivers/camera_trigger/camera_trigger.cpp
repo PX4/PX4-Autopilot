@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +34,10 @@
 /**
  * @file camera_trigger.cpp
  *
- * External camera-IMU synchronisation and triggering via FMU auxiliary pins.
+ * External camera-IMU synchronisation and triggering, and support for
+ * camera manipulation using PWM signals over FMU auxillary pins.
  *
- * Support for camera manipulation via PWM signal over servo pins.
- *
- * @author Mohammed Kabir <mhkabir98@gmail.com>
+ * @author Mohammed Kabir <kabir@uasys.io>
  * @author Kelly Steich <kelly.steich@wingtra.com>
  * @author Andreas Bircher <andreas@wingtra.com>
  */
@@ -66,7 +65,7 @@
 #include <board_config.h>
 
 #include "interfaces/src/camera_interface.h"
-#include "interfaces/src/pwm.h"
+#include "interfaces/src/seagull_map2.h"
 #include "interfaces/src/gpio.h"
 
 #define TRIGGER_PIN_DEFAULT 1
@@ -257,7 +256,7 @@ CameraTrigger::CameraTrigger() :
 		break;
 
 	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:
-		_camera_interface = new CameraInterfacePWM();
+		_camera_interface = new CameraInterfaceSeagull();
 		break;
 
 #endif

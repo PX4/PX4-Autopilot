@@ -4,9 +4,9 @@
 #include <lib/mathlib/mathlib.h>
 
 #include "drivers/drv_pwm_trigger.h"
-#include "pwm.h"
+#include "seagull_map2.h"
 
-// PWM levels of the interface to seagull MAP converter to
+// PWM levels of the interface to Seagull MAP 2 converter to
 // Multiport (http://www.seagulluav.com/manuals/Seagull_MAP2-Manual.pdf)
 #define PWM_CAMERA_DISARMED			900
 #define PWM_CAMERA_ON				1100
@@ -17,7 +17,7 @@
 #define PWM_2_CAMERA_KEEP_ALIVE		1700
 #define PWM_2_CAMERA_ON_OFF			1900
 
-CameraInterfacePWM::CameraInterfacePWM():
+CameraInterfaceSeagull::CameraInterfaceSeagull():
 	CameraInterface(),
 	_camera_is_on(false)
 {
@@ -49,13 +49,13 @@ CameraInterfacePWM::CameraInterfacePWM():
 	setup();
 }
 
-CameraInterfacePWM::~CameraInterfacePWM()
+CameraInterfaceSeagull::~CameraInterfaceSeagull()
 {
 	// Deinitialise pwm channels
 	up_pwm_trigger_deinit();
 }
 
-void CameraInterfacePWM::setup()
+void CameraInterfaceSeagull::setup()
 {
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
@@ -67,7 +67,7 @@ void CameraInterfacePWM::setup()
 	}
 }
 
-void CameraInterfacePWM::trigger(bool enable)
+void CameraInterfaceSeagull::trigger(bool enable)
 {
 	// This only starts working upon prearming
 
@@ -83,7 +83,7 @@ void CameraInterfacePWM::trigger(bool enable)
 	}
 }
 
-void CameraInterfacePWM::keep_alive(bool signal_on)
+void CameraInterfaceSeagull::keep_alive(bool signal_on)
 {
 	// This should alternate between signal_on and !signal_on to keep the camera alive
 
@@ -99,7 +99,7 @@ void CameraInterfacePWM::keep_alive(bool signal_on)
 	}
 }
 
-void CameraInterfacePWM::turn_on_off(bool enable)
+void CameraInterfaceSeagull::turn_on_off(bool enable)
 {
 
 	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
@@ -113,9 +113,9 @@ void CameraInterfacePWM::turn_on_off(bool enable)
 	if (!enable) { _camera_is_on = !_camera_is_on; }
 }
 
-void CameraInterfacePWM::info()
+void CameraInterfaceSeagull::info()
 {
-	PX4_INFO("PWM trigger mode, pins enabled : [%d][%d][%d][%d][%d][%d]",
+	PX4_INFO("PWM trigger mode (Seagull MAP2) , pins enabled : [%d][%d][%d][%d][%d][%d]",
 		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0]);
 }
 
