@@ -1,14 +1,6 @@
-# Excelsior is the code name of a board currently in development.
+# Excelsior is the code name of a board currently in development
 #
-# This cmake config builds for QURT which is the operating system running on
-# the DSP side.
+# This cmake config is for QuRT which is the RTOS running on the Hexagon DSP
 
-# The config between different QURT builds is shared.
-include(configs/qurt_sdflight_legacy)
-
-add_definitions(
-   -D__USING_SNAPDRAGON_LEGACY_DRIVER
-   -D__PX4_QURT
-   -D__PX4_QURT_EXCELSIOR
-   )
-
+# The legacy drivers (binary) are used in this config
+include(configs/qcom/qurt_modules_legacy)

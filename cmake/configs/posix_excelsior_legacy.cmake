@@ -1,14 +1,12 @@
-# Excelsior is the code name of a board currently in development.
+# Excelsior is the code name of a board currently in development
 #
-# This cmake config builds for POSIX, so the part of the flight stack running
-# on the Linux side of the Snapdragon.
+# This cmake config is for ARM POSIX and the resulting build runs on 
+# the ARM application processor of the Snapdragon SoC
 
-include(configs/posix_sdflight_legacy)
+include(configs/qcom/posix_excelsior_common)
+include(configs/qcom/posix_modules_default)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-oemllib32-linux-gnueabi.cmake)
-# This definition allows to differentiate if this just the usual POSIX build
-# or if it is for the Snapdragon.
+# This config uses the legacy (binary) drivers
 add_definitions(
-    -D__PX4_POSIX_EXCELSIOR
     -D__USING_SNAPDRAGON_LEGACY_DRIVER
 )
