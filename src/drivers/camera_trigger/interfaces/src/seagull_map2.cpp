@@ -17,6 +17,8 @@
 #define PWM_2_CAMERA_KEEP_ALIVE		1700
 #define PWM_2_CAMERA_ON_OFF			1900
 
+// TODO : cleanup using arraySize() macro
+
 CameraInterfaceSeagull::CameraInterfaceSeagull():
 	CameraInterface(),
 	_camera_is_on(false)
@@ -69,7 +71,6 @@ void CameraInterfaceSeagull::setup()
 
 void CameraInterfaceSeagull::trigger(bool enable)
 {
-	// This only starts working upon prearming
 
 	if (!_camera_is_on) {
 		return;
