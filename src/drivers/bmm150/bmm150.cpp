@@ -71,7 +71,8 @@ void start(bool external_bus, enum Rotation rotation)
 	if (*g_dev_ptr != nullptr)
 		/* if already started, the still command succeeded */
 	{
-		errx(0, "already started");
+		PX4_ERR("already started");
+		exit(0);
 	}
 
 	/* create the driver */
@@ -79,7 +80,8 @@ void start(bool external_bus, enum Rotation rotation)
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
 		*g_dev_ptr = new BMM150(PX4_I2C_BUS_BMM150, path, external_bus, rotation);
 #else
-		errx(0, "External I2C not available");
+		PX4_ERR("External I2C not available");
+		exit(0);
 #endif
 
 	} else {
@@ -117,7 +119,9 @@ fail:
 		*g_dev_ptr = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	PX4_ERR("driver start failed");
+	exit(1);
+
 }
 
 
@@ -132,35 +136,39 @@ void test(bool external_bus)
 	/* get the driver */
 	fd = open(path, O_RDONLY);
 
-	if (fd < 0)
-		err(1, "%s open failed (try 'bmm150 start' if the driver is not running)",
-		    path);
+	if (fd < 0) {
+		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)",
+			path);
+		exit(1);
+	}
 
 	/* reset to Max polling rate*/
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
-		err(1, "reset to Max polling rate");
+		PX4_ERR("reset to Max polling rate");
+		exit(1);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &m_report, sizeof(m_report));
 
 	if (sz != sizeof(m_report)) {
-		err(1, "immediate mag read failed");
+		PX4_ERR("immediate mag read failed");
+		exit(1);
 	}
 
-	warnx("single read");
-	warnx("time:     %lld", m_report.timestamp);
-	warnx("mag  x:  \t%8.4f\t", (double)m_report.x);
-	warnx("mag  y:  \t%8.4f\t", (double)m_report.y);
-	warnx("mag  z:  \t%8.4f\t", (double)m_report.z);
-	warnx("mag  x:  \t%d\traw 0x%0x", (short)m_report.x_raw, (unsigned short)m_report.x_raw);
-	warnx("mag  y:  \t%d\traw 0x%0x", (short)m_report.y_raw, (unsigned short)m_report.y_raw);
-	warnx("mag  z:  \t%d\traw 0x%0x", (short)m_report.z_raw, (unsigned short)m_report.z_raw);
+	PX4_WARN("single read");
+	PX4_WARN("time:     %lld", m_report.timestamp);
+	PX4_WARN("mag  x:  \t%8.4f\t", (double)m_report.x);
+	PX4_WARN("mag  y:  \t%8.4f\t", (double)m_report.y);
+	PX4_WARN("mag  z:  \t%8.4f\t", (double)m_report.z);
+	PX4_WARN("mag  x:  \t%d\traw 0x%0x", (short)m_report.x_raw, (unsigned short)m_report.x_raw);
+	PX4_WARN("mag  y:  \t%d\traw 0x%0x", (short)m_report.y_raw, (unsigned short)m_report.y_raw);
+	PX4_WARN("mag  z:  \t%d\traw 0x%0x", (short)m_report.z_raw, (unsigned short)m_report.z_raw);
 
-	errx(0, "PASS");
+	PX4_ERR("PASS");
+	exit(0);
 
 }
-
 
 
 void
@@ -170,15 +178,18 @@ reset(bool external_bus)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("failed");
+		exit(1);
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		PX4_ERR("driver reset failed");
+		exit(1);
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
+		exit(1);
 	}
 
 	exit(0);
@@ -191,7 +202,8 @@ info(bool external_bus)
 	BMM150 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		exit(1);
 	}
 
 	printf("state @ %p\n", *g_dev_ptr);
@@ -210,7 +222,8 @@ regdump(bool external_bus)
 	BMM150 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
 
 	if (*g_dev_ptr == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		exit(1);
 	}
 
 	printf("regdump @ %p\n", *g_dev_ptr);
@@ -222,9 +235,9 @@ regdump(bool external_bus)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
+	PX4_WARN("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump'");
+	PX4_WARN("options:");
+	PX4_WARN("    -X    (external bus)");
 
 }
 
@@ -236,9 +249,11 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
 	_work{},
 	_external(false),
+	_running(false),
 	_call_interval(0),
 	_report{0},
 	_reports(nullptr),
+	_collect_phase(false),
 	_scale{},
 	_range_scale(0.01), /* default range scale from from uT to gauss */
 	_topic(nullptr),
@@ -261,6 +276,8 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmm150_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmm150_bad_transfers")),
 	_good_transfers(perf_alloc(PC_COUNT, "bmm150_good_transfers")),
+	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
+	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
 	_duplicates(perf_alloc(PC_COUNT, "bmm150_duplicates")),
 	_rotation(rotation),
 	_got_duplicate(false),
@@ -298,10 +315,17 @@ BMM150 :: ~BMM150()
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
 	}
 
+	if (_topic != nullptr) {
+		orb_unadvertise(_topic);
+	}
+
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_good_transfers);
+	perf_free(_measure_perf);
+	perf_free(_comms_errors);
 	perf_free(_duplicates);
 
 }
@@ -333,7 +357,7 @@ int BMM150::init()
 
 	/* check  id*/
 	if (read_reg(BMM150_CHIP_ID_REG) != BMM150_CHIP_ID) {
-		warnx("id of magnetometer is not: 0x%02x", BMM150_CHIP_ID);
+		PX4_WARN("id of magnetometer is not: 0x%02x", BMM150_CHIP_ID);
 		return -EIO;
 	}
 
@@ -345,7 +369,15 @@ int BMM150::init()
 
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
-	collect();
+	if (measure()) {
+		return -EIO;
+	}
+
+	up_udelay(10000);
+
+	if (collect()) {
+		return -EIO;
+	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct mag_report mrb;
@@ -356,7 +388,7 @@ int BMM150::init()
 				     &_orb_class_instance, (is_external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 	if (_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_WARN("ADVERT FAIL");
 	}
 
 out:
@@ -381,18 +413,21 @@ void
 BMM150::start()
 {
 	/* reset the report ring and state machine */
+	_collect_phase = false;
+	_running = true;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this, 1);
-
 
 }
 
 void
 BMM150::stop()
 {
+	_running = false;
 	work_cancel(HPWORK, &_work);
+
 }
 
 ssize_t
@@ -430,6 +465,15 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 	do {
 		_reports->flush();
 
+		/* trigger a measurement */
+		if (OK != measure()) {
+			ret = -EIO;
+			break;
+		}
+
+		/* wait for it to complete */
+		usleep(BMM150_CONVERSION_INTERVAL);
+
 		/* run the collection phase */
 		if (OK != collect()) {
 			ret = -EIO;
@@ -455,21 +499,65 @@ BMM150::cycle_trampoline(void *arg)
 
 	/* make measurement */
 	dev->cycle();
-
 }
 
 void
 BMM150::cycle()
 {
-	collect();
-	work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this, USEC2TICK(BMM150_CONVERSION_INTERVAL));
+	if (_collect_phase) {
+		collect();
+		unsigned wait_gap = _call_interval - USEC2TICK(BMM150_CONVERSION_INTERVAL);
+
+		if ((wait_gap != 0) && (_running)) {
+			work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this,
+				   wait_gap); //need to wait some time before new measurement
+			return;
+		}
+
+	}
+
+	measure();
+
+	if ((_running)) {
+		/* schedule a fresh cycle call when the measurement is done */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&BMM150::cycle_trampoline,
+			   this,
+			   USEC2TICK(BMM150_CONVERSION_INTERVAL));
+	}
+
 
 }
+
+int
+BMM150::measure()
+{
+	_collect_phase = true;
+
+	perf_begin(_measure_perf);
+
+	/* start measure */
+	int ret = set_power_mode(BMM150_FORCED_MODE);
+
+	if (ret != OK) {
+		perf_count(_comms_errors);
+		perf_cancel(_measure_perf);
+		return -EIO;
+	}
+
+	perf_end(_measure_perf);
+
+	return OK;
+}
+
 
 
 int
 BMM150::collect()
 {
+	_collect_phase = false;
+
 	bool mag_notify = true;
 	uint8_t mag_data[8], status;
 	uint16_t resistance, lsb, msb, msblsb;
@@ -537,6 +625,7 @@ BMM150::collect()
 	    mrb.z_raw == 0 &&
 	    resistance == 0) {
 		// all zero data - probably a I2C bus error
+		perf_count(_comms_errors);
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
@@ -600,6 +689,9 @@ BMM150::collect()
 	// This allows the higher level code to decide if it
 	// should use this sensor based on whether it has had failures
 	mrb.error_count = perf_event_count(_bad_transfers);
+
+	// apply user specified rotation
+	rotate_3f(_rotation, mrb.x, mrb.y, mrb.z);
 
 
 	/* Scaling the data */
@@ -1028,7 +1120,6 @@ BMM150::print_info()
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
 	       (double)(1.0f / _range_scale));
 	printf("\n");
-
 
 }
 
