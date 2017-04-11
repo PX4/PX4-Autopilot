@@ -46,7 +46,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4airframes import srcscanner, srcparser, xmlout, rcout
+from px4airframes import srcscanner, srcparser, xmlout, rcout, markdownout
 
 def main():
     # Parse command line arguments
@@ -61,6 +61,12 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: airframes.xml)")
+    parser.add_argument("-m", "--markdown",
+                        nargs='?',
+                        const="airframes.md",
+                        metavar="FILENAME",
+                        help="Create Markdown file"
+                             " (default FILENAME: airframes.md)")
     parser.add_argument("-s", "--start-script",
                         nargs='?',
                         const="rc.autostart",
@@ -75,7 +81,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml) and not (args.start_script):
+    if not (args.xml) and not (args.start_script) and not args.markdown:
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -98,6 +104,12 @@ def main():
         if args.verbose: print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
+
+    # Output to markdown file
+    if args.markdown:
+        if args.verbose: print("Creating markdown file " + args.markdown)
+        out = markdownout.MarkdownTablesOutput(param_groups, args.board)
+        out.Save(args.markdown)
 
     if args.start_script:
         if args.verbose: print("Creating start script " + args.start_script)
