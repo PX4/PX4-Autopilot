@@ -59,6 +59,10 @@ EstimatorInterface::EstimatorInterface():
 	_airspeed_sample_delayed{},
 	_flow_sample_delayed{},
 	_ev_sample_delayed{},
+	_drag_sample_delayed{},
+	_drag_down_sampled{},
+	_drag_sample_count(0),
+	_drag_sample_time_dt(0.0f),
 	_imu_ticks(0),
 	_imu_updated(false),
 	_initialised(false),
@@ -142,6 +146,42 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		_imu_buffer.push(imu_sample_new);
 		_imu_ticks = 0;
 		_imu_updated = true;
+
+		// down-sample the drag specific force data by accumulating and calculating the mean when
+		// sufficient samples have been collected
+		if (_params.fusion_mode & MASK_USE_DRAG) {
+			_drag_sample_count ++;
+			// note acceleration is accumulated as a delta velocity
+			_drag_down_sampled.accelXY(0) += imu_sample_new.delta_vel(0);
+			_drag_down_sampled.accelXY(1) += imu_sample_new.delta_vel(1);
+			_drag_down_sampled.time_us += imu_sample_new.time_us;
+			_drag_sample_time_dt += imu_sample_new.delta_vel_dt;
+
+			// calculate the downsample ratio for drag specific force data
+			uint8_t min_sample_ratio = (uint8_t) ceil((float)_imu_buffer_length / _obs_buffer_length);
+			if (min_sample_ratio < 5) {
+				min_sample_ratio = 5;
+
+			}
+
+			// calculate and store means from accumulated values
+			if (_drag_sample_count >= min_sample_ratio) {
+				// note conversion from accumulated delta velocity to acceleration
+				_drag_down_sampled.accelXY(0) /= _drag_sample_time_dt;
+				_drag_down_sampled.accelXY(1) /= _drag_sample_time_dt;
+				_drag_down_sampled.time_us /= _drag_sample_count;
+
+				// write to buffer
+				_drag_buffer.push(_drag_down_sampled);
+
+				// reset accumulators
+				_drag_sample_count = 0;
+				_drag_down_sampled.accelXY.zero();
+				_drag_down_sampled.time_us = 0;
+				_drag_sample_time_dt = 0.0f;
+
+			}
+		}
 
 		// get the oldest data from the buffer
 		_imu_sample_delayed = _imu_buffer.get_oldest();
@@ -387,6 +427,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _airspeed_buffer.allocate(_obs_buffer_length) &&
 	      _flow_buffer.allocate(_obs_buffer_length) &&
 	      _ext_vision_buffer.allocate(_obs_buffer_length) &&
+	      _drag_buffer.allocate(_obs_buffer_length) &&
 	      _output_buffer.allocate(_imu_buffer_length))) {
 		ECL_ERR("EKF buffer allocation failed!");
 		unallocate_buffers();
@@ -409,6 +450,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		_flow_buffer.push(flow_sample_init);
 		extVisionSample ext_vision_sample_init = {};
 		_ext_vision_buffer.push(ext_vision_sample_init);
+		dragSample drag_sample_init = {};
+		_drag_buffer.push(drag_sample_init);
 	}
 
 	// zero the data in the imu data and output observer state buffers

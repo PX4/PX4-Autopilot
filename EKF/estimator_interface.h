@@ -319,6 +319,10 @@ protected:
 	airspeedSample _airspeed_sample_delayed;
 	flowSample _flow_sample_delayed;
 	extVisionSample _ev_sample_delayed;
+	dragSample _drag_sample_delayed;
+	dragSample _drag_down_sampled;	// down sampled drag specific force data (filter prediction rate -> observation rate)
+	uint8_t _drag_sample_count;	// number of drag specific force samples assumulated at the filter prediction rate
+	float _drag_sample_time_dt;	// time integral across all samples used to form _drag_down_sampled (sec)
 
 	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
 	outputSample _output_new;	// filter output on the non-delayed time horizon
@@ -368,6 +372,7 @@ protected:
 	RingBuffer<flowSample> 	_flow_buffer;
 	RingBuffer<extVisionSample> _ext_vision_buffer;
 	RingBuffer<outputSample> _output_buffer;
+	RingBuffer<dragSample> _drag_buffer;
 
 	uint64_t _time_last_imu;	// timestamp of last imu sample in microseconds
 	uint64_t _time_last_gps;	// timestamp of last gps measurement in microseconds

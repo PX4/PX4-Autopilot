@@ -140,6 +140,11 @@ struct extVisionSample {
 	uint64_t time_us; // timestamp of the measurement in microseconds
 };
 
+struct dragSample {
+	Vector2f accelXY; // measured specific force along the X and Y body axes (m/s**2)
+	uint64_t time_us; // timestamp in microseconds of the measurement
+};
+
 // Integer definitions for vdist_sensor_type
 #define VDIST_SENSOR_BARO  0	// Use baro height
 #define VDIST_SENSOR_GPS   1	// Use GPS height

@@ -865,12 +865,14 @@ void Ekf::controlDragFusion()
 {
 	if (_params.fusion_mode & MASK_USE_DRAG && _control_status.flags.in_air) {
 		if (!_control_status.flags.wind) {
+			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
 			resetWindStates();
 			resetWindCovariance();
 
-		} else {
+		} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
 			fuseDrag();
+
 		}
 	} else {
 		_control_status.flags.wind = false;

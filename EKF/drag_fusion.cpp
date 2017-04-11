@@ -75,11 +75,6 @@ void Ekf::fuseDrag()
 	float vwn = _state.wind_vel(0);
 	float vwe = _state.wind_vel(1);
 
-	// calculate measured XY specific forces if enough data
-	if (_imu_sample_delayed.delta_vel_dt < 1e-3f) {
-		return;
-	}
-
 	// predicted specific forces
 	// calculate relative wind velocity in earth frame and rotte into body frame
 	Vector3f rel_wind;
@@ -95,11 +90,11 @@ void Ekf::fuseDrag()
 		// calculate observation jacobiam and Kalman gain vectors
 		if (axis_index == 0) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = (_imu_sample_delayed.delta_vel(axis_index)  - _state.accel_bias(axis_index))/_imu_sample_delayed.delta_vel_dt;
+			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.accel_bias(axis_index) / _dt_ekf_avg;
 			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_x * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
-			// Limit lower value to prevent artithmetic exceptions
+			// Limit lower value to prevent arithmetic exceptions
 			float Kacc = fmax(1e-1f,rho * BC_inv_x * airSpd);
 
 			SH_ACC[0] = sq(q0) + sq(q1) - sq(q2) - sq(q3);
@@ -165,11 +160,11 @@ void Ekf::fuseDrag()
 
 		} else if (axis_index == 1) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = (_imu_sample_delayed.delta_vel(axis_index)  - _state.accel_bias(axis_index))/_imu_sample_delayed.delta_vel_dt;
+			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.accel_bias(axis_index) / _dt_ekf_avg;
 			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_y * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
-			// Limit lower value to prevent artithmetic exceptions
+			// Limit lower value to prevent arithmetic exceptions
 			float Kacc = fmax(1e-1f,rho * BC_inv_y * airSpd);
 
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
