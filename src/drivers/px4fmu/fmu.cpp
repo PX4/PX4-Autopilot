@@ -576,6 +576,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x1;
 		_pwm_initialized = false;
+		_num_outputs = 1;
 		break;
 
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
@@ -593,6 +594,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x3;
 		_pwm_initialized = false;
+		_num_outputs = 2;
 
 		break;
 
@@ -610,6 +612,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x7;
 		_pwm_initialized = false;
+		_num_outputs = 3;
+
 		break;
 
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
@@ -621,6 +625,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0xf;
 		_pwm_initialized = false;
+		_num_outputs = 4;
 
 		break;
 
@@ -635,6 +640,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x3f;
 		_pwm_initialized = false;
+		_num_outputs = 6;
 
 		break;
 #endif
@@ -649,6 +655,8 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0xff;
 		_pwm_initialized = false;
+		_num_outputs = 8;
+
 		break;
 #endif
 
@@ -660,6 +668,7 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x0;
 		_pwm_initialized = false;
+		_num_outputs = 0;
 
 		if (old_mask != _pwm_mask) {
 			/* disable servo outputs - no need to set rates */
@@ -723,7 +732,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 		 * rate and mode. (See rates above.)
 		 */
 
-		for (unsigned group = 0; group < _max_actuators; group++) {
+		for (unsigned group = 0; group < _max_actuators; group++) { // TODO : make sure this doesn't touch trigger
 
 			// get the channel mask for this rate group
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
@@ -1218,40 +1227,6 @@ PX4FMU::cycle()
 			/* can we mix? */
 			if (_mixers != nullptr) {
 
-				size_t num_outputs;
-
-				switch (_mode) {
-				case MODE_1PWM:
-					num_outputs = 1;
-					break;
-
-				case MODE_2PWM:
-				case MODE_2PWM2CAP:
-					num_outputs = 2;
-					break;
-
-				case MODE_3PWM:
-				case MODE_3PWM1CAP:
-					num_outputs = 3;
-					break;
-
-				case MODE_4PWM:
-					num_outputs = 4;
-					break;
-
-				case MODE_6PWM:
-					num_outputs = 6;
-					break;
-
-				case MODE_8PWM:
-					num_outputs = 8;
-					break;
-
-				default:
-					num_outputs = 0;
-					break;
-				}
-
 				hrt_abstime now = hrt_absolute_time();
 				float dt = (now - _time_last_mix) / 1e6f;
 				_time_last_mix = now;
@@ -1276,7 +1251,7 @@ PX4FMU::cycle()
 
 				/* do mixing */
 				float outputs[_max_actuators];
-				num_outputs = _mixers->mix(outputs, num_outputs, NULL);
+				_num_outputs = _mixers->mix(outputs, _num_outputs, NULL); // TODO : what
 
 				/* publish mixer status */
 				multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -1295,7 +1270,7 @@ PX4FMU::cycle()
 
 				/* disable unused ports by setting their output to NaN */
 				for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
-					if (i >= num_outputs) {
+					if (i >= _num_outputs) {
 						outputs[i] = NAN_VALUE;
 					}
 				}
@@ -1303,26 +1278,26 @@ PX4FMU::cycle()
 				uint16_t pwm_limited[_max_actuators];
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
-				pwm_limit_calc(_throttle_armed, arm_nothrottle(), num_outputs, _reverse_pwm_mask,
+				pwm_limit_calc(_throttle_armed, arm_nothrottle(), _num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
-					for (size_t i = 0; i < num_outputs; i++) {
+					for (size_t i = 0; i < _num_outputs; i++) {
 						pwm_limited[i] = _failsafe_pwm[i];
 					}
 				}
 
 				/* overwrite outputs in case of lockdown with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
-					for (size_t i = 0; i < num_outputs; i++) {
+					for (size_t i = 0; i < _num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
 
 				/* output to the servos */
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _num_outputs; i++) {
 					pwm_output_set(i, pwm_limited[i]);
 				}
 
@@ -1334,7 +1309,7 @@ PX4FMU::cycle()
 					up_pwm_update();
 				}
 
-				publish_pwm_outputs(pwm_limited, num_outputs);
+				publish_pwm_outputs(pwm_limited, _num_outputs);
 				perf_end(_ctl_latency);
 			}
 		}
