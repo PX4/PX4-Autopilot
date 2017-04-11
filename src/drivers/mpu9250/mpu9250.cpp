@@ -371,6 +371,12 @@ out:
 
 int MPU9250::reset()
 {
+	irqstate_t state;
+
+	// Hold off sampling for 60 ms
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 60000;
+
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 	up_udelay(10000);
 
@@ -379,6 +385,14 @@ int MPU9250::reset()
 
 	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
 	up_udelay(1000);
+
+	px4_leave_critical_section(state);
+
+	// Hold off sampling for 30 ms
+
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 30000;
+	px4_leave_critical_section(state);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
