@@ -700,10 +700,13 @@ int MPU6500::reset()
 	// frequenctly comes up in a bad state where all transfers
 	// come as zero
 	uint8_t tries = 5;
+	irqstate_t state;
 
 	while (--tries != 0) {
-		irqstate_t state;
 		state = px4_enter_critical_section();
+
+		// Hold off sampling for 60 ms
+		_reset_wait = hrt_absolute_time() + 60000;
 
 		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 		up_udelay(10000);
@@ -725,6 +728,12 @@ int MPU6500::reset()
 		perf_count(_reset_retries);
 		usleep(2000);
 	}
+
+	// Hold off sampling for 30 ms
+
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 30000;
+	px4_leave_critical_section(state);
 
 	if (read_reg(MPUREG_PWR_MGMT_1) != MPU_CLK_SEL_PLLGYROZ) {
 		return -EIO;
