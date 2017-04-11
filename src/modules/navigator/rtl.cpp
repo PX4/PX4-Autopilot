@@ -240,7 +240,7 @@ RTL::set_rtl_item()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = false;
+			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
 			/* disable previous setpoint to prevent drift */
