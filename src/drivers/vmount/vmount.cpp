@@ -319,7 +319,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				bool already_active = (last_active == i);
 
 				ControlData *control_data_to_check = nullptr;
-				int ret = thread_data.input_objs[i]->update(50, &control_data, already_active);
+				int ret = thread_data.input_objs[i]->update(50, &control_data_to_check, already_active);
 
 				if (ret) {
 					PX4_ERR("failed to read input %i (ret: %i)", i, ret);
