@@ -28,7 +28,7 @@ CameraInterfaceSeagull::CameraInterfaceSeagull():
 	param_get(_p_pin, &pin_list);
 
 	// Set all pins as invalid
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i++) {
+	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		_pins[i] = -1;
 	}
 
@@ -59,7 +59,7 @@ CameraInterfaceSeagull::~CameraInterfaceSeagull()
 
 void CameraInterfaceSeagull::setup()
 {
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			uint8_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
 			up_pwm_trigger_init(pin_bitmask);
@@ -76,7 +76,7 @@ void CameraInterfaceSeagull::trigger(bool enable)
 		return;
 	}
 
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set all valid pins to shoot or neutral levels
 			up_pwm_trigger_set(_pins[i + 1], math::constrain(enable ? PWM_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
@@ -92,7 +92,7 @@ void CameraInterfaceSeagull::keep_alive(bool signal_on)
 		return;
 	}
 
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 2 pin to keep_alive or netural signal
 			up_pwm_trigger_set(_pins[i], math::constrain(signal_on ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL, 1000, 2000));
@@ -103,7 +103,7 @@ void CameraInterfaceSeagull::keep_alive(bool signal_on)
 void CameraInterfaceSeagull::turn_on_off(bool enable)
 {
 
-	for (unsigned i = 0; i < sizeof(_pins) / sizeof(_pins[0]); i = i + 2) {
+	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// For now, set channel one to neutral upon startup.
 			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
