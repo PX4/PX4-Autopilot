@@ -102,6 +102,14 @@ class Parameter(object):
         "min": 5,
         "max": 4,
         "unit": 3,
+        "AUX1": -10,
+        "AUX2": -10,
+        "AUX3": -10,
+        "AUX4": -10,
+        "AUX5": -10,
+        "AUX6": -10,
+        "AUX7": -10,
+        "AUX8": -10,
         # all others == 0 (sorted alphabetically)
     }
 
