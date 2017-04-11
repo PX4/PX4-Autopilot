@@ -234,7 +234,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
 					if (!thread_data.input_objs[2]) {
-						thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+						thread_data.input_objs[2] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 
 						if (!thread_data.input_objs[2]) { alloc_failed = true; }
 					}
