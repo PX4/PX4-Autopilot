@@ -448,7 +448,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	return success;
 }
 
-static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail, bool enforce_position_lock)
 {
 	// Get estimator status data if available and exit with a fail recorded if not
 	int sub = orb_subscribe(ORB_ID(estimator_status));
@@ -486,6 +486,15 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF HORIZ POS ERROR");
+		}
+		success = false;
+		goto out;
+	}
+
+	// check GPS position flags
+	if (enforce_position_lock && (status.gps_check_fail_flags > 0)) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO GPS LOCK");
 		}
 		success = false;
 		goto out;
@@ -694,7 +703,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 	if (estimator_type == 2 && checkGNSS) {
-		if (!ekf2Check(mavlink_log_pub, true, reportFailures)) {
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures, checkGNSS)) {
 			failed = true;
 		}
 	}
