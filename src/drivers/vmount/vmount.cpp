@@ -220,60 +220,38 @@ static int vmount_thread_main(int argc, char *argv[])
 				case 0:
 
 					// Automatic
-					if (!thread_data.input_objs[0]) {
-						thread_data.input_objs[0] = new InputMavlinkCmdMount();
-
-						if (!thread_data.input_objs[0]) { alloc_failed = true; }
-					}
-
-					if (!thread_data.input_objs[1]) {
-						thread_data.input_objs[1] = new InputMavlinkROI();
-
-						if (!thread_data.input_objs[1]) { alloc_failed = true; }
-					}
+					thread_data.input_objs[0] = new InputMavlinkCmdMount();
+					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					if (!thread_data.input_objs[2]) {
-						thread_data.input_objs[2] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
-
-						if (!thread_data.input_objs[2]) { alloc_failed = true; }
-					}
+					thread_data.input_objs[2] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 					thread_data.input_objs_len = 3;
 
 					break;
 
 				case 1: //RC
-					if (!thread_data.input_objs[0]) {
-						thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
-
-						if (!thread_data.input_objs[0]) { alloc_failed = true; }
-					}
-
+					thread_data.input_objs[0] = new InputRC(params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
 					break;
 
 				case 2: //MAVLINK_ROI
-					if (!thread_data.input_objs[0]) {
-						thread_data.input_objs[0] = new InputMavlinkROI();
-
-						if (!thread_data.input_objs[0]) { alloc_failed = true; }
-					}
-
+					thread_data.input_objs[0] = new InputMavlinkROI();
 					break;
 
 				case 3: //MAVLINK_DO_MOUNT
-					if (!thread_data.input_objs[0]) {
-						thread_data.input_objs[0] = new InputMavlinkCmdMount();
-
-						if (!thread_data.input_objs[0]) { alloc_failed = true; }
-					}
-
+					thread_data.input_objs[0] = new InputMavlinkCmdMount();
 					break;
 
 				default:
 					PX4_ERR("invalid input mode %i", params.mnt_mode_in);
 					break;
+				}
+			}
+
+			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+				if (!thread_data.input_objs[i]) {
+					alloc_failed = true;
 				}
 			}
 
