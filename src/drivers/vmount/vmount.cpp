@@ -198,7 +198,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
 
-	int last_active = -1;
+	int last_active = 0;
 
 	while (!thread_should_exit) {
 
@@ -301,7 +301,8 @@ static int vmount_thread_main(int argc, char *argv[])
 				bool already_active = (last_active == i);
 
 				ControlData *control_data_to_check = nullptr;
-				int ret = thread_data.input_objs[i]->update(50, &control_data_to_check, already_active);
+				unsigned int poll_timeout = already_active ? 50 : 0; // poll only on active input to reduce latency
+				int ret = thread_data.input_objs[i]->update(poll_timeout, &control_data_to_check, already_active);
 
 				if (ret) {
 					PX4_ERR("failed to read input %i (ret: %i)", i, ret);
@@ -351,9 +352,10 @@ static int vmount_thread_main(int argc, char *argv[])
 						thread_data.input_objs[i] = nullptr;
 					}
 				}
+
 				thread_data.input_objs_len = 0;
 
-				last_active = -1;
+				last_active = 0;
 
 				if (thread_data.output_obj) {
 					delete (thread_data.output_obj);
