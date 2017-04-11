@@ -51,6 +51,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <px4_log.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -104,6 +105,8 @@ public:
 private:
 	bmp280::IBMP280	*_interface;
 
+	bool                _running;
+
 	uint8_t				_curr_ctrl;
 
 	struct work_s		_work;
@@ -151,6 +154,7 @@ extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
 BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	CDev("BMP280", path),
 	_interface(interface),
+	_running(false),
 	_report_ticks(0),
 	_reports(nullptr),
 	_collect_phase(false),
@@ -163,8 +167,6 @@ BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "bmp280_buffer_overflows"))
 {
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_BMP280;
-
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
@@ -182,6 +184,11 @@ BMP280::~BMP280()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
+	if (_baro_topic != nullptr) {
+		orb_unadvertise(_baro_topic);
+	}
+
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -224,7 +231,7 @@ BMP280::init()
 
 	/* check  id*/
 	if (_interface->get_reg(BPM280_ADDR_ID) != BPM280_VALUE_ID) {
-		warnx("id of your baro is not: 0x%02x", BPM280_VALUE_ID);
+		PX4_WARN("id of your baro is not: 0x%02x", BPM280_VALUE_ID);
 		return -EIO;
 	}
 
@@ -273,7 +280,7 @@ BMP280::init()
 					  &_orb_class_instance, _interface->is_external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_baro_topic == nullptr) {
-		warnx("failed to create sensor_baro publication");
+		PX4_WARN("failed to create sensor_baro publication");
 		return -ENOMEM;
 	}
 
@@ -443,6 +450,7 @@ BMP280::start_cycle()
 
 	/* reset the report ring and state machine */
 	_collect_phase = false;
+	_running = true;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
@@ -452,6 +460,7 @@ BMP280::start_cycle()
 void
 BMP280::stop_cycle()
 {
+	_running = false;
 	work_cancel(HPWORK, &_work);
 }
 
@@ -470,7 +479,7 @@ BMP280::cycle()
 		collect();
 		unsigned wait_gap = _report_ticks - _max_mesure_ticks;
 
-		if (wait_gap != 0) {
+		if ((wait_gap != 0) && (_running)) {
 			work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this,
 				   wait_gap); //need to wait some time before new measurement
 			return;
@@ -479,7 +488,10 @@ BMP280::cycle()
 	}
 
 	measure();
-	work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this, _max_mesure_ticks);
+
+	if (_running) {
+		work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this, _max_mesure_ticks);
+	}
 
 }
 
@@ -545,8 +557,6 @@ BMP280::collect()
 	report.temperature = _T;
 	report.pressure = _P / 100.0f; // to mbar
 
-	/* Get device ID */
-	report.device_id = _device_id.devid;
 
 	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
@@ -620,16 +630,16 @@ struct bmp280_bus_option {
 	BMP280 *dev;
 } bus_options[] = {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
+	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO , true , NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
+	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false , NULL },
 #endif
 #ifdef PX4_I2C_OBDEV_BMP280
-	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", nullptr, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
+	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, false, NULL },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_EXT_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", nullptr, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280, true, NULL },
+	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280 , true , NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -651,14 +661,15 @@ bool
 start_bus(struct bmp280_bus_option &bus)
 {
 	if (bus.dev != nullptr) {
-		errx(1, "bus option already started");
+		PX4_ERR("bus option already started");
+		exit(1);
 	}
 
 	bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.device, bus.external);
 
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
 		return false;
 	}
 
@@ -674,13 +685,16 @@ start_bus(struct bmp280_bus_option &bus)
 
 	/* set the poll rate to default, starts automatic data collection */
 	if (fd == -1) {
-		errx(1, "can't open baro device");
+		PX4_ERR("can't open baro device");
+		exit(1);
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		close(fd);
-		errx(1, "failed setting default poll rate");
+		PX4_ERR("failed setting default poll rate");
+		exit(1);
 	}
+
 
 	close(fd);
 	return true;
@@ -714,7 +728,9 @@ start(enum BMP280_BUS busid)
 	}
 
 	if (!started) {
-		errx(1, "driver start failed");
+		PX4_WARN("bus option number is %d", i);
+		PX4_ERR("driver start failed");
+		exit(1);
 	}
 
 	// one or more drivers started OK
@@ -734,7 +750,8 @@ struct bmp280_bus_option &find_bus(enum BMP280_BUS busid)
 		}
 	}
 
-	errx(1, "bus %u not started", (unsigned)busid);
+	PX4_ERR("bus %u not started", (unsigned)busid);
+	exit(1);
 }
 
 /**
@@ -755,30 +772,34 @@ test(enum BMP280_BUS busid)
 	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "open failed (try 'bmp280 start' if the driver is not running)");
+		PX4_ERR("open failed (try 'bmp280 start' if the driver is not running)");
+		exit(1);
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		exit(1);
 	}
 
-	warnx("single read");
-	warnx("pressure:    %10.4f", (double)report.pressure);
-	warnx("altitude:    %11.4f", (double)report.altitude);
-	warnx("temperature: %8.4f", (double)report.temperature);
-	warnx("time:        %lld", report.timestamp);
+	PX4_WARN("single read");
+	PX4_WARN("pressure:    %10.4f", (double)report.pressure);
+	PX4_WARN("altitude:    %11.4f", (double)report.altitude);
+	PX4_WARN("temperature: %8.4f", (double)report.temperature);
+	PX4_WARN("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
+		PX4_ERR("failed to set queue depth");
+		exit(1);
 	}
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		exit(1);
 	}
 
 	/* read the sensor 5x and report each value */
@@ -791,25 +812,28 @@ test(enum BMP280_BUS busid)
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			PX4_ERR("timed out waiting for sensor data");
+			exit(1);
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			PX4_ERR("periodic read failed");
+			exit(1);
 		}
 
-		warnx("periodic read %u", i);
-		warnx("pressure:    %10.4f", (double)report.pressure);
-		warnx("altitude:    %11.4f", (double)report.altitude);
-		warnx("temperature K: %8.4f", (double)report.temperature);
-		warnx("time:        %lld", report.timestamp);
+		PX4_WARN("periodic read %u", i);
+		PX4_WARN("pressure:    %10.4f", (double)report.pressure);
+		PX4_WARN("altitude:    %11.4f", (double)report.altitude);
+		PX4_WARN("temperature K: %8.4f", (double)report.temperature);
+		PX4_WARN("time:        %lld", report.timestamp);
 	}
 
 	close(fd);
-	errx(0, "PASS");
+	PX4_ERR("PASS");
+	exit(0);
 }
 
 /**
@@ -824,15 +848,18 @@ reset(enum BMP280_BUS busid)
 	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("failed ");
+		exit(1);
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		PX4_ERR("driver reset failed");
+		exit(1);
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
+		exit(1);
 	}
 
 	exit(0);
@@ -848,7 +875,7 @@ info()
 		struct bmp280_bus_option &bus = bus_options[i];
 
 		if (bus.dev != nullptr) {
-			warnx("%s", bus.devpath);
+			PX4_WARN("%s", bus.devpath);
 			bus.dev->print_info();
 		}
 	}
@@ -872,12 +899,14 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 	fd = open(bus.devpath, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "open failed (try 'bmp280 start' if the driver is not running)");
+		PX4_ERR("open failed (try 'bmp280 start' if the driver is not running)");
+		exit(1);
 	}
 
 	/* start the sensor polling at max */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX)) {
-		errx(1, "failed to set poll rate");
+		PX4_ERR("failed to set poll rate");
+		exit(1);
 	}
 
 	/* average a few measurements */
@@ -894,14 +923,16 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 		ret = poll(&fds, 1, 1000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			PX4_ERR("timed out waiting for sensor data");
+			exit(1);
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "sensor read failed");
+			PX4_ERR("sensor read failed");
+			exit(1);
 		}
 
 		pressure += report.pressure;
@@ -916,17 +947,18 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 	const float g  = 9.80665f;	/* gravity constant in m/s/s */
 	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-	warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
+	PX4_WARN("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
 
 	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
 
-	warnx("calculated MSL pressure %10.4fkPa", (double)p1);
+	PX4_WARN("calculated MSL pressure %10.4fkPa", (double)p1);
 
 	/* save as integer Pa */
 	p1 *= 1000.0f;
 
 	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK) {
-		err(1, "BAROIOCSMSLPRESSURE");
+		PX4_ERR("BAROIOCSMSLPRESSURE");
+		exit(1);
 	}
 
 	close(fd);
@@ -936,15 +968,22 @@ calibrate(unsigned altitude, enum BMP280_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
-	warnx("options:");
-	warnx("    -X    (external I2C bus TODO)");
-	warnx("    -I    (internal I2C bus TODO)");
-	warnx("    -S    (external SPI bus)");
-	warnx("    -s    (internal SPI bus)");
+	PX4_WARN("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	PX4_WARN("options:");
+	PX4_WARN("    -X    (external I2C bus TODO)");
+	PX4_WARN("    -I    (internal I2C bus TODO)");
+	PX4_WARN("    -S    (external SPI bus)");
+	PX4_WARN("    -s    (internal SPI bus)");
 }
 
 } // namespace
+
+
+bmp280::IBMP280::~IBMP280()
+{
+
+}
+
 
 int
 bmp280_main(int argc, char *argv[])
@@ -957,12 +996,12 @@ bmp280_main(int argc, char *argv[])
 		switch (ch) {
 		case 'X':
 			busid = BMP280_BUS_I2C_EXTERNAL;
-			errx(1, "not supported yet");
 			break;
 
 		case 'I':
 			busid = BMP280_BUS_I2C_INTERNAL;
-			errx(1, "not supported yet");
+                        //PX4_ERR("not supported yet");
+                        //exit(1);
 			break;
 
 		case 'S':
@@ -1014,7 +1053,8 @@ bmp280_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "calibrate")) {
 		if (argc < 2) {
-			errx(1, "missing altitude");
+			PX4_ERR("missing altitude");
+			exit(1);
 		}
 
 		long altitude = strtol(argv[optind + 1], nullptr, 10);
@@ -1022,5 +1062,6 @@ bmp280_main(int argc, char *argv[])
 		bmp280::calibrate(altitude, busid);
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	exit(1);
 }

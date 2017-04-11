@@ -17,6 +17,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <px4_log.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -128,8 +129,9 @@
 /* Preset modes - Data rates */
 #define BMM150_LOWPOWER_DR                   BMM150_DATA_RATE_30HZ
 #define BMM150_REGULAR_DR                    BMM150_DATA_RATE_30HZ
-#define BMM150_HIGHACCURACY_DR               BMM150_DATA_RATE_25HZ
+#define BMM150_HIGHACCURACY_DR               BMM150_DATA_RATE_20HZ
 #define BMM150_ENHANCED_DR                   BMM150_DATA_RATE_10HZ
+
 
 /* Power modes value definitions */
 #define BMM150_NORMAL_MODE                   0x00
@@ -202,6 +204,11 @@ public:
 	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
+	 * Stop automatic measurement.
+	 */
+	void            stop();
+
+	/**
 	  * Diagnostics - print some basic information about the driver.
 	  */
 	void            print_info();
@@ -215,12 +222,16 @@ private:
 	work_s            _work;
 	bool _external;
 
+	bool _running;
+
 	/* altitude conversion calibration */
 	unsigned        _call_interval;
 
 
 	struct mag_report _report;
 	ringbuffer::RingBuffer  *_reports;
+
+	bool            _collect_phase;
 
 	struct mag_calibration_s    _scale;
 	float           _range_scale;
@@ -251,6 +262,8 @@ private:
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _good_transfers;
+	perf_counter_t      _measure_perf;
+	perf_counter_t      _comms_errors;
 	perf_counter_t      _duplicates;
 
 	enum Rotation       _rotation;
@@ -265,12 +278,7 @@ private:
 	 */
 	void            start();
 
-	/**
-	 * Stop automatic measurement.
-	 */
-	void            stop();
-
-
+	int     measure(); //start measure
 	int     collect(); //get results and publish
 
 	static void     cycle_trampoline(void *arg);
