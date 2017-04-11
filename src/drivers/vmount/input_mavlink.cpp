@@ -117,6 +117,8 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			vehicle_roi_s vehicle_roi;
 			orb_copy(ORB_ID(vehicle_roi), _vehicle_roi_sub, &vehicle_roi);
 
+			_control_data.gimbal_shutter_retract = false;
+
 			if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
@@ -124,11 +126,15 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 				_control_data.type_data.lonlat.roll_angle = 0.f;
 				_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
+				*control_data = &_control_data;
+
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPINDEX) {
 				//TODO how to do this?
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
+
+				*control_data = &_control_data;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_TARGET) {
 				//TODO is this even suported?
@@ -140,16 +146,13 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			for (int i = 0; i < 3; ++i) {
 				_control_data.stabilize_axis[i] = false;
 			}
-
-			_control_data.gimbal_shutter_retract = false;
 		}
 
 		// check whether the position setpoint got updated
 		if ((polls[1].revents & POLLIN) && _cur_roi_mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 			_read_control_data_from_position_setpoint_sub();
+			*control_data = &_control_data;
 		}
-
-		*control_data = &_control_data;
 	}
 
 	return 0;
@@ -210,8 +213,6 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 		// Timeout control_data already null.
 
 	} else {
-		*control_data = &_control_data;
-
 		if (polls[0].revents & POLLIN) {
 			vehicle_command_s vehicle_command;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &vehicle_command);
@@ -231,6 +232,8 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 				//no break
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 					_control_data.type = ControlData::Type::Neutral;
+
+					*control_data = &_control_data;
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
@@ -242,16 +245,16 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_control_data.type_data.angle.angles[1] = vehicle_command.param2 * M_DEG_TO_RAD_F;
 					_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
 
+					*control_data = &_control_data;
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-					*control_data = nullptr;
-
 					break;
 
 				case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
 					control_data_set_lon_lat(vehicle_command.param2, vehicle_command.param1, vehicle_command.param3);
 
+					*control_data = &_control_data;
 					break;
 				}
 
@@ -263,6 +266,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 				_stabilize[2] = (uint8_t) vehicle_command.param4 == 1;
 				_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
+				*control_data = &_control_data;
 				_ack_vehicle_command(vehicle_command.command);
 			}
 		}
