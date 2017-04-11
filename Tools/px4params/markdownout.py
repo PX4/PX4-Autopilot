@@ -98,7 +98,7 @@ class MarkdownTablesOutput():
             #Close the table.
             result += '</tbody></table>\n\n'
 
-        self.output = result;
+        self.output = result
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
