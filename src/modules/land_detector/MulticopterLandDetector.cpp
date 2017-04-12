@@ -212,6 +212,7 @@ bool MulticopterLandDetector::_get_landed_state()
 		} else {
 			// Pilot wants to take off, assume no groundcontact anymore and therefore allow thrust
 			_ground_contact_hysteresis.set_state_and_update(false);
+			return false;
 		}
 	}
 
