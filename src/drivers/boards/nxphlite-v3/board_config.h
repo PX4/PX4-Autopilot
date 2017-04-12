@@ -90,14 +90,14 @@ __BEGIN_DECLS
 #define GPS_DEFAULT_UART_PORT  "/dev/ttyS3"      /* UART2 */
 
 /* High-resolution timer */
-#define HRT_TIMER              3  /* TBD: use timer 3 for the HRT */
-#define HRT_TIMER_CHANNEL      1  /* TBD: use capture/compare channel */
+#define HRT_TIMER              1  /* TPM1 timer for the HRT */
+#define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
 
 /* PPM IN
  */
 
-#define HRT_PPM_CHANNEL        0                 /* TBD use capture/compare channel */
-#define GPIO_PPM_IN            PIN_FTM0_CH2_2    /* PTC3 USART1 RX or FTM0_CH2 AKA RC_INPUT */
+#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
+#define GPIO_PPM_IN            PIN_TPM1_CH1_1    /* PTC3 USART1 RX and PTA9 and PIN_TPM1_CH1 AKA RC_INPUT */
 
 
 /* Spektrum controls ******************************************************/
