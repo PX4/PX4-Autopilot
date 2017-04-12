@@ -4,9 +4,17 @@
 #
 # @type Quadrotor x
 #
+# @output MAIN1 motor1 (front right: CCW)
+# @output MAIN2 motor2 (back left: CCW)
+# @output MAIN3 motor3 (front left: CW)
+# @output MAIN4 motor4 (back right: CW)
+# @output MAIN5 feed-through of RC AUX1 channel
+# @output MAIN6 feed-through of RC AUX2 channel
+#
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC FLAPS channel
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

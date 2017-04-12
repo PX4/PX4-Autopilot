@@ -5,6 +5,19 @@
 # @type Quadrotor x
 #
 #
+# @output MAIN1 motor1 (front right: CCW)
+# @output MAIN2 motor2 (back left: CCW)
+# @output MAIN3 motor3 (front left: CW)
+# @output MAIN4 motor4 (back right: CW)
+# @output MAIN5 feed-through of RC AUX1 channel
+# @output MAIN6 feed-through of RC AUX2 channel
+#
+# @output AUX1 Mount pitch
+# @output AUX2 Mount roll
+# @output AUX3 Mount yaw
+# @output AUX4 Mount mode
+# @output AUX5 Mount retract
+#
 # @maintainer Leon Mueller <thedevleon>
 #
 
