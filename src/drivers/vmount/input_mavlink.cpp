@@ -121,6 +121,9 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 
 			if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_NONE) {
 
+				_control_data.type = ControlData::Type::Neutral;
+				*control_data = &_control_data;
+
 			} else if (vehicle_roi.mode == vehicle_roi_s::VEHICLE_ROI_WPNEXT) {
 				_read_control_data_from_position_setpoint_sub();
 				_control_data.type_data.lonlat.roll_angle = 0.f;
