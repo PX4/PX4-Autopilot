@@ -732,7 +732,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 		 * rate and mode. (See rates above.)
 		 */
 
-		for (unsigned group = 0; group < _max_actuators; group++) { // TODO : make sure this doesn't touch trigger
+		for (unsigned group = 0; group < _max_actuators; group++) {
 
 			// get the channel mask for this rate group
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
@@ -1251,7 +1251,7 @@ PX4FMU::cycle()
 
 				/* do mixing */
 				float outputs[_max_actuators];
-				_num_outputs = _mixers->mix(outputs, _num_outputs, NULL); // TODO : what
+				_num_outputs = _mixers->mix(outputs, _num_outputs, NULL);
 
 				/* publish mixer status */
 				multirotor_motor_limits_s multirotor_motor_limits = {};
