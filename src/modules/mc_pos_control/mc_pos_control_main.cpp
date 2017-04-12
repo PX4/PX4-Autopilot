@@ -1030,9 +1030,12 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	/* we always want to break starting with slow deceleration */
 	if ((_user_intention != brake) && (intention  == brake)) {
-		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 		_manual_jerk_limit = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() * sqrtf(_vel(0) * _vel(
+
 					     0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+
+		/* we start braking with lowest accleration */
+		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 
 	}
 
@@ -1111,7 +1114,6 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	case deceleration: {
 			_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
-
 			break;
 		}
 
