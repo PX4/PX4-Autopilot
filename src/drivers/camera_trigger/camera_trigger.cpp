@@ -65,8 +65,9 @@
 #include <board_config.h>
 
 #include "interfaces/src/camera_interface.h"
-#include "interfaces/src/seagull_map2.h"
 #include "interfaces/src/gpio.h"
+#include "interfaces/src/pwm.h"
+#include "interfaces/src/seagull_map2.h"
 
 #define TRIGGER_PIN_DEFAULT 1
 
@@ -76,7 +77,8 @@ typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_GPIO,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
-	CAMERA_INTERFACE_MODE_MAVLINK
+	CAMERA_INTERFACE_MODE_MAVLINK,
+	CAMERA_INTERFACE_MODE_GENERIC_PWM
 } camera_interface_mode_t;
 
 class CameraTrigger
@@ -253,6 +255,10 @@ CameraTrigger::CameraTrigger() :
 
 	case CAMERA_INTERFACE_MODE_GPIO:
 		_camera_interface = new CameraInterfaceGPIO();
+		break;
+
+	case CAMERA_INTERFACE_MODE_GENERIC_PWM:
+		_camera_interface = new CameraInterfacePWM();
 		break;
 
 	case CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM:
@@ -555,7 +561,6 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::engange_turn_on_off(void *arg)
 {
-
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->turn_on_off(true);
@@ -598,7 +603,7 @@ CameraTrigger::status()
 
 static int usage()
 {
-	PX4_INFO("usage: camera_trigger {start|stop|status|test}\n");
+	PX4_INFO("usage: camera_trigger {start|stop|enable|disable|status|test}\n");
 	return 1;
 }
 
