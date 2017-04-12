@@ -169,6 +169,11 @@ struct extVisionSample {
 #define RNG_MAX_INTERVAL	2e5
 #define EV_MAX_INTERVAL		2e5
 
+// bad accelerometer detection and mitigation
+#define BADACC_PROBATION	10E6	// Number of usec that accel data declared bad must continuously pass checks to be declared good
+#define BADACC_HGT_RESET	1E6	// Number of usec that accel data must continuously fail checks to trigger a height reset
+#define BADACC_BIAS_PNOISE	4.9f	// The delta velocity process noise is set to this when accel data is declared bad (m/s**2)
+
 struct parameters {
 	// measurement source control
 	int fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
@@ -501,6 +506,7 @@ union ekf_solution_status {
 	uint16_t pred_pos_horiz_rel : 1; // 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	uint16_t pred_pos_horiz_abs : 1; // 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
 	uint16_t gps_glitch         : 1; // 10 - True if the EKF has detected a GPS glitch
+	uint16_t accel_error        : 1; // 11 - True if the EKF has detected bad accelerometer data
     } flags;
     uint16_t value;
 };

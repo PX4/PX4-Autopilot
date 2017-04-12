@@ -123,7 +123,9 @@ Ekf::Ekf():
 	_gps_hgt_faulty(false),
 	_rng_hgt_faulty(false),
 	_primary_hgt_source(VDIST_SENSOR_BARO),
-	_time_bad_vert_accel(0)
+	_time_bad_vert_accel(0),
+	_time_good_vert_accel(0),
+	_bad_vert_accel_detected(false)
 {
 	_state = {};
 	_last_known_posNE.setZero();

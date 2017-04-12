@@ -349,6 +349,8 @@ private:
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel;	// last time a bad vertical accel was detected (usec)
+	uint64_t _time_good_vert_accel;	// last time a good vertical accel was detected (usec)
+	bool _bad_vert_accel_detected;	// true when bad vertical accelerometer data has been detected
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
