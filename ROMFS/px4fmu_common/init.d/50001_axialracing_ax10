@@ -4,6 +4,15 @@
 #
 # @type Rover
 #
+# @output MAIN1 pass-through of control group 0, channel 0
+# @output MAIN2 pass-through of control group 0, channel 1
+# @output MAIN3 pass-through of control group 0, channel 2
+# @output MAIN4 pass-through of control group 0, channel 3
+# @output MAIN5 pass-through of control group 0, channel 4
+# @output MAIN6 pass-through of control group 0, channel 5
+# @output MAIN7 pass-through of control group 0, channel 6
+# @output MAIN8 pass-through of control group 0, channel 7
+#
 
 sh /etc/init.d/rc.axialracing_ax10_defaults
 
