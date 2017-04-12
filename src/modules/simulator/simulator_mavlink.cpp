@@ -715,7 +715,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 						handle_message(&msg, publish);
 
 						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 1000000)) {
-							PX4_INFO("Got initial simuation data, running sim..");
+							PX4_INFO("Got initial simulation data, running sim..");
 							no_sim_data = false;
 						}
 					}
