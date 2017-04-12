@@ -44,12 +44,12 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing) - [Daniel Agar](http://github.com/dagar), [Paul Riseborough](http://github.com/priseborough)
   * Racers - [Anton Matosov](http://github.com/anton-matosov)
   * OS / drivers - [David Sidrane](http://github.com/davids5)
-  * UAVCAN / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
+  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
   * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
   * VIO - [Mohammed Kabir](http://github.com/mhkabir), [Christoph Tobler](http://github.com/ChristophTobler)
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](http://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon) - [Mark Charlebois](http://github.com/mcharleb)
-  * Intel Aero - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
+  * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero) - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](http://github.com/bkueng)
   * [Parrot Bebop](https://github.com/PX4/Firmware/labels/bebop) - [Michael Schaeuble](http://github.com/eyeam3)
 
@@ -57,8 +57,8 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
 
 This repository contains code supporting these boards:
   * [Snapdragon Flight](http://dev.px4.io/hardware-snapdragon.html)
-  * [Intel Aero] (https://dev.px4.io/hardware-intel-aero.html)
-  * [Raspberry PI with Navio 2] (https://dev.px4.io/hardware-rpi.html)
+  * [Intel Aero](https://dev.px4.io/hardware-intel-aero.html)
+  * [Raspberry PI with Navio 2](https://dev.px4.io/hardware-rpi.html)
   * [Parrot Bebop 2](http://dev.px4.io/starting-building.html#parrot-bebop)
   * FMUv1.x
   * FMUv2.x ([Pixhawk](http://dev.px4.io/hardware-pixhawk.html) and [Pixfalcon](http://dev.px4.io/hardware-pixfalcon.html))
