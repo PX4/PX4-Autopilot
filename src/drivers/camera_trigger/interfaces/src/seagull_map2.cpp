@@ -17,8 +17,6 @@
 #define PWM_2_CAMERA_KEEP_ALIVE		1700
 #define PWM_2_CAMERA_ON_OFF			1900
 
-// TODO : cleanup using arraySize() macro
-
 CameraInterfaceSeagull::CameraInterfaceSeagull():
 	CameraInterface(),
 	_camera_is_on(false)
@@ -53,7 +51,7 @@ CameraInterfaceSeagull::CameraInterfaceSeagull():
 
 CameraInterfaceSeagull::~CameraInterfaceSeagull()
 {
-	// Deinitialise pwm channels
+	// Deinitialise trigger channels
 	up_pwm_trigger_deinit();
 }
 
@@ -65,6 +63,9 @@ void CameraInterfaceSeagull::setup()
 			up_pwm_trigger_init(pin_bitmask);
 			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
 			up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
+
+			// We only support 2 consecutive pins while using the Seagull MAP2
+			break;
 		}
 	}
 }
