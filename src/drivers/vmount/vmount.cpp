@@ -202,7 +202,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 
-		if (!thread_data.input_objs[0] || test_input) { //need to initialize
+		if (!thread_data.input_objs[0] && (params.mnt_mode_in >= 0 || test_input)) { //need to initialize
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;

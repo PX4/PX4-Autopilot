@@ -1111,6 +1111,13 @@ then
 	fi
 	unset TEMP_CALIB_ARGS
 
+	# vmount to control mounts such as gimbals, disabled by default.
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		vmount start
+	fi
+
 # End of autostart
 fi
 
