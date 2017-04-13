@@ -100,19 +100,19 @@ public:
 	void		control(bool on);
 
 	/**
-	 * Trigger just once
+	 * Trigger the camera just once
 	 */
-	void		shootOnce();
+	void		shoot_once();
 
 	/**
 	 * Toggle keep camera alive functionality
 	 */
-	void		keepAlive(bool on);
+	void		enable_keep_alive(bool on);
 
 	/**
-	 * Toggle camera on/off functionality
+	 * Toggle camera power (on/off)
 	 */
-	void        turnOnOff();
+	void        toggle_power();
 
 	/**
 	 * Start the task.
@@ -317,14 +317,13 @@ CameraTrigger::control(bool on)
 }
 
 void
-CameraTrigger::keepAlive(bool on)
+CameraTrigger::enable_keep_alive(bool on)
 {
 	if (on) {
 		// schedule keep-alive up and down calls
 		hrt_call_every(&_keepalivecall_up, 0, (60000 * 1000),
 			       (hrt_callout)&CameraTrigger::keep_alive_up, this);
 
-		// schedule keep-alive up and down calls
 		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), (60000 * 1000),
 			       (hrt_callout)&CameraTrigger::keep_alive_down, this);
 
@@ -337,25 +336,23 @@ CameraTrigger::keepAlive(bool on)
 }
 
 void
-CameraTrigger::turnOnOff()
+CameraTrigger::toggle_power()
 {
-	// schedule trigger on and off calls
+	// schedule power toggle calls
 	hrt_call_after(&_engage_turn_on_off_call, 0,
 		       (hrt_callout)&CameraTrigger::engange_turn_on_off, this);
 
-	// schedule trigger on and off calls
 	hrt_call_after(&_disengage_turn_on_off_call, 0 + (200 * 1000),
 		       (hrt_callout)&CameraTrigger::disengage_turn_on_off, this);
 }
 
 void
-CameraTrigger::shootOnce()
+CameraTrigger::shoot_once()
 {
 	// schedule trigger on and off calls
 	hrt_call_after(&_engagecall, 0,
 		       (hrt_callout)&CameraTrigger::engage, this);
 
-	// schedule trigger on and off calls
 	hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000),
 		       (hrt_callout)&CameraTrigger::disengage, this);
 }
@@ -368,13 +365,13 @@ CameraTrigger::start()
 		control(true);
 	}
 
-	// Prevent camera from sleeping, if triggering is enabled
-	if (_mode > 0 && _mode < 4) {
-		turnOnOff();
-		keepAlive(true);
+	// Prevent camera from sleeping, if triggering is enabled and the interface supports it
+	if (_mode > 0 && _mode < 4 && _camera_interface->has_power_control()) {
+		toggle_power();
+		enable_keep_alive(true);
 
 	} else {
-		keepAlive(false);
+		enable_keep_alive(false);
 	}
 
 	// start to monitor at high rate for trigger enable command
@@ -486,17 +483,23 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 					// Set trigger to disabled if the set distance is not positive
 					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
-						trig->turnOnOff();
-						trig->keepAlive(true);
-						// Give the camera time to turn on, before starting to send trigger signals
-						poll_interval_usec = 5000000;
-						turning_on = true;
+
+						if (trig->_camera_interface->has_power_control()) {
+							trig->toggle_power();
+							trig->enable_keep_alive(true);
+							// Give the camera time to turn on, before starting to send trigger signals
+							poll_interval_usec = 5000000;
+							turning_on = true;
+						}
 
 					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
 						hrt_cancel(&(trig->_engagecall));
 						hrt_cancel(&(trig->_disengagecall));
-						trig->keepAlive(false);
-						trig->turnOnOff();
+
+						if (trig->_camera_interface->has_power_control()) {
+							trig->enable_keep_alive(false);
+							trig->toggle_power();
+						}
 					}
 
 					trig->_trigger_enabled = cmd.param1 > 0.0f;
@@ -513,12 +516,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 					// First time valid position, take first shot
 					trig->_last_shoot_position = current_position;
 					trig->_valid_position = pos.xy_valid;
-					trig->shootOnce();
+					trig->shoot_once();
 				}
 
 				// Check that distance threshold is exceeded and the time between last shot is large enough
 				if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
-					trig->shootOnce();
+					trig->shoot_once();
 					trig->_last_shoot_position = current_position;
 				}
 			}
@@ -563,7 +566,7 @@ CameraTrigger::engange_turn_on_off(void *arg)
 {
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	trig->_camera_interface->turn_on_off(true);
+	trig->_camera_interface->send_toggle_power(true);
 }
 
 void
@@ -571,7 +574,7 @@ CameraTrigger::disengage_turn_on_off(void *arg)
 {
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	trig->_camera_interface->turn_on_off(false);
+	trig->_camera_interface->send_toggle_power(false);
 }
 
 void
@@ -579,7 +582,7 @@ CameraTrigger::keep_alive_up(void *arg)
 {
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	trig->_camera_interface->keep_alive(true);
+	trig->_camera_interface->send_keep_alive(true);
 }
 
 void
@@ -587,7 +590,7 @@ CameraTrigger::keep_alive_down(void *arg)
 {
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
-	trig->_camera_interface->keep_alive(false);
+	trig->_camera_interface->send_keep_alive(false);
 }
 
 void
@@ -603,7 +606,7 @@ CameraTrigger::status()
 
 static int usage()
 {
-	PX4_INFO("usage: camera_trigger {start|stop|enable|disable|status|test}\n");
+	PX4_INFO("usage: camera_trigger {start|stop|enable|disable|status|test|test_power}\n");
 	return 1;
 }
 
@@ -649,6 +652,9 @@ int camera_trigger_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "test")) {
 		camera_trigger::g_camera_trigger->test();
+
+	} else if (!strcmp(argv[1], "test_power")) {
+		camera_trigger::g_camera_trigger->toggle_power();
 
 	} else {
 		return usage();

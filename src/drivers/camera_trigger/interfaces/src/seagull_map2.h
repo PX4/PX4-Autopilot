@@ -19,11 +19,14 @@ public:
 	virtual ~CameraInterfaceSeagull();
 
 	void trigger(bool enable);
-	void keep_alive(bool signal_on);
 
-	void turn_on_off(bool enable);
+	void send_keep_alive(bool enable);
+
+	void send_toggle_power(bool enable);
 
 	void info();
+
+	bool has_power_control() { return true; }
 
 private:
 	void setup();
