@@ -461,9 +461,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
 				if (cmd.param5 > 0) {
-					// One-shot trigger, default 1 ms interval
-					trig->_interval = 1000;
-					trig->control(true);
+					// One-shot trigger
+					trig->shoot_once();
 				}
 			}
 		}
