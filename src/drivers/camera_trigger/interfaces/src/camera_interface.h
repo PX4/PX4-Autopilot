@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <systemlib/param/param.h>
+#include <px4_log.h>
+
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 
 class CameraInterface
@@ -55,12 +58,20 @@ public:
 	 */
 	virtual int powerOff() { return -1; }
 
-
 protected:
 
 	/**
 	 * setup the interface
 	 */
 	virtual void setup() {};
+
+	/**
+	 * get the hardware configuration
+	 */
+	void get_pins();
+
+	param_t _p_pin;
+
+	int _pins[6];
 
 };
