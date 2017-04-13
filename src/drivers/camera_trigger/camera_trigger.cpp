@@ -456,8 +456,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 				need_ack = true;
 
+				if (cmd.param3 > 0.0f) {
+					// reset trigger sequence
+					trig->_trigger_seq = 0;
+
+				}
+
 				// Set trigger rate from command
-				if (cmd.param2 > 0) {
+				if (cmd.param2 > 0.0f) {
 					trig->_interval = cmd.param2;
 					param_set(trig->_p_interval, &(trig->_interval));
 				}
@@ -571,7 +577,6 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 	// Send ACKs for trigger commands
 	if (updated && need_ack) {
-
 		vehicle_command_ack_s command_ack = {};
 
 		command_ack.command = cmd.command;
