@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN l3gd20
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		l3gd20.cpp
 	DEPENDS
