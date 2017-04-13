@@ -58,6 +58,7 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
@@ -158,6 +159,7 @@ private:
 	int			_vlposition_sub;
 
 	orb_advert_t		_trigger_pub;
+	orb_advert_t		_cmd_ack_pub;
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
@@ -189,11 +191,11 @@ private:
 	 */
 	static void disengage_turn_on_off(void *arg);
 	/**
-	 * Fires trigger
+	 * Enables keep alive signal
 	 */
 	static void	keep_alive_up(void *arg);
 	/**
-	 * Resets trigger
+	 * Disables keep alive signal
 	 */
 	static void	keep_alive_down(void *arg);
 
@@ -225,6 +227,7 @@ CameraTrigger::CameraTrigger() :
 	_vcommand_sub(-1),
 	_vlposition_sub(-1),
 	_trigger_pub(nullptr),
+	_cmd_ack_pub(nullptr),
 	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
 	_camera_interface(nullptr)
 {
@@ -287,9 +290,13 @@ CameraTrigger::CameraTrigger() :
 		param_set(_p_activation_time, &(_activation_time));
 	}
 
+	// Advertise topics
 	struct camera_trigger_s	report = {};
+	struct vehicle_command_ack_s ack = {};
 
 	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &report);
+	_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
 }
 
 CameraTrigger::~CameraTrigger()
@@ -430,19 +437,25 @@ CameraTrigger::cycle_trampoline(void *arg)
 	bool updated;
 	orb_check(trig->_vcommand_sub, &updated);
 
+	struct vehicle_command_s cmd = {};
+	unsigned cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+	bool need_ack = false;
+
 	// while the trigger is inactive it has to be ready
 	// to become active instantaneously
 	int poll_interval_usec = 5000;
 
 	if (trig->_mode < 3) {
 
+		// Check update from command
 		if (updated) {
-
-			struct vehicle_command_s cmd;
 
 			orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
+
+				need_ack = true;
+
 				// Set trigger rate from command
 				if (cmd.param2 > 0) {
 					trig->_interval = cmd.param2;
@@ -459,15 +472,23 @@ CameraTrigger::cycle_trampoline(void *arg)
 					poll_interval_usec = 100000;
 				}
 
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+
+				need_ack = true;
+
 				if (cmd.param5 > 0) {
 					// One-shot trigger
 					trig->shoot_once();
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				}
+
 			}
+
 		}
 
-	} else {
+	} else if (trig->_mode == 4) {
 
 		// Set trigger based on covered distance
 		if (trig->_vlposition_sub < 0) {
@@ -482,13 +503,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			bool turning_on = false;
 
-			if (updated && trig->_mode == 4) {
+			// Check update from command
+			if (updated) {
 
-				// Check update from command
-				struct vehicle_command_s cmd;
 				orb_copy(ORB_ID(vehicle_command), trig->_vcommand_sub, &cmd);
 
 				if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
+
+					need_ack = true;
 
 					// Set trigger to disabled if the set distance is not positive
 					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
@@ -496,12 +518,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 						if (trig->_camera_interface->has_power_control()) {
 							trig->toggle_power();
 							trig->enable_keep_alive(true);
+
 							// Give the camera time to turn on, before starting to send trigger signals
 							poll_interval_usec = 5000000;
 							turning_on = true;
 						}
 
 					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
+
 						hrt_cancel(&(trig->_engagecall));
 						hrt_cancel(&(trig->_disengagecall));
 
@@ -509,14 +533,18 @@ CameraTrigger::cycle_trampoline(void *arg)
 							trig->enable_keep_alive(false);
 							trig->toggle_power();
 						}
+
 					}
 
 					trig->_trigger_enabled = cmd.param1 > 0.0f;
 					trig->_distance = cmd.param1;
+
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 				}
 			}
 
-			if ((trig->_trigger_enabled || trig->_mode < 4) && !turning_on) {
+			if (trig->_trigger_enabled && !turning_on) {
 
 				// Initialize position if not done yet
 				math::Vector<2> current_position(pos.x, pos.y);
@@ -528,16 +556,28 @@ CameraTrigger::cycle_trampoline(void *arg)
 					trig->shoot_once();
 				}
 
-				// Check that distance threshold is exceeded and the time between last shot is large enough
+				// Check that distance threshold is exceeded
 				if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
 					trig->shoot_once();
 					trig->_last_shoot_position = current_position;
 				}
+
 			}
 
 		} else {
 			poll_interval_usec = 100000;
 		}
+	}
+
+	// Send ACKs for trigger commands
+	if (updated && need_ack) {
+
+		vehicle_command_ack_s command_ack = {};
+
+		command_ack.command = cmd.command;
+		command_ack.result = cmd_result;
+
+		orb_publish(ORB_ID(vehicle_command_ack), trig->_cmd_ack_pub, &command_ack);
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline,
@@ -552,7 +592,7 @@ CameraTrigger::engage(void *arg)
 
 	struct camera_trigger_s	report = {};
 
-	/* set timestamp the instant before the trigger goes off */
+	// Set timestamp the instant before the trigger goes off
 	report.timestamp = hrt_absolute_time();
 
 	trig->_camera_interface->trigger(true);
