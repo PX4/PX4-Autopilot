@@ -404,9 +404,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_gpos.timestamp = timestamp;
 
 			hil_gpos.time_utc_usec = timestamp;
-			hil_gpos.lat = hil_state.lat;
-			hil_gpos.lon = hil_state.lon;
-			hil_gpos.alt = hil_state.alt / 1000.0f;
+			hil_gpos.lat = hil_state.lat / 10000000.0f;//1E7
+			hil_gpos.lon = hil_state.lon / 10000000.0f;//1E7
+			hil_gpos.alt = hil_state.alt / 1000.0f;//1E3
 
 			hil_gpos.vel_n = hil_state.vx / 100.0f;
 			hil_gpos.vel_e = hil_state.vy / 100.0f;
