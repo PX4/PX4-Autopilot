@@ -198,6 +198,24 @@ typedef enum board_reset_e {
 	board_reset_enter_bootloader = 3   /* Perform a reset to the boot loader */
 } board_reset_e;
 
+/* board power button state notification */
+
+typedef enum board_power_button_state_notification_e {
+	PWR_BUTTON_IDEL,                       /* Button went up without meeting shutdown button down time */
+	PWR_BUTTON_DOWN,                       /* Button went Down */
+	PWR_BUTTON_UP,                         /* Button went Up */
+	PWR_BUTTON_REQUEST_SHUT_DOWN,          /* Button went up after meeting shutdown button down time */
+
+	PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING, /* Response from call back board code does nothing the
+                                            * expectation is that board_do_shutdown will be called.
+                                            */
+	PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW,     /* Response from call back board code does shutdown now. */
+} board_power_button_state_notification_e;
+
+/* board call back signature  */
+
+typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
+
 /* Defined the types used for board UUID and MFG UID
  *
  * A type suitable for holding the byte format of the UUID
@@ -297,15 +315,12 @@ __EXPORT void board_rc_input(bool invert_on);
 __EXPORT void board_system_reset(int status) noreturn_function;
 #endif
 
-#if !defined(BOARD_HAS_POWER_CONTROL)
-#define px4_board_pwr(switch_on) { do {} while(0); }
-#endif
 /************************************************************************************
  * Name: board_set_bootload_mode
  *
  * Description:
  *   All boards my optionally provide this API to enter configure the entry to
- *   boot loade mode on the next system reset.
+ *   boot loader mode on the next system reset.
  *
  ************************************************************************************/
 
@@ -417,3 +432,45 @@ int board_get_mfguid_formated(char *format_buffer, int size);
 #else
 __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
 #endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
+
+#if defined(BOARD_HAS_POWER_CONTROL)
+/************************************************************************************
+ * Name: board_register_power_state_notification_cb
+ *
+ * Description:
+ *   boards may provide a function to register a power button state notification
+ *   call back.
+ *
+ *   N.B. this call back may be called off an interrupt. Do not attempt to block
+ *   or run any long threads.
+ *
+ * cb     - A pointer to a power button state notification function.
+ *
+ * return  - OK
+ */
+
+int board_register_power_state_notification_cb(power_button_state_notification_t cb);
+
+/************************************************************************************
+ * Name: board_do_shutdown
+ *
+ * Description:
+ *   boards may provide a function to power off the board.
+ *
+ * return  - none
+ */
+void board_shutdown(void);
+
+/************************************************************************************
+ * Name: px4_board_pwr
+ *
+ * Description:
+ *   boards may provide a function control the power.
+ *
+ * return  - none
+ */
+#else
+#define board_register_power_state_notification_cb(cb) (0)
+#define board_shutdown() { do {} while(0); }
+#define px4_board_pwr(switch_on) { do {} while(0); }
+#endif
