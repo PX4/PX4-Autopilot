@@ -92,7 +92,7 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * @decimal 1
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 40.0f);
 
 /**
  * Camera trigger mode
