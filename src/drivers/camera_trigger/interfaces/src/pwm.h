@@ -24,11 +24,9 @@ public:
 
 	void info();
 
-	int _pins[6];
 private:
-	void setup();
 
-	param_t _p_pin;
+	void setup();
 
 };
 

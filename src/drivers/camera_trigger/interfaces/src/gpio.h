@@ -8,10 +8,7 @@
 
 #ifdef __PX4_NUTTX
 
-#include <systemlib/err.h>
-#include <systemlib/param/param.h>
 #include <board_config.h>
-#include <px4_log.h>
 
 #include "camera_interface.h"
 
@@ -25,15 +22,13 @@ public:
 
 	void info();
 
-	int _pins[6];
-	int _polarity;
-
 private:
 
 	void setup();
 
-	param_t _p_pin;
 	param_t _p_polarity;
+
+	int _polarity;
 
 	static constexpr uint32_t _gpios[6] = {
 		GPIO_GPIO0_OUTPUT,

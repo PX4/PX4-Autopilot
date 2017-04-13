@@ -9,10 +9,7 @@
 #ifdef __PX4_NUTTX
 
 #include <drivers/drv_hrt.h>
-#include <systemlib/param/param.h>
-#include <px4_log.h>
 
-#include <uORB/topics/vehicle_status.h>
 #include "camera_interface.h"
 
 class CameraInterfaceSeagull : public CameraInterface
@@ -28,11 +25,9 @@ public:
 
 	void info();
 
-	int _pins[6];
 private:
 	void setup();
 
-	param_t _p_pin;
 	bool _camera_is_on;
 
 };
