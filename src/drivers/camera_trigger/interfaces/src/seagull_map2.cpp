@@ -9,11 +9,11 @@
 // PWM levels of the interface to Seagull MAP 2 converter to
 // Multiport (http://www.seagulluav.com/manuals/Seagull_MAP2-Manual.pdf)
 #define PWM_CAMERA_DISARMED			900
-#define PWM_CAMERA_ON				1100
-#define PWM_CAMERA_AUTOFOCUS_SHOOT	1300
 #define PWM_CAMERA_NEUTRAL			1500
-#define PWM_CAMERA_INSTANT_SHOOT	1700
-#define PWM_CAMERA_OFF				1900
+#define PWM_1_CAMERA_ON				1100
+#define PWM_1_CAMERA_AUTOFOCUS_SHOOT	1300
+#define PWM_1_CAMERA_INSTANT_SHOOT	1700
+#define PWM_1_CAMERA_OFF				1900
 #define PWM_2_CAMERA_KEEP_ALIVE		1700
 #define PWM_2_CAMERA_ON_OFF			1900
 
@@ -35,17 +35,21 @@ void CameraInterfaceSeagull::setup()
 {
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
+
+			// Initialize the interface
 			uint8_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
 			up_pwm_trigger_init(pin_bitmask);
-			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
-			up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_DISARMED, PWM_CAMERA_DISARMED, 2000));
+
+			// Set both interface pins to disarmed
+			up_pwm_trigger_set(_pins[i + 1], PWM_CAMERA_DISARMED);
+			up_pwm_trigger_set(_pins[i], PWM_CAMERA_DISARMED);
 
 			// We only support 2 consecutive pins while using the Seagull MAP2
 			return;
 		}
 	}
 
-	PX4_ERROR("Bad pin configuration - Seagull MAP2 requires 2 consecutive pins for control.");
+	PX4_ERR("Bad pin configuration - Seagull MAP2 requires 2 consecutive pins for control.");
 }
 
 void CameraInterfaceSeagull::trigger(bool enable)
@@ -57,15 +61,15 @@ void CameraInterfaceSeagull::trigger(bool enable)
 
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i + 1], math::constrain(enable ? PWM_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			// Set channel 1 to shoot or neutral levels
+			up_pwm_trigger_set(_pins[i + 1], math::constrain(enable ? PWM_1_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
 }
 
-void CameraInterfaceSeagull::keep_alive(bool signal_on)
+void CameraInterfaceSeagull::send_keep_alive(bool enable)
 {
-	// This should alternate between signal_on and !signal_on to keep the camera alive
+	// This should alternate between enable and !enable to keep the camera alive
 
 	if (!_camera_is_on) {
 		return;
@@ -74,18 +78,21 @@ void CameraInterfaceSeagull::keep_alive(bool signal_on)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 2 pin to keep_alive or netural signal
-			up_pwm_trigger_set(_pins[i], math::constrain(signal_on ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
 }
 
-void CameraInterfaceSeagull::turn_on_off(bool enable)
+void CameraInterfaceSeagull::send_toggle_power(bool enable)
 {
+
+	// This should alternate between enable and !enable to toggle camera power
 
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
-			// For now, set channel one to neutral upon startup.
+			// Set channel 1 to neutral
 			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
+			// Set channel 2 to on_off or neutral signal
 			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_2_CAMERA_ON_OFF : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
