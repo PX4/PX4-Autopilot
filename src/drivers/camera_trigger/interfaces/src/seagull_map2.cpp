@@ -62,7 +62,7 @@ void CameraInterfaceSeagull::trigger(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 1 to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i + 1], math::constrain(enable ? PWM_1_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i + 1], enable ? PWM_1_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL);
 		}
 	}
 }
@@ -78,7 +78,7 @@ void CameraInterfaceSeagull::send_keep_alive(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 2 pin to keep_alive or netural signal
-			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i], enable ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL);
 		}
 	}
 }
@@ -91,9 +91,9 @@ void CameraInterfaceSeagull::send_toggle_power(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 1 to neutral
-			up_pwm_trigger_set(_pins[i + 1], math::constrain(PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i + 1], PWM_CAMERA_NEUTRAL);
 			// Set channel 2 to on_off or neutral signal
-			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_2_CAMERA_ON_OFF : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i], enable ? PWM_2_CAMERA_ON_OFF : PWM_CAMERA_NEUTRAL);
 		}
 	}
 
