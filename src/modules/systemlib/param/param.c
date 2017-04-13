@@ -997,37 +997,6 @@ param_load_default(void)
 	return res;
 }
 
-static void
-param_bus_lock(bool lock)
-{
-
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-
-	// FMUv4 has baro and FRAM on the same bus,
-	// as this offers on average a 100% silent
-	// bus for the baro operation
-
-	// XXX this would be the preferred locking method
-	// if (dev == nullptr) {
-	// 	dev = px4_spibus_initialize(PX4_SPI_BUS_BARO);
-	// }
-
-	// SPI_LOCK(dev, lock);
-
-	// we lock like this for Pixracer for now
-
-	static irqstate_t irq_state = 0;
-
-	if (lock) {
-		irq_state = px4_enter_critical_section();
-
-	} else {
-		px4_leave_critical_section(irq_state);
-	}
-
-#endif
-}
-
 int
 param_export(int fd, bool only_unsaved)
 {
@@ -1037,9 +1006,7 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock_writer();
 
-	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
-	param_bus_lock(false);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -1072,10 +1039,8 @@ param_export(int fd, bool only_unsaved)
 				const char *name = param_name(s->param);
 
 				/* lock as short as possible */
-				param_bus_lock(true);
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
-					param_bus_lock(false);
 					debug("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1087,11 +1052,7 @@ param_export(int fd, bool only_unsaved)
 				f = s->val.f;
 				const char *name = param_name(s->param);
 
-				/* lock as short as possible */
-				param_bus_lock(true);
-
 				if (bson_encoder_append_double(&encoder, name, f)) {
-					param_bus_lock(false);
 					debug("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1105,14 +1066,11 @@ param_export(int fd, bool only_unsaved)
 				const void *value_ptr = param_get_value_ptr(s->param);
 
 				/* lock as short as possible */
-				param_bus_lock(true);
-
 				if (bson_encoder_append_binary(&encoder,
 							       name,
 							       BSON_BIN_BINARY,
 							       size,
 							       value_ptr)) {
-					param_bus_lock(false);
 					debug("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1123,8 +1081,6 @@ param_export(int fd, bool only_unsaved)
 			debug("unrecognized parameter type");
 			goto out;
 		}
-
-		param_bus_lock(false);
 
 		/* allow this process to be interrupted by another process / thread */
 		usleep(5);
@@ -1261,23 +1217,18 @@ param_import_internal(int fd, bool mark_saved)
 	int result = -1;
 	struct param_import_state state;
 
-	param_bus_lock(true);
 
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
-		param_bus_lock(false);
 		goto out;
 	}
 
-	param_bus_lock(false);
 
 	state.mark_saved = mark_saved;
 
 	do {
-		param_bus_lock(true);
 		result = bson_decoder_next(&decoder);
 		usleep(1);
-		param_bus_lock(false);
 
 	} while (result > 0);
 
