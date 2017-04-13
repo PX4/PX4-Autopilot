@@ -231,7 +231,7 @@ CameraTrigger::CameraTrigger() :
 	//Initiate Camera interface basedon camera_interface_mode
 	if (_camera_interface != nullptr) {
 		delete (_camera_interface);
-		/* set to zero to ensure parser is not used while not instantiated */
+		// set to zero to ensure parser is not used while not instantiated
 		_camera_interface = nullptr;
 	}
 
@@ -268,13 +268,23 @@ CameraTrigger::CameraTrigger() :
 #endif
 
 	case CAMERA_INTERFACE_MODE_MAVLINK:
-		/* start an interface that does nothing. Instead mavlink will listen to the camera_trigger uORB message */
+		// start an interface that does nothing. Instead mavlink will listen to the camera_trigger uORB message
 		_camera_interface = new CameraInterface();
 		break;
 
 	default:
 		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
 		break;
+	}
+
+	// Enforce a lower bound on the activation interval in PWM modes to not miss
+	// engage calls in-between 50Hz PWM pulses. (see PX4 PR #6973)
+	if ((_activation_time < 40.0f) &&
+	    (_camera_interface_mode == CAMERA_INTERFACE_MODE_GENERIC_PWM ||
+	     _camera_interface_mode == CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM)) {
+		_activation_time = 40.0f;
+		PX4_WARN("Trigger interval too low for PWM interface, setting to 40 ms");
+		param_set(_p_activation_time, &(_activation_time));
 	}
 
 	struct camera_trigger_s	report = {};
