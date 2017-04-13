@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN lps25h
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		lps25h.cpp
 		lps25h_i2c.cpp

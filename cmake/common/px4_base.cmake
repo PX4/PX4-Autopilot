@@ -820,7 +820,6 @@ function(px4_add_common_flags)
 
 	set(cxx_warnings
 		-Wno-missing-field-initializers
-		#-Weffc++
 		)
 
 	set(cxx_compile_flags

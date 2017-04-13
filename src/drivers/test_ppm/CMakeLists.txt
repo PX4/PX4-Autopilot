@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN test_ppm
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		test_ppm.cpp
 	DEPENDS
