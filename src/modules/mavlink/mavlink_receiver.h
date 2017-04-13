@@ -252,6 +252,10 @@ private:
 	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
 	uint16_t _mom_switch_state;
 
+	param_t _p_bat_emergen_thr;
+	param_t _p_bat_crit_thr;
+	param_t _p_bat_low_thr;
+
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);
 	MavlinkReceiver operator=(const MavlinkReceiver &);
