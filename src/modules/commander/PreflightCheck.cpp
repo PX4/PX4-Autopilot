@@ -473,7 +473,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 	// check velocity innovation test ratio
 	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
-	if (status.hgt_test_ratio > test_limit) {
+	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF VEL ERROR");
 		}
