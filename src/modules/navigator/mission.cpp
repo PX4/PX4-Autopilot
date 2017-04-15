@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "mission.h"
 #include "navigator.h"
@@ -1148,8 +1149,7 @@ void
 Mission::do_abort_landing()
 {
 	// Abort FW landing
-	//  turn the land waypoint into a loiter and stay there
-
+	//  reposition over the land waypoint into a loiter and stay there
 	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
 		return;
 	}
@@ -1160,27 +1160,37 @@ Mission::do_abort_landing()
 	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(),
 				 _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
 
-	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-	_mission_item.altitude_is_relative = false;
-	_mission_item.altitude = alt_sp;
-	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
-	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-	_mission_item.autocontinue = false;
-	_mission_item.origin = ORIGIN_ONBOARD;
+	struct position_setpoint_s &pos_sp_curr = _navigator->get_position_setpoint_triplet()->current;
 
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	struct vehicle_command_s vcmd = {};
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vcmd.target_system = _navigator->get_vstatus()->system_id;
+	vcmd.target_component = _navigator->get_vstatus()->component_id;
+	vcmd.source_system = _navigator->get_vstatus()->system_id;
+	vcmd.source_component = _navigator->get_vstatus()->component_id;
+	vcmd.confirmation = 0;
+	vcmd.param5 = pos_sp_curr.lat;
+	vcmd.param6 = pos_sp_curr.lon;
+	vcmd.param7 = alt_sp;
 
-	_navigator->set_position_setpoint_triplet_updated();
+	if (_cmd_pub == nullptr) {
+		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+	}
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %dm above landing)", (int)(alt_sp - alt_landing));
 
-	// move mission index back 1 (landing approach point) so that re-entering
-	//  the mission doesn't try to land from the loiter above land
-	// TODO: reset index to MAV_CMD_DO_LAND_START
-	_current_offboard_mission_index -= 1;
+	// move mission index back to DO_LAND_START if available, otherwise back 1
+	int land_start_index = find_offboard_land_start();
+
+	if (land_start_index != -1) {
+		_current_offboard_mission_index = land_start_index;
+
+	} else {
+		_current_offboard_mission_index -= 1;
+	}
 }
 
 bool
