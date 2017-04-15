@@ -111,7 +111,7 @@ SECTIONS
 		. = ALIGN(4);
 	} > sram AT > flash
 
-	.bss : {
+	.bss ALIGN(4) : {
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
