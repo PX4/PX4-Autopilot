@@ -1230,7 +1230,8 @@ MulticopterPositionControl::control_non_manual(float dt)
 			} else {
 				// copter has reached our takeoff speed. split the thrust setpoint up
 				// into an integral part and into a P part
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
+				// remembering to remove _params.thr_hover which is added later as a feed-forward in control_position.
+				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2)) - _params.thr_hover;
 				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
 				_vel_sp_prev(2) = -_params.tko_speed;
 				_takeoff_jumped = true;
