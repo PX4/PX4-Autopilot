@@ -161,6 +161,8 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
 	(void)param_find("RC_TH_USER");
+	(void)param_find("CAL_ACC0_ID");
+	(void)param_find("CAL_GYRO0_ID");
 	(void)param_find("CAL_MAG0_ID");
 	(void)param_find("CAL_MAG1_ID");
 	(void)param_find("CAL_MAG2_ID");
