@@ -196,6 +196,9 @@ Mavlink::Mavlink() :
 	_streams(nullptr),
 	_mission_manager(nullptr),
 	_parameters_manager(nullptr),
+#if defined(MIXER_TUNING)
+	_mixers_manager(nullptr),
+#endif //MIXER_TUNING
 	_mavlink_ftp(nullptr),
 	_mavlink_log_handler(nullptr),
 	_mavlink_shell(nullptr),
@@ -1246,6 +1249,11 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/* handle packet with log component */
 	_mavlink_log_handler->handle_message(msg);
 
+#if defined(MIXER_TUNING)
+	/* handle packet with mixer manager */
+	_mixers_manager->handle_message(msg);
+#endif //MIXER_TUNING
+
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
@@ -1964,6 +1972,13 @@ Mavlink::task_main(int argc, char *argv[])
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
 	_parameters_manager->set_interval(interval_from_rate(300.0f));
 	LL_APPEND(_streams, _parameters_manager);
+
+#if defined(MIXER_TUNING)
+	/* MIXER_DATA stream */
+	_mixers_manager = (MavlinkMixersManager *) MavlinkMixersManager::new_instance(this);
+//    _parameters_manager->set_interval(interval_from_rate(40.0f));
+	LL_APPEND(_streams, _mixers_manager);
+#endif //MIXER_TUNING
 
 	/* MAVLINK_FTP stream */
 	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);

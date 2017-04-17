@@ -548,6 +548,7 @@ PWMSim::task_main()
 			_failsafe = aa.force_failsafe;
 			_lockdown = aa.manual_lockdown;
 		}
+
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -847,6 +848,50 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
+
+	case MIXERIOCGETPARAMCOUNT: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			int *count = (int *)arg;
+			*count = _mixers->group_param_count();
+
+			break;
+		}
+
+	case MIXERIOCGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->group_get_param(param);
+			break;
+		}
+
+	case MIXERIOCSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->group_set_param(param);
+			break;
+		}
+
+	case MIXERIOCGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
+			break;
+		}
+
+#endif //defined(MIXER_TUNING)
 
 	default:
 		ret = -ENOTTY;
