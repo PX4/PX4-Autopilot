@@ -1,5 +1,5 @@
 diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
-index 644c810..80bb69a 100644
+index 644c810..aef3fe1 100644
 --- NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
 +++ NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
 @@ -208,7 +208,7 @@
@@ -118,11 +118,13 @@ index 644c810..80bb69a 100644
   *
   ****************************************************************************/
  
-@@ -2316,9 +2270,9 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
+@@ -2316,9 +2270,11 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
                               unsigned int nbuffered, bool upper)
  {
    struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
++#if !(defined(CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS) && defined(CONFIG_STM32_FLOWCONTROL_BROKEN))
 +  uint16_t ie;
++#endif
  
 -#if defined(CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS) && \
 -    defined(CONFIG_STM32_FLOWCONTROL_BROKEN)
@@ -130,7 +132,7 @@ index 644c810..80bb69a 100644
    if (priv->iflow && (priv->rts_gpio != 0))
      {
        /* Assert/de-assert nRTS set it high resume/stop sending */
-@@ -2346,7 +2300,9 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
+@@ -2346,7 +2302,9 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
             * enable Rx interrupts.
             */
  
@@ -141,7 +143,7 @@ index 644c810..80bb69a 100644
            return true;
          }
  
-@@ -2359,7 +2315,7 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
+@@ -2359,7 +2317,7 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
             * received.
             */
  
@@ -150,7 +152,7 @@ index 644c810..80bb69a 100644
          }
      }
  #endif
-@@ -2391,18 +2347,7 @@ static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
+@@ -2391,18 +2349,7 @@ static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
        priv->rxdmanext++;
        if (priv->rxdmanext == RXDMA_BUFFER_SIZE)
          {
@@ -170,7 +172,7 @@ index 644c810..80bb69a 100644
          }
      }
  
-@@ -2411,40 +2356,6 @@ static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
+@@ -2411,40 +2358,6 @@ static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
  #endif
  
  /****************************************************************************
@@ -211,7 +213,7 @@ index 644c810..80bb69a 100644
   * Name: up_dma_rxint
   *
   * Description:
-@@ -2466,15 +2377,6 @@ static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
+@@ -2466,15 +2379,6 @@ static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
     */
  
    priv->rxenable = enable;
@@ -227,7 +229,7 @@ index 644c810..80bb69a 100644
  }
  #endif
  
-@@ -2510,14 +2412,10 @@ static bool up_dma_rxavailable(struct uart_dev_s *dev)
+@@ -2510,14 +2414,10 @@ static bool up_dma_rxavailable(struct uart_dev_s *dev)
  static void up_send(struct uart_dev_s *dev, int ch)
  {
    struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -243,7 +245,7 @@ index 644c810..80bb69a 100644
    up_serialout(priv, STM32_USART_TDR_OFFSET, (uint32_t)ch);
  }
  
-@@ -2683,16 +2581,6 @@ static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
+@@ -2683,16 +2583,6 @@ static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
    if (priv->rxenable && up_dma_rxavailable(&priv->dev))
      {
        uart_recvchars(&priv->dev);
@@ -260,7 +262,7 @@ index 644c810..80bb69a 100644
      }
  }
  #endif
-@@ -2707,7 +2595,7 @@ static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
+@@ -2707,7 +2597,7 @@ static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
   * Input Parameters:
   *
   *    cb - Returned to the driver. The driver version of the callback
@@ -269,7 +271,7 @@ index 644c810..80bb69a 100644
   *         the end of the structure.
   *
   *    pmstate - Identifies the new PM state
-@@ -2773,7 +2661,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
+@@ -2773,7 +2663,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
   * Input Parameters:
   *
   *    cb - Returned to the driver. The driver version of the callback
@@ -278,7 +280,7 @@ index 644c810..80bb69a 100644
   *         the end of the structure.
   *
   *    pmstate - Identifies the new PM state
-@@ -2791,6 +2679,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
+@@ -2791,6 +2681,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
   *              return non-zero values when reverting back to higher power
   *              consumption modes!
   *
