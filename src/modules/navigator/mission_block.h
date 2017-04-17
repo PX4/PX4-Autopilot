@@ -66,7 +66,6 @@ public:
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
-	/* TODO: move this to a helper class in navigator */
 	static bool item_contains_position(const struct mission_item_s *item);
 
 protected:
