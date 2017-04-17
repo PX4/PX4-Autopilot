@@ -3297,6 +3297,8 @@ public:
 private:
 	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_landed_sub;
+	MavlinkOrbSubscription *_pos_sp_triplet_sub;
+	MavlinkOrbSubscription *_control_mode_sub;
 	mavlink_extended_sys_state_t _msg;
 
 	/* do not allow top copying this class */
@@ -3307,9 +3309,10 @@ protected:
 	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
+		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
+		_control_mode_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_control_mode))),
 		_msg()
 	{
-
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
 		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 	}
@@ -3345,8 +3348,25 @@ protected:
 			if (land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 
-			} else {
+			} else if (!land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
+
+				vehicle_control_mode_s control_mode = {};
+				position_setpoint_triplet_s pos_sp_triplet = {};
+
+				if (_control_mode_sub->update(&control_mode) && _pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+					if (control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
+						if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+							_msg.landed_state = MAV_LANDED_STATE_TAKEOFF;
+
+						} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+							_msg.landed_state = MAV_LANDED_STATE_LANDING;
+						}
+					}
+				}
+
+			} else {
+				_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 			}
 		}
 
