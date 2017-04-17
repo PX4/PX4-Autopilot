@@ -67,7 +67,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
-	_missionFeasibilityChecker()
+	_missionFeasibilityChecker(navigator)
 {
 	updateParams();
 }
@@ -304,7 +304,7 @@ Mission::update_onboard_mission()
 		// XXX check validity here as well
 		_navigator->get_mission_result()->valid = true;
 		/* reset mission failure if we have an updated valid mission */
-		_navigator->get_mission_result()->mission_failure = false;
+		_navigator->get_mission_result()->failure = false;
 
 		/* reset reached info as well */
 		_navigator->get_mission_result()->reached = false;
@@ -355,7 +355,7 @@ Mission::update_offboard_mission()
 
 		if (!failed) {
 			/* reset mission failure if we have an updated valid mission */
-			_navigator->get_mission_result()->mission_failure = false;
+			_navigator->get_mission_result()->failure = false;
 
 			/* reset reached info as well */
 			_navigator->get_mission_result()->reached = false;
@@ -1374,21 +1374,8 @@ Mission::check_mission_valid(bool force)
 {
 	if ((!_home_inited && _navigator->home_position_valid()) || force) {
 
-		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
-
 		_navigator->get_mission_result()->valid =
-			_missionFeasibilityChecker.checkMissionFeasible(
-				_navigator->get_mavlink_log_pub(),
-				(_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol),
-				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-				_navigator->get_home_position()->alt,
-				_navigator->home_position_valid(),
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon,
-				_param_dist_1wp.get(),
-				_navigator->get_mission_result()->warning,
-				_navigator->get_default_acceptance_radius(),
-				_navigator->get_land_detected()->landed);
+			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission, _param_dist_1wp.get(), false);
 
 		_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 		_navigator->increment_mission_instance_count();

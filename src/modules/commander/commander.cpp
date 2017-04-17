@@ -2477,8 +2477,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			status_flags.condition_auto_mission_available = _mission_result.valid && !_mission_result.finished;
 
-			if (status.mission_failure != _mission_result.mission_failure) {
-				status.mission_failure = _mission_result.mission_failure;
+			if (status.mission_failure != _mission_result.failure) {
+				status.mission_failure = _mission_result.failure;
 				status_changed = true;
 
 				if (status.mission_failure) {
@@ -2625,6 +2625,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (status_flags.condition_home_position_valid &&
 			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
 			_last_mission_instance != _mission_result.instance_count) {
+
 			if (!_mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);

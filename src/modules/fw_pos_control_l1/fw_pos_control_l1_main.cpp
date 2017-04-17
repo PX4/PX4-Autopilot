@@ -1525,8 +1525,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			// continuously reset launch detection and runway takeoff until armed
 			if (!_control_mode.flag_armed) {
-				_runway_takeoff.reset();
-
 				_launchDetector.reset();
 				_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 				_launch_detection_notify = 0;

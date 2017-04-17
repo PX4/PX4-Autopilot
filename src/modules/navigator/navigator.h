@@ -304,7 +304,7 @@ private:
 	float _mission_throttle{-1.0f};
 
 	// update subscriptions
-	void		fw_pos_ctrl_status_update();
+	void		fw_pos_ctrl_status_update(bool force = false);
 	void		global_position_update();
 	void		gps_position_update();
 	void		home_position_update(bool force = false);

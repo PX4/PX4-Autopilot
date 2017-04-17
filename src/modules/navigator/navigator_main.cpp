@@ -180,12 +180,12 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::fw_pos_ctrl_status_update()
+Navigator::fw_pos_ctrl_status_update(bool force)
 {
 	bool updated = false;
 	orb_check(_fw_pos_ctrl_status_sub, &updated);
 
-	if (updated) {
+	if (updated || force) {
 		orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
 	}
 }
@@ -265,7 +265,7 @@ Navigator::task_main()
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
-	fw_pos_ctrl_status_update();
+	fw_pos_ctrl_status_update(true);
 	params_update();
 
 	/* wakeup source(s) */
@@ -531,13 +531,13 @@ Navigator::task_main()
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 
-			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
-						       home_position_valid());
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
 
 			_geofence_result.timestamp = hrt_absolute_time();
 			_geofence_result.geofence_action = _geofence.getGeofenceAction();
+			_geofence_result.home_required = _geofence.isHomeRequired();
 
 			if (!inside) {
 				/* inform other apps via the mission result */
@@ -969,8 +969,8 @@ Navigator::publish_vehicle_cmd(const struct vehicle_command_s &vcmd)
 void
 Navigator::set_mission_failure(const char *reason)
 {
-	if (!_mission_result.mission_failure) {
-		_mission_result.mission_failure = true;
+	if (!_mission_result.failure) {
+		_mission_result.failure = true;
 		set_mission_result_updated();
 		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
 	}
