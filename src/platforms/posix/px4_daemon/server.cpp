@@ -95,7 +95,7 @@ Server::_server_main_trampoline(void *arg)
 
 void Server::_pthread_key_destructor(void *arg)
 {
-	delete((CmdThreadSpecificData *)arg);
+	delete ((CmdThreadSpecificData *)arg);
 }
 
 void

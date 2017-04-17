@@ -402,8 +402,10 @@ int run_startup_bash_script(const char *commands_file)
 
 	PX4_INFO("Calling bash script: %s", bash_command.c_str());
 
+	int ret = 0;
+
 	if (!bash_command.empty()) {
-		int ret = system(bash_command.c_str());
+		ret = system(bash_command.c_str());
 
 		if (ret == 0) {
 			PX4_INFO("Startup script returned successfully");
@@ -411,6 +413,7 @@ int run_startup_bash_script(const char *commands_file)
 		} else {
 			PX4_WARN("Startup script returned with return value: %d", ret);
 		}
+
 	} else {
 		PX4_INFO("Startup script empty");
 	}
