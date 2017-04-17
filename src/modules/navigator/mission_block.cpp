@@ -542,10 +542,22 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
-		// set pitch and ensure that the hold time is zero
-		sp->pitch_min = item->pitch_min;
 
-	// fall through
+		// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
+		if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		    && !_navigator->get_land_detected()->landed) {
+
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+		} else {
+			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+			// set pitch and ensure that the hold time is zero
+			sp->pitch_min = item->pitch_min;
+		}
+
+		break;
+
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
