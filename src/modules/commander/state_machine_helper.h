@@ -90,7 +90,6 @@ struct status_flags_s {
     bool circuit_breaker_engaged_usb_check;
     bool offboard_control_signal_found_once;
     bool offboard_control_signal_lost;
-    bool offboard_control_signal_weak;
     bool offboard_control_set_by_command;                // true if the offboard mode was set by a mavlink command and should not be overridden by RC
     bool offboard_control_loss_timeout;                // true if offboard is lost for a certain amount of time
     bool rc_signal_found_once;
@@ -116,7 +115,8 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					    orb_advert_t *mavlink_log_pub,        ///< uORB handle for mavlink log
 					    status_flags_s *status_flags,
 					    float avionics_power_rail_voltage,
-					    bool can_arm_without_gps,
+					    bool arm_without_gps,
+					    bool arm_mission_required,
 					    hrt_abstime time_since_boot);
 
 transition_result_t
@@ -153,6 +153,6 @@ void set_data_link_loss_nav_state(struct vehicle_status_s *status,
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
-		    bool can_arm_without_gps, hrt_abstime time_since_boot);
+		    bool arm_without_gps, bool arm_mission_required, hrt_abstime time_since_boot);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

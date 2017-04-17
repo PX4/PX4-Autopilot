@@ -297,9 +297,10 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,
 				5.0f, /* avionics rail voltage */
-                check_gps,
-                2e6 /* 2 seconds after boot, everything should be checked */
-                );
+				check_gps,
+				true, /* can arm without valid mission */
+				2e6 /* 2 seconds after boot, everything should be checked */
+				);
 
         // Validate result of transition
         ut_compare(test->assertMsg, test->expected_transition_result, result);
@@ -456,6 +457,7 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		current_status_flags.condition_local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
 		current_status_flags.condition_home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;
 		current_status_flags.condition_global_position_valid = test->condition_bits & MTT_GLOBAL_POS_VALID;
+		current_status_flags.condition_auto_mission_available = true;
 
 		// Attempt transition
 		transition_result_t result = main_state_transition(&current_vehicle_status, test->to_state, main_state_prev,
