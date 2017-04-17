@@ -65,10 +65,6 @@ PX4_ARCHCWARNINGS = $(ARCHWARNINGS) \
                    -Wno-old-style-declaration \
                    -Wno-pointer-sign \
                    -Wno-type-limits \
-                   -Wno-unused-but-set-variable \
-                   -Wno-unused-function \
-                   -Wno-unused-label \
-                   -Wno-unused-variable
 
 PX4_ARCHWARNINGSXX = $(ARCHWARNINGS) \
                    -Wno-cpp \
