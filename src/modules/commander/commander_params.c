@@ -275,10 +275,7 @@ PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
  * The default allows to arm the vehicle without GPS signal.
  *
  * @group Commander
- * @min 0
- * @max 1
- * @value 0 Don't allow arming without GPS
- * @value 1 Allow arming without GPS
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
@@ -594,3 +591,13 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.15f);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
+
+/**
+ * Require valid mission to arm
+ *
+ * The default allows to arm the vehicle without a valid mission.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
