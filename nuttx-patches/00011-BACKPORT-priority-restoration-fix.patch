@@ -60,7 +60,7 @@ index f4037d3..ec7de27 100644
  #endif
        return OK;
 diff --git NuttX/nuttx/sched/semaphore/sem_holder.c NuttX/nuttx/sched/semaphore/sem_holder.c
-index 6b9f05a..7b4e3e3 100644
+index 6b9f05a..003b0ab 100644
 --- NuttX/nuttx/sched/semaphore/sem_holder.c
 +++ NuttX/nuttx/sched/semaphore/sem_holder.c
 @@ -93,7 +93,7 @@ static inline FAR struct semholder_s *sem_allocholder(sem_t *sem)
@@ -211,12 +211,12 @@ index 6b9f05a..7b4e3e3 100644
 +       */
 +
 +      if (pholder->htcb != NULL)
-+        {
-+          /* Call the handler */
-+
-+          ret = handler(pholder, sem, arg);
-+        }
-+    }
+         {
+           /* Call the handler */
+ 
+           ret = handler(pholder, sem, arg);
+         }
+     }
 +#else
 +  int i;
 +
@@ -229,12 +229,12 @@ index 6b9f05a..7b4e3e3 100644
 +      /* The hard-allocated containers may hold a NULL holder */
 +
 +      if (pholder->htcb != NULL)
-         {
-           /* Call the handler */
- 
-           ret = handler(pholder, sem, arg);
-         }
-     }
++        {
++          /* Call the handler */
++
++          ret = handler(pholder, sem, arg);
++        }
++    }
 +#endif
  
    return ret;
@@ -374,7 +374,15 @@ index 6b9f05a..7b4e3e3 100644
      }
  
    /* If there are no tasks waiting for available counts, then all holders
-@@ -701,7 +796,7 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
+@@ -692,7 +787,6 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
+                                             FAR sem_t *sem)
+ {
+   FAR struct tcb_s *rtcb = this_task();
+-  FAR struct semholder_s *pholder;
+ 
+   /* Perform the following actions only if a new thread was given a count.
+    * The thread that received the count should be the highest priority
+@@ -701,7 +795,7 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
     * next highest pending priority.
     */
  
@@ -383,7 +391,7 @@ index 6b9f05a..7b4e3e3 100644
      {
        /* The currently executed thread should be the lower priority
         * thread that just posted the count and caused this action.
-@@ -735,18 +830,8 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
+@@ -735,18 +829,8 @@ static inline void sem_restorebaseprio_task(FAR struct tcb_s *stcb,
     * counts, then we need to remove it from the list of holders.
     */
  
@@ -403,7 +411,7 @@ index 6b9f05a..7b4e3e3 100644
  }
  
  /****************************************************************************
-@@ -817,18 +902,21 @@ void sem_destroyholder(FAR sem_t *sem)
+@@ -817,18 +901,21 @@ void sem_destroyholder(FAR sem_t *sem)
     */
  
  #if CONFIG_SEM_PREALLOCHOLDERS > 0
@@ -428,7 +436,7 @@ index 6b9f05a..7b4e3e3 100644
  #endif
  }
  
-@@ -952,7 +1040,7 @@ void sem_releaseholder(FAR sem_t *sem)
+@@ -952,7 +1039,7 @@ void sem_releaseholder(FAR sem_t *sem)
    /* Find the container for this holder */
  
    pholder = sem_findholder(sem, rtcb);
@@ -437,7 +445,7 @@ index 6b9f05a..7b4e3e3 100644
      {
        /* Decrement the counts on this holder -- the holder will be freed
         * later in sem_restorebaseprio.
-@@ -1048,7 +1136,7 @@ void sem_canceled(FAR struct tcb_s *stcb, FAR sem_t *sem)
+@@ -1048,7 +1135,7 @@ void sem_canceled(FAR struct tcb_s *stcb, FAR sem_t *sem)
  
    /* Adjust the priority of every holder as necessary */
  
