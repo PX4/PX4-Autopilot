@@ -297,6 +297,11 @@ MissionBlock::is_mission_item_reached()
 				}
 			}
 
+		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
+			_waypoint_position_reached = true;
+			_waypoint_yaw_reached = true;
+			_time_wp_reached = now;
+
 		} else {
 			/* for normal mission items used their acceptance radius */
 			float mission_acceptance_radius = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
@@ -500,7 +505,9 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	    item->nav_cmd == NAV_CMD_DO_SET_ROI ||
 	    item->nav_cmd == NAV_CMD_ROI ||
 	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
+	    item->nav_cmd == NAV_CMD_DELAY ||
+	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
 
 		return false;
 	}

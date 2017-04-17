@@ -546,6 +546,16 @@ Navigator::task_main()
 					(void)orb_unadvertise(pub);
 				}
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
+
+				vehicle_command_s vcmd = {};
+				vcmd.target_system = get_vstatus()->system_id;
+				vcmd.target_component = get_vstatus()->component_id;
+				vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+
+				orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+				(void)orb_unadvertise(pub);
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 
 				if (get_mission_result()->valid &&
