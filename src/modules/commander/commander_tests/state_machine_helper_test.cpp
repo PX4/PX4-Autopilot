@@ -298,7 +298,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 				&status_flags,
 				5.0f, /* avionics rail voltage */
 				check_gps,
-				true, /* can arm without valid mission */
+				false, /* valid mission not required*/
 				2e6 /* 2 seconds after boot, everything should be checked */
 				);
 
