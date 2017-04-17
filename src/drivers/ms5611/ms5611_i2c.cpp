@@ -70,8 +70,8 @@ public:
 	virtual ~MS5611_I2C();
 
 	virtual int	init();
-	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual int	dev_read(unsigned offset, void *data, unsigned count);
+	virtual int	dev_ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	virtual int	probe();
@@ -128,7 +128,7 @@ MS5611_I2C::init()
 }
 
 int
-MS5611_I2C::read(unsigned offset, void *data, unsigned count)
+MS5611_I2C::dev_read(unsigned offset, void *data, unsigned count)
 {
 	union _cvt {
 		uint8_t	b[4];
@@ -152,7 +152,7 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 }
 
 int
-MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
+MS5611_I2C::dev_ioctl(unsigned operation, unsigned &arg)
 {
 	int ret;
 
