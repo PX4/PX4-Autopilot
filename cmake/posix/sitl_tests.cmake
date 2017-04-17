@@ -38,6 +38,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	)
 endif()
 
+set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
+
 foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/${test_name}_generated)
 
@@ -49,7 +51,7 @@ foreach(test_name ${tests})
 			none
 			${test_name}_generated
 			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
+			${SITL_WORKING_DIR}
 			WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
 	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")

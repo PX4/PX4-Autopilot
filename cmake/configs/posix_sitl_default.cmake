@@ -11,6 +11,9 @@ set(config_module_list
 	drivers/vmount
 	modules/sensors
 
+	#
+	# Platform
+	#
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/px4_daemon
@@ -128,13 +131,6 @@ set(config_module_list
 	lib/version
 
 	#
-	# Platform
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
-
-	#
 	# OBC challenge
 	#
 	modules/bottle_drop
@@ -211,3 +207,6 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
+set(config_sitl_rcS_dir
+	etc/init/rcS
+)
