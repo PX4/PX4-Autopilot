@@ -268,9 +268,9 @@ RTL::set_rtl_item()
 
 			_navigator->set_can_loiter_at_sp(true);
 
-			if (autoland && (Navigator::get_time_inside(_mission_item) > FLT_EPSILON)) {
+			if (autoland && (get_time_inside(_mission_item) > FLT_EPSILON)) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
-						 (double)Navigator::get_time_inside(_mission_item));
+						 (double)get_time_inside(_mission_item));
 
 			} else {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loiter");
