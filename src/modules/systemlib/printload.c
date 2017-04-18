@@ -116,11 +116,35 @@ tstate_name(const tstate_t s)
 void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_callback_f cb, void *user,
 		       struct print_load_s *print_state)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat" // NuttX uses a different printf format
+#pragma GCC diagnostic ignored "-Wformat-extra-args"
+
+	buffer[0] = 0;
+	cb(user);
+
+	/* header for task list */
+	snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-6s",
+		 "PID",
+		 CONFIG_TASK_NAME_SIZE, "COMMAND",
+		 "CPU(ms)",
+		 "CPU(%)",
+		 "USED/STACK",
+		 "PRIO(BASE)",
+#if CONFIG_RR_INTERVAL > 0
+		 "TSLICE"
+#else
+		 "STATE"
+#endif
+		);
+	cb(user);
+
 	print_state->new_time = t;
 
 	int   i;
 	uint64_t curr_time_us;
 	uint64_t idle_time_us;
+	float idle_load = 0.f;
 
 	curr_time_us = t;
 	idle_time_us = system_load.tasks[0].total_runtime;
@@ -163,54 +187,52 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 			stack_free = up_check_intstack_remain();
 
 		} else {
-#endif
 			stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
 		}
 
+#else
+		stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
 #endif
 
-		unsigned tcb_sched_priority = system_load.tasks[i].tcb->sched_priority;
 #if CONFIG_ARCH_BOARD_SIM || !defined(CONFIG_PRIORITY_INHERITANCE)
 #else
 		unsigned tcb_base_priority = system_load.tasks[i].tcb->base_priority;
 #endif
-
 #if CONFIG_RR_INTERVAL > 0
-		unsigned tcb_timeslice = system_load.tasks[i].tcb->timeslice);
+		unsigned tcb_timeslice = system_load.tasks[i].tcb->timeslice;
 #endif
 		unsigned tcb_task_state = system_load.tasks[i].tcb->task_state;
+		unsigned tcb_sched_priority = system_load.tasks[i].tcb->sched_priority;
 
 
 		sched_unlock();
 
-
 		switch (tcb_task_state) {
-	// astyle formatting bug
-	case TSTATE_TASK_PENDING:
-	case TSTATE_TASK_READYTORUN:
-	case TSTATE_TASK_RUNNING:
-		print_state->running_count++;
-		break;
+		case TSTATE_TASK_PENDING:
+		case TSTATE_TASK_READYTORUN:
+		case TSTATE_TASK_RUNNING:
+			print_state->running_count++;
+			break;
 
-	case TSTATE_TASK_INVALID:
-	case TSTATE_TASK_INACTIVE:
-	case TSTATE_WAIT_SEM:
 #ifndef CONFIG_DISABLE_SIGNALS
-	case TSTATE_WAIT_SIG:
+
+		case TSTATE_WAIT_SIG:
 #endif
 #ifndef CONFIG_DISABLE_MQUEUE
-	case TSTATE_WAIT_MQNOTEMPTY:
-	case TSTATE_WAIT_MQNOTFULL:
+		case TSTATE_WAIT_MQNOTEMPTY:
+		case TSTATE_WAIT_MQNOTFULL:
 #endif
 #ifdef CONFIG_PAGING
-	case TSTATE_WAIT_PAGEFILL:
+		case TSTATE_WAIT_PAGEFILL:
 #endif
-		print_state->blocked_count++;
-		break;
-	}
+		case TSTATE_TASK_INVALID:
+		case TSTATE_TASK_INACTIVE:
+		case TSTATE_WAIT_SEM:
+			print_state->blocked_count++;
+			break;
+		}
 
-	interval_runtime = (print_state->last_times[i] > 0 && total_runtime[i] > print_state->last_times[i])
+		interval_runtime = (print_state->last_times[i] > 0 && total_runtime[i] > print_state->last_times[i])
 				   ? (total_runtime[i] - print_state->last_times[i]) : 0;
 
 		print_state->last_times[i] = total_runtime[i];
@@ -218,87 +240,23 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		float current_load = 0.f;
 
 		if (print_state->new_time > print_state->interval_start_time) {
-		current_load = interval_runtime * print_state->interval_time_ms_inv;
+			current_load = interval_runtime * print_state->interval_time_ms_inv;
 
-		if (tcb_pid != 0) {
+			if (tcb_pid != 0) {
 				print_state->total_user_time += interval_runtime;
+
+			} else {
+				idle_load = current_load;
 			}
 
 		}
 
 
 		if (print_state->new_time <= print_state->interval_start_time) {
-		continue; // not enough data yet
-	}
-
-	// print output
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat" // NuttX uses a different printf format
-#pragma GCC diagnostic ignored "-Wformat-extra-args"
-
-	if (tcb_pid == 0) {
-		float idle;
-		float task_load;
-		float sched_load;
-
-		idle = current_load;
-		task_load = (float)(print_state->total_user_time) * print_state->interval_time_ms_inv;
-
-			/* this can happen if one tasks total runtime was not computed
-			   correctly by the scheduler instrumentation TODO */
-			if (task_load > (1.f - idle)) {
-				task_load = (1.f - idle);
-			}
-
-			sched_load = 1.f - idle - task_load;
-
-			snprintf(buffer, buffer_length, "Processes: %d total, %d running, %d sleeping",
-				 system_load.total_count,
-				 print_state->running_count,
-				 print_state->blocked_count);
-			cb(user);
-			snprintf(buffer, buffer_length, "CPU usage: %.2f%% tasks, %.2f%% sched, %.2f%% idle",
-				 (double)(task_load * 100.f),
-				 (double)(sched_load * 100.f),
-				 (double)(idle * 100.f));
-			cb(user);
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-			uint16_t dma_total;
-			uint16_t dma_used;
-			uint16_t dma_peak_used;
-
-			if (board_get_dma_usage(&dma_total, &dma_used, &dma_peak_used) >= 0) {
-				snprintf(buffer, buffer_length, "DMA Memory: %d total, %d used %d peak",
-					 dma_total,
-					 dma_used,
-					 dma_peak_used);
-				cb(user);
-			}
-
-#endif
-			snprintf(buffer, buffer_length, "Uptime: %.3fs total, %.3fs idle",
-				 (double)curr_time_us / 1000000.d,
-				 (double)idle_time_us / 1000000.d);
-			cb(user);
-
-			/* header for task list */
-			snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-6s",
-				 "PID",
-				 CONFIG_TASK_NAME_SIZE, "COMMAND",
-				 "CPU(ms)",
-				 "CPU(%)",
-				 "USED/STACK",
-				 "PRIO(BASE)",
-#if CONFIG_RR_INTERVAL > 0
-				 "TSLICE"
-#else
-				 "STATE"
-#endif
-				);
-			cb(user);
+			continue; // not enough data yet
 		}
 
+		// print output
 		int print_len = snprintf(buffer, buffer_length, "%4d %*-s %8d %2d.%03d %5u/%5u %3u (%3u) ",
 					 tcb_pid,
 					 CONFIG_TASK_NAME_SIZE, tcb_name,
@@ -324,6 +282,51 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		cb(user);
 	}
 
+	// Print footer
+	buffer[0] = 0;
+	cb(user);
+	float task_load;
+	float sched_load;
+
+	task_load = (float)(print_state->total_user_time) * print_state->interval_time_ms_inv;
+
+	/* this can happen if one tasks total runtime was not computed
+	   correctly by the scheduler instrumentation TODO */
+	if (task_load > (1.f - idle_load)) {
+		task_load = (1.f - idle_load);
+	}
+
+	sched_load = 1.f - idle_load - task_load;
+
+	snprintf(buffer, buffer_length, "Processes: %d total, %d running, %d sleeping",
+		 system_load.total_count,
+		 print_state->running_count,
+		 print_state->blocked_count);
+	cb(user);
+	snprintf(buffer, buffer_length, "CPU usage: %.2f%% tasks, %.2f%% sched, %.2f%% idle",
+		 (double)(task_load * 100.f),
+		 (double)(sched_load * 100.f),
+		 (double)(idle_load * 100.f));
+	cb(user);
+#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
+	uint16_t dma_total;
+	uint16_t dma_used;
+	uint16_t dma_peak_used;
+
+	if (board_get_dma_usage(&dma_total, &dma_used, &dma_peak_used) >= 0) {
+		snprintf(buffer, buffer_length, "DMA Memory: %d total, %d used %d peak",
+			 dma_total,
+			 dma_used,
+			 dma_peak_used);
+		cb(user);
+	}
+
+#endif
+	snprintf(buffer, buffer_length, "Uptime: %.3fs total, %.3fs idle",
+		 (double)curr_time_us / 1000000.d,
+		 (double)idle_time_us / 1000000.d);
+	cb(user);
+
 	print_state->interval_start_time = print_state->new_time;
 
 #pragma GCC diagnostic pop
@@ -331,7 +334,6 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 
 
 struct print_load_callback_data_s {
-	int counter;
 	int fd;
 	char buffer[140];
 };
@@ -346,12 +348,6 @@ static void print_load_callback(void *user)
 	}
 
 	dprintf(data->fd, "%s%s\n", clear_line, data->buffer);
-
-	if (data->counter == 3) {
-		dprintf(data->fd, "%s\n", clear_line);
-	}
-
-	++data->counter;
 }
 
 void print_load(uint64_t t, int fd, struct print_load_s *print_state)
@@ -362,8 +358,6 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 	}
 
 	struct print_load_callback_data_s data;
-
-	data.counter = 0;
 
 	data.fd = fd;
 
