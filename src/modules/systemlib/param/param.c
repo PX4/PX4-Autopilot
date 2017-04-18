@@ -103,7 +103,7 @@ static char *param_user_file = NULL;
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
-struct work_s autosave_work;
+static struct work_s autosave_work;
 static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
