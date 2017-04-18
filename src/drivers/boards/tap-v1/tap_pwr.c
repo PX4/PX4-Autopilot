@@ -83,7 +83,7 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 	return OK;
 }
 
-void board_shutdown()
+int board_shutdown()
 {
 	stm32_pwr_enablebkp(true);
 	/* XXX wow, this is evil - write a magic number into backup register zero */
@@ -94,6 +94,7 @@ void board_shutdown()
 
 	while (1);
 
+	return 0;
 }
 
 static int board_button_irq(int irq, FAR void *context)
