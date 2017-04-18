@@ -44,3 +44,6 @@
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
+
+#include <system_config.h>
+#include "../common/board_common.h"
