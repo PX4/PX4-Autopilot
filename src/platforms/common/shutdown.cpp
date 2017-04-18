@@ -45,6 +45,31 @@
 #include <errno.h>
 #include <pthread.h>
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE)
+// minimal NuttX build without work queue support
+
+int px4_register_shutdown_hook(shutdown_hook_t hook)
+{
+	return -EINVAL;
+}
+int px4_unregister_shutdown_hook(shutdown_hook_t hook)
+{
+	return -EINVAL;
+}
+
+int px4_shutdown_request(bool reboot, bool to_bootloader)
+{
+	if (reboot) {
+		px4_systemreset(to_bootloader);
+
+	} else {
+		return board_shutdown();
+	}
+
+	return 0;
+}
+
+#else
 
 static struct work_s shutdown_work = {};
 static uint8_t shutdown_counter = 0;
@@ -170,3 +195,5 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 	return work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, NULL, USEC2TICK(0));
 }
 
+
+#endif /* if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE) */
