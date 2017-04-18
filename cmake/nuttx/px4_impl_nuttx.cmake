@@ -267,9 +267,9 @@ function(px4_nuttx_add_export)
 	set(nuttx_export_dir ${nuttx_build_src}/nuttx/nuttx-export)
 
 	# nuttx cmake dependency files
-	set(nuttx_copy_stamp ${PX4_BINARY_DIR}/${CONFIG}_nuttx_copy.stamp)
-	set(nuttx_configure_stamp ${PX4_BINARY_DIR}/${CONFIG}_nuttx_configure.stamp)
-	set(nuttx_export_stamp ${PX4_BINARY_DIR}/${CONFIG}_nuttx_export.stamp)
+	set(nuttx_copy_stamp ${PX4_BINARY_DIR}/${CONFIG}/nuttx_copy.stamp)
+	set(nuttx_configure_stamp ${PX4_BINARY_DIR}/${CONFIG}/nuttx_configure.stamp)
+	set(nuttx_export_stamp ${PX4_BINARY_DIR}/${CONFIG}/nuttx_export.stamp)
 
 	# copy
 	file(GLOB_RECURSE nuttx_all_files ${PX4_SOURCE_DIR}/NuttX/*)
@@ -283,23 +283,23 @@ function(px4_nuttx_add_export)
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 	add_custom_target(nuttx_copy_${CONFIG} DEPENDS ${DEPENDS} ${nuttx_copy_stamp})
 
-	unset(last_patch_stamp)
+	unset(last_patch)
 	add_custom_target(nuttx_patch_${CONFIG})
 	foreach(patch ${px4_nuttx_patches})
 		get_filename_component(patch_file_name ${patch} NAME)
 		string(REPLACE "/" "_" patch_name "${CONFIG}-nuttx_patch_${patch_file_name}")
-		set(patch_stamp ${PX4_BINARY_DIR}/${patch_name}.stamp)
+		set(patch_stamp ${nuttx_build_src}/${patch_name}.stamp)
 
 		add_custom_command(OUTPUT ${patch_stamp}
 			COMMAND ${PATCH} --verbose -d ${nuttx_build_src} -s -p1 -N < ${patch}
 			COMMAND cmake -E touch ${patch_stamp}
-			DEPENDS ${nuttx_copy_stamp} ${patch} ${last_patch_stamp}
+			DEPENDS nuttx_copy_${CONFIG} ${patch} ${last_patch}
 			COMMENT "${CONFIG}: nuttx-patches/${patch_file_name} applied"
 			${nuttx_patches_uses_terminal})
 
 		add_custom_target(${patch_name} DEPENDS ${patch_stamp})
-		add_dependencies(nuttx_patch_${CONFIG} ${patch_name})
-		set(last_patch_stamp ${patch_stamp})
+		add_dependencies(nuttx_patch_${CONFIG} ${patch_name} nuttx_copy_${CONFIG})
+		set(last_patch ${patch_name})
 	endforeach()
 
 	# Read defconfig to see if CONFIG_ARMV7M_STACKCHECK is yes
@@ -319,7 +319,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${CP} -rp ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG} ${nuttx_build_src}/nuttx/configs
 		COMMAND cd ${nuttx_build_src}/nuttx/tools && sh configure.sh ${CONFIG}/${config_nuttx_config}
 		COMMAND cmake -E touch ${nuttx_configure_stamp}
-		DEPENDS nuttx_patch_${CONFIG} ${nuttx-configs} ${nuttx_copy_stamp}
+		DEPENDS nuttx_patch_${CONFIG} ${nuttx-configs}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		COMMENT "Configuring NuttX for ${CONFIG} with ${config_nuttx_config}")
 	add_custom_target(nuttx_configure_${CONFIG} DEPENDS ${nuttx_configure_stamp} nuttx_patch_${CONFIG})
@@ -351,8 +351,8 @@ function(px4_nuttx_add_export)
 		COMMAND ${RM} -rf ${nuttx_export_dir}
 		COMMAND ${MAKE} ${nuttx_build_options} --no-print-directory -C ${nuttx_build_src}/nuttx -r CONFIG_ARCH_BOARD=${CONFIG} export ${nuttx_build_output}
 		COMMAND cmake -E touch ${nuttx_export_stamp}
-		DEPENDS ${nuttx_copy_stamp} ${nuttx_configure_stamp} nuttx_patch_${CONFIG}
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		DEPENDS nuttx_configure_${CONFIG}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}/${CONFIG}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}"
 		${nuttx_build_uses_terminal})
 
