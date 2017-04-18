@@ -277,6 +277,13 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	data.field_x_ga = -data.field_y_ga;
 	data.field_y_ga = tmp;
 
+	/* The standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y. */
+	const float tmp = data.field_x_ga;
+	data.field_x_ga = -data.field_y_ga;
+	data.field_y_ga = tmp;
+
 	// TODO: remove these (or get the values)
 	mag_report.x_raw = 0;
 	mag_report.y_raw = 0;
