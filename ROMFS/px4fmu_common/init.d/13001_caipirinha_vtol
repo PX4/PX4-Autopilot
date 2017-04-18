@@ -4,10 +4,10 @@
 #
 # @type VTOL Duo Tailsitter
 #
-# @output MAIN1 motor left
-# @output MAIN2 motor right
-# @output MAIN5 elevon left
-# @output MAIN6 elevon right
+# @output MAIN1 motor right
+# @output MAIN2 motor left
+# @output MAIN5 elevon right
+# @output MAIN6 elevon left
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
