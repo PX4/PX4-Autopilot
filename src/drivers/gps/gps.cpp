@@ -1058,6 +1058,10 @@ gps_main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (argc < 2) {
+		goto out;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
