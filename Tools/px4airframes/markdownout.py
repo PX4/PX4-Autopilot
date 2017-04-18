@@ -4,12 +4,15 @@ import codecs
 class MarkdownTablesOutput():
     def __init__(self, groups, board):
         result = ("# Airframes Reference\n"
-                  "> **Note** **This list is auto-generated from the source code** and contains the most recent airframes documentation.\n"
+                  "> **Note** **This list is auto-generated from the source code**.\n"
                   "> \n"
                   "> The **AUX** channels are only available on Pixhawk Boards (labeled with **AUX OUT**).\n"
+                  "> \n"
                   "\n")
 
-        # TODO: describe meaning of green + blue color...
+        result += """This page lists all supported airframes and types including
+ the motor assignment and numbering. The motors in **green** rotate clockwise,
+ the ones in **blue** conterclockwise.\n\n"""
 
         for group in groups:
 
@@ -19,7 +22,7 @@ class MarkdownTablesOutput():
             image_name = group.GetImageName()
             result += '<div>\n'
             if image_name != 'AirframeUnknown':
-                result += '<img src="images/airframes/types/%s.svg" width="25%%" style="max-height: 150px;"/>\n' % (image_name)
+                result += '<img src="images/airframes/types/%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once
@@ -61,9 +64,9 @@ class MarkdownTablesOutput():
             result += '</div>\n\n'
 
             result += '<table style="width: 100%; table-layout:fixed; font-size:1.5rem;">\n'
-            result += ' <colgroup><col style="width: 30%"><col style="width: 30%"><col style="width: 40%"></colgroup>\n'
+            result += ' <colgroup><col style="width: 30%"><col style="width: 70%"></colgroup>\n'
             result += ' <thead>\n'
-            result += '   <tr><th>Name</th><th></th><th>Specific Outputs</th></tr>\n'
+            result += '   <tr><th>Name</th><th></th></tr>\n'
             result += ' </thead>\n'
             result += '<tbody>\n'
 
@@ -82,6 +85,7 @@ class MarkdownTablesOutput():
                     if url != '':
                         name_entry = '<a href="%s">%s</a>' % (url, name)
                     outputs = '<ul>'
+                    has_outputs = False
                     for output_name in param.GetOutputCodes():
                         value = param.GetOutputValue(output_name)
                         valstrs = value.split(";")
@@ -91,14 +95,21 @@ class MarkdownTablesOutput():
                             idx = 1
                         if not outputs_match[idx]:
                             outputs += '<li><b>%s</b>: %s</li>' % (output_name, value)
+                            has_outputs = True
 
                         for attrib in valstrs[1:]:
                             attribstrs = attrib.split(":")
                             # some airframes provide more info, like angle=60, direction=CCW
                             #print(output_name,value, attribstrs[0].strip(),attribstrs[1].strip())
                     outputs += '</ul>'
+                    if has_outputs:
+                        outputs_entry = '<p><b>Specific Outputs:</b>' + outputs + '</p>'
+                    else:
+                        outputs_entry = ''
 
-                    result += '<tr>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s</td>\n <td style="vertical-align: top;">%s</td>\n</tr>\n' % (name_entry, maintainer_entry, airframe_id_entry, outputs)
+                    result += ('<tr>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
+                        (name_entry, maintainer_entry, airframe_id_entry,
+                        outputs_entry))
 
 
             #Close the table.
