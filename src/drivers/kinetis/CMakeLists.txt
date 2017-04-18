@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@ px4_add_module(
 		drv_hrt.c
 		drv_io_timer.c
 		drv_pwm_servo.c
+		drv_pwm_trigger.c
 		drv_input_capture.c
 		drv_led_pwm.cpp
 	DEPENDS
