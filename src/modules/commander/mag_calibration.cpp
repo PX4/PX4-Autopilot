@@ -565,7 +565,12 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 		const unsigned mag_count = orb_group_count(ORB_ID(sensor_mag));
 
-		for (unsigned cur_mag = 0; cur_mag < mag_count; cur_mag++) {
+		// Warn that we will not calibrate more than max_mags magnetometers
+		if (mag_count > max_mags) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", mag_count, max_mags);
+		}
+
+		for (unsigned cur_mag = 0; cur_mag < mag_count && cur_mag < max_mags; cur_mag++) {
 			// Mag in this slot is available
 			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
 
