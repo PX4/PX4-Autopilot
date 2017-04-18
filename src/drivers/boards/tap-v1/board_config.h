@@ -342,16 +342,6 @@ void board_pwr_init(int stage);
 
 bool board_pwr_button_down(void);
 
-/****************************************************************************
- * Name: board_pwr
- *
- * Description:
- *   Called to turn on or off the TAP
- *
- ****************************************************************************/
-
-__EXPORT bool px4_board_pwr(bool on_not_off);
-
 #include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */

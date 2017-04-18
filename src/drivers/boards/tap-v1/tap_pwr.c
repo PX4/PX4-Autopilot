@@ -176,24 +176,3 @@ bool board_pwr_button_down(void)
 {
 	return 0 == stm32_gpioread(KEY_AD_GPIO);
 }
-
-/****************************************************************************
- * Name: board_pwr
- *
- * Description:
- *   Called to turn on or off the TAP
- *
- ****************************************************************************/
-
-__EXPORT bool px4_board_pwr(bool on_not_off)
-{
-	if (on_not_off) {
-		stm32_configgpio(POWER_ON_GPIO);
-
-	} else {
-
-		stm32_configgpio(POWER_OFF_GPIO);
-	}
-
-	return true;
-}

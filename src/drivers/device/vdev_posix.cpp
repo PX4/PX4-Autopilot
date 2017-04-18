@@ -442,11 +442,6 @@ extern "C" {
 		return sim_delay;
 	}
 
-	bool px4_board_pwr(bool on)
-	{
-		return false;
-	}
-
 	const char *px4_get_device_names(unsigned int *handle)
 	{
 		return VDev::devList(handle);

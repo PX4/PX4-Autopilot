@@ -208,7 +208,7 @@ typedef enum board_power_button_state_notification_e {
 	PWR_BUTTON_REQUEST_SHUT_DOWN,          /* Button went up after meeting shutdown button down time */
 
 	PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING, /* Response from call back board code does nothing the
-                                            * expectation is that board_do_shutdown will be called.
+                                            * expectation is that board_shutdown will be called.
                                             */
 	PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW,     /* Response from call back board code does shutdown now. */
 } board_power_button_state_notification_e;
@@ -453,25 +453,16 @@ __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **erra
 int board_register_power_state_notification_cb(power_button_state_notification_t cb);
 
 /************************************************************************************
- * Name: board_do_shutdown
+ * Name: board_shutdown
  *
  * Description:
  *   boards may provide a function to power off the board.
  *
- * return  - none
+ * return  - OK, or -errno
  */
-void board_shutdown(void);
+int board_shutdown(void);
 
-/************************************************************************************
- * Name: px4_board_pwr
- *
- * Description:
- *   boards may provide a function control the power.
- *
- * return  - none
- */
 #else
-#define board_register_power_state_notification_cb(cb) (0)
-#define board_shutdown() { do {} while(0); }
-#define px4_board_pwr(switch_on) { do {} while(0); }
+static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
+static inline int board_shutdown(void) { return -EINVAL; }
 #endif
