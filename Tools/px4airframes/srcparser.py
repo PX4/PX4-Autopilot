@@ -67,9 +67,9 @@ class ParameterGroup(object):
         elif (self.name == "Helicopter"):
             return "Helicopter"
         elif (self.name == "Hexarotor Coaxial"):
-            return "Y6A"
-        elif (self.name == "Y6B"):
             return "Y6B"
+        elif (self.name == "Y6A"):
+            return "Y6A"
         elif (self.name == "Tricopter Y-"):
             return "YMinus"
         elif (self.name == "Tricopter Y+"):
