@@ -51,7 +51,7 @@ PX4_ARCHWARNINGS = -Wall \
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
 
-PX4_ARCHCWARNINGS = $(ARCHWARNINGS) \
+PX4_ARCHCWARNINGS = \
                    -Wbad-function-cast \
                    -Wmissing-parameter-type \
                    -Wnested-externs \
@@ -66,6 +66,6 @@ PX4_ARCHCWARNINGS = $(ARCHWARNINGS) \
                    -Wno-pointer-sign \
                    -Wno-type-limits \
 
-PX4_ARCHWARNINGSXX = $(ARCHWARNINGS) \
+PX4_ARCHWARNINGSXX = \
                    -Wno-cpp \
                    -Wno-psabi
