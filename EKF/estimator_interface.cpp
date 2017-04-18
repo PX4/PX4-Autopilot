@@ -159,7 +159,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 			_drag_sample_time_dt += imu_sample_new.delta_vel_dt;
 
 			// calculate the downsample ratio for drag specific force data
-			uint8_t min_sample_ratio = (uint8_t) ceil((float)_imu_buffer_length / _obs_buffer_length);
+			uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
 			if (min_sample_ratio < 5) {
 				min_sample_ratio = 5;
 
