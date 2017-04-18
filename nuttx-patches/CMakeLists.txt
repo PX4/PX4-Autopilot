@@ -36,32 +36,12 @@ set(nuttx_patches
 	00002-REJECTED-fix-shadow-wanings.patch
 	00003-REJECTED-add-var-expansion-in-nsh-parse.patch
 	00004-REJECTED-avoid-export-copy-with-export-insitu.patch
-	00005-REJECTED-support-c++11.patch
 	00006-REJECTED-cstdint-fix.patch
 	00007-REJECTED-silence-jobserver-warnings.patch
 	00008-REJECTED-static-assert-fix.patch
 	00009-REJECTED-ctype-fix-shadow-wanings.patch
-	00010-BACKPORT-stm32-flash-F4-dcache-corruption-fix-no-HSI-on.patch
-	00011-BACKPORT-priority-restoration-fix.patch
-	00012-BACKPORT-stack-coloration-overreach-fix.patch
-	00014-BACKPORT-i2c-hotfix.patch
-	00015-BACKPORT-stm32f7-DTCM.patch
-	00016-BACKPORT-fix-CRTSCTS-defines.patch
-	00017-BACKPORT-cdcacm.patch
-	00019-BACKPORT-stm32-rcc-keep-HSI-on.patch
-	00021-BACKPORT-stm32f3x-add-BKP.patch
-	00022-BACKPORT-stm32-bkp-reference-fix.patch
-	00023-BACKPORT-stm32f7-bkp-reference-fix.patch
-	00024-BACKPORT-stm32f7-serial-dma-hotfix.patch
-	00025-BACKPORT-add-set-ex-to-nsh.patch
-	00026-BACKPORT-stm32fX-serial-fix-freezing.patch
-	00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
-	00028-BACKPORT-mtd-FLASH-corruption.patch
-	00029-BACKPORT-stm32-serial-upstream-sans-IRQ.patch
-	00030-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-nuttx.patch
-	00031-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-apps.patch
-	00032-BACKPORT-stm32f7-pinmap-FMC-I2C4-fixes.patch
-	00033-BACKPORT-stm32f7-sdmmc-dcache-fix.patch
+	00010-REJECTED-no-irq-args.patch
+	00011-REJECTED-stm32_serial_no_irq_args.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
