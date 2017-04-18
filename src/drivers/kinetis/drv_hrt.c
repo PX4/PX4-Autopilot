@@ -555,7 +555,7 @@ hrt_abstime
 hrt_absolute_time(void)
 {
 	hrt_abstime	abstime;
-	uint32_t	count;
+	static uint32_t	count = 0;
 	irqstate_t	flags;
 
 	/*
@@ -571,7 +571,7 @@ hrt_absolute_time(void)
 	flags = px4_enter_critical_section();
 
 	/* get the current counter value */
-	count = rCNT;
+	count++;
 
 	/*
 	* Determine whether the counter has wrapped since the
