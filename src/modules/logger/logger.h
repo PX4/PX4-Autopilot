@@ -111,6 +111,12 @@ public:
 
 	static int start(char *const *argv);
 
+	/**
+	 * request the logger thread to stop (this method does not block).
+	 * @return true if the logger is stopped, false if (still) running
+	 */
+	static bool request_stop();
+
 	static void usage(const char *reason);
 
 	void status();
