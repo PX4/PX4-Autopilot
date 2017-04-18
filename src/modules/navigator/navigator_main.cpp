@@ -546,7 +546,7 @@ Navigator::task_main()
 					(void)orb_unadvertise(pub);
 				}
 
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH) {
 
 				vehicle_command_s vcmd = {};
 				vcmd.target_system = get_vstatus()->system_id;
