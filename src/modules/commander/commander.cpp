@@ -303,6 +303,16 @@ static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 /* publish vehicle status flags from the global variable status_flags*/
 static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
+
+static int power_button_state_notification_cb(board_power_button_state_notification_e request)
+{
+	// Note: this can be called from IRQ handlers
+	if (request == PWR_BUTTON_REQUEST_SHUT_DOWN) {
+		px4_shutdown_request(false, false);
+	}
+	return PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
+}
+
 /**
  * check whether autostart ID is in the reserved range for HIL setups
  */
@@ -1373,6 +1383,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	if (buzzer_init() != OK) {
 		PX4_WARN("Buzzer init failed");
+	}
+
+	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
+		PX4_ERR("Failed to register power notification callback");
 	}
 
 	/* vehicle status topic */
