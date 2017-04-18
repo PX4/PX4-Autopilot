@@ -58,6 +58,7 @@
 #include <px4_log.h>
 #include <px4_posix.h>
 #include <px4_sem.h>
+#include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
@@ -449,6 +450,15 @@ Logger::~Logger()
 	}
 }
 
+bool Logger::request_stop()
+{
+	if (logger_ptr) {
+		logger_ptr->_task_should_exit = true;
+	}
+
+	return logger_task == -1;
+}
+
 int Logger::add_topic(const orb_metadata *topic)
 {
 	int fd = -1;
@@ -782,6 +792,8 @@ void Logger::run()
 	uint32_t	total_bytes = 0;
 #endif /* DBGPRINT */
 
+	px4_register_shutdown_hook(&Logger::request_stop);
+
 	// we start logging immediately
 	// the case where we wait with logging until vehicle is armed is handled below
 	if (_log_on_start) {
@@ -1087,6 +1099,8 @@ void Logger::run()
 	if (vehicle_command_sub != -1) {
 		orb_unsubscribe(vehicle_command_sub);
 	}
+
+	px4_unregister_shutdown_hook(&Logger::request_stop);
 }
 
 bool Logger::write_message(void *ptr, size_t size)
