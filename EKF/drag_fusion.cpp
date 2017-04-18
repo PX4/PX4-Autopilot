@@ -94,7 +94,7 @@ void Ekf::fuseDrag()
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmax(1e-1f,rho * BC_inv_x * airSpd);
+			float Kacc = fmaxf(1e-1f,rho * BC_inv_x * airSpd);
 
 			SH_ACC[0] = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -164,7 +164,7 @@ void Ekf::fuseDrag()
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmax(1e-1f,rho * BC_inv_y * airSpd);
+			float Kacc = fmaxf(1e-1f,rho * BC_inv_y * airSpd);
 
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
