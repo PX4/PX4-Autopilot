@@ -116,7 +116,6 @@ __EXPORT void		px4_enable_sim_lockstep(void);
 __EXPORT void		px4_sim_start_delay(void);
 __EXPORT void		px4_sim_stop_delay(void);
 __EXPORT bool		px4_sim_delay_enabled(void);
-__EXPORT bool		px4_board_pwr(bool on);
 
 __END_DECLS
 #else

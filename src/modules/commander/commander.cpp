@@ -69,6 +69,7 @@
 #include <px4_defines.h>
 #include <px4_config.h>
 #include <px4_posix.h>
+#include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <systemlib/circuit_breaker.h>
@@ -2002,7 +2003,7 @@ int commander_thread_main(int argc, char *argv[])
 					 */
 					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
 					usleep(400000);
-					px4_systemreset(false);
+					px4_shutdown_request(true, false);
 				}
 
 				/* finally judge the USB connected state based on software detection */
@@ -2285,7 +2286,12 @@ int commander_thread_main(int argc, char *argv[])
 					if (!armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
 						usleep(200000);
-						px4_board_pwr(false);
+						int ret_val = px4_shutdown_request(false, false);
+						if (ret_val) {
+							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+						} else {
+							while(1) { usleep(1); }
+						}
 
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
@@ -4049,13 +4055,13 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						usleep(100000);
 						/* reboot */
-						px4_systemreset(false);
+						px4_shutdown_request(true, false);
 
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						usleep(100000);
 						/* reboot to bootloader */
-						px4_systemreset(true);
+						px4_shutdown_request(true, true);
 
 					} else {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
