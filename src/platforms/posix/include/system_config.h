@@ -25,8 +25,6 @@
 
 #define BOARD_OVERRIDE_CPU_VERSION (-1)
 #define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
-typedef unsigned char uuid_byte_t[PX4_CPU_UUID_BYTE_LENGTH];
-typedef unsigned int uuid_uint32_t[PX4_CPU_UUID_WORD32_LENGTH];
 
 #define board_get_uuid32(id) do {for(int _idi=0; _idi < PX4_CPU_UUID_WORD32_LENGTH; _idi++) {id[_idi] = _idi;}} while(0)
 #define board_get_uuid32_formated(format_buffer, size, format, seperator) do { strcpy(format_buffer, SIM_FORMATED_UUID); } while(0)
