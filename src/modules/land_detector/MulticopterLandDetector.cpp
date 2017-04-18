@@ -187,7 +187,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
 	if (manual_control_idle_or_auto && _has_minimal_thrust() &&
-	    (!verticalMovement || !_has_position_lock())) {
+	    (!verticalMovement || !_has_altitude_lock())) {
 		return true;
 	}
 
@@ -226,7 +226,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	}
 
 	// Return status based on armed state and throttle if no position lock is available.
-	if (!_has_position_lock()) {
+	if (!_has_altitude_lock()) {
 		// The system has minimum trust set (manual or in failsafe)
 		// if this persists for 8 seconds AND the drone is not
 		// falling consider it to be landed. This should even sustain
@@ -260,7 +260,8 @@ bool MulticopterLandDetector::_get_landed_state()
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
-	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating && !horizontalMovement) {
+	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating &&
+	    (!horizontalMovement || !_has_position_lock())) {
 		// Ground contact, no thrust and no movement -> landed
 		return true;
 	}
@@ -308,12 +309,16 @@ float MulticopterLandDetector::_get_max_altitude()
 	return valid_altitude_max;
 }
 
+bool MulticopterLandDetector::_has_altitude_lock()
+{
+	return _vehicleLocalPosition.timestamp != 0 &&
+	       hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500000 &&
+	       _vehicleLocalPosition.z_valid;
+}
+
 bool MulticopterLandDetector::_has_position_lock()
 {
-	return !(_vehicleLocalPosition.timestamp == 0 ||
-		 hrt_elapsed_time(&_vehicleLocalPosition.timestamp) > 500000 ||
-		 !_vehicleLocalPosition.xy_valid ||
-		 !_vehicleLocalPosition.z_valid);
+	return _has_altitude_lock() && _vehicleLocalPosition.xy_valid;
 }
 
 bool MulticopterLandDetector::_has_manual_control_present()
