@@ -47,3 +47,6 @@
 #define BOARD_HAS_NO_BOOTLOADER
 
 #define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+
+#include <system_config.h>
+#include "../common/board_common.h"
