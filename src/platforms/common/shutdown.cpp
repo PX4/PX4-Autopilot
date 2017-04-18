@@ -157,7 +157,7 @@ void shutdown_worker(void *arg)
 		}
 
 	} else {
-		work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, NULL, USEC2TICK(10000));
+		work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(10000));
 	}
 }
 
@@ -192,7 +192,7 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 		shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
 	}
 
-	return work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, NULL, USEC2TICK(0));
+	return work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(0));
 }
 
 
