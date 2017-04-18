@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * I2C busses
  */
