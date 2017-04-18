@@ -22,7 +22,7 @@ class MarkdownTablesOutput():
             image_name = group.GetImageName()
             result += '<div>\n'
             if image_name != 'AirframeUnknown':
-                result += '<img src="images/airframes/types/%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
+                result += '<img src="../images/airframes/types/%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once
