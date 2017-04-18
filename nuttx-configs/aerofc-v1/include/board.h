@@ -229,10 +229,10 @@
 #define GPIO_USART2_RTS	0 // unused
 
 // GPS
-#define GPIO_USART3_TX	GPIO_USART3_TX_1
-#define GPIO_USART3_RX	GPIO_USART3_RX_1
-#define GPIO_USART3_CTS	0 // unused
-#define GPIO_USART3_RTS	0 // unused
+#define GPIO_UART7_TX	GPIO_UART7_TX_1
+#define GPIO_UART7_RX	GPIO_UART7_RX_1
+#define GPIO_UART7_CTS	0 // unused
+#define GPIO_UART7_RTS	0 // unused
 
 // RC
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
