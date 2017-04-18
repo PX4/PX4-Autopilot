@@ -64,8 +64,6 @@ struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
-#include <px4_config.h>
-#include <drivers/drv_orb_dev.h>
 #include <uORB/topics/@(topic_name).h>
 
 

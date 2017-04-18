@@ -440,13 +440,6 @@ function(px4_generate_messages)
 		)
 	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
-	# We remove uORBTopics.cpp to make sure the generator is re-run, which is
-	# necessary when a .msg file is removed and because uORBTopics.cpp depends
-	# on all topics.
-	execute_process(COMMAND rm uORBTopics.cpp
-		WORKING_DIRECTORY ${msg_source_out_path}
-		ERROR_QUIET)
-
 	# multi messages for target OS
 	set(msg_multi_out_path
 		${PX4_BINARY_DIR}/src/platforms/${OS}/px4_messages)
