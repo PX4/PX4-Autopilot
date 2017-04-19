@@ -333,7 +333,9 @@ private:
 	 */
 	void		control_auto(float dt);
 
-	void control_position(float dt);
+	void compute_velocity_setpoint(float dt);
+
+	void compute_thrust_setpoint(float dt);
 
 	void vel_sp_slewrate(float dt);
 
@@ -1091,7 +1093,8 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.timestamp = hrt_absolute_time();
 
 	} else {
-		control_position(dt);
+		compute_velocity_setpoint(dt);
+		compute_thrust_setpoint(dt);
 	}
 }
 
@@ -1170,36 +1173,28 @@ MulticopterPositionControl::control_non_manual(float dt)
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
 	    && _control_mode.flag_armed) {
 
-		// check if we are not already in air.
-		// if yes then we don't need a jumped takeoff anymore
-		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-			_takeoff_jumped = true;
+		if ((_vehicle_land_detected.landed || _vehicle_land_detected.ground_contact) && _takeoff_jumped) {
+			_takeoff_jumped = false;
+			_takeoff_thrust_sp = 0.0f;
 		}
 
 		if (!_takeoff_jumped) {
 			// ramp thrust setpoint up
-			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
+			_vel_sp.zero();
+			_vel_prev.zero();
 
+			if (_vel(2) > -(_params.tko_speed)) {
 				// ramp up to hover throttle in one second
 				_takeoff_thrust_sp += _params.thr_hover * dt;
-				_vel_sp.zero();
-				_vel_prev.zero();
 
 			} else {
-				// copter has reached our takeoff speed. split the thrust setpoint up
-				// into an integral part and into a P part
-				// remembering to remove _params.thr_hover which is added later as a feed-forward in control_position.
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2)) - _params.thr_hover;
-				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-				_vel_sp_prev(2) = -_params.tko_speed;
+				// copter has reached our takeoff speed
+				_vel_sp_prev(2) = _vel(2);
 				_takeoff_jumped = true;
 				_reset_int_z = false;
 			}
 		}
 
-	} else {
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
 	}
 
 	if (_pos_sp_triplet.current.valid
@@ -1218,8 +1213,12 @@ MulticopterPositionControl::control_non_manual(float dt)
 
 		_att_sp.timestamp = hrt_absolute_time();
 
+	} else if (!_takeoff_jumped) {
+		compute_thrust_setpoint(dt);
+
 	} else {
-		control_position(dt);
+		compute_velocity_setpoint(dt);
+		compute_thrust_setpoint(dt);
 	}
 }
 
@@ -1693,8 +1692,9 @@ MulticopterPositionControl::do_control(float dt)
 }
 
 void
-MulticopterPositionControl::control_position(float dt)
+MulticopterPositionControl::compute_velocity_setpoint(float dt)
 {
+
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 
 	if (_run_pos_control) {
@@ -1724,15 +1724,7 @@ MulticopterPositionControl::control_position(float dt)
 	}
 
 	/* make sure velocity setpoint is saturated in z*/
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed
-	    && _takeoff_jumped
-	    && (_vel_sp(2) < -_params.tko_speed)) {
-
-		_vel_sp(2) = -_params.tko_speed;
-
-	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
+	if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
 		_vel_sp(2) = -1.0f * _params.vel_max_up;
 
 	}
@@ -1758,16 +1750,6 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
-	/* TODO: remove this is a pathetic leftover, it's here just to make sure that
-	 * _takeoff_jumped flags are reset */
-	if (_control_mode.flag_control_manual_enabled || !_pos_sp_triplet.current.valid
-	    || _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    || !_control_mode.flag_armed) {
-
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
-	}
-
 	vel_sp_slewrate(dt);
 
 	_vel_sp_prev = _vel_sp;
@@ -1784,9 +1766,15 @@ MulticopterPositionControl::control_position(float dt)
 	} else {
 		_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
 	}
+}
+
+void
+MulticopterPositionControl::compute_thrust_setpoint(float dt)
+{
 
 	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
 	    _control_mode.flag_control_acceleration_enabled) {
+
 		/* reset integrals if needed */
 		if (_control_mode.flag_control_climb_rate_enabled) {
 			if (_reset_int_z) {
