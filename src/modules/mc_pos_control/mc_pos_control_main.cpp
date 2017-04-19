@@ -1183,8 +1183,8 @@ MulticopterPositionControl::control_non_manual(float dt)
 			_vel_sp.zero();
 			_vel_prev.zero();
 
-			if (_vel(2) > -(_params.tko_speed)) {
-				// ramp up to hover throttle in one second
+			/* stop ramp when 1/2 hover throttle is reached to allow smoother transition to position control*/
+			if (_takeoff_thrust_sp > .5f * _params.thr_hover) {
 				_takeoff_thrust_sp += _params.thr_hover * dt;
 
 			} else {
