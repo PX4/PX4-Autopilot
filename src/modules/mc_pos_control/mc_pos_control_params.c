@@ -257,6 +257,20 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Minimum horizontal velocity in mission
+ *
+ * horizontal velocity in AUTO modes when Waypoint passing required
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 6.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 1.0f);
+
+/**
  * Nominal horizontal velocity for manual controlled mode
  *
  * @unit m/s
