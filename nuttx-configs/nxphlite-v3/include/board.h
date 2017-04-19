@@ -70,6 +70,13 @@
 #define BOARD_EXTAL_FREQ     16000000       /* 16MHz Oscillator Y1 */
 #define BOARD_XTAL32_FREQ    32768          /* 32KHz RTC Oscillator */
 
+/* FLL Configuration.
+ *  BOARD_EXTAL_FREQ / BOARD_FRDIV has to be in the range 31.25 kHz to 39.0625
+ *  16 Mhz/ MCG_C1_FRDIV_DIV512 = 31.25 kHz * 640 the default for MCG_C4
+ *  FLL is 20Mhz
+ */
+#define BOARD_FRDIV          MCG_C1_FRDIV_DIV512
+
 /* PLL Configuration.  Either the external clock or crystal frequency is used to
  * select the PRDIV value. Only reference clock frequencies are supported that will
  * produce a KINETIS_MCG_PLL_REF_MIN=8MHz >= PLLIN <=KINETIS_MCG_PLL_REF_MAX=16Mhz
