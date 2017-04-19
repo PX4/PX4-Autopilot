@@ -39,6 +39,12 @@
 
 #pragma once
 
+#define BOARD_OVERRIDE_UUID "EAGLEID     " // must be of length 12 (PX4_CPU_UUID_BYTE_LENGTH)
+#define BOARD_OVERRIDE_MFGUID BOARD_OVERRIDE_UUID
+
 #define BOARD_NAME "EAGLE"
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
+
+#include <system_config.h>
+#include "../common/board_common.h"
