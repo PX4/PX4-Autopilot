@@ -119,26 +119,6 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat" // NuttX uses a different printf format
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
-
-	buffer[0] = 0;
-	cb(user);
-
-	/* header for task list */
-	snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-6s",
-		 "PID",
-		 CONFIG_TASK_NAME_SIZE, "COMMAND",
-		 "CPU(ms)",
-		 "CPU(%)",
-		 "USED/STACK",
-		 "PRIO(BASE)",
-#if CONFIG_RR_INTERVAL > 0
-		 "TSLICE"
-#else
-		 "STATE"
-#endif
-		);
-	cb(user);
-
 	print_state->new_time = t;
 
 	int   i;
@@ -151,6 +131,23 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 
 	if (print_state->new_time > print_state->interval_start_time) {
 		print_state->interval_time_ms_inv = 1.f / ((float)((print_state->new_time - print_state->interval_start_time) / 1000));
+
+		/* header for task list */
+		snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-6s",
+			 "PID",
+			 CONFIG_TASK_NAME_SIZE, "COMMAND",
+			 "CPU(ms)",
+			 "CPU(%)",
+			 "USED/STACK",
+			 "PRIO(BASE)",
+#if CONFIG_RR_INTERVAL > 0
+			 "TSLICE"
+#else
+			 "STATE"
+#endif
+			);
+		cb(user);
+
 	}
 
 	print_state->running_count = 0;
@@ -280,6 +277,11 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		snprintf(buffer + print_len, buffer_length - print_len, " %-6s", tstate_name(tcb_task_state));
 #endif
 		cb(user);
+	}
+
+	if (print_state->new_time <= print_state->interval_start_time) {
+		// first run, not enough data yet
+		return;
 	}
 
 	// Print footer
