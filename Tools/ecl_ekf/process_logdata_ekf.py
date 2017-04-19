@@ -68,6 +68,7 @@ if ('accel_inconsistency_m_s_s' in sensor_preflight.keys()) and ('gyro_inconsist
     plt.ylabel('angular rate (rad/s)')
     plt.xlabel('data index')
     pp.savefig()
+    plt.close(0)
 
 # vertical velocity and position innovations
 plt.figure(1,figsize=(20,13))
@@ -128,7 +129,7 @@ plt.text(innov_5_min_time, innov_5_min, 'min='+s_innov_5_min, fontsize=12, horiz
 #plt.legend(['std='+s_innov_5_std],loc='upper left',frameon=False)
 
 pp.savefig()
-
+plt.close(1)
 # horizontal velocity innovations
 plt.figure(2,figsize=(20,13))
 
@@ -183,6 +184,7 @@ plt.text(innov_1_min_time, innov_1_min, 'min='+s_innov_1_min, fontsize=12, horiz
 #plt.legend(['std='+s_innov_1_std],loc='upper left',frameon=False)
 
 pp.savefig()
+plt.close(2)
 
 # horizontal position innovations
 plt.figure(3,figsize=(20,13))
@@ -239,6 +241,7 @@ plt.text(innov_4_min_time, innov_4_min, 'min='+s_innov_4_min, fontsize=12, horiz
 #plt.legend(['std='+s_innov_4_std],loc='upper left',frameon=False)
 
 pp.savefig()
+plt.close(3)
 
 # manetometer innovations
 plt.figure(4,figsize=(20,13))
@@ -318,6 +321,7 @@ plt.text(innov_2_min_time, innov_2_min, 'min='+s_innov_2_min, fontsize=12, horiz
 #plt.legend(['std='+s_innov_2_std],loc='upper left',frameon=False)
 
 pp.savefig()
+plt.close(4)
 
 # magnetic heading innovations
 plt.figure(5,figsize=(20,13))
@@ -348,6 +352,7 @@ plt.text(innov_0_min_time, innov_0_min, 'min='+s_innov_0_min, fontsize=12, horiz
 #plt.legend(['std='+s_innov_0_std],loc='upper left',frameon=False)
 
 pp.savefig()
+plt.close(5)
 
 # air data innovations
 plt.figure(6,figsize=(20,13))
@@ -400,6 +405,7 @@ plt.text(beta_innov_max_time, beta_innov_max, 'max='+s_beta_innov_max, fontsize=
 plt.text(beta_innov_min_time, beta_innov_min, 'min='+s_beta_innov_min, fontsize=12, horizontalalignment='left', verticalalignment='top')
 
 pp.savefig()
+plt.close(6)
 
 # optical flow innovations
 plt.figure(7,figsize=(20,13))
@@ -455,6 +461,7 @@ plt.text(flow_innov_y_min_time, flow_innov_y_min, 'min='+s_flow_innov_y_min, fon
 #plt.legend(['std='+s_flow_innov_y_std],loc='upper left',frameon=False)
 
 pp.savefig()
+plt.close(7)
 
 # generate metadata for the normalised innovation consistency test levels
 # a value > 1.0 means the measurement data for that test has been rejected by the EKF
@@ -541,6 +548,7 @@ if n_plots == 4:
     plt.text(tas_test_max_time, tas_test_max, 'max='+str(round(tas_test_max,2))+' , mean='+str(round(tas_test_mean,2)), fontsize=12, horizontalalignment='left', verticalalignment='bottom',color='b')
 
 pp.savefig()
+plt.close(8)
 
 # extract control mode metadata from estimator_status.control_mode_flags
 # 0 - true if the filter tilt alignment is complete
@@ -733,6 +741,7 @@ elif np.amax(using_magdecl) > 0:
     plt.text(using_magdecl_time, 0.75, 'magnetic declination aiding at '+str(round(using_magdecl_time,1))+' sec', fontsize=12, horizontalalignment='left', verticalalignment='center',color='g')
 
 pp.savefig()
+plt.close(9)
 
 # control mode summary plot B
 plt.figure(10,figsize=(20,13))
@@ -767,6 +776,7 @@ plt.xlabel('time (sec)')
 plt.grid()
 
 pp.savefig()
+plt.close(10)
 
 # innovation_check_flags summary
 plt.figure(11,figsize=(20,13))
@@ -837,6 +847,7 @@ plt.legend(loc='upper left')
 plt.grid()
 
 pp.savefig()
+plt.close(11)
 
 # gps_check_fail_flags summary
 plt.figure(12,figsize=(20,13))
@@ -884,6 +895,7 @@ plt.legend(loc='upper right')
 plt.grid()
 
 pp.savefig()
+plt.close(12)
 
 # filter reported accuracy
 plt.figure(13,figsize=(20,13))
@@ -896,6 +908,7 @@ plt.legend(loc='upper right')
 plt.grid()
 
 pp.savefig()
+plt.close(13)
 
 # Plot the EKF IMU vibration metrics
 plt.figure(14,figsize=(20,13))
@@ -933,6 +946,7 @@ plt.grid()
 plt.text(vibe_hf_dvel_max_time, vibe_hf_dvel_max, 'max='+str(round(vibe_hf_dvel_max,4)), fontsize=12, horizontalalignment='left', verticalalignment='top')
 
 pp.savefig()
+plt.close(14)
 
 # Plot the EKF output observer tracking errors
 plt.figure(15,figsize=(20,13))
@@ -970,9 +984,114 @@ plt.grid()
 plt.text(pos_track_err_max_time, pos_track_err_max, 'max='+str(round(pos_track_err_max,2)), fontsize=12, horizontalalignment='left', verticalalignment='top')
 
 pp.savefig()
+plt.close(15)
+
+# Plot the delta angle bias estimates
+plt.figure(16,figsize=(20,13))
+
+plt.subplot(3,1,1)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[10]'],'b')
+plt.title('Delta Angle Bias Estimates')
+plt.ylabel('X (rad)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,2)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[11]'],'b')
+plt.ylabel('Y (rad)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,3)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[12]'],'b')
+plt.ylabel('Z (rad)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+pp.savefig()
+plt.close(16)
+
+# Plot the delta velocity bias estimates
+plt.figure(17,figsize=(20,13))
+
+plt.subplot(3,1,1)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[13]'],'b')
+plt.title('Delta Velocity Bias Estimates')
+plt.ylabel('X (m/s)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,2)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[14]'],'b')
+plt.ylabel('Y (m/s)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,3)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[15]'],'b')
+plt.ylabel('Z (m/s)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+pp.savefig()
+plt.close(17)
+
+# Plot the earth frame magnetic field estimates
+
+plt.figure(18,figsize=(20,13))
+plt.subplot(3,1,3)
+strength = (estimator_status['states[16]']**2 + estimator_status['states[17]']**2 + estimator_status['states[18]']**2)**0.5
+plt.plot(1e-6*estimator_status['timestamp'] , strength,'b')
+plt.ylabel('strength (Gauss)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,1)
+rad2deg = 57.2958
+declination = rad2deg * np.arctan2(estimator_status['states[17]'],estimator_status['states[16]'])
+plt.plot(1e-6*estimator_status['timestamp'] , declination,'b')
+plt.title('Earth Magnetic Field Estimates')
+plt.ylabel('declination (deg)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,2)
+inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / strength)
+plt.plot(1e-6*estimator_status['timestamp'] , inclination,'b')
+plt.ylabel('inclination (deg)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+pp.savefig()
+plt.close(18)
+
+# Plot the body frame magnetic field estimates
+plt.figure(19,figsize=(20,13))
+
+plt.subplot(3,1,1)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[19]'],'b')
+plt.title('Magnetomer Bias Estimates')
+plt.ylabel('X (Gauss)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,2)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[20]'],'b')
+plt.ylabel('Y (Gauss)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+plt.subplot(3,1,3)
+plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[21]'],'b')
+plt.ylabel('Z (Gauss)')
+plt.xlabel('time (sec)')
+plt.grid()
+
+pp.savefig()
+plt.close(19)
 
 # Plot the EKF wind estimates
-plt.figure(16,figsize=(20,13))
+plt.figure(20,figsize=(20,13))
 
 plt.subplot(2,1,1)
 plt.plot(1e-6*estimator_status['timestamp'] , estimator_status['states[22]'],'b')
@@ -988,6 +1107,7 @@ plt.xlabel('time (sec)')
 plt.grid()
 
 pp.savefig()
+plt.close(20)
 
 # close the pdf file
 pp.close()
@@ -1073,12 +1193,11 @@ test_results = {
 'imu_hfdang_mean':[float('NaN'),'Mean in-flight value of the IMU delta angle high frequency vibration metric (rad)'],
 'imu_hfdvel_peak':[float('NaN'),'Peak in-flight value of the IMU delta velocity high frequency vibration metric (m/s)'],
 'imu_hfdvel_mean':[float('NaN'),'Mean in-flight value of the IMU delta velocity high frequency vibration metric (m/s)'],
-'output_obs_ang_err_peak':[float('NaN'),'Peak in-flight value of the output observer angular error (rad)'],
-'output_obs_ang_err_mean':[float('NaN'),'Mean in-flight value of the output observer angular error (rad)'],
-'output_obs_vel_err_peak':[float('NaN'),'Peak in-flight value of the output observer velocity error (m/s)'],
-'output_obs_vel_err_mean':[float('NaN'),'Mean in-flight value of the output observer velocity error (m/s)'],
-'output_obs_pos_err_peak':[float('NaN'),'Peak in-flight value of the output observer position error (m)'],
-'output_obs_pos_err_mean':[float('NaN'),'Mean in-flight value of the output observer position error (m)'],
+'output_obs_ang_err_median':[float('NaN'),'Median in-flight value of the output observer angular error (rad)'],
+'output_obs_vel_err_median':[float('NaN'),'Median in-flight value of the output observer velocity error (m/s)'],
+'output_obs_pos_err_median':[float('NaN'),'Median in-flight value of the output observer position error (m)'],
+'imu_dang_bias_median':[float('NaN'),'Median in-flight value of the delta angle bias vector length (rad)'],
+'imu_dvel_bias_median':[float('NaN'),'Median in-flight value of the delta velocity bias vector length (m/s)'],
 'tilt_align_time':[float('NaN'),'The time in seconds measured from startup that the EKF completed the tilt alignment. A nan value indicates that the alignment had completed before logging started or alignment did not complete.'],
 'yaw_align_time':[float('NaN'),'The time in seconds measured from startup that the EKF completed the yaw alignment.'],
 'in_air_transition_time':[round(in_air_transition_time,1),'The time in seconds measured from startup that the EKF transtioned into in-air mode. Set to a nan if a transition event is not detected.'],
@@ -1090,18 +1209,9 @@ test_results = {
 # reduction of innovation message data
 if (innov_early_end_index > (innov_late_start_index + 100)):
     # Output Observer Tracking Errors
-    temp = np.amax(ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index])
-    if (temp > 0.0):
-        test_results['output_obs_ang_err_peak'][0] = temp
-        test_results['output_obs_ang_err_mean'][0] = np.mean(ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index])
-    temp = np.amax(ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index])
-    if (temp > 0.0):
-        test_results['output_obs_vel_err_peak'][0] = temp
-        test_results['output_obs_vel_err_mean'][0] = np.mean(ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index])
-    temp = np.amax(ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index])
-    if (temp > 0.0):
-        test_results['output_obs_pos_err_peak'][0] = temp
-        test_results['output_obs_pos_err_mean'][0] = np.mean(ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index])
+    test_results['output_obs_ang_err_median'][0] = np.median(ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index])
+    test_results['output_obs_vel_err_median'][0] = np.median(ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index])
+    test_results['output_obs_pos_err_median'][0] = np.median(ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index])
 
 # reduction of status message data
 if (early_end_index > (late_start_index + 100)):
@@ -1186,6 +1296,10 @@ if (early_end_index > (late_start_index + 100)):
         test_results['ofx_fail_percentage'][0] = 100.0 * (ofx_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
         test_results['ofy_fail_percentage'][0] = 100.0 * (ofy_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
 
+    # IMU bias checks
+    test_results['imu_dang_bias_median'][0] = (np.median(estimator_status['states[10]'])**2 + np.median(estimator_status['states[11]'])**2 + np.median(estimator_status['states[12]'])**2)**0.5
+    test_results['imu_dvel_bias_median'][0] = (np.median(estimator_status['states[13]'])**2 + np.median(estimator_status['states[14]'])**2 + np.median(estimator_status['states[15]'])**2)**0.5
+
 # Check for internal filter nummerical faults
 test_results['filter_faults_max'][0] = np.amax(estimator_status['filter_fault_flags'])
 
@@ -1232,6 +1346,8 @@ if (test_results.get('hagl_percentage_amber')[0] > check_levels.get('hagl_amber_
 if (test_results.get('tas_percentage_amber')[0] > check_levels.get('tas_amber_warn_pct')):
     test_results['master_status'][0] = 'Warning'
     test_results['tas_sensor_status'][0] = 'Warning'
+
+# check for IMU sensor warnings
 if ((test_results.get('imu_coning_peak')[0] > check_levels.get('imu_coning_peak_warn')) or
 (test_results.get('imu_coning_mean')[0] > check_levels.get('imu_coning_mean_warn')) or
 (test_results.get('imu_hfdang_peak')[0] > check_levels.get('imu_hfdang_peak_warn')) or
@@ -1239,15 +1355,18 @@ if ((test_results.get('imu_coning_peak')[0] > check_levels.get('imu_coning_peak_
 (test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
 (test_results.get('imu_hfdvel_mean')[0] > check_levels.get('imu_hfdvel_mean_warn'))):
     test_results['master_status'][0] = 'Warning'
-    test_results['imu_sensor_status'][0] = 'Warning'
-if ((test_results.get('output_obs_ang_err_peak')[0] > check_levels.get('obs_ang_err_peak_warn')) or
-(test_results.get('output_obs_ang_err_mean')[0] > check_levels.get('obs_ang_err_mean_warn')) or
-(test_results.get('output_obs_vel_err_peak')[0] > check_levels.get('obs_vel_err_peak_warn')) or
-(test_results.get('output_obs_vel_err_mean')[0] > check_levels.get('obs_vel_err_mean_warn')) or
-(test_results.get('output_obs_pos_err_peak')[0] > check_levels.get('obs_pos_err_peak_warn')) or
-(test_results.get('output_obs_pos_err_mean')[0] > check_levels.get('obs_pos_err_mean_warn'))):
+    test_results['imu_sensor_status'][0] = 'Warning - Vibration'
+
+if ((test_results.get('imu_dang_bias_median')[0] > check_levels.get('imu_dang_bias_median_warn')) or
+(test_results.get('imu_dvel_bias_median')[0] > check_levels.get('imu_dvel_bias_median_warn'))):
     test_results['master_status'][0] = 'Warning'
-    test_results['imu_sensor_status'][0] = 'Warning'
+    test_results['imu_sensor_status'][0] = 'Warning - Bias'
+
+if ((test_results.get('output_obs_ang_err_median')[0] > check_levels.get('obs_ang_err_median_warn')) or
+(test_results.get('output_obs_vel_err_median')[0] > check_levels.get('obs_vel_err_median_warn')) or
+(test_results.get('output_obs_pos_err_median')[0] > check_levels.get('obs_pos_err_median_warn'))):
+    test_results['master_status'][0] = 'Warning'
+    test_results['imu_sensor_status'][0] = 'Warning - Output Predictor'
 
 # check for failures
 if ((test_results.get('magx_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
