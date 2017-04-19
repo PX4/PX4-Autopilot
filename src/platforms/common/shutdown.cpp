@@ -45,8 +45,8 @@
 #include <errno.h>
 #include <pthread.h>
 
-#if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE)
-// minimal NuttX build without work queue support
+#if (defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE)) || __PX4_QURT
+// minimal NuttX/QuRT build without work queue support
 
 int px4_register_shutdown_hook(shutdown_hook_t hook)
 {
@@ -196,4 +196,4 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 }
 
 
-#endif /* if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE) */
+#endif /* (defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE)) || __PX4_QURT */
