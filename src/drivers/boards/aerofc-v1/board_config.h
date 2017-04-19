@@ -117,11 +117,11 @@ __BEGIN_DECLS
  */
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS2"
+#define GPS_DEFAULT_UART_PORT	"/dev/ttyS5"
 
 /* RC Serial port
  */
-#define RC_SERIAL_PORT		"/dev/ttyS3"
+#define RC_SERIAL_PORT		"/dev/ttyS2"
 #define INVERT_RC_INPUT(_s)		while(0)
 
 /* High-resolution timer
