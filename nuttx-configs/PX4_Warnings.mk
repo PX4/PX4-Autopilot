@@ -64,7 +64,7 @@ PX4_ARCHCWARNINGS = \
                    -Wno-nested-externs \
                    -Wno-old-style-declaration \
                    -Wno-pointer-sign \
-                   -Wno-type-limits \
+                   -Wno-type-limits
 
 PX4_ARCHWARNINGSXX = \
                    -Wno-cpp \
