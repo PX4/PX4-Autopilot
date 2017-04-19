@@ -176,8 +176,7 @@ private:
 		param_t land_speed;
 		param_t tko_speed;
 		param_t tilt_max_land;
-		param_t man_roll_max;
-		param_t man_pitch_max;
+		param_t man_tilt_max;
 		param_t man_yaw_max;
 		param_t global_yaw_max;
 		param_t mc_att_yaw_p;
@@ -197,8 +196,7 @@ private:
 		float land_speed;
 		float tko_speed;
 		float tilt_max_land;
-		float man_roll_max;
-		float man_pitch_max;
+		float man_tilt_max;
 		float man_yaw_max;
 		float global_yaw_max;
 		float mc_att_yaw_p;
@@ -495,9 +493,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
-
-	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
-	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
+	_params_handles.man_tilt_max = param_find("MPC_MAN_TILT_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
 
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
@@ -629,12 +625,10 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		/* mc attitude control parameters*/
 		/* manual control scale */
-		param_get(_params_handles.man_roll_max, &_params.man_roll_max);
-		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
+		param_get(_params_handles.man_tilt_max, &_params.man_tilt_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
-		_params.man_roll_max = math::radians(_params.man_roll_max);
-		_params.man_pitch_max = math::radians(_params.man_pitch_max);
+		_params.man_tilt_max = math::radians(_params.man_tilt_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
 		_params.global_yaw_max = math::radians(_params.global_yaw_max);
 
@@ -2182,8 +2176,8 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
 	if (!_control_mode.flag_control_velocity_enabled) {
-		_att_sp.roll_body = _manual.y * _params.man_roll_max;
-		_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
+		_att_sp.roll_body = _manual.y * _params.man_tilt_max;
+		_att_sp.pitch_body = -_manual.x * _params.man_tilt_max;
 
 		/* only if optimal recovery is not used, modify roll/pitch */
 		if (_params.opt_recover <= 0) {

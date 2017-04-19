@@ -359,7 +359,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
 
 /**
- * Max manual roll
+ * Maximal tilt angle in manual or altitude mode
  *
  * @unit deg
  * @min 0.0
@@ -367,18 +367,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_R_MAX, 35.0f);
-
-/**
- * Max manual pitch
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.0f);
 
 /**
  * Max manual yaw rate
