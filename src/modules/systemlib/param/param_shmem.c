@@ -677,8 +677,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		return result;
 	}
 
-	mark_saved = true; //mark all params as saved
-
 	if (param_values == NULL) {
 		utarray_new(param_values, &param_icd);
 	}
