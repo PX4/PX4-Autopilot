@@ -198,15 +198,11 @@ void LandDetector::_check_params(const bool force)
 
 void LandDetector::_update_state()
 {
-	/* ground contact and landed can be true simultaneously but only one state can be true at a particular time
+	/* when we are landed we also have ground contact for sure but only one output state can be true at a particular time
 	 * with higher priority for landed */
-	bool freefall = _get_freefall_state();
-	bool landed = _get_landed_state();
-	bool groundContact = (landed || _get_ground_contact_state());
-
-	_freefall_hysteresis.set_state_and_update(freefall);
-	_landed_hysteresis.set_state_and_update(landed);
-	_ground_contact_hysteresis.set_state_and_update(groundContact);
+	_freefall_hysteresis.set_state_and_update(_get_freefall_state());
+	_landed_hysteresis.set_state_and_update(_get_landed_state());
+	_ground_contact_hysteresis.set_state_and_update(_landed_hysteresis.get_state() || _get_ground_contact_state());
 
 	if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;
