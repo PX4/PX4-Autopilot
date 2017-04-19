@@ -1065,7 +1065,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		float mission_target_speed = _parameters.airspeed_trim;
 		float mission_throttle = _parameters.throttle_cruise;
 
-
 			/* Just control the throttle */
 		if ( _parameters.speed_control_mode > 0 ) {
 			/* control the speed in closed loop fashion */

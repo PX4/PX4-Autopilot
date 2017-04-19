@@ -806,8 +806,16 @@ GroundRoverAttitudeControl::task_main()
 					/* Update input data for rate controllers */
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
+					if (fabsf(yaw_sp) < 0.5f) 
+					{
+						yaw_sp = 0.0f;
+					}
+
 					/* Calculate the control output for the steering as yaw */
 					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
+
+					math::constrain(yaw_u, -1.0f, 1.0f);
+
 
 					/* possibly useful debug*/
 					// warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
