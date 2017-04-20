@@ -673,7 +673,6 @@ PX4FMU::set_mode(Mode mode)
 		if (old_mask != _pwm_mask) {
 			/* disable servo outputs - no need to set rates */
 			up_pwm_servo_deinit();
-			return OK;
 		}
 
 		break;
@@ -681,8 +680,8 @@ PX4FMU::set_mode(Mode mode)
 	default:
 		return -EINVAL;
 	}
+
 	_mode = mode;
-	up_pwm_servo_init(_pwm_mask);
 	return OK;
 }
 
@@ -1049,6 +1048,7 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
+		up_pwm_servo_init(_pwm_mask);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
 	}
