@@ -1085,12 +1085,11 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
 			
 			//Compute airspeed control out and just scale it as a constant
-			//TODO: think-test this
 			mission_throttle = _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
-
 			// Constrain throttle between min and max
-			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
-			
+			mission_throttle = math::constrain(mission_throttle, -_parameters.throttle_max, _parameters.throttle_max);
+			warnx("mission_throttle %.4f", (double)mission_throttle);
+
 		} else {
 			/* Just control throttle in open loop */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&

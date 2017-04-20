@@ -34,11 +34,22 @@ param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
 param set FW_AIRSPD_TRIM 3
-param set FW_AIRSPD_MAX 5.5
-param set GND_WR_P 100
-param set GND_WR_I 0
-param set GND_WR_D 0
+param set FW_AIRSPD_MAX 15.5
+param set GND_WR_P 2
+param set GND_WR_I 0.9674
+param set GND_WR_IMAX 0.1
+param set GND_WR_D 1.2
 param set GND_SP_CTRL_MODE 1
+param set GND_L1_DIST 5
+param set GND_THR_IDLE 0
+param set GND_THR_CRUISE 0
+param set GND_THR_MAX 1
+param set GND_THR_MIN 0
+param set GND_SPEED_P 0.5
+param set GND_SPEED_I 1
+param set GND_SPEED_D 0
+param set GND_SPEED_IMAX 0.5
+param set GND_AIRSP_THR_SC 1
 replay tryapplyparams
 simulator start -s
 tone_alarm start
