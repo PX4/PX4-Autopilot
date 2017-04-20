@@ -542,16 +542,14 @@ class uploader(object):
         self.port.close()
 
     def __next_baud_flightstack(self):
-        self.baudrate_flightstack_idx = self.baudrate_flightstack_idx + 1
-        if self.baudrate_flightstack_idx >= len(self.baudrate_flightstack):
+        if self.baudrate_flightstack_idx + 1 >= len(self.baudrate_flightstack):
             return False
-
         try:
-            self.port.baudrate = self.baudrate_flightstack[self.baudrate_flightstack_idx]
+            self.port.baudrate = self.baudrate_flightstack[self.baudrate_flightstack_idx + 1]
+            self.baudrate_flightstack_idx = self.baudrate_flightstack_idx + 1
         except serial.SerialException:
             # Sometimes _configure_port fails
             time.sleep(0.04)
-            pass
 
         return True
 
