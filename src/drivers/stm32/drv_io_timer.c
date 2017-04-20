@@ -478,30 +478,33 @@ static inline void io_timer_set_PWM_mode(unsigned timer)
 void io_timer_trigger(void)
 {
 	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
-	uint32_t action_cache[MAX_IO_TIMERS] = {0};
-	int actions = 0;
 
-	/* Pre-calculate the list of timers to Trigger */
+	if (oneshots != 0) {
+		uint32_t action_cache[MAX_IO_TIMERS] = {0};
+		int actions = 0;
 
-	for (int timer = 0; timer < MAX_IO_TIMERS; timer++) {
-		if (validate_timer_index(timer) == 0) {
-			int channels = get_timer_channels(timer);
+		/* Pre-calculate the list of timers to Trigger */
 
-			if (oneshots & channels) {
-				action_cache[actions++] = io_timers[timer].base;
+		for (int timer = 0; timer < MAX_IO_TIMERS; timer++) {
+			if (validate_timer_index(timer) == 0) {
+				int channels = get_timer_channels(timer);
+
+				if (oneshots & channels) {
+					action_cache[actions++] = io_timers[timer].base;
+				}
 			}
 		}
+
+		/* Now do them all wit the shortest delay in between */
+
+		irqstate_t flags = px4_enter_critical_section();
+
+		for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
+			_REG32(action_cache[actions], STM32_GTIM_EGR_OFFSET) |= GTIM_EGR_UG;
+		}
+
+		px4_leave_critical_section(flags);
 	}
-
-	/* Now do them all wit the shortest delay in between */
-
-	irqstate_t flags = px4_enter_critical_section();
-
-	for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
-		_REG32(action_cache[actions], STM32_GTIM_EGR_OFFSET) |= GTIM_EGR_UG;
-	}
-
-	px4_leave_critical_section(flags);
 }
 
 int io_timer_init_timer(unsigned timer)
