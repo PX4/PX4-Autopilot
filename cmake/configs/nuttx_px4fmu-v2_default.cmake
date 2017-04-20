@@ -44,7 +44,7 @@ set(config_module_list
 	#drivers/mkblctrl
 	drivers/px4flow
 	#drivers/oreoled
-	#drivers/vmount
+	drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
