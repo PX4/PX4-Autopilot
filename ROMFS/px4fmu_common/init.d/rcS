@@ -1123,7 +1123,9 @@ then
 	if param compare MNT_MODE_IN -1
 	then
 	else
-		vmount start
+		if vmount start
+		then
+		fi
 	fi
 
 # End of autostart
