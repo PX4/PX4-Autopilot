@@ -1007,3 +1007,27 @@ PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);
  * @value 1 Range aid enabled
  */
 PARAM_DEFINE_INT32(EKF2_RNG_AID, 0.0f);
+
+/**
+ * Maximum horizontal velocity allowed for range aid mode.
+ *
+ * If the vehicle horizontal speed exceeds this value then the estimator will not fuse range measurements
+ * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
+
+/**
+ * Maximum absolute altitude (height above ground level) allowed for range aid mode.
+ *
+ * If the vehicle absolute altitude exceeds this value then the estimator will not fuse range measurements
+ * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
+ *
+ * @group EKF2
+ * @min 1.0
+ * @max 10.0
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
