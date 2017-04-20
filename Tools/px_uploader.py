@@ -546,7 +546,12 @@ class uploader(object):
         if self.baudrate_flightstack_idx >= len(self.baudrate_flightstack):
             return False
 
-        self.port.baudrate = self.baudrate_flightstack[self.baudrate_flightstack_idx]
+        try:
+            self.port.baudrate = self.baudrate_flightstack[self.baudrate_flightstack_idx]
+        except serial.SerialException:
+            # Sometimes _configure_port fails
+            time.sleep(0.04)
+            pass
 
         return True
 
