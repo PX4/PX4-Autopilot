@@ -114,7 +114,7 @@ then
 	# Load parameters
 	#
 	set PARAM_FILE /fs/microsd/params
-	if mtd start
+	if mtd start /fs/mtd_params
 	then
 		set PARAM_FILE /fs/mtd_params
 	fi
