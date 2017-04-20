@@ -53,10 +53,6 @@ NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-NavigatorMode::~NavigatorMode()
-{
-}
-
 void
 NavigatorMode::run(bool active)
 {
