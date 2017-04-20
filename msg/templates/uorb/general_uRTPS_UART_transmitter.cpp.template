@@ -38,14 +38,25 @@ num_topics = len(topic_names)
 @[end for]
 
 #define BUFFER_SIZE 256
+#define POLL_TIME_MS 300
+#define UPDATE_TIME_MS 300
 
 extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
 
 int general_trans_main(int argc, char *argv[])
 {
     UART_node m_uartNode;
-    if (argc < 2) m_uartNode.init_uart("/dev/ttyACM0");
-    else          m_uartNode.init_uart(argv[1]);
+    uint8_t ret = 0;
+    if (argc < 2) ret = m_uartNode.init_uart("/dev/ttyACM0");
+    else          ret = m_uartNode.init_uart(argv[1]);
+
+    if (0 != ret)
+    {
+        printf("ERROR UART INIT, EXITING...\n");
+        return -1;
+    }
+
+   
     char data_buffer[BUFFER_SIZE] = {};
     char rx_buffer[BUFFER_SIZE] = {};
     uint32_t rx_buff_pos = 0u;
@@ -56,7 +67,7 @@ int general_trans_main(int argc, char *argv[])
     // orb_set_interval statblish an update interval period in milliseconds.
 @[for id, topic in enumerate(topic_names)]
     fds[@(id)].fd = orb_subscribe(ORB_ID(@(topic)));
-    orb_set_interval(fds[@(id)].fd, 1000);
+    orb_set_interval(fds[@(id)].fd, UPDATE_TIME_MS);
     fds[@(id)].events = POLLIN;
 @[end for]
 
@@ -81,13 +92,13 @@ int general_trans_main(int argc, char *argv[])
     uint32_t length = 0;
     uint32_t received = 0, sent = 0;
 
-    for (int i = 0; i < 50; ++i)
+    for (int i = 0; i < 300; ++i)
     {
-        int poll_ret = px4_poll(fds, @(num_topics), 1000);
+        int poll_ret = px4_poll(fds, @(num_topics), POLL_TIME_MS);
 
         if (poll_ret == 0)
         {
-            PX4_ERR("Got no data within a second");
+            //PX4_ERR("Got no data within a second");
         }
         else if (poll_ret < 0)
         {
@@ -135,5 +146,5 @@ int general_trans_main(int argc, char *argv[])
     printf("\nSENT: %d RECEIVED: %d\n", sent, received);
     PX4_INFO("exiting");
     fflush(stdout);
-    return OK;
+    return 0;
 }

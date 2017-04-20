@@ -33,10 +33,9 @@ UART_node::~UART_node()
 
 uint8_t UART_node::init_uart(const char * uart_name)
 {
-
     uint32_t speed = 115200;
-       // Open a serial port
-    m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NDELAY);
+    // Open a serial port
+    m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (m_uart_filestream < 0)
     {
@@ -52,7 +51,7 @@ uint8_t UART_node::init_uart(const char * uart_name)
     {
         printf("ERR GET CONF %s: %d\n", uart_name, termios_state);
         close(m_uart_filestream);
-        return -1;
+        return 1;
     }
 
     // Clear ONLCR flag (which appends a CR for every LF)
@@ -66,7 +65,7 @@ uint8_t UART_node::init_uart(const char * uart_name)
         {
             printf("ERR SET BAUD %s: %d\n", uart_name, termios_state);
             close(m_uart_filestream);
-            return -1;
+            return 1;
         }
     }
 
@@ -74,10 +73,16 @@ uint8_t UART_node::init_uart(const char * uart_name)
     {
         printf("ERR SET CONF %s\n", uart_name);
         close(m_uart_filestream);
-        return -1;
+        return 1;
     }
 
-    tcflush(m_uart_filestream, TCIOFLUSH);
+    char aux[64];
+    while (0 < read(m_uart_filestream, (void*)&aux, 64))
+    {
+        //printf("%s ", aux);
+        usleep(1000);
+    }
+    printf("flush\n");
 
     return 0;
 }
@@ -111,6 +116,7 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
             //int errsv = errno;
             //printf("UART Fail %d\n", errsv);
             // printf("%d %d %d %d %d %d %d \n", EAGAIN, EBADF, EFAULT, EINTR, EINVAL, EIO, EISDIR);
+            //if (errsv && EAGAIN != errsv) printf("UART Fail %d\n", errsv);
             return 0;
         }
 
