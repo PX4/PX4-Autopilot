@@ -178,6 +178,12 @@
 #  endif
 #endif
 
+/* Defines dependent on having enough flash memory to support them
+ */
+#if !defined(PX4_FLASH_CONSTRAINED_SYSTEM)
+#define MIXER_TUNING
+#endif
+
 /* Provide an overridable default nop
  * for BOARD_EEPROM_WP_CTRL
  */

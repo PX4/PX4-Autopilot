@@ -66,6 +66,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
+#include <board_config.h>
+
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -332,6 +334,10 @@ private:
 	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
 #endif
 
+#if defined(MIXER_TUNING)
+	MixerGroup	*_mixers;
+#endif //defined(MIXER_TUNING)
+
 	/**
 	 * Trampoline to the worker task
 	 */
@@ -567,6 +573,9 @@ PX4IO::PX4IO(device::Device *interface) :
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	, _dsm_vcc_ctl(false)
 #endif
+#if defined(MIXER_TUNING)
+	, _mixers(nullptr)
+#endif //defined(MIXER_TUNING)
 
 {
 	/* we need this potentially before it could be set in task_main */
@@ -2980,8 +2989,131 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			ret = mixer_send(buf, strnlen(buf, 2048));
+
+#if defined(MIXER_TUNING)
+
+			if (ret == 0)   /* load the mixer settings into a local copy for tracking parameters */
+
+				if (_mixers == nullptr) {
+					_mixers = new MixerGroup(nullptr, (uintptr_t)nullptr);
+				}
+
+			if (_mixers == nullptr) {
+				ret = -ENOMEM;
+
+			} else {
+				unsigned buflen = strnlen(buf, 2048);
+				ret = _mixers->load_from_buf(buf, buflen);
+
+				if (ret != 0) {
+					PX4_DEBUG("mixer load failed with %d", ret);
+					delete _mixers;
+					_mixers = nullptr;
+					ret = -EINVAL;
+
+				}
+
+				// else update of pwm trims removed
+			}
+
+#endif //defined(MIXER_TUNING)
 			break;
 		}
+
+#if (defined(MIXER_TUNING) && !defined(MIXER_CONFIG_NO_NSH))
+
+	case MIXERIOCGETPARAMCOUNT: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			int *count = (int *)arg;
+			*count = _mixers->group_param_count();
+
+			break;
+		}
+
+	case MIXERIOCGETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+			ret = _mixers->group_get_param(param);
+			break;
+		}
+
+
+	case MIXERIOCSETPARAM: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+				break;
+			}
+
+			struct __attribute__((
+						     packed)) {        /** to send mixer indices and value in the same packet order as px4io registers**/
+				uint16_t index;
+				uint16_t array_index;
+				union {
+					float 	 value;
+					uint32_t check_val;     /** to compare integer value instead of float **/
+				} param;
+			} mix_param;
+
+			mixer_param_s *param = (mixer_param_s *)arg;
+
+			//Only support writing of first array value
+			mix_param.index = param->index;
+			mix_param.array_index = 0;
+			mix_param.param.value = param->values[0];
+
+			uint32_t check_val = mix_param.param.check_val;
+
+			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_INDEX, (uint16_t *) &mix_param, 4);
+
+			if (ret != 0) {
+				PX4_INFO("PX4io Set param write registers failed");
+				ret = -EINVAL;
+				break;
+			}
+
+			memset((void *) &mix_param, 0xFF, sizeof(mix_param));
+
+			ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PARAMETER_INDEX, (uint16_t *) &mix_param, 4);
+
+			if (ret != 0) {
+				PX4_INFO("PX4io Set param read registers failed");
+				ret = -EINVAL;
+				break;
+			}
+
+			/** Check readback values against original **/
+			if ((mix_param.index != param->index) ||
+			    (mix_param.array_index != 0) ||
+			    (mix_param.param.check_val != check_val)
+			   ) {
+				PX4_INFO("PX4io Set param verify registers failed");
+				ret = -EINVAL;
+				break;
+			}
+
+			_mixers->group_set_param_value(param->index, 0, param->values[0]);
+
+			ret = 0;
+			break;
+		}
+
+	case MIXERIOCGETCONFIG: {
+			if (_mixers == nullptr) {
+				ret = -EINVAL;
+			}
+
+			mixer_config_s *config = (mixer_config_s *)arg;
+			ret = _mixers->save_to_buf(config->buff, config->size);
+			break;
+		}
+
+#endif //defined(MIXER_TUNING)
 
 	case RC_INPUT_GET: {
 			uint16_t status;
