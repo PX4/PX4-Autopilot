@@ -34,7 +34,7 @@
 px4_add_module(
 	MODULE examples__micrortps_transmitter
 	MAIN general_trans
-	STACK_MAIN 2000
+	STACK_MAIN 4096
 	SRCS
 		UART_node.cxx
 		general_uRTPS_UART_transmitter.cpp

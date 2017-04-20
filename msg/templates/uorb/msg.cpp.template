@@ -154,44 +154,24 @@ def add_code_to_deserialize():
     add_deserialize_functions(sorted_fields, "")
 }@
 
-void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length)
+void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct microCDR *microCDRWriter)
 {
-    if (nullptr == input || nullptr == output || nullptr == length) return;
+    if (nullptr == input || nullptr == output || nullptr == length || nullptr == microCDRWriter) return;
 
-    // microBuffer using the user defined buffer (output)
-    struct microBuffer *microBufferWriter = NULL;
-    newStaticAlignedBuffer(output, MICROCDR_INIT_BUF_LENGTH, &microBufferWriter);
-
-    // microCDR struct for managing the microBuffer
-    struct microCDR *microCDRWriter = NULL;
-    newMicroCDR(&microCDRWriter, microBufferWriter);
+    resetStaticMicroCDRForSerialize(microCDRWriter);
 
     serializeUnsignedLong(input->timestamp, microCDRWriter);
 @add_code_to_serialize()
 
-    (*length) = microBufferWriter->m_serializedBuffer;
-
-    free(microBufferWriter);
-    free(microCDRWriter);
+    (*length) = microCDRWriter->m_microBuffer->m_serializedBuffer;
 }
 
-void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input)
+void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct microCDR *microCDRReader)
 {
-    if (nullptr == output || nullptr == input) return;
+    if (nullptr == output || nullptr == input || nullptr == microCDRReader) return;
 
-    // microBuffer using the user defined buffer
-    struct microBuffer *microBufferReader = NULL;
-    newDeserializedAlignedBuffer(input, MICROCDR_INIT_BUF_LENGTH, &microBufferReader);
+    resetStaticMicroCDRForDeserialize(microCDRReader);
 
-    // microCDR struct for managing the microBuffers
-    struct microCDR *microCDRReader = NULL;
-    newMicroCDR(&microCDRReader, microBufferReader);
-
-    // deserialize
-    memset(output, 0, sizeof(*output));
     deserializeUnsignedLong(&output->timestamp, microCDRReader);
 @add_code_to_deserialize()
-
-    free(microBufferReader);
-    free(microCDRReader);
 }

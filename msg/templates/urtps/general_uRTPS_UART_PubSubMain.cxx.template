@@ -52,7 +52,7 @@ topic_names = [single_spec.short_name for single_spec in spec]
 
 #include <unistd.h>
 
-
+#define BUFFER_SIZE 256
 
 using namespace eprosima;
 using namespace eprosima::fastrtps;
@@ -60,69 +60,71 @@ using namespace eprosima::fastrtps;
 int main(int argc, char** argv)
 {   
     UART_node m_uartNode;
-    char buffer[210];
+    char data_buffer[BUFFER_SIZE] = {};
+    char rx_buffer[BUFFER_SIZE] = {};
+    uint32_t rx_buff_pos = 0u;
     std::string uart = "/dev/ttyACM0";
     if (argc > 1) uart = std::string(argv[1]);
     m_uartNode.init_uart(uart.c_str());
 
-// Create subscribers
+    // Create subscribers
 @[for id, topic in enumerate(topic_names)]
     std::cout << "@(topic) subscriber created" << std::endl;
     @(topic)_Subscriber @(topic)_sub;
-    if (@(topic)_sub.init())
-    {
-        // @(topic)_sub.run();
-    }
+    @(topic)_sub.init();
 @[end for]
 
-// Create subscribers
+    // Create publishers
 @[for topic in topic_names]
     @(topic)_Publisher @(topic)_pub;
     @(topic)_pub.init();
 @[end for]
 
-
+    int received = 0, old_received = 0, sent = 0;
     char topic_ID = 255;
     do
     {
-        if (0 != m_uartNode.readFromUART(&topic_ID, buffer, buffer))
+        // Publish messages received from UART
+        if (0 != m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos))
         {
-// Publish message received from UART
+            switch (topic_ID)
+            {
 @[for id, topic in enumerate(topic_names)]
-            if (topic_ID == @(id)) {
-                std::cout << "Published @(topic)" << std::endl;
-
-                @(topic)_ st;
-                memset(&st, 0, sizeof(st));
-                eprosima::fastcdr::FastBuffer cdrbuffer(buffer, sizeof(buffer));
-                eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
-                st.deserialize(cdr_des);
-                @(topic)_pub.publish(&st);
-            }
-@[end for]
-
-// Send subscribed topics over UART
-@[for id, topic in enumerate(topic_names)]
-            if (@(topic)_sub.hasMsg()) {
-                std::cout << "Received loop-msg" << std::endl;
-                @(topic)_ msg = @(topic)_sub.getMsg();
-                eprosima::fastcdr::FastBuffer cdrbuffer(buffer, sizeof(buffer));
-                eprosima::fastcdr::Cdr scdr(cdrbuffer);
-                msg.serialize(scdr);
-                auto len = scdr.getSerializedDataLength();
-                std::cout << "len: " << len << std::endl;
-                uint8_t ret = m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
-
-                if (ret == 0) {
-                    // std::cout << "Wrote to UART" << std::endl << std::endl;
+                case @(id):
+                {
+                    @(topic)_ st;
+                    eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
+                    eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+                    st.deserialize(cdr_des);
+                    @(topic)_pub.publish(&st);
+                    printf("# >>[%d] %lu\n", @(id), st.timestamp());
+                    ++received;
                 }
-                else {
-                    std::cout << "Failed to write to UART" << std::endl << std::endl;
-                }
-            }
+                break;
 @[end for]
+            }
         }
-        usleep(10000);
+
+        // Send subscribed topics over UART
+@[for id, topic in enumerate(topic_names)]
+        if (@(topic)_sub.hasMsg())
+        {
+            @(topic)_ msg = @(topic)_sub.getMsg();
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
+            eprosima::fastcdr::Cdr scdr(cdrbuffer);
+            msg.serialize(scdr);
+            size_t len = scdr.getSerializedDataLength();
+            m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
+            printf("[%d]>> %lu\n", @(id), msg.timestamp());
+            ++sent;
+        }
+@[end for]
+        if (received != old_received)
+        {
+            printf("RECEIVED: %d SENT: %d\n", received, sent);
+            old_received = received;
+        }
+        usleep(1000);
     }while(true);
     
     return 0;

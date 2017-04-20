@@ -40,6 +40,7 @@ urtps_templates_dir = root_path + "/msg/templates/urtps"
 uRTPS_TRANS_APP_GEN_TEMPL_FILE = 'general_uRTPS_UART_transmitter.cpp.template'
 uRTPS_TRANS_CML_GEN_TEMPL_FILE = 'general_transmitter_CMakeLists.txt.template'
 uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE = 'general_uRTPS_UART_PubSubMain.cxx.template'
+uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE = 'general_PubSubMain_CMakeLists.txt.template'
 uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cxx.template'
 uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
 uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cxx.template'
@@ -61,10 +62,14 @@ for msg_file in msg_files:
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, uorb_templates_dir, 
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_APP_GEN_TEMPL_FILE)
 
-px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, uorb_templates_dir, 
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, uorb_templates_dir,
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_CML_GEN_TEMPL_FILE)
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, urtps_templates_dir, 
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE)
+
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, urtps_templates_dir, 
+                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE)
+
 
 
