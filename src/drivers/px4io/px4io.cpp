@@ -3110,6 +3110,9 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			mixer_config_s *config = (mixer_config_s *)arg;
 			ret = _mixers->save_to_buf(config->buff, config->size);
+
+			if (ret > 0) { ret = 0; }
+
 			break;
 		}
 
