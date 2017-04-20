@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE lib__mathlib__math__filter
 	SRCS
 		LowPassFilter2p.cpp
+		FOAWDifferentiator.cpp
 	DEPENDS
 		platforms__common
 	)
