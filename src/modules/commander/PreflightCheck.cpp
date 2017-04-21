@@ -493,7 +493,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 	// If GPS aiding is required, declare fault condition if the EKF is not using GPS
 	if (enforce_gps_required) {
-		if (!(status.control_mode_flags & 2)) {
+		if (!(status.control_mode_flags & (1<<2))) {
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
 			}
@@ -504,10 +504,10 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
 	if (enforce_gps_required) {
-		if ((status.gps_check_fail_flags & (estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT
-						    | estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP
-						    | estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR
-						    | estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) > 0) {
+		if ((status.gps_check_fail_flags & ((1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR))) > 0) {
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY CHECKS");
 			}

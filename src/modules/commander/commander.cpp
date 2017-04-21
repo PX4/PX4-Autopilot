@@ -165,7 +165,10 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 #define POSVEL_PROBATION_MAX 100E6		/**< maximum probation duration (usec) */
 #define POSVEL_VALID_PROBATION_FACTOR 10	/**< the rate at which the probation duration is increased while checks are failing */
 
-/* Probation times for position and velocity validity checks to pass if failed */
+/*
+ * Probation times for position and velocity validity checks to pass if failed
+ * Signed integers are used because these can become negative values before constraints are applied
+ */
 static int64_t gpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 static int64_t gvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 static int64_t lpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
@@ -195,10 +198,10 @@ static float eph_threshold = 5.0f;	// Horizontal position error threshold (m)
 static float epv_threshold = 10.0f;	// Vertivcal position error threshold (m)
 static float evh_threshold = 1.0f;	// Horizontal velocity error threshold (m)
 
-static uint64_t last_lpos_fail_time_us = 0;	// Last time that the local position validity recovery check failed (usec)
-static uint64_t last_gpos_fail_time_us = 0;	// Last time that the global position validity recovery check failed (usec)
-static uint64_t last_lvel_fail_time_us = 0;	// Last time that the local velocity validity recovery check failed (usec)
-static uint64_t last_gvel_fail_time_us = 0;	// Last time that the global velocity validity recovery check failed (usec)
+static hrt_abstime last_lpos_fail_time_us = 0;	// Last time that the local position validity recovery check failed (usec)
+static hrt_abstime last_gpos_fail_time_us = 0;	// Last time that the global position validity recovery check failed (usec)
+static hrt_abstime last_lvel_fail_time_us = 0;	// Last time that the local velocity validity recovery check failed (usec)
+static hrt_abstime last_gvel_fail_time_us = 0;	// Last time that the global velocity validity recovery check failed (usec)
 
 /* pre-flight EKF checks */
 static float max_ekf_pos_ratio = 0.5f;
@@ -2200,7 +2203,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					// Set all position and velocity test probation durations to takeoff value
 					// This is a larger value to give the vehicle time to complete a failsafe landing
-					// if faulty sensors cause loss of navigatio shortly after takeoff.
+					// if faulty sensors cause loss of navigation shortly after takeoff.
 					gpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 					gvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 					lpos_probation_time_us = POSVEL_PROBATION_TAKEOFF;
@@ -3775,27 +3778,27 @@ check_global_posvel_validity(vehicle_global_position_s *global_position, bool *c
 {
 	bool global_pos_inaccurate = false;
 	bool global_vel_inaccurate = false;
-	bool hold_fail_state = false;
+	hrt_abstime now = hrt_absolute_time();
 
 	// Check position accuracy with hysteresis in both test level and time
 	bool pos_status_changed = false;
 	if (status_flags.condition_global_position_valid && global_position->eph > eph_threshold * 2.5f) {
 		global_pos_inaccurate = true;
 		pos_status_changed = true;
-		last_gpos_fail_time_us = hrt_absolute_time();
+		last_gpos_fail_time_us = now;
 	} else if (!status_flags.condition_global_position_valid) {
 		bool level_check_pass = global_position->eph < eph_threshold;
-		if (!level_check_pass || hold_fail_state) {
-			gpos_probation_time_us += (hrt_absolute_time() - last_gpos_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
-			last_gpos_fail_time_us = hrt_absolute_time();
-		} else if (hrt_absolute_time() - last_gpos_fail_time_us > gpos_probation_time_us) {
+		if (!level_check_pass) {
+			gpos_probation_time_us += (now - last_gpos_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			last_gpos_fail_time_us = now;
+		} else if (now - last_gpos_fail_time_us > gpos_probation_time_us) {
 			global_pos_inaccurate = false;
 			pos_status_changed = true;
 			last_gpos_fail_time_us = 0;
 		}
 	} else {
-		gpos_probation_time_us -= (hrt_absolute_time() - last_gpos_fail_time_us);
-		last_gpos_fail_time_us = hrt_absolute_time();
+		gpos_probation_time_us -= (now - last_gpos_fail_time_us);
+		last_gpos_fail_time_us = now;
 	}
 
 	// check global velocity accuracy with hysteresis in both test level and time
@@ -3803,29 +3806,29 @@ check_global_posvel_validity(vehicle_global_position_s *global_position, bool *c
 	if (status_flags.condition_global_velocity_valid && global_position->evh > evh_threshold * 2.5f) {
 		global_vel_inaccurate = true;
 		vel_status_changed = true;
-		last_gvel_fail_time_us = hrt_absolute_time();
+		last_gvel_fail_time_us = now;
 	} else if (!status_flags.condition_global_velocity_valid) {
 		bool check_level_pass = global_position->evh < evh_threshold;
-		if (!check_level_pass || hold_fail_state) {
-			gvel_probation_time_us += (hrt_absolute_time() - last_gvel_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
-			last_gvel_fail_time_us = hrt_absolute_time();
-		} else if (hrt_absolute_time() - last_gvel_fail_time_us > gvel_probation_time_us) {
+		if (!check_level_pass) {
+			gvel_probation_time_us += (now - last_gvel_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			last_gvel_fail_time_us = now;
+		} else if (now - last_gvel_fail_time_us > gvel_probation_time_us) {
 			global_vel_inaccurate = false;
 			vel_status_changed = true;
 			last_gvel_fail_time_us = 0;
 		}
 	} else {
-		gvel_probation_time_us -= (hrt_absolute_time() - last_gvel_fail_time_us);
-		last_gvel_fail_time_us = hrt_absolute_time();
+		gvel_probation_time_us -= (now - last_gvel_fail_time_us);
+		last_gvel_fail_time_us = now;
 	}
 
-	bool global_data_stale = (hrt_absolute_time() - global_position->timestamp > POSITION_TIMEOUT);
+	bool global_data_stale = (now - global_position->timestamp > POSITION_TIMEOUT);
 
 	// Set global velocity validity
 	if (vel_status_changed) {
 		if (status_flags.condition_global_velocity_valid
 			   && (global_data_stale || global_vel_inaccurate)) {
-			status_flags.condition_global_position_valid = false;
+			status_flags.condition_global_velocity_valid = false;
 			*changed = true;
 		} else if (!status_flags.condition_global_velocity_valid
 			   && !global_data_stale
@@ -3873,27 +3876,27 @@ check_local_posvel_validity(struct vehicle_local_position_s *local_position, boo
 {
 	bool local_pos_inaccurate = false;
 	bool local_vel_inaccurate = false;
-	bool hold_fail_state = false;
+	hrt_abstime now = hrt_absolute_time();
 
 	// Check local position accuracy with hysteresis in both test level and time
 	bool pos_status_changed = false;
 	if (status_flags.condition_local_position_valid && local_position->eph > eph_threshold * 2.5f) {
 		local_pos_inaccurate = true;
 		pos_status_changed = true;
-		last_lpos_fail_time_us = hrt_absolute_time();
+		last_lpos_fail_time_us = now;
 	} else if (!status_flags.condition_local_position_valid) {
 		bool level_check_pass = local_position->xy_valid && local_position->eph < eph_threshold;
-		if (!level_check_pass || hold_fail_state) {
-			lpos_probation_time_us += (hrt_absolute_time() - last_lpos_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
-			last_lpos_fail_time_us = hrt_absolute_time();
-		} else if (hrt_absolute_time() - last_lpos_fail_time_us > lpos_probation_time_us) {
+		if (!level_check_pass) {
+			lpos_probation_time_us += (now - last_lpos_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			last_lpos_fail_time_us = now;
+		} else if (now - last_lpos_fail_time_us > lpos_probation_time_us) {
 			local_pos_inaccurate = false;
 			pos_status_changed = true;
 			last_lpos_fail_time_us = 0;
 		}
 	} else {
-		lpos_probation_time_us -= (hrt_absolute_time() - last_lpos_fail_time_us);
-		last_lpos_fail_time_us = hrt_absolute_time();
+		lpos_probation_time_us -= (now - last_lpos_fail_time_us);
+		last_lpos_fail_time_us = now;
 	}
 
 	// Check local velocity accuracy with hysteresis
@@ -3901,23 +3904,23 @@ check_local_posvel_validity(struct vehicle_local_position_s *local_position, boo
 	if (status_flags.condition_local_velocity_valid && local_position->evh > evh_threshold * 2.5f) {
 		local_vel_inaccurate = true;
 		vel_status_changed = true;
-		last_lvel_fail_time_us =  hrt_absolute_time();
+		last_lvel_fail_time_us =  now;
 	} else if (!status_flags.condition_local_velocity_valid) {
 		bool level_check_pass = local_position->v_xy_valid && local_position->evh < evh_threshold;
-		if (!level_check_pass || hold_fail_state) {
-			lvel_probation_time_us += (hrt_absolute_time() - last_lvel_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
-			last_lvel_fail_time_us =  hrt_absolute_time();
-		} else if (hrt_absolute_time() - last_lvel_fail_time_us > lvel_probation_time_us) {
+		if (!level_check_pass) {
+			lvel_probation_time_us += (now - last_lvel_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			last_lvel_fail_time_us =  now;
+		} else if (now - last_lvel_fail_time_us > lvel_probation_time_us) {
 			local_vel_inaccurate = false;
 			vel_status_changed = true;
 			last_lvel_fail_time_us = 0;
 		}
 	} else {
-		lvel_probation_time_us -= (hrt_absolute_time() - last_lvel_fail_time_us);
-		last_lvel_fail_time_us =  hrt_absolute_time();
+		lvel_probation_time_us -= (now - last_lvel_fail_time_us);
+		last_lvel_fail_time_us =  now;
 	}
 
-	bool local_data_stale = (hrt_absolute_time() - local_position->timestamp > POSITION_TIMEOUT);
+	bool local_data_stale = (now - local_position->timestamp > POSITION_TIMEOUT);
 
 	// Set local velocity validity
 	if (vel_status_changed) {
