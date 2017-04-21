@@ -10,15 +10,15 @@ uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
 float32[28] covariances	# Diagonal Elements of Covariance Matrix
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
 # bits are true when corresponding test has failed
-uint8 GPS_CHECK_FAIL_MIN_SAT_COUNT = 0			# 0 : minimum required sat count fail
-uint8 GPS_CHECK_FAIL_MIN_GDOP = 1				# 1 : minimum required GDoP fail
-uint8 GPS_CHECK_FAIL_MAX_HORZ_ERR = 2			# 2 : maximum allowed horizontal position error fail
-uint8 GPS_CHECK_FAIL_MAX_VERT_ERR = 3			# 3 : maximum allowed vertical position error fail
-uint8 GPS_CHECK_FAIL_MAX_SPD_ERR = 4			# 4 : maximum allowed speed error fail
-uint8 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 5			# 5 : maximum allowed horizontal position drift fail
-uint8 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 6			# 6 : maximum allowed vertical position drift fail
-uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 7		# 7 : maximum allowed horizontal velocity discrepancy fail
-uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 8		# 8 : maximum allowed vertical velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 0			# 0 : minimum required sat count fail
+uint16 GPS_CHECK_FAIL_MIN_GDOP = 1			# 1 : minimum required GDoP fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 2			# 2 : maximum allowed horizontal position error fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 3			# 3 : maximum allowed vertical position error fail
+uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 4			# 4 : maximum allowed speed error fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 5		# 5 : maximum allowed horizontal position drift fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 6		# 6 : maximum allowed vertical position drift fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 7		# 7 : maximum allowed horizontal velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 8		# 8 : maximum allowed vertical velocity discrepancy fail
 
 uint16 control_mode_flags	# Bitmask to indicate EKF logic state
 # 0 - true if the filter tilt alignment is complete
