@@ -158,7 +158,7 @@ private:
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
 
 	// Used to check, save and use learned magnetometer biases
-	uint64_t _last_invalid_magcal_us = 0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
+	hrt_abstime _last_invalid_magcal_us = 0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
 	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
@@ -602,20 +602,20 @@ void Ekf2::task_main()
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
 					_mag_bias_x.set(0.f);
-					_mag_bias_x.commit();
+					_mag_bias_x.commit_no_notification();
 					_mag_bias_y.set(0.f);
-					_mag_bias_y.commit();
+					_mag_bias_y.commit_no_notification();
 					_mag_bias_z.set(0.f);
-					_mag_bias_z.commit();
+					_mag_bias_z.commit_no_notification();
 					_mag_bias_id.set(sensor_selection.mag_device_id);
 					_mag_bias_id.commit();
 					_invalid_mag_id_count = 0;
 
-					PX4_WARN("Mag sensor ID changed to %i", _mag_bias_id.get());
+					PX4_INFO("Mag sensor ID changed to %i", _mag_bias_id.get());
 				}
 
 				// If the time last used by the EKF is less than specified, then accumulate the
-				// data and push the average when the 50msec is reached.
+				// data and push the average when the specified interval is reached.
 				_mag_time_sum_ms += _timestamp_mag_us / 1000;
 				_mag_sample_count++;
 				_mag_data_sum[0] += sensors.magnetometer_ga[0];
@@ -652,7 +652,7 @@ void Ekf2::task_main()
 				_timestamp_balt_us = sensors.timestamp + sensors.baro_timestamp_relative;
 
 				// If the time last used by the EKF is less than specified, then accumulate the
-				// data and push the average when the 50msec is reached.
+				// data and push the average when the specified interval is reached.
 				_balt_time_sum_ms += _timestamp_balt_us / 1000;
 				_balt_sample_count++;
 				_balt_data_sum += sensors.baro_alt_meter;
@@ -1018,7 +1018,7 @@ void Ekf2::task_main()
 				    || !mag_cal_active) {
 					_last_invalid_magcal_us = now;
 
-				} else if (((now - _last_invalid_magcal_us) > 180E6)
+				} else if (((now - _last_invalid_magcal_us) > 180*1000*1000ULL)
 					   && (_invalid_mag_id_count == 0)) {
 					// we have sufficient continuous valid flight time to form a bias estimate
 					// Don't record bias estimates to save later if variances are outside the valid range
