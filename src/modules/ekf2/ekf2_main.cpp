@@ -158,7 +158,8 @@ private:
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
 
 	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _last_invalid_magcal_us = 0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
+	hrt_abstime _last_invalid_magcal_us =
+		0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
 	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
@@ -1018,12 +1019,13 @@ void Ekf2::task_main()
 				    || !mag_cal_active) {
 					_last_invalid_magcal_us = now;
 
-				} else if (((now - _last_invalid_magcal_us) > 180*1000*1000ULL)
+				} else if (((now - _last_invalid_magcal_us) > 180 * 1000 * 1000ULL)
 					   && (_invalid_mag_id_count == 0)) {
 					// we have sufficient continuous valid flight time to form a bias estimate
 					// Don't record bias estimates to save later if variances are outside the valid range
 					float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
 					float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
+
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
 						if (status.covariances[axis_index + 19] > min_var_allowed
 						    && status.covariances[axis_index + 19] < max_var_allowed) {
