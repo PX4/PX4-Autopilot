@@ -92,6 +92,12 @@
 #include <uORB/topics/collision_report.h>
 #include <uORB/uORB.h>
 
+#ifdef __PX4_POSIX
+#define LOG_DIR PX4_ROOTFSDIR"."
+#else
+#define LOG_DIR PX4_ROOTFSDIR"/fs/microsd"
+#endif
+
 
 static uint16_t cm_uint16_from_m_float(float m);
 static void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_state,
@@ -455,7 +461,7 @@ protected:
 						/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
 
 						/* store the log file in the root directory */
-						snprintf(log_file_path, sizeof(log_file_path) - 1, PX4_ROOTFSDIR"/fs/microsd/msgs_%s.txt", tstamp);
+						snprintf(log_file_path, sizeof(log_file_path) - 1, LOG_DIR"/msgs_%s.txt", tstamp);
 						_fp = fopen(log_file_path, "ab");
 
 						if (_fp != nullptr) {

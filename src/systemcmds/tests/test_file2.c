@@ -54,6 +54,12 @@
 #define FLAG_FSYNC 1
 #define FLAG_LSEEK 2
 
+#ifdef __PX4_POSIX
+#define LOG_PATH PX4_ROOTFSDIR "/log/"
+#else
+#define LOG_PATH PX4_ROOTFSDIR "/fs/microsd/"
+#endif
+
 /*
   return a predictable value for any file offset to allow detection of corruption
  */
@@ -170,7 +176,7 @@ int test_file2(int argc, char *argv[])
 {
 	int opt;
 	uint16_t flags = 0;
-	const char *filename = PX4_ROOTFSDIR "/fs/microsd/testfile2.dat";
+	const char *filename = LOG_PATH "testfile2.dat";
 	uint32_t write_chunk = 64;
 	uint32_t write_size = 5 * 1024;
 
@@ -212,7 +218,7 @@ int test_file2(int argc, char *argv[])
 	/* check if microSD card is mounted */
 	struct stat buffer;
 
-	if (stat(PX4_ROOTFSDIR "/fs/microsd/", &buffer)) {
+	if (stat(LOG_PATH, &buffer)) {
 		fprintf(stderr, "no microSD card mounted, aborting file test");
 		return 1;
 	}

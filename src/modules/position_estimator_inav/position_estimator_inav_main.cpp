@@ -188,7 +188,11 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 			    float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v, float corr_mocap[3][1], float w_mocap_p,
 			    float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
+#ifdef __PX4_POSIX
+	FILE *f = fopen(PX4_ROOTFSDIR"/inav.log", "a");
+#else
 	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
+#endif
 
 	if (f) {
 		char *s = malloc(256);

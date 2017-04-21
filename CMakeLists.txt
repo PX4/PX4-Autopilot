@@ -482,11 +482,8 @@ endforeach()
 # Keep track of external shared libs required for modules
 set(module_external_libraries "${module_external_libraries}" CACHE INTERNAL "module_external_libraries")
 
-add_subdirectory(src/firmware/${OS})
-
-#add_dependencies(df_driver_framework nuttx_export_${CONFIG})
-if (NOT "${OS}" STREQUAL "nuttx")
-endif()
+# Use CMakeLists.txt specific to OS.
+include(cmake/CMakeLists_${OS}.txt)
 
 if (config_io_board)
 	add_subdirectory(src/modules/px4iofirmware)

@@ -1,20 +1,39 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+set(ROOTFS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rootfs)
+
+set(PX4_BASH_PREFIX "px4-")
+
+add_definitions("-DPX4_BASH_PREFIX=\"${PX4_BASH_PREFIX}\"")
+
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
+)
+
+px4_posix_generate_alias(
+	OUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/alias.sh"
+	PREFIX "${PX4_BASH_PREFIX}"
+	MODULE_LIST ${module_libraries}
+)
 
 # Define build target
 set(APP_NAME px4)
 set(MAIN_SRC ${PX4_SOURCE_DIR}/src/platforms/posix/main.cpp)
 set(UPLOAD_NAME upload)
 
+add_subdirectory(posix-configs/SITL/init)
+add_subdirectory(ROMFS/px4fmu_common/mixers)
+add_subdirectory(test_data)
+
+
 if ("${BOARD}" STREQUAL "eagle" OR ("${BOARD}" STREQUAL "excelsior"))
 
 	include(fastrpc)
 	include(linux_app)
 
-	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
+	FASTRPC_STUB_GEN(${CMAKE_SOURCE_DIR}/src/platforms/qurt/px4muorb.idl)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
@@ -103,8 +122,8 @@ elseif ("${BOARD}" STREQUAL "bebop")
 
 elseif ("${BOARD}" STREQUAL "sitl")
 
-	include(./sitl_target.cmake)
-	include(./sitl_tests.cmake)
+	include(cmake/posix/sitl_target.cmake)
+	include(cmake/posix/sitl_tests.cmake)
 
 else()
 
@@ -128,14 +147,12 @@ else()
 			pthread m
 			)
 	endif()
+
 endif()
 
 #=============================================================================
 # install
 #
 
-install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

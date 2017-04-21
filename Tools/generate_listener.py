@@ -1,232 +1,323 @@
 #!/usr/bin/python
 
+
+from __future__ import print_function
+import argparse
 import glob
 import os
-import sys
 import re
+from string import Template
 
-# This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
+"""Generate the listener systemcmd.
 
-# argv[1] must be the full path of the top Firmware dir
+This script generates the C++ code which is behind the listener command
+which allows for easier debugging by printing out uORB messages.
 
-raw_messages = glob.glob(sys.argv[1]+"/msg/*.msg")
-messages = []
-message_elements = []
+Usage: generate_listener src_dir output_file
+"""
+
+# Ignore the biggest topics on NuttX to save flash
+ignore_on_nuttx_list = [
+    "hil_sensor",
+    "ekf2_replay"
+]
 
 
-for index,m in enumerate(raw_messages):
-	temp_list_floats = []
-	temp_list_uint64 = []
-	temp_list_bool = []
-	if("pwm_input" not in m and "position_setpoint" not in m):
-		temp_list = []
-		f = open(m,'r')
-		for line in f.readlines():
-			items = re.split('\s+', line.strip())
+def main():
+    """Parse the msg files and write the listener using the template."""
 
-			if ('float32[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("float_array",items[1],num_floats))
-			elif ('float64[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("double_array",items[1],num_floats))
-			elif ('uint64[' in items[0]):
-				num_floats = int(items[0].split("[")[1].split("]")[0])
-				temp_list.append(("uint64_array",items[1],num_floats))
-			elif(items[0] == "float32"):
-				temp_list.append(("float",items[1]))
-			elif(items[0] == "float64"):
-				temp_list.append(("double",items[1]))
-			elif(items[0] == "uint64") and len(line.split('=')) == 1:
-				temp_list.append(("uint64",items[1]))
-			elif(items[0] == "uint32") and len(line.split('=')) == 1:
-				temp_list.append(("uint32",items[1]))
-			elif(items[0] == "uint16") and len(line.split('=')) == 1:
-				temp_list.append(("uint16",items[1]))
-			elif(items[0] == "int64") and len(line.split('=')) == 1:
-				temp_list.append(("int64",items[1]))
-			elif(items[0] == "int32") and len(line.split('=')) == 1:
-				temp_list.append(("int32",items[1]))
-			elif(items[0] == "int16") and len(line.split('=')) == 1:
-				temp_list.append(("int16",items[1]))
-			elif (items[0] == "bool") and len(line.split('=')) == 1:
-				temp_list.append(("bool",items[1]))
-			elif (items[0] == "uint8") and len(line.split('=')) == 1:
-				temp_list.append(("uint8",items[1]))
-			elif (items[0] == "int8") and len(line.split('=')) == 1:
-				temp_list.append(("int8",items[1]))
+    # Parse and verify user inputs.
+    args = parse_args()
 
-		f.close()
-		(m_head, m_tail) = os.path.split(m)
-		message = m_tail.split('.')[0]
-		if message != "actuator_controls":
-			messages.append(message)
-			message_elements.append(temp_list)
-		#messages.append(m.split('/')[-1].split('.')[0])
+    # Get the paths of all msg files.
+    msg_paths = glob.glob(args.src_dir + "/msg/*.msg")
 
-num_messages = len(messages);
+    # Parse the message files and put all data in a dict.
+    msg_dict = get_msg_data(msg_paths)
 
-print("""
+    # Read in the template file.
+    with open(args.src_dir +
+              "/src/systemcmds/topic_listener/topic_listener.cpp.in", "r") as f:
+        template = Template(f.read())
 
-/****************************************************************************
- *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
+    # Assemble the needed substitutions.
+    mapping = {'include_topics': assemble_includes(msg_dict),
+               'topic_classes': assemble_classes(msg_dict),
+               'factory': assemble_factory(msg_dict)}
 
-/**
- * @file topic_listener.cpp
- *
- * Autogenerated by Tools/generate_listener.py
- *
- * Tool for listening to topics when running flight stack on linux.
- */
+    # Use the template and substitude the ${placeholders}.
+    substituted = template.substitute(mapping)
 
-#include <drivers/drv_hrt.h>
-#include <px4_middleware.h>
-#include <px4_app.h>
-#include <px4_config.h>
-#include <uORB/uORB.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
+    # (Over)write the output file.
+    with open(args.output_file, "w") as f:
+        f.write(substituted)
 
-#ifndef PRIu64
-#define PRIu64 "llu"
-#endif
 
-#ifndef PRId64
-#define PRId64 "lld"
-#endif
+def parse_args():
+    """Parse input arguments."""
+    parser = argparse.ArgumentParser(description="Generate listener module")
+    parser.add_argument("src_dir",
+                        help="The top level src directory of Firmware.")
+    parser.add_argument("output_file",
+                        help="The generated output file.")
+    return parser.parse_args()
 
-static bool check_timeout(const hrt_abstime& time) {
-    if (hrt_elapsed_time(&time) > 2*1000*1000) {
-		printf("Waited for 2 seconds without a message. Giving up.\\n");
-        return true;
-    }
-    return false;
+
+def get_msg_data(msg_paths):
+    """Read in all files and store data in dict."""
+
+    msg_dict = dict()
+    for msg_path in msg_paths:
+        elements = parse_msg(msg_path)
+        if elements is None:
+            # In case some file is rather empty.
+            continue
+
+        # Use the msg_name as the key.
+        msg_name = get_msg_name(msg_path)
+        msg_dict[msg_name] = elements
+
+    return msg_dict
+
+
+def parse_msg(file_path):
+    """Parse one msg file."""
+    elements = []
+    with open(file_path, 'r') as f:
+        for line in f.readlines():
+            items = line.strip().split()
+            if not items:
+                continue
+
+            element = parse_msg_items(items)
+            if element:
+                elements.append(element)
+
+    return elements
+
+
+map_from_msg_types_to_cpp_types = {
+    'float32': 'float',
+    'float64': 'double',
+    'uint64': 'uint64_t',
+    'int64': 'int64_t',
+    'uint32': 'uint32_t',
+    'int32': 'int32_t',
+    'uint16': 'uint16_t',
+    'int16': 'int16_t',
+    'uint8': 'uint8_t',
+    'int8': 'int8_t',
+    'bool': 'bool'
 }
 
-""")
-for m in messages:
-	print("#include <uORB/topics/%s.h>" % m)
+
+class Element(object):
+    """One element represents one type line in a msg file."""
+    def __init__(self):
+        self.array_len = None
+        self.type_name = ""
+        self.var_name = ""
 
 
-print("""
-extern "C" __EXPORT int listener_main(int argc, char *argv[]);
+def parse_msg_items(items):
+    """Try to make sense from the items of a line."""
+    new_element = Element()
 
-int listener_main(int argc, char *argv[]) {
-	int sub = -1;
-	orb_id_t ID;
-	if(argc < 2) {
-		printf("need at least two arguments: topic name. [optional number of messages to print]\\n");
-		return 1;
-	}
-""")
-print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
-print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
-print("\t\tsub = orb_subscribe(ORB_ID(%s));" % messages[0])
-print("\t\tID = ORB_ID(%s);" % messages[0])
-print("\t\tstruct %s_s container;" % messages[0])
-print("\t\tmemset(&container, 0, sizeof(container));")
-for index,m in enumerate(messages[1:]):
-	print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
-	print("\t\tsub = orb_subscribe(ORB_ID(%s));" % m)
-	print("\t\tID = ORB_ID(%s);" % m)
-	print("\t\tstruct %s_s container;" % m)
-	print("\t\tmemset(&container, 0, sizeof(container));")
-	print("\t\tbool updated;")
-	print("\t\tunsigned i = 0;")
-	print("\t\thrt_abstime start_time = hrt_absolute_time();")
-	print("\t\twhile(i < num_msgs) {")
-	print("\t\t\torb_check(sub,&updated);")
-	print("\t\t\tif (i == 0) { updated = true; } else { usleep(500); }")
-	print("\t\t\tif (updated) {")
-	print("\t\t\tstart_time = hrt_absolute_time();")
-	print("\t\t\ti++;")
-	print("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
-	print("\t\t\torb_copy(ID,sub,&container);")
-	print("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
-	for item in message_elements[index+1]:
-		if item[0] == "float":
-			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "float_array":
-			print("\t\t\tprintf(\"%s: \");" % item[1])
-			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t\t}")
-			print("\t\t\tprintf(\"\\n\");")
-		elif item[0] == "double":
-			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
-		elif item[0] == "double_array":
-			print("\t\t\tprintf(\"%s: \");" % item[1])
-			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%8.4f \",(double)container.%s[j]);" % item[1])
-			print("\t\t\t}")
-			print("\t\t\tprintf(\"\\n\");")
-		elif item[0] == "uint64":
-			print("\t\t\tprintf(\"%s: %%\" PRIu64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint64_array":
-			print("\t\t\tprintf(\"%s: \");" % item[1])
-			print("\t\t\tfor (int j = 0; j < %d; j++) {" % item[2])
-			print("\t\t\t\tprintf(\"%%\" PRIu64 \"\",container.%s[j]);" % item[1])
-			print("\t\t\t}")
-			print("\t\t\tprintf(\"\\n\");")
-		elif item[0] == "int64":
-			print("\t\t\tprintf(\"%s: %%\" PRId64 \"\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int32":
-			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint32":
-			print("\t\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "int16":
-			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint16":
-			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "int8":
-			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
-			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
-		elif item[0] == "bool":
-			print("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
-	print("\t\t\t} else {")
-	print("\t\t\t\tif (check_timeout(start_time)) {")
-	print("\t\t\t\t\tbreak;")
-	print("\t\t\t\t}")
-	print("\t\t\t}")
-	print("\t\t}")
-print("\t} else {")
-print("\t\t printf(\" Topic did not match any known topics\\n\");")
-print("\t}")
-print("\t\torb_unsubscribe(sub);")
-print("\t return 0;")
+    # First try to find lines/entries that are arrays:
+    #
+    # This matches agains word123[42] and extracts
+    # word123 as type and 42 as array_len.
+    # \w* -> word123
+    # \[\d*\] -> [42]
+    # (?P<name>REGEX) assigns it to group('name')
+    m = re.match(r"(?P<type>\w*)\[(?P<array_len>\d*)\]", items[0])
+    if m:
+        type_name = m.group('type')
+        new_element.array_len = m.group('array_len')
+        new_element.var_name = items[1]
+    else:
+        # There needs to be at least type and variable name.
+        if len(items) < 2:
+            return None
 
-print("}")
+        # We want to filter out constants such as "uint8 CONSTANT=5"
+        if "=" in items[1]:
+            return None
+
+        # We also want to filter out constants such as "uint8 CONSTANT = 5"
+        if len(items) > 2 and "=" in items[2]:
+            return None
+
+        # Let's assume it's valid now and not an array
+        type_name = items[0]
+        new_element.var_name = items[1]
+
+    # Check if we can make use of the type actually:
+    if type_name not in map_from_msg_types_to_cpp_types:
+        # Unknown type or other line, let's throw it away.
+        return None
+
+    # Let's use the C++ type name from now on
+    new_element.type_name = map_from_msg_types_to_cpp_types[type_name]
+    return new_element
+
+
+def get_msg_name(file_path):
+    """Basically get the filename without ending."""
+    (head, tail) = os.path.split(file_path)
+    msg_name = tail.split('.')[0]
+    return msg_name
+
+
+function_around_variable = {
+    'float': "(double){}",
+    'double': "(double){}",
+    'uint64_t': "{}",
+    'int64_t': "{}",
+    'uint32_t': "{}",
+    'int32_t': "{}",
+    'uint16_t': "(unsigned){}",
+    'int16_t': "(int){}",
+    'uint8_t': "(unsigned){}",
+    'int8_t': "(int){}",
+    'bool': "({}) ? \"True\" : \"False\""
+}
+
+type_specifier_for_cpp_type = {
+    'float': "%8.4f",
+    'double': "%8.4",
+    'uint64_t': "%\" PRIu64 \"",
+    'int64_t': "%\" PRId64 \"",
+    'uint32_t': "%u",
+    'int32_t': "%d",
+    'uint16_t': "%u",
+    'int16_t': "%d",
+    'uint8_t': "%u",
+    'int8_t': "%d",
+    'bool': "%s"
+}
+
+
+def get_print_function(element):
+    """Construct print function of an element."""
+    if element.array_len is not None:
+        return get_print_function_for_array(element)
+    else:
+        return get_print_function_for_single(element)
+
+
+def get_print_function_for_array(element):
+    """Construct print function of an array element."""
+
+    # The variable name needs to be constructed first because
+    # it will get casts around it.
+    variable = "_container.{}[j]".format(element.var_name)
+
+    # Construct the ugly loop with all it needs.
+    text = "\t\tPX4_INFO_RAW(\"{}: \");\n".format(element.var_name)
+    text = ""
+    text += "\t\tfor (int j = 0; j < {}; ++j) {{\n".format(element.array_len)
+    text += "\t\t\tPX4_INFO_RAW(\"{} \", {});\n".format(
+        type_specifier_for_cpp_type[element.type_name],
+        function_around_variable[element.type_name].format(variable))
+    text += "\t\t}\n"
+    text += "\t\tPX4_INFO_RAW(\"\\n\");\n"
+    return text
+
+
+def get_print_function_for_single(element):
+    """Construct print function of single/non-array element."""
+    # We need the variable first again.
+    variable = "_container.{}".format(element.var_name)
+
+    # Now just print it in one line.
+    text = "\t\tPX4_INFO_RAW(\"{}: {}\\n\", {});\n".format(
+        element.var_name,
+        type_specifier_for_cpp_type[element.type_name],
+        function_around_variable[element.type_name].format(variable))
+
+    return text
+
+
+def assemble_includes(msg_dict):
+    """Get the text to include all topic files."""
+    text = ""
+    for msg in msg_dict.keys():
+        text += "#include <uORB/topics/{}.h>\n".format(msg)
+    return text
+
+
+def assemble_classes(msg_dict):
+    """Assemble the class which inherit from the Topic class."""
+    text = ""
+
+    # Go through all msgs and their elements.
+    for msg, elements in msg_dict.items():
+
+        if msg in ignore_on_nuttx_list:
+            text += "#ifndef __PX4_NUTTX\n"
+
+        text += "class Topic_{} : public Topic {{\n".format(msg)
+        text += "public:\n"
+        text += "\tTopic_{}(orb_id_t id)\n".format(msg)
+        text += "\t\t: Topic(id),\n"
+        text += "\t_container{}\n"
+        text += "\t{\n"
+        text += "\t\t_data = &_container;\n"
+        text += "\t}\n"
+
+        print_function = ""
+        print_function += "\t\tPX4_INFO_RAW(\"timestamp: %\" PRIu64 \"\\n\"," \
+                          "_container.timestamp);\n"
+
+        for element in elements:
+            print_function += get_print_function(element)
+
+        print_function += "\t\tPX4_INFO_RAW(\"\\n\");\n"
+
+        text += "\tvoid print_specific() override\n"
+        text += "\t{\n"
+        text += print_function
+        text += "\t}\n"
+
+        text += "private:\n"
+        text += "\tstruct {}_s _container;\n".format(msg)
+        text += "};\n\n"
+
+        if msg in ignore_on_nuttx_list:
+            text += "#endif\n"
+
+    return text
+
+
+def assemble_factory(msg_dict):
+    """Put together the factory which creates the objects."""
+    text = ""
+
+    for index, msg in enumerate(msg_dict.keys()):
+
+        # The first time is an "if", after that it's "else if"
+        if index > 0:
+            text += "\telse "
+        else:
+            text += "\t"
+
+        text += "if (strncmp(name, \"{}\", 50) == 0) {{\n".format(msg)
+
+        if msg in ignore_on_nuttx_list:
+            text += "#ifdef __PX4_NUTTX\n"
+            text += "\t\tPX4_WARN(\"Topic not available on NuttX\");\n"
+            text += "#else\n"
+
+        text += "\t\ttopic = new Topic_{}(ORB_ID({}));\n".format(msg, msg)
+
+        if msg in ignore_on_nuttx_list:
+            text += "#endif\n"
+
+        text += "\t}\n"
+
+    return text
+
+
+if __name__ == '__main__':
+    main()

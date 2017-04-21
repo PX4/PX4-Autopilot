@@ -12,7 +12,7 @@ px4_qurt_generate_builtin_commands(
 	OUT ${PX4_BINARY_DIR}/apps
 	MODULE_LIST ${module_libraries})
 
-FASTRPC_STUB_GEN(px4muorb.idl)
+FASTRPC_STUB_GEN(${CMAKE_SOURCE_DIR}/src/platforms/qurt/px4muorb.idl)
 
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
@@ -22,7 +22,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
                 ${FASTRPC_DSP_INCLUDES}
                 )
 	add_executable(px4
-		${PX4_BINARY_DIR}/src/firmware/qurt/px4muorb_skel.c
+		${PX4_BINARY_DIR}/src/platforms/qurt/px4muorb_skel.c
 		${PX4_BINARY_DIR}/apps.cpp)
 
 	target_link_libraries(px4
@@ -56,7 +56,6 @@ else()
 			 BOARD ${BOARD}
 			 FILES ${CMAKE_CURRENT_BINARY_DIR}/libpx4.so
 				 ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so
-				 ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config
 			 DEPENDS px4 px4muorb_skel
 			 DEST /usr/share/data/adsp)
 endif()

@@ -82,6 +82,7 @@ set(msg_file_names
 	position_setpoint_triplet.msg
 	pwm_input.msg
 	qshell_req.msg
+	qshell_retval.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg

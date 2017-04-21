@@ -74,14 +74,14 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include visibility.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include visibility.h")
 
 set(PX4_PLATFORM
-	${PX4_SITL_BUILD}/libmsg_gen.a
-	${PX4_SITL_BUILD}/src/drivers/boards/sitl/libdrivers__boards__sitl.a
-	${PX4_SITL_BUILD}/src/drivers/device/libdrivers__device.a
-	${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/liblib__DriverFramework__framework.a
-	${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/src/libdf_driver_framework.a
-	${PX4_SITL_BUILD}/src/platforms/common/libplatforms__common.a
+	#${PX4_SITL_BUILD}/src/drivers/boards/sitl/libdrivers__boards__sitl.a
+	#${PX4_SITL_BUILD}/src/drivers/device/libdrivers__device.a
+	#${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/liblib__DriverFramework__framework.a
+	#${PX4_SITL_BUILD}/src/lib/DriverFramework/framework/src/libdf_driver_framework.a
+	#${PX4_SITL_BUILD}/src/platforms/common/libplatforms__common.a
 	${PX4_SITL_BUILD}/src/platforms/posix/px4_layer/libplatforms__posix__px4_layer.a
-	${PX4_SITL_BUILD}/src/platforms/posix/work_queue/libplatforms__posix__work_queue.a
+	#${PX4_SITL_BUILD}/src/platforms/posix/px4_daemon/libplatforms__posix__px4_daemon.a
+	#${PX4_SITL_BUILD}/src/platforms/posix/work_queue/libplatforms__posix__work_queue.a
 	)
 
 # check
@@ -111,8 +111,11 @@ endfunction()
 #    add_gtest(example_test)
 
 # param_test
-add_executable(param_test setup.cpp param_test.cpp uorb_stub.cpp
-						${PX4_SRC}/modules/systemlib/bson/tinybson.c
-						${PX4_SRC}/modules/systemlib/param/param.c)
+add_executable(param_test
+	setup.cpp
+	param_test.cpp
+	uorb_stub.cpp
+	${PX4_SRC}/modules/systemlib/bson/tinybson.c
+	${PX4_SRC}/modules/systemlib/param/param.c)
 target_link_libraries(param_test ${PX4_PLATFORM})
 add_gtest(param_test)

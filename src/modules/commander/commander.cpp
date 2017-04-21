@@ -601,17 +601,18 @@ void usage(const char *reason)
 
 void print_status()
 {
-	warnx("type: %s", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
-	warnx("safety: USB enabled: %s, power state valid: %s", (status_flags.usb_connected) ? "[OK]" : "[NO]",
+	PX4_INFO("Status:");
+	PX4_INFO_RAW("type: %s\n", (status.is_rotary_wing) ? "symmetric motion" : "forward motion");
+	PX4_INFO_RAW("safety: USB enabled: %s, power state valid: %s\n", (status_flags.usb_connected) ? "[OK]" : "[NO]",
 	      (status_flags.condition_power_input_valid) ? " [OK]" : "[NO]");
-	warnx("avionics rail: %6.2f V", (double)avionics_power_rail_voltage);
-	warnx("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
-	warnx("home: x = %.7f, y = %.7f, z = %.2f ", (double)_home.x, (double)_home.y, (double)_home.z);
-	warnx("datalink: %s", (status.data_link_lost) ? "LOST" : "OK");
+	PX4_INFO_RAW("avionics rail: %6.2f V\n", (double)avionics_power_rail_voltage);
+	PX4_INFO_RAW("home: lat = %.7f, lon = %.7f, alt = %.2f, yaw: %.2f\n", _home.lat, _home.lon, (double)_home.alt, (double)_home.yaw);
+	PX4_INFO_RAW("home: x = %.7f, y = %.7f, z = %.2f\n", (double)_home.x, (double)_home.y, (double)_home.z);
+	PX4_INFO_RAW("datalink: %s\n", (status.data_link_lost) ? "LOST" : "OK");
 
 #ifdef __PX4_POSIX
-	warnx("main state: %d", internal_state.main_state);
-	warnx("nav state: %d", status.nav_state);
+	PX4_INFO_RAW("main state: %d\n", internal_state.main_state);
+	PX4_INFO_RAW("nav state: %d\n", status.nav_state);
 #endif
 
 	/* read all relevant states */
@@ -658,7 +659,7 @@ void print_status()
 	px4_close(state_sub);
 
 
-	warnx("arming: %s", armed_str);
+	PX4_INFO_RAW("arming: %s\n", armed_str);
 }
 
 static orb_advert_t status_pub;

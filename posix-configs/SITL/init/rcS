@@ -1,0 +1,166 @@
+#!/usr/bin/bash
+
+# PX4 commands need the 'px4-' prefix in bash.
+source alias.sh
+
+# TODO: In the future we want to share rc.autostart with NuttX
+#source rc.autostart
+
+uorb start
+param load
+
+# Use environment variable PX4_ESTIMATOR to choose estimator.
+if [ "$PX4_ESTIMATOR" == "ekf2" ]; then
+	param set SYS_MC_EST_GROUP 2
+elif [ "$PX4_ESTIMATOR" == "lpe" ]; then
+	param set SYS_MC_EST_GROUP 1
+elif [ "$PX4_ESTIMATOR" == "inav" ]; then
+	param set SYS_MC_EST_GROUP 0
+else
+	# Default is LPE
+	param set SYS_MC_EST_GROUP 1
+fi
+
+# Use environment variable PX4_LOGGER to choose logger.
+if [ "$PX4_LOGGER" == "sdlog2" ]; then
+	param set SYS_LOGGER 0
+elif [ "$PX4_LOGGER" == "logger" ]; then
+	param set SYS_LOGGER 1
+else
+	# Default is still sdlog2
+	param set SYS_LOGGER 0
+fi
+
+# Use the variable set by sitl_run.sh to choose the model settings.
+if [ "$PX4_SIM_MODEL" == "iris" ]; then
+	param set SYS_AUTOSTART 10016
+
+elif [ "$PX4_SIM_MODEL" == "typhoon_h480" ]; then
+	param set SYS_AUTOSTART 6011
+else
+	echo "Unknown model"
+	exit -1
+fi
+
+# Continue with the normal startup
+param set SYS_RESTART_TYPE 2
+param set BAT_N_CELLS 3
+param set CAL_GYRO0_ID 2293768
+param set CAL_ACC0_ID 1376264
+param set CAL_ACC1_ID 1310728
+param set CAL_MAG0_ID 196616
+param set CAL_GYRO0_XOFF 0.01
+param set CAL_ACC0_XOFF 0.01
+param set CAL_ACC0_YOFF -0.01
+param set CAL_ACC0_ZOFF 0.01
+param set CAL_ACC0_XSCALE 1.01
+param set CAL_ACC0_YSCALE 1.01
+param set CAL_ACC0_ZSCALE 1.01
+param set CAL_ACC1_XOFF 0.01
+param set CAL_MAG0_XOFF 0.01
+param set SENS_BOARD_X_OFF 0.000001
+param set COM_RC_IN_MODE 1
+param set NAV_DLL_ACT 2
+param set COM_DISARM_LAND 3
+param set NAV_ACC_RAD 2.0
+param set COM_OF_LOSS_T 5
+param set COM_OBL_ACT 2
+param set COM_OBL_RC_ACT 0
+param set RTL_RETURN_ALT 30.0
+param set RTL_DESCEND_ALT 5.0
+param set RTL_LAND_DELAY 5
+param set MIS_TAKEOFF_ALT 2.5
+param set MC_ROLLRATE_P 0.2
+param set MC_PITCHRATE_P 0.2
+param set MC_PITCH_P 6
+param set MC_ROLL_P 6
+param set MPC_HOLD_MAX_Z 2.0
+param set MPC_HOLD_XY_DZ 0.1
+param set MPC_XY_P 0.4
+param set MPC_XY_VEL_P 0.2
+param set MPC_XY_VEL_D 0.005
+param set MPC_Z_VEL_P 0.6
+param set MPC_Z_VEL_I 0.15
+param set MPC_Z_VEL_MAX 2.0
+param set EKF2_GBIAS_INIT 0.01
+param set EKF2_ANGERR_INIT 0.01
+param set EKF2_MAG_TYPE 1
+param set SENS_BOARD_ROT 0
+
+dataman start
+replay tryapplyparams
+simulator start -s
+rgbledsim start
+tone_alarm start
+gyrosim start
+accelsim start
+barosim start
+adcsim start
+gpssim start
+sleep 1
+sensors start
+commander start
+land_detector start multicopter
+navigator start
+
+if param compare SYS_MC_EST_GROUP 0
+then
+	attitude_estimator_q start
+	position_estimator_inav start
+
+elif param compare SYS_MC_EST_GROUP 1
+then
+	attitude_estimator_q start
+	local_position_estimator start
+
+elif param compare SYS_MC_EST_GROUP 2
+then
+	param set EKF2_GBIAS_INIT 0.01
+	param set EKF2_ANGERR_INIT 0.01
+	ekf2 start
+
+else
+	echo "No estimator chosen"
+	exit -1
+fi
+
+
+mc_pos_control start
+mc_att_control start
+
+# TODO: eventually we want to re-use the existing autostart
+#       infrastructure already available on NuttX.
+if param compare SYS_AUTOSTART 10016
+then
+	source etc/init/10016_iris
+
+elif param compare SYS_AUTOSTART 6011
+then
+	source etc/init/6011_typhoon_h480
+fi
+
+
+mavlink start -u 14556 -r 4000000
+mavlink start -u 14557 -r 4000000 -m onboard -o 14540
+mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
+mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
+mavlink stream -r 50 -s GLOBAL_POSITION_INT -u 14556
+mavlink stream -r 50 -s ATTITUDE -u 14556
+mavlink stream -r 50 -s ATTITUDE_QUATERNION -u 14556
+mavlink stream -r 50 -s ATTITUDE_TARGET -u 14556
+mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
+mavlink stream -r 20 -s RC_CHANNELS -u 14556
+mavlink stream -r 250 -s HIGHRES_IMU -u 14556
+mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
+mavlink stream -r 20 -s SERVO_OUTPUT_RAW_0 -u 14556
+mavlink stream -r 20 -s MANUAL_CONTROL -u 14556
+
+if param compare SYS_LOGGER 0
+then
+	sdlog2 start -r 100 -a -b 9 -t
+else
+	logger start -b 12 -t
+fi
+
+mavlink boot_complete
+replay trystart

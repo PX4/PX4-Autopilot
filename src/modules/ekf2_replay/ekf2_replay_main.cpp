@@ -842,7 +842,7 @@ void Ekf2Replay::task_main()
 	strcat(path_to_replay_log, tmp);
 
 	// create path which tells user location of replay file
-	char tmp2[] = "./build_posix_sitl_replay/src/firmware/posix";
+	char tmp2[] = "./build_posix_sitl_replay";
 	char *replay_file_location = (char *) malloc(1 + strlen(tmp) + strlen(tmp2) + strlen(replay_log_name));
 	strcat(replay_file_location, tmp2);
 	strcat(replay_file_location, replay_log_name);

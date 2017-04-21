@@ -33,7 +33,6 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 include(hexagon_sdk)
 
-include_directories(${PX4_BINARY_DIR}/src/firmware/posix)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
 px4_add_module(

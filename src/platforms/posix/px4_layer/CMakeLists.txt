@@ -35,7 +35,6 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 	include(hexagon_sdk)
 
-	include_directories(${PX4_BINARY_DIR}/src/firmware/posix)
 	include_directories(${HEXAGON_SDK_INCLUDES})
 	list(APPEND SHMEM_SRCS
 		shmem_posix.c

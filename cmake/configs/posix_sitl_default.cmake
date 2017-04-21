@@ -10,6 +10,14 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/vmount
 	modules/sensors
+
+	#
+	# Platform
+	#
+	platforms/common
+	platforms/posix/px4_layer
+	platforms/posix/px4_daemon
+	platforms/posix/work_queue
 	platforms/posix/drivers/accelsim
 	platforms/posix/drivers/adcsim
 	platforms/posix/drivers/airspeedsim
@@ -35,6 +43,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
+	systemcmds/shutdown
 	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
@@ -122,13 +131,6 @@ set(config_module_list
 	lib/version
 
 	#
-	# Platform
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
-
-	#
 	# OBC challenge
 	#
 	modules/bottle_drop
@@ -175,11 +177,11 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
-# Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
+# Default config_sitl_rcS_path (posix_sitl_default), this is overwritten later
 # for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
 # which are based on posix_sitl_default.
-set(config_sitl_rcS_dir
-	posix-configs/SITL/init/ekf2
+set(config_sitl_rcS_path
+	etc/init/rcS
 	CACHE INTERNAL "init script dir for sitl"
 	)
 
@@ -205,3 +207,6 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
+set(config_sitl_rcS_dir
+	etc/init/rcS
+)

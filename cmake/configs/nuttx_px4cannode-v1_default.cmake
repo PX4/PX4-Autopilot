@@ -20,7 +20,7 @@ set(uavcanblid_sw_version_minor 1)
 include(configs/uavcan_board_ident/px4cannode-v1)
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
- BIN ${CMAKE_CURRENT_BINARY_DIR}/src/firmware/nuttx/firmware_nuttx.bin
+ BIN ${CMAKE_CURRENT_BINARY_DIR}/firmware_nuttx.bin
  HWNAME ${uavcanblid_name}
  HW_MAJOR ${uavcanblid_hw_version_major}
  HW_MINOR ${uavcanblid_hw_version_minor}
