@@ -65,10 +65,16 @@ namespace math
         _dt = dt;
     }
 
+    uint8_t FOAWDifferentiator::get_last_window_size(void)
+    {
+        return _last_window_size;
+    }
+
    void FOAWDifferentiator::reset(void) 
     {
         memset(&_buffer, 0, sizeof(_buffer));
         _nb_samples = 0;
+        _last_window_size = 0;
     }
     
     void FOAWDifferentiator::add_sample(float sample)
@@ -86,7 +92,7 @@ namespace math
 
     void FOAWDifferentiator::shift_buffer(void)
     {
-        for (int i = 0; i < (_nb_samples); i++) {
+        for (int i = 0; i < (_nb_samples-1); i++) {
            _buffer[i] = _buffer[i+1]; 
         }
 
@@ -110,42 +116,66 @@ namespace math
 
     float FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
     {
+        // TODO: Implement best fit algorithm (least squares fit)
         return 0.0f;
     }
 
     float FOAWDifferentiator::fit(void)
     {
-        uint8_t i;
+        uint8_t window_size;
         uint8_t j;
         uint8_t last_sample_pos;
+        uint8_t pass;
         float pos;
         float result;
         float slope;
 
         last_sample_pos = _nb_samples - 1;
+        pass = 0;
         pos = 0.0f;
         result = 0.0f;
         slope = 0.0f;
+        window_size = 1;
 
-        slope = end_fit_FOAW(1); 
+        slope = end_fit_FOAW(window_size); 
         result = slope;
 
         if (last_sample_pos == 0) {
             return 0.0f;
         }
 
-        for (i = 2; i < last_sample_pos; i++) {
-            slope = end_fit_FOAW(i);
+        for (window_size = 2; window_size <= (_nb_samples-1); window_size++) {
+            slope = end_fit_FOAW(window_size);
 
-            for (j = 1; j < i; j++) {
-                pos = _buffer[last_sample_pos] - slope*j;
+            // Check if all the values are around the fit +/- delta
+            for (j = 1; j < window_size; j++) {
+                // Compute a point on the slope
+                pos = _buffer[last_sample_pos] - slope*j*_dt;
 
-                if (pos < (_buffer[last_sample_pos-j]+_delta) && pos > (_buffer[last_sample_pos-j]-_delta)) {
-                    result = slope;
+                // Compute min and max bounds
+                float max_bound = pos + _delta;
+                float min_bound = pos - _delta;
+                // Select sample to check
+                float sample_to_check = _buffer[last_sample_pos-j];
+
+                // Pass the test if the sample is inside the boundaries
+                if (sample_to_check <= max_bound  && sample_to_check >= min_bound) {
+                    pass++;
                 }
                 else {
                     break;
                 }
+            }
+
+            // If all the values inside the windw are inside the boundaries, accept the new slope and continue with a bigger window if possible
+            if (pass == (window_size-1)) {
+                result = slope;
+                pass = 0;
+                _last_window_size = window_size;
+            }
+            // Otherwise (at least one sample is outside) we keep the previous slope
+            else {
+                break;
             }
 
         }
