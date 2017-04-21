@@ -291,13 +291,10 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
+
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
-
-	control::BlockParamFloat _param_cruising_speed_hover;
-	control::BlockParamFloat _param_cruising_speed_plane;
-	control::BlockParamFloat _param_cruising_throttle_plane;
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
