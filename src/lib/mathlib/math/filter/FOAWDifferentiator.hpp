@@ -49,6 +49,7 @@ public:
     // Constructor
     FOAWDifferentiator(float sample_time, float noise_level); 
 
+    // Destructor
     ~FOAWDifferentiator();
     /**
      * Change filter parameters
@@ -68,6 +69,7 @@ public:
      * Return noise level parameter (delta) 
      */
     float get_noise_level(void); 
+    uint8_t get_last_window_size(void);
 
     /**
      * Reset the filter state to this value
@@ -85,9 +87,10 @@ private:
 
     float           _dt;
     float           _delta; 
-    float           _buffer[14];        // past samples
+    float           _buffer[50];        // past samples
     uint8_t         _nb_samples;
-    static const uint8_t   _max_window_size = 14;
+    uint8_t         _last_window_size;
+    static const uint8_t   _max_window_size = 50;
 };
 
 } // namespace math
