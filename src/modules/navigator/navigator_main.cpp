@@ -784,7 +784,7 @@ Navigator::get_cruising_throttle()
 		return _mission_throttle;
 
 	} else {
-		return _param_cruising_throttle_plane.get();
+		return -1.0f;
 	}
 }
 
