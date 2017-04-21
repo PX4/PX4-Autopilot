@@ -19,7 +19,6 @@ then
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
 	param set VT_TRANS_THR 1
-	param set VT_IDLE_PWM_MC 1080
 	param set VT_DWN_PITCH_MAX 8
 	param set VT_FW_QC_P 55
 	param set VT_FW_QC_R 55
@@ -43,8 +42,18 @@ then
 	param set FW_RR_I 0.08
 	param set FW_RR_P 0.18
 	param set FW_T_HRATE_FF 0.5
+	param set FW_T_CLMB_MAX 3
+	param set FW_T_SINK_MAX 3
+	param set FW_T_SINK_MIN 1
+	param set FW_T_VERT_ACC 6
 	param set FW_THR_CRUISE 0.68
 	param set FW_THR_SLEW_MAX 1
+	param set FW_MAN_P_MAX 30
+	param set FW_P_LIM_MAX 20
+	param set FW_P_LIM_MIN -25
+	param set FW_P_RMAX_NEG 45
+	param set FW_P_RMAX_POS 45
+	param set FW_R_RMAX 50
 
 	param set LNDMC_ALT_MAX 9999
 	param set LNDMC_XY_VEL_MAX 1
@@ -88,7 +97,7 @@ then
 	param set CBRK_IO_SAFETY 22027
 
 	param set EKF2_GPS_POS_X -0.12
-	param set EKF2_IMU_POS_X 0.1
+	param set EKF2_IMU_POS_X -0.12
 	param set EKF2_TAU_VEL 0.5
 
 	param set SYS_COMPANION 57600
