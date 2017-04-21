@@ -1090,7 +1090,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 			// Constrain throttle between min and max
 			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
-			warnx("mission_throttle %.4f", (double)mission_throttle);
+			// warnx("mission_throttle %.4f", (double)mission_throttle);
 
 		} else {
 			/* Just control throttle in open loop */
