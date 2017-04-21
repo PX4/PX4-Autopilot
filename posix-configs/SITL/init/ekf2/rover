@@ -33,7 +33,7 @@ param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MIN 0
-param set FW_AIRSPD_TRIM 3
+param set FW_AIRSPD_TRIM 4
 param set FW_AIRSPD_MAX 15.5
 param set GND_WR_P 2
 param set GND_WR_I 0.9674
@@ -45,10 +45,10 @@ param set GND_THR_IDLE 0
 param set GND_THR_CRUISE 0
 param set GND_THR_MAX 1
 param set GND_THR_MIN 0
-param set GND_SPEED_P 0.5
-param set GND_SPEED_I 1
-param set GND_SPEED_D 0
-param set GND_SPEED_IMAX 0.5
+param set GND_SPEED_P 0.25
+param set GND_SPEED_I 0.001
+param set GND_SPEED_D 3
+param set GND_SPEED_IMAX 0.125
 param set GND_AIRSP_THR_SC 1
 replay tryapplyparams
 simulator start -s

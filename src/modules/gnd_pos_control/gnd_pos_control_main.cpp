@@ -670,11 +670,11 @@ GroundRoverPositionControl::parameters_update()
 
 	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 	pid_set_parameters(&_speed_ctrl, 
-						_parameters.speed_p,
-						_parameters.speed_d,
-						_parameters.speed_i,
-						_parameters.speed_imax,
-						_parameters.airspeed_max); 
+				_parameters.speed_p,
+				_parameters.speed_d,
+				_parameters.speed_i,
+				_parameters.speed_imax,
+				_parameters.airspeed_max); 
 
 	/* sanity check parameters  */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
@@ -1085,9 +1085,11 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
 			
 			//Compute airspeed control out and just scale it as a constant
-			mission_throttle = _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
+			mission_throttle =  _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
+			//mission_throttle = 0.5f;
+
 			// Constrain throttle between min and max
-			mission_throttle = math::constrain(mission_throttle, -_parameters.throttle_max, _parameters.throttle_max);
+			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
 			warnx("mission_throttle %.4f", (double)mission_throttle);
 
 		} else {
