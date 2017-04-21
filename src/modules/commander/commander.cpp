@@ -303,6 +303,8 @@ void check_global_posvel_validity(vehicle_global_position_s *global_position, bo
 
 void check_local_posvel_validity(vehicle_local_position_s *local_position, bool *changed);
 
+void check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed);
+
 void set_control_mode();
 
 bool stabilization_required();
@@ -2160,7 +2162,8 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
 
 			if (run_quality_checks) {
-				check_global_posvel_validity(&global_position, &status_changed);
+				check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+				check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
 			}
 		}
 
@@ -2173,7 +2176,8 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 
 			if (run_quality_checks) {
-				check_local_posvel_validity(&local_position, &status_changed);
+				check_posvel_validity(local_position.xy_valid, local_position.eph, eph_threshold, local_position.timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+				check_posvel_validity(local_position.v_xy_valid, local_position.evh, evh_threshold, local_position.timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
 			}
 		}
 
@@ -3769,8 +3773,10 @@ reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_
 	lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	// recheck validity
-	check_global_posvel_validity(global_position, changed);
-	check_local_posvel_validity(local_position, changed);
+	check_posvel_validity(true, global_position->eph, eph_threshold, global_position->timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
+	check_posvel_validity(true, global_position->evh, evh_threshold, global_position->timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, changed);
+	check_posvel_validity(local_position->xy_valid, local_position->eph, eph_threshold, local_position->timestamp, &last_lpos_fail_time_us, &lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
+	check_posvel_validity(local_position->v_xy_valid, local_position->evh, evh_threshold, local_position->timestamp, &last_lvel_fail_time_us, &lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
 
 void
@@ -3965,6 +3971,61 @@ check_local_posvel_validity(struct vehicle_local_position_s *local_position, boo
 			lvel_probation_time_us = POSVEL_PROBATION_MIN;
 		} else if  (lvel_probation_time_us > POSVEL_PROBATION_MAX) {
 			lvel_probation_time_us = POSVEL_PROBATION_MAX;
+		}
+	}
+}
+
+void
+check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed)
+{
+	bool pos_inaccurate = false;
+	hrt_abstime now = hrt_absolute_time();
+
+	// Check accuracy with hysteresis in both test level and time
+	bool pos_status_changed = false;
+	if (*valid_state && data_accuracy > required_accuracy * 2.5f) {
+		pos_inaccurate = true;
+		pos_status_changed = true;
+		*last_fail_time_us = now;
+	} else if (!*valid_state) {
+		bool level_check_pass = data_valid && data_accuracy < required_accuracy;
+		if (!level_check_pass) {
+			*probation_time_us += (now - *last_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
+			*last_fail_time_us = now;
+		} else if (now - *last_fail_time_us > *probation_time_us) {
+			pos_inaccurate = false;
+			pos_status_changed = true;
+			*last_fail_time_us = 0;
+		}
+	} else {
+		*probation_time_us -= (now - *last_fail_time_us);
+		*last_fail_time_us = now;
+	}
+
+	bool data_stale = (now - data_timestamp_us > POSITION_TIMEOUT);
+
+	// Set validity
+	if (pos_status_changed) {
+		if (*valid_state && (data_stale || !data_valid || pos_inaccurate)) {
+			*valid_state = false;
+			*validity_changed = true;
+		} else if (!*valid_state
+			   && !data_stale
+			   && !pos_inaccurate
+			   && data_valid) {
+			*valid_state = true;
+			*validity_changed = true;
+		}
+	}
+
+	// constrain probation times
+	if (land_detector.landed) {
+		*probation_time_us = POSVEL_PROBATION_MIN;
+	} else {
+		if (*probation_time_us < POSVEL_PROBATION_MIN) {
+			*probation_time_us = POSVEL_PROBATION_MIN;
+		} else if  (*probation_time_us > POSVEL_PROBATION_MAX) {
+			*probation_time_us = POSVEL_PROBATION_MAX;
 		}
 	}
 }
