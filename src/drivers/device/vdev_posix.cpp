@@ -55,7 +55,7 @@ using namespace device;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
 px4_sem_t lockstep_sem;
 bool sim_lockstep = false;
-bool sim_delay = false;
+volatile bool sim_delay = false;
 
 extern "C" {
 
