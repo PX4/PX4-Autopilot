@@ -1235,8 +1235,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			tecs_update_pitch_throttle(pos_sp_curr.alt,
 						   calculate_target_airspeed(mission_airspeed),
-						   radians(_parameters.pitch_limit_min),
-						   radians(_parameters.pitch_limit_max),
+						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
 						   _parameters.throttle_min,
 						   _parameters.throttle_max,
 						   mission_throttle,
@@ -1271,8 +1271,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			tecs_update_pitch_throttle(alt_sp,
 						   calculate_target_airspeed(mission_airspeed),
-						   radians(_parameters.pitch_limit_min),
-						   radians(_parameters.pitch_limit_max),
+						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
 						   _parameters.throttle_min,
 						   _parameters.throttle_max,
 						   _parameters.throttle_cruise,
