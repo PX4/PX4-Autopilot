@@ -846,12 +846,9 @@ void Ekf2::task_main()
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
 			lpos.surface_bottom_timestamp	= hrt_absolute_time(); // Time when new bottom surface found
 
-			// TODO: uORB definition does not define what these variables are. We have assumed them to be horizontal and vertical 1-std dev accuracy in metres
-			Vector3f pos_var, vel_var;
-			_ekf.get_pos_var(pos_var);
-			_ekf.get_vel_var(vel_var);
-			lpos.eph = sqrtf(pos_var(0) + pos_var(1));
-			lpos.epv = sqrtf(pos_var(2));
+			bool dead_reckoning;
+			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv, &dead_reckoning);
 
 			// get state reset information of position and velocity
 			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
@@ -895,8 +892,9 @@ void Ekf2::task_main()
 
 				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
 
-				global_pos.eph = sqrtf(pos_var(0) + pos_var(1));; // Standard deviation of position estimate horizontally
-				global_pos.epv = sqrtf(pos_var(2)); // Standard deviation of position vertically
+				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv, &global_pos.dead_reckoning);
+				global_pos.evh = lpos.evh;
+				global_pos.evv = lpos.evv;
 
 				if (lpos.dist_bottom_valid) {
 					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
@@ -907,8 +905,7 @@ void Ekf2::task_main()
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
 
-				// TODO use innovatun consistency check timouts to set this
-				global_pos.dead_reckoning = false; // True if this position is estimated through dead-reckoning
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
@@ -918,6 +915,79 @@ void Ekf2::task_main()
 				} else {
 					orb_publish(ORB_ID(vehicle_global_position), _vehicle_global_position_pub, &global_pos);
 				}
+			}
+
+			// publish estimator status
+			{
+				struct estimator_status_s status = {};
+				status.timestamp = hrt_absolute_time();
+				_ekf.get_state_delayed(status.states);
+				_ekf.get_covariances(status.covariances);
+				_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+				_ekf.get_control_mode(&status.control_mode_flags);
+				_ekf.get_filter_fault_status(&status.filter_fault_flags);
+				_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+								&status.vel_test_ratio, &status.pos_test_ratio,
+								&status.hgt_test_ratio, &status.tas_test_ratio,
+								&status.hagl_test_ratio);
+
+				status.pos_horiz_accuracy = lpos.eph;
+				status.pos_vert_accuracy = lpos.epv;
+				_ekf.get_ekf_soln_status(&status.solution_status_flags);
+				_ekf.get_imu_vibe_metrics(status.vibe);
+
+				if (_estimator_status_pub == nullptr) {
+					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+				} else {
+					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+				}
+
+				// Publish wind estimate
+				struct wind_estimate_s wind_estimate = {};
+				wind_estimate.timestamp = hrt_absolute_time();
+				wind_estimate.windspeed_north = status.states[22];
+				wind_estimate.windspeed_east = status.states[23];
+				wind_estimate.covariance_north = status.covariances[22];
+				wind_estimate.covariance_east = status.covariances[23];
+
+				if (_wind_pub == nullptr) {
+					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+
+				} else {
+					orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				}
+			}
+
+			// publish estimator innovation data
+			{
+				struct ekf2_innovations_s innovations = {};
+				innovations.timestamp = hrt_absolute_time();
+				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
+				_ekf.get_mag_innov(&innovations.mag_innov[0]);
+				_ekf.get_heading_innov(&innovations.heading_innov);
+				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
+				_ekf.get_beta_innov(&innovations.beta_innov);
+				_ekf.get_flow_innov(&innovations.flow_innov[0]);
+				_ekf.get_hagl_innov(&innovations.hagl_innov);
+
+				_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
+				_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
+				_ekf.get_heading_innov_var(&innovations.heading_innov_var);
+				_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
+				_ekf.get_beta_innov_var(&innovations.beta_innov_var);
+				_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
+				_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
+
+				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+
+				if (_estimator_innovations_pub == nullptr) {
+					_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+
+				} else {
+					orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
+				}
+
 			}
 
 		} else if (_replay_mode) {
@@ -932,76 +1002,6 @@ void Ekf2::task_main()
 			} else {
 				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
 			}
-		}
-
-		// publish estimator status
-		struct estimator_status_s status = {};
-		status.timestamp = _replay_mode ? now : hrt_absolute_time();
-		_ekf.get_state_delayed(status.states);
-		_ekf.get_covariances(status.covariances);
-		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-		_ekf.get_control_mode(&status.control_mode_flags);
-		_ekf.get_filter_fault_status(&status.filter_fault_flags);
-		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-						&status.vel_test_ratio, &status.pos_test_ratio,
-						&status.hgt_test_ratio, &status.tas_test_ratio,
-						&status.hagl_test_ratio);
-		bool dead_reckoning;
-		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
-		_ekf.get_ekf_soln_status(&status.solution_status_flags);
-		_ekf.get_imu_vibe_metrics(status.vibe);
-
-		if (_estimator_status_pub == nullptr) {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-		} else {
-			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-		}
-
-		// Publish wind estimate
-		struct wind_estimate_s wind_estimate = {};
-		wind_estimate.timestamp = _replay_mode ? now : hrt_absolute_time();
-		wind_estimate.windspeed_north = status.states[22];
-		wind_estimate.windspeed_east = status.states[23];
-		wind_estimate.covariance_north = status.covariances[22];
-		wind_estimate.covariance_east = status.covariances[23];
-
-		if (_wind_pub == nullptr) {
-			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
-
-		} else {
-			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-		}
-
-		// publish estimator innovation data
-		{
-			struct ekf2_innovations_s innovations = {};
-			innovations.timestamp = _replay_mode ? now : hrt_absolute_time();
-			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-			_ekf.get_mag_innov(&innovations.mag_innov[0]);
-			_ekf.get_heading_innov(&innovations.heading_innov);
-			_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-			_ekf.get_beta_innov(&innovations.beta_innov);
-			_ekf.get_flow_innov(&innovations.flow_innov[0]);
-			_ekf.get_hagl_innov(&innovations.hagl_innov);
-
-			_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-			_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-			_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-			_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-			_ekf.get_beta_innov_var(&innovations.beta_innov_var);
-			_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-			_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
-
-			_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
-
-			if (_estimator_innovations_pub == nullptr) {
-				_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
-
-			} else {
-				orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
-			}
-
 		}
 
 		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
