@@ -56,16 +56,18 @@ env:
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${TRAVIS_BRANCH}" == "coverity" ]]; then
+      echo "no script for coverity build";
+    elif [[ "${BUILD_TARGET}" = "qgc_firmware" ]]; then
       ./Tools/docker_run.sh 'make qgc_firmware';
-    elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+    elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
-    elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+    elif [[ "${BUILD_TARGET}" = "tests_linux" ]]; then
       ./Tools/docker_run.sh 'make tests';
-    elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy-parallel';
-    elif [[ "${BUILD_TARGET}" = "parameters_markdown" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-base ./Tools/docker_run.sh 'make parameters_markdown';
+    elif [[ "${BUILD_TARGET}" = "parameters_markdown" ]]; then
+      ./Tools/docker_run.sh 'make parameters_markdown';
+    elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
+      PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make clang-tidy-parallel';
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       make tests;
     fi
