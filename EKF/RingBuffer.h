@@ -113,6 +113,11 @@ public:
 		return _buffer[_tail];
 	}
 
+	unsigned get_oldest_index()
+	{
+		return _tail;
+	}
+
 	inline data_type get_newest()
 	{
 		return _buffer[_head];
