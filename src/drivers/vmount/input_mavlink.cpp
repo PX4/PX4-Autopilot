@@ -244,8 +244,11 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_control_data.type_data.angle.is_speed[0] = false;
 					_control_data.type_data.angle.is_speed[1] = false;
 					_control_data.type_data.angle.is_speed[2] = false;
-					_control_data.type_data.angle.angles[0] = vehicle_command.param1 * M_DEG_TO_RAD_F;
-					_control_data.type_data.angle.angles[1] = vehicle_command.param2 * M_DEG_TO_RAD_F;
+					// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+					_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
+					// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+					_control_data.type_data.angle.angles[1] = vehicle_command.param1 * M_DEG_TO_RAD_F;
+					// both specs have yaw on channel 2
 					_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
 
 					*control_data = &_control_data;
