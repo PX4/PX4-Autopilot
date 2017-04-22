@@ -970,8 +970,11 @@ private:
 	MavlinkOrbSubscription *_armed_sub;
 	uint64_t _armed_time;
 
-	MavlinkOrbSubscription *_act_sub;
-	uint64_t _act_time;
+	MavlinkOrbSubscription *_act0_sub;
+	uint64_t _act0_time;
+
+	MavlinkOrbSubscription *_act1_sub;
+	uint64_t _act1_time;
 
 	MavlinkOrbSubscription *_airspeed_sub;
 	uint64_t _airspeed_time;
@@ -991,8 +994,10 @@ protected:
 		_pos_time(0),
 		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
 		_armed_time(0),
-		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
-		_act_time(0),
+		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
+		_act0_time(0),
+		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
+		_act1_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
 		_airspeed_time(0),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
@@ -1004,14 +1009,16 @@ protected:
 		struct vehicle_attitude_s att = {};
 		struct vehicle_global_position_s pos = {};
 		struct actuator_armed_s armed = {};
-		struct actuator_controls_s act = {};
 		struct airspeed_s airspeed = {};
+		struct actuator_controls_s act0 = {};
+		struct actuator_controls_s act1 = {};
 
 		bool updated = _att_sub->update(&_att_time, &att);
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
-		updated |= _act_sub->update(&_act_time, &act);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _act0_sub->update(&_act0_time, &act0);
+		updated |= _act1_sub->update(&_act1_time, &act1);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
@@ -1019,7 +1026,19 @@ protected:
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(euler.psi()) * M_RAD_TO_DEG_F;
-			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
+
+			if (armed.armed) {
+				// VFR_HUD throttle should only be used for operator feedback.
+				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition there isn't a
+				// a single throttle value, but this should still be a useful heuristic for operator awareness.
+				//
+				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
+				msg.throttle = 100 * math::max(act0.control[actuator_controls_s::INDEX_THROTTLE],
+							       act1.control[actuator_controls_s::INDEX_THROTTLE]);
+
+			} else {
+				msg.throttle = 0.0f;
+			}
 
 			if (_pos_time > 0) {
 				/* use global estimate */
