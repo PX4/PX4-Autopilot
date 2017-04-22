@@ -62,7 +62,7 @@
 #include <systemlib/err.h>
 
 static const char *sensor_name = "mag";
-static constexpr unsigned max_mags = 3;
+static constexpr unsigned max_mags = 4;
 static constexpr float mag_sphere_radius = 0.2f;
 static unsigned int calibration_sides = 6;			///< The total number of sides
 static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
