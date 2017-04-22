@@ -500,6 +500,35 @@
 #define PIN_RMII0_MDIO  PIN_RMII0_MDIO_1
 #define PIN_RMII0_MDC   PIN_RMII0_MDC_1
 
+/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+
+#if defined(CONFIG_BOARD_USE_PROBES)
+# define PROBE_N(n) (1<<((n)-1))
+# define PROBE_1  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN1)
+# define PROBE_2  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTA | PIN6)
+# define PROBE_3  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN4)
+# define PROBE_4  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN5)
+# define PROBE_5  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN6)
+# define PROBE_6  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN7)
+
+# define PROBE_INIT(mask) \
+  do { \
+    if ((mask)& PROBE_N(1)) { kinetis_pinconfig(PROBE_1); } \
+    if ((mask)& PROBE_N(2)) { kinetis_pinconfig(PROBE_2); } \
+    if ((mask)& PROBE_N(3)) { kinetis_pinconfig(PROBE_3); } \
+    if ((mask)& PROBE_N(4)) { kinetis_pinconfig(PROBE_4); } \
+    if ((mask)& PROBE_N(5)) { kinetis_pinconfig(PROBE_5); } \
+    if ((mask)& PROBE_N(6)) { kinetis_pinconfig(PROBE_6); } \
+  } while(0)
+
+# define PROBE(n,s)  do {kinetis_gpiowrite(PROBE_##n,(s));}while(0)
+# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+#endif
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
