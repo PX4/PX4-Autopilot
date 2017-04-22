@@ -70,6 +70,9 @@
 #define BOARD_EXTAL_FREQ     16000000       /* 16MHz Oscillator Y1 */
 #define BOARD_XTAL32_FREQ    32768          /* 32KHz RTC Oscillator */
 
+#define BOARD_OSC_CR         OSC_CR_ERCLKEN /* Enable the OSCERCLK */
+#define BOARD_OSC_DIV        OSC_DIV_ERPS_DIV1 /* No OSCERCLK Divide */
+
 /* FLL Configuration.
  *  BOARD_EXTAL_FREQ / BOARD_FRDIV has to be in the range 31.25 kHz to 39.0625
  *  16 Mhz/ MCG_C1_FRDIV_DIV512 = 31.25 kHz * 640 the default for MCG_C4
@@ -151,8 +154,8 @@
 #define BOARD_LPUART0_CLKSRC           SIM_SOPT2_LPUARTSRC_MCGCLK
 #define BOARD_LPUART0_FREQ             BOARD_SIM_CLKDIV3_FREQ
 
-#define BOARD_TPM_CLKSRC               SIM_SOPT2_TPMSRC_MCGCLK
-#define BOARD_TPM_FREQ                 BOARD_SIM_CLKDIV3_FREQ
+#define BOARD_TPM_CLKSRC               SIM_SOPT2_TPMSRC_OCSERCLK
+#define BOARD_TPM_FREQ                 BOARD_EXTAL_FREQ
 
 /* SDHC clocking ********************************************************************/
 
