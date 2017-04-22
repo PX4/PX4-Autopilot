@@ -105,10 +105,10 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 
 void VotedSensorsUpdate::initialize_sensors()
 {
-	init_sensor_class(ORB_ID(sensor_gyro), _gyro);
-	init_sensor_class(ORB_ID(sensor_mag), _mag);
-	init_sensor_class(ORB_ID(sensor_accel), _accel);
-	init_sensor_class(ORB_ID(sensor_baro), _baro);
+	init_sensor_class(ORB_ID(sensor_gyro), _gyro, GYRO_COUNT_MAX);
+	init_sensor_class(ORB_ID(sensor_mag), _mag, MAG_COUNT_MAX);
+	init_sensor_class(ORB_ID(sensor_accel), _accel, ACCEL_COUNT_MAX);
+	init_sensor_class(ORB_ID(sensor_baro), _baro, BARO_COUNT_MAX);
 }
 
 void VotedSensorsUpdate::deinit()
@@ -148,9 +148,9 @@ void VotedSensorsUpdate::parameters_update()
 	/* temperature compensation */
 	_temperature_compensation.parameters_update();
 
-	for (unsigned topic_instance = 0; topic_instance < SENSOR_COUNT_MAX; ++topic_instance) {
+	/* gyro */
+	for (unsigned topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
 
-		/* gyro */
 		if (topic_instance < _gyro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
 			struct gyro_report report;
@@ -169,8 +169,12 @@ void VotedSensorsUpdate::parameters_update()
 				}
 			}
 		}
+	}
 
-		/* accel */
+
+	/* accel */
+	for (unsigned topic_instance = 0; topic_instance < ACCEL_COUNT_MAX; ++topic_instance) {
+
 		if (topic_instance < _accel.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
 			struct accel_report report;
@@ -189,8 +193,11 @@ void VotedSensorsUpdate::parameters_update()
 				}
 			}
 		}
+	}
 
-		/* baro */
+	/* baro */
+	for (unsigned topic_instance = 0; topic_instance < BARO_COUNT_MAX; ++topic_instance) {
+
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
 			struct baro_report report;
@@ -222,7 +229,7 @@ void VotedSensorsUpdate::parameters_update()
 	unsigned accel_cal_found_count = 0;
 
 	/* run through all gyro sensors */
-	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
+	for (unsigned s = 0; s < GYRO_COUNT_MAX; s++) {
 
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 
@@ -237,7 +244,7 @@ void VotedSensorsUpdate::parameters_update()
 		bool config_ok = false;
 
 		/* run through all stored calibrations that are applied at the driver level*/
-		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (unsigned i = 0; i < GYRO_COUNT_MAX; i++) {
 			/* initially status is ok per config */
 			failed = false;
 
@@ -296,7 +303,7 @@ void VotedSensorsUpdate::parameters_update()
 	if (gyro_count < gyro_cal_found_count) {
 
 		// run through all stored calibrations and reset them
-		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (unsigned i = 0; i < GYRO_COUNT_MAX; i++) {
 
 			int device_id = 0;
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
@@ -305,7 +312,7 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all accel sensors */
-	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
+	for (unsigned s = 0; s < ACCEL_COUNT_MAX; s++) {
 
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 
@@ -320,7 +327,7 @@ void VotedSensorsUpdate::parameters_update()
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
-		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (unsigned i = 0; i < ACCEL_COUNT_MAX; i++) {
 			/* initially status is ok per config */
 			failed = false;
 
@@ -379,7 +386,7 @@ void VotedSensorsUpdate::parameters_update()
 	if (accel_count < accel_cal_found_count) {
 
 		// run through all stored calibrations and reset them
-		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (unsigned i = 0; i < ACCEL_COUNT_MAX; i++) {
 
 			int device_id = 0;
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
@@ -388,7 +395,7 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all mag sensors */
-	for (unsigned s = 0; s < SENSOR_COUNT_MAX; s++) {
+	for (unsigned s = 0; s < MAG_COUNT_MAX; s++) {
 
 		/* set a valid default rotation (same as board).
 		 * if the mag is configured, this might be replaced
@@ -410,7 +417,7 @@ void VotedSensorsUpdate::parameters_update()
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
-		for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (unsigned i = 0; i < MAG_COUNT_MAX; i++) {
 			/* initially status is ok per config */
 			failed = false;
 
@@ -936,12 +943,14 @@ bool VotedSensorsUpdate::check_vibration()
 	return ret;
 }
 
-void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data)
+void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data,
+		uint8_t sensor_count_max)
 {
 	unsigned group_count = orb_group_count(meta);
 
-	if (group_count > SENSOR_COUNT_MAX) {
-		group_count = SENSOR_COUNT_MAX;
+	if (group_count > sensor_count_max) {
+		PX4_WARN("Detected %u %s sensors, but will only use %u", group_count, meta->o_name, sensor_count_max);
+		group_count = sensor_count_max;
 	}
 
 	for (unsigned i = 0; i < group_count; i++) {
