@@ -91,3 +91,5 @@ posix-configs/SITL/init/test/*_generated
 parameters.md
 airframes.md
 airframes.xml
+
+cppcheck-result.xml
