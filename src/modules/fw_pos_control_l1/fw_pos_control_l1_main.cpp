@@ -1058,13 +1058,8 @@ FixedwingPositionControl::in_takeoff_situation()
 	// in air for < 10s
 	const hrt_abstime delta_takeoff = 10000000;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
-	    && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
-
-		return true;
-	}
-
-	return false;
+	return hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
+	       && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff;
 }
 
 void
