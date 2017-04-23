@@ -539,7 +539,7 @@ bmi055_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'A':
