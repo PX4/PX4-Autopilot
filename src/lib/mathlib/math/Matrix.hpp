@@ -217,7 +217,7 @@ public:
 	/**
 	 * negation
 	 */
-	Matrix<M, N> operator -(void) const
+	Matrix<M, N> operator -() const
 	{
 		Matrix<M, N> res;
 
@@ -351,7 +351,7 @@ public:
 	/**
 	 * transpose the matrix
 	 */
-	Matrix<N, M> transposed(void) const
+	Matrix<N, M> transposed() const
 	{
 		matrix::Matrix<float, M, N> Me(this->arm_mat.pData);
 		Matrix<N, M> res(Me.transpose().data());
@@ -361,7 +361,7 @@ public:
 	/**
 	 * invert the matrix
 	 */
-	Matrix<M, N> inversed(void) const
+	Matrix<M, N> inversed() const
 	{
 		matrix::SquareMatrix<float, M> Me = matrix::Matrix<float, M, N>(this->arm_mat.pData);
 		Matrix<M, N> res(Me.I().data());
@@ -371,7 +371,7 @@ public:
 	/**
 	 * set zero matrix
 	 */
-	void zero(void)
+	void zero()
 	{
 		memset(data, 0, sizeof(data));
 	}
@@ -379,7 +379,7 @@ public:
 	/**
 	 * set identity matrix
 	 */
-	void identity(void)
+	void identity()
 	{
 		memset(data, 0, sizeof(data));
 		unsigned int n = (M < N) ? M : N;
@@ -389,7 +389,7 @@ public:
 		}
 	}
 
-	void print(void)
+	void print()
 	{
 		for (unsigned int i = 0; i < M; i++) {
 			printf("[ ");

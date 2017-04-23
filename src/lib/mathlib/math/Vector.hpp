@@ -175,7 +175,7 @@ public:
 	/**
 	 * negation
 	 */
-	const Vector<N> operator -(void) const
+	const Vector<N> operator -() const
 	{
 		Vector<N> res;
 
@@ -384,7 +384,7 @@ public:
 		memset(data, 0, sizeof(data));
 	}
 
-	void print(void)
+	void print()
 	{
 		printf("[ ");
 
