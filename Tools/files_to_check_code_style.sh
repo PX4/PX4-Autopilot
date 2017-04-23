@@ -9,13 +9,10 @@ then
 fi
 
 exec find src \
-    -path src/drivers/bootloaders -o \
     -path src/examples/attitude_estimator_ekf -prune -o \
     -path src/examples/ekf_att_pos_estimator -prune -o \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
-    -path src/lib/external_lgpl -prune -o \
-    -path src/lib/mathlib -prune -o \
     -path src/lib/matrix -prune -o \
     -path src/modules/commander -prune -o \
     -path src/modules/sdlog2 -prune -o \
