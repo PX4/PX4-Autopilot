@@ -377,9 +377,13 @@ then
 	then
 	fi
 
-	# Internal SPI bus BMI055
-# Place holder Need BMI055 Support added
-	if bmi055 -R 2 start
+	# Internal SPI bus BMI055 accel
+	if bmi055 -A -R 10 start
+	then
+	fi
+
+	# Internal SPI bus BMI055 gyro
+	if bmi055 -G -R 10 start
 	then
 	fi
 
