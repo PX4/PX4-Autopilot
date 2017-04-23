@@ -93,7 +93,7 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		google-runtime-memset,
 		google-runtime-operator,
 		## evaluate # google-runtime-references,
-		llvm-header-guard,
+		#llvm-header-guard,
 		## evaluate # llvm-include-order,
 		#llvm-namespace-comment,
 		misc-argument-comment,
@@ -192,7 +192,6 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		readability-uniqueptr-delete-release,
 		'
 WarningsAsErrors: '*'
-HeaderFilterRegex: '*.h, *.hpp, *.hh, *.hxx'
 AnalyzeTemporaryDtors: false
 CheckOptions:
   - key:             cert-dcl59-cpp.HeaderFileExtensions

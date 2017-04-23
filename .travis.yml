@@ -33,6 +33,11 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=scan-build
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=px4_metadata
 
 cache:
@@ -62,17 +67,24 @@ script:
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
-      ./Tools/docker_run.sh 'make clang-tidy-parallel';
+      ./Tools/docker_run.sh 'make clang-tidy-quiet';
+    elif [[ "${BUILD_TARGET}" = "scan-build" ]]; then
+      ./Tools/docker_run.sh 'make scan-build';
     fi
 
 after_success:
-# s3 deploy individual firmware files (.px4), Firmware.zip, airframe.xml, and param.xml
+  # s3 deploy individual firmware files (.px4), Firmware.zip
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
       && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
+  # s3 deploy airframe and parameter metadata
   - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+    fi
+  # s3 upload clang scan-build output for master branch
+  - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
+         PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
     fi
 
 deploy:

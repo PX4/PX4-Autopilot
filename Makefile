@@ -258,7 +258,7 @@ px4_metadata: parameters_metadata airframe_metadata
 #  AWS_ACCESS_KEY_ID
 #  AWS_SECRET_ACCESS_KEY
 #  AWS_S3_BUCKET
-.PHONY: s3put_firmware s3put_qgc_firmware
+.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4_metadata s3put_scan-build
 
 Firmware.zip:
 	@rm -rf Firmware.zip
@@ -270,11 +270,14 @@ s3put_firmware: Firmware.zip
 s3put_qgc_firmware: qgc_firmware
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
 
-s3put_metadata: px4_metadata
+s3put_px4_metadata: px4_metadata
 	@$(SRC_DIR)/Tools/s3put.sh airframes.md
 	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
 	@$(SRC_DIR)/Tools/s3put.sh build_posix_sitl_default/parameters.xml
 	@$(SRC_DIR)/Tools/s3put.sh parameters.md
+
+s3put_scan-build: scan-build
+	$(SRC_DIR)/Tools/s3put.sh `find build_scan-build -mindepth 1 -maxdepth 1 -type d`/
 
 # Astyle
 # --------------------------------------------------------------------
@@ -312,34 +315,37 @@ tests_coverage:
 	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
 	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
 
-# Clang analyzers
+# static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build clang-check clang-tidy
+.PHONY: posix_sitl_default-clang scan-build clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck
+
+posix_sitl_default-clang:
+	@mkdir -p $(SRC_DIR)/build_posix_sitl_default-clang
+	@cd $(SRC_DIR)/build_posix_sitl_default-clang && cmake .. -GNinja -DCONFIG=posix_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+	@cd $(SRC_DIR)/build_posix_sitl_default-clang && ninja
 
 scan-build:
-	@export CCACHE_DISABLE=1
-	@mkdir -p $(SRC_DIR)/build_posix_sitl_default_scan-build
-	@cd $(SRC_DIR)/build_posix_sitl_default_scan-build && scan-build cmake .. -GNinja -DCONFIG=posix_sitl_default
-	@scan-build cmake --build $(SRC_DIR)/build_posix_sitl_default_scan-build
+	@export CCC_CC=clang
+	@export CCC_CXX=clang++
+	@mkdir -p $(SRC_DIR)/build_posix_sitl_default-scan-build
+	@cd $(SRC_DIR)/build_posix_sitl_default-scan-build && scan-build cmake .. -GNinja -DCONFIG=posix_sitl_default
+	@scan-build -o $(SRC_DIR)/build_scan-build cmake --build $(SRC_DIR)/build_posix_sitl_default-scan-build
 
-clang-check:
-	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-check
+clang-tidy: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -p .
 
-clang-tidy:
-	rm -rf $(SRC_DIR)/build_posix_sitl_default
-	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@$(SRC_DIR)/Tools/clang-tool.sh -b build_posix_sitl_default -t clang-tidy
+# to automatically fix a single check at a time, eg modernize-redundant-void-arg
+#  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
+clang-tidy-fix: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -fix -p .
 
-clang-tidy-parallel:
-	rm -rf $(SRC_DIR)/build_posix_sitl_default
-	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@$(SRC_DIR)/Tools/run-clang-tidy.py -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
+# modified version of run-clang-tidy.py to return error codes and only output relevant results
+clang-tidy-quiet: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
-clang-tidy-fix:
-	rm -rf $(SRC_DIR)/build_posix_sitl_default
-	@CC=clang CXX=clang++ $(MAKE) --no-print-directory posix_sitl_default
-	@run-clang-tidy.py -fix -j$(j) -p $(SRC_DIR)/build_posix_sitl_default
+cppcheck: posix_sitl_default-clang
+	@cppcheck --enable=all --project=build_posix_sitl_default-clang/compile_commands.json --xml-version=2 2> cppcheck-result.xml
+	@cppcheck-htmlreport --file=cppcheck-result.xml --report-dir=build_cppcheck-htmlreport --source-dir=$(SRC_DIR)/src/
 
 # Cleanup
 # --------------------------------------------------------------------

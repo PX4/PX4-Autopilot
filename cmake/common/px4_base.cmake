@@ -846,6 +846,15 @@ function(px4_add_common_flags)
 		)
 	endif()
 
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+			# force color for gcc > 4.9
+			list(APPEND _optimization_flags
+				-fdiagnostics-color=always
+			)
+		endif()
+	endif()
+
 	set(visibility_flags
 		-fvisibility=hidden
 		-include visibility.h
