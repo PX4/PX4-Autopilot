@@ -51,7 +51,7 @@ cache:
   ccache: true
 
 before_install:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
+  - if [[ "${BUILD_TARGET}" = "coverity_scan" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
 
 env:
   global:
