@@ -544,10 +544,10 @@ public:
 				S = V1 * V1 + V2 * V2;
 			} while (S >= 1 || fabsf(S) < 1e-8f);
 
-			X = V1 * float(sqrt(-2 * float(log(S)) / S));
+			X = V1 * float(sqrtf(-2 * float(logf(S)) / S));
 
 		} else {
-			X = V2 * float(sqrt(-2 * float(log(S)) / S));
+			X = V2 * float(sqrtf(-2 * float(logf(S)) / S));
 		}
 
 		phase = 1 - phase;

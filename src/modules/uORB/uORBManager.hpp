@@ -364,7 +364,7 @@ public:
 	/**
 	 * Gets the uORB Communicator instance.
 	 */
-	uORBCommunicator::IChannel *get_uorb_communicator(void);
+	uORBCommunicator::IChannel *get_uorb_communicator();
 
 	/**
 	 * Utility method to check if there is a remote subscriber present

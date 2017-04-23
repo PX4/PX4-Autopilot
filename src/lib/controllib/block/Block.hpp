@@ -114,19 +114,19 @@ public:
 	{
 		Block::updateParams();
 
-		if (getChildren().getHead() != NULL) { updateChildParams(); }
+		if (getChildren().getHead() != nullptr) { updateChildParams(); }
 	}
 	virtual void updateSubscriptions()
 	{
 		Block::updateSubscriptions();
 
-		if (getChildren().getHead() != NULL) { updateChildSubscriptions(); }
+		if (getChildren().getHead() != nullptr) { updateChildSubscriptions(); }
 	}
 	virtual void updatePublications()
 	{
 		Block::updatePublications();
 
-		if (getChildren().getHead() != NULL) { updateChildPublications(); }
+		if (getChildren().getHead() != nullptr) { updateChildPublications(); }
 	}
 protected:
 // methods
