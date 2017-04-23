@@ -375,12 +375,13 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
@@ -411,8 +412,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -467,6 +468,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		}
 	}
 
+out:
+
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
@@ -497,17 +500,18 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 		/* This is the link shutdown command, terminate mavlink */
-		warnx("terminated by remote");
+		PX4_WARN("terminated by remote");
 		fflush(stdout);
 		usleep(50000);
 
@@ -524,8 +528,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	} else {
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -569,6 +573,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 		}
 	}
+
+out:
 
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
