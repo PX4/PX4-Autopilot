@@ -147,14 +147,14 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
 /**
  * SD logger
  *
- * @value 0 sdlog2 (default)
- * @value 1 new logger
+ * @value 0 sdlog2 (legacy)
+ * @value 1 logger (default)
  * @min 0
  * @max 1
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_LOGGER, 0);
+PARAM_DEFINE_INT32(SYS_LOGGER, 1);
 
 /**
  * Enable stack checking
