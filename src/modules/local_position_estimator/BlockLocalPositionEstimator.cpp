@@ -563,11 +563,7 @@ bool BlockLocalPositionEstimator::landed()
 
 	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
 
-	if (!(_sub_land.get().landed || disarmed_not_falling)) {
-		return false;
-	}
-
-	return true;
+	return _sub_land.get().landed || disarmed_not_falling;
 }
 
 void BlockLocalPositionEstimator::publishLocalPos()

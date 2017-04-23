@@ -351,12 +351,7 @@ bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed
 	// 3) Safety switch is present AND engaged -> actuators locked
 	const bool lockdown = (armed->lockdown || armed->manual_lockdown);
 
-	if (!armed->armed || (armed->armed && lockdown) || (safety->safety_switch_available && !safety->safety_off)) {
-		return true;
-
-	} else {
-		return false;
-	}
+	return !armed->armed || (armed->armed && lockdown) || (safety->safety_switch_available && !safety->safety_off);
 }
 
 transition_result_t

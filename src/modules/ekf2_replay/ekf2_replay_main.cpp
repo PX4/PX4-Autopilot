@@ -532,20 +532,16 @@ void Ekf2Replay::writeMessage(int &fd, void *data, size_t size)
 
 bool Ekf2Replay::needToSaveMessage(uint8_t type)
 {
-	if (type == LOG_ATT_MSG ||
-	    type == LOG_LPOS_MSG ||
-	    type == LOG_EST0_MSG ||
-	    type == LOG_EST1_MSG ||
-	    type == LOG_EST2_MSG ||
-	    type == LOG_EST3_MSG ||
-	    type == LOG_EST4_MSG ||
-	    type == LOG_EST5_MSG ||
-	    type == LOG_EST6_MSG ||
-	    type == LOG_CTS_MSG) {
-		return false;
-	}
-
-	return true;
+	return !(type == LOG_ATT_MSG ||
+		 type == LOG_LPOS_MSG ||
+		 type == LOG_EST0_MSG ||
+		 type == LOG_EST1_MSG ||
+		 type == LOG_EST2_MSG ||
+		 type == LOG_EST3_MSG ||
+		 type == LOG_EST4_MSG ||
+		 type == LOG_EST5_MSG ||
+		 type == LOG_EST6_MSG ||
+		 type == LOG_CTS_MSG);
 }
 
 // update all estimator topics and write them to log file

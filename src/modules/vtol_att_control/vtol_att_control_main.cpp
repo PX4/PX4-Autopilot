@@ -662,7 +662,7 @@ void VtolAttitudeControl::task_main()
 	parameters_update();  // initialize parameter cache
 
 	/* update vtol vehicle status*/
-	_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
+	_vtol_vehicle_status.fw_permanent_stab = (_params.vtol_fw_permanent_stab == 1);
 
 	// make sure we start with idle in mc mode
 	_vtol_type->set_idle_mc();
@@ -714,7 +714,7 @@ void VtolAttitudeControl::task_main()
 			parameters_update();
 		}
 
-		_vtol_vehicle_status.fw_permanent_stab = _params.vtol_fw_permanent_stab == 1 ? true : false;
+		_vtol_vehicle_status.fw_permanent_stab = (_params.vtol_fw_permanent_stab == 1);
 
 		mc_virtual_att_sp_poll();
 		fw_virtual_att_sp_poll();
