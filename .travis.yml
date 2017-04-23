@@ -86,7 +86,7 @@ script:
 after_success:
   # s3 deploy airframe and parameter metadata
   - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+         ./Tools/docker_run.sh 'make s3put_px4_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
   # s3 upload clang scan-build output for master branch
   - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
