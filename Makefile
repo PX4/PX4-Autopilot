@@ -182,8 +182,9 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: \
-	check_auav-x21_default \
+	check_aerocore2_default \
 	check_aerofc-v1_default \
+	check_auav-x21_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
@@ -192,7 +193,6 @@ qgc_firmware: \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
 	check_tap-v1_default \
-	check_aerocore2_default \
 	check_sizes
 
 # Other NuttX firmware
@@ -222,7 +222,6 @@ uavcan_firmware:
 	@BOARD=s2740vc_1_0 make --silent --no-print-directory
 	@BOARD=px4esc_1_6 make --silent --no-print-directory && $(SRC_DIR)/Tools/uavcan_copy.sh)
 
-
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
@@ -240,10 +239,16 @@ check_%:
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_markdown
+.PHONY: parameters_metadata airframe_metadata px4_metadata
 
-parameters_markdown: posix_sitl_default
+parameters_metadata: posix_sitl_default
 	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
+
+airframe_metadata:
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --markdown
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --xml
+
+px4_metadata: parameters_metadata airframe_metadata
 
 # S3 upload helpers
 # --------------------------------------------------------------------
@@ -261,11 +266,12 @@ s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
 
 s3put_qgc_firmware: qgc_firmware
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/airframes.xml
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/parameters.xml
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
 
-s3put_parameters_markdown: parameters_markdown
+s3put_metadata: px4_metadata
+	@$(SRC_DIR)/Tools/s3put.sh airframes.md
+	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
+	@$(SRC_DIR)/Tools/s3put.sh build_posix_sitl_default/parameters.xml
 	@$(SRC_DIR)/Tools/s3put.sh parameters.md
 
 # Astyle
@@ -303,8 +309,6 @@ tests_coverage:
 	@lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info
 	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
 	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
-
-
 
 # Clang analyzers
 # --------------------------------------------------------------------
