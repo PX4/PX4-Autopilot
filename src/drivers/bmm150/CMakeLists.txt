@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN bmm150
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		bmm150.cpp
 	DEPENDS
