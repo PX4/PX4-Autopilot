@@ -226,7 +226,7 @@
 #define BMI055_SOFT_RESET       0xB6
 
 // Default and Max values
-#define BMI055_ACCEL_DEFAULT_RANGE_G		8
+#define BMI055_ACCEL_DEFAULT_RANGE_G		16
 #define BMI055_GYRO_DEFAULT_RANGE_DPS		2000
 #define BMI055_ACCEL_DEFAULT_RATE           1000
 #define BMI055_ACCEL_MAX_RATE               1000
