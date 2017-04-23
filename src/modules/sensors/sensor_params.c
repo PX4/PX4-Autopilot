@@ -3230,12 +3230,15 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
 
 /**
- * Lidar-Lite (LL40LS) I2C
+ * Lidar-Lite (LL40LS)
  *
  * @reboot_required true
- *
- * @boolean
+ * @min 0
+ * @max 2
  * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 PWM
+ * @value 2 I2C
  */
 PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 
