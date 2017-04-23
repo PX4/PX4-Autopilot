@@ -471,12 +471,6 @@ then
 	fi
 
 	# Sensors on the PWM interface bank
-	if param compare SENS_EN_LL40LS 1
-	then
-		# clear pins 5 and 6
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
-	fi
 	if param greater TRIG_MODE 0
 	then
 		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output
@@ -740,7 +734,7 @@ then
 	then
 		if pwm_input start
 		then
-			if ll40ls start pwm
+			if ll40ls start i2c
 			then
 			fi
 		fi
