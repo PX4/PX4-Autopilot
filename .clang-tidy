@@ -1,5 +1,6 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
+Checks:          '-*,
+		#boost-use-to-string,
 		cert-dcl03-c,
 		#cert-dcl50-cpp,
 		cert-dcl54-cpp,
@@ -42,60 +43,89 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		clang-analyzer-nullability.NullableReturnedFromNonnull,
 		clang-analyzer-nullability.NullPassedToNonnull,
 		clang-analyzer-nullability.NullReturnedFromNonnull,
-		## evaluate # clang-analyzer-optin.cplusplus.VirtualCall,
-		## TODO: fix code and enable #  clang-analyzer-optin.performance.Padding,
+		## TODO: fix code and enable # clang-analyzer-optin.cplusplus.VirtualCall,
+		## TODO: fix code and enable # clang-analyzer-optin.mpi.MPI-Checker,
+		clang-analyzer-optin.osx.cocoa.localizability.EmptyLocalizationContextChecker,
+		clang-analyzer-optin.osx.cocoa.localizability.NonLocalizedStringChecker,
+		## TODO: fix code and enable # clang-analyzer-optin.performance.Padding,
+		clang-analyzer-osx.API,
+		clang-analyzer-osx.cocoa.AtSync,
+		clang-analyzer-osx.cocoa.ClassRelease,
+		clang-analyzer-osx.cocoa.Dealloc,
+		clang-analyzer-osx.cocoa.IncompatibleMethodTypes,
+		clang-analyzer-osx.cocoa.Loops,
+		clang-analyzer-osx.cocoa.MissingSuperCall,
+		clang-analyzer-osx.cocoa.NilArg,
+		clang-analyzer-osx.cocoa.NonNilReturnValue,
+		clang-analyzer-osx.cocoa.NSAutoreleasePool,
+		clang-analyzer-osx.cocoa.NSError,
+		clang-analyzer-osx.cocoa.ObjCGenerics,
+		clang-analyzer-osx.cocoa.RetainCount,
+		clang-analyzer-osx.cocoa.SelfInit,
+		clang-analyzer-osx.cocoa.SuperDealloc,
+		clang-analyzer-osx.cocoa.UnusedIvars,
+		clang-analyzer-osx.cocoa.VariadicMethodTypes,
+		clang-analyzer-osx.coreFoundation.CFError,
+		clang-analyzer-osx.coreFoundation.CFNumber,
+		clang-analyzer-osx.coreFoundation.CFRetainRelease,
+		clang-analyzer-osx.coreFoundation.containers.OutOfBounds,
+		clang-analyzer-osx.coreFoundation.containers.PointerSizedValues,
+		clang-analyzer-osx.NumberObjectConversion,
+		clang-analyzer-osx.ObjCProperty,
+		clang-analyzer-osx.SecKeychainAPI,
 		## TODO: fix code and enable # clang-analyzer-security.FloatLoopCounter,
 		clang-analyzer-security.insecureAPI.getpw,
 		clang-analyzer-security.insecureAPI.gets,
 		clang-analyzer-security.insecureAPI.mkstemp,
 		clang-analyzer-security.insecureAPI.mktemp,
 		clang-analyzer-security.insecureAPI.rand,
-		## evaluate # clang-analyzer-security.insecureAPI.strcpy,
+		## TODO: fix code and enable # clang-analyzer-security.insecureAPI.strcpy,
 		clang-analyzer-security.insecureAPI.UncheckedReturn,
 		clang-analyzer-security.insecureAPI.vfork,
 		## TODO: fix code and enable # clang-analyzer-unix.API,
+		## TODO: fix code and enable # clang-analyzer-unix.cstring.BadSizeArg,
+		## TODO: fix code and enable # clang-analyzer-unix.cstring.NullArg,
 		## TODO: fix code and enable # clang-analyzer-unix.Malloc,
 		## TODO: fix code and enable # clang-analyzer-unix.MallocSizeof,
 		clang-analyzer-unix.MismatchedDeallocator,
 		clang-analyzer-unix.StdCLibraryFunctions,
 		clang-analyzer-unix.Vfork,
-		## evaluate # clang-analyzer-unix.cstring.BadSizeArg,
-		## evaluate # clang-analyzer-unix.cstring.NullArg,
-		## TODO: fix mathlib and enable # cppcoreguidelines-c-copy-assignment-signature,
-		#cppcoreguidelines-interfaces-global-init,
-		#cppcoreguidelines-no-malloc,
-		#cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-		#cppcoreguidelines-pro-bounds-constant-array-index,
-		#cppcoreguidelines-pro-bounds-pointer-arithmetic,
+		## TODO: fix code and enable # cppcoreguidelines-c-copy-assignment-signature,
+		## TODO: fix code and enable # cppcoreguidelines-interfaces-global-init,
+		## TODO: fix code and enable # cppcoreguidelines-no-malloc,
+		## TODO: fix code and enable # cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+		## TODO: fix code and enable # cppcoreguidelines-pro-bounds-constant-array-index,
+		## TODO: fix code and enable # cppcoreguidelines-pro-bounds-pointer-arithmetic,
 		## TODO: fix code and enable # cppcoreguidelines-pro-type-const-cast,
-		#cppcoreguidelines-pro-type-cstyle-cast,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-cstyle-cast,
 		## TODO: fix code and enable # cppcoreguidelines-pro-type-member-init,
-		#cppcoreguidelines-pro-type-reinterpret-cast,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-reinterpret-cast,
 		cppcoreguidelines-pro-type-static-cast-downcast,
-		#cppcoreguidelines-pro-type-union-access,
-		#cppcoreguidelines-pro-type-vararg,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-union-access,
+		## TODO: fix code and enable # cppcoreguidelines-pro-type-vararg,
 		cppcoreguidelines-slicing,
 		## TODO: fix code and enable # cppcoreguidelines-special-member-functions,
 		google-build-explicit-make-pair,
 		google-build-namespaces,
-		# evaluate # google-build-using-namespace,
+		## TODO: fix code and enable # google-build-using-namespace,
 		google-default-arguments,
 		## TODO: fix code and enable # google-explicit-constructor,
-		## evaluate # google-global-names-in-headers,
+		## TODO: fix code and enable # google-global-names-in-headers,
 		google-readability-braces-around-statements,
-		#google-readability-casting,
+		## TODO: fix code and enable # google-readability-casting,
 		google-readability-function-size,
-		#google-readability-namespace-comments,
+		## TODO: fix code and enable # google-readability-namespace-comments,
 		google-readability-redundant-smartptr-get,
-		#google-readability-todo,
-		#google-runtime-int,
+		## TODO: fix code and enable # google-readability-todo,
+		## TODO: fix code and enable # google-runtime-int,
 		google-runtime-member-string-references,
 		google-runtime-memset,
 		google-runtime-operator,
-		## evaluate # google-runtime-references,
-		#llvm-header-guard,
-		## evaluate # llvm-include-order,
-		#llvm-namespace-comment,
+		## TODO: fix code and enable # google-runtime-references,
+		## TODO: fix code and enable # llvm-header-guard,
+		## TODO: fix code and enable # llvm-include-order,
+		## TODO: fix code and enable # llvm-namespace-comment,
+		#llvm-twine-local,
 		misc-argument-comment,
 		misc-assert-side-effect,
 		misc-bool-pointer-implicit-conversion,
@@ -104,12 +134,12 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		misc-fold-init-type,
 		misc-forward-declaration-namespace,
 		misc-inaccurate-erase,
-		#misc-incorrect-roundings,
+		## TODO: fix code and enable # misc-incorrect-roundings,
 		misc-inefficient-algorithm,
-		#misc-macro-parentheses,
+		## TODO: fix code and enable # misc-macro-parentheses,
 		misc-macro-repeated-side-effects,
 		misc-misplaced-const,
-		#misc-misplaced-widening-cast,
+		## TODO: fix code and enable # misc-misplaced-widening-cast,
 		misc-move-const-arg,
 		misc-move-constructor-init,
 		misc-move-forwarding-reference,
@@ -117,7 +147,7 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		misc-new-delete-overloads,
 		misc-noexcept-move-constructor,
 		misc-non-copyable-objects,
-		## TODO: fix and enable # misc-redundant-expression,
+		## TODO: fix code and enable # misc-redundant-expression,
 		misc-sizeof-container,
 		misc-sizeof-expression,
 		misc-static-assert,
@@ -131,11 +161,11 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		misc-suspicious-string-compare,
 		misc-swapped-arguments,
 		misc-throw-by-value-catch-by-reference,
-		## TODO: fix mathlib and enable # misc-unconventional-assign-operator,
+		## TODO: fix code and enable # misc-unconventional-assign-operator,
 		misc-undelegated-constructor,
 		misc-uniqueptr-reset-release,
 		misc-unused-alias-decls,
-		#misc-unused-parameters,
+		## TODO: fix code and enable # misc-unused-parameters,
 		misc-unused-raii,
 		misc-unused-using-decls,
 		misc-use-after-move,
@@ -150,16 +180,18 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		modernize-redundant-void-arg,
 		modernize-replace-auto-ptr,
 		modernize-shrink-to-fit,
-		#modernize-use-auto,
-		#modernize-use-bool-literals,
+		## TODO: fix code and enable # modernize-use-auto,
+		## TODO: fix code and enable # modernize-use-bool-literals,
 		## TODO: fix code and enable # modernize-use-default-member-init,
 		## TODO: fix code and enable # modernize-use-emplace,
 		## TODO: fix code and enable # modernize-use-equals-default,
 		## TODO: fix code and enable # modernize-use-equals-delete,
 		modernize-use-nullptr,
-		## evaluate # modernize-use-override,
+		## TODO: fix code and enable # modernize-use-override,
 		modernize-use-transparent-functors,
-		## evaluate # modernize-use-using,
+		## TODO: fix code and enable # modernize-use-using,
+		mpi-buffer-deref,
+		mpi-type-mismatch,
 		performance-faster-string-find,
 		performance-for-range-copy,
 		performance-implicit-cast-in-loop,
@@ -175,7 +207,7 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		#readability-else-after-return,
 		readability-function-size,
 		readability-identifier-naming,
-		## evaluate # readability-implicit-bool-cast,
+		## TODO: fix code and enable # readability-implicit-bool-cast,
 		#readability-inconsistent-declaration-parameter-name,
 		readability-misplaced-array-index,
 		#readability-named-parameter,
@@ -192,8 +224,10 @@ Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,
 		readability-uniqueptr-delete-release,
 		'
 WarningsAsErrors: '*'
+HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
-CheckOptions:
+User:            dagar
+CheckOptions:    
   - key:             cert-dcl59-cpp.HeaderFileExtensions
     value:           h,hh,hpp,hxx
   - key:             cert-err09-cpp.CheckThrowTemporaries
@@ -204,8 +238,6 @@ CheckOptions:
     value:           llvm
   - key:             google-build-namespaces.HeaderFileExtensions
     value:           h,hh,hpp,hxx
-  - key:             google-global-names-in-headers.HeaderFileExtensions
-    value:           h
   - key:             google-readability-braces-around-statements.ShortStatementLines
     value:           '1'
   - key:             google-readability-function-size.BranchThreshold
@@ -218,8 +250,6 @@ CheckOptions:
     value:           '10'
   - key:             google-readability-namespace-comments.SpacesBeforeComments
     value:           '2'
-  - key:             llvm-header-guard.HeaderFileExtensions
-    value:           ',h,hh,hpp,hxx'
   - key:             misc-argument-comment.StrictMode
     value:           '0'
   - key:             misc-assert-side-effect.AssertMacros
@@ -263,7 +293,7 @@ CheckOptions:
   - key:             modernize-loop-convert.MaxCopySize
     value:           '16'
   - key:             modernize-loop-convert.MinConfidence
-    value:           safe
+    value:           reasonable
   - key:             modernize-loop-convert.NamingStyle
     value:           CamelCase
   - key:             modernize-pass-by-value.IncludeStyle
@@ -280,6 +310,10 @@ CheckOptions:
     value:           'std::basic_string'
   - key:             performance-for-range-copy.WarnOnAllAutoCopies
     value:           '0'
+  - key:             performance-type-promotion-in-math-fn.IncludeStyle
+    value:           llvm
+  - key:             performance-unnecessary-value-param.IncludeStyle
+    value:           llvm
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           '1'
   - key:             readability-function-size.BranchThreshold
@@ -555,3 +589,4 @@ CheckOptions:
   - key:             readability-identifier-naming.VirtualMethodSuffix
     value:           ''
 ...
+
