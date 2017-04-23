@@ -13,11 +13,6 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=qgc_firmware
-    - os: linux
-      sudo: required
-      services:
-        - docker
       env: BUILD_TARGET=check_format
     - os: linux
       sudo: required
@@ -58,8 +53,6 @@ env:
 script:
   - if [[ "${TRAVIS_BRANCH}" == "coverity" ]]; then
       echo "no script for coverity build";
-    elif [[ "${BUILD_TARGET}" = "qgc_firmware" ]]; then
-      ./Tools/docker_run.sh 'make qgc_firmware';
     elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests_linux" ]]; then
@@ -73,11 +66,6 @@ script:
     fi
 
 after_success:
-  # s3 deploy individual firmware files (.px4), Firmware.zip
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
-      && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
-    fi
   # s3 deploy airframe and parameter metadata
   - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
@@ -86,19 +74,6 @@ after_success:
   - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
          PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
     fi
-
-deploy:
-# on tags deploy Firmware.zip to Github releases
-  - provider: releases
-    api_key: 
-      secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-    file: "Firmware.zip"
-    skip_cleanup: true
-    on:
-      tags: true
-      all_branches: true
-      repo: PX4/Firmware
-      condition: $BUILD_TARGET = qgc_firmware
 
 addons:
   coverity_scan:
