@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN bmi055
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS		
 		bmi055_accel.cpp
 		bmi055_gyro.cpp
