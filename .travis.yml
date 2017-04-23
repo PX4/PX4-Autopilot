@@ -13,11 +13,6 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=quick_check
-    - os: linux
-      sudo: required
-      services:
-        - docker
       env: BUILD_TARGET=check_format
     - os: linux
       sudo: required
@@ -45,6 +40,8 @@ matrix:
         - docker
       env: BUILD_TARGET=px4_metadata
     - os: linux
+      dist: trusty
+      sudo: required
       env: BUILD_TARGET=coverity_scan
 
 cache:
@@ -67,8 +64,6 @@ script:
       echo "no script for coverity build";
     elif [[ "${TRAVIS_BRANCH}" == "coverity" && "${BUILD_TARGET}" != "coverity_scan" ]]; then
       echo "exit early for coverity build" && exit 0;
-    elif [[ "${BUILD_TARGET}" = "quick_check" ]]; then
-      ./Tools/docker_run.sh 'make quick_check NO_NINJA_BUILD=1';
     elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests" ]]; then
@@ -90,7 +85,7 @@ after_success:
     fi
   # s3 upload clang scan-build output for master branch
   - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-         PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
+         ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
     fi
   # coveralls code coverage report
   - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" == "false" ]]; then
