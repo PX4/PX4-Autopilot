@@ -46,6 +46,7 @@ docker run -it --rm -w "${SRC_DIR}" \
 	-e BRANCH_NAME="${BRANCH_NAME}" \
 	-e CCACHE_DIR="${CCACHE_DIR}" \
 	-e CI="${CI}" \
+	-e COVERALLS_REPO_TOKEN="${COVERALLS_REPO_TOKEN}" \
 	-e DISPLAY="${DISPLAY}" \
 	-e GIT_SUBMODULES_ARE_EVIL=1 \
 	-e LOCAL_USER_ID="$(id -u)" \

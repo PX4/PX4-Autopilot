@@ -18,7 +18,12 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=tests_linux
+      env: BUILD_TARGET=tests
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=tests_coverage
     - os: linux
       sudo: required
       services:
@@ -55,8 +60,10 @@ script:
       echo "no script for coverity build";
     elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
-    elif [[ "${BUILD_TARGET}" = "tests_linux" ]]; then
+    elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
+    elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
+      ./Tools/docker_run.sh 'make tests_coverage';
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
@@ -73,6 +80,10 @@ after_success:
   # s3 upload clang scan-build output for master branch
   - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
          PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
+    fi
+  # coveralls code coverage report
+  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" == "false" ]]; then
+         ./Tools/docker_run.sh 'cpp-coveralls -l coverage.info';
     fi
 
 addons:
