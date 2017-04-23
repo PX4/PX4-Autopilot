@@ -178,35 +178,39 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware alt_firmware checks_bootloaders uavcan_firmware sizes check quick_check
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders uavcan_firmware sizes check quick_check
 
 # QGroundControl flashable NuttX firmware
-qgc_firmware: \
+qgc_firmware: px4fmu_firmware misc_firmware sizes
+
+# px4fmu NuttX firmware
+px4fmu_firmware: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_px4fmu-v3_default \
+	check_px4fmu-v4_default \
+	check_px4fmu-v4pro_default \
+	check_px4fmu-v5_default \
+	sizes
+
+misc_qgc_extra_firmware: \
 	check_aerocore2_default \
 	check_aerofc-v1_default \
 	check_auav-x21_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
-	check_px4fmu-v1_default \
-	check_px4fmu-v2_default \
 	check_px4fmu-v2_lpe \
-	check_px4fmu-v3_default \
-	check_px4fmu-v4_default \
-	check_px4fmu-v4pro_default \
-	check_px4fmu-v5_default \
 	check_tap-v1_default \
-	check_sizes
+	sizes
 
 # Other NuttX firmware
 alt_firmware: \
 	check_px4-stm32f4discovery_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
-	check_px4fmu-v4pro_default \
-	check_px4fmu-v5_default \
 	check_px4nucleoF767ZI-v1_default \
 	check_s2740vc-v1_default \
-	check_sizes
+	sizes
 
 checks_bootloaders: \
 	check_esc35-v1_bootloader \
@@ -215,7 +219,7 @@ checks_bootloaders: \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
 # not fitting in flash	check_zubaxgnss-v1_bootloader \
-	check_sizes
+	sizes
 
 uavcan_firmware:
 	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
@@ -228,7 +232,7 @@ sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_posix_sitl_default qgc_firmware alt_firmware checks_bootloaders tests check_format
+check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
 quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format
@@ -258,7 +262,7 @@ px4_metadata: parameters_metadata airframe_metadata
 #  AWS_ACCESS_KEY_ID
 #  AWS_SECRET_ACCESS_KEY
 #  AWS_S3_BUCKET
-.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4_metadata s3put_scan-build
+.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware s3put_px4_metadata s3put_scan-build
 
 Firmware.zip:
 	@rm -rf Firmware.zip
@@ -267,7 +271,13 @@ Firmware.zip:
 s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
 
-s3put_qgc_firmware: qgc_firmware
+s3put_qgc_firmware: s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware
+	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_px4fmu_firmware: px4fmu_firmware
+	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_misc_qgc_extra_firmware: misc_qgc_extra_firmware
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
 
 s3put_px4_metadata: px4_metadata
