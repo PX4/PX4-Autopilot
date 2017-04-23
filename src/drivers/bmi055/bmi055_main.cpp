@@ -1,3 +1,5 @@
+#include <px4_config.h>
+#include <platforms/px4_getopt.h>
 #include "bmi055.hpp"
 
 /** driver 'main' command */
@@ -526,9 +528,11 @@ bmi055_main(int argc, char *argv[])
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	enum sensor_type sensor = BMI055_NONE;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:AG")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:AG", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
@@ -552,7 +556,7 @@ bmi055_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	if (sensor == BMI055_NONE) {
 		bmi055::usage();
