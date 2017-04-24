@@ -38,55 +38,42 @@
  * @author Roman Bapst
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <px4_time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <float.h>
+#include <cfloat>
 
-#include <arch/board/board.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <platforms/px4_defines.h>
+#include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
-#include <controllib/blocks.hpp>
-
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <ecl/EKF/ekf.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/mathlib.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <systemlib/param/param.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/ekf2_replay.h>
 #include <uORB/topics/ekf2_timestamps.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/optical_flow.h>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind_estimate.h>
 
-#include <ecl/EKF/ekf.h>
-
+using control::BlockParamFloat;
+using control::BlockParamExtFloat;
+using control::BlockParamInt;
+using control::BlockParamExtInt;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
-
 
 class Ekf2;
 
@@ -95,19 +82,20 @@ namespace ekf2
 Ekf2 *instance = nullptr;
 }
 
-
 class Ekf2 : public control::SuperBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
+	// constructor
 	Ekf2();
 
-	/**
-	 * Destructor, also kills task.
-	 */
-	~Ekf2();
+	// destructor, also kills task.
+	~Ekf2() = default;
+
+	// no copy, assignment, move, move assignment
+	Ekf2(const Ekf2 &) = delete;
+	Ekf2 &operator=(const Ekf2 &) = delete;
+	Ekf2(Ekf2 &&) = delete;
+	Ekf2 &operator=(Ekf2 &&) = delete;
 
 	/**
 	 * Start task.
@@ -127,220 +115,195 @@ public:
 	void exit() { _task_should_exit = true; }
 
 private:
-	static constexpr float _dt_max = 0.02;
-	bool	_task_should_exit = false;
-	int	_control_task = -1;		// task handle for task
+	static constexpr float _dt_max{0.02};
+	bool	_task_should_exit{false};
+	int	_control_task{-1};		// task handle for task
 
-	bool 	_replay_mode;			// should we use replay data from a log
-	int32_t _publish_replay_mode;		// defines if we should publish replay messages
+	bool 	_replay_mode{false};		// should we use replay data from a log
+	int 	_publish_replay_mode{-1};	// defines if we should publish replay messages
 
-	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
-	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
+	float	_default_ev_pos_noise{0.05f};	// external vision position noise used when an invalid value is supplied
+	float	_default_ev_ang_noise{0.05f};	// external vision angle noise used when an invalid value is supplied
 
 	// time slip monitoring
-	uint64_t integrated_time_us = 0; // integral of gyro delta time from start (usec)
-	uint64_t start_time_us = 0; // system time at start (usec)
+	uint64_t integrated_time_us{0}; // integral of gyro delta time from start (usec)
+	uint64_t start_time_us{0}; // system time at start (usec)
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
-	uint64_t _timestamp_mag_us = 0;
-	uint64_t _timestamp_balt_us = 0;
-	uint8_t _invalid_mag_id_count = 0;
+	uint64_t _timestamp_mag_us{0};
+	uint64_t _timestamp_balt_us{0};
+	uint8_t _invalid_mag_id_count{0};
 
 	// Used to down sample magnetometer data
-	float _mag_data_sum[3];			// summed magnetometer readings (Ga)
-	uint64_t _mag_time_sum_ms;		// summed magnetoemter time stamps (msec)
-	uint8_t _mag_sample_count = 0;		// number of magnetometer measurements summed
-	uint32_t _mag_time_ms_last_used = 0;	// time stamp in msec of the last averaged magnetometer measurement used by the EKF
+	float _mag_data_sum[3] {};		// summed magnetometer readings (Ga)
+	uint64_t _mag_time_sum_ms{0};		// summed magnetoemter time stamps (msec)
+	uint8_t _mag_sample_count{0};		// number of magnetometer measurements summed
+	uint32_t _mag_time_ms_last_used{0};	// time stamp in msec of the last averaged magnetometer measurement used by the EKF
 
 	// Used to down sample barometer data
-	float _balt_data_sum;			// summed barometric altitude readings (m)
-	uint64_t _balt_time_sum_ms;		// summed barometric altitude time stamps (msec)
-	uint8_t _balt_sample_count = 0;		// number of barometric altitude measurements summed
-	uint32_t _balt_time_ms_last_used =
-		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
+	float _balt_data_sum{0.0f};		// summed barometric altitude readings (m)
+	uint64_t _balt_time_sum_ms{0};		// summed barometric altitude time stamps (msec)
+	uint8_t _balt_sample_count{0};		// number of barometric altitude measurements summed
+	uint32_t _balt_time_ms_last_used{0}; // time stamp in msec of the last averaged barometric altitude measurement used by the EKF
 
-	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
-	bool _mag_decl_saved = false;	// true when the declination for the current position has been saved
+	float _acc_hor_filt{0.0f}; 	// low-pass filtered horizontal acceleration
 
 	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _last_magcal_us = 0;	// last time the EKF was operating a mode that estimates magnetomer biases (usec)
-	hrt_abstime _total_cal_time_us = 0;	// accumulated calibration time since the last save
-	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
-	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
-	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
+	hrt_abstime _last_magcal_us{0};	// last time the EKF was operating a mode that estimates magnetomer biases (usec)
+	hrt_abstime _total_cal_time_us{0};	// accumulated calibration time since the last save
+	float _last_valid_mag_cal[3] {};	// last valid XYZ magnetometer bias estimates (mGauss)
+	bool _valid_cal_available[3] {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
+	float _last_valid_variance[3] {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
 
 	// Used to filter velocity innovations during pre-flight checks
-	Vector3f _vel_innov_lpf_ned = {};	// Low pass filtered velocity innovations (m/sec)
-	float _hgt_innov_lpf = 0.0f;		// Low pass filtered height innovation (m)
-	const float _innov_lpf_tau_inv = 0.2f;	// low pass filter time constant inverse (1/sec)
-	const float _vel_innov_test_lim = 0.5f;	// maximum permissible velocity innovation to pass pre-flight checks (m/sec)
-	const float _hgt_innov_test_lim = 1.5f;	// maximum permissible height innovation to pass pre-flight checks (m)
-	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	// spike limiter (m/s)
-	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	// spike limiter (m)
-	bool _vel_innov_preflt_fail = false;	// true if the norm of the filtered innovation vector is too large before flight
+	Vector3f _vel_innov_lpf_ned{};	// Low pass filtered velocity innovations (m/sec)
+	float _hgt_innov_lpf{0.0f};		// Low pass filtered height innovation (m)
+	const float _innov_lpf_tau_inv{0.2f};	// low pass filter time constant inverse (1/sec)
+	const float _vel_innov_test_lim{0.5f};	// maximum permissible velocity innovation to pass pre-flight checks (m/sec)
+	const float _hgt_innov_test_lim{1.5f};	// maximum permissible height innovation to pass pre-flight checks (m)
+	const float _vel_innov_spike_lim{2.0f * _vel_innov_test_lim};	// spike limiter (m/s)
+	const float _hgt_innov_spike_lim{2.0f * _hgt_innov_test_lim};	// spike limiter (m)
+	bool _vel_innov_preflt_fail{false};	// true if the norm of the filtered innovation vector is too large before flight
 
-	orb_advert_t _att_pub;
-	orb_advert_t _lpos_pub;
-	orb_advert_t _control_state_pub;
-	orb_advert_t _vehicle_global_position_pub;
-	orb_advert_t _wind_pub;
-	orb_advert_t _estimator_status_pub;
-	orb_advert_t _estimator_innovations_pub;
-	orb_advert_t _replay_pub;
-	orb_advert_t _ekf2_timestamps_pub;
+	orb_advert_t _att_pub{nullptr};
+	orb_advert_t _lpos_pub{nullptr};
+	orb_advert_t _control_state_pub{nullptr};
+	orb_advert_t _vehicle_global_position_pub{nullptr};
+	orb_advert_t _wind_pub{nullptr};
+	orb_advert_t _estimator_status_pub{nullptr};
+	orb_advert_t _estimator_innovations_pub{nullptr};
+	orb_advert_t _replay_pub{nullptr};
+	orb_advert_t _ekf2_timestamps_pub{nullptr};
 
 	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;
-	math::LowPassFilter2p _lp_pitch_rate;
-	math::LowPassFilter2p _lp_yaw_rate;
+	math::LowPassFilter2p _lp_roll_rate{250.0f, 30.0f};
+	math::LowPassFilter2p _lp_pitch_rate{250.0f, 30.0f};
+	math::LowPassFilter2p _lp_yaw_rate{250.0f, 20.0f};
 
 	Ekf _ekf;
 
-	parameters *_params;	// pointer to ekf parameter struct (located in _ekf class instance)
+	parameters *_params{nullptr};	// pointer to ekf parameter struct (located in _ekf class instance)
 
-	control::BlockParamExtInt _obs_dt_min_ms;
-	control::BlockParamExtFloat _mag_delay_ms;
-	control::BlockParamExtFloat _baro_delay_ms;
-	control::BlockParamExtFloat _gps_delay_ms;
-	control::BlockParamExtFloat _flow_delay_ms;
-	control::BlockParamExtFloat _rng_delay_ms;
-	control::BlockParamExtFloat _airspeed_delay_ms;
-	control::BlockParamExtFloat _ev_delay_ms;
+	BlockParamExtInt _obs_dt_min_ms;
+	BlockParamExtFloat _mag_delay_ms;
+	BlockParamExtFloat _baro_delay_ms;
+	BlockParamExtFloat _gps_delay_ms;
+	BlockParamExtFloat _flow_delay_ms;
+	BlockParamExtFloat _rng_delay_ms;
+	BlockParamExtFloat _airspeed_delay_ms;
+	BlockParamExtFloat _ev_delay_ms;
 
-	control::BlockParamExtFloat _gyro_noise;
-	control::BlockParamExtFloat _accel_noise;
+	BlockParamExtFloat _gyro_noise;
+	BlockParamExtFloat _accel_noise;
 
 	// process noise
-	control::BlockParamExtFloat _gyro_bias_p_noise;
-	control::BlockParamExtFloat _accel_bias_p_noise;
-	control::BlockParamExtFloat _mage_p_noise;
-	control::BlockParamExtFloat _magb_p_noise;
-	control::BlockParamExtFloat _wind_vel_p_noise;
-	control::BlockParamExtFloat _terrain_p_noise;	// terrain offset state random walk (m/s)
-	control::BlockParamExtFloat _terrain_gradient;	// magnitude of terrain gradient (m/m)
+	BlockParamExtFloat _gyro_bias_p_noise;
+	BlockParamExtFloat _accel_bias_p_noise;
+	BlockParamExtFloat _mage_p_noise;
+	BlockParamExtFloat _magb_p_noise;
+	BlockParamExtFloat _wind_vel_p_noise;
+	BlockParamExtFloat _terrain_p_noise;	// terrain offset state random walk (m/s)
+	BlockParamExtFloat _terrain_gradient;	// magnitude of terrain gradient (m/m)
 
-	control::BlockParamExtFloat _gps_vel_noise;
-	control::BlockParamExtFloat _gps_pos_noise;
-	control::BlockParamExtFloat _pos_noaid_noise;
-	control::BlockParamExtFloat _baro_noise;
-	control::BlockParamExtFloat _baro_innov_gate;	// innovation gate for barometric height innovation test (std dev)
-	control::BlockParamExtFloat
-	_posNE_innov_gate;    // innovation gate for GPS horizontal position innovation test (std dev)
-	control::BlockParamExtFloat _vel_innov_gate;	// innovation gate for GPS velocity innovation test (std dev)
-	control::BlockParamExtFloat _tas_innov_gate;	// innovation gate for tas innovation test (std dev)
+	BlockParamExtFloat _gps_vel_noise;
+	BlockParamExtFloat _gps_pos_noise;
+	BlockParamExtFloat _pos_noaid_noise;
+	BlockParamExtFloat _baro_noise;
+	BlockParamExtFloat _baro_innov_gate;	// innovation gate for barometric height innovation test (std dev)
+	BlockParamExtFloat _posNE_innov_gate; // innovation gate for GPS horizontal position innovation test (std dev)
+	BlockParamExtFloat _vel_innov_gate;	// innovation gate for GPS velocity innovation test (std dev)
+	BlockParamExtFloat _tas_innov_gate;	// innovation gate for tas innovation test (std dev)
 
 	// control of magnetometer fusion
-	control::BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
-	control::BlockParamExtFloat _mag_noise;		// measurement noise used for 3-axis magnetoemter fusion (Gauss)
-	control::BlockParamExtFloat _eas_noise;		// measurement noise used for airspeed fusion (std m/s)
-	control::BlockParamExtFloat _beta_noise;	// synthetic sideslip noise (m/s)
-	control::BlockParamExtFloat _mag_declination_deg;// magnetic declination in degrees
-	control::BlockParamExtFloat _heading_innov_gate;// innovation gate for heading innovation test
-	control::BlockParamExtFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
-	control::BlockParamExtInt
-	_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
-	control::BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
-	control::BlockParamExtFloat _mag_acc_gate;	// manoeuvre threshold for use of 3-axis fusion (m/s**2)
-	control::BlockParamExtFloat _mag_yaw_rate_gate;	// yaw rate threshold for use of 3-axis fusion (rad/s)
+	BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
+	BlockParamExtFloat _mag_noise;		// measurement noise used for 3-axis magnetoemter fusion (Gauss)
+	BlockParamExtFloat _eas_noise;		// measurement noise used for airspeed fusion (std m/s)
+	BlockParamExtFloat _beta_noise;	// synthetic sideslip noise (m/s)
+	BlockParamExtFloat _mag_declination_deg; // magnetic declination in degrees
+	BlockParamExtFloat _heading_innov_gate; // innovation gate for heading innovation test
+	BlockParamExtFloat _mag_innov_gate;	// innovation gate for magnetometer innovation test
+	BlockParamExtInt _mag_decl_source; // bitmasked integer used to control the handling of magnetic declination
+	BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
+	BlockParamExtFloat _mag_acc_gate;	// manoeuvre threshold for use of 3-axis fusion (m/s**2)
+	BlockParamExtFloat _mag_yaw_rate_gate;	// yaw rate threshold for use of 3-axis fusion (rad/s)
 
-	control::BlockParamExtInt _gps_check_mask;	// bitmasked integer used to activate the different GPS quality checks
-	control::BlockParamExtFloat _requiredEph;	// maximum acceptable horiz position error (m)
-	control::BlockParamExtFloat _requiredEpv;	// maximum acceptable vert position error (m)
-	control::BlockParamExtFloat _requiredSacc;	// maximum acceptable speed error (m/s)
-	control::BlockParamExtInt _requiredNsats;	// minimum acceptable satellite count
-	control::BlockParamExtFloat _requiredGDoP;	// maximum acceptable geometric dilution of precision
-	control::BlockParamExtFloat _requiredHdrift;	// maximum acceptable horizontal drift speed (m/s)
-	control::BlockParamExtFloat _requiredVdrift;	// maximum acceptable vertical drift speed (m/s)
-	control::BlockParamExtInt _param_record_replay_msg;// indicates if we want to record ekf2 replay messages
+	BlockParamExtInt _gps_check_mask;	// bitmasked integer used to activate the different GPS quality checks
+	BlockParamExtFloat _requiredEph;	// maximum acceptable horiz position error (m)
+	BlockParamExtFloat _requiredEpv;	// maximum acceptable vert position error (m)
+	BlockParamExtFloat _requiredSacc;	// maximum acceptable speed error (m/s)
+	BlockParamExtInt _requiredNsats;	// minimum acceptable satellite count
+	BlockParamExtFloat _requiredGDoP;	// maximum acceptable geometric dilution of precision
+	BlockParamExtFloat _requiredHdrift;	// maximum acceptable horizontal drift speed (m/s)
+	BlockParamExtFloat _requiredVdrift;	// maximum acceptable vertical drift speed (m/s)
+	BlockParamExtInt _param_record_replay_msg;// indicates if we want to record ekf2 replay messages
 
 	// measurement source control
-	control::BlockParamExtInt
-	_fusion_mode;		// bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
-	control::BlockParamExtInt _vdist_sensor_type;	// selects the primary source for height data
+	BlockParamExtInt _fusion_mode; // bitmasked integer to select GPS and optical flow aiding sources
+	BlockParamExtInt _vdist_sensor_type;	// selects the primary source for height data
 
 	// range finder fusion
-	control::BlockParamExtFloat _range_noise;		// observation noise for range finder measurements (m)
-	control::BlockParamExtFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
-	control::BlockParamExtFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
-	control::BlockParamExtFloat _rng_pitch_offset;	// range sensor pitch offset (rad)
+	BlockParamExtFloat _range_noise;		// observation noise for range finder measurements (m)
+	BlockParamExtFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
+	BlockParamExtFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
+	BlockParamExtFloat _rng_pitch_offset;	// range sensor pitch offset (rad)
 
 	// vision estimate fusion
-	control::BlockParamExtFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
-	control::BlockParamExtFloat _ev_ang_noise;		// default angular observation noise for exernal vision measurements (rad)
-	control::BlockParamExtFloat _ev_innov_gate;	// external vision position innovation consistency gate size (STD)
+	BlockParamExtFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
+	BlockParamExtFloat _ev_ang_noise;		// default angular observation noise for exernal vision measurements (rad)
+	BlockParamExtFloat _ev_innov_gate;	// external vision position innovation consistency gate size (STD)
 
 	// optical flow fusion
-	control::BlockParamExtFloat
-	_flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
-	control::BlockParamExtFloat
-	_flow_noise_qual_min;	// worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-	control::BlockParamExtInt _flow_qual_min;		// minimum acceptable quality integer from  the flow sensor
-	control::BlockParamExtFloat _flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
-	control::BlockParamExtFloat _flow_rate_max;	// maximum valid optical flow rate (rad/sec)
+	BlockParamExtFloat _flow_noise;		// best quality observation noise for optical flow LOS rate measurements (rad/sec)
+	BlockParamExtFloat _flow_noise_qual_min;// worst quality observation noise for opt flow LOS rate measurements (rad/sec)
+	BlockParamExtInt _flow_qual_min;	// minimum acceptable quality integer from  the flow sensor
+	BlockParamExtFloat _flow_innov_gate;	// optical flow fusion innovation consistency gate size (STD)
+	BlockParamExtFloat _flow_rate_max;	// maximum valid optical flow rate (rad/sec)
 
 	// sensor positions in body frame
-	control::BlockParamExtFloat _imu_pos_x;	// X position of IMU in body frame (m)
-	control::BlockParamExtFloat _imu_pos_y;	// Y position of IMU in body frame (m)
-	control::BlockParamExtFloat _imu_pos_z;	// Z position of IMU in body frame (m)
-	control::BlockParamExtFloat _gps_pos_x;	// X position of GPS antenna in body frame (m)
-	control::BlockParamExtFloat _gps_pos_y;	// Y position of GPS antenna in body frame (m)
-	control::BlockParamExtFloat _gps_pos_z;	// Z position of GPS antenna in body frame (m)
-	control::BlockParamExtFloat _rng_pos_x;	// X position of range finder in body frame (m)
-	control::BlockParamExtFloat _rng_pos_y;	// Y position of range finder in body frame (m)
-	control::BlockParamExtFloat _rng_pos_z;	// Z position of range finder in body frame (m)
-	control::BlockParamExtFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
-	control::BlockParamExtFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
-	control::BlockParamExtFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
-	control::BlockParamExtFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
-	control::BlockParamExtFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
-	control::BlockParamExtFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
+	BlockParamExtFloat _imu_pos_x;	// X position of IMU in body frame (m)
+	BlockParamExtFloat _imu_pos_y;	// Y position of IMU in body frame (m)
+	BlockParamExtFloat _imu_pos_z;	// Z position of IMU in body frame (m)
+	BlockParamExtFloat _gps_pos_x;	// X position of GPS antenna in body frame (m)
+	BlockParamExtFloat _gps_pos_y;	// Y position of GPS antenna in body frame (m)
+	BlockParamExtFloat _gps_pos_z;	// Z position of GPS antenna in body frame (m)
+	BlockParamExtFloat _rng_pos_x;	// X position of range finder in body frame (m)
+	BlockParamExtFloat _rng_pos_y;	// Y position of range finder in body frame (m)
+	BlockParamExtFloat _rng_pos_z;	// Z position of range finder in body frame (m)
+	BlockParamExtFloat _flow_pos_x;	// X position of optical flow sensor focal point in body frame (m)
+	BlockParamExtFloat _flow_pos_y;	// Y position of optical flow sensor focal point in body frame (m)
+	BlockParamExtFloat _flow_pos_z;	// Z position of optical flow sensor focal point in body frame (m)
+	BlockParamExtFloat _ev_pos_x;	// X position of VI sensor focal point in body frame (m)
+	BlockParamExtFloat _ev_pos_y;	// Y position of VI sensor focal point in body frame (m)
+	BlockParamExtFloat _ev_pos_z;	// Z position of VI sensor focal point in body frame (m)
+
 	// control of airspeed and sideslip fusion
-	control::BlockParamFloat
-	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
-	// the minimum airspeed which will still be fused
-	control::BlockParamInt _fuseBeta; // 0 disables synthetic sideslip fusion, 1 activates it
+	BlockParamFloat _arspFusionThreshold; // 0 will disable airspeed fusion. > 0 minimum airspeed still fused
+	BlockParamInt _fuseBeta; // 0 disables synthetic sideslip fusion, 1 activates it
 
 	// output predictor filter time constants
-	control::BlockParamExtFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
-	control::BlockParamExtFloat _tau_pos;	// time constant used by the output position complementary filter (s)
+	BlockParamExtFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
+	BlockParamExtFloat _tau_pos;	// time constant used by the output position complementary filter (s)
 
 	// IMU switch on bias paameters
-	control::BlockParamExtFloat _gyr_bias_init;	// 1-sigma gyro bias uncertainty at switch-on (rad/sec)
-	control::BlockParamExtFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
-	control::BlockParamExtFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
+	BlockParamExtFloat _gyr_bias_init;	// 1-sigma gyro bias uncertainty at switch-on (rad/sec)
+	BlockParamExtFloat _acc_bias_init;	// 1-sigma accelerometer bias uncertainty at switch-on (m/s**2)
+	BlockParamExtFloat _ang_err_init;		// 1-sigma uncertainty in tilt angle after gravity vector alignment (rad)
 
 	// airspeed mode parameter
-	control::BlockParamInt _airspeed_mode;
+	BlockParamInt _airspeed_mode;
 
 	// EKF saved XYZ magnetometer bias values
-	control::BlockParamFloat _mag_bias_x; // X bias (mGauss)
-	control::BlockParamFloat _mag_bias_y; // Y bias (mGauss)
-	control::BlockParamFloat _mag_bias_z; // Z bias (mGauss)
-	control::BlockParamInt _mag_bias_id; // ID for the sensor used to learn the bias values
-	control::BlockParamFloat
-	_mag_bias_saved_variance; // Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
-	control::BlockParamFloat _mag_bias_alpha; // maximum fraction of the learned bias that is applied each disarm
-
-	int update_subscriptions();
+	BlockParamFloat _mag_bias_x; // X bias (mGauss)
+	BlockParamFloat _mag_bias_y; // Y bias (mGauss)
+	BlockParamFloat _mag_bias_z; // Z bias (mGauss)
+	BlockParamInt _mag_bias_id; // ID for the sensor used to learn the bias values
+	BlockParamFloat _mag_bias_saved_variance; // Assumed error variance of previously saved mag bias estimates (mGauss**2)
+	BlockParamFloat _mag_bias_alpha; // maximum fraction of the learned bias that is applied each disarm
 
 };
 
 Ekf2::Ekf2():
 	SuperBlock(nullptr, "EKF"),
-	_replay_mode(false),
-	_publish_replay_mode(0),
-	_att_pub(nullptr),
-	_lpos_pub(nullptr),
-	_control_state_pub(nullptr),
-	_vehicle_global_position_pub(nullptr),
-	_wind_pub(nullptr),
-	_estimator_status_pub(nullptr),
-	_estimator_innovations_pub(nullptr),
-	_replay_pub(nullptr),
-	_ekf2_timestamps_pub(nullptr),
-	_lp_roll_rate(250.0f, 30.0f),
-	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
@@ -430,20 +393,13 @@ Ekf2::Ekf2():
 	_mag_bias_id(this, "EKF2_MAGBIAS_ID", false),
 	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
 	_mag_bias_alpha(this, "EKF2_MAGB_K", false)
-
 {
-
-}
-
-Ekf2::~Ekf2()
-{
-
 }
 
 void Ekf2::print_status()
 {
-	warnx("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
-	warnx("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_WARN("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_WARN("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
 }
 
 void Ekf2::task_main()
@@ -585,10 +541,12 @@ void Ekf2::task_main()
 		gyro_integral[0] = sensors.gyro_rad[0] * sensors.gyro_integral_dt;
 		gyro_integral[1] = sensors.gyro_rad[1] * sensors.gyro_integral_dt;
 		gyro_integral[2] = sensors.gyro_rad[2] * sensors.gyro_integral_dt;
+
 		float accel_integral[3];
 		accel_integral[0] = sensors.accelerometer_m_s2[0] * sensors.accelerometer_integral_dt;
 		accel_integral[1] = sensors.accelerometer_m_s2[1] * sensors.accelerometer_integral_dt;
 		accel_integral[2] = sensors.accelerometer_m_s2[2] * sensors.accelerometer_integral_dt;
+
 		_ekf.setIMUData(now, sensors.gyro_integral_dt * 1.e6f, sensors.accelerometer_integral_dt * 1.e6f,
 				gyro_integral, accel_integral);
 
@@ -685,7 +643,6 @@ void Ekf2::task_main()
 					_balt_time_sum_ms = 0;
 					_balt_sample_count = 0;
 					_balt_data_sum = 0.0f;
-
 				}
 			}
 		}
@@ -711,7 +668,6 @@ void Ekf2::task_main()
 			gps_msg.gdop = 0.0f;
 
 			_ekf.setGpsData(gps.timestamp, &gps_msg);
-
 		}
 
 		// only set airspeed data if condition for airspeed fusion are met
@@ -1093,7 +1049,8 @@ void Ekf2::task_main()
 				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
-					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
+
+					BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
 						if (_valid_cal_available[axis_index]) {
@@ -1259,7 +1216,7 @@ void Ekf2::task_main()
 
 
 		// publish replay message if in replay mode
-		bool publish_replay_message = (bool)_param_record_replay_msg.get();
+		bool publish_replay_message = (_param_record_replay_msg.get() == 1);
 
 		if (publish_replay_message) {
 			struct ekf2_replay_s replay = {};
