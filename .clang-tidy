@@ -16,9 +16,9 @@ Checks:          '*
 		,-clang-analyzer-optin.performance.Padding
 		,-clang-analyzer-security.FloatLoopCounter
 		,-clang-analyzer-security.insecureAPI.strcpy
-		,-clang-analyzer-unix.API
 		,-clang-analyzer-unix.cstring.BadSizeArg
 		,-clang-analyzer-unix.Malloc
+		,-clang-analyzer-unix.MallocSizeof
 		,-cppcoreguidelines-c-copy-assignment-signature
 		,-cppcoreguidelines-interfaces-global-init
 		,-cppcoreguidelines-no-malloc
@@ -59,6 +59,7 @@ Checks:          '*
 		,-modernize-use-equals-delete
 		,-modernize-use-override
 		,-modernize-use-using
+		,-performance-inefficient-string-concatenation
 		,-readability-avoid-const-params-in-decls
 		,-readability-else-after-return
 		,-readability-implicit-bool-cast
@@ -66,8 +67,6 @@ Checks:          '*
 		,-readability-named-parameter
 		,-readability-non-const-parameter
 		,-readability-redundant-declaration
-		,-performance-inefficient-string-concatenation
-		,-clang-analyzer-unix.MallocSizeof
 		,-readability-redundant-member-init
 		,-readability-simplify-boolean-expr
 		'
