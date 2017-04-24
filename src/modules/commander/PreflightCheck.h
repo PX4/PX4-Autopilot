@@ -79,7 +79,7 @@ const unsigned max_mandatory_accel_count = 1;
 const unsigned max_optional_accel_count = 3;
 
 const unsigned max_mandatory_mag_count = 1;
-const unsigned max_optional_mag_count = 3;
+const unsigned max_optional_mag_count = 4;
 
 const unsigned max_mandatory_baro_count = 1;
 const unsigned max_optional_baro_count = 1;
