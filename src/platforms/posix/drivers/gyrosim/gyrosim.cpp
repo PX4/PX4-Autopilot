@@ -148,7 +148,6 @@ private:
 	GYROSIM_gyro		*_gyro;
 	uint8_t			_product;	/** product code */
 
-	WorkHandle		_call;
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
