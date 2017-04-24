@@ -287,10 +287,13 @@ s3put_px4_metadata: px4_metadata
 	@$(SRC_DIR)/Tools/s3put.sh parameters.md
 
 s3put_scan-build: scan-build
-	$(SRC_DIR)/Tools/s3put.sh `find build_scan-build -mindepth 1 -maxdepth 1 -type d`/
+	@cd $(SRC_DIR) && ./Tools/s3put.sh `find build_scan-build -mindepth 1 -maxdepth 1 -type d`/
 
 s3put_cppcheck: cppcheck
-	$(SRC_DIR)/Tools/s3put.sh build_cppcheck-htmlreport/
+	@cd $(SRC_DIR) && ./Tools/s3put.sh cppcheck/
+
+s3put_coverage: tests_coverage
+	@cd $(SRC_DIR) && ./Tools/s3put.sh coverage-html/
 
 # Astyle
 # --------------------------------------------------------------------
@@ -358,7 +361,7 @@ clang-tidy-quiet: posix_sitl_default-clang
 
 cppcheck: posix_sitl_default
 	@cppcheck --enable=all --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
-	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=build_cppcheck-htmlreport --source-dir=$(SRC_DIR)/src/
+	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
 
 # Cleanup
 # --------------------------------------------------------------------

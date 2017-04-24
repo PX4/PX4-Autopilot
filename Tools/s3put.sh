@@ -11,9 +11,12 @@ filename=${1}
 [ -z "$AWS_SECRET_ACCESS_KEY" ] && { echo "ERROR: Need to set AWS_SECRET_ACCESS_KEY"; exit 1; }
 [ -z "$AWS_S3_BUCKET" ] && { echo "ERROR: Need to set AWS_S3_BUCKET"; exit 1; }
 
-if [ -e ${filename} ]; then
+if [ -f ${filename} ]; then
 	base_file_name=`basename $filename`
-	s3cmd --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} put -r ${filename} s3://${AWS_S3_BUCKET}/${base_file_name}
+	s3cmd --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} put ${filename} s3://${AWS_S3_BUCKET}/${base_file_name}
+elif [ -d ${filename} ]; then
+	dir_name=$filename
+	s3cmd --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} put -r ${dir_name} s3://${AWS_S3_BUCKET}/
 else
 	echo "ERROR: ${file} doesn't exist"
 	exit 1
