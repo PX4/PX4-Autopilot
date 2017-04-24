@@ -5,6 +5,7 @@ language: cpp
 
 git:
   depth: 2000
+  submodules: false
 
 matrix:
   fast_finish: true
