@@ -105,7 +105,7 @@ MavlinkMissionManager::~MavlinkMissionManager()
 void
 MavlinkMissionManager::init_offboard_mission()
 {
-	mission_s mission_state;
+	mission_s mission_state = {};
 
 	if (!_dataman_init) {
 		_dataman_init = true;
@@ -138,7 +138,7 @@ MavlinkMissionManager::init_offboard_mission()
 int
 MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int seq)
 {
-	struct mission_s mission;
+	struct mission_s mission = {};
 
 	mission.dataman_id = dataman_id;
 	mission.count = count;

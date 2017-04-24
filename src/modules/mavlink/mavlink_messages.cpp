@@ -3482,7 +3482,7 @@ protected:
 		}
 
 		{
-			struct vehicle_local_position_s local_pos;
+			struct vehicle_local_position_s local_pos = {};
 			updated |= _local_pos_sub->update(&_local_pos_time, &local_pos);
 			msg.altitude_local = (_local_pos_time > 0) ? -local_pos.z : NAN;
 
