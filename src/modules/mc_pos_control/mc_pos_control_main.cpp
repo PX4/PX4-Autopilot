@@ -260,10 +260,9 @@ private:
 	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
 	bool _in_landing;	/**< the vehicle is in the landing descent */
 	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
-	bool _takeoff_jumped;
 	float _vel_z_lp;
 	float _acc_z_lp;
-	float _takeoff_thrust_sp;
+	float _takeoff_vel_limit;
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
 
 	// counters for reset events on position and velocity states
@@ -432,10 +431,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_yaw_takeoff(0.0f),
 	_in_landing(false),
 	_lnd_reached_ground(false),
-	_takeoff_jumped(false),
 	_vel_z_lp(0),
 	_acc_z_lp(0),
-	_takeoff_thrust_sp(0.0f),
+	_takeoff_vel_limit(0.0f),
 	_vel_max_xy(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
@@ -1161,43 +1159,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_run_alt_control = false;
 	}
 
-	/* special thrust setpoint generation for takeoff from ground */
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed) {
-
-		// check if we are not already in air.
-		// if yes then we don't need a jumped takeoff anymore
-		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-			_takeoff_jumped = true;
-		}
-
-		if (!_takeoff_jumped) {
-			// ramp thrust setpoint up
-			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-
-				// ramp up to hover throttle in one second
-				_takeoff_thrust_sp += _params.thr_hover * dt;
-				_vel_sp.zero();
-				_vel_prev.zero();
-
-			} else {
-				// copter has reached our takeoff speed. split the thrust setpoint up
-				// into an integral part and into a P part
-				// remembering to remove _params.thr_hover which is added later as a feed-forward in control_position.
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2)) - _params.thr_hover;
-				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-				_vel_sp_prev(2) = -_params.tko_speed;
-				_takeoff_jumped = true;
-				_reset_int_z = false;
-			}
-		}
-
-	} else {
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
-	}
-
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		/* idle state, don't run controller and set zero thrust */
@@ -1748,41 +1709,28 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
+	/* special velocity setpoint limitation for smooth takeoff from ground */
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && _control_mode.flag_armed) {
+
+		/* ramp vertical velocity limit up to takeoff speed */
+		_takeoff_vel_limit += _params.tko_speed * dt / 10.0f;
+		_takeoff_vel_limit = math::min(_takeoff_vel_limit, _params.tko_speed);
+		/* limit vertical velocity to the current ramp value */
+		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
+
+	} else {
+		_takeoff_vel_limit = 0.0f;
+	}
+
 	/* make sure velocity setpoint is constrained in all directions*/
 	if (vel_norm_xy > _vel_max_xy) {
 		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
 		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
 	}
 
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed
-	    && _takeoff_jumped
-	    && (_vel_sp(2) < -_params.tko_speed)) {
-
-		_vel_sp(2) = -_params.tko_speed;
-
-	} else if ((_vel(2) > -_params.tko_speed)
-		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)
-		   && !_control_mode.flag_control_manual_enabled) {
-		if (!_takeoff_jumped) {
-			_vel_sp(2) = 0.0f;
-		}
-
-	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
-		_vel_sp(2) = -1.0f * _params.vel_max_up;
-
-	}
-
-	/* TODO: remove this is a pathetic leftover, it's here just to make sure that
-	 * _takeoff_jumped flags are reset */
-	if (_control_mode.flag_control_manual_enabled || !_pos_sp_triplet.current.valid
-	    || _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    || !_control_mode.flag_armed) {
-
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
-	}
+	_vel_sp(2) = math::max(_vel_sp(2), -_params.vel_max_up);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
 	vel_sp_slewrate(dt);
@@ -1839,13 +1787,6 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 	} else {
 		thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d)
 			    + _thrust_int - math::Vector<3>(0.0f, 0.0f, _params.thr_hover);
-	}
-
-	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
-		// for jumped takeoffs use special thrust setpoint calculated above
-		thrust_sp.zero();
-		thrust_sp(2) = -_takeoff_thrust_sp;
 	}
 
 	if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
