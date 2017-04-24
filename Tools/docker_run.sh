@@ -48,7 +48,6 @@ docker run -it --rm -w "${SRC_DIR}" \
 	-e CI="${CI}" \
 	-e COVERALLS_REPO_TOKEN="${COVERALLS_REPO_TOKEN}" \
 	-e DISPLAY="${DISPLAY}" \
-	-e GIT_SUBMODULES_ARE_EVIL=1 \
 	-e LOCAL_USER_ID="$(id -u)" \
 	-e TRAVIS_BRANCH="${TRAVIS_BRANCH}" \
 	-e TRAVIS_BUILD_ID="${TRAVIS_BUILD_ID}" \
