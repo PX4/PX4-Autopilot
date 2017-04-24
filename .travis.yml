@@ -61,11 +61,11 @@ before_install:
 
 env:
   global:
-# COVERITY KEY
+    # COVERITY KEY
     - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
-# AWS KEY: $PX4_AWS_KEY
+    # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
-# AWS SECRET: $PX4_AWS_SECRET
+    # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
@@ -86,17 +86,21 @@ script:
     fi
 
 after_success:
-  # s3 deploy airframe and parameter metadata
-  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" = "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_px4_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+  # s3 upload airframe and parameter metadata
+  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
   # s3 upload clang scan-build output for master branch
-  - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" = "false" && "${TRAVIS_BRANCH}" = "master" ]]; then
-         ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/scan-build"';
+  - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/scan-build"';
     fi
   # s3 upload cppcheck output for master branch
-  - if [[ "${BUILD_TARGET}" = "cppcheck" && "${TRAVIS_PULL_REQUEST}" = "false" && "${TRAVIS_BRANCH}" = "master" ]]; then
-         ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/cppcheck"';
+  - if [[ "${BUILD_TARGET}" = "cppcheck" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
+    fi
+  # s3 upload code coverage
+  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_coverage AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/coverage"';
     fi
   # coveralls code coverage report
   - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then

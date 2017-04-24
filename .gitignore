@@ -93,3 +93,6 @@ airframes.md
 airframes.xml
 
 cppcheck-result.xml
+cppcheck
+
+scan-build
