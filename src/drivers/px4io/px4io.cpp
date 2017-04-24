@@ -1784,7 +1784,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 		return;
 	}
 
-	battery_status_s	battery_status;
+	battery_status_s battery_status = {};
 
 	const hrt_abstime timestamp = hrt_absolute_time();
 	/* voltage is scaled to mV */
