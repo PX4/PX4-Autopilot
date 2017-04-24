@@ -19,7 +19,7 @@ then
 
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
-		set MIXER_AUX ${MIXER}.aux
+		set MIXER_AUX ${MIXER}
 	fi
 
 	# Use the mixer file from the SD-card if it exists
