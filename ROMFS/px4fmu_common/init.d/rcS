@@ -265,6 +265,19 @@ then
 	unset MODE
 
 	#
+	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
+	# mixer to mount (override the airframe-specific MIXER_AUX setting)
+	#
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if param compare MNT_MODE_OUT 0
+		then
+			set MIXER_AUX mount
+		fi
+	fi
+
+	#
 	# Wipe incompatible settings for boards not having two outputs
 	if ver hwcmp PX4FMU_V4
 	then
