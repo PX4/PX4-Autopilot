@@ -1,4 +1,5 @@
 #include "camera_interface.h"
+#include <px4_log.h>
 
 /**
  * @file camera_interface.cpp
@@ -6,6 +7,7 @@
  */
 
 CameraInterface::CameraInterface():
+	_p_pin(PARAM_INVALID),
 	_pins{}
 {
 }
@@ -19,6 +21,11 @@ void CameraInterface::get_pins()
 
 	// Get parameter handle
 	_p_pin = param_find("TRIG_PINS");
+
+	if (_p_pin == PARAM_INVALID) {
+		PX4_ERR("param TRIG_PINS not found");
+		return;
+	}
 
 	int pin_list;
 	param_get(_p_pin, &pin_list);
