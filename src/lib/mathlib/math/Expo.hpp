@@ -42,13 +42,13 @@
 #pragma once
 
 #include <platforms/px4_defines.h>
-#include <stdint.h>
 
 namespace math
 {
 
 // Type-safe signum function
-template<typename T> int sign(T val)
+template<typename T>
+int sign(T val)
 {
 	return (T(0) < val) - (val < T(0));
 }
