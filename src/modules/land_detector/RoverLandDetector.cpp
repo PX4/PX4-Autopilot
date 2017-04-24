@@ -46,7 +46,7 @@
 namespace land_detector
 {
 
-RoverLandDetector::RoverLandDetector() : LandDetector()
+RoverLandDetector::RoverLandDetector()
 {
 }
 

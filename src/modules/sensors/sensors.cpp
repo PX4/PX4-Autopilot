@@ -248,7 +248,6 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors(bool hil_enabled) :
-	_h_adc(),
 	_last_adc(0),
 
 	_task_should_exit(true),
@@ -270,7 +269,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-	_airspeed_validator(),
 
 	_rc_update(_parameters),
 	_voted_sensors_update(_parameters, hil_enabled)

@@ -103,11 +103,7 @@ class __EXPORT SuperBlock :
 public:
 	friend class Block;
 // methods
-	SuperBlock(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_children()
-	{
-	}
+	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {}
 	virtual ~SuperBlock() {};
 	virtual void setDt(float dt);
 	virtual void updateParams()

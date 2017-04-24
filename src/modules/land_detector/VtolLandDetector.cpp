@@ -46,7 +46,7 @@
 namespace land_detector
 {
 
-VtolLandDetector::VtolLandDetector() : MulticopterLandDetector(),
+VtolLandDetector::VtolLandDetector() :
 	_paramHandle(),
 	_params(),
 	_airspeedSub(-1),

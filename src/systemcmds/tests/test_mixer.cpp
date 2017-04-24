@@ -123,7 +123,7 @@ private:
 	MixerGroup mixer_group;
 };
 
-MixerTest::MixerTest() : UnitTest(),
+MixerTest::MixerTest() :
 	mixer_group(mixer_callback, 0)
 {
 }

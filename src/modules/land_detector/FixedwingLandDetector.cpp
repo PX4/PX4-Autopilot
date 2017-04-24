@@ -50,7 +50,7 @@
 namespace land_detector
 {
 
-FixedwingLandDetector::FixedwingLandDetector() : LandDetector(),
+FixedwingLandDetector::FixedwingLandDetector() :
 	_paramHandle(),
 	_params(),
 	_controlStateSub(-1),
