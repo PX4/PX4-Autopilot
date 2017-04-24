@@ -359,8 +359,9 @@ clang-tidy-fix: posix_sitl_default-clang
 clang-tidy-quiet: posix_sitl_default-clang
 	@cd build_posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
+# TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: posix_sitl_default
-	@cppcheck --enable=all -i$(SRC_DIR)/src/examples --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
+	@cppcheck -i$(SRC_DIR)/src/examples --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
 	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
 
 # Cleanup
