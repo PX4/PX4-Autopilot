@@ -148,10 +148,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// masks
 	_sensorTimeout(255),
 	_sensorFault(0),
-	_estimatorInitialized(0),
-
-	// kf matrices
-	_x(), _u(), _P(), _R_att(), _eul()
+	_estimatorInitialized(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;

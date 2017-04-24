@@ -49,7 +49,7 @@
 namespace land_detector
 {
 
-MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
+MulticopterLandDetector::MulticopterLandDetector() :
 	_paramHandle(),
 	_params(),
 	_vehicleLocalPositionSub(-1),

@@ -53,9 +53,7 @@ namespace control
 Block::Block(SuperBlock *parent, const char *name) :
 	_name(name),
 	_parent(parent),
-	_dt(0),
-	_subscriptions(),
-	_params()
+	_dt(0)
 {
 	if (getParent() != nullptr) {
 		getParent()->getChildren().add(this);
