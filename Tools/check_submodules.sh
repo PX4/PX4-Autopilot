@@ -45,7 +45,7 @@ then
 else
 	echo "REINITIALIZING GIT SUBMODULES"
 	echo "no git repo found in $1/.git"
-	git submodule sync --recursive;
+	git submodule sync --recursive -- $1;
 	git submodule update --init --recursive $1;
 fi
 
