@@ -272,6 +272,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			default:
 				PX4_ERR("invalid output mode %i", params.mnt_mode_out);
+				thread_should_exit = true;
 				break;
 			}
 
@@ -279,6 +280,9 @@ static int vmount_thread_main(int argc, char *argv[])
 				thread_data.input_objs_len = 0;
 				PX4_ERR("memory allocation failed");
 				thread_should_exit = true;
+			}
+
+			if (thread_should_exit) {
 				break;
 			}
 
