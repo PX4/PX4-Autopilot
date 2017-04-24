@@ -39,7 +39,6 @@
  *
  */
 
-#include <stdint.h>
 #include <matrix/matrix/math.hpp>
 #include "RingBuffer.h"
 #include "geo.h"
@@ -47,11 +46,12 @@
 #include "mathlib.h"
 
 using namespace estimator;
+
 class EstimatorInterface
 {
 
 public:
-	EstimatorInterface();
+	EstimatorInterface() = default;
 	~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
@@ -65,7 +65,7 @@ public:
 	virtual void get_mag_innov(float mag_innov[3]) = 0;
 
 	// gets the innovation of airspeed measurement
- 	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
+	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
 
 	// gets the innovation of the synthetic sideslip measurement
 	virtual void get_beta_innov(float *beta_innov) = 0;
@@ -81,7 +81,7 @@ public:
 	virtual void get_mag_innov_var(float mag_innov_var[3]) = 0;
 
 	// gets the innovation variance of the airspeed measurement
- 	virtual void get_airspeed_innov_var(float *get_airspeed_innov_var) = 0;
+	virtual void get_airspeed_innov_var(float *get_airspeed_innov_var) = 0;
 
 	// gets the innovation variance of the synthetic sideslip measurement
 	virtual void get_beta_innov_var(float *get_beta_innov_var) = 0;
@@ -211,13 +211,14 @@ public:
 	void get_velocity(float *vel)
 	{
 		// calculate the average angular rate across the last IMU update
-		Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f/_imu_sample_new.delta_ang_dt);
+		Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f / _imu_sample_new.delta_ang_dt);
 		// calculate the velocity of the relative to the body origin
 		// Note % operator has been overloaded to performa cross product
-		Vector3f vel_imu_rel_body = cross_product(ang_rate , _params.imu_pos_body);
+		Vector3f vel_imu_rel_body = cross_product(ang_rate, _params.imu_pos_body);
 		// rotate the relative velocty into earth frame and subtract from the EKF velocity
 		// (which is at the IMU) to get velocity of the body origin
 		Vector3f vel_earth = _output_new.vel - _R_to_earth_now * vel_imu_rel_body;
+
 		// copy to output
 		for (unsigned i = 0; i < 3; i++) {
 			vel[i] = vel_earth(i);
@@ -228,6 +229,7 @@ public:
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
 		Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
+
 		// subtract from the EKF position (which is at the IMU) to get position at the body origin
 		for (unsigned i = 0; i < 3; i++) {
 			pos[i] = _output_new.pos(i) - pos_offset_earth(i);
@@ -298,72 +300,73 @@ protected:
 	 max freq (Hz) = (OBS_BUFFER_LENGTH - 1) / (IMU_BUFFER_LENGTH * FILTER_UPDATE_PERIOD_MS * 0.001)
 	 This can be adjusted to match the max sensor data rate plus some margin for jitter.
 	*/
-	uint8_t _obs_buffer_length;
+	uint8_t _obs_buffer_length{0};
+
 	/*
 	IMU_BUFFER_LENGTH defines how many IMU samples we buffer which sets the time delay from current time to the
 	EKF fusion time horizon and therefore the maximum sensor time offset relative to the IMU that we can compensate for.
 	max sensor time offet (msec) =  IMU_BUFFER_LENGTH * FILTER_UPDATE_PERIOD_MS
 	This can be adjusted to a value that is FILTER_UPDATE_PERIOD_MS longer than the maximum observation time delay.
 	*/
-	uint8_t _imu_buffer_length;
+	uint8_t _imu_buffer_length{0};
 	static const unsigned FILTER_UPDATE_PERIOD_MS = 12;	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 
-	unsigned _min_obs_interval_us; // minimum time interval between observations that will guarantee data is not lost (usec)
+	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
-	float _dt_imu_avg;	// average imu update period in s
+	float _dt_imu_avg{0.0f};	// average imu update period in s
 
-	imuSample _imu_sample_delayed;	// captures the imu sample on the delayed time horizon
+	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
-	magSample _mag_sample_delayed;
-	baroSample _baro_sample_delayed;
-	gpsSample _gps_sample_delayed;
-	rangeSample _range_sample_delayed;
-	airspeedSample _airspeed_sample_delayed;
-	flowSample _flow_sample_delayed;
-	extVisionSample _ev_sample_delayed;
-	dragSample _drag_sample_delayed;
-	dragSample _drag_down_sampled;	// down sampled drag specific force data (filter prediction rate -> observation rate)
+	magSample _mag_sample_delayed{};
+	baroSample _baro_sample_delayed{};
+	gpsSample _gps_sample_delayed{};
+	rangeSample _range_sample_delayed{};
+	airspeedSample _airspeed_sample_delayed{};
+	flowSample _flow_sample_delayed{};
+	extVisionSample _ev_sample_delayed{};
+	dragSample _drag_sample_delayed{};
+	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 
 	// Used by the multi-rotor specific drag force fusion
-	uint8_t _drag_sample_count;	// number of drag specific force samples assumulated at the filter prediction rate
-	float _drag_sample_time_dt;	// time integral across all samples used to form _drag_down_sampled (sec)
-	float _air_density;		// air density (kg/m**3)
+	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
+	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
+	float _air_density{1.225f};		// air density (kg/m**3)
 
-	outputSample _output_sample_delayed;	// filter output on the delayed time horizon
-	outputSample _output_new;	// filter output on the non-delayed time horizon
-	imuSample _imu_sample_new;	// imu sample capturing the newest imu data
+	outputSample _output_sample_delayed{};	// filter output on the delayed time horizon
+	outputSample _output_new{};	// filter output on the non-delayed time horizon
+	imuSample _imu_sample_new{};	// imu sample capturing the newest imu data
 	Matrix3f _R_to_earth_now; // rotation matrix from body to earth frame at current time
 
-	uint64_t _imu_ticks;	// counter for imu updates
+	uint64_t _imu_ticks{0};	// counter for imu updates
 
-	bool _imu_updated;      // true if the ekf should update (completed downsampling process)
-	bool _initialised;      // true if the ekf interface instance (data buffering) is initialized
+	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
+	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
-	bool _NED_origin_initialised;
-	bool _gps_speed_valid;
-	float _gps_origin_eph; // horizontal position uncertainty of the GPS origin
-	float _gps_origin_epv; // vertical position uncertainty of the GPS origin
-	struct map_projection_reference_s _pos_ref;    // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
-	struct map_projection_reference_s _gps_pos_prev;    // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
-	float _gps_alt_prev;	// height from the previous GPS message (m)
+	bool _NED_origin_initialised{false};
+	bool _gps_speed_valid{false};
+	float _gps_origin_eph{0.0f}; // horizontal position uncertainty of the GPS origin
+	float _gps_origin_epv{0.0f}; // vertical position uncertainty of the GPS origin
+	struct map_projection_reference_s _pos_ref {};   // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
+	struct map_projection_reference_s _gps_pos_prev {};   // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
+	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
 
 	// innovation consistency check monitoring ratios
-	float _yaw_test_ratio;          // yaw innovation consistency check ratio
-	float _mag_test_ratio[3];       // magnetometer XYZ innovation consistency check ratios
-	float _vel_pos_test_ratio[6];   // velocity and position innovation consistency check ratios
-	float _tas_test_ratio;		// tas innovation consistency check ratio
-	float _terr_test_ratio;		// height above terrain measurement innovation consistency check ratio
-	float _beta_test_ratio;		// sideslip innovation consistency check ratio
-	float _drag_test_ratio[2];	// drag innovation cinsistency check ratio
+	float _yaw_test_ratio{0.0f};          // yaw innovation consistency check ratio
+	float _mag_test_ratio[3] {};      // magnetometer XYZ innovation consistency check ratios
+	float _vel_pos_test_ratio[6] {};  // velocity and position innovation consistency check ratios
+	float _tas_test_ratio{0.0f};		// tas innovation consistency check ratio
+	float _terr_test_ratio{0.0f};		// height above terrain measurement innovation consistency check ratio
+	float _beta_test_ratio{0.0f};		// sideslip innovation consistency check ratio
+	float _drag_test_ratio[2] {};	// drag innovation cinsistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
-	bool _is_dead_reckoning;	// true if we are no longer fusing measurements that constrain horizontal velocity drift
+	bool _is_dead_reckoning{false};	// true if we are no longer fusing measurements that constrain horizontal velocity drift
 
 	// IMU vibration monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
 	Vector3f _delta_vel_prev;	// delta velocity from the previous IMU measurement
-	float _vibe_metrics[3];		// IMU vibration metrics
+	float _vibe_metrics[3] {};	// IMU vibration metrics
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
 					// [1] high frequency vibraton level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
@@ -380,14 +383,14 @@ protected:
 	RingBuffer<outputSample> _output_buffer;
 	RingBuffer<dragSample> _drag_buffer;
 
-	uint64_t _time_last_imu;	// timestamp of last imu sample in microseconds
-	uint64_t _time_last_gps;	// timestamp of last gps measurement in microseconds
-	uint64_t _time_last_mag;	// timestamp of last magnetometer measurement in microseconds
-	uint64_t _time_last_baro;	// timestamp of last barometer measurement in microseconds
-	uint64_t _time_last_range;	// timestamp of last range measurement in microseconds
-	uint64_t _time_last_airspeed;	// timestamp of last airspeed measurement in microseconds
-	uint64_t _time_last_ext_vision; // timestamp of last external vision measurement in microseconds
-	uint64_t _time_last_optflow;
+	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds
+	uint64_t _time_last_gps{0};	// timestamp of last gps measurement in microseconds
+	uint64_t _time_last_mag{0};	// timestamp of last magnetometer measurement in microseconds
+	uint64_t _time_last_baro{0};	// timestamp of last barometer measurement in microseconds
+	uint64_t _time_last_range{0};	// timestamp of last range measurement in microseconds
+	uint64_t _time_last_airspeed{0};	// timestamp of last airspeed measurement in microseconds
+	uint64_t _time_last_ext_vision{0}; // timestamp of last external vision measurement in microseconds
+	uint64_t _time_last_optflow{0};
 
 	fault_status_u _fault_status{};
 
@@ -397,8 +400,8 @@ protected:
 	// free buffer memory
 	void unallocate_buffers();
 
-	float _mag_declination_gps;         // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _mag_declination_to_save_deg; // magnetic declination to save to EKF2_MAG_DECL (deg)
+	float _mag_declination_gps{0.0f};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _mag_declination_to_save_deg{0.0f}; // magnetic declination to save to EKF2_MAG_DECL (deg)
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};
@@ -410,6 +413,6 @@ protected:
 	Vector3f cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2);
 
 	// calculate the inverse rotation matrix from a quaternion rotation
-	Matrix3f quat_to_invrotmat(const Quaternion& quat);
+	Matrix3f quat_to_invrotmat(const Quaternion &quat);
 
 };

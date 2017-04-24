@@ -57,103 +57,6 @@
 #define ISFINITE(x) __builtin_isfinite(x)
 #endif
 
-
-const float Ekf::_k_earth_rate = 0.000072921f;
-const float Ekf::_gravity_mss = 9.80665f;
-
-Ekf::Ekf():
-	_dt_update(0.01f),
-	_filter_initialised(false),
-	_earth_rate_initialised(false),
-	_fuse_height(false),
-	_fuse_pos(false),
-	_fuse_hor_vel(false),
-	_fuse_vert_vel(false),
-	_gps_data_ready(false),
-	_mag_data_ready(false),
-	_baro_data_ready(false),
-	_range_data_ready(false),
-	_flow_data_ready(false),
-	_ev_data_ready(false),
-	_tas_data_ready(false),
-	_time_last_fake_gps(0),
-	_time_last_pos_fuse(0),
-	_time_last_vel_fuse(0),
-	_time_last_hgt_fuse(0),
-	_time_last_of_fuse(0),
-	_time_last_arsp_fuse(0),
-	_time_last_beta_fuse(0),
-	_last_disarmed_posD(0.0f),
-	_imu_collection_time_adj(0.0f),
-	_time_acc_bias_check(0.0f),
-	_airspeed_innov(0.0f),
-	_airspeed_innov_var(0.0f),
-	_beta_innov(0.0f),
- 	_beta_innov_var(0.0f),
-	_heading_innov(0.0f),
-	_heading_innov_var(0.0f),
-	_delta_time_of(0.0f),
-	_mag_declination(0.0f),
-	_gpsDriftVelN(0.0f),
-	_gpsDriftVelE(0.0f),
-	_gps_drift_velD(0.0f),
-	_gps_velD_diff_filt(0.0f),
-	_gps_velN_filt(0.0f),
-	_gps_velE_filt(0.0f),
-	_last_gps_fail_us(0),
-	_last_gps_origin_time_us(0),
-	_gps_alt_ref(0.0f),
-	_hgt_counter(0),
-	_rng_filt_state(0.0f),
-	_mag_counter(0),
-	_ev_counter(0),
-	_time_last_mag(0),
-	_hgt_sensor_offset(0.0f),
-	_baro_hgt_offset(0.0f),
-	_last_on_ground_posD(0.0f),
-	_terrain_vpos(0.0f),
-	_terrain_var(1.e4f),
-	_hagl_innov(0.0f),
-	_hagl_innov_var(0.0f),
-	_time_last_hagl_fuse(0),
-	_terrain_initialised(false),
-	_range_data_continuous(false),
-	_dt_last_range_update_filt_us(0.0f),
-	_baro_hgt_faulty(false),
-	_gps_hgt_faulty(false),
-	_rng_hgt_faulty(false),
-	_primary_hgt_source(VDIST_SENSOR_BARO),
-	_time_bad_vert_accel(0),
-	_time_good_vert_accel(0),
-	_bad_vert_accel_detected(false)
-{
-	_state = {};
-	_last_known_posNE.setZero();
-	_earth_rate_NED.setZero();
-	_R_to_earth = matrix::Dcm<float>();
-	memset(_vel_pos_innov, 0, sizeof(_vel_pos_innov));
-	memset(_mag_innov, 0, sizeof(_mag_innov));
-	memset(_flow_innov, 0, sizeof(_flow_innov));
-	memset(_vel_pos_innov_var, 0, sizeof(_vel_pos_innov_var));
-	memset(_mag_innov_var, 0, sizeof(_mag_innov_var));
-	memset(_flow_innov_var, 0, sizeof(_flow_innov_var));
-	_delta_angle_corr.setZero();
-	_last_known_posNE.setZero();
-	_imu_down_sampled = {};
-	_q_down_sampled.setZero();
-	_vel_err_integ.setZero();
-	_pos_err_integ.setZero();
-	_mag_filt_state = {};
-	_delVel_sum = {};
-	_flow_gyro_bias = {};
-	_imu_del_ang_of = {};
-	_gps_check_fail_status.value = 0;
-	_state_reset_status = {};
-	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
-	memset(_drag_innov, 0, sizeof(_drag_innov));
-	memset(_drag_innov_var, 0, sizeof(_drag_innov_var));
-}
-
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
@@ -169,7 +72,7 @@ bool Ekf::init(uint64_t timestamp)
 
 	_output_new.vel.setZero();
 	_output_new.pos.setZero();
-	_output_new.quat_nominal = matrix::Quaternion<float>();
+	_output_new.quat_nominal.setZero();
 
 	_delta_angle_corr.setZero();
 	_imu_down_sampled.delta_ang.setZero();
@@ -209,7 +112,6 @@ bool Ekf::init(uint64_t timestamp)
 
 bool Ekf::update()
 {
-
 	if (!_filter_initialised) {
 		_filter_initialised = initialiseFilter();
 
@@ -258,13 +160,16 @@ bool Ekf::initialiseFilter()
 		if ((_mag_counter == 0) && (_mag_sample_delayed.time_us != 0)) {
 			// initialise the counter when we start getting data from the buffer
 			_mag_counter = 1;
+
 		} else if ((_mag_counter != 0) && (_mag_sample_delayed.time_us != 0)) {
 			// increment the sample count and apply a LPF to the measurement
 			_mag_counter ++;
+
 			// don't start using data until we can be certain all bad initial data has been flushed
 			if (_mag_counter == (uint8_t)(_obs_buffer_length + 1)) {
 				// initialise filter states
 				_mag_filt_state = _mag_sample_delayed.mag;
+
 			} else if (_mag_counter > (uint8_t)(_obs_buffer_length + 1)) {
 				// noise filter the data
 				_mag_filt_state = _mag_filt_state * 0.9f + _mag_sample_delayed.mag * 0.1f;
@@ -277,6 +182,7 @@ bool Ekf::initialiseFilter()
 		if ((_ev_counter == 0) && (_ev_sample_delayed.time_us != 0)) {
 			// initialise the counter
 			_ev_counter = 1;
+
 			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
 			if (_primary_hgt_source == VDIST_SENSOR_EV) {
 				_control_status.flags.baro_hgt = false;
@@ -284,6 +190,7 @@ bool Ekf::initialiseFilter()
 				_control_status.flags.rng_hgt = false;
 				_control_status.flags.ev_hgt = true;
 			}
+
 		} else if ((_ev_counter != 0) && (_ev_sample_delayed.time_us != 0)) {
 			// increment the sample count
 			_ev_counter ++;
@@ -305,13 +212,16 @@ bool Ekf::initialiseFilter()
 				_control_status.flags.rng_hgt = true;
 				_control_status.flags.ev_hgt = false;
 				_hgt_counter = 1;
+
 			} else if ((_hgt_counter != 0) && (_range_sample_delayed.time_us != 0)) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
+
 				// don't start using data until we can be certain all bad initial data has been flushed
 				if (_hgt_counter == (uint8_t)(_obs_buffer_length + 1)) {
 					// initialise filter states
 					_rng_filt_state = _range_sample_delayed.rng;
+
 				} else if (_hgt_counter > (uint8_t)(_obs_buffer_length + 1)) {
 					// noise filter the data
 					_rng_filt_state = 0.9f * _rng_filt_state + 0.1f * _range_sample_delayed.rng;
@@ -329,13 +239,16 @@ bool Ekf::initialiseFilter()
 				_control_status.flags.gps_hgt = false;
 				_control_status.flags.rng_hgt = false;
 				_hgt_counter = 1;
+
 			} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
 				// increment the sample count and apply a LPF to the measurement
 				_hgt_counter ++;
+
 				// don't start using data until we can be certain all bad initial data has been flushed
 				if (_hgt_counter == (uint8_t)(_obs_buffer_length + 1)) {
 					// initialise filter states
 					_baro_hgt_offset = _baro_sample_delayed.hgt;
+
 				} else if (_hgt_counter > (uint8_t)(_obs_buffer_length + 1)) {
 					// noise filter the data
 					_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
@@ -345,14 +258,16 @@ bool Ekf::initialiseFilter()
 
 	} else if (_primary_hgt_source == VDIST_SENSOR_EV) {
 		_hgt_counter = _ev_counter;
+
 	} else {
 		return false;
 	}
 
 	// check to see if we have enough measurements and return false if not
-	bool hgt_count_fail = _hgt_counter <= 2*_obs_buffer_length;
-	bool mag_count_fail = _mag_counter <= 2*_obs_buffer_length;
-	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 2*_obs_buffer_length);
+	bool hgt_count_fail = _hgt_counter <= 2 * _obs_buffer_length;
+	bool mag_count_fail = _mag_counter <= 2 * _obs_buffer_length;
+	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 2 * _obs_buffer_length);
+
 	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
 		return false;
 
@@ -402,8 +317,9 @@ bool Ekf::initialiseFilter()
 			// so it can be used as a backup ad set the initial height using the range finder
 			baroSample baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt;
-			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2,_params.rng_gnd_clearance);
+			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2, _params.rng_gnd_clearance);
 			ECL_INFO("EKF using range finder height - commencing alignment");
+
 		} else if (_control_status.flags.ev_hgt) {
 			// if we are using external vision data for height, then the vertical position state needs to be reset
 			// because the initialisation position is not the zero datum
@@ -475,10 +391,10 @@ void Ekf::predictState()
 	constrainStates();
 
 	// calculate an average filter update time
-	float input = 0.5f*(_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
+	float input = 0.5f * (_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 
 	// filter and limit input between -50% and +100% of nominal value
-	input = math::constrain(input,0.0005f * (float)(FILTER_UPDATE_PERIOD_MS),0.002f * (float)(FILTER_UPDATE_PERIOD_MS));
+	input = math::constrain(input, 0.0005f * (float)(FILTER_UPDATE_PERIOD_MS), 0.002f * (float)(FILTER_UPDATE_PERIOD_MS));
 	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 }
 
@@ -515,6 +431,7 @@ bool Ekf::collect_imu(imuSample &imu)
 	// if the target time delta between filter prediction steps has been exceeded
 	// write the accumulated IMU data to the ring buffer
 	float target_dt = (float)(FILTER_UPDATE_PERIOD_MS) / 1000;
+
 	if (_imu_down_sampled.delta_ang_dt >= target_dt - _imu_collection_time_adj) {
 
 		// accumulate the amount of time to advance the IMU collection time so that we meet the
@@ -533,6 +450,7 @@ bool Ekf::collect_imu(imuSample &imu)
 		_imu_down_sampled.delta_vel_dt = 0.0f;
 		_q_down_sampled(0) = 1.0f;
 		_q_down_sampled(1) = _q_down_sampled(2) = _q_down_sampled(3) = 0.0f;
+
 		return true;
 	}
 
@@ -556,13 +474,13 @@ void Ekf::calculateOutputStates()
 
 	// correct delta angles for bias offsets and scale factors
 	Vector3f delta_angle;
-	float dt_scale_correction = _dt_imu_avg/_dt_ekf_avg;
-	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0)*dt_scale_correction;
-	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1)*dt_scale_correction;
-	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2)*dt_scale_correction;
+	float dt_scale_correction = _dt_imu_avg / _dt_ekf_avg;
+	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0) * dt_scale_correction;
+	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1) * dt_scale_correction;
+	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2) * dt_scale_correction;
 
 	// correct delta velocity for bias offsets
-	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias*dt_scale_correction;
+	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias * dt_scale_correction;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	delta_angle += _delta_angle_corr;
@@ -613,12 +531,14 @@ void Ekf::calculateOutputStates()
 		// convert the quaternion delta to a delta angle
 		Vector3f delta_ang_error;
 		float scalar;
+
 		if (q_error(0) >= 0.0f) {
 			scalar = -2.0f;
 
 		} else {
 			scalar = 2.0f;
 		}
+
 		delta_ang_error(0) = scalar * q_error(1);
 		delta_ang_error(1) = scalar * q_error(2);
 		delta_ang_error(2) = scalar * q_error(3);
@@ -656,9 +576,10 @@ void Ekf::calculateOutputStates()
 		// this method is too expensive to use for the attitude states due to the quaternion operations required
 		// but does not introduce a time delay in the 'correction loop' and allows smaller tracking time constants
 		// to be used
-		outputSample output_states;
+		outputSample output_states = {};
 		unsigned max_index = _output_buffer.get_length() - 1;
-		for (unsigned index=0; index <= max_index; index++) {
+
+		for (unsigned index = 0; index <= max_index; index++) {
 			output_states = _output_buffer.get_from_index(index);
 
 			// a constant  velocity correction is applied
@@ -668,12 +589,10 @@ void Ekf::calculateOutputStates()
 			output_states.pos += pos_correction;
 
 			// push the updated data to the buffer
-			_output_buffer.push_to_index(index,output_states);
-
+			_output_buffer.push_to_index(index, output_states);
 		}
 
 		// update output state to corrected values
 		_output_new = _output_buffer.get_newest();
-
 	}
 }
