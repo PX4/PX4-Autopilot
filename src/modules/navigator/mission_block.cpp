@@ -238,7 +238,6 @@ MissionBlock::is_mission_item_reached()
 
 			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
-				dist = -1.0f;
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
 
