@@ -289,13 +289,6 @@ CameraTrigger::CameraTrigger() :
 		param_set(_p_activation_time, &(_activation_time));
 	}
 
-	// Advertise topics
-	struct camera_trigger_s	report = {};
-	struct vehicle_command_ack_s ack = {};
-
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &report);
-	_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
 }
 
 CameraTrigger::~CameraTrigger()
@@ -609,7 +602,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 		command_ack.command = cmd.command;
 		command_ack.result = cmd_result;
 
-		orb_publish(ORB_ID(vehicle_command_ack), trig->_cmd_ack_pub, &command_ack);
+		if (trig->_cmd_ack_pub == nullptr) {
+			trig->_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+					     vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_command_ack), trig->_cmd_ack_pub, &command_ack);
+
+		}
 	}
 
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline,
@@ -631,7 +631,8 @@ CameraTrigger::engage(void *arg)
 
 	report.seq = trig->_trigger_seq++;
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(camera_trigger), &trig->_trigger_pub, &report, &instance_id, ORB_PRIO_DEFAULT);
 }
 
 void
