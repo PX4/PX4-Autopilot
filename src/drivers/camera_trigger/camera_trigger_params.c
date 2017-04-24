@@ -35,7 +35,7 @@
  * @file camera_trigger_params.c
  * Camera trigger parameters
  *
- * @author Mohammed Kabir <mhkabir98@gmail.com>
+ * @author Mohammed Kabir <kabir@uasys.io>
  * @author Andreas Bircher <andreas@wingtra.com>
  */
 
