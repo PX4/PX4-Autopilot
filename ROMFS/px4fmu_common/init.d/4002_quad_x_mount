@@ -15,8 +15,7 @@
 # @output AUX1 Mount pitch
 # @output AUX2 Mount roll
 # @output AUX3 Mount yaw
-# @output AUX4 Mount mode
-# @output AUX5 Mount retract
+# @output AUX4 Mount retract
 #
 # @maintainer Leon Mueller <thedevleon>
 #
