@@ -332,6 +332,8 @@ private:
 	void		control_auto(float dt);
 
 	void control_position(float dt);
+	void calculate_velocity_setpoint(float dt);
+	void calculate_thrust_setpoint(float dt);
 
 	void vel_sp_slewrate(float dt);
 
@@ -1689,6 +1691,21 @@ MulticopterPositionControl::do_control(float dt)
 void
 MulticopterPositionControl::control_position(float dt)
 {
+	calculate_velocity_setpoint(dt);
+
+	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
+	    _control_mode.flag_control_acceleration_enabled) {
+		calculate_thrust_setpoint(dt);
+
+
+	} else {
+		_reset_int_z = true;
+	}
+}
+
+void
+MulticopterPositionControl::calculate_velocity_setpoint(float dt)
+{
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 
 	if (_run_pos_control) {
@@ -1778,9 +1795,12 @@ MulticopterPositionControl::control_position(float dt)
 	} else {
 		_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
 	}
+}
 
-	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
-	    _control_mode.flag_control_acceleration_enabled) {
+void
+MulticopterPositionControl::calculate_thrust_setpoint(float dt)
+{
+	{
 		/* reset integrals if needed */
 		if (_control_mode.flag_control_climb_rate_enabled) {
 			if (_reset_int_z) {
@@ -2125,9 +2145,6 @@ MulticopterPositionControl::control_position(float dt)
 		_local_pos_sp.acc_z = thrust_sp(2) * CONSTANTS_ONE_G;
 
 		_att_sp.timestamp = hrt_absolute_time();
-
-	} else {
-		_reset_int_z = true;
 	}
 }
 
