@@ -87,10 +87,10 @@ private:
 
     float           _dt;
     float           _delta; 
-    float           _buffer[50];        // past samples
+    float           _buffer[15];        // past samples
     uint8_t         _nb_samples;
     uint8_t         _last_window_size;
-    static const uint8_t   _max_window_size = 50;
+    static const uint8_t   _max_window_size = 15;
 };
 
 } // namespace math

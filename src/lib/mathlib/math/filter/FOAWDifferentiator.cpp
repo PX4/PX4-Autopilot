@@ -117,7 +117,38 @@ namespace math
     float FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
     {
         // TODO: Implement best fit algorithm (least squares fit)
-        return 0.0f;
+        float sum1;
+        float sum2;
+        float den;
+        float result;
+        uint8_t last_sample_pos;
+        uint8_t i;
+
+        sum1 = 0.0f;
+        sum2 = 0.0f;
+        den = 0.0f;
+        result = 0.0f;
+
+        last_sample_pos = _nb_samples - 1;
+
+        for (i = 0; i < window_size; i++) {
+           sum1 += _buffer[last_sample_pos - i];
+           sum2 += _buffer[last_sample_pos - i]*i;
+        }
+
+        sum1 *= window_size;
+        sum2 *= 2;
+
+        den = window_size*(window_size+1)*(window_size+2)/6;
+
+        if (den < 0.0001f && den > -0.0001f) {
+            result = 0.0f;
+        }
+        else{
+            result = (sum1 - sum2)/den;
+        }
+
+        return result;
     }
 
     float FOAWDifferentiator::fit(void)
@@ -137,7 +168,8 @@ namespace math
         slope = 0.0f;
         window_size = 1;
 
-        slope = end_fit_FOAW(window_size); 
+        //slope = end_fit_FOAW(window_size); 
+        slope = best_fit_FOAW(window_size);
         result = slope;
 
         if (last_sample_pos == 0) {
