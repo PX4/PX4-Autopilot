@@ -92,7 +92,7 @@ usage(const char *reason)
 		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
 		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
 		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-r <alt_rate>\t\tPWM rate (50 to 400 Hz)\n"
+		"\t-r <alt_rate>\t\tPWM rate (0 - oneshot, 50 to 400 Hz)\n"
 		"\n"
 		"failsafe ...\t\t\tFailsafe PWM\n"
 		"disarmed ...\t\t\tDisarmed PWM\n"
@@ -169,7 +169,7 @@ int
 pwm_main(int argc, char *argv[])
 {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	unsigned alt_rate = 0;
+	int alt_rate = -1; // Default to indicate not set.
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
 	bool print_verbose = false;
@@ -262,7 +262,6 @@ pwm_main(int argc, char *argv[])
 
 		case 'r':
 			alt_rate = get_parameter_value(myoptarg, "PWM Rate");
-
 			break;
 
 		default:
@@ -347,8 +346,14 @@ pwm_main(int argc, char *argv[])
 
 	} else if (oneshot || !strcmp(command, "rate")) {
 
-		/* change alternate PWM rate or set oneshot */
-		if (oneshot || alt_rate > 0) {
+		/* Change alternate PWM rate or set oneshot
+		 * Either the "oneshot" command was used
+		 * and/OR -r was provided on command line and has changed the alt_rate
+		 * to the non default of -1, so we will issue the PWM_SERVO_SET_UPDATE_RATE
+		 * ioctl
+		 */
+
+		if (oneshot || alt_rate >= 0) {
 			ret = px4_ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, oneshot ? 0 : alt_rate);
 
 			if (ret != OK) {
