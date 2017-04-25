@@ -1746,6 +1746,9 @@ void MulticopterPositionControl::control_auto(float dt)
 			triplet_updated = true;
 		}
 
+		/* we need to update _curr_pos_sp always since navigator applies slew rate on z */
+		_curr_pos_sp = curr_pos_sp;
+
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
