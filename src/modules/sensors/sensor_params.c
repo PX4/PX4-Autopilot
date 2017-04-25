@@ -3407,6 +3407,8 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
  *
  * Set to 400 for industry default or 1000 for high frequency ESCs.
  *
+ * Set to 0 for Oneshot125.
+ *
  * @reboot_required true
  *
  * @min -1
