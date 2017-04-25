@@ -78,7 +78,7 @@ bool @(topic)_Publisher::init()
     mp_publisher = Domain::createPublisher(mp_participant,Wparam,(PublisherListener*)&m_listener);
     if(mp_publisher == nullptr)
         return false;
-    std::cout << "Publisher created, waiting for Subscribers." << std::endl;
+    //std::cout << "Publisher created, waiting for Subscribers." << std::endl;
     return true;
 }
 

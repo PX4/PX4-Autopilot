@@ -31,9 +31,9 @@ UART_node::~UART_node()
     close_uart();
 }
 
-uint8_t UART_node::init_uart(const char * uart_name)
+uint8_t UART_node::init_uart(const char * uart_name, uint32_t speed)
 {
-    uint32_t speed = 115200;
+    if (0 == speed) speed = 115200;
     // Open a serial port
     m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
@@ -77,12 +77,14 @@ uint8_t UART_node::init_uart(const char * uart_name)
     }
 
     char aux[64];
+    bool flush = false;
     while (0 < read(m_uart_filestream, (void*)&aux, 64))
     {
         //printf("%s ", aux);
+        flush = true;
         usleep(1000);
     }
-    printf("flush\n");
+    if (flush) printf("flush\n");
 
     return 0;
 }
@@ -113,10 +115,13 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
     {
         if (1 != read(m_uart_filestream, (void*)&aux, 1))
         {
-            //int errsv = errno;
+            int errsv = errno;
             //printf("UART Fail %d\n", errsv);
             // printf("%d %d %d %d %d %d %d \n", EAGAIN, EBADF, EFAULT, EINTR, EINVAL, EIO, EISDIR);
-            //if (errsv && EAGAIN != errsv) printf("UART Fail %d\n", errsv);
+            if (errsv && EAGAIN != errsv)
+            {
+                printf("UART Fail %d\n", errsv);
+            }
             return 0;
         }
 
@@ -130,7 +135,7 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
             {
                 if (rx_buff_pos > 3)
                 {
-                    printf("æ");
+                    printf("                                 (↓ %u)\n", rx_buff_pos - 3);
                     //printf("# %u bytes lost 1\n", rx_buff_pos - 3 + 1);
                     rx_buffer[0] = rx_buffer[1] = rx_buffer[2] = '>';
                     rx_buff_pos = 3;
@@ -144,13 +149,13 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
                 0 == strncmp(rx_buffer, ">>>", 3))
             {
                 rx_length = rx_buff_pos - 7;
-                printf("# (@,%d) ", rx_length);
+                //printf("# (@,%d) ", rx_length);
                 break;
             }
         }
         if (rx_buff_pos > max_size)
         {
-            printf("ß");
+            printf("                                 (↓↓ %lu)\n", max_size);
             // printf("# %u bytes lost 2\n", rx_buff_pos);
             rx_buff_pos = 0;
             return 0;
@@ -170,9 +175,26 @@ uint8_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t leng
 {
     if (m_uart_filestream == -1) return 2;
 
+    int ret = 0;
     dprintf(m_uart_filestream, ">>>%c", topic_ID);    // topic_ID
-    write(m_uart_filestream, buffer, length);
+    ret = write(m_uart_filestream, buffer, length);
+
+    if (ret != length)
+    {
+        int errsv = errno;
+        if (ret == -1 )
+        {
+            printf("                               => Writing error '%d'\n", errsv);
+        }
+        else
+        {
+            printf("                               => Writed '%d' != length(%u) error '%d'\n", ret, length, errsv);
+        }
+    }
+
+
     dprintf(m_uart_filestream, "<<<");
+    //fsync(m_uart_filestream);
     /*printf(">>>%hhd|", topic_ID);
     for (int i = 0; i < length; ++i)printf(" %hhu", buffer[i]);
     printf("<<<\n");*/

@@ -102,7 +102,7 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
             {
                 // Print your structure data here.
                 ++n_msg;
-                std::cout << "Sample received, count=" << n_msg << std::endl;
+                //std::cout << "Sample received, count=" << n_msg << std::endl;
                 has_msg = true;
 
             }
