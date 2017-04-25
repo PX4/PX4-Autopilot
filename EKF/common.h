@@ -183,14 +183,14 @@ struct dragSample {
 struct parameters {
 	// measurement source control
 	int fusion_mode{MASK_USE_GPS};		// bitmasked integer that selects which aiding sources will be used
-	int vdist_sensor_type{VDIST_SENSOR_BARO};		// selects the primary source for height data
-	int sensor_interval_min_ms{20};	// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
+	int vdist_sensor_type{VDIST_SENSOR_BARO};// selects the primary source for height data
+	int sensor_interval_min_ms{20};		// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
 
 	// measurement time delays
 	float mag_delay_ms{0.0f};		// magnetometer measurement delay relative to the IMU (msec)
 	float baro_delay_ms{0.0f};		// barometer height measurement delay relative to the IMU (msec)
-	float gps_delay_ms{200.0f};		// GPS measurement delay relative to the IMU (msec)
-	float airspeed_delay_ms{200.0f};	// airspeed measurement delay relative to the IMU (msec)
+	float gps_delay_ms{110.0f};		// GPS measurement delay relative to the IMU (msec)
+	float airspeed_delay_ms{100.0f};	// airspeed measurement delay relative to the IMU (msec)
 	float flow_delay_ms{5.0f};		// optical flow measurement delay relative to the IMU (msec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};		// range finder measurement delay relative to the IMU (msec)
 	float ev_delay_ms{100.0f};		// off-board vision measurement delay relative to the IMU (msec)
@@ -217,7 +217,7 @@ struct parameters {
 	float gps_vel_noise{5.0e-1f};		// observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise{0.5f};		// observation noise for gps position fusion (m)
 	float pos_noaid_noise{10.0f};		// observation noise for non-aiding position fusion (m)
-	float baro_noise{2.0f};		// observation noise for barometric height fusion (m)
+	float baro_noise{2.0f};			// observation noise for barometric height fusion (m)
 	float baro_innov_gate{5.0f};		// barometric height innovation consistency gate size (STD)
 	float posNE_innov_gate{5.0f};		// GPS horizontal position innovation consistency gate size (STD)
 	float vel_innov_gate{5.0f};		// GPS velocity innovation consistency gate size (STD)
@@ -227,10 +227,10 @@ struct parameters {
 	float mag_heading_noise{3.0e-1f};	// measurement noise used for simple heading fusion (rad)
 	float mag_noise{5.0e-2f};		// measurement noise used for 3-axis magnetoemeter fusion (Gauss)
 	float mag_declination_deg{0.0f};	// magnetic declination (degrees)
-	float heading_innov_gate{2.6f};	// heading fusion innovation consistency gate size (STD)
+	float heading_innov_gate{2.6f};		// heading fusion innovation consistency gate size (STD)
 	float mag_innov_gate{3.0f};		// magnetometer fusion innovation consistency gate size (STD)
-	int mag_declination_source{7};	// bitmask used to control the handling of declination data
-	int mag_fusion_type{0};		// integer used to specify the type of magnetometer fusion used
+	int mag_declination_source{7};		// bitmask used to control the handling of declination data
+	int mag_fusion_type{0};			// integer used to specify the type of magnetometer fusion used
 
 	// airspeed fusion
 	float tas_innov_gate{5.0f};		// True Airspeed Innovation consistency gate size in standard deciation
@@ -239,14 +239,14 @@ struct parameters {
 	// synthetic sideslip fusion
 	float beta_innov_gate{5.0f};		// synthetic sideslip innovation consistency gate size in standard deviation (STD)
 	float beta_noise{0.3f};			// synthetic sideslip noise (rad)
-	float beta_avg_ft_us{1000000.0f};		// The average time between synthetic sideslip measurements (usec)
+	float beta_avg_ft_us{1000000.0f};	// The average time between synthetic sideslip measurements (usec)
 
 	// range finder fusion
 	float range_noise{0.1f};		// observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};		// range finder fusion innovation consistency gate size (STD)
-	float rng_gnd_clearance{0.1f};	// minimum valid value for range when on ground (m)
+	float rng_gnd_clearance{0.1f};		// minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};		// Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
-	float range_noise_scaler{0.0f};	// scaling from range measurement to noise (m/m)
+	float range_noise_scaler{0.0f};		// scaling from range measurement to noise (m/m)
 
 	// vision position fusion
 	float ev_innov_gate{5.0f};		// vision estimator fusion innovation consistency gate size (STD)
@@ -254,37 +254,37 @@ struct parameters {
 	// optical flow fusion
 	float flow_noise{0.15f};		// observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};	// observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-	int flow_qual_min{1};		// minimum acceptable quality integer from  the flow sensor
+	int flow_qual_min{1};			// minimum acceptable quality integer from  the flow sensor
 	float flow_innov_gate{3.0f};		// optical flow fusion innovation consistency gate size (STD)
 	float flow_rate_max{2.5f};		// maximum valid optical flow rate (rad/sec)
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
-	int gps_check_mask{21};     // bitmask used to control which GPS quality checks are used
-	float req_hacc{5.0f};         // maximum acceptable horizontal position error
-	float req_vacc{8.0f};         // maximum acceptable vertical position error
-	float req_sacc{1.0f};         // maximum acceptable speed error
-	int req_nsats{6};          // minimum acceptable satellite count
-	float req_gdop{2.0f};         // maximum acceptable geometric dilution of precision
-	float req_hdrift{0.3f};       // maximum acceptable horizontal drift speed
-	float req_vdrift{0.5f};       // maximum acceptable vertical drift speed
+	int gps_check_mask{21};			// bitmask used to control which GPS quality checks are used
+	float req_hacc{5.0f};			// maximum acceptable horizontal position error
+	float req_vacc{8.0f};			// maximum acceptable vertical position error
+	float req_sacc{1.0f};			// maximum acceptable speed error
+	int req_nsats{6};			// minimum acceptable satellite count
+	float req_gdop{2.0f};			// maximum acceptable geometric dilution of precision
+	float req_hdrift{0.3f};			// maximum acceptable horizontal drift speed
+	float req_vdrift{0.5f};			// maximum acceptable vertical drift speed
 
 	// XYZ offset of sensors in body axes (m)
-	Vector3f imu_pos_body;	// xyz position of IMU in body frame (m)
-	Vector3f gps_pos_body;	// xyz position of the GPS antenna in body frame (m)
-	Vector3f rng_pos_body;	// xyz position of range sensor in body frame (m)
-	Vector3f flow_pos_body;	// xyz position of range sensor focal point in body frame (m)
-	Vector3f ev_pos_body;	// xyz position of VI-sensor focal point in body frame (m)
+	Vector3f imu_pos_body;			// xyz position of IMU in body frame (m)
+	Vector3f gps_pos_body;			// xyz position of the GPS antenna in body frame (m)
+	Vector3f rng_pos_body;			// xyz position of range sensor in body frame (m)
+	Vector3f flow_pos_body;			// xyz position of range sensor focal point in body frame (m)
+	Vector3f ev_pos_body;			// xyz position of VI-sensor focal point in body frame (m)
 
 	// output complementary filter tuning
-	float vel_Tau{0.25f};	// velocity state correction time constant (1/sec)
-	float pos_Tau{0.25f};	// postion state correction time constant (1/sec)
+	float vel_Tau{0.25f};			// velocity state correction time constant (1/sec)
+	float pos_Tau{0.25f};			// postion state correction time constant (1/sec)
 
 	// accel bias learning control
 	float acc_bias_lim{0.4f};		// maximum accel bias magnitude (m/s/s)
 	float acc_bias_learn_acc_lim{25.0f};	// learning is disabled if the magnitude of the IMU acceleration vector is greeater than this (m/sec**2)
 	float acc_bias_learn_gyr_lim{3.0f};	// learning is disabled if the magnitude of the IMU angular rate vector is greeater than this (rad/sec)
-	float acc_bias_learn_tc{0.5f};	// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
+	float acc_bias_learn_tc{0.5f};		// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	unsigned no_gps_timeout_max{7000000};	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
 						// rejected before attempting to reset the states to the GPS measurement (usec)
@@ -292,9 +292,10 @@ struct parameters {
 						// the EKF will report that it is dead-reckoning (usec)
 
 	// multi-rotor drag specific force fusion
-	float drag_noise{2.5f};		// observation noise for drag specific force measurements (m/sec**2)
+	float drag_noise{2.5f};			// observation noise for drag specific force measurements (m/sec**2)
 	float bcoef_x{25.0f};			// ballistic coefficient along the X-axis (kg/m**2)
 	float bcoef_y{25.0f};			// ballistic coefficient along the Y-axis (kg/m**2)
+
 };
 
 struct stateSample {
