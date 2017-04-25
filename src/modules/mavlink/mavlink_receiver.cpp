@@ -60,6 +60,7 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_tone_alarm.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -291,6 +292,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_LOGGING_ACK:
 		handle_message_logging_ack(msg);
+		break;
+
+	case MAVLINK_MSG_ID_PLAY_TUNE:
+		handle_message_play_tune(msg);
 		break;
 
 	default:
@@ -1434,6 +1439,30 @@ MavlinkReceiver::handle_message_logging_ack(mavlink_message_t *msg)
 
 	if (ulog_streaming) {
 		ulog_streaming->handle_ack(logging_ack);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
+{
+	mavlink_play_tune_t play_tune;
+	mavlink_msg_play_tune_decode(msg, &play_tune);
+
+	char *tune = play_tune.tune;
+
+	if ((mavlink_system.sysid == play_tune.target_system ||
+	     play_tune.target_system == 0) &&
+	    (mavlink_system.compid == play_tune.target_component ||
+	     play_tune.target_component == 0)) {
+
+		if (*tune == 'M') {
+			int fd = px4_open(TONEALARM0_DEVICE_PATH, PX4_F_WRONLY);
+
+			if (fd >= 0) {
+				px4_write(fd, tune, strlen(tune) + 1);
+				px4_close(fd);
+			}
+		}
 	}
 }
 
