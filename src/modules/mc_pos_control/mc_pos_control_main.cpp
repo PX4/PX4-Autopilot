@@ -1715,7 +1715,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 	/* limit vertical takeoff speed if we are in auto takeoff */
 	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && !_control_mode.flag_control_manual_enabled) {
 		_vel_sp(2) = math::max(_vel_sp(2), -_params.tko_speed);
 	}
 
@@ -1738,10 +1739,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
 		/* limit vertical velocity to the current ramp value */
 		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
-		//printf("ramping: %f %f\n", (double)_takeoff_vel_limit, (double)_vel_sp(2));
-
-	} else {
-		_takeoff_vel_limit = -0.5f;
 	}
 
 	/* publish velocity setpoint */
@@ -2299,6 +2296,7 @@ MulticopterPositionControl::task_main()
 		/* switch to smooth takeoff if we got out of landed state */
 		if (!_vehicle_land_detected.landed && was_landed) {
 			_in_takeoff = true;
+			_takeoff_vel_limit = -0.5f;
 		}
 
 		was_landed = _vehicle_land_detected.landed;
