@@ -177,7 +177,6 @@ struct dragSample {
 
 // bad accelerometer detection and mitigation
 #define BADACC_PROBATION	10E6	// Number of usec that accel data declared bad must continuously pass checks to be declared good
-#define BADACC_HGT_RESET	1E6	// Number of usec that accel data must continuously fail checks to trigger a height reset
 #define BADACC_BIAS_PNOISE	4.9f	// The delta velocity process noise is set to this when accel data is declared bad (m/s**2)
 
 struct parameters {
@@ -295,6 +294,10 @@ struct parameters {
 	float drag_noise{2.5f};			// observation noise for drag specific force measurements (m/sec**2)
 	float bcoef_x{25.0f};			// ballistic coefficient along the X-axis (kg/m**2)
 	float bcoef_y{25.0f};			// ballistic coefficient along the Y-axis (kg/m**2)
+
+	// control of accel error detection and mitigation (IMU clipping)
+	float vert_innov_test_lim{4.5f};	// Number of standard deviations allowed before the combined vertical velocity and position test is declared as failed
+	int bad_acc_reset_delay_us{500000};	// Continuous time that the vertical position and velocity innovation test must fail before the states are reset (usec)
 
 };
 
