@@ -1803,12 +1803,12 @@ void MulticopterPositionControl::control_auto(float dt)
 
 			/* by default use current setpoint as is */
 			math::Vector<3> pos_sp = _curr_pos_sp;
+			matrix::Vector2f unit_prev_to_current((_curr_pos_sp(0) - _prev_pos_sp(0)), (_curr_pos_sp(1) - _prev_pos_sp(1)));
 
 			/* follow line */
-			if ((_curr_pos_sp - _prev_pos_sp).length() > MIN_DIST) {
+			if (unit_prev_to_current.length()  > 0.1f) {
 
 				/* unit vector from previous to current */
-				matrix::Vector2f unit_prev_to_current((_curr_pos_sp(0) - _prev_pos_sp(0)), (_curr_pos_sp(1) - _prev_pos_sp(1)));
 				unit_prev_to_current = unit_prev_to_current.normalized();
 
 				/* orthogonal distance from current position to unit_prev_to_current */
@@ -1864,11 +1864,6 @@ void MulticopterPositionControl::control_auto(float dt)
 						float slope = (get_cruising_speed_xy() - _min_cruise_speed.get())  / _target_threshold_xy.get();
 						vel_sp_along_track =  slope * vec_pos_to_current.length() + _min_cruise_speed.get();
 					}
-
-					/* if current velocity is already smaller, use current velocity */
-					matrix::Vector2f vel_xy(_vel(0), _vel(1));
-					float vel_xy_mag = vel_xy * unit_prev_to_current;
-					vel_sp_along_track = (vel_xy_mag > vel_sp_along_track) ? vel_sp_along_track : vel_xy_mag;
 				}
 
 				/* we want position setpoint not farther away then cruise speed */
@@ -1878,7 +1873,7 @@ void MulticopterPositionControl::control_auto(float dt)
 				float cruise_sp_mag = sqrtf(vel_sp_orthogonal * vel_sp_orthogonal + vel_sp_along_track * vel_sp_along_track);
 
 				/* check on which section of the track the vehicle is*/
-				bool current_behind = ((vec_pos_to_current * -1.0f) * unit_prev_to_current) >= 0.0f;
+				bool current_behind = ((vec_pos_to_current * -1.0f) * unit_prev_to_current) > 0.0f;
 
 				/* orthogonal velcoity is smaller then cruise speed */
 				if (vel_sp_orthogonal < get_cruising_speed_xy() && !current_behind) {
@@ -1891,7 +1886,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					pos_sp(1) = closest_point(1) + unit_prev_to_current(1) * vel_sp_along_track / _params.pos_p(0);
 
 				} else {
-					/* we are more then cruise_speed away from track */
+					/* we are more than cruise_speed away from track */
 					/* check on which section we are with default as closest_point */
 					bool previous_in_front = (vec_prev_to_pos * unit_prev_to_current) < 0.0f;
 
