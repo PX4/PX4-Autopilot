@@ -291,9 +291,9 @@ __EXPORT void board_spi_reset(int ms)
 	px4_arch_configgpio(GPIO_SPI_CS_HMC5983);
 	px4_arch_configgpio(GPIO_SPI_CS_MS5611);
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI160);		// BMI160
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_ACC);	// BMI055 ACC
-	px4_arch_configgpio(GPIO_SPI_CS_OFF_BMI055_GYR);	// BMI055 GYRO
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTC_PIN2);     //BMI160
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTC_PIN15);    //BMI055 ACC
+	px4_arch_configgpio(GPIO_SPI1_CS_PORTE_PIN15);    //BMI055 GYRO
 
 	stm32_configgpio(GPIO_SPI1_SCK);
 	stm32_configgpio(GPIO_SPI1_MISO);
