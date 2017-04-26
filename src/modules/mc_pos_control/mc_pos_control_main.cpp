@@ -152,6 +152,8 @@ private:
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor_manual; /**< maximum velocity setpoint slewrate for manual acceleration */
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
+	control::BlockParamFloat _acceleration_z_max_up; /** max acceleration up */
+	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
@@ -174,7 +176,9 @@ private:
 		deceleration
 	};
 
-	manual_stick_input _user_intention; /**< defines what the user intends to do derived from the stick input */
+	manual_stick_input _user_intention_xy; /**< defines what the user intends to do derived from the stick input */
+	manual_stick_input
+	_user_intention_z; /**< defines what the user intends to do derived from the stick input in z direciton */
 
 	struct {
 		param_t thr_min;
@@ -206,8 +210,6 @@ private:
 		param_t mc_att_yaw_p;
 		param_t hold_max_xy;
 		param_t hold_max_z;
-		param_t acc_up_max;
-		param_t acc_down_max;
 		param_t alt_mode;
 		param_t opt_recover;
 		param_t rc_flt_smp_rate;
@@ -228,8 +230,6 @@ private:
 		float mc_att_yaw_p;
 		float hold_max_xy;
 		float hold_max_z;
-		float acc_up_max;
-		float acc_down_max;
 		float vel_max_xy;
 		float vel_cruise_xy;
 		float vel_max_up;
@@ -285,6 +285,7 @@ private:
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	matrix::Vector2f _stick_input_xy_prev; /*for manual controlled mode to detect direction change */
 
+
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
@@ -293,8 +294,10 @@ private:
 	float _vel_z_lp;
 	float _acc_z_lp;
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
-	float _acceleration_state_dependent_xy;
-	float _manual_jerk_limit; /**< jerk limit in manual mode dependent on stick input */
+	float _acceleration_state_dependent_xy; /* acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z; /* acceleration limit applied in manual mode in z */
+	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
+	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 
 	bool _in_takeoff; /**< flag for smooth velocity setpoint takeoff ramp */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
@@ -380,7 +383,9 @@ private:
 
 	bool in_auto_takeoff();
 
-	void set_manual_acceleration(matrix::Vector2f &stick_input_xy_NED, const float dt);
+	void set_manual_acceleration_xy(matrix::Vector2f &stick_input_xy_NED, const float dt);
+
+	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED, const float dt);
 
 	/**
 	 * limit altitude based on several conditions
@@ -449,6 +454,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_acceleration_hor_manual(this, "ACC_HOR_MAN", true),
 	_deceleration_hor_slow(this, "DEC_HOR_SLOW", true),
+	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
+	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
@@ -460,7 +467,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
-	_user_intention(brake),
+	_user_intention_xy(brake),
+	_user_intention_z(brake),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_reset_pos_sp(true),
@@ -478,9 +486,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_lp(0),
 	_acc_z_lp(0),
 	_vel_max_xy(0.0f),
-	_takeoff_vel_limit(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
-	_manual_jerk_limit(1.0f),
+	_acceleration_state_dependent_z(0.0f),
+	_manual_jerk_limit_xy(1.0f),
+	_manual_jerk_limit_z(1.0f),
+	_in_takeoff(false),
+	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -553,8 +564,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-	_params_handles.acc_up_max = param_find("MPC_ACC_UP_MAX");
-	_params_handles.acc_down_max = param_find("MPC_ACC_DOWN_MAX");
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 	_params_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
@@ -565,7 +574,19 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	/* default limit for acceleration and manual jerk*/
 	_acceleration_state_dependent_xy = _acceleration_hor_max.get();
-	_manual_jerk_limit = _jerk_hor_max.get();
+	_manual_jerk_limit_xy = _jerk_hor_max.get();
+
+	/* acceleration up must be larger than acceleration down */
+	if (_acceleration_z_max_up.get() < _acceleration_z_max_down.get()) {
+		_acceleration_z_max_up.set(_acceleration_z_max_down.get());
+	}
+
+	/* for z direction we use fixed jerk for now
+	 * TODO: check if other jerk value is required */
+	_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+	_manual_jerk_limit_z = _jerk_hor_max.get() / 5.0f;
+
+
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -661,10 +682,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.hold_max_xy = math::max(0.f, v);
 		param_get(_params_handles.hold_max_z, &v);
 		_params.hold_max_z = math::max(0.f, v);
-		param_get(_params_handles.acc_up_max, &v);
-		_params.acc_up_max = v;
-		param_get(_params_handles.acc_down_max, &v);
-		_params.acc_down_max = v;
 		param_get(_params_handles.rc_flt_smp_rate, &(_params.rc_flt_smp_rate));
 		_params.rc_flt_smp_rate = math::max(1.0f, _params.rc_flt_smp_rate);
 		/* since we use filter to detect manual direction change, take half the cutoff of the stick filtering */
@@ -932,11 +949,11 @@ MulticopterPositionControl::limit_altitude()
 	if (!_run_alt_control && _vel_sp(2) <= 0.0f) {
 
 		/* time to travel to reach zero velocity */
-		float delta_t = -_vel(2) / _params.acc_down_max;
+		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
 
 		/* predicted position */
 		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f *
-				   _params.acc_down_max * delta_t *delta_t;
+				   _acceleration_z_max_down.get() * delta_t *delta_t;
 
 		if (pos_z_next <= -_vehicle_land_detected.alt_max) {
 			_pos_sp(2) = -_vehicle_land_detected.alt_max;
@@ -989,7 +1006,68 @@ MulticopterPositionControl::get_cruising_speed_xy()
 
 
 void
-MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, const float dt)
+MulticopterPositionControl::set_manual_acceleration_z(float &max_acceleration, const float stick_z, const float dt)
+{
+
+
+	/* in manual altitude control apply acceleration limit based on stick input
+	 * we consider two states
+	 * 1.) brake
+	 * 2.) accelerate */
+
+	/* check if zero input stick */
+	const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
+
+	/* default is acceleration */
+	manual_stick_input intention = acceleration;
+
+	/* check zero input stick */
+	if (is_current_zero) {
+		intention = brake;
+	}
+
+	/* get max and min acceleration where min acceleration is just 1/5 of max acceleration */
+	max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+	float min_acceleration = max_acceleration / 5.0f;
+
+	/*
+	 * update user input
+	 */
+	if ((_user_intention_z != brake) && (intention  == brake)) {
+
+		/* we start with lowest acceleration */
+		_acceleration_state_dependent_z = min_acceleration;
+
+		/* reset slew rate */
+		_vel_sp_prev(2) = _vel(2);
+		_user_intention_z = brake;
+	}
+
+	_user_intention_z = intention;
+
+	/*
+	 * apply acceleration depending on state
+	 */
+	if (_user_intention_z == brake) {
+
+		/* limit jerk when braking to zero */
+		float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / dt;
+
+		if (jerk > _manual_jerk_limit_z) {
+			_acceleration_state_dependent_z = _manual_jerk_limit_z * dt + _acceleration_state_dependent_z;
+
+		} else {
+			_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+		}
+	}
+
+	if (_user_intention_z == acceleration) {
+		_acceleration_state_dependent_z = (max_acceleration - min_acceleration) * fabsf(stick_z) + min_acceleration;
+	}
+}
+
+void
+MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_xy, const float dt)
 {
 
 	/*
@@ -1049,20 +1127,22 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	 */
 
 	/* we always want to break starting with slow deceleration */
-	if ((_user_intention != brake) && (intention  == brake)) {
-		_manual_jerk_limit = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() * sqrtf(_vel(0) * _vel(
-
-					     0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+	if ((_user_intention_xy != brake) && (intention  == brake)) {
+		_manual_jerk_limit_xy = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() *
+					sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
 
 		/* we start braking with lowest accleration */
 		_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 
+		_vel_sp_prev(0) = _vel(0);
+		_vel_sp_prev(1) = _vel(1);
+
 	}
 
-	switch (_user_intention) {
+	switch (_user_intention_xy) {
 	case brake: {
 			if (intention != brake) {
-				_user_intention = acceleration;
+				_user_intention_xy = acceleration;
 				/* we initialize with lowest acceleration */
 				_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
 			}
@@ -1082,10 +1162,10 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 			/* exit direction change if one of the condition is met */
 			if (intention == brake) {
-				_user_intention = intention;
+				_user_intention_xy = intention;
 
 			} else if (stick_vel_aligned) {
-				_user_intention = acceleration;
+				_user_intention_xy = acceleration;
 
 			} else if (_manual_direction_change_hysteresis.get_state()) {
 
@@ -1100,12 +1180,24 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 		}
 
 	case acceleration: {
-			_user_intention = intention;
+			_user_intention_xy = intention;
+
+			if (_user_intention_xy == direction_change) {
+				_vel_sp_prev(0) = _vel(0);
+				_vel_sp_prev(1) = _vel(1);
+			}
+
 			break;
 		}
 
 	case deceleration: {
-			_user_intention = intention;
+			_user_intention_xy = intention;
+
+			if (_user_intention_xy == direction_change) {
+				_vel_sp_prev(0) = _vel(0);
+				_vel_sp_prev(1) = _vel(1);
+			}
+
 			break;
 		}
 	}
@@ -1113,14 +1205,14 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	/*
 	 * apply acceleration based on state
 	*/
-	switch (_user_intention) {
+	switch (_user_intention_xy) {
 	case brake: {
 
 			/* limit jerk when braking to zero */
 			float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
 
-			if (jerk > _manual_jerk_limit) {
-				_acceleration_state_dependent_xy = _manual_jerk_limit * dt + _acceleration_state_dependent_xy;
+			if (jerk > _manual_jerk_limit_xy) {
+				_acceleration_state_dependent_xy = _manual_jerk_limit_xy * dt + _acceleration_state_dependent_xy;
 
 			} else {
 				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
@@ -1248,7 +1340,10 @@ MulticopterPositionControl::control_manual(float dt)
 
 	/* adjust acceleration based on stick input */
 	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
-	set_manual_acceleration(stick_xy, dt);
+	set_manual_acceleration_xy(stick_xy, dt);
+	float stick_z = man_vel_sp(2);
+	float max_acc_z;
+	set_manual_acceleration_z(max_acc_z, stick_z, dt);
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
 	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
@@ -1262,10 +1357,10 @@ MulticopterPositionControl::control_manual(float dt)
 	 */
 
 	/* want to get/stay in altitude hold if user has z stick in the middle (accounted for deadzone already) */
-	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && fabsf(man_vel_sp(2)) < FLT_EPSILON;
+	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && (_user_intention_z == brake);
 
 	/* want to get/stay in position hold if user has xy stick in the middle (accounted for deadzone already) */
-	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && (_user_intention ==  brake);
+	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && (_user_intention_xy ==  brake);
 
 	/* check vertical hold engaged flag */
 	if (_alt_hold_engaged) {
@@ -1274,14 +1369,11 @@ MulticopterPositionControl::control_manual(float dt)
 	} else {
 
 		/* check if we switch to alt_hold_engaged */
-		bool smooth_alt_transition = alt_hold_desired &&
+		bool smooth_alt_transition = alt_hold_desired && ((max_acc_z - _acceleration_state_dependent_z) < FLT_EPSILON) &&
 					     (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z);
 
 		/* during transition predict setpoint forward */
 		if (smooth_alt_transition) {
-
-			/* get max acceleration */
-			float max_acc_z = (_vel(2) < 0.0f ? _params.acc_down_max : -_params.acc_up_max);
 
 			/* time to travel from current velocity to zero velocity */
 			float delta_t = fabsf(_vel(2) / max_acc_z);
@@ -1575,7 +1667,14 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	/* limit vertical acceleration */
 
 	float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
-	float max_acc_z = acc_z < 0.0f ? -_params.acc_up_max : _params.acc_down_max;
+	float max_acc_z;
+
+	if (_control_mode.flag_control_manual_enabled) {
+		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
+
+	} else {
+		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+	}
 
 	if (fabsf(acc_z) > fabsf(max_acc_z)) {
 		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
@@ -1942,7 +2041,9 @@ MulticopterPositionControl::do_control(float dt)
 		calculate_thrust_setpoint(dt);
 
 	} else {
+		/* reset acceleration to default */
 		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
 		control_non_manual(dt);
 	}
 }
@@ -2014,6 +2115,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	if (!_control_mode.flag_control_climb_rate_enabled) {
 		_vel_sp(2) = 0.0f;
 	}
+
 
 	/* limit vertical takeoff speed if we are in auto takeoff */
 	if (_pos_sp_triplet.current.valid
