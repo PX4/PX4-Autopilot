@@ -322,10 +322,11 @@ int16_t
 MixerGroup::group_get_param(mixer_param_s *param)
 {
 	Mixer	 *mixer = _first;
-	uint16_t remaining = param->index;
 	uint16_t mix_param_count;
+	int16_t  remaining = param->index;
+
 	param->mix_sub_index = -1;
-	param->mix_type = MIXER_TYPES_NONE;
+	param->type = MIXER_PARAM_MSG_TYPE_PARAMETER;
 	strcpy(param->name, "NONE");
 	param->mix_index = 0;
 
@@ -333,15 +334,16 @@ MixerGroup::group_get_param(mixer_param_s *param)
 		mix_param_count = mixer->parameter_count();
 
 		if (remaining < mix_param_count) {
-			param->param_index = remaining;
-			return mixer->get_parameter(param);
+			return mixer->get_parameter(param, remaining);
 		}
 
 		remaining -= mix_param_count;
+
 		param->mix_index++;
 		mixer = mixer->_next;
 	}
 
+	param->flags = 0x80;
 	return -1;
 }
 
@@ -359,8 +361,7 @@ MixerGroup::group_set_param(mixer_param_s *param)
 		mix_param_count = mixer->parameter_count();
 
 		if (remaining < mix_param_count) {
-			param->param_index = remaining;
-			return mixer->set_parameter(param);
+			return mixer->set_parameter(param, remaining);
 		}
 
 		remaining -= mix_param_count;

@@ -362,9 +362,9 @@ mixer_param_list(const char *devname)
 			return 1;
 		}
 
-		printf("index:%-3u mixer:%u submixer:%u type:%u param:%-3u size:%u id:%-16s values:[", index, param.mix_index,
+		printf("index:%-3u mixer:%u submixer:%u type:%u size:%u id:%-16s values:[", index, param.mix_index,
 		       param.mix_sub_index,
-		       param.mix_type, param.param_index, param.array_size, param.name);
+		       param.type, param.array_size, param.name);
 
 		for (int val = 0; val < param.array_size; val++) {
 			printf("%.3f, ", (double) param.values[val]);
@@ -396,8 +396,7 @@ mixer_param_set(const char *devname, int index, float *values)
 	param.index = index;
 	param.mix_index = -1;
 	param.mix_sub_index = -1;
-	param.param_index = -1;
-	param.mix_type = MIXER_TYPES_NONE;
+	param.type = MIXER_PARAM_MSG_TYPE_PARAMETER;
 	strcpy(param.name, "");
 
 	//Clear value to zero and only use first value.  px4 mixers specifc
@@ -412,9 +411,7 @@ mixer_param_set(const char *devname, int index, float *values)
 		return -1;
 	}
 
-	PX4_INFO("mixer param index:%u value:%.4f set success\n", param.index, param.mix_sub_index,
-		 param.param_index,
-		 (double) param.values[0]);
+	PX4_INFO("mixer param index:%u value:%.4f set success\n", param.index, (double) param.values[0]);
 	return 0;
 }
 

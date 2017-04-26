@@ -430,98 +430,115 @@ SimpleMixer::check()
 #if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 
+#define SIMPLEMIXER_MAIN_PARAM_COUNT 6
+#define SIMPLEMIXER_SUB_PRAM_COUNT 7
+
 int16_t
-SimpleMixer::get_parameter(mixer_param_s *param)
+SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 {
 	if (_pinfo == nullptr) { return -1; }
 
-	int param_index = param->param_index;
 	param->mix_sub_index = 0;
-	param->mix_type = MIXER_TYPES_SIMPLE;
+	param->type = MIXER_PARAM_MSG_TYPE_PARAMETER;
 	param->flags = 0;
 	param->array_size = 1;
 
 	switch (param_index) {
 	case 0:
+		strcpy(param->name, "SIMPLE");
+		param->type = MIXER_PARAM_MSG_TYPE_MIXTYPE;
+		param->array_size = 0;
+		param->flags = 0x01;
+		return 0;
+		break;
+
+	case 1:
 		param->values[0] = _pinfo->output_scaler.negative_scale;
 		strcpy(param->name, "OUT_NEG_SCALE");
 		return 1;
 		break;
 
-	case 1:
+	case 2:
 		param->values[0] =  _pinfo->output_scaler.positive_scale;
 		strcpy(param->name, "OUT_POS_SCALE");
 		return 1;
 		break;
 
-	case 2:
+	case 3:
 		param->values[0] =  _pinfo->output_scaler.offset;
 		strcpy(param->name, "OUT_OFFSET");
 		return 1;
 		break;
 
-	case 3:
+	case 4:
 		param->values[0] =  _pinfo->output_scaler.min_output;
 		strcpy(param->name, "MIN_OUTPUT");
 		return 1;
 		break;
 
-	case 4:
+	case 5:
 		param->values[0] =  _pinfo->output_scaler.max_output;
 		strcpy(param->name, "MAX_OUTPUT");
 		return 1;
 		break;
 	}
 
-	param_index -= 5;
+	param_index -= SIMPLEMIXER_MAIN_PARAM_COUNT;
 	param->mix_sub_index = 1;
 
-	while (param_index > 5) {
+	while (param_index > (SIMPLEMIXER_SUB_PRAM_COUNT - 1)) {
 		param->mix_sub_index++;
-		param_index -= 6;
+		param_index -= SIMPLEMIXER_SUB_PRAM_COUNT;
 	}
 
 	if (param->mix_sub_index > _pinfo->control_count) {
 		return -1;
 	}
 
-	param->mix_type = MIXER_TYPES_SIMPLE_INPUT;
-
 	switch (param_index) {
 	case 0:
-		strncpy(param->name, "INPUT", 16);
-		param->values[0] = _pinfo->controls[param->mix_sub_index - 1].control_group,
-				   param->values[1] = _pinfo->controls[param->mix_sub_index - 1].control_index;
-		param->array_size = 2;
-		param->flags = 1;
+		strcpy(param->name, "SIMPLE_INPUT");
+		param->type = MIXER_PARAM_MSG_TYPE_MIXTYPE;
+		param->array_size = 0;
+		param->flags = 0x01;
 		return 0;
 		break;
 
 	case 1:
+		strncpy(param->name, "INPUT", 16);
+		param->type = MIXER_PARAM_MSG_TYPE_MIX_CONN;
+		param->values[0] = _pinfo->controls[param->mix_sub_index - 1].control_group,
+				   param->values[1] = _pinfo->controls[param->mix_sub_index - 1].control_index;
+		param->array_size = 2;
+		param->flags = 0x01;
+		return 0;
+		break;
+
+	case 2:
 		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.negative_scale;
 		strcpy(param->name, "IN_NEG_SCALE");
 		return 1;
 		break;
 
-	case 2:
+	case 3:
 		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.positive_scale;
 		strcpy(param->name, "IN_POS_SCALE");
 		return 1;
 		break;
 
-	case 3:
+	case 4:
 		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.offset;
 		strcpy(param->name, "IN_OFFSET");
 		return 1;
 		break;
 
-	case 4:
+	case 5:
 		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.min_output;
 		strcpy(param->name, "MIN_INPUT");
 		return 1;
 		break;
 
-	case 5:
+	case 6:
 		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.max_output;
 		strcpy(param->name, "MAX_INPUT");
 		return 1;
@@ -529,14 +546,15 @@ SimpleMixer::get_parameter(mixer_param_s *param)
 	}
 
 	param->array_size = 0;
+	param->flags = 0x80;
 	return -1;
 }
 
 
 int16_t
-SimpleMixer::set_parameter(mixer_param_s *param)
+SimpleMixer::set_parameter(mixer_param_s *param, uint16_t param_index)
 {
-	return set_param_value(param->param_index, 0, param->values[0]);
+	return set_param_value(param_index, 0, param->values[0]);
 }
 
 #endif //MIXER_REMOTE
@@ -544,7 +562,7 @@ SimpleMixer::set_parameter(mixer_param_s *param)
 int16_t
 SimpleMixer::parameter_count()
 {
-	return 5 + _pinfo->control_count * 6;
+	return SIMPLEMIXER_MAIN_PARAM_COUNT + _pinfo->control_count * SIMPLEMIXER_SUB_PRAM_COUNT;
 }
 
 int16_t
@@ -556,38 +574,38 @@ SimpleMixer::set_param_value(int16_t paramIndex, int16_t arrayIndex, float value
 	int submix_index = 0;
 
 	switch (remaining) {
-	case 0:
+	case 1:
 		_pinfo->output_scaler.negative_scale = value;
 		return 0;
 		break;
 
-	case 1:
+	case 2:
 		_pinfo->output_scaler.positive_scale = value;
 		return 0;
 		break;
 
-	case 2:
+	case 3:
 		_pinfo->output_scaler.offset = value;
 		return 0;
 		break;
 
-	case 3:
+	case 4:
 		_pinfo->output_scaler.min_output = value;
 		return 0;
 		break;
 
-	case 4:
+	case 5:
 		_pinfo->output_scaler.max_output = value;
 		return 0;
 		break;
 	}
 
-	remaining -= 5;
+	remaining -= SIMPLEMIXER_MAIN_PARAM_COUNT;
 	submix_index = 1;
 
-	while (remaining > 5) {
+	while (remaining > (SIMPLEMIXER_SUB_PRAM_COUNT - 1)) {
 		submix_index++;
-		remaining -= 6;
+		remaining -= SIMPLEMIXER_SUB_PRAM_COUNT;
 	}
 
 	if (submix_index > _pinfo->control_count) {
@@ -595,30 +613,27 @@ SimpleMixer::set_param_value(int16_t paramIndex, int16_t arrayIndex, float value
 	}
 
 	switch (remaining) {
-	case 0:
-		return -1;
-
-	case 1:
+	case 2:
 		_pinfo->controls[submix_index - 1].scaler.negative_scale = value;
 		return 0;
 		break;
 
-	case 2:
+	case 3:
 		_pinfo->controls[submix_index - 1].scaler.positive_scale = value;
 		return 0;
 		break;
 
-	case 3:
+	case 4:
 		_pinfo->controls[submix_index - 1].scaler.offset = value;
 		return 0;
 		break;
 
-	case 4:
+	case 5:
 		_pinfo->controls[submix_index - 1].scaler.min_output = value;
 		return 0;
 		break;
 
-	case 5:
+	case 6:
 		_pinfo->controls[submix_index - 1].scaler.max_output = value;
 		return 0;
 		break;

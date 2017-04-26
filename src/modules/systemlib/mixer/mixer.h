@@ -229,18 +229,20 @@ public:
 	/**
 	* gets a mixer parameter and metadata
 	 *
-	* @param param         Contains parameter address.  Data returned in structure.
-	* @return              Count of parameters read.  -1 if error
+	* @param param         Structure to return data in.
+	* @param param_index   The parameter index for this mixer
+	* @return              0 if ok. -1 if error
 	 */
-	virtual int16_t        get_parameter(mixer_param_s *param) {return false;}
+	virtual int16_t        get_parameter(mixer_param_s *param, uint16_t param_index) {return false;}
 
 	/**
 	 * sets mixer parameter array values
 	 *
-	* @param param         Message including all information required to set values
-	* @return              Count of parameters written.  <0 if error
+	* @param param         Message including values to set
+	* @param param_index   The parameter index for this mixer
+	* @return              0 if ok. -1 if error
 	 */
-	virtual int16_t         set_parameter(mixer_param_s *param) {return -1;}
+	virtual int16_t         set_parameter(mixer_param_s *param, uint16_t param_index) {return -1;}
 #endif  //MIXER_REMOTE
 
 	/**
@@ -610,8 +612,8 @@ public:
 #if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
-	int16_t                 get_parameter(mixer_param_s *param);
-	int16_t                 set_parameter(mixer_param_s *param);
+	int16_t                 get_parameter(mixer_param_s *param, uint16_t param_index);
+	int16_t                 set_parameter(mixer_param_s *param, uint16_t param_index);
 #endif //MIXER_REMOTE
 	int16_t                 parameter_count();
 	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);
@@ -774,8 +776,8 @@ public:
 #if defined(MIXER_TUNING)
 #if !defined(MIXER_REMOTE)
 	int                     to_text(char *buf, unsigned &buflen);
-	int16_t                 get_parameter(mixer_param_s *param);
-	int16_t                 set_parameter(mixer_param_s *param);
+	int16_t                 get_parameter(mixer_param_s *param, uint16_t param_index);
+	int16_t                 set_parameter(mixer_param_s *param, uint16_t param_index);
 #endif //MIXER_REMOTE
 	int16_t                 parameter_count();
 	int16_t                 set_param_value(int16_t paramIndex, int16_t arrayIndex, float value);

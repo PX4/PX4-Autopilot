@@ -99,8 +99,7 @@ static bool should_prearm = false;
 #define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
 #endif
 
-
-//#define MIXER_VERBOSE
+#define MIXER_VERBOSE
 
 class MixerTest : public UnitTest
 {
@@ -622,49 +621,48 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 }
 
 
+
 const mixer_param_s param_test_values[] = {
-	//{index, mix_index,  mix_sub_index,  param_index,{values}, name, mix_type, param_type, array_size, flags},
+	//index, type, mix_index, mix_sub_index, values[8], name[21], param_type, array_size, flags
 	//Multicopter main mixer
-	{0, 0, 0, 0, {1.000000, 0.000000}, "IN_ROLL_SCALE", 3, 0, 1, 0},
-	{1, 0, 0, 1, {1.000000, 0.000000}, "IN_PITCH_SCALE", 3, 0, 1, 0},
-	{2, 0, 0, 2, {1.000000, 0.000000}, "IN_YAW_SCALE", 3, 0, 1, 0},
-	{3, 0, 0, 3, {-1.000000, 0.000000}, "IN_IDLE_SPEED", 3, 0, 1, 0},
+	{0, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {0.000000, 0.000000}, "MULTIROTOR",      0, 0, 1},
+	{1, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_ROLL_SCALE",   0, 1, 0},
+	{2, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_PITCH_SCALE",  0, 1, 0},
+	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_YAW_SCALE",    0, 1, 0},
+	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {-1.000000, 0.000000}, "IN_IDLE_SPEED",  0, 1, 0},
 	//First multicopter submixer
-	{4, 0, 1, 4, {-0.927184, 0.000000}, "OUT_ROLL_SCALE", 6, 0, 1, 1},
-	{5, 0, 1, 5, {0.374607, 0.000000}, "OUT_PITCH_SCALE", 6, 0, 1, 1},
-	{6, 0, 1, 6, {1.000000, 0.000000}, "OUT_YAW_SCALE", 6, 0, 1, 1},
-	{7, 0, 1, 7, {1.000000, 0.000000}, "OUT_SCALE", 6, 0, 1, 1},
+	{5, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  {0.000000, 0.000000}, "MULTIROTOR_MOTOR", 0, 0, 1},
+	{6, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {-0.927184, 0.000000}, "OUT_ROLL_SCALE", 0, 1, 1},
+	{7, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {0.374607, 0.000000}, "OUT_PITCH_SCALE", 0, 1, 1},
+	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {1.000000, 0.000000}, "OUT_YAW_SCALE",   0, 1, 1},
+	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {1.000000, 0.000000}, "OUT_SCALE",       0, 1, 1},
 	//Last multicopter submixer
-	{16, 0, 4, 16, {-0.777146, 0.000000}, "OUT_ROLL_SCALE", 6, 0, 1, 1},
-	{17, 0, 4, 17, {-0.629320, 0.000000}, "OUT_PITCH_SCALE", 6, 0, 1, 1},
-	{18, 0, 4, 18, {-1.000000, 0.000000}, "OUT_YAW_SCALE", 6, 0, 1, 1},
-	{19, 0, 4, 19, {1.000000, 0.000000}, "OUT_SCALE", 6, 0, 1, 1},
+	{20, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  {0.000000, 0.000000}, "MULTIROTOR_MOTOR",   0, 0, 1},
+	{21, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-0.777146, 0.000000}, "OUT_ROLL_SCALE",    0, 1, 1},
+	{22, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-0.629320, 0.000000}, "OUT_PITCH_SCALE",   0, 1, 1},
+	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-1.000000, 0.000000}, "OUT_YAW_SCALE",     0, 1, 1},
+	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {1.000000, 0.000000},  "OUT_SCALE",         0, 1, 1},
 	//First SimpleMixer main output mixer
-	{20, 1, 0, 0, {1.000000, 0.000000}, "OUT_NEG_SCALE", 2, 0, 1, 0},
-	{21, 1, 0, 1, {1.000000, 0.000000}, "OUT_POS_SCALE", 2, 0, 1, 0},
-	{22, 1, 0, 2, {0.000000, 0.000000}, "OUT_OFFSET", 2, 0, 1, 0},
-	{23, 1, 0, 3, {-1.000000, 0.000000}, "MIN_OUTPUT", 2, 0, 1, 0},
-	{24, 1, 0, 4, {1.000000, 0.000000}, "MAX_OUTPUT", 2, 0, 1, 0},
+	{25, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
+	{26, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "OUT_NEG_SCALE",   0, 1, 0},
+	{27, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "OUT_POS_SCALE",   0, 1, 0},
+	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {0.000000, 0.000000}, "OUT_OFFSET",      0, 1, 0},
+	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {-1.000000, 0.000000}, "MIN_OUTPUT",      0, 1, 0},
+	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "MAX_OUTPUT",      0, 1, 0},
 	// First SimpleMixer input submixer
-	{25, 1, 1, 5, {0.000000, 4.000000}, "INPUT", 5, 0, 2, 1},
-	{26, 1, 1, 6, {1.000000, 0.000000}, "IN_NEG_SCALE", 5, 0, 1, 0},
-	{27, 1, 1, 7, {1.000000, 0.000000}, "IN_POS_SCALE", 5, 0, 1, 0},
-	{28, 1, 1, 8, {0.000000, 0.000000}, "IN_OFFSET", 5, 0, 1, 0},
-	{29, 1, 1, 9, {-1.000000, 0.000000}, "MIN_INPUT", 5, 0, 1, 0},
-	{30, 1, 1, 10, {1.000000, 0.000000}, "MAX_INPUT", 5, 0, 1, 0},
-	//Last SimpleMixer main output mixer
-	{53, 4, 0, 0, {1.000000, 0.000000}, "OUT_NEG_SCALE", 2, 0, 1, 0},
-	{54, 4, 0, 1, {1.000000, 0.000000}, "OUT_POS_SCALE", 2, 0, 1, 0},
-	{55, 4, 0, 2, {0.000000, 0.000000}, "OUT_OFFSET", 2, 0, 1, 0},
-	{56, 4, 0, 3, {-1.000000, 0.000000}, "MIN_OUTPUT", 2, 0, 1, 0},
-	{57, 4, 0, 4, {1.000000, 0.000000}, "MAX_OUTPUT", 2, 0, 1, 0},
-	// Last SimpleMixer input submixer
-	{58, 4, 1, 5, {0.000000, 7.000000}, "INPUT", 5, 0, 2, 1},
-	{59, 4, 1, 6, {1.000000, 0.000000}, "IN_NEG_SCALE", 5, 0, 1, 0},
-	{60, 4, 1, 7, {1.000000, 0.000000}, "IN_POS_SCALE", 5, 0, 1, 0},
-	{61, 4, 1, 8, {0.000000, 0.000000}, "IN_OFFSET", 5, 0, 1, 0},
-	{62, 4, 1, 9, {-1.000000, 0.000000}, "MIN_INPUT", 5, 0, 1, 0},
-	{63, 4, 1, 10, {1.000000, 0.000000}, "MAX_INPUT", 5, 0, 1, 0}
+	{31, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  {0.000000, 0.000000}, "SIMPLE_INPUT",    0, 0, 1},
+	{32, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  {0.000000, 4.000000}, "INPUT",           0, 2, 1},
+	{33, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "IN_NEG_SCALE",    0, 1, 0},
+	{34, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "IN_POS_SCALE",    0, 1, 0},
+	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {0.000000, 0.000000}, "IN_OFFSET",       0, 1, 0},
+	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {-1.000000, 0.000000}, "MIN_INPUT",       0, 1, 0},
+	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "MAX_INPUT",       0, 1, 0},
+	//First param of remaining mixers
+	{38, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
+	{51, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
+	{64, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
+	//Last param of last mixer
+	{76, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  {1.000000, 0.000000}, "MAX_INPUT",       0, 1, 0}
 };
 
 
@@ -679,7 +677,7 @@ bool MixerTest::tuningTest()
 	char buf[1024];
 	const char *mixpath = MIXER_PATH(quad_test.mix);
 	const int expected_mixer_count = 5;
-	const int expected_param_count = 64;
+	const int expected_param_count = 77;
 
 	mixer_param_s param;
 
@@ -728,13 +726,14 @@ bool MixerTest::tuningTest()
 		}
 
 		if (verbose) {
-			PX4_INFO(" - Index:%d MixIndex:%d SubIndex:%d MixType:%d ParamIndex:%d ParamType:%d ArraySize:%d Flags:%u name:%s values[0]:%f values[1]:%f",
-				 param.index, param.mix_index, param.mix_sub_index, param.mix_type, param.param_index, param.param_type,
+			PX4_INFO(" - Index:%d MixIndex:%d SubIndex:%d Type:%d ParamType:%d ArraySize:%d Flags:%u name:%s values[0]:%f values[1]:%f",
+				 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
 				 param.array_size, param.flags, param.name, (double) param.values[0], (double) param.values[1]);
 		}
 	}
 
 	const int param_test_val_count = sizeof(param_test_values) / sizeof(mixer_param_s);
+	PX4_INFO("Mixer tuning test - Testing values in mixer against %d test values", param_test_val_count);
 
 	for (int i = 0; i < param_test_val_count; i++) {
 		memset(&param, 0, sizeof(param));
@@ -743,7 +742,7 @@ bool MixerTest::tuningTest()
 
 		if (param.index != param_test_values[i].index) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter index was not as expected");
+				PX4_INFO("Mixer tuning test - parameter index was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
@@ -751,7 +750,7 @@ bool MixerTest::tuningTest()
 
 		if (param.mix_index != param_test_values[i].mix_index) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter mix_index was not as expected");
+				PX4_INFO("Mixer tuning test - parameter mix_index was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
@@ -759,23 +758,15 @@ bool MixerTest::tuningTest()
 
 		if (param.mix_sub_index != param_test_values[i].mix_sub_index) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter mix_sub_index was not as expected");
+				PX4_INFO("Mixer tuning test - parameter mix_sub_index was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
 		}
 
-		if (param.mix_type != param_test_values[i].mix_type) {
+		if (param.type != param_test_values[i].type) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter mix_type was not as expected");
-			}
-
-			return false;
-		}
-
-		if (param.param_index != param_test_values[i].param_index) {
-			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter param_index was not as expected");
+				PX4_INFO("Mixer tuning test - parameter type was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
@@ -783,7 +774,7 @@ bool MixerTest::tuningTest()
 
 		if (param.param_type != param_test_values[i].param_type) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter param_type was not as expected");
+				PX4_INFO("Mixer tuning test - parameter param_type was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
@@ -791,7 +782,7 @@ bool MixerTest::tuningTest()
 
 		if (param.array_size != param_test_values[i].array_size) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter array_size was not as expected");
+				PX4_INFO("Mixer tuning test - parameter array_size was not as expected at index:%d", param_test_values[i].index);
 			}
 
 			return false;
@@ -821,13 +812,22 @@ bool MixerTest::tuningTest()
 	param.index = expected_param_count;
 	mixer_group.group_get_param(&param);
 
-	if (mixer_group.group_get_param(&param) == 0) {
+	if (mixer_group.group_get_param(&param) >= 0) {
 		if (verbose) {
 			PX4_INFO("Mixer tuning test - Should have failure code returned at mixer index :%d", expected_param_count);
 		}
 
 		return false;
 	}
+
+	if ((param.flags & 0x80) == 0) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - Should have failure code set in flags at mixer index :%d", expected_param_count);
+		}
+
+		return false;
+	}
+
 
 	// Check parameters can be set or not set according to read only status.
 	for (int i = 0; i < param_test_val_count; i++) {
