@@ -34,7 +34,7 @@
 /**
  * @file gnd_att_control_params.c
  *
- * Parameters defined by the position control task for ground rovers
+ * Parameters defined by the attitude control task for ground rovers
  *
  * This is a modification of the fixed wing params and it is designed for ground rovers.
  * It has been developed starting from the fw  module, simplified and improved with dedicated items.
@@ -48,67 +48,6 @@
  * Controller parameters, accessible via MAVLink
  *
  */
-
-
-
-/**
- * Yaw rate proportional gain
- *
- * This defines how much the rudder input will be commanded depending on the
- * current body angular rate error.
- *
- * @unit %/rad/s
- * @min 0.005
- * @max 1.0
- * @decimal 3
- * @increment 0.005
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_YR_P, 0.32f);
-
-/**
- * Yaw rate integrator gain
- *
- * This gain defines how much control response will result out of a steady
- * state error. It trims any constant error.
- *
- * @unit %/rad
- * @min 0.0
- * @max 50.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_YR_I, 0.0f);
-
-/**
- * Yaw rate integrator limit
- *
- * The portion of the integrator part in the control surface deflection is
- * limited to this value
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_YR_IMAX, 0.0f);
-
-/**
- * Maximum Yaw Rate
- *
- * This limits the maximum yaw rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
- *
- * @unit deg/s
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_Y_RMAX, 90.0f);
 
 /**
  * Attitude Wheel Time Constant
@@ -161,8 +100,6 @@ PARAM_DEFINE_FLOAT(GND_WR_I, 0.00f);
 /**
  * Wheel steering rate integrator gain
  *
- * This gain defines how much control response will result out of a steady
- * state error. It trims any constant error.
  *
  * @unit %/rad
  * @min 0.00
@@ -204,20 +141,6 @@ PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
 
 
 /**
- * Yaw rate feed forward
- *
- * Direct feed forward from rate setpoint to control surface output
- *
- * @unit %/rad/s
- * @min 0.0
- * @max 10.0
- * @decimal 2
- * @increment 0.05
- * @group GND Attitude Control
- */
-PARAM_DEFINE_FLOAT(GND_YR_FF, 0.0f);
-
-/**
  * Wheel steering rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output
@@ -235,8 +158,6 @@ PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
  * Airspeed mode
  *
  * The param value sets the method used to publish the control state airspeed.
- * For small wings or VTOL without airspeed sensor this parameter can be used to
- * enable flying without an airspeed reading
  *
  * @min 0
  * @max 2

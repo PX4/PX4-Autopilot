@@ -160,11 +160,6 @@ private:
 
 
 	struct {
-		float y_p;
-		float y_i;
-		float y_ff;
-		float y_integrator_max;
-		float y_rmax;
 		float w_tc;
 		float w_p;
 		float w_i;
@@ -198,11 +193,6 @@ private:
 
 	struct {
 
-		param_t y_p;
-		param_t y_i;
-		param_t y_ff;
-		param_t y_integrator_max;
-		param_t y_rmax;
 		param_t w_tc;
 		param_t w_p;
 		param_t w_i;
@@ -236,7 +226,6 @@ private:
 	math::Matrix<3, 3> _R;
 	float _yaw;
 
-	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			    _wheel_ctrl;
 	PID_t 							_steering_ctrl;
 
@@ -360,12 +349,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_vehicle_land_detected = {};
 	_vehicle_status = {};
 
-	_parameter_handles.y_p = param_find("GND_YR_P");
-	_parameter_handles.y_i = param_find("GND_YR_I");
-	_parameter_handles.y_ff = param_find("GND_YR_FF");
-	_parameter_handles.y_integrator_max = param_find("GND_YR_IMAX");
-	_parameter_handles.y_rmax = param_find("GND_Y_RMAX");
-
 	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
@@ -431,12 +414,6 @@ int
 GroundRoverAttitudeControl::parameters_update()
 {
 
-	param_get(_parameter_handles.y_p, &(_parameters.y_p));
-	param_get(_parameter_handles.y_i, &(_parameters.y_i));
-	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
-	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
-
 	param_get(_parameter_handles.w_tc, &(_parameters.w_tc));
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
@@ -468,13 +445,7 @@ GroundRoverAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
-	/* yaw control parameters */
-	_yaw_ctrl.set_k_p(_parameters.y_p);
-	_yaw_ctrl.set_k_i(_parameters.y_i);
-	_yaw_ctrl.set_k_ff(_parameters.y_ff);
-	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
-
+	
 	/* wheel control parameters */
 	_wheel_ctrl.set_time_constant(_parameters.w_tc);
 	_wheel_ctrl.set_k_p(_parameters.w_p);
@@ -775,7 +746,6 @@ GroundRoverAttitudeControl::task_main()
 					|| _vehicle_land_detected.landed
 				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
-					_yaw_ctrl.reset_integrator();
 					_wheel_ctrl.reset_integrator();
 				}
 
@@ -800,11 +770,7 @@ GroundRoverAttitudeControl::task_main()
 
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
-					_yaw_ctrl.control_attitude(control_input);
 					_wheel_ctrl.control_attitude(control_input);
-
-					/* Update input data for rate controllers */
-					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 					/* Calculate the control output for the steering as yaw */
 					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
@@ -822,7 +788,6 @@ GroundRoverAttitudeControl::task_main()
 					_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
 
 					if (!PX4_ISFINITE(yaw_u)) {
-						_yaw_ctrl.reset_integrator();
 						_wheel_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 
@@ -854,8 +819,6 @@ GroundRoverAttitudeControl::task_main()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
-
 				_rates_sp.timestamp = hrt_absolute_time();
 
 				if (_rate_sp_pub != nullptr) {

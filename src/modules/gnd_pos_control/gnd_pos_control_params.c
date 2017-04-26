@@ -67,18 +67,18 @@ PARAM_DEFINE_FLOAT(GND_L1_DIST, 5.0f);
  * L1 period
  *
  * This is the L1 distance and defines the tracking
- * point ahead of the aircraft its following.
- * A value of 18-25 meters works for most aircraft. Shorten
+ * point ahead of the rover it's following.
+ * Using values around 2-5 for a traxxas stampede. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
  * @unit m
- * @min 12.0
+ * @min 0.0
  * @max 50.0
  * @decimal 1
  * @increment 0.5
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 20.0f);
+PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 10.0f);
 
 /**
  * L1 damping
@@ -97,6 +97,7 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed.
+ * 10% is ok for a traxxas stampede vxl with ESC set to training mode
  *
  * @unit norm
  * @min 0.0
@@ -111,8 +112,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
  * Throttle limit max
  *
  * This is the maximum throttle % that can be used by the controller.
- * For overpowered aircraft, this should be reduced to a value that
- * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
+ * For a Traxxas stampede vxl with the ESC set to training, 30 % is enough
  *
  * @unit norm
  * @min 0.0
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
  * @increment 0.01
  * @group GND POS Control
  */
-PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.6f);
+PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
 
 /**
  * Throttle max slew rate
@@ -180,13 +180,7 @@ PARAM_DEFINE_FLOAT(GND_R_LIM, 35.0f);
  * Throttle limit min
  *
  * This is the minimum throttle % that can be used by the controller.
- * For electric aircraft this will normally be set to zero, but can be set
- * to a small non-zero value if a folding prop is fitted to prevent the
- * prop from folding and unfolding repeatedly in-flight or to provide
- * some aerodynamic drag from a turning prop to improve the descent rate.
- *
- * For aircraft with internal combustion engine this parameter should be set
- * for desired idle rpm.
+ * Set to 0 for rover
  *
  * @unit norm
  * @min 0.0
@@ -200,10 +194,8 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 /**
  * Idle throttle
  *
- * This is the minimum throttle while on the ground
+ * This is the minimum throttle while on the ground, it should be 0 for a rover
  *
- * For aircraft with internal combustion engine this parameter should be set
- * above desired idle rpm.
  *
  * @unit norm
  * @min 0.0
@@ -246,7 +238,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_P, 2.0f);
  * This is the integral gain for the speed closed loop controller
  *
  * @unit %m/s
- * @min 0.005
+ * @min 0.00
  * @max 50.0
  * @decimal 3
  * @increment 0.005
@@ -286,7 +278,6 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  * Airspeed to throttle scaler
  *
  * This is a gain to map the airspeed control output to the throttle linearly.
- * Needs to be checked.
  *
  * @unit %m/s
  * @min 0.005
