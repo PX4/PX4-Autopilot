@@ -1090,11 +1090,10 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 			} else if (_manual_direction_change_hysteresis.get_state()) {
 
 				/* TODO: find conditions which are always continuous
-				 * only  sick input greater than half*/
+				 * only if stick input is large*/
 				if (stick_xy.length() > 0.6f) {
 					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 				}
-
 			}
 
 			break;
@@ -1141,8 +1140,7 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	case acceleration: {
 			/* limit acceleration linearly on stick input*/
 			float acc_limit  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
-					   +
-					   _deceleration_hor_slow.get();
+					   + _deceleration_hor_slow.get();
 
 			if (_acceleration_state_dependent_xy > acc_limit) {
 				acc_limit = _acceleration_state_dependent_xy;
