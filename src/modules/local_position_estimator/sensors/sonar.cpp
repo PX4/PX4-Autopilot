@@ -6,7 +6,7 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 	REQ_SONAR_INIT_COUNT = 10;
+static const int 		REQ_SONAR_INIT_COUNT = 10;
 static const uint32_t 	SONAR_TIMEOUT =   5000000; // 2.0 s
 static const float  	SONAR_MAX_INIT_STD =   0.3f; // meters
 
@@ -34,11 +34,10 @@ void BlockLocalPositionEstimator::sonarInit()
 			_sonarStats.reset();
 
 		} else {
-			mavlink_and_console_log_info(&mavlink_log_pub,
-			     "[lpe] sonar init mean %d cm std %d cm",
+			PX4_INFO("[lpe] sonar init "
+				 "mean %d cm std %d cm",
 				 int(100 * _sonarStats.getMean()(0)),
 				 int(100 * _sonarStats.getStdDev()(0)));
-
 			_sensorTimeout &= ~SENSOR_SONAR;
 			_sensorFault &= ~SENSOR_SONAR;
 		}
@@ -47,26 +46,11 @@ void BlockLocalPositionEstimator::sonarInit()
 
 int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 {
-	float d;
-	if (_sonar_fixed_distance.get() > 0.0f ) {
-		
-		d =  _sonar_fixed_distance.get();
-
-
-	} else {
-		// measure
-		d = _sub_sonar->get().current_distance;
-		// warnx("d: %.4f", (double) d);
-	}
-
-	
+	// measure
+	float d = _sub_sonar->get().current_distance;
 	float eps = 0.01f; // 1 cm
-	float min_dist = eps;//_sub_sonar->get().min_distance + eps;
+	float min_dist = _sub_sonar->get().min_distance + eps;
 	float max_dist = _sub_sonar->get().max_distance - eps;
-
-	// warnx("min dist: %d.%.6d", (int)min_dist, (int)((min_dist-(int)min_dist)*1000000));
-	// warnx("max dist: %d.%.6d", (int)max_dist, (int)((max_dist-(int)max_dist)*1000000));
-	
 
 	// prevent driver from setting min dist below eps
 	if (min_dist < eps) {
@@ -80,13 +64,11 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 
 	// update stats
 	_sonarStats.update(Scalarf(d));
-	// _sonarStats.reset();
 	_time_last_sonar = _timeStamp;
 	y.setZero();
-	y(0) = (d + _sonar_z_offset.get()) * cosf(_eul(0)) * cosf(_eul(1));
-	
-	 // warnx("d: %.4f", (double)d );
-
+	y(0) = (d + _sonar_z_offset.get()) *
+	       cosf(_eul(0)) *
+	       cosf(_eul(1));
 	return OK;
 }
 
@@ -112,8 +94,6 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	Matrix<float, n_y_sonar, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
-	
-	 
 	// TODO could add trig to make this an EKF correction
 	C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
 	C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
@@ -123,21 +103,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	R.setZero();
 	R(0, 0) = cov;
 
-	// _x(X_z) = _sub_sonar->get().current_distance;
-	//  warnx("_x(X_z): %.4f", (double)_x(X_z) );
-	
-	// if (_sonar_fixed_distance.get() > 0.0f) 
-	// {
-	// 	_x(X_z) = _sonar_fixed_distance.get();
-	// 	// _x(X_tz) = _sonar_fixed_distance.get() + _baroAltOrigin;
-	// 	warnx("_x(X_tz): %.4f", (double)_x(X_tz));
-	// 	// _x(X_vz) = 0;
-	// 	// _P(X_z, X_z) = 0.02f; //2 cm std deviation
-	// 	// _P(X_vz, X_vz) = 0.001f;
-	// }
-	
-
-	// residual	
+	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(0);
 	_pub_innov.get().hagl_innov_var = R(0, 0);
@@ -148,6 +114,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
+
 	if (beta > BETA_TABLE[n_y_sonar]) {
 		if (!(_sensorFault & SENSOR_SONAR)) {
 			_sensorFault |= SENSOR_SONAR;
@@ -159,7 +126,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	} else if (_sensorFault & SENSOR_SONAR) {
 		_sensorFault &= ~SENSOR_SONAR;
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
+		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
 	}
 
 	// kalman filter correction if no fault
@@ -169,11 +136,6 @@ void BlockLocalPositionEstimator::sonarCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
-
-		// if (_sonar_fixed_distance.get() > 0.0f ) {
-		// 	_x(X_z) = _sonar_fixed_distance.get();
-		// }
-		
 	}
 }
 
