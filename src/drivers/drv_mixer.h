@@ -127,12 +127,18 @@ struct mixer_simple_s {
  * Get the parameter at index
  * return the value and metadata
  */
+union paramval_u {
+	uint32_t uintval;
+	int32_t  intval;
+	float    realval;
+};
+
 struct mixer_param_s {
 	int16_t         index;
 	int8_t          type;
 	int16_t         mix_index;
 	int16_t         mix_sub_index;
-	float           values[8];
+	paramval_u      values[8];
 	char            name[21];
 	int8_t          param_type;
 	int8_t          array_size;

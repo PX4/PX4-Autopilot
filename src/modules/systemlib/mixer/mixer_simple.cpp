@@ -442,6 +442,7 @@ SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 	param->type = MIXER_PARAM_MSG_TYPE_PARAMETER;
 	param->flags = 0;
 	param->array_size = 1;
+	param->param_type = 9;  //MAV_PARAM_TYPE_REAL32
 
 	switch (param_index) {
 	case 0:
@@ -453,31 +454,31 @@ SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 		break;
 
 	case 1:
-		param->values[0] = _pinfo->output_scaler.negative_scale;
+		param->values[0].realval = _pinfo->output_scaler.negative_scale;
 		strcpy(param->name, "OUT_NEG_SCALE");
 		return 1;
 		break;
 
 	case 2:
-		param->values[0] =  _pinfo->output_scaler.positive_scale;
+		param->values[0].realval =  _pinfo->output_scaler.positive_scale;
 		strcpy(param->name, "OUT_POS_SCALE");
 		return 1;
 		break;
 
 	case 3:
-		param->values[0] =  _pinfo->output_scaler.offset;
+		param->values[0].realval =  _pinfo->output_scaler.offset;
 		strcpy(param->name, "OUT_OFFSET");
 		return 1;
 		break;
 
 	case 4:
-		param->values[0] =  _pinfo->output_scaler.min_output;
+		param->values[0].realval =  _pinfo->output_scaler.min_output;
 		strcpy(param->name, "MIN_OUTPUT");
 		return 1;
 		break;
 
 	case 5:
-		param->values[0] =  _pinfo->output_scaler.max_output;
+		param->values[0].realval =  _pinfo->output_scaler.max_output;
 		strcpy(param->name, "MAX_OUTPUT");
 		return 1;
 		break;
@@ -507,39 +508,40 @@ SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 	case 1:
 		strncpy(param->name, "INPUT", 16);
 		param->type = MIXER_PARAM_MSG_TYPE_MIX_CONN;
-		param->values[0] = _pinfo->controls[param->mix_sub_index - 1].control_group,
-				   param->values[1] = _pinfo->controls[param->mix_sub_index - 1].control_index;
+		param->values[0].uintval = _pinfo->controls[param->mix_sub_index - 1].control_group,
+				 param->values[1].uintval = _pinfo->controls[param->mix_sub_index - 1].control_index;
 		param->array_size = 2;
+		param->param_type = 5;  //UINT32
 		param->flags = 0x01;
 		return 0;
 		break;
 
 	case 2:
-		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.negative_scale;
+		param->values[0].realval =  _pinfo->controls[param->mix_sub_index - 1].scaler.negative_scale;
 		strcpy(param->name, "IN_NEG_SCALE");
 		return 1;
 		break;
 
 	case 3:
-		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.positive_scale;
+		param->values[0].realval =  _pinfo->controls[param->mix_sub_index - 1].scaler.positive_scale;
 		strcpy(param->name, "IN_POS_SCALE");
 		return 1;
 		break;
 
 	case 4:
-		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.offset;
+		param->values[0].realval =  _pinfo->controls[param->mix_sub_index - 1].scaler.offset;
 		strcpy(param->name, "IN_OFFSET");
 		return 1;
 		break;
 
 	case 5:
-		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.min_output;
+		param->values[0].realval =  _pinfo->controls[param->mix_sub_index - 1].scaler.min_output;
 		strcpy(param->name, "MIN_INPUT");
 		return 1;
 		break;
 
 	case 6:
-		param->values[0] =  _pinfo->controls[param->mix_sub_index - 1].scaler.max_output;
+		param->values[0].realval =  _pinfo->controls[param->mix_sub_index - 1].scaler.max_output;
 		strcpy(param->name, "MAX_INPUT");
 		return 1;
 		break;
@@ -554,7 +556,7 @@ SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 int16_t
 SimpleMixer::set_parameter(mixer_param_s *param, uint16_t param_index)
 {
-	return set_param_value(param_index, 0, param->values[0]);
+	return set_param_value(param_index, 0, param->values[0].realval);
 }
 
 #endif //MIXER_REMOTE

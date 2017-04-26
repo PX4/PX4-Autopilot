@@ -625,44 +625,45 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 const mixer_param_s param_test_values[] = {
 	//index, type, mix_index, mix_sub_index, values[8], name[21], param_type, array_size, flags
 	//Multicopter main mixer
-	{0, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {0.000000, 0.000000}, "MULTIROTOR",      0, 0, 1},
-	{1, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_ROLL_SCALE",   0, 1, 0},
-	{2, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_PITCH_SCALE",  0, 1, 0},
-	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {1.000000, 0.000000}, "IN_YAW_SCALE",    0, 1, 0},
-	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  {-1.000000, 0.000000}, "IN_IDLE_SPEED",  0, 1, 0},
+	{0, MIXER_PARAM_MSG_TYPE_CHECKSUM,      0, 0,  { {.uintval = 0x5E9256D} }, "CHECKSUM_SCRIPT", 5, 1, 1},
+	{1, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {},                      "MULTIROTOR",      9, 0, 1},
+	{2, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_ROLL_SCALE",   9, 1, 0},
+	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_PITCH_SCALE",  9, 1, 0},
+	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_YAW_SCALE",    9, 1, 0},
+	{5, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = -1.000000} }, "IN_IDLE_SPEED",  9, 1, 0},
 	//First multicopter submixer
-	{5, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  {0.000000, 0.000000}, "MULTIROTOR_MOTOR", 0, 0, 1},
-	{6, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {-0.927184, 0.000000}, "OUT_ROLL_SCALE", 0, 1, 1},
-	{7, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {0.374607, 0.000000}, "OUT_PITCH_SCALE", 0, 1, 1},
-	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {1.000000, 0.000000}, "OUT_YAW_SCALE",   0, 1, 1},
-	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  {1.000000, 0.000000}, "OUT_SCALE",       0, 1, 1},
+	{6, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR", 9, 0, 1},
+	{7, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = -0.927184} }, "OUT_ROLL_SCALE",  9, 1, 1},
+	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 0.374607} }, "OUT_PITCH_SCALE",  9, 1, 1},
+	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 1.000000} }, "OUT_YAW_SCALE",    9, 1, 1},
+	{10, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 1,  { {.realval = 1.000000} }, "OUT_SCALE",        9, 1, 1},
 	//Last multicopter submixer
-	{20, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  {0.000000, 0.000000}, "MULTIROTOR_MOTOR",   0, 0, 1},
-	{21, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-0.777146, 0.000000}, "OUT_ROLL_SCALE",    0, 1, 1},
-	{22, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-0.629320, 0.000000}, "OUT_PITCH_SCALE",   0, 1, 1},
-	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {-1.000000, 0.000000}, "OUT_YAW_SCALE",     0, 1, 1},
-	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  {1.000000, 0.000000},  "OUT_SCALE",         0, 1, 1},
+	{21, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR",   9, 0, 1},
+	{22, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.777146} }, "OUT_ROLL_SCALE",    9, 1, 1},
+	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.629320} }, "OUT_PITCH_SCALE",   9, 1, 1},
+	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -1.000000} }, "OUT_YAW_SCALE",     9, 1, 1},
+	{25, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = 1.000000} },  "OUT_SCALE",         9, 1, 1},
 	//First SimpleMixer main output mixer
-	{25, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
-	{26, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "OUT_NEG_SCALE",   0, 1, 0},
-	{27, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "OUT_POS_SCALE",   0, 1, 0},
-	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {0.000000, 0.000000}, "OUT_OFFSET",      0, 1, 0},
-	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {-1.000000, 0.000000}, "MIN_OUTPUT",      0, 1, 0},
-	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  {1.000000, 0.000000}, "MAX_OUTPUT",      0, 1, 0},
-	// First SimpleMixer input submixer
-	{31, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  {0.000000, 0.000000}, "SIMPLE_INPUT",    0, 0, 1},
-	{32, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  {0.000000, 4.000000}, "INPUT",           0, 2, 1},
-	{33, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "IN_NEG_SCALE",    0, 1, 0},
-	{34, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "IN_POS_SCALE",    0, 1, 0},
-	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {0.000000, 0.000000}, "IN_OFFSET",       0, 1, 0},
-	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {-1.000000, 0.000000}, "MIN_INPUT",       0, 1, 0},
-	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  {1.000000, 0.000000}, "MAX_INPUT",       0, 1, 0},
+	{26, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{27, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_NEG_SCALE",   9, 1, 0},
+	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_POS_SCALE",   9, 1, 0},
+	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 0.000000} }, "OUT_OFFSET",      9, 1, 0},
+	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = -1.000000} }, "MIN_OUTPUT",     9, 1, 0},
+	{31, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "MAX_OUTPUT",      9, 1, 0},
+//	// First SimpleMixer input submixer
+	{32, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  { {.realval = 0.000000} }, "SIMPLE_INPUT",    9, 0, 1},
+	{33, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  { {.uintval = 0}, {.uintval = 4} }, "INPUT",    5, 2, 1},
+	{34, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_NEG_SCALE",    9, 1, 0},
+	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_POS_SCALE",    9, 1, 0},
+	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 0.000000} }, "IN_OFFSET",       9, 1, 0},
+	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = -1.000000} }, "MIN_INPUT",      9, 1, 0},
+	{38, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0},
 	//First param of remaining mixers
-	{38, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
-	{51, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
-	{64, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  {1.000000, 0.000000}, "SIMPLE",          0, 0, 1},
+	{39, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{52, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{65, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
 	//Last param of last mixer
-	{76, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  {1.000000, 0.000000}, "MAX_INPUT",       0, 1, 0}
+	{77, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0}
 };
 
 
@@ -677,7 +678,7 @@ bool MixerTest::tuningTest()
 	char buf[1024];
 	const char *mixpath = MIXER_PATH(quad_test.mix);
 	const int expected_mixer_count = 5;
-	const int expected_param_count = 77;
+	const int expected_param_count = 78;
 
 	mixer_param_s param;
 
@@ -726,9 +727,21 @@ bool MixerTest::tuningTest()
 		}
 
 		if (verbose) {
-			PX4_INFO(" - Index:%d MixIndex:%d SubIndex:%d Type:%d ParamType:%d ArraySize:%d Flags:%u name:%s values[0]:%f values[1]:%f",
-				 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
-				 param.array_size, param.flags, param.name, (double) param.values[0], (double) param.values[1]);
+			switch (param.param_type) {
+			case 5: {
+					PX4_INFO(" - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals[0..1] : 0x%X : 0x%X",
+						 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+						 param.array_size, param.flags, param.name, param.values[0].uintval, param.values[1].uintval);
+					break;
+				}
+
+			case 9:
+				PX4_INFO(" - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals[0]:%.4f",
+					 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+					 param.array_size, param.flags, param.name, (double) param.values[0].realval);
+				break;
+			}
+
 		}
 	}
 
@@ -774,7 +787,8 @@ bool MixerTest::tuningTest()
 
 		if (param.param_type != param_test_values[i].param_type) {
 			if (verbose) {
-				PX4_INFO("Mixer tuning test - parameter param_type was not as expected at index:%d", param_test_values[i].index);
+				PX4_INFO("Mixer tuning test - parameter param_type was not as expected at index:%d, read:%d, expected:%d",
+					 param_test_values[i].index, param.param_type, param_test_values[i].param_type);
 			}
 
 			return false;
@@ -834,7 +848,7 @@ bool MixerTest::tuningTest()
 		memset(&param, 0, sizeof(param));
 		param.index = param_test_values[i].index;
 		mixer_group.group_get_param(&param);
-		param.values[0] = (float) i + 2;
+		param.values[0].realval = (float) i + 2;
 		int result = mixer_group.group_set_param(&param);
 		bool read_only = ((param_test_values[i].flags & 0x01) == 1);
 
@@ -844,12 +858,12 @@ bool MixerTest::tuningTest()
 		}
 
 		// Read back to verify the set value
-		param.values[0] = -1.0;
+		param.values[0].realval = -1.0;
 		mixer_group.group_get_param(&param);
 
 		// Test if read/write params are written and read only are not written;
 		if (!read_only) {
-			if (param.values[0] != (float) i + 2) {
+			if (param.values[0].realval != (float) i + 2) {
 				if (verbose) {
 					PX4_INFO("Mixer tuning test - Read/Write parameter did not read back correct at index:%d", param.index);
 				}
@@ -858,7 +872,7 @@ bool MixerTest::tuningTest()
 			}
 
 		} else {
-			if (param.values[0] == (float) i + 2) {
+			if (param.values[0].realval == (float) i + 2) {
 				if (verbose) {
 					PX4_INFO("Mixer tuning test - Read only parameter read back written (incorrect) value at index:%d", param.index);
 				}

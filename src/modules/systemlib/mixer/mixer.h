@@ -497,6 +497,12 @@ public:
 private:
 	Mixer				*_first;	/**< linked list of mixers */
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	uint32_t            _checksum;
+#endif
+#endif
+
 	/* do not allow to copy due to pointer data members */
 	MixerGroup(const MixerGroup &);
 	MixerGroup operator=(const MixerGroup &);

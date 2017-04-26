@@ -51,6 +51,12 @@
 #include <math.h>
 #include <unistd.h>
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+#include <crc32.h>
+#endif
+#endif
+
 #include "mixer.h"
 
 #define debug(fmt, args...)	do { } while(0)
@@ -61,6 +67,11 @@
 MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
 	Mixer(control_cb, cb_handle),
 	_first(nullptr)
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	, _checksum(0)
+#endif
+#endif
 {
 }
 
@@ -89,6 +100,11 @@ MixerGroup::reset()
 {
 	Mixer *mixer;
 	Mixer *next = _first;
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+	_checksum = 0;
+#endif
+#endif
 
 	/* flag mixer as invalid */
 	_first = nullptr;
@@ -246,6 +262,11 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			/* we constructed something */
 			ret = 0;
 
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+			_checksum = crc32part((uint8_t *) p, (buflen - resid), _checksum);
+#endif
+#endif
 			/* only adjust buflen if parsing was successful */
 			buflen = resid;
 			debug("SUCCESS - buflen: %d", buflen);
@@ -307,7 +328,7 @@ int16_t
 MixerGroup::group_param_count()
 {
 	Mixer	*mixer = _first;
-	int16_t param_count = 0;
+	int16_t param_count = 1;
 
 	while ((mixer != nullptr)) {
 		param_count += mixer->parameter_count();
@@ -325,10 +346,24 @@ MixerGroup::group_get_param(mixer_param_s *param)
 	uint16_t mix_param_count;
 	int16_t  remaining = param->index;
 
-	param->mix_sub_index = -1;
+	param->mix_sub_index = 0;
 	param->type = MIXER_PARAM_MSG_TYPE_PARAMETER;
 	strcpy(param->name, "NONE");
 	param->mix_index = 0;
+
+	switch (param->index) {
+	case 0:
+		param->type = MIXER_PARAM_MSG_TYPE_CHECKSUM;
+		param->array_size = 1;
+		strncpy(param->name, "CHECKSUM_SCRIPT", 16);
+		param->values[0].intval = _checksum;
+		param->param_type = 5;  //MAV_PARAM_TYPE_UINT32
+		param->flags = 0x01;
+		return 1;
+		break;
+	}
+
+	remaining--;
 
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();
@@ -357,6 +392,13 @@ MixerGroup::group_set_param(mixer_param_s *param)
 
 	param->mix_index = 0;
 
+	if (remaining == 0) {
+		param->flags = 0x80;
+		return -1;
+	}
+
+	remaining--;
+
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();
 
@@ -380,6 +422,12 @@ MixerGroup::group_set_param_value(int16_t index, int16_t arrayIndex, float value
 	Mixer	 *mixer = _first;
 	uint16_t remaining = index;
 	uint16_t mix_param_count;
+
+	if (remaining == 0) {
+		return -1;
+	}
+
+	remaining--;
 
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();

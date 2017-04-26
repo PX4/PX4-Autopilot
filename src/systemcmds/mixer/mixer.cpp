@@ -366,9 +366,24 @@ mixer_param_list(const char *devname)
 		       param.mix_sub_index,
 		       param.type, param.array_size, param.name);
 
-		for (int val = 0; val < param.array_size; val++) {
-			printf("%.3f, ", (double) param.values[val]);
+		switch (param.param_type) {
+		case 5: { //MAV_PARAM_TYPE_UINT32
+				for (int val = 0; val < param.array_size; val++) {
+					printf("0x%X, ", param.values[val].uintval);
+				}
+
+				break;
+			}
+
+		case 9: { //MAV_PARAM_TYPE_REAL32
+				for (int val = 0; val < param.array_size; val++) {
+					printf("%.3f, ", (double) param.values[val].realval);
+				}
+
+				break;
+			}
 		}
+
 
 		printf("]\n");
 	}
@@ -401,7 +416,7 @@ mixer_param_set(const char *devname, int index, float *values)
 
 	//Clear value to zero and only use first value.  px4 mixers specifc
 	memset(param.values, 0, sizeof(param.values));
-	param.values[0] = values[0];
+	param.values[0].realval = values[0];
 
 	int ret = px4_ioctl(dev, MIXERIOCSETPARAM, (unsigned long)&param);
 	px4_close(dev);
@@ -411,7 +426,7 @@ mixer_param_set(const char *devname, int index, float *values)
 		return -1;
 	}
 
-	PX4_INFO("mixer param index:%u value:%.4f set success\n", param.index, (double) param.values[0]);
+	PX4_INFO("mixer param index:%u value:%.4f set success\n", param.index, (double) param.values[0].realval);
 	return 0;
 }
 

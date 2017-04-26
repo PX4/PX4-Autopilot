@@ -649,6 +649,7 @@ MultirotorMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 	param->mix_sub_index = 0;
 	param->array_size = 1;
 	param->type = MIXER_PARAM_MSG_TYPE_PARAMETER;
+	param->param_type = 9;  //MAV_PARAM_TYPE_REAL32
 	param->flags = 0;   //ReadWrite
 
 	switch (param_index) {
@@ -661,25 +662,25 @@ MultirotorMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 		break;
 
 	case 1:
-		param->values[0] = _roll_scale;
+		param->values[0].realval = _roll_scale;
 		strncpy(param->name, "IN_ROLL_SCALE", 16);
 		return 1;
 		break;
 
 	case 2:
-		param->values[0] =  _pitch_scale;
+		param->values[0].realval =  _pitch_scale;
 		strncpy(param->name, "IN_PITCH_SCALE", 16);
 		return 1;
 		break;
 
 	case 3:
-		param->values[0] =  _yaw_scale;
+		param->values[0].realval =  _yaw_scale;
 		strncpy(param->name, "IN_YAW_SCALE", 16);
 		return 1;
 		break;
 
 	case 4:
-		param->values[0] =  _idle_speed;
+		param->values[0].realval =  _idle_speed;
 		strncpy(param->name, "IN_IDLE_SPEED", 16);
 		return 1;
 		break;
@@ -706,25 +707,25 @@ MultirotorMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 			break;
 
 		case 1:
-			param->values[0] =  _rotors[param->mix_sub_index - 1].roll_scale;
+			param->values[0].realval =  _rotors[param->mix_sub_index - 1].roll_scale;
 			strncpy(param->name, "OUT_ROLL_SCALE", 16);
 			return 1;
 			break;
 
 		case 2:
-			param->values[0] = _rotors[param->mix_sub_index - 1].pitch_scale;
+			param->values[0].realval = _rotors[param->mix_sub_index - 1].pitch_scale;
 			strncpy(param->name, "OUT_PITCH_SCALE", 16);
 			return 1;
 			break;
 
 		case 3:
-			param->values[0] = _rotors[param->mix_sub_index - 1].yaw_scale;
+			param->values[0].realval = _rotors[param->mix_sub_index - 1].yaw_scale;
 			strncpy(param->name, "OUT_YAW_SCALE", 16);
 			return 1;
 			break;
 
 		case 4:
-			param->values[0] = _rotors[param->mix_sub_index - 1].out_scale;
+			param->values[0].realval = _rotors[param->mix_sub_index - 1].out_scale;
 			strncpy(param->name, "OUT_SCALE", 16);
 			return 1;
 			break;
@@ -739,7 +740,7 @@ MultirotorMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
 int16_t
 MultirotorMixer::set_parameter(mixer_param_s *param, uint16_t param_index)
 {
-	return set_param_value(param_index, 0, param->values[0]);
+	return set_param_value(param_index, 0, param->values[0].realval);
 }
 
 #endif  //MIXER_REMOTE
