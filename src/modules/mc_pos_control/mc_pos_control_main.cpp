@@ -54,6 +54,7 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <drivers/drv_hrt.h>
+#include <systemlib/hysteresis/hysteresis.h>
 
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/home_position.h>
@@ -105,6 +106,11 @@ public:
 					  const math::Vector<3> &line_a, const math::Vector<3> &line_b, math::Vector<3> &res);
 
 private:
+
+	/** Time in us that direction change condition has to be true for direction change state */
+	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 200000;
+
+
 	bool		_task_should_exit;		/**< if true, task should exit */
 	bool		_gear_state_initialized;	///< true if the gear state has been initialized
 	int		_control_task;			/**< task handle for task */
@@ -155,6 +161,8 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
 	math::LowPassFilter2p _filter_manual_pitch;
 	math::LowPassFilter2p _filter_manual_roll;
@@ -449,6 +457,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
 	_user_intention(brake),
@@ -482,6 +491,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ctrl_state.q[0] = 1.0f;
 
 	_ref_pos = {};
+
+	/* set trigger time for manual direction change detection */
+	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
+
+	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
 	_params.pos_p.zero();
 	_params.vel_p.zero();
@@ -1004,6 +1018,8 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
 
+	const bool do_direction_change = !is_aligned;
+
 	manual_stick_input intention;
 
 	if (is_current_zero) {
@@ -1018,9 +1034,13 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 		/* we do manual deceleration */
 		intention = deceleration;
 
-	} else {
-		/* we have a direciton change */
+	} else if (do_direction_change) {
+		/* we have a direction change */
 		intention = direction_change;
+
+	} else {
+		/* catchall: acceleration */
+		intention = acceleration;
 	}
 
 
@@ -1052,13 +1072,31 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	case direction_change: {
 			/* only exit direction change if brake or aligned */
-			matrix::Vector2f vel_xy_norm(_vel(0), _vel(1));
-			vel_xy_norm = (vel_xy_norm.length() > 0.0f) ? vel_xy_norm.normalized() : vel_xy_norm;
+			matrix::Vector2f vel_xy(_vel(0), _vel(1));
+			matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
+			bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
 
+			/* update manual direction change hysteresis */
+			_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
+
+
+			/* exit direction change if one of the condition is met */
 			if (intention == brake) {
 				_user_intention = intention;
 
-			} else if (vel_xy_norm * stick_xy_norm > 0.0f) {
+			} else if (stick_vel_aligned) {
+				_user_intention = acceleration;
+
+			} else if (_manual_direction_change_hysteresis.get_state()) {
+				/* reset hysteresis*/
+				_manual_direction_change_hysteresis.set_state_and_update(false);
+
+				/* TODO: find conditions which are always continuous
+				 * only reset slew rate if more than twice max speed and sick input greater than half*/
+				if ((vel_xy.length() > (_velocity_hor_manual.get() / 2.f)) && stick_xy.length() > 0.5f) {
+					_vel_sp_prev = _vel;
+				}
+
 				_user_intention = acceleration;
 			}
 
@@ -1072,7 +1110,6 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	case deceleration: {
 			_user_intention = intention;
-
 			break;
 		}
 	}
@@ -1082,6 +1119,7 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 	*/
 	switch (_user_intention) {
 	case brake: {
+
 			/* limit jerk when braking to zero */
 			float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / dt;
 
@@ -1095,20 +1133,19 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 			break;
 		}
 
-	case direction_change:
-		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
-		break;
+	case direction_change: {
+
+			/* limit acceleration linearly on stick input*/
+			_acceleration_state_dependent_xy = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+							   _deceleration_hor_slow.get();
+			break;
+		}
 
 	case acceleration: {
 			/* limit acceleration linearly on stick input*/
-			float acceleration_limit = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
-						   _deceleration_hor_slow.get();
-
-			/* if we entered acceleration from direction change, keep acceleration */
-			if (_acceleration_state_dependent_xy < acceleration_limit) {
-				_acceleration_state_dependent_xy = acceleration_limit;
-			}
-
+			_acceleration_state_dependent_xy  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
+							    +
+							    _deceleration_hor_slow.get();
 			break;
 		}
 
