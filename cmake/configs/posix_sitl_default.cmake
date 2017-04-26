@@ -39,9 +39,6 @@ set(config_module_list
 	systemcmds/top
 	systemcmds/topic_listener
 	systemcmds/ver
-	systemcmds/top
-	systemcmds/motor_ramp
-	systemcmds/pwm
 
 	#
 	# Testing
