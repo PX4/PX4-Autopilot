@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN gnd_pos_control
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		gnd_pos_control_main.cpp
 	DEPENDS

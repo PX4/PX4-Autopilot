@@ -42,21 +42,14 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <math.h>
-#include <float.h>
-#include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_tasks.h>
+
+#include <cfloat>
+
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>
@@ -66,20 +59,13 @@
 #include <geo/geo.h>
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
-#include <platforms/px4_defines.h>
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/pid/pid.h>
-#include <systemlib/systemlib.h>
+ #include <systemlib/pid/pid.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
-#include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -88,6 +74,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
+#include <vtol_att_control/vtol_type.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
@@ -149,7 +136,6 @@ private:
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_control_sub;		/**< notification of manual control updates */
-	int		_sensor_combined_sub;		/**< for body frame accelerations */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
@@ -167,7 +153,6 @@ private:
 	struct vehicle_land_detected_s			_vehicle_land_detected;		/**< vehicle land detected */
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
-	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -353,11 +338,6 @@ private:
 	void		control_state_poll();
 
 	/**
-	 * Check for accel updates.
-	 */
-	void		vehicle_sensor_combined_poll();
-
-	/**
 	 * Check for set triplet updates.
 	 */
 	void		vehicle_setpoint_poll();
@@ -425,7 +405,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
-	_sensor_combined_sub(-1),
 
 	/* publications */
 	_attitude_sp_pub(nullptr),
@@ -446,7 +425,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_vehicle_land_detected(),
 	_global_pos(),
 	_pos_sp_triplet(),
-	_sensor_combined(),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
@@ -771,18 +749,6 @@ GroundRoverPositionControl::control_state_poll()
 }
 
 void
-GroundRoverPositionControl::vehicle_sensor_combined_poll()
-{
-	/* check if there is a new position */
-	bool sensors_updated;
-	orb_check(_sensor_combined_sub, &sensors_updated);
-
-	if (sensors_updated) {
-		orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-	}
-}
-
-void
 GroundRoverPositionControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -961,8 +927,8 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
 	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-	math::Vector<3> accel_earth = _R_nb * accel_body;
+	math::Vector<3> accel_body(_ctrl_state.x_acc, _ctrl_state.y_acc, _ctrl_state.z_acc);
+	math::Vector<3> accel_earth{_R_nb * accel_body};
 
 	/* tell TECS to update its state and update TECS filters */
 	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
@@ -1158,7 +1124,6 @@ GroundRoverPositionControl::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1266,7 +1231,6 @@ GroundRoverPositionControl::task_main()
 
 			control_state_poll();
 			vehicle_setpoint_poll();
-			vehicle_sensor_combined_poll();
 			vehicle_manual_control_setpoint_poll();
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
