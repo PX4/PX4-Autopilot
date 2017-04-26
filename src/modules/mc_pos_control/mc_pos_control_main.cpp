@@ -1707,7 +1707,6 @@ void
 MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
-
 	if (_run_pos_control) {
 		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
@@ -1723,32 +1722,12 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
 				  _vel_sp(1) * _vel_sp(1));
 
-	if (vel_norm_xy > _vel_max_xy) {
-		/* note assumes vel_max(0) == vel_max(1) */
-		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
-	}
+	slow_land_gradual_velocity_limit();
 
 	/* we are close to target and want to limit velocity in xy */
 	if (_limit_vel_xy) {
 		limit_vel_xy_gradually();
 	}
-
-	/* make sure velocity setpoint is saturated in z*/
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed
-	    && _takeoff_jumped
-	    && (_vel_sp(2) < -_params.tko_speed)) {
-
-		_vel_sp(2) = -_params.tko_speed;
-
-	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
-		_vel_sp(2) = -1.0f * _params.vel_max_up;
-
-	}
-
-	slow_land_gradual_velocity_limit();
 
 	if (!_control_mode.flag_control_position_enabled) {
 		_reset_pos_sp = true;
@@ -1769,6 +1748,32 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
+	/* make sure velocity setpoint is constrained in all directions*/
+	if (vel_norm_xy > _vel_max_xy) {
+		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
+	}
+
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && _control_mode.flag_armed
+	    && _takeoff_jumped
+	    && (_vel_sp(2) < -_params.tko_speed)) {
+
+		_vel_sp(2) = -_params.tko_speed;
+
+	} else if ((_vel(2) > -_params.tko_speed)
+		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)
+		   && !_control_mode.flag_control_manual_enabled) {
+		if (!_takeoff_jumped) {
+			_vel_sp(2) = 0.0f;
+		}
+
+	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
+		_vel_sp(2) = -1.0f * _params.vel_max_up;
+
+	}
+
 	/* TODO: remove this is a pathetic leftover, it's here just to make sure that
 	 * _takeoff_jumped flags are reset */
 	if (_control_mode.flag_control_manual_enabled || !_pos_sp_triplet.current.valid
@@ -1779,16 +1784,16 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_takeoff_thrust_sp = 0.0f;
 	}
 
+	/* apply slewrate (aka acceleration limit) for smooth flying */
 	vel_sp_slewrate(dt);
-
 	_vel_sp_prev = _vel_sp;
 
+	/* publish velocity setpoint */
 	_global_vel_sp.timestamp = hrt_absolute_time();
 	_global_vel_sp.vx = _vel_sp(0);
 	_global_vel_sp.vy = _vel_sp(1);
 	_global_vel_sp.vz = _vel_sp(2);
 
-	/* publish velocity setpoint */
 	if (_global_vel_sp_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
