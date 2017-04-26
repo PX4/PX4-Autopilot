@@ -658,7 +658,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (status_flags->gps_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps_cmd);
-			
+
 		} else if (status_flags->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
 
@@ -668,16 +668,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 			/* finished handling commands which have priority, now handle failures */
 
 		} else if (status_flags->gps_failure) {
-			/* Here it goes if it has no gps and we try to do mission*/
-			if(status_flags->condition_global_position_valid) {
-				//if somebody (eg lpe estimator) gives us the position we do the mission
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-			} else {
-				status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
-			
-			}
-			
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
 
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
