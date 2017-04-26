@@ -666,7 +666,7 @@ FixedwingPositionControl::parameters_update()
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    // _parameters.airspeed_max < 5.0f ||
+	    _parameters.airspeed_max < 5.0f ||
 	    _parameters.airspeed_min > 100.0f ||
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
