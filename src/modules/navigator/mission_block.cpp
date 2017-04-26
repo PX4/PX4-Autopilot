@@ -556,18 +556,11 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		// initially use current altitude, and switch to mission item altitude once in loiter position
 		sp->alt = math::max(_navigator->get_global_position()->alt,
 				    _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
-		sp->vx = 0.0f;
-		sp->vy = 0.0f;
-		sp->vz = 0.0f;
-
 
 	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-		sp->vx = 0.0f;
-		sp->vy = 0.0f;
-		sp->vz = 0.0f;
 
 		if (_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()) {
 			sp->disable_mc_yaw_control = true;
@@ -596,39 +589,12 @@ MissionBlock::set_previous_pos_setpoint()
 void
 MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 {
-	
-
 	if (_navigator->get_land_detected()->landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
 		item->nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-
-		// if (false ) { //& _navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED ) {
-		// 	item->nav_cmd = NAV_CMD_COMPONENT_ARM_DISARM;
-		// 	item->params[0] = 0;
-		// 	item->params[1] = 21196;
-			
-
-		// 	/********************/
-		// 	PX4_INFO("forwarding command %d", item->nav_cmd);
-		// 	struct vehicle_command_s cmd = {};
-		// 	mission_item_to_vehicle_command(item, &cmd);
-		// 	_action_start = hrt_absolute_time();
-
-		// 	if (_cmd_pub != nullptr) {
-		// 		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-
-		// 	} else {
-		// 		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		// 	}
-		// 	return;
-		// } else {
-		// 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		// }
-
-			item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-
+		item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
