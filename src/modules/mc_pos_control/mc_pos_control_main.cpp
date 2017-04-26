@@ -1736,7 +1736,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	if (_in_takeoff) {
 		_in_takeoff = _takeoff_vel_limit < -_vel_sp(2);
 		/* ramp vertical velocity limit up to takeoff speed */
-		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
+		_takeoff_vel_limit += _params.tko_speed * dt / _takeoff_ramp_time.get();
 		/* limit vertical velocity to the current ramp value */
 		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
 	}
