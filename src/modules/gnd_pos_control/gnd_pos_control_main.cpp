@@ -91,18 +91,6 @@
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
-#define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
-#define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
-#define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
-#define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
-#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll/yaw input from user which does not change the locked heading
-#define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
-#define THROTTLE_THRESH 0.05f 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
-#define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
-#define ALTHOLD_EPV_RESET_THRESH 5.0f
-#define CLOSED_LOOP_CONTROL 1
-
-
 using matrix::Eulerf;
 using matrix::Quatf;
 
@@ -203,11 +191,7 @@ private:
 	float _speed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
 	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
-	
-	float _gpsspeed_error;				///< gpsspeed error to setpoint in m/s
-	bool _gpsspeed_valid;				///< flag if a valid gpsspeed estimate exists
-	uint64_t _gpsspeed_last_received;		///< last time gpsspeed was received. Used to detect timeouts.
-	
+		
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
 	float _roll;
@@ -265,12 +249,6 @@ private:
 		float speed_imax;
 		float speed_throttle_airspeed_scaler;
 
-		float gpsspeed_min;
-		float gpsspeed_trim;
-		float gpsspeed_max;
-		float gpsspeed_trans;
-		int gpsspeed_mode;
-
 		float pitch_limit_min;
 		float pitch_limit_max;
 		float roll_limit;
@@ -318,13 +296,6 @@ private:
 		param_t speed_d;
 		param_t speed_imax;
 		param_t speed_throttle_airspeed_scaler;
-
-		param_t gpsspeed_min;
-		param_t gpsspeed_trim;
-		param_t gpsspeed_max;
-		param_t gpsspeed_trans;
-		param_t gpsspeed_mode;
-
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
@@ -494,9 +465,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_speed_error(0.0f),
 	_airspeed_valid(false),
 	_airspeed_last_received(0),
-	_gpsspeed_error(0.0f),
-	_gpsspeed_valid(false),
-	_gpsspeed_last_received(0),
 
 	_global_pos_valid(false),
 	_R_nb(),
@@ -1067,7 +1035,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 			/* Just control the throttle */
 		if ( _parameters.speed_control_mode > 0 ) {
-			/* control the speed in closed loop fashion */
+			/* control the speed in closed loop */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
 		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
