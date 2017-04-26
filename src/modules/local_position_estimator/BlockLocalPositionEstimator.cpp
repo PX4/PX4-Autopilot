@@ -48,7 +48,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_sonar(nullptr),
 
 	// publications
-	_lpe_est_pub(nullptr),
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
@@ -63,7 +62,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_z_pub_thresh(this, "Z_PUB"),
 	_sonar_z_stddev(this, "SNR_Z"),
 	_sonar_z_offset(this, "SNR_OFF_Z"),
-	_sonar_fixed_distance(this, "SONAR_DIST"),
 	_lidar_z_stddev(this, "LDR_Z"),
 	_lidar_z_offset(this, "LDR_OFF_Z"),
 	_accel_xy_stddev(this, "ACC_XY"),
@@ -153,9 +151,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_estimatorInitialized(0),
 
 	// kf matrices
-	_x(), _u(), _P(), _R_att(), _eul(),
-
-	_counter(0)
+	_x(), _u(), _P(), _R_att(), _eul()
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -186,15 +182,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// print fusion settings to console
 	printf("[lpe] fuse gps: %d, flow: %d, vis_pos: %d, "
-	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, baro: %d\n",
+	       "vis_yaw: %d, land: %d, pub_agl_z: %d, flow_gyro: %d\n",
 	       (_fusion.get() & FUSE_GPS) != 0,
 	       (_fusion.get() & FUSE_FLOW) != 0,
 	       (_fusion.get() & FUSE_VIS_POS) != 0,
 	       (_fusion.get() & FUSE_VIS_YAW) != 0,
 	       (_fusion.get() & FUSE_LAND) != 0,
 	       (_fusion.get() & FUSE_PUB_AGL_Z) != 0,
-	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
-	       	(_fusion.get() & FUSE_BARO) != 0);
+	       (_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0);
 }
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
@@ -264,39 +259,25 @@ void BlockLocalPositionEstimator::update()
 	// selection param, but is really not helping outdoors
 	// right now.
 
-	// if (!armedState) {
-	// 	_P(X_vx, X_vx) = 0.001f;
-	// 	_P(X_vy, X_vy) = 0.001f;
+	// if (!_lastArmedState && armedState) {
 
+	// 	// we just armed, we are at origin on the ground
+	// 	_x(X_x) = 0;
+	// 	_x(X_y) = 0;
+	// 	// reset Z or not? _x(X_z) = 0;
+
+	// 	// we aren't moving, all velocities are zero
+	// 	_x(X_vx) = 0;
+	// 	_x(X_vy) = 0;
+	// 	_x(X_vz) = 0;
+
+	// 	// assume we are on the ground, so terrain alt is local alt
+	// 	_x(X_tz) = _x(X_z);
+
+	// 	// reset lowpass filter as well
+	// 	_xLowPass.setState(_x);
+	// 	_aglLowPass.setState(0);
 	// }
-
-	// TODO: check if useful this
-	if (false && !_lastArmedState && armedState) {
-
-		// we just armed, we are at origin on the ground
-		_x(X_x) = 0;
-		_x(X_y) = 0;
-		// reset Z or not? _x(X_z) = 0;
-		_P(X_x,X_x) = 0;
-		_P(X_y, X_y) = 0;
-		// _P(X_z, X_z) = 0;
-		
-		// we aren't moving, all velocities are zero
-		_x(X_vx) = 0;
-		_x(X_vy) = 0;
-		_x(X_vz) = 0;
-
-		_P(X_vx,X_vx) = 0.001f;
-		_P(X_vy, X_vy) = 0.001f;
-		_P(X_vz, X_vz) = 0.001f;
-
-		// assume we are on the ground, so terrain alt is local alt
-		_x(X_tz) = _x(X_z);
-
-		// reset lowpass filter as well
-		_xLowPass.setState(_x);
-		_aglLowPass.setState(0);
-	}
 
 	_lastArmedState = armedState;
 
@@ -324,8 +305,9 @@ void BlockLocalPositionEstimator::update()
 	bool mocapUpdated = _sub_mocap.updated();
 	bool lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
 	bool sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
-	bool landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
-	
+	bool landUpdated = landed()
+			   && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE); // throttle rate
+
 	// get new data
 	updateSubscriptions();
 
@@ -338,70 +320,28 @@ void BlockLocalPositionEstimator::update()
 	// is xy valid?
 	bool vxy_stddev_ok = false;
 
-	if ((_counter % 100 < 1.0e-4f) /*|| flowUpdated */)
-	{
-		// warnx("EST_XY: %d | EST_Z: %d | EST_TZ: %d", EST_XY, EST_Z, EST_TZ);
-
-		warnx("_x(X_z) %.4f | _x(X_tz): %.4f | _P(X_vx, X_vx): %.4f | _P(X_vy, X_vy): %.4f", (double) _x(X_z), (double) _x(X_tz),  (double) _P(X_vx, X_vx), (double) _P(X_vy, X_vy));
-		// warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
-		
-		float qual = _sub_flow.get().quality;
-
-		warnx(" flow qual: %.4f | _estimatorInitialized : %.4f", (double)qual, (double) _estimatorInitialized );
-	}
-
-
-	// /* lazily publish data only once available */
-	// if (_lpe_est_pub != nullptr) {
-	// 	/* publish the attitude rates setpoint */
-	// 	orb_publish(_rates_sp_id, _lpe_est_pub, &_rates_sp);
-
-	// } else if (_rates_sp_id) {
-	// 	/* advertise the attitude rates setpoint */
-	// 	_lpe_est_pub = orb_advertise(_rates_sp_id, &_rates_sp);
-	// }
-
-	
 	if (math::max(_P(X_vx, X_vx), _P(X_vy, X_vy)) < _vxy_pub_thresh.get()*_vxy_pub_thresh.get()) {
 		vxy_stddev_ok = true;
 	}
 
 	if (_estimatorInitialized & EST_XY) {
 		// if valid and gps has timed out, set to not valid
-		if (!vxy_stddev_ok ) {
+		if (!vxy_stddev_ok && (_sensorTimeout & SENSOR_GPS)) {
 			_estimatorInitialized &= ~EST_XY;
-		} //else do nothing
+		}
 
 	} else {
-		// if ( (_estimatorInitialized < 1.0f) ) {
-			if (vxy_stddev_ok) {
-			// warnx("1.1");	
-			// _estimatorInitialized |= EST_XY;
-
-				if (!(_sensorTimeout & SENSOR_FLOW)) {
-					_estimatorInitialized |= EST_XY;
-					warnx("1.2");	
-				} 
+		if (vxy_stddev_ok) {
+			if (!(_sensorTimeout & SENSOR_GPS)
+			    || !(_sensorTimeout & SENSOR_FLOW)
+			    || !(_sensorTimeout & SENSOR_VISION)
+			    || !(_sensorTimeout & SENSOR_MOCAP)
+			    || !(_sensorTimeout & SENSOR_LAND)
+			   ) {
+				_estimatorInitialized |= EST_XY;
 			}
-		// }
+		}
 	}
-
-	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
-	// 	warnx("1: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
-	// }
-
-	// if (_sensorTimeout & SENSOR_FLOW) {
-	// 	flowInit();
-	// }
-
-	// if (_sensorTimeout & SENSOR_SONAR) {
-	// 	sonarInit();
-	// }
-
-	// if (_sensorTimeout & SENSOR_BARO) {
-	// 	baroInit();
-	// }
-
 
 	// is z valid?
 	bool z_stddev_ok = sqrtf(_P(X_z, X_z)) < _z_pub_thresh.get();
@@ -410,20 +350,13 @@ void BlockLocalPositionEstimator::update()
 		// if valid and baro has timed out, set to not valid
 		if (!z_stddev_ok && (_sensorTimeout & SENSOR_BARO)) {
 			_estimatorInitialized &= ~EST_Z;
-			warnx("2.1");
 		}
 
 	} else {
 		if (z_stddev_ok) {
 			_estimatorInitialized |= EST_Z;
-			warnx("2.2");
 		}
 	}
-
-	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
-	// 	warnx("2: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
-	// }
-
 
 	// is terrain valid?
 	bool tz_stddev_ok = sqrtf(_P(X_tz, X_tz)) < _z_pub_thresh.get();
@@ -431,28 +364,19 @@ void BlockLocalPositionEstimator::update()
 	if (_estimatorInitialized & EST_TZ) {
 		if (!tz_stddev_ok) {
 			_estimatorInitialized &= ~EST_TZ;
-			warnx("3.1");
 		}
 
 	} else {
 		if (tz_stddev_ok) {
 			_estimatorInitialized |= EST_TZ;
-			warnx("3.2");
-
 		}
 	}
-
-
-	// if (fabsf( _estimatorInitialized - _counter) > 1.0e-6f){
-	// warnx("3: _estimatorInitialized : %.4f  | _altOriginInitialized: %.4f", (double)(_estimatorInitialized ), (double) _altOriginInitialized);
-	// }
-
 
 	// check timeouts
 	checkTimeouts();
 
 	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
-	if (!_map_ref.init_done && /*(_estimatorInitialized & EST_XY)*/( !armedState ) && _fake_origin.get()) {
+	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _fake_origin.get()) {
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
@@ -553,6 +477,7 @@ void BlockLocalPositionEstimator::update()
 	if (sonarUpdated) {
 		if (_sensorTimeout & SENSOR_SONAR) {
 			sonarInit();
+
 		} else {
 			sonarCorrect();
 		}
@@ -561,6 +486,7 @@ void BlockLocalPositionEstimator::update()
 	if (flowUpdated) {
 		if (_sensorTimeout & SENSOR_FLOW) {
 			flowInit();
+
 		} else {
 			flowCorrect();
 		}
@@ -593,23 +519,14 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	_counter++;
-
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
 		publishEstimatorStatus();
 		_pub_innov.update();
 
-		// if (_counter % 10 < 1.0e-6f)
-		// {
-		// 	warnx("_estimatorInitialized & EST_XY: %.4f | init_done: %.4f | fk_or: %.4f ", (double)(_estimatorInitialized & EST_XY), (double) _map_ref.init_done, (double) _fake_origin.get());
-		// }
-		
-
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
 			publishGlobalPos();
-			// warnx("counter: %d",  _counter);
 		}
 	}
 
@@ -959,26 +876,9 @@ void BlockLocalPositionEstimator::predict()
 		}
 	}
 
-
-
 	_P += dP;
 	_xLowPass.update(_x);
 	_aglLowPass.update(agl());
-
-
-	// if ((_sonar_fixed_distance.get() > 0.0f) && !_lastArmedState) {
-	// 	_x(X_z) = _sonar_fixed_distance.get();
-	// 	_x(X_tz) = _sonar_fixed_distance.get();
-	// 	_x(X_vx) = 0.0f;
-	// 	_x(X_vy) = 0.0f;
-	// 	_x(X_vz) = 0.0f;
-	// 	_P(X_z, X_z) = 0.001f;
-	// 	_P(X_vx, X_vx) = 0.001f;
-	// 	_P(X_vy, X_vy) = 0.001f;
-	// 	_P(X_vz, X_vz) = 0.001f;
-
-	// }
-
 }
 
 int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)

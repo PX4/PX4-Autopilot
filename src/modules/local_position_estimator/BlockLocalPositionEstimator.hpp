@@ -250,7 +250,6 @@ private:
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
 
 	// publications
-	orb_advert_t	_lpe_est_pub;			/**< lpe estimator data publication */
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
@@ -267,7 +266,6 @@ private:
 	// sonar parameters
 	BlockParamFloat  _sonar_z_stddev;
 	BlockParamFloat  _sonar_z_offset;
-	BlockParamFloat  _sonar_fixed_distance;
 
 	// lidar parameters
 	BlockParamFloat  _lidar_z_stddev;
@@ -386,6 +384,4 @@ private:
 	Matrix<float, n_x, n_u>  _B; // input matrix
 	Matrix<float, n_u, n_u>  _R; // input covariance
 	Matrix<float, n_x, n_x>  _Q; // process noise covariance
-	                             // 
-	uint64_t _counter;
 };
