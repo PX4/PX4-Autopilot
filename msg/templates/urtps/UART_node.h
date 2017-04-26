@@ -26,8 +26,8 @@ public:
     
     uint8_t init_uart(const char * uart_name, uint32_t speed = 0);
     uint8_t close_uart();
-    uint8_t readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos);
-    uint8_t writeToUART(const char topic_ID, char buffer[], uint32_t length);
+    int16_t readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos);
+    int16_t writeToUART(const char topic_ID, char buffer[], uint32_t length);
     const size_t max_size = 256;
 
 protected:

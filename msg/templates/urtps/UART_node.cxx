@@ -98,12 +98,12 @@ uint8_t UART_node::close_uart()
 }
 
 
-uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos)
+int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos)
 {
     if (-1 == m_uart_filestream ||
         nullptr == out_buffer ||
         nullptr == rx_buffer)
-        return 2;
+        return -1;
 
     // Read up to max_size characters from the port if they are there
     
@@ -122,7 +122,7 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
             {
                 printf("UART Fail %d\n", errsv);
             }
-            return 0;
+            return -1;
         }
 
         rx_buffer[rx_buff_pos++] = aux;
@@ -136,7 +136,6 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
                 if (rx_buff_pos > 3)
                 {
                     printf("                                 (↓ %u)\n", rx_buff_pos - 3);
-                    //printf("# %u bytes lost 1\n", rx_buff_pos - 3 + 1);
                     rx_buffer[0] = rx_buffer[1] = rx_buffer[2] = '>';
                     rx_buff_pos = 3;
                 }
@@ -149,16 +148,14 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
                 0 == strncmp(rx_buffer, ">>>", 3))
             {
                 rx_length = rx_buff_pos - 7;
-                //printf("# (@,%d) ", rx_length);
                 break;
             }
         }
         if (rx_buff_pos > max_size)
         {
             printf("                                 (↓↓ %lu)\n", max_size);
-            // printf("# %u bytes lost 2\n", rx_buff_pos);
             rx_buff_pos = 0;
-            return 0;
+            return -1;
         }
     }
 
@@ -171,7 +168,7 @@ uint8_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
 }
 
 
-uint8_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t length)
+int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t length)
 {
     if (m_uart_filestream == -1) return 2;
 
@@ -190,6 +187,7 @@ uint8_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t leng
         {
             printf("                               => Writed '%d' != length(%u) error '%d'\n", ret, length, errsv);
         }
+        return ret;
     }
 
 
@@ -200,5 +198,5 @@ uint8_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t leng
     printf("<<<\n");*/
 
 
-    return 0;
+    return length;
 }
