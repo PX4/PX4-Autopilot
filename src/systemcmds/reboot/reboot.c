@@ -39,8 +39,8 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_tasks.h>
 #include <px4_log.h>
+#include <px4_shutdown.h>
 #include <systemlib/systemlib.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
@@ -62,9 +62,19 @@ int reboot_main(int argc, char *argv[])
 		default:
 			PX4_ERR("usage: reboot [-b]\n"
 				"   -b   reboot into the bootloader");
+			break;
 
 		}
 	}
 
-	px4_systemreset(to_bootloader);
+	int ret = px4_shutdown_request(true, to_bootloader);
+
+	if (ret < 0) {
+		PX4_ERR("reboot failed (%i)", ret);
+		return -1;
+	}
+
+	while (1) { usleep(1); } // this command should not return on success
+
+	return 0;
 }

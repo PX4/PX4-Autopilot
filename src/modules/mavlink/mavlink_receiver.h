@@ -237,11 +237,8 @@ private:
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;
 	uint64_t _old_timestamp;
-	uint64_t _hil_last_frame;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
-	float _hil_prev_gyro[3];
-	float _hil_prev_accel[3];
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
 	struct vehicle_attitude_setpoint_s _att_sp;
@@ -254,6 +251,10 @@ private:
 
 	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
 	uint16_t _mom_switch_state;
+
+	param_t _p_bat_emergen_thr;
+	param_t _p_bat_crit_thr;
+	param_t _p_bat_low_thr;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);

@@ -48,7 +48,7 @@
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
 
 /**
  * Multicopter max horizontal velocity
@@ -128,11 +128,27 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
  *
  * @min 0
  * @max 1
+ * @unit norm
  * @decimal 2
  *
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDMC_MAN_DWNTHR, 0.15f);
+
+/**
+ * Manual position flight stick up threshold for taking off
+ *
+ * When controlling manually in position mode the throttle stick value (0 to 1)
+ * has to get above this threshold after arming in order to take off.
+ *
+ * @min 0
+ * @max 1
+ * @unit norm
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_POS_UPTHR, 0.65f);
 
 /**
  * Fixedwing max horizontal velocity
@@ -213,3 +229,15 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
  *
  */
 PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
+
+/**
+ * Maximum altitude that can be reached prior to subconditions
+ *
+ * @unit m
+ * @min 10
+ * @max 150
+ * @decimal 2
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 100.0f);

@@ -970,8 +970,11 @@ private:
 	MavlinkOrbSubscription *_armed_sub;
 	uint64_t _armed_time;
 
-	MavlinkOrbSubscription *_act_sub;
-	uint64_t _act_time;
+	MavlinkOrbSubscription *_act0_sub;
+	uint64_t _act0_time;
+
+	MavlinkOrbSubscription *_act1_sub;
+	uint64_t _act1_time;
 
 	MavlinkOrbSubscription *_airspeed_sub;
 	uint64_t _airspeed_time;
@@ -991,8 +994,10 @@ protected:
 		_pos_time(0),
 		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
 		_armed_time(0),
-		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
-		_act_time(0),
+		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
+		_act0_time(0),
+		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
+		_act1_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
 		_airspeed_time(0),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
@@ -1004,14 +1009,16 @@ protected:
 		struct vehicle_attitude_s att = {};
 		struct vehicle_global_position_s pos = {};
 		struct actuator_armed_s armed = {};
-		struct actuator_controls_s act = {};
 		struct airspeed_s airspeed = {};
+		struct actuator_controls_s act0 = {};
+		struct actuator_controls_s act1 = {};
 
 		bool updated = _att_sub->update(&_att_time, &att);
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
-		updated |= _act_sub->update(&_act_time, &act);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _act0_sub->update(&_act0_time, &act0);
+		updated |= _act1_sub->update(&_act1_time, &act1);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
@@ -1019,7 +1026,19 @@ protected:
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(euler.psi()) * M_RAD_TO_DEG_F;
-			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
+
+			if (armed.armed) {
+				// VFR_HUD throttle should only be used for operator feedback.
+				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition there isn't a
+				// a single throttle value, but this should still be a useful heuristic for operator awareness.
+				//
+				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
+				msg.throttle = 100 * math::max(act0.control[actuator_controls_s::INDEX_THROTTLE],
+							       act1.control[actuator_controls_s::INDEX_THROTTLE]);
+
+			} else {
+				msg.throttle = 0.0f;
+			}
 
 			if (_pos_time > 0) {
 				/* use global estimate */
@@ -1436,6 +1455,23 @@ protected:
 				msg_cmd.param7 = NAN;
 
 				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg_cmd);
+
+				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
+				mavlink_command_long_t digicam_ctrl_cmd;
+
+				digicam_ctrl_cmd.target_system = 0; // 0 for broadcast
+				digicam_ctrl_cmd.target_component = MAV_COMP_ID_CAMERA;
+				digicam_ctrl_cmd.command = MAV_CMD_DO_DIGICAM_CONTROL;
+				digicam_ctrl_cmd.confirmation = 0;
+				digicam_ctrl_cmd.param1 = NAN;
+				digicam_ctrl_cmd.param2 = NAN;
+				digicam_ctrl_cmd.param3 = NAN;
+				digicam_ctrl_cmd.param4 = NAN;
+				digicam_ctrl_cmd.param5 = 1;   // take 1 picture
+				digicam_ctrl_cmd.param6 = NAN;
+				digicam_ctrl_cmd.param7 = NAN;
+
+				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &digicam_ctrl_cmd);
 			}
 		}
 	}
@@ -3280,6 +3316,8 @@ public:
 private:
 	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_landed_sub;
+	MavlinkOrbSubscription *_pos_sp_triplet_sub;
+	MavlinkOrbSubscription *_control_mode_sub;
 	mavlink_extended_sys_state_t _msg;
 
 	/* do not allow top copying this class */
@@ -3290,9 +3328,10 @@ protected:
 	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_landed_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected))),
+		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
+		_control_mode_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_control_mode))),
 		_msg()
 	{
-
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
 		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 	}
@@ -3328,8 +3367,25 @@ protected:
 			if (land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 
-			} else {
+			} else if (!land_detected.landed) {
 				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
+
+				vehicle_control_mode_s control_mode = {};
+				position_setpoint_triplet_s pos_sp_triplet = {};
+
+				if (_control_mode_sub->update(&control_mode) && _pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+					if (control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
+						if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+							_msg.landed_state = MAV_LANDED_STATE_TAKEOFF;
+
+						} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+							_msg.landed_state = MAV_LANDED_STATE_LANDING;
+						}
+					}
+				}
+
+			} else {
+				_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 			}
 		}
 

@@ -88,9 +88,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 
 				map_fail_count++;
 			}
-
 		}
-
 	}
 
 

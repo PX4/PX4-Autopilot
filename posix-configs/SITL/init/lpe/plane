@@ -46,11 +46,11 @@ param set FW_PR_FF 0.40
 param set FW_PR_I 0.05
 param set FW_PR_P 0.05
 
+param set FW_W_EN 1
 param set RWTO_TKOFF 1
 
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -59,7 +59,6 @@ adcsim start
 gpssim start
 measairspeedsim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 navigator start

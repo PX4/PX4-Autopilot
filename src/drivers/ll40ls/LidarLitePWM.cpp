@@ -61,7 +61,6 @@ LidarLitePWM::LidarLitePWM(const char *path) :
 	_range{},
 	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
 	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_pwm_buffer_overflows")),
 	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_pwm_zero_resets"))
 {
 }
@@ -81,7 +80,6 @@ LidarLitePWM::~LidarLitePWM()
 
 	/* free perf counters */
 	perf_free(_sample_perf);
-	perf_free(_buffer_overflows);
 	perf_free(_sensor_zero_resets);
 }
 
@@ -122,7 +120,6 @@ void LidarLitePWM::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_read_errors);
-	perf_print_counter(_buffer_overflows);
 	perf_print_counter(_sensor_zero_resets);
 	warnx("poll interval:  %u ticks", getMeasureTicks());
 	warnx("distance: %.3fm", (double)_range.current_distance);
@@ -196,9 +193,7 @@ int LidarLitePWM::measure()
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
 	}
 
-	if (_reports->force(&_range)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&_range);
 
 	poll_notify(POLLIN);
 	perf_end(_sample_perf);

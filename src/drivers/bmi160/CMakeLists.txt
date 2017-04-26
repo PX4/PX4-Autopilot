@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN bmi160
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		bmi160.cpp
 		bmi160_gyro.cpp

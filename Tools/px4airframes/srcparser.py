@@ -22,6 +22,64 @@ class ParameterGroup(object):
         """
         return self.name
 
+    def GetImageName(self):
+        """
+        Get parameter group image base name (w/o extension)
+        """
+        if (self.name == "Standard Plane"):
+            return "Plane"
+        elif (self.name == "Flying Wing"):
+            return "FlyingWing"
+        elif (self.name == "Quadrotor x"):
+            return "QuadRotorX"
+        elif (self.name == "Quadrotor +"):
+            return "QuadRotorPlus"
+        elif (self.name == "Hexarotor x"):
+            return "HexaRotorX"
+        elif (self.name == "Hexarotor +"):
+            return "HexaRotorPlus"
+        elif (self.name == "Octorotor +"):
+            return "OctoRotorPlus"
+        elif (self.name == "Octorotor x"):
+            return "OctoRotorX"
+        elif (self.name == "Octorotor Coaxial"):
+            return "OctoRotorXCoaxial"
+        elif (self.name == "Octo Coax Wide"):
+            return "OctoRotorXCoaxial"
+        elif (self.name == "Quadrotor Wide"):
+            return "QuadRotorWide"
+        elif (self.name == "Quadrotor H"):
+            return "QuadRotorH"
+        elif (self.name == "Simulation"):
+            return "AirframeSimulation"
+        elif (self.name == "Plane A-Tail"):
+            return "PlaneATail"
+        elif (self.name == "VTOL Duo Tailsitter"):
+            return "VTOLDuoRotorTailSitter"
+        elif (self.name == "Standard VTOL"):
+            return "VTOLPlane"
+        elif (self.name == "VTOL Quad Tailsitter"):
+            return "VTOLQuadRotorTailSitter"
+        elif (self.name == "VTOL Tiltrotor"):
+            return "VTOLTiltRotor"
+        elif (self.name == "Coaxial Helicopter"):
+            return "HelicopterCoaxial"
+        elif (self.name == "Helicopter"):
+            return "Helicopter"
+        elif (self.name == "Hexarotor Coaxial"):
+            return "Y6B"
+        elif (self.name == "Y6A"):
+            return "Y6A"
+        elif (self.name == "Tricopter Y-"):
+            return "YMinus"
+        elif (self.name == "Tricopter Y+"):
+            return "YPlus"
+        elif (self.name == "Rover"):
+            return "Rover"
+        elif (self.name == "Boat"):
+            return "Boat"
+        return "AirframeUnknown"
+
     def GetParams(self):
         """
         Returns the parsed list of parameters. Every parameter is a Parameter
@@ -44,6 +102,14 @@ class Parameter(object):
         "min": 5,
         "max": 4,
         "unit": 3,
+        "AUX1": -10,
+        "AUX2": -10,
+        "AUX3": -10,
+        "AUX4": -10,
+        "AUX5": -10,
+        "AUX6": -10,
+        "AUX7": -10,
+        "AUX8": -10,
         # all others == 0 (sorted alphabetically)
     }
 

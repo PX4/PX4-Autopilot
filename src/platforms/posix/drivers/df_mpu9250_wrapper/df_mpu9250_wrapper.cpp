@@ -60,6 +60,7 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/device/integrator.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <lib/conversion/rotation.h>
 
@@ -70,6 +71,12 @@
 
 // We don't want to auto publish, therefore set this to 0.
 #define MPU9250_NEVER_AUTOPUBLISH_US 0
+
+#define MPU9250_ACCEL_DEFAULT_RATE 1000
+#define MPU9250_GYRO_DEFAULT_RATE 1000
+
+#define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
+#define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
 
 extern "C" { __EXPORT int df_mpu9250_wrapper_main(int argc, char *argv[]); }
@@ -154,6 +161,13 @@ private:
 	Integrator		    _accel_int;
 	Integrator		    _gyro_int;
 
+	math::LowPassFilter2p	_accel_filter_x;
+	math::LowPassFilter2p	_accel_filter_y;
+	math::LowPassFilter2p	_accel_filter_z;
+	math::LowPassFilter2p	_gyro_filter_x;
+	math::LowPassFilter2p	_gyro_filter_y;
+	math::LowPassFilter2p	_gyro_filter_z;
+
 	unsigned		    _publish_count;
 
 	perf_counter_t		    _read_counter;
@@ -169,6 +183,8 @@ private:
 	uint64_t		    _last_accel_range_hit_count;
 
 	bool _mag_enabled;
+
+	enum Rotation _rotation;
 };
 
 DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
@@ -186,6 +202,12 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_mag_orb_class_instance(-1),
 	_accel_int(MPU9250_NEVER_AUTOPUBLISH_US, false),
 	_gyro_int(MPU9250_NEVER_AUTOPUBLISH_US, true),
+	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_publish_count(0),
 	_read_counter(perf_alloc(PC_COUNT, "mpu9250_reads")),
 	_error_counter(perf_alloc(PC_COUNT, "mpu9250_errors")),
@@ -197,7 +219,8 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_publish_perf(perf_alloc(PC_ELAPSED, "mpu9250_publish")),
 	_last_accel_range_hit_time(0),
 	_last_accel_range_hit_count(0),
-	_mag_enabled(mag_enabled)
+	_mag_enabled(mag_enabled),
+	_rotation(rotation)
 {
 	// Set sane default calibration values
 	_accel_calibration.x_scale = 1.0f;
@@ -573,37 +596,73 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		_update_mag_calibration();
 	}
 
-	math::Vector<3> vec_integrated_unused;
-	uint64_t integral_dt_unused;
+	accel_report accel_report = {};
+	gyro_report gyro_report = {};
+	mag_report mag_report = {};
 
-	math::Vector<3> accel_val((data.accel_m_s2_x - _accel_calibration.x_offset) * _accel_calibration.x_scale,
-				  (data.accel_m_s2_y - _accel_calibration.y_offset) * _accel_calibration.y_scale,
-				  (data.accel_m_s2_z - _accel_calibration.z_offset) * _accel_calibration.z_scale);
+	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
-	// apply sensor rotation on the accel measurement
-	accel_val = _rotation_matrix * accel_val;
+	// ACCEL
 
-	_accel_int.put_with_interval(data.fifo_sample_interval_us,
-				     accel_val,
-				     vec_integrated_unused,
-				     integral_dt_unused);
+	// write raw data (without rotation)
+	accel_report.x_raw = data.accel_m_s2_x;
+	accel_report.y_raw = data.accel_m_s2_y;
+	accel_report.z_raw = data.accel_m_s2_z;
 
-	math::Vector<3> gyro_val(data.gyro_rad_s_x,
-				 data.gyro_rad_s_y,
-				 data.gyro_rad_s_z);
+	float xraw_f = data.accel_m_s2_x;
+	float yraw_f = data.accel_m_s2_y;
+	float zraw_f = data.accel_m_s2_z;
 
-	// apply sensor rotation on the gyro measurement
-	gyro_val = _rotation_matrix * gyro_val;
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	// Apply calibration after rotation.
-	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
-	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
-	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+	// adjust values according to the calibration
+	float x_in_new = (xraw_f - _accel_calibration.x_offset) * _accel_calibration.x_scale;
+	float y_in_new = (yraw_f - _accel_calibration.y_offset) * _accel_calibration.y_scale;
+	float z_in_new = (zraw_f - _accel_calibration.z_offset) * _accel_calibration.z_scale;
 
-	_gyro_int.put_with_interval(data.fifo_sample_interval_us,
-				    gyro_val,
-				    vec_integrated_unused,
-				    integral_dt_unused);
+	accel_report.x = _accel_filter_x.apply(x_in_new);
+	accel_report.y = _accel_filter_y.apply(y_in_new);
+	accel_report.z = _accel_filter_z.apply(z_in_new);
+
+	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
+	math::Vector<3> aval_integrated;
+
+	_accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
+	accel_report.x_integral = aval_integrated(0);
+	accel_report.y_integral = aval_integrated(1);
+	accel_report.z_integral = aval_integrated(2);
+
+	// GYRO
+
+	// write raw data (withoud rotation)
+	gyro_report.x_raw = data.gyro_rad_s_x;
+	gyro_report.y_raw = data.gyro_rad_s_y;
+	gyro_report.z_raw = data.gyro_rad_s_z;
+
+	xraw_f = data.gyro_rad_s_x;
+	yraw_f = data.gyro_rad_s_y;
+	zraw_f = data.gyro_rad_s_z;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	// adjust values according to the calibration
+	float x_gyro_in_new = (xraw_f - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
+	float y_gyro_in_new = (yraw_f - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
+	float z_gyro_in_new = (zraw_f - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+
+	gyro_report.x = _gyro_filter_x.apply(x_gyro_in_new);
+	gyro_report.y = _gyro_filter_y.apply(y_gyro_in_new);
+	gyro_report.z = _gyro_filter_z.apply(z_gyro_in_new);
+
+	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+	math::Vector<3> gval_integrated;
+
+	_gyro_int.put(gyro_report.timestamp, gval, gval_integrated, gyro_report.integral_dt);
+	gyro_report.x_integral = gval_integrated(0);
+	gyro_report.y_integral = gval_integrated(1);
+	gyro_report.z_integral = gval_integrated(2);
 
 	// If we are not receiving the last sample from the FIFO buffer yet, let's stop here
 	// and wait for more packets.
@@ -635,16 +694,6 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
-	mag_report mag_report = {};
-
-	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
-
-	if (_mag_enabled) {
-		mag_report.timestamp = accel_report.timestamp;
-	}
-
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
 	gyro_report.range_rad_s = -1.0f;
@@ -655,43 +704,15 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	accel_report.device_id = m_id.dev_id;
 
 	if (_mag_enabled) {
+		mag_report.timestamp = accel_report.timestamp;
+
 		mag_report.scaling = -1.0f;
 		mag_report.range_ga = -1.0f;
 		mag_report.device_id = m_id.dev_id;
-	}
 
-	// TODO: remove these (or get the values)
-	gyro_report.x_raw = 0;
-	gyro_report.y_raw = 0;
-	gyro_report.z_raw = 0;
-
-	accel_report.x_raw = 0;
-	accel_report.y_raw = 0;
-	accel_report.z_raw = 0;
-
-	if (_mag_enabled) {
 		mag_report.x_raw = 0;
 		mag_report.y_raw = 0;
 		mag_report.z_raw = 0;
-	}
-
-	math::Vector<3> gyro_val_filt;
-	math::Vector<3> accel_val_filt;
-
-	// Read and reset.
-	math::Vector<3> gyro_val_integ = _gyro_int.get_and_filtered(true, gyro_report.integral_dt, gyro_val_filt);
-	math::Vector<3> accel_val_integ = _accel_int.get_and_filtered(true, accel_report.integral_dt, accel_val_filt);
-
-	// Use the filtered (by integration) values to get smoother / less noisy data.
-	gyro_report.x = gyro_val_filt(0);
-	gyro_report.y = gyro_val_filt(1);
-	gyro_report.z = gyro_val_filt(2);
-
-	accel_report.x = accel_val_filt(0);
-	accel_report.y = accel_val_filt(1);
-	accel_report.z = accel_val_filt(2);
-
-	if (_mag_enabled) {
 
 		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
 					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
@@ -703,14 +724,6 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		mag_report.y = mag_val(1);
 		mag_report.z = mag_val(2);
 	}
-
-	gyro_report.x_integral = gyro_val_integ(0);
-	gyro_report.y_integral = gyro_val_integ(1);
-	gyro_report.z_integral = gyro_val_integ(2);
-
-	accel_report.x_integral = accel_val_integ(0);
-	accel_report.y_integral = accel_val_integ(1);
-	accel_report.z_integral = accel_val_integ(2);
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {

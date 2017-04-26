@@ -109,7 +109,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 		if (hrt_absolute_time() > 10E6) {
 			// If intial temperature exceeds maximum declare an error condition and exit
 			if (data.sensor_sample_filt[1] > _max_start_temperature) {
-				return -110;
+				return -TC_ERROR_INITIAL_TEMP_TOO_HIGH;
 
 			} else {
 				data.cold_soaked = true;

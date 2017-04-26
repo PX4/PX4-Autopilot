@@ -37,7 +37,6 @@ param set MC_PITCHRATE_P 0.2
 param set MC_PITCH_P 6
 param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
-param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set EKF2_GBIAS_INIT 0.01
@@ -47,7 +46,6 @@ param set EKF2_AID_MASK 2
 param set EKF2_HGT_MODE 2
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -55,7 +53,6 @@ barosim start
 adcsim start
 gpssim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 land_detector start multicopter

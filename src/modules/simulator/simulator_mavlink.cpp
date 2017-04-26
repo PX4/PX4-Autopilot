@@ -404,9 +404,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_gpos.timestamp = timestamp;
 
 			hil_gpos.time_utc_usec = timestamp;
-			hil_gpos.lat = hil_state.lat;
-			hil_gpos.lon = hil_state.lon;
-			hil_gpos.alt = hil_state.alt / 1000.0f;
+			hil_gpos.lat = hil_state.lat / 1E7;//1E7
+			hil_gpos.lon = hil_state.lon / 1E7;//1E7
+			hil_gpos.alt = hil_state.alt / 1E3;//1E3
 
 			hil_gpos.vel_n = hil_state.vx / 100.0f;
 			hil_gpos.vel_e = hil_state.vy / 100.0f;
@@ -715,7 +715,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 						handle_message(&msg, publish);
 
 						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 1000000)) {
-							PX4_INFO("Got initial simuation data, running sim..");
+							PX4_INFO("Got initial simulation data, running sim..");
 							no_sim_data = false;
 						}
 					}

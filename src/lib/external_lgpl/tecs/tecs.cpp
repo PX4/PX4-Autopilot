@@ -1,11 +1,14 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
 #include "tecs.h"
+
 #include <ecl/ecl.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 
-using namespace math;
+using math::constrain;
+using math::max;
+using math::min;
 
 /**
  * @file tecs.cpp
@@ -27,8 +30,8 @@ using namespace math;
  *
  */
 
-void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat,
-	const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air)
+void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<3, 3> &rotMat,
+			const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth, bool altitude_lock, bool in_air)
 {
 	// Implement third order complementary filter for height and height rate
 	// estimted height rate = _integ2_state
@@ -41,10 +44,6 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
 	float DT = max((now - _update_50hz_last_usec), UINT64_C(0)) * 1.0e-6f;
-
-	// printf("dt: %10.6f baro alt: %6.2f eas: %6.2f R(0,0): %6.2f, R(1,1): %6.2f\naccel body: %6.2f %6.2f %6.2f\naccel earth: %6.2f %6.2f %6.2f\n",
-	// 	DT, baro_altitude, airspeed, rotMat(0, 0), rotMat(1, 1), accel_body(0), accel_body(1), accel_body(2),
-	// 	accel_earth(0), accel_earth(1), accel_earth(2));
 
 	bool reset_altitude = false;
 
@@ -74,6 +73,7 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 	// Get height acceleration
 	float hgt_ddot_mea = -(accel_earth(2) + CONSTANTS_ONE_G);
+
 	// Perform filter calculation using backwards Euler integration
 	// Coefficients selected to place all three filter poles at omega
 	float omega2 = _hgtCompFiltOmega * _hgtCompFiltOmega;
@@ -95,13 +95,11 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 	// Update and average speed rate of change
 	// Only required if airspeed is being measured and controlled
-	float temp = 0;
-
 	if (PX4_ISFINITE(airspeed) && airspeed_sensor_enabled()) {
 		// Get DCM
 		// Calculate speed rate of change
 		// XXX check
-		temp = rotMat(2, 0) * CONSTANTS_ONE_G + accel_body(0);
+		float temp = rotMat(2, 0) * CONSTANTS_ONE_G + accel_body(0);
 		// take 5 point moving average
 		//_vel_dot = _vdot_filter.apply(temp);
 		// XXX resolve this properly
@@ -117,25 +115,23 @@ void TECS::update_state(float baro_altitude, float airspeed, const math::Matrix<
 
 }
 
-void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
-			 float indicated_airspeed_min, float indicated_airspeed_max, float EAS2TAS)
+void TECS::_update_speed(float airspeed_demand, float indicated_airspeed, float EAS2TAS)
 {
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
 	float DT = max((now - _update_speed_last_usec), UINT64_C(0)) * 1.0e-6f;
 
 	// Convert equivalent airspeeds to true airspeeds
-
 	_EAS_dem = airspeed_demand;
 	_TAS_dem  = _EAS_dem * EAS2TAS;
-	_TASmax   = indicated_airspeed_max * EAS2TAS;
-	_TASmin   = indicated_airspeed_min * EAS2TAS;
+	_TASmax   = _indicated_airspeed_max * EAS2TAS;
+	_TASmin   = _indicated_airspeed_min * EAS2TAS;
 
 	// Get airspeed or default to halfway between min and max if
 	// airspeed is not being used and set speed rate to zero
 	if (!PX4_ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
 		// If no airspeed available use average of min and max
-		_EAS = 0.5f * (indicated_airspeed_min + indicated_airspeed_max);
+		_EAS = 0.5f * (_indicated_airspeed_min + _indicated_airspeed_max);
 
 	} else {
 		_EAS = indicated_airspeed;
@@ -159,7 +155,7 @@ void TECS::_update_speed(float airspeed_demand, float indicated_airspeed,
 
 	// Prevent state from winding up
 	if (_integ5_state < 3.1f) {
-		integ4_input = max(integ4_input , 0.0f);
+		integ4_input = max(integ4_input, 0.0f);
 	}
 
 	_integ4_state = _integ4_state + integ4_input * DT;
@@ -216,15 +212,13 @@ void TECS::_update_speed_demand()
 //	_TAS_rate_dem = (_TAS_dem - _TAS_dem_last) / _DT;
 //	}
 
-	_TAS_dem_adj = constrain(_TAS_dem, _TASmin, _TASmax);;
-	_TAS_rate_dem = constrain((_TAS_dem_adj - _integ5_state) * _speedrate_p, velRateMin, velRateMax); //xxx: using a p loop for now
+	_TAS_dem_adj = constrain(_TAS_dem, _TASmin, _TASmax);
+
+	//xxx: using a p loop for now
+	_TAS_rate_dem = constrain((_TAS_dem_adj - _integ5_state) * _speedrate_p, velRateMin, velRateMax);
 
 //	_TAS_dem_last = _TAS_dem;
 
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
-//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state, _badDescent, _underspeed, velRateMin);
-//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f,  _badDescent %u , _underspeed %u",
-//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state,  _badDescent , _underspeed);
 }
 
 void TECS::_update_height_demand(float demand, float state)
@@ -233,13 +227,16 @@ void TECS::_update_height_demand(float demand, float state)
 	if (PX4_ISFINITE(demand) && fabsf(_hgt_dem_in_old) < 0.1f) {
 		_hgt_dem_in_old = demand;
 	}
+
 	// Apply 2 point moving average to demanded height
 	// This is required because height demand is updated in steps
 	if (PX4_ISFINITE(demand)) {
 		_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
+
 	} else {
 		_hgt_dem = _hgt_dem_in_old;
 	}
+
 	_hgt_dem_in_old = _hgt_dem;
 
 	// Limit height demand
@@ -252,18 +249,11 @@ void TECS::_update_height_demand(float demand, float state)
 	}
 
 	_hgt_dem_prev = _hgt_dem;
-//
-//	// Apply first order lag to height demand
-//	_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
-//	_hgt_rate_dem = (_hgt_dem_adj - _hgt_dem_adj_last) / 0.1f;
-//	_hgt_dem_adj_last = _hgt_dem_adj;
-//
-//	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
-//	// 	_hgt_rate_dem);
 
+	// Apply first order lag to height demand
 	_hgt_dem_adj = 0.1f * _hgt_dem + 0.9f * _hgt_dem_adj_last;
-	_hgt_dem_adj_last = _hgt_dem_adj;
 	_hgt_rate_dem = (_hgt_dem_adj - state) * _heightrate_p + _heightrate_ff * (_hgt_dem_adj - _hgt_dem_adj_last) / _DT;
+	_hgt_dem_adj_last = _hgt_dem_adj;
 
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
@@ -272,8 +262,6 @@ void TECS::_update_height_demand(float demand, float state)
 	} else if (_hgt_rate_dem < -_maxSinkRate) {
 		_hgt_rate_dem = -_maxSinkRate;
 	}
-
-	//warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
 }
 
 void TECS::_detect_underspeed()
@@ -283,7 +271,9 @@ void TECS::_detect_underspeed()
 		return;
 	}
 
-	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj) && _underspeed)) {
+	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj)
+			&& _underspeed)) {
+
 		_underspeed = true;
 
 	} else {
@@ -310,7 +300,7 @@ void TECS::_update_energies()
 	_SKEdot = _integ5_state * _vel_dot;
 }
 
-void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat)
+void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3, 3> &rotMat)
 {
 	// Calculate total energy values
 	_STE_error = _SPE_dem - _SPE_est + _SKE_dem - _SKE_est;
@@ -338,7 +328,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		// additional component which scales with (1/cos(bank angle) - 1) to compensate for induced
 		// drag increase during turns.
 		float cosPhi = sqrtf((rotMat(0, 1) * rotMat(0, 1)) + (rotMat(1, 1) * rotMat(1, 1)));
-		STEdot_dem = STEdot_dem + _rollComp * (1.0f / constrain(cosPhi , 0.1f, 1.0f) - 1.0f);
+		STEdot_dem = STEdot_dem + _rollComp * (1.0f / constrain(cosPhi, 0.1f, 1.0f) - 1.0f);
 
 		if (STEdot_dem >= 0) {
 			ff_throttle = nomThr + STEdot_dem / _STEdot_max * (_THRmaxf - nomThr);
@@ -355,9 +345,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		// Calculate the throttle increment from the specified slew time
 		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
-			_throttle_dem = constrain(_throttle_dem,
-						_last_throttle_dem - thrRateIncr,
-						_last_throttle_dem + thrRateIncr);
+			_throttle_dem = constrain(_throttle_dem, _last_throttle_dem - thrRateIncr, _last_throttle_dem + thrRateIncr);
 		}
 
 		// Ensure _last_throttle_dem is always initialized properly
@@ -495,7 +483,8 @@ void TECS::_update_pitch()
 	_last_pitch_dem = _pitch_dem;
 }
 
-void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad, float EAS2TAS)
+void TECS::_initialise_states(float pitch, float throttle_cruise, float baro_altitude, float ptchMinCO_rad,
+			      float EAS2TAS)
 {
 	// Initialise states and variables if DT > 1 second or in climbout
 	if (_update_pitch_throttle_last_usec == 0 || _DT > DT_MAX || !_in_air || !_states_initalized) {
@@ -552,17 +541,14 @@ void TECS::_update_STE_rate_lim()
 	_STEdot_min = - _minSinkRate * CONSTANTS_ONE_G;
 }
 
-void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem,
-				float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
-				float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
+void TECS::update_pitch_throttle(const math::Matrix<3, 3> &rotMat, float pitch, float baro_altitude, float hgt_dem,
+				 float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
 {
 
 	// Calculate time in seconds since last update
 	uint64_t now = ecl_absolute_time();
 	_DT = max((now - _update_pitch_throttle_last_usec), UINT64_C(0)) * 1.0e-6f;
-
-	// printf("tecs in: dt:%10.6f pitch: %6.2f baro_alt: %6.2f alt sp: %6.2f\neas sp: %6.2f eas: %6.2f, eas2tas: %6.2f\n %s pitch min C0: %6.2f thr min: %6.2f, thr max: %6.2f thr cruis: %6.2f pt min: %6.2f, pt max: %6.2f\n",
-	// 	_DT, pitch, baro_altitude, hgt_dem, EAS_dem, indicated_airspeed, EAS2TAS, (climbOutDem) ? "climb" : "level", ptchMinCO, throttle_min, throttle_max, throttle_cruise, pitch_limit_min, pitch_limit_max);
 
 	// Convert inputs
 	_THRmaxf = throttle_max;
@@ -579,7 +565,7 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	}
 
 	// Update the speed estimate using a 2nd order complementary filter
-	_update_speed(EAS_dem, indicated_airspeed, _indicated_airspeed_min, _indicated_airspeed_max, EAS2TAS);
+	_update_speed(EAS_dem, indicated_airspeed, EAS2TAS);
 
 	// Calculate Specific Total Energy Rate Limits
 	_update_STE_rate_lim();
@@ -609,10 +595,13 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 
 	if (_underspeed) {
 		_tecs_state.mode = ECL_TECS_MODE_UNDERSPEED;
+
 	} else if (_badDescent) {
 		_tecs_state.mode = ECL_TECS_MODE_BAD_DESCENT;
+
 	} else if (_climbOutDem) {
 		_tecs_state.mode = ECL_TECS_MODE_CLIMBOUT;
+
 	} else {
 		// If no error flag applies, conclude normal
 		_tecs_state.mode = ECL_TECS_MODE_NORMAL;

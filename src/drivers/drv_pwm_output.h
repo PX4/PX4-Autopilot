@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -359,6 +359,14 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Trigger all timer's channels in Oneshot mode to fire
+ * the oneshot with updated values.
+ * Nothing is none if not in oneshot mode.
+ *
+ */
+__EXPORT extern void up_pwm_update(void);
 
 /**
  * Set the current output value for a channel.

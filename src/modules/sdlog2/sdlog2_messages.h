@@ -248,7 +248,6 @@ struct log_GPOS_s {
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
 #define LOG_GPSP_MSG 17
 struct log_GPSP_s {
-	uint8_t nav_state;
 	int32_t lat;
 	int32_t lon;
 	float alt;
@@ -659,7 +658,7 @@ struct log_VER_s {
 /* --- PARM - PARAMETER --- */
 #define LOG_PARM_MSG 131
 struct log_PARM_s {
-	char name[16];
+	char name[64];
 	float value;
 };
 #pragma pack(pop)
@@ -693,7 +692,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "BffffffLLHhB",	"ID,RawX,RawY,RX,RY,RZ,Dist,TSpan,DtSonar,FrmCnt,GT,Qlty"),
 	LOG_FORMAT(GPOS, "LLfffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV,TALT"),
-	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
+	LOG_FORMAT(GPSP, "LLffBfbf",		"Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHffiffH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "fffffffB",		"V,VFilt,C,CFilt,Discharged,Remaining,Scale,Warning"),
@@ -736,7 +735,7 @@ static const struct log_format_s log_formats[] = {
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
-	LOG_FORMAT(PARM, "Nf", "Name,Value")
+	LOG_FORMAT(PARM, "Zf", "Name,Value")
 };
 
 static const unsigned log_formats_num = sizeof(log_formats) / sizeof(log_formats[0]);

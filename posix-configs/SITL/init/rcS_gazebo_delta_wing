@@ -28,7 +28,6 @@ param set FW_THR_IDLE 0.6
 param set FS_GCS_ENABLE 2
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
@@ -37,7 +36,6 @@ adcsim start
 gpssim start
 measairspeedsim start
 pwm_out_sim mode_pwm
-sleep 1
 sensors start
 commander start
 navigator start
@@ -57,6 +55,6 @@ mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
-sdlog2 start -r 200 -e -t -a
+logger start -e -t
 mavlink boot_complete
 replay trystart

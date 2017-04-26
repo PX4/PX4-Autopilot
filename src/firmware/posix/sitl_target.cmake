@@ -43,6 +43,12 @@ px4_add_sitl_app(APP_NAME px4
 set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
 file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
+# add a symlink to the logs dir to make it easier to find them
+add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
+		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/fs/microsd/log logs
+		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
+
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
@@ -54,8 +60,8 @@ add_custom_target(run_config
 			${PX4_BINARY_DIR}
 			WORKING_DIRECTORY ${SITL_WORKING_DIR}
 			USES_TERMINAL
+		DEPENDS px4 logs_symlink
 		)
-add_dependencies(run_config px4)
 
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo
@@ -66,10 +72,15 @@ ExternalProject_Add(sitl_gazebo
 	)
 set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+ExternalProject_Add_Step(sitl_gazebo forceconfigure
+	DEPENDEES update
+	DEPENDERS configure
+	ALWAYS 1)
+
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
-set(models none iris iris_opt_flow standard_vtol plane solo tailsitter typhoon_h480 rover)
+set(models none iris iris_opt_flow iris_rplidar standard_vtol plane solo tailsitter typhoon_h480 rover)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
@@ -113,6 +124,7 @@ foreach(viewer ${viewers})
 						${PX4_BINARY_DIR}
 						WORKING_DIRECTORY ${SITL_WORKING_DIR}
 						USES_TERMINAL
+					DEPENDS logs_symlink
 					)
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")

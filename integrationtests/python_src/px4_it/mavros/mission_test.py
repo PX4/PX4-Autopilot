@@ -314,12 +314,12 @@ class MavrosMissionTest(unittest.TestCase):
         with open(mission_file, 'r') as f:
             mission_ext = os.path.splitext(mission_file)[1]
             if mission_ext == '.mission':
-                rospy.loginfo("new style mission fiel detected")
+                rospy.loginfo("new style mission file detected")
                 for waypoint in read_new_mission(f):
                     wps.append(waypoint)
                     rospy.logdebug(waypoint)
             elif mission_ext == '.txt':
-                rospy.loginfo("old style mission fiel detected")
+                rospy.loginfo("old style mission file detected")
                 mission = QGroundControlWP()
                 for waypoint in mission.read(f):
                     wps.append(waypoint)

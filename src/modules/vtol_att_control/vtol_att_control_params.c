@@ -199,12 +199,12 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 0);
  *
  * @unit s
  * @min 0.00
- * @max 10.00
+ * @max 20.00
  * @increment 1
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 
 /**
  * Duration of a back transition
@@ -213,12 +213,12 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.0f);
  *
  * @unit s
  * @min 0.00
- * @max 10.00
+ * @max 20.00
  * @increment 1
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 2.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
  * Transition blending airspeed
@@ -297,7 +297,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
 
 /**
- * QuadChute
+ * QuadChute Altitude
  *
  * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
  * the vehicle will transition back to MC mode and enter failsafe RTL
@@ -306,6 +306,29 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
+
+
+/**
+ * QuadChute Max Pith
+ *
+ * Maximum pitch angle before QuadChute engages
+ * Above this the vehicle will transition back to MC mode and enter failsafe RTL
+ * @min 0
+ * @max 180
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
+
+/**
+ * QuadChute Max Roll
+ *
+ * Maximum roll angle before QuadChute engages
+ * Above this the vehicle will transition back to MC mode and enter failsafe RTL
+ * @min 0
+ * @max 180
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
  * Airspeed less front transition time (open loop)

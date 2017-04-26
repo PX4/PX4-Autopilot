@@ -28,6 +28,7 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/esc_calib
@@ -75,6 +76,7 @@ set(config_module_list
 	drivers/navio_sysfs_pwm_out
 	drivers/navio_gpio
 	drivers/navio_rgbled
+	drivers/pwm_out_sim
 
 	#
 	# Libraries
@@ -86,6 +88,7 @@ set(config_module_list
 	lib/ecl
 	lib/geo_lookup
 	lib/launchdetection
+	lib/led
 	lib/external_lgpl
 	lib/conversion
 	lib/terrain_estimation

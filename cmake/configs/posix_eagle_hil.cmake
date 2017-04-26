@@ -9,7 +9,7 @@ endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 
-set(config_generate_parameters_scope ALL)
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})

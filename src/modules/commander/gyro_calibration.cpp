@@ -77,7 +77,7 @@ typedef struct  {
 static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 {
 	gyro_worker_data_t*	worker_data = (gyro_worker_data_t*)(data);
-	unsigned		calibration_counter[max_gyros] = { 0 };
+	unsigned		calibration_counter[max_gyros] = { 0 }, slow_count = 0;
 	const unsigned		calibration_count = 5000;
 	struct gyro_report	gyro_report;
 	unsigned		poll_errcount = 0;
@@ -102,8 +102,8 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 	memset(&worker_data->gyro_report_0, 0, sizeof(worker_data->gyro_report_0));
 
 
-	/* use first gyro to pace, but count correctly per-gyro for statistics */
-	while (calibration_counter[0] < calibration_count) {
+	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
+	while (slow_count < calibration_count) {
 		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
 			return calibrate_return_cancelled;
 		}
@@ -119,8 +119,13 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 		int poll_ret = px4_poll(&fds[0], max_gyros, 1000);
 
 		if (poll_ret > 0) {
-
+			unsigned update_count = calibration_count;
 			for (unsigned s = 0; s < max_gyros; s++) {
+				if (calibration_counter[s] >= calibration_count) {
+					// Skip if instance has enough samples
+					continue;
+				}
+
 				bool changed;
 				orb_check(worker_data->gyro_sensor_sub[s], &changed);
 
@@ -160,9 +165,20 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 
 				}
 
-				if (s == 0 && calibration_counter[0] % (calibration_count / 20) == 0) {
-					calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (calibration_counter[0] * 100) / calibration_count);
+				// Maintain the sample count of the slowest sensor 
+				if (calibration_counter[s] && calibration_counter[s] < update_count) {
+					update_count = calibration_counter[s];
 				}
+
+			}
+
+			if (update_count % (calibration_count / 20) == 0) {
+				calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (update_count * 100) / calibration_count);
+			}
+
+			// Propagate out the slowest sensor's count
+			if (slow_count < update_count) {
+				slow_count = update_count;
 			}
 
 		} else {
@@ -455,15 +471,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* store last 32bit number - not unique, but unique in a given set */
 	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[PX4_CPU_UUID_WORD32_UNIQUE_H]);
-
-	if (res == PX4_OK) {
-		/* auto-save to EEPROM */
-		res = param_save_default();
-
-		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
-		}
-	}
 
 	/* if there is a any preflight-check system response, let the barrage of messages through */
 	usleep(200000);

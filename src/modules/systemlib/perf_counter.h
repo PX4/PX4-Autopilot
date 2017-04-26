@@ -171,11 +171,36 @@ __EXPORT extern void		perf_print_counter(perf_counter_t handle);
 __EXPORT extern void		perf_print_counter_fd(int fd, perf_counter_t handle);
 
 /**
+ * Print one performance counter to a buffer.
+ *
+ * @param buffer			buffer to write to
+ * @param length			buffer length
+ * @param handle			The counter to print.
+ * @param return			number of bytes written
+ */
+__EXPORT extern int		perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle);
+
+/**
  * Print all of the performance counters.
  *
  * @param fd			File descriptor to print to - e.g. 0 for stdout
  */
 __EXPORT extern void		perf_print_all(int fd);
+
+
+typedef void (*perf_callback)(perf_counter_t handle, void *user);
+
+/**
+ * Iterate over all performance counters using a callback.
+ *
+ * Caution: This will aquire the mutex, so do not call any other perf_* method
+ * that aquire the mutex as well from the callback (If this is needed, configure
+ * the mutex to be reentrant).
+ *
+ * @param cb callback method
+ * @param user custom argument for the callback
+ */
+__EXPORT extern void	perf_iterate_all(perf_callback cb, void *user);
 
 /**
  * Print hrt latency counters.

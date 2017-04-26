@@ -58,6 +58,10 @@ void RoverLandDetector::_update_topics()
 {
 }
 
+void RoverLandDetector::_update_params()
+{
+}
+
 bool RoverLandDetector::_get_ground_contact_state()
 {
 	return false;
@@ -73,8 +77,9 @@ bool RoverLandDetector::_get_freefall_state()
 	return false;
 }
 
-void RoverLandDetector::_update_params()
+float RoverLandDetector::_get_max_altitude()
 {
+	return 0.0f;
 }
 
 }

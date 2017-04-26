@@ -178,7 +178,6 @@ function(px4_os_add_flags)
 		-D__DF_QURT # For DriverFramework
 		-D__PX4_POSIX
 		-D__QAIC_SKEL_EXPORT=__EXPORT
-		-include ${PX4_INCLUDE_DIR}visibility.h
                 )
 
 	# Add the toolchain specific flags

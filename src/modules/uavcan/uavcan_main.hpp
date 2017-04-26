@@ -199,6 +199,7 @@ private:
 	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
 	unsigned			_poll_fds_num = 0;
+	int32_t 			_idle_throttle_when_armed = 0;
 
 	int				_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
 	uint8_t				_actuator_direct_poll_fd_num = 0;
@@ -208,10 +209,6 @@ private:
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-
-	perf_counter_t _perfcnt_node_spin_elapsed		= perf_alloc(PC_ELAPSED, "uavcan_node_spin_elapsed");
-	perf_counter_t _perfcnt_esc_mixer_output_elapsed	= perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_output_elapsed");
-	perf_counter_t _perfcnt_esc_mixer_total_elapsed		= perf_alloc(PC_ELAPSED, "uavcan_esc_mixer_total_elapsed");
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 

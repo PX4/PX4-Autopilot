@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,30 +39,13 @@
 
 #include "landingslope.h"
 
-#include <px4_config.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <math.h>
-#include <unistd.h>
 #include <mathlib/mathlib.h>
 
-Landingslope::Landingslope() :
-	_landing_slope_angle_rad(0.0f),
-	_flare_relative_alt(0.0f),
-	_motor_lim_relative_alt(0.0f),
-	_H1_virt(0.0f),
-	_H0(0.0f),
-	_d1(0.0f),
-	_flare_constant(0.0f),
-	_flare_length(0.0f),
-	_horizontal_slope_displacement(0.0f)
-{
-}
-
-void Landingslope::update(float landing_slope_angle_rad_new,
-			  float flare_relative_alt_new,
-			  float motor_lim_relative_alt_new,
-			  float H1_virt_new)
+void
+Landingslope::update(float landing_slope_angle_rad_new,
+		     float flare_relative_alt_new,
+		     float motor_lim_relative_alt_new,
+		     float H1_virt_new)
 {
 
 	_landing_slope_angle_rad = landing_slope_angle_rad_new;
@@ -73,22 +56,25 @@ void Landingslope::update(float landing_slope_angle_rad_new,
 	calculateSlopeValues();
 }
 
-void Landingslope::calculateSlopeValues()
+void
+Landingslope::calculateSlopeValues()
 {
 	_H0 =  _flare_relative_alt + _H1_virt;
 	_d1 = _flare_relative_alt / tanf(_landing_slope_angle_rad);
 	_flare_constant = (_H0 * _d1) / _flare_relative_alt;
-	_flare_length = - logf(_H1_virt / _H0) * _flare_constant;
+	_flare_length = -logf(_H1_virt / _H0) * _flare_constant;
 	_horizontal_slope_displacement = (_flare_length - _d1);
 }
 
-float Landingslope::getLandingSlopeRelativeAltitude(float wp_landing_distance)
+float
+Landingslope::getLandingSlopeRelativeAltitude(float wp_landing_distance)
 {
 	return Landingslope::getLandingSlopeRelativeAltitude(wp_landing_distance, _horizontal_slope_displacement,
 			_landing_slope_angle_rad);
 }
 
-float Landingslope::getLandingSlopeRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
+float
+Landingslope::getLandingSlopeRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
 		float bearing_airplane_currwp)
 {
 	/* If airplane is in front of waypoint return slope altitude, else return waypoint altitude */
@@ -100,25 +86,8 @@ float Landingslope::getLandingSlopeRelativeAltitudeSave(float wp_landing_distanc
 	}
 }
 
-float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_altitude)
-{
-	return Landingslope::getLandingSlopeAbsoluteAltitude(wp_landing_distance, wp_altitude, _horizontal_slope_displacement,
-			_landing_slope_angle_rad);
-}
-
-float Landingslope::getLandingSlopeAbsoluteAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
-		float bearing_airplane_currwp, float wp_altitude)
-{
-	/* If airplane is in front of waypoint return slope altitude, else return waypoint altitude */
-	if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) < math::radians(90.0f)) {
-		return getLandingSlopeAbsoluteAltitude(wp_landing_distance, wp_altitude);
-
-	} else {
-		return wp_altitude;
-	}
-}
-
-float Landingslope::getFlareCurveRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
+float
+Landingslope::getFlareCurveRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
 		float bearing_airplane_currwp)
 {
 	/* If airplane is in front of waypoint return flare curve altitude, else return waypoint altitude */
@@ -129,12 +98,3 @@ float Landingslope::getFlareCurveRelativeAltitudeSave(float wp_landing_distance,
 		return 0.0f;
 	}
 }
-
-float Landingslope::getFlareCurveAbsoluteAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
-		float bearing_airplane_currwp, float wp_landing_altitude)
-{
-
-	return wp_landing_altitude + getFlareCurveRelativeAltitudeSave(wp_landing_distance, bearing_lastwp_currwp,
-			bearing_airplane_currwp);
-}
-

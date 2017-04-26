@@ -157,7 +157,6 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 	perf_counter_t		_range_errors;
 	perf_counter_t		_conf_errors;
 
@@ -337,7 +336,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lis3mdl_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lis3mdl_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "lis3mdl_buffer_overflows")),
 	_range_errors(perf_alloc(PC_COUNT, "lis3mdl_range_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, "lis3mdl_conf_errors")),
 	_sensor_ok(false),
@@ -394,7 +392,6 @@ LIS3MDL::~LIS3MDL()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
 }
@@ -941,6 +938,11 @@ LIS3MDL::collect()
 	new_report.temperature = report.t;
 	new_report.temperature = 25 + (report.t / (16 * 8.0f));
 
+	// XXX revisit for SPI part, might require a bus type IOCTL
+
+	unsigned dummy;
+	sensor_is_onboard = !_interface->ioctl(MAGIOCGEXTERNAL, dummy);
+
 	/*
 	 * RAW outputs
 	 *
@@ -986,9 +988,7 @@ LIS3MDL::collect()
 	_last_report = new_report;
 
 	/* post a report to the ring */
-	if (_reports->force(&new_report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&new_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1228,12 +1228,7 @@ int LIS3MDL::check_calibration()
 	}
 
 	/* return 0 if calibrated, 1 else */
-	if (!_calibrated) {
-		return 0;
-
-	} else {
-		return 1;
-	}
+	return !_calibrated;
 }
 
 int LIS3MDL::set_excitement(unsigned enable)
@@ -1306,7 +1301,6 @@ LIS3MDL::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);

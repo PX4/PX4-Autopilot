@@ -43,7 +43,11 @@
 #include <sys/queue.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
+#include <pthread.h>
+#include <systemlib/err.h>
+
 #include "perf_counter.h"
+
 
 #ifdef __PX4_QURT
 // There is presumably no dprintf on QURT. Therefore use the usual output to mini-dm.
@@ -73,11 +77,10 @@ struct perf_ctr_count {
 struct perf_ctr_elapsed {
 	struct perf_ctr_header	hdr;
 	uint64_t		event_count;
-	uint64_t		event_overruns;
 	uint64_t		time_start;
 	uint64_t		time_total;
-	uint64_t		time_least;
-	uint64_t		time_most;
+	uint32_t		time_least;
+	uint32_t		time_most;
 	float			mean;
 	float			M2;
 };
@@ -91,8 +94,8 @@ struct perf_ctr_interval {
 	uint64_t		time_event;
 	uint64_t		time_first;
 	uint64_t		time_last;
-	uint64_t		time_least;
-	uint64_t		time_most;
+	uint32_t		time_least;
+	uint32_t		time_most;
 	float			mean;
 	float			M2;
 };
@@ -100,7 +103,18 @@ struct perf_ctr_interval {
 /**
  * List of all known counters.
  */
-static sq_queue_t	perf_counters;
+static sq_queue_t	perf_counters = { NULL, NULL };
+
+/**
+ * mutex protecting access to the perf_counters linked list (which is read from & written to by different threads)
+ */
+pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
+// FIXME: the mutex does **not** protect against access to/from the perf
+// counter's data. It can still happen that a counter is updated while it is
+// printed. This can lead to inconsistent output, or completely bogus values
+// (especially the 64bit values which are in general not atomically updated).
+// The same holds for shared perf counters (perf_alloc_once), that can be updated
+// concurrently (this affects the 'ctrl_latency' counter).
 
 
 perf_counter_t
@@ -129,7 +143,9 @@ perf_alloc(enum perf_counter_type type, const char *name)
 	if (ctr != NULL) {
 		ctr->type = type;
 		ctr->name = name;
+		pthread_mutex_lock(&perf_counters_mutex);
 		sq_addfirst(&ctr->link, &perf_counters);
+		pthread_mutex_unlock(&perf_counters_mutex);
 	}
 
 	return ctr;
@@ -138,22 +154,27 @@ perf_alloc(enum perf_counter_type type, const char *name)
 perf_counter_t
 perf_alloc_once(enum perf_counter_type type, const char *name)
 {
+	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != NULL) {
 		if (!strcmp(handle->name, name)) {
 			if (type == handle->type) {
 				/* they are the same counter */
+				pthread_mutex_unlock(&perf_counters_mutex);
 				return handle;
 
 			} else {
 				/* same name but different type, assuming this is an error and not intended */
+				pthread_mutex_unlock(&perf_counters_mutex);
 				return NULL;
 			}
 		}
 
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
+
+	pthread_mutex_unlock(&perf_counters_mutex);
 
 	/* if the execution reaches here, no existing counter of that name was found */
 	return perf_alloc(type, name);
@@ -166,7 +187,9 @@ perf_free(perf_counter_t handle)
 		return;
 	}
 
+	pthread_mutex_lock(&perf_counters_mutex);
 	sq_rem(&handle->link, &perf_counters);
+	pthread_mutex_unlock(&perf_counters_mutex);
 	free(handle);
 }
 
@@ -192,8 +215,8 @@ perf_count(perf_counter_t handle)
 				break;
 
 			case 1:
-				pci->time_least = now - pci->time_last;
-				pci->time_most = now - pci->time_last;
+				pci->time_least = (uint32_t)(now - pci->time_last);
+				pci->time_most = (uint32_t)(now - pci->time_last);
 				pci->mean = pci->time_least / 1e6f;
 				pci->M2 = 0;
 				break;
@@ -201,12 +224,12 @@ perf_count(perf_counter_t handle)
 			default: {
 					hrt_abstime interval = now - pci->time_last;
 
-					if (interval < pci->time_least) {
-						pci->time_least = interval;
+					if ((uint32_t)interval < pci->time_least) {
+						pci->time_least = (uint32_t)interval;
 					}
 
-					if (interval > pci->time_most) {
-						pci->time_most = interval;
+					if ((uint32_t)interval > pci->time_most) {
+						pci->time_most = (uint32_t)interval;
 					}
 
 					// maintain mean and variance of interval in seconds
@@ -260,19 +283,16 @@ perf_end(perf_counter_t handle)
 			if (pce->time_start != 0) {
 				int64_t elapsed = hrt_absolute_time() - pce->time_start;
 
-				if (elapsed < 0) {
-					pce->event_overruns++;
-
-				} else {
+				if (elapsed >= 0) {
 
 					pce->event_count++;
 					pce->time_total += elapsed;
 
-					if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0)) {
+					if ((pce->time_least > (uint32_t)elapsed) || (pce->time_least == 0)) {
 						pce->time_least = elapsed;
 					}
 
-					if (pce->time_most < (uint64_t)elapsed) {
+					if (pce->time_most < (uint32_t)elapsed) {
 						pce->time_most = elapsed;
 					}
 
@@ -294,8 +314,6 @@ perf_end(perf_counter_t handle)
 	}
 }
 
-#include "systemlib/err.h"
-
 void
 perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 {
@@ -307,19 +325,16 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-			if (elapsed < 0) {
-				pce->event_overruns++;
-
-			} else {
+			if (elapsed >= 0) {
 
 				pce->event_count++;
 				pce->time_total += elapsed;
 
-				if ((pce->time_least > (uint64_t)elapsed) || (pce->time_least == 0)) {
+				if ((pce->time_least > (uint32_t)elapsed) || (pce->time_least == 0)) {
 					pce->time_least = elapsed;
 				}
 
-				if (pce->time_most < (uint64_t)elapsed) {
+				if (pce->time_most < (uint32_t)elapsed) {
 					pce->time_most = elapsed;
 				}
 
@@ -443,10 +458,9 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			dprintf(fd, "%s: %llu events, %llu overruns, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
+			dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms\n",
 				handle->name,
 				(unsigned long long)pce->event_count,
-				(unsigned long long)pce->event_overruns,
 				(unsigned long long)pce->time_total,
 				(pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
 				(unsigned long long)pce->time_least,
@@ -472,6 +486,59 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	default:
 		break;
 	}
+}
+
+
+int
+perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
+{
+	int num_written = 0;
+
+	if (handle == NULL) {
+		return 0;
+	}
+
+	switch (handle->type) {
+	case PC_COUNT:
+		num_written = snprintf(buffer, length, "%s: %llu events",
+				       handle->name,
+				       (unsigned long long)((struct perf_ctr_count *)handle)->event_count);
+		break;
+
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
+			num_written = snprintf(buffer, length, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus %5.3fus rms",
+					       handle->name,
+					       (unsigned long long)pce->event_count,
+					       (unsigned long long)pce->time_total,
+					       (pce->event_count == 0) ? 0 : (unsigned long long)pce->time_total / pce->event_count,
+					       (unsigned long long)pce->time_least,
+					       (unsigned long long)pce->time_most,
+					       (double)(1e6f * rms));
+			break;
+		}
+
+	case PC_INTERVAL: {
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
+
+			num_written = snprintf(buffer, length, "%s: %llu events, %lluus avg, min %lluus max %lluus %5.3fus rms",
+					       handle->name,
+					       (unsigned long long)pci->event_count,
+					       (pci->event_count == 0) ? 0 : (unsigned long long)(pci->time_last - pci->time_first) / pci->event_count,
+					       (unsigned long long)pci->time_least,
+					       (unsigned long long)pci->time_most,
+					       (double)(1e6f * rms));
+			break;
+		}
+
+	default:
+		break;
+	}
+
+	buffer[length - 1] = 0; // ensure 0-termination
+	return num_written;
 }
 
 uint64_t
@@ -503,16 +570,34 @@ perf_event_count(perf_counter_t handle)
 }
 
 void
+perf_iterate_all(perf_callback cb, void *user)
+{
+	pthread_mutex_lock(&perf_counters_mutex);
+	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
+
+	while (handle != NULL) {
+		cb(handle, user);
+		handle = (perf_counter_t)sq_next(&handle->link);
+	}
+
+	pthread_mutex_unlock(&perf_counters_mutex);
+}
+
+void
 perf_print_all(int fd)
 {
+	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != NULL) {
 		perf_print_counter_fd(fd, handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
+
+	pthread_mutex_unlock(&perf_counters_mutex);
 }
 
+// these are defined in drv_hrt.c
 extern const uint16_t latency_bucket_count;
 extern uint32_t latency_counters[];
 extern const uint16_t latency_buckets[];
@@ -533,12 +618,15 @@ perf_print_latency(int fd)
 void
 perf_reset_all(void)
 {
+	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != NULL) {
 		perf_reset(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
+
+	pthread_mutex_unlock(&perf_counters_mutex);
 
 	for (int i = 0; i <= latency_bucket_count; i++) {
 		latency_counters[i] = 0;

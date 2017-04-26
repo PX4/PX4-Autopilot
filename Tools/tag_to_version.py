@@ -12,6 +12,8 @@ p= subprocess.Popen(
     'git describe --always --tags'.split(),
     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 stdout, stderr = p.communicate()
+# Python3 needs this decode step.
+stdout = stdout.decode('ascii')
 res = stdout.split('-')[0].split('.')
 major = res[0].replace('v','')
 minor = res[1]

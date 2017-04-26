@@ -57,18 +57,10 @@
 #else
 #include <sys/statfs.h>
 #endif
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <systemlib/err.h>
-#include <unistd.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
-#include <time.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -1590,7 +1582,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			if (replay_updated) {
 				log_msg.msg_type = LOG_RPL1_MSG;
-				log_msg.body.log_RPL1.time_ref = buf.replay.time_ref;
+				log_msg.body.log_RPL1.time_ref = buf.replay.timestamp;
 				log_msg.body.log_RPL1.gyro_integral_dt = buf.replay.gyro_integral_dt;
 				log_msg.body.log_RPL1.accelerometer_integral_dt = buf.replay.accelerometer_integral_dt;
 				log_msg.body.log_RPL1.magnetometer_timestamp = buf.replay.magnetometer_timestamp;
@@ -1611,7 +1603,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				if (buf.replay.time_usec > 0) {
 					log_msg.msg_type = LOG_RPL2_MSG;
 					log_msg.body.log_RPL2.time_pos_usec = buf.replay.time_usec;
-					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec_vel;
+					log_msg.body.log_RPL2.time_vel_usec = buf.replay.time_usec;
 					log_msg.body.log_RPL2.lat = buf.replay.lat;
 					log_msg.body.log_RPL2.lon = buf.replay.lon;
 					log_msg.body.log_RPL2.alt = buf.replay.alt;
@@ -1965,7 +1957,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (buf.triplet.current.valid) {
 					log_msg.msg_type = LOG_GPSP_MSG;
-					log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
 					log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * (double)1e7);
 					log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * (double)1e7);
 					log_msg.body.log_GPSP.alt = buf.triplet.current.alt;

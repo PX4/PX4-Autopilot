@@ -11,7 +11,12 @@ set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolcha
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
 
-set(config_generate_parameters_scope ALL)
+# Disable the creation of the parameters.xml file by scanning individual
+# source files, and scan all source files.  This will create a parameters.xml
+# file that contains all possible parameters, even if the associated module
+# is not used.  This is necessary for parameter synchronization between the 
+# ARM and DSP processors.
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -32,6 +37,7 @@ set(config_module_list
 	drivers/qshell/posix
 
 	systemcmds/param
+	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/topic_listener
@@ -66,6 +72,7 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery

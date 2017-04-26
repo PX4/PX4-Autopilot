@@ -42,7 +42,6 @@ set(QURT_LAYER_SRCS
 	../../posix/px4_layer/drv_hrt.c
 	qurt_stubs.c
 	main.cpp
-	params.c
 	shmem_qurt.c
 	)
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")

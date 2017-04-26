@@ -109,7 +109,9 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		float analog_scaling = 0.0f;
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
 		if (fabsf(analog_scaling) < 0.1f) {
-			calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor, see http://px4.io/help/aspd");
+			calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor, refer to the following:");
+			calibration_log_critical(mavlink_log_pub, "http://px4.io/docs/sensor-selection/");
+			calibration_log_critical(mavlink_log_pub, "http://px4.io/docs/vtols-without-airspeed-sensor/");
 			goto error_return;
 		}
 
@@ -177,15 +179,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
-			goto error_return;
-		}
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
 			goto error_return;
 		}
 

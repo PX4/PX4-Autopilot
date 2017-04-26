@@ -55,7 +55,7 @@
 #include <mqueue.h>
 
 #include <drivers/drv_rc_input.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/err.h>
 

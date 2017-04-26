@@ -42,12 +42,10 @@
 #endif
 
 
-#ifndef __PX4_QURT
 #include <termios.h>
+
+#ifndef __PX4_QURT
 #include <poll.h>
-#else
-#include <sys/ioctl.h>
-#include <dev_fs_lib_serial.h>
 #endif
 
 
@@ -476,37 +474,6 @@ bool GPS::injectData(uint8_t *data, size_t len)
 
 int GPS::setBaudrate(unsigned baud)
 {
-
-#if __PX4_QURT
-	// TODO: currently QURT does not support configuration with termios.
-	dspal_serial_ioctl_data_rate data_rate;
-
-	switch (baud) {
-	case 9600: data_rate.bit_rate = DSPAL_SIO_BITRATE_9600; break;
-
-	case 19200: data_rate.bit_rate = DSPAL_SIO_BITRATE_19200; break;
-
-	case 38400: data_rate.bit_rate = DSPAL_SIO_BITRATE_38400; break;
-
-	case 57600: data_rate.bit_rate = DSPAL_SIO_BITRATE_57600; break;
-
-	case 115200: data_rate.bit_rate = DSPAL_SIO_BITRATE_115200; break;
-
-	case 230400: data_rate.bit_rate = DSPAL_SIO_BITRATE_230400; break;
-
-	default:
-		PX4_ERR("ERR: unknown baudrate: %d", baud);
-		return -EINVAL;
-	}
-
-	int ret = ::ioctl(_serial_fd, SERIAL_IOCTL_SET_DATA_RATE, (void *)&data_rate);
-
-	if (ret != 0) {
-
-		return ret;
-	}
-
-#else
 	/* process baud rate */
 	int speed;
 
@@ -586,7 +553,6 @@ int GPS::setBaudrate(unsigned baud)
 		return -1;
 	}
 
-#endif
 	return 0;
 }
 
@@ -712,7 +678,6 @@ GPS::task_main()
 
 			if (_helper != nullptr) {
 				delete (_helper);
-				/* set to zero to ensure parser is not used while not instantiated */
 				_helper = nullptr;
 			}
 
@@ -742,7 +707,7 @@ GPS::task_main()
 			 * MTK driver is not well tested, so we really only trust the UBX
 			 * driver for an advance publication
 			 */
-			if (_helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
+			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
@@ -840,11 +805,15 @@ GPS::task_main()
 
 				case GPS_DRIVER_MODE_ASHTECH:
 					_mode = GPS_DRIVER_MODE_UBX;
+					usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
 
 				default:
 					break;
 				}
+
+			} else {
+				usleep(500000);
 			}
 
 		}

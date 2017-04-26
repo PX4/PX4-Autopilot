@@ -45,7 +45,6 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_config.h>
-#include <px4_spi.h>
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
@@ -65,6 +64,9 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
+//#define PARAM_NO_ORB ///< if defined, avoid uorb depenency. This disables publication of parameter_update on param change
+//#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
+
 #if !defined(PARAM_NO_ORB)
 # include "uORB/uORB.h"
 # include "uORB/topics/parameter_update.h"
@@ -78,6 +80,9 @@
 
 #include "px4_parameters.h"
 #include <crc32.h>
+
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
+static char *param_user_file = NULL;
 
 
 #if 0
@@ -93,6 +98,15 @@
 #define PARAM_OPEN	open
 #define PARAM_CLOSE	close
 #endif
+
+#ifndef PARAM_NO_AUTOSAVE
+#include <px4_workqueue.h>
+/* autosaving variables */
+static hrt_abstime last_autosave_timestamp = 0;
+static struct work_s autosave_work;
+static bool autosave_scheduled = false;
+static bool autosave_disabled = false;
+#endif /* PARAM_NO_AUTOSAVE */
 
 /**
  * Array of static parameter info.
@@ -111,8 +125,8 @@ static const struct param_info_s *param_info_base = (const struct param_info_s *
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t			param;
 	union param_value_u	val;
+	param_t			param;
 	bool			unsaved;
 };
 
@@ -157,18 +171,55 @@ static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
+// the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
+// priority to readers, meaning a writer could suffer from starvation, but in our use-case
+// we only have short periods of reads and writes are rare.
 static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+static int reader_lock_holders = 0;
+static px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
 
-/** lock the parameter store */
+/** lock the parameter store for read access */
 static void
-param_lock(void)
+param_lock_reader(void)
+{
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	++reader_lock_holders;
+
+	if (reader_lock_holders == 1) {
+		// the first reader takes the lock, the next ones are allowed to just continue
+		do {} while (px4_sem_wait(&param_sem) != 0);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+}
+
+/** lock the parameter store for write access */
+static void
+param_lock_writer(void)
 {
 	do {} while (px4_sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
-param_unlock(void)
+param_unlock_reader(void)
+{
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	--reader_lock_holders;
+
+	if (reader_lock_holders == 0) {
+		// the last reader releases the lock
+		px4_sem_post(&param_sem);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+}
+
+/** unlock the parameter store */
+static void
+param_unlock_writer(void)
 {
 	px4_sem_post(&param_sem);
 }
@@ -184,6 +235,7 @@ void
 param_init(void)
 {
 	px4_sem_init(&param_sem, 0, 1);
+	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 }
 
 /**
@@ -245,12 +297,12 @@ param_find_changed(param_t param)
 }
 
 static void
-_param_notify_changes(bool is_saved)
+_param_notify_changes(void)
 {
 #if !defined(PARAM_NO_ORB)
 	struct parameter_update_s pup = {
 		.timestamp = hrt_absolute_time(),
-		.saved = is_saved
+		.dummy = 0
 	};
 
 	/*
@@ -270,7 +322,7 @@ _param_notify_changes(bool is_saved)
 void
 param_notify_changes(void)
 {
-	_param_notify_changes(true);
+	_param_notify_changes();
 }
 
 param_t
@@ -435,9 +487,9 @@ bool
 param_value_is_default(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
-	param_unlock();
+	param_unlock_reader();
 	return s ? false : true;
 }
 
@@ -445,10 +497,10 @@ bool
 param_value_unsaved(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
 	bool ret = s && s->unsaved;
-	param_unlock();
+	param_unlock_reader();
 	return ret;
 }
 
@@ -527,7 +579,7 @@ param_get(param_t param, void *val)
 {
 	int result = -1;
 
-	param_lock();
+	param_lock_reader();
 
 	const void *v = param_get_value_ptr(param);
 
@@ -536,18 +588,98 @@ param_get(param_t param, void *val)
 		result = 0;
 	}
 
-	param_unlock();
+	param_unlock_reader();
 
 	return result;
 }
 
+
+#ifndef PARAM_NO_AUTOSAVE
+/**
+ * worker callback method to save the parameters
+ * @param arg unused
+ */
+static void
+autosave_worker(void *arg)
+{
+	bool disabled = false;
+
+	param_lock_writer();
+	last_autosave_timestamp = hrt_absolute_time();
+	autosave_scheduled = false;
+	disabled = autosave_disabled;
+	param_unlock_writer();
+
+	if (disabled) {
+		return;
+	}
+
+	PX4_DEBUG("Autosaving params");
+	int ret = param_save_default();
+
+	if (ret != 0) {
+		PX4_ERR("param save failed (%i)", ret);
+	}
+}
+#endif /* PARAM_NO_AUTOSAVE */
+
+/**
+ * Automatically save the parameters after a timeout and limited rate.
+ *
+ * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
+ * needs to be the same lock as autosave_worker() and param_control_autosave() use).
+ */
+static void
+param_autosave(void)
+{
+#ifndef PARAM_NO_AUTOSAVE
+
+	if (autosave_scheduled || autosave_disabled) {
+		return;
+	}
+
+	// wait at least 300ms before saving, because:
+	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
+	// - the logger stores changed params. He gets notified on a param change via uORB and then
+	//   looks at all unsaved params.
+	hrt_abstime delay = 300 * 1000;
+
+	const hrt_abstime rate_limit = 2000 * 1000; // rate-limit saving to 2 seconds
+	hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
+
+	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
+		delay = rate_limit - last_save_elapsed;
+	}
+
+	autosave_scheduled = true;
+	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, NULL, USEC2TICK(delay));
+#endif /* PARAM_NO_AUTOSAVE */
+}
+
+void
+param_control_autosave(bool enable)
+{
+#ifndef PARAM_NO_AUTOSAVE
+	param_lock_writer();
+
+	if (!enable && autosave_scheduled) {
+		work_cancel(LPWORK, &autosave_work);
+		autosave_scheduled = false;
+	}
+
+	autosave_disabled = !enable;
+	param_unlock_writer();
+#endif /* PARAM_NO_AUTOSAVE */
+}
+
+
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
 	int result = -1;
 	bool params_changed = false;
 
-	param_lock();
+	param_lock_writer();
 
 	if (param_values == NULL) {
 		utarray_new(param_values, &param_icd);
@@ -613,26 +745,30 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 		s->unsaved = !mark_saved;
 		result = 0;
+
+		if (!mark_saved) { // this is false when importing parameters
+			param_autosave();
+		}
 	}
 
 out:
-	param_unlock();
+	param_unlock_writer();
 
 	/*
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
 	if (params_changed && notify_changes) {
-		_param_notify_changes(is_saved);
+		_param_notify_changes();
 	}
 
 	return result;
 }
 
 #if defined(FLASH_BASED_PARAMS)
-int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes, bool is_saved)
+int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
-	return param_set_internal(param, val, mark_saved, notify_changes, is_saved);
+	return param_set_internal(param, val, mark_saved, notify_changes);
 }
 
 const void *param_get_value_ptr_external(param_t param)
@@ -644,19 +780,13 @@ const void *param_get_value_ptr_external(param_t param)
 int
 param_set(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, true, false);
-}
-
-int
-param_set_no_autosave(param_t param, const void *val)
-{
-	return param_set_internal(param, val, false, true, true);
+	return param_set_internal(param, val, false, true);
 }
 
 int
 param_set_no_notification(param_t param, const void *val)
 {
-	return param_set_internal(param, val, false, false, false);
+	return param_set_internal(param, val, false, false);
 }
 
 bool
@@ -680,6 +810,7 @@ void param_set_used_internal(param_t param)
 		return;
 	}
 
+	// FIXME: this needs locking too
 	param_changed_storage[param_index / bits_per_allocation_unit] |=
 		(1 << param_index % bits_per_allocation_unit);
 }
@@ -690,7 +821,7 @@ param_reset(param_t param)
 	struct param_wbuf_s *s = NULL;
 	bool param_found = false;
 
-	param_lock();
+	param_lock_writer();
 
 	if (handle_in_range(param)) {
 
@@ -706,19 +837,20 @@ param_reset(param_t param)
 		param_found = true;
 	}
 
-	param_unlock();
+	param_autosave();
+
+	param_unlock_writer();
 
 	if (s != NULL) {
-		_param_notify_changes(false);
+		_param_notify_changes();
 	}
 
 	return (!param_found);
 }
-
-void
-param_reset_all(void)
+static void
+param_reset_all_internal(bool auto_save)
 {
-	param_lock();
+	param_lock_writer();
 
 	if (param_values != NULL) {
 		utarray_free(param_values);
@@ -727,9 +859,19 @@ param_reset_all(void)
 	/* mark as reset / deleted */
 	param_values = NULL;
 
-	param_unlock();
+	if (auto_save) {
+		param_autosave();
+	}
 
-	_param_notify_changes(false);
+	param_unlock_writer();
+
+	_param_notify_changes();
+}
+
+void
+param_reset_all(void)
+{
+	param_reset_all_internal(true);
 }
 
 void
@@ -757,11 +899,8 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 		}
 	}
 
-	_param_notify_changes(false);
+	_param_notify_changes();
 }
-
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
-static char *param_user_file = NULL;
 
 int
 param_set_default_file(const char *filename)
@@ -816,9 +955,9 @@ param_save_default(void)
 
 	PARAM_CLOSE(fd);
 #else
-	param_lock();
+	param_lock_writer();
 	res = flash_param_save();
-	param_unlock();
+	param_unlock_writer();
 #endif
 	return res;
 }
@@ -896,7 +1035,7 @@ param_export(int fd, bool only_unsaved)
 	struct bson_encoder_s encoder;
 	int	result = -1;
 
-	param_lock();
+	param_lock_writer();
 
 	param_bus_lock(true);
 	bson_encoder_init_file(&encoder, fd);
@@ -994,7 +1133,7 @@ param_export(int fd, bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
+	param_unlock_writer();
 
 	if (result == 0) {
 		result = bson_encoder_fini(&encoder);
@@ -1093,7 +1232,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true, false)) {
+	if (param_set_internal(param, v, state->mark_saved, true)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -1166,7 +1305,7 @@ param_import(int fd)
 int
 param_load(int fd)
 {
-	param_reset_all();
+	param_reset_all_internal(false);
 	return param_import_internal(fd, true);
 }
 
@@ -1194,7 +1333,7 @@ uint32_t param_hash_check(void)
 {
 	uint32_t param_hash = 0;
 
-	param_lock();
+	param_lock_reader();
 
 	/* compute the CRC32 over all string param names and 4 byte values */
 	for (param_t param = 0; handle_in_range(param); param++) {
@@ -1208,7 +1347,7 @@ uint32_t param_hash_check(void)
 		param_hash = crc32part(val, param_size(param), param_hash);
 	}
 
-	param_unlock();
+	param_unlock_reader();
 
 	return param_hash;
 }

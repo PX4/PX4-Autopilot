@@ -65,8 +65,8 @@
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	param_t                 param;
 	union param_value_u     val;
+	param_t                 param;
 	bool                    unsaved;
 };
 
@@ -281,7 +281,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_external(param, v, state->mark_saved, true, false)) {
+	if (param_set_external(param, v, state->mark_saved, true)) {
 
 		debug("error setting value for '%s'", node->name);
 		goto out;

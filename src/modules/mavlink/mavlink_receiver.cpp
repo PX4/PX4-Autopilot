@@ -137,11 +137,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
-	_hil_last_frame(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_prev_gyro{},
-	_hil_prev_accel{},
 	_hil_local_proj_ref{},
 	_offboard_control_mode{},
 	_att_sp{},
@@ -150,7 +147,10 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset(0),
 	_orb_class_instance(-1),
 	_mom_switch_pos{},
-	_mom_switch_state(0)
+	_mom_switch_state(0),
+	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
+	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
+	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
 }
 
@@ -375,12 +375,13 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
@@ -411,8 +412,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -467,6 +468,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		}
 	}
 
+out:
+
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
@@ -497,17 +500,18 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 		/* This is the link shutdown command, terminate mavlink */
-		warnx("terminated by remote");
+		PX4_WARN("terminated by remote");
 		fflush(stdout);
 		usleep(50000);
 
@@ -524,8 +528,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	} else {
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -569,6 +573,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 		}
 	}
+
+out:
 
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
@@ -1363,6 +1369,26 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.cell_count = cell_count;
 	battery_status.connected = true;
 
+	// Get the battery level thresholds.
+	float bat_emergen_thr;
+	float bat_crit_thr;
+	float bat_low_thr;
+	param_get(_p_bat_emergen_thr, &bat_emergen_thr);
+	param_get(_p_bat_crit_thr, &bat_crit_thr);
+	param_get(_p_bat_low_thr, &bat_low_thr);
+
+	// Set the battery warning based on remaining charge.
+	//  Note: Smallest values must come first in evaluation.
+	if (battery_status.remaining < bat_emergen_thr) {
+		battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+
+	} else if (battery_status.remaining < bat_crit_thr) {
+		battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+	} else if (battery_status.remaining < bat_low_thr) {
+		battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
+	}
+
 	if (_battery_pub == nullptr) {
 		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
 
@@ -1776,24 +1802,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	uint64_t timestamp = hrt_absolute_time();
 
-	float dt;
-
-	if (_hil_last_frame == 0 ||
-	    (timestamp <= _hil_last_frame) ||
-	    (timestamp - _hil_last_frame) > (0.1f * 1e6f) ||
-	    (_hil_last_frame >= timestamp)) {
-		dt = 0.01f; /* default to 100 Hz */
-		memset(&_hil_prev_gyro[0], 0, sizeof(_hil_prev_gyro));
-		_hil_prev_accel[0] = 0.0f;
-		_hil_prev_accel[1] = 0.0f;
-		_hil_prev_accel[2] = 9.866f;
-
-	} else {
-		dt = (timestamp - _hil_last_frame) / 1e6f;
-	}
-
-	_hil_last_frame = timestamp;
-
 	/* airspeed */
 	{
 		struct airspeed_s airspeed = {};
@@ -1893,46 +1901,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
-		}
-	}
-
-	/* sensor combined */
-	{
-		struct sensor_combined_s hil_sensors = {};
-
-		hil_sensors.gyro_rad[0] = 0.5f * (imu.xgyro + _hil_prev_gyro[0]);
-		hil_sensors.gyro_rad[1] = 0.5f * (imu.ygyro + _hil_prev_gyro[1]);
-		hil_sensors.gyro_rad[2] = 0.5f * (imu.zgyro + _hil_prev_gyro[2]);
-		_hil_prev_gyro[0] = imu.xgyro;
-		_hil_prev_gyro[1] = imu.ygyro;
-		_hil_prev_gyro[2] = imu.zgyro;
-		hil_sensors.gyro_integral_dt = dt;
-		hil_sensors.timestamp = timestamp;
-
-		hil_sensors.accelerometer_m_s2[0] = 0.5f * (imu.xacc + _hil_prev_accel[0]);
-		hil_sensors.accelerometer_m_s2[1] = 0.5f * (imu.yacc + _hil_prev_accel[1]);
-		hil_sensors.accelerometer_m_s2[2] = 0.5f * (imu.zacc + _hil_prev_accel[2]);
-		_hil_prev_accel[0] = imu.xacc;
-		_hil_prev_accel[1] = imu.yacc;
-		_hil_prev_accel[2] = imu.zacc;
-		hil_sensors.accelerometer_integral_dt = dt;
-		hil_sensors.accelerometer_timestamp_relative = 0;
-
-		hil_sensors.magnetometer_ga[0] = imu.xmag;
-		hil_sensors.magnetometer_ga[1] = imu.ymag;
-		hil_sensors.magnetometer_ga[2] = imu.zmag;
-		hil_sensors.magnetometer_timestamp_relative = 0;
-
-		hil_sensors.baro_alt_meter = imu.pressure_alt;
-		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_timestamp_relative = 0;
-
-		/* publish combined sensor topic */
-		if (_sensors_pub == nullptr) {
-			_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-
-		} else {
-			orb_publish(ORB_ID(sensor_combined), _sensors_pub, &hil_sensors);
 		}
 	}
 

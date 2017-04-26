@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN mpu6000
 	STACK_MAIN 1400
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		mpu6000.cpp
 		mpu6000_i2c.cpp

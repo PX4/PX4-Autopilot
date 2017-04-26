@@ -615,10 +615,10 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 
 /**
- * Height rate P factor
+ * Height rate proportional factor
  *
  * @min 0.0
- * @max 2.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW TECS
@@ -626,15 +626,15 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 
 /**
- * Height rate FF factor
+ * Height rate feed forward
  *
  * @min 0.0
- * @max 2.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
 
 /**
  * Speed rate P factor

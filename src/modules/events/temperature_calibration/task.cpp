@@ -45,6 +45,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
 
 #include <unistd.h>
 
@@ -89,6 +90,10 @@ public:
 	void exit() { _force_task_exit = true; }
 
 private:
+	void publish_led_control(led_control_s &led_control);
+
+	orb_advert_t _led_control_pub = nullptr;
+
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
 
@@ -184,6 +189,16 @@ void TemperatureCalibration::task_main()
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
+	// control LED's: blink, then turn solid according to progress
+	led_control_s led_control = {};
+	led_control.led_mask = 0xff;
+	led_control.mode = led_control_s::MODE_BLINK_NORMAL;
+	led_control.priority = led_control_s::MAX_PRIORITY;
+	led_control.color = led_control_s::COLOR_YELLOW;
+	led_control.num_blinks = 0;
+	publish_led_control(led_control);
+	int leds_completed = 0;
+
 	bool abort_calibration = false;
 
 	while (!_force_task_exit) {
@@ -216,7 +231,7 @@ void TemperatureCalibration::task_main()
 		for (int i = 0; i < num_calibrators; ++i) {
 			ret = calibrators[i]->update();
 
-			if (ret == -110) {
+			if (ret == -TC_ERROR_INITIAL_TEMP_TOO_HIGH) {
 				abort_calibration = true;
 				PX4_ERR("Calibration won't start - sensor temperature too high");
 				_force_task_exit = true;
@@ -237,6 +252,14 @@ void TemperatureCalibration::task_main()
 			break; // we are done
 		}
 
+		int led_progress = min_progress * BOARD_MAX_LEDS / 100;
+
+		for (; leds_completed < led_progress; ++leds_completed) {
+			led_control.led_mask = 1 << leds_completed;
+			led_control.mode = led_control_s::MODE_ON;
+			publish_led_control(led_control);
+		}
+
 		//print progress each second
 		hrt_abstime now = hrt_absolute_time();
 
@@ -246,8 +269,14 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
-	if (!abort_calibration) {
+	if (abort_calibration) {
+		led_control.color = led_control_s::COLOR_RED;
+
+	} else {
 		PX4_INFO("Sensor Measurments completed");
+
+		// save params immediately so that we can check the result and don't have to wait for param save timeout
+		param_control_autosave(false);
 
 		// do final calculations & parameter storage
 		for (int i = 0; i < num_calibrators; ++i) {
@@ -264,7 +293,17 @@ void TemperatureCalibration::task_main()
 		if (ret != 0) {
 			PX4_ERR("Failed to save params (%i)", ret);
 		}
+
+		param_control_autosave(true);
+
+		led_control.color = led_control_s::COLOR_GREEN;
 	}
+
+	// blink the LED's according to success/failure
+	led_control.led_mask = 0xff;
+	led_control.mode = led_control_s::MODE_BLINK_FAST;
+	led_control.num_blinks = 0;
+	publish_led_control(led_control);
 
 	for (int i = 0; i < num_calibrators; ++i) {
 		delete calibrators[i];
@@ -303,6 +342,18 @@ int TemperatureCalibration::start()
 	}
 
 	return 0;
+}
+
+void TemperatureCalibration::publish_led_control(led_control_s &led_control)
+{
+	led_control.timestamp = hrt_absolute_time();
+
+	if (_led_control_pub == nullptr) {
+		_led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(led_control), _led_control_pub, &led_control);
+	}
 }
 
 int run_temperature_calibration(bool accel, bool baro, bool gyro)

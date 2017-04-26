@@ -378,7 +378,6 @@
  * SPI
  *
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
-
  */
 #define GPIO_SPI1_MISO  GPIO_SPI1_MISO_1
 #define GPIO_SPI1_MOSI  GPIO_SPI1_MOSI_1
@@ -393,6 +392,35 @@
 #define GPIO_SPI5_MOSI  GPIO_SPI5_MOSI_1
 #define GPIO_SPI5_SCK   GPIO_SPI5_SCK_1
 #define GPIO_SPI5_NSS   GPIO_SPI5_NSS_1
+
+/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+
+#if defined(CONFIG_BOARD_USE_PROBES)
+# define PROBE_N(n) (1<<((n)-1))
+# define PROBE_1  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)
+# define PROBE_2  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN13)
+# define PROBE_3  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)
+# define PROBE_4  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
+# define PROBE_5  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+# define PROBE_6  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+
+# define PROBE_INIT(mask) \
+  do { \
+    if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+    if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+    if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+    if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
+    if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
+    if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+  } while(0)
+
+# define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
+# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+#endif
 
 
 /************************************************************************************

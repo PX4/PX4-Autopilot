@@ -41,8 +41,8 @@ set(msg_file_names
 	att_pos_mocap.msg
 	battery_status.msg
 	camera_trigger.msg
-	commander_state.msg
 	collision_report.msg
+	commander_state.msg
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
@@ -50,6 +50,7 @@ set(msg_file_names
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_replay.msg
+	ekf2_timestamps.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -58,20 +59,17 @@ set(msg_file_names
 	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg
-	fw_virtual_attitude_setpoint.msg
-	fw_virtual_rates_setpoint.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
 	mc_att_ctrl_status.msg
-	mc_virtual_attitude_setpoint.msg
-	mc_virtual_rates_setpoint.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
@@ -110,8 +108,8 @@ set(msg_file_names
 	ulog_stream_ack.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
-	vehicle_command_ack.msg
 	vehicle_command.msg
+	vehicle_command_ack.msg
 	vehicle_control_mode.msg
 	vehicle_force_setpoint.msg
 	vehicle_global_position.msg

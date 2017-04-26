@@ -75,6 +75,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/ekf2_replay.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -162,6 +163,7 @@ private:
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
+	orb_advert_t _ekf2_timestamps_pub;
 
 	/* Low pass filter for attitude rates */
 	math::LowPassFilter2p _lp_roll_rate;
@@ -299,6 +301,7 @@ Ekf2::Ekf2():
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
+	_ekf2_timestamps_pub(nullptr),
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f),
@@ -702,7 +705,7 @@ void Ekf2::task_main()
 				control_state_s ctrl_state = {};
 				float gyro_bias[3] = {};
 				_ekf.get_gyro_bias(gyro_bias);
-				ctrl_state.timestamp = hrt_absolute_time();
+				ctrl_state.timestamp = _replay_mode ? now : hrt_absolute_time();
 				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
 				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
 				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
@@ -784,7 +787,7 @@ void Ekf2::task_main()
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
-				att.timestamp = hrt_absolute_time();
+				att.timestamp = _replay_mode ? now : hrt_absolute_time();
 
 				q.copyTo(att.q);
 
@@ -805,7 +808,7 @@ void Ekf2::task_main()
 			struct vehicle_local_position_s lpos = {};
 			float pos[3] = {};
 
-			lpos.timestamp = hrt_absolute_time();
+			lpos.timestamp = _replay_mode ? now : hrt_absolute_time();
 
 			// Position of body origin in local NED frame
 			_ekf.get_position(pos);
@@ -868,7 +871,7 @@ void Ekf2::task_main()
 				// generate and publish global position data
 				struct vehicle_global_position_s global_pos = {};
 
-				global_pos.timestamp = hrt_absolute_time(); // Time of this estimate, in microseconds since system start
+				global_pos.timestamp = _replay_mode ? now : hrt_absolute_time();
 				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
@@ -921,7 +924,7 @@ void Ekf2::task_main()
 			// in replay mode we have to tell the replay module not to wait for an update
 			// we do this by publishing an attitude with zero timestamp
 			struct vehicle_attitude_s att = {};
-			att.timestamp = 0;
+			att.timestamp = now;
 
 			if (_att_pub == nullptr) {
 				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
@@ -933,7 +936,7 @@ void Ekf2::task_main()
 
 		// publish estimator status
 		struct estimator_status_s status = {};
-		status.timestamp = hrt_absolute_time();
+		status.timestamp = _replay_mode ? now : hrt_absolute_time();
 		_ekf.get_state_delayed(status.states);
 		_ekf.get_covariances(status.covariances);
 		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
@@ -944,7 +947,7 @@ void Ekf2::task_main()
 						&status.hgt_test_ratio, &status.tas_test_ratio,
 						&status.hagl_test_ratio);
 		bool dead_reckoning;
-		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
+		_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 		_ekf.get_imu_vibe_metrics(status.vibe);
 
@@ -957,7 +960,7 @@ void Ekf2::task_main()
 
 		// Publish wind estimate
 		struct wind_estimate_s wind_estimate = {};
-		wind_estimate.timestamp = hrt_absolute_time();
+		wind_estimate.timestamp = _replay_mode ? now : hrt_absolute_time();
 		wind_estimate.windspeed_north = status.states[22];
 		wind_estimate.windspeed_east = status.states[23];
 		wind_estimate.covariance_north = status.covariances[22];
@@ -973,7 +976,7 @@ void Ekf2::task_main()
 		// publish estimator innovation data
 		{
 			struct ekf2_innovations_s innovations = {};
-			innovations.timestamp = hrt_absolute_time();
+			innovations.timestamp = _replay_mode ? now : hrt_absolute_time();
 			_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
 			_ekf.get_mag_innov(&innovations.mag_innov[0]);
 			_ekf.get_heading_innov(&innovations.heading_innov);
@@ -1010,12 +1013,74 @@ void Ekf2::task_main()
 
 		_prev_landed = vehicle_land_detected.landed;
 
+		// publish ekf2_timestamps (using 0.1 ms relative timestamps)
+		{
+			ekf2_timestamps_s ekf2_timestamps;
+			ekf2_timestamps.timestamp = sensors.timestamp;
+
+			if (gps_updated) {
+				// divide individually to get consistent rounding behavior
+				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.gps_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (optical_flow_updated) {
+				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (range_finder_updated) {
+				ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)range_finder.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (airspeed_updated) {
+				ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (vision_position_updated) {
+				ekf2_timestamps.vision_position_timestamp_rel = (int16_t)((int64_t)ev_pos.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (vision_attitude_updated) {
+				ekf2_timestamps.vision_attitude_timestamp_rel = (int16_t)((int64_t)ev_att.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+
+			} else {
+				ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+			}
+
+			if (_ekf2_timestamps_pub == nullptr) {
+				_ekf2_timestamps_pub = orb_advertise(ORB_ID(ekf2_timestamps), &ekf2_timestamps);
+
+			} else {
+				orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
+			}
+		}
+
+
 		// publish replay message if in replay mode
 		bool publish_replay_message = (bool)_param_record_replay_msg.get();
 
 		if (publish_replay_message) {
 			struct ekf2_replay_s replay = {};
-			replay.time_ref = now;
+			replay.timestamp = now;
 			replay.gyro_integral_dt = sensors.gyro_integral_dt;
 			replay.accelerometer_integral_dt = sensors.accelerometer_integral_dt;
 			replay.magnetometer_timestamp = _timestamp_mag_us;
@@ -1028,7 +1093,6 @@ void Ekf2::task_main()
 			// only write gps data if we had a gps update.
 			if (gps_updated) {
 				replay.time_usec = gps.timestamp;
-				replay.time_usec_vel = gps.timestamp;
 				replay.lat = gps.lat;
 				replay.lon = gps.lon;
 				replay.alt = gps.alt;
