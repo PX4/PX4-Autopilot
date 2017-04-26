@@ -84,7 +84,6 @@ set(config_module_list
 	modules/gnd_att_control
 	modules/fw_pos_control_l1
 	modules/gnd_pos_control
-	modules/land_detector
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
