@@ -48,10 +48,7 @@
 #include <px4_posix.h>
 
 #include <drivers/drv_hrt.h>
-#include <ecl/attitude_fw/ecl_pitch_controller.h>
-#include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>
-#include <ecl/attitude_fw/ecl_yaw_controller.h>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
@@ -160,19 +157,19 @@ private:
 
 
 	struct {
-		float w_tc;
-		float w_p;
-		float w_i;
-		float w_d;
-		float w_ff;
-		float w_integrator_max;
-		float w_rmax;
+		float w_tc;		/**< Time constant of the steering controller */
+		float w_p;		/**< Proportional gain of the steering controller */
+		float w_i;		/**< Integral gain of the steering controller */
+		float w_d;		/**< Derivative of the steering controller */
+		float w_ff;		/**< Feedforward term of the steering controller */
+		float w_integrator_max;		/**< maximum integrator level of the steering controller */
+		float w_rmax;		/**< Maximum wheel steering rate of the steering controller */
 
-		float airspeed_min;
-		float airspeed_trim;
-		float airspeed_max;
+		float airspeed_min;		/**< minimum airspeed*/
+		float airspeed_trim;		/**< trim airspeed*/
+		float airspeed_max;		/**< maximum airspeed*/
 
-		float gspd_scaling_trim;
+		float gspd_scaling_trim;		/**< This parameter allows to scale the control output as general PID gain*/
 
 		float trim_roll;
 		float trim_pitch;
@@ -719,16 +716,13 @@ GroundRoverAttitudeControl::task_main()
 					airspeed = math::max(0.01f, _ctrl_state.airspeed);
 				}
 
-
-				/* Use min airspeed to calculate ground speed scaling region.
-				 * Don't scale below gspd_scaling_trim
-				 */
+				// calculate groundspeed
 				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
 							  _global_pos.vel_e * _global_pos.vel_e);
+
 				// TODO: this should be changed: I don't want to reduce steering because of the speed,
 				// I want to reduce the speed because of the desired steering angle.
-				// float gspd_scaling_trim = _parameters.gspd_scaling_trim;
-				float groundspeed_scaler =  _parameters.gspd_scaling_trim;//gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
+				float groundspeed_scaler =  _parameters.gspd_scaling_trim;
 
 				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
@@ -776,7 +770,6 @@ GroundRoverAttitudeControl::task_main()
 					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
 
 					math::constrain(yaw_u, -1.0f, 1.0f);
-
 
 					/* possibly useful debug*/
 					// warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
