@@ -172,6 +172,8 @@ int LidarLitePWM::measure()
 		return PX4_ERROR;
 	}
 
+	static uint64_t lastTimeStamp = 0;
+
 	_range.timestamp = hrt_absolute_time();
 	_range.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	_range.max_distance = get_maximum_distance();
@@ -188,6 +190,15 @@ int LidarLitePWM::measure()
 		perf_end(_sample_perf);
 		return reset_sensor();
 	}
+
+	// for distances near zero (and possibly for distances > 60m), no PWM pulse is generated
+	// At 60m AGL, the PWM pulse will be 60*100*10 usec long, and the period will be slightly longer
+	uint32_t period = _range.timestamp - lastTimeStamp;
+	if (period > 60000) {
+		//printf("lidar pulse period: %d\n", period);
+		_range.current_distance = 0.0f;
+	}
+	lastTimeStamp = _range.timestamp;
 
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
