@@ -1044,6 +1044,33 @@ then
 	fi
 
 	#
+	# RC car setup
+	#
+	if [ $VEHICLE_TYPE == rccar ]
+	then
+		if [ $MIXER == none ]
+		then
+			# Set default mixer for fixed wing if not defined
+			set MIXER AERT
+		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 1 (fixed wing) if not defined
+			set MAV_TYPE 1
+		fi
+
+		param set MAV_TYPE ${MAV_TYPE}
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
+
+		# Start standard fixedwing apps
+		sh /etc/init.d/rc.gnd_apps
+	fi
+
+
+	#
 	# For snapdragon, we need a passthrough mode
 	# Do not run any mavlink instances since we need the serial port for
 	# communication with Snapdragon.

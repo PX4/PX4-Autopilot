@@ -1,0 +1,27 @@
+#!nsh
+
+set VEHICLE_TYPE rccar
+
+if [ $AUTOCNF == yes ]
+then
+#
+# Default parameters for FW
+#
+	param set RTL_RETURN_ALT 100
+	param set RTL_DESCEND_ALT 100
+	param set RTL_LAND_DELAY -1
+
+	# FW uses L1 distance for acceptance radius
+	#  set a smaller NAV_ACC_RAD for vertical acceptance distance
+	param set NAV_DLL_ACT 2
+	param set NAV_ACC_RAD 2.0
+	param set NAV_LOITER_RAD 5
+
+	param set MIS_LTRMIN_ALT 0.01
+	param set MIS_TAKEOFF_ALT 0.01
+fi
+
+# This is the gimbal pass mixer
+set MIXER_AUX pass
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234

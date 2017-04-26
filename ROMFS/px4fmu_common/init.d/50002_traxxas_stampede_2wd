@@ -17,7 +17,7 @@
 # @maintainer Marco Zorzi
 #
 
-sh /etc/init.d/rc.fw_defaults
+sh /etc/init.d/rc.gnd_defaults
 
 if [ $AUTOCNF == yes ]
 then

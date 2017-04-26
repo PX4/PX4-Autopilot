@@ -1,0 +1,24 @@
+#!nsh
+#
+# Standard apps for fixed wing
+#
+
+#
+# Start the attitude and position estimator
+#
+ekf2 start
+#attitude_estimator_q start
+#local_position_estimator start
+
+
+#
+# Start attitude controller
+#
+gnd_att_control start
+gnd_pos_control start
+
+
+#
+# Start Land Detector
+#
+land_detector start rover
