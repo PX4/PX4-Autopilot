@@ -13,12 +13,10 @@ then
 
 	# FW uses L1 distance for acceptance radius
 	#  set a smaller NAV_ACC_RAD for vertical acceptance distance
-	param set NAV_DLL_ACT 2
-	param set NAV_ACC_RAD 2.0
-	param set NAV_LOITER_RAD 5
+	param set NAV_ACC_RAD 10
 
-	param set MIS_LTRMIN_ALT 0.01
-	param set MIS_TAKEOFF_ALT 0.01
+	param set MIS_LTRMIN_ALT 25
+	param set MIS_TAKEOFF_ALT 25
 fi
 
 # This is the gimbal pass mixer
