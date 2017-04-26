@@ -59,13 +59,6 @@
 			"shell": true
 		},
 		{
-			"name": "PX4: make posix gazebo_rover",
-			"working_dir": "${project_path}",
-			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-			"cmd": ["make posix gazebo_rover"],
-			"shell": true
-		},
-		{
 			"name": "PX4: make and upload",
 			"working_dir": "${project_path}",
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
