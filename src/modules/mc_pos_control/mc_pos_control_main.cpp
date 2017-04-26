@@ -108,7 +108,7 @@ public:
 private:
 
 	/** Time in us that direction change condition has to be true for direction change state */
-	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 200000;
+	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
 
 
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -1088,16 +1088,13 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 				_user_intention = acceleration;
 
 			} else if (_manual_direction_change_hysteresis.get_state()) {
-				/* reset hysteresis*/
-				_manual_direction_change_hysteresis.set_state_and_update(false);
 
 				/* TODO: find conditions which are always continuous
-				 * only reset slew rate if more than twice max speed and sick input greater than half*/
-				if ((vel_xy.length() > (_velocity_hor_manual.get() / 2.f)) && stick_xy.length() > 0.5f) {
-					_vel_sp_prev = _vel;
+				 * only  sick input greater than half*/
+				if (stick_xy.length() > 0.6f) {
+					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 				}
 
-				_user_intention = acceleration;
 			}
 
 			break;
@@ -1143,9 +1140,15 @@ MulticopterPositionControl::set_manual_acceleration(matrix::Vector2f &stick_xy, 
 
 	case acceleration: {
 			/* limit acceleration linearly on stick input*/
-			_acceleration_state_dependent_xy  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
-							    +
-							    _deceleration_hor_slow.get();
+			float acc_limit  = (_acceleration_hor_manual.get() - _deceleration_hor_slow.get()) * stick_xy.length()
+					   +
+					   _deceleration_hor_slow.get();
+
+			if (_acceleration_state_dependent_xy > acc_limit) {
+				acc_limit = _acceleration_state_dependent_xy;
+			}
+
+			_acceleration_state_dependent_xy = acc_limit;
 			break;
 		}
 
