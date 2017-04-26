@@ -223,8 +223,8 @@ private:
 	math::Matrix<3, 3> _R;
 	float _yaw;
 
-	ECL_WheelController			    _wheel_ctrl;
-	PID_t 							_steering_ctrl;
+	ECL_WheelController 	_wheel_ctrl;
+	PID_t			_steering_ctrl;
 
 
 	/**
