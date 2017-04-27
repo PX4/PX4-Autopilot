@@ -237,7 +237,7 @@ A video of this final process as demostration is available on `https://youtu.be/
 Testing
 -------
 
-Some tests to measure the throughput performed with a PixRacer (microcontroller STM32F42X - 168MHz) in the PX4 side and a laptop in the Fast RTPS side:
+Some tests to measure the byte rate performed with a PixRacer (microcontroller STM32F42X - 168MHz) in the PX4 side and a laptop in the Fast RTPS side:
 
 1. **Loop latency for one topic - 11ms**: For one topic (sensor_combined) is measured over all the process, the time between the POLLIN event reception over the *px4_pollfd_struct_t* for the subscribed topic and the deserialization of the same message when returns back through the UART.
 
@@ -254,3 +254,12 @@ Some tests to measure the throughput performed with a PixRacer (microcontroller 
 +-------------------------------+--------+----------+------+-------+
 | general_trans 10 10 1000 1000 |   10   |   1692   | 1692 | 31.87 |
 +-------------------------------+--------+----------+------+-------+
+
+* Application general_trans takes 4 parameters:
+
+ - minimum time in milliseconds between UORB topics updates.
+ - maximun time in milliseconds waiting a new UORB topics update.
+ - number of loops.
+ - sleep time in nanoseconds between loops.
+
+* Received and set measured in messages.
