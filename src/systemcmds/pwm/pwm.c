@@ -210,7 +210,7 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'e':
-			error_on_warn = false;
+			error_on_warn = true;
 			break;
 
 		case 'c':
