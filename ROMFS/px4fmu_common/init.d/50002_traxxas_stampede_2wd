@@ -45,7 +45,7 @@ then
 	param set GND_SPEED_I 0.001
 	param set GND_SPEED_D 3
 	param set GND_SPEED_IMAX 0.125
-	param set GND_AIRSP_THR_SC 1
+	param set GND_SPEED_THR_SC 1
 
 fi
 
