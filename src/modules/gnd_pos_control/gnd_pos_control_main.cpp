@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -194,11 +194,11 @@ private:
 
 	ECL_L1_Pos_Controller				_gnd_control;
 	TECS						_tecs;
-	enum FW_POSCTRL_MODE {
-		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_POSITION,
-		FW_POSCTRL_MODE_ALTITUDE,
-		FW_POSCTRL_MODE_OTHER
+	enum UGV_POSCTRL_MODE {
+		UGV_POSCTRL_MODE_AUTO,
+		UGV_POSCTRL_MODE_POSITION,
+		UGV_POSCTRL_MODE_ALTITUDE,
+		UGV_POSCTRL_MODE_OTHER
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
@@ -458,7 +458,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_alt_reset_counter(0),
 	_gnd_control(),
 	_tecs(),
-	_control_mode_current(FW_POSCTRL_MODE_OTHER),
+	_control_mode_current(UGV_POSCTRL_MODE_OTHER),
 	_parameters(),
 	_parameter_handles()
 {
@@ -917,7 +917,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	/* only run position controller if we are in fixed wing configuration */
 	//TODO: add a vehicle status for ground based robots, less safety required.
 	if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode || _vehicle_status.is_vtol) {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
 		return false;
 	}
 
@@ -950,12 +950,12 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		/* AUTONOMOUS FLIGHT */
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+		if (_control_mode_current == UGV_POSCTRL_MODE_OTHER) {
 			/* reset integrators */
 			_tecs.reset_state();
 		}
 
-		_control_mode_current = FW_POSCTRL_MODE_AUTO;
+		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
 
 		/* reset hold altitude */
 		_hold_alt = _global_pos.alt;
@@ -1089,7 +1089,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 
 	}else {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
 
 		/* do not publish the setpoint */
 		setpoint = false;
@@ -1101,9 +1101,9 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	/* Copy thrust output for publication */
 	if (_vehicle_status.engine_failure ||
 		_vehicle_status.engine_failure_cmd ||
-		   ( _control_mode_current == FW_POSCTRL_MODE_AUTO &&
+		   ( _control_mode_current == UGV_POSCTRL_MODE_AUTO &&
 		   	 pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE ) ||
-		   _control_mode_current == FW_POSCTRL_MODE_OTHER ) {
+		   _control_mode_current == UGV_POSCTRL_MODE_OTHER ) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
 	} else {
