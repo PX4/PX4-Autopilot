@@ -45,6 +45,7 @@
 #define ALLLED_OFF_L 0xFC	//load all the LEDn_OFF registers, byte 0 (turn 0-7 channels off)
 #define ALLLED_OFF_H 0xFD	//load all the LEDn_OFF registers, byte 1 (turn 8-15 channels off)
 #define PRE_SCALE 0xFE		//prescaler for output frequency
+#define MAX_PWM_RES 4096        //10bit精度
 #define CLOCK_FREQ 25000000.0 //25MHz default osc clock
 #define BUFFER_SIZE 0x08  //1 byte buffer
 //! Main class that exports features for PCA9685 chip

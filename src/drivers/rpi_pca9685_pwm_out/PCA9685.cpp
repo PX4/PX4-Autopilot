@@ -86,7 +86,7 @@ void PCA9685::setPWMFreq(int freq)
 	int fd = openfd();
 
 	if (fd != -1) {
-		uint8_t prescale = (CLOCK_FREQ / 4096 / freq)  - 1;
+		uint8_t prescale = (CLOCK_FREQ / MAX_PWM_RES / freq)  - 1;
 		//printf ("Setting prescale value to: %d\n", prescale);
 		//printf ("Using Frequency: %d\n", freq);
 

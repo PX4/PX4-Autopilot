@@ -35,9 +35,9 @@ px4_add_module(
 	MAIN rpi_pca9685_pwm_out
 	COMPILE_FLAGS
 	SRCS
-	PCA9685.cpp
-	rpi_pca9685_pwm_out.cpp
+		PCA9685.cpp
+		rpi_pca9685_pwm_out.cpp
 	DEPENDS
-	platforms__common
-)
+		platforms__common
+	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
