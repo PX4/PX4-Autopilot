@@ -37,15 +37,19 @@
 #include "uORB.h"
 #include "uORBCommon.hpp"
 #include <px4_log.h>
+#include <px4_module.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
 static uORB::DeviceMaster *g_dev = nullptr;
 static void usage()
 {
-	PX4_INFO("Usage: uorb 'start', 'status', 'top [-a] [<filter1> [<filter2> ...]]'");
-	PX4_INFO("       -a: print all instead of only currently publishing topics");
-	PX4_INFO("       <filter>: topic(s) to match (implies -a)");
+	PRINT_MODULE_USAGE_NAME("uorb", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("top", "Monitor topic publication rates");
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics", true);
+	PRINT_MODULE_USAGE_ARG("<filter1> [<filter2>]", "topic(s) to match (implies -a)", true);
 }
 
 int
@@ -58,8 +62,6 @@ uorb_main(int argc, char *argv[])
 
 	/*
 	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
 	 */
 	if (!strcmp(argv[1], "start")) {
 
