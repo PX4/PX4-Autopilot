@@ -1,11 +1,11 @@
 #!nsh
 
-set VEHICLE_TYPE ugv
+set VEHICLE_TYPE UGV
 
 if [ $AUTOCNF == yes ]
 then
 #
-# Default parameters for ugvs
+# Default parameters for UGVs
 #
 	param set NAV_DLL_ACT 0
 	param set NAV_ACC_RAD 2.0

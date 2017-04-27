@@ -1027,9 +1027,9 @@ then
 	fi
 
 	#
-	# Ugv setup
+	# UGV setup
 	#
-	if [ $VEHICLE_TYPE == ugv ]
+	if [ $VEHICLE_TYPE == UGV ]
 	then
 		if [ $MIXER == none ]
 		then
@@ -1039,7 +1039,7 @@ then
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 10 (ugv) if not defined
+			# Use MAV_TYPE = 10 (UGV) if not defined
 			set MAV_TYPE 10
 		fi
 
