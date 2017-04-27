@@ -766,7 +766,7 @@ void Ekf::controlHeightFusion()
 		local_time_step = math::constrain(local_time_step, 0.0f, 1.0f);
 
 		// apply a 10 second first order low pass filter to baro offset
-		float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt - _hgt_sensor_offset + _state.pos(
+		float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt + _state.pos(
 				2) - _baro_hgt_offset);
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
