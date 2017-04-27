@@ -233,33 +233,3 @@ If all steps has been followed, you should see this output on the subscriber sid
 .. image:: doc/subscriber.png
 
 A video of this final process as demostration is available on `https://youtu.be/NF65EPD-6aY <https://youtu.be/NF65EPD-6aY>`_
-
-Testing
--------
-
-Some tests to measure the byte rate performed with a PixRacer (microcontroller STM32F42X - 168MHz) in the PX4 side and a laptop in the Fast RTPS side:
-
-1. **Loop latency for one topic - 11ms**: For one topic (sensor_combined) is measured over all the process, the time between the POLLIN event reception over the *px4_pollfd_struct_t* for the subscribed topic and the deserialization of the same message when returns back through the UART.
-
-2. **Transmission speed for one topic - 18kB/s**: For one topic (sensor_combined 72 bytes) is measured the reception speed in the Fast RTPS side, taking in to account with the delay from the performing of whole process in this side, from reception to the dispatch back of the info from the Fast RTPS twin topic.
-
-3. **Transmission speed for ten topics - 32kB/s**: For ten topics (several sizes and frequencys) simultaneously and measured in the reception in the Fast RTPS side, as above.
-
-+-------------------------------+--------+-------------------------+
-|                               |        |        Fast RTPS        |
-+              TEST             + TOPICS +----------+------+-------+
-|                               |        | Received | Sent |  kB/s |
-+-------------------------------+--------+----------+------+-------+
-|  general_trans 0 0 1000 2000  |    1   |   7959   | 7959 | 17.95 |
-+-------------------------------+--------+----------+------+-------+
-| general_trans 10 10 1000 1000 |   10   |   1692   | 1692 | 31.87 |
-+-------------------------------+--------+----------+------+-------+
-
-* Application general_trans takes 4 parameters:
-
- - minimum time in milliseconds between UORB topics updates.
- - maximun time in milliseconds waiting a new UORB topics update.
- - number of loops.
- - sleep time in nanoseconds between loops.
-
-* Received and set measured in messages.
