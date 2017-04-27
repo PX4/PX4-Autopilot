@@ -15,6 +15,7 @@ uint8 alt_reset_counter 		# Counter for reset events on altitude
 float32 vel_n			# North velocity in NED earth-fixed frame, (metres/sec)
 float32 vel_e			# East velocity in NED earth-fixed frame, (metres/sec)
 float32 vel_d			# Down velocity in NED earth-fixed frame, (metres/sec)
+float32 pos_d_deriv		# Down position time derivative in NED earth-fixed frame, (metres/sec)
 float32 yaw 			# Euler yaw angle relative to NED earth-fixed frame, -PI..+PI, (radians)
 float32 eph			# Standard deviation of horizontal position error, (metres)
 float32 epv			# Standard deviation of vertical position error, (metres)
