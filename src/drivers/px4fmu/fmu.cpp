@@ -112,6 +112,25 @@
 #define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
 #define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
+/** Mode given via CLI */
+enum PortMode {
+	PORT_MODE_UNSET = 0,
+	PORT_FULL_GPIO,
+	PORT_FULL_SERIAL,
+	PORT_FULL_PWM,
+	PORT_GPIO_AND_SERIAL,
+	PORT_PWM_AND_SERIAL,
+	PORT_PWM_AND_GPIO,
+	PORT_PWM4,
+	PORT_PWM3,
+	PORT_PWM2,
+	PORT_PWM1,
+	PORT_PWM3CAP1,
+	PORT_PWM2CAP2,
+	PORT_CAPTURE,
+};
+
+
 #if !defined(BOARD_HAS_PWM)
 #  error "board_config.h needs to define BOARD_HAS_PWM"
 #endif
@@ -293,9 +312,9 @@ private:
 
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
 
-	/* do not allow to copy due to ptr data members */
-	PX4FMU(const PX4FMU &);
-	PX4FMU operator=(const PX4FMU &);
+	PX4FMU(const PX4FMU &) = delete;
+	PX4FMU operator=(const PX4FMU &) = delete;
+
 	void fill_rc_in(uint16_t raw_rc_count_local,
 			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
@@ -393,7 +412,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_armed.in_esc_calibration_mode = false;
 
 	// rc input, published to ORB
-	memset(&_rc_in, 0, sizeof(_rc_in));
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 
 	// initialize raw_rc values and count
@@ -2932,26 +2950,6 @@ bind_spektrum()
 	close(fd);
 
 }
-
-enum PortMode {
-	PORT_MODE_UNSET = 0,
-	PORT_FULL_GPIO,
-	PORT_FULL_SERIAL,
-	PORT_FULL_PWM,
-	PORT_GPIO_AND_SERIAL,
-	PORT_PWM_AND_SERIAL,
-	PORT_PWM_AND_GPIO,
-	PORT_PWM4,
-	PORT_PWM3,
-	PORT_PWM2,
-	PORT_PWM1,
-	PORT_PWM3CAP1,
-	PORT_PWM2CAP2,
-	PORT_CAPTURE,
-};
-
-PortMode g_port_mode;
-
 int
 fmu_new_mode(PortMode new_mode)
 {
@@ -3474,11 +3472,6 @@ fmu_main(int argc, char *argv[])
 
 	/* was a new mode set? */
 	if (new_mode != PORT_MODE_UNSET) {
-
-		/* yes but it's the same mode */
-		if (new_mode == g_port_mode) {
-			return OK;
-		}
 
 		/* switch modes */
 		int ret = fmu_new_mode(new_mode);
