@@ -698,6 +698,9 @@ void Ekf2::task_main()
 			float velocity[3];
 			_ekf.get_velocity(velocity);
 
+			float pos_d_deriv;
+			_ekf.get_pos_d_deriv(&pos_d_deriv);
+
 			float gyro_rad[3];
 
 			{
@@ -820,6 +823,7 @@ void Ekf2::task_main()
 			lpos.vx = velocity[0];
 			lpos.vy = velocity[1];
 			lpos.vz = velocity[2];
+			lpos.z_deriv = pos_d_deriv; // vertical position time derivative (m/s)
 
 			// TODO: better status reporting
 			lpos.xy_valid = _ekf.local_position_is_valid();
@@ -892,6 +896,7 @@ void Ekf2::task_main()
 				global_pos.vel_n = velocity[0]; // Ground north velocity, m/s
 				global_pos.vel_e = velocity[1]; // Ground east velocity, m/s
 				global_pos.vel_d = velocity[2]; // Ground downside velocity, m/s
+				global_pos.pos_d_deriv = pos_d_deriv; // vertical position time derivative, m/s
 
 				global_pos.yaw = euler.psi(); // Yaw in radians -PI..+PI.
 
