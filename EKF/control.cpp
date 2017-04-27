@@ -713,7 +713,11 @@ void Ekf::controlHeightFusion()
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				if (_terrain_initialised) {
+					_hgt_sensor_offset = _terrain_vpos;
+				} else {
+					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				}
 			}
 
         } else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
@@ -745,7 +749,11 @@ void Ekf::controlHeightFusion()
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				if (_terrain_initialised) {
+					_hgt_sensor_offset = _terrain_vpos;
+				} else {
+					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				}
 			}
 
         } else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
