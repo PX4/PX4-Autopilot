@@ -232,9 +232,6 @@ private:
 		float throttle_max;
 		float throttle_cruise;
 		float throttle_slew_max;
-		float man_roll_max_rad;
-		float man_pitch_max_rad;
-
 
 	} _parameters;			/**< local copies of interesting parameters */
 
@@ -280,9 +277,6 @@ private:
 		param_t throttle_max;
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
-		param_t man_roll_max_deg;
-		param_t man_pitch_max_deg;
-
 
 	} _parameter_handles;		/**< handles for interesting parameters */
 
@@ -472,8 +466,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
 	_parameter_handles.throttle_slew_max = param_find("GND_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
-	_parameter_handles.man_roll_max_deg = param_find("FW_MAN_R_MAX");
-	_parameter_handles.man_pitch_max_deg = param_find("FW_MAN_P_MAX");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -551,11 +543,6 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
-
-	param_get(_parameter_handles.man_roll_max_deg, &_parameters.man_roll_max_rad);
-	_parameters.man_roll_max_rad = math::radians(_parameters.man_roll_max_rad);
-	param_get(_parameter_handles.man_pitch_max_deg, &_parameters.man_pitch_max_rad);
-	_parameters.man_pitch_max_rad = math::radians(_parameters.man_pitch_max_rad);
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
 	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
@@ -1214,11 +1201,6 @@ GroundRoverPositionControl::task_main()
 			 */
 			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
-
-				if (_control_mode.flag_control_manual_enabled) {
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max_rad, _parameters.man_pitch_max_rad);
-				}
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 				q.copyTo(_att_sp.q_d);
