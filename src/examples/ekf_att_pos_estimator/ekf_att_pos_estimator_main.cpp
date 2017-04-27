@@ -948,6 +948,9 @@ void AttitudePositionEstimatorEKF::publishLocalPosition()
 	_local_pos.vy = _ekf->states[5];
 	_local_pos.vz = _ekf->states[6];
 
+	// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+	_local_pos.z_deriv = _ekf->states[6];
+
 	_local_pos.xy_valid = _gps_initialized && _gpsIsGood;
 	_local_pos.z_valid = true;
 	_local_pos.v_xy_valid = _gps_initialized && _gpsIsGood;
@@ -1010,10 +1013,12 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 
 	if (_local_pos.v_z_valid) {
 		_global_pos.vel_d = _local_pos.vz;
-
 	} else {
 		_global_pos.vel_d = 0.0f;
 	}
+
+	// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+	_global_pos.pos_d_deriv = _global_pos.vel_d;
 
 	/* terrain altitude */
 	if (_terrain_estimator->is_valid()) {
