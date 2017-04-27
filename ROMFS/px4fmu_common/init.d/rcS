@@ -1027,26 +1027,9 @@ then
 	fi
 
 	#
-	# Rover setup
+	# Ugv setup
 	#
-	if [ $VEHICLE_TYPE == rover ]
-	then
-		# 10 is MAV_TYPE_GROUND_ROVER
-		set MAV_TYPE 10
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard rover apps
-		sh /etc/init.d/rc.axialracing_ax10_apps
-
-		param set MAV_TYPE 10
-	fi
-
-	#
-	# RC car setup
-	#
-	if [ $VEHICLE_TYPE == rccar ]
+	if [ $VEHICLE_TYPE == ugv ]
 	then
 		if [ $MIXER == none ]
 		then
@@ -1056,8 +1039,8 @@ then
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 1 (fixed wing) if not defined
-			set MAV_TYPE 1
+			# Use MAV_TYPE = 10 (ugv) if not defined
+			set MAV_TYPE 10
 		fi
 
 		param set MAV_TYPE ${MAV_TYPE}
