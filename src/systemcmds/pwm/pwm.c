@@ -43,6 +43,7 @@
 #include <px4_getopt.h>
 #include <px4_defines.h>
 #include <px4_log.h>
+#include <px4_module.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,49 +77,48 @@ usage(const char *reason)
 		PX4_WARN("%s", reason);
 	}
 
-	PX4_INFO(
-		"usage:\n"
-		"pwm arm|disarm|rate|failsafe|disarmed|min|max|test|steps|info  ...\n"
-		"\n"
-		"arm\t\t\t\tArm output\n"
-		"disarm\t\t\t\tDisarm output\n"
-		"\n"
-		"oneshot ...\t\t\tConfigure Oneshot\n"
-		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\n"
-		"rate ...\t\t\tConfigure PWM rates\n"
-		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-r <alt_rate>\t\tPWM rate (0 - oneshot, 50 to 400 Hz)\n"
-		"\n"
-		"failsafe ...\t\t\tFailsafe PWM\n"
-		"disarmed ...\t\t\tDisarmed PWM\n"
-		"min ...\t\t\t\tMinimum PWM\n"
-		"max ...\t\t\t\tMaximum PWM\n"
-//	     "trim ...\t\t\tTrim PWM\n"
-		"\t[-e]\t\t\trobust error handling\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-p <pwm value>\t\tPWM value\n"
-		"\n"
-		"test ...\t\t\tDirectly set PWM\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-p <pwm value>\t\tPWM value\n"
-		"\n"
-		"steps ...\t\t\tRun 5 steps\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\n"
-		"info\t\t\t\tPrint information\n"
-		"\n"
-		"\t-v\t\t\tVerbose\n"
-		"\t-d <dev>\t\t(default " PWM_OUTPUT0_DEVICE_PATH ")\n"
-	);
+
+
+	PRINT_MODULE_USAGE_NAME("pwm", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("arm", "Arm output");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print current configuration of all channels");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode");
+	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Force Termination Failsafe mode");
+	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
+	PRINT_MODULE_USAGE_PARAM_INT('r', -1, 50, 400, "PWM Rate in Hz (0 = Oneshot, otherwise 50 to 400Hz)", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("oneshot", "Configure Oneshot125 (rate is set to 0)");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("failsafe", "Set Failsafe PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("disarmed", "Set Disarmed PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("min", "Set Minimum PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("max", "Set Maximum PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set Output to a specific value until 'q' or 'c' or 'ctrl-c' pressed");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("steps", "Run 5 steps from 0 to 100%");
+
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'failsafe', 'disarmed', 'min', 'max' and 'test' require a PWM value:");
+	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 4000, "PWM value (eg. 1100)", false);
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'failsafe', 'disarmed', 'min', 'max', 'test' and 'steps' "
+					 "additionally require to specify the channels with one of the following commands:");
+	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
+					true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm info' to show groups)",
+				     true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("These parameters apply to all commands:");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/pwm_output0", "<file:dev>", "Select PWM output device", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Exit with 1 instead of 0 on error", true);
 
 }
 
