@@ -146,7 +146,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.speed_i = param_find("GND_SPEED_I");
 	_parameter_handles.speed_d = param_find("GND_SPEED_D");
 	_parameter_handles.speed_imax = param_find("GND_SPEED_IMAX");
-	_parameter_handles.speed_throttle_airspeed_scaler = param_find("GND_AIRSP_THR_SC");
+	_parameter_handles.speed_throttle_airspeed_scaler = param_find("GND_SPEED_THR_SC");
 
 	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");

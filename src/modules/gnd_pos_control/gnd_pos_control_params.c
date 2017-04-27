@@ -250,9 +250,9 @@ PARAM_DEFINE_FLOAT(GND_SPEED_D, 0.0f);
 PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
 
 /**
- * Airspeed to throttle scaler
+ * Speed to throttle scaler
  *
- * This is a gain to map the airspeed control output to the throttle linearly.
+ * This is a gain to map the speed control output to the throttle linearly.
  *
  * @unit %m/s
  * @min 0.005
@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  * @increment 0.005
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_AIRSP_THR_SC, 1.0f);
+PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 
 
 
