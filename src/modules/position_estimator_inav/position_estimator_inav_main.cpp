@@ -1343,6 +1343,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.eph = eph;
 			local_pos.epv = epv;
 
+			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+			local_pos.z_deriv = z_est[1];
+
 			if (local_pos.dist_bottom_valid) {
 				local_pos.dist_bottom = dist_ground;
 				local_pos.dist_bottom_rate = - z_est[1];
@@ -1367,6 +1370,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.vel_n = local_pos.vx;
 				global_pos.vel_e = local_pos.vy;
 				global_pos.vel_d = local_pos.vz;
+
+				// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+				global_pos.pos_d_deriv = local_pos.vz;
 
 				global_pos.yaw = local_pos.yaw;
 
