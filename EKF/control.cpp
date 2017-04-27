@@ -724,10 +724,10 @@ void Ekf::controlHeightFusion()
 			setControlBaroHeight();
 			_fuse_height = true;
 
-			// we have just switched to using baro height, calculate height sensor offset such that current
-			// measurment matches our current height estimate
+			// we have just switched to using baro height, we don't need to set a height sensor offset
+			// since we track a separate _baro_hgt_offset
 			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
-				_hgt_sensor_offset = _baro_sample_delayed.hgt - _baro_hgt_offset + _state.pos(2);
+				_hgt_sensor_offset = 0.0f;
 			}
 		}
 	}
