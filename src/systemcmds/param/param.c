@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 
 #include <errno.h>
@@ -88,6 +89,48 @@ static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum
 static int 	do_reset(const char *excludes[], int num_excludes);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
+
+static void print_usage(void)
+{
+	PRINT_MODULE_USAGE_NAME("param", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("load", "Load params from a file (overwrite all)");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("select", "Select default file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use <root>/eeprom/parameters if not given)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params", true);
+	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set parameter to a value");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
+	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("compare", "Compare a param with a value. Command will succeed if equal");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("greater",
+					 "Compare a param with a value. Command will succeed if param is greater than the value");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset params to default");
+	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset_nostart",
+					 "Reset params to default, but keep SYS_AUTOSTART and SYS_AUTOCONFIG");
+	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("index", "Show param for a given index");
+	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("index_used", "Show used param for a given index");
+	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("find", "Show index of a param");
+	PRINT_MODULE_USAGE_ARG("<param>", "param name", false);
+}
 
 int
 param_main(int argc, char *argv[])
@@ -246,7 +289,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("expected a command, try 'load', 'import', 'show [-c] [<filter>]', 'set <param> <value>', 'compare',\n'index', 'index_used', 'find', 'greater', 'select', 'save', or 'reset' ");
+	print_usage();
 	return 1;
 }
 
