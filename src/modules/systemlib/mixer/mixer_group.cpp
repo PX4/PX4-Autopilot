@@ -328,7 +328,7 @@ int16_t
 MixerGroup::group_param_count()
 {
 	Mixer	*mixer = _first;
-	int16_t param_count = 1;
+	int16_t param_count = 2;
 
 	while ((mixer != nullptr)) {
 		param_count += mixer->parameter_count();
@@ -352,18 +352,33 @@ MixerGroup::group_get_param(mixer_param_s *param)
 	param->mix_index = 0;
 
 	switch (param->index) {
-	case 0:
-		param->type = MIXER_PARAM_MSG_TYPE_CHECKSUM;
-		param->array_size = 1;
-		strncpy(param->name, "CHECKSUM_SCRIPT", 16);
-		param->values[0].intval = _checksum;
-		param->param_type = 5;  //MAV_PARAM_TYPE_UINT32
-		param->flags = 0x01;
-		return 1;
-		break;
+	case 0: {
+			param->type = MIXER_PARAM_MSG_TYPE_CHECKSUM;
+			param->array_size = 1;
+			strncpy(param->name, "CHECKSUM_SCRIPT", 16);
+			param->values[0].intval = _checksum;
+			param->param_type = 5;  //MAV_PARAM_TYPE_UINT32
+			param->flags = 0x01;
+			return 1;
+			break;
+		}
+
+	case 1: {
+			param->type = MIXER_PARAM_MSG_TYPE_PARAM_METADATA;
+			param->array_size = 4;
+			strncpy(param->name, "METADATA_GLOBAL", 16);
+			param->values[0].realval =  0.0;
+			param->values[1].realval =  1.0;
+			param->values[2].realval =  -1.0;
+			param->values[3].realval =  0.01;
+			param->param_type = 9;  //MAV_PARAM_TYPE_FLOAT
+			param->flags = 0x01;
+			return 1;
+			break;
+		}
 	}
 
-	remaining--;
+	remaining -= 2;
 
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();
@@ -392,12 +407,12 @@ MixerGroup::group_set_param(mixer_param_s *param)
 
 	param->mix_index = 0;
 
-	if (remaining == 0) {
+	if (remaining < 2) {
 		param->flags = 0x80;
 		return -1;
 	}
 
-	remaining--;
+	remaining -= 2;
 
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();
@@ -423,11 +438,11 @@ MixerGroup::group_set_param_value(int16_t index, int16_t arrayIndex, float value
 	uint16_t remaining = index;
 	uint16_t mix_param_count;
 
-	if (remaining == 0) {
+	if (remaining < 2) {
 		return -1;
 	}
 
-	remaining--;
+	remaining -= 2;
 
 	while ((mixer != nullptr)) {
 		mix_param_count = mixer->parameter_count();

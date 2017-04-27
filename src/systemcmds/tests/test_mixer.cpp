@@ -99,7 +99,7 @@ static bool should_prearm = false;
 #define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
 #endif
 
-#define MIXER_VERBOSE
+//#define MIXER_VERBOSE
 
 class MixerTest : public UnitTest
 {
@@ -626,44 +626,51 @@ const mixer_param_s param_test_values[] = {
 	//index, type, mix_index, mix_sub_index, values[8], name[21], param_type, array_size, flags
 	//Multicopter main mixer
 	{0, MIXER_PARAM_MSG_TYPE_CHECKSUM,      0, 0,  { {.uintval = 0x5E9256D} }, "CHECKSUM_SCRIPT", 5, 1, 1},
-	{1, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {},                      "MULTIROTOR",      9, 0, 1},
-	{2, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_ROLL_SCALE",   9, 1, 0},
-	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_PITCH_SCALE",  9, 1, 0},
-	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_YAW_SCALE",    9, 1, 0},
-	{5, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = -1.000000} }, "IN_IDLE_SPEED",  9, 1, 0},
+	{
+		1, MIXER_PARAM_MSG_TYPE_PARAM_METADATA, 0, 0,  { {.realval = 0.0},
+			{.realval = 1.0},
+			{.realval = -1.0},
+			{.realval = 0.01}
+		},    "METADATA_GLOBAL",  9, 4, 1
+	},
+	{2, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {},                        "MULTIROTOR",      9, 0, 1},
+	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_ROLL_SCALE",   9, 1, 0},
+	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_PITCH_SCALE",  9, 1, 0},
+	{5, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_YAW_SCALE",    9, 1, 0},
+	{6, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = -1.000000} }, "IN_IDLE_SPEED",  9, 1, 0},
 	//First multicopter submixer
-	{6, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR", 9, 0, 1},
-	{7, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = -0.927184} }, "OUT_ROLL_SCALE",  9, 1, 1},
-	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 0.374607} }, "OUT_PITCH_SCALE",  9, 1, 1},
-	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 1.000000} }, "OUT_YAW_SCALE",    9, 1, 1},
-	{10, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 1,  { {.realval = 1.000000} }, "OUT_SCALE",        9, 1, 1},
+	{7, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR", 9, 0, 1},
+	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = -0.927184} }, "OUT_ROLL_SCALE",  9, 1, 1},
+	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 0.374607} }, "OUT_PITCH_SCALE",  9, 1, 1},
+	{10, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 1.000000} }, "OUT_YAW_SCALE",    9, 1, 1},
+	{11, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 1,  { {.realval = 1.000000} }, "OUT_SCALE",        9, 1, 1},
 	//Last multicopter submixer
-	{21, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR",   9, 0, 1},
-	{22, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.777146} }, "OUT_ROLL_SCALE",    9, 1, 1},
-	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.629320} }, "OUT_PITCH_SCALE",   9, 1, 1},
-	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -1.000000} }, "OUT_YAW_SCALE",     9, 1, 1},
-	{25, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = 1.000000} },  "OUT_SCALE",         9, 1, 1},
+	{22, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR",   9, 0, 1},
+	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.777146} }, "OUT_ROLL_SCALE",    9, 1, 1},
+	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.629320} }, "OUT_PITCH_SCALE",   9, 1, 1},
+	{25, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -1.000000} }, "OUT_YAW_SCALE",     9, 1, 1},
+	{26, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = 1.000000} },  "OUT_SCALE",         9, 1, 1},
 	//First SimpleMixer main output mixer
-	{26, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
-	{27, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_NEG_SCALE",   9, 1, 0},
-	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_POS_SCALE",   9, 1, 0},
-	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 0.000000} }, "OUT_OFFSET",      9, 1, 0},
-	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = -1.000000} }, "MIN_OUTPUT",     9, 1, 0},
-	{31, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "MAX_OUTPUT",      9, 1, 0},
+	{27, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_NEG_SCALE",   9, 1, 0},
+	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_POS_SCALE",   9, 1, 0},
+	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 0.000000} }, "OUT_OFFSET",      9, 1, 0},
+	{31, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = -1.000000} }, "MIN_OUTPUT",     9, 1, 0},
+	{32, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "MAX_OUTPUT",      9, 1, 0},
 //	// First SimpleMixer input submixer
-	{32, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  { {.realval = 0.000000} }, "SIMPLE_INPUT",    9, 0, 1},
-	{33, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  { {.uintval = 0}, {.uintval = 4} }, "INPUT",    5, 2, 1},
-	{34, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_NEG_SCALE",    9, 1, 0},
-	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_POS_SCALE",    9, 1, 0},
-	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 0.000000} }, "IN_OFFSET",       9, 1, 0},
-	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = -1.000000} }, "MIN_INPUT",      9, 1, 0},
-	{38, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0},
+	{33, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  { {.realval = 0.000000} }, "SIMPLE_INPUT",    9, 0, 1},
+	{34, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  { {.uintval = 0}, {.uintval = 4} }, "INPUT",    5, 2, 1},
+	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_NEG_SCALE",    9, 1, 0},
+	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_POS_SCALE",    9, 1, 0},
+	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 0.000000} }, "IN_OFFSET",       9, 1, 0},
+	{38, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = -1.000000} }, "MIN_INPUT",      9, 1, 0},
+	{39, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0},
 	//First param of remaining mixers
-	{39, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
-	{52, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
-	{65, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{40, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{53, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{66, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
 	//Last param of last mixer
-	{77, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0}
+	{78, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0}
 };
 
 
@@ -678,7 +685,7 @@ bool MixerTest::tuningTest()
 	char buf[1024];
 	const char *mixpath = MIXER_PATH(quad_test.mix);
 	const int expected_mixer_count = 5;
-	const int expected_param_count = 78;
+	const int expected_param_count = 79;
 
 	mixer_param_s param;
 
@@ -729,19 +736,31 @@ bool MixerTest::tuningTest()
 		if (verbose) {
 			switch (param.param_type) {
 			case 5: {
-					PX4_INFO(" - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals[0..1] : 0x%X : 0x%X",
-						 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
-						 param.array_size, param.flags, param.name, param.values[0].uintval, param.values[1].uintval);
+					printf("Param - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals=[",
+					       param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+					       param.array_size, param.flags, param.name);
+
+					for (int v = 0; v < param.array_size; v++) {
+						printf(" 0x%X", param.values[v].uintval);
+					}
+
+					printf(" ]\n");
 					break;
 				}
 
-			case 9:
-				PX4_INFO(" - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals[0]:%.4f",
-					 param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
-					 param.array_size, param.flags, param.name, (double) param.values[0].realval);
-				break;
-			}
+			case 9: {
+					printf("Param - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals=[",
+					       param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+					       param.array_size, param.flags, param.name, (double) param.values[0].realval);
 
+					for (int v = 0; v < param.array_size; v++) {
+						printf(" %.4f", param.values[v].realval);
+					}
+
+					printf(" ]\n");
+					break;
+				}
+			}
 		}
 	}
 
