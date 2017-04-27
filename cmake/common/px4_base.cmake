@@ -337,7 +337,6 @@ function(px4_add_common_flags)
 		-Wuninitialized
 		-Wunused-variable
 
-		-Wno-sign-compare
 		-Wno-unused-parameter
 		)
 

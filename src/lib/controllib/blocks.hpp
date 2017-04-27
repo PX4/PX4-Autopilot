@@ -132,20 +132,20 @@ class __EXPORT BlockLowPassVector: public Block
 {
 public:
 // methods
-	BlockLowPassVector(SuperBlock *parent,
-			   const char *name) :
+	BlockLowPassVector(SuperBlock *parent, const char *name) :
 		Block(parent, name),
 		_state(),
 		_fCut(this, "") // only one parameter, no need to name
 	{
-		for (int i = 0; i < M; i++) {
+		for (unsigned i = 0; i < M; i++) {
 			_state(i) = 0.0f / 0.0f;
 		}
 	};
+
 	virtual ~BlockLowPassVector() {};
 	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
 	{
-		for (int i = 0; i < M; i++) {
+		for (unsigned i = 0; i < M; i++) {
 			if (!PX4_ISFINITE(getState()(i))) {
 				setState(input);
 			}
@@ -661,7 +661,7 @@ private:
 // attributes
 	matrix::Matrix<Type, M, N> _h[LEN];
 	size_t _index;
-	int _delay;
+	unsigned _delay;
 };
 
 } // namespace control

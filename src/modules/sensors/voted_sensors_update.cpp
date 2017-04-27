@@ -250,7 +250,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
-			int device_id;
+			uint32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
@@ -333,7 +333,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
-			int device_id;
+			uint32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
@@ -423,7 +423,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_MAG%u_ID", i);
-			int device_id;
+			uint32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 			(void)sprintf(str, "CAL_MAG%u_ROT", i);
 			(void)param_find(str);

@@ -270,7 +270,7 @@ private:
 #endif
 
 	uint8_t						*_msg_buffer = nullptr;
-	int						_msg_buffer_len = 0;
+	unsigned					_msg_buffer_len = 0;
 	char 						_log_dir[LOG_DIR_LEN];
 	int						_sess_dir_index = 1; ///< search starting index for 'sess<i>' directory name
 	char 						_log_file_name[32];

@@ -221,7 +221,7 @@ void TemperatureCalibration::task_main()
 		if (!_gyro) {
 			sensor_gyro_s gyro_data;
 
-			for (int i = 0; i < num_gyro; ++i) {
+			for (unsigned i = 0; i < num_gyro; ++i) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 			}
 		}

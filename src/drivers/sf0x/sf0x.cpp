@@ -109,11 +109,11 @@ private:
 	char 				_port[20];
 	float				_min_distance;
 	float				_max_distance;
-	int                 _conversion_interval;
+	unsigned			_conversion_interval;
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int				_measure_ticks;
+	unsigned			_measure_ticks;
 	bool				_collect_phase;
 	int				_fd;
 	char				_linebuf[10];
