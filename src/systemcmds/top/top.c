@@ -50,11 +50,21 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/printload.h>
 #include <drivers/drv_hrt.h>
+#include <px4_module.h>
 
 /**
  * Start the top application.
  */
 __EXPORT int top_main(int argc, char *argv[]);
+
+
+static void print_usage(void)
+{
+	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("top", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("once", "print load only once");
+}
 
 int
 top_main(int argc, char *argv[])
@@ -67,10 +77,16 @@ top_main(int argc, char *argv[])
 	/* clear screen */
 	dprintf(1, "\033[2J\n");
 
-	if (argc > 1 && !strcmp(argv[1], "once")) {
-		print_load(curr_time, 1, &load);
-		sleep(1);
-		print_load(hrt_absolute_time(), 1, &load);
+	if (argc > 1) {
+		if (!strcmp(argv[1], "once")) {
+			print_load(curr_time, 1, &load);
+			sleep(1);
+			print_load(hrt_absolute_time(), 1, &load);
+
+		} else {
+			print_usage();
+		}
+
 		return 0;
 	}
 
