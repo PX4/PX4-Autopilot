@@ -1033,7 +1033,7 @@ then
 	then
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for fixed wing if not defined
+			# Set default mixer for UGV if not defined
 			set MIXER stampede
 		fi
 
