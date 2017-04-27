@@ -31,9 +31,8 @@ UART_node::~UART_node()
     close_uart();
 }
 
-uint8_t UART_node::init_uart(const char * uart_name, uint32_t speed)
+uint8_t UART_node::init_uart(const char * uart_name)
 {
-    if (0 == speed) speed = 115200;
     // Open a serial port
     m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
@@ -61,7 +60,7 @@ uint8_t UART_node::init_uart(const char * uart_name, uint32_t speed)
     if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0)
     {
         // Set baud rate
-        if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0)
+        if (cfsetispeed(&uart_config, B115200) < 0 || cfsetospeed(&uart_config, B115200) < 0)
         {
             printf("ERR SET BAUD %s: %d\n", uart_name, termios_state);
             close(m_uart_filestream);

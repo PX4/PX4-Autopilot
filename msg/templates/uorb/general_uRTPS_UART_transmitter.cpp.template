@@ -38,9 +38,10 @@ num_topics = len(topic_names)
 @[end for]
 
 #define BUFFER_SIZE 256
-#define POLL_TIME_MS 300
-#define UPDATE_TIME_MS 300
-#define LOOPS 30
+#define POLL_TIME_MS 10
+#define UPDATE_TIME_MS 10
+#define LOOPS 1000
+#define USLEEP_MS 2000
 
 extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
 extern "C" __EXPORT double time_point(uint8_t id, struct timespec &pre);
@@ -49,20 +50,21 @@ int general_trans_main(int argc, char *argv[])
 {
     int update_time = UPDATE_TIME_MS;
     if (argc > 1) update_time = atoi(argv[1]);
+
     int poll_time = POLL_TIME_MS;
     if (argc > 2) poll_time = atoi(argv[2]);
 
     int loops = LOOPS;
     if (argc > 3) loops = atoi(argv[3]);
 
-    int speed = 0;
-    if (argc > 4) speed = atoi(argv[4]);
+    int usleep_ms = USLEEP_MS;
+    if (argc > 4) usleep_ms = atoi(argv[4]);
 
-    printf("poll: %dms loops: %d speed: %d\n", poll_time, loops, speed);
+    printf("update: %dms poll: %dms loops: %d usleep_ms: %d\n", update_time, poll_time, loops, usleep_ms);
     usleep(2000000);
 
     UART_node m_uartNode;
-    if (0 != m_uartNode.init_uart("/dev/ttyACM0", speed))
+    if (0 != m_uartNode.init_uart("/dev/ttyACM0"))
     {
         printf("ERROR UART INIT, EXITING...\n");
         return -1;
@@ -104,16 +106,12 @@ int general_trans_main(int argc, char *argv[])
     uint64_t total_lenght = 0;
     uint32_t received = 0, sent = 0;
 
-    //struct timespec sT;
-    //double Ta = 0, Tb = 0, Tc = 0, Td = 0, Te = 0, Tf = 0, TT = 0;
-
-    time_t begin;
-    time(&begin);
-    for (int i = 0; i < loops; ++i)
+    struct timespec begin;
+    clock_gettime(0, &begin);
+    int i = 0;
+    for (i = 0; i < loops; ++i)
     {
-        //clock_gettime(0, &sT);
         int poll_ret = px4_poll(fds, @(num_topics), poll_time);
-        //Ta += time_point(1, sT);
 
         if (poll_ret == 0)
         {
@@ -132,60 +130,43 @@ int general_trans_main(int argc, char *argv[])
 @[for id, topic in enumerate(topic_names)]
             if (fds[@(id)].revents & POLLIN)
             {
-                //clock_gettime(0, &sT);
                 // obtained data for the file descriptor
                 struct @(topic)_s data;
                 // copy raw data into local buffer
                 orb_copy(ORB_ID(@(topic)), fds[@(id)].fd, &data);
                 serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-                //Tb += time_point(2, sT);
                 m_uartNode.writeToUART((char)@(id), data_buffer, length);
-                //Tc += time_point(3, sT);
-                printf("[%d]>> %llu\n", @(id), data.timestamp);
+                //printf("[%d]>> %llu\n", @(id), data.timestamp);
                 ++sent;
                 total_lenght += (length + 7);
             }
 @[end for]
         }
 
-        //clock_gettime(0, &sT);
-        usleep(5000);
-        //Td += time_point(4, sT);
+        usleep(usleep_ms);
 
         char topic_ID = 255;
         while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos))
         {
-            //Te += time_point(5, sT);
             switch (topic_ID)
             {
 @[for id, topic in enumerate(topic_names)]
                 case @(id):
-                    //clock_gettime(0, &sT);
                     deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
                     //orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
-                    printf("                >>[%d] %llu\n", @(id), @(topic)_data.timestamp);
+                    //printf("                >>[%d] %llu\n", @(id), @(topic)_data.timestamp);
                     ++received;
-                    //Tf += time_point(6, sT);
                 break;
 @[end for]
             }
-            //clock_gettime(0, &sT);
         }
     }
     
-    time_t end;
-    time(&end);
-    double elapsed_secs = difftime(end, begin);
-    printf("\nSENT: %d RECEIVED: %d\n%llu bytes in %f seconds sended %.02fKB/s\n",
-            sent, received, total_lenght, elapsed_secs, (double)total_lenght/(double)(1000*elapsed_secs));
-
-    /*TT  = Ta + Tb + Tc + Td + Te + Tf;
-    printf("POLL %f(%.02f)  \n", Ta, double(Ta/TT));
-    printf("SERI %f(%.02f)  \n", Tb, double(Tb/TT));
-    printf("WRIT %f(%.02f)  \n", Tc, double(Tc/TT));
-    printf("SLEP %f(%.02f)  \n", Td, double(Td/TT));
-    printf("READ %f(%.02f)  \n", Te, double(Te/TT));
-    printf("DESE %f(%.02f)  \n", Tf, double(Tf/TT));*/
+    struct timespec end;
+    clock_gettime(0, &end);
+    double elapsed_secs2 = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
+    printf("\nSENT: %d RECEIVED: %d in %d LOOPS\n%llu bytes in %.03f seconds sended %.02fKB/s\n",
+            sent, received, i, total_lenght, elapsed_secs2, (double)total_lenght/(1000*elapsed_secs2));
 
     PX4_INFO("exiting");
     fflush(stdout);

@@ -60,9 +60,6 @@ using namespace eprosima::fastrtps;
 int main(int argc, char** argv)
 {   
     UART_node m_uartNode;
-    char data_buffer[BUFFER_SIZE] = {};
-    char rx_buffer[BUFFER_SIZE] = {};
-    uint32_t rx_buff_pos = 0u;
     std::string uart = "/dev/ttyACM0";
     if (argc > 1) uart = std::string(argv[1]);
     if (0 != m_uartNode.init_uart(uart.c_str()))
@@ -70,6 +67,10 @@ int main(int argc, char** argv)
         printf("EXITING...\n");
         return -1;
     }
+
+    char data_buffer[BUFFER_SIZE] = {};
+    char rx_buffer[BUFFER_SIZE] = {};
+    uint32_t rx_buff_pos = 0u;
 
     // Create subscribers
 @[for id, topic in enumerate(topic_names)]
@@ -84,12 +85,20 @@ int main(int argc, char** argv)
     @(topic)_pub.init();
 @[end for]
 
-    int received = 0, sent = 0, wait = -1;
+    int received = 0, sent = 0, wait = 0, read = 0, total_read = 0;
     char topic_ID = 255;
+
+    struct timespec begin;
+    bool start = true, receiving = false;
     do
     {
+        if (!receiving)
+        {
+            clock_gettime(0, &begin);
+        }
+
         // Publish messages received from UART
-        while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos))
+        while (0 < (read = m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos)))
         {
             switch (topic_ID)
             {
@@ -101,16 +110,16 @@ int main(int argc, char** argv)
                     eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
                     st.deserialize(cdr_des);
                     @(topic)_pub.publish(&st);
-                    printf("                >>[%d] %lu\n", @(id), st.timestamp());
+                    //printf("                >>[%d] %lu\n", @(id), st.timestamp());
                     ++received;
+                    total_read += read;
                 }
                 break;
 @[end for]
             }
+            receiving = true;
             wait = 0;
         }
-
-         if (-1 != wait) ++wait; 
 
         // Send subscribed topics over UART
 @[for id, topic in enumerate(topic_names)]
@@ -121,17 +130,22 @@ int main(int argc, char** argv)
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             msg.serialize(scdr);
             size_t len = scdr.getSerializedDataLength();
-            printf("[%d]>> %lu\n", @(id), msg.timestamp());
+            //printf("[%d]>> %lu\n", @(id), msg.timestamp());
             m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
             ++sent;
         }
 @[end for]
-        if (wait > 2000)
+        if (receiving && ++wait > 10)
         {
-            printf("RECEIVED: %d SENT: %d\n", received, sent);
-            wait = -1;
+            struct timespec end;
+            clock_gettime(0, &end);
+            double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
+            printf("\nRECEIVED: %d SENT: %d\n%d bytes in %.03f seconds received %.02fKB/s\n",
+                    received, sent, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
+            received = sent = total_read = wait = 0;
+            receiving = false;
         }
-        usleep(1000);
+        usleep(2000);
     }while(true);
     
     return 0;

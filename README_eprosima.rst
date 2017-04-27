@@ -32,35 +32,35 @@ The support for the new functionality added is mainly carried on inside three ne
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the new script **generate_microRTPS_support_general.py** placed in *Tools* folder, on this way:
 
 .. code-block:: shell
-    
+
     $ python Tools/generate_microRTPS_support_general.py [messages...]
     $ python Tools/generate_microRTPS_support_general.py msg/vehicle_status.msg msg/sensor_combined.msg
-    
+
 The output appear in the *msgenerated* folder, for this case:
 
 .. code-block:: shell
 
     $ ls msgenerated/
-    general_transmitter_CMakeLists.txt  
-    general_uRTPS_UART_PubSubMain.cxx  
-    general_uRTPS_UART_transmitter.cpp  
+    general_transmitter_CMakeLists.txt
+    general_uRTPS_UART_PubSubMain.cxx
+    general_uRTPS_UART_transmitter.cpp
     sensor_combined_.idl
-    sensor_combined_Publisher.cxx   
-    sensor_combined_Publisher.h    
+    sensor_combined_Publisher.cxx
+    sensor_combined_Publisher.h
     sensor_combined_Subscriber.cxx
-    sensor_combined_Subscriber.h  
+    sensor_combined_Subscriber.h
     vehicle_status_.idl
-    vehicle_status_Publisher.cxx   
-    vehicle_status_Publisher.h    
+    vehicle_status_Publisher.cxx
+    vehicle_status_Publisher.h
     vehicle_status_Subscriber.cxx
     vehicle_status_Subscriber.h
-    
-    
+
+
 
 PX4 Firmware
 ------------
 
-On the *PX4* side, it will be used an application running an uORB node. This node could be subscribed to a several internal topics as well as publish under these. The application receive from a internal publishers the messages in a loop, serializes the struct and writes it trough an UART port selected by the user. Also will be reading from the UART port and publish to the internal subscribers. 
+On the *PX4* side, it will be used an application running an uORB node. This node could be subscribed to a several internal topics as well as publish under these. The application receive from a internal publishers the messages in a loop, serializes the struct and writes it trough an UART port selected by the user. Also will be reading from the UART port and publish to the internal subscribers.
 
 Steps to use the auto generated application:
 
@@ -70,7 +70,7 @@ Steps to use the auto generated application:
 
     # eProsima app
     examples/micrortps_transmitter
-    
+
 -  Create a folder in *src/examples* and copy the above generated application inside:
 
 .. code-block:: shell
@@ -84,7 +84,7 @@ Steps to use the auto generated application:
 
    $ cp msgenerated/general_transmitter_CMakeLists.txt src/examples/micrortps_transmitter/CMakeLists.txt
    $ cp msg/templates/urtps/UART_node.* src/examples/micrortps_transmitter/
-    
+
 -  Construct and upload the firmware executing:
 
 .. code-block:: shell
@@ -133,17 +133,17 @@ For create the application:
 
     $ /path/to/Fast-RTPS/fastrtpsgen/scripts/fastrtpsgen -example x64Linux2.6gcc *.idl
     $ rm *PubSubMain.cxx
-    
+
 -  Copy the generated code from *generate_microRTPS_support_general.py*, *the UART_node* class and *CMakeLists.txt* in this way:
 
 .. code-block:: shell
-    
+
     $ cp msgenerated/general_transmitter_CMakeLists.txt CMakeLists.txt
     $ cp /path/to/Firmware/msgenerated/general_uRTPS_UART_PubSubMain.cxx .
     $ cp msg/templates/urtps/UART_node.* .
     $ cp /path/to/Firmware/msgenerated/*Publisher.* .
     $ cp /path/to/Firmware/msgenerated/*Subscriber.* .
-    
+
 Now we can add some code to print some info on the screen, for example:
 
 .. code-block:: shell
@@ -152,7 +152,7 @@ Now we can add some code to print some info on the screen, for example:
    {
          // Take data
          sensor_combined_ sensor_data;
-         
+
          if(sub->takeNextData(&sensor_data, &m_info))
          {
             if(m_info.sampleKind == ALIVE)
@@ -186,9 +186,9 @@ Now we can add some code to print some info on the screen, for example:
 .. code-block:: shell
 
    $ mkdir build && cd build
-   $ cmake .. 
+   $ cmake ..
    $ make
-   
+
 
 Now, to launch the publisher run:
 
@@ -233,3 +233,24 @@ If all steps has been followed, you should see this output on the subscriber sid
 .. image:: doc/subscriber.png
 
 A video of this final process as demostration is available on `https://youtu.be/NF65EPD-6aY <https://youtu.be/NF65EPD-6aY>`_
+
+Testing
+-------
+
+Some tests to measure the throughput performed with a PixRacer (microcontroller STM32F42X - 168MHz) in the PX4 side and a laptop in the Fast RTPS side:
+
+1. **Loop latency for one topic - 11ms**: For one topic (sensor_combined) is measured over all the process, the time between the POLLIN event reception over the *px4_pollfd_struct_t* for the subscribed topic and the deserialization of the same message when returns back through the UART.
+
+2. **Transmission speed for one topic - 18kB/s**: For one topic (sensor_combined 72 bytes) is measured the reception speed in the Fast RTPS side, taking in to account with the delay from the performing of whole process in this side, from reception to the dispatch back of the info from the Fast RTPS twin topic.
+
+3. **Transmission speed for ten topics - 32kB/s**: For ten topics (several sizes and frequencys) simultaneously and measured in the reception in the Fast RTPS side, as above.
+
++-------------------------------+--------+-------------------------+
+|                               |        |        Fast RTPS        |
++              TEST             + TOPICS +----------+------+-------+
+|                               |        | Received | Sent |  kB/s |
++-------------------------------+--------+----------+------+-------+
+|  general_trans 0 0 1000 2000  |    1   |   7959   | 7959 | 17.95 |
++-------------------------------+--------+----------+------+-------+
+| general_trans 10 10 1000 1000 |   10   |   1692   | 1692 | 31.87 |
++-------------------------------+--------+----------+------+-------+
