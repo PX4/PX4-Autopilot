@@ -60,7 +60,7 @@
 #include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
- #include <systemlib/pid/pid.h>
+#include <systemlib/pid/pid.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -156,13 +156,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	float	_hold_alt;				/**< hold altitude for altitude mode */
-	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
-	bool	_hdg_hold_enabled;			/**< heading hold enabled */
-	bool	_yaw_lock_engaged;			/**< yaw is locked for heading hold */
-	float	_althold_epv;				/**< the position estimate accuracy when engaging alt hold */
-	struct position_setpoint_s _hdg_hold_prev_wp;	/**< position where heading hold started */
-	struct position_setpoint_s _hdg_hold_curr_wp;	/**< position to which heading hold flies */
 	hrt_abstime _control_position_last_called; 	/**<last call of control_position  */
 
 	/* Takeoff launch detection and runway */
@@ -196,8 +189,6 @@ private:
 	TECS						_tecs;
 	enum UGV_POSCTRL_MODE {
 		UGV_POSCTRL_MODE_AUTO,
-		UGV_POSCTRL_MODE_POSITION,
-		UGV_POSCTRL_MODE_ALTITUDE,
 		UGV_POSCTRL_MODE_OTHER
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
@@ -429,13 +420,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
-	_hold_alt(0.0f),
-	_hdg_hold_yaw(0.0f),
-	_hdg_hold_enabled(false),
-	_yaw_lock_engaged(false),
-	_althold_epv(0.0f),
-	_hdg_hold_prev_wp{},
-	_hdg_hold_curr_wp{},
 	_control_position_last_called(0),
 
 	_launch_detection_state(LAUNCHDETECTION_RES_NONE),
@@ -957,11 +941,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
 
-		/* reset hold altitude */
-		_hold_alt = _global_pos.alt;
-		/* reset hold yaw */
-		_hdg_hold_yaw = _yaw;
-
 		/* get circle mode */
 		bool was_circle_mode = _gnd_control.circle_mode();
 
@@ -1093,9 +1072,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		/* do not publish the setpoint */
 		setpoint = false;
-
-		// reset hold altitude
-		_hold_alt = _global_pos.alt;
 	}
 
 	/* Copy thrust output for publication */
@@ -1208,7 +1184,6 @@ GroundRoverPositionControl::task_main()
 			// handle estimator reset events. we only adjust setpoins for manual modes
 			if (_control_mode.flag_control_manual_enabled) {
 				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
-					_hold_alt += _global_pos.delta_alt;
 					// make TECS accept step in altitude and demanded altitude
 					_tecs.handle_alt_step(_global_pos.delta_alt, _global_pos.alt);
 				}
@@ -1216,9 +1191,6 @@ GroundRoverPositionControl::task_main()
 				// adjust navigation waypoints in position control mode
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
 				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
-
-					// reset heading hold flag, which will re-initialise position control
-					_hdg_hold_enabled = false;
 				}
 			}
 
