@@ -134,7 +134,7 @@ private:
 	orb_id_t _attitude_setpoint_id;
 
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
+	struct actuator_controls_s			_actuators_rvrframe;	/**< actuator control inputs */
 	struct battery_status_s				_battery_status;	/**< battery status */
 	struct control_state_s				_ctrl_state;	/**< control state */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
@@ -335,7 +335,7 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 {
 	/* safely initialize structs */
 	_actuators = {};
-	_actuators_airframe = {};
+	_actuators_rvrframe = {};
 	_att_sp = {};
 	_battery_status = {};
 	_ctrl_state = {};
@@ -688,7 +688,7 @@ GroundRoverAttitudeControl::task_main()
 
 			/* Simple handling of failsafe: stop motors */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[3] = 0.0f;
+				_actuators_rvrframe.control[3] = 0.0f;
 			} 
 
 			/* if we are in rotary wing mode or vehicle is vtol do nothing */
@@ -835,8 +835,8 @@ GroundRoverAttitudeControl::task_main()
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators.timestamp_sample = _ctrl_state.timestamp;
-			_actuators_airframe.timestamp = hrt_absolute_time();
-			_actuators_airframe.timestamp_sample = _ctrl_state.timestamp;
+			_actuators_rvrframe.timestamp = hrt_absolute_time();
+			_actuators_rvrframe.timestamp_sample = _ctrl_state.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_rates_enabled ||
@@ -852,11 +852,11 @@ GroundRoverAttitudeControl::task_main()
 
 				if (_actuators_2_pub != nullptr) {
 					/* publish the actuator controls*/
-					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
+					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_rvrframe);
 
 				} else {
 					/* advertise and publish */
-					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
+					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_rvrframe);
 				}
 			}
 		}
