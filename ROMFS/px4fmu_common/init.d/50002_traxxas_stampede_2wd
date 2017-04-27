@@ -23,7 +23,6 @@ then
 	param set FW_AIRSPD_MAX 3
 	
 	param set NAV_ACC_RAD 0.5
-	param set NAV_LOITER_RAD 2
 
 	param set MIS_LTRMIN_ALT 0.01
 	param set MIS_TAKEOFF_ALT 0.01
