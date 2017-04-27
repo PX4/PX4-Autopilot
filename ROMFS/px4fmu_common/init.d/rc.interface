@@ -198,16 +198,16 @@ then
 			#
 			if [ $PWM_AUX_RATE != none ]
 			then
-				pwm rate -e -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
 			fi
 
 			if [ $PWM_AUX_MIN != none ]
 			then
-				pwm min -e -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
+				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
 			fi
 			if [ $PWM_AUX_MAX != none ]
 			then
-				pwm max -e -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
+				pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
 			fi
 		fi
 
@@ -225,12 +225,12 @@ then
 		#
 		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
 		then
-			pwm disarmed -e -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
 		fi
 
 		if [ $FAILSAFE_AUX != none ]
 		then
-			pwm failsafe -e -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
+			pwm failsafe -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
 		fi
 
 	fi
