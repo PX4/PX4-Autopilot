@@ -146,7 +146,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.speed_i = param_find("GND_SPEED_I");
 	_parameter_handles.speed_d = param_find("GND_SPEED_D");
 	_parameter_handles.speed_imax = param_find("GND_SPEED_IMAX");
-	_parameter_handles.speed_throttle_airspeed_scaler = param_find("GND_SPEED_THR_SC");
+	_parameter_handles.throttle_speed_scaler = param_find("GND_SPEED_THR_SC");
 
 	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");
@@ -220,7 +220,7 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_i, &(_parameters.speed_i));
 	param_get(_parameter_handles.speed_d, &(_parameters.speed_d));
 	param_get(_parameter_handles.speed_imax, &(_parameters.speed_imax));
-	param_get(_parameter_handles.speed_throttle_airspeed_scaler, &(_parameters.speed_throttle_airspeed_scaler));
+	param_get(_parameter_handles.throttle_speed_scaler, &(_parameters.throttle_speed_scaler));
 
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
@@ -670,7 +670,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
 			
 			//Compute airspeed control out and just scale it as a constant
-			mission_throttle =  _parameters.speed_throttle_airspeed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
+			mission_throttle =  _parameters.throttle_speed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
 			//mission_throttle = 0.5f;
 
 			// Constrain throttle between min and max
