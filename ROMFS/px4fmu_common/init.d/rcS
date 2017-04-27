@@ -1052,7 +1052,6 @@ then
 		sh /etc/init.d/rc.gnd_apps
 	fi
 
-
 	#
 	# For snapdragon, we need a passthrough mode
 	# Do not run any mavlink instances since we need the serial port for
