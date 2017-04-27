@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * 
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
@@ -57,7 +56,6 @@ using matrix::Quatf;
  */
 extern "C" __EXPORT int gnd_pos_control_main(int argc, char *argv[]);
 
-using namespace launchdetection;
 
 namespace gnd_control
 {
@@ -152,10 +150,8 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");
-	_parameter_handles.roll_limit = param_find("GND_R_LIM");
 	_parameter_handles.throttle_min = param_find("GND_THR_MIN");
 	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
-	_parameter_handles.throttle_slew_max = param_find("GND_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
@@ -229,11 +225,9 @@ GroundRoverPositionControl::parameters_update()
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
-	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
-	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
 	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
@@ -254,14 +248,14 @@ GroundRoverPositionControl::parameters_update()
 
 	_gnd_control.set_l1_damping(_parameters.l1_damping);
 	_gnd_control.set_l1_period(_parameters.l1_period);
-	_gnd_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
+	_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
 	_tecs.set_time_const(_parameters.time_const);
 	_tecs.set_time_const_throt(_parameters.time_const_throt);
 	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
 	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
 	_tecs.set_throttle_damp(_parameters.throttle_damp);
-	_tecs.set_throttle_slewrate(_parameters.throttle_slew_max);
+	_tecs.set_throttle_slewrate(0.0f);
 	_tecs.set_integrator_gain(_parameters.integrator_gain);
 	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
 	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);

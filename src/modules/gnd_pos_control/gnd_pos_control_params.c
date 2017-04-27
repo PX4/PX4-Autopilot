@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,17 +124,6 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
 PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
 
 /**
- * Throttle max slew rate
- *
- * Maximum slew rate for the commanded throttle
- *
- * @min 0.0
- * @max 1.0
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_THR_SLEW_MAX, 0.0f);
-
-/**
  * Negative pitch limit
  *
  * The minimum negative pitch the controller will output.
@@ -161,20 +150,6 @@ PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -20.0f);
  * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 20.0f);
-
-/**
- * Controller roll limit
- *
- * The maximum roll the controller will output.
- *
- * @unit deg
- * @min 35.0
- * @max 65.0
- * @decimal 1
- * @increment 0.5
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_R_LIM, 35.0f);
 
 /**
  * Throttle limit min
