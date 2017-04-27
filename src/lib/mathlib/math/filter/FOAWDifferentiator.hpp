@@ -90,7 +90,7 @@ private:
     float           _buffer[15];        // past samples
     uint8_t         _nb_samples;
     uint8_t         _last_window_size;
-    static const uint8_t   _max_window_size = 15;
+    static const uint8_t   _max_window_size = 14;
 };
 
 } // namespace math

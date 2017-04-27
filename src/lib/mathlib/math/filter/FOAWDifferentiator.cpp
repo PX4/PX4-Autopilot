@@ -79,12 +79,12 @@ namespace math
     
     void FOAWDifferentiator::add_sample(float sample)
     {
-        if (_nb_samples < _max_window_size) {
+        if (_nb_samples <= _max_window_size) {
             _nb_samples++;
         }
         else{
             shift_buffer();
-            _nb_samples = _max_window_size;
+            _nb_samples = _max_window_size+1;
         }
 
         _buffer[_nb_samples-1] = sample;
@@ -116,7 +116,6 @@ namespace math
 
     float FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
     {
-        // TODO: Implement best fit algorithm (least squares fit)
         float sum1;
         float sum2;
         float den;
@@ -131,7 +130,7 @@ namespace math
 
         last_sample_pos = _nb_samples - 1;
 
-        for (i = 0; i < window_size; i++) {
+        for (i = 0; i <= window_size; i++) {
            sum1 += _buffer[last_sample_pos - i];
            sum2 += _buffer[last_sample_pos - i]*i;
         }
@@ -139,7 +138,7 @@ namespace math
         sum1 *= window_size;
         sum2 *= 2;
 
-        den = window_size*(window_size+1)*(window_size+2)/6;
+        den = _dt*window_size*(window_size+1)*(window_size+2)/6;
 
         if (den < 0.0001f && den > -0.0001f) {
             result = 0.0f;
