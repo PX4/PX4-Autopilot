@@ -3065,7 +3065,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			//Only support writing of first array value
 			mix_param.index = param->index;
 			mix_param.array_index = 0;
-			mix_param.param.value = param->values[0];
+			mix_param.param.value = param->values[0].realval;
 
 			uint32_t check_val = mix_param.param.check_val;
 
@@ -3097,7 +3097,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				break;
 			}
 
-			_mixers->group_set_param_value(param->index, 0, param->values[0]);
+			_mixers->group_set_param_value(param->index, 0, param->values[0].realval);
 
 			ret = 0;
 			break;

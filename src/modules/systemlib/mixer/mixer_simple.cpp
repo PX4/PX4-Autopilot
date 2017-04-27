@@ -428,10 +428,10 @@ SimpleMixer::check()
 }
 
 #if defined(MIXER_TUNING)
-#if !defined(MIXER_REMOTE)
-
 #define SIMPLEMIXER_MAIN_PARAM_COUNT 6
 #define SIMPLEMIXER_SUB_PRAM_COUNT 7
+
+#if !defined(MIXER_REMOTE)
 
 int16_t
 SimpleMixer::get_parameter(mixer_param_s *param, uint16_t param_index)
