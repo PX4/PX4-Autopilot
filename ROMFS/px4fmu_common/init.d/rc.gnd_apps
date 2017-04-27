@@ -12,7 +12,7 @@ ekf2 start
 
 
 #
-# Start attitude controller
+# Start attitude controllers
 #
 gnd_att_control start
 gnd_pos_control start
@@ -21,4 +21,4 @@ gnd_pos_control start
 #
 # Start Land Detector
 #
-land_detector start rover
+land_detector start ugv
