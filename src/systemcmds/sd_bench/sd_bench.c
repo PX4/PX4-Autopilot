@@ -66,7 +66,7 @@ __EXPORT int	sd_bench_main(int argc, char *argv[]);
 static const char *BENCHMARK_FILE = PX4_ROOTFSDIR"/fs/microsd/benchmark.tmp";
 
 static int num_runs; ///< number of runs
-static int run_duration; ///< duration of a single run [ms]
+static unsigned run_duration; ///< duration of a single run [ms]
 static bool synchronized; ///< call fsync after each block?
 
 static void

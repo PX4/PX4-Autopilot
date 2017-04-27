@@ -57,10 +57,8 @@ bool SF0XTest::sf0xTest()
 	for (unsigned l = 0; l < sizeof(lines) / sizeof(lines[0]); l++) {
 		//printf("\n%s", _linebuf);
 
-		int parse_ret;
-
-		for (int i = 0; i < strlen(lines[l]); i++) {
-			parse_ret = sf0x_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
+		for (unsigned i = 0; i < strlen(lines[l]); i++) {
+			int parse_ret = sf0x_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
 
 			if (parse_ret == 0) {
 				if (l == 0) {

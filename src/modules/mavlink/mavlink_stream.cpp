@@ -105,8 +105,9 @@ MavlinkStream::update(const hrt_abstime t)
 	// needs to be accounted for as well.
 	// This method is not theoretically optimal but a suitable
 	// stopgap as it hits its deadlines well (0.5 Hz, 50 Hz and 250 Hz)
+	int64_t update_dt = (interval - (_mavlink->get_main_loop_delay() / 10) * 4);
 
-	if (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 4)) {
+	if (dt > update_dt) {
 		// interval expired, send message
 #ifndef __PX4_QURT
 		send(t);

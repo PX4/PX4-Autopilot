@@ -346,7 +346,6 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		# disabled warnings
-		-Wno-sign-compare
 		-Wno-unused-parameter
 		)
 

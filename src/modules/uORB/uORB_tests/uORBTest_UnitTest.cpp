@@ -661,9 +661,9 @@ int uORBTest::UnitTest::test_queue()
 		orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
 	}
 
-	for (unsigned int i = 0; i < queue_size - 2; ++i) {
+	for (unsigned i = 0; i < queue_size - 2; ++i) {
 		CHECK_UPDATED(i);
-		CHECK_COPY(u.val, i);
+		CHECK_COPY(u.val, (int)i);
 	}
 
 	CHECK_NOT_UPDATED(queue_size);
@@ -678,7 +678,7 @@ int uORBTest::UnitTest::test_queue()
 
 	for (unsigned int i = 0; i < queue_size; ++i) {
 		CHECK_UPDATED(i);
-		CHECK_COPY(u.val, i + overflow_by);
+		CHECK_COPY(u.val, (int)(i + overflow_by));
 	}
 
 	CHECK_NOT_UPDATED(queue_size);
@@ -687,7 +687,7 @@ int uORBTest::UnitTest::test_queue()
 
 	for (unsigned int i = 0; i < queue_size; ++i) {
 		CHECK_NOT_UPDATED(i);
-		CHECK_COPY(u.val, queue_size + overflow_by - 1);
+		CHECK_COPY(u.val, (int)(queue_size + overflow_by - 1));
 	}
 
 	t.val = 943;
@@ -729,7 +729,7 @@ int uORBTest::UnitTest::pub_test_queue_main()
 	while (message_counter < num_messages) {
 
 		//simulate burst
-		int burst_counter = 0;
+		unsigned burst_counter = 0;
 
 		while (burst_counter++ < queue_size / 2 + 7) { //make interval non-boundary aligned
 			orb_publish(ORB_ID(orb_test_medium_queue_poll), ptopic, &t);

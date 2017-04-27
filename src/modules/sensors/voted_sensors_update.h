@@ -162,7 +162,7 @@ private:
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
 		uint8_t last_best_vote; /**< index of the latest best vote */
-		int subscription_count;
+		unsigned subscription_count;
 		DataValidatorGroup voter;
 		unsigned int last_failover_count;
 	};

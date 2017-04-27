@@ -186,6 +186,6 @@ protected:
 	 */
 	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
 
-	int _num_sensor_instances;
+	unsigned _num_sensor_instances;
 	int _sensor_subs[SENSOR_COUNT_MAX];
 };

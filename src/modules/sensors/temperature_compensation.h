@@ -116,7 +116,7 @@ private:
 
 	*/
 	struct SensorCalData1D {
-		int ID;
+		uint32_t ID;
 		float x5;
 		float x4;
 		float x3;
@@ -160,7 +160,7 @@ private:
 
 	 */
 	struct SensorCalData3D {
-		int ID;			/**< sensor device ID*/
+		uint32_t ID;			/**< sensor device ID*/
 		float x3[3];		/**< x^3 term of polynomial */
 		float x2[3];		/**< x^2 term of polynomial */
 		float x1[3];		/**< x^1 term of polynomial */

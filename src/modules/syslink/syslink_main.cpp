@@ -705,7 +705,7 @@ Syslink::send_bytes(const void *data, size_t len)
 	// TODO: This could be way more efficient
 	//       Using interrupts/DMA/polling would be much better
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned i = 0; i < len; i++) {
 		// Block until we can send a byte
 		while (px4_arch_gpioread(GPIO_NRF_TXEN)) ;
 
@@ -804,7 +804,7 @@ void status()
 		printf(", VID: %02X , PID: %02X\n", desc.header, desc.vendorId, desc.productId);
 
 		// Print pages of memory
-		for (int di = 0; di < sizeof(desc); di++) {
+		for (unsigned di = 0; di < sizeof(desc); di++) {
 			if (di % 16 == 0) {
 				printf("\n");
 			}

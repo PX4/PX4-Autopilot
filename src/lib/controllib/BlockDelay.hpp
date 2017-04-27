@@ -75,7 +75,7 @@ public:
 		// delay starts at zero, then increases to LEN
 		_delay += 1;
 
-		if (_delay > (LEN - 1)) {
+		if (_delay > (int)(LEN - 1)) {
 			_delay = LEN - 1;
 		}
 

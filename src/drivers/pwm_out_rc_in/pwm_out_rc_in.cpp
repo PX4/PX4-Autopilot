@@ -301,7 +301,7 @@ void serial_callback(void *context, char *buffer, size_t num_bytes)
 	if (num_bytes > 0) {
 		mavlink_message_t msg;
 
-		for (int i = 0; i < num_bytes; ++i) {
+		for (unsigned i = 0; i < num_bytes; ++i) {
 			// The MAVLink app doesn't use the internal buffer functions
 			// and hence the first port can be used here.
 			if (mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &serial_status)) {
