@@ -1,6 +1,6 @@
 #!nsh
 
-set VEHICLE_TYPE UGV
+set VEHICLE_TYPE ugv
 
 if [ $AUTOCNF == yes ]
 then

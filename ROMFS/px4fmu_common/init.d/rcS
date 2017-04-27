@@ -1029,12 +1029,12 @@ then
 	#
 	# UGV setup
 	#
-	if [ $VEHICLE_TYPE == UGV ]
+	if [ $VEHICLE_TYPE == ugv ]
 	then
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
-			set MIXER AERT
+			set MIXER stampede
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -1048,7 +1048,7 @@ then
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
 
-		# Start standard fixedwing apps
+		# Start standard UGV apps
 		sh /etc/init.d/rc.gnd_apps
 	fi
 
