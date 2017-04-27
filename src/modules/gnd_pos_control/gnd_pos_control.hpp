@@ -208,7 +208,7 @@ private:
 		float speed_i;
 		float speed_d;
 		float speed_imax;
-		float speed_throttle_airspeed_scaler;
+		float throttle_speed_scaler;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
@@ -253,7 +253,7 @@ private:
 		param_t speed_i;
 		param_t speed_d;
 		param_t speed_imax;
-		param_t speed_throttle_airspeed_scaler;
+		param_t throttle_speed_scaler;
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
