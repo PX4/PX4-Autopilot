@@ -269,44 +269,44 @@ private:
 	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";
 #endif
 
-	uint8_t						*_msg_buffer = nullptr;
-	unsigned					_msg_buffer_len = 0;
-	char 						_log_dir[LOG_DIR_LEN];
-	int						_sess_dir_index = 1; ///< search starting index for 'sess<i>' directory name
+	uint8_t						*_msg_buffer{nullptr};
+	unsigned					_msg_buffer_len{0};
+	char 						_log_dir[LOG_DIR_LEN] {};
+	int						_sess_dir_index{1}; ///< search starting index for 'sess<i>' directory name
 	char 						_log_file_name[32];
-	bool						_task_should_exit = true;
-	bool						_has_log_dir = false;
-	bool						_was_armed = false;
-	bool						_arm_override;
+	bool						_task_should_exit{true};
+	bool						_has_log_dir{false};
+	bool						_was_armed{false};
+	bool						_arm_override{false};
 
 
 	// statistics
-	hrt_abstime					_start_time_file; ///< Time when logging started, file backend (not the logger thread)
-	hrt_abstime					_dropout_start = 0; ///< start of current dropout (0 = no dropout)
-	float						_max_dropout_duration = 0.f; ///< max duration of dropout [s]
-	size_t						_write_dropouts = 0; ///< failed buffer writes due to buffer overflow
-	size_t						_high_water = 0; ///< maximum used write buffer
+	hrt_abstime					_start_time_file{0}; ///< Time when logging started, file backend (not the logger thread)
+	hrt_abstime					_dropout_start{0}; ///< start of current dropout (0 = no dropout)
+	float						_max_dropout_duration{0.0f}; ///< max duration of dropout [s]
+	size_t						_write_dropouts{0}; ///< failed buffer writes due to buffer overflow
+	size_t						_high_water{0}; ///< maximum used write buffer
 
 	const bool 					_log_on_start;
 	const bool 					_log_until_shutdown;
 	const bool					_log_name_timestamp;
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
 	LogWriter					_writer;
-	uint32_t					_log_interval;
-	const orb_metadata				*_polling_topic_meta = nullptr; ///< if non-null, poll on this topic instead of sleeping
-	param_t						_log_utc_offset;
-	param_t						_log_dirs_max;
-	orb_advert_t					_mavlink_log_pub = nullptr;
-	uint16_t					_next_topic_id = 0; ///< id of next subscribed ulog topic
-	char						*_replay_file_name = nullptr;
-	bool						_should_stop_file_log = false; /**< if true _next_load_print is set and file logging
+	uint32_t					_log_interval{0};
+	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
+	param_t						_log_utc_offset{PARAM_INVALID};
+	param_t						_log_dirs_max{PARAM_INVALID};
+	orb_advert_t					_mavlink_log_pub{nullptr};
+	uint16_t					_next_topic_id{0}; ///< id of next subscribed ulog topic
+	char						*_replay_file_name{nullptr};
+	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
 											will be stopped after load printing */
-	print_load_s					_load; ///< process load data
-	hrt_abstime					_next_load_print = 0; ///< timestamp when to print the process load
+	print_load_s					_load{}; ///< process load data
+	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 
 	// control
-	param_t _sdlog_mode_handle;
-	int32_t _sdlog_mode;
+	param_t _sdlog_mode_handle{PARAM_INVALID};
+	int32_t _sdlog_mode{0};
 
 };
 
