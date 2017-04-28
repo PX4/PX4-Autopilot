@@ -67,8 +67,8 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 	// copy data
 	imuSample imu_sample_new = {};
-	memcpy(&imu_sample_new.delta_ang._data[0], &delta_ang[0], sizeof(imu_sample_new.delta_ang._data));
-	memcpy(&imu_sample_new.delta_vel._data[0], &delta_vel[0], sizeof(imu_sample_new.delta_vel._data));
+	imu_sample_new.delta_ang = Vector3f(delta_ang);
+	imu_sample_new.delta_vel = Vector3f(delta_vel);
 
 	// convert time from us to secs
 	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
@@ -157,8 +157,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 		_time_last_mag = time_usec;
 
-
-		memcpy(&mag_sample_new.mag._data[0], data, sizeof(mag_sample_new.mag._data));
+		mag_sample_new.mag = Vector3f(data);
 
 		_mag_buffer.push(mag_sample_new);
 	}
