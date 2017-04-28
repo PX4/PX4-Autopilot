@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * 
+ *
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
  * It has been developed starting from the fw module, simplified and improved with dedicated items.
- * 
- * All the ackowledgments and credits for the fw wing app are reported in those files.  
- * 
+ *
+ * All the ackowledgments and credits for the fw wing app are reported in those files.
+ *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
@@ -154,7 +154,7 @@ private:
 	float _speed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
 	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
-		
+
 	bool _global_pos_valid;				///< global position is valid
 	math::Matrix<3, 3> _R_nb;			///< current attitude
 	float _roll;
@@ -342,12 +342,12 @@ private:
 	 * Call TECS : a wrapper function to call the TECS implementation
 	 */
 	void tecs_update_throttle(float alt_sp, float v_sp, float eas2tas,
-					float pitch_min_rad, float pitch_max_rad,
-					float throttle_min, float throttle_max, float throttle_cruise,
-					float climbout_pitch_min_rad,
-					float altitude,
-					const math::Vector<3> &ground_speed,
-					unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
+				  float pitch_min_rad, float pitch_max_rad,
+				  float throttle_min, float throttle_max, float throttle_cruise,
+				  float climbout_pitch_min_rad,
+				  float altitude,
+				  const math::Vector<3> &ground_speed,
+				  unsigned mode = tecs_status_s::TECS_MODE_NORMAL);
 
 
 

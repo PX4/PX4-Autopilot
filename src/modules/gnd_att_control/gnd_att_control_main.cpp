@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * 
+ *
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
  * It has been developed starting from the fw module, simplified and improved with dedicated items.
- * 
- * All the ackowledgments and credits for the fw wing app are reported in those files.  
- * 
+ *
+ * All the ackowledgments and credits for the fw wing app are reported in those files.
+ *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
@@ -185,7 +185,7 @@ GroundRoverAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
-	
+
 	/* wheel control parameters */
 	_wheel_ctrl.set_time_constant(_parameters.w_tc);
 	_wheel_ctrl.set_k_p(_parameters.w_p);
@@ -196,12 +196,12 @@ GroundRoverAttitudeControl::parameters_update()
 
 	/* Steering pid parameters*/
 	pid_init(&_steering_ctrl, PID_MODE_DERIVATIV_SET, 0.01f);
-	pid_set_parameters(&_steering_ctrl, 
-						_parameters.w_p,
-						_parameters.w_i,
-						_parameters.w_d,
-						_parameters.w_integrator_max,
-						1.0f);
+	pid_set_parameters(&_steering_ctrl,
+			   _parameters.w_p,
+			   _parameters.w_i,
+			   _parameters.w_d,
+			   _parameters.w_integrator_max,
+			   1.0f);
 
 	return PX4_OK;
 }
@@ -388,9 +388,9 @@ GroundRoverAttitudeControl::task_main()
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f || 
-				fabsf(deltaT)<0.00001f ||
-				!PX4_ISFINITE(deltaT)) {
+			if (deltaT > 1.0f ||
+			    fabsf(deltaT) < 0.00001f ||
+			    !PX4_ISFINITE(deltaT)) {
 				deltaT = 0.01f;
 			}
 
@@ -432,7 +432,7 @@ GroundRoverAttitudeControl::task_main()
 			/* Simple handling of failsafe: stop motors */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_rvrframe.control[3] = 0.0f;
-			} 
+			}
 
 			/* if we are in rotary wing mode or vehicle is vtol do nothing */
 			if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
@@ -470,7 +470,7 @@ GroundRoverAttitudeControl::task_main()
 				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
-	
+
 				yaw_sp = _att_sp.yaw_body;
 				throttle_sp = _att_sp.thrust;
 
@@ -480,7 +480,7 @@ GroundRoverAttitudeControl::task_main()
 				}
 
 				if (_att_sp.yaw_reset_integral
-					|| _vehicle_land_detected.landed
+				    || _vehicle_land_detected.landed
 				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
 					_wheel_ctrl.reset_integrator();

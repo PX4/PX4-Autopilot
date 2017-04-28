@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * 
+ *
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
  * It has been developed starting from the fw module, simplified and improved with dedicated items.
- * 
- * All the ackowledgments and credits for the fw wing app are reported in those files.  
- * 
+ *
+ * All the ackowledgments and credits for the fw wing app are reported in those files.
+ *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
@@ -271,12 +271,12 @@ GroundRoverPositionControl::parameters_update()
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
-	pid_set_parameters(&_speed_ctrl, 
-				_parameters.speed_p,
-				_parameters.speed_d,
-				_parameters.speed_i,
-				_parameters.speed_imax,
-				_parameters.airspeed_max); 
+	pid_set_parameters(&_speed_ctrl,
+			   _parameters.speed_p,
+			   _parameters.speed_d,
+			   _parameters.speed_i,
+			   _parameters.speed_imax,
+			   _parameters.airspeed_max);
 
 	/* sanity check parameters  */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
@@ -286,7 +286,7 @@ GroundRoverPositionControl::parameters_update()
 		warnx("error: airspeed parameters invalid");
 		return 1;
 	}
-	
+
 
 	/* Update and publish the navigation capabilities */
 	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;
@@ -423,6 +423,7 @@ GroundRoverPositionControl::calculate_target_speed(float speed_demand)
 
 	if (_airspeed_valid) {
 		ground_speed = _ctrl_state.airspeed;
+
 	} else {
 		ground_speed = _parameters.airspeed_min + (_parameters.airspeed_max - _parameters.airspeed_min) / 2.0f;
 	}
@@ -485,7 +486,7 @@ void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, 
 		_reinitialize_tecs = false;
 	}
 
-	_tecs.update_pitch_throttle(_R_nb, 0.0f , altitude, alt_sp, v_sp,
+	_tecs.update_pitch_throttle(_R_nb, 0.0f, altitude, alt_sp, v_sp,
 				    _ctrl_state.airspeed, eas2tas,
 				    false /*climbout_mode*/, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
@@ -502,6 +503,7 @@ void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, 
 	case TECS::ECL_TECS_MODE_NORMAL:
 		t.mode = tecs_status_s::TECS_MODE_NORMAL;
 		break;
+
 	default:
 		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
 		break;
@@ -560,13 +562,15 @@ GroundRoverPositionControl::get_tecs_thrust()
 }
 
 bool
-GroundRoverPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<3> &ground_speed,
+GroundRoverPositionControl::control_position(const math::Vector<2> &current_position,
+		const math::Vector<3> &ground_speed,
 		const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
-	 float dt = 0.01; // Using non zero value to a avoid division by zero
+	float dt = 0.01; // Using non zero value to a avoid division by zero
+
 	if (_control_position_last_called > 0) {
-	 	dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
-	 }
+		dt = (float)hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
+	}
 
 	_control_position_last_called = hrt_absolute_time();
 
@@ -595,7 +599,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	// compute 2D groundspeed from airspeed-heading projection
 	math::Vector<2> air_speed_2d = {_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
 	math::Vector<2> nav_speed_2d = {0, 0};
-	
+
 	nav_speed_2d = ground_speed_2d;
 	float nav_speed = 0.0f;
 
@@ -650,27 +654,28 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		float mission_target_speed = _parameters.airspeed_trim;
 		float mission_throttle = _parameters.throttle_cruise;
 
-			/* Just control the throttle */
-		if ( _parameters.speed_control_mode > 0 ) {
+		/* Just control the throttle */
+		if (_parameters.speed_control_mode > 0) {
 			/* control the speed in closed loop */
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
+			    _pos_sp_triplet.current.cruising_speed > 0.1f) {
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
-			} 
+			}
 
 			/* sanity check for target airspeed before using it for computations*/
 			if (mission_target_speed < _parameters.airspeed_min ||
-				mission_target_speed > _parameters.airspeed_max) {
+			    mission_target_speed > _parameters.airspeed_max) {
 
-				/* If something is wrong revert back to the safe trim but warn the user*/ 
+				/* If something is wrong revert back to the safe trim but warn the user*/
 				mission_target_speed = _parameters.airspeed_trim;
 				warnx("Something went wrong with target mission target speed, reverting to trim for safety");
 			}
 
-			nav_speed = sqrtf(powf(nav_speed_2d(0),2) + powf(nav_speed_2d(1),2));
-			
+			nav_speed = sqrtf(powf(nav_speed_2d(0), 2) + powf(nav_speed_2d(1), 2));
+
 			//Compute airspeed control out and just scale it as a constant
-			mission_throttle =  _parameters.throttle_speed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed, 0.01f, dt);
+			mission_throttle =  _parameters.throttle_speed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed,
+					    0.01f, dt);
 			//mission_throttle = 0.5f;
 
 			// Constrain throttle between min and max
@@ -694,11 +699,11 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.pitch_body = 0.0f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
-				|| (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
-			
-			 if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
-			 	_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-			 }
+			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+
+			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+				_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+			}
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
 			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
@@ -707,31 +712,31 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 			/* Apply control output */
 			tecs_update_throttle(pos_sp_triplet.current.alt, calculate_target_speed(mission_target_speed), eas2tas,
-						   math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-						   _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-						   math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+					     math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+					     _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
+					     math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint so we want to stop*/
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
-						    pos_sp_triplet.current.loiter_direction, nav_speed_2d);
+						     pos_sp_triplet.current.loiter_direction, nav_speed_2d);
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 
 			float alt_sp = pos_sp_triplet.current.alt;
 
 			tecs_update_throttle(alt_sp,
-						   calculate_target_speed(mission_target_speed),
-						   eas2tas,
-						   math::radians(_parameters.pitch_limit_min),
-						   math::radians(_parameters.pitch_limit_max),
-						   0, // _parameters.throttle_min,
-						   0, // _parameters.throttle_max,
-						   0, // _parameters.throttle_cruise,
-						   math::radians(_parameters.pitch_limit_min),
-						   _global_pos.alt,
-						   ground_speed);
+					     calculate_target_speed(mission_target_speed),
+					     eas2tas,
+					     math::radians(_parameters.pitch_limit_min),
+					     math::radians(_parameters.pitch_limit_max),
+					     0, // _parameters.throttle_min,
+					     0, // _parameters.throttle_max,
+					     0, // _parameters.throttle_cruise,
+					     math::radians(_parameters.pitch_limit_min),
+					     _global_pos.alt,
+					     ground_speed);
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -739,7 +744,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.yaw_reset_integral = true;
 		}
 
-	}else {
+	} else {
 		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
 
 		/* do not publish the setpoint */
@@ -748,12 +753,13 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 	/* Copy thrust output for publication */
 	if (_vehicle_status.engine_failure ||
-		_vehicle_status.engine_failure_cmd ||
-		   ( _control_mode_current == UGV_POSCTRL_MODE_AUTO &&
-		   	 pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE ) ||
-		   _control_mode_current == UGV_POSCTRL_MODE_OTHER ) {
+	    _vehicle_status.engine_failure_cmd ||
+	    (_control_mode_current == UGV_POSCTRL_MODE_AUTO &&
+	     pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) ||
+	    _control_mode_current == UGV_POSCTRL_MODE_OTHER) {
 		/* Set thrust to 0 to minimize damage */
 		_att_sp.thrust = 0.0f;
+
 	} else {
 		_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
 	}
@@ -926,7 +932,7 @@ GroundRoverPositionControl::task_main()
 
 					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
 					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
-								      curr_wp(1));
+								       curr_wp(1));
 
 					gnd_pos_ctrl_status_publish();
 				}
