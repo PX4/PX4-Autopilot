@@ -46,8 +46,6 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
-#include <board_config.h>
-
 #include <px4_adc.h>
 #include <px4_config.h>
 #include <px4_posix.h>
@@ -139,7 +137,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Sensors(bool hil_enabled);
+	explicit Sensors(bool hil_enabled);
 
 	/**
 	 * Destructor, also kills the sensors task.
@@ -157,39 +155,38 @@ public:
 	void	print_status();
 
 private:
-	DevHandle 	_h_adc;				/**< ADC driver handle */
+	DevHandle 	_h_adc;					/**< ADC driver handle */
+	hrt_abstime	_last_adc{0};				/**< last time we took input from the ADC */
 
-	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
+	volatile bool 	_task_should_exit{true};		/**< if true, sensor task should exit */
+	int 		_sensors_task{-1};			/**< task handle for sensor task */
 
-	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
-	int 		_sensors_task;			/**< task handle for sensor task */
+	const bool	_hil_enabled;				/**< if true, HIL is active */
+	bool		_armed{false};				/**< arming status of the vehicle */
 
-	const bool	_hil_enabled;			/**< if true, HIL is active */
-	bool		_armed;				/**< arming status of the vehicle */
+	int		_actuator_ctrl_0_sub{-1};		/**< attitude controls sub */
+	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
+	int		_vcontrol_mode_sub{-1};			/**< vehicle control mode subscription */
+	int 		_params_sub{-1};			/**< notification of parameter updates */
 
-	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
-	int		_diff_pres_sub;			/**< raw differential pressure subscription */
-	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
+	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
+	orb_advert_t	_battery_pub{nullptr};			/**< battery status */
+	orb_advert_t	_airspeed_pub{nullptr};			/**< airspeed */
+	orb_advert_t	_diff_pres_pub{nullptr};		/**< differential_pressure */
+	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
 
-	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
-	orb_advert_t	_battery_pub;			/**< battery status */
-	orb_advert_t	_airspeed_pub;			/**< airspeed */
-	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
-	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
+	perf_counter_t	_loop_perf;				/**< loop performance counter */
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	DataValidator	_airspeed_validator;			/**< data validator to monitor airspeed */
 
-	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
+	battery_status_s _battery_status {};			/**< battery status */
+	differential_pressure_s _diff_pres {};
+	airspeed_s _airspeed {};
 
-	struct battery_status_s _battery_status;	/**< battery status */
-	struct differential_pressure_s _diff_pres;
-	struct airspeed_s _airspeed;
+	Battery		_battery;				/**< Helper lib to publish battery_status topic. */
 
-	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
-
-	Parameters		_parameters;			/**< local copies of interesting parameters */
-	ParameterHandles	_parameter_handles;		/**< handles for interesting parameters */
+	Parameters		_parameters{};			/**< local copies of interesting parameters */
+	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
@@ -244,39 +241,15 @@ private:
 
 namespace sensors
 {
-
 Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors(bool hil_enabled) :
-	_last_adc(0),
-
-	_task_should_exit(true),
-	_sensors_task(-1),
 	_hil_enabled(hil_enabled),
-	_armed(false),
-
-	_actuator_ctrl_0_sub(-1),
-	_diff_pres_sub(-1),
-	_vcontrol_mode_sub(-1),
-	_params_sub(-1),
-
-	/* publications */
-	_sensor_pub(nullptr),
-	_battery_pub(nullptr),
-	_airspeed_pub(nullptr),
-	_diff_pres_pub(nullptr),
-	_sensor_preflight(nullptr),
-
-	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-
 	_rc_update(_parameters),
 	_voted_sensors_update(_parameters, hil_enabled)
 {
-	memset(&_diff_pres, 0, sizeof(_diff_pres));
-	memset(&_parameters, 0, sizeof(_parameters));
-
 	initialize_parameter_handles(_parameter_handles);
 
 	_airspeed_validator.set_timeout(300000);
@@ -661,7 +634,6 @@ Sensors::task_main()
 				_voted_sensors_update.calc_accel_inconsistency(preflt);
 				_voted_sensors_update.calc_gyro_inconsistency(preflt);
 				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
-
 			}
 
 			//_voted_sensors_update.check_vibration(); //disabled for now, as it does not seem to be reliable
