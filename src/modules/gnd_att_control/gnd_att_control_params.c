@@ -155,20 +155,6 @@ PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
 PARAM_DEFINE_FLOAT(GND_WR_FF, 0.0f);
 
 /**
- * Airspeed mode
- *
- * The param value sets the method used to publish the control state airspeed.
- *
- * @min 0
- * @max 2
- * @value 0 use measured airspeed
- * @value 1 use vehicle ground velocity as airspeed
- * @value 2 declare airspeed invalid
- * @group GND Attitude Control
- */
-PARAM_DEFINE_INT32(GND_ARSP_MODE, 0);
-
-/**
  * Manual yaw scale
  *
  * Scale factor applied to the desired yaw actuator command in full manual mode. This parameter allows
