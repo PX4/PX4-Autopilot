@@ -45,7 +45,7 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * Racers - [Anton Matosov](http://github.com/anton-matosov)
   * OS / drivers - [David Sidrane](http://github.com/davids5)
   * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) / Industrial - [Pavel Kirienko](http://github.com/pavel-kirienko)
-  * State Estimation - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
+  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [James Goppert](http://github.com/jgoppert), [Paul Riseborough](http://github.com/priseborough)
   * VIO - [Mohammed Kabir](http://github.com/mhkabir), [Christoph Tobler](http://github.com/ChristophTobler)
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](http://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon) - [Mark Charlebois](http://github.com/mcharleb)
