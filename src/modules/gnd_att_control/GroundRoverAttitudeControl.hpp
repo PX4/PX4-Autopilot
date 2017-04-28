@@ -48,7 +48,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>
-#include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
@@ -60,7 +59,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/uORB.h>
 
@@ -70,49 +68,41 @@ using matrix::Quatf;
 class GroundRoverAttitudeControl
 {
 public:
-
 	GroundRoverAttitudeControl();
 	~GroundRoverAttitudeControl();
 
-	int		start();
-	bool		task_running() { return _task_running; }
+	int start();
+	bool task_running() { return _task_running; }
 
 private:
 
-	bool		_task_should_exit;		/**< if true, attitude control task should exit */
-	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle */
+	bool		_task_should_exit{true};		/**< if true, attitude control task should exit */
+	bool		_task_running{false};			/**< if true, task is running in its mainloop */
+	int		_control_task{-1};			/**< task handle */
 
-	int		_att_sp_sub;			/**< vehicle attitude setpoint */
-	int		_battery_status_sub;		/**< battery status subscription */
-	int		_ctrl_state_sub;		/**< control state subscription */
-	int		_global_pos_sub;		/**< global position subscription */
-	int		_manual_sub;			/**< notification of manual control updates */
-	int		_params_sub;			/**< notification of parameter updates */
-	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
+	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_battery_status_sub{-1};		/**< battery status subscription */
+	int		_ctrl_state_sub{-1};		/**< control state subscription */
+	int		_manual_sub{-1};			/**< notification of manual control updates */
+	int		_params_sub{-1};			/**< notification of parameter updates */
+	int		_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
 
-	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
-	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
-	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
+	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
+	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
 
-	orb_id_t _rates_sp_id;	// pointer to correct rates setpoint uORB metadata structure
-	orb_id_t _actuators_id;	// pointer to correct actuator controls0 uORB metadata structure
-	orb_id_t _attitude_setpoint_id;
-
-	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct battery_status_s				_battery_status;	/**< battery status */
-	struct control_state_s				_ctrl_state;	/**< control state */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
-	struct vehicle_global_position_s		_global_pos;		/**< global position */
-	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
+	struct actuator_controls_s			_actuators {};		/**< actuator control inputs */
+	struct battery_status_s				_battery_status {};	/**< battery status */
+	struct control_state_s				_ctrl_state {};	/**< control state */
+	struct manual_control_setpoint_s		_manual {};		/**< r/c channel data */
+	struct vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	struct vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
+	struct vehicle_rates_setpoint_s			_rates_sp {};	/* attitude rates setpoint */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
-	bool		_debug;				/**< if set to true, print debug output */
+	bool		_debug{false};				/**< if set to true, print debug output */
 
 	struct {
 		float w_tc;		/**< Time constant of the steering controller */
@@ -130,10 +120,9 @@ private:
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 
-	} _parameters;			/**< local copies of interesting parameters */
+	} _parameters{};			/**< local copies of interesting parameters */
 
 	struct {
-
 		param_t w_tc;
 		param_t w_p;
 		param_t w_i;
@@ -149,21 +138,16 @@ private:
 
 		param_t bat_scale_en;
 
-	} _parameter_handles;		/**< handles for interesting parameters */
-
-	// Rotation matrix and euler angles to extract from control state
-	math::Matrix<3, 3> _R;
-	float _yaw{0.0f};
+	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	ECL_WheelController 	_wheel_ctrl;
 	PID_t			_steering_ctrl;
 
-	int		parameters_update();
-	void		control_update();
+	void		parameters_update();
+
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
-	void		vehicle_setpoint_poll();
-	void		global_pos_poll();
+	void		manual_control_setpoint_poll();
+	void		vehicle_attitude_setpoint_poll();
 	void		battery_status_poll();
 
 	static void	task_main_trampoline(int argc, char *argv[]);
