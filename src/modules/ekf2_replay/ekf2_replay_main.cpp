@@ -174,7 +174,7 @@ private:
 	bool _read_part5;
 
 	int _write_fd = -1;
-	px4_pollfd_struct_t _fds[1];
+	px4_pollfd_struct_t _fds[1] {};
 
 	// parse replay message from buffer
 	// @source 			pointer to log message data (excluding header)
