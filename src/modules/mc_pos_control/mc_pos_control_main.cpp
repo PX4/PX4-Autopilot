@@ -111,7 +111,26 @@ private:
 
 
 	bool		_task_should_exit;		/**< if true, task should exit */
-	bool		_gear_state_initialized;	///< true if the gear state has been initialized
+	bool		_gear_state_initialized; /**< true if the gear state has been initialized */
+	bool    	 _armed_last;        /**< record the pre state armed or disarmed. */
+	bool 		_reset_pos_sp;
+	bool 		_reset_alt_sp;
+	bool 		_do_reset_alt_pos_flag; /**< flag that indicates if both pos_sp and alt_sp needs a reset: TODO: check if we need this */
+	bool		 _mode_auto;  /**< true if in auot mode */
+	bool 		_pos_hold_engaged; /**< true if hold positon in xy desired */
+	bool 		_alt_hold_engaged; /**< true if hold in z desired */
+	bool 		_run_pos_control;  /**< true if position controller should be used */
+	bool 		_run_alt_control; /**< true if altitude controller should be used */
+	bool 		_reset_int_z; /**< true if reset integral in z */
+	bool 		_reset_int_xy; /**< true if reset integral in xy */
+	bool		 _reset_yaw_sp; /**< true if reset yaw setpoint */
+	bool 		_hold_offboard_xy; /**<TODO : check if we need this extra hold_offboard flag */
+	bool 		_hold_offboard_z;
+	bool 		_in_takeoff; /**< true if takeoff ramp is applied */
+	bool 		_in_landing;	/**< true if landing descent (only used in auto) */
+	bool 		_lnd_reached_ground; /**< true if controller assumes the vehicle has reached the ground after landing */
+	bool 		_state_updn_revert; /* true if vehicle is upside down (used such that gears can be controlled independent of vehicle state) */
+
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
@@ -246,27 +265,7 @@ private:
 	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
 
-	bool _reset_pos_sp;
-	bool _reset_alt_sp;
-	bool _do_reset_alt_pos_flag;
-	bool _mode_auto;
-	bool _pos_hold_engaged;
-	bool _alt_hold_engaged;
-	bool _run_pos_control;
-	bool _run_alt_control;
-	bool _pos_first_nonfinite;
-
-	bool _reset_int_z = true;
-	bool _reset_int_xy = true;
-	bool _reset_int_z_manual = false;
-	bool _reset_yaw_sp = true;
-
-	bool _hold_offboard_xy = false;
-	bool _hold_offboard_z = false;
-	bool _limit_vel_xy = false;
-
 	math::Vector<3> _thrust_int;
-
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
 	math::Vector<3> _vel;
@@ -286,8 +285,6 @@ private:
 	float _acceleration_state_dependent_z; /* acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
-
-	bool _in_takeoff = false; /**< flag for smooth velocity setpoint takeoff ramp */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
@@ -401,10 +398,29 @@ namespace pos_control
 MulticopterPositionControl	*g_control;
 }
 
+
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	_task_should_exit(false),
 	_gear_state_initialized(false),
+	_armed_last(false),
+	_reset_pos_sp(true),
+	_reset_alt_sp(true),
+	_do_reset_alt_pos_flag(true),
+	_mode_auto(false),
+	_pos_hold_engaged(false),
+	_alt_hold_engaged(false),
+	_run_pos_control(true),
+	_run_alt_control(true),
+	_reset_int_z(true),
+	_reset_int_xy(true),
+	_reset_yaw_sp(true),
+	_hold_offboard_xy(false),
+	_hold_offboard_z(false),
+	_in_takeoff(false),
+	_in_landing(false),
+	_lnd_reached_ground(false),
+	_state_updn_revert(false),
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
 
@@ -457,15 +473,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_last_warn(0),
-	_reset_pos_sp(true),
-	_reset_alt_sp(true),
-	_do_reset_alt_pos_flag(true),
-	_mode_auto(false),
-	_pos_hold_engaged(false),
-	_alt_hold_engaged(false),
-	_run_pos_control(true),
-	_run_alt_control(true),
-	_pos_first_nonfinite(true),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
 	_vel_max_xy(0.0f),
@@ -473,7 +480,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_state_dependent_z(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
-	_in_takeoff(false),
 	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
@@ -2668,7 +2674,6 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			_reset_int_z = true;
 			_reset_int_xy = true;
-			_limit_vel_xy = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;
@@ -2705,10 +2710,6 @@ MulticopterPositionControl::task_main()
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
 		}
-
-		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
-		_reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled
-				      && !_control_mode.flag_control_climb_rate_enabled;
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
