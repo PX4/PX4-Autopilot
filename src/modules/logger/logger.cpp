@@ -236,7 +236,7 @@ void Logger::print_statistics()
 	_max_dropout_duration = 0.f;
 }
 
-Logger *Logger::instanciate(int argc, char *argv[])
+Logger *Logger::instantiate(int argc, char *argv[])
 {
 	uint32_t log_interval = 3500;
 	int log_buffer_size = 12 * 1024;
