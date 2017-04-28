@@ -36,13 +36,13 @@
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
  * It has been developed starting from the fw module, simplified and improved with dedicated items.
  *
- * All the ackowledgments and credits for the fw wing app are reported in those files.
+ * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
 
-#include "gnd_pos_control.hpp"
+#include "GroundRoverPositionControl.hpp"
 
 static int	_control_task = -1;			/**< task handle for sensor task */
 
