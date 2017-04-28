@@ -74,7 +74,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_pos_sp_triplet_sub(-1),
 	_ctrl_state_sub(-1),
 	_control_mode_sub(-1),
-	_vehicle_command_sub(-1),
 	_vehicle_status_sub(-1),
 	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
@@ -82,7 +81,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 
 	/* publications */
 	_attitude_sp_pub(nullptr),
-	_tecs_status_pub(nullptr),
 	_gnd_pos_ctrl_status_pub(nullptr),
 
 	/* publication ID */
@@ -94,7 +92,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_gnd_pos_ctrl_status(),
 	_manual(),
 	_control_mode(),
-	_vehicle_command(),
 	_vehicle_status(),
 	_vehicle_land_detected(),
 	_global_pos(),
@@ -116,15 +113,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_roll(0.0f),
 	_pitch(0.0f),
 	_yaw(0.0f),
-	_reinitialize_tecs(true),
-	_is_tecs_running(false),
-	_last_tecs_update(0.0f),
-	_asp_after_transition(0.0f),
-	_was_in_transition(false),
 	_pos_reset_counter(0),
-	_alt_reset_counter(0),
-	_gnd_control(),
-	_tecs(),
 	_control_mode_current(UGV_POSCTRL_MODE_OTHER),
 	_parameters(),
 	_parameter_handles()
@@ -135,11 +124,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.l1_damping = param_find("GND_L1_DAMPING");
 	_parameter_handles.l1_distance = param_find("GND_L1_DIST");
 
-
-	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
-	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 
 	_parameter_handles.speed_control_mode = param_find("GND_SP_CTRL_MODE");
 	_parameter_handles.speed_p = param_find("GND_SPEED_P");
@@ -148,29 +133,9 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.speed_imax = param_find("GND_SPEED_IMAX");
 	_parameter_handles.throttle_speed_scaler = param_find("GND_SPEED_THR_SC");
 
-	_parameter_handles.pitch_limit_min = param_find("GND_P_LIM_MIN");
-	_parameter_handles.pitch_limit_max = param_find("GND_P_LIM_MAX");
 	_parameter_handles.throttle_min = param_find("GND_THR_MIN");
 	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
-
-	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
-	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
-	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
-	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
-	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
-	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
-	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
-	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
-	_parameter_handles.height_comp_filter_omega =		param_find("FW_T_HGT_OMEGA");
-	_parameter_handles.speed_comp_filter_omega =		param_find("FW_T_SPD_OMEGA");
-	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
-	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
-	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
-	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
-	_parameter_handles.heightrate_ff =			param_find("FW_T_HRATE_FF");
-	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
-
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -210,10 +175,7 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.l1_period, &(_parameters.l1_period));
 	param_get(_parameter_handles.l1_distance, &(_parameters.l1_distance));
 
-	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
-	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
-	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_mode));
 
 	param_get(_parameter_handles.speed_control_mode, &(_parameters.speed_control_mode));
 	param_get(_parameter_handles.speed_p, &(_parameters.speed_p));
@@ -222,53 +184,13 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_imax, &(_parameters.speed_imax));
 	param_get(_parameter_handles.throttle_speed_scaler, &(_parameters.throttle_speed_scaler));
 
-
-	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
-	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 
-	param_get(_parameter_handles.time_const, &(_parameters.time_const));
-	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
-	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
-	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
-	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
-	param_get(_parameter_handles.integrator_gain, &(_parameters.integrator_gain));
-	param_get(_parameter_handles.vertical_accel_limit, &(_parameters.vertical_accel_limit));
-	param_get(_parameter_handles.height_comp_filter_omega, &(_parameters.height_comp_filter_omega));
-	param_get(_parameter_handles.speed_comp_filter_omega, &(_parameters.speed_comp_filter_omega));
-	param_get(_parameter_handles.roll_throttle_compensation, &(_parameters.roll_throttle_compensation));
-	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
-	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
-	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
-	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
-	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
-	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
-
 	_gnd_control.set_l1_damping(_parameters.l1_damping);
 	_gnd_control.set_l1_period(_parameters.l1_period);
 	_gnd_control.set_l1_roll_limit(math::radians(0.0f));
-
-	_tecs.set_time_const(_parameters.time_const);
-	_tecs.set_time_const_throt(_parameters.time_const_throt);
-	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
-	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
-	_tecs.set_throttle_damp(_parameters.throttle_damp);
-	_tecs.set_throttle_slewrate(0.0f);
-	_tecs.set_integrator_gain(_parameters.integrator_gain);
-	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
-	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
-	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
-	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
-	_tecs.set_speed_weight(_parameters.speed_weight);
-	_tecs.set_pitch_damping(_parameters.pitch_damping);
-	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
-	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
-	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
-	_tecs.set_heightrate_p(_parameters.heightrate_p);
-	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
-	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 	pid_set_parameters(&_speed_ctrl,
@@ -277,16 +199,6 @@ GroundRoverPositionControl::parameters_update()
 			   _parameters.speed_i,
 			   _parameters.speed_imax,
 			   _parameters.airspeed_max);
-
-	/* sanity check parameters  */
-	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    _parameters.airspeed_min > 100.0f ||
-	    _parameters.airspeed_trim < _parameters.airspeed_min ||
-	    _parameters.airspeed_trim > _parameters.airspeed_max) {
-		warnx("error: airspeed parameters invalid");
-		return 1;
-	}
-
 
 	/* Update and publish the navigation capabilities */
 	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;
@@ -306,18 +218,6 @@ GroundRoverPositionControl::vehicle_control_mode_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-	}
-}
-
-void
-GroundRoverPositionControl::vehicle_command_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_command_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
 	}
 }
 
@@ -399,9 +299,6 @@ GroundRoverPositionControl::control_state_poll()
 	_roll    = euler_angles(0);
 	_pitch   = euler_angles(1);
 	_yaw     = euler_angles(2);
-
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
 }
 
 void
@@ -416,31 +313,6 @@ GroundRoverPositionControl::vehicle_setpoint_poll()
 	}
 }
 
-float
-GroundRoverPositionControl::calculate_target_speed(float speed_demand)
-{
-	float ground_speed;
-
-	if (_airspeed_valid) {
-		ground_speed = _ctrl_state.airspeed;
-
-	} else {
-		ground_speed = _parameters.airspeed_min + (_parameters.airspeed_max - _parameters.airspeed_min) / 2.0f;
-	}
-
-	/* cruise ground_speed for all modes unless modified below */
-	float target_speed = speed_demand;
-
-	/* sanity check: limit to range */
-	target_speed = math::constrain(target_speed, _parameters.airspeed_min, _parameters.airspeed_max);
-
-	/* plain ground_speed error */
-	_speed_error = target_speed - ground_speed;
-
-	return target_speed;
-}
-
-
 void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 {
 	_gnd_pos_ctrl_status.timestamp = hrt_absolute_time();
@@ -450,114 +322,6 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 
 	} else {
 		_gnd_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_gnd_pos_ctrl_status);
-	}
-}
-
-
-void GroundRoverPositionControl::tecs_update_throttle(float alt_sp, float v_sp, float eas2tas,
-		float pitch_min_rad, float pitch_max_rad,
-		float throttle_min, float throttle_max, float throttle_cruise,
-		float climbout_pitch_min_rad,
-		float altitude,
-		const math::Vector<3> &ground_speed,
-		unsigned mode)
-{
-
-	_last_tecs_update = hrt_absolute_time();
-
-	// do not run TECS if we are not in air
-	bool run_tecs = !_vehicle_land_detected.landed;
-
-	//If the wrong vehicle type is selected return because we want to use it for rovers only.
-	if (_vehicle_status.is_vtol || _vehicle_status.is_rotary_wing) {
-		return;
-	}
-
-	_is_tecs_running = run_tecs;
-
-	if (!run_tecs) {
-		// next time we run TECS we should reinitialize states
-		_reinitialize_tecs = true;
-		return;
-	}
-
-	if (_reinitialize_tecs) {
-		_tecs.reset_state();
-		_reinitialize_tecs = false;
-	}
-
-	_tecs.update_pitch_throttle(_R_nb, 0.0f, altitude, alt_sp, v_sp,
-				    _ctrl_state.airspeed, eas2tas,
-				    false /*climbout_mode*/, climbout_pitch_min_rad,
-				    throttle_min, throttle_max, throttle_cruise,
-				    pitch_min_rad, pitch_max_rad);
-
-	struct TECS::tecs_state s;
-	_tecs.get_tecs_state(s);
-
-	struct tecs_status_s t = {};
-
-	t.timestamp = s.timestamp;
-
-	switch (s.mode) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	default:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
-	}
-
-	t.altitudeSp 		= s.altitude_sp;
-	t.altitude_filtered = s.altitude_filtered;
-	t.airspeedSp 		= s.airspeed_sp;
-	t.airspeed_filtered = s.airspeed_filtered;
-
-	t.flightPathAngleSp 		= s.altitude_rate_sp;
-	t.flightPathAngle 			= s.altitude_rate;
-	t.flightPathAngleFiltered 	= s.altitude_rate;
-
-	t.airspeedDerivativeSp 	= s.airspeed_rate_sp;
-	t.airspeedDerivative 	= s.airspeed_rate;
-
-	t.totalEnergyError 				= s.total_energy_error;
-	t.totalEnergyRateError 			= s.total_energy_rate_error;
-	t.energyDistributionError 		= s.energy_distribution_error;
-	t.energyDistributionRateError 	= s.energy_distribution_rate_error;
-
-	t.throttle_integ 	= s.throttle_integ;
-	t.pitch_integ 		= s.pitch_integ;
-
-	if (_tecs_status_pub != nullptr) {
-		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
-
-	} else {
-		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
-	}
-}
-
-float
-GroundRoverPositionControl::get_tecs_pitch()
-{
-	if (_is_tecs_running) {
-		return _tecs.get_pitch_demand();
-
-	} else {
-		// return 0 to prevent stale tecs state when it's not running
-		return 0.0f;
-	}
-}
-
-float
-GroundRoverPositionControl::get_tecs_thrust()
-{
-	if (_is_tecs_running) {
-		return _tecs.get_throttle_demand();
-
-	} else {
-		// return 0 to prevent stale tecs state when it's not running
-		return 0.0f;
 	}
 }
 
@@ -584,44 +348,18 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	bool setpoint = true;
 
 	_att_sp.fw_control_yaw = true;		// We want to control yaw to turn the car
-	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
-
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_ctrl_state.x_acc, _ctrl_state.y_acc, _ctrl_state.z_acc);
-	math::Vector<3> accel_earth{_R_nb * accel_body};
-
-	/* tell TECS to update its state and update TECS filters */
-	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
-			   accel_body, accel_earth, (_global_pos.timestamp > 0), true);
 
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
 
-	// compute 2D groundspeed from airspeed-heading projection
-	math::Vector<2> air_speed_2d = {_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
-	math::Vector<2> nav_speed_2d = {0, 0};
-
-	nav_speed_2d = ground_speed_2d;
 	float nav_speed = 0.0f;
-
-	/* no throttle limit as default */
-	float throttle_max = 1.0f;
 
 	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
-
-		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == UGV_POSCTRL_MODE_OTHER) {
-			/* reset integrators */
-			_tecs.reset_state();
-		}
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
 
 		/* get circle mode */
 		bool was_circle_mode = _gnd_control.circle_mode();
-
-		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
-		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
 		math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
@@ -651,7 +389,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		}
 
-		float mission_target_speed = _parameters.airspeed_trim;
+		float mission_target_speed = _pos_sp_triplet.current.cruising_speed;
 		float mission_throttle = _parameters.throttle_cruise;
 
 		/* Just control the throttle */
@@ -662,16 +400,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
 			}
 
-			/* sanity check for target airspeed before using it for computations*/
-			if (mission_target_speed < _parameters.airspeed_min ||
-			    mission_target_speed > _parameters.airspeed_max) {
-
-				/* If something is wrong revert back to the safe trim but warn the user*/
-				mission_target_speed = _parameters.airspeed_trim;
-				warnx("Something went wrong with target mission target speed, reverting to trim for safety");
-			}
-
-			nav_speed = sqrtf(powf(nav_speed_2d(0), 2) + powf(nav_speed_2d(1), 2));
+			nav_speed = sqrtf(powf(ground_speed_2d(0), 2) + powf(ground_speed_2d(1), 2));
 
 			//Compute airspeed control out and just scale it as a constant
 			mission_throttle =  _parameters.throttle_speed_scaler * pid_calculate(&_speed_ctrl, mission_target_speed, nav_speed,
@@ -694,9 +423,10 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		// at this point we have a target throttle no matter what
 
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-			_att_sp.thrust = 0.0f;
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
+			_att_sp.yaw_body = 0.0f;
+			_att_sp.thrust = 0.0f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
@@ -706,37 +436,22 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			}
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
-			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, nav_speed_2d);
+			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
-
-			/* Apply control output */
-			tecs_update_throttle(pos_sp_triplet.current.alt, calculate_target_speed(mission_target_speed), eas2tas,
-					     math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-					     _parameters.throttle_min, _parameters.throttle_max, mission_throttle,
-					     math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+			_att_sp.thrust = mission_throttle;
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint so we want to stop*/
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
-						     pos_sp_triplet.current.loiter_direction, nav_speed_2d);
+						     pos_sp_triplet.current.loiter_direction, ground_speed_2d);
+
 			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
-
-			float alt_sp = pos_sp_triplet.current.alt;
-
-			tecs_update_throttle(alt_sp,
-					     calculate_target_speed(mission_target_speed),
-					     eas2tas,
-					     math::radians(_parameters.pitch_limit_min),
-					     math::radians(_parameters.pitch_limit_max),
-					     0, // _parameters.throttle_min,
-					     0, // _parameters.throttle_max,
-					     0, // _parameters.throttle_cruise,
-					     math::radians(_parameters.pitch_limit_min),
-					     _global_pos.alt,
-					     ground_speed);
+			_att_sp.thrust = mission_throttle;
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -747,26 +462,17 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	} else {
 		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
 
+		_att_sp.roll_body = 0.0f;
+		_att_sp.pitch_body = 0.0f;
+		_att_sp.yaw_body = 0.0f;
+		_att_sp.thrust = 0.0f;
+
 		/* do not publish the setpoint */
 		setpoint = false;
 	}
 
-	/* Copy thrust output for publication */
-	if (_vehicle_status.engine_failure ||
-	    _vehicle_status.engine_failure_cmd ||
-	    (_control_mode_current == UGV_POSCTRL_MODE_AUTO &&
-	     pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) ||
-	    _control_mode_current == UGV_POSCTRL_MODE_OTHER) {
-		/* Set thrust to 0 to minimize damage */
-		_att_sp.thrust = 0.0f;
-
-	} else {
-		_att_sp.thrust = math::min(get_tecs_thrust(), throttle_max);
-	}
-
 	return setpoint;
 }
-
 
 void
 GroundRoverPositionControl::task_main()
@@ -778,7 +484,6 @@ GroundRoverPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -832,9 +537,6 @@ GroundRoverPositionControl::task_main()
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 
-		/* check for new vehicle commands */
-		vehicle_command_poll();
-
 		/* check vehicle status for changes to publication state */
 		vehicle_status_poll();
 
@@ -860,10 +562,6 @@ GroundRoverPositionControl::task_main()
 
 			// handle estimator reset events. we only adjust setpoins for manual modes
 			if (_control_mode.flag_control_manual_enabled) {
-				if (_control_mode.flag_control_altitude_enabled && _global_pos.alt_reset_counter != _alt_reset_counter) {
-					// make TECS accept step in altitude and demanded altitude
-					_tecs.handle_alt_step(_global_pos.delta_alt, _global_pos.alt);
-				}
 
 				// adjust navigation waypoints in position control mode
 				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
@@ -872,7 +570,6 @@ GroundRoverPositionControl::task_main()
 			}
 
 			// update the reset counters in any case
-			_alt_reset_counter = _global_pos.alt_reset_counter;
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
 			// XXX add timestamp check
@@ -924,7 +621,7 @@ GroundRoverPositionControl::task_main()
 					_gnd_pos_ctrl_status.turn_distance = turn_distance;
 
 					_gnd_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
-					_gnd_pos_ctrl_status.nav_pitch = get_tecs_pitch();
+					_gnd_pos_ctrl_status.nav_pitch = 0.0f;
 					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
 					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
