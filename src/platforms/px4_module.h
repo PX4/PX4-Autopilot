@@ -47,6 +47,8 @@
 
 #ifdef __cplusplus
 
+#include <cstring>
+
 /**
  * This mutex protects against race conditions during startup & shutdown of modules.
  * There could be one mutex per module instantiation, but to reduce the memory footprint
