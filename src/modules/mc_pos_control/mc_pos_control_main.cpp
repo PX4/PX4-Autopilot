@@ -265,6 +265,7 @@ private:
 	float _acc_z_lp;
 	float _takeoff_thrust_sp;
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
+	float _z_derivative; /**< velocity in z that agrees with position rate */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -435,6 +436,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acc_z_lp(0),
 	_takeoff_thrust_sp(0.0f),
 	_vel_max_xy(0.0f),
+	_z_derivative(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_vz_reset_counter(0),
@@ -1653,6 +1655,10 @@ MulticopterPositionControl::update_velocity_derivative()
 		}
 	}
 
+	if(PX4_ISFINITE(_local_pos.z_deriv)){
+		_z_derivative = _local_pos.z_deriv;
+	};
+
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
@@ -1700,6 +1706,10 @@ MulticopterPositionControl::control_position(float dt)
 
 	if (_run_alt_control) {
 		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+	}else{
+		/* set velocity to the derivative of position
+		 * because it has less bias*/
+		_vel(2) = _z_derivative;
 	}
 
 	/* make sure velocity setpoint is saturated in xy*/

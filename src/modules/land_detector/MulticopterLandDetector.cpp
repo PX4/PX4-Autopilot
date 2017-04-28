@@ -182,7 +182,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 	// an accurate in-air indication.
-	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
+	bool verticalMovement = fabsf(_vehicleLocalPosition.z_deriv) > _params.maxClimbRate * armThresholdFactor;
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
