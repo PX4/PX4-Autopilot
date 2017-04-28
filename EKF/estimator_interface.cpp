@@ -180,8 +180,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 		_time_last_gps = time_usec;
 
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
-
-		memcpy(&gps_sample_new.vel._data[0], gps->vel_ned, sizeof(gps_sample_new.vel._data));
+		gps_sample_new.vel = Vector3f(gps->vel_ned);
 
 		_gps_speed_valid = gps->vel_ned_valid;
 		gps_sample_new.sacc = gps->sacc;
