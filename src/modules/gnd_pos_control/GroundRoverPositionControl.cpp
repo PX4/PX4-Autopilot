@@ -215,6 +215,9 @@ GroundRoverPositionControl::vehicle_control_mode_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
+
+	_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+
 }
 
 bool
@@ -406,7 +409,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = _gnd_control.nav_roll();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
-			_att_sp.thrust = mission_throttle;
+			_att_sp.thrust = 0.0f;
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -540,7 +543,6 @@ GroundRoverPositionControl::task_main()
 				    _control_mode.flag_control_position_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_acceleration_enabled) {
-
 					/* lazily publish the setpoint only once available */
 					if (_attitude_sp_pub != nullptr) {
 						/* publish the attitude setpoint */
