@@ -52,6 +52,7 @@ Please refer to the [user documentation](http://px4.io/user-guide/) and [user fo
   * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero) - [Lucas de Marchi](http://github.com/lucasdemarchi), [Simone Guscetti](http://github.com/simonegu)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](http://github.com/bkueng)
   * [Parrot Bebop](https://github.com/PX4/Firmware/labels/bebop) - [Michael Schaeuble](http://github.com/eyeam3)
+  * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](http://github.com/iZhangHui)
 
 ## Supported Hardware
 
