@@ -76,7 +76,7 @@ public:
 
 private:
 
-	bool		_task_should_exit{true};		/**< if true, attitude control task should exit */
+	bool		_task_should_exit{false};		/**< if true, attitude control task should exit */
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 	int		_control_task{-1};			/**< task handle */
 
