@@ -197,7 +197,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
 		float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
 				     _params.maxClimbRate;
-		verticalMovement = fabsf(_vehicleLocalPosition.vz) > maxClimbRate;
+		verticalMovement = fabsf(_vehicleLocalPosition.z_deriv) > maxClimbRate;
 	}
 
 	// Check if we are moving horizontally.
