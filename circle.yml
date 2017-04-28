@@ -1,6 +1,6 @@
 machine:
-  services:
-    - docker
+  xcode:
+    version: 8.2
 
 checkout:
   post:
@@ -12,14 +12,18 @@ checkout:
 
 dependencies:
   pre:
-    - sudo pip install cpp-coveralls
-    - sudo apt-get install -y lcov
+    # PX4 OSX instructions 2017-04-28: https://dev.px4.io/en/setup/dev_env_mac.html
+
+    # After installing Homebrew, copy these commands to your shell:
+    - brew tap PX4/px4
+    - brew update
+    - brew install genromfs gcc-arm-none-eabi ninja
+
+    # Then install the required python packages:
+    - sudo -H easy_install pip
+    - sudo -H pip install empy jinja2
 
 test:
   override:
-    - ./Tools/docker_run.sh 'make tests_coverage'
-    # copy test results for circleci
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit/ && cp ./build_posix_sitl_default/JUnitTestResults.xml build_unittest/test_detail.xml $CIRCLE_TEST_REPORTS/junit/
-    - mkdir -p $CIRCLE_ARTIFACTS && cp -R coverage-html $CIRCLE_ARTIFACTS
-    # only post to coveralls if not a fork PR
-    - if [ -z ${CIRCLE_PR_USERNAME}]; then cpp-coveralls -l coverage.info; fi
+    - make tests
+    - make px4fmu-v3_default
