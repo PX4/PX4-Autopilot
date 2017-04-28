@@ -81,8 +81,8 @@ set(config_module_list
 	# Vehicle Control
 	#
 	modules/fw_att_control
-	modules/gnd_att_control
 	modules/fw_pos_control_l1
+	modules/gnd_att_control
 	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control

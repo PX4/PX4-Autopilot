@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		gnd_pos_control_main.cpp
+		GroundRoverPositionControl.cpp
 	DEPENDS
 		platforms__common
 		git_ecl

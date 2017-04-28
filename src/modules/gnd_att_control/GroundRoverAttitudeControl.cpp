@@ -32,16 +32,16 @@
  ****************************************************************************/
 
 /**
- * 
+ *
  * This module is a modification of the fixed wing module and it is designed for ground rovers.
  * It has been developed starting from the fw module, simplified and improved with dedicated items.
- * 
- * All the ackowledgments and credits for the fw wing app are reported in those files.  
- * 
+ *
+ * All the acknowledgments and credits for the fw wing app are reported in those files.
+ *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
-#include "gnd_att_control.hpp"
+#include "GroundRoverAttitudeControl.hpp"
 
 /**
  * GroundRover attitude control app start / stop handling function
@@ -56,59 +56,12 @@ GroundRoverAttitudeControl	*g_control = nullptr;
 }
 
 GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
-
-	_task_should_exit(false),
-	_task_running(false),
-	_control_task(-1),
-
-	/* subscriptions */
-	_att_sp_sub(-1),
-	_battery_status_sub(-1),
-	_ctrl_state_sub(-1),
-	_global_pos_sub(-1),
-	_manual_sub(-1),
-	_params_sub(-1),
-	_vcontrol_mode_sub(-1),
-	_vehicle_land_detected_sub(-1),
-	_vehicle_status_sub(-1),
-
-	/* publications */
-	_rate_sp_pub(nullptr),
-	_attitude_sp_pub(nullptr),
-	_actuators_0_pub(nullptr),
-	_actuators_2_pub(nullptr),
-
-	_rates_sp_id(nullptr),
-	_actuators_id(nullptr),
-	_attitude_setpoint_id(nullptr),
-
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
-#if 0
-	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
-	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano")),
-#else
-	_nonfinite_input_perf(nullptr),
-	_nonfinite_output_perf(nullptr),
-#endif
-	/* states */
-	_setpoint_valid(false),
-	_debug(false),
-	_yaw(0.0f)
-{
-	/* safely initialize structs */
-	_actuators = {};
-	_actuators_rvrframe = {};
-	_att_sp = {};
-	_battery_status = {};
-	_ctrl_state = {};
-	_global_pos = {};
-	_manual = {};
-	_rates_sp = {};
-	_vcontrol_mode = {};
-	_vehicle_land_detected = {};
-	_vehicle_status = {};
+	_loop_perf(perf_alloc(PC_ELAPSED, "gnda_dt")),
 
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "gnda_nani")),
+	_nonfinite_output_perf(perf_alloc(PC_COUNT, "gnda_nano"))
+{
 	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
@@ -116,10 +69,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.w_ff = param_find("GND_WR_FF");
 	_parameter_handles.w_integrator_max = param_find("GND_WR_IMAX");
 	_parameter_handles.w_rmax = param_find("GND_W_RMAX");
-
-	_parameter_handles.airspeed_min = param_find("GND_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("GND_AIRSPD_TRIM");
-	_parameter_handles.airspeed_max = param_find("GND_AIRSPD_MAX");
 
 	_parameter_handles.gspd_scaling_trim = param_find("GND_GSPD_SP_TRIM");
 
@@ -162,10 +111,9 @@ GroundRoverAttitudeControl::~GroundRoverAttitudeControl()
 	att_gnd_control::g_control = nullptr;
 }
 
-int
+void
 GroundRoverAttitudeControl::parameters_update()
 {
-
 	param_get(_parameter_handles.w_tc, &(_parameters.w_tc));
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
@@ -174,10 +122,6 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
 	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
 
-	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
-	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
-	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
-
 	param_get(_parameter_handles.gspd_scaling_trim, &(_parameters.gspd_scaling_trim));
 
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
@@ -185,7 +129,6 @@ GroundRoverAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
-	
 	/* wheel control parameters */
 	_wheel_ctrl.set_time_constant(_parameters.w_tc);
 	_wheel_ctrl.set_k_p(_parameters.w_p);
@@ -196,104 +139,50 @@ GroundRoverAttitudeControl::parameters_update()
 
 	/* Steering pid parameters*/
 	pid_init(&_steering_ctrl, PID_MODE_DERIVATIV_SET, 0.01f);
-	pid_set_parameters(&_steering_ctrl, 
-						_parameters.w_p,
-						_parameters.w_i,
-						_parameters.w_d,
-						_parameters.w_integrator_max,
-						1.0f);
-
-	return PX4_OK;
+	pid_set_parameters(&_steering_ctrl,
+			   _parameters.w_p,
+			   _parameters.w_i,
+			   _parameters.w_d,
+			   _parameters.w_integrator_max,
+			   1.0f);
 }
 
 void
 GroundRoverAttitudeControl::vehicle_control_mode_poll()
 {
-	bool vcontrol_mode_updated;
+	bool updated = false;
 
 	/* Check if vehicle control mode has changed */
-	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
+	orb_check(_vcontrol_mode_sub, &updated);
 
-	if (vcontrol_mode_updated) {
-
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
 
 void
-GroundRoverAttitudeControl::vehicle_manual_poll()
+GroundRoverAttitudeControl::manual_control_setpoint_poll()
 {
-	bool manual_updated;
+	bool updated = false;
 
 	/* get pilots inputs */
-	orb_check(_manual_sub, &manual_updated);
+	orb_check(_manual_sub, &updated);
 
-	if (manual_updated) {
-
+	if (updated) {
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 }
 
 void
-GroundRoverAttitudeControl::vehicle_setpoint_poll()
+GroundRoverAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	/* check if there is a new setpoint */
-	bool att_sp_updated;
-	orb_check(_att_sp_sub, &att_sp_updated);
+	bool updated = false;
 
-	if (att_sp_updated) {
+	orb_check(_att_sp_sub, &updated);
+
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-		_setpoint_valid = true;
-	}
-}
-
-void
-GroundRoverAttitudeControl::global_pos_poll()
-{
-	/* check if there is a new global position */
-	bool global_pos_updated;
-	orb_check(_global_pos_sub, &global_pos_updated);
-
-	if (global_pos_updated) {
-		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-	}
-}
-
-void
-GroundRoverAttitudeControl::vehicle_status_poll()
-{
-	/* check if there is new status information */
-	bool vehicle_status_updated;
-	orb_check(_vehicle_status_sub, &vehicle_status_updated);
-
-	if (vehicle_status_updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_rates_sp_id) {
-			if (_vehicle_status.is_vtol) {
-				_rates_sp_id = ORB_ID(fw_virtual_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-			} else {
-				_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-				_actuators_id = ORB_ID(actuator_controls_0);
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-	}
-}
-
-void
-GroundRoverAttitudeControl::vehicle_land_detected_poll()
-{
-	/* check if there is new status information */
-	bool vehicle_land_detected_updated;
-	orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
-
-	if (vehicle_land_detected_updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 }
 
@@ -326,19 +215,14 @@ GroundRoverAttitudeControl::task_main()
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	vehicle_setpoint_poll();
+	vehicle_attitude_setpoint_poll();
 	vehicle_control_mode_poll();
-	vehicle_manual_poll();
-	vehicle_status_poll();
-	vehicle_land_detected_poll();
+	manual_control_setpoint_poll();
 	battery_status_poll();
 
 	/* wakeup source */
@@ -388,89 +272,37 @@ GroundRoverAttitudeControl::task_main()
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f || 
-				fabsf(deltaT)<0.00001f ||
-				!PX4_ISFINITE(deltaT)) {
+			if (deltaT > 1.0f ||
+			    fabsf(deltaT) < 0.00001f ||
+			    !PX4_ISFINITE(deltaT)) {
 				deltaT = 0.01f;
 			}
 
 			/* load local copies */
 			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
-			/* get current rotation matrix and euler angles from control state quaternions */
-			math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-			_R = q_att.to_dcm();
-
-			math::Vector<3> euler_angles;
-			euler_angles = _R.to_euler();
-			_yaw     = euler_angles(2);
-
-			vehicle_setpoint_poll();
-
+			vehicle_attitude_setpoint_poll();
 			vehicle_control_mode_poll();
-
-			vehicle_manual_poll();
-
-			global_pos_poll();
-
-			vehicle_status_poll();
-
-			vehicle_land_detected_poll();
-
+			manual_control_setpoint_poll();
 			battery_status_poll();
 
 			/* lock integrator until control is started */
-			bool lock_integrator;
-
-			if (_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing) {
-				lock_integrator = false;
-
-			} else {
-				lock_integrator = true;
-			}
-
-			/* Simple handling of failsafe: stop motors */
-			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_rvrframe.control[3] = 0.0f;
-			} 
-
-			/* if we are in rotary wing mode or vehicle is vtol do nothing */
-			if (_vehicle_status.is_rotary_wing || _vehicle_status.is_vtol) {
-				continue;
-			}
+			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled;
 
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
-				/* scale around tuning airspeed */
-				float airspeed;
-
-				bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed);
-
-				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
-				if (nonfinite || !_ctrl_state.airspeed_valid) {
-					airspeed = _parameters.airspeed_trim;
-
-					if (nonfinite) {
-						perf_count(_nonfinite_input_perf);
-					}
-
-				} else {
-					/* prevent numerical drama by setting 0.01 m/s minimal speed */
-					airspeed = math::max(0.01f, _ctrl_state.airspeed);
-				}
 
 				// calculate groundspeed
-				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
-							  _global_pos.vel_e * _global_pos.vel_e);
+				float groundspeed = _ctrl_state.x_vel;
 
 				// TODO: this should be changed: I don't want to reduce steering because of the speed,
 				// I want to reduce the speed because of the desired steering angle.
-				float groundspeed_scaler =  _parameters.gspd_scaling_trim;
+				float groundspeed_scaler = _parameters.gspd_scaling_trim;
 
 				float yaw_sp = 0.0f;
 				float yaw_manual = 0.0f;
 				float throttle_sp = 0.0f;
-	
+
 				yaw_sp = _att_sp.yaw_body;
 				throttle_sp = _att_sp.thrust;
 
@@ -479,28 +311,27 @@ GroundRoverAttitudeControl::task_main()
 					yaw_manual = _manual.r;
 				}
 
-				if (_att_sp.yaw_reset_integral
-					|| _vehicle_land_detected.landed
-				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
-
+				if (_att_sp.yaw_reset_integral) {
 					_wheel_ctrl.reset_integrator();
 				}
 
+				Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
+
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
-				control_input.roll = 0.0f;//_roll;
-				control_input.pitch = 0.0f;//_pitch;
-				control_input.yaw = _yaw;
+				control_input.roll = 0.0f; //_roll;
+				control_input.pitch = 0.0f; //_pitch;
+				control_input.yaw = euler_angles.psi();
 				control_input.body_x_rate = _ctrl_state.roll_rate;
 				control_input.body_y_rate = _ctrl_state.pitch_rate;
 				control_input.body_z_rate = _ctrl_state.yaw_rate;
 				control_input.roll_setpoint = 0.0f;
 				control_input.pitch_setpoint = 0.0f;
 				control_input.yaw_setpoint = yaw_sp;
-				control_input.airspeed_min = _parameters.airspeed_min;
-				control_input.airspeed_max = _parameters.airspeed_max;
-				control_input.airspeed = airspeed;
-				control_input.scaler = 0.0f;//airspeed_scaling;
+				control_input.airspeed_min = 0.0f;
+				control_input.airspeed_max = 0.0f;
+				control_input.airspeed = 0.0f;
+				control_input.scaler = 0.0f; // airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
@@ -510,7 +341,7 @@ GroundRoverAttitudeControl::task_main()
 					_wheel_ctrl.control_attitude(control_input);
 
 					/* Calculate the control output for the steering as yaw */
-					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, _yaw, _ctrl_state.yaw_rate, deltaT);
+					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, euler_angles.psi(), _ctrl_state.yaw_rate, deltaT);
 
 					math::constrain(yaw_u, -1.0f, 1.0f);
 
@@ -533,14 +364,12 @@ GroundRoverAttitudeControl::task_main()
 					}
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(throttle_sp) &&
-							!(_vehicle_status.engine_failure ||
-							  _vehicle_status.engine_failure_cmd)) ?
-							throttle_sp : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = throttle_sp;
 
 					/* scale effort by battery status */
 					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
 					    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
+
 						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 					}
 
@@ -559,11 +388,11 @@ GroundRoverAttitudeControl::task_main()
 
 				if (_rate_sp_pub != nullptr) {
 					/* publish the attitude rates setpoint */
-					orb_publish(_rates_sp_id, _rate_sp_pub, &_rates_sp);
+					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
 
-				} else if (_rates_sp_id) {
+				} else {
 					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(_rates_sp_id, &_rates_sp);
+					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 				}
 
 			} else {
@@ -577,8 +406,6 @@ GroundRoverAttitudeControl::task_main()
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators.timestamp_sample = _ctrl_state.timestamp;
-			_actuators_rvrframe.timestamp = hrt_absolute_time();
-			_actuators_rvrframe.timestamp_sample = _ctrl_state.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_rates_enabled ||
@@ -586,19 +413,10 @@ GroundRoverAttitudeControl::task_main()
 			    _vcontrol_mode.flag_control_manual_enabled) {
 				/* publish the actuator controls */
 				if (_actuators_0_pub != nullptr) {
-					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-
-				} else if (_actuators_id) {
-					_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-				}
-
-				if (_actuators_2_pub != nullptr) {
-					/* publish the actuator controls*/
-					orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_rvrframe);
+					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuators_0_pub, &_actuators);
 
 				} else {
-					/* advertise and publish */
-					_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_rvrframe);
+					_actuators_0_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &_actuators);
 				}
 			}
 		}
