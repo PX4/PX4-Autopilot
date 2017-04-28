@@ -74,8 +74,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_pos_sp_triplet_sub(-1),
 	_ctrl_state_sub(-1),
 	_control_mode_sub(-1),
-	_vehicle_status_sub(-1),
-	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 
@@ -92,8 +90,6 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_gnd_pos_ctrl_status(),
 	_manual(),
 	_control_mode(),
-	_vehicle_status(),
-	_vehicle_land_detected(),
 	_global_pos(),
 	_pos_sp_triplet(),
 
@@ -221,40 +217,6 @@ GroundRoverPositionControl::vehicle_control_mode_poll()
 	}
 }
 
-void
-GroundRoverPositionControl::vehicle_status_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_attitude_setpoint_id) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-	}
-}
-
-void
-GroundRoverPositionControl::vehicle_land_detected_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_land_detected_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-}
-
 bool
 GroundRoverPositionControl::vehicle_manual_control_setpoint_poll()
 {
@@ -337,13 +299,6 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 	}
 
 	_control_position_last_called = hrt_absolute_time();
-
-	/* only run position controller if we are in fixed wing configuration */
-	//TODO: add a vehicle status for ground based robots, less safety required.
-	if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode || _vehicle_status.is_vtol) {
-		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
-		return false;
-	}
 
 	bool setpoint = true;
 
@@ -484,17 +439,11 @@ GroundRoverPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vehicle_status_sub, 200);
-	/* rate limit vehicle land detected updates to 5Hz */
-	orb_set_interval(_vehicle_land_detected_sub, 200);
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
@@ -536,12 +485,6 @@ GroundRoverPositionControl::task_main()
 
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
-
-		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
-
-		/* check vehicle land detected for changes to publication state */
-		vehicle_land_detected_poll();
 
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {

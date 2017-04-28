@@ -63,8 +63,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
 using namespace launchdetection;
@@ -110,8 +108,6 @@ private:
 	int		_pos_sp_triplet_sub;
 	int		_ctrl_state_sub;			/**< control state subscription */
 	int		_control_mode_sub;		/**< control mode subscription */
-	int		_vehicle_status_sub;		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_control_sub;		/**< notification of manual control updates */
 
@@ -126,8 +122,6 @@ private:
 	struct fw_pos_ctrl_status_s			_gnd_pos_ctrl_status;		/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
-	struct vehicle_status_s				_vehicle_status;		/**< vehicle status */
-	struct vehicle_land_detected_s			_vehicle_land_detected;		/**< vehicle land detected */
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
 
@@ -213,8 +207,6 @@ private:
 	int		parameters_update();
 	void		control_update();
 	void		vehicle_control_mode_poll();
-	void		vehicle_status_poll();
-	void		vehicle_land_detected_poll();
 	bool		vehicle_manual_control_setpoint_poll();
 	void		control_state_poll();
 	void		vehicle_setpoint_poll();

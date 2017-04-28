@@ -61,9 +61,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
 using matrix::Eulerf;
@@ -92,8 +90,6 @@ private:
 	int		_manual_sub;			/**< notification of manual control updates */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_vehicle_status_sub;		/**< vehicle status subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
@@ -110,9 +106,7 @@ private:
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
-	struct vehicle_land_detected_s			_vehicle_land_detected;	/**< vehicle land detected */
 	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
-	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -170,8 +164,6 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_setpoint_poll();
 	void		global_pos_poll();
-	void		vehicle_status_poll();
-	void		vehicle_land_detected_poll();
 	void		battery_status_poll();
 
 	static void	task_main_trampoline(int argc, char *argv[]);

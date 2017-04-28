@@ -69,16 +69,15 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_manual_sub(-1),
 	_params_sub(-1),
 	_vcontrol_mode_sub(-1),
-	_vehicle_status_sub(-1),
 
 	/* publications */
 	_rate_sp_pub(nullptr),
 	_attitude_sp_pub(nullptr),
 	_actuators_0_pub(nullptr),
 
-	_rates_sp_id(nullptr),
-	_actuators_id(nullptr),
-	_attitude_setpoint_id(nullptr),
+	_rates_sp_id(ORB_ID(vehicle_rates_setpoint)),
+	_actuators_id(ORB_ID(actuator_controls_0)),
+	_attitude_setpoint_id(ORB_ID(vehicle_attitude_setpoint)),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "gnda_dt")),
@@ -99,7 +98,6 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_manual = {};
 	_rates_sp = {};
 	_vcontrol_mode = {};
-	_vehicle_status = {};
 
 	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
@@ -241,25 +239,6 @@ GroundRoverAttitudeControl::global_pos_poll()
 }
 
 void
-GroundRoverAttitudeControl::vehicle_status_poll()
-{
-	/* check if there is new status information */
-	bool vehicle_status_updated;
-	orb_check(_vehicle_status_sub, &vehicle_status_updated);
-
-	if (vehicle_status_updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_rates_sp_id) {
-			_rates_sp_id = ORB_ID(vehicle_rates_setpoint);
-			_actuators_id = ORB_ID(actuator_controls_0);
-			_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-		}
-	}
-}
-
-void
 GroundRoverAttitudeControl::battery_status_poll()
 {
 	/* check if there is a new message */
@@ -289,7 +268,6 @@ GroundRoverAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	parameters_update();
@@ -298,7 +276,6 @@ GroundRoverAttitudeControl::task_main()
 	vehicle_setpoint_poll();
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
-	vehicle_status_poll();
 	battery_status_poll();
 
 	/* wakeup source */
@@ -369,7 +346,6 @@ GroundRoverAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
 			global_pos_poll();
-			vehicle_status_poll();
 			battery_status_poll();
 
 			/* lock integrator until control is started */
