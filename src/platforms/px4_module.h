@@ -76,7 +76,7 @@ extern pthread_mutex_t px4_modules_mutex;
 		// set _task_id and return 0
 		// on error return != 0 (and _task_id must be -1)
 	}
-	static T *instanciate(int argc, char *argv[]) {
+	static T *instantiate(int argc, char *argv[]) {
 		// this is called from within the new thread, from run_trampoline()
 		// parse the arguments
 		// create a new object T & return it
@@ -141,7 +141,7 @@ public:
 	/**
 	 * Entry point for px4_task_spawn_cmd() if the module runs in its own thread.
 	 * It does:
-	 * - instanciate the object
+	 * - instantiate the object
 	 * - call run() on it to execute the main loop
 	 * - cleanup: delete the object
 	 * @param argc start argument(s)
@@ -156,14 +156,14 @@ public:
 		argv += 1;
 #endif
 
-		_object = T::instanciate(argc, argv);
+		_object = T::instantiate(argc, argv);
 
 		if (_object) {
 			T *object = (T *)_object;
 			object->run();
 
 		} else {
-			PX4_ERR("failed to instanciate object");
+			PX4_ERR("failed to instantiate object");
 		}
 
 		exit_and_cleanup();

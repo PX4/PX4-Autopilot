@@ -159,7 +159,7 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static PX4FMU *instanciate(int argc, char *argv[]);
+	static PX4FMU *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -3337,7 +3337,7 @@ PX4FMU::fake(int argc, char *argv[])
 	return 0;
 }
 
-PX4FMU *PX4FMU::instanciate(int argc, char *argv[])
+PX4FMU *PX4FMU::instantiate(int argc, char *argv[])
 {
 	// No arguments to parse. We also know that we should run as task
 	PX4FMU *dev = new PX4FMU(true);
