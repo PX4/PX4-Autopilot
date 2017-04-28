@@ -915,7 +915,7 @@ void Ekf2Replay::task_main()
 
 		if (header[2] == LOG_FORMAT_MSG) {
 			// format message
-			struct log_format_s f;
+			struct log_format_s f = {};
 
 			if (::read(fd, &f.type, sizeof(f)) != sizeof(f)) {
 				PRINT_READ_ERROR;
