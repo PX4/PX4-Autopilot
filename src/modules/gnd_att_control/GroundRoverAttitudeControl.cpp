@@ -269,6 +269,24 @@ GroundRoverAttitudeControl::task_main()
 					/* Calculate the control output for the steering as yaw */
 					float yaw_u = pid_calculate(&_steering_ctrl, _att_sp.yaw_body, euler_angles.psi(), _ctrl_state.yaw_rate, deltaT);
 
+					float angle_diff = 0.0f;
+
+					if (_att_sp.yaw_body * euler_angles.psi() < 0.0f)
+					{
+						if (_att_sp.yaw_body < 0.0f)
+						{
+							angle_diff = euler_angles.psi() -_att_sp.yaw_body ;
+						} else {
+							angle_diff = _att_sp.yaw_body - euler_angles.psi();
+						}
+						// a switch might have happened
+						if (angle_diff > M_PI)
+						{
+							yaw_u = -yaw_u;
+						}
+						
+					}
+
 					math::constrain(yaw_u, -1.0f, 1.0f);
 
 					if (PX4_ISFINITE(yaw_u)) {
