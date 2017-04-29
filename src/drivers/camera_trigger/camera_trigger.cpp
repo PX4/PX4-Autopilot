@@ -151,6 +151,7 @@ private:
 	float 			_distance;
 	uint32_t 		_trigger_seq;
 	bool			_trigger_enabled;
+	bool			_test_shot;
 	math::Vector<2>		_last_shoot_position;
 	bool			_valid_position;
 
@@ -221,6 +222,7 @@ CameraTrigger::CameraTrigger() :
 	_distance(25.0f /* m */),
 	_trigger_seq(0),
 	_trigger_enabled(false),
+	_test_shot(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
 	_vcommand_sub(-1),
@@ -375,7 +377,7 @@ CameraTrigger::start()
 		control(true);
 	}
 
-	// Prevent camera from sleeping, if triggering is enabled and the interface supports it
+	// If not in mission mode and the interface supports it, enable power to the camera
 	if ((_mode > 0 && _mode < 4) && _camera_interface->has_power_control()) {
 		toggle_power();
 		enable_keep_alive(true);
@@ -440,6 +442,10 @@ CameraTrigger::cycle_trampoline(void *arg)
 	// while the trigger is inactive it has to be ready to become active instantaneously
 	int poll_interval_usec = 5000;
 
+	/**
+	  * Test mode handling
+	  */
+
 	// check for command update
 	if (updated) {
 
@@ -452,8 +458,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			if (cmd.param5 > 0) {
 
-				// If camera isn't powered on, we enable power
-				// to it on getting the test command.
+				// If camera isn't powered on, we enable power to it on
+				// getting the test command.
 
 				if (trig->_camera_interface->has_power_control() &&
 				    !trig->_camera_interface->is_powered_on()) {
@@ -466,21 +472,25 @@ CameraTrigger::cycle_trampoline(void *arg)
 					turning_on = true;
 				}
 
-				// One-shot trigger
-				trig->_trigger_enabled = true;
+				// Schedule test shot
+				trig->_test_shot = true;
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			}
 		}
 	}
 
-	if (trig->_trigger_enabled && !turning_on) {
+	if (trig->_test_shot && !turning_on) {
 
 		// One-shot trigger
 		trig->shoot_once();
-		trig->_trigger_enabled = false;
+		trig->_test_shot = false;
 
 	}
+
+	/**
+	  * Main mode handling
+	  */
 
 	if (trig->_mode == 1) { // 1 - Command controlled mode
 
@@ -497,101 +507,102 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 				}
 
-				// Set trigger rate from command
 				if (cmd.param2 > 0.0f) {
+					// set trigger rate from command
 					trig->_interval = cmd.param2;
 					param_set(trig->_p_interval, &(trig->_interval));
 				}
 
-				if (cmd.param1 < 1.0f) {
-					trig->control(false);
-
-				} else if (cmd.param1 >= 1.0f) {
+				if (cmd.param1 > 0.0f) {
 					trig->control(true);
 					// while the trigger is active there is no
 					// need to poll at a very high rate
 					poll_interval_usec = 100000;
+
+				} else {
+					trig->control(false);
+
 				}
 
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			}
+		}
 
-		} else if (trig->_mode == 3 || trig->_mode == 4) { // 3,4 - Distance controlled modes
+	} else if (trig->_mode == 3 || trig->_mode == 4) { // 3,4 - Distance controlled modes
 
-			// Set trigger based on covered distance
-			if (trig->_vlposition_sub < 0) {
-				trig->_vlposition_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-			}
+		// Set trigger based on covered distance
+		if (trig->_vlposition_sub < 0) {
+			trig->_vlposition_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+		}
 
-			struct vehicle_local_position_s pos = {};
+		struct vehicle_local_position_s pos = {};
 
-			orb_copy(ORB_ID(vehicle_local_position), trig->_vlposition_sub, &pos);
+		orb_copy(ORB_ID(vehicle_local_position), trig->_vlposition_sub, &pos);
 
-			if (pos.xy_valid) {
+		if (pos.xy_valid) {
 
-				// Check update from command
-				if (updated) {
+			// Check for command update
+			if (updated) {
 
-					if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
+				if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
 
-						need_ack = true;
+					need_ack = true;
 
-						// Set trigger to disabled if the set distance is not positive
-						if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
+					if (cmd.param1 > 0.0f && !trig->_trigger_enabled) {
 
-							if (trig->_camera_interface->has_power_control()) {
-								trig->toggle_power();
-								trig->enable_keep_alive(true);
+						if (trig->_camera_interface->has_power_control()) {
+							trig->toggle_power();
+							trig->enable_keep_alive(true);
 
-								// Give the camera time to turn on, before starting to send trigger signals
-								poll_interval_usec = 3000000;
-								turning_on = true;
-							}
-
-						} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
-
-							hrt_cancel(&(trig->_engagecall));
-							hrt_cancel(&(trig->_disengagecall));
-
-							if (trig->_camera_interface->has_power_control()) {
-								trig->enable_keep_alive(false);
-								trig->toggle_power();
-							}
-
+							// Give the camera time to turn on before sending trigger signals
+							poll_interval_usec = 3000000;
+							turning_on = true;
 						}
 
-						trig->_trigger_enabled = cmd.param1 > 0.0f;
-						trig->_distance = cmd.param1;
+					} else if (cmd.param1 <= 0.0f && trig->_trigger_enabled) {
 
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						// Disable trigger if the set distance is not positive
+						hrt_cancel(&(trig->_engagecall));
+						hrt_cancel(&(trig->_disengagecall));
+
+						if (trig->_camera_interface->has_power_control()) {
+							trig->enable_keep_alive(false);
+							trig->toggle_power();
+						}
 
 					}
-				}
 
-				if (trig->_trigger_enabled && !turning_on) {
+					trig->_trigger_enabled = cmd.param1 > 0.0f;
+					trig->_distance = cmd.param1;
 
-					// Initialize position if not done yet
-					math::Vector<2> current_position(pos.x, pos.y);
-
-					if (!trig->_valid_position) {
-						// First time valid position, take first shot
-						trig->_last_shoot_position = current_position;
-						trig->_valid_position = pos.xy_valid;
-						trig->shoot_once();
-					}
-
-					// Check that distance threshold is exceeded
-					if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
-						trig->shoot_once();
-						trig->_last_shoot_position = current_position;
-					}
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				}
-
-			} else {
-				poll_interval_usec = 100000;
 			}
+
+			if (trig->_trigger_enabled && !turning_on) {
+
+				// Initialize position if not done yet
+				math::Vector<2> current_position(pos.x, pos.y);
+
+				if (!trig->_valid_position) {
+					// First time valid position, take first shot
+					trig->_last_shoot_position = current_position;
+					trig->_valid_position = pos.xy_valid;
+					trig->shoot_once();
+				}
+
+				// Check that distance threshold is exceeded
+				if ((trig->_last_shoot_position - current_position).length() >= trig->_distance) {
+					trig->shoot_once();
+					trig->_last_shoot_position = current_position;
+				}
+
+			}
+
+		} else {
+			poll_interval_usec = 100000;
 		}
 	}
 
