@@ -34,17 +34,12 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=px4_metadata
-    - os: osx
-      sudo: true
-      osx_image: xcode8
-      env: BUILD_TARGET=tests
 
 cache:
   ccache: true
 
 before_install:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then sudo -H easy_install pip && sudo -H pip install empy jinja2; fi
 
 env:
   global:
@@ -68,8 +63,6 @@ script:
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
       PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make clang-tidy-parallel';
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      make tests;
     fi
 
 after_success:
