@@ -405,10 +405,10 @@ void Ekf::fuseOptFlow()
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 		if (optflow_test_ratio[obs_index] > 1.0f) {
 			flow_fail = true;
-			_innov_check_fail_status.value |= (1 << (obs_index + 9));
+			_innov_check_fail_status.value |= (1 << (obs_index + 10));
 
 		} else {
-			_innov_check_fail_status.value &= ~(1 << (obs_index + 9));
+			_innov_check_fail_status.value &= ~(1 << (obs_index + 10));
 
 		}
 	}
