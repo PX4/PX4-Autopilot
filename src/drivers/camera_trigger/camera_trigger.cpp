@@ -631,8 +631,14 @@ CameraTrigger::engage(void *arg)
 
 	report.seq = trig->_trigger_seq++;
 
-	int instance_id = 0;
-	orb_publish_auto(ORB_ID(camera_trigger), &trig->_trigger_pub, &report, &instance_id, ORB_PRIO_DEFAULT);
+	if (trig->_trigger_pub == nullptr) {
+		trig->_trigger_pub = orb_advertise_queue(ORB_ID(camera_trigger), &report,
+				     camera_trigger_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
+
+	}
 }
 
 void
