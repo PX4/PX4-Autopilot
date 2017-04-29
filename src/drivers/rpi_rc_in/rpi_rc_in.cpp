@@ -43,12 +43,12 @@ int RcInput::rpi_rc_init()
 	//--------------初始化共享内存映射----------------------------//
 	if ((this->shmid = shmget(this->key, sizeof(int) * this->_channels, 0666))
 	    < 0) {
-		PX4_WARN("无法访问共享内存");
+		PX4_WARN("无法访问共享内存。Faild to access shared memory");
 		return -1;
 	}
 
 	if ((this->mem = (int *) shmat(this->shmid, NULL, 0)) == (void *) - 1) {
-		PX4_WARN("无法映射共享内存");
+		PX4_WARN("无法映射共享内存。Faild to mapping shared memory");
 		return -1;
 	}
 
@@ -113,11 +113,12 @@ void RcInput::_cycle()
 void RcInput::_measure(void)
 {
 	uint64_t ts;
-	// PWM  数据发布
+	// PWM数据发布
+	// read pwm value from shared memory
 	int i = 0;
 
 	for (i = 0; i < _channels; ++i) {
-		_data.values[i] = *(this->mem + i);
+		_data.values[i] = (*(this->mem + i) <= 0) ? UINT16_MAX : *(this->mem + i);
 	}
 
 	ts = hrt_absolute_time();
@@ -158,7 +159,7 @@ int rpi_rc_in_main(int argc, char **argv)
 	if (!strcmp(argv[1], "start")) {
 
 		if (rc_input != nullptr && rc_input->isRunning()) {
-			PX4_WARN("运行中。");
+			PX4_WARN("运行中。running");
 			/* this is not an error */
 			return 0;
 		}
@@ -167,14 +168,14 @@ int rpi_rc_in_main(int argc, char **argv)
 
 		// Check if alloc worked.
 		if (nullptr == rc_input) {
-			PX4_ERR("遥控输入模块初始化错误。");
+			PX4_ERR("遥控输入模块初始化错误。Rc input moduel  initialization faild");
 			return -1;
 		}
 
 		int ret = rc_input->start();
 
 		if (ret != 0) {
-			PX4_ERR("遥控输入模块未能启动");
+			PX4_ERR("遥控输入模块未能启动。 Rc input module failure");
 		}
 
 		return 0;
@@ -183,7 +184,7 @@ int rpi_rc_in_main(int argc, char **argv)
 	if (!strcmp(argv[1], "stop")) {
 
 		if (rc_input == nullptr || !rc_input->isRunning()) {
-			PX4_WARN("模块未运行");
+			PX4_WARN("模块未运行。 Not runing");
 			/* this is not an error */
 			return 0;
 		}
@@ -207,16 +208,16 @@ int rpi_rc_in_main(int argc, char **argv)
 
 	if (!strcmp(argv[1], "status")) {
 		if (rc_input != nullptr && rc_input->isRunning()) {
-			PX4_INFO("运行中");
+			PX4_INFO("运行中。 running");
 
 		} else {
-			PX4_INFO("未运行\n");
+			PX4_INFO("未运行。 Not runing\n");
 		}
 
 		return 0;
 	}
 
-	usage("不知道你要做什么");
+	usage("不知道你要做什么。 rpi_rc_in start|stop|status");
 	return 1;
 
 }

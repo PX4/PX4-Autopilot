@@ -80,11 +80,15 @@ int rpi_pca9685_pwm_out::initialize_mixer(const char *mixer_filename)
 int rpi_pca9685_pwm_out::pwm_initialize()
 {
 	/**************初始化PCA9685开始*************/
+	/**************PCA965 initializing********/
 	pwm.init(1, 0x40);
 	usleep(1000 * 100);
-	pwm.setPWMFreq(200);  //12BIT 精度输出下，好赢电调可以到200HZ刷新
+	/****12BIT 精度输出下，好赢电调可以到200HZ刷新***/
+	/****200HZ for 12bit Resolution, support most of the esc***/
+	pwm.setPWMFreq(200);
 	usleep(1000 * 1000);
 	/**************初始化PCA9685结束************/
+	/**************PCA965 initialized********/
 	return 0;
 }
 //----------------------------------------------------------------------------//
@@ -95,7 +99,8 @@ void rpi_pca9685_pwm_out::pwm_deinitialize()
 //----------------------------------------------------------------------------//
 void rpi_pca9685_pwm_out::send_outputs_pwm(const uint16_t *pwm)
 {
-	//向PCA9685发送数据
+	/*************向PCA9685发送数据*************/
+	/*************send pwm signal to pca9685 initializing*************/
 	int i;
 
 	for (i = 0; i < NUM_PWM; ++i) {
@@ -141,11 +146,12 @@ void rpi_pca9685_pwm_out::task_main(int argc, char *argv[])
 	_is_running = true;
 
 	/***************初始化PCA9685************/
+	/***************rpc_pca9685_pwm_out*************/
 	rpi_pca9685_pwm_out::pwm_initialize();
 
 	// Set up mixer
 	if (initialize_mixer(_mixer_filename) < 0) {
-		PX4_ERR("无法初始化通道混合配置文件");
+		PX4_ERR("无法初始化通道混合配置文件 Can't loading mixer file");
 		return;
 	}
 
