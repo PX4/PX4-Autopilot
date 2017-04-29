@@ -280,7 +280,7 @@ GroundRoverAttitudeControl::task_main()
 							angle_diff = _att_sp.yaw_body - euler_angles.psi();
 						}
 						// a switch might have happened
-						if (angle_diff > M_PI)
+						if ((double)angle_diff > M_PI)
 						{
 							yaw_u = -yaw_u;
 						}
