@@ -51,7 +51,6 @@
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <geo/geo.h>
-#include <launchdetection/LaunchDetector.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/pid/pid.h>
@@ -65,22 +64,13 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/uORB.h>
 
-using namespace launchdetection;
+using matrix::Dcmf;
 
 class GroundRoverPositionControl
 {
 public:
-	/**
-	 * Constructor
-	 */
 	GroundRoverPositionControl();
-
-	/**
-	 * Destructor, also kills the sensors task.
-	 */
 	~GroundRoverPositionControl();
-
-	// prevent copying
 	GroundRoverPositionControl(const GroundRoverPositionControl &) = delete;
 	GroundRoverPositionControl operator=(const GroundRoverPositionControl &other) = delete;
 
@@ -99,70 +89,56 @@ public:
 	bool		task_running() { return _task_running; }
 
 private:
-	orb_advert_t	_mavlink_log_pub;
+	orb_advert_t	_mavlink_log_pub{nullptr};
+	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
+	orb_advert_t	_gnd_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	bool		_task_running;			/**< if true, task is running in its mainloop */
+	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
+	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
-	int		_global_pos_sub;
-	int		_pos_sp_triplet_sub;
-	int		_ctrl_state_sub;			/**< control state subscription */
-	int		_control_mode_sub;		/**< control mode subscription */
-	int		_params_sub;			/**< notification of parameter updates */
-	int		_manual_control_sub;		/**< notification of manual control updates */
+	int		_control_mode_sub{-1};		/**< control mode subscription */
+	int		_ctrl_state_sub{-1};			/**< control state subscription */
+	int		_global_pos_sub{-1};
+	int		_manual_control_sub{-1};		/**< notification of manual control updates */
+	int		_params_sub{-1};			/**< notification of parameter updates */
+	int		_pos_sp_triplet_sub{-1};
 
-	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
-
-	orb_advert_t	_gnd_pos_ctrl_status_pub;		/**< navigation capabilities publication */
-
-	orb_id_t _attitude_setpoint_id;
-
-	struct control_state_s				_ctrl_state;			/**< control state */
-	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
-	struct fw_pos_ctrl_status_s			_gnd_pos_ctrl_status;		/**< navigation capabilities */
-	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
-	struct vehicle_control_mode_s			_control_mode;			/**< control mode */
-	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
-	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
+	control_state_s				_ctrl_state{};			/**< control state */
+	fw_pos_ctrl_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
+	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
+	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
+	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_control_mode{};			/**< control mode */
+	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	hrt_abstime _control_position_last_called; 	/**<last call of control_position  */
-
-	/* Takeoff launch detection and runway */
-	LaunchDetectionResult _launch_detection_state;
+	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
-	PID_t _speed_ctrl;
+	PID_t _speed_ctrl{};
 
 	/* throttle and airspeed states */
-	float _speed_error;				///< airspeed error to setpoint in m/s
-	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
-	uint64_t _airspeed_last_received;		///< last time airspeed was received. Used to detect timeouts.
-
-	bool _global_pos_valid;				///< global position is valid
-	math::Matrix<3, 3> _R_nb;			///< current attitude
-	float _roll;
-	float _pitch;
-	float _yaw;
+	float _speed_error{0.0f};				///< airspeed error to setpoint in m/s
 
 	// estimator reset counters
-	uint8_t _pos_reset_counter;		// captures the number of times the estimator has reset the horizontal position
+	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
 
 	ECL_L1_Pos_Controller				_gnd_control;
 
 	enum UGV_POSCTRL_MODE {
 		UGV_POSCTRL_MODE_AUTO,
 		UGV_POSCTRL_MODE_OTHER
-	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
+	} _control_mode_current{UGV_POSCTRL_MODE_OTHER};			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
 		float l1_period;
 		float l1_damping;
 		float l1_distance;
 
-		float airspeed_max;
+		float gndspeed_trim;
+		float gndspeed_max;
 
 		int32_t speed_control_mode;
 		float speed_p;
@@ -176,17 +152,18 @@ private:
 		float throttle_cruise;
 		float throttle_slew_max;
 
-	} _parameters;			/**< local copies of interesting parameters */
+	} _parameters{};			/**< local copies of interesting parameters */
 
 	struct {
-
 		param_t l1_period;
 		param_t l1_damping;
 		param_t l1_distance;
 
-		param_t airspeed_max;
+		param_t gndspeed_trim;
+		param_t gndspeed_max;
 
 		param_t speed_control_mode;
+
 		param_t speed_p;
 		param_t speed_i;
 		param_t speed_d;
@@ -198,18 +175,18 @@ private:
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
 
-	} _parameter_handles;		/**< handles for interesting parameters */
+	} _parameter_handles{};		/**< handles for interesting parameters */
 
 
 	/**
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-	void		control_update();
-	void		vehicle_control_mode_poll();
-	bool		vehicle_manual_control_setpoint_poll();
+
+	void		manual_control_setpoint_poll();
 	void		control_state_poll();
-	void		vehicle_setpoint_poll();
+	void		position_setpoint_triplet_poll();
+	void		vehicle_control_mode_poll();
 
 	/**
 	 * Publish navigation capabilities
@@ -220,7 +197,7 @@ private:
 	 * Control position.
 	 */
 	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<3> &ground_speed,
-					 const struct position_setpoint_triplet_s &_pos_sp_triplet);
+					 const position_setpoint_triplet_s &_pos_sp_triplet);
 
 	/**
 	 * Shim for calling task_main from task_create.
