@@ -152,8 +152,6 @@ stm32_boardinitialize(void)
 	/* configure power supply control/sense pins */
 
 	px4_arch_configgpio(GPIO_SBUS_INV);
-	px4_arch_configgpio(GPIO_RC_OUT);	/* Serial RC output pin */
-	px4_arch_gpiowrite(GPIO_RC_OUT, 1);	/* set it high to pull RC input up */
 	px4_arch_configgpio(GPIO_FRSKY_INV);
 
 	/* configure the GPIO pins to outputs and keep them low */

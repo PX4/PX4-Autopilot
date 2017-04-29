@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -67,21 +67,24 @@ public:
 	virtual void print_status();
 
 protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data);
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
 	virtual int initialize();
 
-	virtual void _read_control_data_from_subscription(ControlData &control_data);
+	/**
+	 * @return true if there was a change in control data
+	 */
+	virtual bool _read_control_data_from_subscription(ControlData &control_data, bool already_active);
 
 	int _get_subscription_fd() const { return _manual_control_setpoint_sub; }
 
-private:
 	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
+private:
 	int _aux_channels[3];
 	int _manual_control_setpoint_sub = -1;
 
-	friend class InputMavlinkROI;
-	friend class InputMavlinkCmdMount;
+	bool _first_time = true;
+	float _last_set_aux_values[3] = {};
 };
 
 

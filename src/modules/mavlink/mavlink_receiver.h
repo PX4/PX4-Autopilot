@@ -151,6 +151,7 @@ private:
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_logging_ack(mavlink_message_t *msg);
+	void handle_message_play_tune(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -251,6 +252,10 @@ private:
 
 	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT];
 	uint16_t _mom_switch_state;
+
+	param_t _p_bat_emergen_thr;
+	param_t _p_bat_crit_thr;
+	param_t _p_bat_low_thr;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver &);

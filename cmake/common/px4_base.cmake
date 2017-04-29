@@ -440,13 +440,6 @@ function(px4_generate_messages)
 		)
 	set_source_files_properties(${msg_source_files_out} PROPERTIES GENERATED TRUE)
 
-	# We remove uORBTopics.cpp to make sure the generator is re-run, which is
-	# necessary when a .msg file is removed and because uORBTopics.cpp depends
-	# on all topics.
-	execute_process(COMMAND rm uORBTopics.cpp
-		WORKING_DIRECTORY ${msg_source_out_path}
-		ERROR_QUIET)
-
 	# multi messages for target OS
 	set(msg_multi_out_path
 		${PX4_BINARY_DIR}/src/platforms/${OS}/px4_messages)
@@ -516,6 +509,7 @@ function(px4_add_upload)
 			/dev/serial/by-id/usb-Bitcraze*
 			/dev/serial/by-id/pci-3D_Robotics*
 			/dev/serial/by-id/pci-Bitcraze*
+			/dev/serial/by-id/usb-Gumstix*
 			)
 	elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
 		list(APPEND serial_ports
@@ -820,7 +814,6 @@ function(px4_add_common_flags)
 
 	set(cxx_warnings
 		-Wno-missing-field-initializers
-		#-Weffc++
 		)
 
 	set(cxx_compile_flags
@@ -986,10 +979,34 @@ function(px4_create_git_hash_header)
 
 	set(px4_git_ver_header ${PX4_BINARY_DIR}/build_git_version.h)
 
+	# check if px4 source is a git repo
+	if(EXISTS ${PX4_SOURCE_DIR}/.git)
+		if (IS_DIRECTORY ${PX4_SOURCE_DIR}/.git)
+			# standard git repo
+			set(git_dir_path ${PX4_SOURCE_DIR}/.git)
+		else()
+			# git submodule
+			file(READ ${PX4_SOURCE_DIR}/.git git_dir_path)
+			string(STRIP ${git_dir_path} git_dir_path)
+			string(REPLACE "gitdir: " "" git_dir_path ${git_dir_path})
+			get_filename_component(git_dir_path ${git_dir_path} ABSOLUTE)
+		endif()
+	else()
+		message(FATAL_ERROR "is not a git repository")
+	endif()
+	if(NOT IS_DIRECTORY "${git_dir_path}")
+		message(FATAL_ERROR "${git_dir_path} is not a directory")
+	endif()
+
+	set(deps
+		${PX4_SOURCE_DIR}/Tools/px_update_git_header.py
+		${git_dir_path}/index
+		${git_dir_path}/HEAD)
+
 	add_custom_command(
 		OUTPUT ${px4_git_ver_header}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${px4_git_ver_header} > ${PX4_BINARY_DIR}/git_header.log
-		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_update_git_header.py ${PX4_SOURCE_DIR}/.git/index ${PX4_SOURCE_DIR}/.git/HEAD
+		DEPENDS ${deps}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		COMMENT "Generating git hash header"
 		)
@@ -1032,14 +1049,26 @@ function(px4_generate_parameters_xml)
 	if (NOT OVERRIDES)
 		set(OVERRIDES "{}")
 	endif()
-	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
+	
+	# get full path for each module
+	set(module_list)
+	if(DISABLE_PARAMS_MODULE_SCOPING)
+		set(module_list ${path})
+	else()
+		foreach(module ${MODULES})
+			list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
+		endforeach()
+	endif()
+
 	add_custom_command(OUTPUT ${OUT}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${path} --board CONFIG_ARCH_${BOARD} --xml --inject-xml
-			--overrides ${OVERRIDES} --modules ${module_list}
+			-s ${module_list} ${EXTERNAL_MODULES_LOCATION}
+			--board CONFIG_ARCH_${BOARD} --xml --inject-xml
+			--overrides ${OVERRIDES}
 		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
 			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		)
+	)
+
 	set(${OUT} ${${OUT}} PARENT_SCOPE)
 endfunction()
 
@@ -1075,12 +1104,22 @@ function(px4_generate_parameters_source)
 		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
 	set_source_files_properties(${generated_files}
 		PROPERTIES GENERATED TRUE)
-	px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
-	add_custom_command(OUTPUT ${generated_files}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
-		DEPENDS ${XML} ${DEPS}
+
+	if(DISABLE_PARAMS_MODULE_SCOPING)
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
 		)
+	else()
+		px4_join(OUT module_list  LIST ${MODULES} GLUE ",")
+		add_custom_command(OUTPUT ${generated_files}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+				--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
+			DEPENDS ${XML} ${DEPS}
+		)
+	endif()
+
 	set(${OUT} ${generated_files} PARENT_SCOPE)
 endfunction()
 

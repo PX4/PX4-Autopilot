@@ -91,15 +91,12 @@ population_results = {
 'imu_coning_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU delta angle coning vibration level (mrad)'],
 'imu_coning_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta angle coning vibration level (mrad)'],
 'imu_hfdang_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency delta angle vibration level (mrad)'],
-'imu_hfdang_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta hihg frequency delta angle vibration level (mrad)'],
+'imu_hfdang_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency delta angle vibration level (mrad)'],
 'imu_hfdvel_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency delta velocity vibration level (m/s)'],
 'imu_hfdvel_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency delta velocity vibration level (m/s)'],
-'obs_ang_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the output observer angular tracking error magnitude (mrad)'],
-'obs_ang_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the output observer angular tracking error magnitude (mrad)'],
-'obs_vel_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the output observer velocity tracking error magnitude (m/s)'],
-'obs_vel_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the output observer velocity tracking error magnitude (m/s)'],
-'obs_pos_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the output observer position tracking error magnitude (m)'],
-'obs_pos_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the output observer position tracking error magnitude (m)'],
+'obs_ang_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer angular tracking error magnitude (mrad)'],
+'obs_vel_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer velocity tracking error magnitude (m/s)'],
+'obs_pos_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer position tracking error magnitude (m)'],
 }
 
 # get population summary statistics
@@ -171,6 +168,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
 pp.savefig()
+plt.close(1)
 
 # Velocity Sensor (GPS)
 temp = np.asarray([population_data[k].get('vel_test_max') for k in found_keys])
@@ -197,6 +195,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(2)
 
 # Position Sensor (GPS or external vision)
 temp = np.asarray([population_data[k].get('pos_test_max') for k in found_keys])
@@ -223,6 +222,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(3)
 
 # Height Sensor
 temp = np.asarray([population_data[k].get('hgt_test_max') for k in found_keys])
@@ -249,6 +249,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(4)
 
 # Airspeed Sensor
 temp = np.asarray([population_data[k].get('tas_test_max') for k in found_keys])
@@ -275,6 +276,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(5)
 
 # Height Above Ground Sensor
 temp = np.asarray([population_data[k].get('hagl_test_max') for k in found_keys])
@@ -301,6 +303,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(6)
 
 # Optical Flow Sensor
 temp = np.asarray([population_data[k].get('ofx_fail_percentage') for k in found_keys])
@@ -327,7 +330,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
-
+    plt.close(7)
 
 # IMU coning vibration levels
 temp = np.asarray([population_data[k].get('imu_coning_peak') for k in found_keys])
@@ -354,6 +357,7 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(8)
 
 # IMU high frequency delta angle vibration levels
 temp = np.asarray([population_data[k].get('imu_hfdang_peak') for k in found_keys])
@@ -380,12 +384,13 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(9)
 
 # IMU high frequency delta velocity vibration levels
 temp = np.asarray([population_data[k].get('imu_hfdvel_peak') for k in found_keys])
-result1 = 1000.0 * temp[np.isfinite(temp)]
+result1 = temp[np.isfinite(temp)]
 temp = np.asarray([population_data[k].get('imu_hfdvel_mean') for k in found_keys])
-result2 = 1000.0 * temp[np.isfinite(temp)]
+result2 = temp[np.isfinite(temp)]
 
 if (len(result1) > 0 and len(result2) > 0):
     population_results['imu_hfdvel_max_avg'][0] = np.mean(result1)
@@ -406,84 +411,88 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(10)
 
 # Output Observer Angular Tracking
-temp = np.asarray([population_data[k].get('output_obs_ang_err_peak') for k in found_keys])
-result1 = 1000.0 * temp[np.isfinite(temp)]
-temp = np.asarray([population_data[k].get('output_obs_ang_err_mean') for k in found_keys])
-result2 = 1000.0 * temp[np.isfinite(temp)]
+temp = np.asarray([population_data[k].get('output_obs_ang_err_median') for k in found_keys])
+result = 1000.0 * temp[np.isfinite(temp)]
 
-if (len(result1) > 0 and len(result2) > 0):
-    population_results['obs_ang_max_avg'][0] = np.mean(result1)
-    population_results['obs_ang_mean_avg'][0] = np.mean(result2)
+if (len(result) > 0):
+    population_results['obs_ang_median_avg'][0] = np.mean(result)
 
     plt.figure(11,figsize=(20,13))
 
-    plt.subplot(2,1,1)
-    plt.hist(result1)
-    plt.title("Gaussian Histogram - Output Observer Angular Tracking Error Peak")
-    plt.xlabel("output_obs_ang_err_peak (mrad)")
-    plt.ylabel("Frequency")
-
-    plt.subplot(2,1,2)
-    plt.hist(result2)
-    plt.title("Gaussian Histogram - Output Observer Angular Tracking Error Mean")
-    plt.xlabel("output_obs_ang_err_mean (mrad)")
+    plt.hist(result)
+    plt.title("Gaussian Histogram - Output Observer Angular Tracking Error Median")
+    plt.xlabel("output_obs_ang_err_median (mrad)")
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(11)
 
 # Output Observer Velocity Tracking
-temp = np.asarray([population_data[k].get('output_obs_vel_err_peak') for k in found_keys])
-result1 = temp[np.isfinite(temp)]
-temp = np.asarray([population_data[k].get('output_obs_vel_err_mean') for k in found_keys])
-result2 = temp[np.isfinite(temp)]
+temp = np.asarray([population_data[k].get('output_obs_vel_err_median') for k in found_keys])
+result = temp[np.isfinite(temp)]
 
-if (len(result1) > 0 and len(result2) > 0):
-    population_results['obs_vel_max_avg'][0] = np.mean(result1)
-    population_results['obs_vel_mean_avg'][0] = np.mean(result2)
+if (len(result) > 0):
+    population_results['obs_vel_median_avg'][0] = np.mean(result)
 
     plt.figure(12,figsize=(20,13))
 
-    plt.subplot(2,1,1)
-    plt.hist(result1)
-    plt.title("Gaussian Histogram - Output Observer Velocity Tracking Error Peak")
-    plt.xlabel("output_obs_ang_err_peak (m/s)")
-    plt.ylabel("Frequency")
-
-    plt.subplot(2,1,2)
-    plt.hist(result2)
-    plt.title("Gaussian Histogram - Output Observer Velocity Tracking Error Mean")
-    plt.xlabel("output_obs_ang_err_mean (m/s)")
+    plt.hist(result)
+    plt.title("Gaussian Histogram - Output Observer Velocity Tracking Error Median")
+    plt.xlabel("output_obs_ang_err_median (m/s)")
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(12)
 
 # Output Observer Position Tracking
-temp = np.asarray([population_data[k].get('output_obs_pos_err_peak') for k in found_keys])
-result1 = temp[np.isfinite(temp)]
-temp = np.asarray([population_data[k].get('output_obs_pos_err_mean') for k in found_keys])
-result2 = temp[np.isfinite(temp)]
+temp = np.asarray([population_data[k].get('output_obs_pos_err_median') for k in found_keys])
+result = temp[np.isfinite(temp)]
 
-if (len(result1) > 0 and len(result2) > 0):
-    population_results['obs_pos_max_avg'][0] = np.mean(result1)
-    population_results['obs_pos_mean_avg'][0] = np.mean(result2)
+if (len(result) > 0):
+    population_results['obs_pos_median_avg'][0] = np.mean(result)
 
     plt.figure(13,figsize=(20,13))
 
-    plt.subplot(2,1,1)
-    plt.hist(result1)
-    plt.title("Gaussian Histogram - Output Observer Position Tracking Error Peak")
-    plt.xlabel("output_obs_ang_err_peak (m)")
-    plt.ylabel("Frequency")
-
-    plt.subplot(2,1,2)
-    plt.hist(result2)
-    plt.title("Gaussian Histogram - Output Observer Position Tracking Error Mean")
-    plt.xlabel("output_obs_ang_err_mean (m)")
+    plt.hist(result)
+    plt.title("Gaussian Histogram - Output Observer Position Tracking Error Median")
+    plt.xlabel("output_obs_ang_err_median (m)")
     plt.ylabel("Frequency")
 
     pp.savefig()
+    plt.close(13)
+
+# IMU delta angle bias
+temp = np.asarray([population_data[k].get('imu_dang_bias_median') for k in found_keys])
+result = temp[np.isfinite(temp)]
+
+if (len(result) > 0):
+    plt.figure(14,figsize=(20,13))
+
+    plt.hist(result)
+    plt.title("Gaussian Histogram - IMU Delta Angle Bias Median")
+    plt.xlabel("imu_dang_bias_median (rad)")
+    plt.ylabel("Frequency")
+
+    pp.savefig()
+    plt.close(14)
+
+# IMU delta velocity bias
+temp = np.asarray([population_data[k].get('imu_dvel_bias_median') for k in found_keys])
+result = temp[np.isfinite(temp)]
+
+if (len(result) > 0):
+    plt.figure(15,figsize=(20,13))
+
+    plt.hist(result)
+    plt.title("Gaussian Histogram - IMU Delta Velocity Bias Median")
+    plt.xlabel("imu_dvel_bias_median (m/s)")
+    plt.ylabel("Frequency")
+
+    pp.savefig()
+    plt.close(15)
 
 # close the pdf file
 pp.close()
@@ -546,12 +555,9 @@ single_log_results = {
 'ofx_fail_percentage':[float('NaN'),'The percentage of in-flight recorded failure events for the optical flow sensor X-axis innovation consistency test.'],
 'ofy_fail_percentage':[float('NaN'),'The percentage of in-flight recorded failure events for the optical flow sensor Y-axis innovation consistency test.'],
 'on_ground_transition_time':[float('NaN'),'The time in seconds measured from startup  that the EKF transitioned out of in-air mode. Set to a nan if a transition event is not detected.'],
-'output_obs_ang_err_mean':[float('NaN'),'Mean in-flight value of the output observer angular error (rad)'],
-'output_obs_ang_err_peak':[float('NaN'),'Peak in-flight value of the output observer angular error (rad)'],
-'output_obs_pos_err_mean':[float('NaN'),'Mean in-flight value of the output observer position error (m)'],
-'output_obs_pos_err_peak':[float('NaN'),'Peak in-flight value of the output observer position error (m)'],
-'output_obs_vel_err_mean':[float('NaN'),'Mean in-flight value of the output observer velocity error (m/s)'],
-'output_obs_vel_err_peak':[float('NaN'),'Peak in-flight value of the output observer velocity error (m/s)'],
+'output_obs_ang_err_median':[float('NaN'),'Median in-flight value of the output observer angular error (rad)'],
+'output_obs_pos_err_median':[float('NaN'),'Median in-flight value of the output observer position error (m)'],
+'output_obs_vel_err_median':[float('NaN'),'Median in-flight value of the output observer velocity error (m/s)'],
 'pos_fail_percentage':[float('NaN'),'The percentage of in-flight recorded failure events for the velocity sensor consolidated innovation consistency test.'],
 'pos_percentage_amber':[float('NaN'),'The percentage of in-flight position sensor consolidated innovation consistency test values > 0.5.'],
 'pos_percentage_red':[float('NaN'),'The percentage of in-flight position sensor consolidated innovation consistency test values > 1.0.'],

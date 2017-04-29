@@ -68,35 +68,34 @@ px4_join(OUT CMAKE_CXX_FLAGS LIST "${cxx_flags};${optimization_flags}" GLUE " ")
 include_directories(
 	${include_dirs}
 	${PX4_BINARY_DIR}/src/modules/systemlib/mixer
-	.
 	)
 link_directories(${link_dirs})
 add_definitions(${definitions})
 
 set(srcs
+	${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/px4io_init.c
+	${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/px4io_timer_config.c
+	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_hrt.c
+	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_io_timer.c
+	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_pwm_servo.c
+	${PX4_SOURCE_DIR}/src/lib/rc/dsm.c
+	${PX4_SOURCE_DIR}/src/lib/rc/sbus.c
+	${PX4_SOURCE_DIR}/src/lib/rc/st24.c
+	${PX4_SOURCE_DIR}/src/lib/rc/sumd.c
+	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer.cpp
+	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_group.cpp
+	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_helicopter.cpp
+	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_multirotor.cpp
+	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_simple.cpp
+	${PX4_SOURCE_DIR}/src/modules/systemlib/perf_counter.c
+	${PX4_SOURCE_DIR}/src/modules/systemlib/pwm_limit/pwm_limit.c
+	${PX4_SOURCE_DIR}/src/modules/systemlib/up_cxxinitialize.c
 	adc.c
 	controls.c
+	mixer.cpp
 	px4io.c
 	registers.c
 	safety.c
-	../systemlib/up_cxxinitialize.c
-	../systemlib/perf_counter.c
-	mixer.cpp
-	../systemlib/mixer/mixer.cpp
-	../systemlib/mixer/mixer_group.cpp
-	../systemlib/mixer/mixer_multirotor.cpp
-	../systemlib/mixer/mixer_helicopter.cpp
-	../systemlib/mixer/mixer_simple.cpp
-	../systemlib/pwm_limit/pwm_limit.c
-	../../lib/rc/st24.c
-	../../lib/rc/sumd.c
-	../../lib/rc/sbus.c
-	../../lib/rc/dsm.c
-	../../drivers/stm32/drv_hrt.c
-	../../drivers/stm32/drv_io_timer.c
-	../../drivers/stm32/drv_pwm_servo.c
-	../../drivers/boards/${config_io_board}/px4io_init.c
-	../../drivers/boards/${config_io_board}/px4io_timer_config.c
 	)
 
 if(${config_io_board} STREQUAL "px4io-v1")
@@ -106,20 +105,19 @@ if(${config_io_board} STREQUAL "px4io-v1")
 elseif(${config_io_board} STREQUAL "px4io-v2")
 	list(APPEND srcs
 		serial.c
-		../systemlib/hx_stream.c
+		${PX4_SOURCE_DIR}/src/modules/systemlib/hx_stream.c
 		)
 endif()
 
 set(fw_io_name ${config_io_board})
 
-add_executable(${fw_io_name}
-	${srcs})
+add_executable(${fw_io_name} ${srcs})
 
 add_dependencies(${fw_io_name}
-	nuttx_export_${config_io_board}
-	msg_gen
 	io_prebuild_targets
 	mixer_gen
+	msg_gen
+	nuttx_export_${config_io_board}
 	)
 
 set(nuttx_export_dir ${PX4_BINARY_DIR}/${config_io_board}/NuttX/nuttx/nuttx-export)
@@ -134,14 +132,15 @@ target_link_libraries(${fw_io_name}
 	-Wl,--start-group
 	apps nuttx nosys m gcc
 	${config_io_extra_libs}
-	-Wl,--end-group)
+	-Wl,--end-group
+	)
 
-px4_nuttx_create_bin(OUT ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin
+px4_nuttx_create_bin(
+	OUT ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin
 	EXE ${fw_io_name}
 	)
 
-add_custom_target(fw_io
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin)
+add_custom_target(fw_io DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${fw_io_name}.bin)
 
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix : 

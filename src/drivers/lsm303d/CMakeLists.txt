@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN lsm303d
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		lsm303d.cpp
 	DEPENDS

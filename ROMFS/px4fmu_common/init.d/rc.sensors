@@ -216,6 +216,30 @@ then
 	if bmi160 start
 	then
 	fi
+
+	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
+	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+	# will prevent the incorrect driver from a successful initialization.
+
+	# Internal SPI bus BMI055_ACC
+	if bmi055 -A start
+	then
+	fi
+	
+	# Internal SPI bus BMI055_GYR
+	if bmi055 -G start
+	then
+	fi
+
+	# expansion i2c used for BMM150 rotated by 90deg
+	if bmm150 -R 2 start
+	then
+	fi
+	
+	# expansion i2c used for BMP280
+	if bmp280 -I start
+	then
+	fi
 fi
 
 if ver hwcmp PX4FMU_V1
@@ -295,7 +319,7 @@ then
 	then
 	fi
 
-	if mpu6500 -R 14 start
+	if mpu9250 -s -R 14 start
 	then
 	fi
 
@@ -309,6 +333,10 @@ then
 	fi
 
 	if aerofc_adc start
+	then
+	fi
+
+	if ll40ls start i2c
 	then
 	fi
 fi
@@ -329,7 +357,7 @@ then
 	if lis3mdl -R 0 start
 	then
 	fi
-	
+
 	# Possible external compasses
 	if hmc5883 -X start
 	then
@@ -349,9 +377,13 @@ then
 	then
 	fi
 
-	# Internal SPI bus BMI055
-# Place holder Need BMI055 Support added
-	if bmi055 -R 2 start
+	# Internal SPI bus BMI055 accel
+	if bmi055 -A -R 10 start
+	then
+	fi
+
+	# Internal SPI bus BMI055 gyro
+	if bmi055 -G -R 10 start
 	then
 	fi
 
@@ -359,6 +391,17 @@ then
 	if hmc5883 -X start
 	then
 	fi
+
+	# Possible external airspeed sensor
+	if meas_airspeed start -b 2
+	then
+	fi
+fi
+
+if ver hwcmp AEROCORE2
+then
+	l3gd20 -R 12 start
+	lsm303d start
 fi
 
 if meas_airspeed start

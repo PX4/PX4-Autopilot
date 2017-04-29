@@ -67,66 +67,66 @@
 /*
  * I2C busses
  *
- * Peripheral   Port     Signal Name               CONN
+ * Peripheral   Port
  * I2C1_SDA     PB9
- * I2C1_SDL     PB8
- *
- * I2C2_SDA     PB11
- * I2C2_SDL     PB10
+ * I2C1_SCL     PB8
  *
  * I2C3_SDA     PC9
- * I2C3_SDL     PA8
+ * I2C3_SCL     PA8
  *
  */
 
 #define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_ONBOARD		3
+#define PX4_I2C_BUS_ONBOARD	3
 
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 
-#define GPIO_SPI_CS_MPU6500		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
+#define GPIO_SPI_CS_MPU6500	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #define PX4_SPI_BUS_SENSORS	1
-#define PX4_SPIDEV_MPU			1
+#define PX4_SPIDEV_MPU		1
 
 /*
- * ADC channels
+ * STM32 ADC channels
  *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
- * PC0     VOLTAGE                   JP2-13,14          - 1.84 @16.66  1.67 @15.12 Scale 0.1105
- *
+ * These are the channel numbers of the ADCs of the microcontroller that can
+ * be used by the PX4 Firmware in the adc driver
  */
 #define ADC_CHANNELS 0
 
 /*
- * ADC defines just to not break sensors.cpp build, battery voltage and current
- * will be read in another way in future.
+ * ADC channels: these use the ADC block implemented in the FPGA. There are 5
+ * channels in the FPGA, but only 1 is phisically connected, that's dedicated
+ * for voltage reading.
  */
 #define ADC_BATTERY_VOLTAGE_CHANNEL    1
 #define ADC_BATTERY_CURRENT_CHANNEL    ((uint8_t)(-1))
 
-/* Define Battery 1 Voltage Divider
- * Use Default for A per V
+/*
+ * Define Battery 1 Voltage Divider, using default for A/V
  */
-
 #define BOARD_BATTERY1_V_DIV (9.0f)
 
 #define DIRECT_PWM_OUTPUT_CHANNELS	1
-#define BOARD_HAS_PWM	0
+#define BOARD_HAS_PWM			0
 
-/* USB OTG FS
- *
- * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
+/*
+ * USB OTG FS
  */
-#define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
+/*
+ * GPS
+ */
 #define GPS_DEFAULT_UART_PORT	"/dev/ttyS2"
 
-/* RC Serial port
+/*
+ * RC Serial port
  */
 #define RC_SERIAL_PORT		"/dev/ttyS3"
-#define INVERT_RC_INPUT(_s)		while(0)
+/* No invert support */
+#define INVERT_RC_INPUT(_invert_true)		while(0)
 
-/* High-resolution timer
+/*
+ * High-resolution timer
  */
 #define HRT_TIMER		3	/* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
@@ -137,15 +137,11 @@
 #define  FLASH_BASED_DATAMAN
 
 /*
- * The following defined is a workaround and replaces CONFIG_ARCH_BOARD_AEROFC_V1
- * in the PX4 shared source code. #ifdef ONFIG_ARCH_BOARD_xxxx should never be added
- * to the PX4 code base. Instead board_config.h should provide logical conditional
- * compilation control based on features. I.E. BORD_HAS_xxxx
- * See https://github.com/PX4/Firmware/pull/5893#pullrequestreview-9651688
- * todo:This and TAP_ESC_NO_VERIFY_CONFIG needs to be removed from the code base
- * when final HW is debugged to dermine the root cause of ignoring the verify
+ * ESCs do not respond
  */
-#define TAP_ESC_NO_VERIFY_CONFIG /* This board can not tolerated verifying the tap esc got it's config */
+#define BOARD_TAP_ESC_NO_VERIFY_CONFIG 1
+
+#define BOARD_TAP_ESC_MODE 1
 
 #define MEMORY_CONSTRAINED_SYSTEM
 
@@ -177,8 +173,6 @@ extern void stm32_spiinitialize(void);
 
 #define board_spi_reset(ms)
 #define board_peripheral_reset(ms)
-
-extern void stm32_usbinitialize(void);
 
 /************************************************************************************
  * Name: board_sdio_initialize

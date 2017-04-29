@@ -4,6 +4,11 @@
 #
 # @type Standard Plane
 #
+# @output MAIN1 aileron
+# @output MAIN2 elevator
+# @output MAIN3 rudder
+# @output MAIN4 throttle
+#
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 

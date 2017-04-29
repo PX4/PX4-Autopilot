@@ -29,17 +29,17 @@ matrix:
       services:
         - docker
       env: BUILD_TARGET=clang-tidy
-    - os: osx
-      sudo: true
-      osx_image: xcode8
-      env: BUILD_TARGET=tests
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=px4_metadata
 
 cache:
   ccache: true
 
 before_install:
   - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then sudo -H easy_install pip && sudo -H pip install empy jinja2; fi
 
 env:
   global:
@@ -51,16 +51,18 @@ env:
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+  - if [[ "${TRAVIS_BRANCH}" == "coverity" ]]; then
+      echo "no script for coverity build";
+    elif [[ "${BUILD_TARGET}" = "qgc_firmware" ]]; then
       ./Tools/docker_run.sh 'make qgc_firmware';
-    elif [[ "${BUILD_TARGET}" = "check_format" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+    elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
-    elif [[ "${BUILD_TARGET}" = "tests_linux" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+    elif [[ "${BUILD_TARGET}" = "tests_linux" ]]; then
       ./Tools/docker_run.sh 'make tests';
-    elif [[ "${BUILD_TARGET}" = "clang-tidy" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang ./Tools/docker_run.sh 'make clang-tidy-parallel';
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      make tests;
+    elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
+      ./Tools/docker_run.sh 'make px4_metadata';
+    elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
+      PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make clang-tidy-parallel';
     fi
 
 after_success:
@@ -68,6 +70,9 @@ after_success:
   - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
          ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
       && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+    fi
+  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
+         ./Tools/docker_run.sh 'make s3put_parameters_markdown AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
 
 deploy:

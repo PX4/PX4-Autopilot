@@ -145,9 +145,10 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 
 void sched_note_suspend(FAR struct tcb_s *tcb)
 {
-	uint64_t new_time = hrt_absolute_time();
 
 	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			/* Task ending its current scheduling run */
 			if (system_load.tasks[i].valid && system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
@@ -160,9 +161,10 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 
 void sched_note_resume(FAR struct tcb_s *tcb)
 {
-	uint64_t new_time = hrt_absolute_time();
 
 	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == tcb->pid) {
 				system_load.tasks[i].curr_start_time = new_time;

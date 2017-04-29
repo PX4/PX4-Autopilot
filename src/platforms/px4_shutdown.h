@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,15 +31,56 @@
  *
  ****************************************************************************/
 
-#include <systemlib/param/param.h>
-
-// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
-// running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
-
-// Following is hack to prevent duplicate parameter definition error in param parser
 /**
- * @board QuRT_App
+ * @file px4_shutdown.h
+ * Power-related API
  */
-// TODO-JYW: Temporarily removed to remove duplicate definition.
-// PARAM_DEFINE_INT32(MAV_TYPE, 2);
+
+#pragma once
+
+#include <stdbool.h>
+
+__BEGIN_DECLS
+
+/**
+ * Shutdown hook callback method (@see px4_register_shutdown_hook()).
+ * @return true if it's ok to shutdown, false if more time needed for cleanup
+ */
+typedef bool (*shutdown_hook_t)(void);
+
+
+/**
+ * Register a method that should be called when powering off (and also on reboot).
+ * @param hook callback method. It must not block, but return immediately.
+ *        When the system is requested to shutdown, the registered hooks will be
+ *        called regularily until either all of them return true, or a timeout
+ *        is reached.
+ * @return 0 on success, <0 on error
+ */
+__EXPORT int px4_register_shutdown_hook(shutdown_hook_t hook);
+
+
+/**
+ * Unregister a shutdown hook
+ * @param hook callback method to be removed
+ * @return 0 on success, <0 on error
+ */
+__EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
+
+
+/**
+ * Request the system to shut down. It's save to call this from an IRQ context,
+ * but the work queues need to be initialized already.
+ * Note the following:
+ * - The system might not support to shutdown (or reboot). In that case -EINVAL will
+ *   be returned.
+ * - The system might not shutdown immediately, so expect this method to return even
+ *   on success.
+ * @param reboot perform a reboot instead of a shutdown
+ * @param to_bootloader reboot into bootloader mode (only used if reboot is true)
+ * @return 0 on success, <0 on error
+ */
+__EXPORT int px4_shutdown_request(bool reboot, bool to_bootloader);
+
+__END_DECLS
 

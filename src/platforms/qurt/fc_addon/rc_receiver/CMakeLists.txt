@@ -53,7 +53,6 @@ px4_add_module(
         MAIN rc_receiver
 	STACK_MAIN 1200
         COMPILE_FLAGS
-                -Weffc++
         SRCS
                 rc_receiver_main.cpp
 		rc_receiver_params.c

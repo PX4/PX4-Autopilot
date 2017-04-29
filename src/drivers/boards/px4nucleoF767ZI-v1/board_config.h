@@ -252,6 +252,7 @@ __BEGIN_DECLS
 #define HRT_TIMER		    8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL   3	/* use capture/compare channel 3 */
 
+//todo:Needs to be moved to T14C1
 #define HRT_PPM_CHANNEL         /* PA7[CN12-15] */  1	/* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PB0[CN11-34] */ GPIO_TIM3_CH3IN_1
 
@@ -268,7 +269,7 @@ __BEGIN_DECLS
 #define GPIO_PERIPH_3V3_EN      /* PG4[CN12-69]  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 
 #define GPIO_SBUS_INV		    /* PD10[CN12-65] */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
-#define INVERT_RC_INPUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_INV, _s);
+#define INVERT_RC_INPUT(_invert_true)                px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true);
 
 #define GPIO_8266_GPIO0         /* PD15[CN12-48] */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN15)
 #define GPIO_SPEKTRUM_PWR_EN    /* PE4[CN11-48]  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
@@ -279,13 +280,25 @@ __BEGIN_DECLS
 
 /* Power switch controls ******************************************************/
 
-#define POWER_SPEKTRUM(_s)      px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (1-_s))
-#define SPEKTRUM_RX_AS_UART()   px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_POWER(_on_true)      px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
 
-// FMUv4 has a separate GPIO for serial RC output
-#define GPIO_RC_OUT			    /* PE5[CN11-50] */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
-#define SPEKTRUM_RX_AS_GPIO()   px4_arch_configgpio(GPIO_RC_OUT)
-#define SPEKTRUM_RX_HIGH(_s)    px4_arch_gpiowrite(GPIO_RC_OUT, (_s))
+/*
+ * FMUv5 has a separate RC_IN
+ *
+ * N.B.  px4nucleoF767ZI-v1 is Deprecated - for Reference only
+ * These interfaces can not be realized with this HW without
+ * more work.
+ *
+ * GPIO PPM_IN on PA7 T14C1
+ * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PG9 (NOT FMUv5 test HW ONLY)
+ * Inversion is possible in the UART
+ * FMU can drive  GPIO PPM_IN as an output
+ */
+#define GPIO_PPM_IN_AS_OUT /* PE5[CN11-50] */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT()          px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
+#define SPEKTRUM_RX_AS_UART()                 px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_OUT(_one_true)               px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
+
 
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0

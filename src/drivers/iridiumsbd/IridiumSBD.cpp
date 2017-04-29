@@ -135,7 +135,8 @@ void IridiumSBD::test(int argc, char *argv[])
 	}
 
 	if (argc > 2) {
-		strcpy(instance->test_command, argv[2]);
+		strncpy(instance->test_command, argv[2], sizeof(instance->test_command));
+		instance->test_command[sizeof(instance->test_command) - 1] = 0;
 
 	} else {
 		instance->test_command[0] = 0;

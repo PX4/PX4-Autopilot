@@ -42,6 +42,7 @@ px4_add_module(
 	MODULE platforms__common
 	SRCS
 		px4_getopt.c
+		shutdown.cpp
 	DEPENDS
 		${depends}
 	)

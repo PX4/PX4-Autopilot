@@ -8,32 +8,27 @@
 
 #ifdef __PX4_NUTTX
 
-#include <systemlib/err.h>
-#include <systemlib/param/param.h>
 #include <board_config.h>
 
 #include "camera_interface.h"
 
-
-class CameraInterfaceRelay : public CameraInterface
+class CameraInterfaceGPIO : public CameraInterface
 {
 public:
-	CameraInterfaceRelay();
-	virtual ~CameraInterfaceRelay();
+	CameraInterfaceGPIO();
+	virtual ~CameraInterfaceGPIO();
 
 	void trigger(bool enable);
 
 	void info();
 
-	int _pins[6];
-	int _polarity;
-
 private:
 
 	void setup();
 
-	param_t _p_pin;
 	param_t _p_polarity;
+
+	int _polarity;
 
 	static constexpr uint32_t _gpios[6] = {
 		GPIO_GPIO0_OUTPUT,

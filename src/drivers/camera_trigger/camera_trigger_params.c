@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,14 +45,15 @@
 * Selects the trigger interface
 *
 * @value 1 GPIO
-* @value 2 Seagull MAP2 (PWM)
+* @value 2 Seagull MAP2 (over PWM)
 * @value 3 MAVLink (forward via MAV_CMD_IMAGE_START_CAPTURE)
+* @value 4 Generic PWM (IR trigger, servo)
 *
 * @reboot_required true
 *
 * @group Camera trigger
 */
-PARAM_DEFINE_INT32(TRIG_INTERFACE, 2);
+PARAM_DEFINE_INT32(TRIG_INTERFACE, 4);
 
 /**
  * Camera trigger interval
@@ -91,7 +92,7 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
  * @decimal 1
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 0.5f);
+PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 40.0f);
 
 /**
  * Camera trigger mode

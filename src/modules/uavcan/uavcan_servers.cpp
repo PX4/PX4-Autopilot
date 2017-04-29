@@ -58,6 +58,7 @@
 #include <uavcan_posix/firmware_version_checker.hpp>
 
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 
@@ -467,6 +468,8 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			struct vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
+			uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN) {
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 				int node_id = static_cast<int>(cmd.param2 + 0.5f);
@@ -489,6 +492,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						if (call_res < 0) {
 							warnx("UAVCAN ESC enumeration: couldn't send initial Begin request: %d", call_res);
 							beep(BeepFrequencyError);
+							cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 						} else {
 							beep(BeepFrequencyGenericIndication);
 						}
@@ -496,6 +500,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					}
 				default: {
 						warnx("UAVCAN command bridge: unknown command ID %d", command_id);
+						cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
 						break;
 					}
 				}
@@ -526,6 +531,18 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					}
 				}
 			}
+
+			// Acknowledge the received command
+			struct vehicle_command_ack_s ack = {};
+			ack.command = cmd.command;
+			ack.result = cmd_ack_result;
+
+			if (_command_ack_pub == nullptr) {
+				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			} else {
+				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &ack);
+			}
+
 		}
 
 		// Shut down once armed

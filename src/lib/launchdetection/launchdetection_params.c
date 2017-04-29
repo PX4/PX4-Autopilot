@@ -48,7 +48,7 @@
  * Launch detection
  *
  * @boolean
- * @group Launch detection
+ * @group FW Launch detection
  */
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 
@@ -61,7 +61,7 @@ PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
  * @min 0
  * @decimal 1
  * @increment 0.5
- * @group Launch detection
+ * @group FW Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
  * @max 5.0
  * @decimal 2
  * @increment 0.05
- * @group Launch detection
+ * @group FW Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
 
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * @max 10.0
  * @decimal 1
  * @increment 0.5
- * @group Launch detection
+ * @group FW Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
 
@@ -105,6 +105,6 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
  * @max 45.0
  * @decimal 1
  * @increment 0.5
- * @group Launch detection
+ * @group FW Launch detection
  */
 PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);

@@ -506,8 +506,8 @@ void Ekf2::task_main()
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), range_finder_sub, &range_finder);
 
-			if (range_finder.min_distance >= range_finder.current_distance
-			    || range_finder.max_distance <= range_finder.current_distance) {
+			if (range_finder.min_distance > range_finder.current_distance
+			    || range_finder.max_distance < range_finder.current_distance) {
 				range_finder_updated = false;
 			}
 		}
@@ -947,7 +947,7 @@ void Ekf2::task_main()
 						&status.hgt_test_ratio, &status.tas_test_ratio,
 						&status.hagl_test_ratio);
 		bool dead_reckoning;
-		_ekf.get_ekf_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
+		_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy, &dead_reckoning);
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 		_ekf.get_imu_vibe_metrics(status.vibe);
 

@@ -40,53 +40,32 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#include <sys/types.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "mission_block.h"
+#include "navigator.h"
+
 #include <math.h>
 #include <float.h>
 
-#include <systemlib/err.h>
 #include <geo/geo.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
-#include "navigator.h"
-#include "mission_block.h"
-
-actuator_controls_s actuators;
-orb_advert_t actuator_pub_fd;
 
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
-	_mission_item( {0}),
-	       _waypoint_position_reached(false),
-	       _waypoint_yaw_reached(false),
-	       _time_first_inside_orbit(0),
-	       _action_start(0),
-	       _time_wp_reached(0),
-	       _actuators{},
-	       _actuator_pub(nullptr),
-	       _cmd_pub(nullptr),
-	       _param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
-	       _param_yaw_timeout(this, "MIS_YAW_TMT", false),
-	       _param_yaw_err(this, "MIS_YAW_ERR", false),
-	       _param_vtol_wv_land(this, "VT_WV_LND_EN", false),
-	       _param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
-	       _param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
-	       _param_force_vtol(this, "NAV_FORCE_VT", false),
-	       _param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
-{
-}
-
-MissionBlock::~MissionBlock()
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
+	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
+	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
+	_param_force_vtol(this, "NAV_FORCE_VT", false),
+	_param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
 {
 }
 
@@ -125,6 +104,7 @@ MissionBlock::is_mission_item_reached()
 		 * We wait half a second to give the transition command time to propagate.
 		 * Then monitor the transition status for completion.
 		 */
+		// TODO: check desired transition state achieved and drop _action_start
 		if (hrt_absolute_time() - _action_start > 500000 &&
 		    !_navigator->get_vstatus()->in_transition_mode) {
 
@@ -145,8 +125,7 @@ MissionBlock::is_mission_item_reached()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((_navigator->get_land_detected()->landed == false)
-	    && !_waypoint_position_reached) {
+	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
 		float dist = -1.0f;
 		float dist_xy = -1.0f;
@@ -297,6 +276,11 @@ MissionBlock::is_mission_item_reached()
 				}
 			}
 
+		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
+			_waypoint_position_reached = true;
+			_waypoint_yaw_reached = true;
+			_time_wp_reached = now;
+
 		} else {
 			/* for normal mission items used their acceptance radius */
 			float mission_acceptance_radius = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
@@ -370,8 +354,8 @@ MissionBlock::is_mission_item_reached()
 		}
 
 		/* check if the MAV was long enough inside the waypoint orbit */
-		if ((Navigator::get_time_inside(_mission_item) < FLT_EPSILON) ||
-		    (now - _time_first_inside_orbit >= (hrt_abstime)(Navigator::get_time_inside(_mission_item) * 1e6f))) {
+		if ((get_time_inside(_mission_item) < FLT_EPSILON) ||
+		    (now - _time_first_inside_orbit >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
 
 			// exit xtrack location
 			if (_mission_item.loiter_exit_xtrack &&
@@ -454,17 +438,17 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
-		memset(&actuators, 0, sizeof(actuators));
+		_actuators = {};
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
-		actuators.timestamp = hrt_absolute_time();
+		_actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
+		_actuators.timestamp = hrt_absolute_time();
 
 		if (_actuator_pub != nullptr) {
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
+			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
 
 		} else {
-			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
 		}
 
 	} else {
@@ -473,39 +457,37 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		mission_item_to_vehicle_command(item, &cmd);
 		_action_start = hrt_absolute_time();
 
-		if (_cmd_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-
-		} else {
-			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		}
+		_navigator->publish_vehicle_cmd(cmd);
 	}
+}
+
+float
+MissionBlock::get_time_inside(const struct mission_item_s &item)
+{
+	if (item.nav_cmd == NAV_CMD_TAKEOFF) {
+		return item.time_inside;
+	}
+
+	return 0.0f;
 }
 
 bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
-	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
-	    item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-	    item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-	    item->nav_cmd == NAV_CMD_DO_LAND_START ||
-	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-	    item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
-	    item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
-	    item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
-	    item->nav_cmd == NAV_CMD_DO_SET_ROI ||
-	    item->nav_cmd == NAV_CMD_ROI ||
-	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+	if (item->nav_cmd == NAV_CMD_WAYPOINT ||
+	    item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	    item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	    item->nav_cmd == NAV_CMD_LAND ||
+	    item->nav_cmd == NAV_CMD_TAKEOFF ||
+	    item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	    item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+	    item->nav_cmd == NAV_CMD_VTOL_LAND) {
 
-		return false;
+		return true;
+
 	}
 
-	return true;
+	return false;
 }
 
 void
@@ -535,10 +517,22 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		break;
 
 	case NAV_CMD_TAKEOFF:
-		// set pitch and ensure that the hold time is zero
-		sp->pitch_min = item->pitch_min;
 
-	// fall through
+		// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
+		if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		    && !_navigator->get_land_detected()->landed) {
+
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+		} else {
+			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+			// set pitch and ensure that the hold time is zero
+			sp->pitch_min = item->pitch_min;
+		}
+
+		break;
+
 	case NAV_CMD_VTOL_TAKEOFF:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
@@ -644,7 +638,6 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 		item->nav_cmd = NAV_CMD_DO_FOLLOW_REPOSITION;
 
 		/* use current target position */
-
 		item->lat = target.lat;
 		item->lon = target.lon;
 		item->altitude = _navigator->get_home_position()->alt;
@@ -690,18 +683,15 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 {
 
 	/* VTOL transition to RW before landing */
-	if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing &&
+	if (_navigator->get_vstatus()->is_vtol &&
+	    !_navigator->get_vstatus()->is_rotary_wing &&
 	    _param_force_vtol.get() == 1) {
+
 		struct vehicle_command_s cmd = {};
 		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-		if (_cmd_pub != nullptr) {
-			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &cmd);
-
-		} else {
-			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		}
+		_navigator->publish_vehicle_cmd(cmd);
 	}
 
 	/* set the land item */
@@ -713,9 +703,8 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		item->lon = _navigator->get_global_position()->lon;
 		item->yaw = _navigator->get_local_position()->yaw;
 
-		/* use home position */
-
 	} else {
+		/* use home position */
 		item->lat = _navigator->get_home_position()->lat;
 		item->lon = _navigator->get_home_position()->lon;
 		item->yaw = _navigator->get_home_position()->yaw;

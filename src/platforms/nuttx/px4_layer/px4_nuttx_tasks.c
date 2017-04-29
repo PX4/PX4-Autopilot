@@ -74,6 +74,13 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 	sched_lock();
 
+	/* None of the modules access the environment variables (via getenv() for instance), so delete them
+	 * all. They are only used within the startup script, and NuttX automatically exports them to the children
+	 * tasks.
+	 * This frees up a considerable amount of RAM.
+	 */
+	clearenv();
+
 	/* create the task */
 	pid = task_create(name, priority, stack_size, entry, argv);
 

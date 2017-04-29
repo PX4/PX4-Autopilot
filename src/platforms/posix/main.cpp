@@ -71,7 +71,7 @@ const unsigned path_max_len = PATH_MAX;
 const unsigned path_max_len = 1024;
 #endif
 
-static bool _ExitFlag = false;
+static volatile bool _ExitFlag = false;
 
 static struct termios orig_term;
 

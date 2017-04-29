@@ -62,7 +62,7 @@
 #include <systemlib/err.h>
 
 static const char *sensor_name = "mag";
-static constexpr unsigned max_mags = 3;
+static constexpr unsigned max_mags = 4;
 static constexpr float mag_sphere_radius = 0.2f;
 static unsigned int calibration_sides = 6;			///< The total number of sides
 static constexpr unsigned int calibration_total_points = 240;		///< The total points per magnetometer
@@ -220,25 +220,14 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 			break;
 
 		case calibrate_return_ok:
-			/* auto-save to EEPROM */
-			result = param_save_default();
-
 			/* if there is a any preflight-check system response, let the barrage of messages through */
 			usleep(200000);
 
-			if (result == PX4_OK) {
-				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
-				usleep(20000);
-				calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-				usleep(20000);
-				break;
-
-			} else {
-				calibration_log_critical(mavlink_log_pub, CAL_ERROR_SAVE_PARAMS_MSG);
-				usleep(20000);
-			}
-
-		// Fall through
+			calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
+			usleep(20000);
+			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			usleep(20000);
+			break;
 
 		default:
 			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
@@ -576,7 +565,12 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 		const unsigned mag_count = orb_group_count(ORB_ID(sensor_mag));
 
-		for (unsigned cur_mag = 0; cur_mag < mag_count; cur_mag++) {
+		// Warn that we will not calibrate more than max_mags magnetometers
+		if (mag_count > max_mags) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", mag_count, max_mags);
+		}
+
+		for (unsigned cur_mag = 0; cur_mag < mag_count && cur_mag < max_mags; cur_mag++) {
 			// Mag in this slot is available
 			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
 

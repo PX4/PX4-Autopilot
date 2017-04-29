@@ -281,7 +281,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_external(param, v, state->mark_saved, true, false)) {
+	if (param_set_external(param, v, state->mark_saved, true)) {
 
 		debug("error setting value for '%s'", node->name);
 		goto out;

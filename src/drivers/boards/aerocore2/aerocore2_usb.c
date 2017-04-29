@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
- *         Author: David Sidrane <david_s5@nscdg.com>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tap-v1_usb.c
+ * @file aerocore2_usb.c
  *
  * Board-specific USB functions.
  */
@@ -52,8 +51,8 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "up_arch.h"
-#include "stm32.h"
+#include <up_arch.h>
+#include <stm32.h>
 #include "board_config.h"
 
 /************************************************************************************
@@ -72,7 +71,7 @@
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the tap-v1 board.
+ *   Called to setup USB-related GPIO pins for the PX4FMU board.
  *
  ************************************************************************************/
 
@@ -83,7 +82,11 @@ __EXPORT void stm32_usbinitialize(void)
 	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
 #ifdef CONFIG_STM32_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
+	px4_arch_configgpio(GPIO_OTGFS_VBUS);
+	/* XXX We only support device mode
+	px4_arch_configgpio(GPIO_OTGFS_PWRON);
+	px4_arch_configgpio(GPIO_OTGFS_OVER);
+	*/
 #endif
 }
 
@@ -102,3 +105,4 @@ __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	//ulldbg("resume: %d\n", resume);
 }
+

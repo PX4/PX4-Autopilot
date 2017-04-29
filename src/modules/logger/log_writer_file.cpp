@@ -54,8 +54,8 @@ LogWriterFile::LogWriterFile(size_t buffer_size) :
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 	/* allocate write performance counters */
-	_perf_write = perf_alloc(PC_ELAPSED, "sd write");
-	_perf_fsync = perf_alloc(PC_ELAPSED, "sd fsync");
+	_perf_write = perf_alloc(PC_ELAPSED, "logger_sd_write");
+	_perf_fsync = perf_alloc(PC_ELAPSED, "logger_sd_fsync");
 }
 
 bool LogWriterFile::init()

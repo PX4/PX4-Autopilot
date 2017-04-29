@@ -3,10 +3,10 @@
 # @name Fun Cub Quad VTOL
 # @type Standard VTOL
 # @maintainer Simon Wilks <simon@uaventure.com>
-# @output MAIN1 Front right motor: CCW
-# @output MAIN2 Back left motor: CCW
-# @output MAIN3 Front left motor: CW
-# @output MAIN4 Back right motor: CW
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
 # @output AUX1 Aileron 1
 # @output AUX2 Aileron 2
 # @output AUX3 Elevator

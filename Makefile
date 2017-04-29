@@ -81,7 +81,12 @@ endif
 ifdef NINJA_BUILD
 	PX4_CMAKE_GENERATOR := Ninja
 	PX4_MAKE := $(NINJA_BIN)
-	PX4_MAKE_ARGS :=
+
+	ifdef VERBOSE
+		PX4_MAKE_ARGS := -v
+	else
+		PX4_MAKE_ARGS :=
+	endif
 else
 	ifdef SYSTEMROOT
 		# Windows
@@ -100,6 +105,17 @@ ifdef replay
 	BUILD_DIR_SUFFIX := _replay
 else
 	BUILD_DIR_SUFFIX :=
+endif
+
+# NuttX verbose output
+ifdef VN
+	export PX4_NUTTX_BUILD_VERBOSE=1
+	export V=1
+endif
+
+# NuttX verbose patches output
+ifdef VNP
+	export PX4_NUTTX_PATCHES_VERBOSE=1
 endif
 
 # additional config parameters passed to cmake
@@ -166,8 +182,9 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: \
-	check_auav-x21_default \
+	check_aerocore2_default \
 	check_aerofc-v1_default \
+	check_auav-x21_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v1_default \
@@ -195,7 +212,7 @@ checks_bootloaders: \
 	check_px4esc-v1_bootloader \
 	check_px4flow-v2_bootloader \
 	check_s2740vc-v1_bootloader \
-	check_zubaxgnss-v1_bootloader \
+# not fitting in flash	check_zubaxgnss-v1_bootloader \
 	check_sizes
 
 uavcan_firmware:
@@ -204,7 +221,6 @@ uavcan_firmware:
 	@git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol
 	@BOARD=s2740vc_1_0 make --silent --no-print-directory
 	@BOARD=px4esc_1_6 make --silent --no-print-directory && $(SRC_DIR)/Tools/uavcan_copy.sh)
-
 
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
@@ -220,6 +236,19 @@ check_%:
 	$(call colorecho,"Building" $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
+
+# Documentation
+# --------------------------------------------------------------------
+.PHONY: parameters_metadata airframe_metadata px4_metadata
+
+parameters_metadata: posix_sitl_default
+	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
+
+airframe_metadata:
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --markdown
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --xml
+
+px4_metadata: parameters_metadata airframe_metadata
 
 # S3 upload helpers
 # --------------------------------------------------------------------
@@ -237,9 +266,13 @@ s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
 
 s3put_qgc_firmware: qgc_firmware
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/airframes.xml
-	@$(SRC_DIR)/Tools/s3put.sh $(SRC_DIR)/build_px4fmu-v3_default/parameters.xml
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_metadata: px4_metadata
+	@$(SRC_DIR)/Tools/s3put.sh airframes.md
+	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
+	@$(SRC_DIR)/Tools/s3put.sh build_posix_sitl_default/parameters.xml
+	@$(SRC_DIR)/Tools/s3put.sh parameters.md
 
 # Astyle
 # --------------------------------------------------------------------
@@ -276,8 +309,6 @@ tests_coverage:
 	@lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info
 	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
 	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
-
-
 
 # Clang analyzers
 # --------------------------------------------------------------------
@@ -317,11 +348,20 @@ clean:
 	-@$(MAKE) --no-print-directory -C NuttX/nuttx clean
 
 submodulesclean:
+	@git submodule foreach --quiet --recursive git clean -ff -x -d
+	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
-	@git submodule deinit -f .
 	@git submodule update --init --recursive --force
 
-distclean: submodulesclean
+submodulesupdate:
+	@git submodule update --quiet --init --recursive || true
+	@git submodule sync --recursive
+	@git submodule update --init --recursive
+
+gazeboclean:
+	@rm -rf ~/.gazebo/*
+
+distclean: submodulesclean gazeboclean
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
 
 # --------------------------------------------------------------------

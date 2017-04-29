@@ -108,7 +108,7 @@ PARAM_DEFINE_FLOAT(LPE_LDR_OFF_Z, 0.00f);
  * Larger than data sheet to account for tilt error.
  *
  * @group Local Position Estimator
- * @unit m/s^2/srqt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(LPE_ACC_XY, 0.012f);
  * Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
  *
  * @group Local Position Estimator
- * @unit m/s^2/srqt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0.00001
  * @max 2
  * @decimal 4
@@ -345,7 +345,7 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(LPE_FAKE_ORIGIN, 1);
+PARAM_DEFINE_INT32(LPE_FAKE_ORIGIN, 0);
 
 /**
  * Local origin latitude for nav w/o GPS
@@ -437,7 +437,7 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * 6 : Set to true to enable flow gyro compensation
  * 7 : Set to true to enable baro fusion
  *
- * default (247, no vision yaw)
+ * default (145 - GPS only)
  *
  * @group Local Position Estimator
  * @min 0
@@ -451,4 +451,4 @@ PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
  * @bit 6 flow gyro compensation
  * @bit 7 fuse baro
  */
-PARAM_DEFINE_INT32(LPE_FUSION, 247);
+PARAM_DEFINE_INT32(LPE_FUSION, 145);

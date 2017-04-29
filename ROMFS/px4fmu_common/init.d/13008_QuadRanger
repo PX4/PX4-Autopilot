@@ -38,7 +38,7 @@ then
 	param set MC_YAWRAUTO_MAX 40.0
 
 	param set MPC_ACC_HOR_MAX 2.0
-	param set MPC_Z_VEL_MAX 1.5
+	param set MPC_Z_VEL_MAX_DN 1.5
 	param set MPC_TKO_SPEED 1.5
 	param set MPC_LAND_SPEED 0.8
 

@@ -178,6 +178,7 @@
 #define BIT_I2C_SLV3_DLY_EN         0x08
 
 #define MPU_WHOAMI_9250			0x71
+#define MPU_WHOAMI_6500			0x70
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
@@ -482,7 +483,7 @@ private:
 	bool			is_external()
 	{
 		unsigned dummy;
-		return !_interface->ioctl(ACCELIOCGEXTERNAL, dummy);
+		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
 	}
 
 	/**

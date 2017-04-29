@@ -136,7 +136,6 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 	_vehicle_land_detected_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
-	_mission_sub(-1),
 	_home_sub(-1),
 	_armedSub(-1),
 

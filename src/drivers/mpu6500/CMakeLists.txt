@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN mpu6500
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		mpu6500.cpp
 	DEPENDS

@@ -531,7 +531,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 					    param_name(param));
 				PARAM_PRINT("curr: %ld", (long)i);
-				param_set_no_autosave(param, &newval);
+				param_set(param, &newval);
 				PARAM_PRINT(" -> new: %ld\n", (long)newval);
 			}
 		}
@@ -553,7 +553,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 					    param_name(param));
 				PARAM_PRINT("curr: %4.4f", (double)f);
-				param_set_no_autosave(param, &newval);
+				param_set(param, &newval);
 				PARAM_PRINT(" -> new: %4.4f\n", (double)newval);
 			}
 
@@ -566,15 +566,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return 1;
 	}
 
-	int ret = param_save_default();
-
-	if (ret) {
-		PX4_ERR("Param save failed (%i)", ret);
-		return 1;
-
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 static int
@@ -662,13 +654,6 @@ do_reset(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
-	int ret = param_save_default();
-
-	if (ret) {
-		PX4_ERR("Param save failed (%i)", ret);
-		return 1;
-	}
-
 	return 0;
 }
 
@@ -690,14 +675,6 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 
 	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
 	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
-
-	int ret = param_save_default();
-
-	if (ret) {
-		PX4_ERR("Param save failed (%i)", ret);
-		return 1;
-
-	}
 
 	return 0;
 }

@@ -161,6 +161,7 @@ private:
 
 	// uORB topic handle for MAVLink parameter responses
 	orb_advert_t _param_response_pub = nullptr;
+	orb_advert_t _command_ack_pub = nullptr;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;

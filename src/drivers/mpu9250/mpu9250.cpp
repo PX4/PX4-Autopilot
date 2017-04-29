@@ -328,7 +328,9 @@ MPU9250::init()
 #endif
 
 	/* do CDev init for the mag device node, keep it optional */
-	ret = _mag->init();
+	if (_whoami == MPU_WHOAMI_9250) {
+		ret = _mag->init();
+	}
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -369,6 +371,12 @@ out:
 
 int MPU9250::reset()
 {
+	irqstate_t state;
+
+	// Hold off sampling for 60 ms
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 60000;
+
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 	up_udelay(10000);
 
@@ -377,6 +385,14 @@ int MPU9250::reset()
 
 	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
 	up_udelay(1000);
+
+	px4_leave_critical_section(state);
+
+	// Hold off sampling for 30 ms
+
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 30000;
+	px4_leave_critical_section(state);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -450,6 +466,7 @@ MPU9250::probe()
 	// verify product revision
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
+	case MPU_WHOAMI_6500:
 		memset(_checked_values, 0, sizeof(_checked_values));
 		memset(_checked_bad, 0, sizeof(_checked_bad));
 		_checked_values[0] = _whoami;

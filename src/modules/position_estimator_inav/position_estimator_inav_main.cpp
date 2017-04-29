@@ -424,7 +424,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
+				bool baro_updated = (sensor.baro_timestamp_relative != sensor.RELATIVE_TIMESTAMP_INVALID);
+
+				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp && baro_updated) {
 					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 					baro_wait_for_sample_time = hrt_absolute_time();
 

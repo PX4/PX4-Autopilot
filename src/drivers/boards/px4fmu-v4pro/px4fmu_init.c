@@ -135,6 +135,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 0);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, 1);
 
 
 //	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
@@ -152,6 +153,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 1);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	stm32_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, 0);
 }
 
 /************************************************************************************
@@ -181,6 +183,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_5V_HIPOWER_EN);
 
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_BRICK2_VALID);
@@ -195,11 +198,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
 	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
-
-#ifdef GPIO_RC_OUT
-	stm32_configgpio(GPIO_RC_OUT);      /* Serial RC output pin */
-	stm32_gpiowrite(GPIO_RC_OUT, 1);    /* set it high to pull RC input up */
-#endif
 
 	/* configure the GPIO pins to outputs and keep them low */
 	stm32_configgpio(GPIO_GPIO0_OUTPUT);
@@ -453,6 +451,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_LIS, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_EEPROM, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */

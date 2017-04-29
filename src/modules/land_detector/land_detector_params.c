@@ -48,7 +48,7 @@
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
 
 /**
  * Multicopter max horizontal velocity

@@ -32,7 +32,6 @@ param set MC_ROLL_P 6
 param set MC_ROLLRATE_P 0.2
 param set MIS_TAKEOFF_ALT 2.5
 param set MPC_HOLD_MAX_Z 2.0
-param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_I 0.15
 param set MPC_Z_VEL_P 0.6
 param set NAV_ACC_RAD 2.0
@@ -73,6 +72,6 @@ mavlink stream -r 50 -s ATTITUDE_TARGET -u _MAVPORT_
 mavlink stream -r 20 -s RC_CHANNELS -u _MAVPORT_
 mavlink stream -r 250 -s HIGHRES_IMU -u _MAVPORT_
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u _MAVPORT_
-sdlog2 start -r 100 -e -t -a
+logger start -e -t
 mavlink boot_complete
 replay trystart

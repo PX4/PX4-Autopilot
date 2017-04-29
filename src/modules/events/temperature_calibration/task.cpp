@@ -275,6 +275,9 @@ void TemperatureCalibration::task_main()
 	} else {
 		PX4_INFO("Sensor Measurments completed");
 
+		// save params immediately so that we can check the result and don't have to wait for param save timeout
+		param_control_autosave(false);
+
 		// do final calculations & parameter storage
 		for (int i = 0; i < num_calibrators; ++i) {
 			int ret = calibrators[i]->finish();
@@ -290,6 +293,8 @@ void TemperatureCalibration::task_main()
 		if (ret != 0) {
 			PX4_ERR("Failed to save params (%i)", ret);
 		}
+
+		param_control_autosave(true);
 
 		led_control.color = led_control_s::COLOR_GREEN;
 	}

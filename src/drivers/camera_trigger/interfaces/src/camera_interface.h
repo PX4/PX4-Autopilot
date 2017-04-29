@@ -4,6 +4,11 @@
 
 #pragma once
 
+#include <systemlib/param/param.h>
+#include <px4_log.h>
+
+#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+
 class CameraInterface
 {
 public:
@@ -20,21 +25,21 @@ public:
 
 	/**
 	 * trigger the camera
-	 * @param trigger:
+	 * @param enable
 	 */
 	virtual void trigger(bool enable) {};
 
 	/**
-	 * turn on/off the camera
-	 * @param enable:
+	 * send command to turn the camera on/off
+	 * @param enable
 	 */
-	virtual void turn_on_off(bool enable) {};
+	virtual void send_toggle_power(bool enable) {};
 
 	/**
-	 * prevent the camera from sleeping
-	 * @param keep alive signal:
+	 * send command to prevent the camera from sleeping
+	 * @param enable
 	 */
-	virtual void keep_alive(bool signal_on) {};
+	virtual void send_keep_alive(bool enable) {};
 
 	/**
 	 * Display info.
@@ -42,17 +47,11 @@ public:
 	virtual void info() {};
 
 	/**
-	 * Power on the camera
-	 * @return 0 on success, <0 on error
+	 * Checks if the interface has support for
+	 * camera power control
+	 * @return true if power control is supported
 	 */
-	virtual int powerOn() { return -1; }
-
-	/**
-	 * Power off the camera
-	 * @return 0 on success, <0 on error
-	 */
-	virtual int powerOff() { return -1; }
-
+	virtual bool has_power_control() { return false; }
 
 protected:
 
@@ -60,5 +59,14 @@ protected:
 	 * setup the interface
 	 */
 	virtual void setup() {};
+
+	/**
+	 * get the hardware configuration
+	 */
+	void get_pins();
+
+	param_t _p_pin;
+
+	int _pins[6];
 
 };
