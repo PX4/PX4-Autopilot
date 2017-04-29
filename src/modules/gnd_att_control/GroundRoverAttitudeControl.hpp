@@ -47,7 +47,6 @@
 #include <px4_posix.h>
 
 #include <drivers/drv_hrt.h>
-#include <ecl/attitude_fw/ecl_wheel_controller.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
@@ -87,16 +86,14 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
 
-	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
 
-	struct actuator_controls_s			_actuators {};		/**< actuator control inputs */
-	struct battery_status_s				_battery_status {};	/**< battery status */
-	struct control_state_s				_ctrl_state {};	/**< control state */
-	struct manual_control_setpoint_s		_manual {};		/**< r/c channel data */
-	struct vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
-	struct vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
-	struct vehicle_rates_setpoint_s			_rates_sp {};	/* attitude rates setpoint */
+	actuator_controls_s			_actuators {};		/**< actuator control inputs */
+	battery_status_s				_battery_status {};	/**< battery status */
+	control_state_s				_ctrl_state {};	/**< control state */
+	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
+	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -105,15 +102,10 @@ private:
 	bool		_debug{false};				/**< if set to true, print debug output */
 
 	struct {
-		float w_tc;		/**< Time constant of the steering controller */
 		float w_p;		/**< Proportional gain of the steering controller */
 		float w_i;		/**< Integral gain of the steering controller */
 		float w_d;		/**< Derivative of the steering controller */
-		float w_ff;		/**< Feedforward term of the steering controller */
-		float w_integrator_max;		/**< maximum integrator level of the steering controller */
-		float w_rmax;		/**< Maximum wheel steering rate of the steering controller */
-
-		float gspd_scaling_trim;		/**< This parameter allows to scale the control output as general PID gain*/
+		float w_imax;		/**< maximum integrator level of the steering controller */
 
 		float trim_yaw;
 		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
@@ -123,15 +115,10 @@ private:
 	} _parameters{};			/**< local copies of interesting parameters */
 
 	struct {
-		param_t w_tc;
 		param_t w_p;
 		param_t w_i;
 		param_t w_d;
-		param_t w_ff;
-		param_t w_integrator_max;
-		param_t w_rmax;
-
-		param_t gspd_scaling_trim;
+		param_t w_imax;
 
 		param_t trim_yaw;
 		param_t man_yaw_scale;
@@ -140,8 +127,7 @@ private:
 
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
-	ECL_WheelController 	_wheel_ctrl;
-	PID_t			_steering_ctrl;
+	PID_t			_steering_ctrl{};
 
 	void		parameters_update();
 

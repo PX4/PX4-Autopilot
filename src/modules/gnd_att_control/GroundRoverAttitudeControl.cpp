@@ -62,15 +62,10 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "gnda_nani")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "gnda_nano"))
 {
-	_parameter_handles.w_tc = param_find("GND_WR_TC");
 	_parameter_handles.w_p = param_find("GND_WR_P");
 	_parameter_handles.w_i = param_find("GND_WR_I");
 	_parameter_handles.w_d = param_find("GND_WR_D");
-	_parameter_handles.w_ff = param_find("GND_WR_FF");
-	_parameter_handles.w_integrator_max = param_find("GND_WR_IMAX");
-	_parameter_handles.w_rmax = param_find("GND_W_RMAX");
-
-	_parameter_handles.gspd_scaling_trim = param_find("GND_GSPD_SP_TRIM");
+	_parameter_handles.w_imax = param_find("GND_WR_IMAX");
 
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
 
@@ -114,28 +109,15 @@ GroundRoverAttitudeControl::~GroundRoverAttitudeControl()
 void
 GroundRoverAttitudeControl::parameters_update()
 {
-	param_get(_parameter_handles.w_tc, &(_parameters.w_tc));
 	param_get(_parameter_handles.w_p, &(_parameters.w_p));
 	param_get(_parameter_handles.w_i, &(_parameters.w_i));
 	param_get(_parameter_handles.w_d, &(_parameters.w_d));
-	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
-	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
-	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
-
-	param_get(_parameter_handles.gspd_scaling_trim, &(_parameters.gspd_scaling_trim));
+	param_get(_parameter_handles.w_imax, &(_parameters.w_imax));
 
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
 	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
-
-	/* wheel control parameters */
-	_wheel_ctrl.set_time_constant(_parameters.w_tc);
-	_wheel_ctrl.set_k_p(_parameters.w_p);
-	_wheel_ctrl.set_k_i(_parameters.w_i);
-	_wheel_ctrl.set_k_ff(_parameters.w_ff);
-	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
-	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
 
 	/* Steering pid parameters*/
 	pid_init(&_steering_ctrl, PID_MODE_DERIVATIV_SET, 0.01f);
@@ -143,7 +125,7 @@ GroundRoverAttitudeControl::parameters_update()
 			   _parameters.w_p,
 			   _parameters.w_i,
 			   _parameters.w_d,
-			   _parameters.w_integrator_max,
+			   _parameters.w_imax,
 			   1.0f);
 }
 
@@ -151,8 +133,6 @@ void
 GroundRoverAttitudeControl::vehicle_control_mode_poll()
 {
 	bool updated = false;
-
-	/* Check if vehicle control mode has changed */
 	orb_check(_vcontrol_mode_sub, &updated);
 
 	if (updated) {
@@ -164,8 +144,6 @@ void
 GroundRoverAttitudeControl::manual_control_setpoint_poll()
 {
 	bool updated = false;
-
-	/* get pilots inputs */
 	orb_check(_manual_sub, &updated);
 
 	if (updated) {
@@ -176,9 +154,7 @@ GroundRoverAttitudeControl::manual_control_setpoint_poll()
 void
 GroundRoverAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	/* check if there is a new setpoint */
 	bool updated = false;
-
 	orb_check(_att_sp_sub, &updated);
 
 	if (updated) {
@@ -207,9 +183,6 @@ GroundRoverAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 GroundRoverAttitudeControl::task_main()
 {
-	/*
-	 * do subscriptions
-	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -286,76 +259,24 @@ GroundRoverAttitudeControl::task_main()
 			manual_control_setpoint_poll();
 			battery_status_poll();
 
-			/* lock integrator until control is started */
-			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled;
-
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
-
-				// calculate groundspeed
-				float groundspeed = _ctrl_state.x_vel;
-
-				// TODO: this should be changed: I don't want to reduce steering because of the speed,
-				// I want to reduce the speed because of the desired steering angle.
-				float groundspeed_scaler = _parameters.gspd_scaling_trim;
-
-				float yaw_sp = 0.0f;
-				float yaw_manual = 0.0f;
-				float throttle_sp = 0.0f;
-
-				yaw_sp = _att_sp.yaw_body;
-				throttle_sp = _att_sp.thrust;
-
-				/* allow manual yaw in manual modes */
-				if (_vcontrol_mode.flag_control_manual_enabled) {
-					yaw_manual = _manual.r;
-				}
-
-				if (_att_sp.yaw_reset_integral) {
-					_wheel_ctrl.reset_integrator();
-				}
-
-				Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
-
-				/* Prepare data for attitude controllers */
-				struct ECL_ControlData control_input = {};
-				control_input.roll = 0.0f; //_roll;
-				control_input.pitch = 0.0f; //_pitch;
-				control_input.yaw = euler_angles.psi();
-				control_input.body_x_rate = _ctrl_state.roll_rate;
-				control_input.body_y_rate = _ctrl_state.pitch_rate;
-				control_input.body_z_rate = _ctrl_state.yaw_rate;
-				control_input.roll_setpoint = 0.0f;
-				control_input.pitch_setpoint = 0.0f;
-				control_input.yaw_setpoint = yaw_sp;
-				control_input.airspeed_min = 0.0f;
-				control_input.airspeed_max = 0.0f;
-				control_input.airspeed = 0.0f;
-				control_input.scaler = 0.0f; // airspeed_scaling;
-				control_input.lock_integrator = lock_integrator;
-				control_input.groundspeed = groundspeed;
-				control_input.groundspeed_scaler = groundspeed_scaler;
-
 				/* Run attitude controllers */
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
-					_wheel_ctrl.control_attitude(control_input);
+
+					Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
 
 					/* Calculate the control output for the steering as yaw */
-					float yaw_u = pid_calculate(&_steering_ctrl, yaw_sp, euler_angles.psi(), _ctrl_state.yaw_rate, deltaT);
+					float yaw_u = pid_calculate(&_steering_ctrl, _att_sp.yaw_body, euler_angles.psi(), _ctrl_state.yaw_rate, deltaT);
 
 					math::constrain(yaw_u, -1.0f, 1.0f);
 
-					/* possibly useful debug*/
-					// warnx("yaw_u: %.4f | yaw_sp: %.4f | _yaw: %.4f", (double)yaw_u, (double)yaw_sp, (double)_yaw);
+					if (PX4_ISFINITE(yaw_u)) {
+						_actuators.control[actuator_controls_s::INDEX_YAW] = yaw_u + _parameters.trim_yaw;
 
-					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + _parameters.trim_yaw :
-							_parameters.trim_yaw;
+					} else {
+						_actuators.control[actuator_controls_s::INDEX_YAW] = _parameters.trim_yaw;
 
-					/* add in manual steering control */
-					_actuators.control[actuator_controls_s::INDEX_YAW] += yaw_manual;
-
-					if (!PX4_ISFINITE(yaw_u)) {
-						_wheel_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
@@ -364,7 +285,7 @@ GroundRoverAttitudeControl::task_main()
 					}
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = throttle_sp;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _att_sp.thrust;
 
 					/* scale effort by battery status */
 					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&
@@ -372,27 +293,6 @@ GroundRoverAttitudeControl::task_main()
 
 						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 					}
-
-					if (!PX4_ISFINITE(throttle_sp)) {
-						if (_debug && loop_counter % 10 == 0) {
-							warnx("throttle_sp %.4f", (double)throttle_sp);
-						}
-					}
-				}
-
-				/*
-				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
-				 * only once available
-				 */
-				_rates_sp.timestamp = hrt_absolute_time();
-
-				if (_rate_sp_pub != nullptr) {
-					/* publish the attitude rates setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-				} else {
-					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 				}
 
 			} else {
@@ -408,9 +308,9 @@ GroundRoverAttitudeControl::task_main()
 			_actuators.timestamp_sample = _ctrl_state.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
-			if (_vcontrol_mode.flag_control_rates_enabled ||
-			    _vcontrol_mode.flag_control_attitude_enabled ||
+			if (_vcontrol_mode.flag_control_attitude_enabled ||
 			    _vcontrol_mode.flag_control_manual_enabled) {
+
 				/* publish the actuator controls */
 				if (_actuators_0_pub != nullptr) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _actuators_0_pub, &_actuators);

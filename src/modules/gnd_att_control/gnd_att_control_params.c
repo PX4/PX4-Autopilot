@@ -139,7 +139,6 @@ PARAM_DEFINE_FLOAT(GND_WR_IMAX, 0.0f);
  */
 PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
 
-
 /**
  * Wheel steering rate feed forward
  *
@@ -180,7 +179,6 @@ PARAM_DEFINE_FLOAT(GND_MAN_Y_SC, 1.0f);
  * @group GND Attitude Control
  */
 PARAM_DEFINE_FLOAT(GND_GSPD_SP_TRIM, 1.0f);
-
 
 /**
  * Whether to scale throttle by battery power level

@@ -124,34 +124,6 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
 PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
 
 /**
- * Negative pitch limit
- *
- * The minimum negative pitch the controller will output.
- *
- * @unit deg
- * @min -60.0
- * @max 0.0
- * @decimal 1
- * @increment 0.5
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_P_LIM_MIN, -20.0f);
-
-/**
- * Positive pitch limit
- *
- * The maximum positive pitch the controller will output.
- *
- * @unit deg
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 0.5
- * @group GND POS Control
- */
-PARAM_DEFINE_FLOAT(GND_P_LIM_MAX, 20.0f);
-
-/**
  * Throttle limit min
  *
  * This is the minimum throttle % that can be used by the controller.
@@ -188,10 +160,10 @@ PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
  * @min 0
  * @max 1
  * @value 0 open loop control
- * @value 1 Close the loop with gps speed
+ * @value 1 close the loop with gps speed
  * @group GND Attitude Control
  */
-PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 0);
+PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
 
 /**
  * Speed proportional gain
@@ -263,5 +235,28 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 
+/**
+ * Trim ground speed
+ *
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 
-
+/**
+ * Maximum ground speed
+ *
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
