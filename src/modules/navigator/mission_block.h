@@ -138,9 +138,6 @@ protected:
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	actuator_controls_s _actuators{};
-	orb_advert_t    _actuator_pub{nullptr};
-
 	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
