@@ -108,13 +108,6 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-/**
- * L1 control app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
-
 using namespace launchdetection;
 using namespace runwaytakeoff;
 
@@ -219,7 +212,6 @@ private:
 	bool _last_manual{false};				///< true if the last iteration was in manual mode (used to determine when a reset is needed)
 
 	/* throttle and airspeed states */
-	float _airspeed_error{0.0f};				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_received{0};			///< last time airspeed was received. Used to detect timeouts.
 

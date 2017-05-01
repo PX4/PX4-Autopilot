@@ -109,7 +109,8 @@ public:
 
 	}
 
-	float getFlareCurveRelativeAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp);
+	float getFlareCurveRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
+						float bearing_airplane_currwp);
 
 	void update(float landing_slope_angle_rad_new,
 		    float flare_relative_alt_new,
