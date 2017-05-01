@@ -432,7 +432,7 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 void
 FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos,
 		const math::Vector<2> &ground_speed,
-		const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr)
+		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 
 	if (pos_sp_curr.valid && !_l1_control.circle_mode()) {
@@ -487,8 +487,8 @@ FixedwingPositionControl::fw_pos_ctrl_status_publish()
 }
 
 void
-FixedwingPositionControl::get_waypoint_heading_distance(float heading, struct position_setpoint_s &waypoint_prev,
-		struct position_setpoint_s &waypoint_next, bool flag_init)
+FixedwingPositionControl::get_waypoint_heading_distance(float heading, position_setpoint_s &waypoint_prev,
+		position_setpoint_s &waypoint_next, bool flag_init)
 {
 	waypoint_prev.valid = true;
 	waypoint_prev.alt = _hold_alt;
@@ -530,7 +530,7 @@ FixedwingPositionControl::get_waypoint_heading_distance(float heading, struct po
 
 float
 FixedwingPositionControl::get_terrain_altitude_takeoff(float takeoff_alt,
-		const struct vehicle_global_position_s &global_pos)
+		const vehicle_global_position_s &global_pos)
 {
 	if (PX4_ISFINITE(global_pos.terrain_alt) && global_pos.terrain_alt_valid) {
 		return global_pos.terrain_alt;
@@ -631,7 +631,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 
 bool
 FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-		const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr)
+		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	float dt = 0.01f;
 
@@ -1592,7 +1592,7 @@ FixedwingPositionControl::task_main()
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update {};
+			parameter_update_s update {};
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -1843,10 +1843,10 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
 
-	struct TECS::tecs_state s {};
+	TECS::tecs_state s {};
 	_tecs.get_tecs_state(s);
 
-	struct tecs_status_s t {};
+	tecs_status_s t {};
 	t.timestamp = s.timestamp;
 
 	switch (s.mode) {
