@@ -52,6 +52,9 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
+#ifndef FIXEDWINGPOSITIONCONTROL_HPP_
+#define FIXEDWINGPOSITIONCONTROL_HPP_
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
@@ -463,3 +466,5 @@ namespace l1_control
 {
 extern FixedwingPositionControl *g_control;
 } // namespace l1_control
+
+#endif // FIXEDWINGPOSITIONCONTROL_HPP_
