@@ -37,7 +37,7 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include "landingslope.h"
+#include "Landingslope.hpp"
 
 #include <mathlib/mathlib.h>
 

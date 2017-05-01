@@ -59,7 +59,7 @@
 
 #include <cfloat>
 
-#include "landingslope.h"
+#include "Landingslope.hpp"
 
 #include <arch/board/board.h>
 #include <drivers/drv_accel.h>

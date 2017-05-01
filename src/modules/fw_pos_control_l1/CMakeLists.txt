@@ -37,7 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		FixedwingPositionControl.cpp
-		landingslope.cpp
+		Landingslope.cpp
 	DEPENDS
 		platforms__common
 		git_ecl
