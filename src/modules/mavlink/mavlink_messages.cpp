@@ -61,6 +61,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/camera_capture.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/differential_pressure.h>
@@ -1473,6 +1474,86 @@ protected:
 
 				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &digicam_ctrl_cmd);
 			}
+		}
+	}
+};
+
+class MavlinkStreamCameraImageCaptured : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamCameraImageCaptured::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "CAMERA_IMAGE_CAPTURED";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	bool const_rate()
+	{
+		return true;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamCameraImageCaptured(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_capture_time > 0) ? MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_capture_sub;
+	uint64_t _capture_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamCameraImageCaptured(MavlinkStreamCameraImageCaptured &);
+	MavlinkStreamCameraImageCaptured &operator = (const MavlinkStreamCameraImageCaptured &);
+
+protected:
+	explicit MavlinkStreamCameraImageCaptured(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_capture_sub(_mavlink->add_orb_subscription(ORB_ID(camera_capture))),
+		_capture_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct camera_capture_s capture;
+
+		if (_capture_sub->update(&_capture_time, &capture)) {
+
+			mavlink_camera_image_captured_t msg;
+
+			msg.time_boot_ms = capture.timestamp / 1000;
+			msg.time_utc = capture.timestamp_utc;
+			msg.camera_id = 1;	// FIXME : get this from uORB
+			msg.lat = capture.lat * 1e7;
+			msg.lon = capture.lon * 1e7;
+			msg.alt = capture.alt * 1e3f;
+			msg.relative_alt = capture.relative_alt * 1e3f;
+			msg.q[0] = capture.q[0];
+			msg.q[1] = capture.q[1];
+			msg.q[2] = capture.q[2];
+			msg.q[3] = capture.q[3];
+			msg.image_index = capture.seq;
+			msg.capture_result = capture.result;
+			msg.file_url[0] = '\0';
+
+			mavlink_msg_camera_image_captured_send_struct(_mavlink->get_channel(), &msg);
 		}
 	}
 };
@@ -4022,6 +4103,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamNavControllerOutput::new_instance, &MavlinkStreamNavControllerOutput::get_name_static, &MavlinkStreamNavControllerOutput::get_id_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static, &MavlinkStreamCameraCapture::get_id_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static, &MavlinkStreamCameraTrigger::get_id_static),
+	new StreamListItem(&MavlinkStreamCameraImageCaptured::new_instance, &MavlinkStreamCameraImageCaptured::get_name_static, &MavlinkStreamCameraImageCaptured::get_id_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static, &MavlinkStreamDistanceSensor::get_id_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
