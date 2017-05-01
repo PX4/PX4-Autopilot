@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,8 +49,9 @@
  * @min 0
  * @max 3
  * @value 0 Disabled
- * @value 2 Sensors Enabled
+ * @value 2 Only Sensors
  * @value 3 Sensors and Motors
+ * @reboot_required true
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
@@ -62,6 +63,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
  *
  * @min 1
  * @max 125
+ * @reboot_required true
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
@@ -72,6 +74,7 @@ PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
  * @unit bit/s
  * @min 20000
  * @max 1000000
+ * @reboot_required true
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
