@@ -104,7 +104,7 @@ void rpi_pca9685_pwm_out::send_outputs_pwm(const uint16_t *pwm)
 	int i;
 
 	for (i = 0; i < NUM_PWM; ++i) {
-		PX4_WARN("PWM%d:%d\n", i, *(pwm + i));
+		//PX4_WARN("PWM%d:%d\n",i,*(pwm+i));
 		rpi_pca9685_pwm_out::pwm.setPWM(i, *(pwm + i));
 	}
 }
