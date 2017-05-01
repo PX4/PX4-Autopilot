@@ -1375,14 +1375,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	}
 
 	/* Copy thrust output for publication */
-	if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-		/* Set thrust to 0 to minimize damage */
-		_att_sp.thrust = 0.0f;
-
-	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
-		   pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-		   !_runway_takeoff.runwayTakeoffEnabled()) {
+	if (_control_mode_current == FW_POSCTRL_MODE_AUTO && // launchdetector only available in auto
+	    pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
+	    !_runway_takeoff.runwayTakeoffEnabled()) {
 
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
