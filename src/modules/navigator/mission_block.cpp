@@ -73,6 +73,7 @@ bool
 MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
+
 	switch (_mission_item.nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
 		return true;
@@ -86,6 +87,7 @@ MissionBlock::is_mission_item_reached()
 		return false;
 
 	case NAV_CMD_DO_LAND_START:
+	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -96,6 +98,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_ROI:
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -445,6 +448,7 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 void
 MissionBlock::issue_command(const struct mission_item_s *item)
 {
+
 	if (item_contains_position(item)) {
 		return;
 	}

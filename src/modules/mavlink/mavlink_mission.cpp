@@ -1024,6 +1024,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_CHANGE_SPEED:
 		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_LAND_START:
+		case MAV_CMD_DO_TRIGGER_CONTROL:
 		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
@@ -1034,6 +1035,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_ROI:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case MAV_CMD_DO_VTOL_TRANSITION:
 		case MAV_CMD_NAV_DELAY:
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
@@ -1099,6 +1101,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CHANGE_SPEED:
 		case NAV_CMD_DO_SET_SERVO:
 		case NAV_CMD_DO_LAND_START:
+		case NAV_CMD_DO_TRIGGER_CONTROL:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -1109,6 +1112,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
 
