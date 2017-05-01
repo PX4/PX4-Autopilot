@@ -185,6 +185,13 @@
 #  define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
 
+/*
+ * Defined when a board has capture and uses channels.
+ */
+#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
+#define BOARD_HAS_CAPTURE 1
+#endif
+
 
 /************************************************************************************
  * Public Data
