@@ -682,14 +682,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		_was_in_air = false;
 	}
 
+	/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+	if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
+		/* reset integrators */
+		_tecs.reset_state();
+	}
+
 	if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
 		/* AUTONOMOUS FLIGHT */
-
-		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-			/* reset integrators */
-			_tecs.reset_state();
-		}
 
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
 
@@ -1222,12 +1222,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 			_att_sp.yaw_body = 0;
 		}
 
-		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-			/* reset integrators */
-			_tecs.reset_state();
-		}
-
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
 
 		float altctrl_airspeed = get_demanded_airspeed();
@@ -1327,12 +1321,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
-		}
-
-		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-			/* reset integrators */
-			_tecs.reset_state();
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_ALTITUDE;
