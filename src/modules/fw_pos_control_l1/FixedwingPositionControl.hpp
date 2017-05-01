@@ -159,16 +159,16 @@ private:
 
 	orb_id_t _attitude_setpoint_id{nullptr};
 
-	struct control_state_s			_ctrl_state {};			///< control state */
-	struct fw_pos_ctrl_status_s		_fw_pos_ctrl_status {};		///< navigation capabilities */
-	struct manual_control_setpoint_s	_manual {};			///< r/c channel data */
-	struct position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
-	struct vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
-	struct vehicle_command_s		_vehicle_command {};		///< vehicle commands */
-	struct vehicle_control_mode_s		_control_mode {};		///< control mode */
-	struct vehicle_global_position_s	_global_pos {};			///< global vehicle position */
-	struct vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
-	struct vehicle_status_s			_vehicle_status {};		///< vehicle status */
+	control_state_s			_ctrl_state {};			///< control state */
+	fw_pos_ctrl_status_s		_fw_pos_ctrl_status {};		///< navigation capabilities */
+	manual_control_setpoint_s	_manual {};			///< r/c channel data */
+	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
+	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
+	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
+	vehicle_control_mode_s		_control_mode {};		///< control mode */
+	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
+	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
+	vehicle_status_s			_vehicle_status {};		///< vehicle status */
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -180,8 +180,8 @@ private:
 	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold */
 	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband */
 
-	struct position_setpoint_s _hdg_hold_prev_wp {};	///< position where heading hold started */
-	struct position_setpoint_s _hdg_hold_curr_wp {};	///< position to which heading hold flies */
+	position_setpoint_s _hdg_hold_prev_wp {};	///< position where heading hold started */
+	position_setpoint_s _hdg_hold_curr_wp {};	///< position to which heading hold flies */
 
 	hrt_abstime _control_position_last_called{0};		///< last call of control_position  */
 
@@ -274,7 +274,7 @@ private:
 		float airspeed_trim;
 		float airspeed_max;
 		float airspeed_trans;
-		int airspeed_mode;
+		int32_t airspeed_mode;
 
 		float pitch_limit_min;
 		float pitch_limit_max;
@@ -300,15 +300,13 @@ private:
 		float land_heading_hold_horizontal_distance;
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
-		int land_use_terrain_estimate;
+		int32_t land_use_terrain_estimate;
 		float land_airspeed_scale;
 
-		int vtol_type;
-
+		int32_t vtol_type;
 	} _parameters{};					///< local copies of interesting parameters */
 
 	struct {
-
 		param_t l1_period;
 		param_t l1_damping;
 
@@ -364,7 +362,6 @@ private:
 		param_t land_airspeed_scale;
 
 		param_t vtol_type;
-
 	} _parameter_handles {};				///< handles for interesting parameters */
 
 
@@ -394,13 +391,13 @@ private:
 	 * @param waypoint_prev the waypoint at the current position
 	 * @param waypoint_next the waypoint in the heading direction
 	 */
-	void		get_waypoint_heading_distance(float heading, struct position_setpoint_s &waypoint_prev,
-			struct position_setpoint_s &waypoint_next, bool flag_init);
+	void		get_waypoint_heading_distance(float heading, position_setpoint_s &waypoint_prev,
+			position_setpoint_s &waypoint_next, bool flag_init);
 
 	/**
 	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
 	 */
-	float		get_terrain_altitude_takeoff(float takeoff_alt, const struct vehicle_global_position_s &global_pos);
+	float		get_terrain_altitude_takeoff(float takeoff_alt, const vehicle_global_position_s &global_pos);
 
 	/**
 	 * Check if we are in a takeoff situation
@@ -422,13 +419,8 @@ private:
 	 */
 	bool		update_desired_altitude(float dt);
 
-	/**
-	 * Control position.
-	 */
-	bool		control_position(const math::Vector<2> &curr_pos,
-					 const math::Vector<2> &ground_speed,
-					 const struct position_setpoint_s &pos_sp_prev,
-					 const struct position_setpoint_s &pos_sp_curr);
+	bool		control_position(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
+					 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
@@ -436,7 +428,7 @@ private:
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand);
 	void		calculate_gndspeed_undershoot(const math::Vector<2> &curr_pos, const math::Vector<2> &ground_speed,
-			const struct position_setpoint_s &pos_sp_prev, const struct position_setpoint_s &pos_sp_curr);
+			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * Handle incoming vehicle commands
@@ -453,14 +445,7 @@ private:
 	 */
 	void		task_main();
 
-	/*
-	 * Reset takeoff state
-	 */
 	void		reset_takeoff_state();
-
-	/*
-	 * Reset landing state
-	 */
 	void		reset_landing_state();
 
 	/*
