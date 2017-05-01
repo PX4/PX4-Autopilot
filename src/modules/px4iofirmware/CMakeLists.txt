@@ -78,10 +78,11 @@ set(srcs
 	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_hrt.c
 	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_io_timer.c
 	${PX4_SOURCE_DIR}/src/drivers/stm32/drv_pwm_servo.c
-	${PX4_SOURCE_DIR}/src/lib/rc/dsm.c
-	${PX4_SOURCE_DIR}/src/lib/rc/sbus.c
-	${PX4_SOURCE_DIR}/src/lib/rc/st24.c
-	${PX4_SOURCE_DIR}/src/lib/rc/sumd.c
+	${PX4_SOURCE_DIR}/src/lib/rc/dsm.cpp
+	${PX4_SOURCE_DIR}/src/lib/rc/sbus.cpp
+	${PX4_SOURCE_DIR}/src/lib/rc/st24.cpp
+	${PX4_SOURCE_DIR}/src/lib/rc/sumd.cpp
+	${PX4_SOURCE_DIR}/src/lib/rc/common_rc.cpp
 	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer.cpp
 	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_group.cpp
 	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_helicopter.cpp
