@@ -41,6 +41,7 @@ set(msg_file_names
 	att_pos_mocap.msg
 	battery_status.msg
 	camera_trigger.msg
+	camera_capture.msg
 	collision_report.msg
 	commander_state.msg
 	control_state.msg
