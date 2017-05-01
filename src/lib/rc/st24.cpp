@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "st24.h"
+#include "common_rc.h"
 
 enum ST24_DECODE_STATE {
 	ST24_DECODE_STATE_UNSYNCED = 0,
@@ -74,7 +75,11 @@ const char *decode_states[] = {"UNSYNCED",
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacket _rxpacket;
+static ReceiverFcPacket *_rxpacket = (ReceiverFcPacket *) &__rc_decode_buf[0];
+
+// Ensure there is enough space
+static_assert(sizeof(__rc_decode_buf) > sizeof(ReceiverFcPacket),
+	      "__rc_decode_buf is too small for ST protocol");
 
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {
@@ -132,8 +137,8 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 	case ST24_DECODE_STATE_GOT_STX2:
 
 		/* ensure no data overflow failure or hack is possible */
-		if ((unsigned)byte <= sizeof(_rxpacket.length) + sizeof(_rxpacket.type) + sizeof(_rxpacket.st24_data)) {
-			_rxpacket.length = byte;
+		if ((unsigned)byte <= sizeof(_rxpacket->length) + sizeof(_rxpacket->type) + sizeof(_rxpacket->st24_data)) {
+			_rxpacket->length = byte;
 			_rxlen = 0;
 			_decode_state = ST24_DECODE_STATE_GOT_LEN;
 
@@ -144,35 +149,35 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 		break;
 
 	case ST24_DECODE_STATE_GOT_LEN:
-		_rxpacket.type = byte;
+		_rxpacket->type = byte;
 		_rxlen++;
 		_decode_state = ST24_DECODE_STATE_GOT_TYPE;
 		break;
 
 	case ST24_DECODE_STATE_GOT_TYPE:
-		_rxpacket.st24_data[_rxlen - 1] = byte;
+		_rxpacket->st24_data[_rxlen - 1] = byte;
 		_rxlen++;
 
-		if (_rxlen == (_rxpacket.length - 1)) {
+		if (_rxlen == (_rxpacket->length - 1)) {
 			_decode_state = ST24_DECODE_STATE_GOT_DATA;
 		}
 
 		break;
 
 	case ST24_DECODE_STATE_GOT_DATA:
-		_rxpacket.crc8 = byte;
+		_rxpacket->crc8 = byte;
 		_rxlen++;
 
-		if (st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
+		if (st24_common_crc8((uint8_t *) & (_rxpacket->length), _rxlen) == _rxpacket->crc8) {
 
 			ret = 0;
 
 			/* decode the actual packet */
 
-			switch (_rxpacket.type) {
+			switch (_rxpacket->type) {
 
 			case ST24_PACKET_TYPE_CHANNELDATA12: {
-					ChannelData12 *d = (ChannelData12 *)_rxpacket.st24_data;
+					ChannelData12 *d = (ChannelData12 *)_rxpacket->st24_data;
 
 					// Scale from 0..255 to 100%.
 					*rssi = d->rssi * (100.0f / 255.0f);
@@ -201,7 +206,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 				break;
 
 			case ST24_PACKET_TYPE_CHANNELDATA24: {
-					ChannelData24 *d = (ChannelData24 *)&_rxpacket.st24_data;
+					ChannelData24 *d = (ChannelData24 *)&_rxpacket->st24_data;
 
 					// Scale from 0..255 to 100%.
 					*rssi = d->rssi * (100.0f / 255.0f);
@@ -231,7 +236,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 
 			case ST24_PACKET_TYPE_TRANSMITTERGPSDATA: {
 
-					// ReceiverFcPacket* d = (ReceiverFcPacket*)&_rxpacket.st24_data;
+					// ReceiverFcPacket* d = (ReceiverFcPacket*)&_rxpacket->st24_data;
 					/* we silently ignore this data for now, as it is unused */
 					ret = 5;
 				}

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file dsm.c
+ * @file dsm.cpp
  *
  * Serial protocol decoder for the Spektrum DSM* family of protocols.
  *
@@ -49,6 +49,7 @@
 #include <string.h>
 
 #include "dsm.h"
+#include "common_rc.h"
 #include <drivers/drv_hrt.h>
 
 #if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || defined(__PX4_QURT)
@@ -68,8 +69,13 @@ static enum DSM_DECODE_STATE {
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
 static hrt_abstime dsm_last_rx_time;            /**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
-static uint8_t dsm_frame[DSM_BUFFER_SIZE];	/**< DSM dsm frame receive buffer */
-static uint8_t dsm_buf[DSM_FRAME_SIZE * 2];
+static uint8_t *dsm_frame = &__rc_decode_buf[0];	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
+static uint8_t *dsm_buf = &__rc_decode_buf[DSM_BUFFER_SIZE]; //[DSM_FRAME_SIZE * 2];
+
+// Ensure there is enough space
+static_assert(sizeof(__rc_decode_buf) > (DSM_BUFFER_SIZE + DSM_FRAME_SIZE * 2),
+	      "__rc_decode_buf is too small for DSM protocol");
+
 static uint16_t dsm_chan_buf[DSM_MAX_CHANNEL_COUNT];
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */

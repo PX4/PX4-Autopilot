@@ -88,6 +88,7 @@ enum mixer_source {
 	MIX_FAILSAFE,
 	MIX_OVERRIDE_FMU_OK
 };
+
 static volatile mixer_source source;
 
 static int	mixer_callback(uintptr_t handle,
