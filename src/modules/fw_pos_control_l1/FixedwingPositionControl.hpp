@@ -61,8 +61,6 @@
 
 #include "Landingslope.hpp"
 
-#include <arch/board/board.h>
-#include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
@@ -85,8 +83,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
-
-static int	_control_task = -1;			///< task handle for sensor task */
 
 #define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
 #define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
