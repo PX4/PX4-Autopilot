@@ -42,7 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "sumd.h"
-
+#include "common_rc.h"
 
 enum SUMD_DECODE_STATE {
 	SUMD_DECODE_STATE_UNSYNCED = 0,
@@ -88,8 +88,11 @@ bool		_debug		= false;
 static enum SUMD_DECODE_STATE _decode_state = SUMD_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacketHoTT _rxpacket;
+static ReceiverFcPacketHoTT *_rxpacket = (ReceiverFcPacketHoTT *) &__rc_decode_buf[0];
 
+// Ensure there is enough space
+static_assert(sizeof(__rc_decode_buf) > sizeof(ReceiverFcPacketHoTT),
+	      "__rc_decode_buf is too small for SUMD protocol");
 
 uint16_t sumd_crc16(uint16_t crc, uint8_t value)
 {
@@ -122,7 +125,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		}
 
 		if (byte == SUMD_HEADER_ID) {
-			_rxpacket.header = byte;
+			_rxpacket->header = byte;
 			_sumd = true;
 			_rxlen = 0;
 			_crc16 = 0x0000;
@@ -144,7 +147,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 	case SUMD_DECODE_STATE_GOT_HEADER:
 		if (byte == SUMD_ID_SUMD || byte == SUMD_ID_FAILSAFE || byte == SUMD_ID_SUMH) {
-			_rxpacket.status = byte;
+			_rxpacket->status = byte;
 
 			if (byte == SUMD_ID_SUMH) {
 				_sumd = false;
@@ -171,7 +174,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 	case SUMD_DECODE_STATE_GOT_STATE:
 		if (byte >= 2 && byte <= SUMD_MAX_CHANNELS) {
-			_rxpacket.length = byte;
+			_rxpacket->length = byte;
 
 			if (_sumd) {
 				_crc16 = sumd_crc16(_crc16, byte);
@@ -194,7 +197,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_LEN:
-		_rxpacket.sumd_data[_rxlen] = byte;
+		_rxpacket->sumd_data[_rxlen] = byte;
 
 		if (_sumd) {
 			_crc16 = sumd_crc16(_crc16, byte);
@@ -205,7 +208,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 		_rxlen++;
 
-		if (_rxlen <= ((_rxpacket.length * 2))) {
+		if (_rxlen <= ((_rxpacket->length * 2))) {
 			if (_debug) {
 				printf(" SUMD_DECODE_STATE_GOT_DATA[%d]: %x\n", _rxlen - 2, byte) ;
 			}
@@ -222,7 +225,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_DATA:
-		_rxpacket.crc16_high = byte;
+		_rxpacket->crc16_high = byte;
 
 		if (_debug) {
 			printf(" SUMD_DECODE_STATE_GOT_CRC16[1]: %x   [%x]\n", byte, ((_crc16 >> 8) & 0xff)) ;
@@ -238,7 +241,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_CRC16_BYTE_1:
-		_rxpacket.crc16_low = byte;
+		_rxpacket->crc16_low = byte;
 
 		if (_debug) {
 			printf(" SUMD_DECODE_STATE_GOT_CRC16[2]: %x   [%x]\n", byte, (_crc16 & 0xff)) ;
@@ -249,7 +252,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_CRC16_BYTE_2:
-		_rxpacket.telemetry = byte;
+		_rxpacket->telemetry = byte;
 
 		if (_debug) {
 			printf(" SUMD_DECODE_STATE_GOT_SUMH_TELEMETRY: %x\n", byte) ;
@@ -261,24 +264,24 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 	case SUMD_DECODE_STATE_GOT_CRC:
 		if (_sumd) {
-			_rxpacket.crc16_low = byte;
+			_rxpacket->crc16_low = byte;
 
 			if (_debug) {
 				printf(" SUMD_DECODE_STATE_GOT_CRC[2]: %x   [%x]\n\n", byte, (_crc16 & 0xff)) ;
 			}
 
-			if (_crc16 == (uint16_t)(_rxpacket.crc16_high << 8) + _rxpacket.crc16_low) {
+			if (_crc16 == (uint16_t)(_rxpacket->crc16_high << 8) + _rxpacket->crc16_low) {
 				_crcOK = true;
 			}
 
 		} else {
-			_rxpacket.crc8 = byte;
+			_rxpacket->crc8 = byte;
 
 			if (_debug) {
 				printf(" SUMD_DECODE_STATE_GOT_CRC8_SUMH: %x   [%x]\n\n", byte, _crc8) ;
 			}
 
-			if (_crc8 == _rxpacket.crc8) {
+			if (_crc8 == _rxpacket->crc8) {
 				_crcOK = true;
 			}
 		}
@@ -312,38 +315,38 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			*rssi = 100;
 
 			/* failsafe flag */
-			*failsafe = (_rxpacket.status == SUMD_ID_FAILSAFE);
+			*failsafe = (_rxpacket->status == SUMD_ID_FAILSAFE);
 
 			/* received Channels */
-			if ((uint16_t)_rxpacket.length > max_chan_count) {
-				_rxpacket.length = (uint8_t) max_chan_count;
+			if ((uint16_t)_rxpacket->length > max_chan_count) {
+				_rxpacket->length = (uint8_t) max_chan_count;
 			}
 
-			*channel_count = (uint16_t)_rxpacket.length;
+			*channel_count = (uint16_t)_rxpacket->length;
 
 			/* decode the actual packet */
 			/* reorder first 4 channels */
 
 			/* ch1 = roll -> sumd = ch2 */
-			channels[0] = (uint16_t)((_rxpacket.sumd_data[1 * 2 + 1] << 8) | _rxpacket.sumd_data[1 * 2 + 2]) >> 3;
+			channels[0] = (uint16_t)((_rxpacket->sumd_data[1 * 2 + 1] << 8) | _rxpacket->sumd_data[1 * 2 + 2]) >> 3;
 			/* ch2 = pitch -> sumd = ch2 */
-			channels[1] = (uint16_t)((_rxpacket.sumd_data[2 * 2 + 1] << 8) | _rxpacket.sumd_data[2 * 2 + 2]) >> 3;
+			channels[1] = (uint16_t)((_rxpacket->sumd_data[2 * 2 + 1] << 8) | _rxpacket->sumd_data[2 * 2 + 2]) >> 3;
 			/* ch3 = throttle -> sumd = ch2 */
-			channels[2] = (uint16_t)((_rxpacket.sumd_data[0 * 2 + 1] << 8) | _rxpacket.sumd_data[0 * 2 + 2]) >> 3;
+			channels[2] = (uint16_t)((_rxpacket->sumd_data[0 * 2 + 1] << 8) | _rxpacket->sumd_data[0 * 2 + 2]) >> 3;
 			/* ch4 = yaw -> sumd = ch2 */
-			channels[3] = (uint16_t)((_rxpacket.sumd_data[3 * 2 + 1] << 8) | _rxpacket.sumd_data[3 * 2 + 2]) >> 3;
+			channels[3] = (uint16_t)((_rxpacket->sumd_data[3 * 2 + 1] << 8) | _rxpacket->sumd_data[3 * 2 + 2]) >> 3;
 
 			/* we start at channel 5(index 4) */
 			unsigned chan_index = 4;
 
-			for (i = 4; i < _rxpacket.length; i++) {
+			for (i = 4; i < _rxpacket->length; i++) {
 				if (_debug) {
-					printf("ch[%d] : %x %x [ %x    %d ]\n", i + 1, _rxpacket.sumd_data[i * 2 + 1], _rxpacket.sumd_data[i * 2 + 2],
-					       ((_rxpacket.sumd_data[i * 2 + 1] << 8) | _rxpacket.sumd_data[i * 2 + 2]) >> 3,
-					       ((_rxpacket.sumd_data[i * 2 + 1] << 8) | _rxpacket.sumd_data[i * 2 + 2]) >> 3);
+					printf("ch[%d] : %x %x [ %x    %d ]\n", i + 1, _rxpacket->sumd_data[i * 2 + 1], _rxpacket->sumd_data[i * 2 + 2],
+					       ((_rxpacket->sumd_data[i * 2 + 1] << 8) | _rxpacket->sumd_data[i * 2 + 2]) >> 3,
+					       ((_rxpacket->sumd_data[i * 2 + 1] << 8) | _rxpacket->sumd_data[i * 2 + 2]) >> 3);
 				}
 
-				channels[chan_index] = (uint16_t)((_rxpacket.sumd_data[i * 2 + 1] << 8) | _rxpacket.sumd_data[i * 2 + 2]) >> 3;
+				channels[chan_index] = (uint16_t)((_rxpacket->sumd_data[i * 2 + 1] << 8) | _rxpacket->sumd_data[i * 2 + 2]) >> 3;
 				/* convert values to 1000-2000 ppm encoding in a not too sloppy fashion */
 				//channels[chan_index] = (uint16_t)(channels[chan_index] * SUMD_SCALE_FACTOR + .5f) + SUMD_SCALE_OFFSET;
 
