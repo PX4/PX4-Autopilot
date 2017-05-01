@@ -85,7 +85,7 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * output.
  */
 #define NUM_MSG 1
-static char msg[NUM_MSG][40];
+static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 
 static void heartbeat_blink(void);
 static void ring_blink(void);
