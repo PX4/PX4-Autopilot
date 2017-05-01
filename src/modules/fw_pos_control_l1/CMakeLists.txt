@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		fw_pos_control_l1_main.cpp
+		FixedwingPositionControl.cpp
 		landingslope.cpp
 	DEPENDS
 		platforms__common
