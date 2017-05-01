@@ -797,17 +797,22 @@ MulticopterPositionControl::update_ref()
 		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
-			/* calculate current position setpoint in global frame */
+			// calculate current position setpoint in global frame
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+			// the altitude setpoint is the reference altitude (Z up) plus the (Z down)
+			// NED setpoint, multiplied out to minus
 			alt_sp = _ref_alt - _pos_sp(2);
 		}
 
-		/* update local projection reference */
+		// update local projection reference including altitude
 		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
 		_ref_alt = _local_pos.ref_alt;
 
 		if (_ref_timestamp != 0) {
-			/* reproject position setpoint to new reference */
+			// reproject position setpoint to new reference
+			// this effectively adjusts the position setpoint to keep the vehicle
+			// in its current local position. It would only change its
+			// global position on the next setpoint update.
 			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
 			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
