@@ -260,6 +260,7 @@ then
 	#
 	if param compare SYS_AUTOSTART 0
 	then
+		ekf2 start
 	else
 		sh /etc/init.d/rc.autostart
 	fi
