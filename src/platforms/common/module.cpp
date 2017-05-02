@@ -44,7 +44,10 @@ pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void PRINT_MODULE_DESCRIPTION(const char *description)
 {
-	printf("%s\n", description);
+	// TODO: the output could be improved by:
+	// - mark titles in bold (lines starting with ##)
+	// - highlight commands (lines starting with $, or `cmd`)
+	printf("%s\n\n", description);
 }
 
 #endif /* __PX4_NUTTX */

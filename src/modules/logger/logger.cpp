@@ -143,21 +143,26 @@ int Logger::print_usage(const char *reason)
 
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
-System logger which logs a (configurable) set of uORB topics and system printf messages
+### Description
+System logger which logs a configurable set of uORB topics and system printf messages
 (warnings and errors) to ULog files. These can be used for system and flight performance evaluation,
 tuning, replay and crash analysis.
 
 It supports 2 backends:
 - Files: write ULog files to the file system (SD card)
 - MAVLink: stream ULog data via MAVLink to a client (the client must support this)
+
 Both backends can be enabled and used at the same time.
 
+### Implementation
 The implementation uses two threads:
 - The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
-data updates
+  data updates
 - The writer thread, writing data to the file
+
 In between there is a write buffer with configurable size. It should be large to avoid dropouts.
 
+### Examples
 Typical usage to start logging immediately:
 $ logger start -e -t
 

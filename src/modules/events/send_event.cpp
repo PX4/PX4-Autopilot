@@ -199,6 +199,7 @@ int SendEvent::print_usage(const char *reason)
 
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
+### Description
 Background process running periodically on the LP work queue to perform housekeeping tasks.
 It is currently only responsible for temperature calibration.
 
