@@ -311,6 +311,24 @@ __EXPORT void board_rc_input(bool invert_on);
 #endif
 
 /************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_NO_RESET) || !defined(BOARD_HAS_ON_RESET)
+#  define board_on_reset(status)
+#else
+__EXPORT void board_on_reset(int status);
+#endif
+
+/************************************************************************************
  * Name: board_reset
  *
  * Description:

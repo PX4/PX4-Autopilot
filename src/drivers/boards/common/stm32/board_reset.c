@@ -69,6 +69,9 @@ int board_set_bootload_mode(board_reset_e mode)
 
 void board_system_reset(int status)
 {
+#if defined(BOARD_HAS_ON_RESET)
+	board_on_reset(status);
+#endif
 	board_reset(status);
 
 	while (1);
