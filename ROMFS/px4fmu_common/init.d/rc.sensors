@@ -225,7 +225,7 @@ then
 	if bmi055 -A start
 	then
 	fi
-	
+
 	# Internal SPI bus BMI055_GYR
 	if bmi055 -G start
 	then
@@ -235,7 +235,7 @@ then
 	if bmm150 -R 2 start
 	then
 	fi
-	
+
 	# expansion i2c used for BMP280
 	if bmp280 -I start
 	then
@@ -287,7 +287,7 @@ then
 	then
 	fi
 
-	if mpu6500 -R 8 start
+	if mpu9250 -s -R 8 start
 	then
 	fi
 
