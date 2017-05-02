@@ -3548,7 +3548,7 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap2");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
 #endif
 #if defined(BOARD_HAS_MULTI_PURPOSE_GPIO) // only used by px4fmu-v1 HW
 	PRINT_MODULE_USAGE_COMMAND("mode_serial");
