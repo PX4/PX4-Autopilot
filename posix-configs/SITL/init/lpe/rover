@@ -16,11 +16,8 @@ param set CAL_GYRO0_XOFF 0.01
 param set CAL_MAG0_ID 196616
 param set CAL_MAG0_XOFF 0.01
 param set COM_RC_IN_MODE 1
-param set EKF2_ANGERR_INIT 0.01
-param set EKF2_GBIAS_INIT 0.01
-param set EKF2_MAG_TYPE 1
 param set GND_L1_DIST 5
-param set GND_SP_CTRL_MODE 1
+param set GND_SP_CTRL_MODE 0
 param set GND_SPEED_D 3
 param set GND_SPEED_I 0.001
 param set GND_SPEED_IMAX 0.125
@@ -28,9 +25,8 @@ param set GND_SPEED_P 0.25
 param set GND_SPEED_THR_SC 1
 param set GND_THR_CRUISE 0.3
 param set GND_THR_IDLE 0
-param set GND_THR_MAX 0.5
+param set GND_THR_MAX 1
 param set GND_THR_MIN 0
-param set GND_SPEED_TRIM 4
 param set GND_WR_D 1.2
 param set GND_WR_I 0.9674
 param set GND_WR_IMAX 0.1
@@ -45,7 +41,7 @@ param set SENS_BOARD_ROT 0
 param set SENS_BOARD_X_OFF 0.000001
 param set SENS_DPRES_OFF 0.001
 param set SYS_AUTOSTART 50002
-param set SYS_MC_EST_GROUP 2
+param set SYS_MC_EST_GROUP 1
 param set SYS_RESTART_TYPE 2
 replay tryapplyparams
 simulator start -s
