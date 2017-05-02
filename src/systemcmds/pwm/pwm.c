@@ -957,7 +957,7 @@ pwm_main(int argc, char *argv[])
 				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 1);
 
 			} else {
-				/* force failsafe */
+				/* disable failsafe */
 				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
 			}
 
@@ -981,7 +981,7 @@ pwm_main(int argc, char *argv[])
 				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 1);
 
 			} else {
-				/* force failsafe */
+				/* disable failsafe */
 				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 0);
 			}
 
