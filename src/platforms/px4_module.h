@@ -352,7 +352,9 @@ int ModuleBase<T>::_task_id = -1;
 
 __BEGIN_DECLS
 
-/* module documentation and command usage help methods */
+/* Module documentation and command usage help methods.
+ * These are extracted with the Tools/px_process_module_doc.py script and must be kept in sync
+ */
 
 #ifdef __PX4_NUTTX
 // disable module description on NuttX to reduce Flash usage.
@@ -361,10 +363,17 @@ __BEGIN_DECLS
 static inline void PRINT_MODULE_DESCRIPTION(const char *description) {}
 #else
 /**
- * Print module documentation (Will also be used for online documentation). This should include:
- * - provided functionality of the module
- * - high-level implementation overview
- * - examples how to use the CLI interface (if it's non-trivial)
+ * Print module documentation (will also be used for online documentation). It uses Markdown syntax
+ * and should include these sections:
+ * - ### Description
+ *   Provided functionality of the module and potentially the most important parameters.
+ * - ### Implementation
+ *   High-level implementation overview
+ * - ### Examples
+ *   Examples how to use the CLI interface (if it's non-trivial)
+ *
+ * In addition to the Markdown syntax, a line beginning with '$ ' can be used to mark a command:
+ * $ module start -p param
  */
 __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 #endif
