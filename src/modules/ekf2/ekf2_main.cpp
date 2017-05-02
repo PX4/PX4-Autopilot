@@ -153,9 +153,8 @@ private:
 	uint32_t _balt_time_ms_last_used =
 		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
 
-	bool	_prev_landed = true;	// landed status from the previous frame
-
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
+	bool _mag_decl_saved = false;	// true when the declination for the current position has been saved
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_invalid_magcal_us =
@@ -1056,6 +1055,18 @@ void Ekf2::task_main()
 
 					// reset the timer to prevent possible race condition causing data to be saved too frequently
 					_last_invalid_magcal_us = now;
+
+					// save the declination to the EKF2_MAG_DECL parameter when transitioning into ARMING_STATE_STANDBY
+					// for the first time when the EKF is using GPS
+					if (!_mag_decl_saved && // this is the first transition into standby
+					    (_params->mag_declination_source & (1 << 1)) && // saving the declination is allowed by the parameter setting
+					    (status.control_mode_flags & (1 << 2))) { // the EKF is using GPS
+						float decl_deg;
+						_ekf.copy_mag_decl_deg(&decl_deg);
+						_mag_declination_deg.set(decl_deg);
+						_mag_declination_deg.commit_no_notification();
+						_mag_decl_saved = true;
+					}
 				}
 
 				// Publish wind estimate
@@ -1118,15 +1129,6 @@ void Ekf2::task_main()
 				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
 			}
 		}
-
-		// save the declination to the EKF2_MAG_DECL parameter when a land event is detected
-		if ((_params->mag_declination_source & (1 << 1)) && !_prev_landed && vehicle_land_detected.landed) {
-			float decl_deg;
-			_ekf.copy_mag_decl_deg(&decl_deg);
-			_mag_declination_deg.set(decl_deg);
-		}
-
-		_prev_landed = vehicle_land_detected.landed;
 
 		// publish ekf2_timestamps (using 0.1 ms relative timestamps)
 		{
