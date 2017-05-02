@@ -721,6 +721,11 @@ CameraTrigger::engage(void *arg)
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
 
+	if (trig->_test_shot) {
+		// do not send messages or increment frame count for test shots
+		return;
+	}
+
 	// Send camera trigger message. This messages indicates that we sent
 	// the camera trigger request. Does not guarantee capture.
 
