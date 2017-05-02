@@ -116,7 +116,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		*rssi = st24_rssi;
 		r_raw_rc_count = st24_channel_count;
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
@@ -141,7 +141,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		/* not setting RSSI since SUMD does not provide one */
 		r_raw_rc_count = sumd_channel_count;
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 
 		if (sumd_failsafe_state) {
@@ -233,15 +233,15 @@ controls_tick()
 	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
 
 	if (dsm_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM);
 	}
 
 	if (st24_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24);
 	}
 
 	if (sumd_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD);
 	}
 
 	perf_end(c_gather_dsm);
@@ -253,7 +253,7 @@ controls_tick()
 				       PX4IO_RC_INPUT_CHANNELS);
 
 	if (sbus_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
 		unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
 
@@ -291,7 +291,7 @@ controls_tick()
 
 	if (ppm_updated) {
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
@@ -424,7 +424,7 @@ controls_tick()
 		}
 
 		/* set RC OK flag, as we got an update */
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+		PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK);
 		r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_OK;
 
 		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
@@ -449,10 +449,10 @@ controls_tick()
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
-		r_status_flags &= ~(
+		PX4_CRITICAL_SECTION(r_status_flags &= ~(
 					  PX4IO_P_STATUS_FLAGS_RC_PPM |
 					  PX4IO_P_STATUS_FLAGS_RC_DSM |
-					  PX4IO_P_STATUS_FLAGS_RC_SBUS);
+					  PX4IO_P_STATUS_FLAGS_RC_SBUS));
 
 	}
 
@@ -462,15 +462,15 @@ controls_tick()
 
 	/* if we are in failsafe, clear the override flag */
 	if (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) {
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+		PX4_CRITICAL_SECTION(r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE));
 	}
 
 	/* this kicks in if the receiver is gone, but there is not on failsafe (indicated by separate flag) */
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
-		r_status_flags &= ~(
+		PX4_CRITICAL_SECTION(r_status_flags &= ~(
 					  PX4IO_P_STATUS_FLAGS_OVERRIDE |
-					  PX4IO_P_STATUS_FLAGS_RC_OK);
+					  PX4IO_P_STATUS_FLAGS_RC_OK));
 
 		/* flag raw RC as lost */
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
@@ -482,7 +482,7 @@ controls_tick()
 		r_raw_rc_count = 0;
 
 		/* Set the RC_LOST alarm */
-		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
+		PX4_CRITICAL_SECTION(r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST);
 	}
 
 	/*
@@ -525,14 +525,14 @@ controls_tick()
 		}
 
 		if (override) {
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE);
 
 		} else {
-			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+			PX4_CRITICAL_SECTION(r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE));
 		}
 
 	} else {
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+		PX4_CRITICAL_SECTION(r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE));
 	}
 }
 
