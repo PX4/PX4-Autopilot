@@ -110,27 +110,26 @@ private:
 	/** Time in us that direction change condition has to be true for direction change state */
 	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
 
-
-	bool		_task_should_exit;		/**< if true, task should exit */
-	bool		_gear_state_initialized; /**< true if the gear state has been initialized */
-	bool    	 _was_armed;        /**< record the pre state armed or disarmed. */
-	bool 		_reset_pos_sp;
-	bool 		_reset_alt_sp;
-	bool 		_do_reset_alt_pos_flag; /**< flag that indicates if both pos_sp and alt_sp needs a reset: TODO: check if we need this */
-	bool		 _mode_auto;  /**< true if in auot mode */
-	bool 		_pos_hold_engaged; /**< true if hold positon in xy desired */
-	bool 		_alt_hold_engaged; /**< true if hold in z desired */
-	bool 		_run_pos_control;  /**< true if position controller should be used */
-	bool 		_run_alt_control; /**< true if altitude controller should be used */
-	bool 		_reset_int_z; /**< true if reset integral in z */
-	bool 		_reset_int_xy; /**< true if reset integral in xy */
-	bool		 _reset_yaw_sp; /**< true if reset yaw setpoint */
-	bool 		_hold_offboard_xy; /**<TODO : check if we need this extra hold_offboard flag */
-	bool 		_hold_offboard_z;
-	bool 		_in_takeoff; /**< true if takeoff ramp is applied */
-	bool 		_in_landing;	/**< true if landing descent (only used in auto) */
-	bool 		_lnd_reached_ground; /**< true if controller assumes the vehicle has reached the ground after landing */
-	bool 		_state_updn_revert; /* true if vehicle is upside down (used such that gears can be controlled independent of vehicle state) */
+	bool		_task_should_exit = false;			/**<true if task should exit */
+	bool		_gear_state_initialized = false;	/**<true if the gear state has been initialized */
+	bool    	 _was_armed = false;        		/**< true if the pre state was armed */
+	bool 		_reset_pos_sp = true;  				/**<true if position setpoint needs a reset */
+	bool 		_reset_alt_sp = true; 				/**<true if altitude setpoint needs a reset */
+	bool 		_do_reset_alt_pos_flag = true; 		/**< TODO: check if we need this */
+	bool		_mode_auto = false ;  				/**<true if in auot mode */
+	bool 		_pos_hold_engaged = false; 			/**<true if hold positon in xy desired */
+	bool 		_alt_hold_engaged = false; 			/**<true if hold in z desired */
+	bool 		_run_pos_control = true;  			/**< true if position controller should be used */
+	bool 		_run_alt_control = true; 			/**<true if altitude controller should be used */
+	bool 		_reset_int_z = true; 				/**<true if reset integral in z */
+	bool 		_reset_int_xy = true; 				/**<true if reset integral in xy */
+	bool		 _reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
+	bool 		_hold_offboard_xy = false; 			/**<TODO : check if we need this extra hold_offboard flag */
+	bool 		_hold_offboard_z = false;
+	bool 		_in_takeoff = false; 				/**<true if takeoff ramp is applied */
+	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
+	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
+	bool 		_state_updn_revert = false; 		/**<true if vehicle is upside down */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -411,26 +410,6 @@ MulticopterPositionControl	*g_control;
 
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
-	_task_should_exit(false),
-	_gear_state_initialized(false),
-	_was_armed(false),
-	_reset_pos_sp(true),
-	_reset_alt_sp(true),
-	_do_reset_alt_pos_flag(true),
-	_mode_auto(false),
-	_pos_hold_engaged(false),
-	_alt_hold_engaged(false),
-	_run_pos_control(true),
-	_run_alt_control(true),
-	_reset_int_z(true),
-	_reset_int_xy(true),
-	_reset_yaw_sp(true),
-	_hold_offboard_xy(false),
-	_hold_offboard_z(false),
-	_in_takeoff(false),
-	_in_landing(false),
-	_lnd_reached_ground(false),
-	_state_updn_revert(false),
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
 
