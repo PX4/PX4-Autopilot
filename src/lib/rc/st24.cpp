@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "st24.h"
+#include "common_rc.h"
 
 enum ST24_DECODE_STATE {
 	ST24_DECODE_STATE_UNSYNCED = 0,
@@ -74,7 +75,7 @@ const char *decode_states[] = {"UNSYNCED",
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacket _rxpacket;
+static ReceiverFcPacket &_rxpacket = rc_decode_buf._strxpacket;
 
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {

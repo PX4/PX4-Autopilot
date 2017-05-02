@@ -506,8 +506,8 @@ void Ekf2::task_main()
 		if (range_finder_updated) {
 			orb_copy(ORB_ID(distance_sensor), range_finder_sub, &range_finder);
 
-			if (range_finder.min_distance >= range_finder.current_distance
-			    || range_finder.max_distance <= range_finder.current_distance) {
+			if (range_finder.min_distance > range_finder.current_distance
+			    || range_finder.max_distance < range_finder.current_distance) {
 				range_finder_updated = false;
 			}
 		}
@@ -829,10 +829,8 @@ void Ekf2::task_main()
 
 			// Position of local NED origin in GPS / WGS84 frame
 			struct map_projection_reference_s ekf_origin = {};
-			// true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
-			_ekf.get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
-			lpos.xy_global = _ekf.global_position_is_valid();
-			lpos.z_global = true;                                // true if z is valid and has valid global reference (ref_alt)
+			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
+			lpos.xy_global = lpos.z_global = _ekf.get_ekf_origin(&lpos.ref_timestamp, &ekf_origin, &lpos.ref_alt);
 			lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
 			lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 

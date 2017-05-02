@@ -35,10 +35,11 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-unused-result
 	SRCS
-		st24.c
-		sumd.c
-		sbus.c
-		dsm.c
+		st24.cpp
+		sumd.cpp
+		sbus.cpp
+		dsm.cpp
+		common_rc.cpp
 	DEPENDS
 		platforms__common
 	)

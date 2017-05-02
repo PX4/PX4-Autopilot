@@ -79,6 +79,10 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
+#if defined(BOARD_HAS_CAPTURE)
+
+/* Support Input capture  */
+
 #define _REG32(_base, _reg)	(*(volatile uint32_t *)(_base + _reg))
 #define REG(_tmr, _reg)		_REG32(io_timers[_tmr].base, _reg)
 
@@ -499,3 +503,4 @@ int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, b
 
 	return rv;
 }
+#endif // defined(BOARD_HAS_CAPTURE)

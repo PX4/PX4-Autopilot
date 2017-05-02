@@ -53,6 +53,13 @@ public:
 	 */
 	virtual bool has_power_control() { return false; }
 
+	/**
+	 * Checks if the camera connected to the interface
+	 * is turned on.
+	 * @return true if camera is on
+	 */
+	virtual bool is_powered_on() { return true; }
+
 protected:
 
 	/**

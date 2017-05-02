@@ -196,6 +196,7 @@ then
 	set MAV_TYPE none
 	set FAILSAFE none
 	set USE_IO yes
+	set LOGGER_BUF 16
 
 	#
 	# Set USE_IO flag
@@ -738,6 +739,7 @@ then
 	then
 		if uavcan start
 		then
+			set LOGGER_BUF 7
 			uavcan start fw
 		else
 			tone_alarm ${TUNE_ERR}
@@ -875,9 +877,10 @@ then
 			then
 				set LOGGER_ARGS "-m mavlink"
 			fi
-			if logger start -b 16 -t ${LOGGER_ARGS}
+			if logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
 			then
 			fi
+			unset LOGGER_BUF
 			unset LOGGER_ARGS
 		fi
 	fi
