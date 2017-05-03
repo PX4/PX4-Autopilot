@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file param.c
+ * @file param.cpp
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Andreas Antener <andreas@uaventure.com>
  *
@@ -64,7 +64,9 @@
 #endif
 #include "systemlib/err.h"
 
+__BEGIN_DECLS
 __EXPORT int param_main(int argc, char *argv[]);
+__END_DECLS
 
 enum COMPARE_OPERATOR {
 	COMPARE_OPERATOR_EQUAL = 0,
@@ -92,6 +94,27 @@ static int	do_find(const char *name);
 
 static void print_usage(void)
 {
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Command to access and manipulate parameters via shell or script.
+
+This is used for example in the startup script to set airframe-specific parameters.
+
+Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
+or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
+need to be (re-)configured on every boot).
+
+Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
+parameters to a ground control station.
+
+### Examples
+Change the airframe and make sure the airframe's default parameters are loaded:
+$ param set SYS_AUTOSTART 4001
+$ param set SYS_AUTOCONFIG 1
+$ reboot
+)DESCR_STR");
+
 	PRINT_MODULE_USAGE_NAME("param", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("load", "Load params from a file (overwrite all)");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
