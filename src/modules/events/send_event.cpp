@@ -52,16 +52,10 @@ int SendEvent::task_spawn(int argc, char *argv[])
 		return ret;
 	}
 
-	int i = 0;
+	ret = wait_until_running();
 
-	do {
-		/* wait up to 1s */
-		usleep(2500);
-
-	} while (!_object && ++i < 400);
-
-	if (i == 400) {
-		return -1;
+	if (ret < 0) {
+		return ret;
 	}
 
 	_task_id = task_id_is_work_queue;
