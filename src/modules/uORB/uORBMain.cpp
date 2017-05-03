@@ -44,6 +44,34 @@ extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 static uORB::DeviceMaster *g_dev = nullptr;
 static void usage()
 {
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+uORB is the internal pub-sub messaging system, used for communication between modules.
+
+It is typically started as one of the very first modules and most other modules depend on it.
+
+### Implementation
+No thread or work queue is needed, the module start only makes sure to initialize the shared global state.
+Communication is done via shared memory.
+The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
+This is achieved by having a separate buffer between a publisher and a subscriber.
+
+The code is optimized to minimize the memory footprint and the latency to exchange messages.
+
+The interface is based on file descriptors: internally it uses `read`, `write` and `ioctl`. Except for the
+publications, which use `orb_advert_t` handles, so that they can be used from interrupts as well (on NuttX).
+
+Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.
+
+If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which
+modules are allowed to publish which topics. This is used for system-wide replay.
+
+### Examples
+Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
+$ uorb top
+)DESCR_STR");
+
 	PRINT_MODULE_USAGE_NAME("uorb", "communication");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");
