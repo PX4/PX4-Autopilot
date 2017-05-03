@@ -83,13 +83,17 @@ static uint32_t version_tag_to_number(const char *tag)
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
 			if (mag < 32) {
-				unsigned number = tag[i] - '0';
+				char number = tag[i] - '0';
 
 				ver += (number << mag);
-				mag += 8;
+				mag += 4;
 			}
 
 		} else if (tag[i] == '.') {
+			if (mag % 8) {
+				mag += 4;
+			}
+
 			continue;
 
 		} else if (i > 3 && type == -1) {
