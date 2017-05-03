@@ -450,9 +450,9 @@ controls_tick()
 
 		/* clear the input-kind flags here */
 		PX4_CRITICAL_SECTION(r_status_flags &= ~(
-					  PX4IO_P_STATUS_FLAGS_RC_PPM |
-					  PX4IO_P_STATUS_FLAGS_RC_DSM |
-					  PX4IO_P_STATUS_FLAGS_RC_SBUS));
+				PX4IO_P_STATUS_FLAGS_RC_PPM |
+				PX4IO_P_STATUS_FLAGS_RC_DSM |
+				PX4IO_P_STATUS_FLAGS_RC_SBUS));
 
 	}
 
@@ -469,8 +469,8 @@ controls_tick()
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
 		PX4_CRITICAL_SECTION(r_status_flags &= ~(
-					  PX4IO_P_STATUS_FLAGS_OVERRIDE |
-					  PX4IO_P_STATUS_FLAGS_RC_OK));
+				PX4IO_P_STATUS_FLAGS_OVERRIDE |
+				PX4IO_P_STATUS_FLAGS_RC_OK));
 
 		/* flag raw RC as lost */
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
