@@ -63,8 +63,8 @@ def main():
                         metavar="DIRECTORY",
                         help="Markdown output directory"
                              " (default DIRECTORY: .)")
+    parser.add_argument('--no-validation', action='store_true', help="do not fail if consistency checks fail")
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
-
 
     args = parser.parse_args()
 
@@ -84,7 +84,12 @@ def main():
     if not scanner.ScanDir(args.src_path, parser):
         sys.exit(1)
 
+    if not args.no_validation and parser.HasValidationFailure():
+        print("Error: validation failed")
+        sys.exit(1)
+
     module_groups = parser.GetModuleGroups()
+
 
     # Output to Markdown/HTML tables
     if args.markdown:
