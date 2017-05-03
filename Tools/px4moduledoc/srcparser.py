@@ -244,6 +244,7 @@ class SourceParser(object):
 
     def __init__(self):
         self._modules = {} # all found modules: key is the module name
+        self._consistency_checks_failure = False # one or more checks failed
 
     def Parse(self, scope, contents):
         """
@@ -336,6 +337,7 @@ class SourceParser(object):
                     print("Warning: documentation inconsistency in %s:" % scope)
                     print(" Documented options       : %s" % sorted_module_options)
                     print(" Options found in getopt(): %s" % sorted_getopt_args)
+                    self._consistency_checks_failure = True
 
 
         # now check the commands: search for strcmp(argv[i], "command".
@@ -357,6 +359,7 @@ class SourceParser(object):
 
             if not command in doc_commands:
                 print("Warning: undocumented command '%s' in %s" %(command, scope))
+                self._consistency_checks_failure = True
 
 
     def _parse_arguments(self, contents, start_index):
@@ -438,6 +441,8 @@ class SourceParser(object):
 
         return next_position, args
 
+    def HasValidationFailure(self):
+        return self._consistency_checks_failure
 
     def GetModuleGroups(self):
         """
