@@ -203,6 +203,12 @@ extern pwm_limit_t pwm_limit;
 
 #define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
 
+#define PX4_ATOMIC_MODIFY_OR(target, modification)	{ if ((target | (modification)) != target) { PX4_CRITICAL_SECTION(target |= (modification)); } }
+
+#define PX4_ATOMIC_MODIFY_CLEAR(target, modification)	{ if ((target & ~(modification)) != target) { PX4_CRITICAL_SECTION(target &= ~(modification)); } }
+
+#define PX4_ATOMIC_MODIFY_AND(target, modification)	{ if ((target & (modification)) != target) { PX4_CRITICAL_SECTION(target &= (modification)); } }
+
 /*
  * Mixer
  */
