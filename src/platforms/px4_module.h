@@ -320,6 +320,28 @@ protected:
 		unlock_module();
 	}
 
+	/**
+	 * Wait until _object got initialized (from the new thread). This can be called from task_spawn().
+	 * @return 0 on success, -1 on timeout.
+	 */
+	static int wait_until_running()
+	{
+		int i = 0;
+
+		do {
+			/* wait up to 1s */
+			usleep(2500);
+
+		} while (!_object && ++i < 400);
+
+		if (i == 400) {
+			PX4_ERR("Timed out while waiting for thread to start");
+			return -1;
+		}
+
+		return 0;
+	}
+
 	/** get the module's object instance (this is null if it's not running) */
 	static T *get_instance()
 	{
