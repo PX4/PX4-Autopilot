@@ -1605,6 +1605,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	} else {
 		/* no waypoint, do nothing, setpoint was already reset */
+		/* we are in idle */
 	}
 }
 
