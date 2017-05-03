@@ -145,6 +145,39 @@ __EXPORT void board_peripheral_reset(int ms)
 }
 
 /************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+
+	/* On HW with TXS0108 buffers When called off the board reset we will keep the
+	 * FMU AUX lines low for 40 Ms. This  will be followed by a 3 ms pulse on
+	 * due to the GPIO lines floating from _sart on until this code is called again.
+	 * On the CPU's slow clock. The last PWm pulse my be terminated early.
+	 * _Last Pwm_-___40_____-3-_---------
+	 */
+
+	if (status >= 0) {
+		usleep(40 * 1000);
+	}
+}
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -157,6 +190,14 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* Reset all PWM to Low outputs */
+
+	board_on_reset(-1);
+
+	/* configure LEDs */
+
+	board_autoled_initialize();
+
 	/* configure ADC pins */
 
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
@@ -185,8 +226,6 @@ stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs */
-	board_autoled_initialize();
 }
 
 /****************************************************************************
