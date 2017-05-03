@@ -190,7 +190,7 @@ uint32_t px4_os_version(void)
 #elif defined(__PX4_QURT)
 	return 0; //TODO: implement version for QuRT
 #elif defined(__PX4_NUTTX)
-	return version_tag_to_number("v7.18.0"); //TODO: get correct version
+	return version_tag_to_number(NUTTX_GIT_TAG_STR);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -199,7 +199,7 @@ uint32_t px4_os_version(void)
 const char *px4_os_version_string(void)
 {
 #if defined(__PX4_NUTTX)
-	return NULL; //TODO: get NuttX git tag as string
+	return NUTTX_GIT_VERSION_STR;
 #else
 	return NULL;
 #endif
