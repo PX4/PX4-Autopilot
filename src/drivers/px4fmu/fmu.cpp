@@ -101,7 +101,8 @@
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
 #define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
-#define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
+#define ARM_CCOUNT 10			/* safety switch must be held for 1 second to arm */
+#define DISARM_CCOUNT 2			/* safety switch must be held for 0.2 second to disarm */
 
 /*
  * Define the various LED flash sequences for each system state.
@@ -304,6 +305,7 @@ private:
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
+	bool debounce(bool pressed, int debounce_thresh);
 	void safety_check_button(void);
 	void flash_safety_button(void);
 };
@@ -471,49 +473,68 @@ PX4FMU::init()
 	return start();
 }
 
+bool PX4FMU::debounce(bool pressed, int debounce_thresh)
+{
+	bool result = false;
+
+#ifdef GPIO_BTN_SAFETY
+	static int counter = 0;
+
+	if (!pressed) {
+		counter = 0;
+
+	} else {
+		if (counter < debounce_thresh) {
+			counter++;
+
+		} else if (counter >= debounce_thresh) {
+			result = true;
+			counter++;
+		}
+	}
+
+#endif
+
+	return result;
+}
+
 void
 PX4FMU::safety_check_button(void)
 {
 #ifdef GPIO_BTN_SAFETY
-	static int counter = 0;
 	/*
 	 * Debounce the safety button, change state if it has been held for long enough.
 	 *
 	 */
+	static int safety_button_active = 0;
 	bool safety_button_pressed = BUTTON_SAFETY;
 
 	/*
-	 * Keep pressed for a while to arm.
-	 *
-	 * Note that the counting sequence has to be same length
-	 * for arming / disarming in order to end up as proper
-	 * state machine, keep ARM_COUNTER_THRESHOLD the same
-	 * length in all cases of the if/else struct below.
+	 * Keep pressed for a while to arm/disarm
 	 */
-	if (safety_button_pressed && !_safety_off) {
+	if (safety_button_active == 0) {	// waiting for switch pressed for > threshold
 
-		if (counter < CYCLE_COUNT) {
-			counter++;
+		if (!_safety_off) {	// disarmed
 
-		} else if (counter == CYCLE_COUNT) {
-			/* switch to armed state */
-			_safety_off = true;
-			counter++;
+			if (debounce(safety_button_pressed, ARM_CCOUNT)) {		// use arm delay
+				_safety_off = true;			// arm
+				safety_button_active = 1;
+			}
+
+		} else if (_safety_off) { // armed
+
+			if (debounce(safety_button_pressed, DISARM_CCOUNT)) {	// use disarm delay
+				_safety_off = false;		// disarm
+				safety_button_active = 1;
+			}
 		}
 
-	} else if (safety_button_pressed && _safety_off) {
+	} else if (safety_button_active == 1) {	// waiting for switch released
 
-		if (counter < CYCLE_COUNT) {
-			counter++;
-
-		} else if (counter == CYCLE_COUNT) {
-			/* change to disarmed state and notify the FMU */
-			_safety_off = false;
-			counter++;
+		if (!safety_button_pressed) {
+			debounce(safety_button_pressed, DISARM_CCOUNT);
+			safety_button_active = 0;
 		}
-
-	} else {
-		counter = 0;
 	}
 
 #endif
