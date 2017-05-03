@@ -1,0 +1,6 @@
+# time		: 2016/5/4
+# author	: huanglilongwk@outlook.com
+# brief		: for test quad-vtol, this mixer is for plane
+#
+#===========================
+R: 4x 10000 10000 10000 0
