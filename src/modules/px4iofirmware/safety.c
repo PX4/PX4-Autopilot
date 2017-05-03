@@ -117,7 +117,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* switch to armed state */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+			PX4_CRITICAL_SECTION(r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 
@@ -128,7 +128,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+			PX4_CRITICAL_SECTION(r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 
