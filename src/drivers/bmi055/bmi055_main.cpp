@@ -62,13 +62,13 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 		/* create the driver */
 		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
+			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation);
 #else
 			errx(0, "External SPI not available");
 #endif
 
 		} else {
-			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_SENSORS, path_accel, (spi_dev_e)PX4_SPIDEV_BMI055_ACC, rotation);
+			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_SENSORS, path_accel, PX4_SPIDEV_BMI055_ACC, rotation);
 		}
 
 		if (*g_dev_acc_ptr == nullptr) {
@@ -102,13 +102,13 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 		/* create the driver */
 		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_BMI, rotation);
+			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
 #else
 			errx(0, "External SPI not available");
 #endif
 
 		} else {
-			*g_dev_gyr_ptr = new BMI055_gyro(PX4_SPI_BUS_SENSORS, path_gyro, (spi_dev_e)PX4_SPIDEV_BMI055_GYR, rotation);
+			*g_dev_gyr_ptr = new BMI055_gyro(PX4_SPI_BUS_SENSORS, path_gyro, PX4_SPIDEV_BMI055_GYR, rotation);
 		}
 
 		if (*g_dev_gyr_ptr == nullptr) {
@@ -450,7 +450,7 @@ usage()
 }//namespace ends
 
 
-BMI055::BMI055(const char *name, const char *devname, int bus, enum spi_dev_e device, enum spi_mode_e mode,
+BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode,
 	       uint32_t frequency, enum Rotation rotation):
 	SPI(name, devname, bus, device, mode, frequency),
 	_whoami(0),
