@@ -223,7 +223,7 @@ __BEGIN_DECLS
 #define GPIO_EXTI_BARO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN11)
 #undef  GPIO_EXTI_BARO_INT2                 /* NC */
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
 #define PX4_SPIDEV_MEMORY                   PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
 #define PX4_MEMORY_BUS_CS_GPIO              {GPIO_SPI_CS_MEMORY}
