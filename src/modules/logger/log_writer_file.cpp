@@ -70,6 +70,10 @@ LogWriterFile::~LogWriterFile()
 	perf_free(_perf_write);
 	perf_free(_perf_fsync);
 
+	if (_fd >= 0) {
+		::close(_fd);
+	}
+
 	if (_buffer) {
 		delete[] _buffer;
 	}
@@ -91,6 +95,8 @@ void LogWriterFile::start_log(const char *filename)
 
 			if (_buffer == nullptr) {
 				PX4_ERR("Can't create log buffer");
+				::close(_fd);
+				_fd = -1;
 				_should_run = false;
 				return;
 			}
@@ -172,6 +178,10 @@ void LogWriterFile::run()
 			if (start) {
 				break;
 			}
+		}
+
+		if (_exit_thread) {
+			break;
 		}
 
 		int poll_count = 0;
