@@ -256,7 +256,7 @@ class BMI160_gyro;
 class BMI160 : public device::SPI
 {
 public:
-	BMI160(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
+	BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
 	virtual ~BMI160();
 
 	virtual int		init();
