@@ -201,7 +201,7 @@ extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 class L3GD20 : public device::SPI
 {
 public:
-	L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotation);
+	L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation);
 	virtual ~L3GD20();
 
 	virtual int		init();
@@ -405,7 +405,7 @@ const uint8_t L3GD20::_checked_registers[L3GD20_NUM_CHECKED_REGISTERS] = { ADDR_
 									   ADDR_LOW_ODR
 									 };
 
-L3GD20::L3GD20(int bus, const char *path, spi_dev_e device, enum Rotation rotation) :
+L3GD20::L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3,
 	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
 	_call{},
@@ -1209,13 +1209,13 @@ start(bool external_bus, enum Rotation rotation)
 	/* create the driver */
 	if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
-		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO, rotation);
+		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 
 	} else {
-		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO, rotation);
+		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, PX4_SPIDEV_GYRO, rotation);
 	}
 
 	if (g_dev == nullptr) {
