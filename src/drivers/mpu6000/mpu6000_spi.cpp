@@ -100,7 +100,7 @@ device::Device *MPU6000_SPI_interface(int bus, int device_type, bool external_bu
 class MPU6000_SPI : public device::SPI
 {
 public:
-	MPU6000_SPI(int bus, spi_dev_e device, int device_type);
+	MPU6000_SPI(int bus, uint32_t device, int device_type);
 	virtual ~MPU6000_SPI();
 
 	virtual int	init();
@@ -123,7 +123,7 @@ private:
 device::Device *
 MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 {
-	int cs = SPIDEV_NONE;
+	int cs = SPIDEV_NONE(0);
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
@@ -198,15 +198,15 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 		}
 	}
 
-	if (cs != SPIDEV_NONE) {
+	if (cs != SPIDEV_NONE(0)) {
 
-		interface = new MPU6000_SPI(bus, (spi_dev_e) cs, device_type);
+		interface = new MPU6000_SPI(bus,  cs, device_type);
 	}
 
 	return interface;
 }
 
-MPU6000_SPI::MPU6000_SPI(int bus, spi_dev_e device, int device_type) :
+MPU6000_SPI::MPU6000_SPI(int bus, uint32_t device, int device_type) :
 	SPI("MPU6000", nullptr, bus, device, SPIDEV_MODE3, MPU6000_LOW_SPI_BUS_SPEED),
 	_device_type(device_type)
 {
