@@ -73,7 +73,7 @@ device::Device *HMC5883_SPI_interface(int bus);
 class HMC5883_SPI : public device::SPI
 {
 public:
-	HMC5883_SPI(int bus, spi_dev_e device);
+	HMC5883_SPI(int bus, uint32_t device);
 	virtual ~HMC5883_SPI();
 
 	virtual int	init();
@@ -87,10 +87,10 @@ public:
 device::Device *
 HMC5883_SPI_interface(int bus)
 {
-	return new HMC5883_SPI(bus, (spi_dev_e)PX4_SPIDEV_HMC);
+	return new HMC5883_SPI(bus, PX4_SPIDEV_HMC);
 }
 
-HMC5883_SPI::HMC5883_SPI(int bus, spi_dev_e device) :
+HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device) :
 	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
