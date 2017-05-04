@@ -59,7 +59,7 @@ namespace device
 SPI::SPI(const char *name,
 	 const char *devname,
 	 int bus,
-	 enum spi_dev_e device,
+	 uint32_t device,
 	 enum spi_mode_e mode,
 	 uint32_t frequency,
 	 int irq) :
