@@ -37,6 +37,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <nuttx/compiler.h>
 #include <nuttx/arch.h>
 
@@ -1122,12 +1123,39 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 	return ret;
 }
 
+static void print_usage(void)
+{
+	PRINT_MODULE_DESCRIPTION("Hardfault utility\n"
+				 "\n"
+				 "Used in startup scripts to handle hardfaults\n"
+				);
+
+
+	PRINT_MODULE_USAGE_NAME("hardfault_log", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Check if there's an uncommited hardfault");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("rearm", "Drop an uncommited hardfault");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fault", "Generate a hardfault (this command crashes the system :)");
+	PRINT_MODULE_USAGE_ARG("0|1", "Hardfault type: 0=divide by 0, 1=Assertion (default=0)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("commit",
+					 "Write uncommited hardfault to /fs/microsd/fault_%i.txt (and rearm, but don't reset)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("count",
+					 "Read the reboot counter, counts the number of reboots of an uncommited hardfault (returned as the exit code of the program)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset the reboot counter");
+}
+
 /****************************************************************************
  * Name: hardfault_log_main
  ****************************************************************************/
 __EXPORT int hardfault_log_main(int argc, char *argv[])
 {
 	char *self = "hardfault_log";
+
+	if (argc <= 1) {
+		print_usage();
+		return 1;
+	}
 
 	if (!strcmp(argv[1], "check")) {
 
@@ -1147,20 +1175,20 @@ __EXPORT int hardfault_log_main(int argc, char *argv[])
 
 		return genfault(fault);
 
-	} else  if (!strcmp(argv[1], "commit")) {
+	} else if (!strcmp(argv[1], "commit")) {
 
 		return hardfault_commit(self);
 
-	} else  if (!strcmp(argv[1], "count")) {
+	} else if (!strcmp(argv[1], "count")) {
 
 		return hardfault_increment_reboot(self, false);
 
-	} else  if (!strcmp(argv[1], "reset")) {
+	} else if (!strcmp(argv[1], "reset")) {
 
 		return hardfault_increment_reboot(self, true);
 
 	}
 
-	fprintf(stderr, "unrecognised command, try 'check' ,'rearm' , 'fault', 'count', 'reset' or 'commit'\n");
+	print_usage();
 	return -EINVAL;
 }
