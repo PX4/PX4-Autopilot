@@ -282,3 +282,8 @@ int LidarLitePWM::reset_sensor()
 	::close(fd);
 	return ret;
 }
+
+const char *LidarLitePWM::get_dev_name()
+{
+	return get_devname();
+}
