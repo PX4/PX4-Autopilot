@@ -191,7 +191,7 @@ __EXPORT int nxphlite_spi_bus_initialize(void)
 
 static const uint32_t spi0selects_gpio[] = PX4_SDCARD_BUS_CS_GPIO;
 
-void kinetis_spi0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void kinetis_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
@@ -215,14 +215,14 @@ void kinetis_spi0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	}
 }
 
-uint8_t kinetis_spi0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t kinetis_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
 
 static const uint32_t spi1selects_gpio[] = PX4_ACCEL_MAG_BUS_CS_GPIO;
 
-void kinetis_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void kinetis_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
@@ -246,14 +246,14 @@ void kinetis_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	}
 }
 
-uint8_t kinetis_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t kinetis_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
 
 static const uint32_t spi2selects_gpio[] = PX4_GYRO_BUS_CS_GPIO;
 
-void kinetis_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void kinetis_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
@@ -277,7 +277,7 @@ void kinetis_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool se
 	}
 }
 
-uint8_t kinetis_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t kinetis_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
