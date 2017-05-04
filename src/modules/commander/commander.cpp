@@ -3783,7 +3783,7 @@ check_posvel_validity(bool data_valid, float data_accuracy, float required_accur
 
 	// Check accuracy with hysteresis in both test level and time
 	bool pos_status_changed = false;
-	if (*valid_state && data_accuracy > required_accuracy * 2.5f) {
+	if (*valid_state && ((data_accuracy > required_accuracy * 2.5f) || !data_valid)) {
 		pos_inaccurate = true;
 		pos_status_changed = true;
 		*last_fail_time_us = now;
