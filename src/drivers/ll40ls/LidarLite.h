@@ -80,6 +80,8 @@ public:
 	 */
 	virtual void print_registers() = 0;
 
+	virtual const char *get_dev_name() = 0;
+
 protected:
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
