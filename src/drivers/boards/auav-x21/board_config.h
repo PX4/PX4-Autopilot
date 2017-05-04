@@ -101,11 +101,11 @@
 #define PX4_SPI_BUS_RAMTRON	2
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_ICM_20602 1
-#define PX4_SPIDEV_ICM_20608 2
-#define PX4_SPIDEV_BARO      3
-#define PX4_SPIDEV_MPU       4
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
+#define PX4_SPIDEV_ICM_20602 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_ICM_20608 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+#define PX4_SPIDEV_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
 
 /* I2C busses */
 
