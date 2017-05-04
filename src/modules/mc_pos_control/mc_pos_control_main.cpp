@@ -1695,7 +1695,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	if (_run_pos_control) {
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
-		if (isfinite(_pos_sp(0)) && isfinite(_pos_sp(1))) {
+		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 
