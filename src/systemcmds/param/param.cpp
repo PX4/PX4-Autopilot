@@ -80,7 +80,7 @@ enum COMPARE_OPERATOR {
 #endif
 
 static int 	do_save(const char *param_file_name);
-static int	do_save_default(void);
+static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static int	do_show(const char *search_string, bool only_changed);
@@ -92,7 +92,7 @@ static int 	do_reset(const char *excludes[], int num_excludes);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
 
-static void print_usage(void)
+static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
@@ -199,7 +199,7 @@ param_main(int argc, char *argv[])
 				param_set_default_file(argv[2]);
 
 			} else {
-				param_set_default_file(NULL);
+				param_set_default_file(nullptr);
 			}
 
 			PX4_INFO("selected parameter default file %s", param_get_default_file());
@@ -214,7 +214,7 @@ param_main(int argc, char *argv[])
 						return do_show(argv[3], true);
 
 					} else {
-						return do_show(NULL, true);
+						return do_show(nullptr, true);
 					}
 
 				} else {
@@ -222,7 +222,7 @@ param_main(int argc, char *argv[])
 				}
 
 			} else {
-				return do_show(NULL, false);
+				return do_show(nullptr, false);
 			}
 		}
 
@@ -268,7 +268,7 @@ param_main(int argc, char *argv[])
 				return do_reset((const char **) &argv[2], argc - 2);
 
 			} else {
-				return do_reset(NULL, 0);
+				return do_reset(nullptr, 0);
 			}
 		}
 
@@ -277,7 +277,7 @@ param_main(int argc, char *argv[])
 				return do_reset_nostart((const char **) &argv[2], argc - 2);
 
 			} else {
-				return do_reset_nostart(NULL, 0);
+				return do_reset_nostart(nullptr, 0);
 			}
 		}
 
@@ -409,7 +409,7 @@ do_import(const char *param_file_name)
 #endif
 
 static int
-do_save_default(void)
+do_save_default()
 {
 	return param_save_default();
 }
@@ -494,7 +494,7 @@ do_show_print(void *arg, param_t param)
 	const char *p_name = (const char *)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
-	if (!(arg == NULL)) {
+	if (!(arg == nullptr)) {
 
 		/* start search */
 		const char *ss = search_string;
