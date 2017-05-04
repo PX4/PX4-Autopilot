@@ -148,25 +148,28 @@
 #define PX4_SPI_BUS_SENSORS    1
 #define PX4_SPI_BUS_RAMTRON    2
 #define PX4_SPI_BUS_BARO       PX4_SPI_BUS_SENSORS
-#define PX4_SPI_EXT0           5
-#define PX4_SPI_EXT1           6
+#define PX4_SPI_BUS_EXT0       5
+#define PX4_SPI_BUS_EXT1       6
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
-#define PX4_SPIDEV_GYRO         1
-#define PX4_SPIDEV_ACCEL_MAG    2
-#define PX4_SPIDEV_BARO         3
-#define PX4_SPIDEV_MPU          4
-#define PX4_SPIDEV_HMC          5
-#define PX4_SPIDEV_ICM          6
-#define PX4_SPIDEV_LIS          7
-#define PX4_SPIDEV_BMI          8
-#define PX4_SPIDEV_BMA          9
-#define PX4_SPIDEV_EXT0         10
-#define PX4_SPIDEV_EXT1         11
-#define PX4_SPIDEV_EEPROM	    12
-#define PX4_SPIDEV_ICM_20608    13
-#define PX4_SPIDEV_ICM_20602	14
+#define PX4_SPIDEV_GYRO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_ACCEL_MAG    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_BARO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+#define PX4_SPIDEV_MPU          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
+#define PX4_SPIDEV_HMC          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
+#define PX4_SPIDEV_ICM          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
+#define PX4_SPIDEV_LIS          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
+#define PX4_SPIDEV_BMI          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
+#define PX4_SPIDEV_BMA          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
+#define PX4_SPIDEV_EXT0         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 10)
+#define PX4_SPIDEV_EXT1         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 11)
+#define PX4_SPIDEV_EEPROM	PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
+#define PX4_SPIDEV_ICM_20608    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
+
+
+#define PX4_SPIDEV_EXT0         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT0, 1)
+#define PX4_SPIDEV_EXT1         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT1, 1)
 
 /* I2C busses */
 #define PX4_I2C_BUS_ONBOARD     1
