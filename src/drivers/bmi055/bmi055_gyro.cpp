@@ -17,7 +17,7 @@ const uint8_t BMI055_gyro::_checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS]
 										   };
 
 
-BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
+BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
