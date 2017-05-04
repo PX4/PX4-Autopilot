@@ -92,7 +92,7 @@ device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
 class MPU9250_SPI : public device::SPI
 {
 public:
-	MPU9250_SPI(int bus, spi_dev_e device);
+	MPU9250_SPI(int bus, uint32_t device);
 	virtual ~MPU9250_SPI();
 
 	virtual int	init();
@@ -113,21 +113,21 @@ private:
 device::Device *
 MPU9250_SPI_interface(int bus, bool external_bus)
 {
-	spi_dev_e cs = SPIDEV_NONE;
+	uint32_t cs = SPIDEV_NONE(0);
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
-		cs = (spi_dev_e) PX4_SPIDEV_EXT_MPU;
+		cs =  PX4_SPIDEV_EXT_MPU;
 #else
 		errx(0, "External SPI not available");
 #endif
 
 	} else {
-		cs = (spi_dev_e) PX4_SPIDEV_MPU;
+		cs =  PX4_SPIDEV_MPU;
 	}
 
-	if (cs != SPIDEV_NONE) {
+	if (cs != SPIDEV_NONE(0)) {
 
 		interface = new MPU9250_SPI(bus, cs);
 	}
@@ -135,7 +135,7 @@ MPU9250_SPI_interface(int bus, bool external_bus)
 	return interface;
 }
 
-MPU9250_SPI::MPU9250_SPI(int bus, spi_dev_e device) :
+MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
 	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
