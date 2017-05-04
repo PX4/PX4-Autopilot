@@ -221,7 +221,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 
 static const uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;
 
-__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -243,7 +243,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
@@ -253,11 +253,11 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 
 static const uint32_t spi4selects_gpio[] = PX4_RAMTRON_BUS_CS_GPIO;
 
-__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	int sel = (int) devid;
 
-	if (devid == SPIDEV_FLASH) {
+	if (devid == SPIDEV_FLASH(0)) {
 		sel = PX4_SPIDEV_FRAM;
 	}
 
@@ -275,14 +275,14 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
 }
 static const uint32_t spi5selects_gpio[] = PX4_BARO_BUS_CS_GPIO;
 
-__EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -302,7 +302,7 @@ __EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
@@ -310,7 +310,7 @@ __EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 
 static const uint32_t spi6selects_gpio[] = PX4_ICM_BUS_CS_GPIO;
 
-__EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -330,7 +330,7 @@ __EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	}
 }
 
-__EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
