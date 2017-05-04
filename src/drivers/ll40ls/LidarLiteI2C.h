@@ -54,7 +54,6 @@
 
 
 /* Configuration Constants */
-#define LL40LS_BUS          PX4_I2C_BUS_EXPANSION
 #define LL40LS_BASEADDR     0x62 /* 7-bit address */
 #define LL40LS_BASEADDR_OLD     0x42 /* previous 7-bit address */
 
@@ -89,6 +88,8 @@ public:
 	 * print registers to console
 	 */
 	void print_registers() override;
+
+	const char *get_dev_name() override;
 
 protected:
 	int         probe();
