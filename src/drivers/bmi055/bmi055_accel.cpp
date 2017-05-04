@@ -14,7 +14,7 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 
 
 
-BMI055_accel::BMI055_accel(int bus, const char *path_accel, spi_dev_e device, enum Rotation rotation) :
+BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
 	_accel_reports(nullptr),
 	_accel_scale{},
