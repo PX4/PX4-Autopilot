@@ -271,19 +271,18 @@ __BEGIN_DECLS
  *      Check the status of the BBSRAM hard fault file which can be in
  *      one of two states Armed, Valid or Broken.
  *
- *      Armed - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
+ *      Armed - The file in the armed state is not accessible in the fs.
+ *              The act of unlinking it is what arms it.
  *
- *      Valid - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
+ *      Valid - The file contains data from a hard fault
  *
  * Inputs:
  *   - caller:  A label to display in syslog output
  *
  *  Returned Value:
- *   -ENOENT    Armed - The file in the armed state
+ *   -ENOENT    Armed - The file is in the armed state
  *    OK        Valid - The file contains data from a fault that has not
- *                      been committed to disk (see write_hardfault).
+ *                      been committed to disk (@see write_hardfault()).
  *   -  Any < 0 Broken - Should not happen
  *
  ****************************************************************************/
@@ -350,7 +349,7 @@ int hardfault_rearm(char *caller) weak_function;
  *
  *  Returned Value:
  *
- *    The current value of the reboot counter (post increment).
+ *    The current value of the reboot counter (after increment/reset) or errno < 0.
  *
  *
  ****************************************************************************/
