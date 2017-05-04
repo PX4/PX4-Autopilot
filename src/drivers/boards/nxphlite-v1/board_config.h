@@ -211,7 +211,7 @@ __BEGIN_DECLS
 #define PX4_SPI_BUS_ID(bd)       (((bd) >> 4) & 0xf)
 #define PX4_SPI_DEV_ID(bd)       ((bd) & 0xf)
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
 #define PX4_SPIDEV_SDCARD        PX4_MK_SPI_SEL(PX4_SPI_BUS_SDCARD,0)
 #define PX4_SDCARD_BUS_CS_GPIO   {GPIO_SPI_CS_SDCARD}
