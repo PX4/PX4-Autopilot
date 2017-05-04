@@ -230,7 +230,7 @@ class LSM303D_mag;
 class LSM303D : public device::SPI
 {
 public:
-	LSM303D(int bus, const char *path, spi_dev_e device, enum Rotation rotation);
+	LSM303D(int bus, const char *path, uint32_t device, enum Rotation rotation);
 	virtual ~LSM303D();
 
 	virtual int		init();
@@ -544,7 +544,7 @@ private:
 };
 
 
-LSM303D::LSM303D(int bus, const char *path, spi_dev_e device, enum Rotation rotation) :
+LSM303D::LSM303D(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3,
 	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
@@ -1919,13 +1919,13 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	/* create the driver */
 	if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
-		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 
 	} else {
-		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG, rotation);
+		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, PX4_SPIDEV_ACCEL_MAG, rotation);
 	}
 
 	if (g_dev == nullptr) {
