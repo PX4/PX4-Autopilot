@@ -54,7 +54,7 @@
  *  A board provides SPI bus definitions and a set of buses that should be
  *  enumerated as well as chip selects that will be interatorable
  *
- * We will use these in macros place of the spi_dev_e enumeration to select a
+ * We will use these in macros place of the uint32_t enumeration to select a
  * specific SPI device on given SPI1 bus.
  *
  * These macros will define BUS:DEV For clarity and indexing
@@ -88,10 +88,13 @@
  *
  *
  */
+#define PX4_SPIDEV_ID(type, index)  ((((type) & 0xffff) << 16) | ((index) & 0xffff))
 
-#define PX4_MK_SPI_SEL(b,d)       ((((b) & 0xf) << 4) + ((d) & 0xf))
-#define PX4_SPI_BUS_ID(bd)        (((bd) >> 4) & 0xf)
-#define PX4_SPI_DEV_ID(bd)        ((bd) & 0xf)
+#define PX4_SPI_DEVICE_ID         (1 << 12)
+#define PX4_MK_SPI_SEL(b,d)       PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, ((((b) & 0xff) << 8) | ((d) & 0xff)))
+#define PX4_SPI_BUS_ID(devid)     (((devid) >> 8) & 0xff)
+#define PX4_SPI_DEV_ID(devid)     ((devid) & 0xff)
+#define PX4_CHECK_ID(devid)       ((devid) & PX4_SPI_DEVICE_ID)
 
 /* I2C PX4 clock configuration
  *
