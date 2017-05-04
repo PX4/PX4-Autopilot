@@ -75,7 +75,7 @@ __END_DECLS
 static void
 usage(const char *reason)
 {
-	if (reason != NULL) {
+	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
 
@@ -138,7 +138,7 @@ $ pwm test -c 13 -p 1200
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'failsafe', 'disarmed', 'min', 'max', 'test' and 'steps' "
 					 "additionally require to specify the channels with one of the following commands:");
-	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
+	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
 	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm info' to show groups)",
@@ -215,20 +215,20 @@ pwm_main(int argc, char *argv[])
 	int pwm_value = 0;
 
 	if (argc < 2) {
-		usage(NULL);
+		usage(nullptr);
 		return 1;
 	}
 
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:vec:g:m:ap:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'd':
-			if (NULL == strstr(myoptarg, "/dev/")) {
+			if (nullptr == strstr(myoptarg, "/dev/")) {
 				PX4_WARN("device %s not valid", myoptarg);
-				usage(NULL);
+				usage(nullptr);
 				return 1;
 			}
 
@@ -294,13 +294,13 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		default:
-			usage(NULL);
+			usage(nullptr);
 			return 1;
 		}
 	}
 
 	if (myoptind >= argc) {
-		usage(NULL);
+		usage(nullptr);
 		return 1;
 	}
 
@@ -1023,6 +1023,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 	}
 
-	usage(NULL);
+	usage(nullptr);
 	return 0;
 }
