@@ -430,7 +430,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 24 * 1000 * 1000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, SPIDEV_FLASH, false);
+	SPI_SELECT(spi1, SPIDEV_FLASH(0), false);
 
 
 	spi2 = px4_spibus_initialize(2);
