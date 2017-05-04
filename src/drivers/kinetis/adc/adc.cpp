@@ -81,7 +81,7 @@ static volatile uint32_t dummy[21];
 
 #define ADC_CR2_ADON 0
 #define ADC_CR2_SWSTART 0
-#define  ADC_SR_EOC 0
+#define  ADC_SR_EOC 1
 
 #define rSR			REG(0)
 #define rCR1		REG(1)
@@ -246,6 +246,7 @@ ADC::init()
 	/* kick off a sample and wait for it to complete */
 	hrt_abstime now = hrt_absolute_time();
 	rCR2 |= ADC_CR2_SWSTART;
+	rSR = ADC_SR_EOC;
 
 	while (!(rSR & ADC_SR_EOC)) {
 
@@ -408,6 +409,7 @@ ADC::_sample(unsigned channel)
 
 	/* wait for the conversion to complete */
 	hrt_abstime now = hrt_absolute_time();
+	rSR = ADC_SR_EOC;
 
 	while (!(rSR & ADC_SR_EOC)) {
 
