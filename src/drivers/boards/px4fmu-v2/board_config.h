@@ -184,23 +184,25 @@
 /*        End FMUv2 SPI chip selects and DRDY               */
 /*----------------------------------------------------------*/
 
-#define PX4_SPI_BUS_SENSORS	1
-#define PX4_SPI_BUS_RAMTRON	2
-#define PX4_SPI_BUS_EXT		4
-#define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
+#define PX4_SPI_BUS_SENSORS      1
+#define PX4_SPI_BUS_RAMTRON      2
+#define PX4_SPI_BUS_EXT          4
+#define PX4_SPI_BUS_BARO         PX4_SPI_BUS_SENSORS
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO           1
-#define PX4_SPIDEV_ACCEL_MAG      2
-#define PX4_SPIDEV_BARO           3
-#define PX4_SPIDEV_MPU            4
+/* Use these to select a specific SPI device on SPI1 */
 
-/* External bus */
-#define PX4_SPIDEV_EXT_MPU        10
-#define PX4_SPIDEV_EXT_GYRO       12
-#define PX4_SPIDEV_EXT_ACCEL_MAG  13
-#define PX4_SPIDEV_EXT_BARO       14
-#define PX4_SPIDEV_EXT_BMI        15
+#define PX4_SPIDEV_GYRO       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_ACCEL_MAG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_BARO       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+#define PX4_SPIDEV_MPU        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
+
+/* FMUv3 SPI on external bus */
+
+#define PX4_SPIDEV_EXT_GYRO      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 1)
+#define PX4_SPIDEV_EXT_ACCEL_MAG PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 2)
+#define PX4_SPIDEV_EXT_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 3)
+#define PX4_SPIDEV_EXT_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 4)
+#define PX4_SPIDEV_EXT_BMI       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 5)
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1

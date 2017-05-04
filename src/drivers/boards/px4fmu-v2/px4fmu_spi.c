@@ -107,7 +107,7 @@ static void stm32_spi1_initialize(void)
 
 #  endif
 }
-#endif
+#endif // CONFIG_STM32_SPI1
 
 #ifdef CONFIG_STM32_SPI4
 /*   Verification
@@ -136,7 +136,7 @@ static void stm32_spi4_initialize(void)
 
 #  endif
 }
-#endif
+#endif //CONFIG_STM32_SPI4
 
 __EXPORT void stm32_spiinitialize(void)
 {
@@ -154,7 +154,7 @@ __EXPORT void stm32_spiinitialize(void)
 }
 
 #ifdef CONFIG_STM32_SPI1
-__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -316,23 +316,23 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		break;
 	}
 
-#  endif
+#  endif // defined(BOARD_HAS_VERSIONING)
 }
 
-__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
-#endif
+#endif // CONFIG_STM32_SPI1
 
 #ifdef CONFIG_STM32_SPI2
-__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* there can only be one device on this bus, so always select it */
 	stm32_gpiowrite(GPIO_SPI2_CS_PD10, !selected);
 }
 
-__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
@@ -341,7 +341,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 
 
 #ifdef CONFIG_STM32_SPI4
-__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
 
@@ -364,7 +364,7 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	}
 
-#else // defined(BOARD_HAS_VERSIONING)
+#  else // defined(BOARD_HAS_VERSIONING)
 	/* SPI select is active low, so write !selected to select the device */
 	/*   Verification
 	 *        PA5 PA6 PA7 PB0 PB1 PB4 PC1 PC2 PC13 PC14 PC15 PD7 PD15 PE2 PE4 PE5 PE6
@@ -443,14 +443,14 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	}
 
-#endif
+#  endif // defined(BOARD_HAS_VERSIONING)
 
 }
-__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
 	return SPI_STATUS_PRESENT;
 }
-#endif
+#endif // CONFIG_STM32_SPI4
 
 /* V2, V2M SPI1 All signals SPI4, V3 ALL signals */
 /*   Verification
