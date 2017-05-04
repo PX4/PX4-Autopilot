@@ -614,10 +614,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI-based devices */
 
-	spi1 = stm32_spibus_initialize(1);
+	spi1 = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -630,10 +630,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Get the SPI port for the FRAM */
 
-	spi2 = stm32_spibus_initialize(2);
+	spi2 = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\n");
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
 		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -646,7 +646,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 
-	spi4 = stm32_spibus_initialize(4);
+	spi4 = stm32_spibus_initialize(PX4_SPI_BUS_EXT);
+
+	if (!spi4) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT);
+		board_autoled_on(LED_AMBER);
+		return -ENODEV;
+	}
 
 	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi4, 10000000);
