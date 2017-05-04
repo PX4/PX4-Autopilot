@@ -157,8 +157,8 @@ __EXPORT void board_rc_input(bool invert_on)
 
 	irqstate_t irqstate = px4_enter_critical_section();
 
-	uint32_t s2 =  getreg32(KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
-	uint32_t c3 =  getreg32(KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+	uint8_t s2 =  getreg8(KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
+	uint8_t c3 =  getreg8(KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
 
 	/* {R|T}XINV bit fields can written any time */
 
@@ -171,8 +171,8 @@ __EXPORT void board_rc_input(bool invert_on)
 		c3 &= ~(UART_C3_TXINV);
 	}
 
-	putreg32(s2, KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
-	putreg32(c3, KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+	putreg8(s2, KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
+	putreg8(c3, KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
 
 	leave_critical_section(irqstate);
 }
