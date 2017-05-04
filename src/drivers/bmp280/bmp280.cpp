@@ -619,7 +619,7 @@ struct bmp280_bus_option {
 	const char *devpath;
 	BMP280_constructor interface_constructor;
 	uint8_t busnum;
-	uint8_t device;
+	uint32_t device;
 	bool external;
 	BMP280 *dev;
 } bus_options[] = {
