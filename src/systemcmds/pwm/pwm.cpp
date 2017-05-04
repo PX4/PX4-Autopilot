@@ -98,6 +98,8 @@ Channels are assigned to a group. Due to hardware limitations, the update rate c
 
 The parameters `-p` and `-r` can be set to a parameter instead of specifying an integer: use -p p:PWM_MIN for example.
 
+Note that in OneShot mode, the PWM range [1000, 2000] is automatically mapped to [125, 250].
+
 ### Examples
 Set the PWM rate for all channels to 400 Hz:
 $ pwm rate -a -r 400
