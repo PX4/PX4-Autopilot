@@ -390,7 +390,7 @@ private:
 	 */
 	void limit_altitude();
 
-	void warn_rate_limited(const char* str);
+	void warn_rate_limited(const char *str);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -600,9 +600,10 @@ MulticopterPositionControl::~MulticopterPositionControl()
 }
 
 void
-MulticopterPositionControl::warn_rate_limited(const char* string)
+MulticopterPositionControl::warn_rate_limited(const char *string)
 {
 	hrt_abstime now = hrt_absolute_time();
+
 	if (now - _last_warn > 50000) {
 		PX4_WARN(string);
 		_last_warn = now;
@@ -1853,6 +1854,11 @@ void MulticopterPositionControl::control_auto(float dt)
 				if (previous_in_front) {
 
 					/* just use the default velocity along track */
+					vel_sp_along_track = vec_prev_to_pos.length() * _params.pos_p(0);
+
+					if (vel_sp_along_track > get_cruising_speed_xy()) {
+						vel_sp_along_track = get_cruising_speed_xy();
+					}
 
 				} else if (current_behind) {
 
@@ -2511,6 +2517,13 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		}
 
 		thrust_body_z = thr_max;
+	}
+
+	/* if any of the thrust setpoint is bogus, send out a warning */
+	for (int i = 0; i < 3; ++i) {
+		if (!PX4_ISFINITE(thrust_sp(i))) {
+			warn_rate_limited("Thrust setpoint not finite");
+		}
 	}
 
 	_att_sp.thrust = math::max(thrust_body_z, thr_min);
