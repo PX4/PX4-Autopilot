@@ -2457,17 +2457,6 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		thrust_sp(2) *= att_comp;
 	}
 
-	/* if any of thrust sp is not finite, it is safest to send out hover thrust*/
-	for (int i = 0; i < 3; ++i) {
-		if (!PX4_ISFINITE(thrust_sp(i))) {
-			thrust_sp(0) = 0.0f;
-			thrust_sp(1) = 0.0f;
-			thrust_sp(2) = -_params.thr_hover;
-			PX4_WARN("Caught invalid thrust setpoint");
-			break;
-		}
-	}
-
 	/* Calculate desired total thrust amount in body z direction. */
 	/* To compensate for excess thrust during attitude tracking errors we
 	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
