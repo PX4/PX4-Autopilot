@@ -179,10 +179,13 @@ private:
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when breaking to zero */
 	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk in manual controlled mode when breaking to zero */
+	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+
+
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -456,6 +459,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_jerk_hor_max(this, "JERK_MAX", true),
 	_jerk_hor_min(this, "JERK_MIN", true),
+	_nav_rad(this, "NAV_ACC_RAD", false),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -1831,12 +1835,17 @@ void MulticopterPositionControl::control_auto(float dt)
 				/* normalize prev-current line (always > 0.1) */
 				unit_prev_to_current = unit_prev_to_current.normalized();
 
-				/* orthogonal distance from current position to unit_prev_to_current */
+				/* point on line closest to pos */
 				matrix::Vector2f closest_point = matrix::Vector2f(_prev_pos_sp(0), _prev_pos_sp(1)) + unit_prev_to_current *
 								 (matrix::Vector2f((_pos(0) - _prev_pos_sp(0)), (_pos(1) - _prev_pos_sp(1))) * unit_prev_to_current);
+				matrix::Vector2f vec_closest_to_current((_curr_pos_sp(0) - closest_point(0)), (_curr_pos_sp(1) - closest_point(1)));
 
 				/* compute vector from position-current and previous-position */
 				matrix::Vector2f vec_prev_to_pos((_pos(0) - _prev_pos_sp(0)), (_pos(1) - _prev_pos_sp(1)));
+
+				/* current velocity along track */
+				//float vel_along_track = matrix::Vector2f(_vel(0), _vel(1)) * unit_prev_to_current;
+				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
 
 				/* indicates if we are at least half the distance from previous to current close to previous */
 				bool close_to_prev = ((_curr_pos_sp - _prev_pos_sp).length() * 0.5f) > vec_prev_to_pos.length();
@@ -1850,8 +1859,12 @@ void MulticopterPositionControl::control_auto(float dt)
 				/* default velocity along line prev-current */
 				float vel_sp_along_track = get_cruising_speed_xy();
 
-				/* compute velocity setpoint along track */
-				if (previous_in_front) {
+				/*
+				 * compute velocity setpoint along track
+				 */
+
+				/* only go directly to previous setpoint if more than 5m away and previous in front*/
+				if (previous_in_front && (vec_prev_to_pos.length() > 5.0f)) {
 
 					/* just use the default velocity along track */
 					vel_sp_along_track = vec_prev_to_pos.length() * _params.pos_p(0);
@@ -1861,14 +1874,14 @@ void MulticopterPositionControl::control_auto(float dt)
 					}
 
 				} else if (current_behind) {
-
+					/* go directly to current setpoint */
 					vel_sp_along_track = vec_pos_to_current.length() * _params.pos_p(0);
 					vel_sp_along_track = (vel_sp_along_track < get_cruising_speed_xy()) ? vel_sp_along_track : get_cruising_speed_xy();
 
 				} else if ((vec_prev_to_pos.length() < _target_threshold_xy.get()) && close_to_prev) {
 					/* accelerate from previous setpoint towards current setpoint */
 
-					/* the minimum cruise speed is the current velocity: this ensures that we do not slow down when moving towards current setpoint */
+					/* the minimum cruise speed is the previous velocity setpoint along track: this ensures that we do not slow down when moving towards current setpoint */
 					float min_cruise_speed = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
 
 					/* we don't want to get stucked with zero velocity setpoint: enforce a min cruise speed */
@@ -1877,9 +1890,15 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* make sure min cruise speed is smaller as maximum cruise speed */
 					min_cruise_speed = (min_cruise_speed < get_cruising_speed_xy()) ? min_cruise_speed : get_cruising_speed_xy();
 
-					/* compute the velocity along the track depending on distance close to previous setpoint*/
+					/* compute the velocity along the track depending on distance close to previous setpoint with assumption that
+					 * at previous setpoint the vehicle had zero velocity */
 					float slope = (get_cruising_speed_xy() - min_cruise_speed)  / _target_threshold_xy.get();
 					vel_sp_along_track =  slope * (vec_prev_to_pos.length()) + min_cruise_speed;
+
+					/* take over the previous velocity setpoint along track if larger since we want to accelerate */
+					if (vel_sp_along_track_prev > vel_sp_along_track) {
+						vel_sp_along_track = vel_sp_along_track_prev;
+					}
 
 				} else if (vec_pos_to_current.length() < _target_threshold_xy.get()) {
 					/* slow down when close to current setpoint */
@@ -1931,14 +1950,27 @@ void MulticopterPositionControl::control_auto(float dt)
 						}
 
 						/* compute velocity along line which depends on distance to current setpoint */
-						float slope = (get_cruising_speed_xy() - vel_close) / _target_threshold_xy.get();
-						vel_sp_along_track = slope  * (vec_pos_to_current.length()) + vel_close;
+						float slope = (get_cruising_speed_xy() - vel_close) / (_target_threshold_xy.get() - _nav_rad.get()) ;
+						vel_sp_along_track = slope  * (vec_closest_to_current.length()) + vel_close;
+
+						/* since we want to slow down take over previous velocity setpoint along track if it was lower */
+						if ((vel_sp_along_track_prev < vel_sp_along_track) && (vel_sp_along_track * vel_sp_along_track_prev > 0.0f)) {
+							vel_sp_along_track = vel_sp_along_track_prev;
+						}
+
+						/* make sure that vel_sp_along track is at least min */
+						vel_sp_along_track = (vel_sp_along_track < vel_close) ? vel_close : vel_sp_along_track;
 
 					} else {
 
 						/* we want to stop at current setpoint */
 						float slope = (get_cruising_speed_xy())  / _target_threshold_xy.get();
-						vel_sp_along_track =  slope * (vec_pos_to_current.length());
+						vel_sp_along_track =  slope * (vec_closest_to_current.length());
+
+						/* since we want to slow down take over previous velocity setpoint along track if it was lower */
+						if (vel_sp_along_track_prev < vel_sp_along_track) {
+							vel_sp_along_track = vel_sp_along_track_prev;
+						}
 
 					}
 				}
