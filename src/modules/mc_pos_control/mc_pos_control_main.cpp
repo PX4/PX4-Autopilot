@@ -2344,6 +2344,11 @@ MulticopterPositionControl::task_main()
 			_takeoff_vel_limit = -0.5f;
 		}
 
+		/* set triplets to invalid if we just landed */
+		if (_vehicle_land_detected.landed && !was_landed) {
+			_pos_sp_triplet.current.valid = false;
+		}
+
 		was_landed = _vehicle_land_detected.landed;
 
 		update_ref();
