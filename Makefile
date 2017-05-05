@@ -241,16 +241,19 @@ check_%:
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata px4_metadata
+.PHONY: parameters_metadata airframe_metadata px4_metadata module_documentation
 
 parameters_metadata: posix_sitl_default
 	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
 
 airframe_metadata:
-	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --markdown
-	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --xml
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown
+	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --xml
 
-px4_metadata: parameters_metadata airframe_metadata
+module_documentation:
+	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
+
+px4_metadata: parameters_metadata airframe_metadata module_documentation
 
 # S3 upload helpers
 # --------------------------------------------------------------------
