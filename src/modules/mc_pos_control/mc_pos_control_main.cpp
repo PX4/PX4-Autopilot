@@ -1796,8 +1796,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	/* Auto logic:
 	 * The vehicle should follow the line previous-current.
-	 * - if there is no next setpoint or the current is a loiter point, then slowly approach the current along the line when close to it until the vehicle is within min_dist_to_current
-	 * 	 where the position setpoint is locked at current
+	 * - if there is no next setpoint or the current is a loiter point, then slowly approach the current along the line
 	 * - if there is a next setpoint, then the velocity is adjusted depending on the angle of the corner prev-current-next.
 	 * When following the line, the pos_sp is computed from the orthogonal distance to the closest point on line and the desired cruise speed along the track.
 	 */
@@ -1819,11 +1818,12 @@ void MulticopterPositionControl::control_auto(float dt)
 			matrix::Vector2f unit_prev_to_current((_curr_pos_sp(0) - _prev_pos_sp(0)), (_curr_pos_sp(1) - _prev_pos_sp(1)));
 			matrix::Vector2f vec_pos_to_current((_curr_pos_sp(0) - _pos(0)), (_curr_pos_sp(1) - _pos(1)));
 
-			float min_dist_to_current = 0.5f;
 
 			/* check if we just want to stay at current position */
-			bool stay_at_current_pos = (vec_pos_to_current.length() < min_dist_to_current) &&
-						   (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER || !next_setpoint_valid);
+			matrix::Vector2f pos_sp_diff((_curr_pos_sp(0) - _pos_sp(0)), (_curr_pos_sp(1) - _pos_sp(1)));
+			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+						    || !next_setpoint_valid)
+						   && ((pos_sp_diff.length()) < 0.001f);
 
 			/* only follow line if previous to current has a minimum distance */
 			if (unit_prev_to_current.length()  > 0.1f && !stay_at_current_pos) {
@@ -1879,7 +1879,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 					/* compute the velocity along the track depending on distance close to previous setpoint*/
 					float slope = (get_cruising_speed_xy() - min_cruise_speed)  / _target_threshold_xy.get();
-					vel_sp_along_track =  slope * (vec_prev_to_pos.length() - min_dist_to_current) + min_cruise_speed;
+					vel_sp_along_track =  slope * (vec_prev_to_pos.length()) + min_cruise_speed;
 
 				} else if (vec_pos_to_current.length() < _target_threshold_xy.get()) {
 					/* slow down when close to current setpoint */
@@ -1932,17 +1932,14 @@ void MulticopterPositionControl::control_auto(float dt)
 
 						/* compute velocity along line which depends on distance to current setpoint */
 						float slope = (get_cruising_speed_xy() - vel_close) / _target_threshold_xy.get();
-						vel_sp_along_track = slope  * (vec_pos_to_current.length() - min_dist_to_current) + vel_close;
+						vel_sp_along_track = slope  * (vec_pos_to_current.length()) + vel_close;
 
 					} else {
 
 						/* we want to stop at current setpoint */
-						vel_sp_along_track = vec_pos_to_current.length() * _params.pos_p(0);
+						float slope = (get_cruising_speed_xy())  / _target_threshold_xy.get();
+						vel_sp_along_track =  slope * (vec_pos_to_current.length());
 
-						if (vec_pos_to_current.length() > min_dist_to_current) {
-							float slope = (get_cruising_speed_xy() - _min_cruise_speed.get())  / _target_threshold_xy.get();
-							vel_sp_along_track =  slope * (vec_pos_to_current.length() - min_dist_to_current) + _min_cruise_speed.get();
-						}
 					}
 				}
 
