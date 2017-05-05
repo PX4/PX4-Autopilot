@@ -115,7 +115,7 @@ usage(const char *reason)
 ### Description
 Load or append mixer files to the ESC driver.
 
-Note that the driver must support the used ioctl's, which is the case on NuttX, but for example not on the RPi.
+Note that the driver must support the used ioctl's, which is the case on NuttX, but for example not on RPi.
 )DESCR_STR");
 
 
