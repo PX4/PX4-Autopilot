@@ -2523,6 +2523,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 	for (int i = 0; i < 3; ++i) {
 		if (!PX4_ISFINITE(thrust_sp(i))) {
 			warn_rate_limited("Thrust setpoint not finite");
+			break;
 		}
 	}
 
