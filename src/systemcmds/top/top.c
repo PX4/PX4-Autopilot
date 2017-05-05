@@ -62,7 +62,7 @@ static void print_usage(void)
 {
 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
 
-	PRINT_MODULE_USAGE_NAME_SIMPLE("top", "system");
+	PRINT_MODULE_USAGE_NAME_SIMPLE("top", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("once", "print load only once");
 }
 
