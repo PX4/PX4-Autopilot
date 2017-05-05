@@ -449,7 +449,7 @@ then
 	#
 	if [ $HIL == yes ]
 	then
-		sensors start -hil
+		sensors start -h
 	else
 		sh /etc/init.d/rc.sensors
 	fi
