@@ -271,18 +271,19 @@ GroundRoverAttitudeControl::task_main()
 
 					float angle_diff = 0.0f;
 
-					if (_att_sp.yaw_body * euler_angles.psi() < 0.0f)
-					{
+					if (_att_sp.yaw_body * euler_angles.psi() < 0.0f) {
 						if (_att_sp.yaw_body < 0.0f) {
-							angle_diff = euler_angles.psi() -_att_sp.yaw_body ;
+							angle_diff = euler_angles.psi() - _att_sp.yaw_body ;
+
 						} else {
 							angle_diff = _att_sp.yaw_body - euler_angles.psi();
 						}
+
 						// a switch might have happened
 						if ((double)angle_diff > M_PI) {
 							yaw_u = -yaw_u;
 						}
-						
+
 					}
 
 					math::constrain(yaw_u, -1.0f, 1.0f);

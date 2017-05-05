@@ -118,9 +118,6 @@ private:
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
 	PID_t _speed_ctrl{};
 
-	/* throttle and airspeed states */
-	float _speed_error{0.0f};				///< airspeed error to setpoint in m/s
-
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
 
