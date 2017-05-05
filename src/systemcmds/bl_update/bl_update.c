@@ -59,6 +59,9 @@
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
+#if defined (CONFIG_STM32_STM32F40XX)
+static int setopt(void);
+
 static void print_usage(const char *reason)
 {
 	if (reason) {
@@ -73,8 +76,6 @@ static void print_usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("<file>", "Bootloader bin file");
 }
 
-#if defined (CONFIG_STM32_STM32F40XX)
-static int setopt(void);
 #endif
 
 int
