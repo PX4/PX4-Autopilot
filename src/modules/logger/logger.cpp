@@ -145,7 +145,7 @@ int Logger::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 System logger which logs a configurable set of uORB topics and system printf messages
-(warnings and errors) to ULog files. These can be used for system and flight performance evaluation,
+(`PX4_WARN` and `PX4_ERR`) to ULog files. These can be used for system and flight performance evaluation,
 tuning, replay and crash analysis.
 
 It supports 2 backends:
