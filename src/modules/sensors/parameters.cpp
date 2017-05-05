@@ -355,11 +355,11 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	if (param_get(parameter_handles.rc_map_stab_sw, &(parameters.rc_map_stab_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	if (param_get(parameter_handles.rc_map_man_sw, &(parameters.rc_map_man_sw)) != OK) {
-		warnx("%s", paramerr);
+		PX4_WARN("%s", paramerr);
 	}
 
 	param_get(parameter_handles.rc_map_aux1, &(parameters.rc_map_aux1));
