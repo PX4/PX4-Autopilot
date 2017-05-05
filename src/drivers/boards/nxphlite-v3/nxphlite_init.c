@@ -147,7 +147,7 @@ int board_read_VBUS_state(void)
  *
  * Description:
  *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
+ *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
  *   and external XOR controlled by a GPIO
  *
  ************************************************************************************/
@@ -275,15 +275,7 @@ kinetis_boardinitialize(void)
 	nxphlite_spidev_initialize();
 }
 
-// FIXME:STUBS
-#include <termios.h>
-
-int cfsetspeed(FAR struct termios *termiosp, speed_t speed);
-int cfsetspeed(FAR struct termios *termiosp, speed_t speed)
-{
-	return 0;
-}
-
+//FIXME: Stubs  -----v
 int up_rtc_getdatetime(FAR struct tm *tp);
 int up_rtc_getdatetime(FAR struct tm *tp)
 {
@@ -308,18 +300,7 @@ static void kinetis_serial_dma_poll(void)
 {
 	// todo:Stubbed
 }
-struct termios;
-int tcgetattr(int fd, FAR struct termios *termiosp);
-int tcsetattr(int fd, int options, FAR const struct termios *termiosp);
-int tcgetattr(int fd, FAR struct termios *termiosp)
-{
-	return -1;
-}
-int tcsetattr(int fd, int options, FAR const struct termios *termiosp)
-{
-	return -1;
-
-}
+//FIXME: Stubs  -----v
 
 
 /****************************************************************************
