@@ -81,6 +81,8 @@ set(config_module_list
 	drivers/linux_gpio
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
+	drivers/rpi_rc_in
+	drivers/rpi_pca9685_pwm_out
 
 	#
 	# Libraries
