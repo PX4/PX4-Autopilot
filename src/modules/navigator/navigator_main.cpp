@@ -200,7 +200,6 @@ void
 Navigator::vehicle_land_detected_update()
 {
 	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
-
 }
 
 void
@@ -634,7 +633,7 @@ Navigator::task_main()
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
-		/* if we landed and have not received takoff setpoint then stay in idle */
+		/* if we landed and have not received takeoff setpoint then stay in idle */
 		if (_land_detected.landed &&
 		    !((_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
 		      || (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) {
