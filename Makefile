@@ -192,6 +192,8 @@ qgc_firmware: \
 	check_px4fmu-v2_lpe \
 	check_px4fmu-v3_default \
 	check_px4fmu-v4_default \
+	check_px4fmu-v4pro_default \
+	check_px4fmu-v5_default \
 	check_tap-v1_default \
 	check_sizes
 
