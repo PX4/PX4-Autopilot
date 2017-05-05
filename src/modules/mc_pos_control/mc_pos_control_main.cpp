@@ -1779,6 +1779,14 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 
+	/* Auto logic:
+	 * The vehicle should follow the line previous-current.
+	 * - if there is no next setpoint or the current is a loiter point, then slowly approach the current along the line when close to it until the vehicle is within min_dist_to_current
+	 * 	 where the position setpoint is locked at current
+	 * - if there is a next setpoint, then the velocity is adjusted depending on the angle of the corner prev-current-next.
+	 * When following the line, the pos_sp is computed from the orthogonal distance to the closest point on line and the desired cruise speed along the track.
+	 */
+
 	/* create new _pos_sp from triplets */
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
@@ -1873,16 +1881,20 @@ void MulticopterPositionControl::control_auto(float dt)
 						}
 
 						/* velocity close to target adjusted to angle
-						 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_cruise/4.0 (this means that at 90degrees
+						 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = vel_cruise/5.0 (this means that at 90degrees
 						 * the velocity at target should be 1/5 * cruising speed;
 						 * angle = 2 -> vel_close = min_cruising_speed */
 
 						/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle = 1.0 */
 						float middle_cruise_speed = get_cruising_speed_xy() / 5.0f;
 
-						/* make sure min cruise speed is always smaller than M */
+						/* make sure min cruise speed is always smaller than middle cruise speed but larger than 0*/
 						float min_cruise_speed = (_min_cruise_speed.get() < middle_cruise_speed) ? _min_cruise_speed.get() : middle_cruise_speed
 									 - 0.01f;
+
+						/* make sure min cruise speed is larger than zero: this case should never occur unless _min_cruise_speed is negative */
+						min_cruise_speed = (min_cruise_speed < 0.0f) ? FLT_EPSILON : min_cruise_speed;
+
 
 						/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
 						float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
@@ -1898,7 +1910,7 @@ void MulticopterPositionControl::control_auto(float dt)
 							vel_close = min_cruise_speed;
 						}
 
-						/* compute velocity along line dependent on distance to current setpoint */
+						/* compute velocity along line which depends on distance to current setpoint */
 						float slope = (get_cruising_speed_xy() - vel_close) / _target_threshold_xy.get();
 						vel_sp_along_track = slope  * (vec_pos_to_current.length() - min_dist_to_current) + vel_close;
 
@@ -1907,7 +1919,7 @@ void MulticopterPositionControl::control_auto(float dt)
 						/* we want to stop at current setpoint */
 						vel_sp_along_track = vec_pos_to_current.length() * _params.pos_p(0);
 
-						if (vec_pos_to_current.length() > 0.5f) {
+						if (vec_pos_to_current.length() > min_dist_to_current) {
 							float slope = (get_cruising_speed_xy() - _min_cruise_speed.get())  / _target_threshold_xy.get();
 							vel_sp_along_track =  slope * (vec_pos_to_current.length() - min_dist_to_current) + _min_cruise_speed.get();
 						}
@@ -1984,7 +1996,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		      PX4_ISFINITE(_pos_sp(2)))) {
 
 			PX4_WARN("Auto: Position setpoint not finite");
-			_pos_sp = _pos;
+			_pos_sp = _curr_pos_sp;
 		}
 
 		/* update yaw setpoint if needed */
@@ -2151,6 +2163,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		} else {
 			_vel_sp(0) = 0.0f;
 			_vel_sp(1) = 0.0f;
+			PX4_WARN("Caught invalid pos_sp in x and y");
+
 		}
 	}
 
@@ -2162,6 +2176,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 		} else {
 			_vel_sp(2) = 0.0f;
+			PX4_WARN("Caught invalid pos_sp in z");
 		}
 
 	}
@@ -2440,6 +2455,17 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		}
 
 		thrust_sp(2) *= att_comp;
+	}
+
+	/* if any of thrust sp is not finite, it is safest to send out hover thrust*/
+	for (int i = 0; i < 3; ++i) {
+		if (!PX4_ISFINITE(thrust_sp(i))) {
+			thrust_sp(0) = 0.0f;
+			thrust_sp(1) = 0.0f;
+			thrust_sp(2) = -_params.thr_hover;
+			PX4_WARN("Caught invalid thrust setpoint");
+			break;
+		}
 	}
 
 	/* Calculate desired total thrust amount in body z direction. */
