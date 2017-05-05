@@ -142,7 +142,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   bool landed,
 		   const link_loss_actions_t rc_loss_act,
 		   const int offb_loss_act,
-		   const int offb_loss_rc_act);
+		   const int offb_loss_rc_act,
+		   const int posctl_nav_loss_act);
 
 void set_rc_loss_nav_state(struct vehicle_status_s *status,
 			   struct actuator_armed_s *armed,
