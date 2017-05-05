@@ -549,7 +549,8 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   bool landed,
 		   const link_loss_actions_t rc_loss_act,
 		   const int offb_loss_act,
-		   const int offb_loss_rc_act)
+		   const int offb_loss_rc_act,
+		   const int posctl_nav_loss_act)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
@@ -622,9 +623,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
 
-			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, true, !status->is_rotary_wing)) {
-				// nothing to do - everything done in check_invalid_pos_nav_state
-			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, true, status->is_rotary_wing)) {
+			} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1), !status->is_rotary_wing)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 			} else {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;

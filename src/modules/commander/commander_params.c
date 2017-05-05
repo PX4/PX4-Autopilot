@@ -601,3 +601,16 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
+
+/**
+ * Position control navigation loss response.
+ *
+ * This sets the flight mode that will be used if navigation accuracy is no longer adequte for position control.
+ * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
+ *
+ * @value 0 Assume use of remote control after fallback. Switch to ALTCTL if a height estimate is available, else switch to MANUAL.
+ * @value 1 Assume no use of remote control after fallback. Switch to DESCEND if a height estimate is available, else switch to TERMINATION.
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);

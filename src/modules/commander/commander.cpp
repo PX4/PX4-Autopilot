@@ -1378,6 +1378,9 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_max_imu_acc_diff = param_find("COM_ARM_IMU_ACC");
 	param_t _param_max_imu_gyr_diff = param_find("COM_ARM_IMU_GYR");
 
+	/* failsafe response to loss of navigation accuracy */
+	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
+
 	// These are too verbose, but we will retain them a little longer
 	// until we are sure we really don't need them.
 
@@ -1757,6 +1760,7 @@ int commander_thread_main(int argc, char *argv[])
 	float offboard_loss_timeout = 0.0f;
 	int32_t offboard_loss_act = 0;
 	int32_t offboard_loss_rc_act = 0;
+	int32_t posctl_nav_loss_act = 0;
 
 	int32_t geofence_action = 0;
 
@@ -1905,6 +1909,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* pre-flight IMU consistency checks */
 			param_get(_param_max_imu_acc_diff, &max_imu_acc_diff);
 			param_get(_param_max_imu_gyr_diff, &max_imu_gyr_diff);
+
+			/* failsafe response to loss of navigation accuracy */
+			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
 
 			param_init_forced = false;
 		}
@@ -3065,7 +3072,8 @@ int commander_thread_main(int argc, char *argv[])
 											   land_detector.landed,
 											   (link_loss_actions_t)rc_loss_act,
 											   offboard_loss_act,
-											   offboard_loss_rc_act);
+											   offboard_loss_rc_act,
+											   posctl_nav_loss_act);
 
 		if (status.failsafe != failsafe_old)
 		{
