@@ -89,7 +89,6 @@ public:
 	bool		task_running() { return _task_running; }
 
 private:
-	orb_advert_t	_mavlink_log_pub{nullptr};
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
 	orb_advert_t	_gnd_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 
