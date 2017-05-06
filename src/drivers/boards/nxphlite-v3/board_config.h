@@ -351,8 +351,8 @@ __BEGIN_DECLS
 #define GPIO_PERIPH_3V3_EN  0
 
 
-/* Tone alarm output PTA11 - FTM2_CH1 is On P12-4, P12-5
- * It is driving a PNP
+/* Tone alarm output PTA11 - TMP 2_CH1 is On +P12-4, -P12-5
+ * It is driving a NPN
  */
 #define TONE_ALARM_TIMER    2   /* timer */
 #define TONE_ALARM_CHANNEL  1   /* channel  */
