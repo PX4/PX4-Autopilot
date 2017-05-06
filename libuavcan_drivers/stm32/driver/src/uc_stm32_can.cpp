@@ -450,11 +450,84 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame& out_frame, uavcan::Monotonic
 uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter_configs,
                                            uavcan::uint16_t num_configs)
 {
-    // TODO: Hardware filter support
-    CriticalSectionLocker lock;
-    (void)filter_configs;
-    (void)num_configs;
-    return -ErrNotImplemented;
+    if (num_configs <= NumFilters)
+    {
+        CriticalSectionLocker lock;
+
+        can_->FMR |= bxcan::FMR_FINIT;
+
+        // Slave (CAN2) gets half of the filters
+        can_->FMR &= ~0x00003F00UL;
+        can_->FMR |= static_cast<uint32_t>(NumFilters) << 8;
+
+        can_->FFA1R = 0x0AAAAAAA; // FIFO's are interleaved between filters
+        can_->FM1R = 0; // Identifier Mask mode
+        can_->FS1R = 0x7ffffff; // Single 32-bit for all
+
+        const uint8_t filter_start_index = (self_index_ == 0) ? 0 : NumFilters;
+
+        if (num_configs == 0)
+        {
+            can_->FilterRegister[filter_start_index].FR1 = 0;
+            can_->FilterRegister[filter_start_index].FR2 = 0;
+            can_->FA1R = 1 << filter_start_index;
+        }
+        else
+        {
+            for (uint8_t i = 0; i < NumFilters; i++)
+            {
+                if (i < num_configs)
+                {
+                    uint32_t id   = 0;
+                    uint32_t mask = 0;
+
+                    const uavcan::CanFilterConfig* const cfg = filter_configs + i;
+
+                    if ((cfg->id & uavcan::CanFrame::FlagEFF) || !(cfg->mask & uavcan::CanFrame::FlagEFF))
+                    {
+                        id   = (cfg->id   & uavcan::CanFrame::MaskExtID) << 3;
+                        mask = (cfg->mask & uavcan::CanFrame::MaskExtID) << 3;
+                        id |= bxcan::RIR_IDE;
+                    }
+                    else
+                    {
+                        id   = (cfg->id   & uavcan::CanFrame::MaskStdID) << 21;  // Regular std frames, nothing fancy.
+                        mask = (cfg->mask & uavcan::CanFrame::MaskStdID) << 21;  // Boring.
+                    }
+
+                    if (cfg->id & uavcan::CanFrame::FlagRTR)
+                    {
+                        id |= bxcan::RIR_RTR;
+                    }
+
+                    if (cfg->mask & uavcan::CanFrame::FlagEFF)
+                    {
+                        mask |= bxcan::RIR_IDE;
+                    }
+
+                    if (cfg->mask & uavcan::CanFrame::FlagRTR)
+                    {
+                        mask |= bxcan::RIR_RTR;
+                    }
+
+                    can_->FilterRegister[filter_start_index + i].FR1 = id;
+                    can_->FilterRegister[filter_start_index + i].FR2 = mask;
+
+                    can_->FA1R |= (1 << (filter_start_index + i));
+                }
+                else
+                {
+                    can_->FA1R &= ~(1 << (filter_start_index + i));
+                }
+            }
+        }
+
+        can_->FMR &= ~bxcan::FMR_FINIT;
+
+        return 0;
+    }
+
+    return -ErrFilterNumConfigs;
 }
 
 bool CanIface::waitMsrINakBitStateChange(bool target_state)

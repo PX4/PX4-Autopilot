@@ -23,6 +23,7 @@ static const uavcan::int16_t ErrUnsupportedFrame        = 1004; ///< Frame not s
 static const uavcan::int16_t ErrMsrInakNotSet           = 1005; ///< INAK bit of the MSR register is not 1
 static const uavcan::int16_t ErrMsrInakNotCleared       = 1006; ///< INAK bit of the MSR register is not 0
 static const uavcan::int16_t ErrBitRateNotDetected      = 1007; ///< Auto bit rate detection could not be finished
+static const uavcan::int16_t ErrFilterNumConfigs        = 1008; ///< Number of filters is more than supported
 
 /**
  * RX queue item.
