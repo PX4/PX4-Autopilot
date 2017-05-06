@@ -203,6 +203,8 @@ static hrt_abstime last_gpos_fail_time_us = 0;	// Last time that the global posi
 static hrt_abstime last_lvel_fail_time_us = 0;	// Last time that the local velocity validity recovery check failed (usec)
 static hrt_abstime last_gvel_fail_time_us = 0;	// Last time that the global velocity validity recovery check failed (usec)
 
+static hrt_abstime gpos_last_update_time_us = 0; // last time a global position update was received (usec)
+
 /* pre-flight EKF checks */
 static float max_ekf_pos_ratio = 0.5f;
 static float max_ekf_vel_ratio = 0.5f;
@@ -2156,14 +2158,23 @@ int commander_thread_main(int argc, char *argv[])
 		// Check if quality checking of position accuracy and consistency is to be performed
 		bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
 
-		/* update global position estimate */
+		/* update global position estimate and check for timeout */
 		bool gpos_updated =  false;
 		orb_check(global_position_sub, &gpos_updated);
-
 		if (gpos_updated) {
-			/* position changed */
 			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
+			gpos_last_update_time_us = hrt_absolute_time();
+		}
 
+		// Perform a separate timeout validity test on the global position data.
+		// This is necessary because the global position message is by definition valid if published.
+		if ((hrt_absolute_time() - gpos_last_update_time_us) > 1000000) {
+			status_flags.condition_global_position_valid = false;
+			status_flags.condition_global_velocity_valid = false;
+		}
+
+		/* run global position accuracy checks */
+		if (gpos_updated) {
 			if (run_quality_checks) {
 				check_posvel_validity(true, global_position.eph, eph_threshold, global_position.timestamp, &last_gpos_fail_time_us, &gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
 				check_posvel_validity(true, global_position.evh, evh_threshold, global_position.timestamp, &last_gvel_fail_time_us, &gvel_probation_time_us, &status_flags.condition_global_velocity_valid, &status_changed);
