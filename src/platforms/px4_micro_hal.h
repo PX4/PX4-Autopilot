@@ -187,7 +187,7 @@ __BEGIN_DECLS
 
 #    define px4_spibus_initialize(port_1based)       kinetis_spibus_initialize(port_1based-1)
 
-#    define px4_i2cbus_initialize(bus_num_1based)    kinetis_i2cbus_initialize(bus_num_1based-1)
+#    define px4_i2cbus_initialize(bus_num_0based)    kinetis_i2cbus_initialize(bus_num_0based)
 #    define px4_i2cbus_uninitialize(pdev)            kinetis_i2cbus_uninitialize(pdev)
 
 #    define px4_arch_configgpio(pinset)             kinetis_pinconfig(pinset)
