@@ -868,7 +868,7 @@ then
 			if ver hwcmp PX4FMU_V5
 			then
 				set LOGGER_BUF 64
-				set SDLOG_MODE 3
+				param set SDLOG_MODE 3
 			fi
 			if param compare SDLOG_MODE 1
 			then
