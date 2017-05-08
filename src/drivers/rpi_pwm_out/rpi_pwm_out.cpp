@@ -51,7 +51,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 
-namespace navio_sysfs_pwm_out
+namespace rpi_pwm_out
 {
 static px4_task_t _task_handle = -1;
 volatile bool _task_should_exit = false;
@@ -463,12 +463,12 @@ void usage()
 	PX4_INFO("       pwm_out status");
 }
 
-} // namespace navio_sysfs_pwm_out
+} // namespace rpi_pwm_out
 
 /* driver 'main' command */
-extern "C" __EXPORT int navio_sysfs_pwm_out_main(int argc, char *argv[]);
+extern "C" __EXPORT int rpi_pwm_out_main(int argc, char *argv[]);
 
-int navio_sysfs_pwm_out_main(int argc, char *argv[])
+int rpi_pwm_out_main(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
@@ -486,47 +486,47 @@ int navio_sysfs_pwm_out_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "d:m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			strncpy(navio_sysfs_pwm_out::_device, myoptarg, sizeof(navio_sysfs_pwm_out::_device));
+			strncpy(rpi_pwm_out::_device, myoptarg, sizeof(rpi_pwm_out::_device));
 			break;
 
 		case 'm':
-			strncpy(navio_sysfs_pwm_out::_mixer_filename, myoptarg, sizeof(navio_sysfs_pwm_out::_mixer_filename));
+			strncpy(rpi_pwm_out::_mixer_filename, myoptarg, sizeof(rpi_pwm_out::_mixer_filename));
 			break;
 		}
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &navio_sysfs_pwm_out::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &navio_sysfs_pwm_out::_pwm_min);
-	param_get(param_find("PWM_MAX"), &navio_sysfs_pwm_out::_pwm_max);
+	param_get(param_find("PWM_DISARMED"), &rpi_pwm_out::_pwm_disarmed);
+	param_get(param_find("PWM_MIN"), &rpi_pwm_out::_pwm_min);
+	param_get(param_find("PWM_MAX"), &rpi_pwm_out::_pwm_max);
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		if (navio_sysfs_pwm_out::_is_running) {
+		if (rpi_pwm_out::_is_running) {
 			PX4_WARN("pwm_out already running");
 			return 1;
 		}
 
-		navio_sysfs_pwm_out::start();
+		rpi_pwm_out::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (!navio_sysfs_pwm_out::_is_running) {
+		if (!rpi_pwm_out::_is_running) {
 			PX4_WARN("pwm_out is not running");
 			return 1;
 		}
 
-		navio_sysfs_pwm_out::stop();
+		rpi_pwm_out::stop();
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("pwm_out is %s", navio_sysfs_pwm_out::_is_running ? "running" : "not running");
+		PX4_WARN("pwm_out is %s", rpi_pwm_out::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
-		navio_sysfs_pwm_out::usage();
+		rpi_pwm_out::usage();
 		return 1;
 	}
 
