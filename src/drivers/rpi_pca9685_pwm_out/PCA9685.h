@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,8 +37,7 @@
  * Updated on  : Mar 2, 2017
  ****************************************************************************/
 
-#ifndef _PCA9685_H
-#define _PCA9685_H
+#pragma once
 #include <inttypes.h>
 
 // Register Definitions
@@ -62,29 +61,72 @@
 #define PRE_SCALE 0xFE		//prescaler for output frequency
 #define MAX_PWM_RES 4096        //Resolution 4096=12bit 分辨率，按2的阶乘计算，12bit为4096
 #define CLOCK_FREQ 25000000.0 //25MHz default osc clock
-#define BUFFER_SIZE 0x08  //1 byte buffer
 #define PCA9685_DEFAULT_I2C_ADDR 0x40  // default i2c address for pca9685 默认i2c地址为0x40
 #define PCA9685_DEFAULT_I2C_BUS  1     // default i2c bus for pca9685  默认为1
+
 //! Main class that exports features for PCA9685 chip
 class PCA9685
 {
 public:
 
 	PCA9685();
+
+	/**
+	 * Constructor takes bus and address arguments
+	 * @param bus the bus to use in /dev/i2c-%d.
+	 * @param address the device address on bus
+	 */
 	PCA9685(int bus, int address);
+
 	void init(int bus, int address);
-	virtual ~PCA9685();
-	void reset(void);
+	~PCA9685();
+
+	/// Sets PCA9685 mode to 00
+	void reset();
+
+	/**
+	 * Set the frequency of PWM
+	 * @param freq desired frequency. 40Hz to 1000Hz using internal 25MHz oscillator.
+	 */
 	void setPWMFreq(int freq);
-	void setPWM(uint8_t channel, int on, int off);
-	void setPWM(uint8_t cahnnel, int off);
+
+	/**
+	 * PWM a single channel with custom on time.
+	 * send pwm vale to led(channel)
+	 * @param channel
+	 * @param on_value 0-4095 value to turn on the pulse
+	 * @param off_value 0-4095 value to turn off the pulse
+	 */
+	void setPWM(uint8_t channel, int on_value, int off_value);
+
+	/**
+	 * send pwm value to led(channel),
+	 * value should be range of 0-4095
+	 */
+	void setPWM(uint8_t channel, int value);
+
 private:
-	int _i2caddr;
-	int _i2cbus;
-	char _busfile[64];
-	uint8_t _dataBuffer[BUFFER_SIZE];
+	int _fd = -1; ///< I2C device file descriptor
+
+	/**
+	 * Read a single byte from PCA9685
+	 * @param fd file descriptor for I/O
+	 * @param address register address to read from
+	 * @return read byte
+	 */
 	uint8_t read_byte(int fd, uint8_t address);
+
+	/**
+	 *  Write a single byte to PCA9685
+	 * @param fd file descriptor for I/O
+	 * @param address register address to write to
+	 * @param data 8 bit data to write
+	 */
 	void write_byte(int fd, uint8_t address, uint8_t data);
-	int openfd();
+
+	/**
+	 * Open device file for PCA9685 I2C bus
+	 * @return fd returns the file descriptor number or -1 on error
+	 */
+	int open_fd(int bus, int address);
 };
-#endif

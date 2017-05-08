@@ -30,7 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+#pragma once
+
 #include <stdint.h>
+
 
 #include <px4_tasks.h>
 #include <px4_getopt.h>
