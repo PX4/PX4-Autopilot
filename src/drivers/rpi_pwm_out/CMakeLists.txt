@@ -35,6 +35,8 @@ px4_add_module(
 	MAIN rpi_pwm_out
 	COMPILE_FLAGS
 	SRCS
+		PCA9685.cpp
+		navio_sysfs.cpp
 		rpi_pwm_out.cpp
 	DEPENDS
 		platforms__common

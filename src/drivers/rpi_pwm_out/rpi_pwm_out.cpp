@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,17 +51,19 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 
+#include "common.h"
+#include "navio_sysfs.h"
+#include "PCA9685.h"
+
 namespace rpi_pwm_out
 {
 static px4_task_t _task_handle = -1;
 volatile bool _task_should_exit = false;
 static bool _is_running = false;
 
-static const int NUM_PWM = 4;
 static char _device[64] = "/sys/class/pwm/pwmchip0";
-static int  _pwm_fd[NUM_PWM];
-
-static const int FREQUENCY_PWM = 400;
+static char _protocol[64] = "navio";
+static int _max_mum_outputs = 8; ///< maximum number of outputs the driver should use
 static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
 
 // subscriptions
@@ -100,14 +102,6 @@ void usage();
 void start();
 
 void stop();
-
-int pwm_write_sysfs(char *path, int value);
-
-int pwm_initialize(const char *device);
-
-void pwm_deinitialize();
-
-void send_outputs_pwm(const uint16_t *pwm);
 
 void task_main_trampoline(int argc, char *argv[]);
 
@@ -163,89 +157,6 @@ int initialize_mixer(const char *mixer_filename)
 	return 0;
 }
 
-int pwm_write_sysfs(char *path, int value)
-{
-	int fd = ::open(path, O_WRONLY | O_CLOEXEC);
-	int n;
-	char data[16];
-
-	if (fd == -1) {
-		return -errno;
-	}
-
-	n = ::snprintf(data, sizeof(data), "%u", value);
-
-	if (n > 0) {
-		n = ::write(fd, data, n);	// This n is not used, but to avoid a compiler error.
-	}
-
-	::close(fd);
-
-	return 0;
-}
-
-int pwm_initialize(const char *device)
-{
-	int i;
-	char path[128];
-
-	for (i = 0; i < NUM_PWM; ++i) {
-		::snprintf(path, sizeof(path), "%s/export", device);
-
-		if (pwm_write_sysfs(path, i) < 0) {
-			PX4_ERR("PWM export failed");
-		}
-	}
-
-	for (i = 0; i < NUM_PWM; ++i) {
-		::snprintf(path, sizeof(path), "%s/pwm%u/enable", device, i);
-
-		if (pwm_write_sysfs(path, 1) < 0) {
-			PX4_ERR("PWM enable failed");
-		}
-	}
-
-	for (i = 0; i < NUM_PWM; ++i) {
-		::snprintf(path, sizeof(path), "%s/pwm%u/period", device, i);
-
-		if (pwm_write_sysfs(path, (int)1e9 / FREQUENCY_PWM)) {
-			PX4_ERR("PWM period failed");
-		}
-	}
-
-	for (i = 0; i < NUM_PWM; ++i) {
-		::snprintf(path, sizeof(path), "%s/pwm%u/duty_cycle", device, i);
-		_pwm_fd[i] = ::open(path, O_WRONLY | O_CLOEXEC);
-
-		if (_pwm_fd[i] == -1) {
-			PX4_ERR("PWM: Failed to open duty_cycle.");
-			return -errno;
-		}
-	}
-
-	return 0;
-}
-
-void pwm_deinitialize()
-{
-	for (int i = 0; i < NUM_PWM; ++i) {
-		if (_pwm_fd[i] != -1) {
-			::close(_pwm_fd[i]);
-		}
-	}
-}
-
-void send_outputs_pwm(const uint16_t *pwm)
-{
-	int n;
-	char data[16];
-
-	//convert this to duty_cycle in ns
-	for (unsigned i = 0; i < NUM_PWM; ++i) {
-		n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
-		n = ::write(_pwm_fd[i], data, n);	// This n is not used, but to avoid a compiler error.
-	}
-}
 
 void subscribe()
 {
@@ -283,14 +194,26 @@ void task_main(int argc, char *argv[])
 {
 	_is_running = true;
 
-	if (pwm_initialize(_device) < 0) {
-		PX4_ERR("Failed to initialize PWM.");
-		return;
-	}
-
 	// Set up mixer
 	if (initialize_mixer(_mixer_filename) < 0) {
 		PX4_ERR("Mixer initialization failed.");
+		return;
+	}
+
+	PWMOutBase *pwm_out;
+
+	if (strcmp(_protocol, "pca9685") == 0) {
+		PX4_INFO("Starting PWM output in PCA9685 mode");
+		pwm_out = new PCA9685();
+
+	} else { // navio
+		PX4_INFO("Starting PWM output in Navio mode");
+		pwm_out = new NavioSysfsPWMOut(_device, _max_mum_outputs);
+	}
+
+	if (pwm_out->init() != 0) {
+		PX4_ERR("PWM output init failed");
+		delete pwm_out;
 		return;
 	}
 
@@ -374,10 +297,10 @@ void task_main(int argc, char *argv[])
 				       &_pwm_limit);
 
 			if (_armed.lockdown || _armed.manual_lockdown) {
-				send_outputs_pwm(disarmed_pwm);
+				pwm_out->send_output_pwm(disarmed_pwm, _outputs.noutputs);
 
 			} else {
-				send_outputs_pwm(pwm);
+				pwm_out->send_output_pwm(pwm, _outputs.noutputs);
 			}
 
 			if (_outputs_pub != nullptr) {
@@ -400,7 +323,7 @@ void task_main(int argc, char *argv[])
 		}
 	}
 
-	pwm_deinitialize();
+	delete pwm_out;
 
 	for (uint8_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_controls_subs[i] >= 0) {
@@ -454,11 +377,15 @@ void stop()
 
 void usage()
 {
-	PX4_INFO("usage: pwm_out start [-d pwmdevice] -m mixerfile");
-	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation");
+	PX4_INFO("usage: pwm_out start [-d pwmdevice] [-m mixerfile] [-p protocol]");
+	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation (only for Navio)");
 	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
 	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/quad_x.main.mix)");
+	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685)");
+	PX4_INFO("                       (default is navio)");
+	PX4_INFO("       -n num_outputs : maximum number of outputs the driver should use");
+	PX4_INFO("                       (default is 8)");
 	PX4_INFO("       pwm_out stop");
 	PX4_INFO("       pwm_out status");
 }
@@ -483,7 +410,7 @@ int rpi_pwm_out_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:m:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:m:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			strncpy(rpi_pwm_out::_device, myoptarg, sizeof(rpi_pwm_out::_device));
@@ -491,6 +418,25 @@ int rpi_pwm_out_main(int argc, char *argv[])
 
 		case 'm':
 			strncpy(rpi_pwm_out::_mixer_filename, myoptarg, sizeof(rpi_pwm_out::_mixer_filename));
+			break;
+
+		case 'p':
+			strncpy(rpi_pwm_out::_protocol, myoptarg, sizeof(rpi_pwm_out::_protocol));
+			break;
+
+		case 'n': {
+				unsigned long max_num = strtoul(myoptarg, nullptr, 10);
+
+				if (max_num <= 0) {
+					max_num = 8;
+				}
+
+				if (max_num > actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
+					max_num = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
+				}
+
+				rpi_pwm_out::_max_mum_outputs = max_num;
+			}
 			break;
 		}
 	}
