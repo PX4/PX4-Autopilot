@@ -345,7 +345,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 2 Manual
  * @value 3 Return to Land
  * @value 4 Land at current position
- * @value 5 Loter
+ * @value 5 Loiter
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
