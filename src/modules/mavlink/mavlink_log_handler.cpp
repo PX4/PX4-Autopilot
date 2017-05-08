@@ -41,7 +41,6 @@
 
 #define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
 
-static const char *kSDRoot     = MOUNTPOINT "/";
 static const char *kLogRoot    = MOUNTPOINT "/log";
 static const char *kLogData    = MOUNTPOINT "/logdata.txt";
 static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
@@ -280,27 +279,6 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 
 	//-- Delete all logs
 	LogListHelper::delete_all(kLogRoot);
-	//-- Now delete all "msgs_*" from root
-	DIR *dp = opendir(kSDRoot);
-
-	if (dp) {
-		struct dirent *result = nullptr;
-
-		while ((result = readdir(dp))) {
-			if (result->d_type == PX4LOG_REGULAR_FILE) {
-				if (!memcmp(result->d_name, "msgs_", 5)) {
-					char msg_path[128];
-					snprintf(msg_path, sizeof(msg_path), "%s%s", kSDRoot, result->d_name);
-
-					if (unlink(msg_path)) {
-						PX4LOG_WARN("MavlinkLogHandler::_log_request_erase Error deleting %s\n", msg_path);
-					}
-				}
-			}
-		}
-
-		closedir(dp);
-	}
 }
 
 //-------------------------------------------------------------------
