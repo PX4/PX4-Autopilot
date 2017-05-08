@@ -183,7 +183,6 @@ private:
 	param_t			_p_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
-	param_t			_p_feedback;
 
 	trigger_mode_t		_trigger_mode;
 
@@ -546,16 +545,13 @@ CameraTrigger::cycle_trampoline(void *arg)
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
 
 			need_ack = true;
-			PX4_INFO("got trigger control");
 
 			if (commandParamToInt(cmd.param3) == 1) {
 				// pause triggger
 				trig->_trigger_paused = true;
-				PX4_INFO("paused by command");
 
 			} else if (commandParamToInt(cmd.param3) == 0) {
 				trig->_trigger_paused = false;
-				PX4_INFO("unpaused by command");
 
 			}
 
@@ -567,11 +563,9 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			if (commandParamToInt(cmd.param1) == 1) {
 				trig->_trigger_enabled = true;
-				PX4_INFO("enabled by command");
 
 			} else if (commandParamToInt(cmd.param1) == 0) {
 				trig->_trigger_enabled = false;
-				PX4_INFO("disabled by command");
 
 			}
 
