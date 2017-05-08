@@ -250,7 +250,6 @@ Mavlink::Mavlink() :
 	_message_buffer_mutex {},
 	_send_mutex {},
 	_param_initialized(false),
-	_logging_enabled(false),
 	_broadcast_mode(Mavlink::BROADCAST_MODE_OFF),
 	_param_system_id(PARAM_INVALID),
 	_param_component_id(PARAM_INVALID),

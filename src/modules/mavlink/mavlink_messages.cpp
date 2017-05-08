@@ -534,15 +534,6 @@ protected:
 		const bool updated_cpuload = _cpuload_sub->update(&cpuload);
 		const bool updated_battery = _battery_status_sub->update(&battery_status);
 
-		if (updated_status) {
-			if (status.arming_state >= vehicle_status_s::ARMING_STATE_ARMED) {
-				_mavlink->set_logging_enabled(true);
-
-			} else {
-				_mavlink->set_logging_enabled(false);
-			}
-		}
-
 		if (updated_status || updated_battery || updated_cpuload) {
 			mavlink_sys_status_t msg = {};
 
