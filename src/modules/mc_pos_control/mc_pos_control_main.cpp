@@ -77,7 +77,8 @@
 
 
 #define TILT_COS_MAX	0.7f
-#define SIGMA			0.000001f
+#define SIGMA_SINGLE_OP			0.000001f
+#define SIGMA_NORM				0.001f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
 
@@ -1833,7 +1834,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			matrix::Vector2f pos_sp_diff((_curr_pos_sp(0) - _pos_sp(0)), (_curr_pos_sp(1) - _pos_sp(1)));
 			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
 						    || !next_setpoint_valid)
-						   && ((pos_sp_diff.length()) < SIGMA);
+						   && ((pos_sp_diff.length()) < SIGMA_NORM);
 
 			/* only follow line if previous to current has a minimum distance */
 			if (unit_prev_to_current.length()  > 0.1f && !stay_at_current_pos) {
@@ -1914,14 +1915,14 @@ void MulticopterPositionControl::control_auto(float dt)
 
 						/* unit vector from current to next */
 						matrix::Vector2f unit_current_to_next((next_sp(0) - pos_sp(0)), (next_sp(1) - pos_sp(1)));
-						unit_current_to_next = (unit_current_to_next.length() > SIGMA) ? unit_current_to_next.normalized() :
+						unit_current_to_next = (unit_current_to_next.length() > SIGMA_NORM) ? unit_current_to_next.normalized() :
 								       unit_current_to_next;
 
 						/* angle = cos(x) + 1.0
 						 * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0 */
 						float angle = 2.0f;
 
-						if (unit_current_to_next.length() > SIGMA) {
+						if (unit_current_to_next.length() > SIGMA_NORM) {
 							angle = unit_current_to_next * (unit_prev_to_current * -1.0f) + 1.0f;
 						}
 
@@ -1938,7 +1939,7 @@ void MulticopterPositionControl::control_auto(float dt)
 									 - 0.01f;
 
 						/* make sure min cruise speed is larger than zero: this case should never occur unless _min_cruise_speed is negative */
-						min_cruise_speed = (min_cruise_speed < 0.0f) ? SIGMA : min_cruise_speed;
+						min_cruise_speed = (min_cruise_speed < 0.0f) ? SIGMA_SINGLE_OP : min_cruise_speed;
 
 
 						/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
@@ -2032,7 +2033,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					}
 
 					/* sanity check: done divide by zero */
-					if (vec_pos_to_closest.length() > SIGMA) {
+					if (vec_pos_to_closest.length() > SIGMA_NORM) {
 						pos_sp(0) = _pos(0) + vec_pos_to_closest(0) / vec_pos_to_closest.length() * cruise_sp / _params.pos_p(0);
 						pos_sp(1) = _pos(1) + vec_pos_to_closest(1) / vec_pos_to_closest.length() * cruise_sp / _params.pos_p(1);
 
@@ -2585,7 +2586,8 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		math::Vector<3> body_y;
 		math::Vector<3> body_z;
 
-		if (thrust_sp.length() > FLT_EPSILON) {
+
+		if (thrust_sp.length() > SIGMA_NORM) {
 			body_z = -thrust_sp.normalized();
 
 		} else {
@@ -2597,7 +2599,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		/* vector of desired yaw direction in XY plane, rotated by PI/2 */
 		math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
 
-		if (fabsf(body_z(2)) > FLT_EPSILON) {
+		if (fabsf(body_z(2)) > SIGMA_SINGLE_OP) {
 			/* desired body_x axis, orthogonal to body_z */
 			body_x = y_C % body_z;
 
