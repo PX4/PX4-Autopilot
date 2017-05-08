@@ -699,8 +699,9 @@ The provided functionality includes:
   to the configured channels & mode switches, low-pass filter, and then publish as `rc_channels` and
   `manual_control_setpoint`.
 - Read the output from the ADC driver (via ioctl interface) and publish `battery_status`.
-- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change.
-  The sensor drivers use the ioctl interface for parameter updates.
+- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
+  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
+  sensor drivers must already be running when `sensors` is started.
 - Do preflight sensor consistency checks and publish the `sensor_preflight` topic.
 
 ### Implementation
