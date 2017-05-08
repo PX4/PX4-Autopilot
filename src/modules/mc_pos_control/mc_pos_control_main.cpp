@@ -1960,6 +1960,9 @@ void MulticopterPositionControl::control_auto(float dt)
 						float slope = (get_cruising_speed_xy() - vel_close) / (_target_threshold_xy.get() - _nav_rad.get()) ;
 						vel_sp_along_track = slope  * (vec_closest_to_current.length()) + vel_close;
 
+						/* make sure vel_sp_along_track is positive */
+						vel_sp_along_track = (vel_sp_along_track < 0.0f) ? SIGMA_SINGLE_OP : vel_sp_along_track;
+
 						/* since we want to slow down take over previous velocity setpoint along track if it was lower */
 						if ((vel_sp_along_track_prev < vel_sp_along_track) && (vel_sp_along_track * vel_sp_along_track_prev > 0.0f)) {
 							vel_sp_along_track = vel_sp_along_track_prev;
