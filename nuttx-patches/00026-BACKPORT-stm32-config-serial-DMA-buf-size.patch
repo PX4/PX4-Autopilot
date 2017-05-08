@@ -1,0 +1,20 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
+index 644c810..e8318a2 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
+@@ -181,7 +181,14 @@
+  * every time the FIFO receives half this number of bytes.
+  */
+ 
+-#  define RXDMA_BUFFER_SIZE   32
++#  if !defined(CONFIG_STM32_SERIAL_RXDMA_BUFFER_SIZE)
++#    define CONFIG_STM32_SERIAL_RXDMA_BUFFER_SIZE 32
++#  endif
++#  define RXDMA_MUTIPLE  4
++#  define RXDMA_MUTIPLE_MASK  (RXDMA_MUTIPLE -1)
++#  define RXDMA_BUFFER_SIZE   ((CONFIG_STM32_SERIAL_RXDMA_BUFFER_SIZE \
++                                + RXDMA_MUTIPLE_MASK) \
++                                & ~RXDMA_MUTIPLE_MASK)
+ 
+ /* DMA priority */
+ 
