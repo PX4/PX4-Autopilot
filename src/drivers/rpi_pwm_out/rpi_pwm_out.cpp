@@ -261,28 +261,26 @@ void task_main(int argc, char *argv[])
 			_outputs.timestamp = hrt_absolute_time();
 			/* do mixing */
 			_outputs.noutputs = _mixer_group->mix(_outputs.output,
-							      _outputs.NUM_ACTUATOR_OUTPUTS,
+							      actuator_outputs_s::NUM_ACTUATOR_OUTPUTS,
 							      NULL);
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = _outputs.noutputs;
-			     i < _outputs.NUM_ACTUATOR_OUTPUTS;
-			     i++) {
+			for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS; i++) {
 				_outputs.output[i] = NAN;
 			}
 
 			const uint16_t reverse_mask = 0;
-			uint16_t disarmed_pwm[4];
-			uint16_t min_pwm[4];
-			uint16_t max_pwm[4];
+			uint16_t disarmed_pwm[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS];
+			uint16_t min_pwm[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS];
+			uint16_t max_pwm[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS];
 
-			for (unsigned int i = 0; i < 4; i++) {
+			for (unsigned int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
 				disarmed_pwm[i] = _pwm_disarmed;
 				min_pwm[i] = _pwm_min;
 				max_pwm[i] = _pwm_max;
 			}
 
-			uint16_t pwm[4];
+			uint16_t pwm[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS];
 
 			// TODO FIXME: pre-armed seems broken
 			pwm_limit_calc(_armed.armed,
