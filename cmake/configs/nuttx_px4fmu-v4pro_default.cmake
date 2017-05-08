@@ -104,6 +104,7 @@ set(config_module_list
 	modules/mavlink
 	modules/navigator
 	modules/uavcan
+	modules/camera_feedback
 
 	#
 	# Estimation modules
