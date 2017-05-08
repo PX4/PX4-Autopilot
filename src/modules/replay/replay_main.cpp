@@ -83,40 +83,8 @@ namespace px4
 {
 class Replay;
 
-namespace replay
-{
-Replay *instance = nullptr;
-static int	control_task = -1;			//task handle for task
-
-} //namespace replay
-
 
 char *Replay::_replay_file = nullptr;
-
-Replay::Replay()
-{
-}
-
-Replay::~Replay()
-{
-	if (replay::control_task != -1) {
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned int i = 0;
-
-		do {
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 200) {
-				px4_task_delete(replay::control_task);
-				replay::control_task = -1;
-				break;
-			}
-		} while (replay::control_task != -1);
-	}
-}
 
 void Replay::setupReplayFile(const char *file_name)
 {
@@ -693,7 +661,7 @@ bool Replay::readDefinitionsAndApplyParams(std::ifstream &file)
 	return true;
 }
 
-void Replay::task_main()
+void Replay::run()
 {
 	ifstream replay_file(_replay_file, ios::in | ios::binary);
 
@@ -725,7 +693,7 @@ void Replay::task_main()
 	uint32_t nr_published_messages = 0;
 	streampos last_additional_message_pos = _data_section_start;
 
-	while (!_task_should_exit && replay_file) {
+	while (!should_exit() && replay_file) {
 
 		//Find the next message to publish. Messages from different subscriptions don't need
 		//to be in chronological order, so we need to check all subscriptions
@@ -786,7 +754,7 @@ void Replay::task_main()
 		}
 	}
 
-	if (!_task_should_exit) {
+	if (!should_exit()) {
 		PX4_INFO("Replay done (published %u msgs, %.3lf s)", nr_published_messages,
 			 (double)hrt_elapsed_time(&_replay_start_time) / 1.e6);
 
@@ -1048,86 +1016,125 @@ uint64_t ReplayEkf2::handleTopicDelay(uint64_t next_file_time, uint64_t timestam
 	return next_file_time;
 }
 
-void Replay::task_main_trampoline(int argc, char *argv[])
+
+int Replay::custom_command(int argc, char *argv[])
+{
+	if (!strcmp(argv[0], "tryapplyparams")) {
+		return Replay::applyParams(true);
+	}
+
+	if (!strcmp(argv[0], "trystart")) {
+		return Replay::task_spawn(argc, argv);
+	}
+
+	return print_usage("unknown command");
+}
+
+int Replay::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This module is used to replay ULog files.
+
+There are 2 environment variables used for configuration: `replay`, which must be set to an ULog file name - it's
+the log file to be replayed. The second is the mode, specified via `replay_mode`:
+- `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
+  to run as fast as possible.
+- Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
+  log was recorded.
+
+The module is typically used together with uORB publisher rules, to specify which messages should be replayed.
+The replay module will just publish all messages that are found in the log. It also applies the parameters from
+the log.
+
+The replay procedure is documented on the [System-wide Replay](https://dev.px4.io/en/debug/system_wide_replay.html)
+page.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("replay", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start replay, using log file from ENV variable 'replay'");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("trystart", "Same as 'start', but silently exit if no log file given");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("tryapplyparams", "Try to apply the parameters from the log file");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int Replay::task_spawn(int argc, char *argv[])
+{
+	// check if a log file was found
+	if (!isSetup()) {
+		if (argc > 0 && strncmp(argv[0], "try", 3)==0) {
+			return 0;
+		}
+		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
+		return -1;
+	}
+
+	_task_id = px4_task_spawn_cmd("replay",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX - 5,
+				      4000,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
+
+	return 0;
+}
+
+int Replay::applyParams(bool quiet)
+{
+	if (!isSetup()) {
+		if (quiet) {
+			return 0;
+		}
+		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
+		return -1;
+	}
+
+	int ret = 0;
+	Replay *r = new Replay();
+
+	if (r == nullptr) {
+		PX4_ERR("alloc failed");
+		return -ENOMEM;
+	}
+
+	ifstream replay_file(_replay_file, ios::in | ios::binary);
+
+	if (!r->readDefinitionsAndApplyParams(replay_file)) {
+		ret = -1;
+	}
+
+	delete r;
+
+	return ret;
+}
+
+Replay *Replay::instantiate(int argc, char *argv[])
 {
 	// check the replay mode
 	const char *replay_mode = getenv(replay::ENV_MODE);
 
+	Replay *instance = nullptr;
 	if (replay_mode && strcmp(replay_mode, "ekf2") == 0) {
 		PX4_INFO("Ekf2 replay mode");
-		replay::instance = new ReplayEkf2();
+		instance = new ReplayEkf2();
 
 	} else {
-		replay::instance = new Replay();
+		instance = new Replay();
 	}
 
-	if (replay::instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return;
-	}
-
-	replay::instance->task_main();
-	replay::control_task = -1;
-}
-
-int Replay::start(bool quiet, bool apply_params_only)
-{
-	ASSERT(replay::control_task == -1);
-	int ret = PX4_OK;
-
-	//check for logfile env variable
-	const char *logfile = getenv(replay::ENV_FILENAME);
-
-	if (logfile) {
-		if (!isSetup()) {
-			PX4_INFO("using replay log file: %s", logfile);
-			setupReplayFile(logfile);
-		}
-
-	} else {
-		if (quiet) {
-			return PX4_OK;
-
-		} else {
-			PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
-			return -1;
-		}
-	}
-
-	if (apply_params_only) {
-		Replay *r = new Replay();
-
-		if (r == nullptr) {
-			PX4_ERR("alloc failed");
-			return -ENOMEM;
-		}
-
-		ifstream replay_file(_replay_file, ios::in | ios::binary);
-
-		if (!r->readDefinitionsAndApplyParams(replay_file)) {
-			ret = -1;
-		}
-
-		delete (r);
-
-	} else {
-
-		/* start the task */
-		replay::control_task = px4_task_spawn_cmd("replay",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       4000,
-				       (px4_main_t)&Replay::task_main_trampoline,
-				       nullptr);
-
-		if (replay::control_task < 0) {
-			replay::control_task = -1;
-			PX4_ERR("task start failed");
-			return -errno;
-		}
-	}
-
-	return ret;
+	return instance;
 }
 
 } //namespace px4
@@ -1136,65 +1143,13 @@ using namespace px4;
 
 int replay_main(int argc, char *argv[])
 {
-	if (argc < 1) {
-		PX4_WARN("usage: replay {tryapplyparams|trystart|start|stop|status}");
-		return 1;
+	//check for logfile env variable
+	const char *logfile = getenv(replay::ENV_FILENAME);
+
+	if (logfile && !Replay::isSetup()) {
+		PX4_INFO("using replay log file: %s", logfile);
+		Replay::setupReplayFile(logfile);
 	}
 
-	bool do_start = false;
-	bool quiet = false;
-	bool apply_params_only = false;
-
-	if (!strcmp(argv[1], "start")) {
-		do_start = true;
-
-	} else if (!strcmp(argv[1], "trystart")) {
-		do_start = true;
-		quiet = true;
-
-	} else if (!strcmp(argv[1], "tryapplyparams")) {
-		do_start = true;
-		quiet = true;
-		apply_params_only = true;
-	}
-
-	if (do_start) {
-		if (replay::instance != nullptr) {
-			PX4_WARN("already running");
-			return 1;
-		}
-
-		if (PX4_OK != Replay::start(quiet, apply_params_only)) {
-			PX4_ERR("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (replay::instance == nullptr) {
-			PX4_WARN("not running");
-			return 1;
-		}
-
-		delete replay::instance;
-		replay::instance = nullptr;
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (replay::instance) {
-			PX4_WARN("running");
-			return 0;
-
-		} else {
-			PX4_WARN("not running");
-			return 1;
-		}
-	}
-
-	PX4_ERR("unrecognized command");
-	return 1;
+	return Replay::main(argc, argv);
 }
