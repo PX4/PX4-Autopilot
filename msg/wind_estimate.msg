@@ -6,3 +6,4 @@ float32 tas_innov 		# True airspeed innovation
 float32 tas_innov_var 		# True airspeed innovation variance
 float32 beta_innov 		# Sideslip measurement innovation
 float32 beta_innov_var 		# Sideslip measurement innovation variance
+float32 tas_scale 		# Estimated true airspeed scale factor
