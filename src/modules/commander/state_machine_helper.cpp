@@ -124,8 +124,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
                                             orb_advert_t *mavlink_log_pub,	///< uORB handle for mavlink log
                                             status_flags_s *status_flags,
                                             float avionics_power_rail_voltage,
-                                            bool arm_without_gps,
-                                            bool arm_mission_required,
+                                            uint8_t arm_requirements,
                                             hrt_abstime time_since_boot)
 {
 	// Double check that our static arrays are still valid
@@ -153,7 +152,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 		    && status->hil_state == vehicle_status_s::HIL_STATE_OFF) {
 
 			prearm_ret = preflight_check(status, mavlink_log_pub, true /* pre-arm */, false /* force_report */,
-						     status_flags, battery, arm_without_gps, arm_mission_required, time_since_boot);
+						     status_flags, battery, arm_requirements,
+						     time_since_boot);
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
@@ -164,7 +164,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 
 			if (last_preflight_check == 0 || hrt_absolute_time() - last_preflight_check > 1000 * 1000) {
 				prearm_ret = preflight_check(status, mavlink_log_pub, false /* pre-flight */, false /* force_report */,
-							     status_flags, battery, arm_without_gps, arm_mission_required, time_since_boot);
+							     status_flags, battery, arm_requirements,
+							     time_since_boot);
 				status_flags->condition_system_sensors_initialized = (prearm_ret == OK);
 				last_preflight_check = hrt_absolute_time();
 				last_prearm_ret = prearm_ret;
@@ -1029,7 +1030,7 @@ void reset_link_loss_globals(struct actuator_armed_s *armed, const bool old_fail
 }
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm, bool force_report,
-		    status_flags_s *status_flags, battery_status_s *battery, bool arm_without_gps, bool arm_mission_required,
+		    status_flags_s *status_flags, battery_status_s *battery, uint8_t arm_requirements,
 		    hrt_abstime time_since_boot)
 {
 	bool reportFailures = force_report || (!status_flags->condition_system_prearm_error_reported &&
@@ -1047,7 +1048,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, sensor_checks, sensor_checks, sensor_checks, sensor_checks,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-			    !arm_without_gps, true, status->is_vtol, reportFailures, prearm, time_since_boot);
+			    arm_requirements & ARM_REQ_GPS_BIT, true, status->is_vtol, reportFailures, prearm, time_since_boot);
 
 	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;
@@ -1066,7 +1067,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 	}
 
 	// mission required
-	if (arm_mission_required &&
+	if ((arm_requirements & ARM_REQ_MISSION_BIT) &&
 		(!status_flags->condition_auto_mission_available ||
 		!status_flags->condition_home_position_valid ||
 		!status_flags->condition_global_position_valid)) {
