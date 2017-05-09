@@ -36,8 +36,7 @@
  *
  * DATAMANAGER driver.
  */
-#ifndef _DATAMANAGER_H
-#define _DATAMANAGER_H
+#pragma once
 
 #include <string.h>
 #include <navigator/navigation.h>
@@ -182,6 +181,4 @@ dm_flash_sector_description_set(
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

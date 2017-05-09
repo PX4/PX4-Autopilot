@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		dataman.c
+		dataman.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file dataman.c
+ * @file dataman.cpp
  * DATAMANAGER driver.
  *
  * @author Jean Cyr
@@ -43,6 +43,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <stdio.h>
@@ -66,20 +67,10 @@
 #include <nuttx/progmem.h>
 #endif
 
-/**
- * data manager app start / stop handling function
- *
- * @ingroup apps
- */
 
+__BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
-__EXPORT ssize_t dm_read(dm_item_t item, unsigned index, void *buffer, size_t buflen);
-__EXPORT ssize_t dm_write(dm_item_t  item, unsigned index, dm_persitence_t persistence, const void *buffer,
-			  size_t buflen);
-__EXPORT int dm_clear(dm_item_t item);
-__EXPORT void dm_lock(dm_item_t item);
-__EXPORT void dm_unlock(dm_item_t item);
-__EXPORT int dm_restart(dm_reset_reason restart_type);
+__END_DECLS
 
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
@@ -88,7 +79,7 @@ static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t coun
 static int  _file_clear(dm_item_t item);
 static int  _file_restart(dm_reset_reason reason);
 static int _file_initialize(unsigned max_offset);
-static void _file_shutdown(void);
+static void _file_shutdown();
 
 /* Private Ram based Operations */
 static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
@@ -97,7 +88,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 static int  _ram_clear(dm_item_t item);
 static int  _ram_restart(dm_reset_reason reason);
 static int _ram_initialize(unsigned max_offset);
-static void _ram_shutdown(void);
+static void _ram_shutdown();
 
 #if defined(FLASH_BASED_DATAMAN)
 /* Private Ram_Flash based Operations */
@@ -109,7 +100,7 @@ static ssize_t _ram_flash_read(dm_item_t item, unsigned index, void *buf, size_t
 static int  _ram_flash_clear(dm_item_t item);
 static int  _ram_flash_restart(dm_reset_reason reason);
 static int _ram_flash_initialize(unsigned max_offset);
-static void _ram_flash_shutdown(void);
+static void _ram_flash_shutdown();
 static int _ram_flash_wait(px4_sem_t *sem);
 #endif
 
@@ -119,7 +110,7 @@ typedef struct dm_operations_t {
 	int (*clear)(dm_item_t item);
 	int (*restart)(dm_reset_reason reason);
 	int (*initialize)(unsigned max_offset);
-	void (*shutdown)(void);
+	void (*shutdown)();
 	int (*wait)(px4_sem_t *sem);
 } dm_operations_t;
 
@@ -259,10 +250,10 @@ static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
 #else
 static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
 #endif
-static char *k_data_manager_device_path = NULL;
+static char *k_data_manager_device_path = nullptr;
 
 #if defined(FLASH_BASED_DATAMAN)
-static const dm_sector_descriptor_t *k_dataman_flash_sector = NULL;
+static const dm_sector_descriptor_t *k_dataman_flash_sector = nullptr;
 #endif
 
 static enum {
@@ -318,7 +309,7 @@ unlock_queue(work_q_t *q)
 }
 
 static work_q_item_t *
-create_work_item(void)
+create_work_item()
 {
 	work_q_item_t *item;
 
@@ -332,7 +323,7 @@ create_work_item(void)
 	unlock_queue(&g_free_q);
 
 	/* If we there weren't any free items then obtain memory for a new ones */
-	if (item == NULL) {
+	if (item == nullptr) {
 		item = (work_q_item_t *)malloc(k_work_item_allocation_chunk_size * sizeof(work_q_item_t));
 
 		if (item) {
@@ -364,7 +355,7 @@ create_work_item(void)
 		px4_sem_setprotocol(&item->wait_sem, SEM_PRIO_NONE);
 	}
 
-	/* return the item pointer, or NULL if all failed */
+	/* return the item pointer, or nullptr if all failed */
 	return item;
 }
 
@@ -387,7 +378,7 @@ destroy_work_item(work_q_item_t *item)
 }
 
 static inline work_q_item_t *
-dequeue_work_item(void)
+dequeue_work_item()
 {
 	work_q_item_t *work;
 
@@ -429,7 +420,7 @@ enqueue_work_item_and_wait_for_result(work_q_item_t *item)
 	return result;
 }
 
-static bool is_running(void)
+static bool is_running()
 {
 	return dm_operations_data.running;
 }
@@ -555,7 +546,7 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 
 #if defined(FLASH_BASED_DATAMAN)
 static void
-_ram_flash_update_flush_timeout(void)
+_ram_flash_update_flush_timeout()
 {
 	dm_operations_data.ram_flash.flush_timeout_usec = hrt_absolute_time() + RAM_FLASH_FLUSH_TIMEOUT_USEC;
 }
@@ -951,9 +942,9 @@ static int
 _ram_initialize(unsigned max_offset)
 {
 	/* In memory */
-	dm_operations_data.ram.data = malloc(max_offset);
+	dm_operations_data.ram.data = (uint8_t *)malloc(max_offset);
 
-	if (dm_operations_data.ram.data == NULL) {
+	if (dm_operations_data.ram.data == nullptr) {
 		PX4_WARN("Could not allocate %d bytes of memory", max_offset);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
@@ -1005,14 +996,14 @@ _ram_flash_initialize(unsigned max_offset)
 #endif
 
 static void
-_file_shutdown(void)
+_file_shutdown()
 {
 	close(dm_operations_data.file.fd);
 	dm_operations_data.running = false;
 }
 
 static void
-_ram_shutdown(void)
+_ram_shutdown()
 {
 	free(dm_operations_data.ram.data);
 	dm_operations_data.running = false;
@@ -1020,7 +1011,7 @@ _ram_shutdown(void)
 
 #if defined(FLASH_BASED_DATAMAN)
 static void
-_ram_flash_flush(void)
+_ram_flash_flush()
 {
 	/*
 	 * reseting flush_timeout_usec even in errors cases to avoid looping
@@ -1046,7 +1037,7 @@ _ram_flash_flush(void)
 }
 
 static void
-_ram_flash_shutdown(void)
+_ram_flash_shutdown()
 {
 	if (dm_operations_data.ram_flash.flush_timeout_usec) {
 		_ram_flash_flush();
@@ -1099,7 +1090,7 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 	}
 
 	/* get a work item and queue up a write request */
-	if ((work = create_work_item()) == NULL) {
+	if ((work = create_work_item()) == nullptr) {
 		return -1;
 	}
 
@@ -1126,7 +1117,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	}
 
 	/* get a work item and queue up a read request */
-	if ((work = create_work_item()) == NULL) {
+	if ((work = create_work_item()) == nullptr) {
 		return -1;
 	}
 
@@ -1152,7 +1143,7 @@ dm_clear(dm_item_t item)
 	}
 
 	/* get a work item and queue up a clear request */
-	if ((work = create_work_item()) == NULL) {
+	if ((work = create_work_item()) == nullptr) {
 		return -1;
 	}
 
@@ -1211,7 +1202,7 @@ dm_restart(dm_reset_reason reason)
 	}
 
 	/* get a work item and queue up a restart request */
-	if ((work = create_work_item()) == NULL) {
+	if ((work = create_work_item()) == nullptr) {
 		return -1;
 	}
 
@@ -1276,7 +1267,7 @@ task_main(int argc, char *argv[])
 	px4_sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
 
 	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
-		g_item_locks[i] = NULL;
+		g_item_locks[i] = nullptr;
 	}
 
 	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
@@ -1292,17 +1283,17 @@ task_main(int argc, char *argv[])
 
 	px4_sem_setprotocol(&g_work_queued_sema, SEM_PRIO_NONE);
 
+	/* see if we need to erase any items based on restart type */
+	int sys_restart_val;
+
+	const char *restart_type_str = "Unkown restart";
+
 	int ret = g_dm_ops->initialize(max_offset);
 
 	if (ret) {
 		g_task_should_exit = true;
 		goto end;
 	}
-
-	/* see if we need to erase any items based on restart type */
-	int sys_restart_val;
-
-	const char *restart_type_str = "Unkown restart";
 
 	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
@@ -1401,7 +1392,7 @@ task_main(int argc, char *argv[])
 
 	/* The work queue is now empty, empty the free queue */
 	for (;;) {
-		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL) {
+		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == nullptr) {
 			break;
 		}
 
@@ -1421,7 +1412,7 @@ end:
 }
 
 static int
-start(void)
+start()
 {
 	int task;
 
@@ -1432,7 +1423,7 @@ start(void)
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, 1200, task_main, NULL)) <= 0) {
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, 1200, task_main, nullptr)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
@@ -1445,7 +1436,7 @@ start(void)
 }
 
 static void
-status(void)
+status()
 {
 	/* display usage statistics */
 	PX4_INFO("Writes   %d", g_func_counts[dm_write_func]);
@@ -1456,7 +1447,7 @@ status(void)
 }
 
 static void
-stop(void)
+stop()
 {
 	/* Tell the worker task to shut down */
 	g_task_should_exit = true;
@@ -1464,12 +1455,36 @@ stop(void)
 }
 
 static void
-usage(void)
+usage()
 {
-	PX4_INFO("usage: dataman {start [-f datafile]|[-r]|[-i]|stop|status|poweronrestart|inflightrestart}");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module to provide persistent storage for the rest of the system in form of a simple database through a C API.
+Multiple backends are supported:
+- a file (eg. on the SD card)
+- FLASH (if the board supports it)
+- FRAM
+- RAM (this is obviously not persistent)
+
+It is used to store structured data of different types: mission waypoints, mission state and geofence polygons.
+Each type has a specific type and a fixed maximum amount of storage items, so that fast random access is possible.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("dataman", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Storage file", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Use RAM backend (NOT persistent)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('i', "Use FLASH backend", true);
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The options -f, -r and -i are mutually exclusive. If nothing is specified, a file 'dataman' is used");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("poweronrestart", "Restart dataman (on power on)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("inflightrestart", "Restart dataman (in flight)");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static int backend_check(void)
+static int backend_check()
 {
 	if (backend != BACKEND_NONE) {
 		PX4_WARN("-f, -r and -i are mutually exclusive");
@@ -1497,7 +1512,7 @@ dataman_main(int argc, char *argv[])
 
 		int ch;
 		int dmoptind = 1;
-		const char *dmoptarg = NULL;
+		const char *dmoptarg = nullptr;
 
 		/* jump over start and look at options first */
 
@@ -1556,7 +1571,7 @@ dataman_main(int argc, char *argv[])
 		if (!is_running()) {
 			PX4_ERR("dataman start failed");
 			free(k_data_manager_device_path);
-			k_data_manager_device_path = NULL;
+			k_data_manager_device_path = nullptr;
 			return -1;
 		}
 
@@ -1573,7 +1588,7 @@ dataman_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 		stop();
 		free(k_data_manager_device_path);
-		k_data_manager_device_path = NULL;
+		k_data_manager_device_path = nullptr;
 
 	} else if (!strcmp(argv[1], "status")) {
 		status();
