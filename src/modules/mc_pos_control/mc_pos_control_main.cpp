@@ -1931,8 +1931,8 @@ void MulticopterPositionControl::control_auto(float dt)
 						 * the velocity at target should be 1/5 * cruising speed;
 						 * angle = 2 -> vel_close = min_cruising_speed */
 
-						/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle = 1.0 */
-						float middle_cruise_speed = get_cruising_speed_xy() / 5.0f;
+						/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle = 1.0 = 90degrees */
+						float middle_cruise_speed = 1.0f;
 
 						/* make sure min cruise speed is always smaller than middle cruise speed but larger than 0*/
 						float min_cruise_speed = (_min_cruise_speed.get() < middle_cruise_speed) ? _min_cruise_speed.get() : middle_cruise_speed

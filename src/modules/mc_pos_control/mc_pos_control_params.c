@@ -264,13 +264,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * position stabilized mode (POSCTRL).
  *
  * @unit m/s
- * @min 0.5
- * @max 8.0
+ * @min 0.05
+ * @max 1.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.5f);
 
 /**
  * Maximum horizontal velocity setpoint for manual controlled mode
