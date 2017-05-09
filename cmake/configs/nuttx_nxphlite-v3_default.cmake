@@ -22,6 +22,7 @@ set(config_module_list
 	drivers/mpu9250
 	drivers/hmc5883
 	drivers/ms5611
+	drivers/mpl3115a2
 	drivers/mb12xx
 	drivers/srf02
 	drivers/sf0x
