@@ -16,11 +16,16 @@
 # limitations under the License.
 ################################################################################
 
-import sys, os
+import sys, os, argparse
 import px_generate_uorb_topic_files
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--send", dest='send', metavar='*.msg', type=str, nargs='+', help="Topics to be sended")
+parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str, nargs='+', help="Topics to be received")
+
 if len(sys.argv) > 1:
-    msg_files = sys.argv[1:]
+    msg_files_send = parser.parse_args().send
+    msg_files_receive = parser.parse_args().receive
 else:
     print("At least one .msg file must be specified")
     exit(-1)
@@ -46,29 +51,33 @@ uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
 uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cxx.template'
 uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
 
-
-for msg_file in msg_files:
-	px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir, 
+for msg_file in msg_files_send:
+	px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
 		px_generate_uorb_topic_files.INCL_DEFAULT)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir, 
+	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
 		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir, 
+	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
 		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir, 
-		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir, 
-		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
 
-px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, uorb_templates_dir, 
+for msg_file in msg_files_receive:
+    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
+        px_generate_uorb_topic_files.INCL_DEFAULT)
+    px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+        px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+        px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
+
+
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_APP_GEN_TEMPL_FILE)
 
-px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, uorb_templates_dir,
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_CML_GEN_TEMPL_FILE)
 
-px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, urtps_templates_dir, 
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE)
 
-px_generate_uorb_topic_files.generate_uRTPS_general(msg_files, out_dir, urtps_templates_dir, 
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
                 px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE)
 
 

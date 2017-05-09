@@ -42,8 +42,8 @@ import os
 import shutil
 import filecmp
 import argparse
-
 import sys
+
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(px4_tools_dir + "/genmsg/src")
 sys.path.append(px4_tools_dir + "/gencpp/src")
@@ -83,6 +83,11 @@ INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
 IDL_TEMPLATE_FILE = 'msg.idl.template'
+
+class MsgScope:
+    NONE = 0
+    SEND = 1
+    RECEIVE = 2
 
 def get_multi_topics(filename):
         """
@@ -145,7 +150,7 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
         """
         Generates an .idl from .msg file
         """
-        em_globals = get_em_globals(filename_msg, includepath)
+        em_globals = get_em_globals(filename_msg, includepath, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
@@ -157,13 +162,14 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
 
         return generate_by_template(output_file, template_file, em_globals)
 
-def generate_uRTPS_general(filename_msgs, outputdir, templatedir, includepath, template_name):
+def generate_uRTPS_general(filename_send_msgs,filename_received_msgs,
+                           outputdir, templatedir, includepath, template_name):
         """
         Generates source file by UART msg content
         """
-        em_globals_list = [get_em_globals(f, includepath) for f in filename_msgs]
+        em_globals_list = [get_em_globals(f, includepath, MsgScope.SEND) for f in filename_send_msgs]
+        em_globals_list.extend([get_em_globals(f, includepath, MsgScope.RECEIVE) for f in filename_received_msgs])
         merged_em_globals = merge_em_globals_list(em_globals_list)
-
         # Make sure output directory exists:
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
@@ -177,7 +183,7 @@ def generate_topic_file(filename_msg, outputdir, templatedir, includepath, templ
         """
         Generates an .idl from .msg file
         """
-        em_globals = get_em_globals(filename_msg, includepath)
+        em_globals = get_em_globals(filename_msg, includepath, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
@@ -189,7 +195,7 @@ def generate_topic_file(filename_msg, outputdir, templatedir, includepath, templ
 
         return generate_by_template(output_file, template_file, em_globals)
 
-def get_em_globals(filename_msg, includepath):
+def get_em_globals(filename_msg, includepath, scope):
         """
         Generates em globals dictionary
         """
@@ -211,7 +217,8 @@ def get_em_globals(filename_msg, includepath):
             "search_path": search_path,
             "msg_context": msg_context,
             "spec": spec,
-            "topics": topics
+            "topics": topics,
+            "scope": scope
         }
 
         return em_globals

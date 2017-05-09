@@ -13,8 +13,10 @@
 import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
+from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
+topic_scopes = scope
 num_topics = len(topic_names)
 }@
 #include <px4_config.h>
@@ -32,10 +34,9 @@ num_topics = len(topic_names)
 
 #include "UART_node.h"
 
-
-@[for topic in topic_names]
+@[for topic in topic_names]@
 #include <uORB/topics/@(topic).h>
-@[end for]
+@[end for]@
 
 #define BUFFER_SIZE 256
 #define POLL_TIME_MS 10
@@ -78,17 +79,23 @@ int general_trans_main(int argc, char *argv[])
     px4_pollfd_struct_t fds[@(num_topics)];
 
     // orb_set_interval statblish an update interval period in milliseconds.
-@[for id, topic in enumerate(topic_names)]
+@[for id, topic in enumerate(topic_names)]@
+    @[if (topic_scopes[id] == MsgScope.SEND)]@
+
     fds[@(id)].fd = orb_subscribe(ORB_ID(@(topic)));
     orb_set_interval(fds[@(id)].fd, update_time);
     fds[@(id)].events = POLLIN;
-@[end for]
+    @[end if]@
+@[end for]@
 
     /* advertise topics */
-@[for id, topic in enumerate(topic_names)]
+@[for id, topic in enumerate(topic_names)]@
+    @[if (topic_scopes[id] == MsgScope.RECEIVE)]@
+
     struct @(topic)_s @(topic)_data;
-    //memset(&@(topic)_data, 0, sizeof(@(topic)_data));
-    //orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+    memset(&@(topic)_data, 0, sizeof(@(topic)_data));
+    orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+    @[end if]@
 @[end for]
 
     // microBuffer to serialized and deserialized using the user defined buffer
@@ -127,7 +134,9 @@ int general_trans_main(int argc, char *argv[])
         }
         else
         {
-@[for id, topic in enumerate(topic_names)]
+@[for id, topic in enumerate(topic_names)]@
+    @[if (topic_scopes[id] == MsgScope.SEND)]@
+
             if (fds[@(id)].revents & POLLIN)
             {
                 // obtained data for the file descriptor
@@ -140,7 +149,9 @@ int general_trans_main(int argc, char *argv[])
                 ++sent;
                 total_lenght += (length + 7);
             }
-@[end for]
+    @[end if]@
+@[end for]@
+
         }
 
         usleep(usleep_ms);
@@ -150,14 +161,18 @@ int general_trans_main(int argc, char *argv[])
         {
             switch (topic_ID)
             {
-@[for id, topic in enumerate(topic_names)]
+@[for id, topic in enumerate(topic_names)]@
+    @[if (topic_scopes[id] == MsgScope.RECEIVE)]@
+
                 case @(id):
                     deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
-                    //orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                    orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
                     //printf("                >>[%d] %llu\n", @(id), @(topic)_data.timestamp);
                     ++received;
                 break;
-@[end for]
+    @[end if]@
+@[end for]@
+
             }
         }
     }
