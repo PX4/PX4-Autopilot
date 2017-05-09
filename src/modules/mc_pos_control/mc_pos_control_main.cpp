@@ -244,6 +244,8 @@ private:
 	bool _hold_offboard_z = false;
 	bool _limit_vel_xy = false;
 
+	bool _transition_to_non_manual = false;
+
 	math::Vector<3> _thrust_int;
 
 	math::Vector<3> _pos;
@@ -760,6 +762,13 @@ MulticopterPositionControl::poll_subscriptions()
 		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) &&
 		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
+		}
+
+		/* to avoid time scheduling issue that occurs when the navigator has not updated the triplet
+		 * but the mc_pos_control already received a non-manual control flag
+		 */
+		if (_transition_to_non_manual && !_control_mode.flag_control_manual_enabled) {
+			_transition_to_non_manual = false;
 		}
 	}
 
@@ -1665,8 +1674,14 @@ MulticopterPositionControl::do_control(float dt)
 		control_manual(dt);
 		_mode_auto = false;
 
+		_transition_to_non_manual = true;
+
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;
+
+	} else if (_transition_to_non_manual) {
+		/* we reuse the previous setpoints */
+		calculate_thrust_setpoint(dt);
 
 	} else {
 		control_non_manual(dt);
@@ -2307,6 +2322,7 @@ MulticopterPositionControl::task_main()
 			_reset_int_xy = true;
 			_reset_yaw_sp = true;
 			_yaw_takeoff = _yaw;
+
 		}
 
 		was_armed = _control_mode.flag_armed;
