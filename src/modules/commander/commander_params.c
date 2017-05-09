@@ -620,3 +620,20 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
+
+/**
+ * Arm authorization parameters, this uint32_t will be splitted between starting from the LSB:
+ * - 8bits to authorizer system id
+ * - 16bits to authentication method parameter, this will be used to store a timeout for the first 2 methods but can be used to another parameter for other new authentication methods.
+ * - 7bits to authentication method
+ * 		- one arm = 0
+ * 		- two step arm = 1
+ * * the MSB bit is not used to avoid problems in the conversion between int and uint
+ *
+ * Default value: (10 << 0 | 1000 << 8 | 0 << 24) = 256010
+ * - authorizer system id = 10
+ * - authentication method parameter = 10000msec of timeout
+ * - authentication method = during arm
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);

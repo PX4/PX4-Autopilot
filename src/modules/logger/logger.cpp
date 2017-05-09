@@ -565,6 +565,8 @@ void Logger::add_common_topics()
 	add_topic("vehicle_attitude_setpoint", 30);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
+	add_topic("arm_auth_request");
+	add_topic("arm_auth_ack");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
