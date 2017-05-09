@@ -55,6 +55,7 @@
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
+#include "arm_auth.h"
 #include "PreflightCheck.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
@@ -1802,6 +1803,8 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, nullptr);
 	pthread_attr_destroy(&commander_low_prio_attr);
 
+	arm_auth_init(&mavlink_log_pub, &(status.system_id));
+
 	while (!thread_should_exit) {
 
 		arming_ret = TRANSITION_NOT_CHANGED;
@@ -3216,6 +3219,8 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			commander_state_pub = orb_advertise(ORB_ID(commander_state), &internal_state);
 		}
+
+		arm_auth_update(now);
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}

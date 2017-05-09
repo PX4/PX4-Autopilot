@@ -47,6 +47,8 @@
 #include <px4_shutdown.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
@@ -59,6 +61,7 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
+#include "arm_auth.h"
 
 #ifndef __PX4_NUTTX
 #include "DevMgr.hpp"
@@ -307,6 +310,15 @@ transition_result_t arming_state_transition(vehicle_status_s *status,
 					}
 				}
 
+				feedback_provided = true;
+				valid_transition = false;
+			}
+		}
+
+		if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT)
+				&& new_arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				&& valid_transition) {
+			if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 				feedback_provided = true;
 				valid_transition = false;
 			}
