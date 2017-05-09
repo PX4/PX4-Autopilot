@@ -466,6 +466,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		_wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
 		_wind_est.beta_innov = _wind_estimator.get_beta_innov();
 		_wind_est.beta_innov_var = _wind_estimator.get_beta_innov_var();
+		_wind_est.tas_scale = _wind_estimator.get_tas_scale();
 
 		orb_publish_auto(ORB_ID(wind_estimate), &_wind_est_pub, &_wind_est, &instance, ORB_PRIO_DEFAULT);
 	}
