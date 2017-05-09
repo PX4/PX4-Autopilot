@@ -57,6 +57,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/camera_image.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -160,6 +161,10 @@ private:
 
 	orb_advert_t		_trigger_pub;
 	orb_advert_t		_cmd_ack_pub;
+	orb_advert_t		_camera_image_pub;
+
+	camera_image_s		_curr_image = {};
+	camera_image_s		_prev_image = {};
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
@@ -477,6 +482,23 @@ CameraTrigger::cycle_trampoline(void *arg)
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			}
+
+		} else if (cmd.command == 12345 /* VEHICLE_CMD_SEND_CAMERA_IMAGE_META */) {
+
+			// This command is designed to allow the GCS / ground to re-request
+			// trigger packets that might have dropped over the link.
+			// The GCS can infer this when the trigger sequence skips once. It should
+			// store the triggers on the ground in a hash map using the sequence as
+			// hash. Then simply checking the last received index allows for an
+			// efficient retransmission logic.
+
+			if (static_cast<int>(cmd.param1) == 0 /*_prev_image.seq*/) {
+				// Send prev image again
+				// XXX orb_publish..
+			} else if (static_cast<int>(cmd.param1) == 1 /*_curr_image.seq*/) {
+				// Send curr image again
+				// XXX orb_publish..
+			}
 		}
 	}
 
@@ -650,6 +672,18 @@ CameraTrigger::engage(void *arg)
 		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &report);
 
 	}
+
+	// // send camera trigger information
+
+	// // Update double buffer first
+	// memcpy(&_prev_image, &_curr_image, sizeof(_prev_image));
+
+	// // Fill now _curr_image
+	// _curr_image.timestamp = report.timestamp;
+	// _curr_image.seq = report.seq;
+
+	// int32_t instance;
+	// orb_publish_auto(ORB_ID(camera_image), &_camera_image_pub, &_curr_image, &instance, ORB_PRIO_DEFAULT);
 }
 
 void

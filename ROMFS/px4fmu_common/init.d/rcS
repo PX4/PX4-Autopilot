@@ -505,6 +505,8 @@ then
 			set AUX_MODE none
 		fi
 		camera_trigger start
+		# Send captured images to the ground
+		mavlink stream -d /dev/ttyS1 -s CAMERA_IMAGE_CAPTURED -r 5
 	fi
 
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
