@@ -100,22 +100,33 @@ __BEGIN_DECLS
 #define GPIO_PPM_IN            PIN_TPM1_CH1_1    /* PTC3 USART1 RX and PTA9 and PIN_TPM1_CH1 AKA RC_INPUT */
 
 
+/*
+ *
+ * NXPhlite-v3 has separate RC_IN
+ *
+ * GPIO PPM_IN on PTA9 PIN_TPM1_CH1 and PCT3 USART1 RX
+ * SPEKTRUM_RX (it's TX or RX in Bind) on PCT3 USART1 RX
+ * Inversion is possible the UART
+ * The FMU can drive GPIO PPM_IN as an output
+ */
+
 /* Spektrum controls ******************************************************/
 
 /* Power is a p-Channel FET */
 
-#define GPIO_SPEKTRUM_P_EN     (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN7)
-#define POWER_SPEKTRUM(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_P_EN, (!_on_true))
+#define GPIO_SPEKTRUM_P_EN          (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN7)
+#define SPEKTRUM_POWER(_on_true)    px4_arch_gpiowrite(GPIO_SPEKTRUM_P_EN, (!_on_true))
 
 /* For binding the Spektrum 3-pin interfaces is used with it TX (output)
  * as an input Therefore we drive are UARTx_RX (normaly an input) as an
  * output
  */
 
-#define GPIO_UART2_RX_AS_OUTPUT (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
-#define SPEKTRUM_RX_AS_UART()   px4_arch_configgpio(PIN_UART2_RX)
-#define SPEKTRUM_RX_AS_GPIO()   px4_arch_configgpio(GPIO_UART2_RX_AS_OUTPUT)
-#define SPEKTRUM_RX_HIGH(_s)    px4_arch_gpiowrite(GPIO_UART2_RX_AS_OUTPUT, (_s))
+#define GPIO_PPM_IN_AS_OUT          (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
+
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
+#define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(PIN_UART1_RX)
+#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 /* RC input */
 
