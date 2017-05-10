@@ -63,6 +63,7 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <px4_config.h>
+#include <px4_module.h>
 
 using namespace vmount;
 
@@ -127,8 +128,30 @@ extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
 static void usage()
 {
-	PX4_INFO("usage: vmount {start|stop|status|test}");
-	PX4_INFO("       vmount test {roll|pitch|yaw} <angle_deg>");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
+output (eg. AUX channels or MAVLink).
+
+Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
+
+### Implementation
+Each method is implemented in its own class, and there is a common base class for inputs and outputs.
+They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
+can be used with each output method and new inputs/outputs can be added with minimal effort.
+
+### Examples
+Test the output by setting a fixed yaw angle (and the other axes to 0):
+$ vmount stop
+$ vmount test yaw 30
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("vmount", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 static int vmount_thread_main(int argc, char *argv[])
