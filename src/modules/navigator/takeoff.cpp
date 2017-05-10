@@ -104,10 +104,17 @@ Takeoff::set_takeoff_position()
 
 	float abs_altitude = 0.0f;
 
-	const float min_abs_altitude = _navigator->get_home_position()->alt + _param_min_alt.get();
+	float min_abs_altitude;
 
-	// Use altitude if it has been set.
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+	if (_navigator->home_position_valid()) { //only use home position if it is valid
+		min_abs_altitude = _navigator->get_global_position()->alt + _param_min_alt.get();
+
+	} else { //e.g. flow
+		min_abs_altitude = _param_min_alt.get();
+	}
+
+	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
 		abs_altitude = rep->current.alt;
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
