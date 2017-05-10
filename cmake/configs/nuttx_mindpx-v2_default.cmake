@@ -33,6 +33,7 @@ set(config_module_list
 	drivers/ll40ls
 	drivers/trone
 	drivers/gps
+	drivers/px4pwm
 	drivers/pwm_out_sim
 	#drivers/hott
 	#drivers/hott/hott_telemetry
