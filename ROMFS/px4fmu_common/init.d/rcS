@@ -214,10 +214,10 @@ then
 			set MAVLINK_COMPANION_DEVICE /dev/ttyS3
 		fi
 
-		if ver hwcmp MINDPX_V2
-		then
-			set USE_IO no
-		fi
+		# if ver hwcmp MINDPX_V2
+		# then
+		# 	set USE_IO no
+		# fi
 
 		if ver hwcmp CRAZYFLIE
 		then
@@ -380,6 +380,11 @@ then
 			echo "PX4IO not found" >> $LOG_FILE
 			tone_alarm ${TUNE_ERR}
 		fi
+
+		if ver hwcmp MINDPX_V2
+		then
+			px4pwm mode_pwm
+		fi
 	fi
 
 	#
@@ -404,6 +409,11 @@ then
 		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
+		fi
+
+		if ver hwcmp MINDPX_V2
+		then
+			set OUTPUT_MODE io
 		fi
 	fi
 

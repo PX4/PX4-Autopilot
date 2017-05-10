@@ -77,6 +77,7 @@ if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then
 	if [ $PWM_OUT != none ]
 	then
+		echo "HenryDbg:: PWM_OUT = ${PWM_OUT}"
 		#
 		# Set PWM output frequency
 		#
@@ -114,11 +115,11 @@ then
 	set MIXER_AUX none
 fi
 
-#MindPX has not aux mixer
-if ver hwcmp MINDPX_V2
-then
-	set MIXER_AUX none
-fi
+# MindPX has not aux mixer
+# if ver hwcmp MINDPX_V2
+# then
+# 	set MIXER_AUX none
+# fi
 
 if ver hwcmp CRAZYFLIE
 then
@@ -196,6 +197,7 @@ then
 			#
 			# Set PWM_AUX output frequency
 			#
+			echo "HenryDbg:: PWM_AUX_OUT = ${PWM_AUX_OUT}"
 			if [ $PWM_AUX_RATE != none ]
 			then
 				pwm rate -e -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
