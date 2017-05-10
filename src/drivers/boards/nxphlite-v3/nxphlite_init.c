@@ -221,15 +221,18 @@ kinetis_boardinitialize(void)
 	kinetis_pinconfig(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	kinetis_pinconfig(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 #endif
-#if defined(GPIO_VDD_5V_PERIPH_EN)
+
 	/* configure power supply control/sense pins */
-	kinetis_pinconfig(GPIO_VDD_5V_PERIPH_EN);
-	kinetis_pinconfig(GPIO_VDD_3V3_SENSORS_EN);
+
+	kinetis_pinconfig(GPIO_SPEKTRUM_P_EN);
+
+#if 0
 	kinetis_pinconfig(GPIO_VDD_BRICK_VALID);
 	kinetis_pinconfig(GPIO_VDD_SERVO_VALID);
 	kinetis_pinconfig(GPIO_VDD_5V_HIPOWER_OC);
 	kinetis_pinconfig(GPIO_VDD_5V_PERIPH_OC);
 #endif
+
 	/* configure the GPIO pins to outputs and keep them low */
 	kinetis_pinconfig(GPIO_GPIO0_OUTPUT);
 	kinetis_pinconfig(GPIO_GPIO1_OUTPUT);
