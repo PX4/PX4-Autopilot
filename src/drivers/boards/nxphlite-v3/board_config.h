@@ -157,11 +157,12 @@ __BEGIN_DECLS
 
 
 /* P13 Ultrasonic Sensors
- * This is used as IIC ad booted with theses as inputs
+ * GPIO to driver the the Trigger and sample the response on Echo
+ * It would be gbetter to have Echo on a timer capture pin.
  */
 
 #define GPIO_ECH                 (GPIO_PULLUP | PIN_PORTB | PIN2)
-#define GPIO_TRI                 (GPIO_PULLUP | PIN_PORTB | PIN3)
+#define GPIO_TRI                 (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTB | PIN3)
 
 /* Safety Switch
  * TBD
