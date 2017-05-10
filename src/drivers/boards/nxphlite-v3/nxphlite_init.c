@@ -265,6 +265,8 @@ kinetis_boardinitialize(void)
 	kinetis_pinconfig(GPIO_LED_SAFETY);
 	kinetis_pinconfig(GPIO_BTN_SAFETY);
 
+	kinetis_pinconfig(GPIO_TONE_ALARM_IDLE);
+
 	kinetis_pinconfig(GPIO_NFC_IO);
 	kinetis_pinconfig(GPIO_SENSOR_P_EN);
 
