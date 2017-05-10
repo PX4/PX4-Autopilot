@@ -1604,8 +1604,11 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 	} else {
-		/* no waypoint, do nothing, setpoint was already reset */
-		/* we are in idle */
+		/* idle or triplet not valid, set velocity setpoint to zero */
+		_vel_sp.zero();
+		_run_pos_control = false;
+		_run_alt_control = false;
+
 	}
 }
 
