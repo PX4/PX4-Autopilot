@@ -1,4 +1,4 @@
 uorb start
-ekf2 start --replay
+ekf2 start -r
 sleep 0.2
 ekf2_replay start replay.px4log
