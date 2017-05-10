@@ -1964,7 +1964,10 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 	} else {
-		/* idle or triplet not valid, do nothing */
+		/* idle or triplet not valid, set velocity setpoint to zero */
+		_vel_sp.zero();
+		_run_pos_control = false;
+		_run_alt_control = false;
 	}
 }
 
