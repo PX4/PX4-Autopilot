@@ -27,7 +27,7 @@ if len(sys.argv) > 1:
     msg_files_send = parser.parse_args().send
     msg_files_receive = parser.parse_args().receive
 else:
-    print("At least one .msg file must be specified")
+    parser.print_usage()
     exit(-1)
 
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,8 +40,6 @@ print("Files created in: " + out_dir)
 uorb_templates_dir = root_path + "/msg/templates/uorb"
 urtps_templates_dir = root_path + "/msg/templates/urtps"
 
-
-
 uRTPS_TRANS_APP_GEN_TEMPL_FILE = 'general_uRTPS_UART_transmitter.cpp.template'
 uRTPS_TRANS_CML_GEN_TEMPL_FILE = 'general_transmitter_CMakeLists.txt.template'
 uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE = 'general_uRTPS_UART_PubSubMain.cxx.template'
@@ -51,21 +49,23 @@ uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
 uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cxx.template'
 uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
 
-for msg_file in msg_files_send:
-	px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
-		px_generate_uorb_topic_files.INCL_DEFAULT)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
-	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
+if msg_files_send:
+    for msg_file in msg_files_send:
+    	px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
+    		px_generate_uorb_topic_files.INCL_DEFAULT)
+    	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+    		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
+    	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+    		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
 
-for msg_file in msg_files_receive:
-    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
-        px_generate_uorb_topic_files.INCL_DEFAULT)
-    px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-        px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
-    px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-        px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
+if msg_files_receive:
+    for msg_file in msg_files_receive:
+        px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT)
+        px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
+        px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
 
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
@@ -79,6 +79,3 @@ px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_re
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
                 px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE)
-
-
-

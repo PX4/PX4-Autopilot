@@ -32,7 +32,7 @@ topic_scopes = scope
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*! 
+/*!
  * @file sensor_combined_PubSubMain.cpp
  * This file acts as a main entry point to the application.
  *
@@ -60,7 +60,7 @@ using namespace eprosima;
 using namespace eprosima::fastrtps;
 
 int main(int argc, char** argv)
-{   
+{
     UART_node m_uartNode;
     std::string uart = "/dev/ttyACM0";
     if (argc > 1) uart = std::string(argv[1]);
@@ -161,8 +161,7 @@ int main(int argc, char** argv)
             received = sent = total_read = wait = 0;
             receiving = false;
         }
-        usleep(2000);
     }while(true);
-    
+
     return 0;
 }

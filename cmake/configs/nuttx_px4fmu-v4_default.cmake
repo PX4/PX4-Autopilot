@@ -202,9 +202,9 @@ set(config_module_list
 
 	# EKF
 	examples/ekf_att_pos_estimator
-	
+
 	# micro-RTPS
-    #examples/micrortps_transmitter
+	examples/micrortps_transmitter
 )
 
 set(config_extra_builtin_cmds

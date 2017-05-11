@@ -17,7 +17,6 @@ from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
 topic_scopes = scope
-num_topics = len(topic_names)
 }@
 #include <px4_config.h>
 #include <px4_tasks.h>
@@ -34,15 +33,15 @@ num_topics = len(topic_names)
 
 #include "UART_node.h"
 
-@[for topic in topic_names]@
+@[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
 @[end for]@
 
 #define BUFFER_SIZE 256
 #define POLL_TIME_MS 10
-#define UPDATE_TIME_MS 10
+#define UPDATE_TIME_MS 0
 #define LOOPS 1000
-#define USLEEP_MS 2000
+#define USLEEP_MS 0
 
 extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
 extern "C" __EXPORT double time_point(uint8_t id, struct timespec &pre);
@@ -72,11 +71,16 @@ int general_trans_main(int argc, char *argv[])
     }
 
     char data_buffer[BUFFER_SIZE] = {};
+@[if (MsgScope.RECEIVE in topic_scopes)]@
     char rx_buffer[BUFFER_SIZE] = {};
     uint32_t rx_buff_pos = 0u;
+@[end if]@
 
     /* subscribe to topics */
-    px4_pollfd_struct_t fds[@(num_topics)];
+@[if (MsgScope.SEND in topic_scopes)]@
+    px4_pollfd_struct_t fds[@(topic_scopes.count(MsgScope.SEND))];
+@[end if]@
+
 
     // orb_set_interval statblish an update interval period in milliseconds.
 @[for id, topic in enumerate(topic_names)]@
@@ -102,14 +106,16 @@ int general_trans_main(int argc, char *argv[])
     struct microBuffer microBufferWriter, microBufferReader;
     initStaticAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferWriter);
     initDeserializedAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferReader);
-    
+
     // microCDR structs for managing the microBuffers
     struct microCDR microCDRWriter, microCDRReader;
     initMicroCDR(&microCDRWriter, &microBufferWriter);
     initMicroCDR(&microCDRReader, &microBufferReader);
 
+@[if (MsgScope.SEND in topic_scopes)]@
     int error_counter = 0;
     uint32_t length = 0;
+@[end if]@
     uint64_t total_lenght = 0;
     uint32_t received = 0, sent = 0;
 
@@ -118,7 +124,8 @@ int general_trans_main(int argc, char *argv[])
     int i = 0;
     for (i = 0; i < loops; ++i)
     {
-        int poll_ret = px4_poll(fds, @(num_topics), poll_time);
+@[if (MsgScope.SEND in topic_scopes)]@
+        int poll_ret = px4_poll(fds, @(topic_scopes.count(MsgScope.SEND)), poll_time);
 
         if (poll_ret == 0)
         {
@@ -134,8 +141,8 @@ int general_trans_main(int argc, char *argv[])
         }
         else
         {
-@[for id, topic in enumerate(topic_names)]@
-    @[if (topic_scopes[id] == MsgScope.SEND)]@
+    @[for id, topic in enumerate(topic_names)]@
+        @[if (topic_scopes[id] == MsgScope.SEND)]@
 
             if (fds[@(id)].revents & POLLIN)
             {
@@ -149,20 +156,22 @@ int general_trans_main(int argc, char *argv[])
                 ++sent;
                 total_lenght += (length + 7);
             }
-    @[end if]@
-@[end for]@
+        @[end if]@
+    @[end for]@
 
         }
+@[end if]@
+
 
         usleep(usleep_ms);
-
+@[if (MsgScope.RECEIVE in topic_scopes)]@
         char topic_ID = 255;
         while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos))
         {
             switch (topic_ID)
             {
-@[for id, topic in enumerate(topic_names)]@
-    @[if (topic_scopes[id] == MsgScope.RECEIVE)]@
+    @[for id, topic in enumerate(topic_names)]@
+        @[if (topic_scopes[id] == MsgScope.RECEIVE)]@
 
                 case @(id):
                     deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
@@ -170,17 +179,18 @@ int general_trans_main(int argc, char *argv[])
                     //printf("                >>[%d] %llu\n", @(id), @(topic)_data.timestamp);
                     ++received;
                 break;
-    @[end if]@
-@[end for]@
+        @[end if]@
+    @[end for]@
 
             }
         }
+@[end if]@
     }
-    
+
     struct timespec end;
     clock_gettime(0, &end);
     double elapsed_secs2 = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
-    printf("\nSENT: %d RECEIVED: %d in %d LOOPS\n%llu bytes in %.03f seconds sended %.02fKB/s\n",
+    printf("\nSENT: %d RECEIVED: %d in %d LOOPS\n%llu bytes in %.03f seconds sent %.02fKB/s\n",
             sent, received, i, total_lenght, elapsed_secs2, (double)total_lenght/(1000*elapsed_secs2));
 
     PX4_INFO("exiting");
