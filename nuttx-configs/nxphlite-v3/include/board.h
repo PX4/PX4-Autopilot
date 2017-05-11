@@ -41,6 +41,9 @@
 /************************************************************************************
  * Included Files
  ************************************************************************************/
+#undef  HW_V3              /*- As shipped from NXP */
+#define HW_V3_MOD_RC0      /*  Modified board */
+#undef  HW_V4              /*  Next Rev with modes */
 
 #include <nuttx/config.h>
 
@@ -443,13 +446,19 @@
  *      2    UART4_TX     PTC15  UART4_TX
  *      3    UART4_RX     PTC14  UART4_RX
  *      4    UART4_CTS    PTC13  UART4_CTS
- *      5    UART4_RTS    PTC12  UART4_RTS
+ *      5    UART4_RTS    PTC12  UART4_RTS - V3 HW
+ *      5    UART4_RTS    PTE27  UART4_RTS - V3.RC01 and V4
  *  -------- ------------ ------- ---------
  */
 
 #define PIN_UART4_RX      PIN_UART4_RX_1
 #define PIN_UART4_TX      PIN_UART4_TX_1
-#define PIN_UART4_RTS     PIN_UART4_RTS_1
+#if defined (HW_V3)
+#  define PIN_UART4_RTS   PIN_UART4_RTS_1
+#endif
+#if defined(HW_V3_MOD_RC0) || defined(HW_V4)
+#  define PIN_UART4_RTS   PIN_UART4_RTS_2
+#endif
 #define PIN_UART4_CTS     PIN_UART4_CTS_1
 
 /*

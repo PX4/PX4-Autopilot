@@ -42,6 +42,9 @@
 /****************************************************************************************************
  * Included Files
  ****************************************************************************************************/
+#undef  HW_V3              /*- As shipped from NXP */
+#define HW_V3_MOD_RC0      /*  Modified board */
+#undef  HW_V4              /*  Next Rev with modes */
 
 #include <px4_config.h>
 #include <nuttx/compiler.h>
@@ -167,7 +170,12 @@ __BEGIN_DECLS
 /* Safety Switch
  * TBD
  */
-#define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN27)
+#if defined(HW_V3)
+#  define GPIO_LED_SAFETY       (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN27)
+#endif
+#if defined(HW_V3_MOD_RC0) || defined(HW_V4)
+#  define GPIO_LED_SAFETY       (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN0)
+#endif
 #define GPIO_BTN_SAFETY         (GPIO_PULLUP | PIN_PORTE | PIN28)
 
 /* NXPHlite-v3 GPIOs ****************************************************************/
@@ -619,6 +627,16 @@ void nxphlite_automount_initialize(void);
 #ifdef HAVE_AUTOMOUNTER
 void nxphlite_automount_event(bool inserted);
 #endif
+
+/************************************************************************************
+ * Name: nxphlite_timer_initialize
+ *
+ * Description:
+ *   Called to configure the FTM to provide 1 Mhz
+ *
+ ************************************************************************************/
+
+void nxphlite_timer_initialize(void);
 
 #include "../common/board_common.h"
 
