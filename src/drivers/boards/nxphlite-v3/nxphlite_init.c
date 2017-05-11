@@ -274,6 +274,7 @@ kinetis_boardinitialize(void)
 	kinetis_pinconfig(GPIO_LED_D10);
 
 
+	nxphlite_timer_initialize();
 
 	/* configure SPI interfaces */
 
