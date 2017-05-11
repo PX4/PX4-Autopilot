@@ -34,27 +34,23 @@ The code for extended topic support is generated within the normal PX4 Firmware 
 .. code-block:: shell
 
     $ python Tools/generate_microRTPS_support_general.py [messages...]
-    $ python Tools/generate_microRTPS_support_general.py msg/vehicle_status.msg msg/sensor_combined.msg
+    $ python Tools/generate_microRTPS_support_general.py -r msg/sensor_baro.msg -s msg/sensor_combined.msg
 
-The output appear in the *msgenerated* folder, for this case:
+The argument **-r** means that the application will receive this messages, and the argument **-s** specifies which messages is going to send. The output appear in the *msgenerated* folder, in this case:
 
 .. code-block:: shell
 
     $ ls msgenerated/
+    general_PubSubMain_CMakeLists.txt
     general_transmitter_CMakeLists.txt
     general_uRTPS_UART_PubSubMain.cxx
     general_uRTPS_UART_transmitter.cpp
+    sensor_baro_.idl
+    sensor_baro_Subscriber.cxx
+    sensor_baro_Subscriber.h
     sensor_combined_.idl
     sensor_combined_Publisher.cxx
     sensor_combined_Publisher.h
-    sensor_combined_Subscriber.cxx
-    sensor_combined_Subscriber.h
-    vehicle_status_.idl
-    vehicle_status_Publisher.cxx
-    vehicle_status_Publisher.h
-    vehicle_status_Subscriber.cxx
-    vehicle_status_Subscriber.h
-
 
 
 PX4 Firmware
@@ -138,9 +134,9 @@ For create the application:
 
 .. code-block:: shell
 
-    $ cp msgenerated/general_transmitter_CMakeLists.txt CMakeLists.txt
+    $ cp /path/to/Firmware/msgenerated/general_PubSubMain_CMakeLists.txt CMakeLists.txt
     $ cp /path/to/Firmware/msgenerated/general_uRTPS_UART_PubSubMain.cxx .
-    $ cp msg/templates/urtps/UART_node.* .
+    $ cp /path/to/Firmware/msg/templates/urtps/UART_node.* .
     $ cp /path/to/Firmware/msgenerated/*Publisher.* .
     $ cp /path/to/Firmware/msgenerated/*Subscriber.* .
 
