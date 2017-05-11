@@ -489,12 +489,13 @@ __EXPORT void board_spi_reset(int ms)
 
 
 #if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_DRDY_OFF_ICM20689_DRDY1);
-	stm32_configgpio(GPIO_DRDY_OFF_BMI055_DRDY2_GYRO);
-	stm32_configgpio(GPIO_DRDY_OFF_BMI055_DRDY3_ACC);
-	stm32_configgpio(GPIO_DRDY_OFF_ICM20602_DRDY4);
-	stm32_configgpio(GPIO_DRDY_OFF_BMI055_DRDY5_GYRO);
-	stm32_configgpio(GPIO_DRDY_OFF_BMI055_DRDY6_ACC);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY1_ICM20689);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY2_BMI055_GYRO);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY3_BMI055_ACC);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY4_ICM20602);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY5_BMI055_GYRO);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY6_BMI055_ACC);
+	stm32_configgpio(GPIO_DRDY_OFF_SPI5_DRDY7_EXTERNAL1);
 #endif
 	/* set the sensor rail off */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
@@ -523,12 +524,13 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI1_MOSI);
 
 #if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_ICM20689_DRDY1);
-	stm32_configgpio(GPIO_BMI055_DRDY2_GYRO);
-	stm32_configgpio(GPIO_BMI055_DRDY3_ACC);
-	stm32_configgpio(GPIO_ICM20602_DRDY4);
-	stm32_configgpio(GPIO_BMI055_DRDY5_GYRO);
-	stm32_configgpio(GPIO_BMI055_DRDY6_ACC);
+	stm32_configgpio(GPIO_SPI1_DRDY1_ICM20689);
+	stm32_configgpio(GPIO_SPI1_DRDY2_BMI055_GYRO);
+	stm32_configgpio(GPIO_SPI1_DRDY3_BMI055_ACC);
+	stm32_configgpio(GPIO_SPI1_DRDY4_ICM20602);
+	stm32_configgpio(GPIO_SPI1_DRDY5_BMI055_GYRO);
+	stm32_configgpio(GPIO_SPI1_DRDY6_BMI055_ACC);
+	stm32_configgpio(GPIO_SPI5_DRDY7_EXTERNAL1);
 #endif
 
 }
