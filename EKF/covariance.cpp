@@ -47,11 +47,7 @@
 
 void Ekf::initialiseCovariance()
 {
-	for (unsigned i = 0; i < _k_num_states; i++) {
-		for (unsigned j = 0; j < _k_num_states; j++) {
-			P[i][j] = 0.0f;
-		}
-	}
+	memset(P, 0, sizeof(P));
 
 	// calculate average prediction time step in sec
 	float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
@@ -87,9 +83,16 @@ void Ekf::initialiseCovariance()
 	P[12][12] = P[10][10];
 
 	// accel bias
-	_prev_dvel_bias_var(0) = P[13][13] = sq(_params.switch_on_accel_bias * dt);
-	_prev_dvel_bias_var(1) = P[14][14] = P[13][13];
-	_prev_dvel_bias_var(2) = P[15][15] = P[13][13];
+	float temp_var = sq(_params.switch_on_accel_bias * dt);
+	if (_params.acc_bias_learn_mask & (1<<0)) {
+		_prev_dvel_bias_var(0) = P[13][13] = temp_var;
+	}
+	if (_params.acc_bias_learn_mask & (1<<1)) {
+		_prev_dvel_bias_var(1) = P[14][14] = temp_var;
+	}
+	if (_params.acc_bias_learn_mask & (1<<2)) {
+		_prev_dvel_bias_var(2) = P[15][15] = temp_var;
+	}
 
 	// variances for optional states
 
@@ -211,11 +214,10 @@ void Ekf::predictCovariance()
 		wind_vel_sig = 0.0f;
 	}
 
-	// Construct the process noise variance diagonal for those states with a stationary process model
-	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
-	for (unsigned i = 0; i <= 9; i++) {
-		process_noise[i] = 0.0f;
-	}
+	// Construct the process noise variance diagonal for those states with a stationary process model.
+	// The covariance growth of the quaternion, velocity and position states is controlled separately
+	// by the IMU noise variance terms built into the auto generated covariance prediction code.
+
 	// delta angle bias states
 	process_noise[12] = process_noise[11] = process_noise[10] = sq(d_ang_bias_sig);
 	// delta_velocity bias states
@@ -399,8 +401,8 @@ void Ekf::predictCovariance()
 	nextP[11][12] = P[11][12];
 	nextP[12][12] = P[12][12];
 
-	// add process noise that is not from the IMU
-	for (unsigned i = 0; i <= 12; i++) {
+	// add gyro bias process noise variance
+	for (unsigned i = 10; i <= 12; i++) {
 		nextP[i][i] += process_noise[i];
 	}
 
@@ -421,7 +423,13 @@ void Ekf::predictCovariance()
 		nextP[10][13] = P[10][13];
 		nextP[11][13] = P[11][13];
 		nextP[12][13] = P[12][13];
-		nextP[13][13] = P[13][13];
+
+		if (_params.acc_bias_learn_mask & (1<<0)) {
+			nextP[13][13] = P[13][13] + process_noise[13];
+		} else {
+			nextP[13][13] = 0.0f;
+		}
+
 		nextP[0][14] = P[0][14] + P[1][14]*SF[9] + P[2][14]*SF[11] + P[3][14]*SF[10] + P[10][14]*SF[14] + P[11][14]*SF[15] + P[12][14]*SPP[10];
 		nextP[1][14] = P[1][14] + P[0][14]*SF[8] + P[2][14]*SF[7] + P[3][14]*SF[11] - P[12][14]*SF[15] + P[11][14]*SPP[10] - (P[10][14]*q0)/2;
 		nextP[2][14] = P[2][14] + P[0][14]*SF[6] + P[1][14]*SF[10] + P[3][14]*SF[8] + P[12][14]*SF[14] - P[10][14]*SPP[10] - (P[11][14]*q0)/2;
@@ -436,7 +444,13 @@ void Ekf::predictCovariance()
 		nextP[11][14] = P[11][14];
 		nextP[12][14] = P[12][14];
 		nextP[13][14] = P[13][14];
-		nextP[14][14] = P[14][14];
+
+		if (_params.acc_bias_learn_mask & (1<<1)) {
+			nextP[14][14] = P[14][14] + process_noise[14];
+		} else {
+			nextP[14][14] = 0.0f;
+		}
+
 		nextP[0][15] = P[0][15] + P[1][15]*SF[9] + P[2][15]*SF[11] + P[3][15]*SF[10] + P[10][15]*SF[14] + P[11][15]*SF[15] + P[12][15]*SPP[10];
 		nextP[1][15] = P[1][15] + P[0][15]*SF[8] + P[2][15]*SF[7] + P[3][15]*SF[11] - P[12][15]*SF[15] + P[11][15]*SPP[10] - (P[10][15]*q0)/2;
 		nextP[2][15] = P[2][15] + P[0][15]*SF[6] + P[1][15]*SF[10] + P[3][15]*SF[8] + P[12][15]*SF[14] - P[10][15]*SPP[10] - (P[11][15]*q0)/2;
@@ -452,11 +466,11 @@ void Ekf::predictCovariance()
 		nextP[12][15] = P[12][15];
 		nextP[13][15] = P[13][15];
 		nextP[14][15] = P[14][15];
-		nextP[15][15] = P[15][15];
 
-		// add process noise that is not from the IMU
-		for (unsigned i = 13; i <= 15; i++) {
-			nextP[i][i] += process_noise[i];
+		if (_params.acc_bias_learn_mask & (1<<2)) {
+			nextP[15][15] = P[15][15] + process_noise[15];
+		} else {
+			nextP[15][15] = 0.0f;
 		}
 
 	} else {
@@ -593,7 +607,7 @@ void Ekf::predictCovariance()
 		nextP[20][21] = P[20][21];
 		nextP[21][21] = P[21][21];
 
-		// add process noise that is not from the IMU
+		// add magnetic field state process noise variance
 		for (unsigned i = 16; i <= 21; i++) {
 			nextP[i][i] += process_noise[i];
 		}
@@ -652,7 +666,7 @@ void Ekf::predictCovariance()
 		nextP[22][23] = P[22][23];
 		nextP[23][23] = P[23][23];
 
-		// add process noise that is not from the IMU
+		// add wind state process noise variance
 		for (unsigned i = 22; i <= 23; i++) {
 			nextP[i][i] += process_noise[i];
 		}
@@ -737,44 +751,56 @@ void Ekf::fixCovarianceErrors()
 		zeroCols(P,13,15);
 	} else {
 		// constrain variances
-		for (int i = 13; i <= 15; i++) {
-			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
+		for (uint8_t i=0; i < 3; i++) {
+			uint8_t state_index = 13 + i;
+			if (_params.acc_bias_learn_mask & (1<<i)) {
+				P[state_index][state_index] = math::constrain(P[state_index][state_index], 0.0f, P_lim[4]);
+			} else {
+				P[state_index][state_index] = 0.0f;
+			}
 		}
 
-		// calculate accel bias term aligned with the gravity vector
-		float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
-		float down_dvel_bias = 0.0f;
-		for (uint8_t axis_index=0; axis_index < 3; axis_index++) {
-			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2,axis_index);
-		}
+		// if we are estimating three axes, check for poor numerical conditioning and reset covariances if necessary
+		if (_params.acc_bias_learn_mask == 7) {
+			// calculate accel bias term aligned with the gravity vector
+			float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
+			float down_dvel_bias = 0.0f;
+			for (uint8_t axis_index=0; axis_index < 3; axis_index++) {
+				down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2,axis_index);
+			}
 
-		// check that the vertical componenent of accel bias is consistent with both the vertical position and velocity innovation
-		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
-				     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
-				     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);
+			// check that the vertical componenent of accel bias is consistent with both the vertical position and velocity innovation
+			bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
+					     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
+					     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);
 
-		// record the pass/fail
-		if (!bad_acc_bias) {
-			_fault_status.flags.bad_acc_bias = false;
-			_time_acc_bias_check = _time_last_imu;
-		} else {
-			_fault_status.flags.bad_acc_bias = true;
-		}
+			// record the pass/fail
+			if (!bad_acc_bias) {
+				_fault_status.flags.bad_acc_bias = false;
+				_time_acc_bias_check = _time_last_imu;
+			} else {
+				_fault_status.flags.bad_acc_bias = true;
+			}
 
-		// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
-		// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
-		if (_time_last_imu - _time_acc_bias_check > 7E6) {
-			float varX = P[13][13];
-			float varY = P[14][14];
-			float varZ = P[15][15];
-			zeroRows(P,13,15);
-			zeroCols(P,13,15);
-			P[13][13] = varX;
-			P[14][14] = varY;
-			P[15][15] = varZ;
-			_time_acc_bias_check = _time_last_imu;
-			_fault_status.flags.bad_acc_bias = false;
-			ECL_WARN("EKF invalid accel bias - resetting covariance");
+			// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
+			// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
+			if (_time_last_imu - _time_acc_bias_check > 7E6) {
+				float varX = P[13][13];
+				float varY = P[14][14];
+				float varZ = P[15][15];
+				zeroRows(P,13,15);
+				zeroCols(P,13,15);
+				P[13][13] = varX;
+				P[14][14] = varY;
+				P[15][15] = varZ;
+				_time_acc_bias_check = _time_last_imu;
+				_fault_status.flags.bad_acc_bias = false;
+				ECL_WARN("EKF invalid accel bias - resetting covariance");
+			} else {
+				// ensure the covariance values are symmetrical
+				makeSymmetrical(P,13,15);
+			}
+
 		} else {
 			// ensure the covariance values are symmetrical
 			makeSymmetrical(P,13,15);
