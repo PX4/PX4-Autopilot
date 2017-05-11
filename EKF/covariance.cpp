@@ -467,13 +467,6 @@ void Ekf::predictCovariance()
 
 	// Don't do covariance prediction on magnetic field states unless we are using 3-axis fusion
 	if (_control_status.flags.mag_3D) {
-		// Check if we have just transitioned into 3-axis fusion and set the state variances
-		if (!_control_status_prev.flags.mag_3D) {
-			for (uint8_t index = 16; index <= 21; index++) {
-				P[index][index] = sq(fmaxf(_params.mag_noise, 0.001f));
-			}
-		}
-
 		// calculate variances and upper diagonal covariances for earth and body magnetic field states
 		nextP[0][16] = P[0][16] + P[1][16]*SF[9] + P[2][16]*SF[11] + P[3][16]*SF[10] + P[10][16]*SF[14] + P[11][16]*SF[15] + P[12][16]*SPP[10];
 		nextP[1][16] = P[1][16] + P[0][16]*SF[8] + P[2][16]*SF[7] + P[3][16]*SF[11] - P[12][16]*SF[15] + P[11][16]*SPP[10] - (P[10][16]*q0)/2;

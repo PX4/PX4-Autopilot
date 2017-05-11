@@ -266,6 +266,13 @@ private:
 
 	matrix::Dcm<float> _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
 
+	// used by magnetomer fusion mode selection
+	Vector2f _accel_lpf_NE;			// Low pass filtered horizontal earth frame acceleration (m/s**2)
+	float _yaw_delta_ef{0.0f};		// Recent change in yaw angle measured about the earth frame D axis (rad)
+	float _yaw_rate_lpf_ef{0.0f};		// Filtered angular rate abut earth frame D axis (rad/sec)
+	bool _mag_bias_observable{false};	// true when there is enough rotation to make magnetomer bias errors observable
+	bool _yaw_angle_observable{false};	// true when there is enough horizontal acceleration to make yaw observable
+
 	float P[_k_num_states][_k_num_states] {};	// state covariance matrix
 
 	float _vel_pos_innov[6] {};	// innovations: 0-2 vel,  3-5 pos
@@ -328,7 +335,11 @@ private:
 	float _baro_hgt_offset{0.0f};		// baro height reading at the local NED origin (m)
 
 	// Variables used to control activation of post takeoff functionality
-	float _last_on_ground_posD{0.0f}; // last vertical position when the in_air status was false (m)
+	float _last_on_ground_posD{0.0f};	// last vertical position when the in_air status was false (m)
+	bool _flt_mag_align_complete{true};	// true when the in-flight mag field alignment has been completed
+	uint64_t _time_last_movement{0};	// last system time in usec that sufficient movement to use 3-axis magnetomer fusion was detected
+	float _saved_mag_variance[6] {};	// magnetic field state variances that have been saved for use at the next initialisation (Ga**2)
+	uint64_t _time_yaw_started{0};		// last system time in usec that a yaw rotation moaneouvre was detected
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
@@ -343,7 +354,7 @@ private:
 	float _terrain_var{1e4f};		// variance of terrain position estimate (m^2)
 	float _hagl_innov{0.0f};		// innovation of the last height above terrain measurement (m)
 	float _hagl_innov_var{0.0f};		// innovation variance for the last height above terrain measurement (m^2)
-	uint64_t _time_last_hagl_fuse;	// last system time in usec that the hagl measurement failed it's checks
+	uint64_t _time_last_hagl_fuse;		// last system time in usec that the hagl measurement failed it's checks
 	bool _terrain_initialised{false};	// true when the terrain estimator has been intialised
 	float _sin_tilt_rng{0.0f};		// sine of the range finder tilt rotation about the Y body axis
 	float _cos_tilt_rng{0.0f};		// cosine of the range finder tilt rotation about the Y body axis
