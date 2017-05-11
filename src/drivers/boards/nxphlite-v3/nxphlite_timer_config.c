@@ -43,10 +43,8 @@
 #include <stdint.h>
 
 #include <kinetis.h>
-//#include <kinetis_ftm.h>
-//#include <stm32.h> // TODO:Stubbed in for now
-//#include <stm32_gpio.h>
-//#include <stm32_tim.h>
+#include "chip/kinetis_sim.h"
+#include "chip/kinetis_ftm.h"
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/kinetis/drv_io_timer.h>
@@ -58,3 +56,118 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 };
+
+#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
+
+/* Timer register accessors */
+
+#define REG(t, _reg)	_REG(KINETIS_FTM##t##_BASE + (_reg))
+
+#define rSC(t)         REG(t,KINETIS_FTM_SC_OFFSET)
+#define rCNT(t)        REG(t,KINETIS_FTM_CNT_OFFSET)
+#define rMOD(t)        REG(t,KINETIS_FTM_MOD_OFFSET)
+#define rC0SC(t)       REG(t,KINETIS_FTM_C0SC_OFFSET)
+#define rC0V(t)        REG(t,KINETIS_FTM_C0V_OFFSET)
+#define rC1SC(t)       REG(t,KINETIS_FTM_C1SC_OFFSET)
+#define rC1V(t)        REG(t,KINETIS_FTM_C1V_OFFSET)
+#define rC2SC(t)       REG(t,KINETIS_FTM_C2SC_OFFSET)
+#define rC2V(t)        REG(t,KINETIS_FTM_C2V_OFFSET)
+#define rC3SC(t)       REG(t,KINETIS_FTM_C3SC_OFFSET)
+#define rC3V(t)        REG(t,KINETIS_FTM_C3V_OFFSET)
+#define rC4SC(t)       REG(t,KINETIS_FTM_C4SC_OFFSET)
+#define rC4V(t)        REG(t,KINETIS_FTM_C4V_OFFSET)
+#define rC5SC(t)       REG(t,KINETIS_FTM_C5SC_OFFSET)
+#define rC5V(t)        REG(t,KINETIS_FTM_C5V_OFFSET)
+#define rC6SC(t)       REG(t,KINETIS_FTM_C6SC_OFFSET)
+#define rC6V(t)        REG(t,KINETIS_FTM_C6V_OFFSET)
+#define rC7SC(t)       REG(t,KINETIS_FTM_C7SC_OFFSET)
+#define rC7V(t)        REG(t,KINETIS_FTM_C7V_OFFSET)
+
+#define rCNTIN(t)      REG(t,KINETIS_FTM_CNTIN_OFFSET)
+#define rSTATUS(t)     REG(t,KINETIS_FTM_STATUS_OFFSET)
+#define rMODE(t)       REG(t,KINETIS_FTM_MODE_OFFSET)
+#define rSYNC(t)       REG(t,KINETIS_FTM_SYNC_OFFSET)
+#define rOUTINIT(t)    REG(t,KINETIS_FTM_OUTINIT_OFFSET)
+#define rOUTMASK(t)    REG(t,KINETIS_FTM_OUTMASK_OFFSET)
+#define rCOMBINE(t)    REG(t,KINETIS_FTM_COMBINE_OFFSET)
+#define rDEADTIME(t)   REG(t,KINETIS_FTM_DEADTIME_OFFSET)
+#define rEXTTRIG(t)    REG(t,KINETIS_FTM_EXTTRIG_OFFSET)
+#define rPOL(t)        REG(t,KINETIS_FTM_POL_OFFSET)
+#define rFMS(t)        REG(t,KINETIS_FTM_FMS_OFFSET)
+#define rFILTER(t)     REG(t,KINETIS_FTM_FILTER_OFFSET)
+#define rFLTCTRL(t)    REG(t,KINETIS_FTM_FLTCTRL_OFFSET)
+#define rQDCTRL(t)     REG(t,KINETIS_FTM_QDCTRL_OFFSET)
+#define rCONF(t)       REG(t,KINETIS_FTM_CONF_OFFSET)
+#define rFLTPOL(t)     REG(t,KINETIS_FTM_FLTPOL_OFFSET)
+#define rSYNCONF(t)    REG(t,KINETIS_FTM_SYNCONF_OFFSET)
+#define rINVCTRL(t)    REG(t,KINETIS_FTM_INVCTRL_OFFSET)
+#define rSWOCTRL(t)    REG(t,KINETIS_FTM_SWOCTRL_OFFSET)
+#define rPWMLOAD(t)    REG(t,KINETIS_FTM_PWMLOAD_OFFSET)
+
+#if !defined(BOARD_PWM_FREQ)
+#define BOARD_PWM_FREQ 1000000
+#endif
+
+#if !defined(BOARD_ONESHOT_FREQ)
+#define BOARD_ONESHOT_FREQ 8000000
+#endif
+
+
+__EXPORT void nxphlite_timer_initialize(void)
+{
+
+	/* We will uses FTM2 (CH0) on PTA10 drive FTM_CLKIN0 (PCT12)*/
+
+
+	kinetis_pinconfig(PIN_FTM2_CH0_1);
+	kinetis_pinconfig(PIN_FTM_CLKIN0_3);
+
+	uint32_t regval = _REG(KINETIS_SIM_SOPT4);
+	regval &= ~(SIM_SOPT4_FTM0CLKSEL | SIM_SOPT4_FTM3CLKSEL);
+	_REG(KINETIS_SIM_SOPT4) = regval;
+
+
+	/* Enabled System Clock Gating Control for FTM 0 and 2*/
+
+	regval = _REG(KINETIS_SIM_SCGC6);
+	regval |= SIM_SCGC6_FTM0 | SIM_SCGC6_FTM2;
+	_REG(KINETIS_SIM_SCGC6) = regval;
+
+	/* Enabled System Clock Gating Control for FTM 2 and 3 */
+
+	regval = _REG(KINETIS_SIM_SCGC3);
+	regval |= SIM_SCGC3_FTM2 | SIM_SCGC3_FTM3;
+	_REG(KINETIS_SIM_SCGC3) = regval;
+
+
+	/* disable and configure the FTM2 as
+	 * Bus Clock 56 Mhz
+	 * PS 1
+	 * MOD 28 or 7 for 1 Mhz and 3.5 Mhz
+	 */
+
+	rSC(2)    = FTM_SC_CLKS_NONE | FTM_SC_PS_1;
+	rCNT(2)   = 0;
+
+	/* Generate 2 times the Freq */
+
+	rMOD(2)   = (BOARD_BUS_FREQ / (BOARD_PWM_FREQ * 2)) - 1;
+
+	/* toggle on every compare adds a divide by 2 */
+
+	rC0SC(2)  = (FTM_CSC_CHF | FTM_CSC_MSA | FTM_CSC_ELSA);
+
+	/* Match on the wrap */
+
+	rC0V(2)   = 0;
+
+	/* Set to run in debug mode */
+
+	rCONF(2)   |= FTM_CONF_BDMMODE_MASK;
+
+	/* enable the timer */
+
+	rSC(2) |= FTM_SC_CLKS_SYSCLK;
+
+
+}
