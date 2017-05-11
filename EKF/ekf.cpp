@@ -379,8 +379,17 @@ void Ekf::predictState()
 	// update transformation matrix from body to world frame
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
+	// Calculate an earth frame delta velocity
+	Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
+
+	// calculate a filtered horizontal acceleration with a 1 sec time constant
+	// this are used for manoeuvre detection elsewhere
+	float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
+	_accel_lpf_NE(0) = _accel_lpf_NE(0) * alpha + corrected_delta_vel_ef(0);
+	_accel_lpf_NE(1) = _accel_lpf_NE(1) * alpha + corrected_delta_vel_ef(1);
+
 	// calculate the increment in velocity using the current orientation
-	_state.vel += _R_to_earth * corrected_delta_vel;
+	_state.vel += corrected_delta_vel_ef;
 
 	// compensate for acceleration due to gravity
 	_state.vel(2) += _gravity_mss * _imu_sample_delayed.delta_vel_dt;
@@ -478,6 +487,15 @@ void Ekf::calculateOutputStates()
 	delta_angle(0) = _imu_sample_new.delta_ang(0) - _state.gyro_bias(0) * dt_scale_correction;
 	delta_angle(1) = _imu_sample_new.delta_ang(1) - _state.gyro_bias(1) * dt_scale_correction;
 	delta_angle(2) = _imu_sample_new.delta_ang(2) - _state.gyro_bias(2) * dt_scale_correction;
+
+	// calculate a yaw change about the earth frame vertical
+	float spin_del_ang_D = _R_to_earth_now(2,0) * delta_angle(0) +
+			_R_to_earth_now(2,1) * delta_angle(1) +
+			_R_to_earth_now(2,2) * delta_angle(2);
+	_yaw_delta_ef += spin_del_ang_D;
+
+	// calculate filtered yaw rate to be used by the magnetomer fusion type selection logic
+	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / _imu_sample_new.delta_ang_dt;
 
 	// correct delta velocity for bias offsets
 	Vector3f delta_vel = _imu_sample_new.delta_vel - _state.accel_bias * dt_scale_correction;

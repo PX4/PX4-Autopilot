@@ -230,6 +230,8 @@ struct parameters {
 	float mag_innov_gate{3.0f};		// magnetometer fusion innovation consistency gate size (STD)
 	int mag_declination_source{7};		// bitmask used to control the handling of declination data
 	int mag_fusion_type{0};			// integer used to specify the type of magnetometer fusion used
+	float mag_acc_gate{0.5f};		// when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/s**2)
+	float mag_yaw_rate_gate{0.25f};		// yaw rate threshold used by mode select logic (rad/sec)
 
 	// airspeed fusion
 	float tas_innov_gate{5.0f};		// True Airspeed Innovation consistency gate size in standard deciation

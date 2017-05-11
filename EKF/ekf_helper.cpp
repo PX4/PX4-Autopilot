@@ -501,7 +501,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 void Ekf::calcMagDeclination()
 {
 	// set source of magnetic declination for internal use
-	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+	if (_flt_mag_align_complete) {
+		// Use value consistent with earth field state
+		_mag_declination = atan2f(_state.mag_I(1),_state.mag_I(0));
+	} else if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised) {
 			_mag_declination = _mag_declination_gps;
