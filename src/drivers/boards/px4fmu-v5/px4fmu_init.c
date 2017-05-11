@@ -254,8 +254,8 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_5V_WIFI_EN);
 	stm32_configgpio(GPIO_SPEKTRUM_POWER_EN);
 
-	stm32_configgpio(GPIO_LED_SAFETY);
-	stm32_configgpio(GPIO_BTN_SAFETY);
+	stm32_configgpio(GPIO_nSAFETY_SWITCH_LED_OUT);
+	stm32_configgpio(GPIO_SAFETY_SWITCH_IN);
 
 	/* configure SPI interfaces */
 	stm32_spiinitialize();

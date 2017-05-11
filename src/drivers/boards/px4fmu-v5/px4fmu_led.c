@@ -69,9 +69,9 @@ static bool nuttx_owns_leds = true;
 static const uint8_t xlatpx4[] = {1, 2, 4, 0};
 #  define xlat(p) xlatpx4[(p)]
 static uint32_t g_ledmap[] = {
-	GPIO_LED_GREEN,   // Indexed by BOARD_LED_GREEN
-	GPIO_LED_BLUE,    // Indexed by BOARD_LED_BLUE
-	GPIO_LED_RED,     // Indexed by BOARD_LED_RED
+	GPIO_nLED_GREEN,   // Indexed by BOARD_LED_GREEN
+	GPIO_nLED_BLUE,    // Indexed by BOARD_LED_BLUE
+	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
 	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY by xlatpx4
 };
 
@@ -79,10 +79,10 @@ static uint32_t g_ledmap[] = {
 
 #  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
-	GPIO_LED_BLUE,    // Indexed by LED_BLUE
-	GPIO_LED_RED,     // Indexed by LED_RED, LED_AMBER
+	GPIO_nLED_BLUE,    // Indexed by LED_BLUE
+	GPIO_nLED_RED,     // Indexed by LED_RED, LED_AMBER
 	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
-	GPIO_LED_GREEN,   // Indexed by LED_GREEN
+	GPIO_nLED_GREEN,   // Indexed by LED_GREEN
 };
 
 #endif
