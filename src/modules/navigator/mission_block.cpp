@@ -99,6 +99,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_ROI:
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+	case NAV_CMD_SET_CAMERA_MODE:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
