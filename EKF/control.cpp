@@ -704,9 +704,9 @@ void Ekf::controlHeightFusion()
 
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
-        _in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
+		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-        if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -720,7 +720,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-        } else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
+		} else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
 			setControlBaroHeight();
 			_fuse_height = true;
 
@@ -740,9 +740,9 @@ void Ekf::controlHeightFusion()
 
 	// Determine if GPS should be used as the height source
 	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-        _in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
+		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
 
-        if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -756,7 +756,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-        } else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
+		} else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
 			setControlGPSHeight();
 			_fuse_height = true;
 
@@ -802,39 +802,40 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 	// 2) our ground speed is not higher than max_vel_for_dual_fusion
 	// 3) Our terrain estimate is stable (needs better checks)
 	if (_params.range_aid) {
-        // check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-        bool use_range_finder;
-        if (in_range_aid_mode) {
-            use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
-        } else {
-            // if we were not using range aid in the previous iteration then require the current height above terrain to be
-            // smaller than 70 % of the maximum allowed ground distance for range aid
-            use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && _terrain_initialised;
-        }
+		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
+		bool use_range_finder;
+		if (in_range_aid_mode) {
+			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
+
+		} else {
+			// if we were not using range aid in the previous iteration then require the current height above terrain to be
+			// smaller than 70 % of the maximum allowed ground distance for range aid
+			use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && _terrain_initialised;
+		}
 
 		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
-				      && (_fault_status.value == 0);
+		                      && (_fault_status.value == 0);
 
 		if (horz_vel_valid) {
 			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
 
-            if (in_range_aid_mode) {
-                use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
+			if (in_range_aid_mode) {
+				use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
 
-            } else {
-                // if we were not using range aid in the previous iteration then require the ground velocity to be
-                // smaller than 70 % of the maximum allowed ground velocity for range aid
-                use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
-
-            }
+			} else {
+				// if we were not using range aid in the previous iteration then require the ground velocity to be
+				// smaller than 70 % of the maximum allowed ground velocity for range aid
+				use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
+			}
 
 		} else {
 			use_range_finder = false;
 		}
 
-        use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
+		use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
 
 		return use_range_finder;
+
 	} else {
 		return false;
 	}
@@ -876,15 +877,14 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-        // control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
+	// control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
 
-        // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
-        bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
-        bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
-	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)){
-                _control_status.flags.wind = false;
-
-        }
+	// If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
+	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
+	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
+		_control_status.flags.wind = false;
+	}
 
 	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
 
@@ -907,10 +907,10 @@ void Ekf::controlBetaFusion()
 			resetWindCovariance();
 		}
 
-                fuseSideslip();
+		fuseSideslip();
  	}
 
- 	
+
 
 }
 
