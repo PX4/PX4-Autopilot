@@ -241,3 +241,14 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
  *
  */
 PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 100.0f);
+
+/**
+ * Landing persistence before going into landed state
+ * Time in seconds that a landing must persist before the vehicle is considered landed
+ *
+ # @unit sec
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LNDMC_MIN_TIME, 5);

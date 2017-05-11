@@ -69,6 +69,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_control_mode{},
 	_battery{},
 	_min_trust_start(0),
+	_landed_start(0),
 	_arming_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
@@ -82,6 +83,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 	_paramHandle.manual_stick_down_threshold = param_find("LNDMC_MAN_DWNTHR");
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
+	_paramHandle.land_min_time = param_find("LNDMC_MIN_TIME");
 	_paramHandle.manual_stick_up_position_takeoff_threshold = param_find("LNDMC_POS_UPTHR");
 }
 
@@ -126,6 +128,7 @@ void MulticopterLandDetector::_update_params()
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 	param_get(_paramHandle.manual_stick_down_threshold, &_params.manual_stick_down_threshold);
 	param_get(_paramHandle.altitude_max, &_params.altitude_max);
+	param_get(_paramHandle.land_min_time, &_params.land_min_time);
 	param_get(_paramHandle.manual_stick_up_position_takeoff_threshold, &_params.manual_stick_up_position_takeoff_threshold);
 }
 
@@ -263,7 +266,18 @@ bool MulticopterLandDetector::_get_landed_state()
 	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating &&
 	    (!horizontalMovement || !_has_position_lock())) {
 		// Ground contact, no thrust and no movement -> landed
-		return true;
+
+		// check persistance of landing state
+		if (_landed_start == 0) {
+			_landed_start = now;
+		}
+
+		if (_landed_start > 0 && hrt_elapsed_time(&_landed_start) > (_params.land_min_time * 1000000)) {
+			return true;
+		}
+
+	} else {
+		_landed_start = 0;
 	}
 
 	return false;
