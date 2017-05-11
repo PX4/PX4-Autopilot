@@ -575,12 +575,25 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			need_ack = true;
 
+			/*
+			 * TRANSITIONAL SUPPORT ADDED AS OF 11th MAY 2017 (v1.6 RELEASE)
+			*/
+
 			if (cmd.param1 > 0.0f) {
 				trig->_distance = cmd.param1;
-				param_set(trig->_p_distance, &(trig->_distance));
+				//param_set(trig->_p_distance, &(trig->_distance));
+
+				trig->_trigger_enabled = true;
+				trig->_trigger_paused = false;
+
+			} else if (commandParamToInt(param1) == 0) {
+				trig->_trigger_paused = true;
+
+			} else if (commandParamToInt(param1) == -1) {
+				trig->_trigger_enabled = false;
 			}
 
-			// We can only control the shutter integration time of the camera in GPIO mode
+			// We can only control the shutter integration time of the camera in GPIO mode (for now)
 			if (cmd.param2 > 0.0f) {
 				if (trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					trig->_activation_time = cmd.param2;
@@ -609,7 +622,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-		} // TODO : live geotag retransmission interface
+		}
 
 	}
 
