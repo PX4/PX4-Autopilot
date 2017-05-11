@@ -581,15 +581,15 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			if (cmd.param1 > 0.0f) {
 				trig->_distance = cmd.param1;
-				//param_set(trig->_p_distance, &(trig->_distance));
+				param_set(trig->_p_distance, &(trig->_distance));
 
 				trig->_trigger_enabled = true;
 				trig->_trigger_paused = false;
 
-			} else if (commandParamToInt(param1) == 0) {
+			} else if (commandParamToInt(cmd.param1) == 0) {
 				trig->_trigger_paused = true;
 
-			} else if (commandParamToInt(param1) == -1) {
+			} else if (commandParamToInt(cmd.param1) == -1) {
 				trig->_trigger_enabled = false;
 			}
 
@@ -663,6 +663,15 @@ CameraTrigger::cycle_trampoline(void *arg)
 			// ensure that the pin is off
 			hrt_call_after(&trig->_disengagecall, 0,
 				       (hrt_callout)&CameraTrigger::disengage, trig);
+
+			// reset distance counter if needed
+			if (trig->_trigger_mode == TRIGGER_MODE_DISTANCE_ON_CMD ||
+			    trig->_trigger_mode == TRIGGER_MODE_DISTANCE_ALWAYS_ON) {
+
+				// this will force distance counter reinit on getting enabled/unpaused
+				trig->_valid_position = false;
+
+			}
 
 		}
 
