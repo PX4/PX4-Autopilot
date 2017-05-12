@@ -127,11 +127,11 @@ bool Ekf::update()
 		predictState();
 		predictCovariance();
 
-		// run a separate filter for terrain estimation
-		runTerrainEstimator();
-
 		// control fusion of observation data
 		controlFusionModes();
+
+		// run a separate filter for terrain estimation
+		runTerrainEstimator();
 
 	}
 
