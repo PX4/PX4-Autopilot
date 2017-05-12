@@ -46,6 +46,7 @@
  * @group EKF2
  * @min 10
  * @max 50
+ * @reboot_required true
  * @unit ms
  */
 PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
@@ -57,6 +58,7 @@ PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
@@ -68,6 +70,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
@@ -79,6 +82,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
@@ -91,6 +95,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
@@ -102,6 +107,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
@@ -113,6 +119,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
@@ -124,6 +131,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
@@ -439,6 +447,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @bit 0 use geo_lookup declination
  * @bit 1 save EKF2_MAG_DECL on disarm
  * @bit 2 use declination as an observation
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
@@ -453,6 +462,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 1 Magnetic heading
  * @value 2 3-axis fusion
  * @value 3 None
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -521,6 +531,18 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
 
 /**
+ * Replay mode
+ *
+ * A value of 1 indicates that the ekf2 module will publish
+ * replay messages for logging.
+ *
+ * @group EKF2
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
+
+/**
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
@@ -540,6 +562,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 3 vision position fusion
  * @bit 4 vision yaw fusion
  * @bit 5 multi-rotor drag fusion
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -553,7 +576,7 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
  * @value 1 GPS
  * @value 2 Range sensor
  * @value 3 Vision
- *
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
@@ -887,6 +910,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
  * @min 0.0
  * @max 0.2
  * @unit rad/sec
+ * @reboot_required true
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
@@ -898,6 +922,7 @@ PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
  * @min 0.0
  * @max 0.5
  * @unit m/s/s
+ * @reboot_required true
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
@@ -909,6 +934,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
  * @min 0.0
  * @max 0.5
  * @unit rad
+ * @reboot_required true
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
@@ -931,6 +957,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -943,6 +970,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -955,6 +983,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -964,6 +993,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
  * ID of Magnetometer the learned bias is for.
  *
  * @group EKF2
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
 
@@ -972,6 +1002,7 @@ PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
  * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
  *
  * @group EKF2
+ * @reboot_required true
  * @unit mGauss**2
  * @decimal 8
  */
