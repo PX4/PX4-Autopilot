@@ -65,10 +65,6 @@
 #include "mavlink_orb_subscription.h"
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
-#include "mavlink_mission.h"
-#include "mavlink_parameters.h"
-#include "mavlink_ftp.h"
-#include "mavlink_log_handler.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -480,10 +476,6 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager		*_mission_manager;
-	MavlinkParametersManager	*_parameters_manager;
-	MavlinkFTP			*_mavlink_ftp;
-	MavlinkLogHandler		*_mavlink_log_handler;
 	MavlinkShell			*_mavlink_shell;
 	MavlinkULog			*_mavlink_ulog;
 	volatile bool			_mavlink_ulog_stop_requested;
