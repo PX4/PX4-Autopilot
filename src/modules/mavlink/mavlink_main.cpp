@@ -194,10 +194,6 @@ Mavlink::Mavlink() :
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
-	_mission_manager(nullptr),
-	_parameters_manager(nullptr),
-	_mavlink_ftp(nullptr),
-	_mavlink_log_handler(nullptr),
 	_mavlink_shell(nullptr),
 	_mavlink_ulog(nullptr),
 	_mavlink_ulog_stop_requested(false),
@@ -1234,17 +1230,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 		return;
 	}
 
-	/* handle packet with mission manager */
-	_mission_manager->handle_message(msg);
-
-	/* handle packet with parameter component */
-	_parameters_manager->handle_message(msg);
-
-	/* handle packet with ftp component */
-	_mavlink_ftp->handle_message(msg);
-
-	/* handle packet with log component */
-	_mavlink_log_handler->handle_message(msg);
+	/*
+	 *  NOTE: this is called from the receiver thread
+	 */
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -1960,29 +1948,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	}
 
-	/* PARAM_VALUE stream */
-	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
-	_parameters_manager->set_interval(interval_from_rate(300.0f));
-	LL_APPEND(_streams, _parameters_manager);
-
-	/* MAVLINK_FTP stream */
-	_mavlink_ftp = (MavlinkFTP *) MavlinkFTP::new_instance(this);
-	_mavlink_ftp->set_interval(interval_from_rate(80.0f));
-	LL_APPEND(_streams, _mavlink_ftp);
-
-	/* MAVLINK_Log_Handler */
-	_mavlink_log_handler = (MavlinkLogHandler *) MavlinkLogHandler::new_instance(this);
-	_mavlink_log_handler->set_interval(interval_from_rate(80.0f));
-	LL_APPEND(_streams, _mavlink_log_handler);
-
-	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
-	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
-	 * mission messages. */
-	_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
-	_mission_manager->set_interval(interval_from_rate(10.0f));
-	_mission_manager->set_verbose(_verbose);
-	LL_APPEND(_streams, _mission_manager);
-
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
@@ -2144,8 +2109,6 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-
-		_mission_manager->check_active_mission();
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
