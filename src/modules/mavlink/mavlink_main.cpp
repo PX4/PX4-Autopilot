@@ -2719,6 +2719,9 @@ The implementation uses 2 threads, a sending and a receiving thread. The sender 
 reduces the rates of the streams if the combined bandwidth is higher than the configured rate (`-r`) or the
 physical link becomes saturated. This can be checked with `mavlink status`, see if `rate mult` is less than 1.
 
+**Careful**: some of the data is accessed and modified from both threads, so when changing code or extend the
+functionality, this needs to be take into account, in order to avoid race conditions and corrupt data.
+
 ### Examples
 Start mavlink on ttyS1 serial with baudrate 921600 and maximum sending rate of 80kB/s:
 $ mavlink start -d /dev/ttyS1 -b 921600 -m onboard -r 80000
