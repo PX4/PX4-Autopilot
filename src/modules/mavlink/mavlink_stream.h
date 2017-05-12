@@ -44,7 +44,6 @@
 #include <drivers/drv_hrt.h>
 
 class Mavlink;
-class MavlinkStream;
 
 class MavlinkStream
 {
