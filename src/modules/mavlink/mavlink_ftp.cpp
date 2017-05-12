@@ -49,10 +49,10 @@
 //#define MAVLINK_FTP_DEBUG
 
 MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
-	MavlinkStream(mavlink),
 	_session_info{},
 	_utRcvMsgFunc{},
-	_worker_data{}
+	_worker_data{},
+	_mavlink(mavlink)
 {
 	// initialize session
 	_session_info.fd = -1;
@@ -61,18 +61,6 @@ MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
 MavlinkFTP::~MavlinkFTP()
 {
 
-}
-
-const char *
-MavlinkFTP::get_name() const
-{
-	return "MAVLINK_FTP";
-}
-
-uint16_t
-MavlinkFTP::get_id()
-{
-	return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL;
 }
 
 unsigned
@@ -84,12 +72,6 @@ MavlinkFTP::get_size()
 	} else {
 		return 0;
 	}
-}
-
-MavlinkStream *
-MavlinkFTP::new_instance(Mavlink *mavlink)
-{
-	return new MavlinkFTP(mavlink);
 }
 
 #ifdef MAVLINK_FTP_UNIT_TEST
