@@ -314,15 +314,19 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send(const hrt_abstime t)
 {
+	int max_num_to_send;
+
 	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
-		send_one();
+		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 5 at once
-		int i = 0;
-
-		while (i++ < 5 && send_one());
+		// speed up parameter loading via UDP, TCP or USB: try to send 15 at once
+		max_num_to_send = 5 * 3;
 	}
+
+	int i = 0;
+
+	while (i++ < max_num_to_send && send_one());
 }
 
 
