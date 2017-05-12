@@ -93,9 +93,9 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-	status{},
-	hil_local_pos{},
-	hil_land_detector{},
+	_status{},
+	_hil_local_pos{},
+	_hil_land_detector{},
 	_control_mode{},
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
@@ -2182,36 +2182,36 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 			_hil_local_proj_inited = true;
 			_hil_local_alt0 = hil_state.alt / 1000.0f;
 			map_projection_init(&_hil_local_proj_ref, lat, lon);
-			hil_local_pos.ref_timestamp = timestamp;
-			hil_local_pos.ref_lat = lat;
-			hil_local_pos.ref_lon = lon;
-			hil_local_pos.ref_alt = _hil_local_alt0;
+			_hil_local_pos.ref_timestamp = timestamp;
+			_hil_local_pos.ref_lat = lat;
+			_hil_local_pos.ref_lon = lon;
+			_hil_local_pos.ref_alt = _hil_local_alt0;
 		}
 
 		float x = 0.0f;
 		float y = 0.0f;
 		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
-		hil_local_pos.timestamp = timestamp;
-		hil_local_pos.xy_valid = true;
-		hil_local_pos.z_valid = true;
-		hil_local_pos.v_xy_valid = true;
-		hil_local_pos.v_z_valid = true;
-		hil_local_pos.x = x;
-		hil_local_pos.y = y;
-		hil_local_pos.z = _hil_local_alt0 - hil_state.alt / 1000.0f;
-		hil_local_pos.vx = hil_state.vx / 100.0f;
-		hil_local_pos.vy = hil_state.vy / 100.0f;
-		hil_local_pos.vz = hil_state.vz / 100.0f;
+		_hil_local_pos.timestamp = timestamp;
+		_hil_local_pos.xy_valid = true;
+		_hil_local_pos.z_valid = true;
+		_hil_local_pos.v_xy_valid = true;
+		_hil_local_pos.v_z_valid = true;
+		_hil_local_pos.x = x;
+		_hil_local_pos.y = y;
+		_hil_local_pos.z = _hil_local_alt0 - hil_state.alt / 1000.0f;
+		_hil_local_pos.vx = hil_state.vx / 100.0f;
+		_hil_local_pos.vy = hil_state.vy / 100.0f;
+		_hil_local_pos.vz = hil_state.vz / 100.0f;
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
-		hil_local_pos.yaw = euler.psi();
-		hil_local_pos.xy_global = true;
-		hil_local_pos.z_global = true;
+		_hil_local_pos.yaw = euler.psi();
+		_hil_local_pos.xy_global = true;
+		_hil_local_pos.z_global = true;
 
 		if (_local_pos_pub == nullptr) {
-			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
+			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_hil_local_pos);
 
 		} else {
-			orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &hil_local_pos);
+			orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_hil_local_pos);
 		}
 	}
 
@@ -2219,15 +2219,15 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
 
-		if (hil_land_detector.landed != landed) {
-			hil_land_detector.landed = landed;
-			hil_land_detector.timestamp = hrt_absolute_time();
+		if (_hil_land_detector.landed != landed) {
+			_hil_land_detector.landed = landed;
+			_hil_land_detector.timestamp = hrt_absolute_time();
 
 			if (_land_detector_pub == nullptr) {
-				_land_detector_pub = orb_advertise(ORB_ID(vehicle_land_detected), &hil_land_detector);
+				_land_detector_pub = orb_advertise(ORB_ID(vehicle_land_detected), &_hil_land_detector);
 
 			} else {
-				orb_publish(ORB_ID(vehicle_land_detected), _land_detector_pub, &hil_land_detector);
+				orb_publish(ORB_ID(vehicle_land_detected), _land_detector_pub, &_hil_land_detector);
 			}
 		}
 	}
@@ -2434,7 +2434,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			if (_mavlink->get_client_source_initialized()) {
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
-					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
+					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
 
 						/* check if we received version 2 and request a switch. */
 						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
