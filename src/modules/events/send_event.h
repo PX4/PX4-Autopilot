@@ -45,8 +45,8 @@ class SendEvent : public ModuleBase<SendEvent>
 public:
 	SendEvent();
 
-	/** Initialize class in the same context as the work queue. And start the background listener.
-	 *
+	/**
+	 * Initialize class in the same context as the work queue. And start the background listener.
 	 * @return 0 if successful, <0 on error */
 	static int task_spawn(int argc, char *argv[]);
 
