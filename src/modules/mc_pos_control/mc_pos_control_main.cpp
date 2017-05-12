@@ -1497,8 +1497,6 @@ void MulticopterPositionControl::control_auto(float dt)
 						    || !next_setpoint_valid)
 						   && ((pos_sp_diff.length()) < SIGMA_NORM);
 
-
-
 			/* only follow line if previous to current has a minimum distance */
 			if ((vec_prev_to_current.length()  > _nav_rad.get()) && !stay_at_current_pos) {
 
@@ -1560,7 +1558,6 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* go directly to current setpoint */
 					vel_sp_along_track = vec_pos_to_current.length() * _params.pos_p(0);
 					vel_sp_along_track = (vel_sp_along_track < get_cruising_speed_xy()) ? vel_sp_along_track : get_cruising_speed_xy();
-
 
 				} else if (close_to_prev) {
 					/* accelerate from previous setpoint towards current setpoint */
