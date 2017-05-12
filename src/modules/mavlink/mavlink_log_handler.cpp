@@ -133,7 +133,7 @@ void
 MavlinkLogHandler::send(const hrt_abstime /*t*/)
 {
 	//-- An arbitrary count of max bytes in one go (one of the two below but never both)
-#define MAX_BYTES_SEND 64 * 1024
+#define MAX_BYTES_SEND 256 * 1024
 	size_t count = 0;
 
 	//-- Log Entries
