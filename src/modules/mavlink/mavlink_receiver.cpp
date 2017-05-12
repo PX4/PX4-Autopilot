@@ -2493,6 +2493,11 @@ void *MavlinkReceiver::start_helper(void *context)
 
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
 
+	if (!rcv) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
 	void *ret = rcv->receive_thread(nullptr);
 
 	delete rcv;
