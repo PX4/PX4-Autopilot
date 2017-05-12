@@ -33,7 +33,7 @@
 
 /**
  * @file LandDetector.h
-Land detector interface for multicopter, fixedwing and VTOL implementations.
+ * Land detector interface for multicopter, fixedwing and VTOL implementations.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Julian Oes <julian@oes.ch>
@@ -43,6 +43,7 @@ Land detector interface for multicopter, fixedwing and VTOL implementations.
 #pragma once
 
 #include <px4_workqueue.h>
+#include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/param/param.h>
 #include <uORB/uORB.h>
@@ -52,7 +53,7 @@ namespace land_detector
 {
 
 
-class LandDetector
+class LandDetector : public ModuleBase<LandDetector>
 {
 public:
 	enum class LandDetectionState {
@@ -65,14 +66,19 @@ public:
 	LandDetector();
 	virtual ~LandDetector();
 
-	/**
-	 * @return true if this task is currently running.
-	 */
-	inline bool is_running() const
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[])
 	{
-		return _taskIsRunning;
+		return print_usage("unknown command");
 	}
 
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/**
 	 * @return current state.
@@ -81,11 +87,6 @@ public:
 	{
 		return _state;
 	}
-
-	/**
-	 * Tells the task that it should exit.
-	 */
-	void stop();
 
 	/**
 	 * Get the work queue going.
@@ -170,14 +171,10 @@ private:
 
 	void _update_state();
 
-	bool _taskShouldExit;
-	bool _taskIsRunning;
-
 	param_t _p_total_flight_time_high;
 	param_t _p_total_flight_time_low;
 	uint64_t _total_flight_time; ///< in microseconds
 	hrt_abstime _takeoff_time;
-
 
 	struct work_s	_work;
 };
