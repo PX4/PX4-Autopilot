@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file FixedwingLandDetector.cpp
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
