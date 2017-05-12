@@ -50,7 +50,6 @@ CameraFeedback::CameraFeedback() :
 	_task_should_exit(false),
 	_main_task(-1),
 	_trigger_sub(-1),
-	_lpos_sub(-1),
 	_gpos_sub(-1),
 	_att_sub(-1),
 	_capture_pub(nullptr),
@@ -141,10 +140,8 @@ CameraFeedback::task_main()
 	fds[0].events = POLLIN;
 
 	// Geotagging subscriptions
-	_lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gpos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	struct vehicle_local_position_s lpos = {};
 	struct vehicle_global_position_s gpos = {};
 	struct vehicle_attitude_s att = {};
 
@@ -172,22 +169,15 @@ CameraFeedback::task_main()
 				orb_copy(ORB_ID(vehicle_global_position), _gpos_sub, &gpos);
 			}
 
-			orb_check(_lpos_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(vehicle_local_position), _lpos_sub, &lpos);
-			}
-
 			orb_check(_att_sub, &updated);
 
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att);
 			}
 
-			if (gpos.timestamp == 0 ||
-			    lpos.timestamp == 0 ||
-			    att.timestamp == 0 ||
-			    !lpos.xy_valid) {
+			if (trig.timestamp == 0 ||
+			    gpos.timestamp == 0 ||
+			    att.timestamp == 0) {
 				// reject until we have valid data
 				continue;
 			}
@@ -209,7 +199,7 @@ CameraFeedback::task_main()
 
 			capture.alt = gpos.alt;
 
-			capture.ground_distance = lpos.dist_bottom_valid ? lpos.dist_bottom : -1.0f;
+			capture.ground_distance = gpos.terrain_alt_valid ? (gpos.alt - gpos.terrain_alt) : -1.0f;
 
 			// Fill attitude data
 			// TODO : this needs to be rotated by camera orientation or set to gimbal orientation when available
