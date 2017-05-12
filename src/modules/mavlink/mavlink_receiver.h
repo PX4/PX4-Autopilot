@@ -80,7 +80,10 @@
 #include <uORB/topics/collision_report.h>
 
 
+#include "mavlink_mission.h"
+#include "mavlink_parameters.h"
 #include "mavlink_ftp.h"
+#include "mavlink_log_handler.h"
 
 #define PX4_EPOCH_SECS 1234567890ULL
 
@@ -188,6 +191,12 @@ private:
 	bool	evaluate_target_ok(int command, int target_system, int target_component);
 
 	Mavlink	*_mavlink;
+
+	MavlinkMissionManager		_mission_manager;
+	MavlinkParametersManager	_parameters_manager;
+	MavlinkFTP			_mavlink_ftp;
+	MavlinkLogHandler		_mavlink_log_handler;
+
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
