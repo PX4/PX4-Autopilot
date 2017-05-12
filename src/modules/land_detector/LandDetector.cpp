@@ -58,8 +58,6 @@ LandDetector::LandDetector() :
 	_freefall_hysteresis(false),
 	_landed_hysteresis(true),
 	_ground_contact_hysteresis(true),
-	_taskShouldExit(false),
-	_taskIsRunning(false),
 	_total_flight_time{0},
 	_takeoff_time{0},
 	_work{}
@@ -71,23 +69,12 @@ LandDetector::LandDetector() :
 
 LandDetector::~LandDetector()
 {
-	work_cancel(HPWORK, &_work);
-	_taskShouldExit = true;
 }
 
 int LandDetector::start()
 {
-	_taskShouldExit = false;
-
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this, 0);
-
-	return 0;
-}
-
-void LandDetector::stop()
-{
-	_taskShouldExit = true;
+	return work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this, 0);
 }
 
 void
@@ -100,7 +87,7 @@ LandDetector::_cycle_trampoline(void *arg)
 
 void LandDetector::_cycle()
 {
-	if (!_taskIsRunning) {
+	if (!_object) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
@@ -114,8 +101,7 @@ void LandDetector::_cycle()
 
 		_check_params(true);
 
-		// Task is now running, keep doing so until we need to stop.
-		_taskIsRunning = true;
+		_object = this;
 	}
 
 	_check_params(false);
@@ -165,14 +151,14 @@ void LandDetector::_cycle()
 				 &instance, ORB_PRIO_DEFAULT);
 	}
 
-	if (!_taskShouldExit) {
+	if (!should_exit()) {
 
 		// Schedule next cycle.
 		work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this,
 			   USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE_HZ));
 
 	} else {
-		_taskIsRunning = false;
+		exit_and_cleanup();
 	}
 }
 void LandDetector::_check_params(const bool force)
