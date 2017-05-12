@@ -93,6 +93,10 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
+	_mission_manager(parent),
+	_parameters_manager(parent),
+	_mavlink_ftp(parent),
+	_mavlink_log_handler(parent),
 	_status{},
 	_hil_local_pos{},
 	_hil_land_detector{},
@@ -2346,7 +2350,9 @@ MavlinkReceiver::receive_thread(void *arg)
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
 	}
 
-	const int timeout = 500;
+	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
+	const int timeout = 10;
+
 #ifdef __PX4_POSIX
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
@@ -2379,6 +2385,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 #endif
 	ssize_t nread = 0;
+	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
 		if (poll(&fds[0], 1, timeout) > 0) {
@@ -2445,6 +2452,18 @@ MavlinkReceiver::receive_thread(void *arg)
 						/* handle generic messages and commands */
 						handle_message(&msg);
 
+						/* handle packet with mission manager */
+						_mission_manager.handle_message(&msg);
+
+						/* handle packet with parameter component */
+						_parameters_manager.handle_message(&msg);
+
+						/* handle packet with ftp component */
+						_mavlink_ftp.handle_message(&msg);
+
+						/* handle packet with log component */
+						_mavlink_log_handler.handle_message(&msg);
+
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);
 					}
@@ -2456,6 +2475,18 @@ MavlinkReceiver::receive_thread(void *arg)
 				}
 			}
 		}
+
+		hrt_abstime t = hrt_absolute_time();
+
+		if (t - last_send_update > timeout * 1000) {
+			_mission_manager.check_active_mission();
+			_mission_manager.send(t);
+			_parameters_manager.send(t);
+			_mavlink_ftp.send(t);
+			_mavlink_log_handler.send(t);
+			last_send_update = t;
+		}
+
 	}
 
 	return nullptr;
@@ -2516,7 +2547,7 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2100));
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2140));
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
