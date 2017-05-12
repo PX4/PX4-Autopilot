@@ -136,16 +136,3 @@ PARAM_DEFINE_INT32(TRIG_PINS, 56);
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
-
-/**
- * Camera feedback mode
- *
- * Sets the camera feedback mode. This parameter will be moved once we
- * support better camera feedback.
- *
- * @value 0 No camera feedback available
- * @min 0
- * @max 1
- * @group Camera Control
- */
-PARAM_DEFINE_INT32(CAM_FEEDBACK, 0);
