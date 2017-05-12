@@ -44,37 +44,26 @@
 #include <systemlib/param/param.h>
 
 #include "mavlink_bridge_header.h"
-#include "mavlink_stream.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/uavcan_parameter_request.h>
+#include <drivers/drv_hrt.h>
 
-class MavlinkParametersManager : public MavlinkStream
+class Mavlink;
+
+class MavlinkParametersManager
 {
 public:
-	const char *get_name() const
-	{
-		return MavlinkParametersManager::get_name_static();
-	}
+	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
-	static const char *get_name_static()
-	{
-		return "PARAM_VALUE";
-	}
-
-	uint16_t get_id()
-	{
-		return MAVLINK_MSG_ID_PARAM_VALUE;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkParametersManager(mavlink);
-	}
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	unsigned get_size();
-
-	unsigned get_size_avg();
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -86,11 +75,6 @@ private:
 	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
 
 protected:
-	explicit MavlinkParametersManager(Mavlink *mavlink);
-	~MavlinkParametersManager();
-
-	void send(const hrt_abstime t);
-
 	/// send a single param if a PARAM_REQUEST_LIST is in progress
 	/// @return true if a parameter was sent
 	bool send_one();
@@ -119,4 +103,6 @@ protected:
 
 	orb_advert_t _uavcan_parameter_request_pub;
 	int _uavcan_parameter_value_sub;
+
+	Mavlink *_mavlink;
 };
