@@ -66,7 +66,7 @@ bool MavlinkMissionManager::_transfer_in_progress = false;
 		 (_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
 		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
-MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(mavlink),
+MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_state(MAVLINK_WPM_STATE_IDLE),
 	_time_last_recv(0),
 	_time_last_sent(0),
@@ -86,8 +86,9 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
-	_slow_rate_limiter(_interval / 5.0f),
-	_verbose(false)
+	_slow_rate_limiter(100 * 1000), // Rate limit sending of the current WP sequence to 10 Hz
+	_verbose(false),
+	_mavlink(mavlink)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
@@ -99,20 +100,6 @@ MavlinkMissionManager::~MavlinkMissionManager()
 {
 	orb_unsubscribe(_mission_result_sub);
 	orb_unadvertise(_offboard_mission_pub);
-}
-
-unsigned
-MavlinkMissionManager::get_size()
-{
-	if (_state == MAVLINK_WPM_STATE_SENDLIST) {
-		return MAVLINK_MSG_ID_MISSION_ITEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-	} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
-		return MAVLINK_MSG_ID_MISSION_REQUEST + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-	} else {
-		return 0;
-	}
 }
 
 void

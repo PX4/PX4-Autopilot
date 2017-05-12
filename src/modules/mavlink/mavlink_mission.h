@@ -46,7 +46,6 @@
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
-#include "mavlink_stream.h"
 
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
@@ -67,32 +66,20 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
 #define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
-class MavlinkMissionManager : public MavlinkStream
+class Mavlink;
+
+class MavlinkMissionManager
 {
 public:
+	explicit MavlinkMissionManager(Mavlink *mavlink);
+
 	~MavlinkMissionManager();
 
-	const char *get_name() const
-	{
-		return MavlinkMissionManager::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "MISSION_ITEM";
-	}
-
-	uint16_t get_id()
-	{
-		return MAVLINK_MSG_ID_MISSION_ITEM;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkMissionManager(mavlink);
-	}
-
-	unsigned get_size();
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -139,6 +126,8 @@ private:
 	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
+
+	Mavlink *_mavlink;
 
 	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
 		2;	///< Error count limit before stopping to report FS errors
@@ -219,8 +208,4 @@ private:
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
 					mavlink_mission_item_t *mavlink_mission_item);
 
-protected:
-	explicit MavlinkMissionManager(Mavlink *mavlink);
-
-	void send(const hrt_abstime t);
 };
