@@ -100,13 +100,6 @@ public:
 	~MavlinkReceiver();
 
 	/**
-	* Start the mavlink task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
-
-	/**
 	 * Display the mavlink status.
 	 */
 	void		print_status();
