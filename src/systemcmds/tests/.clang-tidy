@@ -2,6 +2,7 @@ Checks:          '*
 		,-cert-dcl50-cpp
 		,-cert-err34-c
 		,-cert-err58-cpp
+		,-cert-flp30-c
 		,-cert-msc30-c
 		,-cert-msc50-cpp
 		,-clang-analyzer-core.CallAndMessage
@@ -13,6 +14,7 @@ Checks:          '*
 		,-clang-analyzer-deadcode.DeadStores
 		,-clang-analyzer-optin.cplusplus.VirtualCall
 		,-clang-analyzer-optin.performance.Padding
+		,-clang-analyzer-security.FloatLoopCounter
 		,-clang-analyzer-security.insecureAPI.strcpy
 		,-clang-analyzer-unix.cstring.BadSizeArg
 		,-clang-analyzer-unix.Malloc
@@ -59,6 +61,7 @@ Checks:          '*
 		,-modernize-use-using
 		,-performance-inefficient-string-concatenation
 		,-readability-avoid-const-params-in-decls
+		,-readability-braces-around-statements
 		,-readability-else-after-return
 		,-readability-implicit-bool-cast
 		,-readability-inconsistent-declaration-parameter-name
@@ -69,18 +72,3 @@ Checks:          '*
 		,-readability-simplify-boolean-expr
 		'
 WarningsAsErrors: '*'
-CheckOptions:    
-  - key:             google-readability-braces-around-statements.ShortStatementLines
-    value:           '1'
-  - key:             google-readability-function-size.BranchThreshold
-    value:           '600'
-  - key:             google-readability-function-size.LineThreshold
-    value:           '4000'
-  - key:             google-readability-function-size.StatementThreshold
-    value:           '4000'
-  - key:             readability-braces-around-statements.ShortStatementLines
-    value:           '1'
-  - key:             readability-function-size.LineThreshold
-    value:           '4000'
-  - key:             readability-function-size.StatementThreshold
-    value:           '4000'
