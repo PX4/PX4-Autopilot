@@ -84,7 +84,8 @@ private:
 	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
 
 	// Disallow copy
-	UnitTest(const uORBTest::UnitTest &) {};
+	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
+
 	static int pubsubtest_threadEntry(char *const argv[]);
 	int pubsublatency_main();
 
