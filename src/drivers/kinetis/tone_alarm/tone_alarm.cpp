@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,6 +87,7 @@
  */
 
 #include <px4_config.h>
+#include <systemlib/px4_macros.h>
 #include <debug.h>
 
 #include <drivers/device/device.h>
@@ -107,16 +108,15 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-#include <kinetis.h>
-/* TODO:Determin the correct type of timer to use.
- * TODO:This is stubbed out leving the code intact to document the needed
- * mechinsm for porting.
- */
-
-//#include <kinetis_ftm.h>
+#include "kinetis.h"
+#include "chip/kinetis_sim.h"
+#include "kinetis_tpm.h"
 
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
+
+#define CAT3_(A, B, C)    A##B##C
+#define CAT3(A, B, C)     CAT3_(A, B, C)
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER)  && defined(HRT_TIMER)
@@ -125,73 +125,73 @@
 # endif
 #endif
 
-# define TONE_ALARM_CLOCK             1000000
-
-#if   TONE_ALARM_TIMER == 1
-//# define TONE_ALARM_BASE              STM32_TIM1_BASE
-//# define TONE_ALARM_CLOCK             1000000
-//# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB2ENR
-//# define TONE_ALARM_CLOCK_ENABLE      RCC_APB2ENR_TIM1EN
-//# ifdef CONFIG_STM32_TIM1
-//#  error Must not set CONFIG_STM32_TIM1 when TONE_ALARM_TIMER is 1
-//# endif
-//#elif TONE_ALARM_TIMER == 2
-#else
-//# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 11 (inclusive) to use this driver.
-#endif
-
-#if TONE_ALARM_CHANNEL == 1
-# define TONE_CCMR1	(3 << 4)
-# define TONE_CCMR2	0
-# define TONE_CCER	(1 << 0)
-# define TONE_rCCR	rCCR1
-#elif TONE_ALARM_CHANNEL == 2
-# define TONE_CCMR1	(3 << 12)
-# define TONE_CCMR2	0
-# define TONE_CCER	(1 << 4)
-# define TONE_rCCR	rCCR2
-#elif TONE_ALARM_CHANNEL == 3
-# define TONE_CCMR1	0
-# define TONE_CCMR2	(3 << 4)
-# define TONE_CCER	(1 << 8)
-# define TONE_rCCR	rCCR3
-#elif TONE_ALARM_CHANNEL == 4
-# define TONE_CCMR1	0
-# define TONE_CCMR2	(3 << 12)
-# define TONE_CCER	(1 << 12)
-# define TONE_rCCR	rCCR4
-#else
-# error Must set TONE_ALARM_CHANNEL to a value between 1 and 4 to use this driver.
-#endif
 
 /*
- * Timer register accessors
- */
-static volatile uint32_t dummy[18];
-#define REG(_reg)	(*(volatile uint32_t *)(&dummy[(_reg)]))
-#undef modifyreg32
-#define modifyreg32(reg,clr,set)
-#define GTIM_CR1_CEN  0
-#define GTIM_EGR_UG 0
+* Period of the free-running counter, in microseconds.
+*/
+#define TONE_ALARM_COUNTER_PERIOD	65536
 
-# define rCR1     	REG(0)
-# define rCR2     	REG(1)
-# define rSMCR    	REG(2)
-# define rDIER    	REG(3)
-# define rSR      	REG(4)
-# define rEGR     	REG(5)
-# define rCCMR1   	REG(6)
-# define rCCMR2   	REG(7)
-# define rCCER    	REG(8)
-# define rCNT     	REG(9)
-# define rPSC     	REG(10)
-# define rARR     	REG(11)
-# define rCCR1    	REG(12)
-# define rCCR2    	REG(13)
-# define rCCR3    	REG(14)
-# define rCCR4    	REG(15)
-# define rDCR     	REG(16)
-# define rDMAR    	REG(17)
+/* Tone Alarm configuration */
+
+#define TONE_ALARM_TIMER_CLOCK    BOARD_TPM_FREQ                                 /* The input clock frequency to the TPM block */
+#define TONE_ALARM_TIMER_BASE     CAT(CAT(KINETIS_TPM, TONE_ALARM_TIMER),_BASE)  /* The Base address of the TPM */
+#define TONE_ALARM_TIMER_VECTOR   CAT(KINETIS_IRQ_TPM, TONE_ALARM_TIMER)         /* The TPM Interrupt vector */
+#define TONE_ALARM_SIM_SCGC2_TPM  CAT(SIM_SCGC2_TPM, TONE_ALARM_TIMER)           /* The Clock Gating enable bit for this TPM */
+#define TONE_ALARM_TIMER_PRESCALE TPM_SC_PS_DIV16                                /* The constant Prescaler */
+
+#if TONE_ALARM_TIMER == 1 && defined(CONFIG_KINETIS_TPM1)
+#  error must not set CONFIG_KINETIS_TPM1=y and TONE_ALARM_TIMER=1
+#elif   TONE_ALARM_TIMER == 2 && defined(CONFIG_KINETIS_TPM2)
+#  error must not set CONFIG_STM32_TIM2=y and TONE_ALARM_TIMER=2
+#endif
+
+
+# define TONE_ALARM_TIMER_FREQ    (BOARD_TPM_FREQ/(1 << (TONE_ALARM_TIMER_PRESCALE >> TPM_SC_PS_SHIFT)))
+
+/*
+* Toan Alarm clock must be a multiple of 1MHz greater than 1MHz
+*/
+#if (TONE_ALARM_TIMER_CLOCK % TONE_ALARM_TIMER_FREQ) != 0
+# error TONE_ALARM_TIMER_CLOCK must be a multiple of 1MHz
+#endif
+#if TONE_ALARM_TIMER_CLOCK <= TONE_ALARM_TIMER_FREQ
+# error TONE_ALARM_TIMER_CLOCK must be greater than 1MHz
+#endif
+
+#if (TONE_ALARM_CHANNEL != 0) && (TONE_ALARM_CHANNEL != 1)
+# error TONE_ALARM_CHANNEL must be a value between 0 and 1
+#endif
+
+
+/* Register accessors */
+
+#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
+
+/* Timer register accessors */
+
+#define REG(_reg)	_REG(TONE_ALARM_TIMER_BASE + (_reg))
+
+#define rSC         REG(KINETIS_TPM_SC_OFFSET)
+#define rCNT        REG(KINETIS_TPM_CNT_OFFSET)
+#define rMOD        REG(KINETIS_TPM_MOD_OFFSET)
+#define rC0SC       REG(KINETIS_TPM_C0SC_OFFSET)
+#define rC0V        REG(KINETIS_TPM_C0V_OFFSET)
+#define rC1SC       REG(KINETIS_TPM_C1SC_OFFSET)
+#define rC1V        REG(KINETIS_TPM_C1V_OFFSET)
+#define rSTATUS     REG(KINETIS_TPM_STATUS_OFFSET)
+#define rCOMBINE    REG(KINETIS_TPM_COMBINE_OFFSET)
+#define rPOL        REG(KINETIS_TPM_POL_OFFSET)
+#define rFILTER     REG(KINETIS_TPM_FILTER_OFFSET)
+#define rQDCTRL     REG(KINETIS_TPM_QDCTRL_OFFSET)
+#define rCONF       REG(KINETIS_TPM_CONF_OFFSET)
+
+/*
+* Specific registers and bits used by Tone Alarm sub-functions
+*/
+
+# define rCNV       CAT3(rC, TONE_ALARM_CHANNEL, V)            /* Channel Value Register used by Tone alarm */
+# define rCNSC      CAT3(rC, TONE_ALARM_CHANNEL, SC)           /* Channel Status and Control Register used by Tone alarm */
+# define STATUS     CAT3(TPM_STATUS_CH, TONE_ALARM_CHANNEL, F) /* Capture and Compare Status Register used by Tone alarm */
 
 #define CBRK_BUZZER_KEY 782097
 
@@ -305,7 +305,7 @@ ToneAlarm::ToneAlarm() :
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr),
-	_cbrk(CBRK_UNINIT)
+	_cbrk(CBRK_OFF)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -361,36 +361,54 @@ ToneAlarm::init()
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 
 #ifdef GPIO_TONE_ALARM_NEG
-
 	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
 #endif
 
-	/* clock/power on our timer */
-	modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
 
-	/* initialise the timer */
-	rCR1 = 0;
-	rCR2 = 0;
-	rSMCR = 0;
-	rDIER = 0;
-	rCCER &= TONE_CCER;		/* unlock CCMR* registers */
-	rCCMR1 = TONE_CCMR1;
-	rCCMR2 = TONE_CCMR2;
-	rCCER = TONE_CCER;
-	rDCR = 0;
+	/* Select a the clock source to the TPM */
 
-#ifdef rBDTR // If using an advanced timer, you need to activate the output
-	rBDTR = ATIM_BDTR_MOE; // enable the main output of the advanced timer
-#endif
+	uint32_t regval = _REG(KINETIS_SIM_SOPT2);
+	regval &= ~(SIM_SOPT2_TPMSRC_MASK);
+	regval |= BOARD_TPM_CLKSRC;
+	_REG(KINETIS_SIM_SOPT2) = regval;
 
-	/* toggle the CC output each time the count passes 1 */
-	TONE_rCCR = 1;
 
-	/* default the timer to a prescale value of 1; playing notes will change this */
-	rPSC = 0;
+	/* Enabled System Clock Gating Control for TPM */
 
-	/* make sure the timer is running */
-	rCR1 = GTIM_CR1_CEN;
+	regval = _REG(KINETIS_SIM_SCGC2);
+	regval |= TONE_ALARM_SIM_SCGC2_TPM;
+	_REG(KINETIS_SIM_SCGC2) = regval;
+
+	/* disable and configure the timer */
+
+	rSC = TPM_SC_TOF;
+
+	rCNT = 0;
+	rMOD = TONE_ALARM_COUNTER_PERIOD - 1;
+
+	rSTATUS   = (TPM_STATUS_TOF | STATUS);
+
+	/* Configure for output compare to toggle on over flow */
+
+	rCNSC     = (TPM_CnSC_CHF | TPM_CnSC_MSA | TPM_CnSC_ELSA);
+
+	rCOMBINE  = 0;
+	rPOL      = 0;
+	rFILTER   = 0;
+	rQDCTRL   = 0;
+	rCONF     = TPM_CONF_DBGMODE_CONT;
+
+	/* toggle the CC output each time the count passes 0 */
+
+	rCNV     = 0;
+
+	/* enable the timer */
+
+	rSC |= (TPM_SC_CMOD_LPTPM_CLK | TONE_ALARM_TIMER_PRESCALE);
+
+
+	/* default the timer to a modulo value of 1; playing notes will change this */
+	rMOD = 0;
 
 	DEVICE_DEBUG("ready");
 	return OK;
@@ -402,12 +420,14 @@ ToneAlarm::note_to_divisor(unsigned note)
 	// compute the frequency first (Hz)
 	float freq = 880.0f * expf(logf(2.0f) * ((int)note - 46) / 12.0f);
 
-	float period = 0.5f / freq;
 
-	// and the divisor, rounded to the nearest integer
-	unsigned divisor = (period * TONE_ALARM_CLOCK) + 0.5f;
+	/* Since we use a toggle, there is an inherent divide by 2
+	 * So we need 2 X frequency or
+	 * div = fTimer / (2 * f)
+	 * div = (fTimer / 2) / f
+	 */
 
-	return divisor;
+	return (TONE_ALARM_TIMER_FREQ >> 1)  / freq;
 }
 
 unsigned
@@ -482,17 +502,10 @@ ToneAlarm::start_note(unsigned note)
 	// compute the divisor
 	unsigned divisor = note_to_divisor(note);
 
-	// pick the lowest prescaler value that we can use
-	// (note that the effective prescale value is 1 greater)
-	unsigned prescale = divisor / 65536;
+	rCNT = 0;
+	rMOD = divisor;		// load new toggle period
 
-	// calculate the timer period for the selected prescaler value
-	unsigned period = (divisor / (prescale + 1)) - 1;
-
-	rPSC = prescale;	// load new prescaler
-	rARR = period;		// load new toggle period
-	rEGR = GTIM_EGR_UG;	// force a reload of the period
-	rCCER |= TONE_CCER;	// enable the output
+	rSC |= (TPM_SC_CMOD_LPTPM_CLK);
 
 	// configure the GPIO to enable timer output
 	px4_arch_configgpio(GPIO_TONE_ALARM);
@@ -502,7 +515,7 @@ void
 ToneAlarm::stop_note()
 {
 	/* stop the current note */
-	rCCER &= ~TONE_CCER;
+	rSC &= ~TPM_SC_CMOD_MASK;
 
 	/*
 	 * Make sure the GPIO is not driving the speaker.
