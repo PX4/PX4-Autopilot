@@ -374,10 +374,10 @@ __BEGIN_DECLS
 /* Tone alarm output PTA11 - TMP 2_CH1 is On +P12-4, -P12-5
  * It is driving a NPN
  */
-#define TONE_ALARM_TIMER    2   /* timer */
-#define TONE_ALARM_CHANNEL  1   /* channel  */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN11)
-#define GPIO_TONE_ALARM			(GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN11)
+#define TONE_ALARM_TIMER     2   /* timer */
+#define TONE_ALARM_CHANNEL   1   /* channel  */
+#define GPIO_TONE_ALARM_IDLE (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN11)
+#define GPIO_TONE_ALARM      (PIN_TPM2_CH1_1)
 
 /* USB
  *
