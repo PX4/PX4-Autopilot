@@ -488,7 +488,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 float
 MissionBlock::get_time_inside(const struct mission_item_s &item)
 {
-	if (item.nav_cmd == NAV_CMD_TAKEOFF) {
+	if (item.nav_cmd != NAV_CMD_TAKEOFF) {
 		return item.time_inside;
 	}
 
