@@ -88,17 +88,16 @@ PARAM_DEFINE_FLOAT(ATT_W_GYRO_BIAS, 0.1f);
  * GPS coordinates of the vehicle.
  *
  * @group Attitude Q estimator
- * @unit degrees
+ * @unit deg
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
 
 /**
- * Enable automatic GPS based declination compensation
+ * Automatic GPS based declination compensation
  *
  * @group Attitude Q estimator
- * @min 0
- * @max 1
+ * @boolean
  */
 PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
 
@@ -108,38 +107,30 @@ PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
  * Set to 2 to use heading from motion capture.
  *
  * @group Attitude Q estimator
+ * @value 0 None
+ * @value 1 Vision
+ * @value 2 Motion Capture
  * @min 0
  * @max 2
  */
 PARAM_DEFINE_INT32(ATT_EXT_HDG_M, 0);
 
 /**
- * Enable acceleration compensation based on GPS
+ * Acceleration compensation based on GPS
  * velocity.
  *
  * @group Attitude Q estimator
- * @min 1
- * @max 2
+ * @boolean
  */
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
 
 /**
  * Gyro bias limit
  *
  * @group Attitude Q estimator
+ * @unit rad/s
  * @min 0
  * @max 2
- * @unit rad/s
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
-
-/**
- * Threshold (of RMS) to warn about high vibration levels
- *
- * @group Attitude Q estimator
- * @min 0.01
- * @max 10
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);

@@ -1,10 +1,15 @@
 #!nsh
 #
-# @name Generic quad delta VTOL.
-#
+# @name Generic quad delta VTOL
 # @type Standard VTOL
-#
 # @maintainer Simon Wilks <simon@uaventure.com>
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output AUX1 Right elevon
+# @output AUX2 Left elevon
+# @output AUX3 Motor
 #
 
 sh /etc/init.d/rc.vtol_defaults
@@ -15,36 +20,40 @@ then
 	param set VT_MOT_COUNT 4
 	param set VT_TRANS_THR 0.75
 
-	param set MC_ROLL_P 7.0
+	param set MC_ROLL_P 6.5
 	param set MC_ROLLRATE_P 0.15
-	param set MC_ROLLRATE_I 0.002
+	param set MC_ROLLRATE_I 0.01
 	param set MC_ROLLRATE_D 0.003
 	param set MC_ROLLRATE_FF 0.0
-	param set MC_PITCH_P 7.0
-	param set MC_PITCHRATE_P 0.12
-	param set MC_PITCHRATE_I 0.002
+	param set MC_PITCH_P 6.5
+	param set MC_PITCHRATE_P 0.15
+	param set MC_PITCHRATE_I 0.01
 	param set MC_PITCHRATE_D 0.003
 	param set MC_PITCHRATE_FF 0.0
-	param set MC_YAW_P 2.8
+	param set MC_YAW_P 3.5
 	param set MC_YAW_FF 0.5
-	param set MC_YAWRATE_P 0.22
-	param set MC_YAWRATE_I 0.02
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
+	param set MC_YAWRATE_MAX 50
+	param set MC_YAWRAUTO_MAX 20
+
+	param set MPC_XY_P 0.8
+	param set MPC_XY_VEL_P 0.1
+	param set MPC_ACC_HOR_MAX 2.0
+
+	param set VT_MOT_COUNT 4
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_TYPE 2
 fi
 
 set MIXER vtol_quad_x
-set PWM_OUT 12345678
+set PWM_OUT 1234
+set PWM_RATE 400
 
 set MIXER_AUX vtol_delta
-set PWM_AUX_RATE 50
-set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1000
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000
+set PWM_ACHDIS 3
+set PWM_AUX_DISARMED 950
 
 set MAV_TYPE 22
-
-param set VT_MOT_COUNT 4
-param set VT_IDLE_PWM_MC 1080
-param set VT_TYPE 2

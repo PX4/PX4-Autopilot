@@ -33,12 +33,11 @@
 px4_add_module(
 	MODULE systemcmds__pwm
 	MAIN pwm
-	STACK 1800
+	STACK_MAIN 2500
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		pwm.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

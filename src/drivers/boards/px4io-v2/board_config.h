@@ -47,10 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* these headers are not C++ safe */
-#include <stm32.h>
-#include <arch/board/board.h>
-
 /******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -79,13 +75,20 @@
 #define GPIO_LED3 (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN13)
 #define GPIO_LED4 (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN11)
 
+#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10)
+
 /* Safety switch button *******************************************************/
 
 #define GPIO_BTN_SAFETY (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|GPIO_PORTB|GPIO_PIN5)
 
 /* Power switch controls ******************************************************/
 
-#define GPIO_SPEKTRUM_PWR_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_SPEKTRUM_PWR_EN         (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_on_true))
+
+#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_one_true))
+#define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_USART1_RX_SPEKTRUM)
 
 #define GPIO_SERVO_FAULT_DETECT (GPIO_INPUT|GPIO_CNF_INPULLUP|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN15)
 
@@ -122,8 +125,8 @@
  */
 #define HRT_TIMER		1	/* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTE|GPIO_PIN9)
+#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 PA8 */
+#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTA|GPIO_PIN8)
 
 /* LED definitions ******************************************************************/
 /* PX4 has two LEDs that we will encode as: */
@@ -136,4 +139,3 @@
 #define LED_SIGNAL        5  /* LED? + LED? */
 #define LED_ASSERTION     6  /* LED? + LED? + LED? */
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
-

@@ -45,7 +45,9 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include <mavlink/mavlink_log.h>
+#include <geo/geo.h>
+
+#include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
@@ -56,9 +58,10 @@
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
+	_param_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_loiter_pos_set(false)
 {
-	/* load initial params */
+	// load initial params
 	updateParams();
 }
 
@@ -69,16 +72,61 @@ Loiter::~Loiter()
 void
 Loiter::on_inactive()
 {
+	_loiter_pos_set = false;
 }
 
 void
 Loiter::on_activation()
 {
-	/* set current mission item to loiter */
+	if (_navigator->get_reposition_triplet()->current.valid) {
+		reposition();
+
+	} else {
+		set_loiter_position();
+	}
+}
+
+void
+Loiter::on_active()
+{
+	if (_navigator->get_reposition_triplet()->current.valid) {
+		reposition();
+	}
+
+	// reset the loiter position if we get disarmed
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		_loiter_pos_set = false;
+	}
+}
+
+void
+Loiter::set_loiter_position()
+{
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED &&
+	    _navigator->get_land_detected()->landed) {
+
+		// Not setting loiter position if disarmed and landed, instead mark the current
+		// setpoint as invalid and idle (both, just to be sure).
+
+		_navigator->set_can_loiter_at_sp(false);
+		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+		_navigator->set_position_setpoint_triplet_updated();
+		_loiter_pos_set = false;
+		return;
+
+	} else if (_loiter_pos_set) {
+		// Already set, nothing to do.
+		return;
+	}
+
+	_loiter_pos_set = true;
+
+	// set current mission item to loiter
 	set_loiter_item(&_mission_item, _param_min_alt.get());
 
-	/* convert mission item to current setpoint */
+	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.velocity_valid = false;
 	pos_sp_triplet->previous.valid = false;
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
@@ -89,6 +137,48 @@ Loiter::on_activation()
 }
 
 void
-Loiter::on_active()
+Loiter::reposition()
 {
+	// we can't reposition if we are not armed yet
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		return;
+	}
+
+	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
+
+	if (rep->current.valid) {
+		// set loiter position based on reposition command
+
+		// convert mission item to current setpoint
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		pos_sp_triplet->current.velocity_valid = false;
+		pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
+		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
+		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
+		pos_sp_triplet->next.valid = false;
+
+		// set yaw
+
+		float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
+				    _navigator->get_global_position()->lon,
+				    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
+
+		if (travel_dist > 1.0f) {
+			// calculate direction the vehicle should point to.
+			pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
+							      _navigator->get_global_position()->lat,
+							      _navigator->get_global_position()->lon,
+							      pos_sp_triplet->current.lat,
+							      pos_sp_triplet->current.lon);
+		}
+
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
+		_navigator->set_position_setpoint_triplet_updated();
+
+		// mark this as done
+		memset(rep, 0, sizeof(*rep));
+	}
 }

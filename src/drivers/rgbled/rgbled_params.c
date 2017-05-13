@@ -50,5 +50,6 @@
  *
  * @min 0
  * @max 15
+ * @group System
  */
 PARAM_DEFINE_INT32(LED_RGB_MAXBRT, 15);

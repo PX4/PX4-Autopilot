@@ -32,24 +32,24 @@
 ############################################################################
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Tools/generate_listener.py ${CMAKE_SOURCE_DIR} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_listener.py ${PX4_SOURCE_DIR} > topic_listener.cpp
+                DEPENDS msg_gen
                 )
 
 add_custom_target(generate_topic_listener
 	DEPENDS
 		topic_listener.cpp
-		${CMAKE_SOURCE_DIR}/Tools/generate_listener.py)
+		${PX4_SOURCE_DIR}/Tools/generate_listener.py)
 
 px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
-	STACK 1800
+	STACK_MAIN 1800
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		topic_listener.cpp
 	DEPENDS
 		platforms__common
 		generate_topic_listener
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

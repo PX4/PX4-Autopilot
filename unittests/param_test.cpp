@@ -1,4 +1,3 @@
-#include <systemlib/visibility.h>
 #include <systemlib/param/param.h>
 
 #include "gtest/gtest.h"
@@ -39,21 +38,23 @@ void _add_parameters()
 	};
 	rc2_x.val.i = 16;
 
-	param_array[0] = test_1;
-	param_array[1] = test_2;
-	param_array[2] = rc_x;
-	param_array[3] = rc2_x;
+	param_array[0] = rc_x;
+	param_array[1] = rc2_x;
+	param_array[2] = test_1;
+	param_array[3] = test_2;
 	param_info_base = (struct param_info_s *) &param_array[0];
-	param_info_limit = (struct param_info_s *) &param_array[4]; 	// needs to point at the end of the data,
-	// therefore number of params + 1
+	// needs to point at the end of the data,
+	//  therefore number of params + 1
+	param_info_limit = (struct param_info_s *) &param_array[4];
+
 }
 
 void _assert_parameter_int_value(param_t param, int32_t expected)
 {
 	int32_t value;
 	int result = param_get(param, &value);
-	ASSERT_EQ(0, result) << printf("param_get (%lu) did not return parameter\n", param);
-	ASSERT_EQ(expected, value) << printf("value for param (%lu) doesn't match default value\n", param);
+	ASSERT_EQ(0, result) << printf("param_get (%i) did not return parameter\n", (int)param);
+	ASSERT_EQ(expected, value) << printf("value for param (%i) doesn't match default value\n", (int)param);
 }
 
 void _set_all_int_parameters_to(int32_t value)
@@ -89,10 +90,10 @@ TEST(ParamTest, ResetAll)
 
 	param_reset_all();
 
-	_assert_parameter_int_value((param_t)0, 2);
-	_assert_parameter_int_value((param_t)1, 4);
-	_assert_parameter_int_value((param_t)2, 8);
-	_assert_parameter_int_value((param_t)3, 16);
+	_assert_parameter_int_value((param_t)0, 8);
+	_assert_parameter_int_value((param_t)1, 16);
+	_assert_parameter_int_value((param_t)2, 2);
+	_assert_parameter_int_value((param_t)3, 4);
 }
 
 TEST(ParamTest, ResetAllExcludesOne)
@@ -103,10 +104,10 @@ TEST(ParamTest, ResetAllExcludesOne)
 	const char *excludes[] = {"RC_X"};
 	param_reset_excludes(excludes, 1);
 
-	_assert_parameter_int_value((param_t)0, 2);
-	_assert_parameter_int_value((param_t)1, 4);
-	_assert_parameter_int_value((param_t)2, 50);
-	_assert_parameter_int_value((param_t)3, 16);
+	_assert_parameter_int_value((param_t)0, 50);
+	_assert_parameter_int_value((param_t)1, 16);
+	_assert_parameter_int_value((param_t)2, 2);
+	_assert_parameter_int_value((param_t)3, 4);
 }
 
 TEST(ParamTest, ResetAllExcludesTwo)
@@ -118,9 +119,9 @@ TEST(ParamTest, ResetAllExcludesTwo)
 	param_reset_excludes(excludes, 2);
 
 	_assert_parameter_int_value((param_t)0, 50);
-	_assert_parameter_int_value((param_t)1, 4);
+	_assert_parameter_int_value((param_t)1, 16);
 	_assert_parameter_int_value((param_t)2, 50);
-	_assert_parameter_int_value((param_t)3, 16);
+	_assert_parameter_int_value((param_t)3, 4);
 }
 
 TEST(ParamTest, ResetAllExcludesBoundaryCheck)
@@ -131,10 +132,10 @@ TEST(ParamTest, ResetAllExcludesBoundaryCheck)
 	const char *excludes[] = {"RC_X", "TEST_1"};
 	param_reset_excludes(excludes, 1);
 
-	_assert_parameter_int_value((param_t)0, 2);
-	_assert_parameter_int_value((param_t)1, 4);
-	_assert_parameter_int_value((param_t)2, 50);
-	_assert_parameter_int_value((param_t)3, 16);
+	_assert_parameter_int_value((param_t)0, 50);
+	_assert_parameter_int_value((param_t)1, 16);
+	_assert_parameter_int_value((param_t)2, 2);
+	_assert_parameter_int_value((param_t)3, 4);
 }
 
 TEST(ParamTest, ResetAllExcludesWildcard)
@@ -145,8 +146,8 @@ TEST(ParamTest, ResetAllExcludesWildcard)
 	const char *excludes[] = {"RC*"};
 	param_reset_excludes(excludes, 1);
 
-	_assert_parameter_int_value((param_t)0, 2);
-	_assert_parameter_int_value((param_t)1, 4);
-	_assert_parameter_int_value((param_t)2, 50);
-	_assert_parameter_int_value((param_t)3, 50);
+	_assert_parameter_int_value((param_t)0, 50);
+	_assert_parameter_int_value((param_t)1, 50);
+	_assert_parameter_int_value((param_t)2, 2);
+	_assert_parameter_int_value((param_t)3, 4);
 }

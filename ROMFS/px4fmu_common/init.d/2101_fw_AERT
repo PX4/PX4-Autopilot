@@ -6,8 +6,8 @@
 #
 # @output MAIN1 aileron
 # @output MAIN2 elevator
-# @output MAIN4 rudder
-# @output MAIN3 throttle
+# @output MAIN3 rudder
+# @output MAIN4 throttle
 # @output MAIN5 flaps
 #
 # @output AUX1 feed-through of RC AUX1 channel
@@ -21,6 +21,5 @@ sh /etc/init.d/rc.fw_defaults
 
 set MIXER AERT
 
-# The ESC requires a specific pulse to arm.
+# use PWM parameters for throttle channel
 set PWM_OUT 4
-set PWM_DISARMED p:PWM_DISARMED

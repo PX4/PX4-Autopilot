@@ -4,36 +4,41 @@
 # att & pos estimator, att & pos control.
 #
 
-# The system is defaulting to INAV_ENABLED = 1
-# but users can alternatively try the EKF-based
-# filter by setting INAV_ENABLED = 0
-if param compare INAV_ENABLED 1
+
+#---------------------------------------
+# Estimator group selction
+#
+# INAV (deprecated)
+if param compare SYS_MC_EST_GROUP 0
 then
-	attitude_estimator_q start
-	position_estimator_inav start
-else
-	if param compare LPE_ENABLED 1
+	echo "ERROR [init] Estimator INAV deprecated. Using LPE"
+	param set SYS_MC_EST_GROUP 1
+	param save
+fi
+
+# LPE
+if param compare SYS_MC_EST_GROUP 1
+then
+	# Try to start LPE. If it fails, start EKF2 as a default
+	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
+	if attitude_estimator_q start
 	then
-		attitude_estimator_q start
 		local_position_estimator start
 	else
-		ekf_att_pos_estimator start
+		ekf2 start
 	fi
 fi
 
-if mc_att_control start
+# EKF
+if param compare SYS_MC_EST_GROUP 2
 then
-else
-	# try the multiplatform version
-	mc_att_control_m start
+	ekf2 start
 fi
+#---------------------------------------
 
-if mc_pos_control start
-then
-else
-	# try the multiplatform version
-	mc_pos_control_m start
-fi
+mc_att_control start
+
+mc_pos_control start
 
 #
 # Start Land Detector

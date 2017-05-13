@@ -38,6 +38,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -123,12 +124,6 @@ enum HMC5883_BUS {
 	HMC5883_BUS_SPI
 };
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -145,6 +140,11 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void			stop();
+
+	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
@@ -157,7 +157,7 @@ private:
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
-	mag_scale		_scale;
+	struct mag_calibration_s	_scale;
 	float 			_range_scale;
 	float 			_range_ga;
 	bool			_collect_phase;
@@ -168,7 +168,6 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 	perf_counter_t		_range_errors;
 	perf_counter_t		_conf_errors;
 
@@ -192,11 +191,6 @@ private:
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
 	void			start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void			stop();
 
 	/**
 	 * Reset the device
@@ -356,16 +350,15 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_reports(nullptr),
 	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
-	_range_ga(1.3f),
+	_range_ga(1.9f),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
-	_range_errors(perf_alloc(PC_COUNT, "hmc5883_range_errors")),
-	_conf_errors(perf_alloc(PC_COUNT, "hmc5883_conf_errors")),
+	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_com_err")),
+	_range_errors(perf_alloc(PC_COUNT, "hmc5883_rng_err")),
+	_conf_errors(perf_alloc(PC_COUNT, "hmc5883_conf_err")),
 	_sensor_ok(false),
 	_calibrated(false),
 	_rotation(rotation),
@@ -375,6 +368,10 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
+	// set the device type from the interface
+	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
+	_device_id.devid_s.bus = _interface->get_device_bus();
+	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 
 	// enable debug() calls
@@ -408,7 +405,6 @@ HMC5883::~HMC5883()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
 }
@@ -416,7 +412,7 @@ HMC5883::~HMC5883()
 int
 HMC5883::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	ret = CDev::init();
 
@@ -698,14 +694,14 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -737,14 +733,14 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
-		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
 		/* check calibration, but not actually return an error */
 		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
-		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
 	case MAGIOCCALIBRATE:
@@ -762,9 +758,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCSTEMPCOMP:
 		return set_temperature_compensation(arg);
-
-	case DEVIOCGDEVICEID:
-		return _interface->ioctl(cmd, dummy);
 
 	default:
 		/* give it to the superclass */
@@ -786,14 +779,18 @@ HMC5883::start()
 void
 HMC5883::stop()
 {
-	work_cancel(HPWORK, &_work);
+	if (_measure_ticks > 0) {
+		/* ensure no new items are queued while we cancel this one */
+		_measure_ticks = 0;
+		work_cancel(HPWORK, &_work);
+	}
 }
 
 int
 HMC5883::reset()
 {
-	/* set range */
-	return set_range(_range_ga);
+	/* set range, ceil floating point number */
+	return set_range(_range_ga + 0.5f);
 }
 
 void
@@ -807,6 +804,10 @@ HMC5883::cycle_trampoline(void *arg)
 void
 HMC5883::cycle()
 {
+	if (_measure_ticks == 0) {
+		return;
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -845,12 +846,14 @@ HMC5883::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HMC5883::cycle_trampoline,
-		   this,
-		   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+	if (_measure_ticks > 0) {
+		/* schedule a fresh cycle call when the measurement is done */
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&HMC5883::cycle_trampoline,
+			   this,
+			   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+	}
 }
 
 int
@@ -898,6 +901,9 @@ HMC5883::collect()
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = _range_ga;
+	new_report.scaling = _range_scale;
+	new_report.device_id = _device_id.devid;
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
@@ -1034,9 +1040,7 @@ HMC5883::collect()
 	_last_report = new_report;
 
 	/* post a report to the ring */
-	if (_reports->force(&new_report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&new_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1075,23 +1079,21 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	// XXX do something smarter here
 	int fd = (int)enable;
 
-	struct mag_scale mscale_previous = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct mag_calibration_s mscale_previous;
+	mscale_previous.x_offset = 0.0f;
+	mscale_previous.x_scale = 1.0f;
+	mscale_previous.y_offset = 0.0f;
+	mscale_previous.y_scale = 1.0f;
+	mscale_previous.z_offset = 0.0f;
+	mscale_previous.z_scale = 1.0f;
 
-	struct mag_scale mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
+	struct mag_calibration_s mscale_null;
+	mscale_null.x_offset = 0.0f;
+	mscale_null.x_scale = 1.0f;
+	mscale_null.y_offset = 0.0f;
+	mscale_null.y_scale = 1.0f;
+	mscale_null.z_offset = 0.0f;
+	mscale_null.z_scale = 1.0f;
 
 	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
 
@@ -1104,7 +1106,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		warn("FAILED: SENSORIOCSPOLLRATE 2Hz");
+		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
 		ret = 1;
 		goto out;
 	}
@@ -1112,7 +1114,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
 	 * the chained if statement above. */
 	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
-		warnx("FAILED: MAGIOCSRANGE 3.3 Ga");
+		warnx("FAILED: MAGIOCSRANGE 2.5 Ga");
 		ret = 1;
 		goto out;
 	}
@@ -1159,8 +1161,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		}
 	}
 
-	/* read the sensor up to 100x, stopping when we have 30 good values */
-	for (uint8_t i = 0; i < 100 && good_count < 30; i++) {
+	/* read the sensor up to 150x, stopping when we have 50 good values */
+	for (uint8_t i = 0; i < 150 && good_count < 50; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1187,9 +1189,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 				fabsf(expected_cal[2] / report.z)
 			       };
 
-		if (cal[0] > 0.7f && cal[0] < 1.35f &&
-		    cal[1] > 0.7f && cal[1] < 1.35f &&
-		    cal[2] > 0.7f && cal[2] < 1.35f) {
+		if (cal[0] > 0.3f && cal[0] < 1.7f &&
+		    cal[1] > 0.3f && cal[1] < 1.7f &&
+		    cal[2] > 0.3f && cal[2] < 1.7f) {
 			good_count++;
 			sum_excited[0] += cal[0];
 			sum_excited[1] += cal[1];
@@ -1222,9 +1224,9 @@ out:
 	}
 
 	/* set back to normal mode */
-	/* Set to 1.1 Gauss */
-	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("FAILED: MAGIOCSRANGE 1.1 Ga");
+	/* Set to 1.9 Gauss */
+	if (OK != ::ioctl(fd, MAGIOCSRANGE, 2)) {
+		warnx("FAILED: MAGIOCSRANGE 1.9 Ga");
 	}
 
 	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
@@ -1235,7 +1237,7 @@ out:
 		if (check_scale()) {
 			/* failed */
 			warnx("FAILED: SCALE");
-			ret = ERROR;
+			ret = PX4_ERROR;
 		}
 
 	}
@@ -1285,8 +1287,6 @@ int HMC5883::check_calibration()
 	bool scale_valid  = (check_scale() == OK);
 
 	if (_calibrated != (offset_valid && scale_valid)) {
-		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-		      (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
 	}
 
@@ -1421,7 +1421,6 @@ HMC5883::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
@@ -1438,12 +1437,6 @@ HMC5883::print_info()
 namespace hmc5883
 {
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
-
 /*
   list of supported bus configurations
  */
@@ -1455,6 +1448,12 @@ struct hmc5883_bus_option {
 	HMC5883	*dev;
 } bus_options[] = {
 	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext1", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ HMC5883_BUS_I2C_EXTERNAL, "/dev/hmc5883_ext2", &HMC5883_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ HMC5883_BUS_I2C_INTERNAL, "/dev/hmc5883_int", &HMC5883_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
@@ -1465,6 +1464,7 @@ struct hmc5883_bus_option {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 void	start(enum HMC5883_BUS busid, enum Rotation rotation);
+int		stop();
 bool	start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation);
 struct hmc5883_bus_option &find_bus(enum HMC5883_BUS busid);
 void	test(enum HMC5883_BUS busid);
@@ -1488,7 +1488,7 @@ start_bus(struct hmc5883_bus_option &bus, enum Rotation rotation)
 
 	if (interface->init() != OK) {
 		delete interface;
-		warnx("no device on bus %u", (unsigned)bus.busid);
+		warnx("no device on bus %u (type: %u)", (unsigned)bus.busnum, (unsigned)bus.busid);
 		return false;
 	}
 
@@ -1545,6 +1545,23 @@ start(enum HMC5883_BUS busid, enum Rotation rotation)
 	if (!started) {
 		exit(1);
 	}
+}
+
+int
+stop()
+{
+	bool stopped = false;
+
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (bus_options[i].dev != nullptr) {
+			bus_options[i].dev->stop();
+			delete bus_options[i].dev;
+			bus_options[i].dev = nullptr;
+			stopped = true;
+		}
+	}
+
+	return !stopped;
 }
 
 /**
@@ -1789,6 +1806,11 @@ hmc5883_main(int argc, char *argv[])
 	bool calibrate = false;
 	bool temp_compensation = false;
 
+	if (argc < 2) {
+		hmc5883::usage();
+		exit(0);
+	}
+
 	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
 		switch (ch) {
 		case 'R':
@@ -1842,6 +1864,13 @@ hmc5883_main(int argc, char *argv[])
 		}
 
 		exit(0);
+	}
+
+	/*
+	 * Stop the driver
+	 */
+	if (!strcmp(verb, "stop")) {
+		return hmc5883::stop();
 	}
 
 	/*

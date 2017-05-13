@@ -54,7 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -108,7 +108,7 @@ int test_rc(int argc, char *argv[])
 					for (unsigned i = 0; i < rc_input.channel_count; i++) {
 						if (abs(rc_input.values[i] - rc_last.values[i]) > 20) {
 							PX4_ERR("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
-							(void)close(_rc_sub);
+							(void)orb_unsubscribe(_rc_sub);
 							return ERROR;
 						}
 
@@ -117,13 +117,13 @@ int test_rc(int argc, char *argv[])
 
 					if (rc_last.channel_count != rc_input.channel_count) {
 						PX4_ERR("channel count mismatch: last: %d, now: %d", rc_last.channel_count, rc_input.channel_count);
-						(void)close(_rc_sub);
+						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;
 					}
 
 					if (hrt_absolute_time() - rc_input.timestamp_last_signal > 100000) {
 						PX4_ERR("TIMEOUT, less than 10 Hz updates");
-						(void)close(_rc_sub);
+						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;
 					}
 

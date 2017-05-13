@@ -41,6 +41,8 @@
 
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 
 #include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
 #include <uavcan/protocol/node_info_retriever.hpp>
@@ -55,6 +57,7 @@
 #include <uavcan/protocol/enumeration/Begin.hpp>
 #include <uavcan/protocol/enumeration/Indication.hpp>
 
+#include "uavcan_module.hpp"
 #include "uavcan_virtual_can_driver.hpp"
 
 /**
@@ -66,39 +69,21 @@
  * @author David Sidrane <david_s5@nscdg.com>
  */
 
-#define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
-#define UAVCAN_NODE_DB_PATH     "/fs/microsd/uavcan.db"
-#define UAVCAN_FIRMWARE_PATH    "/fs/microsd/fw"
-#define UAVCAN_ROMFS_FW_PATH "/etc/uavcan/fw"
-#define UAVCAN_ROMFS_FW_PREFIX "romfs_"
-#define UAVCAN_MAX_PATH_LENGTH (128 + 40)
-#define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH"/trace.log"
-
 /**
  * A UAVCAN Server Sub node.
  */
-class UavcanServers
+class __EXPORT UavcanServers
 {
 	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
-
-	static constexpr unsigned MemPoolSize = 64 * uavcan::MemPoolBlockSize;
-
-	static constexpr unsigned MaxCanFramesPerTransfer   =  63;
-
-	/**
-	 * This number is based on the worst case max number of frames per interface. With
-	 * MemPoolBlockSize set at 48 this is 6048 Bytes.
-	 *
-	 * The servers can be forced to use the primary interface only, this can be achieved simply by passing
-	 * 1 instead of UAVCAN_STM32_NUM_IFACES into the constructor of the virtual CAN driver.
-	 */
-	static constexpr unsigned QueuePoolSize =
-		(NumIfaces * uavcan::MemPoolBlockSize * MaxCanFramesPerTransfer);
 
 	static constexpr unsigned StackSize  = 6000;
 	static constexpr unsigned Priority  =  120;
 
-	typedef uavcan::SubNode<MemPoolSize> SubNode;
+	static constexpr unsigned VirtualIfaceBlockAllocationQuota =  80;
+
+	static constexpr float BeepFrequencyGenericIndication       = 1000.0F;
+	static constexpr float BeepFrequencySuccess                 = 2000.0F;
+	static constexpr float BeepFrequencyError                   = 100.0F;
 
 public:
 	UavcanServers(uavcan::INode &main_node);
@@ -108,7 +93,7 @@ public:
 	static int      start(uavcan::INode &main_node);
 	static int      stop();
 
-	SubNode         &get_node() { return _subnode; }
+	uavcan::SubNode<> &get_node() { return _subnode; }
 
 	static UavcanServers *instance() { return _instance; }
 
@@ -121,9 +106,12 @@ public:
 
 	void requestCheckAllNodesFirmwareAndUpdate() { _check_fw = true; }
 
+	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
+
 private:
 	pthread_t         _subnode_thread;
 	pthread_mutex_t   _subnode_mutex;
+	volatile bool     _subnode_thread_should_exit = false;
 
 	int		init();
 
@@ -131,18 +119,16 @@ private:
 
 	static UavcanServers	*_instance;            ///< singleton pointer
 
-	typedef VirtualCanDriver<QueuePoolSize> vCanDriver;
+	VirtualCanDriver _vdriver;
 
-	vCanDriver    _vdriver;
-
-	uavcan::SubNode<MemPoolSize>  _subnode;   ///< library instance
-	uavcan::INode                &_main_node; ///< library instance
+	uavcan::SubNode<>  _subnode;
+	uavcan::INode      &_main_node;
 
 	uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
 	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;
 	uavcan_posix::FirmwareVersionChecker _fw_version_checker;
 	uavcan::dynamic_node_id_server::CentralizedServer _server_instance;  ///< server singleton pointer
-	uavcan_posix::BasicFileSeverBackend  _fileserver_backend;
+	uavcan_posix::BasicFileServerBackend  _fileserver_backend;
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 	uavcan::FirmwareUpdateTrigger   _fw_upgrade_trigger;
 	uavcan::BasicFileServer         _fw_server;
@@ -158,23 +144,24 @@ private:
 	 *
 	 * The node's UAVCAN ID is used as the index into the _param_counts array.
 	 */
-	uint8_t _param_counts[128];
-	bool _count_in_progress;
-	uint8_t _count_index;
+	uint8_t _param_counts[128] = {};
+	bool _count_in_progress = false;
+	uint8_t _count_index = 0;
 
-	bool _param_in_progress;
-	uint8_t _param_index;
-	bool _param_list_in_progress;
-	bool _param_list_all_nodes;
-	uint8_t _param_list_node_id;
+	bool _param_in_progress = false;
+	uint8_t _param_index = 0;
+	bool _param_list_in_progress = false;
+	bool _param_list_all_nodes = false;
+	uint8_t _param_list_node_id = 1;
 
-	uint32_t _param_dirty_bitmap[4];
-	uint8_t _param_save_opcode;
+	uint32_t _param_dirty_bitmap[4] = {};
+	uint8_t _param_save_opcode = 0;
 
-	bool _cmd_in_progress;
+	bool _cmd_in_progress = false;
 
 	// uORB topic handle for MAVLink parameter responses
-	orb_advert_t _param_response_pub;
+	orb_advert_t _param_response_pub = nullptr;
+	orb_advert_t _command_ack_pub = nullptr;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
@@ -199,15 +186,16 @@ private:
 	void clear_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] &= ~(1 << (node_id & 31)); }
 	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
 
-	bool _mutex_inited;
-	volatile bool _check_fw;
+	void beep(float frequency);
+
+	bool _mutex_inited = false;
+	volatile bool _check_fw = false;
 
 	// ESC enumeration
-	bool _esc_enumeration_active;
+	bool _esc_enumeration_active = false;
 	uint8_t _esc_enumeration_ids[uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize];
-	uint8_t _esc_enumeration_index;
-	uint8_t _esc_set_index;
-	uint8_t _esc_count;
+	uint8_t _esc_enumeration_index = 0;
+	uint8_t _esc_count = 0;
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &)> EnumerationBeginCallback;

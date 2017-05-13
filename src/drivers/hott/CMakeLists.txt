@@ -30,14 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+list(APPEND MODULE_CFLAGS -Wframe-larger-than=1100)
 px4_add_module(
 	MODULE drivers__hott
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		messages.cpp
 		comms.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

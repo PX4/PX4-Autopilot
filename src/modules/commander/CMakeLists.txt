@@ -30,17 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(MODULE_CFLAGS -Os)
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=2450)
-endif()
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
-	STACK 1200
+	STACK_MAIN 4096
+	STACK_MAX 2450
 	COMPILE_FLAGS
-		${MODULE_CFLAGS}
-		-Os
 	SRCS
 		commander.cpp
 		state_machine_helper.cpp
@@ -57,4 +52,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

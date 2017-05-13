@@ -36,6 +36,8 @@
  *
  * RC calibration check
  */
+#include <stdbool.h>
+#include <uORB/uORB.h>
 
 #pragma once
 
@@ -47,6 +49,6 @@ __BEGIN_DECLS
  * @return			0 / OK if RC calibration is ok, index + 1 of the first
  *				channel that failed else (so 1 == first channel failed)
  */
-__EXPORT int	rc_calibration_check(int mavlink_fd);
+__EXPORT int	rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);
 
 __END_DECLS

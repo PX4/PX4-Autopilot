@@ -38,57 +38,29 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include "geofence.h"
+#include "navigator.h"
 
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <string.h>
-#include <dataman/dataman.h>
-#include <systemlib/err.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <ctype.h>
-#include <px4_config.h>
-#include <unistd.h>
-#include <mavlink/mavlink_log.h>
-#include <geo/geo.h>
+
+#include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
+#include <geo/geo.h>
+#include <systemlib/mavlink_log.h>
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 3000000
+#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
-Geofence::Geofence() :
-	SuperBlock(NULL, "GF"),
-	_fence_pub(nullptr),
-	_home_pos{},
-	_home_pos_set(false),
-	_last_horizontal_range_warning(0),
-	_last_vertical_range_warning(0),
-	_altitude_min(0),
-	_altitude_max(0),
-	_vertices_count(0),
-	_param_action(this, "ACTION"),
-	_param_altitude_mode(this, "ALTMODE"),
-	_param_source(this, "SOURCE"),
-	_param_counter_threshold(this, "COUNT"),
-	_param_max_hor_distance(this, "MAX_HOR_DIST"),
-	_param_max_ver_distance(this, "MAX_VER_DIST"),
-	_outside_counter(0),
-	_mavlinkFd(-1)
+Geofence::Geofence(Navigator *navigator) :
+	SuperBlock(navigator, "GF"),
+	_navigator(navigator),
+	_param_action(this, "GF_ACTION", false),
+	_param_altitude_mode(this, "GF_ALTMODE", false),
+	_param_source(this, "GF_SOURCE", false),
+	_param_counter_threshold(this, "GF_COUNT", false),
+	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
+	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false)
 {
-	/* Load initial params */
 	updateParams();
 }
-
-Geofence::~Geofence()
-{
-
-}
-
 
 bool Geofence::inside(const struct vehicle_global_position_s &global_position)
 {
@@ -100,16 +72,9 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position, f
 	return inside(global_position.lat, global_position.lon, baro_altitude_amsl);
 }
 
-
 bool Geofence::inside(const struct vehicle_global_position_s &global_position,
-		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
-		      const struct home_position_s home_pos, bool home_position_set)
+		      const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl)
 {
-	updateParams();
-
-	_home_pos = home_pos;
-	_home_pos_set = home_position_set;
-
 	if (getAltitudeMode() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 			return inside(global_position);
@@ -130,42 +95,53 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 	}
 }
 
+bool Geofence::inside(const struct mission_item_s &mission_item)
+{
+	return inside(mission_item.lat, mission_item.lon, mission_item.altitude);
+}
+
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-		int32_t max_horizontal_distance = _param_max_hor_distance.get();
-		int32_t max_vertical_distance = _param_max_ver_distance.get();
+	bool inside_fence = true;
 
-		if (max_horizontal_distance > 0 || max_vertical_distance > 0) {
-			if (_home_pos_set) {
-				float dist_xy = -1.0f;
-				float dist_z = -1.0f;
-				get_distance_to_point_global_wgs84(lat, lon, altitude,
-								   _home_pos.lat, _home_pos.lon, _home_pos.alt,
-								   &dist_xy, &dist_z);
+	if (isHomeRequired() && _navigator->home_position_valid()) {
 
-				if (max_vertical_distance > 0 && (dist_z > max_vertical_distance)) {
-					if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max vertical distance by %.1f m",
-								     (double)(dist_z - max_vertical_distance));
-						_last_vertical_range_warning = hrt_absolute_time();
-					}
+		const float max_horizontal_distance = _param_max_hor_distance.get();
+		const float max_vertical_distance = _param_max_ver_distance.get();
 
-					return false;
-				}
+		const double home_lat = _navigator->get_home_position()->lat;
+		const double home_lon = _navigator->get_home_position()->lon;
+		const double home_alt = _navigator->get_home_position()->alt;
 
-				if (max_horizontal_distance > 0 && (dist_xy > max_horizontal_distance)) {
-					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-						mavlink_and_console_log_critical(_mavlinkFd, "Geofence exceeded max horizontal distance by %.1f m",
-								     (double)(dist_xy - max_horizontal_distance));
-						_last_horizontal_range_warning = hrt_absolute_time();
-					}
+		float dist_xy = -1.0f;
+		float dist_z = -1.0f;
 
-					return false;
-				}
+		get_distance_to_point_global_wgs84(lat, lon, altitude, home_lat, home_lon, home_alt, &dist_xy, &dist_z);
+
+		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
+			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum altitude above home exceeded by %.1f m",
+						     (double)(dist_z - max_vertical_distance));
+				_last_vertical_range_warning = hrt_absolute_time();
 			}
+
+			inside_fence = false;
 		}
 
-	bool inside_fence = inside_polygon(lat, lon, altitude);
+		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
+			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum distance from home exceeded by %.1f m",
+						     (double)(dist_xy - max_horizontal_distance));
+				_last_horizontal_range_warning = hrt_absolute_time();
+			}
+
+			inside_fence = false;
+		}
+	}
+
+	// to be inside the geofence both fences have to report being inside
+	// as they both report being inside when not enabled
+	inside_fence = inside_fence && inside_polygon(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;
@@ -183,11 +159,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 	}
 }
 
-
 bool Geofence::inside_polygon(double lat, double lon, float altitude)
 {
 	if (valid()) {
-
 		if (!isEmpty()) {
 			/* Vertical check */
 			if (altitude > _altitude_max || altitude < _altitude_min) {
@@ -319,7 +293,7 @@ Geofence::loadFromFile(const char *filename)
 	int			pointCounter = 0;
 	bool		gotVertical = false;
 	const char commentChar = '#';
-	int rc = ERROR;
+	int rc = PX4_ERROR;
 
 	/* Make sure no data is left in the datamanager */
 	clearDm();
@@ -327,14 +301,14 @@ Geofence::loadFromFile(const char *filename)
 	/* open the mixer definition file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
-	if (fp == NULL) {
-		return ERROR;
+	if (fp == nullptr) {
+		return PX4_ERROR;
 	}
 
 	/* create geofence points from valid lines and store in DM */
 	for (;;) {
 		/* get a line, bail on error/EOF */
-		if (fgets(line, sizeof(line), fp) == NULL) {
+		if (fgets(line, sizeof(line), fp) == nullptr) {
 			break;
 		}
 
@@ -403,12 +377,12 @@ Geofence::loadFromFile(const char *filename)
 	if (gotVertical && pointCounter > 0) {
 		_vertices_count = pointCounter;
 		warnx("Geofence: imported successfully");
-		mavlink_log_info(_mavlinkFd, "Geofence imported");
-		rc = OK;
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported");
+		rc = PX4_OK;
 
 	} else {
 		warnx("Geofence: import error");
-		mavlink_log_critical(_mavlinkFd, "Geofence import error");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence import error");
 	}
 
 error:
@@ -419,5 +393,14 @@ error:
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
-	return OK;
+	return PX4_OK;
+}
+
+bool Geofence::isHomeRequired()
+{
+	bool max_horizontal_enabled = (_param_max_hor_distance.get() > FLT_EPSILON);
+	bool max_vertical_enabled = (_param_max_ver_distance.get() > FLT_EPSILON);
+	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
+
+	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
 }

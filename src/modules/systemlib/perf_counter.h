@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,7 +64,9 @@ __BEGIN_DECLS
  * @return			Handle for the new counter, or NULL if a counter
  *				could not be allocated.
  */
+#ifndef perf_alloc	// perf_alloc might be defined to be NULL in src/modules/px4iofirmware/px4io.h
 __EXPORT extern perf_counter_t	perf_alloc(enum perf_counter_type type, const char *name);
+#endif
 
 /**
  * Get the reference to an existing counter or create a new one if it does not exist.
@@ -122,7 +124,17 @@ __EXPORT extern void		perf_end(perf_counter_t handle);
  * @param handle		The handle returned from perf_alloc.
  * @param elapsed		The time elapsed. Negative values lead to incrementing the overrun counter.
  */
-__EXPORT extern void		perf_set(perf_counter_t handle, int64_t elapsed);
+__EXPORT extern void		perf_set_elapsed(perf_counter_t handle, int64_t elapsed);
+
+/**
+ * Set a counter
+ *
+ * This call applies to counters of type PC_COUNT. It (re-)sets the count.
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param count			The counter value to be set.
+ */
+__EXPORT extern void		perf_set_count(perf_counter_t handle, uint64_t count);
 
 /**
  * Cancel a performance event.
@@ -159,11 +171,36 @@ __EXPORT extern void		perf_print_counter(perf_counter_t handle);
 __EXPORT extern void		perf_print_counter_fd(int fd, perf_counter_t handle);
 
 /**
+ * Print one performance counter to a buffer.
+ *
+ * @param buffer			buffer to write to
+ * @param length			buffer length
+ * @param handle			The counter to print.
+ * @param return			number of bytes written
+ */
+__EXPORT extern int		perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle);
+
+/**
  * Print all of the performance counters.
  *
  * @param fd			File descriptor to print to - e.g. 0 for stdout
  */
 __EXPORT extern void		perf_print_all(int fd);
+
+
+typedef void (*perf_callback)(perf_counter_t handle, void *user);
+
+/**
+ * Iterate over all performance counters using a callback.
+ *
+ * Caution: This will aquire the mutex, so do not call any other perf_* method
+ * that aquire the mutex as well from the callback (If this is needed, configure
+ * the mutex to be reentrant).
+ *
+ * @param cb callback method
+ * @param user custom argument for the callback
+ */
+__EXPORT extern void	perf_iterate_all(perf_callback cb, void *user);
 
 /**
  * Print hrt latency counters.

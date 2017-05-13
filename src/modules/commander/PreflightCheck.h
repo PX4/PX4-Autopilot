@@ -39,6 +39,8 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
+#include <drivers/drv_hrt.h>
+
 #pragma once
 
 namespace Commander
@@ -49,8 +51,8 @@ namespace Commander
 * The function won't fail the test if optional sensors are not found, however,
 * it will fail the test if optional sensors are found but not in working condition.
 *
-* @param mavlink_fd
-*   Mavlink output file descriptor for feedback when a sensor fails
+* @param mavlink_log_pub
+*   Mavlink output orb handle reference for feedback when a sensor fails
 * @param checkMag
 *   true if the magneteometer should be checked
 * @param checkAcc
@@ -66,8 +68,9 @@ namespace Commander
 * @param checkGNSS
 *   true if the GNSS receiver should be checked
 **/
-bool preflightCheck(int mavlink_fd, bool checkMag, bool checkAcc,
-    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS, bool checkDynamic = false);
+bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
+    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS,
+    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot);
 
 const unsigned max_mandatory_gyro_count = 1;
 const unsigned max_optional_gyro_count = 3;
@@ -76,7 +79,7 @@ const unsigned max_mandatory_accel_count = 1;
 const unsigned max_optional_accel_count = 3;
 
 const unsigned max_mandatory_mag_count = 1;
-const unsigned max_optional_mag_count = 3;
+const unsigned max_optional_mag_count = 4;
 
 const unsigned max_mandatory_baro_count = 1;
 const unsigned max_optional_baro_count = 1;

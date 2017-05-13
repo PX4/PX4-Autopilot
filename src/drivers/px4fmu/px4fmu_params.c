@@ -32,23 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_params.c
- *
- * Parameters defined by the PX4FMU driver
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
-
-/**
  * Invert direction of aux output channel 1
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
@@ -58,8 +47,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
@@ -69,8 +58,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
@@ -80,8 +69,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
@@ -91,8 +80,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
@@ -102,8 +91,81 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  *
  * Set to 1 to invert the channel, 0 for default direction.
  *
- * @min 0
- * @max 1
+ * @reboot_required true
+ * @boolean
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
+
+/**
+ * Trim value for FMU PWM output channel 1
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM1, 0);
+
+/**
+ * Trim value for FMU PWM output channel 2
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM2, 0);
+
+/**
+ * Trim value for FMU PWM output channel 3
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM3, 0);
+
+/**
+ * Trim value for FMU PWM output channel 4
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM4, 0);
+
+/**
+ * Trim value for FMU PWM output channel 5
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM5, 0);
+
+/**
+ * Trim value for FMU PWM output channel 6
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM6, 0);
+

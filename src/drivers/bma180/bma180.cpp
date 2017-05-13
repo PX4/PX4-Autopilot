@@ -37,6 +37,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -65,12 +66,8 @@
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
 
+#define ACCEL_DEVICE_PATH	"/dev/bma180"
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
@@ -147,9 +144,9 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	RingBuffer		*_reports;
+	ringbuffer::RingBuffer		*_reports;
 
-	struct accel_scale	_accel_scale;
+	struct accel_calibration_s	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
@@ -244,6 +241,8 @@ BMA180::BMA180(int bus, spi_dev_e device) :
 	_current_range(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bma180_read"))
 {
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMA180;
+
 	// enable debug() calls
 	_debug_enabled = true;
 
@@ -273,7 +272,7 @@ BMA180::~BMA180()
 int
 BMA180::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
@@ -281,7 +280,7 @@ BMA180::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer(2, sizeof(accel_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -319,7 +318,7 @@ BMA180::init()
 		ret = OK;
 
 	} else {
-		ret = ERROR;
+		ret = PX4_ERROR;
 	}
 
 	_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
@@ -463,14 +462,14 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -496,12 +495,12 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
+		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -788,7 +787,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_ACCEL);
+	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_BMA);
 
 	if (g_dev == nullptr) {
 		goto fail;

@@ -40,21 +40,16 @@
  *
  */
 
-#include "otp.h"
-#include "board_config.h"
+#include <px4_config.h>
+#include <string.h>
 #include "board_serial.h"
 
-int get_board_serial(uint8_t *serialid)
+int get_board_serial(uuid_byte_t serialid)
 {
-	const volatile uint32_t *udid_ptr = (const uint32_t *)UDID_START;
-	union udid id;
-	val_read((uint32_t *)&id, udid_ptr, sizeof(id));
-
-
-	/* Copy the serial from the chips non-write memory and swap endianess */
-	serialid[0] = id.data[3];   serialid[1] = id.data[2];  serialid[2] = id.data[1];  serialid[3] = id.data[0];
-	serialid[4] = id.data[7];   serialid[5] = id.data[6];  serialid[6] = id.data[5];  serialid[7] = id.data[4];
-	serialid[8] = id.data[11];   serialid[9] = id.data[10];  serialid[10] = id.data[9];  serialid[11] = id.data[8];
-
+#if defined(BOARD_OVERRIDE_UUID)
+	memcpy(serialid, BOARD_OVERRIDE_UUID, PX4_CPU_UUID_BYTE_LENGTH);
+#else
+	board_get_uuid(serialid);
+#endif
 	return 0;
 }

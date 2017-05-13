@@ -1,0 +1,20 @@
+diff --git NuttX/nuttx/include/ctype.h NuttX/nuttx/include/ctype.h
+index dcf918b..65706b7 100644
+--- NuttX/nuttx/include/ctype.h
++++ NuttX/nuttx/include/ctype.h
+@@ -50,6 +50,8 @@
+ /****************************************************************************
+  * Pre-processor Definitions
+  ****************************************************************************/
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wshadow"
+ 
+ /****************************************************************************
+  * Name: isspace
+@@ -340,5 +342,6 @@ extern "C"
+ #ifdef __cplusplus
+ }
+ #endif
++#pragma GCC diagnostic pop
+ 
+ #endif /* __INCLUDE_CTYPE_H */

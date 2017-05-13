@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,9 +45,11 @@
  *
  * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
  *
- * @unit meter
+ * @unit m
  * @min 25
  * @max 1000
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
@@ -56,42 +58,93 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
  * Acceptance Radius
  *
  * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * For fixed wing the L1 turning distance is used for horizontal acceptance.
  *
- * @unit meter
+ * @unit m
  * @min 0.05
  * @max 200.0
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 
 /**
- * Set OBC mode for data link loss
+ * FW Altitude Acceptance Radius
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ * Acceptance radius for fixedwing altitude.
  *
- * @min 0
- * @max 1
+ * @unit m
+ * @min 0.05
+ * @max 200.0
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
+PARAM_DEFINE_FLOAT(NAV_FW_ALT_RAD, 10.0f);
 
 /**
- * Set OBC mode for rc loss
+ * MC Altitude Acceptance Radius
  *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
+ * Acceptance radius for multicopter altitude.
  *
- * @min 0
- * @max 1
+ * @unit m
+ * @min 0.05
+ * @max 200.0
+ * @decimal 1
+ * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_INT32(NAV_RCL_OBC, 0);
+PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
+
+/**
+ * Set data link loss failsafe mode
+ *
+ * The data link loss failsafe will only be entered after a timeout,
+ * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
+ * action will be executed. Setting this parameter to 4 will enable CASA
+ * Outback Challenge rules, which are only recommended to participants
+ * of that competition.
+ *
+ * @value 0 Disabled
+ * @value 1 Loiter
+ * @value 2 Return to Land
+ * @value 3 Land at current position
+ * @value 4 Data Link Auto Recovery (CASA Outback Challenge rules)
+ * @value 5 Terminate
+ * @value 6 Lockdown
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
+
+/**
+ * Set RC loss failsafe mode
+ *
+ * The RC loss failsafe will only be entered after a timeout,
+ * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
+ * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * Setting this parameter to 4 will enable CASA Outback Challenge rules,
+ * which are only recommended to participants of that competition.
+ *
+ * @value 0 Disabled
+ * @value 1 Loiter
+ * @value 2 Return to Land
+ * @value 3 Land at current position
+ * @value 4 RC Auto Recovery (CASA Outback Challenge rules)
+ * @value 5 Terminate
+ * @value 6 Lockdown
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -900000000
  * @max 900000000
  * @group Data Link Loss
@@ -103,7 +156,7 @@ PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
  *
  * Longitude of airfield home waypoint
  *
- * @unit degrees * 1e7
+ * @unit deg * 1e7
  * @min -1800000000
  * @max 1800000000
  * @group Data Link Loss
@@ -117,6 +170,16 @@ PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
  *
  * @unit m
  * @min -50
+ * @decimal 1
+ * @increment 0.5
  * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
+
+/**
+ * Force VTOL mode takeoff and land
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);

@@ -33,12 +33,11 @@
 px4_add_module(
 	MODULE drivers__trone
 	MAIN trone
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		trone.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

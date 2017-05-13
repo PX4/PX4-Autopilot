@@ -51,20 +51,63 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <modules/px4iofirmware/protocol.h>
+
+#if defined(BOARD_HAS_FMU_GPIO) && defined(GPIO_SERVO_1)
+#  define LED_ON_SERVO_GPIO
+#  define PIN_NAME "AUX OUT 1"
+
+
+/* Minimum pin number */
+#  define GPIO_MIN_SERVO_PIN 1
+
+/* Maximum */
+#  if defined(GPIO_SERVO_16)
+#    define GPIO_MAX_SERVO_PIN 16
+#  elif defined(GPIO_SERVO_15)
+#    define GPIO_MAX_SERVO_PIN 15
+#  elif defined(GPIO_SERVO_14)
+#    define GPIO_MAX_SERVO_PIN 14
+#  elif defined(GPIO_SERVO_13)
+#    define GPIO_MAX_SERVO_PIN 13
+#  elif defined(GPIO_SERVO_12)
+#    define GPIO_MAX_SERVO_PIN 12
+#  elif defined(GPIO_SERVO_11)
+#    define GPIO_MAX_SERVO_PIN 11
+#  elif defined(GPIO_SERVO_10)
+#    define GPIO_MAX_SERVO_PIN 10
+#  elif defined(GPIO_SERVO_9)
+#    define GPIO_MAX_SERVO_PIN 9
+#  elif defined(GPIO_SERVO_8)
+#    define GPIO_MAX_SERVO_PIN 8
+#  elif defined(GPIO_SERVO_7)
+#    define GPIO_MAX_SERVO_PIN 7
+#  elif defined(GPIO_SERVO_6)
+#    define GPIO_MAX_SERVO_PIN 6
+#  endif
+#endif
+
+#if defined(BOARD_HAS_FMU_GPIO) && defined(GPIO_EXT_1)
+#  define LED_ON_EXT_GPIO_AND_PIO
+#  define PIN_NAME "PX4FMU GPIO_EXT1"
+#endif
 
 struct gpio_led_s {
 	struct work_s work;
 	int gpio_fd;
 	bool use_io;
 	int pin;
-	struct vehicle_status_s status;
+	struct vehicle_status_s vehicle_status;
+	struct battery_status_s battery_status;
 	int vehicle_status_sub;
+	int battery_status_sub;
 	bool led_state;
 	int counter;
 };
+
 
 static struct gpio_led_s *gpio_led_data;
 static bool gpio_led_started = false;
@@ -78,7 +121,7 @@ void gpio_led_cycle(FAR void *arg);
 int gpio_led_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#if defined(LED_ON_EXT_GPIO_AND_PIO)
 		errx(1, "usage: gpio_led {start|stop} [-p <1|2|a1|a2|r1|r2>]\n"
 		     "\t-p\tUse pin:\n"
 		     "\t\t1\tPX4FMU GPIO_EXT1 (default)\n"
@@ -89,7 +132,8 @@ int gpio_led_main(int argc, char *argv[])
 		     "\t\tr2\tPX4IO RELAY2"
 		    );
 #endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+
+#if defined(LED_ON_SERVO_GPIO)
 		errx(1, "usage: gpio_led {start|stop} [-p <n>]\n"
 		     "\t-p <n>\tUse specified AUX OUT pin number (default: 1)"
 		    );
@@ -108,16 +152,16 @@ int gpio_led_main(int argc, char *argv[])
 			int pin = 1;
 
 			/* pin name to display */
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-			char *pin_name = "PX4FMU GPIO_EXT1";
+#if defined(LED_ON_EXT_GPIO_AND_PIO)
+			char *pin_name = PIN_NAME;
 #endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-			char pin_name[] = "AUX OUT 1";
+#if defined(LED_ON_SERVO_GPIO)
+			char pin_name[sizeof(PIN_NAME) + 2] = PIN_NAME;
 #endif
 
 			if (argc > 2) {
 				if (!strcmp(argv[2], "-p")) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#if defined(LED_ON_EXT_GPIO_AND_PIO)
 
 					if (!strcmp(argv[3], "1")) {
 						use_io = false;
@@ -153,11 +197,12 @@ int gpio_led_main(int argc, char *argv[])
 						errx(1, "unsupported pin: %s", argv[3]);
 					}
 
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // defined(LED_ON_EXT_GPIO_AND_PIO)
+
+#if defined(LED_ON_SERVO_GPIO)
 					unsigned int n = strtoul(argv[3], NULL, 10);
 
-					if (n >= 1 && n <= 6) {
+					if (n >= GPIO_MIN_SERVO_PIN && n <= GPIO_MAX_SERVO_PIN) {
 						use_io = false;
 						pin = 1 << (n - 1);
 						snprintf(pin_name, sizeof(pin_name), "AUX OUT %d", n);
@@ -166,7 +211,7 @@ int gpio_led_main(int argc, char *argv[])
 						errx(1, "unsupported pin: %s", argv[3]);
 					}
 
-#endif
+#endif // defined(LED_ON_SERVO_GPIO)
 				}
 			}
 
@@ -205,14 +250,15 @@ void gpio_led_start(FAR void *arg)
 {
 	FAR struct gpio_led_s *priv = (FAR struct gpio_led_s *)arg;
 
-	char *gpio_dev;
+	char *gpio_dev = PX4FMU_DEVICE_PATH;
+
+#if defined(BOARD_USES_PX4IO)
 
 	if (priv->use_io) {
 		gpio_dev = PX4IO_DEVICE_PATH;
-
-	} else {
-		gpio_dev = PX4FMU_DEVICE_PATH;
 	}
+
+#endif
 
 	/* open GPIO device */
 	priv->gpio_fd = open(gpio_dev, 0);
@@ -229,10 +275,16 @@ void gpio_led_start(FAR void *arg)
 	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
 
 	/* initialize vehicle status structure */
-	memset(&priv->status, 0, sizeof(priv->status));
+	memset(&priv->vehicle_status, 0, sizeof(priv->vehicle_status));
+
+	/* initialize battery status structure */
+	memset(&priv->battery_status, 0, sizeof(priv->battery_status));
 
 	/* subscribe to vehicle status topic */
 	priv->vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+	/* subscribe to battery status topic */
+	priv->battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
 	/* add worker to queue */
 	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
@@ -249,32 +301,39 @@ void gpio_led_cycle(FAR void *arg)
 {
 	FAR struct gpio_led_s *priv = (FAR struct gpio_led_s *)arg;
 
-	/* check for status updates*/
+	/* check for vehicle status updates*/
 	bool updated;
 	orb_check(priv->vehicle_status_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->status);
+		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->vehicle_status);
 	}
 
-	/* select pattern for current status */
+	orb_check(priv->battery_status_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(battery_status), priv->battery_status_sub, &priv->battery_status);
+	}
+
+	/* select pattern for current vehiclestatus */
 	int pattern = 0;
 
-	if (priv->status.arming_state == ARMING_STATE_ARMED_ERROR) {
+	if (priv->vehicle_status.arming_state == ARMING_STATE_ARMED_ERROR) {
 		pattern = 0x2A;	// *_*_*_ fast blink (armed, error)
 
-	} else if (priv->status.arming_state == ARMING_STATE_ARMED) {
-		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE && !priv->status.failsafe) {
+	} else if (priv->vehicle_status.arming_state == ARMING_STATE_ARMED) {
+		if (priv->battery_status.warning == BATTERY_WARNING_NONE
+		    && !priv->vehicle_status.failsafe) {
 			pattern = 0x3f;	// ****** solid (armed)
 
 		} else {
 			pattern = 0x3e;	// *****_ slow blink (armed, battery low or failsafe)
 		}
 
-	} else if (priv->status.arming_state == ARMING_STATE_STANDBY) {
+	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY) {
 		pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
-	} else if (priv->status.arming_state == ARMING_STATE_STANDBY_ERROR) {
+	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY_ERROR) {
 		pattern = 0x28;	// *_*___ slow double blink (disarmed, error)
 
 	}

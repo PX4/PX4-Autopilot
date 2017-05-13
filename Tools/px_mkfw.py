@@ -39,7 +39,6 @@
 # metadata fields and a zlib-compressed base64-encoded firmware image.
 #
 
-import sys
 import argparse
 import json
 import base64
@@ -99,7 +98,7 @@ if args.summary != None:
 if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
-	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--dirty"])
+	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--tags"])
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= str(p.read().strip())
 	p.close()
@@ -108,6 +107,7 @@ if args.parameter_xml != None:
 	bytes = f.read()
 	desc['parameter_xml_size'] = len(bytes)
 	desc['parameter_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+	desc['mav_autopilot'] = 12 # 12 = MAV_AUTOPILOT_PX4
 if args.airframe_xml != None:
 	f = open(args.airframe_xml, "rb")
 	bytes = f.read()

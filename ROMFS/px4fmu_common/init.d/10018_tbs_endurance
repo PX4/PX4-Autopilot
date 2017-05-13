@@ -4,6 +4,18 @@
 #
 # @type Quadrotor Wide
 #
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 feed-through of RC AUX1 channel
+# @output MAIN6 feed-through of RC AUX2 channel
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC FLAPS channel
+#
 # @maintainer Simon Wilks <simon@px4.io>
 #
 
@@ -29,9 +41,9 @@ then
 
 	param set MPC_XY_FF 0.2
 	param set MPC_XY_VEL_MAX 2
+	param set PWM_MIN 1080
 fi
 
 set MIXER quad_w
 
 set PWM_OUT 1234
-set PWM_MIN 1080

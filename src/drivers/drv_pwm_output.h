@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,9 @@
 #pragma once
 
 #include <px4_defines.h>
+
+#include "uORB/topics/output_pwm.h"
+
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -61,7 +64,6 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
-#include <uORB/topics/output_pwm.h>
 #define pwm_output_values output_pwm_s
 
 #ifndef PWM_OUTPUT_MAX_CHANNELS
@@ -73,10 +75,21 @@ __BEGIN_DECLS
  */
 //#define PWM_OUTPUT_MAX_CHANNELS	16
 
+/* Use defaults unless the board override the defaults by providing
+ * PX4_PWM_ALTERNATE_RANGES and a replacement set of
+ * constants
+ */
+#if !defined(PX4_PWM_ALTERNATE_RANGES)
+
 /**
  * Lowest minimum PWM in us
  */
-#define PWM_LOWEST_MIN 900
+#define PWM_LOWEST_MIN 90
+
+/**
+ * Default value for a shutdown motor
+ */
+#define PWM_MOTOR_OFF	900
 
 /**
  * Default minimum PWM in us
@@ -99,9 +112,16 @@ __BEGIN_DECLS
 #define PWM_DEFAULT_MAX 2000
 
 /**
+ * Default trim PWM in us
+ */
+#define PWM_DEFAULT_TRIM 0
+
+/**
  * Lowest PWM allowed as the maximum PWM
  */
-#define PWM_LOWEST_MAX 950
+#define PWM_LOWEST_MAX 200
+
+#endif // not PX4_PWM_ALTERNATE_RANGES
 
 /**
  * Do not output a channel with this value
@@ -202,58 +222,82 @@ struct pwm_output_rc_config {
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
+/** set the TRIM value the output will send */
+#define PWM_SERVO_SET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 20)
+
+/** get the TRIM value the output will send */
+#define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
+
 /** set the number of servos in (unsigned)arg - allows change of
  * split between servos and GPIO */
-#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 20)
+#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 22)
 
 /** set the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 21)
+#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
 
 /** get the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 22)
+#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 24)
 
 /** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 23)
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
 
 /** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE		_PX4_IOC(_PWM_SERVO_BASE, 24)
+#define PWM_SERVO_SET_FORCE_FAILSAFE		_PX4_IOC(_PWM_SERVO_BASE, 26)
 
 /** make failsafe non-recoverable (termination) if it occurs */
-#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 25)
+#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
 
 /** force safety switch on (to enable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 26)
+#define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
 /** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
-#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 27)
+#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 29)
 
 /** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 28)
+#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 30)
 
 /** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 29)
+#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 31)
 
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
-#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 30)
+#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
+
+/** set SBUS output frame rate in Hz */
+#define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 33)
+
+/** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
+#define PWM_SERVO_MODE_NONE			0
+#define PWM_SERVO_MODE_1PWM			1
+#define PWM_SERVO_MODE_2PWM			2
+#define PWM_SERVO_MODE_2PWM2CAP			3
+#define PWM_SERVO_MODE_3PWM			4
+#define PWM_SERVO_MODE_3PWM1CAP			5
+#define PWM_SERVO_MODE_4PWM			6
+#define PWM_SERVO_MODE_6PWM			7
+#define PWM_SERVO_MODE_8PWM			8
+#define PWM_SERVO_MODE_4CAP			9
+#define PWM_SERVO_MODE_5CAP		       10
+#define PWM_SERVO_MODE_6CAP		       11
+#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
  *
  *
- * WARNING WARNING WARNING! DO NOT EXCEED 31 IN IOC INDICES HERE!
+ * WARNING WARNING WARNING! DO NOT EXCEED 47 IN IOC INDICES HERE!
  *
  *
  */
 
 /** set a single servo to a specific value */
-#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
+#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x30 + _servo)
 
 /** get a single specific servo value */
-#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x40 + _servo)
+#define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x50 + _servo)
 
 /** get the _n'th rate group's channels; *(uint32_t *)arg returns a bitmap of channels
  *  whose update rates must be the same.
  */
-#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x60 + _n)
+#define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
 /*
  * Low-level PWM output interface.
@@ -315,6 +359,14 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Trigger all timer's channels in Oneshot mode to fire
+ * the oneshot with updated values.
+ * Nothing is none if not in oneshot mode.
+ *
+ */
+__EXPORT extern void up_pwm_update(void);
 
 /**
  * Set the current output value for a channel.

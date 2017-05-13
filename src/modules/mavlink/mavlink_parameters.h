@@ -47,6 +47,7 @@
 #include "mavlink_stream.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/uavcan_parameter_request.h>
 
 class MavlinkParametersManager : public MavlinkStream
 {
@@ -61,7 +62,7 @@ public:
 		return "PARAM_VALUE";
 	}
 
-	uint8_t get_id()
+	uint16_t get_id()
 	{
 		return MAVLINK_MSG_ID_PARAM_VALUE;
 	}
@@ -73,48 +74,45 @@ public:
 
 	unsigned get_size();
 
+	unsigned get_size_avg();
+
 	void handle_message(const mavlink_message_t *msg);
-
-	/**
-	 * Send one parameter identified by index.
-	 *
-	 * @param index		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	void		start_send_one(int index);
-
-
-	/**
-	 * Send one parameter identified by name.
-	 *
-	 * @param name		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			start_send_for_name(const char *name);
-
-	/**
-	 * Start sending the parameter queue.
-	 *
-	 * This function will not directly send parameters, but instead
-	 * activate the sending of one parameter on each call of
-	 * mavlink_pm_queued_send().
-	 * @see 		mavlink_pm_queued_send()
-	 */
-	void		start_send_all();
 
 private:
 	int		_send_all_index;
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
-	MavlinkParametersManager& operator = (const MavlinkParametersManager &);
+	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
 
 protected:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
 	void send(const hrt_abstime t);
 
-	int send_param(param_t param);
+	/// send a single param if a PARAM_REQUEST_LIST is in progress
+	/// @return true if a parameter was sent
+	bool send_one();
+
+	int send_param(param_t param, int component_id = -1);
+
+	// Item of a single-linked list to store requested uavcan parameters
+	struct _uavcan_open_request_list_item {
+		uavcan_parameter_request_s req;
+		struct _uavcan_open_request_list_item *next;
+	};
+
+	// Request the next uavcan parameter
+	void request_next_uavcan_parameter();
+	// Enque one uavcan parameter reqest. We store 10 at max.
+	void enque_uavcan_request(uavcan_parameter_request_s *req);
+	// Drop the first reqest from the list
+	void dequeue_uavcan_request();
+
+	_uavcan_open_request_list_item *_uavcan_open_request_list; // Pointer to the first item in the linked list
+	bool _uavcan_waiting_for_request_response; // We have reqested a parameter and wait for the response
+	uint16_t _uavcan_queued_request_items;	// Number of stored parameter requests currently in the list
 
 	orb_advert_t _rc_param_map_pub;
 	struct rc_parameter_map_s _rc_param_map;

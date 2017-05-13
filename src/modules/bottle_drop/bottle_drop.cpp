@@ -41,6 +41,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,20 +58,15 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
-#include <mavlink/mavlink_log.h>
 
 
 /**
@@ -113,7 +109,7 @@ public:
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_main_task;			/**< handle for task */
-	int		_mavlink_fd;
+	orb_advert_t	_mavlink_log_pub;
 
 	int		_command_sub;
 	int		_wind_estimate_sub;
@@ -174,7 +170,7 @@ BottleDrop::BottleDrop() :
 
 	_task_should_exit(false),
 	_main_task(-1),
-	_mavlink_fd(-1),
+	_mavlink_log_pub(nullptr),
 	_command_sub(-1),
 	_wind_estimate_sub(-1),
 	_command {},
@@ -210,7 +206,7 @@ BottleDrop::~BottleDrop()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_main_task);
+				px4_task_delete(_main_task);
 				break;
 			}
 		} while (_main_task != -1);
@@ -229,7 +225,7 @@ BottleDrop::start()
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_DEFAULT + 15,
 					1500,
-					(main_t)&BottleDrop::task_main_trampoline,
+					(px4_main_t)&BottleDrop::task_main_trampoline,
 					nullptr);
 
 	if (_main_task < 0) {
@@ -341,8 +337,7 @@ void
 BottleDrop::task_main()
 {
 
-	_mavlink_fd = px4_open(MAVLINK_LOG_DEVICE, 0);
-	mavlink_log_info(_mavlink_fd, "[bottle_drop] started");
+	mavlink_log_info(&_mavlink_log_pub, "[bottle_drop] started");
 
 	_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_wind_estimate_sub = orb_subscribe(ORB_ID(wind_estimate));
@@ -533,7 +528,7 @@ BottleDrop::task_main()
 				approach_error = _wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
-					mavlink_log_info(_mavlink_fd, "drop distance %u, heading error %u", (unsigned)distance_real,
+					mavlink_log_info(&_mavlink_log_pub, "drop distance %u, heading error %u", (unsigned)distance_real,
 							 (unsigned)math::degrees(approach_error));
 				}
 			}
@@ -638,7 +633,7 @@ BottleDrop::task_main()
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 								   flight_vector_e.lon);
-					mavlink_log_critical(_mavlink_fd, "position set, approach heading: %u", (unsigned)distance_real,
+					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u", (unsigned)distance_real,
 							     (unsigned)math::degrees(approach_direction + M_PI_F));
 
 					_drop_state = DROP_STATE_TARGET_SET;
@@ -658,11 +653,11 @@ BottleDrop::task_main()
 						// We're close enough - open the bay
 						distance_open_door = math::max(10.0f, 3.0f * fabsf(t_door * groundspeed_body));
 
-						if (isfinite(distance_real) && distance_real < distance_open_door &&
+						if (PX4_ISFINITE(distance_real) && distance_real < distance_open_door &&
 						    fabsf(approach_error) < math::radians(20.0f)) {
 							open_bay();
 							_drop_state = DROP_STATE_BAY_OPEN;
-							mavlink_log_info(_mavlink_fd, "#audio: opening bay");
+							mavlink_log_info(&_mavlink_log_pub, "#audio: opening bay");
 						}
 					}
 				}
@@ -676,11 +671,11 @@ BottleDrop::task_main()
 						map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
 						future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
 
-						if (isfinite(distance_real) &&
+						if (PX4_ISFINITE(distance_real) &&
 						    (distance_real < precision) && ((distance_real < future_distance))) {
 							drop();
 							_drop_state = DROP_STATE_DROPPED;
-							mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
+							mavlink_log_info(&_mavlink_log_pub, "#audio: payload dropped");
 
 						} else {
 
@@ -704,7 +699,7 @@ BottleDrop::task_main()
 					_drop_approval = false;
 					lock_release();
 					close_bay();
-					mavlink_log_info(_mavlink_fd, "#audio: closing bay");
+					mavlink_log_info(&_mavlink_log_pub, "#audio: closing bay");
 
 					// remove onboard mission
 					_onboard_mission.current_seq = -1;
@@ -751,16 +746,16 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		if (cmd->param1 > 0.5f && cmd->param2 > 0.5f) {
 			open_bay();
 			drop();
-			mavlink_log_critical(_mavlink_fd, "drop bottle");
+			mavlink_log_critical(&_mavlink_log_pub, "drop bottle");
 
 		} else if (cmd->param1 > 0.5f) {
 			open_bay();
-			mavlink_log_critical(_mavlink_fd, "opening bay");
+			mavlink_log_critical(&_mavlink_log_pub, "opening bay");
 
 		} else {
 			lock_release();
 			close_bay();
-			mavlink_log_critical(_mavlink_fd, "closing bay");
+			mavlink_log_critical(&_mavlink_log_pub, "closing bay");
 		}
 
 		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -771,12 +766,12 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
 			_drop_approval = false;
-			mavlink_log_critical(_mavlink_fd, "got drop position, no approval");
+			mavlink_log_critical(&_mavlink_log_pub, "got drop position, no approval");
 			break;
 
 		case 1:
 			_drop_approval = true;
-			mavlink_log_critical(_mavlink_fd, "got drop position and approval");
+			mavlink_log_critical(&_mavlink_log_pub, "got drop position and approval");
 			break;
 
 		default:
@@ -791,7 +786,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		_target_position.lon = cmd->param6;
 		_target_position.alt = cmd->param7;
 		_drop_state = DROP_STATE_TARGET_VALID;
-		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
+		mavlink_log_info(&_mavlink_log_pub, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
 				 (double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
 		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -820,7 +815,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 			case 1:
 				_drop_approval = true;
-				mavlink_log_info(_mavlink_fd, "#audio: got drop approval");
+				mavlink_log_info(&_mavlink_log_pub, "#audio: got drop approval");
 				break;
 
 			default:
@@ -846,19 +841,19 @@ BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(_mavlink_fd, "command denied: %u", cmd->command);
+		mavlink_log_critical(&_mavlink_log_pub, "command denied: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
-		mavlink_log_critical(_mavlink_fd, "command failed: %u", cmd->command);
+		mavlink_log_critical(&_mavlink_log_pub, "command failed: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(_mavlink_fd, "command temporarily rejected: %u", cmd->command);
+		mavlink_log_critical(&_mavlink_log_pub, "command temporarily rejected: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
-		mavlink_log_critical(_mavlink_fd, "command unsupported: %u", cmd->command);
+		mavlink_log_critical(&_mavlink_log_pub, "command unsupported: %u", cmd->command);
 		break;
 
 	default:

@@ -52,7 +52,6 @@ void pwm_limit_init(pwm_limit_t *limit)
 {
 	limit->state = PWM_LIMIT_STATE_INIT;
 	limit->time_armed = 0;
-	return;
 }
 
 void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels, const uint16_t reverse_mask,
@@ -192,6 +191,7 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 		break;
 
 	case PWM_LIMIT_STATE_ON:
+
 		for (unsigned i = 0; i < num_channels; i++) {
 
 			float control_value = output[i];
@@ -215,6 +215,7 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 			} else if (effective_pwm[i] > max_pwm[i]) {
 				effective_pwm[i] = max_pwm[i];
 			}
+
 		}
 
 		break;
@@ -223,5 +224,4 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 		break;
 	}
 
-	return;
 }

@@ -30,21 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(MIXER_CFLAGS -Os)
-if(${OS} STREQUAL "qurt")
-	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2176)
-else()
-	list(APPEND MIXER_CFLAGS -Wframe-larger-than=2100)
-endif()
 
 px4_add_module(
 	MODULE systemcmds__mixer
 	MAIN mixer
-	STACK 4096
-	COMPILE_FLAGS ${MIXER_CFLAGS}
+	STACK_MAIN 4096
+	STACK_MAX 2100
+	COMPILE_FLAGS
 	SRCS
 		mixer.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

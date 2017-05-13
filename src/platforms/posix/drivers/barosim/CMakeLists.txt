@@ -34,11 +34,9 @@ px4_add_module(
 	MODULE platforms__posix__drivers__barosim
 	MAIN barosim
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		baro.cpp
-		baro_sim.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

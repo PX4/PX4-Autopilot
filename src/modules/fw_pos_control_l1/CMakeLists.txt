@@ -33,18 +33,15 @@
 px4_add_module(
 	MODULE modules__fw_pos_control_l1
 	MAIN fw_pos_control_l1
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Wno-float-equal
-		-Os
 	SRCS
 		fw_pos_control_l1_main.cpp
 		landingslope.cpp
-		mtecs/mTecs.cpp
-		mtecs/limitoverride.cpp
 	DEPENDS
 		platforms__common
+		git_ecl
 		lib__external_lgpl
 		lib__ecl
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

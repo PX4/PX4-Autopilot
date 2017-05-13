@@ -41,23 +41,28 @@
 #ifndef GEOFENCE_H_
 #define GEOFENCE_H_
 
-#include <uORB/topics/fence.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/home_position.h>
-#include <controllib/blocks.hpp>
+#include <cfloat>
+
 #include <controllib/block/BlockParam.hpp>
+#include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 #include <px4_defines.h>
+#include <uORB/topics/fence.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
+
+class Navigator;
 
 class Geofence : public control::SuperBlock
 {
 public:
-	Geofence();
-	~Geofence();
+	Geofence(Navigator *navigator);
+	Geofence(const Geofence &) = delete;
+	Geofence &operator=(const Geofence &) = delete;
+	~Geofence() = default;
 
 	/* Altitude mode, corresponding to the param GF_ALTMODE */
 	enum {
@@ -79,8 +84,9 @@ public:
 	 * @return true: system is inside fence, false: system is outside fence
 	 */
 	bool inside(const struct vehicle_global_position_s &global_position,
-		    const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
-		    const struct home_position_s home_pos, bool home_position_set);
+		    const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl);
+
+	bool inside(const struct mission_item_s &mission_item);
 
 	bool inside_polygon(double lat, double lon, float altitude);
 
@@ -100,43 +106,37 @@ public:
 	bool isEmpty() {return _vertices_count == 0;}
 
 	int getAltitudeMode() { return _param_altitude_mode.get(); }
-
 	int getSource() { return _param_source.get(); }
-
 	int getGeofenceAction() { return _param_action.get(); }
 
-	void setMavlinkFd(int value) { _mavlinkFd = value; }
+	bool isHomeRequired();
 
 private:
-	orb_advert_t	_fence_pub;			/**< publish fence topic */
+	Navigator	*_navigator{nullptr};
 
-	home_position_s _home_pos;
-	bool _home_pos_set;
+	orb_advert_t	_fence_pub{nullptr};			/**< publish fence topic */
 
-	hrt_abstime _last_horizontal_range_warning;
-	hrt_abstime _last_vertical_range_warning;
+	hrt_abstime _last_horizontal_range_warning{0};
+	hrt_abstime _last_vertical_range_warning{0};
 
-	float _altitude_min;
-	float _altitude_max;
+	float _altitude_min{0.0f};
+	float _altitude_max{0.0f};
 
-	uint8_t _vertices_count;
+	unsigned _vertices_count{0};
 
 	/* Params */
 	control::BlockParamInt _param_action;
 	control::BlockParamInt _param_altitude_mode;
 	control::BlockParamInt _param_source;
 	control::BlockParamInt _param_counter_threshold;
-	control::BlockParamInt _param_max_hor_distance;
-	control::BlockParamInt _param_max_ver_distance;
+	control::BlockParamFloat _param_max_hor_distance;
+	control::BlockParamFloat _param_max_ver_distance;
 
-	uint8_t	_outside_counter;
-
-	int _mavlinkFd;
+	int _outside_counter{0};
 
 	bool inside(double lat, double lon, float altitude);
 	bool inside(const struct vehicle_global_position_s &global_position);
 	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
 };
-
 
 #endif /* GEOFENCE_H_ */

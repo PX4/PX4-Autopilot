@@ -60,10 +60,6 @@
 #include "drivers/drv_pwm_output.h"
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_0.h>
-#include <uORB/topics/actuator_controls_1.h>
-#include <uORB/topics/actuator_controls_2.h>
-#include <uORB/topics/actuator_controls_3.h>
 
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);
@@ -163,7 +159,11 @@ esc_calib_main(int argc, char *argv[])
 			/* Read in custom low value */
 			pwm_low = strtoul(myoptarg, &ep, 0);
 
-			if (*ep != '\0' || pwm_low < PWM_LOWEST_MIN || pwm_low > PWM_HIGHEST_MIN) {
+			if (*ep != '\0'
+#if PWM_LOWEST_MIN > 0
+			    || pwm_low < PWM_LOWEST_MIN
+#endif
+			    || pwm_low > PWM_HIGHEST_MIN) {
 				usage("low PWM invalid");
 				return 1;
 			}

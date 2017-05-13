@@ -39,20 +39,21 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_config.h>
+#include <px4_posix.h>
+
 #include <sys/stat.h>
 #include <poll.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 static int check_user_abort(int fd);
 
@@ -125,7 +126,7 @@ test_file(int argc, char *argv[])
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 			hrt_abstime start, end;
 
-			int fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			int fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			warnx("testing unaligned writes - please wait..");
 
@@ -156,7 +157,7 @@ test_file(int argc, char *argv[])
 
 			warnx("write took %" PRIu64 " us", (end - start));
 
-			close(fd);
+			px4_close(fd);
 			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			/* read back data for validation */
@@ -196,7 +197,7 @@ test_file(int argc, char *argv[])
 
 			close(fd);
 			int ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
-			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
@@ -218,7 +219,7 @@ test_file(int argc, char *argv[])
 
 			warnx("reading data aligned..");
 
-			close(fd);
+			px4_close(fd);
 			fd = open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
 
 			bool align_read_ok = true;

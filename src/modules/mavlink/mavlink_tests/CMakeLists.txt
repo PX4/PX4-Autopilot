@@ -33,14 +33,11 @@
 px4_add_module(
 	MODULE modules__mavlink__mavlink_tests
 	MAIN mavlink_tests
-	STACK 5000
+	STACK_MAIN 5000
 	COMPILE_FLAGS
-		-Weffc++
 		-DMAVLINK_FTP_UNIT_TEST
-		-Wno-attributes
-		-Wno-packed
-		-Wno-packed
-		-Os
+		-DMavlinkStream=MavlinkStreamTest
+		-DMavlinkFTP=MavlinkFTPTest
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp
@@ -50,4 +47,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

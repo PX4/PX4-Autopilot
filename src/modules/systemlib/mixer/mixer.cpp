@@ -55,6 +55,9 @@
 
 #include "mixer.h"
 
+#define debug(fmt, args...)	do { } while(0)
+//#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
 	_next(nullptr),
 	_control_cb(control_cb),
@@ -151,6 +154,28 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 	return nullptr;
 }
 
+bool
+Mixer::string_well_formed(const char *buf, unsigned &buflen)
+{
+	/* enforce that the mixer ends with a new line */
+	for (int i = buflen - 1; i >= 0; i--) {
+		if (buf[i] == '\0') {
+			continue;
+		}
+
+		/* require a space or newline at the end of the buffer, fail on printable chars */
+		if (buf[i] == '\n' || buf[i] == '\r') {
+			/* found a line ending, so no split symbols / numbers. good. */
+			return true;
+		}
+
+	}
+
+	debug("pre-parser rejected: No newline in buf");
+
+	return false;
+}
+
 /****************************************************************************/
 
 NullMixer::NullMixer() :
@@ -169,6 +194,12 @@ NullMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	return 0;
 }
 
+uint16_t
+NullMixer::get_saturation_status()
+{
+	return 0;
+}
+
 void
 NullMixer::groups_required(uint32_t &groups)
 {
@@ -180,21 +211,9 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 {
 	NullMixer *nm = nullptr;
 
-	/* enforce that the mixer ends with space or a new line */
-	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0') {
-			continue;
-		}
-
-		/* require a space or newline at the end of the buffer, fail on printable chars */
-		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-			/* found a line ending or space, so no split symbols / numbers. good. */
-			break;
-
-		} else {
-			return nm;
-		}
-
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
 	}
 
 	if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {

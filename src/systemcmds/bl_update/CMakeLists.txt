@@ -33,12 +33,11 @@
 px4_add_module(
 	MODULE systemcmds__bl_update
 	MAIN bl_update
-	STACK 4096
+	STACK_MAIN 4096
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		bl_update.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -1,4 +1,4 @@
-#define UDID_START		0x1FFF7A10
+#pragma once
 
 /*
  * I2C busses
@@ -9,3 +9,7 @@
 #define PX4_I2C_BUS_LED		3
 
 #define PX4_I2C_OBDEV_LED	0x55
+
+#define BOARD_OVERRIDE_UUID "SYSMEMID"
+
+#include "../common/board_common.h"

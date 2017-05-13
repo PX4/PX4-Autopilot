@@ -35,10 +35,10 @@
  * @file px4iov2_init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -53,6 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
 
 #include <stm32.h>
 #include "board_config.h"
@@ -69,13 +70,13 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
+#    define message(...) syslog(__VA_ARGS__)
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message lowsyslog
+#    define message syslog
 #  else
 #    define message printf
 #  endif
@@ -133,27 +134,27 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_PPM); /* xxx alternate function */
 
-	stm32_gpiowrite(GPIO_PWM1, false);
+	stm32_gpiowrite(GPIO_PWM1, true);
 	stm32_configgpio(GPIO_PWM1);
 
-	stm32_gpiowrite(GPIO_PWM2, false);
+	stm32_gpiowrite(GPIO_PWM2, true);
 	stm32_configgpio(GPIO_PWM2);
 
-	stm32_gpiowrite(GPIO_PWM3, false);
+	stm32_gpiowrite(GPIO_PWM3, true);
 	stm32_configgpio(GPIO_PWM3);
 
-	stm32_gpiowrite(GPIO_PWM4, false);
+	stm32_gpiowrite(GPIO_PWM4, true);
 	stm32_configgpio(GPIO_PWM4);
 
-	stm32_gpiowrite(GPIO_PWM5, false);
+	stm32_gpiowrite(GPIO_PWM5, true);
 	stm32_configgpio(GPIO_PWM5);
 
-	stm32_gpiowrite(GPIO_PWM6, false);
+	stm32_gpiowrite(GPIO_PWM6, true);
 	stm32_configgpio(GPIO_PWM6);
 
-	stm32_gpiowrite(GPIO_PWM7, false);
+	stm32_gpiowrite(GPIO_PWM7, true);
 	stm32_configgpio(GPIO_PWM7);
 
-	stm32_gpiowrite(GPIO_PWM8, false);
+	stm32_gpiowrite(GPIO_PWM8, true);
 	stm32_configgpio(GPIO_PWM8);
 }

@@ -1,21 +1,21 @@
 [submodule "mavlink/include/mavlink/v1.0"]
 	path = mavlink/include/mavlink/v1.0
-	url = git://github.com/mavlink/c_library.git
+	url = https://github.com/mavlink/c_library_v1.git
+[submodule "mavlink/include/mavlink/v2.0"]
+	path = mavlink/include/mavlink/v2.0
+	url = https://github.com/mavlink/c_library_v2.git
 [submodule "NuttX"]
 	path = NuttX
-	url = git://github.com/PX4/NuttX.git
+	url = https://github.com/PX4/PX4NuttX.git
 [submodule "src/modules/uavcan/libuavcan"]
 	path = src/modules/uavcan/libuavcan
-	url = git://github.com/UAVCAN/libuavcan.git
+	url = https://github.com/UAVCAN/libuavcan.git
 [submodule "Tools/genmsg"]
 	path = Tools/genmsg
 	url = https://github.com/ros/genmsg.git
 [submodule "Tools/gencpp"]
 	path = Tools/gencpp
 	url = https://github.com/ros/gencpp.git
-[submodule "src/lib/dspal"]
-	path = src/lib/dspal
-	url = https://github.com/mcharleb/dspal.git
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -25,6 +25,19 @@
 [submodule "unittests/googletest"]
 	path = unittests/googletest
 	url = https://github.com/google/googletest.git
+	ignore = untracked
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git
+[submodule "src/lib/DriverFramework"]
+	path = src/lib/DriverFramework
+	url = https://github.com/PX4/DriverFramework.git
+[submodule "src/lib/ecl"]
+	path = src/lib/ecl
+	url = https://github.com/PX4/ecl.git
+[submodule "cmake/cmake_hexagon"]
+	path = cmake/cmake_hexagon
+	url = https://github.com/ATLFlight/cmake_hexagon
+[submodule "src/drivers/gps/devices"]
+	path = src/drivers/gps/devices
+	url = https://github.com/PX4/GpsDrivers.git

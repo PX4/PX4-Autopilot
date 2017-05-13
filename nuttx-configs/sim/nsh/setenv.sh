@@ -1,5 +1,5 @@
 #!/bin/bash
-# sim/nsh/setenv.sh
+# nuttx-configs/sim/nsh/setenv.sh
 #
 #   Copyright (C) 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

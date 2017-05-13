@@ -46,12 +46,15 @@
 #include <string>
 #include <map>
 #include <stdio.h>
-#include <apps.h>
+#include <stdlib.h>
+#include "get_commands.h"
+#include "apps.h"
+#include "DriverFramework.hpp"
+
+#define MAX_ARGS 8 // max number of whitespace separated args after app name
 
 using namespace std;
 
-extern void init_app_map(map<string, px4_main_t> &apps);
-extern void list_builtins(map<string, px4_main_t> &apps);
 static px4_task_t g_dspal_task = -1;
 
 __BEGIN_DECLS
@@ -61,30 +64,46 @@ extern const char *get_commands(void);
 void qurt_external_hook(void) __attribute__((weak));
 __END_DECLS
 
-static void run_cmd(map<string, px4_main_t> &apps, const vector<string> &appargs)
+void qurt_external_hook(void)
+{
+}
+
+static void run_cmd(apps_map_type &apps, const vector<string> &appargs)
 {
 	// command is appargs[0]
 	string command = appargs[0];
 
-	if (apps.find(command) != apps.end()) {
-		const char *arg[2 + 1];
+	//replaces app.find with iterator code to avoid null pointer exception
+	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it)
+		if (it->first == command) {
+			// one for command name, one for null terminator
+			const char *arg[MAX_ARGS + 2];
 
-		unsigned int i = 0;
+			unsigned int i = 0;
 
-		while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
-			arg[i] = (char *)appargs[i].c_str();
-			PX4_WARN("  arg = '%s'\n", arg[i]);
-			++i;
+			if (appargs.size() > MAX_ARGS + 1) {
+				PX4_ERR("%d too many arguments in run_cmd", appargs.size() - (MAX_ARGS + 1));
+				return;
+			}
+
+			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
+				arg[i] = (char *)appargs[i].c_str();
+				PX4_DEBUG("  arg%d = '%s'\n", i, arg[i]);
+				++i;
+			}
+
+			arg[i] = (char *)0;
+
+			//PX4_DEBUG_PRINTF(i);
+			if (apps[command] == NULL) {
+				PX4_ERR("Null function !!\n");
+
+			} else {
+				apps[command](i, (char **)arg);
+				break;
+			}
+
 		}
-
-		arg[i] = (char *)0;
-		//PX4_DEBUG_PRINTF(i);
-		apps[command](i, (char **)arg);
-
-	} else {
-		PX4_WARN("NOT FOUND.");
-		list_builtins(apps);
-	}
 }
 
 void eat_whitespace(const char *&b, int &i)
@@ -96,12 +115,11 @@ void eat_whitespace(const char *&b, int &i)
 	i = 0;
 }
 
-static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
+static void process_commands(apps_map_type &apps, const char *cmds)
 {
 	vector<string> appargs;
 	int i = 0;
 	const char *b = cmds;
-	bool found_first_char = false;
 	char arg[256];
 
 	// Eat leading whitespace
@@ -116,10 +134,10 @@ static void process_commands(map<string, px4_main_t> &apps, const char *cmds)
 
 			// If we have a command to run
 			if (appargs.size() > 0) {
-				PX4_WARN("Processing command: %s", appargs[0].c_str());
+				PX4_DEBUG("Processing command: %s", appargs[0].c_str());
 
 				for (int ai = 1; ai < (int)appargs.size(); ai++) {
-					PX4_WARN("   > arg: %s", appargs[ai].c_str());
+					PX4_DEBUG("   > arg: %s", appargs[ai].c_str());
 				}
 
 				run_cmd(apps, appargs);
@@ -159,13 +177,52 @@ int dspal_main(int argc, char *argv[]);
 __END_DECLS
 
 
+#define COMMANDS_ADSP_FILE	"/dev/fs/px4.config"
+
+const char *get_commands()
+{
+	PX4_INFO("attempting to open the ADSP command file: %s", COMMANDS_ADSP_FILE);
+	int fd = open(COMMANDS_ADSP_FILE, O_RDONLY);
+
+	if (fd > 0) {
+		static char *commands;
+		char buf[4096];
+		int bytes_read, total_bytes = 0;
+		PX4_INFO("reading commands from %s\n", COMMANDS_ADSP_FILE);
+
+		do {
+			bytes_read = read(fd, (void *)buf, sizeof(buf));
+
+			if (bytes_read > 0) {
+				commands = (char *)realloc(commands, total_bytes + bytes_read);
+				memcpy(commands + total_bytes, buf, bytes_read);
+				total_bytes += bytes_read;
+			}
+		} while ((unsigned int)bytes_read > 0);
+
+		close(fd);
+
+		return (const char *)commands;
+	}
+
+	PX4_ERR("Could not open %s\n", COMMANDS_ADSP_FILE);
+
+	static const char *commands =
+		"uorb start\nqshell start\n"
+		;
+
+	return commands;
+}
+
+
 int dspal_entry(int argc, char *argv[])
 {
-	PX4_INFO("In main\n");
-	map<string, px4_main_t> apps;
+	PX4_INFO("In dspal_entry");
+	apps_map_type apps;
 	init_app_map(apps);
+	DriverFramework::Framework::initialize();
 	px4::init_once();
-	px4::init(argc, (char **)argv, "mainapp");
+	px4::init(argc, (char **)argv, "px4");
 	process_commands(apps, get_commands());
 	sleep(1); // give time for all commands to execute before starting external function
 
@@ -182,7 +239,7 @@ int dspal_entry(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: dspal {start |stop}");
+	PX4_INFO("Usage: dspal {start |stop}");
 }
 
 

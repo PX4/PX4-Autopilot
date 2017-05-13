@@ -36,14 +36,15 @@
 #include "px4_tasks.h"
 #include <drivers/drv_hrt.h>
 #include <cstdio>
+#include <pthread.h>
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 
-uORB::KraitFastRpcChannel uORB::KraitFastRpcChannel::_Instance;
+uORB::KraitFastRpcChannel *uORB::KraitFastRpcChannel::_InstancePtr = nullptr;
 
 static void DumpData(uint8_t *buffer, int32_t length, int32_t num_topics);
 
-// static intialization.
+// static initialization.
 static std::string _log_file_name = "./hex_dump.txt";
 
 static unsigned long _snd_msg_min = 0xFFFFFF;
@@ -64,6 +65,24 @@ uORB::KraitFastRpcChannel::KraitFastRpcChannel() :
 	_ThreadShouldExit(false)
 {
 	_KraitWrapper.Initialize();
+}
+
+int16_t uORB::KraitFastRpcChannel::topic_advertised(const char *messageName)
+{
+	int16_t rc = 0;
+	PX4_DEBUG("Before calling TopicAdvertised for [%s]\n", messageName);
+	rc = _KraitWrapper.TopicAdvertised(messageName);
+	PX4_DEBUG("Response for TopicAdvertised for [%s], rc[%d]\n", messageName, rc);
+	return rc;
+}
+
+int16_t uORB::KraitFastRpcChannel::topic_unadvertised(const char *messageName)
+{
+	int16_t rc = 0;
+	PX4_DEBUG("Before calling TopicUnadvertised for [%s]\n", messageName);
+	rc = _KraitWrapper.TopicUnadvertised(messageName);
+	PX4_DEBUG("Response for TopicUnadvertised for [%s], rc[%d]\n", messageName, rc);
+	return rc;
 }
 
 int16_t uORB::KraitFastRpcChannel::add_subscription(const char *messageName, int32_t msgRateInHz)
@@ -243,9 +262,9 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 				uint16_t check_msg_len = strlen(messageName);
 
 				if (header->_MsgNameLen != (check_msg_len + 1)) {
-					PX4_ERR("Error: Packing error.  Sent Msg Len. of[%d] but strlen returned:[%d]", header->_MsgNameLen , check_msg_len);
+					PX4_ERR("Error: Packing error.  Sent Msg Len. of[%d] but strlen returned:[%d]", header->_MsgNameLen, check_msg_len);
 					PX4_ERR("Error: NumTopics: %d processing topic: %d msgLen[%d] dataLen[%d] data_len[%d] bytes processed: %d",
-						num_topics, i, header->_MsgNameLen, header->_DataLen , data_length, bytes_processed);
+						num_topics, i, header->_MsgNameLen, header->_DataLen, data_length, bytes_processed);
 					DumpData(data, data_length, num_topics);
 					break;
 				}
@@ -253,9 +272,19 @@ void uORB::KraitFastRpcChannel::fastrpc_recv_thread()
 				uint8_t *topic_data = (uint8_t *)(messageName + strlen(messageName) + 1);
 
 				if (_RxHandler != nullptr) {
-					_RxHandler->process_received_message(messageName,
-									     header->_DataLen, topic_data);
-					//PX4_DEBUG( "Received topic data for control message for: [%s] len[%d]\n", name, data_length );
+					if (header->_MsgType == _DATA_MSG_TYPE) {
+						//PX4_DEBUG( "Received topic data for: [%s] len[%d]\n", messageName, data_length );
+						_RxHandler->process_received_message(messageName,
+										     header->_DataLen, topic_data);
+
+					} else if (header->_MsgType == _CONTROL_MSG_TYPE_ADVERTISE) {
+						PX4_DEBUG("Received topic advertise message for: [%s] len[%d]\n", messageName, data_length);
+						_RxHandler->process_remote_topic(messageName, true);
+
+					} else if (header->_MsgType == _CONTROL_MSG_TYPE_UNADVERTISE) {
+						PX4_DEBUG("Received topic unadvertise message for: [%s] len[%d]\n", messageName, data_length);
+						_RxHandler->process_remote_topic(messageName, false);
+					}
 				}
 
 				bytes_processed += header->_MsgNameLen + header->_DataLen + sizeof(struct BulkTransferHeader);

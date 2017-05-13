@@ -156,14 +156,16 @@ ETSAirspeed::collect()
 
 	uint16_t diff_pres_pa_raw = val[1] << 8 | val[0];
 
+	differential_pressure_s report;
+	report.timestamp = hrt_absolute_time();
+
 	if (diff_pres_pa_raw == 0) {
-		// a zero value means the pressure sensor cannot give us a
-		// value. We need to return, and not report a value or the
-		// caller could end up using this value as part of an
-		// average
-		perf_count(_comms_errors);
-		DEVICE_LOG("zero value from sensor");
-		return -1;
+		// a zero value indicates no measurement
+		// since the noise floor has been arbitrarily killed
+		// it defeats our stuck sensor detection - the best we
+		// can do is to output some numerical noise to show
+		// that we are still correctly sampling.
+		diff_pres_pa_raw = 0.001f * (report.timestamp & 0x01);
 	}
 
 	// The raw value still should be compensated for the known offset
@@ -174,8 +176,6 @@ ETSAirspeed::collect()
 		_max_differential_pressure_pa = diff_pres_pa_raw;
 	}
 
-	differential_pressure_s report;
-	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 
 	// XXX we may want to smooth out the readings to remove noise.
@@ -264,12 +264,6 @@ ETSAirspeed::cycle()
  */
 namespace ets_airspeed
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 ETSAirspeed	*g_dev;
 

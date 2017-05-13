@@ -52,30 +52,12 @@ public:
 	Tiltrotor(VtolAttitudeControl *_att_controller);
 	~Tiltrotor();
 
-	/**
-	 * Update vtol state.
-	 */
-	void update_vtol_state();
-
-	/**
-	 * Update multicopter state.
-	 */
-	void update_mc_state();
-
-	/**
-	 * Update fixed wing state.
-	 */
-	void update_fw_state();
-
-	/**
-	 * Update transition state.
-	 */
-	void update_transition_state();
-
-	/**
-	 * Update external state.
-	 */
-	void update_external_state();
+	virtual void update_vtol_state();
+	virtual void update_transition_state();
+	virtual void fill_actuator_outputs();
+	virtual void update_mc_state();
+	virtual void update_fw_state();
+	virtual void waiting_on_tecs();
 
 private:
 
@@ -90,6 +72,9 @@ private:
 		int elevons_mc_lock;			/**< lock elevons in multicopter mode */
 		float front_trans_dur_p2;
 		int fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
+		int airspeed_mode;
+		int diff_thrust;
+		float diff_thrust_scale;
 	} _params_tiltrotor;
 
 	struct {
@@ -103,6 +88,9 @@ private:
 		param_t elevons_mc_lock;
 		param_t front_trans_dur_p2;
 		param_t fw_motors_off;
+		param_t airspeed_mode;
+		param_t diff_thrust;
+		param_t diff_thrust_scale;
 	} _params_handles_tiltrotor;
 
 	enum vtol_mode {
@@ -121,7 +109,8 @@ private:
 	enum rear_motor_state {
 		ENABLED = 0,
 		DISABLED,
-		IDLE
+		IDLE,
+		VALUE
 	} _rear_motors;
 
 	struct {
@@ -144,19 +133,14 @@ private:
 	bool is_motor_off_channel(const int channel);
 
 	/**
-	 * Write control values to actuator output topics.
-	 */
-	void fill_actuator_outputs();
-
-	/**
 	 * Adjust the state of the rear motors. In fw mode they shouldn't spin.
 	 */
-	void set_rear_motor_state(rear_motor_state state);
+	void set_rear_motor_state(rear_motor_state state, int value = 0);
 
 	/**
 	 * Update parameters.
 	 */
-	int parameters_update();
+	virtual void parameters_update();
 
 };
 #endif

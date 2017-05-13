@@ -43,15 +43,18 @@
 
 #include "mavlink_stream.h"
 
-class StreamListItem {
+class StreamListItem
+{
 
 public:
-	MavlinkStream* (*new_instance)(Mavlink *mavlink);
-	const char* (*get_name)();
+	MavlinkStream *(*new_instance)(Mavlink *mavlink);
+	const char *(*get_name)();
+	uint16_t (*get_id)();
 
-	StreamListItem(MavlinkStream* (*inst)(Mavlink *mavlink), const char* (*name)()) :
+	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *(*name)(), uint16_t (*id)()) :
 		new_instance(inst),
-		get_name(name) {};
+		get_name(name),
+		get_id(id) {};
 
 	~StreamListItem() {};
 };

@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <drivers/drv_adc.h>
 

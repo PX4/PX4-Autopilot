@@ -37,7 +37,8 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 
 #include <stdio.h>
@@ -48,7 +49,7 @@
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -120,12 +121,12 @@ int test_time(int argc, char *argv[])
 	delta = 0;
 
 	for (unsigned i = 0; i < 100; i++) {
-		uint32_t flags = irqsave();
+		uint32_t flags = px4_enter_critical_section();
 
 		h = hrt_absolute_time();
 		c = cycletime();
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 
 		delta += h - c;
 	}
@@ -137,12 +138,12 @@ int test_time(int argc, char *argv[])
 
 		usleep(rand());
 
-		uint32_t flags = irqsave();
+		uint32_t flags = px4_enter_critical_section();
 
 		c = cycletime();
 		h = hrt_absolute_time();
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 
 		delta = abs(h - c);
 		deltadelta = abs(delta - lowdelta);

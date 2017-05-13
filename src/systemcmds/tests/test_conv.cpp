@@ -48,18 +48,17 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
 
-#include <systemlib/err.h>
 #include <unit_test/unit_test.h>
 #include <px4iofirmware/protocol.h>
 
 int test_conv(int argc, char *argv[])
 {
-	PX4_INFO("Testing system conversions");
+	//PX4_INFO("Testing system conversions");
 
 	for (int i = -10000; i <= 10000; i += 1) {
 		float f = i / 10000.0f;
@@ -72,7 +71,7 @@ int test_conv(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("All conversions clean");
+	//PX4_INFO("All conversions clean");
 
 	return 0;
 }

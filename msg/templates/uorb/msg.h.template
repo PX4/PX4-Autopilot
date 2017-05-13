@@ -13,10 +13,12 @@
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - md5sum (String) MD5Sum of the .msg specification
+@#  - search_path (dict) search paths for genmsg
+@#  - topics (List of String) multi-topic names
 @###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +54,7 @@
 @{
 import genmsg.msgs
 import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%spec.short_name
 topic_name = spec.short_name
@@ -63,6 +66,12 @@ topic_name = spec.short_name
 @# Generic Includes
 @##############################
 #include <stdint.h>
+#ifdef __cplusplus
+#include <cstring>
+#else
+#include <string.h>
+#endif
+
 #include <uORB/uORB.h>
 
 @##############################
@@ -70,12 +79,11 @@ topic_name = spec.short_name
 @##############################
 @{
 for field in spec.parsed_fields():
-  if (not field.is_builtin):
-    if (not field.is_header):
-      (package, name) = genmsg.names.package_resource_name(field.base_type)
-      package = package or spec.package # convert '' to package
-      print('#include <uORB/topics/%s.h>'%(name))
-
+    if (not field.is_builtin):
+        if (not field.is_header):
+            (package, name) = genmsg.names.package_resource_name(field.base_type)
+            package = package or spec.package # convert '' to package
+            print('#include <uORB/topics/%s.h>'%(name))
 }@
 
 @# Constants c style
@@ -85,61 +93,21 @@ for field in spec.parsed_fields():
 @[end for]
 #endif
 
-/**
- * @@addtogroup topics
- * @@{
- */
-
 @##############################
 @# Main struct of message
 @##############################
 @{
 
-type_map = {'int8': 'int8_t',
-  'int16': 'int16_t',
-  'int32': 'int32_t',
-  'int64': 'int64_t',
-  'uint8': 'uint8_t',
-  'uint16': 'uint16_t',
-  'uint32': 'uint32_t',
-  'uint64': 'uint64_t',
-  'float32': 'float',
-  'float64': 'double',
-  'bool': 'bool',
-  'char': 'char',
-  'fence_vertex': 'fence_vertex',
-  'position_setpoint': 'position_setpoint',
-  'esc_report': 'esc_report'}
+def print_parsed_fields():
+    # sort fields (using a stable sort)
+    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+    struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
+    # loop over all fields and print the type and name
+    for field in sorted_fields:
+        if (not field.is_header):
+            print_field_def(field)
+}@
 
-# Function to print a standard ros type
-def print_field_def(field):
-  type = field.type
-  # detect embedded types
-  sl_pos = type.find('/')
-  type_appendix = ''
-  type_prefix = ''
-  if (sl_pos >= 0):
-    type = type[sl_pos + 1:]
-    type_prefix = 'struct '
-    type_appendix = '_s'
-
-  # detect arrays
-  a_pos = type.find('[')
-  array_size = ''
-  if (a_pos >= 0):
-    # field is array
-    array_size = type[a_pos:]
-    type = type[:a_pos]
-
-  if type in type_map:
-    # need to add _t: int8 --> int8_t
-    type_px4 = type_map[type]
-  else:
-    raise Exception("Type {0} not supported, add to to template file!".format(type))
-
-  print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
-
-}
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
@@ -147,31 +115,26 @@ struct __EXPORT @(uorb_struct) {
 #else
 struct @(uorb_struct) {
 #endif
-@{
-# loop over all fields and print the type and name
-for field in spec.parsed_fields():
-  if (not field.is_header):
-    print_field_def(field)
-}@
+@# timestamp at the beginning of each topic is required for logger
+	uint64_t timestamp; // required for logger
+@print_parsed_fields()
 #ifdef __cplusplus
 @# Constants again c++-ified
 @{
 for constant in spec.constants:
-  type = constant.type
-  if type in type_map:
-    # need to add _t: int8 --> int8_t
-    type_px4 = type_map[type]
-  else:
-    raise Exception("Type {0} not supported, add to to template file!".format(type))
+    type_name = constant.type
+    if type_name in type_map:
+        # need to add _t: int8 --> int8_t
+        type_px4 = type_map[type_name]
+    else:
+        raise Exception("Type {0} not supported, add to to template file!".format(type_name))
 
-  print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
+    print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
 #endif
 };
 
-/**
- * @@}
- */
-
 /* register this as object request broker structure */
-ORB_DECLARE(@(topic_name));
+@[for multi_topic in topics]@
+ORB_DECLARE(@multi_topic);
+@[end for]

@@ -63,10 +63,28 @@ public:
 	// public interfaces for this class.
 
 	/**
+	 * Initialize the singleton. Call this before everything else.
+	 * @return true on success
+	 */
+	static bool initialize();
+
+	/**
 	 * Method to get the singleton instance for the uORB::Manager.
+	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
 	 */
-	static uORB::Manager *get_instance();
+	static uORB::Manager *get_instance()
+	{
+		return _Instance;
+	}
+
+	/**
+	 * Get the DeviceMaster for a given Flavor. If it does not exist,
+	 * it will be created and initialized.
+	 * Note: the first call to this is not thread-safe.
+	 * @return nullptr if initialization failed (and errno will be set)
+	 */
+	uORB::DeviceMaster *get_device_master(Flavor flavor);
 
 	// ==== uORB interface methods ====
 	/**
@@ -78,18 +96,26 @@ public:
 	 * Any number of advertisers may publish to a topic; publications are atomic
 	 * but co-ordination between publishers is not provided by the ORB.
 	 *
+	 * Internally this will call orb_advertise_multi with an instance of 0 and
+	 * default priority.
+	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
 	 * @param data    A pointer to the initial data to be published.
 	 *      For topics updated by interrupt handlers, the advertisement
 	 *      must be performed from non-interrupt context.
+	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
+	 *      used.
 	 * @return    nullptr on error, otherwise returns an object pointer
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data);
+	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1)
+	{
+		return orb_advertise_multi(meta, data, nullptr, ORB_PRIO_DEFAULT, queue_size);
+	}
 
 	/**
 	 * Advertise as the publisher of a topic.
@@ -100,16 +126,25 @@ public:
 	 * Any number of advertisers may publish to a topic; publications are atomic
 	 * but co-ordination between publishers is not provided by the ORB.
 	 *
+	 * The multi can be used to create multiple independent instances of the same topic
+	 * (each instance has its own buffer).
+	 * This is useful for multiple publishers who publish the same topic. The subscriber
+	 * then subscribes to all instances and chooses which source he wants to use.
+	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
 	 * @param data    A pointer to the initial data to be published.
 	 *      For topics updated by interrupt handlers, the advertisement
 	 *      must be performed from non-interrupt context.
 	 * @param instance  Pointer to an integer which will yield the instance ID (0-based)
-	 *      of the publication.
+	 *      of the publication. This is an output parameter and will be set to the newly
+	 *      created instance, ie. 0 for the first advertiser, 1 for the next and so on.
 	 * @param priority  The priority of the instance. If a subscriber subscribes multiple
 	 *      instances, the priority allows the subscriber to prioritize the best
-	 *      data source as long as its available.
+	 *      data source as long as its available. The subscriber is responsible to check
+	 *      and handle different priorities (@see orb_priority()).
+	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
+	 *      used.
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
@@ -117,8 +152,16 @@ public:
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority) ;
+					 int priority, unsigned int queue_size = 1) ;
 
+
+	/**
+	 * Unadvertise a topic.
+	 *
+	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
+	 * @return 0 on success
+	 */
+	int orb_unadvertise(orb_advert_t handle);
 
 	/**
 	 * Publish new data to a topic.
@@ -153,13 +196,12 @@ public:
 	 * there is nothing in the system that has declared the topic and thus it
 	 * can never be published.
 	 *
+	 * Internally this will call orb_subscribe_multi with instance 0.
+	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
-	 *      If the topic in question is not known (due to an
-	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	int  orb_subscribe(const struct orb_metadata *meta) ;
 
@@ -181,11 +223,15 @@ public:
 	 * there is nothing in the system that has declared the topic and thus it
 	 * can never be published.
 	 *
+	 * If a publisher publishes multiple instances the subscriber should
+	 * subscribe to each instance with orb_subscribe_multi
+	 * (@see orb_advertise_multi()).
+	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
 	 * @param instance  The instance of the topic. Instance 0 matches the
 	 *      topic of the orb_subscribe() call, higher indices
-	 *      are for topics created with orb_publish_multi().
+	 *      are for topics created with orb_advertise_multi().
 	 * @return    ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 *      If the topic in question is not known (due to an
@@ -241,7 +287,8 @@ public:
 	int  orb_check(int handle, bool *updated) ;
 
 	/**
-	 * Return the last time that the topic was updated.
+	 * Return the last time that the topic was updated. If a queue is used, it returns
+	 * the timestamp of the latest element in the queue.
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param time    Returns the absolute time that the topic was updated, or zero if it has
@@ -251,7 +298,8 @@ public:
 	int  orb_stat(int handle, uint64_t *time) ;
 
 	/**
-	 * Check if a topic has already been created.
+	 * Check if a topic has already been created (a publisher or a subscriber exists with
+	 * the given instance).
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
@@ -265,8 +313,8 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param priority  Returns the priority of this topic. This is only relevant for
 	 *      topics which are published by multiple publishers (e.g. mag0, mag1, etc.)
-	 *      and allows a subscriber to automatically pick the topic with the highest
-	 *      priority, independent of the startup order of the associated publishers.
+	 *      and allows a subscriber to pick the topic with the highest priority,
+	 *      independent of the startup order of the associated publishers.
 	 * @return    OK on success, ERROR otherwise with errno set accordingly.
 	 */
 	int  orb_priority(int handle, int32_t *priority) ;
@@ -290,6 +338,18 @@ public:
 	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
 	 */
 	int  orb_set_interval(int handle, unsigned interval) ;
+
+
+	/**
+	 * Get the minimum interval between which updates are seen for a subscription.
+	 *
+	 * @see orb_set_interval()
+	 *
+	 * @param handle  A handle returned from orb_subscribe.
+	 * @param interval  The returned interval period in milliseconds.
+	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 */
+	int	orb_get_interval(int handle, unsigned *interval);
 
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
@@ -350,9 +410,27 @@ private: // data members
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
 	ORBSet _remote_subscriber_topics;
+	ORBSet _remote_topics;
+
+	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
 
 private: //class methods
 	Manager();
+	~Manager();
+
+	/**
+	 * Interface to process a received topic from remote.
+	 * @param topic_name
+	 * 	This represents the uORB message Name (topic); This message Name should be
+	 * 	globally unique.
+	 * @param isAdvertisement
+	 * 	Represents if the topic has been advertised or is no longer avialable.
+	 * @return
+	 *  0 = success; This means the messages is successfully handled in the
+	 *  	handler.
+	 *  otherwise = failure.
+	 */
+	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement);
 
 	/**
 	   * Interface to process a received AddSubscription from remote.
@@ -397,6 +475,46 @@ private: //class methods
 	 */
 	virtual int16_t process_received_message(const char *messageName,
 			int32_t length, uint8_t *data);
+
+
+#ifdef ORB_USE_PUBLISHER_RULES
+
+	struct PublisherRule {
+		const char **topics; //null-terminated list of topic names
+		const char *module_name; //only this module is allowed to publish one of the topics
+		bool ignore_other_topics;
+	};
+
+	/**
+	 * test if str starts with pre
+	 */
+	bool startsWith(const char *pre, const char *str);
+
+	/**
+	 * find a topic in a rule
+	 */
+	bool findTopic(const PublisherRule &rule, const char *topic_name);
+
+	/**
+	 * trim whitespace from the beginning of a string
+	 */
+	void strTrim(const char **str);
+
+	/**
+	 * Read publisher rules from a file. It has the format:
+	 *
+	 * restrict_topics: <topic1>, <topic2>, <topic3>
+	 * module: <module_name>
+	 * [ignore_others:true]
+	 *
+	 * @return 0 on success, <0 otherwise
+	 */
+	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
+
+	PublisherRule _publisher_rule;
+	bool _has_publisher_rules = false;
+
+#endif /* ORB_USE_PUBLISHER_RULES */
 
 };
 

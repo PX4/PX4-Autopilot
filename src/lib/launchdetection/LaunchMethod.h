@@ -48,16 +48,17 @@ enum LaunchDetectionResult {
 	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
 	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
 							  control the attitude. However any motors should not throttle
-							  up and still be set to 'throttlePreTakeoff'.
-							  For instance this is used to have a delay for the motor
+							  up. For instance this is used to have a delay for the motor
 							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, teh controller should control
+	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
 							attitude and also throttle up the motors. */
 };
 
 class LaunchMethod
 {
 public:
+	virtual ~LaunchMethod() = default;
+
 	virtual void update(float accel_x) = 0;
 	virtual LaunchDetectionResult getLaunchDetected() const = 0;
 	virtual void reset() = 0;
@@ -65,10 +66,8 @@ public:
 	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
 	virtual float getPitchMax(float pitchMaxDefault) = 0;
 
-protected:
-private:
 };
 
-}
+} // namespace launchdetection
 
 #endif /* LAUNCHMETHOD_H_ */

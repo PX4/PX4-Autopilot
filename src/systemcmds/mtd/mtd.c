@@ -51,13 +51,15 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <nuttx/spi.h>
-#include <nuttx/mtd.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/drivers/drivers.h>
 
 #include <arch/board/board.h>
 
+#include "systemlib/px4_macros.h"
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"
 #include "systemlib/err.h"
@@ -76,13 +78,25 @@ int mtd_main(int argc, char *argv[])
 
 #else
 
+#  if defined(BOARD_HAS_MTD_PARTITION_OVERRIDE)
+#    define MTD_PARTITION_TABLE  BOARD_HAS_MTD_PARTITION_OVERRIDE
+#  else
+#   define MTD_PARTITION_TABLE  {"/fs/mtd_params", "/fs/mtd_waypoints"}
+#  endif
+
+
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
 #else
 
-#ifndef PX4_I2C_BUS_ONBOARD
-#  error PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
+#ifndef PX4_I2C_BUS_MTD
+#  ifdef PX4_I2C_BUS_ONBOARD
+#    define PX4_I2C_BUS_MTD PX4_I2C_BUS_ONBOARD
+#  else
+#    error PX4_I2C_BUS_MTD and PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
+#  endif
 #endif
+
 
 static void	at24xxx_attach(void);
 #endif
@@ -101,8 +115,8 @@ static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
-static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
-static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
+static char *partition_names_default[] = MTD_PARTITION_TABLE;
+static const int n_partitions_default = arraySize(partition_names_default);
 
 static void
 mtd_status(void)
@@ -176,12 +190,9 @@ struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 static void
 ramtron_attach(void)
 {
-	/* find the right spi */
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-	struct spi_dev_s *spi = up_spiinitialize(4);
-#else
-	struct spi_dev_s *spi = up_spiinitialize(2);
-#endif
+	/* initialize the right spi */
+	struct spi_dev_s *spi = px4_spibus_initialize(PX4_SPI_BUS_RAMTRON);
+
 	/* this resets the spi bus, set correct bus speed again */
 	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
 	SPI_SETBITS(spi, 8);
@@ -228,9 +239,7 @@ static void
 at24xxx_attach(void)
 {
 	/* find the right I2C */
-	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
-	/* this resets the I2C bus, set correct bus speed again */
-	I2C_SETFREQUENCY(i2c, 400000);
+	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_MTD);
 
 	if (i2c == NULL) {
 		errx(1, "failed to locate I2C bus");
@@ -269,10 +278,10 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	}
 
 	if (!attached) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		at24xxx_attach();
-#else
+#ifdef CONFIG_MTD_RAMTRON
 		ramtron_attach();
+#else
+		at24xxx_attach();
 #endif
 	}
 
@@ -352,7 +361,7 @@ int mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigne
 	}
 
 	*blocksize = geo.blocksize;
-	*erasesize = geo.blocksize;
+	*erasesize = geo.erasesize;
 	*neraseblocks = geo.neraseblocks;
 
 	/* Determine the size of each partition.  Make each partition an even

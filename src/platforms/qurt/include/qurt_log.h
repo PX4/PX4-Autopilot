@@ -30,21 +30,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef QURT_LOG_H
-#define QURT_LOG_H
 
+#pragma once
+
+#include <sys/cdefs.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+__BEGIN_DECLS
+
+__EXPORT extern uint64_t hrt_absolute_time(void);
 
 //void qurt_log(int level, const char *file, int line, const char *format, ...);
 
 // declaration to make the compiler happy.  This symbol is part of the adsp static image.
 void HAP_debug(const char *msg, int level, const char *filename, int line);
 
+#ifndef qurt_log_defined
+#define qurt_log_defined
 static __inline void qurt_log(int level, const char *file, int line,
 			      const char *format, ...)
 {
@@ -55,10 +59,6 @@ static __inline void qurt_log(int level, const char *file, int line,
 	va_end(args);
 	HAP_debug(buf, level, file, line);
 }
-
-#ifdef __cplusplus
-}
 #endif
 
-#endif // QURT_LOG_H
-
+__END_DECLS

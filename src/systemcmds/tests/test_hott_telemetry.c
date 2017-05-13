@@ -58,7 +58,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 
 /****************************************************************************

@@ -4,6 +4,7 @@ import os
 
 class RCOutput():
     def __init__(self, groups, board):
+
         result = (  "#\n"
                     "#\n"
                     "#  THIS FILE IS AUTO-GENERATED. DO NOT EDIT!\n"
@@ -31,6 +32,12 @@ class RCOutput():
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
+                excluded = False
+                for code in param.GetArchCodes():
+                    if "{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                        excluded = True
+                if excluded:
+                    continue
                 path = os.path.split(param.GetPath())[1]
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")

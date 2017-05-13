@@ -74,7 +74,6 @@
 AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path) :
 	VDev("AIRSPEEDSIM", path),
 	_reports(nullptr),
-	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
 	_retries(0),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
@@ -113,7 +112,6 @@ AirspeedSim::~AirspeedSim()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 }
 
 int
@@ -251,13 +249,13 @@ AirspeedSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			//irqstate_t flags = irqsave();
+			//irqstate_t flags = px4_enter_critical_section();
 			if (!_reports->resize(arg)) {
-				//irqrestore(flags);
+				//px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			//irqrestore(flags);
+			//px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -371,12 +369,11 @@ AirspeedSim::update_status()
 {
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
-		struct subsystem_info_s info = {
-			true,
-			true,
-			_sensor_ok,
-			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
-		};
+		struct subsystem_info_s info = {};
+		info.present = true;
+		info.enabled = true;
+		info.ok = _sensor_ok;
+		info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE;
 
 		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
@@ -406,7 +403,6 @@ AirspeedSim::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
 }
@@ -414,9 +410,7 @@ AirspeedSim::print_info()
 void
 AirspeedSim::new_report(const differential_pressure_s &report)
 {
-	if (!_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 }
 
 int
@@ -426,7 +420,7 @@ AirspeedSim::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, uns
 		// this is equivalent to the collect phase
 		Simulator *sim = Simulator::getInstance();
 
-		if (sim == NULL) {
+		if (sim == nullptr) {
 			PX4_ERR("Error BARO_SIM::transfer no simulator");
 			return -ENODEV;
 		}

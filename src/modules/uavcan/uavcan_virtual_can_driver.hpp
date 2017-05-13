@@ -114,6 +114,14 @@ public:
 		uavcan::IsDynamicallyAllocatable<Item>::check();
 	}
 
+	~Queue()
+	{
+		while (!isEmpty())
+		{
+			pop();
+		}
+	}
+
 	bool isEmpty() const { return list_.isEmpty(); }
 
 	/**
@@ -329,11 +337,7 @@ public:
 /**
  * Objects of this class are owned by the sub-node thread.
  * This class does not use heap memory.
- * @tparam SharedMemoryPoolSize         Amount of memory, in bytes, that will be statically allocated for the
- *                                      memory pool that will be shared across all interfaces for RX/TX queues.
- *                                      Typically this value should be no less than 4K per interface.
  */
-template <unsigned SharedMemoryPoolSize>
 class VirtualCanDriver : public uavcan::ICanDriver,
 	public uavcan::IRxFrameListener,
 	public ITxQueueInjector,
@@ -341,19 +345,23 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 {
 	class Event
 	{
-		FAR sem_t sem;
+		FAR px4_sem_t sem;
 
 
 	public:
 
 		int init()
 		{
-			return sem_init(&sem, 0, 0);
+			int rv = px4_sem_init(&sem, 0, 0);
+			if (rv == 0) {
+				px4_sem_setprotocol(&sem, SEM_PRIO_NONE);
+			}
+			return rv;
 		}
 
 		int deinit()
 		{
-			return sem_destroy(&sem);
+			return px4_sem_destroy(&sem);
 		}
 
 
@@ -384,7 +392,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 						abstime.tv_nsec -= NsPerSec;
 					}
 
-					(void)sem_timedwait(&sem, &abstime);
+					(void)px4_sem_timedwait(&sem, &abstime);
 				}
 			}
 		}
@@ -392,7 +400,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		void signal()
 		{
 			int count;
-			int rv = sem_getvalue(&sem, &count);
+			int rv = px4_sem_getvalue(&sem, &count);
 
 			if (rv > 0 && count <= 0) {
 				px4_sem_post(&sem);
@@ -400,9 +408,8 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 		}
 	};
 
-	Event event_;               ///< Used to unblock the select() call when IO happens.
+	Event event_;                     ///< Used to unblock the select() call when IO happens.
 	pthread_mutex_t driver_mutex_;    ///< Shared across all ifaces
-	uavcan::PoolAllocator<SharedMemoryPoolSize, uavcan::MemPoolBlockSize> allocator_;   ///< Shared across all ifaces
 	uavcan::LazyConstructor<VirtualCanIface> ifaces_[uavcan::MaxCanIfaces];
 	const unsigned num_ifaces_;
 	uavcan::ISystemClock &clock_;
@@ -476,7 +483,10 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 	}
 
 public:
-	VirtualCanDriver(unsigned arg_num_ifaces, uavcan::ISystemClock &system_clock) :
+	VirtualCanDriver(unsigned arg_num_ifaces,
+		         uavcan::ISystemClock &system_clock,
+		         uavcan::IPoolAllocator& allocator,
+		         unsigned virtual_iface_block_allocation_quota) :
 		num_ifaces_(arg_num_ifaces),
 		clock_(system_clock)
 	{
@@ -485,15 +495,11 @@ public:
 
 		assert(num_ifaces_ > 0 && num_ifaces_ <= uavcan::MaxCanIfaces);
 
-		const unsigned quota_per_iface = allocator_.getNumBlocks() / num_ifaces_;
-		const unsigned quota_per_queue = quota_per_iface;             // 2x overcommit
-
-		UAVCAN_TRACE("VirtualCanDriver", "Total blocks: %u, quota per queue: %u",
-			     unsigned(allocator_.getNumBlocks()), unsigned(quota_per_queue));
+		const unsigned quota_per_queue = virtual_iface_block_allocation_quota;             // 2x overcommit
 
 		for (unsigned i = 0; i < num_ifaces_; i++) {
-			ifaces_[i].template construct<uavcan::IPoolAllocator &, uavcan::ISystemClock &,
-				pthread_mutex_t &, unsigned>(allocator_, clock_, driver_mutex_, quota_per_queue);
+			ifaces_[i].construct<uavcan::IPoolAllocator&, uavcan::ISystemClock&, pthread_mutex_t&,
+					     unsigned>(allocator, clock_, driver_mutex_, quota_per_queue);
 		}
 	}
 

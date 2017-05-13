@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <systemlib/err.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -170,8 +170,11 @@ int test_ppm_loopback(int argc, char *argv[])
 
 	} else {
 		warnx("failed reading RC input data");
+		(void)close(servo_fd);
 		return ERROR;
 	}
+
+	close(servo_fd);
 
 	warnx("PPM LOOPBACK TEST PASSED SUCCESSFULLY!");
 

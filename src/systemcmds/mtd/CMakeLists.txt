@@ -34,12 +34,10 @@ px4_add_module(
 	MODULE systemcmds__mtd
 	MAIN mtd
 	COMPILE_FLAGS
-		-Wno-error
-		-Os
 	SRCS
 		mtd.c
 		24xxxx_mtd.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

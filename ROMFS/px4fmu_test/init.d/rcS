@@ -8,7 +8,7 @@ uorb start
 
 if rgbled start
 then
-	rgbled rgb 20 20 255
+	led_control on -c blue
 fi
 
 if sercon
@@ -37,6 +37,11 @@ fi
 #
 # Start a minimal system
 #
+
+#
+# Start the ORB (first app to start)
+#
+uorb start
 
 #
 # Load parameters
@@ -104,131 +109,24 @@ then
 	tests mount
 fi
 
+sh /etc/init.d/rc.sensors
+
+ver all
+
 #
 # Run unit tests at board boot, reporting failure as needed.
 # Add new unit tests using the same pattern as below.
 #
 
-if mavlink_tests
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
-fi
-
-if commander_tests
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
-fi
-
-if uorb test
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} uorb_tests"
-fi
-
-# Start all sensors on all boards
-ms5611 start
-adc start
-
-if mpu6000 -X start
-then
-fi
-
-if mpu6000 start
-then
-fi
-
-if l3gd20 -X start
-then
-fi
-
-if l3gd20 start
-then
-fi
-
-# MAG selection
-if param compare SENS_EXT_MAG 2
-then
-	if hmc5883 -I start
-	then
-	fi
-else
-	# Use only external as primary
-	if param compare SENS_EXT_MAG 1
-	then
-		if hmc5883 -X start
-		then
-		fi
-	else
-	# auto-detect the primary, prefer external
-		if hmc5883 start
-		then
-		fi
-	fi
-fi
-
-if ver hwcmp PX4FMU_V2
-then
-	if lsm303d -X start
-	then
-	fi
-
-	if lsm303d start
-	then
-	fi
-
-	if ms5611 -X start
-	then
-	fi
-fi
-
-if meas_airspeed start
-then
-else
-	if ets_airspeed start
-	then
-	else
-		if ets_airspeed start -b 1
-		then
-		fi
-	fi
-fi
-
-if sensors start
-then
-fi
-
-# Check for flow sensor
-if px4flow start
-then
-fi
-
-if ll40ls start
-then
-fi
-
 if tests all
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} system_tests"
-fi
-
-if [ $unit_test_failure == 0 ]
 then
 	echo
 	echo "All Unit Tests PASSED"
-	rgbled rgb 20 255 20
+	led_control on -c green
 else
 	echo
-	echo "Some Unit Tests FAILED:${unit_test_failure_list}"
-	rgbled rgb 255 20 20
+	echo "Some Unit Tests FAILED"
+	led_control on -c red
 fi
-
-ver all
 
 free

@@ -35,10 +35,9 @@
 #include <algorithm>
 #include <drivers/drv_hrt.h>
 
-// static intialization.
+// static initialization.
 uORB::FastRpcChannel uORB::FastRpcChannel::_Instance;
 
-static hrt_abstime _check_time;
 static unsigned long _dropped_pkts;
 static unsigned long _get_min = 0xFFFFFF;
 static unsigned long _get_max = 0;
@@ -67,6 +66,81 @@ uORB::FastRpcChannel::FastRpcChannel()
 	}
 
 	_RemoteSubscribers.clear();
+}
+
+//==============================================================================
+//==============================================================================
+int16_t uORB::FastRpcChannel::topic_advertised(const char *messageName)
+{
+	return control_msg_queue_add(_CONTROL_MSG_TYPE_ADVERTISE, messageName);
+}
+
+//==============================================================================
+//==============================================================================
+int16_t uORB::FastRpcChannel::topic_unadvertised(const char *messageName)
+{
+	return control_msg_queue_add(_CONTROL_MSG_TYPE_UNADVERTISE, messageName);
+}
+
+//==============================================================================
+//==============================================================================
+int16_t uORB::FastRpcChannel::control_msg_queue_add(int32_t msgtype, const char *messageName)
+{
+	int16_t rc = 0;
+	hrt_abstime t1, t2;
+	static hrt_abstime check_time = 0;
+
+	t1 = hrt_absolute_time();
+	_QueueMutex.lock();
+	bool overwriteData = false;
+
+	if (IsControlQFull()) {
+		// queue is full.  Overwrite the oldest data.
+		_ControlQOutIndex++;
+
+		if (_ControlQOutIndex == _MAX_MSG_QUEUE_SIZE) {
+			_ControlQOutIndex = 0;
+		}
+
+		overwriteData = true;
+		_dropped_pkts++;
+	}
+
+	_ControlMsgQueue[ _ControlQInIndex ]._Type = msgtype;
+	_ControlMsgQueue[ _ControlQInIndex ]._MsgName = messageName;
+
+	_ControlQInIndex++;
+
+	if (_ControlQInIndex == _MAX_MSG_QUEUE_SIZE) {
+		_ControlQInIndex = 0;
+	}
+
+	// the assumption here is that each caller reads only one data from either control or data queue.
+	if (ControlQSize() == 1 && DataQSize() == 0) {  // post it only of the queue moves from empty to available.
+		_DataAvailableSemaphore.post();
+	}
+
+	if ((unsigned long)ControlQSize() < _min_q) { _min_q = (unsigned long)ControlQSize(); }
+
+	if ((unsigned long)ControlQSize() > _max_q) { _max_q = (unsigned long)ControlQSize(); }
+
+	_count++;
+	_avg_q = ((double)((_avg_q * (_count - 1)) + (unsigned long)(ControlQSize()))) / (double)(_count);
+
+	_QueueMutex.unlock();
+	t2 = hrt_absolute_time();
+
+	if ((unsigned long)(t2 - check_time) > 10000000) {
+		//PX4_DEBUG("MsgName: %20s, t1: %lu, t2: %lu, dt: %lu",messageName, (unsigned long) t1, (unsigned long) t2, (unsigned long) (t2-t1));
+		//PX4_DEBUG("Q. Stats: min: %lu, max : %lu, avg: %lu count: %lu ", _min_q, _max_q, (unsigned long)(_avg_q * 1000.0),  _count);
+		_min_q = _MAX_MSG_QUEUE_SIZE * 2;
+		_max_q = 0;
+		_avg_q = 0;
+		_count = 0;
+		check_time = t2;
+	}
+
+	return rc;
 }
 
 //==============================================================================
@@ -136,7 +210,6 @@ int16_t uORB::FastRpcChannel::send_message(const char *messageName, int32_t leng
 	int16_t rc = 0;
 	hrt_abstime t1, t2;
 	static hrt_abstime check_time = 0;
-	int32_t initial_queue_size = 0;
 
 	if (_RemoteSubscribers.find(messageName) == _RemoteSubscribers.end()) {
 		//there is no-remote subscriber. So do not queue the message.
@@ -178,7 +251,7 @@ int16_t uORB::FastRpcChannel::send_message(const char *messageName, int32_t leng
 
 	// the assumption here is that each caller reads only one data from either control or data queue.
 	//if (!overwriteData) {
-	if (DataQSize() == 1) {  // post it only of the queue moves from empty to available.
+	if (DataQSize() == 1 && ControlQSize() == 0) {  // post it only of the queue moves from empty to available.
 		_DataAvailableSemaphore.post();
 	}
 
@@ -280,7 +353,7 @@ int16_t uORB::FastRpcChannel::get_data
 	static hrt_abstime check_time = 0;
 	hrt_abstime t1 = hrt_absolute_time();
 	_DataAvailableSemaphore.wait();
-	hrt_abstime t2 = hrt_absolute_time();
+	// hrt_abstime t2 = hrt_absolute_time();
 	_QueueMutex.lock();
 
 	if (DataQSize() != 0 || ControlQSize() != 0) {
@@ -395,7 +468,7 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	static hrt_abstime check_time = 0;
 	hrt_abstime t1 = hrt_absolute_time();
 	_DataAvailableSemaphore.wait();
-	hrt_abstime t2 = hrt_absolute_time();
+	//hrt_abstime t2 = hrt_absolute_time();
 
 	_QueueMutex.lock();
 
@@ -405,51 +478,102 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	*topic_count = 0;
 	int32_t topic_count_to_return = 0;
 
-	if (DataQSize() != 0) {
-		//PX4_DEBUG( "get_bulk_data: QSize: %d", DataQSize() );
-		topic_count_to_return = DataQSize();
+	if (DataQSize() != 0 || ControlQSize() != 0) {
+		if (DataQSize() != 0) {
+			//PX4_DEBUG( "get_bulk_data: QSize: %d", DataQSize() );
+			topic_count_to_return = DataQSize();
 
-		while (DataQSize() != 0) {
-			// this is a hack as we are using a counting semaphore.  Should be re-implemented with cond_variable and wait.
-			//_DataAvailableSemaphore.wait();
-			if (get_data_msg_size_at(_DataQOutIndex) < (max_buffer_in_bytes - bytes_copied)) {
-				// there is enough space in the buffer, copy the data.
-				//PX4_DEBUG( "Coping Data to buffer..." );
-				copy_result = copy_data_to_buffer(_DataQOutIndex, buffer, bytes_copied, max_buffer_in_bytes);
+			while (DataQSize() != 0) {
+				// this is a hack as we are using a counting semaphore.  Should be re-implemented with cond_variable and wait.
+				//_DataAvailableSemaphore.wait();
+				if (get_msg_size_at(true, _DataQOutIndex) < (max_buffer_in_bytes - bytes_copied)) {
+					// there is enough space in the buffer, copy the data.
+					//PX4_DEBUG( "Coping Data to buffer..." );
+					copy_result = copy_msg_to_buffer(true, _DataQOutIndex, buffer, bytes_copied, max_buffer_in_bytes);
 
-				if (copy_result == -1) {
+					if (copy_result == -1) {
+						if (bytes_copied == 0) {
+							rc = -1;
+						}
+
+						break;
+
+					} else {
+						//PX4_DEBUG( "[%d] %02x %02x %02x %02x", *topic_count,\
+						//      buffer[bytes_copied], \
+						//      buffer[bytes_copied+1], \
+						//      buffer[bytes_copied+2], \
+						//      buffer[bytes_copied+3] );
+						bytes_copied += copy_result;
+						(*topic_count)++;
+						*returned_bytes = bytes_copied;
+						_DataQOutIndex++;
+
+						if (_DataQOutIndex == _MAX_MSG_QUEUE_SIZE) {
+							_DataQOutIndex = 0;
+						}
+					}
+
+				} else {
 					if (bytes_copied == 0) {
 						rc = -1;
+						PX4_WARN("ERROR: Insufficent space in data buffer, no topics returned");
+
+					} else {
+						PX4_DEBUG("Exiting out of the while loop...");
 					}
 
 					break;
+				}
+			}
+		}
 
-				} else {
-					//PX4_DEBUG( "[%d] %02x %02x %02x %02x", *topic_count,\
-					//      buffer[bytes_copied], \
-					//      buffer[bytes_copied+1], \
-					//      buffer[bytes_copied+2], \
-					//      buffer[bytes_copied+3] );
-					bytes_copied += copy_result;
-					(*topic_count)++;
-					*returned_bytes = bytes_copied;
-					_DataQOutIndex++;
+		if (ControlQSize() != 0) {
+			//PX4_DEBUG( "get_bulk_data: QSize: %d", ControlQSize() );
+			topic_count_to_return += ControlQSize();
 
-					if (_DataQOutIndex == _MAX_MSG_QUEUE_SIZE) {
-						_DataQOutIndex = 0;
+			while (ControlQSize() != 0) {
+				// this is a hack as we are using a counting semaphore.  Should be re-implemented with cond_variable and wait.
+				//_DataAvailableSemaphore.wait();
+				if (get_msg_size_at(false, _ControlQOutIndex) < (max_buffer_in_bytes - bytes_copied)) {
+					// there is enough space in the buffer, copy the data.
+					//PX4_DEBUG( "Coping Control msg to buffer..." );
+					copy_result = copy_msg_to_buffer(false, _ControlQOutIndex, buffer, bytes_copied, max_buffer_in_bytes);
+
+					if (copy_result == -1) {
+						if (bytes_copied == 0) {
+							rc = -1;
+						}
+
+						break;
+
+					} else {
+						//PX4_DEBUG( "[%d] %02x %02x %02x %02x", *topic_count,\
+						//      buffer[bytes_copied], \
+						//      buffer[bytes_copied+1], \
+						//      buffer[bytes_copied+2], \
+						//      buffer[bytes_copied+3] );
+						bytes_copied += copy_result;
+						(*topic_count)++;
+						*returned_bytes = bytes_copied;
+						_ControlQOutIndex++;
+
+						if (_ControlQOutIndex == _MAX_MSG_QUEUE_SIZE) {
+							_ControlQOutIndex = 0;
+						}
 					}
-				}
-
-			} else {
-				if (bytes_copied == 0) {
-					rc = -1;
-					PX4_WARN("ERROR: Insufficent space in data buffer, no topics returned");
 
 				} else {
-					PX4_DEBUG("Exiting out of the while loop...");
-				}
+					if (bytes_copied == 0) {
+						rc = -1;
+						PX4_WARN("ERROR: Insufficent space in data buffer, no topics returned");
 
-				break;
+					} else {
+						PX4_DEBUG("Exiting out of the while loop...");
+					}
+
+					break;
+				}
 			}
 		}
 
@@ -490,20 +614,25 @@ int16_t uORB::FastRpcChannel::get_bulk_data
 	return rc;
 }
 
-
-int32_t uORB::FastRpcChannel::get_data_msg_size_at(int32_t index)
+int32_t uORB::FastRpcChannel::get_msg_size_at(bool isData, int32_t index)
 {
 	// the assumption here is that this is called within the context of semaphore,
 	// hence lock/unlock is not needed.
 	int32_t rc = 0;
-	rc += _DataMsgQueue[ index ]._Length;
-	rc += _DataMsgQueue[ index ]._MsgName.size() + 1;
+
+	if (isData) {
+		rc += _DataMsgQueue[ index ]._Length;
+		rc += _DataMsgQueue[ index ]._MsgName.size() + 1;
+
+	} else {
+		rc += _ControlMsgQueue[ index ]._MsgName.size() + 1;
+	}
+
 	rc += _PACKET_HEADER_SIZE;
 	return rc;
 }
 
-
-int32_t uORB::FastRpcChannel::copy_data_to_buffer(int32_t src_index, uint8_t *dst_buffer, int32_t offset,
+int32_t uORB::FastRpcChannel::copy_msg_to_buffer(bool isData, int32_t src_index, uint8_t *dst_buffer, int32_t offset,
 		int32_t dst_buffer_len)
 {
 	int32_t rc = -1;
@@ -512,12 +641,20 @@ int32_t uORB::FastRpcChannel::copy_data_to_buffer(int32_t src_index, uint8_t *ds
 	// *  sem_lock is acquired for data protection
 	// *  the dst_buffer is validated to
 
+	uint16_t msg_size = (isData ?
+			     (uint16_t)(_DataMsgQueue[ src_index ]._MsgName.size()) :
+			     (uint16_t)(_ControlMsgQueue[ src_index ]._MsgName.size()));
+
 	// compute the different offsets to pack the packets.
 	int32_t field_header_offset = offset;
 	int32_t field_topic_name_offset = field_header_offset + sizeof(struct BulkTransferHeader);
-	int32_t field_data_offset       = field_topic_name_offset + _DataMsgQueue[ src_index ]._MsgName.size() + 1;
+	int32_t field_data_offset       = field_topic_name_offset + msg_size + 1;
 
-	struct BulkTransferHeader header = { (uint16_t)(_DataMsgQueue[ src_index ]._MsgName.size() + 1), (uint16_t)(_DataMsgQueue[ src_index ]._Length) };
+	int16_t msg_type = isData ? _DATA_MSG_TYPE : _ControlMsgQueue[ src_index ]._Type;
+
+	struct BulkTransferHeader header = { (uint16_t)msg_type, (uint16_t)(msg_size + 1),
+		       (uint16_t)(isData ? (_DataMsgQueue[ src_index ]._Length) : 0)
+	};
 
 
 	//PX4_DEBUG( "Offsets: header[%d] name[%d] data[%d]",
@@ -525,7 +662,7 @@ int32_t uORB::FastRpcChannel::copy_data_to_buffer(int32_t src_index, uint8_t *ds
 	//           field_topic_name_offset,
 	//           field_data_offset );
 
-	if ((field_data_offset + _DataMsgQueue[ src_index ]._Length) < dst_buffer_len) {
+	if (isData && (field_data_offset + _DataMsgQueue[ src_index ]._Length) < dst_buffer_len) {
 		memmove(&(dst_buffer[field_header_offset]), (char *)(&header), sizeof(header));
 		// pack the data here.
 		memmove
@@ -543,10 +680,34 @@ int32_t uORB::FastRpcChannel::copy_data_to_buffer(int32_t src_index, uint8_t *ds
 		memmove(&(dst_buffer[field_data_offset]), _DataMsgQueue[ src_index ]._Buffer, _DataMsgQueue[ src_index ]._Length);
 		rc = field_data_offset + _DataMsgQueue[ src_index ]._Length - offset;
 
+	} else if (field_data_offset < dst_buffer_len) { //This is a control message
+		memmove(&(dst_buffer[field_header_offset]), (char *)(&header), sizeof(header));
+		// pack the data here.
+		memmove
+		(
+			&(dst_buffer[field_topic_name_offset]),
+			_ControlMsgQueue[ src_index ]._MsgName.c_str(),
+			_ControlMsgQueue[ src_index ]._MsgName.size()
+		);
+
+		if (_ControlMsgQueue[ src_index ]._MsgName.size() == 0) {
+			PX4_WARN("##########  Error MsgName cannot be zero: ");
+		}
+
+		dst_buffer[ field_topic_name_offset + _ControlMsgQueue[ src_index ]._MsgName.size()] = '\0';
+		rc = field_data_offset - offset;
+
 	} else {
-		PX4_WARN("Error coping the DataMsg to dst buffer, insuffienct space. ");
-		PX4_WARN("... offset[%ld] len[%ld] data_msg_len[%ld]",
-			 offset, dst_buffer_len, (field_data_offset - offset) + _DataMsgQueue[ src_index ]._Length);
+		PX4_WARN("Error coping the Msg to dst buffer, insuffienct space. ");
+
+		if (isData) {
+			PX4_WARN("Data... offset[%ld] len[%ld] data_msg_len[%ld]",
+				 offset, dst_buffer_len, (field_data_offset - offset) + _DataMsgQueue[ src_index ]._Length);
+
+		} else {
+			PX4_WARN("ControlMsg... offset[%ld] len[%ld]",
+				 offset, dst_buffer_len, (field_data_offset - offset));
+		}
 	}
 
 	return rc;

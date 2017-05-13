@@ -34,11 +34,10 @@ px4_add_module(
 	MODULE drivers__mkblctrl
 	MAIN mkblctrl
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		mkblctrl.cpp
 		mkblctrl_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

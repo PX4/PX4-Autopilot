@@ -33,10 +33,8 @@
 px4_add_module(
 	MODULE drivers__hmc5883
 	MAIN hmc5883
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
-		-Os
 	SRCS
 		hmc5883_i2c.cpp
 		hmc5883_spi.cpp
@@ -44,4 +42,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

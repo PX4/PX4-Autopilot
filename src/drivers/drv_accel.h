@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@
 #define accel_report sensor_accel_s
 
 /** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
-struct accel_scale {
+struct accel_calibration_s {
 	float	x_offset;
 	float	x_scale;
 	float	y_offset;
@@ -63,7 +63,6 @@ struct accel_scale {
 	float	z_offset;
 	float	z_scale;
 };
-
 /*
  * ioctl() definitions
  *
@@ -103,5 +102,15 @@ struct accel_scale {
 
 /** get the result of a sensor self-test */
 #define ACCELIOCSELFTEST	_ACCELIOC(9)
+
+/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
+#define ACCELIOCSHWLOWPASS	_ACCELIOC(10)
+
+/** get the hardware low-pass filter cut-off in Hz*/
+#define ACCELIOCGHWLOWPASS	_ACCELIOC(11)
+
+/** determine if hardware is external or onboard */
+#define ACCELIOCGEXTERNAL	_ACCELIOC(12)
+
 
 #endif /* _DRV_ACCEL_H */

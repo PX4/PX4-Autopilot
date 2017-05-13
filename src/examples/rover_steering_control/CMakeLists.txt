@@ -33,10 +33,8 @@
 px4_add_module(
 	MODULE examples__rover_steering_control
 	MAIN rover_steering_control
-	STACK 1200
-	COMPILE_FLAGS
-		-Wframe-larger-than=1300
-		
+	STACK_MAIN 1200
+	STACK_MAX 1300
 	SRCS
 		main.cpp
 		params.c

@@ -62,13 +62,19 @@ public:
 			unlinkNext(_top);
 
 			if (_top->next == nullptr) {
-				free((void *)_top->node_name);
 				free(_top);
 				_top = nullptr;
 				_end = nullptr;
 			}
 		}
 	}
+
+	/**
+	 * Insert an element with a unique name
+	 * @param node_name name of the node. This will not be copied, so the caller has to ensure
+	 *                  the pointer is valid until the node is removed from ORBMap
+	 * @param node
+	 */
 	void insert(const char *node_name, uORB::DeviceNode *node)
 	{
 		Node **p;
@@ -90,7 +96,7 @@ public:
 		}
 
 		_end->next = nullptr;
-		_end->node_name = strdup(node_name);
+		_end->node_name = node_name;
 		_end->node = node;
 	}
 
@@ -124,6 +130,17 @@ public:
 		return nullptr;
 	}
 
+	Node *top() const
+	{
+		return _top;
+	}
+
+	bool empty() const
+	{
+		return !_top;
+	}
+
+private:
 	void unlinkNext(Node *a)
 	{
 		Node *b = a->next;
@@ -134,12 +151,10 @@ public:
 			}
 
 			a->next = b->next;
-			free((void *)b->node_name);
 			free(b);
 		}
 	}
 
-private:
 	Node *_top;
 	Node *_end;
 };

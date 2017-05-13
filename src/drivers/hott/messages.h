@@ -44,18 +44,21 @@
 
 #include <stdlib.h>
 
+#define POLL_TIMEOUT_IN_MSECS		3500
+
 /* The HoTT receiver demands a minimum 5ms period of silence after delivering its request.
- * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
+ * Note that the value specified here is lower than 5000 (5ms) as time is lost constructing
  * the message after the read which takes some milliseconds.
  */
 #define POST_READ_DELAY_IN_USECS	4000
+
 /* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
  * values can be used in practise though.
  */
-#define POST_WRITE_DELAY_IN_USECS	2000
+#define POST_WRITE_DELAY_IN_USECS	3000
 
 // Protocol constants.
-#define BINARY_MODE_REQUEST_ID	0x80	// Binary mode request.
+#define BINARY_MODE_REQUEST_ID	0x80
 #define START_BYTE		0x7c
 #define STOP_BYTE		0x7d
 #define TEMP_ZERO_CELSIUS	0x14
@@ -211,7 +214,7 @@ struct gps_module_msg {
 	uint8_t resolution_L;		/**< 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
 	uint8_t resolution_H;		/**< 117 = High Byte m/s resolution 0.01m */
 	uint8_t unknown1;		/**< 120 = 0m/3s */
-	uint8_t gps_num_sat;		/**< GPS.Satellites (number of satelites) (1 byte) */
+	uint8_t gps_num_sat;		/**< GPS.Satellites (number of satellites) (1 byte) */
 	uint8_t gps_fix_char;		/**< GPS.FixChar. (GPS fix character. display, if DGPS, 2D oder 3D) (1 byte) */
 	uint8_t home_direction;		/**< HomeDirection (direction from starting point to Model position) (1 byte) */
 	uint8_t angle_x_direction;	/**< angle x-direction (1 byte) */

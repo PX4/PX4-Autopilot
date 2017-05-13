@@ -48,7 +48,7 @@ Download QGC from http://qgroundcontrol.org/downloads and install using the wind
 
 ## PX4
 
-### Platfrom Requirements
+### Platform Requirements
 Linux or Eagle with a working IP interface (?? does this need further instructions?)
 
 ### Build Host Requirements
@@ -66,8 +66,8 @@ Linux or Eagle with a working IP interface (?? does this need further instructio
 > adb shell
 # bash
 root@linaro-developer:/# cd ???
-root@linaro-developer:/# ./mainapp
-App name: mainapp
+root@linaro-developer:/# ./px4
+App name: px4
 Enter a command and its args:
 uorb start
 muorb start

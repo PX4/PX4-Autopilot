@@ -51,6 +51,7 @@ int logbuffer_init(struct logbuffer_s *lb, int size)
 	lb->write_ptr = 0;
 	lb->read_ptr = 0;
 	lb->data = NULL;
+	lb->perf_dropped = perf_alloc(PC_COUNT, "sd drop");
 	return PX4_OK;
 }
 
@@ -91,6 +92,7 @@ bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size)
 
 	if (size > available) {
 		// buffer overflow
+		perf_count(lb->perf_dropped);
 		return false;
 	}
 
@@ -142,4 +144,22 @@ int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part)
 void logbuffer_mark_read(struct logbuffer_s *lb, int n)
 {
 	lb->read_ptr = (lb->read_ptr + n) % lb->size;
+}
+
+void logbuffer_free(struct logbuffer_s *lb)
+{
+	if (lb->data) {
+		free(lb->data);
+		lb->write_ptr = 0;
+		lb->read_ptr = 0;
+		lb->data = NULL;
+		perf_free(lb->perf_dropped);
+	}
+}
+
+void logbuffer_reset(struct logbuffer_s *lb)
+{
+	// Keep the buffer but reset the pointers.
+	lb->write_ptr = 0;
+	lb->read_ptr = 0;
 }

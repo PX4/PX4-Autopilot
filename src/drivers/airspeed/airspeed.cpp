@@ -80,7 +80,6 @@
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char *path) :
 	I2C("Airspeed", path, bus, address, 100000),
 	_reports(nullptr),
-	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_last_published_sensor_ok(true), /* initialize differently to force publication */
@@ -91,8 +90,8 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const cha
 	_subsys_pub(nullptr),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
-	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "aspd_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "aspd_com_err"))
 {
 	// enable debug() calls
 	_debug_enabled = false;
@@ -118,13 +117,12 @@ Airspeed::~Airspeed()
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_buffer_overflows);
 }
 
 int
 Airspeed::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -255,14 +253,14 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 
-			irqstate_t flags = irqsave();
+			irqstate_t flags = px4_enter_critical_section();
 
 			if (!_reports->resize(arg)) {
-				irqrestore(flags);
+				px4_leave_critical_section(flags);
 				return -ENOMEM;
 			}
 
-			irqrestore(flags);
+			px4_leave_critical_section(flags);
 
 			return OK;
 		}
@@ -375,12 +373,11 @@ Airspeed::update_status()
 {
 	if (_sensor_ok != _last_published_sensor_ok) {
 		/* notify about state change */
-		struct subsystem_info_s info = {
-			true,
-			true,
-			_sensor_ok,
-			subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE
-		};
+		struct subsystem_info_s info = {};
+		info.present = true;
+		info.enabled = true;
+		info.ok = _sensor_ok;
+		info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE;
 
 		if (_subsys_pub != nullptr) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
@@ -410,7 +407,6 @@ Airspeed::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
 	warnx("poll interval:  %u ticks", _measure_ticks);
 	_reports->print_info("report queue");
 }
@@ -418,7 +414,5 @@ Airspeed::print_info()
 void
 Airspeed::new_report(const differential_pressure_s &report)
 {
-	if (!_reports->force(&report)) {
-		perf_count(_buffer_overflows);
-	}
+	_reports->force(&report);
 }

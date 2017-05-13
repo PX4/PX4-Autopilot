@@ -16,7 +16,7 @@ git checkout -b mydescriptivebranchname
 
 ### Edit and build the code
 
-The [developer guide](http://px4.io/dev/start) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](http://px4.io/dev/code_style) when editing files.
+The [developer guide](http://dev.px4.io/) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](http://px4.io/dev/code_style) when editing files.
 
 ### Commit your changes
 

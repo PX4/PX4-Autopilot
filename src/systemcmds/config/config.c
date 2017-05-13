@@ -70,14 +70,16 @@ static void	do_device(int argc, char *argv[]);
 int
 config_main(int argc, char *argv[])
 {
+	bool is_device_cmd = argc >= 3 && (!strcmp(argv[2], "block") || !strcmp(argv[2], "unblock"));
+
 	if (argc >= 2) {
-		if (!strncmp(argv[1], "/dev/gyro", 9)) {
+		if (!is_device_cmd && !strncmp(argv[1], "/dev/gyro", 9)) {
 			do_gyro(argc - 1, argv + 1);
 
-		} else if (!strncmp(argv[1], "/dev/accel", 10)) {
+		} else if (!is_device_cmd && !strncmp(argv[1], "/dev/accel", 10)) {
 			do_accel(argc - 1, argv + 1);
 
-		} else if (!strncmp(argv[1], "/dev/mag", 8)) {
+		} else if (!is_device_cmd && !strncmp(argv[1], "/dev/mag", 8)) {
 			do_mag(argc - 1, argv + 1);
 
 		} else {
@@ -180,7 +182,7 @@ do_gyro(int argc, char *argv[])
 
 			if (ret) {
 				warnx("gyro self test FAILED! Check calibration:");
-				struct gyro_scale scale;
+				struct gyro_calibration_s scale;
 				ret = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
@@ -262,7 +264,7 @@ do_mag(int argc, char *argv[])
 
 			if (ret) {
 				warnx("mag self test FAILED! Check calibration:");
-				struct mag_scale scale;
+				struct mag_calibration_s scale;
 				ret = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {
@@ -344,7 +346,7 @@ do_accel(int argc, char *argv[])
 
 			if (ret) {
 				warnx("accel self test FAILED! Check calibration:");
-				struct accel_scale scale;
+				struct accel_calibration_s scale;
 				ret = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&scale);
 
 				if (ret) {

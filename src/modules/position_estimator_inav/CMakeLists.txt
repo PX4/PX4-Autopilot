@@ -30,19 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if(${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=3890)
-endif()
+
 px4_add_module(
 	MODULE modules__position_estimator_inav
 	MAIN position_estimator_inav
-	STACK 1200
-	COMPILE_FLAGS ${MODULE_CFLAGS}
+	STACK_MAIN 1200
+	STACK_MAX 4000
+	COMPILE_FLAGS
 	SRCS
-		position_estimator_inav_main.c
-		position_estimator_inav_params.c
-		inertial_filter.c
+		position_estimator_inav_main.cpp
+		position_estimator_inav_params.cpp
+		inertial_filter.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

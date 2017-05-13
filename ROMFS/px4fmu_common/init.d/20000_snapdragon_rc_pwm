@@ -1,0 +1,19 @@
+#!nsh
+#
+# @name Passthrough mode for Snapdragon
+#
+# @type custom
+#
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
+# @maintainer Julian Oes <julian@oes.ch>
+#
+# This startup can be used on Pixhawk/Pixfalcon/Pixracer for the
+# passthrough of RC input and PWM output.
+
+set VEHICLE_TYPE passthrough

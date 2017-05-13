@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,6 @@
  * @file px4_custom_mode.h
  * PX4 custom flight modes
  *
- * @author Anton Babushkin <anton@px4.io>
  */
 
 #ifndef PX4_CUSTOM_MODE_H_
@@ -50,7 +49,8 @@ enum PX4_CUSTOM_MAIN_MODE {
 	PX4_CUSTOM_MAIN_MODE_AUTO,
 	PX4_CUSTOM_MAIN_MODE_ACRO,
 	PX4_CUSTOM_MAIN_MODE_OFFBOARD,
-	PX4_CUSTOM_MAIN_MODE_STABILIZED
+	PX4_CUSTOM_MAIN_MODE_STABILIZED,
+	PX4_CUSTOM_MAIN_MODE_RATTITUDE
 };
 
 enum PX4_CUSTOM_SUB_MODE_AUTO {
@@ -60,7 +60,8 @@ enum PX4_CUSTOM_SUB_MODE_AUTO {
 	PX4_CUSTOM_SUB_MODE_AUTO_MISSION,
 	PX4_CUSTOM_SUB_MODE_AUTO_RTL,
 	PX4_CUSTOM_SUB_MODE_AUTO_LAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTGS
+	PX4_CUSTOM_SUB_MODE_AUTO_RTGS,
+	PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET
 };
 
 union px4_custom_mode {

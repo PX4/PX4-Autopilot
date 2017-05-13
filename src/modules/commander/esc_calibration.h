@@ -36,7 +36,7 @@
  *
  * Definition of esc calibration
  *
- * @author Roman Bapst <bapstr@ethz.ch>
+ * @author Roman Bapst <roman@px4.io>
  */
 
 #ifndef ESC_CALIBRATION_H_
@@ -44,6 +44,7 @@
 
 #include <uORB/topics/actuator_armed.h>
 
-int do_esc_calibration(int mavlink_fd, struct actuator_armed_s* armed);
+int check_if_batt_disconnected(orb_advert_t *mavlink_log_pub);
+int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed);
 
 #endif

@@ -63,8 +63,8 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/i2c.h>
-#include <nuttx/mtd.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mtd/mtd.h>
 
 #include "systemlib/perf_counter.h"
 
@@ -146,7 +146,7 @@
 
 struct at24c_dev_s {
 	struct mtd_dev_s      mtd;      /* MTD interface */
-	FAR struct i2c_dev_s *dev;      /* Saved I2C interface instance */
+	FAR struct i2c_master_s *dev;   /* Saved I2C interface instance */
 	uint8_t               addr;     /* I2C address */
 	uint16_t              pagesize; /* 32, 63 */
 	uint16_t              npages;   /* 128, 256, 512, 1024 */
@@ -193,6 +193,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 	struct i2c_msg_s msgv[1] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &buf[0],
@@ -202,16 +203,20 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 	memset(&buf[2], 0xff, priv->pagesize);
 
+	BOARD_EEPROM_WP_CTRL(false);
+
 	for (startblock = 0; startblock < priv->npages; startblock++) {
 		uint16_t offset = startblock * priv->pagesize;
 		buf[1] = offset & 0xff;
 		buf[0] = (offset >> 8) & 0xff;
 
 		while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) {
-			fvdbg("erase stall\n");
+			fwarn("erase stall\n");
 			usleep(10000);
 		}
 	}
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 	return OK;
 }
@@ -242,16 +247,16 @@ void at24c_test(void)
 
 		if (result == ERROR) {
 			if (errors++ > 2) {
-				vdbg("too many errors\n");
+				syslog(LOG_INFO, "too many errors\n");
 				return;
 			}
 
 		} else if (result != 1) {
-			vdbg("unexpected %u\n", result);
+			syslog(LOG_INFO, "unexpected %u\n", result);
 		}
 
 		if ((count % 100) == 0) {
-			vdbg("test %u errors %u\n", count, errors);
+			syslog(LOG_INFO, "test %u errors %u\n", count, errors);
 		}
 	}
 }
@@ -270,12 +275,14 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
 	struct i2c_msg_s msgv[2] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &addr[0],
 			.length = sizeof(addr),
 		},
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = I2C_M_READ,
 			.buffer = 0,
@@ -289,7 +296,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 #endif
 	blocksleft  = nblocks;
 
-	fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
 	if (startblock >= priv->npages) {
 		return 0;
@@ -317,7 +324,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 				break;
 			}
 
-			fvdbg("read stall");
+			finfo("read stall");
 			usleep(1000);
 
 			/* We should normally only be here on the first read after
@@ -362,6 +369,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 
 	struct i2c_msg_s msgv[1] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &buf[0],
@@ -383,7 +391,9 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		nblocks = priv->npages - startblock;
 	}
 
-	fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+
+	BOARD_EEPROM_WP_CTRL(false);
 
 	while (blocksleft-- > 0) {
 		uint16_t offset = startblock * priv->pagesize;
@@ -403,7 +413,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 				break;
 			}
 
-			fvdbg("write stall");
+			finfo("write stall");
 			usleep(1000);
 
 			/* We expect to see a number of retries per write cycle as we
@@ -411,6 +421,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			 */
 			if (--tries == 0) {
 				perf_count(priv->perf_errors);
+				BOARD_EEPROM_WP_CTRL(true);
 				return ERROR;
 			}
 		}
@@ -418,6 +429,8 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		startblock++;
 		buffer += priv->pagesize;
 	}
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
 	return nblocks / (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
@@ -435,7 +448,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	int ret = -EINVAL; /* Assume good command with bad parameters */
 
-	fvdbg("cmd: %d \n", cmd);
+	finfo("cmd: %d \n", cmd);
 
 	switch (cmd) {
 	case MTDIOC_GEOMETRY: {
@@ -474,7 +487,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 #endif
 				ret               = OK;
 
-				fvdbg("blocksize: %d erasesize: %d neraseblocks: %d\n",
+				finfo("blocksize: %d erasesize: %d neraseblocks: %d\n",
 				      geo->blocksize, geo->erasesize, geo->neraseblocks);
 			}
 		}
@@ -507,11 +520,11 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *
  ************************************************************************************/
 
-FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
+FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 {
 	FAR struct at24c_dev_s *priv;
 
-	fvdbg("dev: %p\n", dev);
+	finfo("dev: %p\n", dev);
 
 	/* Allocate a state structure (we allocate the structure instead of using
 	 * a fixed, static allocation so that we can handle multiple FLASH devices.
@@ -546,18 +559,22 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
 
 	struct i2c_msg_s msgv[2] = {
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = 0,
 			.buffer = &addrbuf[0],
 			.length = sizeof(addrbuf),
 		},
 		{
+			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = I2C_M_READ,
 			.buffer = &buf[0],
 			.length = sizeof(buf),
 		}
 	};
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 	perf_begin(priv->perf_transfers);
 	int ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
@@ -569,7 +586,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
 
 	/* Return the implementation-specific state structure as the MTD device */
 
-	fvdbg("Return %p\n", priv);
+	finfo("Return %p\n", priv);
 	return (FAR struct mtd_dev_s *)priv;
 }
 

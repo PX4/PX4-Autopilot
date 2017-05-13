@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@
 #define gyro_report sensor_gyro_s
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct gyro_scale {
+struct gyro_calibration_s {
 	float	x_offset;
 	float	x_scale;
 	float	y_offset;
@@ -99,5 +99,15 @@ struct gyro_scale {
 
 /** check the status of the sensor */
 #define GYROIOCSELFTEST		_GYROIOC(8)
+
+/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
+#define GYROIOCSHWLOWPASS	_GYROIOC(9)
+
+/** get the hardware low-pass filter cut-off in Hz*/
+#define GYROIOCGHWLOWPASS	_GYROIOC(10)
+
+/** determine if hardware is external or onboard */
+#define GYROIOCGEXTERNAL	_GYROIOC(12)
+
 
 #endif /* _DRV_GYRO_H */

@@ -86,12 +86,7 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 __EXPORT int map_projection_global_init(double lat_0, double lon_0,
 					uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
-
-	} else {
-		return -1;
-	}
+	return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 }
 
 __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
@@ -153,7 +148,16 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 	double cos_lat = cos(lat_rad);
 	double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
-	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
+	double arg = ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon;
+
+	if (arg > 1.0) {
+		arg = 1.0;
+
+	} else if (arg < -1.0) {
+		arg = -1.0;
+	}
+
+	double c = acos(arg);
 	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
@@ -217,19 +221,14 @@ __EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
 }
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
 {
-	if (strcmp("commander", getprogname()) == 0) {
-		gl_ref.alt = alt_0;
+	gl_ref.alt = alt_0;
 
-		if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
-			gl_ref.init_done = true;
-			return 0;
-
-		} else {
-			gl_ref.init_done = false;
-			return -1;
-		}
+	if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
+		gl_ref.init_done = true;
+		return 0;
 
 	} else {
+		gl_ref.init_done = false;
 		return -1;
 	}
 }
@@ -298,6 +297,41 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	return CONSTANTS_RADIUS_OF_EARTH * c;
 }
 
+__EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
+		double *lat_target, double *lon_target)
+{
+	if (fabsf(dist) < FLT_EPSILON) {
+		*lat_target = lat_A;
+		*lon_target = lon_A;
+
+	} else if (dist >= FLT_EPSILON) {
+		float heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+
+	} else {
+		float heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
+		heading = _wrap_2pi(heading + M_PI_F);
+		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
+	}
+}
+
+__EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
+		double *lat_target, double *lon_target)
+{
+	bearing = _wrap_2pi(bearing);
+	double radius_ratio = fabs((double)dist) / CONSTANTS_RADIUS_OF_EARTH;
+
+	double lat_start_rad = lat_start * M_DEG_TO_RAD;
+	double lon_start_rad = lon_start * M_DEG_TO_RAD;
+
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
+				   double)bearing));
+	*lon_target = lon_start_rad + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start_rad),
+					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
+
+	*lat_target *= M_RAD_TO_DEG;
+	*lon_target *= M_RAD_TO_DEG;
+}
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
@@ -308,7 +342,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) ,
+	float theta = atan2f(sin(d_lon) * cos(lat_next_rad),
 			     cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
 	theta = _wrap_pi(theta);
@@ -398,7 +432,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 
 	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
 
-	if (sin(bearing_diff) >= 0) {
+	if (sinf(bearing_diff) >= 0) {
 		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
@@ -482,10 +516,10 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 		// calculate the position of the start and end points.  We should not be doing this often
 		// as this function generally will not be called repeatedly when we are out of the sector.
 
-		double start_disp_x = (double)radius * sin(arc_start_bearing);
-		double start_disp_y = (double)radius * cos(arc_start_bearing);
-		double end_disp_x = (double)radius * sin(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
-		double end_disp_y = (double)radius * cos(_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double start_disp_x = (double)radius * sin((double)arc_start_bearing);
+		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
+		double end_disp_x = (double)radius * sin((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
+		double end_disp_y = (double)radius * cos((double)_wrap_pi((double)(arc_start_bearing + arc_sweep)));
 		double lon_start = lon_now + start_disp_x / 111111.0;
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
 		double lon_end = lon_now + end_disp_x / 111111.0;

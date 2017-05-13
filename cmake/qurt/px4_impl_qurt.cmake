@@ -50,7 +50,7 @@
 #
 
 include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/qurt)
 
 #=============================================================================
 #
@@ -67,7 +67,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/qurt)
 #		MODULE_LIST	: list of modules
 #
 #	Output:
-#		OUT	: generated builtin_commands.c src
+#		OUT	: stem of generated apps.cpp/apps.h ("apps").
 #
 #	Example:
 #		px4_qurt_generate_builtin_commands(
@@ -84,37 +84,34 @@ function(px4_qurt_generate_builtin_commands)
 	set(builtin_apps_decl_string)
 	set(command_count 0)
 	foreach(module ${MODULE_LIST})
-		# default
-		set(MAIN_DEFAULT MAIN-NOTFOUND)
-		set(STACK_DEFAULT 1024)
-		set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
-		foreach(property MAIN STACK PRIORITY) 
+		foreach(property MAIN STACK_MAIN PRIORITY) 
 			get_target_property(${property} ${module} ${property})
-			if(NOT ${property})
-				set(${property} ${${property}_DEFAULT})
-			endif()
 		endforeach()
 		if (MAIN)
 			set(builtin_apps_string
 				"${builtin_apps_string}\tapps[\"${MAIN}\"] = ${MAIN}_main;\n")
 			set(builtin_apps_decl_string
-				"${builtin_apps_decl_string}extern int ${MAIN}_main(int argc, char *argv[]);\n")
+				"${builtin_apps_decl_string}int ${MAIN}_main(int argc, char *argv[]);\n")
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/qurt/apps.h_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in
+		${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in
+		${OUT}.h)
 endfunction()
 
 #=============================================================================
 #
 #	px4_os_add_flags
 #
-#	Set ths qurt build flags.
+#	Set the qurt build flags.
 #
 #	Usage:
 #		px4_os_add_flags(
 #			C_FLAGS <inout-variable>
 #			CXX_FLAGS <inout-variable>
+#			OPTIMIZATION_FLAGS <inout-variable>
 #			EXE_LINKER_FLAGS <inout-variable>
 #			INCLUDE_DIRS <inout-variable>
 #			LINK_DIRS <inout-variable>
@@ -126,25 +123,31 @@ endfunction()
 #	Input/Output: (appends to existing variable)
 #		C_FLAGS					: c compile flags variable
 #		CXX_FLAGS				: c++ compile flags variable
-#		EXE_LINKER_FLAGS		: executable linker flags variable
-#		INCLUDE_DIRS			: include directories
+#		OPTIMIZATION_FLAGS			: optimization compile flags variable
+#		EXE_LINKER_FLAGS			: executable linker flags variable
+#		INCLUDE_DIRS				: include directories
 #		LINK_DIRS				: link directories
 #		DEFINITIONS				: definitions
+#
+#	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
+#	these flags are added before any of the object files and static libraries.
+#	Add libraries in src/firmware/qurt/CMakeLists.txt.
 #
 #	Example:
 #		px4_os_add_flags(
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
+#			OPTIMIZATION_FLAGS optimization_flags
 #			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
 #			INCLUDES <list>)
 #
 function(px4_os_add_flags)
 
 	set(inout_vars
-		C_FLAGS CXX_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
+		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
 
 	px4_parse_function_args(
-		NAME px4_add_flags
+		NAME px4_os_add_flags
 		ONE_VALUE ${inout_vars} BOARD
 		REQUIRED ${inout_vars} BOARD
 		ARGN ${ARGN})
@@ -153,12 +156,13 @@ function(px4_os_add_flags)
 		BOARD ${BOARD}
 		C_FLAGS ${C_FLAGS}
 		CXX_FLAGS ${CXX_FLAGS}
+		OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
 		EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS}
 		INCLUDE_DIRS ${INCLUDE_DIRS}
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-        set(DSPAL_ROOT src/lib/dspal)
+        set(DSPAL_ROOT src/lib/DriverFramework/dspal)
         set(added_include_dirs
                 ${DSPAL_ROOT}/include 
                 ${DSPAL_ROOT}/sys 
@@ -170,20 +174,21 @@ function(px4_os_add_flags)
                 )
 
         set(added_definitions
-                -D__PX4_QURT 
+                -D__PX4_QURT
+		-D__DF_QURT # For DriverFramework
 		-D__PX4_POSIX
-		-include ${PX4_INCLUDE_DIR}visibility.h
+		-D__QAIC_SKEL_EXPORT=__EXPORT
                 )
 
 	# Add the toolchain specific flags
-        set(added_cflags ${QURT_CMAKE_C_FLAGS})
-        set(added_cxx_flags ${QURT_CMAKE_CXX_FLAGS})
+        set(added_cflags -O0)
+        set(added_cxx_flags -O0)
 
-	# FIXME @jgoppert - how to work around issues like this?
-	# Without changing global variables?
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+	set(DF_TARGET "qurt" PARENT_SCOPE)
 
 	# output
 	foreach(var ${inout_vars})
@@ -222,7 +227,7 @@ function(px4_os_prebuild_targets)
 			ONE_VALUE OUT BOARD THREADS
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
-	add_custom_target(${OUT} DEPENDS git_dspal)
+	add_custom_target(${OUT} DEPENDS git_driverframework)
 
 endfunction()
 

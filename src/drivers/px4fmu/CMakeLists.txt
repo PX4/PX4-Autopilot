@@ -33,13 +33,11 @@
 px4_add_module(
 	MODULE drivers__px4fmu
 	MAIN fmu
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		fmu.cpp
-		px4fmu_params.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

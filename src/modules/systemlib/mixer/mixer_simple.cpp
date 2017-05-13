@@ -61,15 +61,21 @@ SimpleMixer::SimpleMixer(ControlCallback control_cb,
 			 uintptr_t cb_handle,
 			 mixer_simple_s *mixinfo) :
 	Mixer(control_cb, cb_handle),
-	_info(mixinfo)
+	_pinfo(mixinfo)
 {
 }
 
 SimpleMixer::~SimpleMixer()
 {
-	if (_info != nullptr) {
-		free(_info);
+	if (_pinfo != nullptr) {
+		free(_pinfo);
 	}
+}
+
+unsigned SimpleMixer::set_trim(float trim)
+{
+	_pinfo->output_scaler.offset = trim;
+	return 1;
 }
 
 int
@@ -154,6 +160,11 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	unsigned inputs;
 	int used;
 	const char *end = buf + buflen;
+
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
+	}
 
 	/* get the base info for the mixer */
 	if (sscanf(buf, "M: %u%n", &inputs, &used) != 1) {
@@ -279,7 +290,7 @@ SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 {
 	float		sum = 0.0f;
 
-	if (_info == nullptr) {
+	if (_pinfo == nullptr) {
 		return 0;
 	}
 
@@ -287,26 +298,32 @@ SimpleMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		return 0;
 	}
 
-	for (unsigned i = 0; i < _info->control_count; i++) {
+	for (unsigned i = 0; i < _pinfo->control_count; i++) {
 		float input;
 
 		_control_cb(_cb_handle,
-			    _info->controls[i].control_group,
-			    _info->controls[i].control_index,
+			    _pinfo->controls[i].control_group,
+			    _pinfo->controls[i].control_index,
 			    input);
 
-		sum += scale(_info->controls[i].scaler, input);
+		sum += scale(_pinfo->controls[i].scaler, input);
 	}
 
-	*outputs = scale(_info->output_scaler, sum);
+	*outputs = scale(_pinfo->output_scaler, sum);
 	return 1;
+}
+
+uint16_t
+SimpleMixer::get_saturation_status()
+{
+	return 0;
 }
 
 void
 SimpleMixer::groups_required(uint32_t &groups)
 {
-	for (unsigned i = 0; i < _info->control_count; i++) {
-		groups |= 1 << _info->controls[i].control_group;
+	for (unsigned i = 0; i < _pinfo->control_count; i++) {
+		groups |= 1 << _pinfo->controls[i].control_group;
 	}
 }
 
@@ -318,30 +335,30 @@ SimpleMixer::check()
 
 	/* sanity that presumes that a mixer includes a control no more than once */
 	/* max of 32 groups due to groups_required API */
-	if (_info->control_count > 32) {
+	if (_pinfo->control_count > 32) {
 		return -2;
 	}
 
 	/* validate the output scaler */
-	ret = scale_check(_info->output_scaler);
+	ret = scale_check(_pinfo->output_scaler);
 
 	if (ret != 0) {
 		return ret;
 	}
 
 	/* validate input scalers */
-	for (unsigned i = 0; i < _info->control_count; i++) {
+	for (unsigned i = 0; i < _pinfo->control_count; i++) {
 
 		/* verify that we can fetch the control */
 		if (_control_cb(_cb_handle,
-				_info->controls[i].control_group,
-				_info->controls[i].control_index,
+				_pinfo->controls[i].control_group,
+				_pinfo->controls[i].control_index,
 				junk) != 0) {
 			return -3;
 		}
 
 		/* validate the scaler */
-		ret = scale_check(_info->controls[i].scaler);
+		ret = scale_check(_pinfo->controls[i].scaler);
 
 		if (ret != 0) {
 			return (10 * i + ret);

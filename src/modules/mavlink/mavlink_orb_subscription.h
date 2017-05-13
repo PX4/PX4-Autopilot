@@ -43,7 +43,7 @@
 
 #include <systemlib/uthash/utlist.h>
 #include <drivers/drv_hrt.h>
-
+#include "uORB/uORB.h"	// orb_id_t
 
 class MavlinkOrbSubscription
 {
@@ -54,40 +54,56 @@ public:
 	~MavlinkOrbSubscription();
 
 	/**
-	 * Check if subscription updated and get data.
+	 * Check if subscription updated based on timestamp.
 	 *
-	 * @return true only if topic was updated and data copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but still copy the data.
-	 * If no data available data buffer will be filled with zeroes.
+	 * @return true only if topic was updated based on a timestamp and
+	 * copied to buffer successfully.
+	 * If topic was not updated since last check it will return false but
+	 * still copy the data.
+	 * If no data available data buffer will be filled with zeros.
 	 */
-	bool update(uint64_t *time, void* data);
+	bool update(uint64_t *time, void *data);
 
 	/**
 	 * Copy topic data to given buffer.
 	 *
 	 * @return true only if topic data copied successfully.
 	 */
-	bool update(void* data);
+	bool update(void *data);
+
+	/**
+	 * Check if the subscription has been updated.
+	 *
+	 * @return true if there has been an update which has been
+	 * copied successfully.
+	 */
+	bool update_if_changed(void *data);
 
 	/**
 	 * Check if the topic has been published.
 	 *
 	 * This call will return true if the topic was ever published.
 	 * @return true if the topic has been published at least once.
+	 * If no data is available the buffer will be filled with zeros.
 	 */
 	bool is_published();
+
+	void subscribe_from_beginning(bool from_beginning);
+
 	orb_id_t get_topic() const;
 	int get_instance() const;
 
 private:
 	const orb_id_t _topic;		///< topic metadata
-	const int _instance;		///< get topic instance
 	int _fd;			///< subscription handle
+	const uint8_t _instance;		///< get topic instance
 	bool _published;		///< topic was ever published
+	bool _subscribe_from_beginning; ///< we need to subscribe from the beginning, e.g. for vehicle_command_acks
+	hrt_abstime _last_pub_check;	///< when we checked last
 
 	/* do not allow copying this class */
-	MavlinkOrbSubscription(const MavlinkOrbSubscription&);
-	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription&);
+	MavlinkOrbSubscription(const MavlinkOrbSubscription &);
+	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription &);
 };
 
 

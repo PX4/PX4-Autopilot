@@ -76,8 +76,10 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
+
+	ringbuffer::RingBuffer _reports;
+
 	unsigned _msl_pressure = 101325;
-	ringbuffer::RingBuffer	*_reports;
 	float last_temperature_kelvin = 0.0f;
 
 };

@@ -32,12 +32,25 @@
  ****************************************************************************/
 #pragma once
 
-#include <systemlib/visibility.h>
 #include <stdint.h>
 
 extern "C" {
 
 	int px4muorb_orb_initialize() __EXPORT;
+
+	int px4muorb_set_absolute_time_offset(int32_t time_diff_us) __EXPORT;
+
+	int px4muorb_get_absolute_time(uint64_t *time_us) __EXPORT;
+
+	int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes) __EXPORT;
+
+	int px4muorb_param_update_index_from_shmem(unsigned char *data, int data_len_in_bytes) __EXPORT;
+
+	int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value, int data_len_in_bytes) __EXPORT;
+
+	int px4muorb_topic_advertised(const char *name) __EXPORT;
+
+	int px4muorb_topic_unadvertised(const char *name) __EXPORT;
 
 	int px4muorb_add_subscriber(const char *name) __EXPORT;
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013, 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -107,14 +107,6 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-#include <arch/stm32/chip.h>
-#include <up_internal.h>
-#include <up_arch.h>
-
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
-
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 
@@ -198,8 +190,32 @@
 # ifdef CONFIG_STM32_TIM11
 #  error Must not set CONFIG_STM32_TIM11 when TONE_ALARM_TIMER is 11
 # endif
+#elif TONE_ALARM_TIMER == 12
+# define TONE_ALARM_BASE		STM32_TIM12_BASE
+# define TONE_ALARM_CLOCK		STM32_APB1_TIM12_CLKIN
+# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB1ENR
+# define TONE_ALARM_CLOCK_ENABLE	RCC_APB1ENR_TIM12EN
+# ifdef CONFIG_STM32_TIM12
+#  error Must not set CONFIG_STM32_TIM12 when TONE_ALARM_TIMER is 12
+# endif
+#elif TONE_ALARM_TIMER == 13
+# define TONE_ALARM_BASE		STM32_TIM13_BASE
+# define TONE_ALARM_CLOCK		STM32_APB1_TIM12_CLKIN
+# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB1ENR
+# define TONE_ALARM_CLOCK_ENABLE	RCC_APB1ENR_TIM13EN
+# ifdef CONFIG_STM32_TIM13
+#  error Must not set CONFIG_STM32_TIM13 when TONE_ALARM_TIMER is 13
+# endif
+#elif TONE_ALARM_TIMER == 14
+# define TONE_ALARM_BASE		STM32_TIM14_BASE
+# define TONE_ALARM_CLOCK		STM32_APB1_TIM12_CLKIN
+# define TONE_ALARM_CLOCK_POWER_REG   STM32_RCC_APB1ENR
+# define TONE_ALARM_CLOCK_ENABLE	RCC_APB1ENR_TIM14EN
+# ifdef CONFIG_STM32_TIM14
+#  error Must not set CONFIG_STM32_TIM14 when TONE_ALARM_TIMER is 14
+# endif
 #else
-# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 11 (inclusive) to use this driver.
+# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 14 (inclusive) to use this driver.
 #endif
 
 #if TONE_ALARM_CHANNEL == 1
@@ -386,7 +402,7 @@ ToneAlarm::ToneAlarm() :
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr),
-	_cbrk(CBRK_UNINIT)
+	_cbrk(CBRK_OFF)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -439,7 +455,12 @@ ToneAlarm::init()
 	}
 
 	/* configure the GPIO to the idle state */
-	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+
+#ifdef GPIO_TONE_ALARM_NEG
+
+	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
+#endif
 
 	/* clock/power on our timer */
 	modifyreg32(TONE_ALARM_CLOCK_POWER_REG, 0, TONE_ALARM_CLOCK_ENABLE);
@@ -571,7 +592,7 @@ ToneAlarm::start_note(unsigned note)
 	rCCER |= TONE_CCER;	// enable the output
 
 	// configure the GPIO to enable timer output
-	stm32_configgpio(GPIO_TONE_ALARM);
+	px4_arch_configgpio(GPIO_TONE_ALARM);
 }
 
 void
@@ -583,7 +604,7 @@ ToneAlarm::stop_note()
 	/*
 	 * Make sure the GPIO is not driving the speaker.
 	 */
-	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
 
 void
@@ -801,7 +822,7 @@ ToneAlarm::next_note()
 
 	// tune looks bad (unexpected EOF, bad character, etc.)
 tune_error:
-	lowsyslog("tune error\n");
+	syslog(LOG_ERR, "tune error\n");
 	_repeat = false;		// don't loop on error
 
 	// stop (and potentially restart) the tune
@@ -876,7 +897,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 
 	DEVICE_DEBUG("ioctl %i %u", cmd, arg);
 
-//	irqstate_t flags = irqsave();
+//	irqstate_t flags = px4_enter_critical_section();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
@@ -911,7 +932,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-//	irqrestore(flags);
+//	px4_leave_critical_section(flags);
 
 	/* give it to the superclass if we didn't like it */
 	if (result == -ENOTTY) {

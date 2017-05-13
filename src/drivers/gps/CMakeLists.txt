@@ -33,16 +33,15 @@
 px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
-	STACK 1200
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		gps.cpp
-		gps_helper.cpp
-		mtk.cpp
-		ashtech.cpp
-		ubx.cpp
+		devices/src/gps_helper.cpp
+		devices/src/mtk.cpp
+		devices/src/ashtech.cpp
+		devices/src/ubx.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

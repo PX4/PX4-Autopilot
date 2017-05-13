@@ -1,2 +1,4 @@
-uint64 timestamp	# timestamp of the setpoint
 bool landed		# true if vehicle is currently landed on the ground
+bool freefall	# true if vehicle is currently in free-fall
+bool ground_contact # true if vehicle has ground contact but is not landed
+float32 alt_max 	# maximum altitude in [m] that can be reached

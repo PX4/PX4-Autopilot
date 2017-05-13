@@ -33,9 +33,9 @@
 px4_add_module(
 	MODULE drivers__pwm_input
 	MAIN pwm_input
+	STACK_MAIN 1024
 	COMPILE_FLAGS
 		-Wno-pmf-conversions
-		
 	SRCS
 		pwm_input.cpp
 	DEPENDS

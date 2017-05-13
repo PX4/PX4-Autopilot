@@ -130,15 +130,41 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
-	/*
-	  device bus types for DEVID
-	 */
+	/** Device bus types for DEVID */
 	enum DeviceBusType {
 		DeviceBusType_UNKNOWN = 0,
 		DeviceBusType_I2C     = 1,
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 	};
+
+	/**
+	 * Return the bus ID the device is connected to.
+	 *
+	 * @return The bus ID
+	 */
+	virtual uint8_t get_device_bus() { return _device_id.devid_s.bus; }
+
+	/**
+	 * Return the bus type the device is connected to.
+	 *
+	 * @return The bus type
+	 */
+	virtual DeviceBusType get_device_bus_type() { return _device_id.devid_s.bus_type; }
+
+	/**
+	 * Return the bus address of the device.
+	 *
+	 * @return The bus address
+	 */
+	virtual uint8_t get_device_address() { return _device_id.devid_s.address; }
+
+	/**
+	 * Set the device type
+	 *
+	 * @return The device type
+	 */
+	virtual void set_device_type(uint8_t devtype) { _device_id.devid_s.devtype = devtype; }
 
 	/*
 	  broken out device elements. The bitfields are used to keep
@@ -148,12 +174,12 @@ public:
 	 */
 	struct DeviceStructure {
 		enum DeviceBusType bus_type : 3;
-			uint8_t bus: 5;    // which instance of the bus type
-			uint8_t address;   // address on the bus (eg. I2C address)
-			uint8_t devtype;   // device class specific device type
-		};
+		uint8_t bus: 5;    // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
 
-		union DeviceId {
+	union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
@@ -188,6 +214,8 @@ protected:
 	 * Each driver instance has its own lock/semaphore.
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
+	 *
+	 * Careful: lock() calls cannot be nested!
 	 */
 	void		lock()
 	{
@@ -202,10 +230,12 @@ protected:
 		sem_post(&_lock);
 	}
 
+	DeviceId &get_device_id() { return _device_id; }
+
+	sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
+
 private:
-	int		_irq;
-	bool		_irq_attached;
-	sem_t		_lock;
+	int		_irq; /**< if non-zero, it's a valid IRQ */
 
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
@@ -447,13 +477,13 @@ protected:
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:
-	static const unsigned _max_pollwaiters = 8;
 
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
-	unsigned	_open_count;		/**< number of successful opens */
+	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
+	uint16_t	_open_count;		/**< number of successful opens */
 
-	struct pollfd	*_pollset[_max_pollwaiters];
+	struct pollfd	**_pollset;
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.

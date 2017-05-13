@@ -50,7 +50,7 @@
 
 #include <systemlib/err.h>
 #include <arch/board/board.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
@@ -80,7 +80,7 @@ enum {
 };
 
 // File descriptors
-static int mavlink_fd;
+static orb_advert_t mavlink_log_pub;
 
 MD25::MD25(const char *deviceName, int bus,
 	   uint16_t address, uint32_t speed) :

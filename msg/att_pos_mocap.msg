@@ -1,7 +1,6 @@
 uint32 id			# ID of the estimator, commonly the component ID of the incoming message
 
-uint64 timestamp_boot		# time of this estimate, in microseconds since system start
-uint64 timestamp_computer	# timestamp provided by the companion computer, in us
+uint64 timestamp_received	# timestamp when the estimate was received
 
 float32[4] q			# Estimated attitude as quaternion
 

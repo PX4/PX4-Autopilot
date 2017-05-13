@@ -34,12 +34,12 @@
 /**
  * @file led.cpp
  *
- * LED driver.
+ * LED driver to control the onboard LED(s) via ioctl interface.
  */
 
 #include <px4_config.h>
 #include <drivers/device/device.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 #include <stdio.h>
 
 /*
@@ -139,9 +139,5 @@ drv_led_start(void)
 {
 	if (gLED == nullptr) {
 		gLED = new LED;
-
-		if (gLED != nullptr) {
-			gLED->init();
-		}
 	}
 }

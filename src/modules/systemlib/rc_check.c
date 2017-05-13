@@ -47,12 +47,12 @@
 #include <systemlib/err.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/param/param.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 
 #define RC_INPUT_MAP_UNMAPPED 0
 
-int rc_calibration_check(int mavlink_fd)
+int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
 {
 
 	char nbuf[20];
@@ -61,12 +61,36 @@ int rc_calibration_check(int mavlink_fd)
 
 	unsigned map_fail_count = 0;
 
-	const char *rc_map_mandatory[] = {	"RC_MAP_MODE_SW",
-						/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
-						0 /* end marker */
-					 };
+	const char *rc_map_mandatory[] = {	/*"RC_MAP_MODE_SW",*/
+		/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
+		0 /* end marker */
+	};
 
 	unsigned j = 0;
+
+	/* if VTOL, check transition switch mapping */
+	if (isVTOL) {
+		param_t trans_parm = param_find("RC_MAP_TRANS_SW");
+
+		if (trans_parm == PARAM_INVALID) {
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "ERR: RC_MAP_TRANS_SW PARAMETER MISSING"); }
+
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			map_fail_count++;
+
+		} else {
+			int32_t transition_switch;
+			param_get(trans_parm, &transition_switch);
+
+			if (transition_switch < 1) {
+				if (report_fail) { mavlink_log_critical(mavlink_log_pub, "ERR: transition switch (RC_MAP_TRANS_SW) not set"); }
+
+				map_fail_count++;
+			}
+		}
+	}
+
 
 	/* first check channel mappings */
 	while (rc_map_mandatory[j] != 0) {
@@ -74,7 +98,8 @@ int rc_calibration_check(int mavlink_fd)
 		param_t map_parm = param_find(rc_map_mandatory[j]);
 
 		if (map_parm == PARAM_INVALID) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: PARAM %s MISSING", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: PARAM %s MISSING", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
@@ -86,14 +111,16 @@ int rc_calibration_check(int mavlink_fd)
 		param_get(map_parm, &mapping);
 
 		if (mapping > RC_INPUT_MAX_CHANNELS) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: %s >= # CHANS", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: %s >= # CHANS", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
 		}
 
 		if (mapping == 0) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: Mandatory %s is unmapped", rc_map_mandatory[j]);
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: Mandatory %s is unmapped", rc_map_mandatory[j]); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			map_fail_count++;
@@ -144,35 +171,44 @@ int rc_calibration_check(int mavlink_fd)
 		/* assert min..center..max ordering */
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MIN < %u", i + 1, RC_INPUT_LOWEST_MIN_US);
+
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: RC_%d_MIN < %u", i + 1, RC_INPUT_LOWEST_MIN_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_MAX > %u", i + 1, RC_INPUT_HIGHEST_MAX_US);
+
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: RC_%d_MAX > %u", i + 1, RC_INPUT_HIGHEST_MAX_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM < MIN (%d/%d)", i + 1, (int)param_trim, (int)param_min);
+
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: RC_%d_TRIM < MIN (%d/%d)", i + 1, (int)param_trim, (int)param_min); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_TRIM > MAX (%d/%d)", i + 1, (int)param_trim, (int)param_max);
+
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: RC_%d_TRIM > MAX (%d/%d)", i + 1, (int)param_trim, (int)param_max); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		/* assert deadzone is sane */
 		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
-			mavlink_log_critical(mavlink_fd, "RC ERR: RC_%d_DZ > %u", i + 1, RC_INPUT_MAX_DEADZONE_US);
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERR: RC_%d_DZ > %u", i + 1, RC_INPUT_MAX_DEADZONE_US); }
+
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			count++;
@@ -187,8 +223,13 @@ int rc_calibration_check(int mavlink_fd)
 
 	if (channels_failed) {
 		sleep(2);
-		mavlink_and_console_log_critical(mavlink_fd, "%d config error%s for %d RC channel%s.", total_fail_count,
-						 (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "%d config error%s for %d RC channel%s.",
+					     total_fail_count,
+					     (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+		}
+
 		usleep(100000);
 	}
 

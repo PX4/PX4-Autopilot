@@ -36,48 +36,25 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
 
+link_libraries(msg_gen)
+
 set(SRCS
-	objects_common.cpp
 	uORBUtils.cpp
 	uORB.cpp
 	uORBMain.cpp
 	Publication.cpp
 	Subscription.cpp
+	uORBManager.cpp
+	uORBDevices.cpp
 	)
-
-if(${OS} STREQUAL "nuttx")
-	list(APPEND SRCS
-		uORBDevices_nuttx.cpp
-		uORBTest_UnitTest.cpp
-		uORBManager_nuttx.cpp
-		)
-elseif(${OS} STREQUAL "posix")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
-		uORBTest_UnitTest.cpp
-		)
-elseif(${OS} STREQUAL "posix-arm")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
-		uORBTest_UnitTest.cpp
-		)
-elseif(${OS} STREQUAL "qurt")
-	list(APPEND SRCS
-		uORBDevices_posix.cpp
-		uORBManager_posix.cpp
-		)
-endif()
 
 px4_add_module(
 	MODULE modules__uORB
 	MAIN uorb
-	STACK 2048
+	STACK_MAIN 2100
 	COMPILE_FLAGS
-		-Os
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
 
 #pragma once
 
+
 #define _PX4_LOG_LEVEL_ALWAYS		0
 #define _PX4_LOG_LEVEL_DEBUG		1
 #define _PX4_LOG_LEVEL_WARN		2
@@ -50,6 +51,15 @@ static inline void do_nothing(int level, ...)
 	(void)level;
 }
 
+__BEGIN_DECLS
+
+/**
+ * initialize the orb logging. Logging to console still works without or before calling this.
+ */
+__EXPORT extern void px4_log_initialize(void);
+
+__END_DECLS
+
 /****************************************************************************
  * __px4_log_omit:
  * Compile out the message
@@ -59,11 +69,11 @@ static inline void do_nothing(int level, ...)
 #if defined(__PX4_ROS)
 
 #include <ros/console.h>
-#define PX4_PANIC(...)	ROS_WARN(__VA_ARGS__)
-#define PX4_ERR(...)	ROS_WARN(__VA_ARGS__)
+#define PX4_PANIC(...)	ROS_FATAL(__VA_ARGS__)
+#define PX4_ERR(...)	ROS_ERROR(__VA_ARGS__)
 #define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_INFO(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_DEBUG(...)
+#define PX4_INFO(...) 	ROS_INFO(__VA_ARGS__)
+#define PX4_DEBUG(...)	ROS_DEBUG(__VA_ARGS__)
 #define PX4_BACKTRACE()
 
 #elif defined(__PX4_QURT)
@@ -117,38 +127,42 @@ static inline void do_nothing(int level, ...)
 
 #else
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <stdio.h>
+#include <stdarg.h>
+
 #include <px4_defines.h>
 
 __BEGIN_DECLS
-__EXPORT extern uint64_t hrt_absolute_time(void);
 
-__EXPORT extern const char *__px4_log_level_str[5];
-__EXPORT extern int __px4_log_level_current;
+__EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
+__EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern void px4_backtrace(void);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+
 __END_DECLS
 
 #define PX4_BACKTRACE() px4_backtrace()
-
-// __px4_log_level_current will be initialized to PX4_LOG_LEVEL_AT_RUN_TIME
-#define PX4_LOG_LEVEL_AT_RUN_TIME	_PX4_LOG_LEVEL_ERROR
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
  *
  * To write to a specific stream for each message type, open the streams and
  * set __px4__log_startline to something like:
- * 	if (level <= __px4_log_level_current) printf(_px4_fd[level],
+ * 	printf(_px4_fd[level],
  *
  * Additional behavior can be added using "{\" for __px4__log_startline and
  * "}" for __px4__log_endline and any other required setup or teardown steps
  ****************************************************************************/
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
-#define __px4__log_printline(level, ...)    if (level <= __px4_log_level_current) printf(__VA_ARGS__)
+#define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
+
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "Unknown"
+#endif
 
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
@@ -156,11 +170,45 @@ __END_DECLS
 #define __px4__log_level_arg(level)	,__px4_log_level_str[level]
 #define __px4__log_thread_fmt		"%#X "
 #define __px4__log_thread_arg		,(unsigned int)pthread_self()
+#define __px4__log_modulename_fmt	"%-10s "
+#define __px4__log_modulename_pfmt	"[%s] "
+#define __px4__log_modulename_arg	,"[" MODULE_NAME "]"
 
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
 #define __px4__log_file_and_line_arg 	, __FILE__, __LINE__
 #define __px4__log_end_fmt 		"\n"
-#define __px4__log_endline 		)
+
+#define PX4_ANSI_COLOR_RED     "\x1b[31m"
+#define PX4_ANSI_COLOR_GREEN   "\x1b[32m"
+#define PX4_ANSI_COLOR_YELLOW  "\x1b[33m"
+#define PX4_ANSI_COLOR_BLUE    "\x1b[34m"
+#define PX4_ANSI_COLOR_MAGENTA "\x1b[35m"
+#define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
+#define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
+#define PX4_ANSI_COLOR_RESET   "\x1b[0m"
+
+#ifdef __PX4_POSIX
+#define PX4_LOG_COLORIZED_OUTPUT //if defined and output is a tty, colorize the output according to the log level
+#endif /* __PX4_POSIX */
+
+
+#ifdef PX4_LOG_COLORIZED_OUTPUT
+#include <unistd.h>
+#define PX4_LOG_COLOR_START \
+	int use_color = isatty(STDOUT_FILENO); \
+	if (use_color) printf("%s", __px4_log_level_color[level]);
+#define PX4_LOG_COLOR_MODULE \
+	if (use_color) printf(PX4_ANSI_COLOR_GRAY);
+#define PX4_LOG_COLOR_MESSAGE \
+	if (use_color) printf("%s", __px4_log_level_color[level]);
+#define PX4_LOG_COLOR_END \
+	if (use_color) printf(PX4_ANSI_COLOR_RESET);
+#else
+#define PX4_LOG_COLOR_START
+#define PX4_LOG_COLOR_MODULE
+#define PX4_LOG_COLOR_MESSAGE
+#define PX4_LOG_COLOR_END
+#endif /* PX4_LOG_COLORIZED_OUTPUT */
 
 /****************************************************************************
  * Output format macros
@@ -199,6 +247,19 @@ __END_DECLS
 			     __px4__log_level_arg(level), ##__VA_ARGS__\
 			    )
 
+/****************************************************************************
+ * __px4_log_modulename:
+ * Convert a message in the form:
+ * 	PX4_WARN("val is %d", val);
+ * to
+ * 	printf("%-5s [%s] val is %d\n", __px4_log_level_str[3],
+ *		MODULENAME, val);
+ ****************************************************************************/
+
+#define __px4_log_modulename(level, fmt, ...) \
+	do { \
+		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
+	} while(0)
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
@@ -338,7 +399,7 @@ __END_DECLS
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
 #define PX4_LOG(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
-#define PX4_INFO(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
@@ -362,8 +423,8 @@ __END_DECLS
 /****************************************************************************
  * Non-verbose settings for a Release build to minimize strings in build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
 #define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
@@ -371,9 +432,9 @@ __END_DECLS
 /****************************************************************************
  * Medium verbose settings for a default build
  ****************************************************************************/
-#define PX4_PANIC(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
-#define PX4_WARN(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif

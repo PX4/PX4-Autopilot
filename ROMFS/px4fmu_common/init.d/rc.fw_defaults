@@ -7,21 +7,19 @@ then
 #
 # Default parameters for FW
 #
-	param set NAV_LAND_ALT 90
-	param set NAV_RTL_ALT 100
-	param set NAV_RTL_LAND_T -1
-	param set NAV_ACC_RAD 50
+	param set RTL_RETURN_ALT 100
+	param set RTL_DESCEND_ALT 100
+	param set RTL_LAND_DELAY -1
 
-	param set PE_VELNE_NOISE 0.3
-	param set PE_VELD_NOISE 0.35
-	param set PE_POSNE_NOISE 0.5
-	param set PE_POSD_NOISE 1.0
+	# FW uses L1 distance for acceptance radius
+	#  set a smaller NAV_ACC_RAD for vertical acceptance distance
+	param set NAV_ACC_RAD 10
+
+	param set MIS_LTRMIN_ALT 25
+	param set MIS_TAKEOFF_ALT 25
 fi
 
 # This is the gimbal pass mixer
 set MIXER_AUX pass
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
-set PWM_AUX_DISARMED 1500
-set PWM_AUX_MIN 1000
-set PWM_AUX_MAX 2000

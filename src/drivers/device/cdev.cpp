@@ -98,17 +98,20 @@ CDev::CDev(const char *name,
 	// private
 	_devname(devname),
 	_registered(false),
-	_open_count(0)
+	_max_pollwaiters(0),
+	_open_count(0),
+	_pollset(nullptr)
 {
-	for (unsigned i = 0; i < _max_pollwaiters; i++) {
-		_pollset[i] = nullptr;
-	}
 }
 
 CDev::~CDev()
 {
 	if (_registered) {
 		unregister_driver(_devname);
+	}
+
+	if (_pollset) {
+		delete[](_pollset);
 	}
 }
 
@@ -339,14 +342,14 @@ void
 CDev::poll_notify(pollevent_t events)
 {
 	/* lock against poll() as well as other wakeups */
-	irqstate_t state = irqsave();
+	irqstate_t state = px4_enter_critical_section();
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++)
 		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
 		}
 
-	irqrestore(state);
+	px4_leave_critical_section(state);
 }
 
 void
@@ -385,7 +388,29 @@ CDev::store_poll_waiter(struct pollfd *fds)
 		}
 	}
 
-	return ENOMEM;
+	/* No free slot found. Resize the pollset */
+
+	if (_max_pollwaiters >= 256 / 2) { //_max_pollwaiters is uint8_t
+		return -ENOMEM;
+	}
+
+	const uint8_t new_count = _max_pollwaiters > 0 ? _max_pollwaiters * 2 : 1;
+	pollfd **new_pollset = new pollfd*[new_count];
+
+	if (!new_pollset) {
+		return -ENOMEM;
+	}
+
+	if (_max_pollwaiters > 0) {
+		memset(new_pollset + _max_pollwaiters, 0, sizeof(pollfd *) * (new_count - _max_pollwaiters));
+		memcpy(new_pollset, _pollset, sizeof(pollfd *) * _max_pollwaiters);
+		delete[](_pollset);
+	}
+
+	_pollset = new_pollset;
+	_pollset[_max_pollwaiters] = fds;
+	_max_pollwaiters = new_count;
+	return OK;
 }
 
 int

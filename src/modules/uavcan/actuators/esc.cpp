@@ -49,6 +49,8 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_sub_status(node),
 	_orb_timer(node)
 {
+	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+
 	if (_perfcnt_invalid_input == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
 	}
@@ -108,19 +110,16 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	uavcan::equipment::esc::RawCommand msg;
 
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
+	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
 
 	for (unsigned i = 0; i < num_outputs; i++) {
 		if (_armed_mask & MOTOR_BIT(i)) {
 			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
 
-			// trim negative values back to 0. Previously
-			// we set this to 0.1, which meant motors kept
-			// spinning when armed, but that should be a
-			// policy decision for a specific vehicle
-			// type, as it is not appropriate for all
-			// types of vehicles (eg. fixed wing).
-			if (scaled < 0.0F) {
-				scaled = 0.0F;
+			// trim negative values back to minimum
+			if (scaled < cmd_min) {
+				scaled = cmd_min;
+				perf_count(_perfcnt_scaling_error);
 			}
 
 			if (scaled > cmd_max) {
@@ -136,6 +135,25 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<unsigned>(0));
 		}
 	}
+
+	/*
+	 * Remove channels that are always zero.
+	 * The objective of this optimization is to avoid broadcasting multi-frame transfers when a single frame
+	 * transfer would be enough. This is a valid optimization as the UAVCAN specification implies that all
+	 * non-specified ESC setpoints should be considered zero.
+	 * The positive outcome is a (marginally) lower bus traffic and lower CPU load.
+	 *
+	 * From the standpoint of the PX4 architecture, however, this is a hack. It should be investigated why
+	 * the mixer returns more outputs than are actually used.
+	 */
+	for (int index = int(msg.cmd.size()) - 1; index >= _max_number_of_nonzero_outputs; index--) {
+		if (msg.cmd[index] != 0) {
+			_max_number_of_nonzero_outputs = index + 1;
+			break;
+		}
+	}
+
+	msg.cmd.resize(_max_number_of_nonzero_outputs);
 
 	/*
 	 * Publish the command message to the bus

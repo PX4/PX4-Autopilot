@@ -72,11 +72,6 @@ private:
 };
 }
 
-// PX4_MAIN is defined if module.mk sets MODULE_COMMAND
-// For ROS and NuttX it is "main" and for Linux it is
-// $(MODULE_COMMAND)_app_main since some apps already
-// define $(MODULE_COMMAND)_main
-
 // Task/process based build
 #if defined(__PX4_ROS) || defined(__PX4_NUTTX)
 

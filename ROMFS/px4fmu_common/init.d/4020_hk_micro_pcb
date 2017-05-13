@@ -4,6 +4,13 @@
 #
 # @type Quadrotor x
 #
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
 # @maintainer Thomas Gubler <thomas@px4.io>
 #
 
@@ -23,6 +30,5 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
+	param set PWM_MIN 1200
 fi
-
-set PWM_MIN 1200

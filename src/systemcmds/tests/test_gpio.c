@@ -49,7 +49,7 @@
 
 #include <px4_adc.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <drivers/drv_gpio.h>
 
@@ -91,12 +91,12 @@ int test_gpio(int argc, char *argv[])
 {
 	int		ret = 0;
 
-#ifdef PX4IO_DEVICE_PATH
+#if defined(BOARD_USES_PX4IO)
 
 	int fd = px4_open(PX4IO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		printf("GPIO: open fail\n");
+		PX4_ERR("GPIO: open fail");
 		return ERROR;
 	}
 
@@ -111,7 +111,7 @@ int test_gpio(int argc, char *argv[])
 	px4_ioctl(fd, GPIO_RESET, ~0);
 
 	px4_close(fd);
-	printf("\t GPIO test successful.\n");
+	PX4_INFO("GPIO test successful.");
 
 #endif
 

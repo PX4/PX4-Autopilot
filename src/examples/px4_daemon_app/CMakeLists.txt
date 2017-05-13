@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE examples__px4_daemon_app
 	MAIN px4_daemon_app
-	STACK 1200
+	STACK_MAIN 1200
 	SRCS
 		px4_daemon_app.c
 	DEPENDS

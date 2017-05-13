@@ -58,14 +58,16 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
 
-#include <arch/stm32/chip.h>
-#include <stm32.h>
+#include <stm32_adc.h>
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
+#include <uORB/topics/adc_report.h>
+
+#if defined(ADC_CHANNELS)
 
 /*
  * Register accessors.
@@ -123,6 +125,7 @@ private:
 	adc_msg_s		*_samples;		/**< sample buffer */
 
 	orb_advert_t		_to_system_power;
+	orb_advert_t		_to_adc_report;
 
 	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
@@ -140,7 +143,9 @@ private:
 	uint16_t		_sample(unsigned channel);
 
 	// update system_power ORB topic, only on FMUv2
-	void update_system_power(void);
+	void update_system_power(hrt_abstime now);
+
+	void update_adc_report(hrt_abstime now);
 };
 
 ADC::ADC(uint32_t channels) :
@@ -148,7 +153,8 @@ ADC::ADC(uint32_t channels) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
-	_to_system_power(nullptr)
+	_to_system_power(nullptr),
+	_to_adc_report(nullptr)
 {
 	_debug_enabled = true;
 
@@ -246,8 +252,6 @@ ADC::init()
 	}
 
 
-	DEVICE_DEBUG("init done");
-
 	/* create the device node */
 	return CDev::init();
 }
@@ -268,9 +272,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = irqsave();
+	irqstate_t flags = px4_enter_critical_section();
 	memcpy(buffer, _samples, len);
-	irqrestore(flags);
+	px4_leave_critical_section(flags);
 
 	return len;
 }
@@ -303,41 +307,75 @@ ADC::_tick_trampoline(void *arg)
 void
 ADC::_tick()
 {
+	hrt_abstime now = hrt_absolute_time();
+
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	}
 
-	update_system_power();
+	update_adc_report(now);
+	update_system_power(now);
 }
 
 void
-ADC::update_system_power(void)
+ADC::update_adc_report(hrt_abstime now)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-	system_power_s system_power;
-	system_power.timestamp = hrt_absolute_time();
+	adc_report_s adc = {};
+	adc.timestamp = now;
+
+	unsigned max_num = _channel_count;
+
+	if (max_num > (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]))) {
+		max_num = (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]));
+	}
+
+	for (unsigned i = 0; i < max_num; i++) {
+		adc.channel_id[i] = _samples[i].am_channel;
+		adc.channel_value[i] = _samples[i].am_data * 3.3f / 4096.0f;
+	}
+
+	int instance;
+	orb_publish_auto(ORB_ID(adc_report), &_to_adc_report, &adc, &instance, ORB_PRIO_HIGH);
+}
+
+void
+ADC::update_system_power(hrt_abstime now)
+{
+#if defined (BOARD_ADC_USB_CONNECTED)
+	system_power_s system_power = {};
+	system_power.timestamp = now;
 
 	system_power.voltage5V_v = 0;
 
+	/* HW provides ADC_SCALED_V5_SENSE */
+
+#  if defined(ADC_SCALED_V5_SENSE)
+
 	for (unsigned i = 0; i < _channel_count; i++) {
-		if (_samples[i].am_channel == 4) {
+		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
+			system_power.voltage5V_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / 4096);
+			break;
 		}
 	}
 
+#  endif
+
+	/* Note once the board_config.h provides BOARD_ADC_USB_CONNECTED,
+	 * It must provide the true logic GPIO BOARD_ADC_xxxx macros.
+	 */
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
-	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
 
-	// note that the valid pins are active low
-	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
-	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
+	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
+
+	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
+	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
 	// OC pins are active low
-	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
-	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+	system_power.periph_5V_OC  = BOARD_ADC_PERIPH_5V_OC;
+	system_power.hipower_5V_OC = BOARD_ADC_HIPOWER_5V_OC;
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
@@ -347,7 +385,7 @@ ADC::update_system_power(void)
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // BOARD_ADC_USB_CONNECTED
 }
 
 uint16_t
@@ -449,3 +487,4 @@ adc_main(int argc, char *argv[])
 
 	exit(0);
 }
+#endif

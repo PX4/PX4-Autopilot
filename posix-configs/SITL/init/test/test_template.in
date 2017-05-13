@@ -1,0 +1,33 @@
+uorb start
+
+param load
+param set SYS_RESTART_TYPE 0
+
+dataman start
+
+simulator start -t
+tone_alarm start
+gyrosim start
+accelsim start
+barosim start
+adcsim start
+gpssim start
+measairspeedsim start
+pwm_out_sim mode_pwm
+
+ver all
+
+list_tasks
+list_devices
+list_topics
+list_files
+
+mavlink start -u 14556 -r 2000000
+mavlink boot_complete
+
+tests @test_name@
+
+dataman status
+dataman stop
+
+shutdown

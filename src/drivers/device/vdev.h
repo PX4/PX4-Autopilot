@@ -128,7 +128,7 @@ public:
 	 * @param arg           An argument to the operation.
 	 * @return              Negative errno on error, OK or positive value on success.
 	 */
-	virtual int     dev_ioctl(unsigned operation, unsigned &arg);
+	virtual int     dev_ioctl(unsigned operation, unsigned arg);
 
 	/*
 	  device bus types for DEVID
@@ -149,12 +149,12 @@ public:
 	 */
 	struct DeviceStructure {
 		enum DeviceBusType bus_type : 3;
-			uint8_t bus: 5;    // which instance of the bus type
-			uint8_t address;   // address on the bus (eg. I2C address)
-			uint8_t devtype;   // device class specific device type
-		};
+		uint8_t bus: 5;    // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
 
-		union DeviceId {
+	union DeviceId {
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
@@ -178,10 +178,12 @@ protected:
 	 * Each driver instance has its own lock/semaphore.
 	 *
 	 * Note that we must loop as the wait may be interrupted by a signal.
+	 *
+	 * Careful: lock() calls cannot be nested!
 	 */
 	void		lock()
 	{
-		DEVICE_DEBUG("lock");
+		//DEVICE_DEBUG("lock");
 		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
@@ -190,13 +192,13 @@ protected:
 	 */
 	void		unlock()
 	{
-		DEVICE_DEBUG("unlock");
+		//DEVICE_DEBUG("unlock");
 		px4_sem_post(&_lock);
 	}
 
-private:
-	px4_sem_t		_lock;
+	px4_sem_t		_lock; /**< lock to protect access to all class members (also for derived classes) */
 
+private:
 	/** disable copy construction for this and all subclasses */
 	Device(const Device &);
 
@@ -348,6 +350,8 @@ protected:
 	 *
 	 * The default implementation returns no events.
 	 *
+	 * Lock must already be held when calling this.
+	 *
 	 * @param filep		The file that's interested.
 	 * @return		The current set of poll events.
 	 */
@@ -365,6 +369,8 @@ protected:
 
 	/**
 	 * Internal implementation of poll_notify.
+	 *
+	 * Lock must already be held when calling this.
 	 *
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
@@ -419,13 +425,12 @@ protected:
 	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:
-	static const unsigned _max_pollwaiters = 8;
-
 	const char	*_devname;		/**< device node name */
 	bool		_registered;		/**< true if device name was registered */
+	uint8_t		_max_pollwaiters; /**< size of the _pollset array */
 	unsigned	_open_count;		/**< number of successful opens */
 
-	px4_pollfd_struct_t	*_pollset[_max_pollwaiters];
+	px4_pollfd_struct_t	**_pollset;
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.

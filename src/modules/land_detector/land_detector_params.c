@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,10 +44,11 @@
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
  * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
+PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
 
 /**
  * Multicopter max horizontal velocity
@@ -55,6 +56,7 @@ PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
  * Maximum horizontal velocity allowed in the landed state (m/s)
  *
  * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -63,34 +65,100 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.50f);
 /**
  * Multicopter max rotation
  *
- * Maximum allowed around each axis allowed in the landed state (degrees per second)
+ * Maximum allowed angular velocity around each axis allowed in the landed state.
  *
  * @unit deg/s
+ * @decimal 1
  *
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 
 /**
- * Multicopter max throttle
+ * Multicopter specific force threshold
  *
- * Maximum actuator output on throttle allowed in the landed state
+ * Multicopter threshold on the specific force measured by accelerometers in m/s^2 for free-fall detection
  *
+ * @unit m/s^2
  * @min 0.1
- * @max 0.5
+ * @max 10
+ * @decimal 2
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_THR_MAX, 0.15f);
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
+
+/**
+ * Multicopter sub-hover throttle scaling
+ *
+ * The range between throttle_min and throttle_hover is scaled
+ * by this parameter to define how close to minimum throttle
+ * the current throttle value needs to be in order to get
+ * accepted as landed.
+ *
+ * @min 0.05
+ * @max 0.5
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_THR_RANGE, 0.1f);
+
+/**
+ * Multicopter free-fall trigger time
+ *
+ * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
+ * Minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
+
+/**
+ * Manual flight stick down threshold for landing
+ *
+ * When controlling manually the throttle stick value (0 to 1)
+ * has to be bellow this threshold in order to pass the check for landing.
+ * So if set to 1 it's allowed to land with any stick position.
+ *
+ * @min 0
+ * @max 1
+ * @unit norm
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_MAN_DWNTHR, 0.15f);
+
+/**
+ * Manual position flight stick up threshold for taking off
+ *
+ * When controlling manually in position mode the throttle stick value (0 to 1)
+ * has to get above this threshold after arming in order to take off.
+ *
+ * @min 0
+ * @max 1
+ * @unit norm
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_POS_UPTHR, 0.65f);
 
 /**
  * Fixedwing max horizontal velocity
  *
  * Maximum horizontal velocity allowed in the landed state (m/s)
  *
+ * @unit m/s
  * @min 0.5
  * @max 10
- * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
@@ -101,23 +169,75 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  *
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
+ * @unit m/s
  * @min 5
  * @max 20
- * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
 
 /**
+ * Fixedwing max short-term velocity
+ *
+ * Maximum velocity integral in flight direction allowed in the landed state (m/s)
+ *
+ * @unit m/s
+ * @min 2
+ * @max 10
+ * @decimal 1
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
+
+/**
  * Airspeed max
  *
  * Maximum airspeed allowed in the landed state (m/s)
  *
+ * @unit m/s
  * @min 4
  * @max 20
- * @unit m/s
+ * @decimal 1
  *
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot. Higher 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
+
+/**
+ * Total flight time in microseconds
+ *
+ * Total flight time of this autopilot. Lower 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
+
+/**
+ * Maximum altitude that can be reached prior to subconditions
+ *
+ * @unit m
+ * @min 10
+ * @max 150
+ * @decimal 2
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 100.0f);

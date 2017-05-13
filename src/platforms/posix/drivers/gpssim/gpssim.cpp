@@ -37,7 +37,7 @@
  */
 
 #include <sys/types.h>
-#define __STDC_FORMAT_MACROS
+#include <px4_defines.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -52,9 +52,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <px4_config.h>
+#include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
-#include <systemlib/systemlib.h>
 #include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -62,17 +62,16 @@
 
 #include <simulator/simulator.h>
 
+#include "DevMgr.hpp"
+#include "VirtDevObj.hpp"
+
+using namespace DriverFramework;
+
 #define GPS_DRIVER_MODE_UBX_SIM
 #define GPSSIM_DEVICE_PATH "/dev/gpssim"
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 /* class for dynamic allocation of satellite info data */
 class GPS_Sat_Info
@@ -82,7 +81,7 @@ public:
 };
 
 
-class GPSSIM : public device::VDev
+class GPSSIM : public VirtDevObj
 {
 public:
 	GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info);
@@ -90,12 +89,15 @@ public:
 
 	virtual int			init();
 
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int			devIOCTL(unsigned long cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void				print_info();
+
+protected:
+	virtual void			_measure() {}
 
 private:
 
@@ -115,6 +117,7 @@ private:
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
+	SyncObj				_sync;
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -130,7 +133,7 @@ private:
 	/**
 	 * Worker task: main GPS thread that configures the GPS and parses incoming data, always running
 	 */
-	void				task_main(void);
+	void				task_main();
 
 	/**
 	 * Set the baudrate of the UART to the GPS
@@ -160,7 +163,7 @@ GPSSIM	*g_dev = nullptr;
 
 
 GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info) :
-	VDev("gps", GPSSIM_DEVICE_PATH),
+	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
 	_task_should_exit(false),
 	//_healthy(false),
 	//_mode_changed(false),
@@ -184,16 +187,16 @@ GPSSIM::GPSSIM(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
-		_Sat_Info = new(GPS_Sat_Info);
+		_Sat_Info = new (GPS_Sat_Info);
 		_p_report_sat_info = &_Sat_Info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
-
-	_debug_enabled = true;
 }
 
 GPSSIM::~GPSSIM()
 {
+	delete _Sat_Info;
+
 	/* tell the task we want it to go away */
 	_task_should_exit = true;
 
@@ -214,10 +217,10 @@ GPSSIM::~GPSSIM()
 int
 GPSSIM::init()
 {
-	int ret = ERROR;
+	int ret = PX4_ERROR;
 
 	/* do regular cdev init */
-	if (VDev::init() != OK) {
+	if (VirtDevObj::init() != OK) {
 		goto out;
 	}
 
@@ -236,9 +239,9 @@ out:
 }
 
 int
-GPSSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 {
-	lock();
+	_sync.lock();
 
 	int ret = OK;
 
@@ -249,11 +252,11 @@ GPSSIM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to parent if no one wants it */
-		ret = VDev::ioctl(filp, cmd, arg);
+		ret = VirtDevObj::devIOCTL(cmd, arg);
 		break;
 	}
 
-	unlock();
+	_sync.unlock();
 
 	return ret;
 }
@@ -271,11 +274,10 @@ GPSSIM::receive(int timeout)
 	simulator::RawGPSData gps;
 	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
 
-	_report_gps_pos.timestamp_position = hrt_absolute_time();
+	_report_gps_pos.timestamp = hrt_absolute_time();
 	_report_gps_pos.lat = gps.lat;
 	_report_gps_pos.lon = gps.lon;
 	_report_gps_pos.alt = gps.alt;
-	_report_gps_pos.timestamp_variance = hrt_absolute_time();
 	_report_gps_pos.eph = (float)gps.eph * 1e-2f;
 	_report_gps_pos.epv = (float)gps.epv * 1e-2f;
 	_report_gps_pos.vel_m_s = (float)(gps.vel) / 100.0f;
@@ -298,17 +300,15 @@ GPSSIM::task_main()
 	while (!_task_should_exit) {
 
 		if (_fake_gps) {
-			_report_gps_pos.timestamp_position = hrt_absolute_time();
+			_report_gps_pos.timestamp = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.timestamp_variance = hrt_absolute_time();
 			_report_gps_pos.s_variance_m_s = 10.0f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;
 			_report_gps_pos.eph = 0.9f;
 			_report_gps_pos.epv = 1.8f;
-			_report_gps_pos.timestamp_velocity = hrt_absolute_time();
 			_report_gps_pos.vel_n_m_s = 0.0f;
 			_report_gps_pos.vel_e_m_s = 0.0f;
 			_report_gps_pos.vel_d_m_s = 0.0f;
@@ -319,7 +319,7 @@ GPSSIM::task_main()
 
 			//no time and satellite information simulated
 
-			if (!(_pub_blocked)) {
+			if (!(m_pub_blocked)) {
 				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -334,12 +334,10 @@ GPSSIM::task_main()
 			//Publish initial report that we have access to a GPS
 			//Make sure to clear any stale data in case driver is reset
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
-			_report_gps_pos.timestamp_position = hrt_absolute_time();
-			_report_gps_pos.timestamp_variance = hrt_absolute_time();
-			_report_gps_pos.timestamp_velocity = hrt_absolute_time();
-			_report_gps_pos.timestamp_time = hrt_absolute_time();
+			_report_gps_pos.timestamp = hrt_absolute_time();
+			_report_gps_pos.timestamp_time_relative = 0;
 
-			if (!(_pub_blocked)) {
+			if (!(m_pub_blocked)) {
 				if (_report_gps_pos_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
@@ -354,7 +352,7 @@ GPSSIM::task_main()
 			while ((receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
 				/* opportunistic publishing - else invalid data would end up on the bus */
 
-				if (!(_pub_blocked)) {
+				if (!(m_pub_blocked)) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
 
 					if (_p_report_sat_info) {
@@ -368,7 +366,8 @@ GPSSIM::task_main()
 				}
 			}
 
-			lock();
+			// FIXME - if ioctl is called then it will deadlock
+			_sync.lock();
 		}
 	}
 
@@ -376,7 +375,6 @@ GPSSIM::task_main()
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	return;
 }
 
 
@@ -404,9 +402,9 @@ GPSSIM::print_info()
 		 _report_gps_pos.noise_per_ms,
 		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
-	if (_report_gps_pos.timestamp_position != 0) {
+	if (_report_gps_pos.timestamp != 0) {
 		PX4_INFO("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
-			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
+			 _report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp) / 1000.0);
 		PX4_INFO("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		PX4_INFO("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
 			 (double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
@@ -433,6 +431,7 @@ void	stop();
 void	test();
 void	reset();
 void	info();
+void	usage(const char *reason);
 
 /**
  * Start the driver.
@@ -440,7 +439,7 @@ void	info();
 void
 start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 {
-	int fd;
+	DevHandle h;
 
 	/* create the driver */
 	g_dev = new GPSSIM(uart_path, fake_gps, enable_sat_info);
@@ -454,10 +453,10 @@ start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(GPSSIM_DEVICE_PATH, O_RDONLY);
+	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
 
-	if (fd < 0) {
-		PX4_ERR("open: %s\n", GPS0_DEVICE_PATH);
+	if (!h.isValid()) {
+		PX4_ERR("getHandle failed: %s", GPSSIM_DEVICE_PATH);
 		goto fail;
 	}
 
@@ -500,13 +499,14 @@ test()
 void
 reset()
 {
-	int fd = px4_open(GPSSIM_DEVICE_PATH, O_RDONLY);
+	DevHandle h;
+	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
 
-	if (fd < 0) {
+	if (!h.isValid()) {
 		PX4_ERR("failed ");
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
+	if (h.ioctl(SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("reset failed");
 	}
 }
@@ -519,12 +519,26 @@ info()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("gpssim not running");
+		return;
 	}
 
 	g_dev->print_info();
 }
 
+void
+usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s", reason);
+	}
+
+	PX4_INFO("usage:");
+	PX4_INFO("gpssim {start|stop|test|reset|status}");
+	PX4_INFO("       [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
+}
+
 } // namespace
+
 
 
 int
@@ -536,22 +550,25 @@ gpssim_main(int argc, char *argv[])
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 
+
+	if (argc < 2) {
+
+		gpssim::usage("not enough arguments supplied");
+		return 1;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
 		if (g_dev != nullptr) {
-			PX4_WARN("gpssim already started");
+			PX4_WARN("already started");
 			return 0;
 		}
 
-		/* work around getopt unreliability */
 		if (argc > 3) {
 			if (!strcmp(argv[2], "-d")) {
 				device_name = argv[3];
-
-			} else {
-				goto out;
 			}
 		}
 
@@ -570,6 +587,13 @@ gpssim_main(int argc, char *argv[])
 		}
 
 		gpssim::start(device_name, fake_gps, enable_sat_info);
+		return 0;
+	}
+
+	/* The following need gpssim running. */
+	if (g_dev == nullptr) {
+		PX4_WARN("not running");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
@@ -598,8 +622,4 @@ gpssim_main(int argc, char *argv[])
 	}
 
 	return 0;
-
-out:
-	PX4_INFO("unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'\n [-d /dev/ttyS0-n][-f (for enabling fake)][-s (to enable sat info)]");
-	return 1;
 }

@@ -45,7 +45,6 @@
 
 #pragma once
 #include <platforms/px4_defines.h>
-__BEGIN_DECLS
 
 #include "geo_lookup/geo_mag_declination.h"
 
@@ -78,6 +77,8 @@ struct globallocal_converter_reference_s {
 	float alt;
 	bool init_done;
 };
+
+__BEGIN_DECLS
 
 /**
  * Checks if global projection was initialized
@@ -235,6 +236,36 @@ __EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *al
  * @param lon_next next waypoint position in degrees (8.1234567°, not 81234567°)
  */
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
+
+
+/**
+ * Creates a new waypoint C on the line of two given waypoints (A, B) at certain distance
+ * from waypoint A
+ *
+ * @param lat_A waypoint A latitude in degrees (47.1234567°, not 471234567°)
+ * @param lon_A waypoint A longitude in degrees (8.1234567°, not 81234567°)
+ * @param lat_B waypoint B latitude in degrees (47.1234567°, not 471234567°)
+ * @param lon_B waypoint B longitude in degrees (8.1234567°, not 81234567°)
+ * @param dist distance of target waypoint from waypoint A in meters (can be negative)
+ * @param lat_target latitude of target waypoint C in degrees (47.1234567°, not 471234567°)
+ * @param lon_target longitude of target waypoint C in degrees (47.1234567°, not 471234567°)
+ */
+__EXPORT void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
+		double *lat_target, double *lon_target);
+
+/**
+ * Creates a waypoint from given waypoint, distance and bearing
+ * see http://www.movable-type.co.uk/scripts/latlong.html
+ *
+ * @param lat_start latitude of starting waypoint in degrees (47.1234567°, not 471234567°)
+ * @param lon_start longitude of starting waypoint in degrees (8.1234567°, not 81234567°)
+ * @param bearing in rad
+ * @param distance in meters
+ * @param lat_target latitude of target waypoint in degrees (47.1234567°, not 471234567°)
+ * @param lon_target longitude of target waypoint in degrees (47.1234567°, not 471234567°)
+ */
+__EXPORT void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
+		double *lat_target, double *lon_target);
 
 /**
  * Returns the bearing to the next waypoint in radians.

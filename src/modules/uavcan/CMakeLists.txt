@@ -37,15 +37,12 @@ set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 string(TOUPPER "${OS}" OS_UPPER)
 add_definitions(
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
-		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
 		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 		-DUAVCAN_NO_ASSERTIONS
 		-DUAVCAN_PLATFORM=stm32
 		-DUAVCAN_STM32_${OS_UPPER}=1
-		-DUAVCAN_STM32_NUM_IFACES=2
+		-DUAVCAN_STM32_NUM_IFACES=${config_uavcan_num_ifaces}
 		-DUAVCAN_STM32_TIMER_NUMBER=5
-		-DUAVCAN_USE_CPP03=ON
-		-DUAVCAN_USE_EXTERNAL_SNPRINT
 		)
 
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
@@ -59,11 +56,9 @@ include_directories(libuavcan/libuavcan_drivers/stm32/driver/include)
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan
-	STACK 3200
+	STACK_MAIN 3200
+	STACK_MAX 1500
 	COMPILE_FLAGS
-		-Wframe-larger-than=1500
-		-Wno-deprecated-declarations
-		-Os
 	SRCS
 		# Main
 		uavcan_main.cpp
@@ -72,6 +67,7 @@ px4_add_module(
 
 		# Actuators
 		actuators/esc.cpp
+		actuators/hardpoint.cpp
 
 		# Sensors
 		sensors/sensor_bridge.cpp
@@ -84,4 +80,4 @@ px4_add_module(
 		uavcan
 	)
 
-## vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+## vim: set noet ft=cmake fenc=utf-8 ff=unix :

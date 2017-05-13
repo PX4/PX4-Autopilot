@@ -1,0 +1,23 @@
+<launch>
+    <!-- Posix SITL MAVROS integration tests -->
+
+    <arg name="ns" default="/"/>
+    <arg name="headless" default="true"/>
+    <arg name="gui" default="false"/>
+    <arg name="est" default="lpe"/>
+
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="ns" value="$(arg ns)"/>
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="vehicle" value="iris_opt_flow"/>
+        <arg name="est" value="$(arg est)"/>
+    </include>
+
+    <group ns="$(arg ns)">
+        <test test-name="mavros_flow_offboard_posctl_test" pkg="px4" type="mavros_offboard_posctl_test.py" time-limit="120.0" />
+        <test test-name="mavros_flow_offboard_attctl_test" pkg="px4" type="mavros_offboard_attctl_test.py" />
+    </group>
+</launch>
+
+<!-- vim: set ft=xml et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

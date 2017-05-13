@@ -47,10 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* these headers are not C++ safe */
-#include <stm32.h>
-#include <arch/board/board.h>
-
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -64,6 +60,8 @@
 			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
 #define GPIO_LED3       (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|\
 			 GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+
+#define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10)
 
 /* Safety switch button *************************************************************/
 
@@ -81,6 +79,13 @@
 #define GPIO_RELAY1_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN12)
 #define GPIO_RELAY2_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN11)
 
+#define GPIO_SPEKTRUM_PWR_EN GPIO_RELAY1_EN
+#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_RELAY1_EN, (_on_true))
+
+#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_USART1_RX_SPEKTRUM, (_one_true))
+#define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(GPIO_USART1_RX)
+#define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_USART1_RX_SPEKTRUM)
+
 /* Analog inputs ********************************************************************/
 
 #define GPIO_ADC_VBATT	(GPIO_INPUT|GPIO_CNF_ANALOGIN|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN4)
@@ -91,5 +96,5 @@
  */
 #define HRT_TIMER		1	/* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTE|GPIO_PIN9)
+#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 PA8 */
+#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTA|GPIO_PIN8)

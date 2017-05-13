@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +33,23 @@
 
 /**
  * @file FixedwingLandDetector.h
- * Land detection algorithm for fixedwing
+ * Land detector implementation for fixedwing.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Morten Lysgaard <morten@lysgaard.no>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef __FIXED_WING_LAND_DETECTOR_H__
-#define __FIXED_WING_LAND_DETECTOR_H__
+#pragma once
+
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/airspeed.h>
 
 #include "LandDetector.h"
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
-#include <systemlib/param/param.h>
+
+namespace land_detector
+{
 
 class FixedwingLandDetector : public LandDetector
 {
@@ -55,57 +57,46 @@ public:
 	FixedwingLandDetector();
 
 protected:
-	/**
-	* @brief  blocking loop, should be run in a separate thread or task. Runs at 50Hz
-	**/
-	bool update() override;
+	virtual void _initialize_topics() override;
 
-	/**
-	* @brief Initializes the land detection algorithm
-	**/
-	void initialize() override;
+	virtual void _update_params() override;
 
-	/**
-	* @brief  polls all subscriptions and pulls any data that has changed
-	**/
-	void updateSubscriptions();
+	virtual void _update_topics() override;
 
+	virtual bool _get_landed_state() override;
+
+	virtual bool _get_ground_contact_state() override;
+
+	virtual bool _get_freefall_state() override;
+
+	virtual float _get_max_altitude() override;
 private:
-	/**
-	* @brief download and update local parameter cache
-	**/
-	void updateParameterCache(const bool force);
-
-	/**
-	* @brief Handles for interesting parameters
-	**/
 	struct {
 		param_t maxVelocity;
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
-	}		_paramHandle;
+		param_t maxIntVelocity;
+	} _paramHandle;
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
+		float maxIntVelocity;
 	} _params;
 
-private:
-	int					_vehicleLocalPositionSub;	/**< notification of local position */
-	struct vehicle_local_position_s		_vehicleLocalPosition;		/**< the result from local position subscription */
-	int					_airspeedSub;
-	int					_vehicleStatusSub;
-	int					_armingSub;
-	struct airspeed_s			_airspeed;
-	struct vehicle_status_s 		_vehicleStatus;
-	struct actuator_armed_s			_arming;
-	int 					_parameterSub;
+	int _controlStateSub;
+	int _armingSub;
+	int _airspeedSub;
+
+	struct control_state_s _controlState;
+	struct actuator_armed_s _arming;
+	struct airspeed_s _airspeed;
 
 	float _velocity_xy_filtered;
 	float _velocity_z_filtered;
 	float _airspeed_filtered;
-	uint64_t _landDetectTrigger;
+	float _accel_horz_lp;
 };
 
-#endif //__FIXED_WING_LAND_DETECTOR_H__
+} // namespace land_detector

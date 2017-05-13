@@ -30,21 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1500)
-endif()
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
-	STACK 1200
+	STACK_MAIN 1200
+	STACK_MAX 1500
 	COMPILE_FLAGS
-		${MODULE_CFLAGS}
-		-Wno-attributes
-		-Wno-packed
-		-DMAVLINK_COMM_NUM_BUFFERS=3
-		-Wno-packed
-		-Wno-tautological-constant-out-of-range-compare
-		-Os
 	SRCS
 		mavlink.c
 		mavlink_main.cpp
@@ -56,7 +47,10 @@ px4_add_module(
 		mavlink_rate_limiter.cpp
 		mavlink_receiver.cpp
 		mavlink_ftp.cpp
+		mavlink_log_handler.cpp
+		mavlink_shell.cpp
+		mavlink_ulog.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

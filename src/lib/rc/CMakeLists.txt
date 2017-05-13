@@ -33,11 +33,14 @@
 px4_add_module(
 	MODULE lib__rc
 	COMPILE_FLAGS
-		-Os
+		-Wno-unused-result
 	SRCS
-		st24.c
-		sumd.c
+		st24.cpp
+		sumd.cpp
+		sbus.cpp
+		dsm.cpp
+		common_rc.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

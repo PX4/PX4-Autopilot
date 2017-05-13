@@ -33,11 +33,14 @@
 px4_add_module(
 	MODULE drivers__stm32
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		drv_hrt.c
+		drv_io_timer.c
 		drv_pwm_servo.c
+		drv_pwm_trigger.c
+		drv_input_capture.c
+		drv_led_pwm.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

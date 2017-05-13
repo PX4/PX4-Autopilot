@@ -50,11 +50,10 @@
 #include <termios.h>
 
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 #include <arch/board/board.h>
-#include <mavlink/mavlink_log.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls_0.h>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 

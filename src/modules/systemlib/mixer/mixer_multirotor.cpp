@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
@@ -50,7 +51,9 @@
 #include <unistd.h>
 #include <math.h>
 
+#include <mathlib/math/Limits.hpp>
 #include <px4iofirmware/protocol.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "mixer.h"
 
@@ -60,22 +63,12 @@
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
-//#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
+//#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
 /*
  * Clockwise: 1
  * Counter-clockwise: -1
  */
-
-namespace
-{
-
-float constrain(float val, float min, float max)
-{
-	return (val < min) ? min : ((val > max) ? max : val);
-}
-
-} // anonymous namespace
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 				 uintptr_t cb_handle,
@@ -89,14 +82,21 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
+	_delta_out_max(0.0f),
+	_thrust_factor(0.0f),
 	_limits_pub(),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
-	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry])
+	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
+	_outputs_prev(new float[_rotor_count])
 {
+	memset(_outputs_prev, _idle_speed, _rotor_count * sizeof(float));
 }
 
 MultirotorMixer::~MultirotorMixer()
 {
+	if (_outputs_prev != nullptr) {
+		delete[] _outputs_prev;
+	}
 }
 
 MultirotorMixer *
@@ -107,25 +107,12 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	int s[4];
 	int used;
 
-	/* enforce that the mixer ends with space or a new line */
-	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0') {
-			continue;
-		}
-
-		/* require a space or newline at the end of the buffer, fail on printable chars */
-		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-			/* found a line ending or space, so no split symbols / numbers. good. */
-			break;
-
-		} else {
-			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen - 1, buf[i]);
-			return nullptr;
-		}
-
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
 	}
 
-	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
+	if (sscanf(buf, "R: %7s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
 		debug("multirotor parse failed on '%s'", buf);
 		return nullptr;
 	}
@@ -150,11 +137,17 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "4x")) {
 		geometry = MultirotorGeometry::QUAD_X;
 
+	} else if (!strcmp(geomname, "4h")) {
+		geometry = MultirotorGeometry::QUAD_H;
+
 	} else if (!strcmp(geomname, "4v")) {
 		geometry = MultirotorGeometry::QUAD_V;
 
 	} else if (!strcmp(geomname, "4w")) {
 		geometry = MultirotorGeometry::QUAD_WIDE;
+
+	} else if (!strcmp(geomname, "4s")) {
+		geometry = MultirotorGeometry::QUAD_S250AQ;
 
 	} else if (!strcmp(geomname, "4dc")) {
 		geometry = MultirotorGeometry::QUAD_DEADCAT;
@@ -168,6 +161,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "6c")) {
 		geometry = MultirotorGeometry::HEX_COX;
 
+	} else if (!strcmp(geomname, "6t")) {
+		geometry = MultirotorGeometry::HEX_T;
+
 	} else if (!strcmp(geomname, "8+")) {
 		geometry = MultirotorGeometry::OCTA_PLUS;
 
@@ -176,6 +172,12 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	} else if (!strcmp(geomname, "8c")) {
 		geometry = MultirotorGeometry::OCTA_COX;
+
+#if 0
+
+	} else if (!strcmp(geomname, "8cw")) {
+		geometry = MultirotorGeometry::OCTA_COX_WIDE;
+#endif
 
 	} else if (!strcmp(geomname, "2-")) {
 		geometry = MultirotorGeometry::TWIN_ENGINE;
@@ -214,17 +216,15 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 	4) scale all outputs to range [idle_speed,1]
 	*/
 
-	float		roll    = constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
-	float		pitch   = constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
-	float		yaw     = constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
-	float		thrust  = constrain(get_control(0, 3), 0.0f, 1.0f);
-	float		min_out = 0.0f;
+	float		roll    = math::constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
+	float		pitch   = math::constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
+	float		yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
+	float		thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
+	float		min_out = 1.0f;
 	float		max_out = 0.0f;
 
-	// clean register for saturation status flags
-	if (status_reg != NULL) {
-		(*status_reg) = 0;
-	}
+	// clean out class variable used to capture saturation
+	_saturation_status.value = 0;
 
 	// thrust boost parameters
 	float thrust_increase_factor = 1.5f;
@@ -250,7 +250,7 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 		outputs[i] = out;
 	}
 
-	float boost = 0.0f;				// value added to demanded thrust (can also be negative)
+	float boost = 0.0f;		// value added to demanded thrust (can also be negative)
 	float roll_pitch_scale = 1.0f;	// scale for demanded roll and pitch
 
 	if (min_out < 0.0f && max_out < 1.0f && -min_out <= 1.0f - max_out) {
@@ -277,32 +277,32 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 
 	} else if (min_out < 0.0f && max_out < 1.0f && -min_out > 1.0f - max_out) {
 		float max_thrust_diff = thrust * thrust_increase_factor - thrust;
-		boost = constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
+		boost = math::constrain(-min_out - (1.0f - max_out) / 2.0f, 0.0f, max_thrust_diff);
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 
 	} else if (max_out > 1.0f && min_out > 0.0f && min_out < max_out - 1.0f) {
 		float max_thrust_diff = thrust - thrust_decrease_factor * thrust;
-		boost = constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
+		boost = math::constrain(-(max_out - 1.0f - min_out) / 2.0f, -max_thrust_diff, 0.0f);
 		roll_pitch_scale = (1 - (thrust + boost)) / (max_out - thrust);
 
 	} else if (min_out < 0.0f && max_out > 1.0f) {
-		boost = constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
-				  thrust_increase_factor * thrust - thrust);
+		boost = math::constrain(-(max_out - 1.0f + min_out) / 2.0f, thrust_decrease_factor * thrust - thrust,
+					thrust_increase_factor * thrust - thrust);
 		roll_pitch_scale = (thrust + boost) / (thrust - min_out);
 	}
 
-	// notify if saturation has occurred
+	// capture saturation
 	if (min_out < 0.0f) {
-		if (status_reg != NULL) {
-			(*status_reg) |= PX4IO_P_STATUS_MIXER_LOWER_LIMIT;
-		}
+		_saturation_status.flags.motor_neg = true;
 	}
 
-	if (max_out > 0.0f) {
-		if (status_reg != NULL) {
-			(*status_reg) |= PX4IO_P_STATUS_MIXER_UPPER_LIMIT;
-		}
+	if (max_out > 1.0f) {
+		_saturation_status.flags.motor_pos = true;
 	}
+
+	// Thrust reduction is used to reduce the collective thrust if we hit
+	// the upper throttle limit
+	float thrust_reduction = 0.0f;
 
 	// mix again but now with thrust boost, scale roll/pitch and also add yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
@@ -323,14 +323,11 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 					roll_pitch_scale + thrust + boost) / _rotors[i].yaw_scale;
 			}
 
-			if (status_reg != NULL) {
-				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
-			}
-
 		} else if (out > 1.0f) {
 			// allow to reduce thrust to get some yaw response
-			float thrust_reduction = fminf(0.15f, out - 1.0f);
-			thrust -= thrust_reduction;
+			float prop_reduction = fminf(0.15f, out - 1.0f);
+			// keep the maximum requested reduction
+			thrust_reduction = fmaxf(thrust_reduction, prop_reduction);
 
 			if (fabsf(_rotors[i].yaw_scale) <= FLT_EPSILON) {
 				yaw = 0.0f;
@@ -339,24 +336,172 @@ MultirotorMixer::mix(float *outputs, unsigned space, uint16_t *status_reg)
 				yaw = (1.0f - ((roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) *
 					       roll_pitch_scale + thrust + boost)) / _rotors[i].yaw_scale;
 			}
-
-			if (status_reg != NULL) {
-				(*status_reg) |= PX4IO_P_STATUS_MIXER_YAW_LIMIT;
-			}
 		}
 	}
 
-	/* add yaw and scale outputs to range idle_speed...1 */
+	// Apply collective thrust reduction, the maximum for one prop
+	thrust -= thrust_reduction;
+
+	// add yaw and scale outputs to range idle_speed...1
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] = (roll * _rotors[i].roll_scale +
 			      pitch * _rotors[i].pitch_scale) * roll_pitch_scale +
 			     yaw * _rotors[i].yaw_scale +
 			     thrust + boost;
 
-		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
+		/*
+			implement simple model for static relationship between applied motor pwm and motor thrust
+			model: thrust = (1 - _thrust_factor) * PWM + _thrust_factor * PWM^2
+			this model assumes normalized input / output in the range [0,1] so this is the right place
+			to do it as at this stage the outputs are in that range.
+		 */
+		if (_thrust_factor > 0.0f) {
+			outputs[i] = -(1.0f - _thrust_factor) / (2.0f * _thrust_factor) + sqrtf((1.0f - _thrust_factor) *
+					(1.0f - _thrust_factor) / (4.0f * _thrust_factor * _thrust_factor) + (outputs[i] < 0.0f ? 0.0f : outputs[i] /
+							_thrust_factor));
+		}
+
+		outputs[i] = math::constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed)), _idle_speed, 1.0f);
+
+	}
+
+	/* slew rate limiting and saturation checking */
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		bool clipping_high = false;
+		bool clipping_low = false;
+
+		// check for saturation against static limits
+		if (outputs[i] > 0.99f) {
+			clipping_high = true;
+
+		} else if (outputs[i] < _idle_speed + 0.01f) {
+			clipping_low = true;
+
+		}
+
+		// check for saturation against slew rate limits
+		if (_delta_out_max > 0.0f) {
+			float delta_out = outputs[i] - _outputs_prev[i];
+
+			if (delta_out > _delta_out_max) {
+				outputs[i] = _outputs_prev[i] + _delta_out_max;
+				clipping_high = true;
+
+			} else if (delta_out < -_delta_out_max) {
+				outputs[i] = _outputs_prev[i] - _delta_out_max;
+				clipping_low = true;
+
+			}
+		}
+
+		_outputs_prev[i] = outputs[i];
+
+		// update the saturation status report
+		update_saturation_status(i, clipping_high, clipping_low);
+
+	}
+
+	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
+	_delta_out_max = 0.0f;
+
+	// Notify saturation status
+	if (status_reg != nullptr) {
+		(*status_reg) = _saturation_status.value;
 	}
 
 	return _rotor_count;
+}
+
+/*
+ * This function update the control saturation status report using hte following inputs:
+ *
+ * index: 0 based index identifying the motor that is saturating
+ * clipping_high: true if the motor demand is being limited in the positive direction
+ * clipping_low: true if the motor demand is being limited in the negative direction
+*/
+void
+MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low)
+{
+	// The motor is saturated at the upper limit
+	// check which control axes and which directions are contributing
+	if (clipping_high) {
+		if (_rotors[index].roll_scale > 0.0f) {
+			// A positive change in roll will increase saturation
+			_saturation_status.flags.roll_pos = true;
+
+		} else if (_rotors[index].roll_scale < 0.0f) {
+			// A negative change in roll will increase saturation
+			_saturation_status.flags.roll_neg = true;
+
+		}
+
+		// check if the pitch input is saturating
+		if (_rotors[index].pitch_scale > 0.0f) {
+			// A positive change in pitch will increase saturation
+			_saturation_status.flags.pitch_pos = true;
+
+		} else if (_rotors[index].pitch_scale < 0.0f) {
+			// A negative change in pitch will increase saturation
+			_saturation_status.flags.pitch_neg = true;
+
+		}
+
+		// check if the yaw input is saturating
+		if (_rotors[index].yaw_scale > 0.0f) {
+			// A positive change in yaw will increase saturation
+			_saturation_status.flags.yaw_pos = true;
+
+		} else if (_rotors[index].yaw_scale < 0.0f) {
+			// A negative change in yaw will increase saturation
+			_saturation_status.flags.yaw_neg = true;
+
+		}
+
+		// A positive change in thrust will increase saturation
+		_saturation_status.flags.thrust_pos = true;
+
+	}
+
+	// The motor is saturated at the lower limit
+	// check which control axes and which directions are contributing
+	if (clipping_low) {
+		// check if the roll input is saturating
+		if (_rotors[index].roll_scale > 0.0f) {
+			// A negative change in roll will increase saturation
+			_saturation_status.flags.roll_neg = true;
+
+		} else if (_rotors[index].roll_scale < 0.0f) {
+			// A positive change in roll will increase saturation
+			_saturation_status.flags.roll_pos = true;
+
+		}
+
+		// check if the pitch input is saturating
+		if (_rotors[index].pitch_scale > 0.0f) {
+			// A negative change in pitch will increase saturation
+			_saturation_status.flags.pitch_neg = true;
+
+		} else if (_rotors[index].pitch_scale < 0.0f) {
+			// A positive change in pitch will increase saturation
+			_saturation_status.flags.pitch_pos = true;
+
+		}
+
+		// check if the yaw input is saturating
+		if (_rotors[index].yaw_scale > 0.0f) {
+			// A negative change in yaw will increase saturation
+			_saturation_status.flags.yaw_neg = true;
+
+		} else if (_rotors[index].yaw_scale < 0.0f) {
+			// A positive change in yaw will increase saturation
+			_saturation_status.flags.yaw_pos = true;
+
+		}
+
+		// A negative change in thrust will increase saturation
+		_saturation_status.flags.thrust_neg = true;
+
+	}
 }
 
 void
@@ -366,3 +511,7 @@ MultirotorMixer::groups_required(uint32_t &groups)
 	groups |= (1 << 0);
 }
 
+uint16_t MultirotorMixer::get_saturation_status()
+{
+	return _saturation_status.value;
+}

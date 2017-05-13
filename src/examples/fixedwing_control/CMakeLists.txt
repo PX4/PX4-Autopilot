@@ -33,12 +33,10 @@
 px4_add_module(
 	MODULE examples__fixedwing_control
 	MAIN ex_fixedwing_control
-	STACK 1200
-	COMPILE_FLAGS
-		-Wframe-larger-than=1300
-		
+	STACK_MAIN 1200
+	STACK_MAX 1300
 	SRCS
-		main.c
+		main.cpp
 		params.c
 	DEPENDS
 		platforms__common

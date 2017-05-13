@@ -3,6 +3,7 @@
 import glob
 import os
 import sys
+import re
 
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
 
@@ -17,47 +18,51 @@ for index,m in enumerate(raw_messages):
 	temp_list_floats = []
 	temp_list_uint64 = []
 	temp_list_bool = []
-	if("actuator_control" not in m and "pwm_input" not in m and "position_setpoint" not in m):
+	if("pwm_input" not in m and "position_setpoint" not in m):
 		temp_list = []
 		f = open(m,'r')
 		for line in f.readlines():
-			if ('float32[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("float_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif ('float64[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("double_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif ('uint64[' in line.split(' ')[0]):
-				num_floats = int(line.split(" ")[0].split("[")[1].split("]")[0])
-				temp_list.append(("uint64_array",line.split(' ')[1].split('\t')[0].split('\n')[0],num_floats))
-			elif(line.split(' ')[0] == "float32"):
-				temp_list.append(("float",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "float64"):
-				temp_list.append(("double",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint64") and len(line.split('=')) == 1:
-				temp_list.append(("uint64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint32") and len(line.split('=')) == 1:
-				temp_list.append(("uint32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "uint16") and len(line.split('=')) == 1:
-				temp_list.append(("uint16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int64") and len(line.split('=')) == 1:
-				temp_list.append(("int64",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int32") and len(line.split('=')) == 1:
-				temp_list.append(("int32",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif(line.split(' ')[0] == "int16") and len(line.split('=')) == 1:
-				temp_list.append(("int16",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "bool") and len(line.split('=')) == 1:
-				temp_list.append(("bool",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "uint8") and len(line.split('=')) == 1:
-				temp_list.append(("uint8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
-			elif (line.split(' ')[0] == "int8") and len(line.split('=')) == 1:
-				temp_list.append(("int8",line.split(' ')[1].split('\t')[0].split('\n')[0]))
+			items = re.split('\s+', line.strip())
+
+			if ('float32[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("float_array",items[1],num_floats))
+			elif ('float64[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("double_array",items[1],num_floats))
+			elif ('uint64[' in items[0]):
+				num_floats = int(items[0].split("[")[1].split("]")[0])
+				temp_list.append(("uint64_array",items[1],num_floats))
+			elif(items[0] == "float32"):
+				temp_list.append(("float",items[1]))
+			elif(items[0] == "float64"):
+				temp_list.append(("double",items[1]))
+			elif(items[0] == "uint64") and len(line.split('=')) == 1:
+				temp_list.append(("uint64",items[1]))
+			elif(items[0] == "uint32") and len(line.split('=')) == 1:
+				temp_list.append(("uint32",items[1]))
+			elif(items[0] == "uint16") and len(line.split('=')) == 1:
+				temp_list.append(("uint16",items[1]))
+			elif(items[0] == "int64") and len(line.split('=')) == 1:
+				temp_list.append(("int64",items[1]))
+			elif(items[0] == "int32") and len(line.split('=')) == 1:
+				temp_list.append(("int32",items[1]))
+			elif(items[0] == "int16") and len(line.split('=')) == 1:
+				temp_list.append(("int16",items[1]))
+			elif (items[0] == "bool") and len(line.split('=')) == 1:
+				temp_list.append(("bool",items[1]))
+			elif (items[0] == "uint8") and len(line.split('=')) == 1:
+				temp_list.append(("uint8",items[1]))
+			elif (items[0] == "int8") and len(line.split('=')) == 1:
+				temp_list.append(("int8",items[1]))
 
 		f.close()
 		(m_head, m_tail) = os.path.split(m)
-		messages.append(m_tail.split('.')[0])
+		message = m_tail.split('.')[0]
+		if message != "actuator_controls":
+			messages.append(message)
+			message_elements.append(temp_list)
 		#messages.append(m.split('/')[-1].split('.')[0])
-		message_elements.append(temp_list)
 
 num_messages = len(messages);
 
@@ -104,6 +109,7 @@ print("""
  * Tool for listening to topics when running flight stack on linux.
  */
 
+#include <drivers/drv_hrt.h>
 #include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
@@ -112,7 +118,6 @@ print("""
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #ifndef PRIu64
@@ -122,6 +127,14 @@ print("""
 #ifndef PRId64
 #define PRId64 "lld"
 #endif
+
+static bool check_timeout(const hrt_abstime& time) {
+    if (hrt_elapsed_time(&time) > 2*1000*1000) {
+		printf("Waited for 2 seconds without a message. Giving up.\\n");
+        return true;
+    }
+    return false;
+}
 
 """)
 for m in messages:
@@ -134,12 +147,12 @@ extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 int listener_main(int argc, char *argv[]) {
 	int sub = -1;
 	orb_id_t ID;
-	if(argc < 3) {
-		printf("need at least two arguments: topic name, number of messages to print\\n");
+	if(argc < 2) {
+		printf("need at least two arguments: topic name. [optional number of messages to print]\\n");
 		return 1;
 	}
 """)
-print("\tunsigned num_msgs = atoi(argv[2]);")
+print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
 print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
 print("\t\tsub = orb_subscribe(ORB_ID(%s));" % messages[0])
 print("\t\tID = ORB_ID(%s);" % messages[0])
@@ -152,12 +165,17 @@ for index,m in enumerate(messages[1:]):
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
 	print("\t\tbool updated;")
-	print("\t\tfor (unsigned i = 0; i < num_msgs; i++) {")
+	print("\t\tunsigned i = 0;")
+	print("\t\thrt_abstime start_time = hrt_absolute_time();")
+	print("\t\twhile(i < num_msgs) {")
 	print("\t\t\torb_check(sub,&updated);")
-	print("\t\t\tupdated = true;")
+	print("\t\t\tif (i == 0) { updated = true; } else { usleep(500); }")
 	print("\t\t\tif (updated) {")
-	print("\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
+	print("\t\t\tstart_time = hrt_absolute_time();")
+	print("\t\t\ti++;")
+	print("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
+	print("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
 	for item in message_elements[index+1]:
 		if item[0] == "float":
 			print("\t\t\tprintf(\"%s: %%8.4f\\n\",(double)container.%s);" % (item[1], item[1]))
@@ -188,16 +206,27 @@ for index,m in enumerate(messages[1:]):
 		elif item[0] == "int32":
 			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
 		elif item[0] == "uint32":
-			print("\t\t\tprintf(\"%s: %%d\\n\",container.%s);" % (item[1], item[1]))
-		elif item[0] == "uint8":
 			print("\t\t\tprintf(\"%s: %%u\\n\",container.%s);" % (item[1], item[1]))
+		elif item[0] == "int16":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint16":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
+		elif item[0] == "int8":
+			print("\t\t\tprintf(\"%s: %%d\\n\",(int)container.%s);" % (item[1], item[1]))
+		elif item[0] == "uint8":
+			print("\t\t\tprintf(\"%s: %%u\\n\",(unsigned)container.%s);" % (item[1], item[1]))
 		elif item[0] == "bool":
 			print("\t\t\tprintf(\"%s: %%s\\n\",container.%s ? \"True\" : \"False\");" % (item[1], item[1]))
+	print("\t\t\t} else {")
+	print("\t\t\t\tif (check_timeout(start_time)) {")
+	print("\t\t\t\t\tbreak;")
+	print("\t\t\t\t}")
 	print("\t\t\t}")
 	print("\t\t}")
 print("\t} else {")
 print("\t\t printf(\" Topic did not match any known topics\\n\");")
 print("\t}")
+print("\t\torb_unsubscribe(sub);")
 print("\t return 0;")
 
 print("}")

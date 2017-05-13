@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,16 +40,17 @@
  * parameter is only read out before logging starts (which
  * commonly is before arming).
  *
+ * @unit Hz
  * @min -1
- * @max  100
+ * @max  250
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_RATE, -1);
 
 /**
- * Enable extended logging mode.
+ * Extended logging mode
  *
- * A value of -1 indicates the commandline argument
+ * A value of -1 indicates the command line argument
  * should be obeyed. A value of 0 disables extended
  * logging mode, a value of 1 enables it. This
  * parameter is only read out before logging starts
@@ -57,6 +58,9 @@ PARAM_DEFINE_INT32(SDLOG_RATE, -1);
  *
  * @min -1
  * @max  1
+ * @value -1 Command Line
+ * @value 0 Disable
+ * @value 1 Enable
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_EXT, -1);
@@ -64,12 +68,28 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
 /**
  * Use timestamps only if GPS 3D fix is available
  *
- * A value of 1 constrains the log folder creation
+ * Constrain the log folder creation
  * to only use the time stamp if a 3D GPS lock is
  * present.
  *
- * @min 0
- * @max  1
+ * @boolean
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_GPSTIME, 1);
+
+/**
+ * Give logging app higher thread priority to avoid data loss.
+ * This is used for gathering replay logs for the ekf2 module.
+ *
+ * A value of 0 indicates that the default priority is used.
+ * Increasing the parameter in steps of one increases the priority.
+ *
+ * @min 0
+ * @max  3
+ * @value 0 Low priority
+ * @value 1 Default priority
+ * @value 2 Medium priority
+ * @value 3 Max priority
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_PRIO_BOOST, 2);

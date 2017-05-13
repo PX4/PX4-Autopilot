@@ -1,0 +1,64 @@
+#!nsh
+#
+# @name Spedix S250AQ
+#
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+#
+# @type Quadrotor asymmetric
+#
+# @output MAIN1 motor1 (front right: CCW)
+# @output MAIN2 motor2 (back left: CCW)
+# @output MAIN3 motor3 (front left: CW)
+# @output MAIN4 motor4 (back right: CW)
+#
+# @output MAIN5 feed-through of RC AUX1 channel
+# @output MAIN6 feed-through of RC AUX2 channel
+#
+# @maintainer Mark Whitehorn <kd0aij@gmail.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_s250aq
+set MAV_TYPE 2
+
+set PWM_OUT 1234
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 8.0
+	param set MC_ROLLRATE_P 0.19
+	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_D 0.0055
+	param set MC_PITCH_P 8.0
+	param set MC_PITCHRATE_P 0.19
+	param set MC_PITCHRATE_I 0.1
+	param set MC_PITCHRATE_D 0.0055
+	param set MC_YAW_P 4.0
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.1
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAW_FF 0.5
+	param set MC_ROLLRATE_MAX 720.0
+	param set MC_PITCHRATE_MAX 720.0
+	param set MC_YAWRATE_MAX 400.0
+	param set MC_ACRO_R_MAX 360.0
+	param set MC_ACRO_P_MAX 360.0
+	param set MC_TPA_BREAK_D 0.3
+	param set MC_TPA_BREAK_I 1.0
+	param set MC_TPA_BREAK_P 0.3
+	param set MC_TPA_RATE_D 1.0
+	param set MC_TPA_RATE_I 0.0
+	param set MC_TPA_RATE_P 1.0
+
+
+	param set PWM_MIN 1075
+
+	param set MPC_THR_MIN 0.06
+	param set MPC_MANTHR_MIN 0.06
+
+	param set ATT_BIAS_MAX 0.0
+
+	param set CBRK_IO_SAFETY 22027
+fi

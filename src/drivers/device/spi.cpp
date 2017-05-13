@@ -45,8 +45,9 @@
  * non-interrupt-mode client.
  */
 
+#include <px4_config.h>
 #include <nuttx/arch.h>
-
+#include <stm32_spi.h>
 #include "spi.h"
 
 #ifndef CONFIG_SPI_EXCHANGE
@@ -95,7 +96,7 @@ SPI::init()
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = up_spiinitialize(_bus);
+		_dev = px4_spibus_initialize(_bus);
 	}
 
 	if (_dev == nullptr) {
@@ -152,9 +153,9 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	switch (mode) {
 	default:
 	case LOCK_PREEMPTION: {
-			irqstate_t state = irqsave();
+			irqstate_t state = px4_enter_critical_section();
 			result = _transfer(send, recv, len);
-			irqrestore(state);
+			px4_leave_critical_section(state);
 		}
 		break;
 

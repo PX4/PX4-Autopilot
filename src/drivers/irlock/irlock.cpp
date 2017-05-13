@@ -48,7 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <drivers/boards/px4fmu-v2/board_config.h>
+#include <board_config.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_irlock.h>
@@ -67,10 +67,20 @@
 #define IRLOCK_RESYNC		0x5500
 #define IRLOCK_ADJUST		0xAA
 
-#define IRLOCK_CENTER_X				159			// the x-axis center pixel position
-#define IRLOCK_CENTER_Y				99			// the y-axis center pixel position
-#define IRLOCK_PIXELS_PER_RADIAN_X	307.9075f	// x-axis pixel to radian scaler assuming 60deg FOV on x-axis
-#define IRLOCK_PIXELS_PER_RADIAN_Y	326.4713f	// y-axis pixel to radian scaler assuming 35deg FOV on y-axis
+#define IRLOCK_RES_X 320
+#define IRLOCK_RES_Y 200
+
+#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2)			// the x-axis center pixel position
+#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2)			// the y-axis center pixel position
+
+#define IRLOCK_FOV_X (60.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_Y (35.0f*M_PI_F/180.0f)
+
+#define IRLOCK_TAN_HALF_FOV_X 0.57735026919f // tan(0.5 * 60 * pi/180)
+#define IRLOCK_TAN_HALF_FOV_Y 0.31529878887f // tan(0.5 * 35 * pi/180)
+
+#define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
+#define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -107,7 +117,7 @@ private:
 	int 		read_device();
 	bool 		sync_device();
 	int 		read_device_word(uint16_t *word);
-	int 		read_device_block(struct irlock_s *block);
+	int 		read_device_block(struct irlock_target_s *block);
 
 	/** internal variables **/
 	ringbuffer::RingBuffer *_reports;
@@ -158,7 +168,7 @@ int IRLOCK::init()
 	}
 
 	/** allocate buffer storing values read from sensor **/
-	_reports = new ringbuffer::RingBuffer(IRLOCK_OBJECTS_MAX, sizeof(struct irlock_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(struct irlock_s));
 
 	if (_reports == nullptr) {
 		return ENOTTY;
@@ -224,20 +234,20 @@ int IRLOCK::test()
 	warnx("searching for object for 10 seconds");
 
 	/** read from sensor for 10 seconds **/
-	struct irlock_s obj_report;
+	struct irlock_s report;
 	uint64_t start_time = hrt_absolute_time();
 
 	while ((hrt_absolute_time() - start_time) < 10000000) {
-
-		/** output all objects found **/
-		while (_reports->count() > 0) {
-			_reports->get(&obj_report);
-			warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
-			      (int)obj_report.target_num,
-			      (double)obj_report.angle_x,
-			      (double)obj_report.angle_y,
-			      (double)obj_report.size_x,
-			      (double)obj_report.size_y);
+		if (_reports->get(&report)) {
+			/** output all objects found **/
+			for (uint8_t i = 0; i < report.num_targets; i++) {
+				warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
+				      (int)report.targets[i].signature,
+				      (double)report.targets[i].pos_x,
+				      (double)report.targets[i].pos_y,
+				      (double)report.targets[i].size_x,
+				      (double)report.targets[i].size_y);
+			}
 		}
 
 		/** sleep for 0.05 seconds **/
@@ -337,19 +347,21 @@ int IRLOCK::read_device()
 		return -ENOTTY;
 	}
 
-	/** now read blocks until sync stops, first flush stale queue data **/
-	_reports->flush();
-	int num_objects = 0;
+	struct irlock_s report;
 
-	while (sync_device() && (num_objects < IRLOCK_OBJECTS_MAX)) {
-		struct irlock_s block;
+	report.timestamp = hrt_absolute_time();
 
-		if (read_device_block(&block) != OK) {
+	report.num_targets = 0;
+
+	while (report.num_targets < IRLOCK_OBJECTS_MAX) {
+		if (!sync_device() || read_device_block(&report.targets[report.num_targets]) != OK) {
 			break;
 		}
 
-		_reports->force(&block);
+		report.num_targets++;
 	}
+
+	_reports->force(&report);
 
 	return OK;
 }
@@ -367,33 +379,31 @@ int IRLOCK::read_device_word(uint16_t *word)
 }
 
 /** read a single block (a full frame) from sensor **/
-int IRLOCK::read_device_block(struct irlock_s *block)
+int IRLOCK::read_device_block(struct irlock_target_s *block)
 {
 	uint8_t bytes[12];
 	memset(bytes, 0, sizeof bytes);
 
 	int status = transfer(nullptr, 0, &bytes[0], 12);
 	uint16_t checksum = bytes[1] << 8 | bytes[0];
-	uint16_t target_num = bytes[3] << 8 | bytes[2];
+	uint16_t signature = bytes[3] << 8 | bytes[2];
 	uint16_t pixel_x = bytes[5] << 8 | bytes[4];
 	uint16_t pixel_y = bytes[7] << 8 | bytes[6];
 	uint16_t pixel_size_x = bytes[9] << 8 | bytes[8];
 	uint16_t pixel_size_y = bytes[11] << 8 | bytes[10];
 
 	/** crc check **/
-	if (target_num + pixel_x + pixel_y + pixel_size_x + pixel_size_y != checksum) {
+	if (signature + pixel_x + pixel_y + pixel_size_x + pixel_size_y != checksum) {
 		_read_failures++;
 		return -EIO;
 	}
 
 	/** convert to angles **/
-	block->target_num = target_num;
-	block->angle_x = (((float)(pixel_x - IRLOCK_CENTER_X)) / IRLOCK_PIXELS_PER_RADIAN_X);
-	block->angle_y = (((float)(pixel_y - IRLOCK_CENTER_Y)) / IRLOCK_PIXELS_PER_RADIAN_Y);
-	block->size_x = pixel_size_x / IRLOCK_PIXELS_PER_RADIAN_X;
-	block->size_y = pixel_size_y / IRLOCK_PIXELS_PER_RADIAN_Y;
-
-	block->timestamp = hrt_absolute_time();
+	block->signature = signature;
+	block->pos_x = (pixel_x - IRLOCK_CENTER_X) * IRLOCK_TAN_ANG_PER_PIXEL_X;
+	block->pos_y = (pixel_y - IRLOCK_CENTER_Y) * IRLOCK_TAN_ANG_PER_PIXEL_Y;
+	block->size_x = pixel_size_x * IRLOCK_TAN_ANG_PER_PIXEL_X;
+	block->size_y = pixel_size_y * IRLOCK_TAN_ANG_PER_PIXEL_Y;
 	return status;
 }
 

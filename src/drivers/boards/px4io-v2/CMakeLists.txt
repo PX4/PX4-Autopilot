@@ -33,11 +33,10 @@
 px4_add_module(
 	MODULE drivers__boards__px4io-v2
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		px4iov2_init.c
-		px4iov2_pwm_servo.c
+		px4iov2_timer_config.c
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

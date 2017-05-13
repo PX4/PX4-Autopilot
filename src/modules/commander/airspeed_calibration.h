@@ -40,7 +40,8 @@
 #define AIRSPEED_CALIBRATION_H_
 
 #include <stdint.h>
+#include <uORB/uORB.h>
 
-int do_airspeed_calibration(int mavlink_fd);
+int do_airspeed_calibration(orb_advert_t *mavlink_log_pub);
 
 #endif /* AIRSPEED_CALIBRATION_H_ */

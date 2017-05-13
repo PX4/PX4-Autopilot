@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,12 +47,14 @@
 #include <poll.h>
 #include <signal.h>
 #include <crc32.h>
+#include <syslog.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/systemlib.h>
 
 #include <stm32_uart.h>
 
@@ -61,13 +63,13 @@
 
 __EXPORT int user_start(int argc, char *argv[]);
 
-extern void up_cxxinitialize(void);
-
 struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
 pwm_limit_t pwm_limit;
+
+float dt;
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -82,11 +84,12 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
-#define NUM_MSG 2
-static char msg[NUM_MSG][40];
+#define NUM_MSG 1
+static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 
 static void heartbeat_blink(void);
 static void ring_blink(void);
+static void update_mem_usage(void);
 
 /*
  * add a debug message to be printed on the console
@@ -123,6 +126,27 @@ show_debug_messages(void)
 			debug("%s", msg[msg_next_out]);
 			msg_next_out = (msg_next_out + 1) % NUM_MSG;
 		}
+	}
+}
+
+/*
+ * Get the memory usage at 2 Hz while not armed
+ */
+static void
+update_mem_usage(void)
+{
+	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+		return;
+	}
+
+	static uint64_t last_mem_time = 0;
+	uint64_t now = hrt_absolute_time();
+
+	if (now - last_mem_time > (500 * 1000)) {
+		struct mallinfo minfo = mallinfo();
+		r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
+		last_mem_time = now;
 	}
 }
 
@@ -232,8 +256,22 @@ calculate_fw_crc(void)
 int
 user_start(int argc, char *argv[])
 {
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	up_pwm_servo_init(0xff);
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
 	/* run C++ ctors before we go any further */
+
 	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
@@ -253,7 +291,7 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* print some startup info */
-	lowsyslog("\nPX4IO: starting\n");
+	syslog(LOG_INFO, "\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -276,9 +314,6 @@ user_start(int argc, char *argv[])
 	/* start the safety switch handler */
 	safety_init();
 
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	up_pwm_servo_init(0xff);
-
 	/* initialise the control inputs */
 	controls_init();
 
@@ -298,7 +333,8 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.mxordblk;
+	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
@@ -318,7 +354,7 @@ user_start(int argc, char *argv[])
 	 */
 	if (minfo.mxordblk < 600) {
 
-		lowsyslog("ERR: not enough MEM");
+		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
 
 		while (true) {
@@ -347,8 +383,18 @@ user_start(int argc, char *argv[])
 
 	uint64_t last_debug_time = 0;
 	uint64_t last_heartbeat_time = 0;
+	uint64_t last_loop_time = 0;
 
 	for (;;) {
+		dt = (hrt_absolute_time() - last_loop_time) / 1000000.0f;
+		last_loop_time = hrt_absolute_time();
+
+		if (dt < 0.0001f) {
+			dt = 0.0001f;
+
+		} else if (dt > 0.02f) {
+			dt = 0.02f;
+		}
 
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
@@ -363,10 +409,39 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-		if ((hrt_absolute_time() - last_heartbeat_time) > 250 * 1000) {
-			last_heartbeat_time = hrt_absolute_time();
-			heartbeat_blink();
+		/* some boards such as Pixhawk 2.1 made
+		   the unfortunate choice to combine the blue led channel with
+		   the IMU heater. We need a software hack to fix the hardware hack
+		   by allowing to disable the LED / heater.
+		 */
+		if (r_page_setup[PX4IO_P_SETUP_THERMAL] == PX4IO_THERMAL_IGNORE) {
+			/*
+			  blink blue LED at 4Hz in normal operation. When in
+			  override blink 4x faster so the user can clearly see
+			  that override is happening. This helps when
+			  pre-flight testing the override system
+			 */
+			uint32_t heartbeat_period_us = 250 * 1000UL;
+
+			if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+				heartbeat_period_us /= 4;
+			}
+
+			if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+				last_heartbeat_time = hrt_absolute_time();
+				heartbeat_blink();
+			}
+
+		} else if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
+			/* switch resistive heater off */
+			LED_BLUE(false);
+
+		} else {
+			/* switch resistive heater hard on */
+			LED_BLUE(true);
 		}
+
+		update_mem_usage();
 
 		ring_blink();
 

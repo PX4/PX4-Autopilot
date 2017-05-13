@@ -37,15 +37,14 @@
 #include <cstring>
 #include <fcntl.h>
 #include <dirent.h>
-#include <memory>
 #include <pthread.h>
+#include <mathlib/mathlib.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
 #include <systemlib/scheduling_priorities.h>
-#include <systemlib/git_version.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -59,15 +58,11 @@
 #include <uavcan_posix/firmware_version_checker.hpp>
 
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 
 #include <v1.0/common/mavlink.h>
-
-//todo:The Inclusion of file_server_backend is killing
-// #include <sys/types.h> and leaving OK undefined
-# define OK 0
-
 
 
 /**
@@ -85,35 +80,17 @@
 UavcanServers *UavcanServers::_instance;
 UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_subnode_thread(-1),
-	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance()),
-	_subnode(_vdriver, uavcan_stm32::SystemClock::instance()),
+	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance(), main_node.getAllocator(), VirtualIfaceBlockAllocationQuota),
+	_subnode(_vdriver, uavcan_stm32::SystemClock::instance(), main_node.getAllocator()),
 	_main_node(main_node),
-	_tracer(),
-	_storage_backend(),
-	_fw_version_checker(),
 	_server_instance(_subnode, _storage_backend, _tracer),
 	_fileserver_backend(_subnode),
 	_node_info_retriever(_subnode),
 	_fw_upgrade_trigger(_subnode, _fw_version_checker),
 	_fw_server(_subnode, _fileserver_backend),
-	_count_in_progress(false),
-	_count_index(0),
-	_param_in_progress(0),
-	_param_index(0),
-	_param_list_in_progress(false),
-	_param_list_all_nodes(false),
-	_param_list_node_id(1),
-	_param_dirty_bitmap{0, 0, 0, 0},
-	_param_save_opcode(0),
-	_cmd_in_progress(false),
-	_param_response_pub(nullptr),
 	_param_getset_client(_subnode),
 	_param_opcode_client(_subnode),
 	_param_restartnode_client(_subnode),
-	_mutex_inited(false),
-	_check_fw(false),
-	_esc_enumeration_active(false),
-	_esc_enumeration_index(0),
 	_beep_pub(_subnode),
 	_enumeration_indication_sub(_subnode),
 	_enumeration_client(_subnode),
@@ -141,12 +118,13 @@ int UavcanServers::stop()
 		return -1;
 	}
 
-	_instance = nullptr;
-
-	if (server->_subnode_thread != -1) {
-		pthread_cancel(server->_subnode_thread);
-		pthread_join(server->_subnode_thread, NULL);
+	if (server->_subnode_thread) {
+		warnx("stopping fw srv thread...");
+		server->_subnode_thread_should_exit = true;
+		(void)pthread_join(server->_subnode_thread, NULL);
 	}
+
+	_instance = nullptr;
 
 	server->_main_node.getDispatcher().removeRxFrameListener();
 
@@ -187,9 +165,12 @@ int UavcanServers::start(uavcan::INode &main_node)
 	struct sched_param param;
 
 	pthread_attr_init(&tattr);
-	tattr.stacksize = StackSize;
+	(void)pthread_attr_getschedparam(&tattr, &param);
+	tattr.stacksize = PX4_STACK_ADJUSTED(StackSize);
 	param.sched_priority = Priority;
-	pthread_attr_setschedparam(&tattr, &param);
+	if (pthread_attr_setschedparam(&tattr, &param)) {
+		warnx("setting sched params failed");
+	}
 
 	static auto run_trampoline = [](void *) {return UavcanServers::_instance->run(_instance);};
 
@@ -297,7 +278,7 @@ int UavcanServers::init()
 
 	/*  Start the Node   */
 
-	return OK;
+	return 0;
 }
 
 pthread_addr_t UavcanServers::run(pthread_addr_t)
@@ -334,7 +315,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 	memset(_esc_enumeration_ids, 0, sizeof(_esc_enumeration_ids));
 	_esc_enumeration_index = 0;
 
-	while (1) {
+	while (!_subnode_thread_should_exit) {
 
 		if (_check_fw == true) {
 			_check_fw = false;
@@ -417,7 +398,7 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					 */
 					_param_index = 0;
 					_param_list_in_progress = true;
-					_param_list_node_id = get_next_active_node_id(1);
+					_param_list_node_id = get_next_active_node_id(0);
 					_param_list_all_nodes = true;
 
 					warnx("UAVCAN command bridge: starting global param list with node %hhu", _param_list_node_id);
@@ -487,6 +468,8 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			struct vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
+			uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN) {
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 				int node_id = static_cast<int>(cmd.param2 + 0.5f);
@@ -501,16 +484,23 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 						_esc_enumeration_index = 0;
 						_esc_count = 0;
 						uavcan::protocol::enumeration::Begin::Request req;
+						// TODO: Incorrect implementation; the parameter name field should be left empty.
+						//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 						req.parameter_name = "esc_index";
 						req.timeout_sec = _esc_enumeration_active ? 65535 : 0;
-						call_res = _enumeration_client.call(get_next_active_node_id(1), req);
+						call_res = _enumeration_client.call(get_next_active_node_id(0), req);
 						if (call_res < 0) {
 							warnx("UAVCAN ESC enumeration: couldn't send initial Begin request: %d", call_res);
+							beep(BeepFrequencyError);
+							cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+						} else {
+							beep(BeepFrequencyGenericIndication);
 						}
 						break;
 					}
 				default: {
 						warnx("UAVCAN command bridge: unknown command ID %d", command_id);
+						cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
 						break;
 					}
 				}
@@ -522,8 +512,12 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 				switch (command_id) {
 				case 1: {
 						// Param save request
-						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
-						param_opcode(get_next_dirty_node_id(1));
+						int node_id;
+						node_id = get_next_dirty_node_id(1);
+						if (node_id < 128) {
+							_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
+							param_opcode(node_id);
+						}
 						break;
 					}
 				case 2: {
@@ -537,6 +531,18 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 					}
 				}
 			}
+
+			// Acknowledge the received command
+			struct vehicle_command_ack_s ack = {};
+			ack.command = cmd.command;
+			ack.result = cmd_ack_result;
+
+			if (_command_ack_pub == nullptr) {
+				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			} else {
+				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &ack);
+			}
+
 		}
 
 		// Shut down once armed
@@ -547,14 +553,16 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			struct actuator_armed_s armed;
 			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
-			if (armed.armed && !armed.lockdown) {
+			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
 				warnx("UAVCAN command bridge: system armed, exiting now.");
 				break;
 			}
 		}
 	}
 
-	warnx("exiting.");
+	_subnode_thread_should_exit = false;
+
+	warnx("exiting");
 	return (pthread_addr_t) 0;
 }
 
@@ -572,7 +580,8 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 		if (result.isSuccessful()) {
 			uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 			if (resp.name.size()) {
-				_param_counts[node_id] = _count_index++;
+				_count_index++;
+				_param_counts[node_id] = _count_index;
 
 				uavcan::protocol::param::GetSet::Request req;
 				req.index = _count_index;
@@ -582,11 +591,13 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 					_count_in_progress = false;
 					_count_index = 0;
 					warnx("UAVCAN command bridge: couldn't send GetSet during param count: %d", call_res);
+					beep(BeepFrequencyError);
 				}
 			} else {
 				_count_in_progress = false;
 				_count_index = 0;
 				warnx("UAVCAN command bridge: completed param count for node %hhu: %hhu", node_id, _param_counts[node_id]);
+				beep(BeepFrequencyGenericIndication);
 			}
 		} else {
 			_param_counts[node_id] = 0;
@@ -740,6 +751,14 @@ uint8_t UavcanServers::get_next_dirty_node_id(uint8_t base)
 	return base;
 }
 
+void UavcanServers::beep(float frequency)
+{
+	uavcan::equipment::indication::BeepCommand cmd;
+	cmd.frequency = frequency;
+	cmd.duration = 0.1F;              // We don't want to incapacitate ESC for longer time that this
+	(void)_beep_pub.broadcast(cmd);
+}
+
 void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan::protocol::enumeration::Begin> &result)
 {
 	uint8_t next_id = get_next_active_node_id(result.getCallID().server_node_id.get());
@@ -756,6 +775,8 @@ void UavcanServers::cb_enumeration_begin(const uavcan::ServiceCallResult<uavcan:
 	if (next_id < 128) {
 		// Still other active nodes to send the request to
 		uavcan::protocol::enumeration::Begin::Request req;
+		// TODO: Incorrect implementation; the parameter name field should be left empty.
+		//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 		req.parameter_name = "esc_index";
 		req.timeout_sec = _esc_enumeration_active ? 65535 : 0;
 
@@ -780,18 +801,17 @@ void UavcanServers::cb_enumeration_indication(const uavcan::ReceivedDataStructur
 		return;
 	}
 
-	// First, check if we've already seen an indication from this ESC. If so,
-	// just re-issue the previous get/set request.
-	int i;
-	for (i = 0; i < _esc_enumeration_index; i++) {
+	// First, check if we've already seen an indication from this ESC. If so, just ignore this indication.
+	int i = 0;
+	for (; i < _esc_enumeration_index; i++) {
 		if (_esc_enumeration_ids[i] == msg.getSrcNodeID().get()) {
-			warnx("UAVCAN ESC enumeration: already enumerated ESC ID %hhu as index %d", _esc_enumeration_ids[i], i);
-			break;
+			warnx("UAVCAN ESC enumeration: already enumerated ESC ID %hhu as index %d, ignored", _esc_enumeration_ids[i], i);
+			return;
 		}
 	}
 
 	uavcan::protocol::param::GetSet::Request req;
-	req.name = "esc_index";
+	req.name = msg.parameter_name;                                           // 'esc_index' or something alike, the name is not standardized
 	req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
 
 	int call_res = _enumeration_getset_client.call(msg.getSrcNodeID(), req);
@@ -811,8 +831,8 @@ void UavcanServers::cb_enumeration_getset(const uavcan::ServiceCallResult<uavcan
 
 		uavcan::protocol::param::GetSet::Response resp = result.getResponse();
 		uint8_t esc_index = (uint8_t)resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
-		esc_index = std::min((uint8_t)(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1), esc_index);
-		_esc_enumeration_index = std::max(_esc_enumeration_index, (uint8_t)(esc_index + 1));
+		esc_index = math::min((uint8_t)(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1), esc_index);
+		_esc_enumeration_index = math::max(_esc_enumeration_index, (uint8_t)(esc_index + 1));
 
 		_esc_enumeration_ids[esc_index] = result.getCallID().server_node_id.get();
 
@@ -829,35 +849,33 @@ void UavcanServers::cb_enumeration_getset(const uavcan::ServiceCallResult<uavcan
 
 void UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
 {
-	uavcan::equipment::indication::BeepCommand beep;
+	const bool this_is_the_last_one =
+		_esc_enumeration_index >= uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1 ||
+		_esc_enumeration_index >= _esc_count;
 
 	if (!result.isSuccessful()) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu timed out.", result.getCallID().server_node_id.get());
-		beep.frequency = 880.0f;
-		beep.duration = 1.0f;
+		beep(BeepFrequencyError);
 	} else if (!result.getResponse().ok) {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu rejected", result.getCallID().server_node_id.get());
-		beep.frequency = 880.0f;
-		beep.duration = 1.0f;
+		beep(BeepFrequencyError);
 	} else {
 		warnx("UAVCAN ESC enumeration: save request for node %hhu completed OK.", result.getCallID().server_node_id.get());
-		beep.frequency = 440.0f;
-		beep.duration = 0.25f;
+		beep(this_is_the_last_one ? BeepFrequencySuccess : BeepFrequencyGenericIndication);
 	}
-
-	(void)_beep_pub.broadcast(beep);
 
 	warnx("UAVCAN ESC enumeration: completed %hhu of %hhu", _esc_enumeration_index, _esc_count);
 
-	if (_esc_enumeration_index == uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize - 1 ||
-			_esc_enumeration_index == _esc_count) {
+	if (this_is_the_last_one) {
 		_esc_enumeration_active = false;
 
 		// Tell all ESCs to stop enumerating
 		uavcan::protocol::enumeration::Begin::Request req;
+		// TODO: Incorrect implementation; the parameter name field should be left empty.
+		//       Leaving it as-is to avoid breaking compatibility with non-compliant nodes.
 		req.parameter_name = "esc_index";
 		req.timeout_sec = 0;
-		int call_res = _enumeration_client.call(get_next_active_node_id(1), req);
+		int call_res = _enumeration_client.call(get_next_active_node_id(0), req);
 		if (call_res < 0) {
 			warnx("UAVCAN ESC enumeration: couldn't send Begin request to stop enumeration: %d", call_res);
 		} else {
@@ -875,16 +893,19 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 
 		/fs/microsd/fw
 		-	/c
-		-	-	/1a2b3c4d.bin			cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/1a2b3c4d.bin)
-		-	/org.pixhawk.nodename-v1	device directory for org.pixhawk.nodename-v1
-		-	-	/1.0					version directory for hardware 1.0
-		-	-	/1.1					version directory for hardware 1.1
-		-	-	-	/1a2b3c4d.bin		firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
-		-	/com.example.othernode-v3	device directory for com.example.othernode-v3
-		-	-	/1.0					version directory for hardawre 1.0
-		-	-	-	/deadbeef.bin		firmware file for com.example.othernode-v3, hardware version 1.0
+			-	/nodename-v1-1.0.25d0137d.bin		cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/nodename-v1-1.0.25d0137d.bin)
+			-	/othernode-v3-1.6.25d0137d.bin		cache file (copy of /fs/microsd/fw/com.example.othernode-v3/1.6/othernode-v3-1.6.25d0137d.bin)
+		-	/org.pixhawk.nodename-v1				device directory for org.pixhawk.nodename-v1
+		-	-	/1.0								version directory for hardware 1.0
+		-	-	/1.1								version directory for hardware 1.1
+		-	-	-	/nodename-v1-1.0.25d0137d.bin	firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
+		-	/com.example.othernode-v3				device directory for com.example.othernode-v3
+		-	-	/1.0								version directory for hardawre 1.0
+		-	-	-	/othernode-v3-1.6.25d0137d.bin	firmware file for com.example.othernode-v3, hardware version 1.6
 
 	The ROMFS directory structure is the same, but located at /etc/uavcan/fw
+	Files located there are prefixed with _ to identify them a comming from the rom
+	file system.
 
 	We iterate over all device directories in the ROMFS base directory, and create
 	corresponding device directories on the SD card if they don't already exist.
@@ -892,9 +913,12 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 	In each device directory, we iterate over each version directory and create a
 	corresponding version directory on the SD card if it doesn't already exist.
 
-	In each version directory, we remove any files with a name starting with "romfs_"
+	In each version directory, we remove any files with a name starting with "_"
 	in the corresponding directory on the SD card that don't match the bundled firmware
 	filename; if the directory is empty after that process, we copy the bundled firmware.
+
+	todo:This code would benefit from the use of strcat.
+
 	*/
 	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
 	const size_t sd_path_len = strlen(sd_path);
@@ -906,7 +930,6 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 
 	DIR* const romfs_dir = opendir(romfs_path);
 	if (!romfs_dir) {
-		warnx("base: couldn't open %s", romfs_path);
 		return;
 	}
 
@@ -1026,25 +1049,24 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 						continue;
 					}
 
-					if (!memcmp(&fw_dirent->d_name[sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1], src_fw_dirent->d_name, fw_len)) {
+					if (!memcmp(&fw_dirent->d_name, src_fw_dirent->d_name, fw_len)) {
 						/*
 						 * Exact match between SD card filename and ROMFS filename; must be the same version
 						 * so don't bother deleting and rewriting it.
 						 */
 						copy_fw = false;
 					} else if (!memcmp(fw_dirent->d_name, UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1)) {
-						size_t fw_len = strlen(fw_dirent->d_name);
-						size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+						size_t dst_fw_len = strlen(fw_dirent->d_name);
+						size_t dstpath_fw_len = dstpath_ver_len + dst_fw_len;
 						if (dstpath_fw_len > maxlen) {
 							// sizeof(prefix) includes trailing NUL, cancelling out the +1 for the path separator
-							warnx("unlink: path '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+							warnx("unlink: path '%s/%s' too long", dstpath, fw_dirent->d_name);
 						} else {
-							// File name starts with "romfs_", delete it.
+							// File name starts with "_", delete it.
 							dstpath[dstpath_ver_len] = '/';
-							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, fw_len + 1);
+							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, dst_fw_len + 1);
 							unlink(dstpath);
-
-							warnx("unlink: removed '%s/%s%s'", dstpath, UAVCAN_ROMFS_FW_PREFIX, fw_dirent->d_name);
+							warnx("unlink: removed '%s'", dstpath);
 						}
 					} else {
 						// User file, don't copy firmware
@@ -1057,20 +1079,19 @@ void UavcanServers::unpackFwFromROMFS(const char* sd_path, const char* romfs_pat
 			// If we need to, copy the file from ROMFS to the SD card
 			if (copy_fw) {
 				size_t srcpath_fw_len = srcpath_ver_len + 1 + fw_len;
-				size_t dstpath_fw_len = dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX) + fw_len;
+				size_t dstpath_fw_len = dstpath_ver_len + fw_len;
 
 				if (srcpath_fw_len > maxlen) {
 					warnx("copy: srcpath '%s/%s' too long", srcpath, src_fw_dirent->d_name);
 				} else if (dstpath_fw_len > maxlen) {
-					warnx("copy: dstpath '%s/%s%s' too long", dstpath, UAVCAN_ROMFS_FW_PREFIX, src_fw_dirent->d_name);
+					warnx("copy: dstpath '%s/%s' too long", dstpath, src_fw_dirent->d_name);
 				} else {
 					// All OK, make the paths and copy the file
 					srcpath[srcpath_ver_len] = '/';
 					memcpy(&srcpath[srcpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
 
 					dstpath[dstpath_ver_len] = '/';
-					memcpy(&dstpath[dstpath_ver_len + 1], UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX));
-					memcpy(&dstpath[dstpath_ver_len + sizeof(UAVCAN_ROMFS_FW_PREFIX)], src_fw_dirent->d_name, fw_len + 1);
+					memcpy(&dstpath[dstpath_ver_len +1], src_fw_dirent->d_name, fw_len + 1);
 
 					rv = copyFw(dstpath, srcpath);
 					if (rv != 0) {

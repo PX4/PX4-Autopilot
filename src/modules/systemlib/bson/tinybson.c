@@ -54,15 +54,9 @@
 #define CODER_CHECK(_c)		do { if (_c->dead) { debug("coder dead"); return -1; }} while(0)
 #define CODER_KILL(_c, _reason)	do { debug("killed: %s", _reason); _c->dead = true; return -1; } while(0)
 
-#ifdef __PX4_QURT
-#define BSON_READ  px4_read
-#define BSON_WRITE px4_write
-#define BSON_FSYNC px4_fsync
-#else
 #define BSON_READ  read
 #define BSON_WRITE write
-#define BSON_FSYNC fsync
-#endif
+#define BSON_FSYNC px4_fsync
 
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)
@@ -117,7 +111,7 @@ read_double(bson_decoder_t decoder, double *d)
 }
 
 int
-bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *private)
+bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *priv)
 {
 	int32_t	junk;
 
@@ -125,7 +119,7 @@ bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback cal
 	decoder->buf = NULL;
 	decoder->dead = false;
 	decoder->callback = callback;
-	decoder->private = private;
+	decoder->priv = priv;
 	decoder->nesting = 1;
 	decoder->pending = 0;
 	decoder->node.type = BSON_UNDEFINED;
@@ -141,7 +135,7 @@ bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback cal
 
 int
 bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback,
-		      void *private)
+		      void *priv)
 {
 	int32_t	len;
 
@@ -164,7 +158,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 
 	decoder->bufpos = 0;
 	decoder->callback = callback;
-	decoder->private = private;
+	decoder->priv = priv;
 	decoder->nesting = 1;
 	decoder->pending = 0;
 	decoder->node.type = BSON_UNDEFINED;
@@ -311,7 +305,7 @@ bson_decoder_next(bson_decoder_t decoder)
 	}
 
 	/* call the callback and pass its results back */
-	return decoder->callback(decoder, decoder->private, &decoder->node);
+	return decoder->callback(decoder, decoder->priv, &decoder->node);
 }
 
 int
@@ -462,7 +456,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 	}
 
 	/* sync file */
-	BSON_FSYNC(encoder->fd);
+	if (encoder->fd > -1) {
+		BSON_FSYNC(encoder->fd);
+	}
 
 	return 0;
 }

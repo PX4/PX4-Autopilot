@@ -31,17 +31,15 @@
 #
 #############################################################################
 set(MODULE_CFLAGS)
-if (${OS} STREQUAL "nuttx")
-	list(APPEND MODULE_CFLAGS -Wframe-larger-than=1400)
-endif()
 px4_add_module(
 	MODULE modules__attitude_estimator_q
 	MAIN attitude_estimator_q
-	COMPILE_FLAGS ${MODULE_CFLAGS}
-	STACK 1200
+	COMPILE_FLAGS
+	STACK_MAIN 1200
+	STACK_MAX 1600
 	SRCS
 		attitude_estimator_q_main.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :

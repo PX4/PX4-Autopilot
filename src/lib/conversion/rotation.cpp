@@ -233,5 +233,37 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			y = -y;
 			return;
 		}
+
+	case ROTATION_PITCH_90_ROLL_90: {
+			tmp = x; x = y;
+			y = -z; z = -tmp;
+			return;
+		}
+
+	case ROTATION_YAW_293_PITCH_68_ROLL_90: {
+			float tmpx = x;
+			float tmpy = y;
+			float tmpz = z;
+			x =  0.143039f * tmpx +  0.368776f * tmpy + -0.918446f * tmpz;
+			y = -0.332133f * tmpx + -0.856289f * tmpy + -0.395546f * tmpz;
+			z = -0.932324f * tmpx +  0.361625f * tmpy +  0.000000f * tmpz;
+			return;
+		}
+
+	case ROTATION_PITCH_90_ROLL_270: {
+			tmp = x; x = -y;
+			y = z; z = -tmp;
+			return;
+		}
+
+	case ROTATION_PITCH_9_YAW_180: {
+			float tmpx = x;
+			float tmpy = y;
+			float tmpz = z;
+			x = -0.987688f * tmpx +  0.000000f * tmpy + -0.156434f * tmpz;
+			y =  0.000000f * tmpx + -1.000000f * tmpy +  0.000000f * tmpz;
+			z = -0.156434f * tmpx +  0.000000f * tmpy +  0.987688f * tmpz;
+			return;
+		}
 	}
 }
