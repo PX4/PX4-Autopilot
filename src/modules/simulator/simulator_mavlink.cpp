@@ -528,7 +528,7 @@ void Simulator::poll_topics()
 	}
 }
 
-void *Simulator::sending_trampoline(void *)
+void *Simulator::sending_trampoline(void * /*unused*/)
 {
 	_instance->send();
 	return nullptr;

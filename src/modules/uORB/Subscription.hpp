@@ -173,7 +173,7 @@ public:
 		     int instance = 0,
 		     List<SubscriptionNode *> *list = nullptr);
 
-	Subscription(const Subscription &);
+	Subscription(const Subscription & /*other*/);
 
 	/**
 	 * Deconstructor
