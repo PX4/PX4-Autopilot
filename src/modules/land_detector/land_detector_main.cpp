@@ -123,7 +123,7 @@ static int land_detector_start(const char *mode)
 	} else if (!strcmp(mode, "vtol")) {
 		land_detector_task = new VtolLandDetector();
 
-	} else if (!strcmp(mode, "rover")) {
+	} else if (!strcmp(mode, "ugv")) {
 		land_detector_task = new RoverLandDetector();
 
 	} else {
