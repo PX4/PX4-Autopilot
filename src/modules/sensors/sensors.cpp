@@ -554,7 +554,7 @@ Sensors::task_main()
 	int ret = 0;
 
 	if (!_hil_enabled) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
 		adc_init();
 #endif
 	}
