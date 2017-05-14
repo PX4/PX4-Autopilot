@@ -462,18 +462,15 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("do_set_servo command");
 		// XXX: we should issue a vehicle command and handle this somewhere else
-		_actuators = {};
+		actuator_controls_s actuators = {};
+
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		_actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
-		_actuators.timestamp = hrt_absolute_time();
+		actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
+		actuators.timestamp = hrt_absolute_time();
 
-		if (_actuator_pub != nullptr) {
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
-
-		} else {
-			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
-		}
+		orb_advert_t pub = orb_advertise_queue(ORB_ID(actuator_controls_2), &actuators, vehicle_command_s::ORB_QUEUE_LENGTH);
+		(void)orb_unadvertise(pub);
 
 	} else {
 		PX4_INFO("forwarding command %d", item->nav_cmd);

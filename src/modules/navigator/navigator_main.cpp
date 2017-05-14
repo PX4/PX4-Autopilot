@@ -488,8 +488,7 @@ Navigator::task_main()
 				vcmd.target_component = get_vstatus()->component_id;
 				vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
 
-				orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-				(void)orb_unadvertise(pub);
+				publish_vehicle_cmd(vcmd);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 
@@ -557,60 +556,51 @@ Navigator::task_main()
 			publish_geofence_result();
 		}
 
+		const NavigatorMode *navigation_mode_prev = _navigation_mode;
+
 		/* Do stuff according to navigation state set by commander */
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_mission;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_loiter;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_rcLoss;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_rtl;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_takeoff;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_dataLinkLoss;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_engineFailure;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_gpsFailure;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_follow_target;
 			break;
 
@@ -622,30 +612,35 @@ Navigator::task_main()
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 		default:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = nullptr;
 			_can_loiter_at_sp = false;
-			break;
-		}
 
-		/* iterate through navigation modes and set active/inactive for each */
-		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
-			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
-		}
-
-		/* if nothing is running, set position setpoint triplet invalid once */
-		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
-			_pos_sp_triplet_published_invalid_once = true;
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
 			_pos_sp_triplet_updated = true;
+
+			reset_distance_count();
+
+			break;
+		}
+
+		/* iterate through navigation modes and set active/inactive for each */
+		for (unsigned i = 0; i < navigator_mode_array_size; i++) {
+			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
 		if (_pos_sp_triplet_updated) {
 			_pos_sp_triplet.timestamp = hrt_absolute_time();
 			publish_position_setpoint_triplet();
 			_pos_sp_triplet_updated = false;
+		}
+
+		if (navigation_mode_prev == _navigation_mode) {
+			update_distance_count();
+
+		} else {
+			reset_distance_count();
 		}
 
 		if (_mission_result_updated) {
@@ -897,6 +892,40 @@ int navigator_main(int argc, char *argv[])
 }
 
 void
+Navigator::update_distance_count()
+{
+	// track mission distance covered
+	if (_local_pos.xy_valid && _mission_result.valid && (_mission_result.instance_count == _mission_instance_count)) {
+		const matrix::Vector2f current_position(_local_pos.x, _local_pos.y);
+
+		if (!_mission_result.finished && !_mission_result.failure) {
+			const matrix::Vector2f pos_change = _mission_last_position - current_position;
+			_mission_distance += pos_change.length();
+			_mission_last_position = current_position;
+		}
+
+	} else {
+		// invalid position
+		reset_distance_count();
+	}
+}
+
+void
+Navigator::reset_distance_count()
+{
+	_mission_distance = 0.0f;
+
+	if (_local_pos.xy_valid) {
+		_mission_last_position(0) = _local_pos.x;
+		_mission_last_position(1) = _local_pos.y;
+
+	} else {
+		_mission_last_position(0) = 0.0f;
+		_mission_last_position(1) = 0.0f;
+	}
+}
+
+void
 Navigator::publish_mission_result()
 {
 	_mission_result.timestamp = hrt_absolute_time();
@@ -922,6 +951,7 @@ Navigator::publish_mission_result()
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
 	_mission_result.valid = true;
+	_mission_result.distance = _mission_distance;
 }
 
 void

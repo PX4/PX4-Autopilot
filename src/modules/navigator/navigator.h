@@ -73,8 +73,6 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 10
-
 class Navigator : public control::SuperBlock
 {
 public:
@@ -128,18 +126,18 @@ public:
 	/**
 	 * Getters
 	 */
-	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
-	struct home_position_s *get_home_position() { return &_home_pos; }
-	struct mission_result_s *get_mission_result() { return &_mission_result; }
-	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
-	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
-	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
-	struct vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
-	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
-	struct vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
-	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
-	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
-	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
+	home_position_s *get_home_position() { return &_home_pos; }
+	mission_result_s *get_mission_result() { return &_mission_result; }
+	position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
+	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
+	vehicle_attitude_setpoint_s *get_att_sp() { return &_att_sp; }
+	vehicle_global_position_s *get_global_position() { return &_global_pos; }
+	vehicle_gps_position_s *get_gps_position() { return &_gps_pos; }
+	vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
+	vehicle_local_position_s *get_local_position() { return &_local_pos; }
+	vehicle_status_s *get_vstatus() { return &_vstatus; }
 
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
@@ -225,6 +223,8 @@ public:
 
 private:
 
+	static constexpr uint8_t navigator_mode_array_size{10};
+
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
 	int		_navigator_task{-1};		/**< task handle for sensor task */
 
@@ -265,6 +265,10 @@ private:
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
+	float	_mission_distance{0.0f};
+
+	hrt_abstime	_mission_distance_update{0};
+	matrix::Vector2f _mission_last_position;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -288,7 +292,7 @@ private:
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
 
-	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
+	NavigatorMode *_navigation_mode_array[navigator_mode_array_size];	/**< array of navigation modes */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 
@@ -335,5 +339,8 @@ private:
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
 	void		publish_mission_result();
+
+	void		update_distance_count();
+	void		reset_distance_count();
 };
 #endif
