@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,65 +31,45 @@
  *
  ****************************************************************************/
 
-#include "navio_gpio.h"
+/**
+ * @file linux_gpio.h
+ *
+ * Linux sysfs GPIO Interface
+ *
+ * This interface allows manipulation of sysfs GPIOs on Linux
+ *
+ * @author Nicolae Rosia <nicolae.rosia@gmail.com>
+ */
 
-#include <stdio.h>
-#include <unistd.h>
 
-#define LED_CNF     (GPIO_CNF_OUTPUT)
-#define LED_pinR    GPIO_PIN4
-#define LED_pinG    GPIO_PIN27
-#define LED_pinB    GPIO_PIN6
-
-#define LED_OFF 1
-#define LED_ON  0
-
-using namespace navio_gpio;
-
-int do_test();
-
-int do_test()
+class LinuxGPIO
 {
-	Gpio gpio;
+public:
+	LinuxGPIO(unsigned int pin);
+	~LinuxGPIO() = default;
 
-	if (gpio.start() < 0) {
-		return -1;
-	}
+	enum class Direction {
+		IN = 0,
+		OUT = 1,
+	};
 
-	gpio.configgpio(LED_CNF | LED_pinR);
-	gpio.configgpio(LED_CNF | LED_pinG);
-	gpio.configgpio(LED_CNF | LED_pinB);
+	enum class Value {
+		LOW = 0,
+		HIGH = 1,
+	};
 
+	int exportPin();
+	int unexportPin();
+	int setDirection(LinuxGPIO::Direction dir);
+	int readValue();
+	int writeValue(LinuxGPIO::Value value);
 
-	gpio.gpiowrite(LED_pinR, LED_OFF);
-	gpio.gpiowrite(LED_pinG, LED_OFF);
-	gpio.gpiowrite(LED_pinB, LED_OFF);
-	printf("off\n");
-	sleep(2);
+private:
+	static int _exportPin(unsigned int pin);
+	static int _unexportPin(unsigned int pin);
+	static int _setDirection(unsigned int pin, int dir);
+	static int _readValue(int pin);
+	static int _writeValue(int pin, unsigned int value);
 
-	gpio.gpiowrite(LED_pinR, LED_ON);
-	gpio.gpiowrite(LED_pinG, LED_OFF);
-	gpio.gpiowrite(LED_pinB, LED_OFF);
-	printf("red\n");
-	sleep(2);
-
-	gpio.gpiowrite(LED_pinR, LED_OFF);
-	gpio.gpiowrite(LED_pinG, LED_ON);
-	gpio.gpiowrite(LED_pinB, LED_OFF);
-	printf("green\n");
-	sleep(2);
-
-	gpio.gpiowrite(LED_pinR, LED_OFF);
-	gpio.gpiowrite(LED_pinG, LED_OFF);
-	gpio.gpiowrite(LED_pinB, LED_ON);
-	printf("blue\n");
-	sleep(2);
-
-	gpio.gpiowrite(LED_pinR, LED_OFF);
-	gpio.gpiowrite(LED_pinG, LED_OFF);
-	gpio.gpiowrite(LED_pinB, LED_OFF);
-	printf("off\n");
-	gpio.stop();
-
-	return 0;
-}
+	int _pin;
+};

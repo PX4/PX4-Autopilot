@@ -30,15 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-include_directories(..)
-
-add_executable(navio_gpio_test
-	main.cpp
-	test.cpp
+px4_add_module(
+	MODULE drivers__linux_gpio
+	STACK_MAIN 1200
+	COMPILE_FLAGS
+	SRCS
+		linux_gpio.cpp
+	DEPENDS
+		platforms__common
 	)
 
-target_link_libraries(navio_gpio_test
-	drivers__navio_gpio
-	platforms__posix__px4_layer
-	df_driver_framework
-	)
+#add_subdirectory(test)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
