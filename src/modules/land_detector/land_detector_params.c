@@ -240,7 +240,7 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
  *
  * @unit m
  * @min 1.5
- * @max 300
+ * @max 10000
  * @decimal 2
  * @group Land Detector
  *
