@@ -113,6 +113,7 @@ void NavioADC::_measure()
 
 	for (int i = 0; i < ADC_MAX_CHAN; ++i) {
 		int ret = read_channel(&tmp_samples[i], i);
+
 		if (ret != 0) {
 			PX4_ERR("read_channel(%d): %d", i, ret);
 			tmp_samples[i].am_channel = i;
@@ -152,12 +153,15 @@ ssize_t NavioADC::devRead(void *buf, size_t count)
 	const size_t maxsize = sizeof(_samples);
 	int ret;
 
-	if (count > maxsize)
+	if (count > maxsize) {
 		count = maxsize;
+	}
 
 	ret = pthread_mutex_trylock(&_samples_lock);
-	if (ret != 0)
+
+	if (ret != 0) {
 		return 0;
+	}
 
 	memcpy(buf, &_samples, count);
 	pthread_mutex_unlock(&_samples_lock);
@@ -180,6 +184,7 @@ int NavioADC::read_channel(struct adc_msg_s *adc_msg, int channel)
 	channel_path[sizeof(ADC_SYSFS_PATH) - 2] += channel;
 
 	fd = ::open(channel_path, O_RDONLY);
+
 	if (fd == -1) {
 		ret = errno;
 		PX4_ERR("read_channel: open: %s (%d)", strerror(ret), ret);
@@ -187,10 +192,12 @@ int NavioADC::read_channel(struct adc_msg_s *adc_msg, int channel)
 	}
 
 	ret = ::read(fd, buffer, sizeof(buffer) - 1);
+
 	if (ret == -1) {
 		ret = errno;
 		PX4_ERR("read_channel: read: %s (%d)", strerror(ret), ret);
 		goto cleanup;
+
 	} else if (ret == 0) {
 		PX4_ERR("read_channel: read empty");
 		ret = -EINVAL;
@@ -227,6 +234,7 @@ int navio_adc_main(int argc, char *argv[])
 		}
 
 		instance = new NavioADC;
+
 		if (!instance) {
 			PX4_WARN("not enough memory");
 			return PX4_ERROR;
@@ -240,6 +248,7 @@ int navio_adc_main(int argc, char *argv[])
 		}
 
 		return PX4_OK;
+
 	} else if (!strcmp(argv[1], "stop")) {
 		if (!instance) {
 			PX4_WARN("already stopped");
@@ -249,6 +258,7 @@ int navio_adc_main(int argc, char *argv[])
 		delete instance;
 		instance = nullptr;
 		return PX4_OK;
+
 	} else if (!strcmp(argv[1], "test")) {
 		if (!instance) {
 			PX4_ERR("start first");
@@ -257,10 +267,12 @@ int navio_adc_main(int argc, char *argv[])
 
 		struct adc_msg_s adc_msgs[ADC_MAX_CHAN];
 
-		ret = instance->devRead((char*)&adc_msgs, sizeof(adc_msgs));
+		ret = instance->devRead((char *)&adc_msgs, sizeof(adc_msgs));
+
 		if (ret < 0) {
 			PX4_ERR("ret: %s (%d)\n", strerror(ret), ret);
 			return ret;
+
 		} else if (ret != sizeof(adc_msgs)) {
 			PX4_ERR("incomplete read: %d expected %d", ret, sizeof(adc_msgs));
 			return ret;
@@ -268,10 +280,11 @@ int navio_adc_main(int argc, char *argv[])
 
 		for (int i = 0; i < ADC_MAX_CHAN; ++i) {
 			PX4_INFO("chan: %d; value: %d", (int)adc_msgs[i].am_channel,
-					 adc_msgs[i].am_data);
+				 adc_msgs[i].am_data);
 		}
 
 		return PX4_OK;
+
 	} else {
 		PX4_WARN("action (%s) not supported", argv[1]);
 
