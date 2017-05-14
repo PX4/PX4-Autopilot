@@ -205,7 +205,7 @@ int LinuxGPIO::_readValue(int pin)
 
 	ret = 0;
 
-	ret = strtol(buf, NULL, 10);
+	ret = strtol(buf, nullptr, 10);
 
 cleanup:
 	close(fd);
