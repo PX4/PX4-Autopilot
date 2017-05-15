@@ -246,7 +246,6 @@ struct parameters {
 	float rng_gnd_clearance{0.1f};		// minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};		// Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};		// scaling from range measurement to noise (m/m)
-	float vehicle_variance_scaler{0.0f};	// gain applied to vehicle height variance used in calculation of height above ground observation variance
 
 	// vision position fusion
 	float ev_innov_gate{5.0f};		// vision estimator fusion innovation consistency gate size (STD)
@@ -285,7 +284,6 @@ struct parameters {
 	float acc_bias_learn_acc_lim{25.0f};	// learning is disabled if the magnitude of the IMU acceleration vector is greeater than this (m/sec**2)
 	float acc_bias_learn_gyr_lim{3.0f};	// learning is disabled if the magnitude of the IMU angular rate vector is greeater than this (rad/sec)
 	float acc_bias_learn_tc{0.5f};		// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
-	int acc_bias_learn_mask{7};		// bitmask used to control which accelerometer axes learn an in-flight bias
 
 	unsigned no_gps_timeout_max{7000000};	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
 						// rejected before attempting to reset the states to the GPS measurement (usec)
