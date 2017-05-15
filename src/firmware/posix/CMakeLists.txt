@@ -140,4 +140,14 @@ install(TARGETS px4 DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
+FIND_PROGRAM(STRIP_TOOL "arm-linux-gnueabihf-strip")
+
+add_custom_target(strip
+			DEPENDS px4.stripped
+)
+
+add_custom_command(OUTPUT px4.stripped
+			COMMAND arm-linux-gnueabihf-strip -R .comment -R .gnu.version $<TARGET_FILE:px4>
+			DEPENDS px4)
+
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

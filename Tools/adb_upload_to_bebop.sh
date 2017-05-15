@@ -42,10 +42,6 @@ if [[ $adb_return == "" ]]; then
     restart_px4=true
 fi
 
-${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-strip \
-  -R .comment -R .gnu.version \
-  ../build_posix_bebop_default/src/firmware/posix/px4
-
 ../Tools/adb_upload.sh $@
 
 # restart the process after uploading
