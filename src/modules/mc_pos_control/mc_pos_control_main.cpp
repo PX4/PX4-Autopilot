@@ -112,7 +112,6 @@ private:
 
 	bool		_task_should_exit = false;			/**<true if task should exit */
 	bool		_gear_state_initialized = false;	/**<true if the gear state has been initialized */
-	bool    	 _was_armed = false;        		/**< true if the pre state was armed */
 	bool 		_reset_pos_sp = true;  				/**<true if position setpoint needs a reset */
 	bool 		_reset_alt_sp = true; 				/**<true if altitude setpoint needs a reset */
 	bool 		_do_reset_alt_pos_flag = true; 		/**< TODO: check if we need this */
@@ -129,7 +128,9 @@ private:
 	bool 		_in_takeoff = false; 				/**<true if takeoff ramp is applied */
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
-	bool 		_state_updn_revert = false; 		/**<true if vehicle is upside down */
+	bool 		_limit_vel_xy = false;				/**<true if velocity in xy should be farther limited */
+	bool 		_transition_to_non_manual = false;  /**<true if transition from manual to auto */
+
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -2661,7 +2662,6 @@ MulticopterPositionControl::task_main()
 			_in_takeoff  = false;
 			_in_landing = false;
 			_lnd_reached_ground = false;
-			_state_updn_revert = false;
 
 			/* also reset previous setpoints */
 			_yaw_takeoff = _yaw;
@@ -2737,6 +2737,7 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			_reset_int_z = true;
 			_reset_int_xy = true;
+			_limit_vel_xy = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;
