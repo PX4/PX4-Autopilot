@@ -549,14 +549,8 @@ void Ekf::constrainStates()
 		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -0.349066f * _dt_ekf_avg, 0.349066f * _dt_ekf_avg);
 	}
 
-	float del_vel_bias_lim = _params.acc_bias_lim * _dt_ekf_avg;
-	for (uint8_t i=0; i < 3; i++) {
-		uint8_t state_index = 13 + i;
-		if (_params.acc_bias_learn_mask & (1<<i)) {
-			_state.accel_bias(state_index) = math::constrain(_state.accel_bias(state_index), -del_vel_bias_lim, del_vel_bias_lim);
-		} else {
-			_state.accel_bias(state_index) = 0.0f;
-		}
+	for (int i = 0; i < 3; i++) {
+		_state.accel_bias(i) = math::constrain(_state.accel_bias(i), -_params.acc_bias_lim * _dt_ekf_avg, _params.acc_bias_lim * _dt_ekf_avg);
 	}
 
 	for (int i = 0; i < 3; i++) {
