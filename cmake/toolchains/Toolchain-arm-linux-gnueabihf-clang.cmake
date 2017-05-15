@@ -55,10 +55,6 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 	endif()
 endforeach()
 
-add_definitions(
-	-D __DF_RPI
-	)
-
 # where is the target environment
 set(CMAKE_FIND_ROOT_PATH  get_file_component(${C_COMPILER} PATH))
 
