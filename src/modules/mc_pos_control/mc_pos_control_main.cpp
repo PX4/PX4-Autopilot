@@ -135,9 +135,6 @@ private:
 	bool 		_in_takeoff = false; 				/**<true if takeoff ramp is applied */
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
-	bool 		_limit_vel_xy = false;				/**<true if velocity in xy should be farther limited */
-	bool 		_transition_to_non_manual = false;  /**<true if transition from manual to auto */
-
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -295,7 +292,6 @@ private:
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /*for manual controlled mode to detect direction change */
-
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -2982,7 +2978,6 @@ MulticopterPositionControl::task_main()
 			_mode_auto = false;
 			_reset_int_z = true;
 			_reset_int_xy = true;
-			_limit_vel_xy = false;
 
 			/* store last velocity in case a mode switch to position control occurs */
 			_vel_sp_prev = _vel;

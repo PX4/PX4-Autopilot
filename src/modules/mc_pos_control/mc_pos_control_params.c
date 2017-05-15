@@ -274,6 +274,8 @@ PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.5f);
 
 /**
  * Maximum horizontal velocity setpoint for manual controlled mode
+ * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
+ * the setpoint will be capped to MPC_XY_VEL_MAX
  *
  * @unit m/s
  * @min 3.0
@@ -303,8 +305,8 @@ PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode. If higher speeds
- * are commanded in a mission they will be capped to this velocity.
+ * Maximum horizontal velocity. If higher speeds
+ * are commanded they will be capped to this velocity.
  *
  * @unit m/s
  * @min 0.0
@@ -313,7 +315,7 @@ PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
 
 /**
  * Horizontal velocity feed forward
