@@ -8,11 +8,6 @@ add_definitions(
 	-D__DF_BEBOP # Define needed DriverFramework
 	)
 
-set(CMAKE_PROGRAM_PATH
-	"${PX4_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf/bin"
-	${CMAKE_PROGRAM_PATH}
-	)
-
 set(config_module_list
 
   # examples/px4_simple_app
