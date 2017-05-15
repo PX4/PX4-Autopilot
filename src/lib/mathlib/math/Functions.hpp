@@ -32,11 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Expo.hpp
+ * @file Functions.hpp
  *
- * So called exponential curve function implementation.
- * It is essentially a linear combination between a linear and a cubic function.
- * It's used in the range [-1,1]
+ * collection of rather simple mathematical functions that get used over and over again
  */
 
 #pragma once
@@ -53,6 +51,11 @@ int sign(T val)
 	return (T(0) < val) - (val < T(0));
 }
 
+/*
+ * So called exponential curve function implementation.
+ * It is essentially a linear combination between a linear and a cubic function.
+ * It's used in the range [-1,1]
+ */
 template<typename _Tp>
 inline const _Tp expo(const _Tp &value, const _Tp &e)
 {
@@ -75,6 +78,33 @@ template<typename _Tp>
 inline const _Tp expo_deadzone(const _Tp &value, const _Tp &e, const _Tp &dz)
 {
 	return expo(deadzone(value, dz), e);
+}
+
+
+/*
+ * Constant, linear, constant function with the two corner points as parameters
+ * y_high          -------
+ *                /
+ *               /
+ *              /
+ * y_low -------
+ *         x_low   x_high
+ */
+template<typename _Tp>
+inline const _Tp gradual(const _Tp &value, const _Tp &x_low, const _Tp &x_high, const _Tp &y_low, const _Tp &y_high)
+{
+	if (value < x_low) {
+		return y_low;
+
+	} else if (value > x_high) {
+		return y_high;
+
+	} else {
+		/* linear function between the two points */
+		float a = (y_high - y_low) / (x_high - x_low);
+		float b = y_low - a * x_low;
+		return  a * value + b;
+	}
 }
 
 }
