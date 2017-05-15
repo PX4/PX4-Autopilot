@@ -411,6 +411,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
+	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_min_cruise_speed(this, "CRUISE_MIN", true),
@@ -759,6 +760,7 @@ MulticopterPositionControl::poll_subscriptions()
 		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
+
 	}
 
 	orb_check(_home_pos_sub, &updated);
@@ -1415,6 +1417,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 
+		/* sanity check */
 		if (PX4_ISFINITE(_curr_pos_sp(0)) &&
 		    PX4_ISFINITE(_curr_pos_sp(1)) &&
 		    PX4_ISFINITE(_curr_pos_sp(2))) {
@@ -1428,10 +1431,6 @@ void MulticopterPositionControl::control_auto(float dt)
 		if (diff.length() > FLT_EPSILON) {
 			triplet_updated = true;
 		}
-
-		/* we need to update _curr_pos_sp always since navigator applies slew rate on z */
-		_curr_pos_sp = curr_pos_sp;
-
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
@@ -1452,7 +1451,6 @@ void MulticopterPositionControl::control_auto(float dt)
 	/* set previous setpoint to current position if no previous setpoint available */
 	if (!previous_setpoint_valid && triplet_updated) {
 		_prev_pos_sp = _pos;
-		previous_setpoint_valid = true; /* currrently not necessary to set to true since not used*/
 	}
 
 	if (_pos_sp_triplet.next.valid) {
@@ -1498,6 +1496,8 @@ void MulticopterPositionControl::control_auto(float dt)
 			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
 						    || !next_setpoint_valid)
 						   && ((pos_sp_diff.length()) < SIGMA_NORM);
+
+
 
 			/* only follow line if previous to current has a minimum distance */
 			if ((vec_prev_to_current.length()  > _nav_rad.get()) && !stay_at_current_pos) {
