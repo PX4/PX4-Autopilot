@@ -72,7 +72,7 @@ static uint32_t g_ledmap[] = {
 	GPIO_nLED_GREEN,   // Indexed by BOARD_LED_GREEN
 	GPIO_nLED_BLUE,    // Indexed by BOARD_LED_BLUE
 	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
-	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY by xlatpx4
+	GPIO_nSAFETY_SWITCH_LED_OUT,  // Indexed by LED_SAFETY by xlatpx4
 };
 
 #else
@@ -81,7 +81,7 @@ static uint32_t g_ledmap[] = {
 static uint32_t g_ledmap[] = {
 	GPIO_nLED_BLUE,    // Indexed by LED_BLUE
 	GPIO_nLED_RED,     // Indexed by LED_RED, LED_AMBER
-	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
+	GPIO_nSAFETY_SWITCH_LED_OUT,  // Indexed by LED_SAFETY
 	GPIO_nLED_GREEN,   // Indexed by LED_GREEN
 };
 

@@ -175,9 +175,9 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 0);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
-	bool last = stm32_gpioread(GPIO_SPEKTRUM_POWER_EN);
+	bool last = stm32_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN);
 	/* Keep Spektum on to discharge rail*/
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER_EN, 1);
+	stm32_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -186,7 +186,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_SPEKTRUM_POWER_EN, last);
+	stm32_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, last);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 1);
 
@@ -252,7 +252,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_3V3V_SD_CARD_EN);
 	stm32_configgpio(GPIO_VDD_5V_RC_EN);
 	stm32_configgpio(GPIO_VDD_5V_WIFI_EN);
-	stm32_configgpio(GPIO_SPEKTRUM_POWER_EN);
+	stm32_configgpio(GPIO_VDD_3V3_SPEKTRUM_POWER_EN);
 
 	stm32_configgpio(GPIO_nSAFETY_SWITCH_LED_OUT);
 	stm32_configgpio(GPIO_SAFETY_SWITCH_IN);
