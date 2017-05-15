@@ -506,7 +506,7 @@ Mavlink::set_verbose(bool v)
 }
 
 int
-Mavlink::set_verbose_all_instances()
+Mavlink::set_verbose_all_instances(bool enabled)
 {
 	Mavlink *inst = ::_mavlink_instances;
 
@@ -514,7 +514,7 @@ Mavlink::set_verbose_all_instances()
 
 	while (inst != nullptr) {
 
-		inst->set_verbose(true);
+		inst->set_verbose(enabled);
 
 		/* move on */
 		inst = inst->next;
@@ -2834,7 +2834,13 @@ int mavlink_main(int argc, char *argv[])
 		return Mavlink::get_status_all_instances();
 
 	} else if (!strcmp(argv[1], "verbose")) {
-		return Mavlink::set_verbose_all_instances();
+		bool on = true;
+
+		if (argc > 2 && !strcmp(argv[2], "off")) {
+			on = false;
+		}
+
+		return Mavlink::set_verbose_all_instances(on);
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
