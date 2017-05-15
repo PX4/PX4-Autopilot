@@ -172,7 +172,7 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 
-	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 0);
+	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, 0);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	bool last = stm32_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN);
@@ -188,7 +188,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	stm32_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, last);
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-	stm32_gpiowrite(GPIO_PERIPH_5V_EN, 1);
+	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, 1);
 
 }
 
@@ -247,7 +247,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_POWER_IN_C);
 
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_PERIPH_5V_EN);
+	stm32_configgpio(GPIO_nVDD_5V_PERIPH_EN);
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_3V3V_SD_CARD_EN);
 	stm32_configgpio(GPIO_VDD_5V_RC_EN);
