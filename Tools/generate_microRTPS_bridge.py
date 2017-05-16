@@ -16,7 +16,7 @@
 # limitations under the License.
 ################################################################################
 
-import sys, os, argparse
+import sys, os, argparse, shutil
 import px_generate_uorb_topic_files
 
 parser = argparse.ArgumentParser()
@@ -37,13 +37,15 @@ px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uo
 out_dir = root_path + "/msgenerated"
 print("Files created in: " + out_dir)
 
+shutil.rmtree(out_dir)
+
 uorb_templates_dir = root_path + "/msg/templates/uorb"
 urtps_templates_dir = root_path + "/msg/templates/urtps"
 
-uRTPS_TRANS_APP_GEN_TEMPL_FILE = 'general_uRTPS_UART_transmitter.cpp.template'
-uRTPS_TRANS_CML_GEN_TEMPL_FILE = 'general_transmitter_CMakeLists.txt.template'
-uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE = 'general_uRTPS_UART_PubSubMain.cxx.template'
-uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE = 'general_PubSubMain_CMakeLists.txt.template'
+uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
+uRTPS_CLIENT_CMAKELIST_TEMPL_FILE = 'microRTPS_client_CMakeLists.txt.template'
+uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cxx.template'
+uRTPS_AGENT_CMAKELIST_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
 uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cxx.template'
 uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
 uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cxx.template'
@@ -69,13 +71,13 @@ if msg_files_receive:
 
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
-				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_APP_GEN_TEMPL_FILE)
+				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
-				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_TRANS_CML_GEN_TEMPL_FILE)
+				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_CMAKELIST_TEMPL_FILE)
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_GEN_TEMPL_FILE)
+				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TEMPL_FILE)
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBSUBMAIN_CML_GEN_TEMPL_FILE)
+                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)

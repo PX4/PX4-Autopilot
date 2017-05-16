@@ -32,14 +32,14 @@
 ############################################################################
 
 px4_add_module(
-	MODULE examples__micrortps_transmitter
-	MAIN general_trans
+	MODULE examples__micrortps_client
+	MAIN micrortps_client
 	STACK_MAIN 4096
 	SRCS
 		UART_node.cxx
-		general_uRTPS_UART_transmitter.cpp
+		microRTPS_client.cpp
 	DEPENDS
 		platforms__common
 	)
-target_link_libraries(examples__micrortps_transmitter lib__micro-CDR)
+target_link_libraries(examples__micrortps_client lib__micro-CDR)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

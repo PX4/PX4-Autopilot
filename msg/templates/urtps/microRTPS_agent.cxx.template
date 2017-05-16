@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 @[if (MsgScope.SEND in topic_scopes)]@
     char rx_buffer[BUFFER_SIZE] = {};
     uint32_t rx_buff_pos = 0u;
-@[end for]@
+@[end if]@
 
     // Create subscribers
 @[for id, topic in enumerate(topic_names)]@

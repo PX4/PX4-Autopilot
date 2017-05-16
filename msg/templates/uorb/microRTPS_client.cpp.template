@@ -43,10 +43,9 @@ topic_scopes = scope
 #define LOOPS 1000
 #define USLEEP_MS 2000
 
-extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
-extern "C" __EXPORT double time_point(uint8_t id, struct timespec &pre);
+extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
-int general_trans_main(int argc, char *argv[])
+int micrortps_client_main(int argc, char *argv[])
 {
     int update_time = UPDATE_TIME_MS;
     if (argc > 1) update_time = atoi(argv[1]);
@@ -196,14 +195,4 @@ int general_trans_main(int argc, char *argv[])
     PX4_INFO("exiting");
     fflush(stdout);
     return 0;
-}
-
-double time_point(uint8_t id, struct timespec &pre)
-{
-    struct timespec now;
-    clock_gettime(0, &now);
-    double t = 1000*(now.tv_sec - pre.tv_sec) + (now.tv_nsec - pre.tv_nsec)/1000000;
-    printf("                                                            %hhu: %03f\n", id, t);
-    pre = now;
-    return t;
 }
