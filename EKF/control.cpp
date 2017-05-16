@@ -888,7 +888,7 @@ void Ekf::controlMagFusion()
 	}
 
 	// If we are on ground, store the local position and time to use as a reference
-	// Also reset the flight alignment falg so that the mag fields will be re-initialised next time we achieve flight altitude
+	// Also reset the flight alignment flag so that the mag fields will be re-initialised next time we achieve flight altitude
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
 		_flt_mag_align_complete = false;
@@ -941,7 +941,7 @@ void Ekf::controlMagFusion()
 			bool use_3D_fusion = _control_status.flags.tilt_align && // Use of 3D fusion requires valid tilt estimates
 					_control_status.flags.in_air && // don't use when on the ground becasue of magnetic anomalies
 					(_flt_mag_align_complete || height_achieved) && // once in-flight field alignment has been performed, ignore relative height
-					((_imu_sample_delayed.time_us - _time_last_movement) < 2000000); // Using 3-axis fusion for a minimum period after to allow for false negatives
+					((_imu_sample_delayed.time_us - _time_last_movement) < 2 * 1000 * 1000); // Using 3-axis fusion for a minimum period after to allow for false negatives
 
 			// perform switch-over
 			if (use_3D_fusion) {
