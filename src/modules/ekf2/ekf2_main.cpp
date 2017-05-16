@@ -319,6 +319,11 @@ private:
 	control::BlockParamFloat
 	_mag_bias_alpha;	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
+	// Multi-rotor drag specific force fusion
+	control::BlockParamExtFloat _drag_noise;	///< observation noise for drag specific force measurements (m/sec**2)
+	control::BlockParamExtFloat _bcoef_x;		///< ballistic coefficient along the X-axis (kg/m**2)
+	control::BlockParamExtFloat _bcoef_y;		///< ballistic coefficient along the Y-axis (kg/m**2)
+
 };
 
 Ekf2::Ekf2():
@@ -430,7 +435,10 @@ Ekf2::Ekf2():
 	_mag_bias_z(this, "EKF2_MAGBIAS_Z", false),
 	_mag_bias_id(this, "EKF2_MAGBIAS_ID", false),
 	_mag_bias_saved_variance(this, "EKF2_MAGB_VREF", false),
-	_mag_bias_alpha(this, "EKF2_MAGB_K", false)
+	_mag_bias_alpha(this, "EKF2_MAGB_K", false),
+	_drag_noise(this, "EKF2_DRAG_NOISE", false, _params->drag_noise),
+	_bcoef_x(this, "EKF2_BCOEF_X", false, _params->bcoef_x),
+	_bcoef_y(this, "EKF2_BCOEF_Y", false, _params->bcoef_y)
 
 {
 

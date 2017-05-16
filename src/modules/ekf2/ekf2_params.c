@@ -541,15 +541,17 @@ PARAM_DEFINE_INT32(EKF2_REC_RPL, 0);
  * 2 : Set to true to inhibit IMU bias estimation
  * 3 : Set to true to enable vision position fusion
  * 4 : Set to true to enable vision yaw fusion
+ * 5 : Set to true to enable multi-rotor drag specific force fusion
  *
  * @group EKF2
  * @min 0
- * @max 28
+ * @max 63
  * @bit 0 use GPS
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
  * @bit 3 vision position fusion
  * @bit 4 vision yaw fusion
+ * @bit 5 multi-rotor drag fusion
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -1056,3 +1058,36 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
  * @max 5.0
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
+
+/**
+ * Specific drag force observation noise.
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 5.0
+ * @unit m/s**2
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
+
+/**
+ * X-axis ballistic coefficient used by the multi-rotor specific drag force model
+ *
+ * @group EKF2
+ * @min 1.0
+ * @max 100.0
+ * @unit kg/m**2
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_BCOEF_X, 25.0f);
+
+/**
+ * Y-axis ballistic coefficient used by the multi-rotor specific drag force model
+ *
+ * @group EKF2
+ * @min 1.0
+ * @max 100.0
+ * @unit kg/m**2
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_BCOEF_Y, 25.0f);
