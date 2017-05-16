@@ -204,7 +204,7 @@ set(config_module_list
 	examples/ekf_att_pos_estimator
 
 	# micro-RTPS
-	#examples/micrortps_transmitter
+	#examples/micrortps_client
 )
 
 set(config_extra_builtin_cmds
