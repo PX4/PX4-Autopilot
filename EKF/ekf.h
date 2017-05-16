@@ -266,12 +266,13 @@ private:
 
 	matrix::Dcm<float> _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
 
-	// used by magnetomer fusion mode selection
+	// used by magnetometer fusion mode selection
 	Vector2f _accel_lpf_NE;			// Low pass filtered horizontal earth frame acceleration (m/s**2)
 	float _yaw_delta_ef{0.0f};		// Recent change in yaw angle measured about the earth frame D axis (rad)
-	float _yaw_rate_lpf_ef{0.0f};		// Filtered angular rate abut earth frame D axis (rad/sec)
-	bool _mag_bias_observable{false};	// true when there is enough rotation to make magnetomer bias errors observable
+	float _yaw_rate_lpf_ef{0.0f};		// Filtered angular rate about earth frame D axis (rad/sec)
+	bool _mag_bias_observable{false};	// true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	// true when there is enough horizontal acceleration to make yaw observable
+	uint64_t _time_yaw_started{0};		// last system time in usec that a yaw rotation moaneouvre was detected
 
 	float P[_k_num_states][_k_num_states] {};	// state covariance matrix
 
@@ -337,9 +338,8 @@ private:
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD{0.0f};	// last vertical position when the in_air status was false (m)
 	bool _flt_mag_align_complete{true};	// true when the in-flight mag field alignment has been completed
-	uint64_t _time_last_movement{0};	// last system time in usec that sufficient movement to use 3-axis magnetomer fusion was detected
+	uint64_t _time_last_movement{0};	// last system time in usec that sufficient movement to use 3-axis magnetometer fusion was detected
 	float _saved_mag_variance[6] {};	// magnetic field state variances that have been saved for use at the next initialisation (Ga**2)
-	uint64_t _time_yaw_started{0};		// last system time in usec that a yaw rotation moaneouvre was detected
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 

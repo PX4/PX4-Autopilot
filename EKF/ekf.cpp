@@ -494,7 +494,8 @@ void Ekf::calculateOutputStates()
 			_R_to_earth_now(2,2) * delta_angle(2);
 	_yaw_delta_ef += spin_del_ang_D;
 
-	// calculate filtered yaw rate to be used by the magnetomer fusion type selection logic
+	// Calculate filtered yaw rate to be used by the magnetomer fusion type selection logic
+	// Note fixed coefficients are used to save operations. The exact time constant is not important.
 	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / _imu_sample_new.delta_ang_dt;
 
 	// correct delta velocity for bias offsets
