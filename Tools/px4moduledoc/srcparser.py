@@ -50,7 +50,7 @@ class ModuleDocumentation(object):
         self._category = self._get_string(args[1])
 
         self._usage_string = "%s <command> [arguments...]\n" % self._name
-	self._usage_string += " Commands:\n"
+        self._usage_string += " Commands:\n"
 
     def _handle_usage_name_simple(self, args):
         assert(len(args) == 2) # executable_name, category
@@ -200,7 +200,7 @@ class ModuleDocumentation(object):
     def documentation(self):
         doc_string = self._doc_string
 
-        # convert ' $ cmd' commands into code blocks
+        # convert '$ cmd' commands into code blocks (e.g. '$ logger start')
         # use lookahead (?=...) so the multiple consecutive command lines work
         doc_string = re.sub(r"\n\$ (.*)(?=\n)", r"\n```\n\1\n```", doc_string)
         # now merge consecutive blocks
@@ -240,6 +240,7 @@ class SourceParser(object):
     Parses provided data and stores all found parameters internally.
     """
 
+    # Regex to extract module doc function calls, starting with PRINT_MODULE_
     re_doc_definition = re.compile(r'PRINT_MODULE_([A-Z_]*)\s*\(')
 
     def __init__(self):
