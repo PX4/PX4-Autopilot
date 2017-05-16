@@ -2653,7 +2653,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[8];
+	uint16_t values[len];
 
 #if BOARD_HAS_PWM == 0
 	return 0;
