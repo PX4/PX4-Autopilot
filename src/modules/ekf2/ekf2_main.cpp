@@ -82,6 +82,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_baro.h>
 
 #include <ecl/EKF/ekf.h>
 
@@ -485,6 +486,7 @@ void Ekf2::run()
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
+	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 	px4_pollfd_struct_t fds[2] = {};
 	fds[0].fd = sensors_sub;
@@ -508,6 +510,8 @@ void Ekf2::run()
 	vehicle_attitude_s ev_att = {};
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
+	sensor_baro_s sensor_baro = {};
+	sensor_baro.pressure = 1013.5; // initialise pressure to sea level
 
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
@@ -709,11 +713,17 @@ void Ekf2::run()
 					// take mean across sample period
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
 
+					// estimate air density assuming typical 20degC ambient temperature
+					orb_copy(ORB_ID(sensor_baro), sensor_baro_sub, &sensor_baro);
+					const float pressure_to_density = 100.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+					float rho = pressure_to_density * sensor_baro.pressure;
+					_ekf.set_air_density(rho);
+
 					// calculate static pressure error = Pmeas - Ptruth
-					float rho = 1.225f; //TODO calculate air density from pressure and/or height
 					float max_airspeed_sq = _aspd_max.get();
 					max_airspeed_sq *= max_airspeed_sq;
-					float pstatic_err = 0.5f * rho * (_K_pstatic_coef_x.get() * fminf(_vel_body_wind(0) * _vel_body_wind(0), max_airspeed_sq)
+					float pstatic_err = 0.5f * rho * (_K_pstatic_coef_x.get() * fminf(_vel_body_wind(0) * _vel_body_wind(0),
+									  max_airspeed_sq)
 									  + _K_pstatic_coef_y.get() * fminf(_vel_body_wind(1) * _vel_body_wind(1), max_airspeed_sq)
 									  + _K_pstatic_coef_z.get() * fminf(_vel_body_wind(2) * _vel_body_wind(2), max_airspeed_sq));
 
@@ -902,6 +912,7 @@ void Ekf2::run()
 					    && airspeed.timestamp > 0) {
 						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
 						ctrl_state.airspeed_valid = true;
+
 					} else {
 						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
 						ctrl_state.airspeed_valid = false;
