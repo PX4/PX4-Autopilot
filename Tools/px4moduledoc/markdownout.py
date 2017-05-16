@@ -1,8 +1,12 @@
+"""
+Class to generate Markdown documentation pages from parsed module doc strings
+"""
+
 from xml.sax.saxutils import escape
 import codecs
 import os
 
-class MarkdownTablesOutput():
+class MarkdownOutput():
     def __init__(self, module_groups):
 
         self._outputs = {}
