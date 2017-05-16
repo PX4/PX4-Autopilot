@@ -167,6 +167,16 @@ private:
 	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
 
+	// Used to filter velocity innovations during pre-flight checks
+	Vector3f _vel_innov_lpf_ned = {};	// Low pass filtered velocity innovations (m/sec)
+	float _hgt_innov_lpf = 0.0f;		// Low pass filtered height innovation (m)
+	const float _innov_lpf_tau_inv = 0.2f;	// low pass filter time constant inverse (1/sec)
+	const float _vel_innov_test_lim = 0.5f;	// maximum permissible velocity innovation to pass pre-flight checks (m/sec)
+	const float _hgt_innov_test_lim = 1.5f;	// maximum permissible height innovation to pass pre-flight checks (m)
+	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	// spike limiter (m/s)
+	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	// spike limiter (m)
+	bool _vel_innov_preflt_fail = false;	// true if the norm of the filtered innovation vector is too large before flight
+
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
 	orb_advert_t _control_state_pub;
@@ -897,10 +907,10 @@ void Ekf2::task_main()
 			lpos.vz = velocity[2];
 
 			// TODO: better status reporting
-			lpos.xy_valid = _ekf.local_position_is_valid();
-			lpos.z_valid = true;
-			lpos.v_xy_valid = _ekf.local_position_is_valid();
-			lpos.v_z_valid = true;
+			lpos.xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
+			lpos.z_valid = !_vel_innov_preflt_fail;
+			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
+			lpos.v_z_valid = !_vel_innov_preflt_fail;
 
 			// Position of local NED origin in GPS / WGS84 frame
 			struct map_projection_reference_s ekf_origin = {};
@@ -937,7 +947,7 @@ void Ekf2::task_main()
 				orb_publish(ORB_ID(vehicle_local_position), _lpos_pub, &lpos);
 			}
 
-			if (_ekf.global_position_is_valid()) {
+			if (_ekf.global_position_is_valid() && !_vel_innov_preflt_fail) {
 				// generate and publish global position data
 				struct vehicle_global_position_s global_pos = {};
 
@@ -1126,6 +1136,27 @@ void Ekf2::task_main()
 				_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
 
 				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+
+				// calculate noise filtered velocity innovations which are used for pre-flight checking
+				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					float alpha = math::constrain(sensors.accelerometer_integral_dt * _innov_lpf_tau_inv, 0.0f, 1.0f);
+					float beta = 1.0f - alpha;
+					_vel_innov_lpf_ned(0) = beta * _vel_innov_lpf_ned(0) + alpha * math::constrain(innovations.vel_pos_innov[0],
+								-_vel_innov_spike_lim, _vel_innov_spike_lim);
+					_vel_innov_lpf_ned(1) = beta * _vel_innov_lpf_ned(1) + alpha * math::constrain(innovations.vel_pos_innov[1],
+								-_vel_innov_spike_lim, _vel_innov_spike_lim);
+					_vel_innov_lpf_ned(2) = beta * _vel_innov_lpf_ned(2) + alpha * math::constrain(innovations.vel_pos_innov[2],
+								-_vel_innov_spike_lim, _vel_innov_spike_lim);
+					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * math::constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
+							 _hgt_innov_spike_lim);
+					_vel_innov_preflt_fail = ((_vel_innov_lpf_ned.norm() > _vel_innov_test_lim)
+								  || (fabsf(_hgt_innov_lpf) > _hgt_innov_test_lim));
+
+				} else {
+					_vel_innov_lpf_ned.zero();
+					_hgt_innov_lpf = 0.0f;
+					_vel_innov_preflt_fail = false;
+				}
 
 				if (_estimator_innovations_pub == nullptr) {
 					_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
