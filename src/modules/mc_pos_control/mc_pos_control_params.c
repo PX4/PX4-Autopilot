@@ -485,22 +485,25 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
 
 /**
  * Maximum jerk in manual controlled mode for braking to zero
+ * If this value is below MPC_JERK_MIN, the acceleration limit in xy and z
+ * is MPC_ACC_HOR_MAN and MPC_ACC_UP_MAX respectively.
+ * Otherwise the acceleration limit is mapped from the stick inputs
  *
  * @unit m/s/s/s
- * @min 2.0
+ * @min 0.0
  * @max 15.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 0.0f);
 
 /**
  * Minimum jerk in manual controlled mode for braking to zero
  *
  * @unit m/s/s/s
- * @min 1.0
- * @max 15.0
+ * @min 0.5
+ * @max 10.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control

@@ -1320,12 +1320,18 @@ MulticopterPositionControl::control_manual(float dt)
 	/* setpoint in NED frame */
 	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_fame)) * man_vel_sp;
 
-	/* adjust acceleration based on stick input */
-	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
-	set_manual_acceleration_xy(stick_xy, dt);
-	float stick_z = man_vel_sp(2);
-	float max_acc_z;
-	set_manual_acceleration_z(max_acc_z, stick_z, dt);
+	/* default for acceleration */
+	_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+	_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+	float max_acc_z = _acceleration_state_dependent_z;
+
+	/* adjust acceleration based on stick input only if jerk max < jerk min */
+	if (_jerk_hor_max.get() < _jerk_hor_min.get()) {
+		matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
+		set_manual_acceleration_xy(stick_xy, dt);
+		float stick_z = man_vel_sp(2);
+		set_manual_acceleration_z(max_acc_z, stick_z, dt);
+	}
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
 	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
