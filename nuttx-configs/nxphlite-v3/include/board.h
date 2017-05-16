@@ -334,8 +334,6 @@
 #define GPIO_FTM3_CH6OUT PIN_FTM3_CH6_2  /* PTE11 IO_CH7 P4-5 */
 #define GPIO_FTM3_CH7OUT PIN_FTM3_CH7_2  /* PTE12 IO_CH8 P4-2 */
 
-//todo:This is a Guess on timer utilization
-
 #define GPIO_FTM0_CH0IN  PIN_FTM0_CH0_2  /* PTC1  FMU_CH1 P4-34 */
 #define GPIO_FTM0_CH3IN  PIN_FTM0_CH3_1  /* PTA6  FMU_CH2 P4-41 */
 #define GPIO_FTM0_CH4IN  PIN_FTM0_CH4_3  /* PTD4  FMU_CH3 P4-35 */
