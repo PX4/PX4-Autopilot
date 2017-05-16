@@ -140,6 +140,8 @@
 #define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSB)
 #endif
 
+#define FTM_SYNC (FTM_SYNC_SWSYNC)
+
 #define CnSC_PWMIN_INIT 0 // TBD
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
@@ -460,7 +462,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 	rMOD(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
 	/* generate an update event; reloads the counter and all registers */
-	rSYNC(timer) = (FTM_SYNC_SWSYNC | FTM_SYNC_REINIT);
+	rSYNC(timer) = FTM_SYNC;
 
 	return 0;
 }
@@ -518,7 +520,7 @@ void io_timer_trigger(void)
 	irqstate_t flags = px4_enter_critical_section();
 
 	for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
-		_REG32(action_cache[actions], KINETIS_FTM_SYNC_OFFSET) |= (FTM_SYNC_SWSYNC | FTM_SYNC_REINIT);
+		_REG32(action_cache[actions], KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
 	}
 
 	px4_leave_critical_section(flags);
@@ -546,6 +548,9 @@ int io_timer_init_timer(unsigned timer)
 
 		rSC(timer)    = FTM_SC_CLKS_NONE;
 		rCNT(timer)   = 0;
+
+		rMODE(timer) = 0;
+		rSYNCONF(timer)   = (FTM_SYNCONF_SYNCMODE | FTM_SYNCONF_SWWRBUF | FTM_SYNCONF_SWRSTCNT);
 
 		/* Set to run in debug mode */
 
@@ -806,7 +811,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			if (any_on != 0) {
 
 				/* force an update to preload all registers */
-				_REG32(action_cache[actions].base, KINETIS_FTM_SYNC_OFFSET) |= (FTM_SYNC_SWSYNC | FTM_SYNC_REINIT);
+				_REG32(action_cache[actions].base, KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
 
 				/* arm requires the timer be enabled */
 				regval |= (FTM_SC_CLKS_EXTCLK);
@@ -837,7 +842,19 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 
 			/* configure the channel */
 
-			REG(channels_timer(channel), KINETIS_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1)) = value;
+			/* todo:This is a HACK!
+			 * Was getting:
+			 * servo 0 readback error, got 1001 expected 1000
+			 * None of the SW syncs seamed update the CV
+			 * So we stop the counter to get an immediate update.
+			 */
+			uint32_t timer = channels_timer(channel);
+			irqstate_t flags = px4_enter_critical_section();
+			uint32_t save = rSC(timer);
+			rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
+			REG(timer, KINETIS_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1)) = value;
+			rSC(timer) = save;
+			px4_leave_critical_section(flags);
 		}
 	}
 
