@@ -331,7 +331,8 @@ private:
 	// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 	// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
 	control::BlockParamFloat _aspd_max;		///< upper limit on airspeed used for correction  (m/s**2)
-	control::BlockParamFloat _K_pstatic_coef_x;	///< static pressure position error coefficient along the X body axis
+	control::BlockParamFloat _K_pstatic_coef_xp;	///< static pressure position error coefficient along the positive X body axis
+	control::BlockParamFloat _K_pstatic_coef_xn;	///< static pressure position error coefficient along the negative X body axis
 	control::BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
@@ -451,10 +452,10 @@ Ekf2::Ekf2():
 	_bcoef_x(this, "EKF2_BCOEF_X", false, _params->bcoef_x),
 	_bcoef_y(this, "EKF2_BCOEF_Y", false, _params->bcoef_y),
 	_aspd_max(this, "EKF2_ASPD_MAX", false),
-	_K_pstatic_coef_x(this, "EKF2_PS_COEF_X", false),
-	_K_pstatic_coef_y(this, "EKF2_PS_COEF_Y", false),
-	_K_pstatic_coef_z(this, "EKF2_PS_COEF_Z", false)
-
+	_K_pstatic_coef_xp(this, "EKF2_PCOEF_XP", false),
+	_K_pstatic_coef_xn(this, "EKF2_PCOEF_XN", false),
+	_K_pstatic_coef_y(this, "EKF2_PCOEF_Y", false),
+	_K_pstatic_coef_z(this, "EKF2_PCOEF_Z", false)
 {
 
 }
@@ -720,12 +721,21 @@ void Ekf2::run()
 					_ekf.set_air_density(rho);
 
 					// calculate static pressure error = Pmeas - Ptruth
+					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
 					float max_airspeed_sq = _aspd_max.get();
 					max_airspeed_sq *= max_airspeed_sq;
-					float pstatic_err = 0.5f * rho * (_K_pstatic_coef_x.get() * fminf(_vel_body_wind(0) * _vel_body_wind(0),
-									  max_airspeed_sq)
-									  + _K_pstatic_coef_y.get() * fminf(_vel_body_wind(1) * _vel_body_wind(1), max_airspeed_sq)
-									  + _K_pstatic_coef_z.get() * fminf(_vel_body_wind(2) * _vel_body_wind(2), max_airspeed_sq));
+					float K_pstatic_coef_x;
+
+					if (_vel_body_wind(0) >= 0.0f) {
+						K_pstatic_coef_x = _K_pstatic_coef_xp.get();
+
+					} else {
+						K_pstatic_coef_x = _K_pstatic_coef_xn.get();
+					}
+
+					float pstatic_err = 0.5f * rho * (K_pstatic_coef_x * fminf(_vel_body_wind(0) * _vel_body_wind(0), max_airspeed_sq) +
+									  _K_pstatic_coef_y.get() * fminf(_vel_body_wind(1) * _vel_body_wind(1), max_airspeed_sq) +
+									  _K_pstatic_coef_z.get() * fminf(_vel_body_wind(2) * _vel_body_wind(2), max_airspeed_sq));
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
 					balt_data_avg += pstatic_err / (rho * 9.80665f);
