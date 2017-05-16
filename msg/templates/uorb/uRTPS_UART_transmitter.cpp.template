@@ -1,6 +1,6 @@
 @###############################################
 @#
-@# EmPy template for generating uRTPS_UART_<msg>.cpp file
+@# EmPy template for generating <msg>_uRTPS_UART.cpp file
 @#
 @###############################################
 @# Start of Template

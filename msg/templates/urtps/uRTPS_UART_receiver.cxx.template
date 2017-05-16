@@ -1,0 +1,166 @@
+@###############################################
+@#
+@# EmPy template for generating <msg>_uRTPS_UART_receiver.cxx file
+@#
+@###############################################
+# Copyright 2016 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+@{
+import genmsg.msgs
+import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
+
+topic_class_name = '%s_'%spec.short_name
+topic_name = spec.short_name
+
+sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
+topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
+}@
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <string>
+
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastCdr.h>
+#include <fastcdr/exceptions/Exception.h>
+
+#include "@(topic_name)_uRTPS_UART_receiver.h"
+
+#define DEFAULT_UART "/dev/ttyACM0"
+
+@(topic_name)_UART_receiver::@(topic_name)_UART_receiver(): m_uart_filestream(0), m_uart(DEFAULT_UART)
+{
+
+}
+
+@(topic_name)_UART_receiver::~@(topic_name)_UART_receiver()
+{
+
+}
+
+uint8_t @(topic_name)_UART_receiver::init_uart(std::string uart)
+{
+
+    //OPEN THE UART
+    //The flags (defined in fcntl.h):
+    //  Access modes (use 1 of these):
+    //      O_RDONLY - Open for reading only.
+    //      O_RDWR - Open for reading and writing.
+    //      O_WRONLY - Open for writing only.
+    //
+    //  O_NDELAY / O_NONBLOCK (same function) - Enables nonblocking mode. When set read requests on the file can return immediately with a failure status
+    //                                          if there is no input immediately available (instead of blocking). Likewise, write requests can also return
+    //                                          immediately with a failure status if the output can't be written immediately.
+    //
+    //  O_NOCTTY - When set and path identifies a terminal device, open() shall not cause the terminal device to become the controlling terminal for the process.
+    if (!uart.empty()) m_uart = uart;
+    m_uart_filestream = open(m_uart.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);      //Open in non blocking read/write mode
+    if (m_uart_filestream == -1)
+    {
+        //ERROR - CAN'T OPEN SERIAL PORT
+        printf("Error - Unable to open UART '%s'.  Ensure it is not in use by another application\n", m_uart.c_str());
+    }
+
+    //CONFIGURE THE UART
+    //The flags (defined in /usr/include/termios.h - see http://pubs.opengroup.org/onlinepubs/007908799/xsh/termios.h.html):
+    //  Baud rate:- B1200, B2400, B4800, B9600, B19200, B38400, B57600, B115200, B230400, B460800, B500000, B576000, B921600, B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000, B4000000
+    //  CSIZE:- CS5, CS6, CS7, CS8
+    //  CLOCAL - Ignore modem status lines
+    //  CREAD - Enable receiver
+    //  IGNPAR = Ignore characters with parity errors
+    //  ICRNL - Map CR to NL on input (Use for ASCII comms where you want to auto correct end of line characters - don't use for bianry comms!)
+    //  PARENB - Parity enable
+    //  PARODD - Odd parity (else even)
+    struct termios options;
+    tcgetattr(m_uart_filestream, &options);
+    options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;     //<Set baud rate
+    options.c_iflag = IGNPAR;
+    options.c_oflag = 0;
+    options.c_lflag = 0;
+    tcflush(m_uart_filestream, TCIFLUSH);
+    tcsetattr(m_uart_filestream, TCSANOW, &options);
+
+    return 0;
+}
+
+@####################################################
+@# Searching for deserialize statement per each field
+@####################################################
+@{
+    
+def add_deserialize_statement(field):
+    if (not field.is_header):
+        if (not field.is_array):
+            print '\t\t\tcdr_des >> data.' + field.name + '();'
+        else:
+            for i in xrange(field.array_len):
+                print '\t\t\tcdr_des >> data.' + field.name + '()' + ('[%d];' %i)
+
+def add_code_to_deserialize():
+    print '\t\t\tcdr_des >> data.timestamp();'
+    # sort fields (using a stable sort) as in the declaration of the type
+    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+    for field in sorted_fields:
+        add_deserialize_statement(field)
+      
+}@
+
+uint8_t @(topic_name)_UART_receiver::readFromUART(@(topic_class_name) &data)
+{
+//----- CHECK FOR ANY RX BYTES -----
+    if (m_uart_filestream != -1)
+    {
+        // Read up to 255 characters from the port if they are there
+        char rx_buffer[1024] = {};
+        int rx_length = read(m_uart_filestream, (void*)rx_buffer, sizeof(rx_buffer)); //Filestream, buffer to store in, number of bytes to read (max)
+        if (rx_length != 72)
+        {
+            printf(".%d", rx_length);
+            return 1;
+        }
+        else
+        {
+            //Bytes received
+            eprosima::fastcdr::FastBuffer cdrbuffer(rx_buffer, sizeof(rx_buffer));
+            eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+@add_code_to_deserialize()
+          
+            printf("read %d bytes ", rx_length);
+            printf("accelerometer: %04f %04f %04f\n",
+                    data.accelerometer_m_s2()[0],
+                    data.accelerometer_m_s2()[1],
+                    data.accelerometer_m_s2()[2]);
+
+            /*SerializedPayload_t payload;
+            payload.data = (octet*)rx_buffer;
+            payload.length = sizeof(rx_buffer);
+
+            sensor_combined_ data;
+            myType.deserialize(&payload, &data);
+
+            printf("read %d bytes ", rx_length);
+            printf("accelerometer: %04f %04f %04f\n",
+                    st.accelerometer_m_s2()[0],
+                    st.accelerometer_m_s2()[1],
+                    st.accelerometer_m_s2()[2]);*/
+
+
+
+            return 0;
+        }
+    }
+    return -1;
+}
