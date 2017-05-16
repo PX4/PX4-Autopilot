@@ -81,7 +81,7 @@ public:
 	NavioADC();
 	virtual ~NavioADC();
 
-	virtual int init();
+	virtual int init() override;
 
 	virtual ssize_t devRead(void *buf, size_t count) override;
 	virtual int devIOCTL(unsigned long request, unsigned long arg) override;
