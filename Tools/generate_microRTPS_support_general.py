@@ -51,12 +51,12 @@ uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
 
 if msg_files_send:
     for msg_file in msg_files_send:
-    	px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
-    		px_generate_uorb_topic_files.INCL_DEFAULT)
-    	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-    		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
-    	px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-    		px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
+        px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT)
+        px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
+        px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
 
 if msg_files_receive:
     for msg_file in msg_files_receive:

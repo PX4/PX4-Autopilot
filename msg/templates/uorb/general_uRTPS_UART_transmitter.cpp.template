@@ -39,9 +39,9 @@ topic_scopes = scope
 
 #define BUFFER_SIZE 256
 #define POLL_TIME_MS 10
-#define UPDATE_TIME_MS 0
+#define UPDATE_TIME_MS 10
 #define LOOPS 1000
-#define USLEEP_MS 0
+#define USLEEP_MS 2000
 
 extern "C" __EXPORT int general_trans_main(int argc, char *argv[]);
 extern "C" __EXPORT double time_point(uint8_t id, struct timespec &pre);
