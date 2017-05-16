@@ -52,9 +52,113 @@
 #include "board_config.h"
 
 __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
+	{
+		.base = KINETIS_FTM0_BASE,
+		.clock_register = KINETIS_SIM_SCGC6,
+		.clock_bit = SIM_SCGC6_FTM0,
+		.first_channel_index = 0,
+		.last_channel_index = 5,
+		.handler = io_timer_handler0,
+		.vectorno =  KINETIS_IRQ_FTM0,
+
+	},
+	{
+		.base = KINETIS_FTM3_BASE,
+		.clock_register = KINETIS_SIM_SCGC3,
+		.clock_bit = SIM_SCGC3_FTM3,
+		.first_channel_index = 6,
+		.last_channel_index = 13,
+		.handler = io_timer_handler1,
+		.vectorno =  KINETIS_IRQ_FTM3,
+	}
 };
 
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	{
+		.gpio_out = GPIO_FTM0_CH0OUT,
+		.gpio_in  = GPIO_FTM0_CH0IN,
+		.timer_index = 0,
+		.timer_channel = 1,
+	},
+	{
+		.gpio_out = GPIO_FTM0_CH3OUT,
+		.gpio_in  = GPIO_FTM0_CH3IN,
+		.timer_index = 0,
+		.timer_channel = 4,
+	},
+	{
+		.gpio_out = GPIO_FTM0_CH4OUT,
+		.gpio_in  = GPIO_FTM0_CH4IN,
+		.timer_index = 0,
+		.timer_channel = 5,
+	},
+	{
+		.gpio_out = GPIO_FTM0_CH5OUT,
+		.gpio_in  = GPIO_FTM0_CH5IN,
+		.timer_index = 0,
+		.timer_channel = 6,
+	},
+	{
+		.gpio_out = GPIO_FTM0_CH6OUT,
+		.gpio_in  = GPIO_FTM0_CH6IN,
+		.timer_index = 0,
+		.timer_channel = 7,
+	},
+	{
+		.gpio_out = GPIO_FTM0_CH7OUT,
+		.gpio_in  = GPIO_FTM0_CH7IN,
+		.timer_index = 0,
+		.timer_channel = 8,
+	},
+
+	{
+		.gpio_out = GPIO_FTM3_CH0OUT,
+		.gpio_in  = GPIO_FTM3_CH0IN,
+		.timer_index = 1,
+		.timer_channel = 1,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH1OUT,
+		.gpio_in  = GPIO_FTM3_CH1IN,
+		.timer_index = 1,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH2OUT,
+		.gpio_in  = GPIO_FTM3_CH2IN,
+		.timer_index = 1,
+		.timer_channel = 3,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH3OUT,
+		.gpio_in  = GPIO_FTM3_CH3IN,
+		.timer_index = 1,
+		.timer_channel = 4,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH4OUT,
+		.gpio_in  = GPIO_FTM3_CH4IN,
+		.timer_index = 1,
+		.timer_channel = 5,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH5OUT,
+		.gpio_in  = GPIO_FTM3_CH5IN,
+		.timer_index = 1,
+		.timer_channel = 6,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH6OUT,
+		.gpio_in  = GPIO_FTM3_CH6IN,
+		.timer_index = 1,
+		.timer_channel = 7,
+	},
+	{
+		.gpio_out = GPIO_FTM3_CH7OUT,
+		.gpio_in  = GPIO_FTM3_CH7IN,
+		.timer_index = 1,
+		.timer_channel = 8,
+	},
 };
 
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))
@@ -104,14 +208,9 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 #define rSWOCTRL(t)    REG(t,KINETIS_FTM_SWOCTRL_OFFSET)
 #define rPWMLOAD(t)    REG(t,KINETIS_FTM_PWMLOAD_OFFSET)
 
-#if !defined(BOARD_PWM_FREQ)
-#define BOARD_PWM_FREQ 1000000
+#if !defined(BOARD_PWM_SRC_CLOCK_FREQ)
+#define BOARD_PWM_SRC_CLOCK_FREQ 4000000
 #endif
-
-#if !defined(BOARD_ONESHOT_FREQ)
-#define BOARD_ONESHOT_FREQ 8000000
-#endif
-
 
 __EXPORT void nxphlite_timer_initialize(void)
 {
@@ -143,7 +242,7 @@ __EXPORT void nxphlite_timer_initialize(void)
 	/* disable and configure the FTM2 as
 	 * Bus Clock 56 Mhz
 	 * PS 1
-	 * MOD 28 or 7 for 1 Mhz and 3.5 Mhz
+	 * MOD 7 for 4 Mhz
 	 */
 
 	rSC(2)    = FTM_SC_CLKS_NONE | FTM_SC_PS_1;
@@ -151,7 +250,7 @@ __EXPORT void nxphlite_timer_initialize(void)
 
 	/* Generate 2 times the Freq */
 
-	rMOD(2)   = (BOARD_BUS_FREQ / (BOARD_PWM_FREQ * 2)) - 1;
+	rMOD(2)   = (BOARD_BUS_FREQ / (BOARD_PWM_SRC_CLOCK_FREQ * 2)) - 1;
 
 	/* toggle on every compare adds a divide by 2 */
 
