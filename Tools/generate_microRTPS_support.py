@@ -19,7 +19,8 @@ print("Files created in: " + out_dir)
 uorb_templates_dir = root_path + "/msg/templates/uorb"
 urtps_templates_dir = root_path + "/msg/templates/urtps"
 
-px_generate_uorb_topic_files.generate_uRTPS_application_file(msg_file, out_dir, uorb_templates_dir,  px_generate_uorb_topic_files.INCL_DEFAULT)
-px_generate_uorb_topic_files.generate_idl_file(              msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
-px_generate_uorb_topic_files.generate_uRTPS_receiver_header( msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
-px_generate_uorb_topic_files.generate_uRTPS_receiver_source( msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.generate_uRTPS_application_file(msg_file, out_dir,  uorb_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.generate_uRTPS_app_CMList_file (msg_file, out_dir,  uorb_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.generate_idl_file              (msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.generate_uRTPS_receiver_header (msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.generate_uRTPS_receiver_source (msg_file, out_dir, urtps_templates_dir, px_generate_uorb_topic_files.INCL_DEFAULT)

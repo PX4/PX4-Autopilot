@@ -82,10 +82,12 @@ OUTPUT_FILE_EXT = ['.h', '.cpp']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
-uRTPS_TRANS_TEMPL_FILE = 'uRTPS_UART_transmitter.cpp.template'
+uRTPS_TRANS_APP_TEMPL_FILE = 'uRTPS_UART_transmitter.cpp.template'
+uRTPS_TRANS_CML_TEMPL_FILE = 'transmitter_CMakeLists.txt.template'
 IDL_TEMPLATE_FILE = 'msg.idl.template'
 uRTPS_RECEV_SRC_TEMPL_FILE = 'uRTPS_UART_receiver.cxx.template'
 uRTPS_RECEV_H_TEMPL_FILE = 'uRTPS_UART_receiver.h.template'
+
 
 
 def get_multi_topics(filename):
@@ -149,33 +151,31 @@ def generate_uRTPS_application_file(filename_msg, outputdir, templatedir, includ
         """
         Generates an application to send by UART msg content
         """
-        msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
-        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
-        topics = get_multi_topics(filename_msg)
-        if includepath:
-                search_path = genmsg.command_line.includepath_to_dict(includepath)
-        else:
-                search_path = {}
-        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
-        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
-        if len(topics) == 0:
-                topics.append(spec.short_name)
-        em_globals = {
-            "file_name_in": filename_msg,
-            "md5sum": md5sum,
-            "search_path": search_path,
-            "msg_context": msg_context,
-            "spec": spec,
-            "topics": topics
-        }
+        em_globals = get_em_globals(filename_msg, includepath)
+        spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
-        template_file = os.path.join(templatedir, uRTPS_TRANS_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec.short_name + "_" + uRTPS_TRANS_TEMPL_FILE.replace(".cpp.template", ".cpp"))
+        template_file = os.path.join(templatedir, uRTPS_TRANS_APP_TEMPL_FILE)
+        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_TRANS_APP_TEMPL_FILE.replace(".cpp.template", ".cpp"))
+
+        return generate_by_template(output_file, template_file, em_globals)
+
+def generate_uRTPS_app_CMList_file(filename_msg, outputdir, templatedir, includepath):
+        """
+        Generates an application to send by UART msg content
+        """
+        em_globals = get_em_globals(filename_msg, includepath)
+        spec_short_name = em_globals["spec"].short_name
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, uRTPS_TRANS_CML_TEMPL_FILE)
+        output_file = os.path.join(outputdir, spec_short_name + "_CMakeLists.txt")
 
         return generate_by_template(output_file, template_file, em_globals)
 
@@ -183,33 +183,15 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
         """
         Generates an .idl from .msg file
         """
-        msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
-        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
-        topics = get_multi_topics(filename_msg)
-        if includepath:
-                search_path = genmsg.command_line.includepath_to_dict(includepath)
-        else:
-                search_path = {}
-        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
-        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
-        if len(topics) == 0:
-                topics.append(spec.short_name)
-        em_globals = {
-            "file_name_in": filename_msg,
-            "md5sum": md5sum,
-            "search_path": search_path,
-            "msg_context": msg_context,
-            "spec": spec,
-            "topics": topics
-        }
+        em_globals = get_em_globals(filename_msg, includepath)
+        spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
         template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
-        output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace("msg.idl.template", str(spec.short_name + "_.idl")))
+        output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace("msg.idl.template", str(spec_short_name + "_.idl")))
 
         return generate_by_template(output_file, template_file, em_globals)
 
@@ -217,33 +199,15 @@ def generate_uRTPS_receiver_source(filename_msg, outputdir, templatedir, include
         """
         Generates receiver .cpp by UART msg content
         """
-        msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
-        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
-        topics = get_multi_topics(filename_msg)
-        if includepath:
-                search_path = genmsg.command_line.includepath_to_dict(includepath)
-        else:
-                search_path = {}
-        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
-        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
-        if len(topics) == 0:
-                topics.append(spec.short_name)
-        em_globals = {
-            "file_name_in": filename_msg,
-            "md5sum": md5sum,
-            "search_path": search_path,
-            "msg_context": msg_context,
-            "spec": spec,
-            "topics": topics
-        }
+        em_globals = get_em_globals(filename_msg, includepath)
+        spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
         if not os.path.isdir(outputdir):
                 os.makedirs(outputdir)
 
         template_file = os.path.join(templatedir, uRTPS_RECEV_SRC_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec.short_name + "_" + uRTPS_RECEV_SRC_TEMPL_FILE.replace(".cxx.template", ".cxx"))
+        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_RECEV_SRC_TEMPL_FILE.replace(".cxx.template", ".cxx"))
 
         return generate_by_template(output_file, template_file, em_globals)
     
@@ -251,6 +215,22 @@ def generate_uRTPS_receiver_header(filename_msg, outputdir, templatedir, include
         """
         Generates receiver .h by UART msg content
         """
+        em_globals = get_em_globals(filename_msg, includepath)
+        spec_short_name = em_globals["spec"].short_name
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, uRTPS_RECEV_H_TEMPL_FILE)
+        output_file = os.path.join(outputdir, spec_short_name + "_" + uRTPS_RECEV_H_TEMPL_FILE.replace(".h.template", ".h"))
+
+        return generate_by_template(output_file, template_file, em_globals)
+
+def get_em_globals(filename_msg, includepath):
+        """
+        Generates em globals dictionary
+        """
         msg_context = genmsg.msg_loader.MsgContext.create_default()
         full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
@@ -272,14 +252,7 @@ def generate_uRTPS_receiver_header(filename_msg, outputdir, templatedir, include
             "topics": topics
         }
 
-        # Make sure output directory exists:
-        if not os.path.isdir(outputdir):
-                os.makedirs(outputdir)
-
-        template_file = os.path.join(templatedir, uRTPS_RECEV_H_TEMPL_FILE)
-        output_file = os.path.join(outputdir, spec.short_name + "_" + uRTPS_RECEV_H_TEMPL_FILE.replace(".h.template", ".h"))
-
-        return generate_by_template(output_file, template_file, em_globals)
+        return em_globals
     
 def generate_by_template(output_file, template_file, em_globals):
         """

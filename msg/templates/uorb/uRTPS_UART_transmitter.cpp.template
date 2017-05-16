@@ -44,7 +44,7 @@ int @(topic_name)_trans_main(int argc, char *argv[])
     int serial_fd = uart_init(argv[1], 115200);
 
     int sub_fd = orb_subscribe(ORB_ID(@(topic_name)));
-    orb_set_interval(sub_fd, 200);
+    orb_set_interval(sub_fd, 1000);
     px4_pollfd_struct_t poll_fd;
     poll_fd.fd = sub_fd;
     poll_fd.events = POLLIN;
@@ -72,19 +72,21 @@ int @(topic_name)_trans_main(int argc, char *argv[])
             if (poll_fd.revents & POLLIN)
             {
                 /* obtained data for the first file descriptor */
-                struct @(uorb_struct) raw;
+                struct @(uorb_struct) data;
                 /* copy raw data into local buffer */
-                orb_copy(ORB_ID(@(topic_name)), sub_fd, &raw);
+                orb_copy(ORB_ID(@(topic_name)), sub_fd, &data);
                 
                 char buffer[MICROCDR_INIT_BUF_LENGTH];
                 uint32_t length = 0;
-                serialize_@(topic_name)(&raw, buffer, &length);
+                serialize_@(topic_name)(&data, buffer, &length);
 
                 // Write serialized data trough UART
+                dprintf(serial_fd, ">>>");
                 for(int j=0; j < length; j++)
                 {
                     dprintf(serial_fd, "%c", buffer[j]);
                 }
+                dprintf(serial_fd, "<<<");
             }
         }
     }

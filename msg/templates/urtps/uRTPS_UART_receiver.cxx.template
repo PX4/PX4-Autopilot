@@ -104,13 +104,13 @@ uint8_t @(topic_name)_UART_receiver::init_uart(std::string uart)
 def add_deserialize_statement(field):
     if (not field.is_header):
         if (not field.is_array):
-            print '\t\t\tcdr_des >> data.' + field.name + '();'
+            print '\tcdr_des >> data.' + field.name + '();'
         else:
             for i in xrange(field.array_len):
-                print '\t\t\tcdr_des >> data.' + field.name + '()' + ('[%d];' %i)
+                print '\tcdr_des >> data.' + field.name + '()' + ('[%d];' %i)
 
 def add_code_to_deserialize():
-    print '\t\t\tcdr_des >> data.timestamp();'
+    print '\tcdr_des >> data.timestamp();'
     # sort fields (using a stable sort) as in the declaration of the type
     sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
     for field in sorted_fields:
@@ -120,47 +120,62 @@ def add_code_to_deserialize():
 
 uint8_t @(topic_name)_UART_receiver::readFromUART(@(topic_class_name) &data)
 {
-//----- CHECK FOR ANY RX BYTES -----
-    if (m_uart_filestream != -1)
+    if (m_uart_filestream == -1) return 2;
+
+    const size_t max_size = 1024;
+    // Read up to max_size characters from the port if they are there
+    static char rx_buffer[max_size];
+    static uint32_t pos_to_write = 0;
+    char aux = 0;
+    int rx_length = 0;
+
+    if (0 == pos_to_write) memset(rx_buffer, 0, max_size);
+
+    while (pos_to_write <= max_size) // Not enough
     {
-        // Read up to 255 characters from the port if they are there
-        char rx_buffer[1024] = {};
-        int rx_length = read(m_uart_filestream, (void*)rx_buffer, sizeof(rx_buffer)); //Filestream, buffer to store in, number of bytes to read (max)
-        if (rx_length != 72)
+        rx_length = read(m_uart_filestream, (void*)&aux, 1);
+        if (1 != rx_length) return 1;
+
+        rx_buffer[pos_to_write++] = aux;
+        if (pos_to_write < 3) continue;
+
+        if (aux == '>')
         {
-            printf(".%d", rx_length);
+            // Beginning
+            if (0 == strncmp(rx_buffer + (pos_to_write - 3), ">>>", 3))
+            {
+                memset(rx_buffer, 0, 1024);
+                rx_buffer[0] = rx_buffer[1] = rx_buffer[2] = '>';
+                pos_to_write = 3;
+            }
+        }
+        else if (aux == '<')
+        {
+            // Ending
+            if (0 == strncmp(rx_buffer + (pos_to_write - 3), "<<<", 3) &&
+                0 == strncmp(rx_buffer, ">>>", 3))
+            {
+                rx_length = pos_to_write;
+                break;
+            }
+        }
+        if (pos_to_write > max_size)
+        {
+            pos_to_write = 0;
             return 1;
         }
-        else
-        {
-            //Bytes received
-            eprosima::fastcdr::FastBuffer cdrbuffer(rx_buffer, sizeof(rx_buffer));
-            eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
-@add_code_to_deserialize()
-          
-            printf("read %d bytes ", rx_length);
-            printf("accelerometer: %04f %04f %04f\n",
-                    data.accelerometer_m_s2()[0],
-                    data.accelerometer_m_s2()[1],
-                    data.accelerometer_m_s2()[2]);
-
-            /*SerializedPayload_t payload;
-            payload.data = (octet*)rx_buffer;
-            payload.length = sizeof(rx_buffer);
-
-            sensor_combined_ data;
-            myType.deserialize(&payload, &data);
-
-            printf("read %d bytes ", rx_length);
-            printf("accelerometer: %04f %04f %04f\n",
-                    st.accelerometer_m_s2()[0],
-                    st.accelerometer_m_s2()[1],
-                    st.accelerometer_m_s2()[2]);*/
-
-
-
-            return 0;
-        }
     }
-    return -1;
+
+    char ser_buffer[max_size];
+    memset(ser_buffer, 0, max_size);
+    memcpy(ser_buffer, rx_buffer + 3, pos_to_write - 6);
+
+
+    //Bytes received
+    memset(&data, 0, sizeof(data));
+    eprosima::fastcdr::FastBuffer cdrbuffer(ser_buffer, sizeof(ser_buffer));
+    eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+@add_code_to_deserialize()
+
+    return 0;
 }
