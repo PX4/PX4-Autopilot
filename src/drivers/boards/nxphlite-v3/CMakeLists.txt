@@ -44,7 +44,6 @@ px4_add_module(
 		nxphlite_can.c
 		nxphlite_init.c
 		nxphlite_led.c
-		nxphlite_pwm.c
 		nxphlite_sdhc.c
 		nxphlite_spi.c
 		nxphlite_timer_config.c
