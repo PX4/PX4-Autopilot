@@ -135,6 +135,10 @@ private:
 	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
 	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
+	// time slip monitoring
+	uint64_t integrated_time_us = 0; // integral of gyro delta time from start (usec)
+	uint64_t start_time_us = 0; // system time at start (usec)
+
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint64_t _timestamp_mag_us = 0;
 	uint64_t _timestamp_balt_us = 0;
@@ -755,6 +759,14 @@ void Ekf2::task_main()
 		// run the EKF update and output
 		if (_ekf.update()) {
 
+			// integrate time to monitor time slippage
+			if (start_time_us == 0) {
+				start_time_us = now;
+
+			} else if (start_time_us > 0) {
+				integrated_time_us += (uint64_t)((double)sensors.gyro_integral_dt * 1.0e6);
+			}
+
 			matrix::Quaternion<float> q;
 			_ekf.copy_quaternion(q.data());
 
@@ -996,6 +1008,14 @@ void Ekf2::task_main()
 				status.pos_vert_accuracy = lpos.epv;
 				_ekf.get_ekf_soln_status(&status.solution_status_flags);
 				_ekf.get_imu_vibe_metrics(status.vibe);
+
+				// monitor time slippage
+				if (start_time_us != 0 && now > start_time_us) {
+					status.time_slip = (float)(1e-6 * ((double)(now - start_time_us) - (double) integrated_time_us));
+
+				} else {
+					status.time_slip = 0.0f;
+				}
 
 				if (_estimator_status_pub == nullptr) {
 					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
