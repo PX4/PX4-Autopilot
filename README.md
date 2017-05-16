@@ -62,7 +62,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](https://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon)
     * [Christoph Tobler](https://github.com/ChristophTobler)
-    * [Mark Charlebois](https://github.com/mcharleb) 
+    * [Mark Charlebois](https://github.com/mcharleb)
   * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero)
     * [Lucas De Marchi](https://github.com/lucasdemarchi)
     * [José Roberto de Souza](https://github.com/zehortigoza)
