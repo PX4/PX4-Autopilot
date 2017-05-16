@@ -204,6 +204,7 @@ px4_add_git_submodule(TARGET git_mavlink PATH "mavlink/include/mavlink/v1.0")
 px4_add_git_submodule(TARGET git_mavlink2 PATH "mavlink/include/mavlink/v2.0")
 px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
 px4_add_git_submodule(TARGET git_uavcan PATH "src/modules/uavcan/libuavcan")
+px4_add_git_submodule(TARGET git_micro_cdr PATH "src/lib/micro-CDR")
 
 px4_create_git_hash_header()
 
@@ -400,6 +401,11 @@ foreach(driver ${config_df_driver_list})
 	list(APPEND df_driver_libs df_${driver})
 	message("Adding DF driver: ${driver}")
 endforeach()
+
+#=============================================================================
+# micro-CDR
+#
+include_directories(src/lib/micro-CDR/include)
 
 #=============================================================================
 # external projects

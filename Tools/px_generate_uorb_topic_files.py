@@ -82,6 +82,8 @@ OUTPUT_FILE_EXT = ['.h', '.cpp']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
+uRTPS_TEMPLATE_FILE = 'uRTPS_UART_transmitter.cpp.template'
+IDL_TEMPLATE_FILE = 'msg.idl.template'
 
 
 def get_multi_topics(filename):
@@ -141,6 +143,73 @@ def generate_output_from_file(format_idx, filename, outputdir, templatedir, incl
 
         return generate_by_template(output_file, template_file, em_globals)
 
+def generate_uRTPS_application_file(filename_msg, outputdir, templatedir, includepath):
+        """
+        Generates an application to send by UART msg content
+        """
+        msg_context = genmsg.msg_loader.MsgContext.create_default()
+        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
+        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
+        topics = get_multi_topics(filename_msg)
+        if includepath:
+                search_path = genmsg.command_line.includepath_to_dict(includepath)
+        else:
+                search_path = {}
+        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
+        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
+        if len(topics) == 0:
+                topics.append(spec.short_name)
+        em_globals = {
+            "file_name_in": filename_msg,
+            "md5sum": md5sum,
+            "search_path": search_path,
+            "msg_context": msg_context,
+            "spec": spec,
+            "topics": topics
+        }
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, uRTPS_TEMPLATE_FILE)
+        output_file = os.path.join(outputdir, spec.short_name + "_" + uRTPS_TEMPLATE_FILE.replace(".cpp.template", ".cpp"))
+
+        return generate_by_template(output_file, template_file, em_globals)
+
+def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
+        """
+        Generates an .idl from .msg file
+        """
+        msg_context = genmsg.msg_loader.MsgContext.create_default()
+        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
+        spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
+        topics = get_multi_topics(filename_msg)
+        if includepath:
+                search_path = genmsg.command_line.includepath_to_dict(includepath)
+        else:
+                search_path = {}
+        genmsg.msg_loader.load_depends(msg_context, spec, search_path)
+        md5sum = genmsg.gentools.compute_md5(msg_context, spec)
+        if len(topics) == 0:
+                topics.append(spec.short_name)
+        em_globals = {
+            "file_name_in": filename_msg,
+            "md5sum": md5sum,
+            "search_path": search_path,
+            "msg_context": msg_context,
+            "spec": spec,
+            "topics": topics
+        }
+
+        # Make sure output directory exists:
+        if not os.path.isdir(outputdir):
+                os.makedirs(outputdir)
+
+        template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
+        output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace("msg.idl.template", str(spec.short_name + "_.idl")))
+
+        return generate_by_template(output_file, template_file, em_globals)
 
 def generate_by_template(output_file, template_file, em_globals):
         """
@@ -291,6 +360,10 @@ if __name__ == "__main__":
             action='store_true')
         parser.add_argument('--sources', help='Generate source files',
             action='store_true')
+        parser.add_argument('--idl', help='Generate idl files',
+            action='store_true')
+        parser.add_argument('--UART', help='Generate application files',
+            action='store_true')
         parser.add_argument('-d', dest='dir', help='directory with msg files')
         parser.add_argument('-f', dest='file',
                             help="files to convert (use only without -d)",
@@ -319,12 +392,21 @@ if __name__ == "__main__":
             generate_idx = 0
         elif args.sources:
             generate_idx = 1
+        elif args.UART:
+            generate_idx = 2
+        elif args.idl:
+            generate_idx = 3
         else:
-            print('Error: either --headers or --sources must be specified')
+            print('Error: either --headers, --sources, --idl or --UART must be specified')
             exit(-1)
         if args.file is not None:
             for f in args.file:
-                generate_output_from_file(generate_idx, f, args.temporarydir, args.templatedir, INCL_DEFAULT)
+                if generate_idx < 2:
+                    generate_output_from_file(generate_idx, f, args.temporarydir, args.templatedir, INCL_DEFAULT)
+                elif generate_idx == 2:
+                    generate_uRTPS_application_file(f, args.temporarydir, args.templatedir, INCL_DEFAULT)
+                else:
+                    generate_idl_file(f, args.temporarydir, args.templatedir, INCL_DEFAULT)
             if generate_idx == 1:
                 generate_topics_list_file_from_files(args.file, args.outputdir, args.templatedir)
             copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)

@@ -64,8 +64,10 @@ struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
+#include <px4_config.h>
+#include <drivers/drv_orb_dev.h>
+#include <micro-CDR/microCdr.h>
 #include <uORB/topics/@(topic_name).h>
-
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
@@ -75,3 +77,81 @@ constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
 ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size),
     __orb_@(topic_name)_fields);
 @[end for]
+
+@#################################################
+@# Searching for serialize function per each field
+@#################################################
+@{
+
+def print_info(field):
+    print "type: ", field.type, "name: ", field.name, "base_type: ", \
+          field.base_type, "field.is_array:", ('0', '1')[field.is_array], " array_len: ", field.array_len, \
+          "is_builtin:", ('0', '1')[field.is_builtin], "is_header:", ('0', '1')[field.is_header]
+
+def print_level_info(fields):
+    for field in fields:
+        print_info(field)
+        if (not field.is_builtin):
+            print "\n"
+            children_fields = get_children_fields(field.base_type, search_path)
+            print_level_info(children_fields)
+            print "\n"
+
+def walk_through_parsed_fields():
+    print_level_info(spec.parsed_fields())
+
+def get_serialization_type_name(type_name):
+    if type_name in type_serialize_map:
+        return type_serialize_map[type_name]
+    else:
+        raise Exception("Type {0} not supported, add to type_serialize_map!".format(type_name))
+
+
+def add_serialize_functions(fields, scope_name):
+    for field in fields:
+        if (not field.is_header):
+            if (field.is_builtin):
+                if (not field.is_array):
+                    print "\tserialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);"
+                else:
+                    # FIXME: not support for bool arrays
+                    if (field.base_type == "bool"):
+                        print "//\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
+                    else:
+                        print "\tserialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);"
+            else:
+                name = field.name
+                children_fields = get_children_fields(field.base_type, search_path)
+                if (scope_name):  name = scope_name + name
+                if (not field.is_array):
+                    add_serialize_functions(children_fields, name + '.')
+                else:
+                    for i in xrange(field.array_len):
+                        add_serialize_functions(children_fields, name + ('[%d].' %i))
+
+def add_code_to_serialize():
+    # sort fields (using a stable sort) as in the declaration of the type
+    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+    add_serialize_functions(sorted_fields, "")
+}@
+
+void serialize_@(topic_name)(const @(uorb_struct) *input, char *output, uint32_t *length)
+{
+    // TODO: check params
+
+    // microBuffer using the user defined buffer (output)
+    struct microBuffer *microBufferWriter = NULL;
+    newStaticAlignedBuffer(output, MICROCDR_INIT_BUF_LENGTH, &microBufferWriter);
+
+    // microCDR struct for managing the microBuffer
+    struct microCDR *microCDRWriter = NULL;
+    newMicroCDR(&microCDRWriter, microBufferWriter);
+
+    serializeUnsignedLong(input->timestamp, microCDRWriter);
+@add_code_to_serialize()
+
+    (*length) = microBufferWriter->m_serializedBuffer;
+
+    free(microBufferWriter);
+    free(microCDRWriter);
+}

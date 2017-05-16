@@ -118,6 +118,7 @@ struct @(uorb_struct) {
 @# timestamp at the beginning of each topic is required for logger
 	uint64_t timestamp; // required for logger
 @print_parsed_fields()
+
 #ifdef __cplusplus
 @# Constants again c++-ified
 @{
@@ -133,6 +134,9 @@ for constant in spec.constants:
 }
 #endif
 };
+
+
+void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@
