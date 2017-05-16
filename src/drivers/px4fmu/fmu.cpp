@@ -3089,16 +3089,11 @@ bind_spektrum()
 		return;
 	}
 
-	if (true) {
-		PX4_INFO("bind_Spektrum RX");
+	PX4_INFO("bind_Spektrum RX");
 
-		/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
-		if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
-			PX4_ERR("binding failed.");
-		}
-
-	} else {
-		PX4_WARN("system armed, bind request rejected");
+	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
+	if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
+		PX4_ERR("binding failed.");
 	}
 
 	close(fd);
@@ -3519,7 +3514,8 @@ In addition it does the RC input parsing and auto-selecting the method. Supporte
 
 The module is configured via mode_* commands. This defines which of the first N pins the driver should occupy.
 By using mode_pwm4 for example, pins 5 and 6 can be used by the camera trigger driver or by a PWM rangefinder
-driver.
+driver. Alternatively, the fmu can be started in one of the capture modes, and then drivers can register a capture
+callback with ioctl calls.
 
 ### Implementation
 By default the module runs on the work queue, to reduce RAM usage. It can also be run in its own thread,
@@ -3609,7 +3605,7 @@ int PX4FMU::print_status()
 
 	case MODE_4PWM: mode_str = "pwm4"; break;
 
-	case MODE_2PWM2CAP: mode_str = "pwm2cap1"; break;
+	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
 
 	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
 
