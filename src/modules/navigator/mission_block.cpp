@@ -351,8 +351,21 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
-	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+	/* check position- and yaw-error OR velocity-error */
+	if (_mission_item.force_velocity) {
+
+		float ground_speed = sqrtf(_navigator->get_global_position()->vel_n * _navigator->get_global_position()->vel_n +
+					   _navigator->get_global_position()->vel_e * _navigator->get_global_position()->vel_e);
+
+
+		/* the vehicle has desired velocity */
+		if (fabsf(ground_speed - _mission_item.requested_speed) < 0.5f) {
+			_waypoint_velocity_reached = true;
+			return true;
+		}
+
+	} else if (_waypoint_position_reached && _waypoint_yaw_reached) {
+		/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
 
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
@@ -394,9 +407,10 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	// all acceptance criteria must be met in the same iteration
+// all acceptance criteria must be met in the same iteration
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
+	_waypoint_velocity_reached = false;
 	return false;
 }
 
@@ -405,6 +419,7 @@ MissionBlock::reset_mission_item_reached()
 {
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
+	_waypoint_velocity_reached = false;
 	_time_first_inside_orbit = 0;
 	_time_wp_reached = 0;
 }
@@ -562,6 +577,17 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 		if (_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()) {
 			sp->disable_mc_yaw_control = true;
+		}
+
+		break;
+
+	case NAV_CMD_WAYPOINT:
+		// default is of type position
+		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+		if (item.force_velocity) {
+			sp->cruising_speed = item.requested_speed;
+			sp->type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
 		}
 
 		break;
@@ -745,6 +771,23 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::set_brake_item(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_WAYPOINT;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude_is_relative = false;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->yaw = NAN;
+	item->acceptance_radius = 1e8f; // set it large since we don't care about waypoint
+	item->requested_speed = 0.000001f; // set speed to small number since we want to brake
+	item->force_velocity = 1;
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;

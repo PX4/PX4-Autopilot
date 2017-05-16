@@ -120,6 +120,11 @@ protected:
 	 */
 	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 
+	/**
+	* Set brake item
+	*/
+	void set_brake_item(struct mission_item_s *item);
+
 	void issue_command(const mission_item_s &item);
 
 	float get_time_inside(const struct mission_item_s &item);
@@ -128,6 +133,7 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_velocity_reached{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};

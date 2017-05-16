@@ -124,6 +124,7 @@ struct mission_item_s {
 			float ___lat_float;			/**< padding */
 			float ___lon_float;			/**< padding */
 			float altitude;				/**< altitude in meters	(AMSL)			*/
+			float requested_speed;     /**< only considered if force_velocity is set */
 		};
 		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
 	};
@@ -142,7 +143,8 @@ struct mission_item_s {
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
 			 disable_mc_yaw : 1,				/**< weathervane mode */
-			 vtol_back_transition : 1;		/**< part of the vtol back transition sequence */
+			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
+			 force_velocity: 1;				/**< velocity target is set*/
 	};
 };
 

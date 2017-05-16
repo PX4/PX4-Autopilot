@@ -385,6 +385,7 @@ Navigator::task_main()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+				rep->current.cruising_speed = get_cruising_speed();
 
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
