@@ -34,6 +34,11 @@ set(config_module_list
 	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
+	
+	#
+    # Libraries
+    #
+	lib/micro-CDR
 
 	#
 	# QuRT port

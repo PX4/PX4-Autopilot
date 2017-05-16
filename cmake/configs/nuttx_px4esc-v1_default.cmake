@@ -76,6 +76,7 @@ set(config_module_list
 	platforms/common
 	platforms/nuttx/px4_layer
 	modules/uORB
+	lib/micro-CDR
 
 )
 

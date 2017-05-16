@@ -108,6 +108,8 @@ def print_parsed_fields():
             print_field_def(field)
 }@
 
+struct microCDR;
+
 #ifdef __cplusplus
 @#class @(uorb_struct) {
 struct __EXPORT @(uorb_struct) {
@@ -118,6 +120,7 @@ struct @(uorb_struct) {
 @# timestamp at the beginning of each topic is required for logger
 	uint64_t timestamp; // required for logger
 @print_parsed_fields()
+
 #ifdef __cplusplus
 @# Constants again c++-ified
 @{
@@ -133,6 +136,10 @@ for constant in spec.constants:
 }
 #endif
 };
+
+
+void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
+void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct microCDR *microCDRReader);
 
 /* register this as object request broker structure */
 @[for multi_topic in topics]@
