@@ -1286,7 +1286,7 @@ task_main(int argc, char *argv[])
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
 
-	const char *restart_type_str = "Unkown restart";
+	const char *restart_type_str = "Unknown restart";
 
 	int ret = g_dm_ops->initialize(max_offset);
 
