@@ -46,7 +46,7 @@
 __BEGIN_DECLS
 /* configuration limits */
 #define MAX_IO_TIMERS			4
-#define MAX_TIMER_IO_CHANNELS	8
+#define MAX_TIMER_IO_CHANNELS	16
 
 #define MAX_LED_TIMERS			2
 #define MAX_TIMER_LED_CHANNELS	6
@@ -63,7 +63,7 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
-typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
+typedef uint16_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
 
 /* array of timers dedicated to PWM in and out and capture use
  *** Note that the clock_freq is set to the source in the clock tree that
@@ -74,30 +74,28 @@ typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_I
  *** the resulting PSC will be one and the timer will count at it's clock frequency.
  */
 typedef struct io_timers_t {
-	uint32_t	base;
-	uint32_t	clock_register;
-	uint32_t	clock_bit;
-	uint32_t	clock_freq;
-	uint32_t	vectorno;
-	uint32_t    first_channel_index;
-	uint32_t    last_channel_index;
+	uint32_t	base;                /* Base address of the timer */
+	uint32_t	clock_register;      /* SIM_SCGCn */
+	uint32_t	clock_bit;           /* SIM_SCGCn bit pos */
+	uint32_t	vectorno;            /* IRQ number */
+	uint32_t    first_channel_index; /* 0 based index in timer_io_channels */
+	uint32_t    last_channel_index;  /* 0 based index in timer_io_channels */
 	xcpt_t      handler;
 } io_timers_t;
 
 /* array of channels in logical order */
 typedef struct timer_io_channels_t {
-	uint32_t	gpio_out;
-	uint32_t	gpio_in;
-	uint8_t		timer_index;
-	uint8_t		timer_channel;
-	uint16_t	masks;
-	uint8_t		ccr_offset;
+	uint32_t	gpio_out;            /* The timer channel GPIO for PWM */
+	uint32_t	gpio_in;             /* The timer channel GPIO for Capture */
+	uint8_t		timer_index;         /* 0 based index in the io_timers_t table */
+	uint8_t		timer_channel;       /* 1 based channel index GPIO_FTMt_CHcIN = c+1) */
 } timer_io_channels_t;
 
 
 typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint32_t chan_index,
 				  const timer_io_channels_t *chan,
-				  hrt_abstime isrs_time, uint16_t isrs_rcnt);
+				  hrt_abstime isrs_time, uint16_t isrs_rcnt,
+				  uint16_t capture);
 
 
 /* supplied by board-specific code */
