@@ -2602,6 +2602,11 @@ MulticopterPositionControl::task_main()
 
 			_vel_sp_prev.zero();
 			_vel_prev.zero();
+
+			/* make sure attitude setpoint output "disables" attitude control
+			 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
+			_att_sp.thrust = 0.0f;
+			_att_sp.timestamp = hrt_absolute_time();
 		}
 
 
