@@ -47,6 +47,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
+#include <geo/geo.h>
 #include <px4_defines.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -145,12 +146,17 @@ private:
 	float _altitude_max{0.0f};
 
 	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_*
+		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
 		uint16_t dataman_index;
-		uint16_t vertex_count;
+		union {
+			uint16_t vertex_count;
+			float circle_radius;
+		};
 	};
 	PolygonInfo *_polygons{nullptr};
 	int _num_polygons{0};
+
+	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 
 	/* Params */
 	control::BlockParamInt _param_action;
@@ -190,6 +196,13 @@ private:
 	 * @return true if within polygon
 	 */
 	bool insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	/**
+	 * Check if a single point is within a circle
+	 * @param polygon must be a circle!
+	 * @return true if within polygon the circle
+	 */
+	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 };
 
 #endif /* GEOFENCE_H_ */
