@@ -31,6 +31,10 @@ public:
     const size_t max_size = 256;
 
 protected:
+    uint16_t crc16_byte(uint16_t crc, const uint8_t data);
+    uint16_t crc16(uint8_t const *buffer, size_t len);
+
+protected:
 
     int m_uart_filestream;
 };
