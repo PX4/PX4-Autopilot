@@ -644,7 +644,6 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 	switch (mode) {
 
-	// intentional fallthrough
 	case IOTimerChanMode_OneShot:
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_Trigger:
