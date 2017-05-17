@@ -161,8 +161,8 @@ private:
 	bool _mag_decl_saved = false;	// true when the declination for the current position has been saved
 
 	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _last_invalid_magcal_us =
-		0;	// last time the conditions for a valid ekf magnetometer cal were not met (usec)
+	hrt_abstime _last_magcal_us = 0;	// last time the EKF was operating a mode that estimates magnetomer biases (usec)
+	hrt_abstime _total_cal_time_us = 0;	// accumulated calibration time since the last save
 	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
@@ -227,6 +227,7 @@ private:
 	control::BlockParamExtFloat _vel_innov_gate;	// innovation gate for GPS velocity innovation test (std dev)
 	control::BlockParamExtFloat _tas_innov_gate;	// innovation gate for tas innovation test (std dev)
 
+	// control of magnetometer fusion
 	control::BlockParamExtFloat _mag_heading_noise;	// measurement noise used for simple heading fusion
 	control::BlockParamExtFloat _mag_noise;		// measurement noise used for 3-axis magnetoemter fusion (Gauss)
 	control::BlockParamExtFloat _eas_noise;		// measurement noise used for airspeed fusion (std m/s)
@@ -237,6 +238,8 @@ private:
 	control::BlockParamExtInt
 	_mag_decl_source;       // bitmasked integer used to control the handling of magnetic declination
 	control::BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
+	control::BlockParamExtFloat _mag_acc_gate;	// manoeuvre threshold for use of 3-axis fusion (m/s**2)
+	control::BlockParamExtFloat _mag_yaw_rate_gate;	// yaw rate threshold for use of 3-axis fusion (rad/s)
 
 	control::BlockParamExtInt _gps_check_mask;	// bitmasked integer used to activate the different GPS quality checks
 	control::BlockParamExtFloat _requiredEph;	// maximum acceptable horiz position error (m)
@@ -372,6 +375,8 @@ Ekf2::Ekf2():
 	_mag_innov_gate(this, "EKF2_MAG_GATE", false, _params->mag_innov_gate),
 	_mag_decl_source(this, "EKF2_DECL_TYPE", false, _params->mag_declination_source),
 	_mag_fuse_type(this, "EKF2_MAG_TYPE", false, _params->mag_fusion_type),
+	_mag_acc_gate(this, "EKF2_MAG_ACCLIM", false, _params->mag_acc_gate),
+	_mag_yaw_rate_gate(this, "EKF2_MAG_YAWLIM", false, _params->mag_yaw_rate_gate),
 	_gps_check_mask(this, "EKF2_GPS_CHECK", false, _params->gps_check_mask),
 	_requiredEph(this, "EKF2_REQ_EPH", false, _params->req_hacc),
 	_requiredEpv(this, "EKF2_REQ_EPV", false, _params->req_vacc),
@@ -1034,30 +1039,47 @@ void Ekf2::task_main()
 					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
 				}
 
-				/*
-				 * Check if conditions are OK to save learned magnetometer bias values after 3min of the following:
-				 * Armed, In air, using 3-axis mag fusion, no filter faults
-				 * Also check for changes in Mag ID, but do not apply 3-min rule to this check to allow for
-				 * occasional in-flight mag sensor timeouts which can cause switching from primary to secondary mag
-				*/
-				bool mag_cal_active = status.control_mode_flags & (1 << 5);
+				/* Check and save learned magnetometer bias estimates */
 
-				if (vehicle_land_detected.landed
-				    || (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED)
-				    || (status.filter_fault_flags != 0)
-				    || !mag_cal_active) {
-					_last_invalid_magcal_us = now;
+				// Check if conditions are OK to for learning of magnetometer bias values
+				if (!vehicle_land_detected.landed && // not on ground
+				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+				    (status.filter_fault_flags == 0) && // there are no filter faults
+				    (status.control_mode_flags & (1 << 5))) { // the EKF is operating in the correct mode
+					if (_last_magcal_us == 0) {
+						_last_magcal_us = now;
 
-				} else if (((now - _last_invalid_magcal_us) > 180 * 1000 * 1000ULL)
-					   && (_invalid_mag_id_count == 0)) {
-					// we have sufficient continuous valid flight time to form a bias estimate
-					// Don't record bias estimates to save later if variances are outside the valid range
+					} else {
+						_total_cal_time_us += now - _last_magcal_us;
+						_last_magcal_us = now;
+					}
+
+				} else if (status.filter_fault_flags != 0) {
+					// if a filter fault has occurred, assume previous learning was invalid and do not
+					// count it towards total learning time.
+					_total_cal_time_us = 0;
+					memset(_valid_cal_available, false, sizeof(_valid_cal_available));
+				}
+
+				// Start checking mag bias estimates when we have accumulated sufficient calibration time
+				if (_total_cal_time_us > 120 * 1000 * 1000ULL) {
+					// we have sufficient accumulated valid flight time to form a reliable bias estimate
+					// check that the state variance for each axis is within a range indicating filter convergence
 					float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
 					float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
 
+					// Declare all bias estimates invalid if any variances are out of range
+					bool all_estimates_invalid = false;
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-						if (status.covariances[axis_index + 19] > min_var_allowed
-						    && status.covariances[axis_index + 19] < max_var_allowed) {
+						if (status.covariances[axis_index + 19] < min_var_allowed
+						    || status.covariances[axis_index + 19] > max_var_allowed) {
+							all_estimates_invalid = true;
+						}
+					}
+
+					// Store valid estimates and their associated variances
+					if (!all_estimates_invalid) {
+						for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
 							_last_valid_mag_cal[axis_index] = status.states[axis_index + 19];
 							_valid_cal_available[axis_index] = true;
 							_last_valid_variance[axis_index] = status.covariances[axis_index + 19];
@@ -1066,7 +1088,9 @@ void Ekf2::task_main()
 				}
 
 				// Check and save the last valid calibration when we are disarmed
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				    && (status.filter_fault_flags == 0)
+				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
 					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
@@ -1079,24 +1103,13 @@ void Ekf2::task_main()
 							_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
 							mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
 							mag_biases[axis_index]->commit_no_notification();
+
 							_valid_cal_available[axis_index] = false;
 						}
 					}
 
-					// reset the timer to prevent possible race condition causing data to be saved too frequently
-					_last_invalid_magcal_us = now;
-
-					// save the declination to the EKF2_MAG_DECL parameter when transitioning into ARMING_STATE_STANDBY
-					// for the first time when the EKF is using GPS
-					if (!_mag_decl_saved && // this is the first transition into standby
-					    (_params->mag_declination_source & (1 << 1)) && // saving the declination is allowed by the parameter setting
-					    (status.control_mode_flags & (1 << 2))) { // the EKF is using GPS
-						float decl_deg;
-						_ekf.copy_mag_decl_deg(&decl_deg);
-						_mag_declination_deg.set(decl_deg);
-						_mag_declination_deg.commit_no_notification();
-						_mag_decl_saved = true;
-					}
+					// reset to prevent data being saved too frequently
+					_total_cal_time_us = 0;
 				}
 
 				// Publish wind estimate
