@@ -457,7 +457,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAN, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 2.0f);
+PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
@@ -484,10 +484,12 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
 
 /**
- * Maximum jerk in manual controlled mode for braking to zero
+ * Maximum jerk in manual controlled mode for BRAKING to zero.
  * If this value is below MPC_JERK_MIN, the acceleration limit in xy and z
- * is MPC_ACC_HOR_MAN and MPC_ACC_UP_MAX respectively.
- * Otherwise the acceleration limit is mapped from the stick inputs
+ * is MPC_ACC_HOR_MAX and MPC_ACC_UP_MAX respectively instantaneously when the
+ * user demands brake (=zero stick input).
+ * Otherwise the acceleration limit increases from current acceleration limit
+ * towards MPC_ACC_HOR_MAX/MPC_ACC_UP_MAX with jerk limit
  *
  * @unit m/s/s/s
  * @min 0.0
@@ -499,7 +501,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 0.0f);
 
 /**
- * Minimum jerk in manual controlled mode for braking to zero
+ * Minimum jerk in manual controlled mode for BRAKING to zero
  *
  * @unit m/s/s/s
  * @min 0.5
