@@ -105,7 +105,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 				       const timer_io_channels_t *chan,
 				       hrt_abstime isrs_time, uint16_t isrs_rcnt)
 {
-	uint16_t capture = _REG32(timer, chan->ccr_offset);
+	uint16_t capture = _REG32(timer->base, chan->ccr_offset);
 	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
 	if ((isrs_rcnt - capture) > channel_stats[chan_index].latnecy) {
@@ -114,7 +114,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 
 	channel_stats[chan_index].chan_in_edges_out++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
-	uint32_t overflow = _REG32(timer, STM32_GTIM_SR_OFFSET) & chan->masks & GTIM_SR_CCOF;
+	uint32_t overflow = _REG32(timer->base, STM32_GTIM_SR_OFFSET) & chan->masks & GTIM_SR_CCOF;
 
 	if (overflow) {
 
@@ -211,22 +211,22 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 
 			case 1:
 				rvalue = rCCMR1(timer) & GTIM_CCMR1_IC1F_MASK;
-				*filter = (rvalue << GTIM_CCMR1_IC1F_SHIFT);
+				*filter = (rvalue >> GTIM_CCMR1_IC1F_SHIFT);
 				break;
 
 			case 2:
 				rvalue = rCCMR1(timer) & GTIM_CCMR1_IC2F_MASK;
-				*filter = (rvalue << GTIM_CCMR1_IC2F_SHIFT);
+				*filter = (rvalue >> GTIM_CCMR1_IC2F_SHIFT);
 				break;
 
 			case 3:
 				rvalue = rCCMR2(timer) & GTIM_CCMR2_IC3F_MASK;
-				*filter = (rvalue << GTIM_CCMR2_IC3F_SHIFT);
+				*filter = (rvalue >> GTIM_CCMR2_IC3F_SHIFT);
 				break;
 
 			case 4:
 				rvalue = rCCMR2(timer) & GTIM_CCMR2_IC4F_MASK;
-				*filter = (rvalue << GTIM_CCMR2_IC4F_SHIFT);
+				*filter = (rvalue >> GTIM_CCMR2_IC4F_SHIFT);
 				break;
 
 			default:
@@ -282,7 +282,7 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 			case 4:
 				rvalue = rCCMR2(timer) & ~GTIM_CCMR2_IC4F_MASK;
 				rvalue |= (filter << GTIM_CCMR2_IC4F_SHIFT);
-				rCCMR1(timer) = rvalue;
+				rCCMR2(timer) = rvalue;
 				break;
 
 			default:
