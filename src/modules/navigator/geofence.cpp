@@ -91,6 +91,7 @@ void Geofence::updateFence()
 
 	while (current_seq <= num_fence_items) {
 		mission_fence_point_s mission_fence_point;
+		bool is_circle_area = false;
 
 		if (dm_read(DM_KEY_FENCE_POINTS, current_seq, &mission_fence_point, sizeof(mission_fence_point_s)) !=
 		    sizeof(mission_fence_point_s)) {
@@ -104,9 +105,14 @@ void Geofence::updateFence()
 			++current_seq;
 			break;
 
+		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
+		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
+			is_circle_area = true;
+
+		/* FALLTHROUGH */
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
-			if (mission_fence_point.vertex_count == 0) {
+			if (!is_circle_area && mission_fence_point.vertex_count == 0) {
 				++current_seq; // avoid endless loop
 				PX4_ERR("Polygon with 0 vertices. Skipping");
 
@@ -135,8 +141,16 @@ void Geofence::updateFence()
 				PolygonInfo &polygon = _polygons[_num_polygons];
 				polygon.dataman_index = current_seq;
 				polygon.fence_type = mission_fence_point.nav_cmd;
-				polygon.vertex_count = mission_fence_point.vertex_count;
-				current_seq += mission_fence_point.vertex_count;
+
+				if (is_circle_area) {
+					polygon.circle_radius = mission_fence_point.circle_radius;
+					current_seq += 1;
+
+				} else {
+					polygon.vertex_count = mission_fence_point.vertex_count;
+					current_seq += mission_fence_point.vertex_count;
+				}
+
 				++_num_polygons;
 			}
 
@@ -266,29 +280,47 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 		}
 	}
 
-	/* Horizontal check: iterate all polygons */
+	/* Horizontal check: iterate all polygons & circles */
 	bool outside_exclusion = true;
 	bool inside_inclusion = false;
-	bool had_inclusion_polygons = false;
+	bool had_inclusion_areas = false;
 
 	for (int polygon_idx = 0; polygon_idx < _num_polygons; ++polygon_idx) {
-		bool inside = insidePolygon(_polygons[polygon_idx], lat, lon, altitude);
+		if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION) {
+			bool inside = insideCircle(_polygons[polygon_idx], lat, lon, altitude);
 
-		if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION) {
 			if (inside) {
 				inside_inclusion = true;
 			}
 
-			had_inclusion_polygons = true;
+			had_inclusion_areas = true;
 
-		} else { // exclusion
+		} else if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION) {
+			bool inside = insideCircle(_polygons[polygon_idx], lat, lon, altitude);
+
 			if (inside) {
 				outside_exclusion = false;
+			}
+
+		} else { // it's a polygon
+			bool inside = insidePolygon(_polygons[polygon_idx], lat, lon, altitude);
+
+			if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION) {
+				if (inside) {
+					inside_inclusion = true;
+				}
+
+				had_inclusion_areas = true;
+
+			} else { // exclusion
+				if (inside) {
+					outside_exclusion = false;
+				}
 			}
 		}
 	}
 
-	return (!had_inclusion_polygons || inside_inclusion) && outside_exclusion;
+	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
@@ -331,6 +363,36 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 	}
 
 	return c;
+}
+
+bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+
+	mission_fence_point_s circle_point;
+
+	if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index, &circle_point,
+		    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+		PX4_ERR("dm_read failed");
+		return false;
+	}
+
+	if (circle_point.frame != MAV_FRAME_GLOBAL && circle_point.frame != MAV_FRAME_GLOBAL_INT
+	    && circle_point.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT
+	    && circle_point.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		// TODO: handle different frames
+		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
+		return false;
+	}
+
+	if (!map_projection_initialized(&_projection_reference)) {
+		map_projection_init(&_projection_reference, lat, lon);
+	}
+
+	float x1, y1, x2, y2;
+	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
+	map_projection_project(&_projection_reference, circle_point.lat, circle_point.lon, &x2, &y2);
+	float dx = x1 - x2, dy = y1 - y2;
+	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
 
 bool
@@ -485,6 +547,7 @@ bool Geofence::isHomeRequired()
 void Geofence::printStatus()
 {
 	int num_inclusion_polygons = 0, num_exclusion_polygons = 0, total_num_vertices = 0;
+	int num_inclusion_circles = 0, num_exclusion_circles = 0;
 
 	for (int i = 0; i < _num_polygons; ++i) {
 		total_num_vertices += _polygons[i].vertex_count;
@@ -496,8 +559,17 @@ void Geofence::printStatus()
 		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
 			++num_exclusion_polygons;
 		}
+
+		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION) {
+			++num_inclusion_circles;
+		}
+
+		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION) {
+			++num_exclusion_circles;
+		}
 	}
 
-	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i total vertices",
-		 num_inclusion_polygons, num_exclusion_polygons, total_num_vertices);
+	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion, %i exclusion circles, %i total vertices",
+		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
+		 total_num_vertices);
 }
