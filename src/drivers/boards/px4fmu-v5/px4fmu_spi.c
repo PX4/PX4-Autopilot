@@ -88,11 +88,10 @@ static const uint32_t spi3selects_gpio[] = {FIXME};
 #error Need to define SPI3 Usage
 #endif
 static const uint32_t spi4selects_gpio[] = PX4_BARO_BUS_CS_GPIO;
-#ifdef CONFIG_STM32F7_SPI3
-static const uint32_t spi5selects_gpio[] = {FIXME};;
-#error Need to define SPI5 Usage
+#ifdef CONFIG_STM32F7_SPI5
+static const uint32_t spi5selects_gpio[] = PX4_EXTERNAL1_BUS_CS_GPIO;
 #endif
-static const uint32_t spi6selects_gpio[] = PX4_EXTERNAL_BUS_CS_GPIO;
+static const uint32_t spi6selects_gpio[] = PX4_EXTERNAL2_BUS_CS_GPIO;
 
 
 /************************************************************************************
@@ -242,12 +241,12 @@ __EXPORT int stm32_spi_bus_initialize(void)
 		SPI_SELECT(spi_baro, cs, false);
 	}
 
-	/* Get the SPI port for the PX4_SPI_EXTERNAL */
+	/* Get the SPI port for the PX4_SPI_EXTERNAL1 */
 
-	spi_ext = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
+	spi_ext = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL1);
 
 	if (!spi_ext) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
 		return -ENODEV;
 	}
 
@@ -255,7 +254,24 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	SPI_SETBITS(spi_ext, 8);
 	SPI_SETMODE(spi_ext, SPIDEV_MODE3);
 
-	for (int cs = PX4_EXTERNAL_BUS_FIRST_CS; cs <= PX4_EXTERNAL_BUS_LAST_CS; cs++) {
+	for (int cs = PX4_EXTERNAL1_BUS_FIRST_CS; cs <= PX4_EXTERNAL1_BUS_LAST_CS; cs++) {
+		SPI_SELECT(spi_ext, cs, false);
+	}
+
+	/* Get the SPI port for the PX4_SPI_EXTERNAL2 */
+
+	spi_ext = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL2);
+
+	if (!spi_ext) {
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL2);
+		return -ENODEV;
+	}
+
+	SPI_SETFREQUENCY(spi_ext, 8 * 1000 * 1000);
+	SPI_SETBITS(spi_ext, 8);
+	SPI_SETMODE(spi_ext, SPIDEV_MODE3);
+
+	for (int cs = PX4_EXTERNAL2_BUS_FIRST_CS; cs <= PX4_EXTERNAL2_BUS_LAST_CS; cs++) {
 		SPI_SELECT(spi_ext, cs, false);
 	}
 
@@ -421,7 +437,7 @@ __EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	int sel = (int) devid;
 
-	ASSERT(PX4_SPI_BUS_ID(sel) == FIXME);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL1);
 
 	/* Making sure the other peripherals are not selected */
 	for (int cs = 0; arraySize(spi5selects_gpio) > 1 && cs < arraySize(spi5selects_gpio); cs++) {
@@ -455,7 +471,7 @@ __EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 
 	int sel = (int) devid;
 
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL2);
 
 	/* Making sure the other peripherals are not selected */
 	for (int cs = 0; arraySize(spi6selects_gpio) > 1 && cs < arraySize(spi6selects_gpio); cs++) {
