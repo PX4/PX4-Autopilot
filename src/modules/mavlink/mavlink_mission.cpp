@@ -336,7 +336,14 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 			mission_item.lat = mission_fence_point.lat;
 			mission_item.lon = mission_fence_point.lon;
 			mission_item.altitude = mission_fence_point.alt;
-			mission_item.vertex_count = mission_fence_point.vertex_count;
+
+			if (mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
+			    mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+				mission_item.vertex_count = mission_fence_point.vertex_count;
+
+			} else {
+				mission_item.circle_radius = mission_fence_point.circle_radius;
+			}
 		}
 		break;
 
@@ -1050,17 +1057,28 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_fence_point.lat = mission_item.lat;
 				mission_fence_point.lon = mission_item.lon;
 				mission_fence_point.alt = mission_item.altitude;
-				mission_fence_point.vertex_count = mission_item.vertex_count;
+
+				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
+				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+					mission_fence_point.vertex_count = mission_item.vertex_count;
+
+					if (mission_item.vertex_count < 3) { // feasibility check
+						PX4_ERR("Fence: too few vertices");
+						check_failed = true;
+						update_geofence_count(0);
+					}
+
+				} else {
+					mission_fence_point.circle_radius = mission_item.circle_radius;
+				}
+
 				mission_fence_point.frame = mission_item.frame;
 
-				write_failed = dm_write(DM_KEY_FENCE_POINTS, wp.seq + 1, DM_PERSIST_POWER_ON_RESET, &mission_fence_point,
-							sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s);
-
-				if (mission_item.vertex_count < 3) { // feasibility check
-					PX4_ERR("Fence: too few vertices");
-					check_failed = true;
-					update_geofence_count(0);
+				if (!check_failed) {
+					write_failed = dm_write(DM_KEY_FENCE_POINTS, wp.seq + 1, DM_PERSIST_POWER_ON_RESET, &mission_fence_point,
+								sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s);
 				}
+
 			}
 			break;
 
@@ -1242,7 +1260,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
-		/* this field is shared with pitch_min in memory and
+		/* this field is shared with pitch_min (and circle_radius for geofence) in memory and
 		 * exclusive in the MAVLink spec. Set it to 0 first
 		 * and then set minimum pitch later only for the
 		 * corresponding item
@@ -1303,6 +1321,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			mission_item->vertex_count = (uint16_t)(mavlink_mission_item->param1 + 0.5f);
+			break;
+
+		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
+		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->circle_radius = mavlink_mission_item->param1;
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:
@@ -1524,6 +1548,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 			mavlink_mission_item->param1 = (float)mission_item->vertex_count;
+			break;
+
+		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
+		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
+			mavlink_mission_item->param1 = mission_item->circle_radius;
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:

@@ -117,6 +117,7 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
 			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 			float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
@@ -163,7 +164,10 @@ struct mission_fence_point_s {
 	double lon;
 	float alt;
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
-	uint16_t vertex_count;				/**< number of vertices in this polygon */
+	union {
+		uint16_t vertex_count;			/**< number of vertices in this polygon */
+		float circle_radius;			/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
+	};
 	uint8_t frame;					/**< MAV_FRAME */
 };
 
