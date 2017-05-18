@@ -65,7 +65,6 @@
 #include <arch/board/board.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/geofence_update.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -252,7 +251,6 @@ Navigator::task_main()
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	_geofence_update_sub = orb_subscribe(ORB_ID(geofence_update));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -344,15 +342,6 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
-		}
-
-		/* geofence updated */
-		orb_check(_geofence_update_sub, &updated);
-
-		if (updated) {
-			geofence_update_s geofence_update;
-			orb_copy(ORB_ID(geofence_update), _geofence_update_sub, &geofence_update);
-			_geofence.updateFence();
 		}
 
 		/* vehicle status updated */
@@ -706,8 +695,6 @@ Navigator::task_main()
 	_param_update_sub = -1;
 	orb_unsubscribe(_vehicle_command_sub);
 	_vehicle_command_sub = -1;
-	orb_unsubscribe(_geofence_update_sub);
-	_geofence_update_sub = -1;
 
 	PX4_INFO("exiting");
 
