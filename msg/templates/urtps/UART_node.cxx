@@ -133,7 +133,7 @@ uint8_t UART_node::close_uart()
 }
 
 
-int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos)
+int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos, uint32_t max_size)
 {
     if (-1 == m_uart_filestream ||
         nullptr == out_buffer ||
@@ -188,7 +188,7 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
         }
         if (rx_buff_pos > max_size)
         {
-            printf("                                 (↓↓ %lu)\n", max_size);
+            printf("                                 (↓↓ %u)\n", max_size);
             rx_buff_pos = 0;
             return -1;
         }
