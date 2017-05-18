@@ -59,6 +59,7 @@
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_yawmode(this, "MIS_YAWMODE", false),
 	_loiter_pos_set(false)
 {
 	// load initial params
@@ -159,21 +160,23 @@ Loiter::reposition()
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 
-		// set yaw
+		// set yaw (depends on the value of parameter MIS_YAWMODE):
+		// MISSION_YAWMODE_NONE: do not change yaw setpoint
+		// MISSION_YAWMODE_FRONT_TO_WAYPOINT: point to next waypoint
+		if (_param_yawmode.get() != MISSION_YAWMODE_NONE){
+				float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
+						    _navigator->get_global_position()->lon,
+						    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
-		float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
-				    _navigator->get_global_position()->lon,
-				    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
-
-		if (travel_dist > 1.0f) {
-			// calculate direction the vehicle should point to.
-			pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
-							      _navigator->get_global_position()->lat,
-							      _navigator->get_global_position()->lon,
-							      pos_sp_triplet->current.lat,
-							      pos_sp_triplet->current.lon);
+				if (travel_dist > 1.0f) {
+					// calculate direction the vehicle should point to.
+					pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
+									      _navigator->get_global_position()->lat,
+									      _navigator->get_global_position()->lon,
+									      pos_sp_triplet->current.lat,
+									      pos_sp_triplet->current.lon);
+				}
 		}
-
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		_navigator->set_position_setpoint_triplet_updated();
