@@ -68,8 +68,8 @@ private:
 	static int _exportPin(unsigned int pin);
 	static int _unexportPin(unsigned int pin);
 	static int _setDirection(unsigned int pin, int dir);
-	static int _readValue(int pin);
-	static int _writeValue(int pin, unsigned int value);
+	static int _readValue(unsigned int pin);
+	static int _writeValue(unsigned int pin, unsigned int value);
 
 	int _pin;
 };
