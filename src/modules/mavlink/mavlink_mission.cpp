@@ -663,31 +663,14 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
-			if (wpc.seq < current_item_count()) {
-				switch (_mission_type) {
-				case MAV_MISSION_TYPE_MISSION:
-					if (update_active_mission(_dataman_id, _count[(uint8_t)_mission_type], wpc.seq) == PX4_OK) {
-						if (_verbose) { PX4_INFO("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq); }
+			if (wpc.seq < _count[(uint8_t)MAV_MISSION_TYPE_MISSION]) {
+				if (update_active_mission(_dataman_id, _count[(uint8_t)MAV_MISSION_TYPE_MISSION], wpc.seq) == PX4_OK) {
+					if (_verbose) { PX4_INFO("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq); }
 
-					} else {
-						if (_verbose) { PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR", wpc.seq); }
+				} else {
+					if (_verbose) { PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR", wpc.seq); }
 
-						_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID");
-					}
-
-					break;
-
-				case MAV_MISSION_TYPE_FENCE:
-					update_geofence_count(_count[(uint8_t)_mission_type]);
-					break;
-
-				case MAV_MISSION_TYPE_RALLY:
-					update_safepoint_count(_count[(uint8_t)_mission_type]);
-					break;
-
-				default:
-					PX4_ERR("mission type %u not handled", (unsigned)_mission_type);
-					break;
+					_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID");
 				}
 
 			} else {
