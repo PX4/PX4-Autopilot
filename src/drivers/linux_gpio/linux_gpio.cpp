@@ -184,7 +184,7 @@ cleanup:
 	return ret;
 }
 
-int LinuxGPIO::_readValue(int pin)
+int LinuxGPIO::_readValue(unsigned int pin)
 {
 	char path[PIN_VALUE_BUFFER_MAX];
 	char buf[2];
@@ -218,7 +218,7 @@ cleanup:
 	return ret;
 }
 
-int LinuxGPIO::_writeValue(int pin, unsigned int value)
+int LinuxGPIO::_writeValue(unsigned int pin, unsigned int value)
 {
 	char path[PIN_VALUE_BUFFER_MAX];
 	char buf[2];
