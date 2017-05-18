@@ -1407,6 +1407,11 @@ public:
 		return new MavlinkStreamCameraTrigger(mavlink);
 	}
 
+	virtual bool const_rate()
+	{
+		return true;
+	}
+
 	unsigned get_size()
 	{
 		return (_trigger_time > 0) ? MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
