@@ -1070,6 +1070,7 @@ void Ekf2::task_main()
 
 					// Declare all bias estimates invalid if any variances are out of range
 					bool all_estimates_invalid = false;
+
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
 						if (status.covariances[axis_index + 19] < min_var_allowed
 						    || status.covariances[axis_index + 19] > max_var_allowed) {
