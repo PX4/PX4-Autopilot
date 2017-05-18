@@ -127,6 +127,9 @@ private:
 	int			_mission_result_sub;
 	orb_advert_t		_offboard_mission_pub;
 
+	static uint16_t _geofence_update_counter;
+	bool		_geofence_locked; ///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
+
 	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
@@ -236,4 +239,8 @@ private:
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
 					mavlink_mission_item_t *mavlink_mission_item);
 
+	/**
+	 * set _state to idle (and do necessary cleanup)
+	 */
+	void switch_to_idle_state();
 };

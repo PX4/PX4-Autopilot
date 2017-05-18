@@ -64,7 +64,9 @@ Geofence::Geofence(Navigator *navigator) :
 	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false)
 {
 	updateParams();
-	updateFence();
+
+	// we assume there's no concurrent fence update on startup
+	_updateFence();
 }
 
 Geofence::~Geofence()
@@ -76,6 +78,22 @@ Geofence::~Geofence()
 
 void Geofence::updateFence()
 {
+	// Note: be aware that when calling this, it can block for quite some time, the duration of a geofence transfer.
+	// However this is currently not used
+	int ret = dm_lock(DM_KEY_FENCE_POINTS);
+
+	if (ret != 0) {
+		PX4_ERR("lock failed");
+		return;
+	}
+
+	_updateFence();
+	dm_unlock(DM_KEY_FENCE_POINTS);
+}
+
+void Geofence::_updateFence()
+{
+
 	// initialize fence points count
 	mission_stats_entry_s stats;
 	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
@@ -83,6 +101,7 @@ void Geofence::updateFence()
 
 	if (ret == sizeof(mission_stats_entry_s)) {
 		num_fence_items = stats.num_items;
+		_update_counter = stats.update_counter;
 	}
 
 	// iterate over all polygons and store their starting vertices
@@ -268,7 +287,23 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 bool Geofence::checkPolygons(double lat, double lon, float altitude)
 {
+	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
+	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
+	if (dm_trylock(DM_KEY_FENCE_POINTS) != 0) {
+		return true;
+	}
+
+	// we got the lock, now check if the fence data got updated
+	mission_stats_entry_s stats;
+	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+
+	if (ret == sizeof(mission_stats_entry_s) && _update_counter != stats.update_counter) {
+		PX4_INFO("reloading geofence");
+		_updateFence();
+	}
+
 	if (isEmpty()) {
+		dm_unlock(DM_KEY_FENCE_POINTS);
 		/* Empty fence -> accept all points */
 		return true;
 	}
@@ -276,9 +311,11 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 	/* Vertical check */
 	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
 		if (altitude > _altitude_max || altitude < _altitude_min) {
+			dm_unlock(DM_KEY_FENCE_POINTS);
 			return false;
 		}
 	}
+
 
 	/* Horizontal check: iterate all polygons & circles */
 	bool outside_exclusion = true;
@@ -319,6 +356,8 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 			}
 		}
 	}
+
+	dm_unlock(DM_KEY_FENCE_POINTS);
 
 	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
 }
