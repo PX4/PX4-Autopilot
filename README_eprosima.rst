@@ -1,7 +1,7 @@
 PX4-FastRTPS
 ============
 
-This is a fork of PX4 Firmware repository to add communication capabilities between a **PX4 Autopilot** (in this README we will talk about **PIXracer**) and a machine running **Fast RTPS** through serial ports using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS**.
+This is a fork of PX4 Firmware repository to add communication capabilities between a **PX4 Autopilot** (in this README we will talk about **PIXracer**) and a machine running **Fast RTPS** through serial ports using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
 
 .. image:: doc/1_general-white.png
 
@@ -17,11 +17,11 @@ The support for the new functionality added is mainly carried on inside three ne
    void serialize_sensor_combined(const sensor_combined_s *input, char *output, uint32_t *length);
    void deserialize_sensor_combined(struct sensor_combined_s *output, char *input);
 
--  We have the capability under demand of the generation of an application to send and receive through a selected UART the serializated info from several topics (*general_uRTPS_UART_transmitter.cpp*).
+-  We have the capability under demand of the generation of an application to send and receive through a selected UART the serializated info from several topics (*miroRTPS_client.cpp*).
 
 .. image:: doc/2_trasnmitter-white.png
 
--  Now we also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS** through auto generated *general_uRTPS_UART_PubSubMain.cxx* application and .idl files for demanded topics. For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
+-  We also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS** through auto generated *microRTPS_agent.cxx* application and .idl files for demanded topics. For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
 
 .. image:: doc/3_receiver-white.png
 
@@ -29,29 +29,39 @@ The support for the new functionality added is mainly carried on inside three ne
 
 .. image:: doc/4_both-white.png
 
-The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the new script **generate_microRTPS_support_general.py** placed in *Tools* folder, on this way:
+The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, on this way:
 
 .. code-block:: shell
 
-    $ python Tools/generate_microRTPS_support_general.py [messages...]
-    $ python Tools/generate_microRTPS_support_general.py -r msg/sensor_baro.msg -s msg/sensor_combined.msg
+    $ usage: generate_microRTPS_bridge.py [-h] [--send/-s *.msg [*.msg ...]] [--receive/-r *.msg [*.msg ...]]
+    $ python Tools/generate_microRTPS_bridge.py -s msg/sensor_baro.msg -r msg/sensor_combined.msg
 
-The argument **-r** means that the application will receive this messages, and the argument **-s** specifies which messages is going to send. The output appear in the *msgenerated* folder, in this case:
+The argument **--send/-s** means that the application from PX4 side will send these messages, and the argument **--receive/-r** specifies which messages is going to be received. The output appears in the *msgenerated* folder, in this case:
 
 .. code-block:: shell
 
     $ ls msgenerated/
-    general_PubSubMain_CMakeLists.txt
-    general_transmitter_CMakeLists.txt
-    general_uRTPS_UART_PubSubMain.cxx
-    general_uRTPS_UART_transmitter.cpp
+    microRTPS_agent_CMakeLists.txt
+    microRTPS_agent.cxx
+    microRTPS_client_CMakeLists.txt
+    microRTPS_client.cpp
     sensor_baro_.idl
-    sensor_baro_Subscriber.cxx
-    sensor_baro_Subscriber.h
+    sensor_baro_Publisher.cxx
+    sensor_baro_Publisher.h
     sensor_combined_.idl
-    sensor_combined_Publisher.cxx
-    sensor_combined_Publisher.h
+    sensor_combined_Subscriber.cxx
+    sensor_combined_Subscriber.h
 
+Installig code
+--------------
+
+At this point we need to have installed Fast RTPS to continue. Visit its installation `manual <http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html>`_ for more information.
+
+For automating the code installation we need to run a script. The script creates */path/to/micrortps_agent/install-dir* and *src/example/micrortps_client* if doesn't exist, and install both applications inside:
+
+    $ ./micrortps_install.sh /path/to/micrortps_agent/install-dir /path/to/Fast-RTPS/install-dir/bin/
+
+**CAUTION**: This script erase some files from */path/to/micrortps_agent/install-dir*
 
 PX4 Firmware
 ------------
@@ -60,26 +70,12 @@ On the *PX4* side, it will be used an application running an uORB node. This nod
 
 Steps to use the auto generated application:
 
--  Uncomment in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file the *#examples/micrortps_transmitter* to compile this appication along the **PX4** firmware:
+-  Uncomment in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file the *#examples/micrortps_client* to compile this appication along the **PX4** firmware:
 
 .. code-block:: shell
 
     # eProsima app
-    examples/micrortps_transmitter
-
--  Create a folder in *src/examples* and copy the above generated application inside:
-
-.. code-block:: shell
-
-   $ mkdir src/examples/micrortps_transmitter
-   $ cp msgenerated/general_uRTPS_UART_transmitter.cpp src/examples/micrortps_transmitter
-
--  Also copy and rename the *CMakeList.txt* and the *UART_Node* class (that give support for serial communication) to the example folder:
-
-.. code-block:: shell
-
-   $ cp msgenerated/general_transmitter_CMakeLists.txt src/examples/micrortps_transmitter/CMakeLists.txt
-   $ cp msg/templates/urtps/UART_node.* src/examples/micrortps_transmitter/
+    examples/micrortps_client
 
 -  Construct and upload the firmware executing:
 
@@ -88,11 +84,17 @@ Steps to use the auto generated application:
    $ make px4fmu-v4_default upload
 
 After uploading the firmware, the application can be launched on *NuttShell* typing its name and passing an available serial port as argument. Using */dev/ttyACM0*
-will use the USB port as output. Using */dev/ttyS1* or */dev/ttyS2* will write the output trough TELEM1 or TELEM2 ports respectively.
+will use the USB port as output. Using */dev/ttyS1* or */dev/ttyS2* will write the output through TELEM1 or TELEM2 ports respectively.
 
 .. code-block:: shell
 
-    > general_trans /dev/ttyACM0  #or /dev/ttySn
+    > micrortps_client [U [P [L [S]]]]
+        U: minimum update time in ms for uORB topics
+        P: maximum wait (poll) time in ms for new uORB topic updates
+        L: number of loops of the application
+        S: sleep time for each loop in us
+
+    > micrortps_client 10 10 1000 2000 #by default
 
 **NOTE**: If the UART port selected is busy, it's possible that Mavlink applications were using them. If it is the case, you can stop Mavlink from NuttShell typing:
 
@@ -110,87 +112,68 @@ publish this to a *Fast RTPS* environment, write info to the UART from topics th
 
 Before runnning the application, it is needed to have installed Fast RTPS. Visit it installation `manual <http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html>`_ for more information.
 
-This section explains how create *Fast RTPS* applications using the files generated by **generate_microRTPS_support_general.py** and **fastrtpsgen** from *Fast RTPS*.
+This section explains how create *Fast RTPS* applications using the files generated by **generate_microRTPS_bridge.py** and **fastrtpsgen** (this step performed inside install script) from *Fast RTPS*.
 
 This application allow to launch a publisher that will be using the information coming from the uORB topic in the PX4 side thanks to the autogenerated idl file from the original msg file. The publisher will read data from the UART, deserializes it, and make a Fast RTPS message mapping the attributes from the uORB message. The subscriber simply receives the Fast RTPS messages and print them to the terminal. The subscriber can be launched on the Raspberry Pi or in any another device connected in the same network.
 
-For create the application:
-
--  Create a folder and copy the generated idl files in this way:
+For create the application, compile the code:
 
 .. code-block:: shell
 
-    $ mkdir my_app && cd my_app
-    $ cp /path/to/Firmware/msgenerated/*.idl .
-
--  Generate the base application with *fastrtpsgen* and remove unused code:
-
-.. code-block:: shell
-
-    $ /path/to/Fast-RTPS/fastrtpsgen/scripts/fastrtpsgen -example x64Linux2.6gcc *.idl
-    $ rm *PubSubMain.cxx
-
--  Copy the generated code from *generate_microRTPS_support_general.py*, *the UART_node* class and *CMakeLists.txt* in this way:
-
-.. code-block:: shell
-
-    $ cp /path/to/Firmware/msgenerated/general_PubSubMain_CMakeLists.txt CMakeLists.txt
-    $ cp /path/to/Firmware/msgenerated/general_uRTPS_UART_PubSubMain.cxx .
-    $ cp /path/to/Firmware/msg/templates/urtps/UART_node.* .
-    $ cp /path/to/Firmware/msgenerated/*Publisher.* .
-    $ cp /path/to/Firmware/msgenerated/*Subscriber.* .
-
-Now we can add some code to print some info on the screen, for example:
-
-.. code-block:: shell
-
-   void sensor_combined_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
-   {
-         // Take data
-         sensor_combined_ sensor_data;
-
-         if(sub->takeNextData(&sensor_data, &m_info))
-         {
-            if(m_info.sampleKind == ALIVE)
-            {
-                  cout << "\n\n\n\n\n\n\n\n\n\n";
-                  cout << "Received sensor_combined data" << endl;
-                  cout << "=============================" << endl;
-                  cout << "timestamp: " << sensor_data.timestamp() << endl;
-                  cout << "gyro_rad: " << sensor_data.gyro_rad().at(0);
-                  cout << ", " << sensor_data.gyro_rad().at(1);
-                  cout << ", " << sensor_data.gyro_rad().at(2) << endl;
-                  cout << "gyro_integral_dt: " << sensor_data.gyro_integral_dt() << endl;
-                  cout << "accelerometer_timestamp_relative: " << sensor_data.accelerometer_timestamp_relative() << endl;
-                  cout << "accelerometer_m_s2: " << sensor_data.accelerometer_m_s2().at(0);
-                  cout << ", " << sensor_data.accelerometer_m_s2().at(1);
-                  cout << ", " << sensor_data.accelerometer_m_s2().at(2) << endl;
-                  cout << "accelerometer_integral_dt: " << sensor_data.accelerometer_integral_dt() << endl;
-                  cout << "magnetometer_timestamp_relative: " << sensor_data.magnetometer_timestamp_relative() << endl;
-                  cout << "magnetometer_ga: " << sensor_data.magnetometer_ga().at(0);
-                  cout << ", " << sensor_data.magnetometer_ga().at(1);
-                  cout << ", " << sensor_data.magnetometer_ga().at(2) << endl;
-                  cout << "baro_timestamp_relative: " << sensor_data.baro_timestamp_relative() << endl;
-                  cout << "baro_alt_meter: " << sensor_data.baro_alt_meter() << endl;
-                  cout << "baro_temp_celcius: " << sensor_data.baro_temp_celcius() << endl;
-            }
-         }
-   }
-
-- Finally we compile the code:
-
-.. code-block:: shell
-
+   $ cd /agent/installation/path/
    $ mkdir build && cd build
    $ cmake ..
    $ make
 
-
-Now, to launch the publisher run:
+To launch the publisher run:
 
 .. code-block:: shell
 
-    $ ./micrortps_receiver /dev/ttyACM0 #or the selected UART
+    $ ./micrortps_receiver [UART [S]]
+      UART: selected UART
+      S: sleep time for each loop in us
+
+    $ ./micrortps_receiver /dev/ttyACM0 2000 #by default
+
+Now we can add some code to print some info on the screen, for example:
+
+.. code-block:: shell
+    void sensor_combined_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
+    {
+            // Take data
+            if(sub->takeNextData(&msg, &m_info))
+            {
+                if(m_info.sampleKind == ALIVE)
+                {
+                    cout << "\n\n\n\n\n\n\n\n\n\n";
+                    cout << "Received sensor_combined data" << endl;
+                    cout << "=============================" << endl;
+                    cout << "timestamp: " << msg.timestamp() << endl;
+                    cout << "gyro_rad: " << msg.gyro_rad().at(0);
+                    cout << ", " << msg.gyro_rad().at(1);
+                    cout << ", " << msg.gyro_rad().at(2) << endl;
+                    cout << "gyro_integral_dt: " << msg.gyro_integral_dt() << endl;
+                    cout << "accelerometer_timestamp_relative: " << msg.accelerometer_timestamp_relative() << endl;
+                    cout << "accelerometer_m_s2: " << msg.accelerometer_m_s2().at(0);
+                    cout << ", " << msg.accelerometer_m_s2().at(1);
+                    cout << ", " << msg.accelerometer_m_s2().at(2) << endl;
+                    cout << "accelerometer_integral_dt: " << msg.accelerometer_integral_dt() << endl;
+                    cout << "magnetometer_timestamp_relative: " << msg.magnetometer_timestamp_relative() << endl;
+                    cout << "magnetometer_ga: " << msg.magnetometer_ga().at(0);
+                    cout << ", " << msg.magnetometer_ga().at(1);
+                    cout << ", " << msg.magnetometer_ga().at(2) << endl;
+                    cout << "baro_timestamp_relative: " << msg.baro_timestamp_relative() << endl;
+                    cout << "baro_alt_meter: " << msg.baro_alt_meter() << endl;
+                    cout << "baro_temp_celcius: " << msg.baro_temp_celcius() << endl;
+
+                    // Print your structure data here.
+                    ++n_msg;
+                    //std::cout << "Sample received, count=" << n_msg << std::endl;
+                    has_msg = true;
+
+                }
+            }
+    }
 
 **NOTE**: Normally, it's necessary set up the UART port in the Raspberry Pi. To enable the serial port available on Raspberry Pi connector:
 
