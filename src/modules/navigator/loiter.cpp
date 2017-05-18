@@ -163,7 +163,7 @@ Loiter::reposition()
 		// set yaw (depends on the value of parameter MIS_YAWMODE):
 		// MISSION_YAWMODE_NONE: do not change yaw setpoint
 		// MISSION_YAWMODE_FRONT_TO_WAYPOINT: point to next waypoint
-		if (_param_yawmode.get() != MISSION_YAWMODE_NONE){
+		if (_param_yawmode.get() != MISSION_YAWMODE_NONE) {
 			float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
 					    _navigator->get_global_position()->lon,
 					    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
