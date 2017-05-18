@@ -59,7 +59,6 @@ set(msg_file_names
 	follow_target.msg
 	fw_pos_ctrl_status.msg
 	geofence_result.msg
-	geofence_update.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	hil_sensor.msg
