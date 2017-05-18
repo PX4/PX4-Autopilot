@@ -51,7 +51,7 @@ __EXPORT int usb_connected_main(int argc, char *argv[]);
 static void print_usage()
 {
 
-	PRINT_MODULE_DESCRIPTION("Utility to check if USB is connected. Was previously used in startup scripts. "
+	PRINT_MODULE_DESCRIPTION("Utility to check if USB is connected. Was previously used in startup scripts.\n"
 				 "A return value of 0 means USB is connected, 1 otherwise."
 				);
 
