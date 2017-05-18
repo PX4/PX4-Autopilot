@@ -78,6 +78,11 @@ int LinuxGPIO::_exportPin(unsigned int pin)
 	int ret;
 	int bytes_to_write;
 
+	if (_readValue(pin) != -1) {
+		/* GPIO is already exported */
+		return 0;
+	}
+
 	fd = open("/sys/class/gpio/export", O_WRONLY);
 
 	if (fd == -1) {
