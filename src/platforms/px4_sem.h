@@ -63,6 +63,7 @@ typedef struct {
 __EXPORT int		px4_sem_init(px4_sem_t *s, int pshared, unsigned value);
 __EXPORT int		px4_sem_setprotocol(px4_sem_t *s, int protocol);
 __EXPORT int		px4_sem_wait(px4_sem_t *s);
+__EXPORT int		px4_sem_trywait(px4_sem_t *sem);
 __EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
 __EXPORT int		px4_sem_post(px4_sem_t *s);
 __EXPORT int		px4_sem_getvalue(px4_sem_t *s, int *sval);
@@ -79,6 +80,7 @@ typedef sem_t px4_sem_t;
 #define px4_sem_init		sem_init
 #define px4_sem_setprotocol sem_setprotocol
 #define px4_sem_wait		sem_wait
+#define px4_sem_trywait	sem_trywait
 #define px4_sem_post		sem_post
 #define px4_sem_getvalue	sem_getvalue
 #define px4_sem_destroy		sem_destroy
