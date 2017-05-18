@@ -78,7 +78,8 @@ public:
 	};
 
 	/**
-	 * update the geofence from dataman
+	 * update the geofence from dataman.
+	 * It's generally not necessary to call this as it will automatically update when the data is changed.
 	 */
 	void updateFence();
 
@@ -167,6 +168,12 @@ private:
 	control::BlockParamFloat _param_max_ver_distance;
 
 	int _outside_counter{0};
+	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+
+	/**
+	 * implementation of updateFence(), but without locking
+	 */
+	void _updateFence();
 
 	/**
 	 * Check if a point passes the Geofence test.

@@ -61,6 +61,7 @@ int MavlinkMissionManager::_current_seq = 0;
 int MavlinkMissionManager::_last_reached = -1;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr unsigned MavlinkMissionManager::MAX_COUNT[];
+uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
 		((_msg.target_component == mavlink_system.compid) || \
@@ -87,6 +88,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
+	_geofence_locked(false),
 	_slow_rate_limiter(100 * 1000), // Rate limit sending of the current WP sequence to 10 Hz
 	_verbose(mavlink->verbose()),
 	_mavlink(mavlink)
@@ -138,6 +140,7 @@ MavlinkMissionManager::load_geofence_stats()
 
 	if (ret == sizeof(mission_stats_entry_s)) {
 		_count[(uint8_t)MAV_MISSION_TYPE_FENCE] = stats.num_items;
+		_geofence_update_counter = stats.update_counter;
 	}
 
 	return ret;
@@ -204,6 +207,7 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 {
 	mission_stats_entry_s stats;
 	stats.num_items = count;
+	stats.update_counter = ++_geofence_update_counter; // this makes sure navigator will reload the fence data
 
 	/* update stats in dataman */
 	int res = dm_write(DM_KEY_FENCE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
@@ -546,7 +550,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		if (_verbose) { PX4_INFO("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state); }
 
-		_state = MAVLINK_WPM_STATE_IDLE;
+		switch_to_idle_state();
 
 		// since we are giving up, reset this state also, so another request can be started.
 		_transfer_in_progress = false;
@@ -625,7 +629,7 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 					if (_verbose) { PX4_ERR("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway"); }
 				}
 
-				_state = MAVLINK_WPM_STATE_IDLE;
+				switch_to_idle_state();
 
 			} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 
@@ -818,7 +822,7 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 						if (_verbose) { PX4_ERR("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %u unexpected, must be %i", wpr.seq, msg->sysid, _transfer_seq - 1); }
 					}
 
-					_state = MAVLINK_WPM_STATE_IDLE;
+					switch_to_idle_state();
 
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected");
@@ -832,7 +836,7 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 				} else {
 					if (_verbose) { PX4_ERR("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u out of bound [%u, %u]", (unsigned)wpr.seq, (unsigned)wpr.seq, (unsigned)current_item_count() - 1); }
 
-					_state = MAVLINK_WPM_STATE_IDLE;
+					switch_to_idle_state();
 
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected");
@@ -922,6 +926,21 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_dataman_id = _dataman_id == 0 ? 1 : 0;	// use inactive storage for transmission
 			_transfer_current_seq = -1;
 
+			if (_mission_type == MAV_MISSION_TYPE_FENCE) {
+				// We're about to write new geofence items, so take the lock. It will be released when
+				// switching back to idle
+				if (_verbose) { PX4_INFO("locking fence dataman items"); }
+
+				int ret = dm_lock(DM_KEY_FENCE_POINTS);
+
+				if (ret == 0) {
+					_geofence_locked = true;
+
+				} else {
+					PX4_ERR("locking failed (%i)", errno);
+				}
+			}
+
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -945,6 +964,21 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 	}
+}
+
+void
+MavlinkMissionManager::switch_to_idle_state()
+{
+	// when switching to idle, we *always* check if the lock was held and release it.
+	// This is to ensure we don't end up in a state where we forget to release it.
+	if (_geofence_locked) {
+		dm_unlock(DM_KEY_FENCE_POINTS);
+		_geofence_locked = false;
+
+		if (_verbose) { PX4_INFO("unlocking geofence"); }
+	}
+
+	_state = MAVLINK_WPM_STATE_IDLE;
 }
 
 
@@ -1020,7 +1054,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy");
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, ret);
-			_state = MAVLINK_WPM_STATE_IDLE;
+			switch_to_idle_state();
 			_transfer_in_progress = false;
 			return;
 		}
@@ -1101,7 +1135,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				_mavlink->send_statustext_critical("Unable to write on micro SD");
 			}
 
-			_state = MAVLINK_WPM_STATE_IDLE;
+			switch_to_idle_state();
 			_transfer_in_progress = false;
 			return;
 		}
@@ -1118,8 +1152,6 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		if (_transfer_seq == _transfer_count) {
 			/* got all new mission items successfully */
 			if (_verbose) { PX4_INFO("WPM: MISSION_ITEM got all %u items, current_seq=%u, changing state to MAVLINK_WPM_STATE_IDLE", _transfer_count, _transfer_current_seq); }
-
-			_state = MAVLINK_WPM_STATE_IDLE;
 
 			ret = 0;
 
@@ -1140,6 +1172,10 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				PX4_ERR("mission type %u not handled", (unsigned)_mission_type);
 				break;
 			}
+
+			// Note: the switch to idle needs to happen after update_geofence_count is called, for proper unlocking order
+			switch_to_idle_state();
+
 
 			if (ret == PX4_OK) {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
