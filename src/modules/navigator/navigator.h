@@ -236,7 +236,6 @@ private:
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_geofence_update_sub{-1};	/**< geofence updates */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
 	orb_advert_t	_att_sp_pub{nullptr};
