@@ -373,7 +373,7 @@ Mission::update_offboard_mission()
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
 
-		PX4_WARN("mission check failed");
+		PX4_ERR("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -1307,7 +1307,11 @@ Mission::save_offboard_mission_state()
 	mission_s mission_state = {};
 
 	/* lock MISSION_STATE item */
-	dm_lock(DM_KEY_MISSION_STATE);
+	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
+
+	if (dm_lock_ret != 0) {
+		PX4_ERR("lock failed");
+	}
 
 	/* read current state */
 	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
@@ -1320,7 +1324,6 @@ Mission::save_offboard_mission_state()
 				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
 					     sizeof(mission_s)) != sizeof(mission_s)) {
 
-					warnx("ERROR: can't save mission state");
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't save mission state.");
 				}
 			}
@@ -1332,20 +1335,20 @@ Mission::save_offboard_mission_state()
 		mission_state.count = _offboard_mission.count;
 		mission_state.current_seq = _current_offboard_mission_index;
 
-		warnx("ERROR: invalid mission state");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
 			     sizeof(mission_s)) != sizeof(mission_s)) {
 
-			warnx("ERROR: can't save mission state");
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't save mission state.");
 		}
 	}
 
 	/* unlock MISSION_STATE item */
-	dm_unlock(DM_KEY_MISSION_STATE);
+	if (dm_lock_ret == 0) {
+		dm_unlock(DM_KEY_MISSION_STATE);
+	}
 }
 
 void
