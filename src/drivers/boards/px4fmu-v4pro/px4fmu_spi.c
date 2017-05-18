@@ -100,13 +100,15 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	/* SPI select is active low, so write !selected to select the device */
 
 	switch (devid) {
-		
+
 	case PX4_SPIDEV_ICM:
+
 	/* Intended fallthrough */
-	
+
 	case PX4_SPIDEV_ICM_20602:
+
 	/* Intended fallthrough */
-	
+
 	case PX4_SPIDEV_ICM_20608:
 
 		/* Making sure the other peripherals are not selected */
