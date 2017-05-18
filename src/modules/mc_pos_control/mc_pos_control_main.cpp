@@ -696,7 +696,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		 * TODO: check if other jerk value is required */
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
-		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? (_jerk_hor_max.get() / 5.0f) : 1000000.f;
+		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
 
 
 	}
