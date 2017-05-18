@@ -132,6 +132,14 @@ public:
 
 	static int		get_status_all_instances();
 
+	/**
+	 * Set all instances to verbose mode
+	 *
+	 * This is primarily intended for analysis and
+	 * not intended for normal operation
+	 */
+	static int		set_verbose_all_instances();
+
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
@@ -261,7 +269,14 @@ public:
 	/**
 	 * Set communication protocol for this mavlink instance
 	 */
-	void 		set_protocol(Protocol p) {_protocol = p;};
+	void 			set_protocol(Protocol p) { _protocol = p; }
+
+	/**
+	 * Set verbose mode
+	 */
+	void			set_verbose(bool v);
+
+	bool			get_verbose() const { return _verbose; }
 
 	/**
 	 * Get the manual input generation mode
@@ -288,7 +303,7 @@ public:
 	 *
 	 * @return the number of bytes sent or -1 in case of error
 	 */
-	int             send_packet();
+	int             	send_packet();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
