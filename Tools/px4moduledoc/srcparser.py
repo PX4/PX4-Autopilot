@@ -362,6 +362,23 @@ class SourceParser(object):
                 print("Warning: undocumented command '%s' in %s" %(command, scope))
                 self._consistency_checks_failure = True
 
+        # limit the maximum line length in the module doc string
+        max_line_length = 120
+        module_doc = module_doc.documentation()
+        verbatim_mode = False
+        line_nr = 0
+        for line in module_doc.split('\n'):
+            line_nr += 1
+            if line.strip().startswith('```'):
+                # ignore preformatted blocks
+                verbatim_mode = not verbatim_mode
+            elif not verbatim_mode:
+                if not 'www.' in line and not 'http' in line:
+                    if len(line) > max_line_length:
+                        print('Line too long (%i > %i) in %s:' % (len(line), max_line_length, scope))
+                        print(' '+line)
+                        self._consistency_checks_failure = True
+
 
     def _parse_arguments(self, contents, start_index):
         """
