@@ -158,7 +158,7 @@ private:
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
 	struct vehicle_local_position_s			_local_pos;		/**< vehicle local position */
-	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
+	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle  position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct home_position_s				_home_pos; 				/**< home position */
 
@@ -2771,7 +2771,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 		/* do not move yaw while sitting on the ground */
 
-		/* we want to know the real constraint, and global overrides manual */
+		/* we want to know the real constraint */
 		const float yaw_rate_max = (_params.man_yaw_max < _params.yaw_rate_max) ? _params.man_yaw_max :
 					   _params.yaw_rate_max;
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
