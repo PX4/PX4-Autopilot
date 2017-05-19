@@ -232,6 +232,12 @@ int io_timer_handler3(int irq, void *context)
 
 }
 
+int io_timer_handler4(int irq, void *context)
+{
+	return io_timer_handler(4);
+
+}
+
 static inline int validate_timer_index(unsigned timer)
 {
 	return (timer < MAX_IO_TIMERS && io_timers[timer].base != 0) ? 0 : -EINVAL;
