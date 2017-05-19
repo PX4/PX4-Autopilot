@@ -47,12 +47,7 @@
 class FlightTask
 {
 public:
-	FlightTask()
-	{
-		vehicle_local_position_setpoint.x = 1;
-		vehicle_local_position_setpoint.y = 2;
-		vehicle_local_position_setpoint.z = -3;
-	};
+	FlightTask() {};
 	virtual ~FlightTask() {};
 
 	/**
@@ -79,10 +74,33 @@ public:
 	 * Call to get result of the task execution
 	 * @return pointer to
 	 */
-	const vehicle_local_position_setpoint_s *get_local_position_setpoint() const { return &vehicle_local_position_setpoint; };
+	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return &_vehicle_position_setpoint; };
+
+protected:
+
+	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
+	{
+		_vehicle_position_setpoint.x = position_setpoint(0);
+		_vehicle_position_setpoint.y = position_setpoint(1);
+		_vehicle_position_setpoint.z = position_setpoint(2);
+	};
+
+	void _set_velocity_setpoint(const matrix::Vector3f velocity_setpoint)
+	{
+		_vehicle_position_setpoint.vx = velocity_setpoint(0);
+		_vehicle_position_setpoint.vy = velocity_setpoint(1);
+		_vehicle_position_setpoint.vz = velocity_setpoint(2);
+	};
+
+	void _set_acceleration_setpoint(const matrix::Vector3f acceleration_setpoint)
+	{
+		_vehicle_position_setpoint.acc_x = acceleration_setpoint(0);
+		_vehicle_position_setpoint.acc_y = acceleration_setpoint(1);
+		_vehicle_position_setpoint.acc_z = acceleration_setpoint(2);
+	};
 
 private:
 
-	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+	vehicle_local_position_setpoint_s _vehicle_position_setpoint;
 
 };
