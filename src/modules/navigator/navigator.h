@@ -58,6 +58,7 @@
 #include <controllib/blocks.hpp>
 #include <navigator/navigation.h>
 #include <systemlib/perf_counter.h>
+#include <lib/geo/geo.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
@@ -128,9 +129,15 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+<<<<<<< 0d7d6e59f549e50e45611d19f339b1201e6139d6
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
+=======
+	struct vehicle_roi_s *get_vroi() { return &_vroi; }
+	struct map_projection_reference_s *get_local_reference_pos() {return &_ref_pos;}
+	float 		get_local_reference_alt() {return _ref_alt;}
+>>>>>>> copy update_ref logic from mc_pos_ctr to navigator
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
@@ -140,6 +147,8 @@ public:
 
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+
+
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -203,6 +212,7 @@ public:
 	 */
 	void		set_cruising_throttle(float throttle = -1.0f) { _mission_throttle = throttle; }
 
+
 	/**
 	 * Get the acceptance radius given the mission item preset radius
 	 *
@@ -265,6 +275,9 @@ private:
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
+	map_projection_reference_s _ref_pos{}; /** local reference position */
+	hrt_abstime _ref_timestamp{0}; /** time stamp when reference for local frame has been updated */
+	float _ref_alt{0.0f}; /** local reference altitude */
 
 	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
@@ -312,6 +325,9 @@ private:
 	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void		vehicle_roi_update();
+	void 		local_reference_update();
+
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -333,6 +349,10 @@ private:
 	 */
 	void		publish_mission_result();
 
+<<<<<<< 0d7d6e59f549e50e45611d19f339b1201e6139d6
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+=======
+
+>>>>>>> copy update_ref logic from mc_pos_ctr to navigator
 };
 #endif

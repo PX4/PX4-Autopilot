@@ -154,6 +154,37 @@ Navigator::local_position_update()
 }
 
 void
+Navigator::local_reference_update()
+{
+	if (_local_pos.ref_timestamp != _ref_timestamp) {
+
+		// update local projection reference including altitude
+		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
+		_ref_alt = _local_pos.ref_alt;
+
+		if (_ref_timestamp != 0) {
+			// reproject position setpoint to new reference
+			// this effectively adjusts the position setpoint to keep the vehicle
+			// in its current local position. It would only change its
+			// global position on the next setpoint update.
+			map_projection_project(&_ref_pos, _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon, &_pos_sp_triplet.current.x,
+					       &_pos_sp_triplet.current.y);
+			_pos_sp_triplet.current.z = (-_pos_sp_triplet.current.alt - _ref_alt);
+
+			map_projection_project(&_ref_pos, _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+					       &_pos_sp_triplet.previous.x, &_pos_sp_triplet.previous.y);
+			_pos_sp_triplet.previous.z = (-_pos_sp_triplet.previous.alt - _ref_alt);
+
+			map_projection_project(&_ref_pos, _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon, &_pos_sp_triplet.next.x,
+					       &_pos_sp_triplet.next.y);
+			_pos_sp_triplet.next.z = (-_pos_sp_triplet.next.alt - _ref_alt);
+		}
+
+		_ref_timestamp = _local_pos.ref_timestamp;
+	}
+}
+
+void
 Navigator::gps_position_update()
 {
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
@@ -253,6 +284,7 @@ Navigator::task_main()
 	vehicle_land_detected_update();
 	global_position_update();
 	local_position_update();
+	local_reference_update();
 	gps_position_update();
 	sensor_combined_update();
 	home_position_update(true);
