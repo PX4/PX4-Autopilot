@@ -57,6 +57,7 @@ set(nuttx_patches
 	00023-BACKPORT-stm32f7-bkp-reference-fix.patch
 	00024-BACKPORT-stm32f7-serial-dma-hotfix.patch
 	00025-BACKPORT-add-set-ex-to-nsh.patch
+        00026-BACKPORT-stm32-config-serial-DMA-buf-size.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
