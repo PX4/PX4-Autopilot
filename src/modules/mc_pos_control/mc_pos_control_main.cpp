@@ -316,11 +316,6 @@ private:
 	float		throttle_curve(float ctl, float ctr);
 
 	/**
-	 * Update reference for local position projection
-	 */
-	void		update_ref();
-
-	/**
 	 * Reset position setpoint to current position.
 	 *
 	 * This reset will only occur if the _reset_pos_sp flag has been set.
@@ -850,43 +845,6 @@ void
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	pos_control::g_control->task_main();
-}
-
-void
-MulticopterPositionControl::update_ref()
-{
-	// The reference point is only allowed to change when the vehicle is in standby state which is the
-	// normal state when the estimator origin is set. Changing reference point in flight causes large controller
-	// setpoint changes. Changing reference point in other arming states is untested and shoud not be performed.
-	if ((_local_pos.ref_timestamp != _ref_timestamp)
-	    && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
-		double lat_sp, lon_sp;
-		float alt_sp = 0.0f;
-
-		if (_ref_timestamp != 0) {
-			// calculate current position setpoint in global frame
-			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
-			// the altitude setpoint is the reference altitude (Z up) plus the (Z down)
-			// NED setpoint, multiplied out to minus
-			alt_sp = _ref_alt - _pos_sp(2);
-		}
-
-		// update local projection reference including altitude
-		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
-		_ref_alt = _local_pos.ref_alt;
-
-		if (_ref_timestamp != 0) {
-			// reproject position setpoint to new reference
-			// this effectively adjusts the position setpoint to keep the vehicle
-			// in its current local position. It would only change its
-			// global position on the next setpoint update.
-			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
-			_pos_sp(2) = -(alt_sp - _ref_alt);
-		}
-
-		_ref_timestamp = _local_pos.ref_timestamp;
-
-	}
 }
 
 void
@@ -2487,6 +2445,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
+
 }
 
 void
@@ -3082,8 +3041,6 @@ MulticopterPositionControl::task_main()
 		}
 
 		was_landed = _vehicle_land_detected.landed;
-
-		update_ref();
 
 		update_velocity_derivative();
 
