@@ -238,26 +238,31 @@ __BEGIN_DECLS
  * FMU_CH4 : PE9  : TIM1_CH1
  * FMU_CH5 : PD13 : TIM4_CH2
  * FMU_CH6 : PD14 : TIM4_CH3
+ * FMU_CH7 : PH6  : TIM12_CH1
+ * FMU_CH8 : PH9  : TIM12_CH2
  *
  */
-#define GPIO_TIM4_CH3OUT       /* PD14  T4C3  FMU6 */ GPIO_TIM4_CH3OUT_2
-#define GPIO_TIM4_CH2OUT       /* PD13  T4C2  FMU5 */ GPIO_TIM4_CH2OUT_2
-#define GPIO_TIM1_CH1OUT       /* PE9   T1C1  FMU4 */ GPIO_TIM1_CH1OUT_2
-#define GPIO_TIM1_CH2OUT       /* PE11  T1C2  FMU3 */ GPIO_TIM1_CH2OUT_2
-#define GPIO_TIM1_CH3OUT       /* PA10  T1C3  FMU2 */ GPIO_TIM1_CH3OUT_1
-#define GPIO_TIM1_CH4OUT       /* PE14  T1C4  FMU1 */ GPIO_TIM1_CH4OUT_2
+#define GPIO_TIM12_CH2OUT     /* PH9   T12C2  FMU8 */ GPIO_TIM12_CH2OUT_2
+#define GPIO_TIM12_CH1OUT     /* PH6   T12C1  FMU7 */ GPIO_TIM12_CH1OUT_2
+#define GPIO_TIM4_CH3OUT      /* PD14  T4C3   FMU6 */ GPIO_TIM4_CH3OUT_2
+#define GPIO_TIM4_CH2OUT      /* PD13  T4C2   FMU5 */ GPIO_TIM4_CH2OUT_2
+#define GPIO_TIM1_CH1OUT      /* PE9   T1C1   FMU4 */ GPIO_TIM1_CH1OUT_2
+#define GPIO_TIM1_CH2OUT      /* PE11  T1C2   FMU3 */ GPIO_TIM1_CH2OUT_2
+#define GPIO_TIM1_CH3OUT      /* PA10  T1C3   FMU2 */ GPIO_TIM1_CH3OUT_1
+#define GPIO_TIM1_CH4OUT      /* PE14  T1C4   FMU1 */ GPIO_TIM1_CH4OUT_2
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  6
+#define DIRECT_PWM_OUTPUT_CHANNELS  8
 
+#define GPIO_TIM12_CH2IN      /* PH9   T12C2  FMU8 */ GPIO_TIM12_CH2IN_2
+#define GPIO_TIM12_CH1IN      /* PH6   T12C1  FMU7 */ GPIO_TIM12_CH1IN_2
+#define GPIO_TIM4_CH3IN       /* PD14  T4C3   FMU6 */ GPIO_TIM4_CH3IN_2
+#define GPIO_TIM4_CH2IN       /* PD13  T4C2   FMU5 */ GPIO_TIM4_CH2IN_2
+#define GPIO_TIM1_CH1IN       /* PE9   T1C1   FMU4 */ GPIO_TIM1_CH1IN_2
+#define GPIO_TIM1_CH2IN       /* PE11  T1C2   FMU3 */ GPIO_TIM1_CH2IN_2
+#define GPIO_TIM1_CH3IN       /* PA10  T1C3   FMU2 */ GPIO_TIM1_CH3IN_1
+#define GPIO_TIM1_CH4IN       /* PE14  T1C4   FMU1 */ GPIO_TIM1_CH4IN_2
 
-#define GPIO_TIM4_CH3IN       /* PD14  T4C3  FMU6 */ GPIO_TIM4_CH3IN_2
-#define GPIO_TIM4_CH2IN       /* PD13  T4C2  FMU5 */ GPIO_TIM4_CH2IN_2
-#define GPIO_TIM1_CH1IN       /* PE9   T1C1  FMU4 */ GPIO_TIM1_CH1IN_2
-#define GPIO_TIM1_CH2IN       /* PE11  T1C2  FMU3 */ GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH3IN       /* PA10  T1C3  FMU2 */ GPIO_TIM1_CH3IN_1
-#define GPIO_TIM1_CH4IN       /* PE14  T1C4  FMU1 */ GPIO_TIM1_CH4IN_2
-
-#define DIRECT_INPUT_TIMER_CHANNELS  6
+#define DIRECT_INPUT_TIMER_CHANNELS  8
 
 #define BOARD_HAS_LED_PWM
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
@@ -278,21 +283,25 @@ __BEGIN_DECLS
 
 #define _MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLUP))
 
-#define GPIO_GPIO5_INPUT        /* PD14  T4C3  FMU6 */ _MK_GPIO_INPUT(GPIO_TIM4_CH3IN)
-#define GPIO_GPIO4_INPUT        /* PD13  T4C2  FMU5 */ _MK_GPIO_INPUT(GPIO_TIM4_CH2IN)
-#define GPIO_GPIO3_INPUT        /* PE9   T1C1  FMU4 */ _MK_GPIO_INPUT(GPIO_TIM1_CH1IN)
-#define GPIO_GPIO2_INPUT        /* PE11  T1C2  FMU3 */ _MK_GPIO_INPUT(GPIO_TIM1_CH2IN)
-#define GPIO_GPIO1_INPUT        /* PA10  T1C3  FMU2 */ _MK_GPIO_INPUT(GPIO_TIM1_CH3IN)
-#define GPIO_GPIO0_INPUT        /* PE14  T1C4  FMU1 */ _MK_GPIO_INPUT(GPIO_TIM1_CH4IN)
+#define GPIO_GPIO7_INPUT        /* PH9   T12C2  FMU8 */ _MK_GPIO_INPUT(GPIO_TIM12_CH2IN)
+#define GPIO_GPIO6_INPUT        /* PH6   T12C1  FMU7 */ _MK_GPIO_INPUT(GPIO_TIM12_CH1IN)
+#define GPIO_GPIO5_INPUT        /* PD14  T4C3   FMU6 */ _MK_GPIO_INPUT(GPIO_TIM4_CH3IN)
+#define GPIO_GPIO4_INPUT        /* PD13  T4C2   FMU5 */ _MK_GPIO_INPUT(GPIO_TIM4_CH2IN)
+#define GPIO_GPIO3_INPUT        /* PE9   T1C1   FMU4 */ _MK_GPIO_INPUT(GPIO_TIM1_CH1IN)
+#define GPIO_GPIO2_INPUT        /* PE11  T1C2   FMU3 */ _MK_GPIO_INPUT(GPIO_TIM1_CH2IN)
+#define GPIO_GPIO1_INPUT        /* PA10  T1C3   FMU2 */ _MK_GPIO_INPUT(GPIO_TIM1_CH3IN)
+#define GPIO_GPIO0_INPUT        /* PE14  T1C4   FMU1 */ _MK_GPIO_INPUT(GPIO_TIM1_CH4IN)
 
 #define _MK_GPIO_OUTPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR))
 
-#define GPIO_GPIO5_OUTPUT        /* PD14  T4C3  FMU6 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH3OUT)
-#define GPIO_GPIO4_OUTPUT        /* PD13  T4C2  FMU5 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH2OUT)
-#define GPIO_GPIO3_OUTPUT        /* PE9   T1C1  FMU4 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
-#define GPIO_GPIO2_OUTPUT        /* PE11  T1C2  FMU3 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH2OUT)
-#define GPIO_GPIO1_OUTPUT        /* PA10  T1C3  FMU2 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH3OUT)
-#define GPIO_GPIO0_OUTPUT        /* PE14  T1C4  FMU1 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH4OUT)
+#define GPIO_GPIO7_OUTPUT        /* PH9   T12C2  FMU8 */ _MK_GPIO_OUTPUT(GPIO_TIM12_CH2OUT)
+#define GPIO_GPIO6_OUTPUT        /* PH6   T12C1  FMU7 */ _MK_GPIO_OUTPUT(GPIO_TIM12_CH1OUT)
+#define GPIO_GPIO5_OUTPUT        /* PD14  T4C3   FMU6 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH3OUT)
+#define GPIO_GPIO4_OUTPUT        /* PD13  T4C2   FMU5 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH2OUT)
+#define GPIO_GPIO3_OUTPUT        /* PE9   T1C1   FMU4 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
+#define GPIO_GPIO2_OUTPUT        /* PE11  T1C2   FMU3 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH2OUT)
+#define GPIO_GPIO1_OUTPUT        /* PA10  T1C3   FMU2 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH3OUT)
+#define GPIO_GPIO0_OUTPUT        /* PE14  T1C4   FMU1 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH4OUT)
 
 
 /* Power supply control and monitoring GPIOs */
@@ -400,22 +409,24 @@ __BEGIN_DECLS
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,        0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,        0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,        0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,        0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,        0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,        0}, \
-		{GPIO_POWER_IN_A,        0,                        0}, \
-		{GPIO_POWER_IN_B,        0,                        0}, \
-		{GPIO_POWER_IN_C,        0,                        0}, \
-		{0,                      GPIO_VDD_3V3_SENSORS_EN,  0}, \
-		{GPIO_VDD_BRICK_VALID,   0,                        0}, \
-		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   0}, \
-		{0,                      GPIO_nVDD_5V_PERIPH_EN,   0}, \
-		{0,                      GPIO_VDD_5V_RC_EN,        0}, \
-		{0,                      GPIO_VDD_5V_WIFI_EN,      0}, \
-		{0,                      GPIO_VDD_3V3V_SD_CARD_EN, 0}, }
+		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,              0}, \
+		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,              0}, \
+		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,              0}, \
+		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,              0}, \
+		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,              0}, \
+		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,              0}, \
+		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,              0}, \
+		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,              0}, \
+		{GPIO_POWER_IN_A,        0,                              0}, \
+		{GPIO_POWER_IN_B,        0,                              0}, \
+		{GPIO_POWER_IN_C,        0,                              0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN,        0}, \
+		{GPIO_VDD_BRICK_VALID,   0,                              0}, \
+		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 0}, \
+		{0,                      GPIO_nVDD_5V_PERIPH_EN,         0}, \
+		{0,                      GPIO_VDD_5V_RC_EN,              0}, \
+		{0,                      GPIO_VDD_5V_WIFI_EN,            0}, \
+		{0,                      GPIO_VDD_3V3V_SD_CARD_EN,       0}, }
 
 /*
  * GPIO numbers.
@@ -428,19 +439,21 @@ __BEGIN_DECLS
 #define GPIO_SERVO_4             (1<<3)   /**< servo 4 output */
 #define GPIO_SERVO_5             (1<<4)   /**< servo 5 output */
 #define GPIO_SERVO_6             (1<<5)   /**< servo 6 output */
+#define GPIO_SERVO_7             (1<<6)   /**< servo 7 output */
+#define GPIO_SERVO_8             (1<<7)   /**< servo 8 output */
 
-#define GPIO_POWER_INPUT_A       (1<<6)   /**<PG1 GPIO_POWER_IN_A */
-#define GPIO_POWER_INPUT_B       (1<<7)   /**<PG2 GPIO_POWER_IN_B */
-#define GPIO_POWER_INPUT_C       (1<<8)   /**<PG3 GPIO_POWER_IN_C */
+#define GPIO_POWER_INPUT_A       (1<<8)   /**<PG1 GPIO_POWER_IN_A */
+#define GPIO_POWER_INPUT_B       (1<<9)   /**<PG2 GPIO_POWER_IN_B */
+#define GPIO_POWER_INPUT_C       (1<<10)  /**<PG3 GPIO_POWER_IN_C */
 
-#define GPIO_3V3_SENSORS_EN      (1<<9)   /**< PE3  - VDD_3V3_SENSORS_EN */
-#define GPIO_BRICK_VALID         (1<<10)  /**< PB10 - !VDD_BRICK_VALID */
-#define GPIO_SPEKTRUM_POWER      (1<<11)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
+#define GPIO_3V3_SENSORS_EN      (1<<11)  /**< PE3  - VDD_3V3_SENSORS_EN */
+#define GPIO_BRICK_VALID         (1<<12)  /**< PB10 - !VDD_BRICK_VALID */
+#define GPIO_SPEKTRUM_POWER      (1<<13)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
 
-#define GPIO_PERIPH_5V_POWER_EN  (1<<12)  /**< PG4  - GPIO_PERIPH_5V_EN        */
-#define GPIO_RC_POWER_EN         (1<<13)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
-#define GPIO_WIFI_POWER_EN       (1<<14)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
-#define GPIO_SD_CARD_POWER_EN    (1<<15)  /**< PG7  - GPIO_VDD_3V3V_SD_CARD_EN */
+#define GPIO_PERIPH_5V_POWER_EN  (1<<14)  /**< PG4  - GPIO_PERIPH_5V_EN        */
+#define GPIO_RC_POWER_EN         (1<<15)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
+#define GPIO_WIFI_POWER_EN       (1<<16)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
+#define GPIO_SD_CARD_POWER_EN    (1<<17)  /**< PG7  - GPIO_VDD_3V3V_SD_CARD_EN */
 
 /* This board provides a DMA pool and APIs */
 
