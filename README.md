@@ -46,7 +46,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * VIO - [Mohammed Kabir](https://github.com/mhkabir), [Christoph Tobler](https://github.com/ChristophTobler)
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](https://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon) - [Mark Charlebois](https://github.com/mcharleb)
-  * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero) - [Lucas de Marchi](https://github.com/lucasdemarchi), [José Roberto de Souza](https://github.com/zehortigoza)
+  * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero) - [Lucas De Marchi](https://github.com/lucasdemarchi) and [José Roberto de Souza](https://github.com/zehortigoza)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
   * [Parrot Bebop](https://github.com/PX4/Firmware/labels/bebop) - [Michael Schaeuble](https://github.com/eyeam3)
   * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
