@@ -223,7 +223,7 @@ private:
 		param_t tilt_max_land;
 		param_t man_tilt_max;
 		param_t man_yaw_max;
-		param_t global_yaw_max;
+		param_t yaw_rate_max;
 		param_t mc_att_yaw_p;
 		param_t hold_max_xy;
 		param_t hold_max_z;
@@ -243,7 +243,7 @@ private:
 		float tilt_max_land;
 		float man_tilt_max;
 		float man_yaw_max;
-		float global_yaw_max;
+		float yaw_rate_max;
 		float mc_att_yaw_p;
 		float hold_max_xy;
 		float hold_max_z;
@@ -522,7 +522,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 	_params_handles.man_tilt_max = param_find("MPC_MAN_TILT_MAX");
 	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
+<<<<<<< 2d46b4bf34b11c1095bd8ccc067953bca6e04cf7
 	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
+=======
+
+	_params_handles.yaw_rate_max = param_find("MC_YAWRATE_MAX");
+>>>>>>> mc_pos_control: better parameter name for yaw_rate_max
 	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
 	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
 	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
@@ -660,10 +665,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		/* manual control scale */
 		param_get(_params_handles.man_tilt_max, &_params.man_tilt_max);
 		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
-		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
+		param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
 		_params.man_tilt_max = math::radians(_params.man_tilt_max);
 		_params.man_yaw_max = math::radians(_params.man_yaw_max);
-		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+		_params.yaw_rate_max = math::radians(_params.yaw_rate_max);
 
 		param_get(_params_handles.mc_att_yaw_p, &v);
 		_params.mc_att_yaw_p = v;
@@ -2767,8 +2772,8 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 		/* do not move yaw while sitting on the ground */
 
 		/* we want to know the real constraint, and global overrides manual */
-		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
-					   _params.global_yaw_max;
+		const float yaw_rate_max = (_params.man_yaw_max < _params.yaw_rate_max) ? _params.man_yaw_max :
+					   _params.yaw_rate_max;
 		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
