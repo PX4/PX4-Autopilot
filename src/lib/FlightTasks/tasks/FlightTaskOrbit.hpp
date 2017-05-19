@@ -73,7 +73,9 @@ public:
 	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
 	{
 		FlightTask::update(NULL, NULL);
-		_set_position_setpoint(matrix::Vector3f(0.1f * _get_time(), 0.f, -2.f));
+		float v = 2 * M_PI_F * 0.1f; /* velocity for orbiting in radians per second */
+		float altitude = 2; /* altitude in meters */
+		_set_position_setpoint(matrix::Vector3f(1.f * cosf(v * _get_time()), 1.f * sinf(v * _get_time()), -altitude));
 		return 0;
 	};
 
