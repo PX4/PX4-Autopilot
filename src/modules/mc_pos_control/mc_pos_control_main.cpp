@@ -464,6 +464,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_flight_tasks(),
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
@@ -552,6 +553,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 	/* fetch initial parameter values */
 	parameters_update(true);
+
+	_flight_tasks.set_general_input_pointers(&_local_pos, &_manual);
+	_flight_tasks.set_general_output_pointers(&_local_pos_sp);
+	//_flight_tasks.switch_task(0);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -2443,12 +2448,57 @@ MulticopterPositionControl::control_position()
 void
 MulticopterPositionControl::calculate_velocity_setpoint()
 {
+	/* TODO: this block is for task switch testing only */
+	static int gear_switch_last;
+	const bool gear_transition_to_on = gear_switch_last == manual_control_setpoint_s::SWITCH_POS_OFF
+					   && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+
+	if (gear_transition_to_on) {
+		//_flight_tasks.switch_task();
+	}
+
+	gear_switch_last = _manual.gear_switch;
+
+	/* get position controller setpoints from the active flight task, this will be through uORB from Trajectory module to position controller module in the future */
+	/* TODO: as soon as legacy stuff gets ported setting velocity and position setpoint at the same time (feed-forward) will be supported through addition of setpoints */
+	if (_flight_tasks.is_any_task_active()) {
+		if (!_flight_tasks.update()) {
+			/* take over position setpoint from task if there is any */
+			if (PX4_ISFINITE(_local_pos_sp.x) && PX4_ISFINITE(_local_pos_sp.y)) {
+				_pos_sp(0) = _local_pos_sp.x;
+				_pos_sp(1) = _local_pos_sp.y;
+				_run_pos_control = true;
+
+			} else {
+				_run_pos_control = false;
+			}
+
+			if (PX4_ISFINITE(_local_pos_sp.z)) {
+				_pos_sp(2) = _local_pos_sp.z;
+				_run_alt_control = true;
+
+			} else {
+				_run_alt_control = false;
+			}
+
+			/* take over velocity setpoint from task if there is any */
+			if (PX4_ISFINITE(_local_pos_sp.vx)
+			    && PX4_ISFINITE(_local_pos_sp.vy)) {
+				_vel_sp(0) = _local_pos_sp.vx;
+				_vel_sp(1) = _local_pos_sp.vy;
+			}
+
+			if (PX4_ISFINITE(_local_pos_sp.vz)) {
+				_vel_sp(2) = _local_pos_sp.vz;
+			}
+
+		} else {
+			warn_rate_limited("FlightTasks update failed");
+		}
+	}
+
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-
-		_pos_sp(0) = _flight_tasks.get_local_position_setpoint()->x;
-		_pos_sp(1) = _flight_tasks.get_local_position_setpoint()->y;
-		_pos_sp(2) = _flight_tasks.get_local_position_setpoint()->z;
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {

@@ -42,29 +42,108 @@
 #pragma once
 
 #include "tasks/FlightTask.hpp"
+#include "tasks/FlightTaskManual.hpp"
 #include "tasks/FlightTaskOrbit.hpp"
 
-class FlightTasks
+class FlightTasks : control::SuperBlock
 {
 public:
-	FlightTasks() {};
+	FlightTasks() :
+		SuperBlock(nullptr, "TSK"),
+		Manual(this, "MAN"),
+		Orbit(this, "ORB")
+	{};
 	~FlightTasks() {};
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @param TODO
-	 * @return 0 on success, >0 on error otherwise
+	 * @return 0 on success, >0 on error
 	 */
-	int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_local_position) { return 0; };
+	int update()
+	{
+		if (is_any_task_active()) {
+			return _tasks[_current_task]->update();
+
+		} else {
+			return 1;
+		}
+	};
 
 	/**
-	 * Call to get result of the task execution
-	 * @return pointer to
+	 * Call this function initially to point all tasks to the general input data
 	 */
-	const vehicle_local_position_setpoint_s *get_local_position_setpoint() const { return Orbit.get_local_position_setpoint(); };
+	void set_general_input_pointers(vehicle_local_position_s *vehicle_local_position,
+					manual_control_setpoint_s *manual_control_setpoint)
+	{
+		for (int i = 0; i < _task_count; i++) {
+			_tasks[i]->set_vehicle_local_position_pointer(vehicle_local_position);
+			_tasks[i]->set_manual_control_setpoint_pointer(manual_control_setpoint);
+		}
+	};
+
+	/**
+	 * Call this function initially to point all tasks to the general output data
+	 */
+	void set_general_output_pointers(vehicle_local_position_setpoint_s *vehicle_local_position_setpoint)
+	{
+		for (int i = 0; i < _task_count; i++) {
+			_tasks[i]->set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint);
+		}
+	};
+
+	/**
+	 * Switch to the next task in the available list (for testing)
+	 * @return 0 on success, >0 on error
+	 */
+	void switch_task()
+	{
+		switch_task(_current_task + 1);
+	};
+
+	/**
+	 * Switch to a specific task (for normal usage)
+	 * @param task number to switch to
+	 * @return 0 on success, >0 on error
+	 */
+	int switch_task(int task_number)
+	{
+		if (task_number == _current_task) {
+			return 0;
+		}
+
+		if (is_any_task_active()) {
+			_tasks[_current_task]->disable();
+		}
+
+		_current_task = task_number;
+
+		if (is_any_task_active()) {
+			_tasks[_current_task]->activate();
+			return 0;
+		}
+
+		_current_task = -1;
+		return 1;
+	};
+
+	/**
+	 * Get the number of the active task
+	 * @return number of active task, -1 if there is none
+	 */
+	int get_active_task() const { return _current_task; };
+
+	/**
+	 * Check if any task is active
+	 * @return true if a task is active, flase if not
+	 */
+	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
 
 private:
+	int _current_task = -1;
 
+	FlightTaskManual Manual;
 	FlightTaskOrbit Orbit;
+	static const int _task_count = 2;
+	FlightTask *_tasks[_task_count] = {&Manual, &Orbit};
 
 };
