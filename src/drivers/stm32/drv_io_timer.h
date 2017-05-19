@@ -45,7 +45,7 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			4
+#define MAX_IO_TIMERS			5
 #define MAX_TIMER_IO_CHANNELS	8
 
 #define MAX_LED_TIMERS			2
@@ -112,6 +112,7 @@ __EXPORT int io_timer_handler0(int irq, void *context);
 __EXPORT int io_timer_handler1(int irq, void *context);
 __EXPORT int io_timer_handler2(int irq, void *context);
 __EXPORT int io_timer_handler3(int irq, void *context);
+__EXPORT int io_timer_handler4(int irq, void *context);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
