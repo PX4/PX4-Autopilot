@@ -47,15 +47,19 @@
 #include <unistd.h>
 #include <cstdint>
 
-
 class Mavlink2Dev;
+class RtpsDev;
+class ReadBuffer;
 
 extern "C" __EXPORT int protocol_splitter_main(int argc, char *argv[]);
 
 struct StaticData {
 	Mavlink2Dev *mavlink2;
-	sem_t lock;
+	RtpsDev *rtps;
+	sem_t r_lock;
+	sem_t w_lock;
 	char device_name[16];
+	ReadBuffer *read_buffer;
 };
 
 namespace
@@ -63,7 +67,50 @@ namespace
 static StaticData *objects = nullptr;
 }
 
+class ReadBuffer
+{
+public:
+	int read(int fd);
+	void move(void *dest, size_t pos, size_t n);
 
+	uint8_t buffer[512] = {};
+	size_t buf_size = 0;
+
+	static const size_t BUFFER_THRESHOLD = sizeof(buffer) * 0.8;
+};
+
+int ReadBuffer::read(int fd)
+{
+	/* Discard whole buffer if it's filled beyond a threshold,
+	 * This should prevent buffer being filled by garbage that
+	 * no reader (MAVLink or RTPS) can understand.
+	 *
+	 * TODO: a better approach would be checking if both reader
+	 * start understanding messages beyond a certain buffer size,
+	 * meaning that everything before is garbage.
+	 */
+	if (buf_size > BUFFER_THRESHOLD) {
+		buf_size = 0;
+	}
+
+	int r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
+	if (r < 0)
+		return r;
+
+	buf_size += r;
+
+	return r;
+}
+
+void ReadBuffer::move(void *dest, size_t pos, size_t n)
+{
+	ASSERT(pos < buf_size);
+	ASSERT(pos + n <= buf_size);
+
+	memmove(dest, buffer + pos, n); // send desired data
+	memmove(buffer + pos, buffer + (pos + n), sizeof(buffer) - pos - n);
+	buf_size -= n;
+}
 
 class DevCommon : public device::CDev
 {
@@ -76,14 +123,17 @@ public:
 	virtual int	open(file *filp);
 	virtual int	close(file *filp);
 
+	enum Operation {Read, Write};
+
 protected:
 
 	virtual pollevent_t poll_state(struct file *filp);
 
 
-	void lock()
+	void lock(enum Operation op)
 	{
-		while (sem_wait(&objects->lock) != 0) {
+		sem_t *lock = op == Read ? &objects->r_lock : &objects->w_lock;
+		while (sem_wait(lock) != 0) {
 			/* The only case that an error should occur here is if
 			 * the wait was awakened by a signal.
 			 */
@@ -91,9 +141,10 @@ protected:
 		}
 	}
 
-	void unlock()
+	void unlock(enum Operation op)
 	{
-		sem_post(&objects->lock);
+		sem_t *lock = op == Read ? &objects->r_lock : &objects->w_lock;
+		sem_post(lock);
 	}
 
 	int _fd = -1;
@@ -173,27 +224,107 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 class Mavlink2Dev : public DevCommon
 {
 public:
-	Mavlink2Dev();
+	Mavlink2Dev(ReadBuffer *_read_buffer);
 	virtual ~Mavlink2Dev() {}
 
 	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
 
+protected:
+	ReadBuffer *_read_buffer;
+	size_t _remaining_partial = 0;
+	size_t _partial_start = 0;
+	uint8_t _partial_buffer[512] = {};
 };
 
-Mavlink2Dev::Mavlink2Dev()
+Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 	: DevCommon("Mavlink2", "/dev/mavlink")
+	, _read_buffer{read_buffer}
 {
 }
 
 ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 {
+	int i, ret;
+	uint16_t packet_len = 0;
+
+	/* last reading was partial (i.e., buffer didn't fit whole message),
+	 * so now we'll just send remaining bytes */
+	if (_remaining_partial > 0) {
+		size_t len = _remaining_partial;
+		if (buflen < len) {
+			len = buflen;
+		}
+		memmove(buffer, _partial_buffer + _partial_start, len);
+		_partial_start += len;
+		_remaining_partial -= len;
+
+		if (_remaining_partial == 0) {
+			_partial_start = 0;
+		}
+		return len;
+	}
+
 	if (!_had_data) {
 		return 0;
 	}
 
-	//no need for locking here
-	return ::read(_fd, buffer, buflen);
+	lock(Read);
+	ret = _read_buffer->read(_fd);
+
+	if (ret < 0)
+		goto end;
+
+	ret = 0;
+
+	if (_read_buffer->buf_size < 3)
+		goto end;
+
+	// Search for a mavlink packet on buffer to send it
+	i = 0;
+	while (i < (_read_buffer->buf_size - 3)
+			&& _read_buffer->buffer[i] != 253
+			&& _read_buffer->buffer[i] != 254)
+		i++;
+
+	// We need at least the first three bytes to get packet len
+	if (i >= _read_buffer->buf_size - 3) {
+		goto end;
+	}
+
+	if (_read_buffer->buffer[i] == 253) {
+		uint8_t payload_len = _read_buffer->buffer[i + 1];
+		uint8_t incompat_flags = _read_buffer->buffer[i + 2];
+		packet_len = payload_len + 12;
+
+		if (incompat_flags & 0x1) { //signing
+			packet_len += 13;
+		}
+	} else {
+		packet_len = _read_buffer->buffer[i + 1] + 8;
+	}
+
+	// packet is bigger than what we've read, better luck next time
+	if (i + packet_len > _read_buffer->buf_size) {
+		goto end;
+	}
+
+	/* if buffer doesn't fit message, send what's possible and copy remaining
+	 * data into a temporary buffer on this class */
+	if (packet_len > buflen) {
+		_read_buffer->move(buffer, i, buflen);
+		_read_buffer->move(_partial_buffer, i, packet_len - buflen);
+		_remaining_partial = packet_len - buflen;
+		ret = buflen;
+		goto end;
+	}
+
+	_read_buffer->move(buffer, i, packet_len);
+	ret = packet_len;
+
+end:
+	unlock(Read);
+	return ret;
 }
 
 ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
@@ -221,14 +352,14 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			}
 
 			_parser_state = ParserState::GotLength;
-			lock();
+			lock(Write);
 
 		} else if ((unsigned char)buffer[0] == 254) { // mavlink 1
 			uint8_t payload_len = buffer[1];
 			_packet_len = payload_len + 8;
 
 			_parser_state = ParserState::GotLength;
-			lock();
+			lock(Write);
 
 		} else {
 			PX4_ERR("parser error");
@@ -251,7 +382,7 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			}
 
 			if (_packet_len == 0) {
-				unlock();
+				unlock(Write);
 				_parser_state = ParserState::Idle;
 			}
 		}
@@ -262,6 +393,132 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 	return ret;
 }
 
+class RtpsDev : public DevCommon
+{
+public:
+	RtpsDev(ReadBuffer *_read_buffer);
+	virtual ~RtpsDev() {}
+
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+
+protected:
+	ReadBuffer *_read_buffer;
+
+	static const uint8_t HEADER_SIZE = 9;
+};
+
+RtpsDev::RtpsDev(ReadBuffer *read_buffer)
+	: DevCommon("Rtps", "/dev/rtps")
+	, _read_buffer{read_buffer}
+{
+}
+
+ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
+{
+	int i, ret;
+	uint16_t packet_len, payload_len;
+
+	if (!_had_data) {
+		return 0;
+	}
+
+	lock(Read);
+	ret = _read_buffer->read(_fd);
+
+	if (ret < 0) {
+		goto end;
+	}
+	ret = 0;
+
+	if (_read_buffer->buf_size < HEADER_SIZE)
+		goto end; // starting ">>>" + topic + seq + lenhigh + lenlow + crchigh + crclow
+
+	// Search for a rtps packet on buffer to send it
+	i = 0;
+	while (i < (_read_buffer->buf_size - HEADER_SIZE) && (memcmp(_read_buffer->buffer + i, ">>>", 3) != 0))
+		i++;
+
+	// We need at least the first six bytes to get packet len
+	if (i >= _read_buffer->buf_size - HEADER_SIZE) {
+		goto end;
+	}
+
+	payload_len = ((uint16_t)_read_buffer->buffer[i + 5] << 8) | _read_buffer->buffer[i + 6];
+	packet_len = payload_len + HEADER_SIZE;
+
+	// packet is bigger than what we've read, better luck next time
+	if (i + packet_len > _read_buffer->buf_size) {
+		goto end;
+	}
+
+	// buffer should be big enough to hold a rtps packet
+	if (packet_len > buflen) {
+		ret = -EMSGSIZE;
+		goto end;
+	}
+
+	_read_buffer->move(buffer, i, packet_len);
+	ret = packet_len;
+
+end:
+	unlock(Read);
+	return ret;
+}
+
+ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
+{
+	/*
+	 * we need to look into the data to make sure the output is locked for the duration
+	 * of a whole packet.
+	 * assumptions:
+	 * - packet header is written all at once (or at least it contains the payload length)
+	 * - a single write call does not contain multiple (or parts of multiple) packets
+	 */
+	ssize_t ret = 0;
+	uint16_t payload_len;
+
+	switch (_parser_state) {
+	case ParserState::Idle:
+		ASSERT(buflen >= HEADER_SIZE);
+		if (memcmp(buffer, ">>>", 3) != 0) {
+			PX4_ERR("parser error");
+			return 0;
+		}
+
+		payload_len = ((uint16_t)buffer[5] << 8) | buffer[6];
+		_packet_len = payload_len + HEADER_SIZE;
+		_parser_state = ParserState::GotLength;
+		lock(Write);
+
+
+	//no break
+	case ParserState::GotLength: {
+			_packet_len -= buflen;
+			int buf_free;
+			::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
+
+			// TODO should I care about this for rtps?
+			if (buf_free < buflen) {
+				//let write fail, to let rtps know the buffer would overflow
+				//(this is because in the ioctl we pretend there is always enough space)
+				ret = -1;
+
+			} else {
+				ret = ::write(_fd, buffer, buflen);
+			}
+
+			if (_packet_len == 0) {
+				unlock(Write);
+				_parser_state = ParserState::Idle;
+			}
+		}
+
+		break;
+	}
+
+	return ret;
+}
 
 int protocol_splitter_main(int argc, char *argv[])
 {
@@ -290,12 +547,18 @@ int protocol_splitter_main(int argc, char *argv[])
 		}
 
 		strncpy(objects->device_name, argv[2], sizeof(objects->device_name));
-		sem_init(&objects->lock, 1, 1);
-		objects->mavlink2 = new Mavlink2Dev();
+		sem_init(&objects->r_lock, 1, 1);
+		sem_init(&objects->w_lock, 1, 1);
+		objects->read_buffer = new ReadBuffer();
+		objects->mavlink2 = new Mavlink2Dev(objects->read_buffer);
+		objects->rtps = new RtpsDev(objects->read_buffer);
 
-		if (!objects->mavlink2) {
+		if (!objects->mavlink2 || !objects->rtps) {
 			delete objects->mavlink2;
-			sem_destroy(&objects->lock);
+			delete objects->rtps;
+			delete objects->read_buffer;
+			sem_destroy(&objects->r_lock);
+			sem_destroy(&objects->w_lock);
 			delete objects;
 			objects = nullptr;
 			PX4_ERR("alloc failed");
@@ -303,13 +566,17 @@ int protocol_splitter_main(int argc, char *argv[])
 
 		} else {
 			objects->mavlink2->init();
+			objects->rtps->init();
 		}
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (objects) {
 			delete objects->mavlink2;
-			sem_destroy(&objects->lock);
+			delete objects->rtps;
+			delete objects->read_buffer;
+			sem_destroy(&objects->r_lock);
+			sem_destroy(&objects->w_lock);
 			delete objects;
 			objects = nullptr;
 		}
