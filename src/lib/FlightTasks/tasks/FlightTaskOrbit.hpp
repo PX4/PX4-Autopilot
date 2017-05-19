@@ -55,7 +55,7 @@ public:
 	 */
 	virtual int activate()
 	{
-		_set_position_setpoint(matrix::Vector3f());
+		FlightTask::activate();
 		return 0;
 	};
 
@@ -72,8 +72,8 @@ public:
 	 */
 	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
 	{
-		float time = hrt_absolute_time() / 1e6;
-		_set_position_setpoint(matrix::Vector3f(0.1f * time, 0.f, -2.f));
+		FlightTask::update(NULL, NULL);
+		_set_position_setpoint(matrix::Vector3f(0.1f * _get_time(), 0.f, -2.f));
 		return 0;
 	};
 

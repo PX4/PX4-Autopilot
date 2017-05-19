@@ -54,7 +54,11 @@ public:
 	 * Call once on the event where you switch to the task
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int activate() = 0;
+	virtual int activate()
+	{
+		_reset_time();
+		return 0;
+	};
 
 	/**
 	 * Call once on the event of switching away from the task
@@ -67,8 +71,11 @@ public:
 	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int update(manual_control_setpoint_s *manual_control_setpoint,
-			   vehicle_local_position_s *vehicle_local_position) = 0;
+	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
+	{
+		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6;
+		return 0;
+	};
 
 	/**
 	 * Call to get result of the task execution
@@ -77,6 +84,9 @@ public:
 	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return &_vehicle_position_setpoint; };
 
 protected:
+
+	float _get_time() { return _time; }
+	void _reset_time() { _starting_time_stamp = hrt_absolute_time(); };
 
 	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
 	{
@@ -101,6 +111,8 @@ protected:
 
 private:
 
+	float _time = 0; /*< passed time in seconds since the task was activated */
+	hrt_abstime _starting_time_stamp; /*< time stamp when task was activated */
 	vehicle_local_position_setpoint_s _vehicle_position_setpoint;
 
 };
