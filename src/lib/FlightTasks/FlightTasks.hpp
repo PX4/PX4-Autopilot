@@ -55,13 +55,13 @@ public:
 	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_local_position) { return 0; };
+	int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_local_position) { return Orbit.update(NULL, NULL); };
 
 	/**
 	 * Call to get result of the task execution
 	 * @return pointer to
 	 */
-	const vehicle_local_position_setpoint_s *get_local_position_setpoint() const { return Orbit.get_local_position_setpoint(); };
+	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return Orbit.get_position_setpoint(); };
 
 private:
 

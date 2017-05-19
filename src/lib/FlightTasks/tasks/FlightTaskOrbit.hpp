@@ -53,7 +53,11 @@ public:
 	 * Call once on the event where you switch to the task
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int activate() { return 0; };
+	virtual int activate()
+	{
+		_set_position_setpoint(matrix::Vector3f());
+		return 0;
+	};
 
 	/**
 	 * Call once on the event of switching away from the task
@@ -66,8 +70,12 @@ public:
 	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int update(manual_control_setpoint_s *manual_control_setpoint,
-			   vehicle_local_position_s *vehicle_local_position) { return 0; };
+	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
+	{
+		float time = hrt_absolute_time() / 1e6;
+		_set_position_setpoint(matrix::Vector3f(0.1f * time, 0.f, -2.f));
+		return 0;
+	};
 
 private:
 
