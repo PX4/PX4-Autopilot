@@ -176,6 +176,7 @@ public:
 	 */
 	float		get_cruising_speed();
 
+
 	/**
 	 * Set the cruising speed
 	 *
@@ -231,6 +232,8 @@ public:
 	bool		is_planned_mission() { return _navigation_mode == &_mission; }
 
 	bool		abort_landing();
+
+	void 		global_to_local(struct position_setpoint_s *sp);
 
 private:
 

@@ -484,6 +484,7 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 bool
 MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
+
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
 		return false;
@@ -505,7 +506,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	/* TODO: adjust mc_pos_control to use local setpoint only */
 	if (_navigator->get_vstatus()->is_rotary_wing) {
-		global_to_local(item, sp);
+		_navigator->global_to_local(sp);
 	}
 
 	switch (item->nav_cmd) {
@@ -579,16 +580,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->valid = true;
 
 	return sp->valid;
-}
-
-void
-MissionBlock::global_to_local(const struct mission_item_s *item, struct position_setpoint_s *sp)
-{
-
-	map_projection_project(_navigator->get_local_reference_pos(), item->lat, item->lon,
-			       &sp->x, &sp->y);
-	sp->z = -(sp->alt - _navigator->get_local_reference_alt());
-
 }
 
 void

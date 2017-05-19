@@ -129,8 +129,6 @@ protected:
 
 	float get_time_inside(const struct mission_item_s &item);
 
-	void global_to_local(const struct mission_item_s *item, struct position_setpoint_s *sp);
-
 	mission_item_s _mission_item{};
 
 	bool _waypoint_position_reached{false};

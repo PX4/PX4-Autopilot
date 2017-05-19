@@ -348,6 +348,15 @@ Navigator::task_main()
 			}
 		}
 
+		/* local position updated */
+		orb_check(_local_pos_sub, &updated);
+
+		if (updated) {
+			local_position_update();
+			local_reference_update();
+		}
+
+
 		/* sensors combined updated */
 		orb_check(_sensor_combined_sub, &updated);
 
@@ -456,6 +465,9 @@ Navigator::task_main()
 					rep->current.lon = get_global_position()->lon;
 					rep->current.alt = get_global_position()->alt;
 				}
+
+				global_to_local(&rep->current);
+				global_to_local(&rep->previous);
 
 				rep->previous.valid = true;
 				rep->current.valid = true;
@@ -902,6 +914,16 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	}
 
 	return radius;
+}
+
+void
+Navigator::global_to_local(struct position_setpoint_s *sp)
+{
+
+	map_projection_project(get_local_reference_pos(), sp->lat, sp->lon,
+			       &sp->x, &sp->y);
+	sp->z = -(sp->alt - get_local_reference_alt());
+
 }
 
 void
