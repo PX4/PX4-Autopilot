@@ -1,0 +1,56 @@
+diff --git NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c
+index dbdf4e9..9c93cef 100644
+--- NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c
++++ NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c
+@@ -857,7 +857,7 @@ static void mmcsd_decodeCID(FAR struct mmcsd_state_s *priv, uint32_t cid[4])
+    */
+ 
+   decoded.mid    =  cid[0] >> 24;
+-  decoded.oid    = (cid[0] >> 16) & 0xffff;
++  decoded.oid    = (cid[0] >> 8) & 0xffff;
+   decoded.pnm[0] =  cid[0] & 0xff;
+ 
+   /* Word 2: Bits 64:95
+@@ -893,9 +893,9 @@ static void mmcsd_decodeCID(FAR struct mmcsd_state_s *priv, uint32_t cid[4])
+   decoded.mdt    = (cid[3] >> 8) & 0x0fff;
+   decoded.crc    = (cid[3] >> 1) & 0x7f;
+ 
+-  finfo("mid: %02x oid: %04x pnm: %s prv: %d psn: %d mdt: %02x crc: %02x\n",
++  finfo("mid: %02x oid: %04x pnm: %s prv: %d psn: %lu mdt: %02x crc: %02x\n",
+       decoded.mid, decoded.oid, decoded.pnm, decoded.prv,
+-      decoded.psn, decoded.mdt, decoded.crc);
++      (unsigned long)decoded.psn, decoded.mdt, decoded.crc);
+ }
+ #endif
+ 
+@@ -2234,7 +2234,8 @@ static int mmcsd_geometry(FAR struct inode *inode, struct geometry *geometry)
+                  geometry->geo_mediachanged ? "true" : "false",
+                  geometry->geo_writeenabled ? "true" : "false");
+           finfo("nsectors: %lu sectorsize: %d\n",
+-                 (long)geometry->geo_nsectors, geometry->geo_sectorsize);
++                 ((unsigned long))geometry->geo_nsectors,
++                 geometry->geo_sectorsize);
+ 
+           priv->mediachanged = false;
+           ret = OK;
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
+index 9d93a43..9fb9001 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
+@@ -2577,13 +2577,15 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
+ 
+   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+ 
++#if !defined(CONFIG_STM32_STM32F40XX)
++
+   /* Wide bus operation is required for DMA */
+ 
+   if (!priv->widebus)
+     {
+       return -EINVAL;
+     }
+-
++#endif
+   /* DMA must be possible to the buffer */
+ 
+   if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG))
