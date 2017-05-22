@@ -85,6 +85,8 @@ static volatile uint8_t msg_next_out, msg_next_in;
 #define NUM_MSG 1
 static char msg[NUM_MSG][40];
 
+uint64_t last_heater_us = 0;
+
 static void heartbeat_blink(void);
 
 /*
@@ -176,7 +178,7 @@ calculate_fw_crc(void)
 static void
 control_IMU_heater(uint16_t duty_cycle)
 {
-	if (duty_cycle == 0) {
+	if (duty_cycle == 0 || (hrt_absolute_time() - last_heater_us > 3000000UL)) {
 		LED_BLUE(false);
 
 	} else {
@@ -325,7 +327,9 @@ user_start(int argc, char *argv[])
 
 			} else {
 				LED_AMBER(false);
-				LED_BLUE(true);
+				if (r_page_config[PX4IO_P_CONFIG_HARDWARE_VERSION] != 3) {
+						LED_BLUE(true);
+				}
 			}
 
 			up_udelay(250000);

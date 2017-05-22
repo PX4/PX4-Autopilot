@@ -95,6 +95,7 @@ extern uint16_t			r_page_servo_control_min[]; /* PX4IO_PAGE_CONTROL_MIN_PWM */
 extern uint16_t			r_page_servo_control_max[]; /* PX4IO_PAGE_CONTROL_MAX_PWM */
 extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
+
 /*
  * Register aliases.
  *
@@ -151,6 +152,11 @@ extern struct sys_state_s system_state;
  * PWM limit structure
  */
 extern pwm_limit_t pwm_limit;
+
+/*
+  counter for heater, preventing stuck FMU
+ */
+extern uint64_t last_heater_us;
 
 /*
  * GPIO handling.

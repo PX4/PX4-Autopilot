@@ -768,6 +768,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_HEATER_DUTY_CYCLE:
+			last_heater_us = hrt_absolute_time();
 			r_page_setup[offset] = value;
 			break;
 
