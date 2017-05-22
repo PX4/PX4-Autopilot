@@ -63,7 +63,7 @@ static void	pwm_configure_clock(uint16_t map, uint16_t clock_MHz);
  *
  * Static configuration parameters.
  */
-static const uint16_t	r_page_config[] = {
+uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_PROTOCOL_VERSION,
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 2,
@@ -1162,3 +1162,4 @@ pwm_configure_clock(uint16_t map, uint16_t clock_MHz)
         }
     }
 }
+

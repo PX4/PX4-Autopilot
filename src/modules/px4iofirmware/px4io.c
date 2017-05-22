@@ -208,9 +208,26 @@ control_heartbeat_LED(void)
 	}
 }
 
+
+/*
+  detect hardware version
+ */
+static void hw_detect(void)
+{
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+    if (stm32_gpioread(GPIO_IO_HW_DETECT1) == 1 && stm32_gpioread(GPIO_IO_HW_DETECT2) == 0) {
+        // detected pixhawk2
+        r_page_config[PX4IO_P_CONFIG_HARDWARE_VERSION] = 3;
+    }
+#endif
+}
+
 int
 user_start(int argc, char *argv[])
 {
+    // detect hw version
+    hw_detect();
+    
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
 
@@ -370,9 +387,12 @@ user_start(int argc, char *argv[])
 
 		if (r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE] <= PX4IO_HEATER_MAX) {
 			control_IMU_heater(r_page_setup[PX4IO_P_SETUP_HEATER_DUTY_CYCLE]);
-
+            
+		} else if (r_page_config[PX4IO_P_CONFIG_HARDWARE_VERSION] == 3) {
+				// pixhawk2 with no target temperature
+				control_IMU_heater(0);
 		} else {
-			control_heartbeat_LED();
+				control_heartbeat_LED();
 		}
 	}
 }

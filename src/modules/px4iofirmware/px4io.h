@@ -78,6 +78,7 @@
 /*
  * Registers.
  */
+extern uint16_t			r_page_config[];	/* PX4IO_PAGE_CONFIG */
 extern uint16_t			r_page_status[];	/* PX4IO_PAGE_STATUS */
 extern uint16_t			r_page_actuators[];	/* PX4IO_PAGE_ACTUATORS */
 extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
