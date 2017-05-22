@@ -70,9 +70,9 @@ public:
 	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
+	virtual int update()
 	{
-		FlightTask::update(NULL, NULL);
+		FlightTask::update();
 		float v = 2 * M_PI_F * 0.1f; /* velocity for orbiting in radians per second */
 		float altitude = 2; /* altitude in meters */
 		_set_position_setpoint(matrix::Vector3f(1.f * cosf(v * _get_time()), 1.f * sinf(v * _get_time()), -altitude));

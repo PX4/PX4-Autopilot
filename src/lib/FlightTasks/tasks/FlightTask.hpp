@@ -47,11 +47,17 @@
 class FlightTask
 {
 public:
-	FlightTask() {};
+	FlightTask()
+	{
+		_vehicle_local_position = NULL;
+		_manual_control_setpoint = NULL;
+		_reset_time();
+	};
 	virtual ~FlightTask() {};
 
 	/**
 	 * Call once on the event where you switch to the task
+	 * Note: Set the necessary input pointers first!
 	 * @return 0 on success, >0 on error otherwise
 	 */
 	virtual int activate()
@@ -67,21 +73,32 @@ public:
 	virtual int disable() = 0;
 
 	/**
-	 * Call regularly in the control loop cycle to execute the task
-	 * @param TODO
+	 * To be called regularly in the control loop cycle to execute the task
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	virtual int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position)
+	virtual int update()
 	{
 		_time = hrt_elapsed_time(&_starting_time_stamp) / 1e6;
 		return 0;
 	};
 
 	/**
-	 * Call to get result of the task execution
-	 * @return pointer to
+	 * Get the resulting setpoints of the task execution via pointer
+	 * @return pointer to setpoint struct
 	 */
 	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return &_vehicle_position_setpoint; };
+
+	/**
+	 * Set vehicle local position data pointer
+	 * @param pointer to vehicle local position
+	 */
+	void set_vehicle_local_position_pointer(const vehicle_local_position_s *vehicle_local_position) { _vehicle_local_position = vehicle_local_position; };
+
+	/**
+	 * Set manual control setpoint data pointer if it's needed for the task
+	 * @param pointer to manual control setpoint
+	 */
+	void set_manual_control_setpoint_pointer(const manual_control_setpoint_s *manual_control_setpoint) { _manual_control_setpoint = manual_control_setpoint; };
 
 protected:
 
@@ -111,8 +128,15 @@ protected:
 
 private:
 
+	/* local time for a task */
 	float _time = 0; /*< passed time in seconds since the task was activated */
 	hrt_abstime _starting_time_stamp; /*< time stamp when task was activated */
+
+	/* General Input */
+	const vehicle_local_position_s *_vehicle_local_position;
+	const manual_control_setpoint_s *_manual_control_setpoint;
+
+	/* General Output */
 	vehicle_local_position_setpoint_s _vehicle_position_setpoint;
 
 };

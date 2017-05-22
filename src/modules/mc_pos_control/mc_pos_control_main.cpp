@@ -2407,7 +2407,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
 
-		_flight_tasks.update(NULL, NULL);
+		_flight_tasks.update();
 		_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
 		_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
 		_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;

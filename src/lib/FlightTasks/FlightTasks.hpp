@@ -55,7 +55,7 @@ public:
 	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	int update(manual_control_setpoint_s *manual_control_setpoint, vehicle_local_position_s *vehicle_position) { return Orbit.update(NULL, NULL); };
+	int update() { return Orbit.update(); };
 
 	/**
 	 * Call to get result of the task execution
