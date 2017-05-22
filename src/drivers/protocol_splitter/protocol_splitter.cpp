@@ -36,7 +36,6 @@
  * NuttX Driver to split mavlink 2 and another protocol on a serial port.
  * Makes sure the two protocols can be read & written simultanously by 2 processes.
  * It will create two devices:
- * /dev/protocol
  * /dev/mavlink
  */
 
@@ -49,13 +48,11 @@
 #include <cstdint>
 
 
-class ProtocolDev;
 class Mavlink2Dev;
 
 extern "C" __EXPORT int protocol_splitter_main(int argc, char *argv[]);
 
 struct StaticData {
-	ProtocolDev *protocol;
 	Mavlink2Dev *mavlink2;
 	sem_t lock;
 	char device_name[16];
@@ -172,37 +169,6 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 
 	return POLLIN;
 }
-
-
-class ProtocolDev : public DevCommon
-{
-public:
-	ProtocolDev();
-	virtual ~ProtocolDev() {}
-
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-
-};
-
-ProtocolDev::ProtocolDev()
-	: DevCommon("Protocol", "/dev/protocol")
-{
-}
-
-ssize_t ProtocolDev::read(struct file *filp, char *buffer, size_t buflen)
-{
-	PX4_ERR("read from protocol unsupported");
-	return 0;
-}
-
-ssize_t ProtocolDev::write(struct file *filp, const char *buffer, size_t buflen)
-{
-	// TODO: something similar as Mavlink2Dev::write()
-
-	return 0;
-}
-
 
 class Mavlink2Dev : public DevCommon
 {
@@ -326,10 +292,8 @@ int protocol_splitter_main(int argc, char *argv[])
 		strncpy(objects->device_name, argv[2], sizeof(objects->device_name));
 		sem_init(&objects->lock, 1, 1);
 		objects->mavlink2 = new Mavlink2Dev();
-		objects->protocol = new ProtocolDev();
 
-		if (!objects->mavlink2 || !objects->protocol) {
-			delete objects->protocol;
+		if (!objects->mavlink2) {
 			delete objects->mavlink2;
 			sem_destroy(&objects->lock);
 			delete objects;
@@ -339,13 +303,11 @@ int protocol_splitter_main(int argc, char *argv[])
 
 		} else {
 			objects->mavlink2->init();
-			objects->protocol->init();
 		}
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		if (objects) {
-			delete objects->protocol;
 			delete objects->mavlink2;
 			sem_destroy(&objects->lock);
 			delete objects;
