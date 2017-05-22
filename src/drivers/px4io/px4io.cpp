@@ -2230,7 +2230,7 @@ PX4IO::print_status(bool extended_status)
 		       (double)_battery_amp_bias,
 		       (double)_battery_mamphour_total);
 
-	} else if (_hardware == 2) {
+	} else if (_hardware >= 2) {
 		printf("vservo %u mV vservo scale %u\n",
 		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
 		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VSERVO_SCALE));
