@@ -1,3 +1,24 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
+index 9d93a43..737f42f 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
+@@ -2573,6 +2573,7 @@ static bool stm32_dmasupported(FAR struct sdio_dev_s *dev)
+ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
+                               FAR const uint8_t *buffer, size_t buflen)
+ {
++#if !defined(CONFIG_STM32_STM32F40XX)
+   struct stm32_dev_s *priv = (struct stm32_dev_s *)dev;
+ 
+   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+@@ -2583,7 +2584,7 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
+     {
+       return -EINVAL;
+     }
+-
++#endif
+   /* DMA must be possible to the buffer */
+ 
+   if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG))
 diff --git NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c
 index dbdf4e9..9c93cef 100644
 --- NuttX/nuttx/drivers/mmcsd/mmcsd_sdio.c
@@ -33,24 +54,3 @@ index dbdf4e9..9c93cef 100644
  
            priv->mediachanged = false;
            ret = OK;
-diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
-index 9d93a43..9fb9001 100644
---- NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
-+++ NuttX/nuttx/arch/arm/src/stm32/stm32_sdio.c
-@@ -2577,13 +2577,15 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
- 
-   DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
- 
-+#if !defined(CONFIG_STM32_STM32F40XX)
-+
-   /* Wide bus operation is required for DMA */
- 
-   if (!priv->widebus)
-     {
-       return -EINVAL;
-     }
--
-+#endif
-   /* DMA must be possible to the buffer */
- 
-   if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG))
