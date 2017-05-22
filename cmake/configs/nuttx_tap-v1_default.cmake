@@ -25,6 +25,7 @@ set(config_module_list
 	drivers/gps
 	drivers/airspeed
 	drivers/meas_airspeed
+	drivers/ms5525_airspeed
 	modules/sensors
 	drivers/vmount
 

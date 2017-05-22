@@ -33,6 +33,7 @@ set(config_module_list
 	drivers/lsm303d
 	drivers/mb12xx
 	drivers/meas_airspeed
+	drivers/ms5525_airspeed
 	drivers/mkblctrl
 	drivers/mpu6000
 	drivers/mpu9250

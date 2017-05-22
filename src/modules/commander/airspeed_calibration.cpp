@@ -230,7 +230,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 				calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
-
 				diff_pres_offset = 0.0f;
 				if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 					calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);

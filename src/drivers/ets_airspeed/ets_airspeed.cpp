@@ -319,7 +319,8 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "no ETS airspeed sensor connected");
+	PX4_WARN("no ETS airspeed sensor connected");
+	exit(1);
 }
 
 /**

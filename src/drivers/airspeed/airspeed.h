@@ -81,7 +81,7 @@
 #include <uORB/topics/subsystem_info.h>
 
 /* Default I2C bus */
-#define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
+static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -130,7 +130,7 @@ protected:
 	float			_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	bool			_last_published_sensor_ok;
-	int			_measure_ticks;
+	uint32_t		_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
