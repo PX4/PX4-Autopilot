@@ -156,4 +156,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_gpiowrite(GPIO_PWM8, true);
 	stm32_configgpio(GPIO_PWM8);
+
+	stm32_configgpio(GPIO_IO_HW_DETECT1);
+	stm32_configgpio(GPIO_IO_HW_DETECT2);
 }
