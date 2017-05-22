@@ -73,11 +73,6 @@ then
 		if hmc5883 -C -T -S -R 8 start
 		then
 		fi
-
-		if meas_airspeed start -b 2
-		then
-		fi
-
 	else
 		# FMUv2
 		if mpu6000 start
@@ -179,16 +174,32 @@ then
 	fi
 fi
 
-if meas_airspeed start
+if sdp3x_airspeed start
 then
-else
-	if ets_airspeed start
-	then
-	else
-		if ets_airspeed start -b 1
-		then
-		fi
-	fi
+fi
+
+if ms5525_airspeed start
+then
+fi
+
+if ms5525_airspeed start -b 2
+then
+fi
+
+if ms4525_airspeed start
+then
+fi
+
+if ms4525_airspeed start -b 2
+then
+fi
+
+if ets_airspeed start
+then
+fi
+
+if ets_airspeed start -b 1
+then
 fi
 
 if sf1xx start

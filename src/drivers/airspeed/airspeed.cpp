@@ -151,7 +151,7 @@ Airspeed::init()
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
 
 		if (_airspeed_pub == nullptr) {
-			warnx("uORB started?");
+			PX4_WARN("uORB started?");
 		}
 	}
 
@@ -190,7 +190,7 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_measure_ticks = 0;
 				return OK;
 
-			/* external signalling (DRDY) not supported */
+			/* external signaling (DRDY) not supported */
 			case SENSOR_POLLRATE_EXTERNAL:
 
 			/* zero would be bad */
