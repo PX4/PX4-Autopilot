@@ -73,7 +73,8 @@ uint32 VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1	# Command TEMPORARY REJECTED/
 uint32 VEHICLE_CMD_RESULT_DENIED = 2			# Command PERMANENTLY DENIED |
 uint32 VEHICLE_CMD_RESULT_UNSUPPORTED = 3		# Command UNKNOWN/UNSUPPORTED |
 uint32 VEHICLE_CMD_RESULT_FAILED = 4			# Command executed, but failed |
-uint32 VEHICLE_CMD_RESULT_ENUM_END = 5			#
+uint32 VEHICLE_CMD_RESULT_IN_PROGRESS = 5		# Command being executed |
+uint32 VEHICLE_CMD_RESULT_ENUM_END = 6			#
 
 uint32 VEHICLE_MOUNT_MODE_RETRACT = 0				# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
 uint32 VEHICLE_MOUNT_MODE_NEUTRAL = 1				# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
