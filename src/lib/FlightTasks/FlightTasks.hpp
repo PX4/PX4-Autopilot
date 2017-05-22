@@ -57,6 +57,15 @@ public:
 	 */
 	int update() { return Orbit.update(); };
 
+	void set_input_pointers(vehicle_local_position_s *vehicle_local_position,
+				manual_control_setpoint_s *manual_control_setpoint)
+	{
+		for (int i = 0; i < _task_count; i++) {
+			_tasks[i]->set_vehicle_local_position_pointer(vehicle_local_position);
+			_tasks[i]->set_manual_control_setpoint_pointer(manual_control_setpoint);
+		}
+	};
+
 	/**
 	 * Call to get result of the task execution
 	 * @return pointer to
@@ -64,7 +73,9 @@ public:
 	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return Orbit.get_position_setpoint(); };
 
 private:
+	static const int _task_count = 1;
 
 	FlightTaskOrbit Orbit;
+	FlightTask *_tasks[_task_count] = {&Orbit};
 
 };
