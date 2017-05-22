@@ -334,10 +334,15 @@ bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int h
 void BeaconPositionEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
+	PX4_WARN("BEST_ACC_UNC %f", _params.acc_unc);
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
+	PX4_WARN("BEST_MEAS_UNC %f", _params.meas_unc);
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
+	PX4_WARN("BEST_POS_UNC_IN %f", _params.pos_unc_init);
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
+	PX4_WARN("BEST_VEL_UNC_IN %f", _params.vel_unc_init);
 	param_get(_paramHandle.mode, &_params.mode);
+	PX4_WARN("BEST_MODE %d", _params.mode);
 }
 
 

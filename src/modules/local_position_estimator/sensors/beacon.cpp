@@ -65,7 +65,7 @@ void BlockLocalPositionEstimator::beaconCorrect()
 		float cov_vy = _sub_beacon_position.get().cov_vy_rel;
 
 		if (cov_vx < 1.0e-3f || cov_vy < 1.0e-3f) {
-			PX4_WARN("fallback cov");
+			//PX4_WARN("fallback cov"); XXX check this
 			// use sensor value only if reasoanble
 			cov_vx = 0.1; // TODO make parameter
 			cov_vy = 0.1; // TODO make parameter
