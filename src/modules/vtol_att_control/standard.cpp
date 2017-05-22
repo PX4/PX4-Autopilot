@@ -473,6 +473,11 @@ void Standard::fill_actuator_outputs()
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
 	}
 
+	/* translate MC actuators to FW actuators */
+	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW || _vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] - 0.5f;
+	}
+
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
 
