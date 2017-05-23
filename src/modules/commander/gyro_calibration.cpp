@@ -294,9 +294,23 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 	const unsigned gyro_count = orb_group_count(ORB_ID(sensor_gyro));
-	for (unsigned s = 0; s < gyro_count; s++) {
+
+	// Warn that we will not calibrate more than max_gyros gyroscopes
+	if (gyro_count > max_gyros) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u gyros, but will calibrate only %u", gyro_count, max_gyros);
+	}
+
+	for (unsigned s = 0; s < gyro_count && s < max_gyros; s++) {
 
 		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+
+		if (worker_data.gyro_sensor_sub[s] < 0) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u not found, abort", s);
+			res = calibrate_return_error;
+			break;
+		}
+
+
 #if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
 		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
 		struct gyro_report gyro_report;
