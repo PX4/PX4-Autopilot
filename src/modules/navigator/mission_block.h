@@ -130,6 +130,7 @@ protected:
 	float get_time_inside(const struct mission_item_s &item);
 
 	mission_item_s _mission_item{};
+	navigator_item_s _navigator_item{};
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};

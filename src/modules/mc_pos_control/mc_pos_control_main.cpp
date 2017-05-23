@@ -265,29 +265,8 @@ private:
 		math::Vector<3> vel_d;
 	} _params{};
 
-<<<<<<< ead4bee84a27777aca22459d95ec9f1b52c9b891
-	struct map_projection_reference_s _ref_pos;
 	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
-=======
-	bool _reset_sp_xy;
-	bool _reset_sp_z;
-	bool _do_reset_alt_pos_flag;
-	bool _mode_auto;
-	bool _pos_hold_engaged;
-	bool _alt_hold_engaged;
-	bool _run_pos_control;
-	bool _run_alt_control;
-
-	bool _reset_int_z = true;
-	bool _reset_int_xy = true;
-	bool _reset_int_z_manual = false;
-	bool _reset_yaw_sp = true;
-
-	bool _hold_offboard_xy = false;
-	bool _hold_offboard_z = false;
-	bool _limit_vel_xy = false;
->>>>>>> remove unused variables
 
 	math::Vector<3> _thrust_int;
 	math::Vector<3> _pos;
@@ -467,7 +446,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-<<<<<<< ead4bee84a27777aca22459d95ec9f1b52c9b891
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
@@ -475,16 +453,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_user_intention_z(brake),
 	_ref_timestamp(0),
 	_last_warn(0),
-=======
-	_reset_sp_xy(true),
-	_reset_sp_z(true),
-	_do_reset_alt_pos_flag(true),
-	_mode_auto(false),
-	_pos_hold_engaged(false),
-	_alt_hold_engaged(false),
-	_run_pos_control(true),
-	_run_alt_control(true),
->>>>>>> remove unused variables
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
 	_man_yaw_offset(0.0f),
@@ -503,14 +471,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* Make the attitude quaternion valid */
 	_att.q[0] = 1.0f;
 
-<<<<<<< ead4bee84a27777aca22459d95ec9f1b52c9b891
-	_ref_pos = {};
-
 	/* set trigger time for manual direction change detection */
 	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
 
-=======
->>>>>>> remove unused variables
 	_params.pos_p.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();

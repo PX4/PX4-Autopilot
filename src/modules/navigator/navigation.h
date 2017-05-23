@@ -100,6 +100,35 @@ enum ORIGIN {
  */
 
 /**
+ * Position setpoint in local coordinates.
+ *
+ * This is the position the MAV is heading towards. If it is of type loiter,
+ * the MAV is circling around it with the given loiter radius in meters.
+ */
+struct navigator_item_s {
+	float x; /**< local position x in meters */
+	float y; /**< local position y in meters */
+	float z; /**< local position z in meters */
+	float yaw; /**< in radians NED -PI..+PI, NAN means don't change yaw		*/
+	float acceptance_radius; /**< default radius in which the mission is accepted as reached in meters */
+	float loiter_radius; /**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+	uint16_t nav_cmd; /**< navigation command					*/
+	int16_t do_jump_mission_index; /**< index where the do jump will go to                 */
+	uint16_t do_jump_repeat_count; /**< how many times do jump needs to be done            */
+	uint16_t do_jump_current_count; /**< count how many times the jump has been done	*/
+	struct {
+		uint16_t frame : 4, /**< mission frame ***/
+			 origin : 3, /**< how the mission item was generated */
+			 loiter_exit_xtrack : 1, /**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
+			 force_heading : 1, /**< heading needs to be reached ***/
+			 autocontinue : 1, /**< true if next waypoint should follow after this one */
+			 disable_mc_yaw : 1, /**< weathervane mode */
+			 vtol_back_transition : 1; /**< part of the vtol back transition sequence */
+	};
+	//TODO what else is needed? VTOL?
+};
+
+/**
  * Global position setpoint in WGS84 coordinates.
  *
  * This is the position the MAV is heading towards. If it of type loiter,

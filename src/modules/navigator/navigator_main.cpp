@@ -926,6 +926,51 @@ Navigator::global_to_local(struct position_setpoint_s *sp)
 }
 
 void
+Navigator::global_to_local(struct mission_item_s *item)
+{
+
+	map_projection_project(get_local_reference_pos(), item->lat, item->lon, &item->x, &item->y);
+
+	if (item->altitude_is_relative) {
+		item->z = - item->altitude;
+
+	} else {
+		item->z = - (item->altitude - get_local_reference_alt());
+	}
+
+}
+
+void
+Navigator::mission_item_to_navigator_item(struct navigator_item_s *nav_item, struct mission_item_s *mission_item)
+{
+
+	map_projection_project(get_local_reference_pos(), mission_item->lat, mission_item->lon, &nav_item->x, &nav_item->y);
+
+	if (mission_item->altitude_is_relative) {
+		nav_item->z = - mission_item->altitude;
+
+	} else {
+		nav_item->z = - (mission_item->altitude - get_local_reference_alt());
+	}
+
+	nav_item->yaw = mission_item->yaw;
+	nav_item->acceptance_radius = mission_item->acceptance_radius;
+	nav_item->loiter_radius = mission_item->loiter_radius;
+	nav_item->nav_cmd = mission_item->nav_cmd;
+	nav_item->do_jump_mission_index = mission_item->do_jump_mission_index;
+	nav_item->do_jump_repeat_count = mission_item->do_jump_repeat_count;
+	nav_item->do_jump_current_count = mission_item->do_jump_current_count;
+	nav_item->frame = mission_item->frame;
+	nav_item->origin = mission_item->origin;
+	nav_item->loiter_exit_xtrack = mission_item->loiter_exit_xtrack;
+	nav_item->force_heading = mission_item->force_heading;
+	nav_item->autocontinue = mission_item->autocontinue;
+	nav_item->disable_mc_yaw = mission_item->disable_mc_yaw;
+	nav_item->vtol_back_transition = mission_item->vtol_back_transition;
+
+}
+
+void
 Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);

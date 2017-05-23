@@ -237,6 +237,8 @@ public:
 
 	void 		global_to_local(struct mission_item_s *item);
 
+	void 		mission_item_to_navigator_item(struct navigator_item_s *nav_item, struct mission_item_s *mission_item);
+
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */

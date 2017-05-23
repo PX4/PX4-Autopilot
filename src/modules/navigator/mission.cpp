@@ -540,7 +540,9 @@ Mission::set_mission_items()
 
 	/*********************************** handle mission item *********************************************/
 
-	// convert mission item to local navigation item
+	// convert mission_item to local navigator_item
+	//TODO use _navigator_item instead of _mission_item
+	_navigator->mission_item_to_navigator_item(&_navigator_item, &_mission_item);
 	_navigator->global_to_local(&_mission_item);
 
 	/* handle position mission items */
