@@ -78,10 +78,15 @@ public:
 
 private:
 
+    struct fit_params{
+        float a;
+        float b;
+    }fit_val;
+
     void shift_buffer(void);
     void add_sample(float sample);
-    float end_fit_FOAW(uint8_t window_size);
-    float best_fit_FOAW(uint8_t window_size);
+    void end_fit_FOAW(uint8_t window_size);
+    void best_fit_FOAW(uint8_t window_size);
     float fit(void);
 
 
