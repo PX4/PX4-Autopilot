@@ -266,7 +266,6 @@ private:
 	} _params{};
 
 	struct map_projection_reference_s _ref_pos;
-	float _ref_alt;
 	hrt_abstime _ref_timestamp;
 	hrt_abstime _last_warn;
 
@@ -453,7 +452,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_filter_manual_roll(50.0f, 10.0f),
 	_user_intention_xy(brake),
 	_user_intention_z(brake),
-	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_last_warn(0),
 	_yaw(0.0f),
