@@ -920,8 +920,7 @@ void
 Navigator::global_to_local(struct position_setpoint_s *sp)
 {
 
-	map_projection_project(get_local_reference_pos(), sp->lat, sp->lon,
-			       &sp->x, &sp->y);
+	map_projection_project(get_local_reference_pos(), sp->lat, sp->lon, &sp->x, &sp->y);
 	sp->z = -(sp->alt - get_local_reference_alt());
 
 }

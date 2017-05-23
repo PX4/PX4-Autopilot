@@ -136,16 +136,21 @@ RTL::set_rtl_item()
 
 			// if we are close to home we do not climb as high, otherwise we climb to return alt
 			float climb_alt = _navigator->get_home_position()->alt + get_rtl_altitude();
+			float climb_z = - get_rtl_altitude();
 
 			// we are close to home, limit climb to min
 			if (home_dist < _param_rtl_min_dist.get()) {
 				climb_alt = _navigator->get_home_position()->alt + _param_descend_alt.get();
+				climb_z = - _param_descend_alt.get();
 			}
 
 			_mission_item.lat = _navigator->get_global_position()->lat;
 			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.x = _navigator->get_local_position()->x;
+			_mission_item.y = _navigator->get_local_position()->y;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = climb_alt;
+			_mission_item.z = climb_z;
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -163,6 +168,8 @@ RTL::set_rtl_item()
 	case RTL_STATE_RETURN: {
 			_mission_item.lat = _navigator->get_home_position()->lat;
 			_mission_item.lon = _navigator->get_home_position()->lon;
+			//TODO use local coordinates
+			_navigator->global_to_local(&_mission_item);
 			// don't change altitude
 
 			// use home yaw if close to home
@@ -205,10 +212,13 @@ RTL::set_rtl_item()
 			_mission_item.lon = _navigator->get_home_position()->lon;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
+			//TODO use local coordinates
+			_navigator->global_to_local(&_mission_item);
 
 			// check if we are already lower - then we will just stay there
 			if (_mission_item.altitude > _navigator->get_global_position()->alt) {
 				_mission_item.altitude = _navigator->get_global_position()->alt;
+				_mission_item.z = _navigator->get_local_position()->z;
 			}
 
 			_mission_item.yaw = _navigator->get_home_position()->yaw;
@@ -245,6 +255,9 @@ RTL::set_rtl_item()
 
 			_mission_item.lat = _navigator->get_home_position()->lat;
 			_mission_item.lon = _navigator->get_home_position()->lon;
+			//TODO use local coordinates
+			_navigator->global_to_local(&_mission_item);
+
 			// don't change altitude
 			_mission_item.yaw = _navigator->get_home_position()->yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();

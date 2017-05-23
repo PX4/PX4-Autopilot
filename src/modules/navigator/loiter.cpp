@@ -154,10 +154,13 @@ Loiter::reposition()
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.velocity_valid = false;
-		pos_sp_triplet->previous.yaw = _navigator->get_global_position()->yaw;
+		pos_sp_triplet->previous.yaw = _navigator->get_local_position()->yaw;
 		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+		pos_sp_triplet->previous.x = _navigator->get_local_position()->x;
+		pos_sp_triplet->previous.y = _navigator->get_local_position()->y;
+		pos_sp_triplet->previous.z = _navigator->get_local_position()->z;
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 

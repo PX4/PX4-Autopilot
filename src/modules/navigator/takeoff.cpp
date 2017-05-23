@@ -140,8 +140,10 @@ Takeoff::set_takeoff_position()
 				     "Already higher than takeoff altitude");
 	}
 
+	float lpos_z = - (abs_altitude - _navigator->get_local_reference_alt());
+
 	// set current mission item to takeoff
-	set_takeoff_item(&_mission_item, abs_altitude);
+	set_takeoff_item(&_mission_item, abs_altitude, lpos_z);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();

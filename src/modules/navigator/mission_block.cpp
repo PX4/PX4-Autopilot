@@ -490,12 +490,15 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		return false;
 	}
 
-	sp->lat = item.lat;
-	sp->lon = item.lon;
-	sp->alt = item.altitude_is_relative ? item.altitude + _navigator->get_home_position()->alt : item.altitude;
-	sp->yaw = item.yaw;
-	sp->yaw_valid = PX4_ISFINITE(item.yaw);
-	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
+	sp->lat = item->lat;
+	sp->lon = item->lon;
+	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
+	sp->x = item->x;
+	sp->y = item->y;
+	sp->z = item->z;
+	sp->yaw = item->yaw;
+	sp->yaw_valid = PX4_ISFINITE(item->yaw);
+	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction = (item.loiter_radius > 0) ? 1 : -1;
 	sp->acceptance_radius = item.acceptance_radius;
@@ -503,9 +506,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
-
-	/* compute local setpoint */
-	_navigator->global_to_local(sp);
 
 	switch (item->nav_cmd) {
 	case NAV_CMD_IDLE:
@@ -608,14 +608,26 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 			item->lon = pos_sp_triplet->current.lon;
 			item->altitude = pos_sp_triplet->current.alt;
 
+			item->x = pos_sp_triplet->current.x;
+			item->y = pos_sp_triplet->current.y;
+			item->z = pos_sp_triplet->current.z;
+
 		} else {
 			/* use current position and use return altitude as clearance */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
 			item->altitude = _navigator->get_global_position()->alt;
 
+			item->x = _navigator->get_local_position()->x;
+			item->y = _navigator->get_local_position()->y;
+			item->z = _navigator->get_local_position()->z;
+
 			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
 				item->altitude = _navigator->get_home_position()->alt + min_clearance;
+			}
+
+			if (min_clearance > 0.0f && item->z > - min_clearance) {
+				item->z = - min_clearance;
 			}
 		}
 
@@ -661,17 +673,24 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, float min_clea
 	item->time_inside = 0.0f;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
+
+	// convert to local coordinates
+	_navigator->global_to_local(item);
 }
 
 void
-MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, float min_pitch)
+MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, float lpos_z, float min_pitch)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
 	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->yaw = _navigator->get_global_position()->yaw;
+
+	item->x = _navigator->get_local_position()->x;
+	item->y = _navigator->get_local_position()->y;
+	item->z = lpos_z;
+	item->yaw = _navigator->get_local_position()->yaw;
 
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
@@ -702,8 +721,11 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 	/* use current position */
 	if (at_current_location) {
-		item->lat = NAN; //descend at current position
-		item->lon = NAN; //descend at current position
+		item->lat = _navigator->get_global_position()->lat;
+		item->lon = _navigator->get_global_position()->lon;
+
+		item->x = _navigator->get_local_position()->x;
+		item->y = _navigator->get_local_position()->y;
 		item->yaw = _navigator->get_local_position()->yaw;
 
 	} else {
@@ -711,6 +733,9 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		item->lat = _navigator->get_home_position()->lat;
 		item->lon = _navigator->get_home_position()->lon;
 		item->yaw = _navigator->get_home_position()->yaw;
+
+		// convert to local coordinates
+		_navigator->global_to_local(item);
 	}
 
 	item->altitude = 0;
@@ -728,6 +753,9 @@ MissionBlock::set_current_position_item(struct mission_item_s *item)
 	item->nav_cmd = NAV_CMD_WAYPOINT;
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
+	item->x = _navigator->get_local_position()->x;
+	item->y = _navigator->get_local_position()->y;
+	item->z = _navigator->get_local_position()->z;
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_global_position()->alt;
 	item->yaw = NAN;
@@ -752,6 +780,9 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
+
+	// convert to local coordinates
+	_navigator->global_to_local(item);
 }
 
 void

@@ -540,6 +540,9 @@ Mission::set_mission_items()
 
 	/*********************************** handle mission item *********************************************/
 
+	// convert mission item to local navigation item
+	_navigator->global_to_local(&_mission_item);
+
 	/* handle position mission items */
 	if (item_contains_position(_mission_item)) {
 
@@ -581,6 +584,11 @@ Mission::set_mission_items()
 			_mission_item.altitude_is_relative = false;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
+
+			// temporary: use both, local and global -> afterwards only local
+			_mission_item.x = _navigator->get_local_position()->x;
+			_mission_item.y = _navigator->get_local_position()->y;
+			_mission_item.z = - (takeoff_alt - _navigator->get_home_position()->alt);
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
@@ -673,14 +681,18 @@ Mission::set_mission_items()
 			has_next_position_item = true;
 
 			float altitude = _navigator->get_global_position()->alt;
+			// temporary: use both, local and global -> afterwards only local
+			float lpos_z = _navigator->get_local_position()->z;
 
 			if (pos_sp_triplet->current.valid
 			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				altitude = pos_sp_triplet->current.alt;
+				lpos_z = pos_sp_triplet->current.z;
 			}
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
+			_mission_item.z = lpos_z;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
@@ -720,13 +732,17 @@ Mission::set_mission_items()
 			 * what the altitude means on this waypoint type.
 			 */
 			float altitude = _navigator->get_global_position()->alt;
+			// temporary: use both, local and global -> afterwards only local
+			float lpos_z = _navigator->get_local_position()->z;
 
 			if (pos_sp_triplet->current.valid
 			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				altitude = pos_sp_triplet->current.alt;
+				lpos_z = pos_sp_triplet->current.z;
 			}
 
 			_mission_item.altitude = altitude;
+			_mission_item.z = lpos_z;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
@@ -1117,6 +1133,8 @@ Mission::altitude_sp_foh_update()
 	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
 	if (_min_current_sp_distance_xy < _navigator->get_acceptance_radius(_mission_item.acceptance_radius)) {
 		pos_sp_triplet->current.alt = get_absolute_altitude_for_item(_mission_item);
+		// temporary: use both, local and global -> afterwards only local
+		pos_sp_triplet->current.z = _mission_item.z;
 
 	} else {
 		/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
@@ -1129,6 +1147,13 @@ Mission::altitude_sp_foh_update()
 						   _mission_item.acceptance_radius));
 		float a = pos_sp_triplet->previous.alt - grad * _distance_current_previous;
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
+
+		// temporary: use both, local and global -> afterwards only local
+		float delta_z = _mission_item.z - pos_sp_triplet->previous.z;
+		float grad_z = -delta_z / (_distance_current_previous - _navigator->get_acceptance_radius(
+						   _mission_item.acceptance_radius));
+		float a_z = pos_sp_triplet->previous.z - grad_z * _distance_current_previous;
+		pos_sp_triplet->current.z = a_z + grad_z * _min_current_sp_distance_xy;
 	}
 
 
@@ -1177,10 +1202,27 @@ Mission::do_abort_landing()
 	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
 	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
 
-	// turn current landing waypoint into an indefinite loiter
+	// ignore _param_loiter_min_alt if smaller then 0 (-1)
+	float alt_sp;
+
+	if (_param_loiter_min_alt.get() > 0.0f) {
+		alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(),
+				   _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+
+	} else {
+		alt_sp = math::max(alt_landing, _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get()));
+	}
+
+	// temporary: use both, local and global -> afterwards only local
+	float z_landing = _mission_item.z;
+	float z_sp = math::min(z_landing - _param_loiter_min_alt.get(),
+			       _navigator->get_local_position()->z - (2 * _param_fw_climbout_diff.get()));
+
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
+	_mission_item.z = z_sp;
+	_mission_item.yaw = NAN;
 	_mission_item.loiter_radius = _navigator->get_loiter_radius();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;

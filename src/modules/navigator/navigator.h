@@ -235,6 +235,8 @@ public:
 
 	void 		global_to_local(struct position_setpoint_s *sp);
 
+	void 		global_to_local(struct mission_item_s *item);
+
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
