@@ -98,9 +98,8 @@ namespace math
 
     }
  
-    float FOAWDifferentiator::end_fit_FOAW(uint8_t window_size)
+    void FOAWDifferentiator::end_fit_FOAW(uint8_t window_size)
     {
-        float result;
         float d_amplitude;
         float d_time;
         uint8_t last_sample_pos;
@@ -109,24 +108,27 @@ namespace math
 
         d_amplitude = _buffer[last_sample_pos] - _buffer[last_sample_pos-window_size];
         d_time  = window_size * _dt;
-        result = d_amplitude / d_time;
+        fit_val.a = d_amplitude / d_time;
+        fit_val.b = _buffer[last_sample_pos];
 
-        return result;
+        return;
     }
 
-    float FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
+    void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
     {
         float sum1;
         float sum2;
         float den;
-        float result;
+        float y_mean;
         uint8_t last_sample_pos;
         uint8_t i;
 
         sum1 = 0.0f;
         sum2 = 0.0f;
         den = 0.0f;
-        result = 0.0f;
+        y_mean = 0.0f;
+        fit_val.a = 0.0f;
+        fit_val.b = 0.0f;
 
         last_sample_pos = _nb_samples - 1;
 
@@ -135,19 +137,22 @@ namespace math
            sum2 += _buffer[last_sample_pos - i]*i;
         }
 
+        y_mean = sum1/window_size;
         sum1 *= window_size;
         sum2 *= 2;
 
         den = _dt*window_size*(window_size+1)*(window_size+2)/6;
 
         if (den < 0.0001f && den > -0.0001f) {
-            result = 0.0f;
+            fit_val.a = 0.0f;
         }
         else{
-            result = (sum1 - sum2)/den;
+            fit_val.a = (sum1 - sum2)/den;
         }
+        //fit_val.b = _buffer[last_sample_pos];
+        fit_val.b = y_mean + fit_val.a*window_size*_dt/2;
 
-        return result;
+        return;
     }
 
     float FOAWDifferentiator::fit(void)
@@ -168,7 +173,8 @@ namespace math
         window_size = 1;
 
         //slope = end_fit_FOAW(window_size); 
-        slope = best_fit_FOAW(window_size);
+        best_fit_FOAW(window_size);
+        slope = fit_val.a;
         result = slope;
 
         if (last_sample_pos == 0) {
@@ -176,12 +182,13 @@ namespace math
         }
 
         for (window_size = 2; window_size <= (_nb_samples-1); window_size++) {
-            slope = end_fit_FOAW(window_size);
+            end_fit_FOAW(window_size);
+            slope = fit_val.a;
 
             // Check if all the values are around the fit +/- delta
             for (j = 1; j < window_size; j++) {
                 // Compute a point on the slope
-                pos = _buffer[last_sample_pos] - slope*j*_dt;
+                pos = fit_val.b - slope*j*_dt;
 
                 // Compute min and max bounds
                 float max_bound = pos + _delta;
