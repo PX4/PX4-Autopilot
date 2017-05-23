@@ -80,6 +80,7 @@ public:
 		_last_time_stamp = hrt_absolute_time();
 		_evaluate_sticks();
 		_evaluate_position();
+		_evaluate_velocity();
 		return 0;
 	};
 
@@ -107,8 +108,10 @@ protected:
 	float _deltatime = 0; /*< passed time in seconds since the task was last updated */
 	void _reset_time() { _starting_time_stamp = hrt_absolute_time(); };
 
+	/* Prepared general inputs for every task */
 	matrix::Vector<float, 4> _sticks;
 	matrix::Vector3f _position;
+	matrix::Vector3f _velocity;
 
 	void _set_position_setpoint(const matrix::Vector3f position_setpoint)
 	{
@@ -147,14 +150,17 @@ private:
 	void _evaluate_position()
 	{
 		if (_vehicle_local_position != NULL && hrt_elapsed_time(&_vehicle_local_position->timestamp) < _timeout) {
-			_position(0) = _vehicle_local_position->x;
-			_position(1) = _vehicle_local_position->y;
-			_position(2) = _vehicle_local_position->z;
+			_position = matrix::Vector3f(&_vehicle_local_position->x);
+		}
+	}
+
+	void _evaluate_velocity()
+	{
+		if (_vehicle_local_position != NULL && hrt_elapsed_time(&_vehicle_local_position->timestamp) < _timeout) {
+			_velocity = matrix::Vector3f(&_vehicle_local_position->vx);
 
 		} else {
-			for (int i = 0; i < 3; i++) {
-				_position(i) = 0.f;
-			}
+			_velocity = matrix::Vector3f(); /* default is all zero */
 		}
 	}
 
@@ -167,9 +173,7 @@ private:
 			_sticks(3) = (_manual_control_setpoint->z - 0.5f) * 2.f; /* "thrust" resacaled from [0,1] to [-1,1] */
 
 		} else {
-			for (int i = 0; i < 4; i++) {
-				_sticks(i) = 0.f;
-			}
+			_sticks = matrix::Vector<float, 4>(); /* default is all zero */
 		}
 	}
 
