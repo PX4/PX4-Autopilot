@@ -14,6 +14,7 @@ import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+from message_id import * # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
 send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
@@ -82,10 +83,10 @@ int micrortps_client_main(int argc, char *argv[])
     px4_pollfd_struct_t fds[@(len(send_topics))];
 
     // orb_set_interval statblish an update interval period in milliseconds.
-@[for id, topic in enumerate(send_topics)]@
-    fds[@(id)].fd = orb_subscribe(ORB_ID(@(topic)));
-    orb_set_interval(fds[@(id)].fd, update_time);
-    fds[@(id)].events = POLLIN;
+@[for idx, topic in enumerate(send_topics)]@
+    fds[@(idx)].fd = orb_subscribe(ORB_ID(@(topic)));
+    orb_set_interval(fds[@(idx)].fd, update_time);
+    fds[@(idx)].events = POLLIN;
 @[end for]@
 @[end if]@
 @[if recv_topics]@
@@ -137,16 +138,16 @@ int micrortps_client_main(int argc, char *argv[])
         }
         else
         {
-@[for id, topic in enumerate(send_topics)]@
-            if (fds[@(id)].revents & POLLIN)
+@[for idx, topic in enumerate(send_topics)]@
+            if (fds[@(idx)].revents & POLLIN)
             {
                 // obtained data for the file descriptor
                 struct @(topic)_s data;
                 // copy raw data into local buffer
-                orb_copy(ORB_ID(@(topic)), fds[@(id)].fd, &data);
+                orb_copy(ORB_ID(@(topic)), fds[@(idx)].fd, &data);
                 serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-                m_uartNode.writeToUART((char)@(id), data_buffer, length);
-                //printf("[%d]>> %llu\n", @(id), data.timestamp);
+                m_uartNode.writeToUART((char)@(message_id(topic)), data_buffer, length);
+                //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
                 ++sent;
                 total_send_lenght += (length + 9);
             }
@@ -161,11 +162,11 @@ int micrortps_client_main(int argc, char *argv[])
         {
             switch (topic_ID)
             {
-@[for id, topic in enumerate(recv_topics)]@
-                case @(id):
+@[for topic in recv_topics]@
+                case @(message_id(topic)):
                     deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
                     orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
-                    //printf("                >>[%d] %llu\n", @(id), @(topic)_data.timestamp);
+                    //printf("                >>[%d] %llu\n", @(message_id(topic)), @(topic)_data.timestamp);
                     ++received;
                 break;
 @[end for]@

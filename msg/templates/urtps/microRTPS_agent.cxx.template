@@ -14,6 +14,7 @@ import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+from message_id import * # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
 send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
@@ -120,8 +121,8 @@ int main(int argc, char** argv)
         {
             switch (topic_ID)
             {
-@[for id, topic in enumerate(send_topics)]@
-                case @(id):
+@[for topic in send_topics]@
+                case @(message_id(topic)):
                 {
                     @(topic)_ st;
                     eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
@@ -142,7 +143,7 @@ int main(int argc, char** argv)
 @[if recv_topics]@
 
         // Send subscribed topics over UART
-@[for id, topic in enumerate(recv_topics)]@
+@[for topic in recv_topics]@
         if (@(topic)_sub.hasMsg())
         {
             @(topic)_ msg = @(topic)_sub.getMsg();
@@ -151,7 +152,7 @@ int main(int argc, char** argv)
             msg.serialize(scdr);
             size_t len = scdr.getSerializedDataLength();
             //printf("[%d]>> %lu\n", @(id), msg.timestamp());
-            m_uartNode.writeToUART((char) @(id), scdr.getBufferPointer(), len);
+            m_uartNode.writeToUART((char) @(message_id(topic)), scdr.getBufferPointer(), len);
             ++sent;
         }
 @[end for]@
