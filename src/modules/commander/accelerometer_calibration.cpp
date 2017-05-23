@@ -466,9 +466,17 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 	const unsigned accel_count = orb_group_count(ORB_ID(sensor_accel));
+
+	// Warn that we will not calibrate more than max_accels accelerometers
+	if (accel_count > max_accel_sens) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u accels, but will calibrate only %u", accel_count, max_accel_sens);
+	}
+
 	for (unsigned i = 0; i < accel_count; i++) {
 		worker_data.subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+
 		if (worker_data.subs[i] < 0) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u not found, abort", i);
 			result = calibrate_return_error;
 			break;
 		}
