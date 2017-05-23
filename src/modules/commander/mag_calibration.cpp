@@ -581,26 +581,54 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	if (result == calibrate_return_ok) {
 
 		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-		const unsigned mag_count = orb_group_count(ORB_ID(sensor_mag));
+		const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
 
 		// Warn that we will not calibrate more than max_mags magnetometers
-		if (mag_count > max_mags) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", mag_count, max_mags);
+		if (orb_mag_count > max_mags) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
 		}
 
-		for (unsigned cur_mag = 0; cur_mag < mag_count && cur_mag < max_mags; cur_mag++) {
-			// Mag in this slot is available
-			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+		for (unsigned cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
-			// For QURT respectively the driver framework, we need to get the device ID by copying one report.
-			struct mag_report	mag_report;
-			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &mag_report);
-			device_ids[cur_mag] = mag_report.device_id;
+			// Lock in to correct ORB instance
+			bool found_cur_mag = false;
+			for(unsigned i = 0; i < orb_mag_count; i++) {
+				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+
+				if (worker_data.sub_mag[cur_mag] < 0) {
+					calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
+					result = calibrate_return_error;
+					break;
+				}
+
+				struct mag_report report;
+				orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
+
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+
+				// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
+				// and match it up with the one from the uORB subscription, because the
+				// instance ordering of uORB and the order of the FDs may not be the same.
+
+				if(report.device_id == device_ids[cur_mag]) {
+					// Device IDs match, correct ORB instance for this mag
+					found_cur_mag = true;
+					break;
+				} else {
+					orb_unsubscribe(worker_data.sub_mag[cur_mag]);
+				}
+
+#elif defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
+
+				// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
+				device_ids[cur_mag] = report.device_id;
+				found_cur_mag = true;
+
 #endif
+			}
 
-			if (worker_data.sub_mag[cur_mag] < 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
+			if(!found_cur_mag) {
+				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u (ID %u) no matching uORB devid", cur_mag, device_ids[cur_mag]);
 				result = calibrate_return_error;
 				break;
 			}
