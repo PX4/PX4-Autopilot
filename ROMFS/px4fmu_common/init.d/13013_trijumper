@@ -1,0 +1,32 @@
+#!nsh
+#
+# @name 3DStuff Trijumper
+# @type VTOL Tiltrotor
+# @maintainer Alexandre Gilbert <agilbert.uav@gmail.com>
+# @output MAIN1 Motor front (2)
+# @output MAIN2 Motor left
+# @output MAIN3 Motor right
+# @output MAIN4 empty
+# @output MAIN5 Tilt servo left
+# @output MAIN6 Tilt servo right
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF == yes ]
+then
+    param set VT_MOT_COUNT 3
+    param set VT_FW_MOT_OFFID 1
+    param set VT_IDLE_PWM_MC 1080
+    param set VT_TYPE 1
+
+    param set CBRK_AIRSPD_CHK 162128
+    param set FW_ARSP_MODE 2
+
+fi
+
+set MIXER trijumper
+set PWM_OUT 1234
+set PWM_RATE 400
+
+set MAV_TYPE 21
