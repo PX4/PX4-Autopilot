@@ -2406,13 +2406,14 @@ MulticopterPositionControl::control_position(float dt)
 void
 MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
+	_flight_tasks.update();
+	_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
+	_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
+	_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
+	_run_pos_control = true;
+
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-
-		_flight_tasks.update();
-		_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
-		_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
-		_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {

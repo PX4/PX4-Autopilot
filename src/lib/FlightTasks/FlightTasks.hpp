@@ -52,10 +52,9 @@ public:
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @param TODO
 	 * @return 0 on success, >0 on error otherwise
 	 */
-	int update() { return Orbit.update(); };
+	int update() { return _tasks[_current_task]->update(); };
 
 	void set_input_pointers(vehicle_local_position_s *vehicle_local_position,
 				manual_control_setpoint_s *manual_control_setpoint)
@@ -74,6 +73,7 @@ public:
 
 private:
 	static const int _task_count = 1;
+	int _current_task = 0;
 
 	FlightTaskOrbit Orbit;
 	FlightTask *_tasks[_task_count] = {&Orbit};
