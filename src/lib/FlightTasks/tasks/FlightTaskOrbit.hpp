@@ -73,10 +73,12 @@ public:
 	{
 		FlightTask::update();
 		r += _sticks(1) * _deltatime;
-		vu += _sticks(0) * _deltatime;
-		printf("%f %f %f\n", (double)_deltatime, (double)r, (double)vu);
+		vu += _sticks(0) * 0.1f * _deltatime;
+		altitude += _sticks(3) * _deltatime;
+		//printf("%f %f %f\n", (double)altitude, (double)r, (double)vu);
+		//printf("%f %f %f\n", (double)_position(0), (double)_position(1), (double)_position(2));
+		printf("%f %f %f\n", (double)_velocity(0), (double)_velocity(1), (double)_velocity(2));
 		float v = 2 * M_PI_F * vu; /* velocity for orbiting in radians per second */
-		float altitude = 2; /* altitude in meters */
 		_set_position_setpoint(matrix::Vector3f(r * cosf(v * _time), r * sinf(v * _time), -altitude));
 		return 0;
 	};
@@ -85,5 +87,6 @@ private:
 
 	float r = 2.f; /* radius with which to orbit the target */
 	float vu =  0.1f; /* velocity for orbiting in revolutions per second */
+	float altitude = 2; /* altitude in meters */
 
 };
