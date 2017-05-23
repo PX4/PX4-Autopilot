@@ -168,8 +168,8 @@ RTL::set_rtl_item()
 	case RTL_STATE_RETURN: {
 			_mission_item.lat = _navigator->get_home_position()->lat;
 			_mission_item.lon = _navigator->get_home_position()->lon;
-			//TODO use local coordinates
-			_navigator->global_to_local(&_mission_item);
+			_mission_item.x = _navigator->get_home_position()->x;
+			_mission_item.y = _navigator->get_home_position()->y;
 			// don't change altitude
 
 			// use home yaw if close to home
@@ -210,10 +210,11 @@ RTL::set_rtl_item()
 	case RTL_STATE_DESCEND: {
 			_mission_item.lat = _navigator->get_home_position()->lat;
 			_mission_item.lon = _navigator->get_home_position()->lon;
+			_mission_item.x = _navigator->get_home_position()->x;
+			_mission_item.y = _navigator->get_home_position()->y;
+			_mission_item.z = _navigator->get_home_position()->z;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-			//TODO use local coordinates
-			_navigator->global_to_local(&_mission_item);
 
 			// check if we are already lower - then we will just stay there
 			if (_mission_item.altitude > _navigator->get_global_position()->alt) {
@@ -255,8 +256,8 @@ RTL::set_rtl_item()
 
 			_mission_item.lat = _navigator->get_home_position()->lat;
 			_mission_item.lon = _navigator->get_home_position()->lon;
-			//TODO use local coordinates
-			_navigator->global_to_local(&_mission_item);
+			_mission_item.x = _navigator->get_home_position()->x;
+			_mission_item.y = _navigator->get_home_position()->y;
 
 			// don't change altitude
 			_mission_item.yaw = _navigator->get_home_position()->yaw;

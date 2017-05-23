@@ -733,9 +733,9 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		item->lat = _navigator->get_home_position()->lat;
 		item->lon = _navigator->get_home_position()->lon;
 		item->yaw = _navigator->get_home_position()->yaw;
+		item->x = _navigator->get_home_position()->x;
+		item->y = _navigator->get_home_position()->y;
 
-		// convert to local coordinates
-		_navigator->global_to_local(item);
 	}
 
 	item->altitude = 0;
@@ -772,6 +772,9 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->nav_cmd = NAV_CMD_IDLE;
 	item->lat = _navigator->get_home_position()->lat;
 	item->lon = _navigator->get_home_position()->lon;
+	item->x = _navigator->get_home_position()->x;
+	item->y = _navigator->get_home_position()->y;
+	item->z = _navigator->get_home_position()->z;
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
@@ -780,9 +783,6 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
 	item->origin = ORIGIN_ONBOARD;
-
-	// convert to local coordinates
-	_navigator->global_to_local(item);
 }
 
 void
