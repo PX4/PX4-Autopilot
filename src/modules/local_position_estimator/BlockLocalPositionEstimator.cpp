@@ -282,7 +282,6 @@ void BlockLocalPositionEstimator::update()
 	_lastArmedState = armedState;
 
 	// see which updates are available
-	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = false;
 
@@ -300,6 +299,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	bool flowUpdated = (_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
 	bool gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
 	bool visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
