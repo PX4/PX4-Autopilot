@@ -911,6 +911,9 @@ LIS3MDL::collect()
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = _range_ga;
+	new_report.scaling = _range_scale;
+	new_report.device_id = _device_id.devid;
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
