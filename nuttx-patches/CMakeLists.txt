@@ -58,7 +58,7 @@ set(nuttx_patches
 	00024-BACKPORT-stm32f7-serial-dma-hotfix.patch
 	00025-BACKPORT-add-set-ex-to-nsh.patch
 	00026-BACKPORT-stm32fX-serial-fix-freezing.patch
-        00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
+	00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
