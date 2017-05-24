@@ -82,7 +82,8 @@ static char _device[32] = "/dev/mem";
 static const int TICK_PER_S  = 50000000;
 
 static const int FREQUENCY_PWM = 400;
-static const char *MIXER_FILENAME = "/home/root/ROMFS/px4fmu_common/mixers/ocpoc_quad_x.main.mix";
+//static const char *MIXER_FILENAME = "/home/root/ROMFS/px4fmu_common/mixers/ocpoc_quad_x.main.mix";
+static const char *MIXER_FILENAME = "ROMFS/px4fmu_common/mixers/ocpoc_quad_x.main.mix";
 
 // subscriptions
 int	_controls_sub;
