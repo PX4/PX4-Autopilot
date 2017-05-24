@@ -2237,8 +2237,6 @@ int commander_thread_main(int argc, char *argv[])
 				}
 			}
 
-
-			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
 
@@ -2252,7 +2250,7 @@ int commander_thread_main(int argc, char *argv[])
 		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
 
 		// Check for auto-disarm
-		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
+		if (!was_landed && land_detector.landed && disarm_when_landed > 0) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 		} else {
 			auto_disarm_hysteresis.set_state_and_update(false);
@@ -3065,6 +3063,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		}
 
+		was_landed = land_detector.landed;
 		was_armed = armed.armed;
 
 		/* print new state */
