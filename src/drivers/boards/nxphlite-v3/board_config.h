@@ -289,16 +289,20 @@ __BEGIN_DECLS
 #define ADC_CHANNELS 1 << 0 // TBD
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel
-
- * PTB4    85   ADC1_SE10  BAT_VSENS
- * PTB5    86   ADC1_SE11  BAT_ISENS
- * PTB6    87   ADC1_SE12  5V_VSENS
- * PTB7    88   ADC1_SE13  RSSI_IN
- *         37   ADC1_SE18  AD2
- *         36   ADC0_SE21  USB_VBUS_VALID
- *         35   ADC0_SE22  AD1
- *         39   ADC1_SE23  AD3
-*/
+ *
+ * ADC0
+ *    USB_VBUS_VALID   36    -    ADC0_SE16 or ADC0_SE21
+ *
+ * ADC1
+ *    AD1              35    -    ADC1_SE16
+ *    AD2              37    -    ADC1_SE18
+ *    AD3              39    -    ADC1_SE23
+ *    BAT_VSENS        85   PTB4  ADC1_SE10
+ *    BAT_ISENS        86   PTB5  ADC1_SE11
+ *    5V_VSENS         87   PTB6  ADC1_SE12
+ *    RSSI_IN          88   PTB7  ADC1_SE13
+ *
+ */
 #define GPIO_BAT_VSENS   PIN_ADC1_SE10
 #define GPIO_BAT_ISENS   PIN_ADC1_SE11
 #define GPIO_5V_VSENS    PIN_ADC1_SE12
