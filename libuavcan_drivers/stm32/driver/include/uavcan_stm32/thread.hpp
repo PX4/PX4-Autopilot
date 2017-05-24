@@ -142,17 +142,29 @@ public:
     {
         (void)duration;
         bool lready = ready;
-        return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
+				#if defined ( __CC_ARM   )
+						return __sync_lock_test_and_set(&lready, false);
+				#elif defined   (  __GNUC__  )
+						return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
+				#endif
     }
 
     void signal()
     {
-        __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+				#if defined ( __CC_ARM   )
+						__sync_lock_release(&ready);
+				#elif defined   (  __GNUC__  )
+						__atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+				#endif
     }
 
     void signalFromInterrupt()
     {
-        __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+				#if defined ( __CC_ARM   )
+						__sync_lock_release(&ready);
+				#elif defined   (  __GNUC__  )
+						__atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
+				#endif
     }
 };
 
