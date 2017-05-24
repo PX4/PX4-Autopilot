@@ -150,7 +150,7 @@ protected:
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 500000;
 
 	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 1000000;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
 	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 1000000;
