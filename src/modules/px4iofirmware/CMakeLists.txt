@@ -90,7 +90,6 @@ set(srcs
 	${PX4_SOURCE_DIR}/src/modules/systemlib/mixer/mixer_simple.cpp
 	${PX4_SOURCE_DIR}/src/modules/systemlib/perf_counter.c
 	${PX4_SOURCE_DIR}/src/modules/systemlib/pwm_limit/pwm_limit.c
-	${PX4_SOURCE_DIR}/src/modules/systemlib/up_cxxinitialize.c
 	adc.c
 	controls.c
 	mixer.cpp
