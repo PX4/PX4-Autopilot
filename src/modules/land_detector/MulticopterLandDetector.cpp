@@ -186,10 +186,15 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return manual_control_idle_or_auto && _has_minimal_thrust() && (!verticalMovement || !_has_altitude_lock());
+	if (manual_control_idle_or_auto && _has_low_thrust() &&
+	    (!verticalMovement || !_has_altitude_lock())) {
+		return true;
+	}
+
+	return false;
 }
 
-bool MulticopterLandDetector::_get_landed_state()
+bool MulticopterLandDetector::_get_maybe_landed_state()
 {
 	// Time base for this function
 	const uint64_t now = hrt_absolute_time();
@@ -257,6 +262,17 @@ bool MulticopterLandDetector::_get_landed_state()
 	return false;
 }
 
+bool MulticopterLandDetector::_get_landed_state()
+{
+	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
+	// therefore check if all other condition of the landed state remain true
+	if (_maybe_landed_hysteresis.get_state()) {
+		return true;
+	}
+
+	return false;
+}
+
 float MulticopterLandDetector::_get_takeoff_throttle()
 {
 	/* Position mode */
@@ -314,9 +330,21 @@ bool MulticopterLandDetector::_has_manual_control_present()
 	return _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
 }
 
+bool MulticopterLandDetector::_has_low_thrust()
+{
+	// 30% of throttle range between min and hover
+	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
+
+	PX4_INFO("_actuatl control 3: %.5f, sys_min_throttle: %.5f", (double)_actuators.control[3], (double)sys_min_throttle);
+
+	// Check if thrust output is less than the minimum auto throttle param.
+	return _actuators.control[3] <= sys_min_throttle;
+
+}
+
 bool MulticopterLandDetector::_has_minimal_thrust()
 {
-	// 10% of throttle range between min and hover
+	// 10% of throttle range between min and hover once we entered ground contact
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * _params.throttleRange;
 
 	// Determine the system min throttle based on flight mode
@@ -327,6 +355,5 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	// Check if thrust output is less than the minimum auto throttle param.
 	return _actuators.control[3] <= sys_min_throttle;
 }
-
 
 }
