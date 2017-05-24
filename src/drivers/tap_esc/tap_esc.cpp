@@ -58,13 +58,13 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 
+#include "tap_esc_common.h"
+
 #define NAN_VALUE	(0.0f/0.0f)
 
 #ifndef B250000
 #define B250000 250000
 #endif
-
-#define ESC_HAVE_CURRENT_SENSOR
 
 #include "drv_tap_esc.h"
 
@@ -106,7 +106,6 @@ protected:
 	void select_responder(uint8_t sel);
 private:
 
-	static const uint8_t crcTable[256];
 	static const uint8_t device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	static const uint8_t device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
 
@@ -159,7 +158,6 @@ private:
 	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 };
 
-const uint8_t TAP_ESC::crcTable[256] = TAP_ESC_CRC;
 const uint8_t TAP_ESC::device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
@@ -406,7 +404,7 @@ uint8_t TAP_ESC::crc8_esc(uint8_t *p, uint8_t len)
 	uint8_t crc = 0;
 
 	for (uint8_t i = 0; i < len; i++) {
-		crc = crcTable[crc^*p++];
+		crc = tap_esc_common::crc_table[crc^*p++];
 	}
 
 	return crc;
