@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -303,4 +303,4 @@ int ocpoc_sbus_rc_in_main(int argc, char *argv[])
 
 }
 
-}; // namespace navio_sysfs_rc_in
+}; // namespace ocpoc_sbus_rc_in
