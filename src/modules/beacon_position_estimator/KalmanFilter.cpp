@@ -84,7 +84,7 @@ void KalmanFilter::predict(float dt, float acc, float acc_unc)
 	_covariance = A * _covariance * A.transpose() + process_noise;
 }
 
-void KalmanFilter::update(float meas, float measUnc)
+bool KalmanFilter::update(float meas, float measUnc)
 {
 
 	// Implicitly take H = [1, 0]
@@ -93,7 +93,13 @@ void KalmanFilter::update(float meas, float measUnc)
 	// H * P * H^T simply selects P(0,0)
 	float innovCovar = _covariance(0, 0) + measUnc;
 
-	// TODO outlier rejection
+	// outlier rejection
+	float beta = residual / innovCovar * residual;
+
+	// 5% false alarm probability
+	if (beta > 3.84f) {
+		return false;
+	}
 
 	matrix::Vector<float, 2> kalmanGain;
 	kalmanGain(0) = _covariance(0, 0);
@@ -110,6 +116,8 @@ void KalmanFilter::update(float meas, float measUnc)
 	KH(1, 0) = kalmanGain(1);
 
 	_covariance = (identity - KH) * _covariance;
+
+	return true;
 
 }
 

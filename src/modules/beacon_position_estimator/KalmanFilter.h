@@ -100,8 +100,9 @@ public:
 	 * Update the state estimate with a measurement
 	 * @param meas    state measeasurement
 	 * @param measUnc measurement uncertainty
+	 * @return update success (measurement not rejected)
 	 */
-	void update(float meas, float measUnc);
+	bool update(float meas, float measUnc);
 
 	/**
 	 * Get the current filter state

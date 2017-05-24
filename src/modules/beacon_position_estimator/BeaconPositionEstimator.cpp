@@ -186,72 +186,88 @@ void BeaconPositionEstimator::_cycle()
 				_kalman_filter_y.init(_rel_pos(1), 0, _params.pos_unc_init, _params.vel_unc_init);
 
 				_estimator_initialized = true;
-				_last_predict = hrt_absolute_time();
+				_last_update = hrt_absolute_time();
+				_last_predict = _last_update;
 
 			} else {
 				// update
-				_kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
-				_kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
+				bool update_x = _kalman_filter_x.update(_rel_pos(0), _params.meas_unc);
+				bool update_y = _kalman_filter_y.update(_rel_pos(1), _params.meas_unc);
 
-				_beacon_position.timestamp = hrt_absolute_time();
-				float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
-				_kalman_filter_x.getState(x, xvel);
-				_kalman_filter_x.getCovariance(covx, covx_v);
+				if (!update_x) {
+					PX4_WARN("rejected x");
+				}
 
-				_kalman_filter_y.getState(y, yvel);
-				_kalman_filter_y.getCovariance(covy, covy_v);
+				if (!update_y) {
+					PX4_WARN("rejected y");
+				}
 
-				_beacon_position.rel_pos_valid = true; // relative position is always valid, independent of mode
-				_beacon_position.rel_vel_valid = true; // relative velocity is always valid, independent of mode
-				_beacon_position.x_rel = x;
-				_beacon_position.y_rel = y;
-				_beacon_position.vx_rel = xvel;
-				_beacon_position.vy_rel = yvel;
-				_beacon_position.x_unfilt = _rel_pos(0);
-				_beacon_position.y_unfilt = _rel_pos(1);
+				if (update_x && update_y) {
+					// only publish if both measurements were good
 
-				_beacon_position.cov_x_rel = covx;
-				_beacon_position.cov_y_rel = covy;
+					_beacon_position.timestamp = hrt_absolute_time();
 
-				_beacon_position.cov_vx_rel = covx_v;
-				_beacon_position.cov_vy_rel = covy_v;
+					float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
+					_kalman_filter_x.getState(x, xvel);
+					_kalman_filter_x.getCovariance(covx, covx_v);
 
-				if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
-					_beacon_position.local_pos_valid = true;
-					_beacon_position.local_vel_valid = true;
+					_kalman_filter_y.getState(y, yvel);
+					_kalman_filter_y.getCovariance(covy, covy_v);
 
-					// In stationary mode, relative velocity is used in the position estimator, so vx/vy_local should always be 0
-					// Mark it as invalid to signal that it should not be used, write the values anyway for debugging
-					if (_params.mode > BeaconMode::Moving) {
+					_beacon_position.rel_pos_valid = true; // relative position is always valid, independent of mode
+					_beacon_position.rel_vel_valid = true; // relative velocity is always valid, independent of mode
+					_beacon_position.x_rel = x;
+					_beacon_position.y_rel = y;
+					_beacon_position.vx_rel = xvel;
+					_beacon_position.vy_rel = yvel;
+					_beacon_position.x_unfilt = _rel_pos(0);
+					_beacon_position.y_unfilt = _rel_pos(1);
+
+					_beacon_position.cov_x_rel = covx;
+					_beacon_position.cov_y_rel = covy;
+
+					_beacon_position.cov_vx_rel = covx_v;
+					_beacon_position.cov_vy_rel = covy_v;
+
+					if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid && _vehicleLocalPosition.v_xy_valid) {
+						_beacon_position.local_pos_valid = true;
+						_beacon_position.local_vel_valid = true;
+
+						// In stationary mode, relative velocity is used in the position estimator, so vx/vy_local should always be 0
+						// Mark it as invalid to signal that it should not be used, write the values anyway for debugging
+						if (_params.mode > BeaconMode::Moving) {
+							_beacon_position.local_vel_valid = false;
+						}
+
+						// In known location mode, relative position ins used in the position estimator, so v/y_local should always correspond to BEST_LAT/BEST_LON
+						// mark it as invalid to signal that it should not be used, write the values anyway for debugging
+						if (_params.mode > BeaconMode::Stationary) {
+							_beacon_position.local_pos_valid = false;
+						}
+
+						_beacon_position.x_local = x + _vehicleLocalPosition.x;
+						_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
+
+						_beacon_position.y_local = y + _vehicleLocalPosition.y;
+						_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
+
+					} else {
+						_beacon_position.local_pos_valid = false;
 						_beacon_position.local_vel_valid = false;
 					}
 
-					// In known location mode, relative position ins used in the position estimator, so v/y_local should always correspond to BEST_LAT/BEST_LON
-					// mark it as invalid to signal that it should not be used, write the values anyway for debugging
-					if (_params.mode > BeaconMode::Stationary) {
-						_beacon_position.local_pos_valid = false;
+					if (_beaconPositionPub == nullptr) {
+						_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
+
+					} else {
+						orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
 					}
 
-					_beacon_position.x_local = x + _vehicleLocalPosition.x;
-					_beacon_position.vx_local = xvel + _vehicleLocalPosition.vx;
-
-					_beacon_position.y_local = y + _vehicleLocalPosition.y;
-					_beacon_position.vy_local = yvel + _vehicleLocalPosition.vy;
-
-				} else {
-					_beacon_position.local_pos_valid = false;
-					_beacon_position.local_vel_valid = false;
-				}
-
-				if (_beaconPositionPub == nullptr) {
-					_beaconPositionPub = orb_advertise(ORB_ID(beacon_position), &_beacon_position);
-
-				} else {
-					orb_publish(ORB_ID(beacon_position), _beaconPositionPub, &_beacon_position);
+					_last_update = hrt_absolute_time();
+					_last_predict = _last_update;
 				}
 			}
 
-			_last_update = hrt_absolute_time();
 		}
 
 		_new_irlockReport = false;
@@ -334,13 +350,13 @@ bool BeaconPositionEstimator::_orb_update(const struct orb_metadata *meta, int h
 void BeaconPositionEstimator::_update_params()
 {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
-	PX4_WARN("BEST_ACC_UNC %f", _params.acc_unc);
+	PX4_WARN("BEST_ACC_UNC %f", (double)_params.acc_unc);
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
-	PX4_WARN("BEST_MEAS_UNC %f", _params.meas_unc);
+	PX4_WARN("BEST_MEAS_UNC %f", (double)_params.meas_unc);
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
-	PX4_WARN("BEST_POS_UNC_IN %f", _params.pos_unc_init);
+	PX4_WARN("BEST_POS_UNC_IN %f", (double)_params.pos_unc_init);
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-	PX4_WARN("BEST_VEL_UNC_IN %f", _params.vel_unc_init);
+	PX4_WARN("BEST_VEL_UNC_IN %f", (double)_params.vel_unc_init);
 	param_get(_paramHandle.mode, &_params.mode);
 	PX4_WARN("BEST_MODE %d", _params.mode);
 }

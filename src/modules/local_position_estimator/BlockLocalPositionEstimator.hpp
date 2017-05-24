@@ -413,7 +413,7 @@ private:
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
 
-fault_t _beaconFault; // TODO add to _sensorFault
+	bool _beaconFault; // TODO add to _sensorFault
 
 	// state space
 	Vector<float, n_x>  _x;	// state vector

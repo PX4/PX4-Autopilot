@@ -6,12 +6,16 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 		REQ_BEACON_INIT_COUNT = 10;
 static const uint32_t 	BEACON_TIMEOUT =   5000000; // 2.0 s
-static const float  	BEACON_MAX_INIT_STD =   0.3f; // meters
+static const float  	BEACON_MAX_INIT_STD =   0.3f; // meters TODO
 
 void BlockLocalPositionEstimator::beaconInit()
 {
+	if (_bestParams.mode == BeaconMode::Moving) {
+		// beacon is in moving mode, do not initialize
+		return;
+	}
+
 	// this is only called once the beacon position estimator has seen the beacon, so we can just say initialized
 	mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon init");
 	_beaconInitialized = true;
@@ -106,8 +110,8 @@ void BlockLocalPositionEstimator::beaconCorrect()
 		float beta = (r.transpose()  * (S_I * r))(0, 0);
 
 		if (beta > BETA_TABLE[n_y_beacon]) {
-			if (_beaconFault < FAULT_MINOR) {
-				_beaconFault = FAULT_MINOR;
+			if (!_beaconFault) {
+				_beaconFault = true;
 				mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon fault,  beta %5.2f", double(beta));
 				PX4_WARN("beacon fault,  beta %5.2f", double(beta));
 			}
@@ -116,17 +120,16 @@ void BlockLocalPositionEstimator::beaconCorrect()
 			return;
 
 		} else if (_beaconFault) {
-			_beaconFault = FAULT_NONE;
+			_beaconFault = false;
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon OK");
 			PX4_WARN("[lpe] beacon OK");
 		}
 
 		// kalman filter correction if no fault
-		if (_beaconFault < fault_lvl_disable) {
+		if (!_beaconFault) {
 			Matrix<float, n_x, n_y_beacon> K =
 				_P * C.transpose() * S_I;
 			Vector<float, n_x> dx = K * r;
-			correctionLogic(dx);
 			// PX4_WARN("correcting with %f %f", dx(0), dx(1));
 			_x += dx;
 			_P -= K * C * _P;
@@ -141,11 +144,8 @@ void BlockLocalPositionEstimator::beaconCorrect()
 
 void BlockLocalPositionEstimator::beaconCheckTimeout()
 {
-	if (_timeStamp - _time_last_beacon > BEACON_TIMEOUT) {
-		if (_beaconInitialized) {
-			_beaconInitialized = false;
-			// _beaconStats.reset();
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon timeout ");
-		}
+	if (_beaconInitialized && _timeStamp - _time_last_beacon > BEACON_TIMEOUT) {
+		_beaconInitialized = false;
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] beacon timeout ");
 	}
 }
