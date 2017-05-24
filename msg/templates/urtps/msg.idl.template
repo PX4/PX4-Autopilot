@@ -28,7 +28,6 @@ topic_name = spec.short_name
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 @#################################################
 @# Searching for serialize function per each field
@@ -50,7 +49,6 @@ def add_msg_field(field):
             print '\t' + str(get_idl_type_name(field.base_type)) + ' ' + field.name + '[' +str(field.array_len)+ '];'
 
 def add_msg_fields():
-    print "\tunsigned long long timestamp;"
     # sort fields (using a stable sort) as in the declaration of the type
     sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
     for field in sorted_fields:

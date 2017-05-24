@@ -160,7 +160,6 @@ void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, u
 
     resetStaticMicroCDRForSerialize(microCDRWriter);
 
-    serializeUnsignedLong(input->timestamp, microCDRWriter);
 @add_code_to_serialize()
 
     (*length) = microCDRWriter->m_microBuffer->m_serializedBuffer;
@@ -172,6 +171,5 @@ void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struc
 
     resetStaticMicroCDRForDeserialize(microCDRReader);
 
-    deserializeUnsignedLong(&output->timestamp, microCDRReader);
 @add_code_to_deserialize()
 }
