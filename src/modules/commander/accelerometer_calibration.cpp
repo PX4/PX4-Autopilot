@@ -465,44 +465,64 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 	uint64_t timestamps[max_accel_sens];
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-	const unsigned accel_count = orb_group_count(ORB_ID(sensor_accel));
+	const unsigned orb_accel_count = orb_group_count(ORB_ID(sensor_accel));
 
 	// Warn that we will not calibrate more than max_accels accelerometers
-	if (accel_count > max_accel_sens) {
-		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u accels, but will calibrate only %u", accel_count, max_accel_sens);
+	if (orb_accel_count > max_accel_sens) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u accels, but will calibrate only %u", orb_accel_count, max_accel_sens);
 	}
 
-	for (unsigned i = 0; i < accel_count; i++) {
-		worker_data.subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+	for (unsigned cur_accel = 0; cur_accel < orb_accel_count && cur_accel < max_accel_sens; cur_accel++) {
 
-		if (worker_data.subs[i] < 0) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u not found, abort", i);
+		// Lock in to correct ORB instance
+		bool found_cur_accel = false;
+		for(unsigned i = 0; i < orb_accel_count && !found_cur_accel; i++) {
+			worker_data.subs[cur_accel] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+
+			struct accel_report report = {};
+			orb_copy(ORB_ID(sensor_accel), worker_data.subs[cur_accel], &report);
+
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+
+			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
+			// and match it up with the one from the uORB subscription, because the
+			// instance ordering of uORB and the order of the FDs may not be the same.
+
+			if(report.device_id == device_id[cur_accel]) {
+				// Device IDs match, correct ORB instance for this accel
+				found_cur_accel = true;
+				// store initial timestamp - used to infer which sensors are active
+				timestamps[cur_accel] = report.timestamp;
+			} else {
+				orb_unsubscribe(worker_data.subs[cur_accel]);
+			}
+
+#elif defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
+
+			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
+			device_id[cur_accel] = report.device_id;
+			found_cur_accel = true;
+
+#endif
+		}
+
+		if(!found_cur_accel) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u (ID %u) no matching uORB devid", cur_accel, device_id[cur_accel]);
 			result = calibrate_return_error;
 			break;
 		}
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)|| defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
-		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
-		struct accel_report	accel_report;
-		orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &accel_report);
-		device_id[i] = accel_report.device_id;
-#endif
-		/* store initial timestamp - used to infer which sensors are active */
-		struct accel_report arp = {};
-		(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
-		timestamps[i] = arp.timestamp;
-
-		if (device_id[i] != 0) {
+		if (device_id[cur_accel] != 0) {
 			// Get priority
 			int32_t prio;
-			orb_priority(worker_data.subs[i], &prio);
+			orb_priority(worker_data.subs[cur_accel], &prio);
 
 			if (prio > device_prio_max) {
 				device_prio_max = prio;
-				device_id_primary = device_id[i];
+				device_id_primary = device_id[cur_accel];
 			}
 		} else {
-			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u no device id, abort", i);
+			calibration_log_critical(mavlink_log_pub, "[cal] Accel #%u no device id, abort", cur_accel);
 			result = calibrate_return_error;
 			break;
 		}
