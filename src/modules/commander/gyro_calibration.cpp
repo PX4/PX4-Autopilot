@@ -1,4 +1,4 @@
-/****************************************************************************
+ /****************************************************************************
  *
  *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
@@ -293,42 +293,62 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-	const unsigned gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
 
 	// Warn that we will not calibrate more than max_gyros gyroscopes
-	if (gyro_count > max_gyros) {
-		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u gyros, but will calibrate only %u", gyro_count, max_gyros);
+	if (orb_gyro_count > max_gyros) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u gyros, but will calibrate only %u", orb_gyro_count, max_gyros);
 	}
 
-	for (unsigned s = 0; s < gyro_count && s < max_gyros; s++) {
+	for (unsigned cur_gyro = 0; cur_gyro < orb_gyro_count && cur_gyro < max_gyros; cur_gyro++) {
 
-		worker_data.gyro_sensor_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
+		// Lock in to correct ORB instance
+		bool found_cur_gyro = false;
+		for(unsigned i = 0; i < orb_gyro_count && !found_cur_gyro; i++) {
+			worker_data.gyro_sensor_sub[cur_gyro] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
 
-		if (worker_data.gyro_sensor_sub[s] < 0) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u not found, abort", s);
+			struct gyro_report report;
+			orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[cur_gyro], &report);
+
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+
+			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
+			// and match it up with the one from the uORB subscription, because the
+			// instance ordering of uORB and the order of the FDs may not be the same.
+
+			if(report.device_id == worker_data.device_id[cur_gyro]) {
+				// Device IDs match, correct ORB instance for this gyro
+				found_cur_gyro = true;
+			} else {
+				orb_unsubscribe(worker_data.gyro_sensor_sub[cur_gyro]);
+			}
+
+#elif defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
+
+			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
+			worker_data.device_id[cur_gyro] = report.device_id;
+			found_cur_gyro = true;
+
+#endif
+		}
+
+		if(!found_cur_gyro) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u (ID %u) no matching uORB devid", cur_gyro, worker_data.device_id[cur_gyro]);
 			res = calibrate_return_error;
 			break;
 		}
 
-
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
-		// For QURT respectively the driver framework, we need to get the device ID by copying one report.
-		struct gyro_report gyro_report;
-		orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[s], &gyro_report);
-		worker_data.device_id[s] = gyro_report.device_id;
-#endif
-
-		if (worker_data.device_id[s] != 0) {
+		if (worker_data.device_id[cur_gyro] != 0) {
 			// Get priority
 			int32_t prio;
-			orb_priority(worker_data.gyro_sensor_sub[s], &prio);
+			orb_priority(worker_data.gyro_sensor_sub[cur_gyro], &prio);
 
 			if (prio > device_prio_max) {
 				device_prio_max = prio;
-				device_id_primary = worker_data.device_id[s];
+				device_id_primary = worker_data.device_id[cur_gyro];
 			}
 		} else {
-			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u no device id, abort", s);
+			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u no device id, abort", cur_gyro);
 		}
 	}
 
