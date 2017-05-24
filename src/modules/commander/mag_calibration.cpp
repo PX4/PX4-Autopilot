@@ -592,14 +592,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 			// Lock in to correct ORB instance
 			bool found_cur_mag = false;
-			for(unsigned i = 0; i < orb_mag_count; i++) {
-				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
-
-				if (worker_data.sub_mag[cur_mag] < 0) {
-					calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
-					result = calibrate_return_error;
-					break;
-				}
+			for(unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
+				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), i);
 
 				struct mag_report report;
 				orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
@@ -613,7 +607,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				if(report.device_id == device_ids[cur_mag]) {
 					// Device IDs match, correct ORB instance for this mag
 					found_cur_mag = true;
-					break;
 				} else {
 					orb_unsubscribe(worker_data.sub_mag[cur_mag]);
 				}
