@@ -335,11 +335,8 @@ bool MulticopterLandDetector::_has_low_thrust()
 	// 30% of throttle range between min and hover
 	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
 
-	PX4_INFO("_actuatl control 3: %.5f, sys_min_throttle: %.5f", (double)_actuators.control[3], (double)sys_min_throttle);
-
 	// Check if thrust output is less than the minimum auto throttle param.
 	return _actuators.control[3] <= sys_min_throttle;
-
 }
 
 bool MulticopterLandDetector::_has_minimal_thrust()
