@@ -56,3 +56,4 @@
 #include "../common/board_common.h"
 
 #define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+#define BOARD_RGBLED0_PATH "/dev/i2c-1"
