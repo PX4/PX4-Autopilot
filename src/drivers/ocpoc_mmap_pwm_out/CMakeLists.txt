@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__ocpoc_mmap_pwm_out
 	MAIN ocpoc_mmap_pwm_out
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		ocpoc_mmap_pwm_out.cpp
 	DEPENDS

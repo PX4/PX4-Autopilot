@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__ocpoc_sbus_rc_in
 	MAIN ocpoc_sbus_rc_in
 	STACK_MAIN 1200
-	COMPILE_FLAGS -Os
+	COMPILE_FLAGS
 	SRCS
 		ocpoc_sbus_rc_in.cpp
 	DEPENDS
