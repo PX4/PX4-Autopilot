@@ -1,0 +1,6 @@
+# VTOL Y4 mixer for PX4FMU
+#
+# @board px4fmu-v1 exclude
+# @board px4fmu-v2 exclude
+#===========================
+R: 4Y 10000 10000 10000 0
