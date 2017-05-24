@@ -1818,6 +1818,10 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 	/* if still or already on ground command zero xy velcoity and zero xy thrust_sp in body frame to consider uneven ground */
 	if (_vehicle_land_detected.ground_contact && !in_auto_takeoff()) {
 
+
+		/* if still or already on ground command zero xy thrust_sp in body
+		 * frame to consider uneven ground */
+
 		/* thrust setpoint in body frame*/
 		math::Vector<3> thrust_sp_body = _R.transposed() * thrust_sp;
 
@@ -1831,11 +1835,12 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		/* convert back to local frame (NED) */
 		thrust_sp = _R * thrust_sp_body;
 
-		/* set velocity setpoint to zero and reset position */
-		_vel_sp(0) = 0.0f;
-		_vel_sp(1) = 0.0f;
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
+
+	} else if (_vehicle_land_detected.maybe_landed) {
+		/* we set thrust to zero
+		 * this will help to decide if we are actually landed or not
+		 */
+		thrust_sp.zero();
 	}
 
 	if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
