@@ -214,9 +214,10 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	/* Default PX4_SPI_BUS_MEMORY to 12MHz and de-assert the known chip selects.
 	 */
 
-	SPI_SETFREQUENCY(spi_memory, 12 * 1000 * 1000);
+	SPI_SETFREQUENCY(spi_memory, 20 * 1000 * 1000);
 	SPI_SETBITS(spi_memory, 8);
 	SPI_SETMODE(spi_memory, SPIDEV_MODE3);
+	SPI_SELECT(spi_memory, SPIDEV_FLASH, false);
 
 	for (int cs = PX4_MEMORY_BUS_FIRST_CS; cs <= PX4_MEMORY_BUS_LAST_CS; cs++) {
 		SPI_SELECT(spi_memory, cs, false);

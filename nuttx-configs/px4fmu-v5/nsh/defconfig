@@ -751,7 +751,11 @@ CONFIG_MTD_BYTE_WRITE=y
 # CONFIG_MTD_N25QXXX is not set
 # CONFIG_MTD_SMART is not set
 CONFIG_MTD_RAMTRON=y
+# Ramtron writewait has a typo
+# in upstream NuttX - the CONFIG_
+# flag is missing.
 CONFIG_RAMTRON_WRITEWAIT=y
+RAMTRON_WRITEWAIT=y
 CONFIG_RAMTRON_SETSPEED=y
 # CONFIG_MTD_SST25 is not set
 # CONFIG_MTD_SST25XX is not set
