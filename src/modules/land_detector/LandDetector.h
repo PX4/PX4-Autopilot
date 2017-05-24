@@ -60,7 +60,8 @@ public:
 		FLYING = 0,
 		LANDED = 1,
 		FREEFALL = 2,
-		GROUND_CONTACT = 3
+		GROUND_CONTACT = 3,
+		MAYBE_LANDED = 4
 	};
 
 	LandDetector();
@@ -116,6 +117,11 @@ protected:
 	virtual bool _get_landed_state() = 0;
 
 	/**
+	 * @return true if UAV is in almost landed state
+	 */
+	virtual bool _get_maybe_landed_state() = 0;
+
+	/**
 	 * @return true if UAV is touching ground but not landed
 	 */
 	virtual bool _get_ground_contact_state()  = 0;
@@ -141,7 +147,10 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
+	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 500000;
+
+	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
+	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 1500000;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
 	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 1000000;
@@ -158,6 +167,7 @@ protected:
 
 	systemlib::Hysteresis _freefall_hysteresis;
 	systemlib::Hysteresis _landed_hysteresis;
+	systemlib::Hysteresis _maybe_landed_hysteresis;
 	systemlib::Hysteresis _ground_contact_hysteresis;
 
 	float _altitude_max;

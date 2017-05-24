@@ -112,6 +112,13 @@ bool FixedwingLandDetector::_get_ground_contact_state()
 	return false;
 }
 
+bool FixedwingLandDetector::_get_maybe_landed_state()
+{
+
+	// TODO
+	return false;
+}
+
 bool FixedwingLandDetector::_get_landed_state()
 {
 	// only trigger flight conditions if we are armed

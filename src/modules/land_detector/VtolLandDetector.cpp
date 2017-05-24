@@ -76,6 +76,13 @@ bool VtolLandDetector::_get_ground_contact_state()
 	return MulticopterLandDetector::_get_ground_contact_state();
 }
 
+bool VtolLandDetector::_get_maybe_landed_state()
+{
+
+	// TODO
+	return false;
+}
+
 bool VtolLandDetector::_get_landed_state()
 {
 	// this is returned from the mutlicopter land detector
