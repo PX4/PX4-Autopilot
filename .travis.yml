@@ -62,7 +62,7 @@ script:
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
-      PX4_DOCKER_REPO=px4io/px4-dev-clang:2017-04-22 ./Tools/docker_run.sh 'make clang-tidy-parallel';
+      ./Tools/docker_run.sh 'make clang-tidy-parallel';
     fi
 
 after_success:
