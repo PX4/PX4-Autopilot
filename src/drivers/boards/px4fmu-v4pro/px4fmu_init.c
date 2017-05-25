@@ -528,10 +528,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI 5-based devices */
 
-	spi5 = stm32_spibus_initialize(PX4_SPI_EXT0);
+	spi5 = stm32_spibus_initialize(PX4_SPI_BUS_EXT0);
 
 	if (!spi5) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT0);
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT0);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}
@@ -544,10 +544,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI 6-based devices */
 
-	spi6 = stm32_spibus_initialize(PX4_SPI_EXT1);
+	spi6 = stm32_spibus_initialize(PX4_SPI_BUS_EXT1);
 
 	if (!spi6) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_EXT1);
+		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT1);
 		board_autoled_on(LED_RED);
 		return -ENODEV;
 	}
