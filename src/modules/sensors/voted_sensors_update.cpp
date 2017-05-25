@@ -474,28 +474,6 @@ void VotedSensorsUpdate::parameters_update()
 						mag_rot = 0;
 						param_set_no_notification(param_find(str), &mag_rot);
 					}
-
-					/* handling of old setups, will be removed later (noted Feb 2015) */
-					int32_t deprecated_mag_rot = 0;
-					param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
-
-					/*
-					 * If the deprecated parameter is non-default (is != 0),
-					 * and the new parameter is default (is == 0), then this board
-					 * was configured already and we need to copy the old value
-					 * to the new parameter.
-					 * The < 0 case is special: It means that this param slot was
-					 * used previously by an internal sensor, but the the call above
-					 * proved that it is currently occupied by an external sensor.
-					 * In that case we consider the orientation to be default as well.
-					 */
-					if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
-						mag_rot = deprecated_mag_rot;
-						param_set_no_notification(param_find(str), &mag_rot);
-						/* clear the old param, not supported in GUI anyway */
-						deprecated_mag_rot = 0;
-						param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
-					}
 				}
 
 				if (failed) {
