@@ -171,7 +171,7 @@ typedef struct  {
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 	int fd;
 #endif
 
@@ -191,7 +191,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* reset all sensors */
 	for (unsigned s = 0; s < max_accel_sens; s++) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
 		fd = px4_open(str, 0);
@@ -387,7 +387,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			return PX4_ERROR;
 		}
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, uorb_index);
 		fd = px4_open(str, 0);
 
@@ -482,7 +482,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			struct accel_report report = {};
 			orb_copy(ORB_ID(sensor_accel), worker_data.subs[cur_accel], &report);
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 
 			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
 			// and match it up with the one from the uORB subscription, because the
@@ -497,7 +497,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 				orb_unsubscribe(worker_data.subs[cur_accel]);
 			}
 
-#elif defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
+#else
 
 			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
 			device_id[cur_accel] = report.device_id;

@@ -243,7 +243,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		// Reset all offsets to 0 and scales to 1
 		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale_zero));
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
 		int fd = px4_open(str, 0);
 		if (fd >= 0) {
@@ -310,7 +310,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			struct gyro_report report;
 			orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[cur_gyro], &report);
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 
 			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
 			// and match it up with the one from the uORB subscription, because the
@@ -323,7 +323,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				orb_unsubscribe(worker_data.gyro_sensor_sub[cur_gyro]);
 			}
 
-#elif defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
+#else
 
 			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
 			worker_data.device_id[cur_gyro] = report.device_id;
@@ -473,7 +473,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				(void)sprintf(str, "CAL_GYRO%u_ID", uorb_index);
 				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[uorb_index])));
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 				/* apply new scaling and offsets */
 				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, uorb_index);
 				int fd = px4_open(str, 0);
