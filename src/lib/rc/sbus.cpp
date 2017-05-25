@@ -286,32 +286,6 @@ bool
 sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
-#if defined(__PX4_POSIX_OCPOC)
-	hrt_abstime	now;
-	now = hrt_absolute_time();
-	last_rx_time = now;
-	partial_frame_count = 0;
-
-	ssize_t n;
-	uint8_t buf[SBUS_FRAME_SIZE * 4];
-
-	if ((n = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE * 4)) <= 0) {
-		return false;
-	}
-
-	for (int i = 0; i < n; i++) {
-		if (buf[i] == 0x0f && (i + 24 < n) && buf[i + 23] == 0x00) {
-			memcpy(&sbus_frame[0], &buf[i], 25);
-
-			if (sbus_decode(now, sbus_frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels)
-			    && *num_values >= 5) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-#else
 	int		ret = 1;
 	hrt_abstime	now;
 
@@ -356,10 +330,8 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	}
 
 	return sbus_decoded;
-#endif
 }
 
-#if !defined(__PX4_POSIX_OCPOC)
 bool
 sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	   uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, unsigned *frame_drops, uint16_t max_channels)
@@ -565,7 +537,6 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 	/* return false as default */
 	return decode_ret;
 }
-#endif
 
 /*
  * S.bus decoder matrix.
