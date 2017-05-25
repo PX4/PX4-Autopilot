@@ -414,7 +414,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		_mag_device_id[s] = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -433,11 +433,8 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			// int id = h.ioctl(DEVIOCGDEVICEID, 0);
-			// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
-
 			/* if the calibration is for this device, apply it */
-			if (device_id == driver_device_id) {
+			if (device_id == _mag_device_id[s]) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -499,13 +496,6 @@ void VotedSensorsUpdate::parameters_update()
 						deprecated_mag_rot = 0;
 						param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
 					}
-
-					/* handling of transition from internal to external */
-					if (mag_rot < 0) {
-						mag_rot = 0;
-					}
-
-					get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
 				}
 
 				if (failed) {
@@ -749,38 +739,48 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _mag.subscription_count; i++) {
+	for (unsigned uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
 		bool mag_updated;
-		orb_check(_mag.subscription[i], &mag_updated);
+		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
 		if (mag_updated) {
 			struct mag_report mag_report;
 
-			orb_copy(ORB_ID(sensor_mag), _mag.subscription[i], &mag_report);
+			orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
 			if (mag_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
 			// First publication with data
-			if (_mag.priority[i] == 0) {
+			if (_mag.priority[uorb_index] == 0) {
 				int32_t priority = 0;
-				orb_priority(_mag.subscription[i], &priority);
-				_mag.priority[i] = (uint8_t)priority;
+				orb_priority(_mag.subscription[uorb_index], &priority);
+				_mag.priority[uorb_index] = (uint8_t)priority;
+
+				// match rotation parameters to uORB topics first time we get data
+				char str[30];
+				int32_t mag_rot;
+
+				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
+					if (mag_report.device_id == _mag_device_id[driver_index]) {
+						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
+						param_get(param_find(str), &mag_rot);
+						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+					}
+				}
 			}
 
-			_mag_device_id[i] = mag_report.device_id;
-
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
-			vect = _mag_rotation[i] * vect;
+			vect = _mag_rotation[uorb_index] * vect;
 
-			_last_sensor_data[i].magnetometer_ga[0] = vect(0);
-			_last_sensor_data[i].magnetometer_ga[1] = vect(1);
-			_last_sensor_data[i].magnetometer_ga[2] = vect(2);
+			_last_sensor_data[uorb_index].magnetometer_ga[0] = vect(0);
+			_last_sensor_data[uorb_index].magnetometer_ga[1] = vect(1);
+			_last_sensor_data[uorb_index].magnetometer_ga[2] = vect(2);
 
-			_last_mag_timestamp[i] = mag_report.timestamp;
-			_mag.voter.put(i, mag_report.timestamp, vect.data,
-				       mag_report.error_count, _mag.priority[i]);
+			_last_mag_timestamp[uorb_index] = mag_report.timestamp;
+			_mag.voter.put(uorb_index, mag_report.timestamp, vect.data,
+				       mag_report.error_count, _mag.priority[uorb_index]);
 		}
 	}
 
