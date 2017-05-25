@@ -153,6 +153,7 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG0_ROT, -1);
@@ -359,6 +360,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
@@ -565,6 +567,7 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG2_ROT, -1);
@@ -710,6 +713,7 @@ PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG3_ROT, -1);
@@ -875,6 +879,8 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 23 Roll 270°, Yaw 135°
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
+ *
+ * @reboot_required true
  *
  * @group Sensor Calibration
  */
