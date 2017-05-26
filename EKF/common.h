@@ -186,6 +186,7 @@ struct parameters {
 	int32_t sensor_interval_min_ms{20};		// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
 
 	// measurement time delays
+	float min_delay_ms{0.0f};			// used to a set a minimum buffer length independent of specified sensor delays
 	float mag_delay_ms{0.0f};		// magnetometer measurement delay relative to the IMU (msec)
 	float baro_delay_ms{0.0f};		// barometer height measurement delay relative to the IMU (msec)
 	float gps_delay_ms{110.0f};		// GPS measurement delay relative to the IMU (msec)
