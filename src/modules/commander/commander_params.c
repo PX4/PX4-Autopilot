@@ -270,9 +270,11 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
 
 /**
- * Allow arming without GPS
+ * Allow arming without GPS module
  *
- * The default allows to arm the vehicle without GPS signal.
+ * If set to 0 arming without GPS device connected and running is not allowed.
+ * It still arms without GPS lock.
+ * The default allows to arm the vehicle without GPS module.
  *
  * @group Commander
  * @boolean
