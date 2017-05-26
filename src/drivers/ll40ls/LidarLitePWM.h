@@ -105,6 +105,10 @@ protected:
 	void task_main_trampoline(int argc, char *argv[]);
 
 private:
+	/* expect maximum PWM period of max distance * 1000 usec + 5000 usec */
+	static const int	LIDAR_LITE_MAX_PWM_PERIOD = (int)(LL40LS_MAX_DISTANCE * 1000 + 5000);
+	/* minimum number of continuous PWM pulses to accept measurement */
+	static const int	MIN_STREAM_LEN = 5;
 	work_s			_work;
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;
@@ -113,6 +117,8 @@ private:
 	struct pwm_input_s	_pwm;
 	orb_advert_t	        _distance_sensor_topic;
 	struct distance_sensor_s _range;
+	/* number of pulses received at intervals < LIDAR_LITE_MAX_PWM_PERIOD */
+	int			_valid_count;
 
 	perf_counter_t	        _sample_perf;
 	perf_counter_t	        _read_errors;
