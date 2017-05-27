@@ -44,6 +44,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 #include <board_config.h>
 #include <drivers/device/device.h>
 
@@ -61,54 +62,59 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
 
-#include <kinetis.h>
 #include <nuttx/analog/adc.h>
-//#include <kinetis_adc.h>
+#include <kinetis.h>
+#include <chip/kinetis_sim.h>
+#include <chip/kinetis_adc.h>
 
-#include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>
 
-#if defined(ADC_CHANNELS)
-/*
- * Register accessors.
- * For now, no reason not to just use ADC1.
- */
-static volatile uint32_t dummy[21];
-#define REG(_reg)	(*(volatile uint32_t *)(&dummy[(_reg)]))
+#if 1|defined(ADC_CHANNELS)
 
-#define ADC_CR2_ADON 0
-#define ADC_CR2_SWSTART 0
-#define  ADC_SR_EOC 1
+typedef uint32_t 	adc_chan_t;
+#define ADC_TOTAL_CHANNELS 		32
 
-#define rSR			REG(0)
-#define rCR1		REG(1)
-#define rCR2		REG(2)
-#define rSMPR1		REG(3)
-#define rSMPR2		REG(4)
-#define rJOFR1		REG(5)
-#define rJOFR2		REG(6)
-#define rJOFR3		REG(7)
-#define rJOFR4		REG(8)
-#define rHTR		REG(9)
-#define rLTR		REG(10)
-#define rSQR1		REG(11)
-#define rSQR2		REG(12)
-#define rSQR3		REG(13)
-#define rJSQR		REG(14)
-#define rJDR1		REG(15)
-#define rJDR2		REG(16)
-#define rJDR3		REG(17)
-#define rJDR4		REG(18)
-#define rDR		    REG(19)
-# define rCCR		REG(20)
+#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
+
+/* ADC register accessors */
+
+#define REG(a, _reg)	_REG(KINETIS_ADC##a##_BASE + (_reg))
+
+#define rSC1A(adc)  REG(adc, KINETIS_ADC_SC1A_OFFSET) /* ADC status and control registers 1 */
+#define rSC1B(adc)  REG(adc, KINETIS_ADC_SC1B_OFFSET) /* ADC status and control registers 1 */
+#define rCFG1(adc)  REG(adc, KINETIS_ADC_CFG1_OFFSET) /* ADC configuration register 1 */
+#define rCFG2(adc)  REG(adc, KINETIS_ADC_CFG2_OFFSET) /* Configuration register 2 */
+#define rRA(adc)    REG(adc, KINETIS_ADC_RA_OFFSET)   /* ADC data result register */
+#define rRB(adc)    REG(adc, KINETIS_ADC_RB_OFFSET)   /* ADC data result register */
+#define rCV1(adc)   REG(adc, KINETIS_ADC_CV1_OFFSET)  /* Compare value registers */
+#define rCV2(adc)   REG(adc, KINETIS_ADC_CV2_OFFSET)  /* Compare value registers */
+#define rSC2(adc)   REG(adc, KINETIS_ADC_SC2_OFFSET)  /* Status and control register 2 */
+#define rSC3(adc)   REG(adc, KINETIS_ADC_SC3_OFFSET)  /* Status and control register 3 */
+#define rOFS(adc)   REG(adc, KINETIS_ADC_OFS_OFFSET)  /* ADC offset correction register */
+#define rPG(adc)    REG(adc, KINETIS_ADC_PG_OFFSET)   /* ADC plus-side gain register */
+#define rMG(adc)    REG(adc, KINETIS_ADC_MG_OFFSET)   /* ADC minus-side gain register */
+#define rCLPD(adc)  REG(adc, KINETIS_ADC_CLPD_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLPS(adc)  REG(adc, KINETIS_ADC_CLPS_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP4(adc)  REG(adc, KINETIS_ADC_CLP4_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP3(adc)  REG(adc, KINETIS_ADC_CLP3_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP2(adc)  REG(adc, KINETIS_ADC_CLP2_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP1(adc)  REG(adc, KINETIS_ADC_CLP1_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP0(adc)  REG(adc, KINETIS_ADC_CLP0_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLMD(adc)  REG(adc, KINETIS_ADC_CLMD_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLMS(adc)  REG(adc, KINETIS_ADC_CLMS_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM4(adc)  REG(adc, KINETIS_ADC_CLM4_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM3(adc)  REG(adc, KINETIS_ADC_CLM3_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM2(adc)  REG(adc, KINETIS_ADC_CLM2_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM1(adc)  REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM0(adc)  REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
 
 class ADC : public device::CDev
 {
 public:
-	ADC(uint32_t channels);
+	ADC(adc_chan_t channels);
 	~ADC();
 
 	virtual int		init();
@@ -126,6 +132,7 @@ private:
 	hrt_call		_call;
 	perf_counter_t		_sample_perf;
 
+	adc_chan_t		_channels; 	/**< bits set for channels */
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
@@ -153,9 +160,10 @@ private:
 	void update_adc_report(hrt_abstime now);
 };
 
-ADC::ADC(uint32_t channels) :
+ADC::ADC(adc_chan_t channels) :
 	CDev("adc", ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
+	_channels(channels),
 	_channel_count(0),
 	_samples(nullptr),
 	_to_system_power(nullptr),
@@ -164,10 +172,10 @@ ADC::ADC(uint32_t channels) :
 	_debug_enabled = true;
 
 	/* always enable the temperature sensor */
-	channels |= 1 << 16;
+	channels |= 1 << (ADC_SC1_ADCH_TEMP >> ADC_SC1_ADCH_SHIFT);
 
 	/* allocate the sample array */
-	for (unsigned i = 0; i < 32; i++) {
+	for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
 		if (channels & (1 << i)) {
 			_channel_count++;
 		}
@@ -176,10 +184,11 @@ ADC::ADC(uint32_t channels) :
 	_samples = new adc_msg_s[_channel_count];
 
 	/* prefill the channel numbers in the sample array */
+
 	if (_samples != nullptr) {
 		unsigned index = 0;
 
-		for (unsigned i = 0; i < 32; i++) {
+		for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
 			if (channels & (1 << i)) {
 				_samples[index].am_channel = i;
 				_samples[index].am_data = 0;
@@ -194,61 +203,66 @@ ADC::~ADC()
 	if (_samples != nullptr) {
 		delete _samples;
 	}
+
+	irqstate_t flags = px4_enter_critical_section();
+	_REG(KINETIS_SIM_SCGC3) &= ~SIM_SCGC3_ADC1;
+	px4_leave_critical_section(flags);
 }
 
 int
 ADC::init()
 {
-	/* do calibration if supported */
-#ifdef ADC_CR2_CAL
-	rCR2 |= ADC_CR2_CAL;
-	usleep(100);
+	/* Input is Buss Clock 56 Mhz We will use /8 for 7 Mhz */
 
-	if (rCR2 & ADC_CR2_CAL) {
+	irqstate_t flags = px4_enter_critical_section();
+
+	_REG(KINETIS_SIM_SCGC3) |= SIM_SCGC3_ADC1;
+	rCFG1(1) = ADC_CFG1_ADICLK_BUSCLK | ADC_CFG1_MODE_1616BIT | ADC_CFG1_ADIV_DIV8;
+	rCFG2(1) = 0;
+	rSC2(1) = ADC_SC2_REFSEL_DEFAULT;
+
+	px4_leave_critical_section(flags);
+
+	/* Clear the CALF and begin the calibration */
+
+	rSC3(1) = ADC_SC3_CAL | ADC_SC3_CALF;
+
+	while ((rSC1A(1) & ADC_SC1_COCO) == 0) {
+		usleep(100);
+
+		if (rSC3(1) & ADC_SC3_CALF) {
+			return -1;
+		}
+	}
+
+	/* dummy read to clear COCO of calibration */
+
+	int32_t r = rRA(1);
+
+	/* Check the state of CALF at the end of calibration */
+
+	if (rSC3(1) & ADC_SC3_CALF) {
 		return -1;
 	}
 
-#endif
+	/* Calculate the calibration values for single ended positive */
 
-	/* arbitrarily configure all channels for 55 cycle sample time */
-	rSMPR1 = 0b00000011011011011011011011011011;
-	rSMPR2 = 0b00011011011011011011011011011011;
+	r = rCLP0(1) + rCLP1(1)  + rCLP2(1)  + rCLP3(1)  + rCLP4(1)  + rCLPS(1) ;
+	r = 0x8000U | (r >> 1U);
+	rPG(1) = r;
 
-	/* XXX for F2/4, might want to select 12-bit mode? */
-	rCR1 = 0;
+	/* Calculate the calibration values for double ended Negitive */
 
-	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2 =
-#ifdef ADC_CR2_TSVREFE
-		/* enable the temperature sensor in CR2 */
-		ADC_CR2_TSVREFE |
-#endif
-		0;
-
-#ifdef ADC_CCR_TSVREFE
-	/* enable temperature sensor in CCR */
-	rCCR = ADC_CCR_TSVREFE;
-#endif
-
-	/* configure for a single-channel sequence */
-	rSQR1 = 0;
-	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel each tick */
-
-	/* power-cycle the ADC and turn it on */
-	rCR2 &= ~ADC_CR2_ADON;
-	usleep(10);
-	rCR2 |= ADC_CR2_ADON;
-	usleep(10);
-	rCR2 |= ADC_CR2_ADON;
-	usleep(10);
+	r = rCLM0(1) + rCLM1(1)  + rCLM2(1)  + rCLM3(1)  + rCLM4(1)  + rCLMS(1) ;
+	r = 0x8000U | (r >> 1U);
+	rMG(1) = r;
 
 	/* kick off a sample and wait for it to complete */
 	hrt_abstime now = hrt_absolute_time();
-	rCR2 |= ADC_CR2_SWSTART;
-	rSR = ADC_SR_EOC;
 
-	while (!(rSR & ADC_SR_EOC)) {
+	rSC1A(1) =  ADC_SC1_ADCH(ADC_SC1_ADCH_TEMP);
+
+	while (!(rSC1A(1) & ADC_SC1_COCO)) {
 
 		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
@@ -398,30 +412,27 @@ ADC::_sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
 
-	/* clear any previous EOC */
-	if (rSR & ADC_SR_EOC) {
-		rSR &= ~ADC_SR_EOC;
-	}
+	/* clear any previous COCC */
+	uint16_t result = rRA(1);
 
-	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
-	rSQR3 = channel;
-	rCR2 |= ADC_CR2_SWSTART;
+	/* run a single conversion right now - should take about 35 cycles (5 microseconds) max */
+
+	rSC1A(1) = ADC_SC1_ADCH(channel);
 
 	/* wait for the conversion to complete */
 	hrt_abstime now = hrt_absolute_time();
-	rSR = ADC_SR_EOC;
 
-	while (!(rSR & ADC_SR_EOC)) {
+	while (!(rSC1A(1) & ADC_SC1_COCO)) {
 
-		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 50) {
+		/* don't wait for more than 10us, since that means something broke - should reset here if we see this */
+		if ((hrt_absolute_time() - now) > 10) {
 			DEVICE_LOG("sample timeout");
 			return 0xffff;
 		}
 	}
 
 	/* read the result and clear EOC */
-	uint16_t result = rDR;
+	result = rRA(1);
 
 	perf_end(_sample_perf);
 	return result;
@@ -443,7 +454,8 @@ test(void)
 	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "can't open ADC device");
+		PX4_ERR("can't open ADC device %d", errno);
+		exit(1);
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
@@ -451,7 +463,8 @@ test(void)
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0) {
-			errx(1, "read error");
+			PX4_ERR("read error");
+			exit(1);
 		}
 
 		unsigned channels = count / sizeof(data[0]);
@@ -476,12 +489,14 @@ adc_main(int argc, char *argv[])
 		g_adc = new ADC(ADC_CHANNELS);
 
 		if (g_adc == nullptr) {
-			errx(1, "couldn't allocate the ADC driver");
+			PX4_ERR("couldn't allocate the ADC driver");
+			exit(1);
 		}
 
 		if (g_adc->init() != OK) {
 			delete g_adc;
-			errx(1, "ADC init failed");
+			PX4_ERR("ADC init failed");
+			exit(1);
 		}
 	}
 
