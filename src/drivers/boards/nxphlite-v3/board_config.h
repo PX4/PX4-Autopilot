@@ -284,33 +284,45 @@ __BEGIN_DECLS
 /*
  * ADC channels
  *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4
+ * Firmware in the adc driver. ADC1 has 32 channels, with some a/b selection overlap
+ * in the AD4-AD7 range on the same ADC.
+ *
+ * Only ADC1 is used
+ *         Bits 31:0 are ADC1 channels 31:0
  */
-#define ADC_CHANNELS 1 << 0 // TBD
 
-/* ADC defines to be used in sensors.cpp to read from a particular channel
- *
- * ADC0
- *    USB_VBUS_VALID   36    -    ADC0_SE16 or ADC0_SE21
- *
- * ADC1
- *    AD1              35    -    ADC1_SE16
- *    AD2              37    -    ADC1_SE18
- *    AD3              39    -    ADC1_SE23
- *    BAT_VSENS        85   PTB4  ADC1_SE10
- *    BAT_ISENS        86   PTB5  ADC1_SE11
- *    5V_VSENS         87   PTB6  ADC1_SE12
- *    RSSI_IN          88   PTB7  ADC1_SE13
- *
- */
+#define ADC1(c)    (((c) & 0x1f))	/* Define ADC number /Channel number */
+
+/* ADC defines to be used in sensors.cpp to read from a particular channel */
+
+#define ADC_USB_VBUS_VALID          ADC1(0)      /* USB_VBUS_VALID   29    -    ADC1_DP0 (bridged on V3 RC00 HW from pin 36 ADC0_SE16 or ADC0_SE21) */
+#define ADC_BATTERY_VOLTAGE_CHANNEL ADC1(10)     /* BAT_VSENS        85   PTB4  ADC1_SE10 */
+#define ADC_BATTERY_CURRENT_CHANNEL ADC1(11)     /* BAT_ISENS        86   PTB5  ADC1_SE11 */
+#define ADC_5V_RAIL_SENSE           ADC1(12)     /* 5V_VSENS         87   PTB6  ADC1_SE12 */
+#define ADC_RSSI_IN                 ADC1(13)     /* RSSI_IN          88   PTB7  ADC1_SE13 */
+#define ADC_AD1                     ADC1(16)     /* AD1              35    -    ADC1_SE16 */
+#define ADC_AD2                     ADC1(18)     /* AD2              37    -    ADC1_SE18 */
+#define ADC_AD3                     ADC1(23)     /* AD3              39    -    ADC1_SE23 */
+
+/* Mask use to initialize the ADC driver */
+
+#define ADC_CHANNELS ((1 << ADC_USB_VBUS_VALID) | \
+		      (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+		      (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+		      (1 << ADC_5V_RAIL_SENSE) | \
+		      (1 << ADC_RSSI_IN) | \
+		      (1 << ADC_AD1) | \
+		      (1 << ADC_AD2) | \
+		      (1 << ADC_AD3))
+
+/* GPIO that require Configuration */
+
 #define GPIO_BAT_VSENS   PIN_ADC1_SE10
 #define GPIO_BAT_ISENS   PIN_ADC1_SE11
 #define GPIO_5V_VSENS    PIN_ADC1_SE12
 #define GPIO_RSSI_IN     PIN_ADC1_SE13
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL 22
-#define ADC_BATTERY_CURRENT_CHANNEL 21
-#define ADC_5V_RAIL_SENSE           18
 
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
