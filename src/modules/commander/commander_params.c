@@ -578,11 +578,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
  * @group Commander
  * @unit rad/s
  * @min 0.02
- * @max 0.2
+ * @max 0.3
  * @decimal 3
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.15f);
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.2f);
 
 /**
  * Enable RC stick override of auto modes
