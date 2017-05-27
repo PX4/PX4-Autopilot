@@ -82,7 +82,7 @@ This repository contains code supporting these boards:
     * [Pixhawk](https://dev.px4.io/en/flight_controller/pixhawk.html)
     * Pixhawk Mini
     * [Pixfalcon](https://dev.px4.io/en/flight_controller/pixfalcon.html)
-  * FMUv3.x (Pixhawk 2 / 2.1 Cube)
+  * FMUv3.x [Pixhawk 2](https://pixhawk.org/modules/pixhawk2)
   * FMUv4.x
     * [Pixracer](https://dev.px4.io/en/flight_controller/pixracer.html)
     * Pixhawk 3 Pro
