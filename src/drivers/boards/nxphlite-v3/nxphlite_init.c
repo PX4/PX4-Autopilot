@@ -213,14 +213,11 @@ kinetis_boardinitialize(void)
 	board_autoled_initialize();
 
 	/* configure ADC pins */
-#if defined(GPIO_ADC1_IN2)
-	kinetis_pinconfig(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	kinetis_pinconfig(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	kinetis_pinconfig(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	kinetis_pinconfig(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	kinetis_pinconfig(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	kinetis_pinconfig(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
-#endif
+
+	kinetis_pinconfig(GPIO_BAT_VSENS);
+	kinetis_pinconfig(GPIO_BAT_ISENS);
+	kinetis_pinconfig(GPIO_5V_VSENS);
+	kinetis_pinconfig(GPIO_RSSI_IN);
 
 	/* configure power supply control/sense pins */
 
