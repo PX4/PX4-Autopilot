@@ -65,6 +65,15 @@
 #define PX4_MAX_TASKS 50
 #define SHELL_TASK_ID (PX4_MAX_TASKS+1)
 
+#if defined(__PX4_POSIX_RPI)
+/**
+ * The minimum stack size of 16384 bytes on Debian Jessie for the Raspberry Pi is too small.
+ * We add the minimum amount possible for it to function properly, in this case 4K.
+ */
+#undef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 16384 + 4096
+#endif
+
 pthread_t _shell_task_id = 0;
 pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
