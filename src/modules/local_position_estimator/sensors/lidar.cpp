@@ -27,6 +27,14 @@ void BlockLocalPositionEstimator::lidarInit()
 					     int(100 * _lidarStats.getStdDev()(0)));
 		_sensorTimeout &= ~SENSOR_LIDAR;
 		_sensorFault &= ~SENSOR_LIDAR;
+
+		// reset HAGL estimate
+		// account for leaning
+		y(0) = y(0) *
+		       cosf(_eul(0)) *
+		       cosf(_eul(1));
+		// PX4_WARN("Setting terrain state from %f to %f", (double)_x(X_tz), (double)_x(X_z) + y(0));
+		_x(X_tz) = _x(X_z) + y(0);
 	}
 }
 
