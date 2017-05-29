@@ -951,8 +951,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 	int32_t log_rate = 50;
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 	logging_enabled = false;
+
 	/* enable logging on start (-e option) */
 	bool log_on_start = false;
+
 	/* enable logging when armed (-a option) */
 	bool log_when_armed = false;
 	log_name_timestamp = false;
@@ -1038,6 +1040,42 @@ int sdlog2_thread_main(int argc, char *argv[])
 			break;
 		}
 	}
+
+    /* Check if we are gathering data for a replay log for ekf2. */
+    param_t replay_handle = param_find("EKF2_REC_RPL");
+    int32_t tmp = 0;
+    param_get(replay_handle, &tmp);
+    bool record_replay_log = (bool)tmp;
+
+    /* Define the type of logging
+     * There are different log types possible on different platforms. */
+    enum {
+        LOG_TYPE_NORMAL,
+        LOG_TYPE_REPLAY_ONLY,
+        LOG_TYPE_ALL
+    } log_type;
+    if (record_replay_log) {
+#if defined(__PX4_QURT) || defined(__PX4_POSIX)
+        log_type = LOG_TYPE_ALL;
+#else
+        log_type = LOG_TYPE_REPLAY_ONLY;
+#endif
+    } else {
+        log_type = LOG_TYPE_NORMAL;
+    }
+
+    /* Check the sdlog2 start parameter */
+    param_t start_handle = param_find("SDLOG_START");
+    int start_param = 0;
+    param_get(start_handle, &start_param);
+    if (start_param == 1) {
+        log_on_start = true;
+    }
+
+    /* ekf2 replay data needs to be logged from startup */
+    if (record_replay_log) {
+        log_on_start = true;
+    }
 
 	if (err_flag) {
 		sdlog2_usage(NULL);
@@ -1140,29 +1178,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	struct commander_state_s buf_commander_state;
 	memset(&buf_commander_state, 0, sizeof(buf_commander_state));
-
-	/* There are different log types possible on different platforms. */
-	enum {
-		LOG_TYPE_NORMAL,
-		LOG_TYPE_REPLAY_ONLY,
-		LOG_TYPE_ALL
-	} log_type;
-
-	/* Check if we are gathering data for a replay log for ekf2. */
-	param_t replay_handle = param_find("EKF2_REC_RPL");
-	int32_t tmp = 0;
-	param_get(replay_handle, &tmp);
-	bool record_replay_log = (bool)tmp;
-
-	if (record_replay_log) {
-#if defined(__PX4_QURT) || defined(__PX4_POSIX)
-		log_type = LOG_TYPE_ALL;
-#else
-		log_type = LOG_TYPE_REPLAY_ONLY;
-#endif
-	} else {
-		log_type = LOG_TYPE_NORMAL;
-	}
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
@@ -1391,7 +1406,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	float snr_mean = 0.0f;
 
 	/* enable logging on start if needed */
-	if (log_on_start) {
+    if (log_on_start) {
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
 			if (!copy_if_updated_multi(ORB_ID(vehicle_gps_position), 0, &subs.gps_pos_sub[0], &buf_gps_pos)) {
