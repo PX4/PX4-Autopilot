@@ -2577,15 +2577,8 @@ protected:
 
 				for (unsigned i = 0; i < 16; i++) {
 					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
-						if (i != 3) {
-							/* scale PWM out 900..2100 us to -1..1 for normal channels */
-							msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
-
-						} else {
-							/* scale PWM out 900..2100 us to 0..1 for throttle */
-							msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-						}
-
+						/* scale PWM out 900..2100 us to -1..1 */
+						msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 					} else {
 						/* set 0 for disabled channels */
 						msg.controls[i] = 0.0f;
