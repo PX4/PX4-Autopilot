@@ -195,7 +195,7 @@ void LandDetector::_update_state()
 	_freefall_hysteresis.set_state_and_update(_get_freefall_state());
 	_landed_hysteresis.set_state_and_update(_get_landed_state());
 	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state());
-	_ground_contact_hysteresis.set_state_and_update(_landed_hysteresis.get_state() || _get_ground_contact_state());
+	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state());
 
 	if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;
