@@ -42,7 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "sumd.h"
-
+#include "common_rc.h"
 
 enum SUMD_DECODE_STATE {
 	SUMD_DECODE_STATE_UNSYNCED = 0,
@@ -88,8 +88,7 @@ bool		_debug		= false;
 static enum SUMD_DECODE_STATE _decode_state = SUMD_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacketHoTT _rxpacket;
-
+static ReceiverFcPacketHoTT &_rxpacket = rc_decode_buf._hottrxpacket;
 
 uint16_t sumd_crc16(uint16_t crc, uint8_t value)
 {

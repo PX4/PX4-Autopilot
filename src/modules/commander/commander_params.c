@@ -345,7 +345,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 2 Manual
  * @value 3 Return to Land
  * @value 4 Land at current position
- *
+ * @value 5 Loiter
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
@@ -578,11 +578,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
  * @group Commander
  * @unit rad/s
  * @min 0.02
- * @max 0.2
+ * @max 0.3
  * @decimal 3
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.15f);
+PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.2f);
 
 /**
  * Enable RC stick override of auto modes
@@ -601,3 +601,16 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
+
+/**
+ * Position control navigation loss response.
+ *
+ * This sets the flight mode that will be used if navigation accuracy is no longer adequte for position control.
+ * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
+ *
+ * @value 0 Assume use of remote control after fallback. Switch to ALTCTL if a height estimate is available, else switch to MANUAL.
+ * @value 1 Assume no use of remote control after fallback. Switch to DESCEND if a height estimate is available, else switch to TERMINATION.
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);

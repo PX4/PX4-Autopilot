@@ -109,24 +109,27 @@ int aerofc_adc_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		warn("Missing action <start>");
-		return PX4_OK;
+		return PX4_ERROR;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 		if (instance) {
 			warn("AEROFC_ADC was already started");
+			return PX4_OK;
 		}
 
 		instance = new AEROFC_ADC(PX4_I2C_BUS_EXPANSION);
 
 		if (!instance) {
 			warn("No memory to instance AEROFC_ADC");
-			return PX4_OK;
+			return PX4_ERROR;
 		}
 
 		if (instance->init() != PX4_OK) {
 			delete instance;
 			instance = nullptr;
+			warn("AEROFC_ADC failed to init");
+			return PX4_ERROR;
 		}
 
 	} else if (!strcmp(argv[1], "test")) {
@@ -134,6 +137,7 @@ int aerofc_adc_main(int argc, char *argv[])
 
 	} else {
 		warn("Action not supported");
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;

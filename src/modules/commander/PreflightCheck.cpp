@@ -448,7 +448,7 @@ static bool gnssCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
 	return success;
 }
 
-static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail)
+static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail, bool enforce_gps_required)
 {
 	// Get estimator status data if available and exit with a fail recorded if not
 	int sub = orb_subscribe(ORB_ID(estimator_status));
@@ -489,6 +489,31 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 		}
 		success = false;
 		goto out;
+	}
+
+	// If GPS aiding is required, declare fault condition if the EKF is not using GPS
+	if (enforce_gps_required) {
+		if (!(status.control_mode_flags & (1<<2))) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
+			}
+			success = false;
+			goto out;
+		}
+	}
+
+	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
+	if (enforce_gps_required) {
+		if ((status.gps_check_fail_flags & ((1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)
+						    + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR))) > 0) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY CHECKS");
+			}
+			success = false;
+			goto out;
+		}
 	}
 
 	// check magnetometer innovation test ratio
@@ -694,7 +719,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	int32_t estimator_type;
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 	if (estimator_type == 2 && checkGNSS) {
-		if (!ekf2Check(mavlink_log_pub, true, reportFailures)) {
+		if (!ekf2Check(mavlink_log_pub, true, reportFailures, checkGNSS)) {
 			failed = true;
 		}
 	}

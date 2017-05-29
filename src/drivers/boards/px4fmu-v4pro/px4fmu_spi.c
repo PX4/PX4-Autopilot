@@ -75,12 +75,12 @@ __EXPORT void stm32_spiinitialize(void)
 	stm32_configgpio(GPIO_SPI_CS_MPU9250);
 	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_ICM_2060X);
 	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_configgpio(GPIO_DRDY_MPU9250);
 	stm32_configgpio(GPIO_DRDY_LIS3MDL);
-	stm32_configgpio(GPIO_DRDY_ICM_20608_G);
+	stm32_configgpio(GPIO_DRDY_ICM_2060X);
 #endif
 
 #ifdef CONFIG_STM32_SPI2
@@ -100,12 +100,22 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	/* SPI select is active low, so write !selected to select the device */
 
 	switch (devid) {
+
 	case PX4_SPIDEV_ICM:
+
+	/* Intended fallthrough */
+
+	case PX4_SPIDEV_ICM_20602:
+
+	/* Intended fallthrough */
+
+	case PX4_SPIDEV_ICM_20608:
+
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_2060X, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
@@ -114,7 +124,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, !selected);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
@@ -123,7 +133,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
@@ -132,7 +142,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 1);
 		break;
 
@@ -141,7 +151,7 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU9250, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_LIS3MDL, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_MS5611, 1);
-		stm32_gpiowrite(GPIO_SPI_CS_ICM_20608_G, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_ICM_2060X, 1);
 		stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, !selected);
 		break;
 
@@ -217,13 +227,13 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_OFF_MPU9250);
 	stm32_configgpio(GPIO_SPI_CS_OFF_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_OFF_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_OFF_ICM_2060X);
 	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MPU9250, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_LIS3MDL, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_OFF_MS5611, 0);
-	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_OFF_ICM_2060X, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_TEMPCAL_EEPROM, 0);
 
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
@@ -236,11 +246,11 @@ __EXPORT void board_spi_reset(int ms)
 
 	stm32_configgpio(GPIO_DRDY_OFF_MPU9250);
 	stm32_configgpio(GPIO_DRDY_OFF_LIS3MDL);
-	stm32_configgpio(GPIO_DRDY_OFF_ICM_20608_G);
+	stm32_configgpio(GPIO_DRDY_OFF_ICM_2060X);
 
 	stm32_gpiowrite(GPIO_DRDY_OFF_MPU9250, 0);
 	stm32_gpiowrite(GPIO_DRDY_OFF_LIS3MDL, 0);
-	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_20608_G, 0);
+	stm32_gpiowrite(GPIO_DRDY_OFF_ICM_2060X, 0);
 
 	/* set the sensor rail off */
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
@@ -263,7 +273,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_MPU9250);
 	stm32_configgpio(GPIO_SPI_CS_LIS3MDL);
 	stm32_configgpio(GPIO_SPI_CS_MS5611);
-	stm32_configgpio(GPIO_SPI_CS_ICM_20608_G);
+	stm32_configgpio(GPIO_SPI_CS_ICM_2060X);
 	stm32_configgpio(GPIO_SPI_CS_TEMPCAL_EEPROM);
 
 	stm32_configgpio(GPIO_SPI1_SCK);
@@ -273,7 +283,7 @@ __EXPORT void board_spi_reset(int ms)
 	/* bring up the EXTI pins again */
 	stm32_configgpio(GPIO_DRDY_MPU9250);
 	stm32_configgpio(GPIO_DRDY_LIS3MDL);
-	stm32_configgpio(GPIO_DRDY_ICM_20608_G);
+	stm32_configgpio(GPIO_DRDY_ICM_2060X);
 
 #endif
 

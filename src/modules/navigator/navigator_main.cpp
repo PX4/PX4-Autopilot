@@ -481,16 +481,6 @@ Navigator::task_main()
 					PX4_WARN("planned landing not available");
 				}
 
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH) {
-
-				vehicle_command_s vcmd = {};
-				vcmd.target_system = get_vstatus()->system_id;
-				vcmd.target_component = get_vstatus()->component_id;
-				vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-
-				orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-				(void)orb_unadvertise(pub);
-
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 
 				if (get_mission_result()->valid &&
@@ -633,6 +623,18 @@ Navigator::task_main()
 			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
+		/* if we landed and have not received takeoff setpoint then stay in idle */
+		if (_land_detected.landed &&
+		    !((_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
+		      || (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) {
+
+			_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+			_pos_sp_triplet.current.valid = true;
+			_pos_sp_triplet.previous.valid = false;
+			_pos_sp_triplet.next.valid = false;
+
+		}
+
 		/* if nothing is running, set position setpoint triplet invalid once */
 		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
 			_pos_sp_triplet_published_invalid_once = true;
@@ -670,7 +672,7 @@ Navigator::start()
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT + 5,
-					     1600,
+					     1800,
 					     (px4_main_t)&Navigator::task_main_trampoline,
 					     nullptr);
 

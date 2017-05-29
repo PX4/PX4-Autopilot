@@ -73,6 +73,7 @@ bool
 MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
+
 	switch (_mission_item.nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
 		return true;
@@ -86,6 +87,7 @@ MissionBlock::is_mission_item_reached()
 		return false;
 
 	case NAV_CMD_DO_LAND_START:
+	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
@@ -96,6 +98,8 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_ROI:
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+	case NAV_CMD_SET_CAMERA_MODE:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -323,8 +327,11 @@ MissionBlock::is_mission_item_reached()
 		     || (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT && _mission_item.force_heading))
 		    && PX4_ISFINITE(_mission_item.yaw)) {
 
-			/* check yaw if defined only for rotary wing except takeoff */
-			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
+			/* check course if defined only for rotary wing except takeoff */
+			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
+					    _navigator->get_global_position()->vel_e,
+					    _navigator->get_global_position()->vel_n);
+			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
@@ -362,10 +369,26 @@ MissionBlock::is_mission_item_reached()
 			    (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
-				// reset lat/lon of loiter waypoint so vehicle exits on a tangent
+				// reset lat/lon of loiter waypoint so vehicle follows a tangent
 				struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
-				curr_sp->lat = _navigator->get_global_position()->lat;
-				curr_sp->lon = _navigator->get_global_position()->lon;
+				const struct position_setpoint_s *next_sp = &_navigator->get_position_setpoint_triplet()->next;
+				float range = get_distance_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
+				float bearing = get_bearing_to_next_waypoint(curr_sp->lat, curr_sp->lon, next_sp->lat, next_sp->lon);
+				float inner_angle = M_PI_2_F - asinf(_mission_item.loiter_radius / range);
+
+				// Compute "ideal" tangent origin
+				if (curr_sp->loiter_direction > 0) {
+					bearing -= inner_angle;
+
+				} else {
+					bearing += inner_angle;
+				}
+
+
+				// Replace current setpoint lat/lon with tangent coordinate
+				waypoint_from_heading_and_distance(curr_sp->lat, curr_sp->lon,
+								   bearing, curr_sp->loiter_radius,
+								   &curr_sp->lat, &curr_sp->lon);
 			}
 
 			return true;
@@ -426,6 +449,7 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 void
 MissionBlock::issue_command(const struct mission_item_s *item)
 {
+
 	if (item_contains_position(item)) {
 		return;
 	}
@@ -464,7 +488,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 float
 MissionBlock::get_time_inside(const struct mission_item_s &item)
 {
-	if (item.nav_cmd == NAV_CMD_TAKEOFF) {
+	if (item.nav_cmd != NAV_CMD_TAKEOFF) {
 		return item.time_inside;
 	}
 
@@ -667,11 +691,11 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
+	item->yaw = _navigator->get_global_position()->yaw;
 
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
 
-	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->pitch_min = min_pitch;
 	item->autocontinue = false;
@@ -699,8 +723,8 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 	/* use current position */
 	if (at_current_location) {
-		item->lat = _navigator->get_global_position()->lat;
-		item->lon = _navigator->get_global_position()->lon;
+		item->lat = NAN; //descend at current position
+		item->lon = NAN; //descend at current position
 		item->yaw = _navigator->get_local_position()->yaw;
 
 	} else {

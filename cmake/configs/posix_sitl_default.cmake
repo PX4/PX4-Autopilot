@@ -9,6 +9,7 @@ set(config_module_list
 	drivers/gps
 	drivers/pwm_out_sim
 	drivers/vmount
+	drivers/linux_gpio
 	modules/sensors
 	platforms/posix/drivers/accelsim
 	platforms/posix/drivers/adcsim

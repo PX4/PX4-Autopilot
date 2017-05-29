@@ -80,16 +80,9 @@ stat_file(const char *file, time_t *date = nullptr, uint32_t *size = nullptr)
 }
 
 //-------------------------------------------------------------------
-MavlinkLogHandler *
-MavlinkLogHandler::new_instance(Mavlink *mavlink)
-{
-	return new MavlinkLogHandler(mavlink);
-}
-
-//-------------------------------------------------------------------
 MavlinkLogHandler::MavlinkLogHandler(Mavlink *mavlink)
-	: MavlinkStream(mavlink)
-	, _pLogHandlerHelper(nullptr)
+	: _pLogHandlerHelper(nullptr),
+	  _mavlink(mavlink)
 {
 
 }
@@ -118,20 +111,6 @@ MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 }
 
 //-------------------------------------------------------------------
-const char *
-MavlinkLogHandler::get_name() const
-{
-	return "MAVLINK_LOG_HANDLER";
-}
-
-//-------------------------------------------------------------------
-uint16_t
-MavlinkLogHandler::get_id()
-{
-	return MAVLINK_MSG_ID_LOG_ENTRY;
-}
-
-//-------------------------------------------------------------------
 unsigned
 MavlinkLogHandler::get_size()
 {
@@ -154,7 +133,7 @@ void
 MavlinkLogHandler::send(const hrt_abstime /*t*/)
 {
 	//-- An arbitrary count of max bytes in one go (one of the two below but never both)
-#define MAX_BYTES_SEND 64 * 1024
+#define MAX_BYTES_SEND 256 * 1024
 	size_t count = 0;
 
 	//-- Log Entries

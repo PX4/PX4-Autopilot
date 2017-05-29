@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -eu
 
-ASTYLE_VER_REQUIRED="Artistic Style Version 2.06"
+# Check for the latest astyle version
+ASTYLE_VER_REQUIRED_1="Artistic Style Version 2.05.1"
+ASTYLE_VER_REQUIRED_2="Artistic Style Version 2.06"
+ASTYLE_VER_REQUIRED_3="Artistic Style Version 3.0"
+
 astyle_ver() {
 	echo "PX4 requires ${ASTYLE_VER_REQUIRED}"
 	echo "You can get the correct version here: https://sourceforge.net/projects/astyle/files/astyle/astyle%202.06/"
@@ -14,12 +18,16 @@ if [ $condition -eq 0 ]; then
 	astyle_ver
 	exit 1
 else
+
 	ASTYLE_VER=`astyle --version`
 
-	if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED" ]; then
-		echo "Error: you're using ${ASTYLE_VER}"
-		astyle_ver
-		exit 1
+	if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_1" -a \
+	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_2" -a \
+	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_3" ];
+	then
+	    echo "Error: you're using ${ASTYLE_VER}"
+	    echo "but should be using ${ASTYLE_VER_REQUIRED} instead"
+	    exit 1
 	fi
 fi
 

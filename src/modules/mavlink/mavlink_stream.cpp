@@ -83,6 +83,12 @@ MavlinkStream::update(const hrt_abstime t)
 		return 0;
 	}
 
+	// One of the previous iterations sent the update
+	// already before the deadline
+	if (_last_sent > t) {
+		return -1;
+	}
+
 	int64_t dt = t - _last_sent;
 	int interval = _interval;
 

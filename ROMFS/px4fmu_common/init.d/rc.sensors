@@ -225,7 +225,7 @@ then
 	if bmi055 -A start
 	then
 	fi
-	
+
 	# Internal SPI bus BMI055_GYR
 	if bmi055 -G start
 	then
@@ -235,7 +235,7 @@ then
 	if bmm150 -R 2 start
 	then
 	fi
-	
+
 	# expansion i2c used for BMP280
 	if bmp280 -I start
 	then
@@ -287,7 +287,7 @@ then
 	then
 	fi
 
-	if mpu6500 -R 8 start
+	if mpu9250 -s -R 8 start
 	then
 	fi
 
@@ -343,10 +343,16 @@ fi
 
 if ver hwcmp PX4FMU_V4PRO
 then
+
 	# Internal SPI bus ICM-20608-G
 	if mpu6000 -R 2 -T 20608 start
 	then
 	fi
+	
+	# Internal SPI bus ICM-20602
+	if mpu6000 -R 2 -T 20602 start
+	then
+	fi	
 
 	# Internal SPI bus mpu9250
 	if mpu9250 -R 2 start
@@ -359,7 +365,7 @@ then
 	fi
 
 	# Possible external compasses
-	if hmc5883 -X start
+	if hmc5883 -C -T -X start
 	then
 	fi
 
@@ -367,6 +373,7 @@ fi
 
 if ver hwcmp PX4FMU_V5
 then
+
 	# Internal SPI bus ICM-20602
 	if mpu6000 -R 8 -s -T 20602 start
 	then
@@ -388,7 +395,7 @@ then
 	fi
 
 	# Possible external compasses
-	if hmc5883 -X start
+	if hmc5883 -C -T -X start
 	then
 	fi
 
@@ -396,6 +403,7 @@ then
 	if meas_airspeed start -b 2
 	then
 	fi
+
 fi
 
 if ver hwcmp AEROCORE2

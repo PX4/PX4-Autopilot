@@ -1,0 +1,33 @@
+<launch>
+
+    <!-- Posix SITL environment launch script -->
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="0"/>
+    <arg name="R" default="0"/>
+    <arg name="P" default="0"/>
+    <arg name="Y" default="0"/>
+    <arg name="est" default="lpe"/>
+    <arg name="vehicle" default="iris"/>
+    <arg name="ID" default="1"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
+    <arg name="mavlink_udp_port" default="14560" />
+
+
+
+    <arg name="cmd" default="$(find xacro)/xacro.py $(find px4)/Tools/sitl_gazebo/models/rotors_description/urdf/$(arg vehicle)_base.xacro rotors_description_dir:=$(find px4)/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(arg mavlink_udp_port) > $(arg vehicle)_$(arg ID).urdf ; 'gz sdf -p $(arg vehicle)_$(arg ID).urdf'" />
+
+
+    <param command="$(arg cmd)" name="$(arg vehicle)_$(arg ID)_sdf" />
+
+    <node name="sitl_$(arg ID)" pkg="px4" type="px4" output="screen"
+        args="$(find px4) $(arg rcS)">
+    </node>
+
+    <node name="$(arg vehicle)_$(arg ID)_spawn" output="screen" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -param $(arg vehicle)_$(arg ID)_sdf -model $(arg vehicle)_$(arg ID) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)" respawn="false"/>
+
+
+</launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

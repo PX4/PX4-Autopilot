@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__navio_gpio
-	MAIN navio_gpio
-	STACK_MAIN 1200
+	MODULE drivers__navio_adc
+	MAIN navio_adc
 	COMPILE_FLAGS
 	SRCS
-		navio_gpio.cpp
+		navio_adc.cpp
 	DEPENDS
 		platforms__common
 	)
-
-#add_subdirectory(test)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

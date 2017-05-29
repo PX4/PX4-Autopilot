@@ -99,6 +99,7 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 	initialize_sensors();
 
 	_corrections_changed = true; //make sure to initially publish the corrections topic
+	_selection_changed = true;
 
 	return 0;
 }
@@ -413,7 +414,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		_mag_device_id[s] = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -432,11 +433,8 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			// int id = h.ioctl(DEVIOCGDEVICEID, 0);
-			// PX4_WARN("sensors: device ID: %s: %d, %u", str, id, (unsigned)id);
-
 			/* if the calibration is for this device, apply it */
-			if (device_id == driver_device_id) {
+			if (device_id == _mag_device_id[s]) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -476,35 +474,6 @@ void VotedSensorsUpdate::parameters_update()
 						mag_rot = 0;
 						param_set_no_notification(param_find(str), &mag_rot);
 					}
-
-					/* handling of old setups, will be removed later (noted Feb 2015) */
-					int32_t deprecated_mag_rot = 0;
-					param_get(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
-
-					/*
-					 * If the deprecated parameter is non-default (is != 0),
-					 * and the new parameter is default (is == 0), then this board
-					 * was configured already and we need to copy the old value
-					 * to the new parameter.
-					 * The < 0 case is special: It means that this param slot was
-					 * used previously by an internal sensor, but the the call above
-					 * proved that it is currently occupied by an external sensor.
-					 * In that case we consider the orientation to be default as well.
-					 */
-					if ((deprecated_mag_rot != 0) && (mag_rot <= 0)) {
-						mag_rot = deprecated_mag_rot;
-						param_set_no_notification(param_find(str), &mag_rot);
-						/* clear the old param, not supported in GUI anyway */
-						deprecated_mag_rot = 0;
-						param_set_no_notification(param_find("SENS_EXT_MAG_ROT"), &deprecated_mag_rot);
-					}
-
-					/* handling of transition from internal to external */
-					if (mag_rot < 0) {
-						mag_rot = 0;
-					}
-
-					get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
 				}
 
 				if (failed) {
@@ -555,6 +524,8 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				orb_priority(_accel.subscription[uorb_index], &priority);
 				_accel.priority[uorb_index] = (uint8_t)priority;
 			}
+
+			_accel_device_id[uorb_index] = accel_report.device_id;
 
 			math::Vector<3> accel_data;
 
@@ -625,6 +596,11 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			_corrections_changed = true;
 		}
 
+		if (_selection.accel_device_id != _accel_device_id[best_index]) {
+			_selection_changed = true;
+			_selection.accel_device_id = _accel_device_id[best_index];
+		}
+
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.accelerometer_m_s2[axis_index] = _last_sensor_data[best_index].accelerometer_m_s2[axis_index];
 		}
@@ -655,6 +631,8 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				orb_priority(_gyro.subscription[uorb_index], &priority);
 				_gyro.priority[uorb_index] = (uint8_t)priority;
 			}
+
+			_gyro_device_id[uorb_index] = gyro_report.device_id;
 
 			math::Vector<3> gyro_rate;
 
@@ -726,6 +704,11 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 			_corrections_changed = true;
 		}
 
+		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
+			_selection_changed = true;
+			_selection.gyro_device_id = _gyro_device_id[best_index];
+		}
+
 		for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 			raw.gyro_rad[axis_index] = _last_sensor_data[best_index].gyro_rad[axis_index];
 		}
@@ -734,36 +717,48 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 {
-	for (unsigned i = 0; i < _mag.subscription_count; i++) {
+	for (unsigned uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
 		bool mag_updated;
-		orb_check(_mag.subscription[i], &mag_updated);
+		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
 		if (mag_updated) {
 			struct mag_report mag_report;
 
-			orb_copy(ORB_ID(sensor_mag), _mag.subscription[i], &mag_report);
+			orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
 			if (mag_report.timestamp == 0) {
 				continue; //ignore invalid data
 			}
 
 			// First publication with data
-			if (_mag.priority[i] == 0) {
+			if (_mag.priority[uorb_index] == 0) {
 				int32_t priority = 0;
-				orb_priority(_mag.subscription[i], &priority);
-				_mag.priority[i] = (uint8_t)priority;
+				orb_priority(_mag.subscription[uorb_index], &priority);
+				_mag.priority[uorb_index] = (uint8_t)priority;
+
+				// match rotation parameters to uORB topics first time we get data
+				char str[30];
+				int32_t mag_rot;
+
+				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
+					if (mag_report.device_id == _mag_device_id[driver_index]) {
+						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
+						param_get(param_find(str), &mag_rot);
+						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+					}
+				}
 			}
 
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
-			vect = _mag_rotation[i] * vect;
+			vect = _mag_rotation[uorb_index] * vect;
 
-			_last_sensor_data[i].magnetometer_ga[0] = vect(0);
-			_last_sensor_data[i].magnetometer_ga[1] = vect(1);
-			_last_sensor_data[i].magnetometer_ga[2] = vect(2);
+			_last_sensor_data[uorb_index].magnetometer_ga[0] = vect(0);
+			_last_sensor_data[uorb_index].magnetometer_ga[1] = vect(1);
+			_last_sensor_data[uorb_index].magnetometer_ga[2] = vect(2);
 
-			_last_mag_timestamp[i] = mag_report.timestamp;
-			_mag.voter.put(i, mag_report.timestamp, vect.data,
-				       mag_report.error_count, _mag.priority[i]);
+			_last_mag_timestamp[uorb_index] = mag_report.timestamp;
+			_mag.voter.put(uorb_index, mag_report.timestamp, vect.data,
+				       mag_report.error_count, _mag.priority[uorb_index]);
 		}
 	}
 
@@ -775,6 +770,11 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_ga[1] = _last_sensor_data[best_index].magnetometer_ga[1];
 		raw.magnetometer_ga[2] = _last_sensor_data[best_index].magnetometer_ga[2];
 		_mag.last_best_vote = (uint8_t)best_index;
+	}
+
+	if (_selection.mag_device_id != _mag_device_id[best_index]) {
+		_selection_changed = true;
+		_selection.mag_device_id = _mag_device_id[best_index];
 	}
 }
 
@@ -815,6 +815,8 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_baro.priority[uorb_index] = (uint8_t)priority;
 			}
 
+			_baro_device_id[uorb_index] = baro_report.device_id;
+
 			got_update = true;
 			math::Vector<3> vect(baro_report.altitude, 0.f, 0.f);
 
@@ -840,6 +842,11 @@ void VotedSensorsUpdate::baro_poll(struct sensor_combined_s &raw)
 				_baro.last_best_vote = (uint8_t)best_index;
 				_corrections.selected_baro_instance = (uint8_t)best_index;
 				_corrections_changed = true;
+			}
+
+			if (_selection.baro_device_id != _baro_device_id[best_index]) {
+				_selection_changed = true;
+				_selection.baro_device_id = _baro_device_id[best_index];
 			}
 
 			/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
@@ -1041,10 +1048,23 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw)
 
 		} else {
 			orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
-
 		}
 
 		_corrections_changed = false;
+	}
+
+	// publish sensor selection if changed
+	if (_selection_changed) {
+		_selection.timestamp = hrt_absolute_time();
+
+		if (_sensor_selection_pub == nullptr) {
+			_sensor_selection_pub = orb_advertise(ORB_ID(sensor_selection), &_selection);
+
+		} else {
+			orb_publish(ORB_ID(sensor_selection), _sensor_selection_pub, &_selection);
+		}
+
+		_selection_changed = false;
 	}
 }
 

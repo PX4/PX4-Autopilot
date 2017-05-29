@@ -579,12 +579,15 @@ PX4FMU::set_mode(Mode mode)
 		_num_outputs = 1;
 		break;
 
+#if defined(BOARD_HAS_CAPTURE)
+
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
 		DEVICE_DEBUG("MODE_2PWM2CAP");
+		// no break
+#endif
 
-	// no break
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_2PWM");
 
@@ -598,11 +601,14 @@ PX4FMU::set_mode(Mode mode)
 
 		break;
 
+#if defined(BOARD_HAS_CAPTURE)
+
 	case MODE_3PWM1CAP:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM1CAP");
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
+		// no break
+#endif
 
-	// no break
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
 		DEVICE_DEBUG("MODE_3PWM");
 
@@ -2701,6 +2707,8 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int	ret = -EINVAL;
 
+#if defined(BOARD_HAS_CAPTURE)
+
 	lock();
 
 	input_capture_config_t *pconfig = 0;
@@ -2822,6 +2830,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	unlock();
+#endif
 	return ret;
 }
 

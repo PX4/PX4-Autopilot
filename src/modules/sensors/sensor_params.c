@@ -153,6 +153,7 @@ PARAM_DEFINE_INT32(CAL_MAG0_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG0_ROT, -1);
@@ -359,6 +360,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
@@ -565,6 +567,7 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG2_ROT, -1);
@@ -710,6 +713,7 @@ PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
  *
  * @min -1
  * @max 30
+ * @reboot_required true
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG3_ROT, -1);
@@ -876,6 +880,8 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
  *
+ * @reboot_required true
+ *
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
@@ -934,40 +940,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
-
-/**
- * External magnetometer rotation
- *
- * @value 0 No rotation
- * @value 1 Yaw 45°
- * @value 2 Yaw 90°
- * @value 3 Yaw 135°
- * @value 4 Yaw 180°
- * @value 5 Yaw 225°
- * @value 6 Yaw 270°
- * @value 7 Yaw 315°
- * @value 8 Roll 180°
- * @value 9 Roll 180°, Yaw 45°
- * @value 10 Roll 180°, Yaw 90°
- * @value 11 Roll 180°, Yaw 135°
- * @value 12 Pitch 180°
- * @value 13 Roll 180°, Yaw 225°
- * @value 14 Roll 180°, Yaw 270°
- * @value 15 Roll 180°, Yaw 315°
- * @value 16 Roll 90°
- * @value 17 Roll 90°, Yaw 45°
- * @value 18 Roll 90°, Yaw 90°
- * @value 19 Roll 90°, Yaw 135°
- * @value 20 Roll 270°
- * @value 21 Roll 270°, Yaw 45°
- * @value 22 Roll 270°, Yaw 90°
- * @value 23 Roll 270°, Yaw 135°
- * @value 24 Pitch 90°
- * @value 25 Pitch 270°
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 
 /**
  * Select primary magnetometer

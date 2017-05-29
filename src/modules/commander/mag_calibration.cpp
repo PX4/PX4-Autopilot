@@ -113,6 +113,24 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 	char str[30];
 
+	// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
+	//  sensor calibration and will be invalidated by a new sensor calibration
+	(void)sprintf(str, "EKF2_MAGBIAS_X");
+	result = param_set(param_find(str), &mscale_null.x_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+	(void)sprintf(str, "EKF2_MAGBIAS_Y");
+	result = param_set(param_find(str), &mscale_null.y_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+	(void)sprintf(str, "EKF2_MAGBIAS_Z");
+	result = param_set(param_find(str), &mscale_null.z_offset);
+	if (result != PX4_OK) {
+		PX4_ERR("unable to reset %s", str);
+	}
+
 	for (size_t i = 0; i < max_mags; i++) {
 		device_ids[i] = 0; // signals no mag
 	}
@@ -120,7 +138,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	_last_mag_progress = 0;
 
 	for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 		// Reset mag id to mag not available
 		(void)sprintf(str, "CAL_MAG%u_ID", cur_mag);
 		result = param_set_no_notification(param_find(str), &(device_ids[cur_mag]));
@@ -175,8 +193,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 #endif
 
-		/* for calibration, commander will run on apps, so orb messages are used to get info from dsp */
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 		// Attempt to open mag
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, cur_mag);
 		int fd = px4_open(str, O_RDONLY);
@@ -563,26 +580,47 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	if (result == calibrate_return_ok) {
 
 		// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-		const unsigned mag_count = orb_group_count(ORB_ID(sensor_mag));
+		const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
 
 		// Warn that we will not calibrate more than max_mags magnetometers
-		if (mag_count > max_mags) {
-			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", mag_count, max_mags);
+		if (orb_mag_count > max_mags) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Detected %u mags, but will calibrate only %u", orb_mag_count, max_mags);
 		}
 
-		for (unsigned cur_mag = 0; cur_mag < mag_count && cur_mag < max_mags; cur_mag++) {
-			// Mag in this slot is available
-			worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), cur_mag);
+		for (unsigned cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_RPI) || defined(__PX4_POSIX_BEBOP)
-			// For QURT respectively the driver framework, we need to get the device ID by copying one report.
-			struct mag_report	mag_report;
-			orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &mag_report);
-			device_ids[cur_mag] = mag_report.device_id;
+			// Lock in to correct ORB instance
+			bool found_cur_mag = false;
+			for(unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
+				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), i);
+
+				struct mag_report report;
+				orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
+
+#ifdef __PX4_NUTTX
+
+				// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
+				// and match it up with the one from the uORB subscription, because the
+				// instance ordering of uORB and the order of the FDs may not be the same.
+
+				if(report.device_id == device_ids[cur_mag]) {
+					// Device IDs match, correct ORB instance for this mag
+					found_cur_mag = true;
+				} else {
+					orb_unsubscribe(worker_data.sub_mag[cur_mag]);
+				}
+
+#else
+
+				// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
+				device_ids[cur_mag] = report.device_id;
+				found_cur_mag = true;
+
 #endif
+			}
 
-			if (worker_data.sub_mag[cur_mag] < 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u not found, abort", cur_mag);
+			if(!found_cur_mag) {
+				calibration_log_critical(mavlink_log_pub, "[cal] Mag #%u (ID %u) no matching uORB devid", cur_mag, device_ids[cur_mag]);
 				result = calibrate_return_error;
 				break;
 			}
@@ -753,7 +791,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				mscale.y_scale = 1.0;
 				mscale.z_scale = 1.0;
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 				int fd_mag = -1;
 
 				// Set new scale
@@ -782,7 +820,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 					mscale.y_scale = diag_y[cur_mag];
 					mscale.z_scale = diag_z[cur_mag];
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 
 					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != PX4_OK) {
 						calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
@@ -792,7 +830,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #endif
 				}
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#ifdef __PX4_NUTTX
 
 				// Mag device no longer needed
 				if (fd_mag >= 0) {

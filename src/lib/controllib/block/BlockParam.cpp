@@ -114,6 +114,12 @@ void BlockParam<T>::commit()
 }
 
 template <class T>
+void BlockParam<T>::commit_no_notification()
+{
+	if (_handle != PARAM_INVALID) { param_set_no_notification(_handle, &_val); }
+}
+
+template <class T>
 BlockParam<T>::~BlockParam() {};
 
 template class __EXPORT BlockParam<float>;

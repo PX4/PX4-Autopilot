@@ -57,6 +57,8 @@ set(nuttx_patches
 	00023-BACKPORT-stm32f7-bkp-reference-fix.patch
 	00024-BACKPORT-stm32f7-serial-dma-hotfix.patch
 	00025-BACKPORT-add-set-ex-to-nsh.patch
+	00026-BACKPORT-stm32fX-serial-fix-freezing.patch
+	00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
@@ -72,6 +74,6 @@ file(GLOB patches_found *.patch)
 foreach(patch_file ${patches_found})
 	list (FIND px4_nuttx_patches ${patch_file} _index)
 	if (${_index} EQUAL -1)
-		message(WARNING "${patch_file} missing from nuttx-patches/CMakeLists.txt")
+		message(FATAL_ERROR "${patch_file} missing from nuttx-patches/CMakeLists.txt")
 	endif()
 endforeach()

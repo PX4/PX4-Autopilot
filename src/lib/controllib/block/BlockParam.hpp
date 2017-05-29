@@ -83,7 +83,17 @@ public:
 	BlockParam &operator=(const BlockParam &) = delete;
 
 	inline T get() const { return _val; }
+
+	/**
+	 * Store the parameter value to the parameter storage (@see param_set())
+	 */
 	void commit();
+
+	/**
+	 * Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	 */
+	void commit_no_notification();
+
 	void set(T val);
 	void update() override;
 	virtual ~BlockParam();

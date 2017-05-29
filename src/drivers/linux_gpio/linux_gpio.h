@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,45 @@
  *
  ****************************************************************************/
 
-extern int do_test();
+/**
+ * @file linux_gpio.h
+ *
+ * Linux sysfs GPIO Interface
+ *
+ * This interface allows manipulation of sysfs GPIOs on Linux
+ *
+ * @author Nicolae Rosia <nicolae.rosia@gmail.com>
+ */
 
-int main()
+
+class LinuxGPIO
 {
-	return do_test();
-}
+public:
+	LinuxGPIO(unsigned int pin);
+	~LinuxGPIO() = default;
+
+	enum class Direction {
+		IN = 0,
+		OUT = 1,
+	};
+
+	enum class Value {
+		LOW = 0,
+		HIGH = 1,
+	};
+
+	int exportPin();
+	int unexportPin();
+	int setDirection(LinuxGPIO::Direction dir);
+	int readValue();
+	int writeValue(LinuxGPIO::Value value);
+
+private:
+	static int _exportPin(unsigned int pin);
+	static int _unexportPin(unsigned int pin);
+	static int _setDirection(unsigned int pin, int dir);
+	static int _readValue(unsigned int pin);
+	static int _writeValue(unsigned int pin, unsigned int value);
+
+	int _pin;
+};

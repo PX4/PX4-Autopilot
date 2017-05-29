@@ -60,13 +60,7 @@ LogWriterFile::LogWriterFile(size_t buffer_size) :
 
 bool LogWriterFile::init()
 {
-	if (_buffer) {
-		return true;
-	}
-
-	_buffer = new uint8_t[_buffer_size];
-
-	return _buffer;
+	return true;
 }
 
 LogWriterFile::~LogWriterFile()
@@ -75,6 +69,10 @@ LogWriterFile::~LogWriterFile()
 	pthread_cond_destroy(&_cv);
 	perf_free(_perf_write);
 	perf_free(_perf_fsync);
+
+	if (_fd >= 0) {
+		::close(_fd);
+	}
 
 	if (_buffer) {
 		delete[] _buffer;
@@ -91,6 +89,19 @@ void LogWriterFile::start_log(const char *filename)
 		return;
 
 	} else {
+
+		if (_buffer == nullptr) {
+			_buffer = new uint8_t[_buffer_size];
+
+			if (_buffer == nullptr) {
+				PX4_ERR("Can't create log buffer");
+				::close(_fd);
+				_fd = -1;
+				_should_run = false;
+				return;
+			}
+		}
+
 		PX4_INFO("Opened log file: %s", filename);
 		_should_run = true;
 		_running = true;
@@ -167,6 +178,10 @@ void LogWriterFile::run()
 			if (start) {
 				break;
 			}
+		}
+
+		if (_exit_thread) {
+			break;
 		}
 
 		int poll_count = 0;

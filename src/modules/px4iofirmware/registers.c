@@ -880,10 +880,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	 */
 	case PX4IO_PAGE_STATUS:
 		/* PX4IO_P_STATUS_FREEMEM */
-		{
-			struct mallinfo minfo = mallinfo();
-			r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
-		}
 
 		/* XXX PX4IO_P_STATUS_CPULOAD */
 
@@ -915,6 +911,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
 			}
 		}
+
 #endif
 #ifdef ADC_IBATT
 		/* PX4IO_P_STATUS_IBATT */

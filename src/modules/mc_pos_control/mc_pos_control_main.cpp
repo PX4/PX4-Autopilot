@@ -755,9 +755,9 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
-		//Make sure that the position setpoint is valid
-		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
+		//set current position setpoint invalid if none of them (lat, lon and alt) is finite
+		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) &&
+		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) &&
 		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
@@ -797,17 +797,22 @@ MulticopterPositionControl::update_ref()
 		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
-			/* calculate current position setpoint in global frame */
+			// calculate current position setpoint in global frame
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+			// the altitude setpoint is the reference altitude (Z up) plus the (Z down)
+			// NED setpoint, multiplied out to minus
 			alt_sp = _ref_alt - _pos_sp(2);
 		}
 
-		/* update local projection reference */
+		// update local projection reference including altitude
 		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
 		_ref_alt = _local_pos.ref_alt;
 
 		if (_ref_timestamp != 0) {
-			/* reproject position setpoint to new reference */
+			// reproject position setpoint to new reference
+			// this effectively adjusts the position setpoint to keep the vehicle
+			// in its current local position. It would only change its
+			// global position on the next setpoint update.
 			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
 			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
@@ -1379,11 +1384,26 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	if (_pos_sp_triplet.current.valid) {
 
-		/* project setpoint to local frame */
-		map_projection_project(&_ref_pos,
-				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-				       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
-		_curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+		//only project setpoints if they are finite, else use current position
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) &&
+		    PX4_ISFINITE(_pos_sp_triplet.current.lon)) {
+			/* project setpoint to local frame */
+			map_projection_project(&_ref_pos,
+					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
+					       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
+
+		} else {
+			_curr_pos_sp(0) = _pos(0);
+			_curr_pos_sp(1) = _pos(1);
+		}
+
+		//only project setpoints if they are finite, else use current position
+		if (PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+			_curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+
+		} else {
+			_curr_pos_sp(2) = _pos(2);
+		}
 
 		if (PX4_ISFINITE(_curr_pos_sp(0)) &&
 		    PX4_ISFINITE(_curr_pos_sp(1)) &&
@@ -1575,7 +1595,12 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 	} else {
-		/* no waypoint, do nothing, setpoint was already reset */
+
+		/* idle or triplet not valid, set velocity setpoint to zero */
+		_vel_sp.zero();
+		_run_pos_control = false;
+		_run_alt_control = false;
+
 	}
 }
 
@@ -1645,6 +1670,12 @@ MulticopterPositionControl::do_control(float dt)
 		control_manual(dt);
 		_mode_auto = false;
 
+		/* we set tiplets to false
+		 * this ensures that when switching to auto, the position
+		 * controller will not use the old triplets but waits until triplets
+		 * have been updated */
+		_pos_sp_triplet.current.valid = false;
+
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;
 
@@ -1673,8 +1704,16 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+
+		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
+		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
+			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+
+		} else {
+			_vel_sp(0) = 0.0f;
+			_vel_sp(1) = 0.0f;
+		}
 	}
 
 	limit_altitude();
@@ -2279,6 +2318,7 @@ MulticopterPositionControl::task_main()
 			_reset_int_xy = true;
 			_reset_yaw_sp = true;
 			_yaw_takeoff = _yaw;
+
 		}
 
 		was_armed = _control_mode.flag_armed;
@@ -2297,6 +2337,11 @@ MulticopterPositionControl::task_main()
 		if (!_vehicle_land_detected.landed && was_landed) {
 			_in_takeoff = true;
 			_takeoff_vel_limit = -0.5f;
+		}
+
+		/* set triplets to invalid if we just landed */
+		if (_vehicle_land_detected.landed && !was_landed) {
+			_pos_sp_triplet.current.valid = false;
 		}
 
 		was_landed = _vehicle_land_detected.landed;

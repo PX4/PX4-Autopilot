@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__mpu6500
-	MAIN mpu6500
+	MODULE drivers__linux_gpio
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		mpu6500.cpp
+		linux_gpio.cpp
 	DEPENDS
 		platforms__common
 	)
+
+#add_subdirectory(test)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

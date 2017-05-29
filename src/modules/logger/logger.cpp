@@ -594,6 +594,7 @@ void Logger::add_default_topics()
 	add_topic("wind_estimate", 100);
 	add_topic("control_state", 100);
 	add_topic("camera_trigger");
+	add_topic("camera_capture");
 	add_topic("cpuload");
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
 	add_topic("sensor_preflight", 50);

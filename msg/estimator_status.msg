@@ -1,4 +1,4 @@
-float32[32] states		# Internal filter states
+float32[24] states		# Internal filter states
 float32 n_states		# Number of states effectively used
 float32[3] vibe			# IMU vibration metrics in the following array locations
 # 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
@@ -7,18 +7,19 @@ float32[3] vibe			# IMU vibration metrics in the following array locations
 uint8 nan_flags			# Bitmask to indicate NaN states
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
-float32[28] covariances	# Diagonal Elements of Covariance Matrix
+float32[24] covariances	# Diagonal Elements of Covariance Matrix
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
 # bits are true when corresponding test has failed
-# 0 : minimum required sat count fail
-# 1 : minimum required GDoP fail
-# 2 : maximum allowed horizontal position error fail
-# 3 : maximum allowed vertical position error fail
-# 4 : maximum allowed speed error fail
-# 5 : maximum allowed horizontal position drift fail
-# 6 : maximum allowed vertical position drift fail
-# 7 : maximum allowed horizontal speed fail
-# 8 : maximum allowed vertical velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_MIN_SAT_COUNT = 0			# 0 : minimum required sat count fail
+uint16 GPS_CHECK_FAIL_MIN_GDOP = 1			# 1 : minimum required GDoP fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_ERR = 2			# 2 : maximum allowed horizontal position error fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_ERR = 3			# 3 : maximum allowed vertical position error fail
+uint16 GPS_CHECK_FAIL_MAX_SPD_ERR = 4			# 4 : maximum allowed speed error fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 5		# 5 : maximum allowed horizontal position drift fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 6		# 6 : maximum allowed vertical position drift fail
+uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 7		# 7 : maximum allowed horizontal velocity discrepancy fail
+uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 8		# 8 : maximum allowed vertical velocity discrepancy fail
+
 uint16 control_mode_flags	# Bitmask to indicate EKF logic state
 # 0 - true if the filter tilt alignment is complete
 # 1 - true if the filter yaw alignment is complete
@@ -83,4 +84,4 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 # 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
 # 10 - True if the EKF has detected a GPS glitch
-
+float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time

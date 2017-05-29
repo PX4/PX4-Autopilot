@@ -185,6 +185,13 @@
 #  define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
 
+/*
+ * Defined when a board has capture and uses channels.
+ */
+#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
+#define BOARD_HAS_CAPTURE 1
+#endif
+
 
 /************************************************************************************
  * Public Data
@@ -301,6 +308,24 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
 #  if !defined(GPIO_SBUS_INV)
 __EXPORT void board_rc_input(bool invert_on);
 #  endif
+#endif
+
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_NO_RESET) || !defined(BOARD_HAS_ON_RESET)
+#  define board_on_reset(status)
+#else
+__EXPORT void board_on_reset(int status);
 #endif
 
 /************************************************************************************

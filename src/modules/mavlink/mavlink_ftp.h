@@ -40,21 +40,25 @@
 #include <queue.h>
 
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-#include "mavlink_stream.h"
 #include "mavlink_bridge_header.h"
 
 class MavlinkFtpTest;
+class Mavlink;
 
 /// MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
-class MavlinkFTP : public MavlinkStream
+class MavlinkFTP
 {
 public:
-	/// @brief Constructor is only public so unit test code can new objects.
 	MavlinkFTP(Mavlink *mavlink);
 	~MavlinkFTP();
 
-	static MavlinkStream *new_instance(Mavlink *mavlink);
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
@@ -115,10 +119,7 @@ public:
 		kErrUnknownCommand		///< Unknown command opcode
 	};
 
-	// MavlinkStream overrides
-	virtual const char *get_name(void) const;
-	virtual uint16_t get_id(void);
-	virtual unsigned get_size(void);
+	unsigned get_size();
 
 private:
 	char		*_data_as_cstring(PayloadHeader *payload);
@@ -145,9 +146,6 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
-	// Overrides from MavlinkStream
-	virtual void send(const hrt_abstime t);
-
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
 	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
@@ -168,6 +166,8 @@ private:
 
 	ReceiveMessageFunc_t	_utRcvMsgFunc;	///< Unit test override for mavlink message sending
 	void			*_worker_data;	///< Additional parameter to _utRcvMsgFunc;
+
+	Mavlink *_mavlink;
 
 	/* do not allow copying this class */
 	MavlinkFTP(const MavlinkFTP &);

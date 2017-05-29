@@ -231,13 +231,18 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
 PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
 
 /**
- * Maximum altitude that can be reached prior to subconditions
+ * Maximum altitude for multicopters
+ *
+ * The system will obey this limit as a
+ * hard altitude limit. This setting will
+ * be consolidated with the GF_MAX_VER_DIST
+ * parameter.
  *
  * @unit m
- * @min 10
- * @max 150
+ * @min 1.5
+ * @max 10000
  * @decimal 2
  * @group Land Detector
  *
  */
-PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 100.0f);
+PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 10000.0f);

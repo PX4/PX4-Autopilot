@@ -83,13 +83,17 @@ static uint32_t version_tag_to_number(const char *tag)
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
 			if (mag < 32) {
-				unsigned number = tag[i] - '0';
+				char number = tag[i] - '0';
 
 				ver += (number << mag);
-				mag += 8;
+				mag += 4;
 			}
 
 		} else if (tag[i] == '.') {
+			if (mag % 8) {
+				mag += 4;
+			}
+
 			continue;
 
 		} else if (i > 3 && type == -1) {
@@ -186,7 +190,7 @@ uint32_t px4_os_version(void)
 #elif defined(__PX4_QURT)
 	return 0; //TODO: implement version for QuRT
 #elif defined(__PX4_NUTTX)
-	return version_tag_to_number("v7.18.0"); //TODO: get correct version
+	return version_tag_to_number(NUTTX_GIT_TAG_STR);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -195,7 +199,7 @@ uint32_t px4_os_version(void)
 const char *px4_os_version_string(void)
 {
 #if defined(__PX4_NUTTX)
-	return NULL; //TODO: get NuttX git tag as string
+	return NUTTX_GIT_VERSION_STR;
 #else
 	return NULL;
 #endif

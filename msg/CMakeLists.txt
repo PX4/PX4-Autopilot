@@ -41,6 +41,7 @@ set(msg_file_names
 	att_pos_mocap.msg
 	battery_status.msg
 	camera_trigger.msg
+	camera_capture.msg
 	collision_report.msg
 	commander_state.msg
 	control_state.msg
@@ -90,6 +91,7 @@ set(msg_file_names
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_selection.msg
 	sensor_gyro.msg
 	sensor_mag.msg
 	sensor_preflight.msg

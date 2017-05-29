@@ -447,7 +447,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * Type of magnetometer fusion
  *
  * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-axis magnetometer.
- * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight
+ * If set to automatic: heading fusion on-ground and 3-axis fusion in-flight with fallback to heading fusion if there is insufficient motion to make yaw or mag biases observable.
  *
  * @group EKF2
  * @value 0 Automatic
@@ -456,6 +456,30 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 3 None
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
+
+/**
+ * Horizontal acceleration threshold used by automatic selection of magnetometer fusion method.
+ * This parameter is used when the magnetometer fusion method is set automatically (EKF2_MAG_TYPE = 0). If the filtered horizontal acceleration is greater than this parameter value, then the EKF will use 3-axis magnetomer fusion.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 5.0
+ * @unit m/s**2
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
+
+/**
+ * Yaw rate threshold used by automatic selection of magnetometer fusion method.
+ * This parameter is used when the magnetometer fusion method is set automatically (EKF2_MAG_TYPE = 0). If the filtered yaw rate is greater than this parameter value, then the EKF will use 3-axis magnetomer fusion.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.5
+ * @unit rad/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 
 /**
  * Gate size for barometric height fusion
@@ -906,3 +930,67 @@ PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
+
+/**
+ * Learned value of magnetometer X axis bias.
+ * This is the amount of X-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
+ *
+ * @group EKF2
+ * @min -0.5
+ * @max 0.5
+ * @unit mGauss
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
+
+/**
+ * Learned value of magnetometer Y axis bias.
+ * This is the amount of Y-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
+ *
+ * @group EKF2
+ * @min -0.5
+ * @max 0.5
+ * @unit mGauss
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
+
+/**
+ * Learned value of magnetometer Z axis bias.
+ * This is the amount of Z-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
+ *
+ * @group EKF2
+ * @min -0.5
+ * @max 0.5
+ * @unit mGauss
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
+
+/**
+ * ID of Magnetometer the learned bias is for.
+ *
+ * @group EKF2
+ */
+PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
+
+/**
+ * State variance assumed for magnetometer bias storage.
+ * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
+ *
+ * @group EKF2
+ * @unit mGauss**2
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
+
+/**
+ * Maximum fraction of learned mag bias saved at each disarm.
+ * Smaller values make the saved mag bias learn slower from flight to flight. Larger values make it learn faster. Must be > 0.0 and <= 1.0.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);

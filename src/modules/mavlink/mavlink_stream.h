@@ -44,7 +44,6 @@
 #include <drivers/drv_hrt.h>
 
 class Mavlink;
-class MavlinkStream;
 
 class MavlinkStream
 {
@@ -98,7 +97,7 @@ public:
 
 protected:
 	Mavlink     *_mavlink;
-	unsigned int _interval;		//<<< if set to zero = unlimited rate
+	unsigned int _interval;		///< if set to zero = unlimited rate
 
 #ifndef __PX4_QURT
 	virtual void send(const hrt_abstime t) = 0;

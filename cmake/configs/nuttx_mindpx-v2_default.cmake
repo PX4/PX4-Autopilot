@@ -19,10 +19,7 @@ set(config_module_list
 	drivers/boards/mindpx-v2
 	drivers/rgbled
 	#drivers/rgbled_pwm
-	#drivers/mpu6000
-	#drivers/mpu6050
-	drivers/mpu6500
-	#drivers/mpu9250
+	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20
 	drivers/hmc5883
