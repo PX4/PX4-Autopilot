@@ -1452,9 +1452,9 @@ protected:
 				msg_cmd.target_component = MAV_COMP_ID_CAMERA;
 				msg_cmd.command = MAV_CMD_IMAGE_START_CAPTURE;
 				msg_cmd.confirmation = 0;
-				msg_cmd.param1 = 0; // duration between 2 consecutive images (seconds)
-				msg_cmd.param2 = 1; // take 1 picture
-				msg_cmd.param3 = -1; // resolution (use the highest possible)
+				msg_cmd.param1 = 0; // all cameras
+				msg_cmd.param2 = 0; // duration 0 because only taking one picture
+				msg_cmd.param3 = 1; // only take one
 				msg_cmd.param4 = NAN;
 				msg_cmd.param5 = NAN;
 				msg_cmd.param6 = NAN;
