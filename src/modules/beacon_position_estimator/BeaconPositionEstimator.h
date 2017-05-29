@@ -67,22 +67,9 @@ public:
 	virtual ~BeaconPositionEstimator();
 
 	/*
-	 * @return true if this task is currently running.
+	 * Get new measurements and update the state estimate
 	 */
-	inline bool is_running() const
-	{
-		return _taskIsRunning;
-	}
-
-	/*
-	 * Tells the task that it should exit.
-	 */
-	void stop();
-
-	/*
-	 * Get the work queue going.
-	 */
-	int start();
+	void update();
 
 protected:
 	/*
@@ -107,8 +94,6 @@ protected:
 	 */
 	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
-	/* Run main loop at this rate in Hz. */
-	static constexpr uint32_t beacon_position_estimator_UPDATE_RATE_HZ = 50;
 	/* timeout after which filter is reset if beacon not seen */
 	static constexpr uint32_t beacon_position_estimator_TIMEOUT_US = 2000000;
 
@@ -150,7 +135,7 @@ private:
 	int _irlockReportSub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition,
-			      _vehicleLocalPosition_last; // store two most recent to compute acceleration
+			      _vehicleLocalPosition_last; // store two most recent to compute acceleration TODO remove
 	struct vehicle_attitude_s			_vehicleAttitude;
 	struct sensor_combined_s			_sensorCombined;
 	struct irlock_report_s				_irlockReport;
@@ -170,18 +155,9 @@ private:
 	hrt_abstime _last_predict; // timestamp of last filter prediction
 	hrt_abstime _last_update; // timestamp of last filter update (used to check timeout)
 
-	static void _cycle_trampoline(void *arg);
-
-	void _cycle();
-
 	void _check_params(const bool force);
 
 	void _update_state();
-
-	bool _taskShouldExit;
-	bool _taskIsRunning;
-
-	struct work_s	_work;
 };
 
 

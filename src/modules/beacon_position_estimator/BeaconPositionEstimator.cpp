@@ -58,59 +58,26 @@ BeaconPositionEstimator::BeaconPositionEstimator() :
 	_new_irlockReport(false),
 	_estimator_initialized(false),
 	_last_predict(0),
-	_last_update(0),
-	_taskShouldExit(false),
-	_taskIsRunning(false),
-	_work{}
+	_last_update(0)
 {
 	_paramHandle.acc_unc = param_find("BEST_ACC_UNC");
 	_paramHandle.meas_unc = param_find("BEST_MEAS_UNC");
 	_paramHandle.pos_unc_init = param_find("BEST_POS_UNC_IN");
 	_paramHandle.vel_unc_init = param_find("BEST_VEL_UNC_IN");
 	_paramHandle.mode = param_find("BEST_MODE");
+
+	// Initialize uORB topics.
+	_initialize_topics();
+
+	_check_params(true);
 }
 
 BeaconPositionEstimator::~BeaconPositionEstimator()
 {
-	work_cancel(HPWORK, &_work);
-	_taskShouldExit = true;
 }
 
-int BeaconPositionEstimator::start()
+void BeaconPositionEstimator::update()
 {
-	_taskShouldExit = false;
-
-	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&BeaconPositionEstimator::_cycle_trampoline, this, 0);
-
-	return 0;
-}
-
-void BeaconPositionEstimator::stop()
-{
-	_taskShouldExit = true;
-}
-
-void
-BeaconPositionEstimator::_cycle_trampoline(void *arg)
-{
-	BeaconPositionEstimator *dev = reinterpret_cast<BeaconPositionEstimator *>(arg);
-
-	dev->_cycle();
-}
-
-void BeaconPositionEstimator::_cycle()
-{
-	if (!_taskIsRunning) {
-		// Initialize uORB topics.
-		_initialize_topics();
-
-		_check_params(true);
-
-		// Task is now running, keep doing so until we need to stop.
-		_taskIsRunning = true;
-	}
-
 	_check_params(false);
 
 	_update_topics();
@@ -272,16 +239,6 @@ void BeaconPositionEstimator::_cycle()
 
 		_new_irlockReport = false;
 
-	}
-
-	if (!_taskShouldExit) {
-
-		// Schedule next cycle.
-		work_queue(HPWORK, &_work, (worker_t)&BeaconPositionEstimator::_cycle_trampoline, this,
-			   USEC2TICK(1000000 / beacon_position_estimator_UPDATE_RATE_HZ));
-
-	} else {
-		_taskIsRunning = false;
 	}
 }
 

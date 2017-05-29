@@ -57,9 +57,12 @@
 namespace beacon_position_estimator
 {
 
-//Function prototypes
-static int beacon_position_estimator_start();
-static void beacon_position_estimator_stop();
+static bool thread_should_exit = false;		/**< daemon exit flag */
+static bool thread_running = false;		/**< daemon status flag */
+static int daemon_task;				/**< Handle of daemon task / thread */
+
+/* Run main loop at this rate in Hz. */
+static constexpr uint32_t beacon_position_estimator_UPDATE_RATE_HZ = 50;
 
 /**
  * Beacon position estimator app start / stop handling function
@@ -68,83 +71,10 @@ static void beacon_position_estimator_stop();
  */
 extern "C" __EXPORT int beacon_position_estimator_main(int argc, char *argv[]);
 
-//Private variables
-static BeaconPositionEstimator *beacon_position_estimator_task = nullptr;
-
 /**
-* Stop the task, force killing it if it doesn't stop by itself
-**/
-static void beacon_position_estimator_stop()
-{
-	if (beacon_position_estimator_task == nullptr) {
-		PX4_WARN("not running");
-		return;
-	}
-
-	beacon_position_estimator_task->stop();
-
-	// Wait for task to die
-	int i = 0;
-
-	do {
-		/* wait 20ms */
-		usleep(20000);
-
-	} while (beacon_position_estimator_task->is_running() && ++i < 50);
-
-
-	delete beacon_position_estimator_task;
-	beacon_position_estimator_task = nullptr;
-	PX4_WARN("beacon_position_estimator has been stopped");
-}
-
-/**
-* Start new task, fails if it is already running. Returns OK if successful
-**/
-static int beacon_position_estimator_start()
-{
-	if (beacon_position_estimator_task != nullptr) {
-		PX4_WARN("already running");
-		return -1;
-	}
-
-	beacon_position_estimator_task = new BeaconPositionEstimator();
-
-	//Check if alloc worked
-	if (beacon_position_estimator_task == nullptr) {
-		PX4_WARN("alloc failed");
-		return -1;
-	}
-
-	//Start new thread task
-	int ret = beacon_position_estimator_task->start();
-
-	if (ret) {
-		PX4_WARN("task start failed: %d", -errno);
-		return -1;
-	}
-
-	/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-	const uint64_t timeout = hrt_absolute_time() + 5000000; //5 second timeout
-
-	/* avoid printing dots just yet and do one sleep before the first check */
-	usleep(10000);
-
-	/* check if the waiting involving dots and a newline are still needed */
-	if (!beacon_position_estimator_task->is_running()) {
-		while (!beacon_position_estimator_task->is_running()) {
-			usleep(50000);
-
-			if (hrt_absolute_time() > timeout) {
-				PX4_WARN("start failed - timeout");
-				beacon_position_estimator_stop();
-				return 1;
-			}
-		}
-	}
-
-	return 0;
-}
+ * Mainloop of daemon.
+ */
+int beacon_position_estimator_thread_main(int argc, char *argv[]);
 
 /**
 * Main entry point for this module
@@ -157,40 +87,66 @@ int beacon_position_estimator_main(int argc, char *argv[])
 	}
 
 	if (argc >= 2 && !strcmp(argv[1], "start")) {
-		if (beacon_position_estimator_start() != 0) {
-			PX4_WARN("beacon_position_estimator start failed");
-			return 1;
+		if (thread_running) {
+			PX4_INFO("already running");
+			/* this is not an error */
+			return 0;
 		}
 
+		thread_should_exit = false;
+		daemon_task = px4_task_spawn_cmd("beacon_position_estimator",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_DEFAULT,
+						 5000,
+						 beacon_position_estimator_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		beacon_position_estimator_stop();
+		thread_should_exit = true;
+
+		if (!thread_running) {
+			PX4_WARN("beacon_position_estimator not running");
+		}
+
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (beacon_position_estimator_task) {
-
-			if (beacon_position_estimator_task->is_running()) {
-				PX4_INFO("running");
-
-			} else {
-				PX4_WARN("exists, but not running");
-			}
-
-			return 0;
+		if (thread_running) {
+			PX4_INFO("running");
 
 		} else {
-			PX4_WARN("not running");
-			return 1;
+			PX4_INFO("not started");
 		}
+
+		return 0;
 	}
 
 exiterr:
 	PX4_WARN("usage: beacon_position_estimator {start|stop|status}");
 	return 1;
+}
+
+int beacon_position_estimator_thread_main(int argc, char *argv[])
+{
+	PX4_DEBUG("starting");
+
+	thread_running = true;
+
+	BeaconPositionEstimator est;
+
+	while (!thread_should_exit) {
+		est.update();
+		usleep(1000000 / beacon_position_estimator_UPDATE_RATE_HZ);
+	}
+
+	PX4_DEBUG("exiting");
+
+	thread_running = false;
+
+	return 0;
 }
 
 }
