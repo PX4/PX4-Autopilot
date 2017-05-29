@@ -92,9 +92,7 @@ void BeaconPositionEstimator::update()
 			_estimator_initialized = false;
 
 		} else if (_vehicleLocalPosition_valid
-			   && _vehicleLocalPosition_last_valid
-			   && _vehicleLocalPosition.v_xy_valid
-			   && _vehicleLocalPosition_last.v_xy_valid) {
+			   && _vehicleLocalPosition.v_xy_valid) {
 			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 			// predict beacon position with the help of accel data
@@ -270,11 +268,6 @@ void BeaconPositionEstimator::_initialize_topics()
 
 void BeaconPositionEstimator::_update_topics()
 {
-	if (_vehicleLocalPosition_valid) {
-		_vehicleLocalPosition_last = _vehicleLocalPosition;
-		_vehicleLocalPosition_last_valid = true;
-	}
-
 	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
 				      &_vehicleLocalPosition);
 	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
