@@ -24,6 +24,7 @@ list_files
 
 mavlink start -u 14556 -r 2000000
 mavlink boot_complete
+commander boot_complete
 
 tests @test_name@
 

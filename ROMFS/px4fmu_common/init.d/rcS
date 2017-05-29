@@ -1189,6 +1189,7 @@ unset TUNE_ERR
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
+commander boot_complete
 
 if [ $EXIT_ON_END == yes ]
 then

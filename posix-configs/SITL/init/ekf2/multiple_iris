@@ -74,4 +74,5 @@ mavlink stream -r 250 -s HIGHRES_IMU -u _MAVPORT_
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u _MAVPORT_
 logger start -e -t
 mavlink boot_complete
+commander boot_complete
 replay trystart
