@@ -79,6 +79,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/tune_control.h>
 
 #include <systemlib/err.h>
 
@@ -161,6 +162,7 @@ private:
 	char					_device[20];
 	orb_advert_t			_t_outputs;
 	orb_advert_t			_t_esc_status;
+	orb_advert_t			_tune_control_sub;
 	unsigned int			_num_outputs;
 	bool					_primary_pwm_device;
 	bool     				_motortest;
@@ -447,14 +449,14 @@ MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
 void
 MK::play_beep(int count)
 {
-	int buzzer = ::open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	tune_control_s tune = {};
+	tune.tune_id = tune_control_s::TUNE_ID_SINGLE_BEEP;
 
 	for (int i = 0; i < count; i++) {
-		::ioctl(buzzer, TONE_SET_ALARM, TONE_SINGLE_BEEP_TUNE);
+		orb_publish(ORB_ID(tune_control), _tune_control_sub, &tune);
 		usleep(300000);
 	}
 
-	::close(buzzer);
 }
 
 void
@@ -490,6 +492,11 @@ MK::task_main()
 	memset(&esc, 0, sizeof(esc));
 	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
 
+	/*
+	 * advertise the tune_control.
+	 */
+	tune_control_s tune = {};
+	_tune_control_sub = orb_advertise(ORB_ID(tune_control), &tune);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
