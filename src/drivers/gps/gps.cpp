@@ -684,7 +684,8 @@ GPS::task_main()
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
 				_mode = GPS_DRIVER_MODE_UBX;
-				/* FALLTHROUGH */
+
+			/* FALLTHROUGH */
 
 			case GPS_DRIVER_MODE_UBX:
 				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
