@@ -718,8 +718,8 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
+		/* FALLTHROUGH */
 
-	/* FALLTHROUGH */
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
@@ -740,6 +740,7 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
+		/* FALLTHROUGH */
 
 	case PWM_SERVO_GET(3):
 	case PWM_SERVO_GET(2):
@@ -747,8 +748,8 @@ PWMSim::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			ret = -EINVAL;
 			break;
 		}
-
-	/* FALLTHROUGH */
+		/* FALLTHROUGH */
+		
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0): {
 			*(servo_position_t *)arg = 1500;
