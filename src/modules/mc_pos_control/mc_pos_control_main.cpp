@@ -544,6 +544,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	parameters_update(true);
 
 	_flight_tasks.set_input_pointers(&_local_pos, &_manual);
+	_flight_tasks.switch_task(0);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -2406,11 +2407,18 @@ MulticopterPositionControl::control_position(float dt)
 void
 MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
-	_flight_tasks.update();
-	_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
-	_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
-	_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
-	_run_pos_control = true;
+	if (_flight_tasks.is_any_task_active()) {
+		if (!_flight_tasks.update()) {
+			_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
+			_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
+			_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
+			_run_pos_control = true;
+			_run_alt_control = true;
+
+		} else {
+			warn_rate_limited("FlightTasks update failed");
+		}
+	}
 
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
