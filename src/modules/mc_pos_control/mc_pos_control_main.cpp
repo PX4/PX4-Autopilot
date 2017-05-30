@@ -128,8 +128,6 @@ private:
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_limit_vel_xy = false;				/**<true if velocity in xy should be farther limited */
-	bool 		_transition_to_non_manual = false;  /**<true if transition from manual to auto */
-
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
