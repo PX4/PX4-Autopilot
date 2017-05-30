@@ -462,7 +462,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 		worker_data.subs[i] = -1;
 	}
 
-	uint64_t timestamps[max_accel_sens];
+	uint64_t timestamps[max_accel_sens] = {};
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 	const unsigned orb_accel_count = orb_group_count(ORB_ID(sensor_accel));
