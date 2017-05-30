@@ -50,7 +50,7 @@
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
+PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.65f);
 
 /**
  * Z axis weight for GPS
@@ -194,7 +194,7 @@ PARAM_DEFINE_FLOAT(INAV_W_GPS_FLOW, 0.1f);
  * @max 0.1
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_ACC_BIAS, 0.05f);
+PARAM_DEFINE_FLOAT(INAV_W_ACC_BIAS, 0.03f);
 
 /**
  * Optical flow scale factor
