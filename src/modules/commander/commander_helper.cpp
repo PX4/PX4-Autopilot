@@ -56,6 +56,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
@@ -115,6 +116,8 @@ static DevHandle h_leds;
 static DevHandle h_buzzer;
 static led_control_s led_control = {};
 static orb_advert_t led_control_pub = nullptr;
+static tune_control_s tune_control = {};
+static orb_advert_t tune_control_pub = nullptr;
 
 int buzzer_init()
 {
@@ -125,25 +128,21 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
-
-	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
-
-	if (!h_buzzer.isValid()) {
-		PX4_WARN("Buzzer: px4_open fail\n");
-		return PX4_ERROR;
-	}
-
+	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	return PX4_OK;
 }
 
 void buzzer_deinit()
 {
-	DevMgr::releaseHandle(h_buzzer);
+	orb_unadvertise(tune_control_pub);
 }
 
 void set_tune_override(int tune)
 {
-	h_buzzer.ioctl(TONE_SET_ALARM, tune);
+	tune_control.tune_id = tune;
+	tune_control.tune_override = 1;
+	tune_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 }
 
 void set_tune(int tune)
@@ -154,7 +153,10 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			h_buzzer.ioctl(TONE_SET_ALARM, tune);
+			tune_control.tune_id = tune;
+			tune_control.tune_override = 0;
+			tune_control.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 		}
 
 		tune_current = tune;
