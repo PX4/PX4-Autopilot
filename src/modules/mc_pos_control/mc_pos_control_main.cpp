@@ -2407,6 +2407,18 @@ MulticopterPositionControl::control_position(float dt)
 void
 MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
+	/* TODO: this block is for task switch testing only */
+	static int gear_switch_last;
+	const bool gear_transition_to_on = gear_switch_last == manual_control_setpoint_s::SWITCH_POS_OFF
+					   && _manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+
+	if (gear_transition_to_on) {
+		_flight_tasks.switch_task();
+	}
+
+	gear_switch_last = _manual.gear_switch;
+
+
 	if (_flight_tasks.is_any_task_active()) {
 		if (!_flight_tasks.update()) {
 			/* take over position setpoint from task if there is any */
