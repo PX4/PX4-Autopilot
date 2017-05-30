@@ -64,6 +64,7 @@ set(config_module_list
 	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/ver
 
 	#
@@ -144,6 +145,7 @@ set(config_module_list
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/terrain_estimation
+	lib/tunes
 	lib/version
 
 	#
