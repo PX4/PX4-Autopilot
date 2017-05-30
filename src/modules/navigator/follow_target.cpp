@@ -336,6 +336,7 @@ void FollowTarget::on_active()
 
 			_follow_target_state = WAIT_FOR_TARGET_POSITION;
 		}
+		/* FALLTHROUGH */
 
 	case WAIT_FOR_TARGET_POSITION: {
 
