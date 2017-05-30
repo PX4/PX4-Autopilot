@@ -77,7 +77,16 @@ public:
 	};
 
 	/**
-	 * Switch to a different task
+	 * Switch to the next task in the available list (for testing)
+	 */
+	void switch_task()
+	{
+		switch_task(_current_task + 1);
+	};
+
+	/**
+	 * Switch to a specific task (for normal usage)
+	 * @param task number to switch to
 	 */
 	void switch_task(int task_number)
 	{
@@ -89,18 +98,27 @@ public:
 
 		if (is_any_task_active()) {
 			_tasks[_current_task]->activate();
+
+		} else {
+			_current_task = -1;
 		}
 	};
 
 	/**
-	 * Call to get result of the task execution
+	 * Get the number of the active task
+	 * @return number of active task, -1 if there is none
+	 */
+	int get_active_task() const { return _current_task; };
+
+	/**
+	 * Get result of the task execution
 	 * @return pointer to the setpoint for the position controller
 	 */
 	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return Orbit.get_position_setpoint(); };
 
 	/**
-	 * Call to get result of the task execution
-	 * @return pointer to
+	 * Check if any task is active
+	 * @return true if a task is active, flase if not
 	 */
 	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
 
