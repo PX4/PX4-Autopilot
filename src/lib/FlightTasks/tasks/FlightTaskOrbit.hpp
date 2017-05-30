@@ -72,24 +72,29 @@ public:
 	virtual int update()
 	{
 		FlightTask::update();
+
 		r += _sticks(1) * _deltatime;
 		r = math::constrain(r, 0.5f, 4.f);
-
-		v += _sticks(0) * _deltatime; /* angular velocity for orbiting in revolutions per second */
-		v = math::constrain(v, -4.f, 4.f);
+		v -= _sticks(0) * _deltatime;
+		v = math::constrain(v, -7.f, 7.f);
 		altitude += _sticks(3) * _deltatime;
 		altitude = math::constrain(altitude, 2.f, 5.f);
 
-		printf("%f %f %f\n", (double)altitude, (double)r, (double)v);
+		matrix::Vector2<float> target_to_position = matrix::Vector2f(_position.data()) - matrix::Vector2f();
+		// TODO: add local frame target position here
 
-		//printf("%f %f %f\n", (double)_position(0), (double)_position(1), (double)_position(2));
-		//printf("%f %f %f\n", (double)_velocity(0), (double)_velocity(1), (double)_velocity(2));
-		if (fabsf(r) < 0.01f) {
-			r = 0.01;
-		}
+		/* xy velocity to go around in a circle */
+		matrix::Vector2<float> velocity_xy = matrix::Vector2f(target_to_position(1), -target_to_position(0));
+		velocity_xy.normalize();
+		velocity_xy *= v;
 
-		float w = v / r; /* angular velocity for orbiting in radians per second */
-		_set_position_setpoint(matrix::Vector3f(r * cosf(w * _time), r * sinf(w * _time), -altitude));
+		/* xy velocity adjustment to stay on the radius distance */
+		velocity_xy += (r - target_to_position.norm()) * target_to_position.normalized();
+
+		//printf("%f %f %f\n", (double)altitude, (double)r, (double)v);
+
+		_set_position_setpoint(matrix::Vector3f(NAN, NAN, -altitude));
+		_set_velocity_setpoint(matrix::Vector3f(velocity_xy(0), velocity_xy(1), 0.f));
 		return 0;
 	};
 

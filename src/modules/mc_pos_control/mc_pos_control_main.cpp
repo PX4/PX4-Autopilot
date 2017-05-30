@@ -2409,11 +2409,34 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	if (_flight_tasks.is_any_task_active()) {
 		if (!_flight_tasks.update()) {
-			_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
-			_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
-			_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
-			_run_pos_control = true;
-			_run_alt_control = true;
+			/* take over position setpoint from task if there is any */
+			if (PX4_ISFINITE(_flight_tasks.get_position_setpoint()->x) && PX4_ISFINITE(_flight_tasks.get_position_setpoint()->y)) {
+				_pos_sp(0) = _flight_tasks.get_position_setpoint()->x;
+				_pos_sp(1) = _flight_tasks.get_position_setpoint()->y;
+				_run_pos_control = true;
+
+			} else {
+				_run_pos_control = false;
+			}
+
+			if (PX4_ISFINITE(_flight_tasks.get_position_setpoint()->z)) {
+				_pos_sp(2) = _flight_tasks.get_position_setpoint()->z;
+				_run_alt_control = true;
+
+			} else {
+				_run_alt_control = false;
+			}
+
+			/* take over velocity setpoint from task if there is any */
+			if (PX4_ISFINITE(_flight_tasks.get_position_setpoint()->vx)
+			    && PX4_ISFINITE(_flight_tasks.get_position_setpoint()->vy)) {
+				_vel_sp(0) = _flight_tasks.get_position_setpoint()->vx;
+				_vel_sp(1) = _flight_tasks.get_position_setpoint()->vy;
+			}
+
+			if (PX4_ISFINITE(_flight_tasks.get_position_setpoint()->vz)) {
+				_vel_sp(2) = _flight_tasks.get_position_setpoint()->vz;
+			}
 
 		} else {
 			warn_rate_limited("FlightTasks update failed");
@@ -2425,8 +2448,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
-			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+			_vel_sp(0) += (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+			_vel_sp(1) += (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 
 		} else {
 			_vel_sp(0) = 0.0f;
@@ -2443,7 +2466,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 	if (_run_alt_control) {
 		if (PX4_ISFINITE(_pos_sp(2))) {
-			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+			_vel_sp(2) += (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 
 		} else {
 			_vel_sp(2) = 0.0f;
