@@ -72,7 +72,7 @@ after_success:
       && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
   - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_parameters_markdown AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+         ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
 
 deploy:
