@@ -52,10 +52,21 @@ public:
 
 	/**
 	 * Call regularly in the control loop cycle to execute the task
-	 * @return 0 on success, >0 on error otherwise
+	 * @return 0 on success, >0 on error
 	 */
-	int update() { return _tasks[_current_task]->update(); };
+	int update()
+	{
+		if (is_any_task_active()) {
+			return _tasks[_current_task]->update();
 
+		} else {
+			return 1;
+		}
+	};
+
+	/**
+	 * Call this function initially to point all tasks to the general input data
+	 */
 	void set_input_pointers(vehicle_local_position_s *vehicle_local_position,
 				manual_control_setpoint_s *manual_control_setpoint)
 	{
@@ -66,14 +77,36 @@ public:
 	};
 
 	/**
+	 * Switch to a different task
+	 */
+	void switch_task(int task_number)
+	{
+		if (is_any_task_active()) {
+			_tasks[_current_task]->disable();
+		}
+
+		_current_task = task_number;
+
+		if (is_any_task_active()) {
+			_tasks[_current_task]->activate();
+		}
+	};
+
+	/**
 	 * Call to get result of the task execution
-	 * @return pointer to
+	 * @return pointer to the setpoint for the position controller
 	 */
 	const vehicle_local_position_setpoint_s *get_position_setpoint() const { return Orbit.get_position_setpoint(); };
 
+	/**
+	 * Call to get result of the task execution
+	 * @return pointer to
+	 */
+	bool is_any_task_active() const { return _current_task > -1 && _current_task < _task_count; };
+
 private:
 	static const int _task_count = 1;
-	int _current_task = 0;
+	int _current_task = -1;
 
 	FlightTaskOrbit Orbit;
 	FlightTask *_tasks[_task_count] = {&Orbit};

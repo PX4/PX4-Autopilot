@@ -55,7 +55,7 @@ public:
 	/**
 	 * Call once on the event where you switch to the task
 	 * Note: Set the necessary input pointers first!
-	 * @return 0 on success, >0 on error otherwise
+	 * @return 0 on success, >0 on error
 	 */
 	virtual int activate()
 	{
@@ -65,13 +65,13 @@ public:
 
 	/**
 	 * Call once on the event of switching away from the task
-	 * 	@return 0 on success, >0 on error otherwise
+	 * 	@return 0 on success, >0 on error
 	 */
 	virtual int disable() = 0;
 
 	/**
 	 * To be called regularly in the control loop cycle to execute the task
-	 * @return 0 on success, >0 on error otherwise
+	 * @return 0 on success, >0 on error
 	 */
 	virtual int update()
 	{
