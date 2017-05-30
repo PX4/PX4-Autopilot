@@ -809,10 +809,43 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			return;
 		}
 
-		dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
+		unsigned mission_type = 0;
+		bool write_failed = false;
 
-		if (dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
-			     sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
+		dm_item_t dm_item;
+
+		switch (mission_type) {
+
+			case 0: {
+				dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
+
+				write_failed = (dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
+					     sizeof(struct mission_item_s)) != sizeof(struct mission_item_s));
+
+				if (!write_failed) {
+					/* waypoint marked as current */
+					if (wp.current) {
+						_transfer_current_seq = wp.seq;
+					}
+				}
+			}
+			case 1: {
+				// Write a geo fence point
+				write_failed = (dm_write(DM_KEY_FENCE_POINTS, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
+					sizeof(struct mission_item_s)) != sizeof(struct mission_item_s));
+			}
+			case 2: {
+				// Write a safe point / rallye point
+				write_failed = (dm_write(DM_KEY_SAFE_POINTS, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
+					sizeof(struct mission_item_s)) != sizeof(struct mission_item_s));
+			}
+			default: {
+				_mavlink->send_statustext_critical("Received unknown mission element, abort.");
+			}
+
+		}
+
+		if (write_failed) {
 			if (_verbose) { warnx("WPM: MISSION_ITEM ERROR: error writing seq %u to dataman ID %i", wp.seq, _transfer_dataman_id); }
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
@@ -820,11 +853,6 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			_state = MAVLINK_WPM_STATE_IDLE;
 			_transfer_in_progress = false;
 			return;
-		}
-
-		/* waypoint marked as current */
-		if (wp.current) {
-			_transfer_current_seq = wp.seq;
 		}
 
 		if (_verbose) { warnx("WPM: MISSION_ITEM seq %u received", wp.seq); }
