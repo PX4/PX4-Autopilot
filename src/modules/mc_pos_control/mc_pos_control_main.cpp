@@ -1834,9 +1834,9 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 
 		/* convert back to local frame (NED) */
 		thrust_sp = _R * thrust_sp_body;
+	}
 
-
-	} else if (_vehicle_land_detected.maybe_landed) {
+	if (_vehicle_land_detected.maybe_landed) {
 		/* we set thrust to zero
 		 * this will help to decide if we are actually landed or not
 		 */
