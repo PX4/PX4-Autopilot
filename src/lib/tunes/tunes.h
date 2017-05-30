@@ -42,6 +42,8 @@
 // TODO: find better way to include the number of tunes, maybe include them in the lib directly?
 #include <drivers/drv_tone_alarm.h>
 
+#define TUNE_MAX_UPDATE_INTERVAL_US 330000
+
 class Tunes
 {
 public:
@@ -88,6 +90,8 @@ public:
 	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	unsigned int get_default_tunes_size() {return _default_tunes_size;}
+
+	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
 private:
 	static const char *_default_tunes[];
