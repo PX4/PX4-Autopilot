@@ -266,11 +266,8 @@ bool MulticopterLandDetector::_get_landed_state()
 {
 	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
 	// therefore check if all other condition of the landed state remain true
-	if (_maybe_landed_hysteresis.get_state()) {
-		return true;
-	}
+	return _maybe_landed_hysteresis.get_state();
 
-	return false;
 }
 
 float MulticopterLandDetector::_get_takeoff_throttle()
