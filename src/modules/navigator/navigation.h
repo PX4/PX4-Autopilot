@@ -108,6 +108,7 @@ enum ORIGIN {
 struct navigator_item_s {
 	double lat;			/**< latitude in degrees				*/
 	double lon;			/**< longitude in degrees				*/
+	float altitude;				/**< altitude in meters	(AMSL)			*/
 	float x; /**< local position x in meters */
 	float y; /**< local position y in meters */
 	float z; /**< local position z in meters */
