@@ -18,6 +18,8 @@ foreach(tool echo grep rm mkdir nm cp touch make unzip)
 	endif()
 endforeach()
 
+FIND_PROGRAM(STRIP_TOOL "arm-linux-gnueabihf-strip")
+
 set(CMAKE_EXE_LINKER_FLAGS "-Wl,-gc-sections")
 #set(CMAKE_C_FLAGS ${C_FLAGS})
 #set(CMAKE_CXX_LINKER_FLAGS ${C_FLAGS})
