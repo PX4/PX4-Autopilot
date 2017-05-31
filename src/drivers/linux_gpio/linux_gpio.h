@@ -46,7 +46,7 @@ class LinuxGPIO
 {
 public:
 	LinuxGPIO(unsigned int pin);
-	~LinuxGPIO() = default;
+	~LinuxGPIO();
 
 	enum class Direction {
 		IN = 0,
@@ -65,11 +65,6 @@ public:
 	int writeValue(LinuxGPIO::Value value);
 
 private:
-	static int _exportPin(unsigned int pin);
-	static int _unexportPin(unsigned int pin);
-	static int _setDirection(unsigned int pin, int dir);
-	static int _readValue(unsigned int pin);
-	static int _writeValue(unsigned int pin, unsigned int value);
-
 	int _pin;
+	int _fd;
 };
