@@ -979,13 +979,13 @@ void Ekf::controlMagFusion()
 
 			// perform switch-over from only updating the mag states to updating all states
 			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
-				// reset the mag field covariances
+				// When re-commencing use of magnetometer to correct vehicle states
+				// set the field state variance to the observation variance and zero
+				// the covariance terms to allow the field states re-learn rapidly
 				zeroRows(P, 16, 21);
 				zeroCols(P, 16, 21);
-
-				// re-instate the last used variances
 				for (uint8_t index = 0; index <= 5; index ++) {
-					P[index+16][index+16] = _saved_mag_variance[index];
+					P[index+16][index+16] = sq(_params.mag_noise);
 				}
 			}
 
