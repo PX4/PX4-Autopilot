@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /// @file	FOAWDifferentiator.hpp
-/// @brief	A class to implement a first order adaptive windowing differentiator 
+/// @brief	A class to implement a first order adaptive windowing differentiator
 /// Author: Mathieu Bresciani <brescianimathieu@gmail.com>
 /// From:  Discrete-Time Adaptive Windowing for Velocity Estimation
 /// Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
@@ -46,56 +46,56 @@ namespace math
 class __EXPORT FOAWDifferentiator
 {
 public:
-    // Constructor
-    FOAWDifferentiator(float sample_time, float noise_level); 
+	// Constructor
+	FOAWDifferentiator(float sample_time, float noise_level);
 
-    // Destructor
-    ~FOAWDifferentiator();
-    /**
-     * Change filter parameters
-     */
-    void set_noise_level(float delta);
+	// Destructor
+	~FOAWDifferentiator();
+	/**
+	 * Change filter parameters
+	 */
+	void set_noise_level(float delta);
 
-    void set_sample_time(float dt);
+	void set_sample_time(float dt);
 
-    /**
-     * Add a new raw value to the filter
-     *
-     * @return retrieve the filtered result
-     */
-    float apply(float sample);
+	/**
+	 * Add a new raw value to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	float apply(float sample);
 
-    /**
-     * Return noise level parameter (delta) 
-     */
-    float get_noise_level(void); 
-    uint8_t get_last_window_size(void);
+	/**
+	 * Return noise level parameter (delta)
+	 */
+	float get_noise_level(void);
+	uint8_t get_last_window_size(void);
 
-    /**
-     * Reset the filter state to this value
-     */
-    void reset(void);
+	/**
+	 * Reset the filter state to this value
+	 */
+	void reset(void);
 
 private:
 
-    struct fit_params{
-        float a;
-        float b;
-    }fit_val;
+	struct fit_params {
+		float a;
+		float b;
+	} fit_val;
 
-    void shift_buffer(void);
-    void add_sample(float sample);
-    void end_fit_FOAW(uint8_t window_size);
-    void best_fit_FOAW(uint8_t window_size);
-    float fit(void);
+	void shift_buffer(void);
+	void add_sample(float sample);
+	void end_fit_FOAW(uint8_t window_size);
+	void best_fit_FOAW(uint8_t window_size);
+	float fit(void);
 
 
-    float           _dt;
-    float           _delta; 
-    float           _buffer[15];        // past samples
-    uint8_t         _nb_samples;
-    uint8_t         _last_window_size;
-    static const uint8_t   _max_window_size = 14;
+	float           _dt;
+	float           _delta;
+	float           _buffer[15];        // past samples
+	uint8_t         _nb_samples;
+	uint8_t         _last_window_size;
+	static const uint8_t   _max_window_size = 14;
 };
 
 } // namespace math
