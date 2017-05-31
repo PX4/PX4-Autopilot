@@ -218,9 +218,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			  && (_vehicleLocalPositionSetpoint.vz >= 0.9f * math::max(_params.landSpeed, 0.1f));
 	bool hit_ground = in_descend && !verticalMovement;
 
+	// Check if we are moving horizontally.
+	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if (manual_control_idle_or_auto && (_has_low_thrust() || hit_ground) &&
+	if (manual_control_idle_or_auto && _has_low_thrust() && (!horizontalMovement || !_has_position_lock()) &&
 	    (!verticalMovement || !_has_altitude_lock())) {
 		return true;
 	}
@@ -276,10 +280,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		armThresholdFactor = 2.5f;
 	}
 
-	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
-
 	// Next look if all rotation angles are not moving.
 	float maxRotationScaled = _params.maxRotation_rad_s * armThresholdFactor;
 
@@ -287,8 +287,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
 
-	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating &&
-	    (!horizontalMovement || !_has_position_lock())) {
+	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating) {
 		// Ground contact, no thrust and no movement -> landed
 		return true;
 	}
