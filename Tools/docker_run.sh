@@ -5,7 +5,7 @@ if [[ $@ =~ .*px4fmu.* ]]; then
 	PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2017-06-01"
 elif [[ $@ =~ .*rpi.* ]] || [[ $@ =~ .*bebop.* ]]; then
 	# posix_rpi_cross, posix_bebop_default
-	PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-04-22"
+	PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-05-31"
 elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 	# eagle, excelsior
 	PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-01-14"
