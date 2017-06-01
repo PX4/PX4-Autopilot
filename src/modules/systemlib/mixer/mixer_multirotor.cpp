@@ -52,7 +52,6 @@
 #include <math.h>
 
 #include <mathlib/math/Limits.hpp>
-#include <px4iofirmware/protocol.h>
 #include <drivers/drv_pwm_output.h>
 
 #include "mixer.h"

@@ -39,7 +39,7 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=cppcheck PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.04
+      env: BUILD_TARGET=cppcheck
     - os: linux
       sudo: required
       services:
@@ -104,7 +104,11 @@ after_success:
     fi
   # coveralls code coverage report
   - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'cpp-coveralls -l coverage.info';
+         ./Tools/docker_run.sh 'make coveralls_upload';
+    fi
+  # codecov code coverage report
+  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make codecov_upload';
     fi
 
 addons:

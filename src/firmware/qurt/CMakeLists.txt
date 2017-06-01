@@ -1,4 +1,5 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+include(common/px4_upload)
 include(toolchain/Toolchain-qurt)
 include(fastrpc)
 include(qurt_lib)

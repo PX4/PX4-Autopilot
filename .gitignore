@@ -31,15 +31,6 @@ cscope.in.out
 cscope.po.out
 Firmware.sublime-workspace
 user.sublime*
-Images/*.bin
-Images/*.px4
-mavlink/include/mavlink/v0.9/
-/nuttx-configs/px4io-v2/src/.depend
-/nuttx-configs/px4io-v2/src/Make.dep
-/nuttx-configs/px4io-v2/src/libboard.a
-/nuttx-configs/px4io-v1/src/.depend
-/nuttx-configs/px4io-v1/src/Make.dep
-/nuttx-configs/px4io-v1/src/libboard.a
 /Documentation/doxy.log
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
@@ -81,10 +72,6 @@ vectorcontrol/
 # CLion ignores
 .idea
 cmake-build-*/
-
-# gcov code coverage
-coverage-html/
-coverage.info
 
 posix-configs/SITL/init/test/*_generated
 

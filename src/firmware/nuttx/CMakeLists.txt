@@ -1,3 +1,6 @@
+
+include(common/px4_upload)
+
 px4_nuttx_generate_builtin_commands(
 	OUT builtin_commands.c
 	MODULE_LIST

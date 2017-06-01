@@ -39,7 +39,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 foreach(test_name ${tests})
-	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/${test_name}_generated)
+	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
 	add_test(NAME ${test_name}
 		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
@@ -47,7 +47,7 @@ foreach(test_name ${tests})
 			posix-configs/SITL/init/test
 			none
 			none
-			${test_name}_generated
+			test_${test_name}_generated
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 			WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -63,6 +63,10 @@ add_custom_target(test_results
 		COMMENT "Running tests in sitl"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+	setup_target_for_coverage(test_coverage ${CMAKE_CTEST_COMMAND} coverage.info "--output-on-failure -T Test")
+endif()
 
 add_custom_target(test_results_junit
 		COMMAND xsltproc ${PX4_SOURCE_DIR}/Tools/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/Test.xml > JUnitTestResults.xml
