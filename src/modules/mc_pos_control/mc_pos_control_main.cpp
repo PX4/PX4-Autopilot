@@ -905,11 +905,11 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 	 * angle = 2 -> vel_close = min_cruising_speed */
 
 	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle = 1.0 = 90degrees */
-	float middle_cruise_speed = 2.0f * _min_cruise_speed.get();
+	float middle_cruise_speed = 3.0f * (_min_cruise_speed.get() + SIGMA_NORM);
 
 	/* sanity check: make sure middle cruise speed is always in between min and max*/
-	middle_cruise_speed = ((_min_cruise_speed.get() < middle_cruise_speed)
-			       && (get_cruising_speed_xy() > middle_cruise_speed)) ? middle_cruise_speed : _min_cruise_speed.get() + SIGMA_NORM;
+	middle_cruise_speed = (get_cruising_speed_xy() > middle_cruise_speed) ? middle_cruise_speed : get_cruising_speed_xy() -
+			      SIGMA_NORM;
 
 	/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
 	float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
@@ -1606,21 +1606,21 @@ void MulticopterPositionControl::control_auto(float dt)
 
 					} else {
 
-						/* we want to accelerate in half the target threshold distance */
-						float slope = (final_cruise_speed - vel_sp_along_track_prev)  / (target_threshold);
-						vel_sp_along_track =  slope * (vec_prev_to_pos.length()) + vel_sp_along_track_prev;
+						vel_sp_along_track = final_cruise_speed;
 
+						/* we want to accelerate not too fast
+						 * TODO: change the name acceleration_hor_man to something that can
+						 * be used by auto and manual */
+						float acc_track = (final_cruise_speed - vel_sp_along_track_prev) / dt;
+
+						if (acc_track > _acceleration_hor_manual.get()) {
+							vel_sp_along_track = _acceleration_hor_manual.get() * dt + vel_sp_along_track_prev;
+						}
 					}
 
 					/* enforce minimum cruise speed */
 					vel_sp_along_track  = (vel_sp_along_track < SIGMA_NORM) ? SIGMA_NORM : vel_sp_along_track;
 					vel_sp_along_track 	= (vel_sp_along_track > final_cruise_speed) ? final_cruise_speed : vel_sp_along_track;
-
-					/* take over the previous velocity setpoint along track if larger since we want to accelerate */
-					if (vel_sp_along_track_prev > vel_sp_along_track) {
-						vel_sp_along_track = vel_sp_along_track_prev;
-					}
-
 
 				} else if (close_to_current) {
 					/* slow down when close to current setpoint */
