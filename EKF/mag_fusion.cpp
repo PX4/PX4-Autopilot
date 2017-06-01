@@ -149,9 +149,9 @@ void Ekf::fuseMag()
 		_mag_test_ratio[index] = sq(_mag_innov[index]) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var[index]);
 		if (_mag_test_ratio[index] > 1.0f) {
 			healthy = false;
-			_innov_check_fail_status.value |= ((1 << (index + 3)) != 0);
+			_innov_check_fail_status.value |= (1 << (index + 3));
 		} else {
-			_innov_check_fail_status.value &= !((1 << (index + 3)) != 0);
+			_innov_check_fail_status.value &= ~(1 << (index + 3));
 		}
 	}
 
