@@ -68,12 +68,22 @@ public:
 	/**
 	 * Call this function initially to point all tasks to the general input data
 	 */
-	void set_input_pointers(vehicle_local_position_s *vehicle_local_position,
-				manual_control_setpoint_s *manual_control_setpoint)
+	void set_general_input_pointers(vehicle_local_position_s *vehicle_local_position,
+					manual_control_setpoint_s *manual_control_setpoint)
 	{
 		for (int i = 0; i < _task_count; i++) {
 			_tasks[i]->set_vehicle_local_position_pointer(vehicle_local_position);
 			_tasks[i]->set_manual_control_setpoint_pointer(manual_control_setpoint);
+		}
+	};
+
+	/**
+	 * Call this function initially to point all tasks to the general output data
+	 */
+	void set_general_output_pointers(vehicle_local_position_setpoint_s *vehicle_local_position_setpoint)
+	{
+		for (int i = 0; i < _task_count; i++) {
+			_tasks[i]->set_vehicle_local_position_setpoint_pointer(vehicle_local_position_setpoint);
 		}
 	};
 
@@ -110,17 +120,6 @@ public:
 	 * @return number of active task, -1 if there is none
 	 */
 	int get_active_task() const { return _current_task; };
-
-	/**
-	 * Get result of the task execution
-	 * @return pointer to the setpoint for the position controller
-	 */
-	const vehicle_local_position_setpoint_s *get_position_setpoint() const
-	{
-		//if (is_any_task_active()) {
-		return _tasks[_current_task]->get_position_setpoint();
-		//}
-	};
 
 	/**
 	 * Check if any task is active
