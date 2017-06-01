@@ -1599,22 +1599,28 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* make sure final cruise speed is larger than minimum curise speed */
 					final_cruise_speed = (_min_cruise_speed.get() < final_cruise_speed) ? final_cruise_speed : _min_cruise_speed.get();
 
+
 					/* compute the velocity along the track depending on distance close to previous setpoint */
 					if ((target_threshold - _nav_rad.get()) < SIGMA_NORM) {
 						vel_sp_along_track = _min_cruise_speed.get();
 
 					} else {
-						float slope = (final_cruise_speed - _min_cruise_speed.get())  / (target_threshold - _nav_rad.get());
-						vel_sp_along_track =  slope * (vec_prev_to_pos.length() - _nav_rad.get()) + _min_cruise_speed.get();
+
+						/* we want to accelerate in half the target threshold distance */
+						float slope = (final_cruise_speed - vel_sp_along_track_prev)  / (target_threshold);
+						vel_sp_along_track =  slope * (vec_prev_to_pos.length()) + vel_sp_along_track_prev;
+
 					}
 
-					/* sanity check: enforce minimum cruise speed */
-					vel_sp_along_track  = (vel_sp_along_track < _min_cruise_speed.get()) ? _min_cruise_speed.get() : vel_sp_along_track;
+					/* enforce minimum cruise speed */
+					vel_sp_along_track  = (vel_sp_along_track < SIGMA_NORM) ? SIGMA_NORM : vel_sp_along_track;
+					vel_sp_along_track 	= (vel_sp_along_track > final_cruise_speed) ? final_cruise_speed : vel_sp_along_track;
 
 					/* take over the previous velocity setpoint along track if larger since we want to accelerate */
 					if (vel_sp_along_track_prev > vel_sp_along_track) {
 						vel_sp_along_track = vel_sp_along_track_prev;
 					}
+
 
 				} else if (close_to_current) {
 					/* slow down when close to current setpoint */
@@ -1627,7 +1633,7 @@ void MulticopterPositionControl::control_auto(float dt)
 
 						/* compute velocity along line which depends on distance to current setpoint */
 						if (vec_closest_to_current.length() < _nav_rad.get()) {
-							vel_sp_along_track = _min_cruise_speed.get();
+							vel_sp_along_track = vel_close;
 
 						} else {
 							float slope = (get_cruising_speed_xy() - vel_close) / (_target_threshold_xy.get() - _nav_rad.get()) ;
