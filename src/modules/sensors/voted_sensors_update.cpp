@@ -464,16 +464,19 @@ void VotedSensorsUpdate::parameters_update()
 					}
 
 				} else {
-
+					/* check if this mag is still set as internal */
 					int32_t mag_rot;
 					param_get(param_find(str), &mag_rot);
 
-					/* check if this mag is still set as internal */
 					if (mag_rot < 0) {
 						/* it was marked as internal, change to external with no rotation */
 						mag_rot = 0;
 						param_set_no_notification(param_find(str), &mag_rot);
 					}
+
+					/* Use parameter specified mag rotation instead of the board rotation */
+					get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[s]);
+
 				}
 
 				if (failed) {
@@ -735,18 +738,6 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				int32_t priority = 0;
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
-
-				// match rotation parameters to uORB topics first time we get data
-				char str[30];
-				int32_t mag_rot;
-
-				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
-					if (mag_report.device_id == _mag_device_id[driver_index]) {
-						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
-						param_get(param_find(str), &mag_rot);
-						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
-					}
-				}
 			}
 
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
