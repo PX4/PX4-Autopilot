@@ -1,3 +1,5 @@
+include (common/px4_upload)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 px4_posix_generate_builtin_commands(

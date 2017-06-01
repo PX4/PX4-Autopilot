@@ -124,6 +124,9 @@ ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
 
+ifdef PX4_CMAKE_BUILD_TYPE
+	CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
+endif
 
 # Functions
 # --------------------------------------------------------------------
@@ -131,7 +134,7 @@ endif
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2)  -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
@@ -178,10 +181,10 @@ excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders uavcan_firmware sizes check quick_check
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders sizes check quick_check
 
 # QGroundControl flashable NuttX firmware
-qgc_firmware: px4fmu_firmware misc_firmware sizes
+qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
 
 # px4fmu NuttX firmware
 px4fmu_firmware: \
@@ -221,13 +224,6 @@ checks_bootloaders: \
 # not fitting in flash	check_zubaxgnss-v1_bootloader \
 	sizes
 
-uavcan_firmware:
-	$(call colorecho,"Downloading and building Vector control (FOC) firmware for the S2740VC and PX4ESC 1.6")
-	@rm -rf vectorcontrol
-	@git clone --quiet --depth 1 https://github.com/thiemar/vectorcontrol.git && cd vectorcontrol
-	@BOARD=s2740vc_1_0 make --silent --no-print-directory
-	@BOARD=px4esc_1_6 make --silent --no-print-directory && $(SRC_DIR)/Tools/uavcan_copy.sh)
-
 sizes:
 	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
 
@@ -262,7 +258,7 @@ px4_metadata: parameters_metadata airframe_metadata
 #  AWS_ACCESS_KEY_ID
 #  AWS_SECRET_ACCESS_KEY
 #  AWS_S3_BUCKET
-.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware s3put_px4_metadata s3put_scan-build
+.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware s3put_metadata s3put_scan-build s3put_cppcheck s3put_coverage
 
 Firmware.zip:
 	@rm -rf Firmware.zip
@@ -272,7 +268,6 @@ s3put_firmware: Firmware.zip
 	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
 
 s3put_qgc_firmware: s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware
-	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
 
 s3put_px4fmu_firmware: px4fmu_firmware
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
@@ -280,7 +275,7 @@ s3put_px4fmu_firmware: px4fmu_firmware
 s3put_misc_qgc_extra_firmware: misc_qgc_extra_firmware
 	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
 
-s3put_px4_metadata: px4_metadata
+s3put_metadata: px4_metadata
 	@$(SRC_DIR)/Tools/s3put.sh airframes.md
 	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
 	@$(SRC_DIR)/Tools/s3put.sh build_posix_sitl_default/parameters.xml
@@ -293,7 +288,7 @@ s3put_cppcheck: cppcheck
 	@cd $(SRC_DIR) && ./Tools/s3put.sh cppcheck/
 
 s3put_coverage: tests_coverage
-	@cd $(SRC_DIR) && ./Tools/s3put.sh coverage-html/
+	@cd $(SRC_DIR) && ./Tools/s3put.sh build_posix_sitl_default/coverage-html/
 
 # Astyle
 # --------------------------------------------------------------------
@@ -322,14 +317,19 @@ run_tests_posix:
 tests: unittest run_tests_posix
 
 tests_coverage:
-	@lcov --zerocounters --directory $(SRC_DIR) --quiet
-	@lcov --capture --initial --directory $(SRC_DIR) --quiet --output-file coverage.info
-	@$(MAKE) --no-print-directory unittest PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
-	@$(MAKE) --no-print-directory posix_sitl_default test_results PX4_CODE_COVERAGE=1 CCACHE_DISABLE=1
-	@lcov --no-checksum --directory $(SRC_DIR) --capture --quiet --output-file coverage.info
-	@lcov --remove coverage.info '/usr/*' 'unittests/googletest/*' --quiet --output-file coverage.info
-	@genhtml --legend --show-details --function-coverage --quiet --output-directory coverage-html coverage.info
-	@$(MAKE) --no-print-directory posix_sitl_default test_results_junit
+	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
+
+coveralls_upload:
+	@cpp-coveralls --include src/ \
+		--exclude src/lib/DriverFramework \
+		--exclude src/lib/ecl \
+		--exclude src/lib/Matrix \
+		--exclude=src/modules/uavcan/libuavcan \
+		--exclude-pattern ".*/unittests/googletest/.*" \
+		--root . --build-root build_posix_sitl_default/ --follow-symlinks
+
+codecov_upload:
+	@/bin/bash -c "bash <(curl -s https://codecov.io/bash)"
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------

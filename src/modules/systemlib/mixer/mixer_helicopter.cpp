@@ -50,8 +50,6 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <px4iofirmware/protocol.h>
-
 #include "mixer.h"
 
 #define debug(fmt, args...)	do { } while(0)
