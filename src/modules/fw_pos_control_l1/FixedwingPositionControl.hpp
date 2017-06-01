@@ -87,14 +87,14 @@
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
-#define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
+#define HDG_HOLD_DIST_NEXT 		3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
 #define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
 #define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
 #define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
 #define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll/yaw input from user which does not change the locked heading
-#define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
-#define THROTTLE_THRESH 0.05f 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
-#define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f	///< a throttle / pitch input above this value leads to the system switching to climbout mode
+#define T_ALT_TIMEOUT 			1		// time after which we abort landing if terrain estimate is not valid
+#define THROTTLE_THRESH 0.05f				///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
+#define MANUAL_THROTTLE_CLIMBOUT_THRESH 0.85f		///< a throttle / pitch input above this value leads to the system switching to climbout mode
 #define ALTHOLD_EPV_RESET_THRESH 5.0f
 
 using math::constrain;
@@ -164,7 +164,7 @@ private:
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
 	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
-	vehicle_status_s			_vehicle_status {};		///< vehicle status */
+	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -176,8 +176,8 @@ private:
 	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold */
 	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband */
 
-	position_setpoint_s _hdg_hold_prev_wp {};	///< position where heading hold started */
-	position_setpoint_s _hdg_hold_curr_wp {};	///< position to which heading hold flies */
+	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started */
+	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies */
 
 	hrt_abstime _control_position_last_called{0};		///< last call of control_position  */
 
