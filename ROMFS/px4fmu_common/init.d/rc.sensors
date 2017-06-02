@@ -224,11 +224,10 @@ then
 	# Internal SPI bus BMI055_ACC
 	if bmi055 -A start
 	then
-	fi
-
-	# Internal SPI bus BMI055_GYR
-	if bmi055 -G start
-	then
+		# Internal SPI bus BMI055_GYR
+		if bmi055 -G start
+		then
+		fi
 	fi
 
 	# expansion i2c used for BMM150 rotated by 90deg
