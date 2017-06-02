@@ -112,10 +112,22 @@ struct navigator_item_s {
 	float x; /**< local position x in meters */
 	float y; /**< local position y in meters */
 	float z; /**< local position z in meters */
-	float yaw; /**< in radians NED -PI..+PI, NAN means don't change yaw		*/
-	float acceptance_radius; /**< default radius in which the mission is accepted as reached in meters */
-	float loiter_radius; /**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
-	uint16_t nav_cmd; /**< navigation command					*/
+	union {
+		struct {
+			union {
+				float time_inside; /**< time that the MAV should stay inside the radius before advancing in seconds */
+				float pitch_min; /**< minimal pitch angle for fixed wing takeoff waypoints */
+			};
+			float acceptance_radius; /**< default radius in which the mission is accepted as reached in meters */
+			float loiter_radius; /**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			float yaw; /**< in radians NED -PI..+PI, NAN means don't change yaw		*/
+			float _x; /**< padding */
+			float _y; /**< padding */
+			float _z; /**< padding */
+		};
+		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
+	};
+	uint16_t nav_cmd; /**< navigation command	*/
 	int16_t do_jump_mission_index; /**< index where the do jump will go to                 */
 	uint16_t do_jump_repeat_count; /**< how many times do jump needs to be done            */
 	uint16_t do_jump_current_count; /**< count how many times the jump has been done	*/
