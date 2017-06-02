@@ -800,6 +800,7 @@ BMI055_accel::measure()
 
 	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
+	arb.device_id = _device_id.devid;
 
 	_accel_reports->force(&arb);
 
