@@ -736,15 +736,24 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
 
-				// match rotation parameters to uORB topics first time we get data
+				// Match rotation parameters to uORB topics first time we get data
 				char str[30];
 				int32_t mag_rot;
 
 				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
 					if (mag_report.device_id == _mag_device_id[driver_index]) {
+
 						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
 						param_get(param_find(str), &mag_rot);
-						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+
+						if (mag_rot < 0) {
+							// Set internal magnetometers to use the board rotation
+							_mag_rotation[uorb_index] = _board_rotation;
+
+						} else {
+							// Set external magnetometers to use the paramter value
+							get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+						}
 					}
 				}
 			}
