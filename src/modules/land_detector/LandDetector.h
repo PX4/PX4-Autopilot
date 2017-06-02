@@ -150,10 +150,10 @@ protected:
 	static constexpr uint64_t LAND_DETECTOR_TRIGGER_TIME_US = 500000;
 
 	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 1000000;
+	static constexpr uint64_t MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250000;
 
 	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 1000000;
+	static constexpr uint64_t GROUND_CONTACT_TRIGGER_TIME_US = 350000;
 
 	/** Time interval in us in which wider acceptance thresholds are used after arming. */
 	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
