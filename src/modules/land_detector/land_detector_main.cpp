@@ -151,9 +151,18 @@ Each vehicle type (multirotor, fixedwing, vtol, ...) provides its own algorithm,
 states, such as commanded thrust, arming state and vehicle motion.
 
 ### Implementation
-Every type is implemented in its own class with a common base class. The base class maintains a state (landed, ground
-contact, ...). Each possible state is implemented in the derived classes. A hysteresis and a fixed priority of each
-state determines the current state.
+Every type is implemented in its own class with a common base class. The base class maintains a state (landed, maybe_landed, ground_contact).
+Each possible state is implemented in the derived classes. A hysteresis and a fixed priority of each internal state determines the actual land_detector
+state.
+
+#### Multicopter Land Detector
+ground_contact: thrust setpoint and velocity in z-direction must be below a defined threshold for time GROUND_CONTACT_TRIGGER_TIME_US.
+When ground_contact is detected, the position controller turns off the thrust setpoint in body x and y.
+
+maybe_landed: it requires ground_contact together with a tighter thrust setpoint threshold and no velocity in the horizontal direction. The trigger
+time is defined by MAYBE_LAND_TRIGGER_TIME. When maybe_landed is detected, the position controller sets the thrust setpoint to zero.
+
+landed: it requires maybe_landed to be true for time LAND_DETECTOR_TRIGGER_TIME_US.
 
 The module runs periodically on the HP work queue.
 )DESCR_STR");
