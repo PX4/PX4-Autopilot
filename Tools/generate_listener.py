@@ -148,19 +148,20 @@ int listener_main(int argc, char *argv[]) {
 	int sub = -1;
 	orb_id_t ID;
 	if(argc < 2) {
-		printf("need at least two arguments: topic name. [optional number of messages to print]\\n");
+		printf("need at least two arguments: topic name. [optional number of messages to print] [optional instance]\\n");
 		return 1;
 	}
 """)
 print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
+print("\tunsigned topic_instance = (argc > 3) ? atoi(argv[3]) : 0;")
 print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % messages[0])
-print("\t\tsub = orb_subscribe(ORB_ID(%s));" % messages[0])
+print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % messages[0])
 print("\t\tID = ORB_ID(%s);" % messages[0])
 print("\t\tstruct %s_s container;" % messages[0])
 print("\t\tmemset(&container, 0, sizeof(container));")
 for index,m in enumerate(messages[1:]):
 	print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % m)
-	print("\t\tsub = orb_subscribe(ORB_ID(%s));" % m)
+	print("\t\tsub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % m)
 	print("\t\tID = ORB_ID(%s);" % m)
 	print("\t\tstruct %s_s container;" % m)
 	print("\t\tmemset(&container, 0, sizeof(container));")
@@ -173,7 +174,7 @@ for index,m in enumerate(messages[1:]):
 	print("\t\t\tif (updated) {")
 	print("\t\t\tstart_time = hrt_absolute_time();")
 	print("\t\t\ti++;")
-	print("\t\t\tprintf(\"\\nTOPIC: %s #%%d\\n\", i);" % m)
+	print("\t\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % m)
 	print("\t\t\torb_copy(ID,sub,&container);")
 	print("\t\t\tprintf(\"timestamp: %\" PRIu64 \"\\n\", container.timestamp);")
 	for item in message_elements[index+1]:
