@@ -129,15 +129,9 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
-<<<<<<< 0d7d6e59f549e50e45611d19f339b1201e6139d6
-
 	const vehicle_roi_s &get_vroi() { return _vroi; }
-
-=======
-	struct vehicle_roi_s *get_vroi() { return &_vroi; }
 	struct map_projection_reference_s *get_local_reference_pos() {return &_ref_pos;}
 	float 		get_local_reference_alt() {return _ref_alt;}
->>>>>>> copy update_ref logic from mc_pos_ctr to navigator
 	bool home_position_valid() { return (_home_pos.timestamp > 0); }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
@@ -233,16 +227,12 @@ public:
 
 	bool		abort_landing();
 
-	void 		global_to_local(struct position_setpoint_s *sp);
-
-	void 		global_to_local(struct mission_item_s *item);
-
 	void 		mission_item_to_navigator_item(struct navigator_item_s *nav_item, struct mission_item_s *mission_item);
 
 private:
 
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
-	int		_navigator_task{-1};		/**< task handle for sensor task */
+	int		_navigator_task{ -1};		/**< task handle for sensor task */
 
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
@@ -286,7 +276,7 @@ private:
 	hrt_abstime _ref_timestamp{0}; /** time stamp when reference for local frame has been updated */
 	float _ref_alt{0.0f}; /** local reference altitude */
 
-	int		_mission_instance_count{-1};	/**< instance count for the current mission */
+	int		_mission_instance_count{ -1};	/**< instance count for the current mission */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -318,9 +308,9 @@ private:
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
 
-	float _mission_cruising_speed_mc{-1.0f};
-	float _mission_cruising_speed_fw{-1.0f};
-	float _mission_throttle{-1.0f};
+	float _mission_cruising_speed_mc{ -1.0f};
+	float _mission_cruising_speed_fw{ -1.0f};
+	float _mission_throttle{ -1.0f};
 
 	// update subscriptions
 	void		fw_pos_ctrl_status_update(bool force = false);
@@ -356,10 +346,8 @@ private:
 	 */
 	void		publish_mission_result();
 
-<<<<<<< 0d7d6e59f549e50e45611d19f339b1201e6139d6
-	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
-=======
 
->>>>>>> copy update_ref logic from mc_pos_ctr to navigator
+	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+
 };
 #endif

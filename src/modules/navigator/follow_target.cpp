@@ -281,7 +281,7 @@ void FollowTarget::on_active()
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
+				set_follow_target_item(&_navigator_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _est_target_vel;
 
@@ -306,7 +306,7 @@ void FollowTarget::on_active()
 					_last_update_time = current_time;
 				}
 
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
+				set_follow_target_item(&_navigator_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
 
 				update_position_sp(true, false, _yaw_rate);
 
@@ -330,7 +330,7 @@ void FollowTarget::on_active()
 			target.lon = _navigator->get_global_position()->lon;
 			target.alt = 0.0F;
 
-			set_follow_target_item(&_mission_item, _param_min_alt.get(), target, _yaw_angle);
+			set_follow_target_item(&_navigator_item, _param_min_alt.get(), target, _yaw_angle);
 
 			update_position_sp(false, false, _yaw_rate);
 
@@ -341,7 +341,7 @@ void FollowTarget::on_active()
 
 	case WAIT_FOR_TARGET_POSITION: {
 
-			if (is_mission_item_reached() && target_velocity_valid()) {
+			if (is_navigator_item_reached() && target_velocity_valid()) {
 				_target_position_offset(0) = _follow_offset;
 				_follow_target_state = TRACK_POSITION;
 			}
@@ -361,8 +361,8 @@ void FollowTarget::update_position_sp(bool use_velocity, bool use_position, floa
 
 	pos_sp_triplet->previous.valid = use_position;
 	pos_sp_triplet->previous = pos_sp_triplet->current;
-	mission_apply_limitation(_mission_item);
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	navigator_apply_limitation(_navigation_item);
+	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 	pos_sp_triplet->current.position_valid = use_position;
 	pos_sp_triplet->current.velocity_valid = use_velocity;
@@ -385,7 +385,7 @@ void FollowTarget::reset_target_validity()
 	_est_target_vel.zero();
 	_target_distance.zero();
 	_target_position_offset.zero();
-	reset_mission_item_reached();
+	reset_navigator_item_reached();
 	_follow_target_state = SET_WAIT_FOR_TARGET_POSITION;
 }
 

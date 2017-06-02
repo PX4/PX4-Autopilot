@@ -466,9 +466,6 @@ Navigator::task_main()
 					rep->current.alt = get_global_position()->alt;
 				}
 
-				global_to_local(&rep->current);
-				global_to_local(&rep->previous);
-
 				rep->previous.valid = true;
 				rep->current.valid = true;
 				rep->next.valid = false;
@@ -917,30 +914,6 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 }
 
 void
-Navigator::global_to_local(struct position_setpoint_s *sp)
-{
-
-	map_projection_project(get_local_reference_pos(), sp->lat, sp->lon, &sp->x, &sp->y);
-	sp->z = -(sp->alt - get_local_reference_alt());
-
-}
-
-void
-Navigator::global_to_local(struct mission_item_s *item)
-{
-
-	map_projection_project(get_local_reference_pos(), item->lat, item->lon, &item->x, &item->y);
-
-	if (item->altitude_is_relative) {
-		item->z = - item->altitude;
-
-	} else {
-		item->z = - (item->altitude - get_local_reference_alt());
-	}
-
-}
-
-void
 Navigator::mission_item_to_navigator_item(struct navigator_item_s *nav_item, struct mission_item_s *mission_item)
 {
 
@@ -948,9 +921,11 @@ Navigator::mission_item_to_navigator_item(struct navigator_item_s *nav_item, str
 
 	if (mission_item->altitude_is_relative) {
 		nav_item->z = - mission_item->altitude;
+		nav_item->altitude = mission_item->altitude;
 
 	} else {
 		nav_item->z = - (mission_item->altitude - get_local_reference_alt());
+		nav_item->altitude = mission_item->altitude + get_home_position()->alt;
 	}
 
 	nav_item->yaw = mission_item->yaw;
@@ -967,6 +942,7 @@ Navigator::mission_item_to_navigator_item(struct navigator_item_s *nav_item, str
 	nav_item->autocontinue = mission_item->autocontinue;
 	nav_item->disable_mc_yaw = mission_item->disable_mc_yaw;
 	nav_item->vtol_back_transition = mission_item->vtol_back_transition;
+	nav_item->time_inside = mission_item->time_inside;
 
 }
 

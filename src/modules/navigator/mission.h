@@ -134,17 +134,17 @@ private:
 	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
-	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+	void copy_positon_if_valid(struct navigator_item_s *mission_item, struct position_setpoint_s *setpoint);
 
 	/**
 	 * Create mission item to align towards next waypoint
 	 */
-	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
+	void set_align_navigator_item(struct navigator_item_s *item, struct navigator_item_s *item_next);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
 	 */
-	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
+	void check_for_takeoff_altitude(struct navigator_item_s *item);
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
@@ -171,7 +171,6 @@ private:
 	 */
 	void do_abort_landing();
 
-	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
 
 	/**
 	 * Read the current and the next mission item. The next mission item read is the
@@ -247,8 +246,8 @@ private:
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};
 
-	int _current_onboard_mission_index{-1};
-	int _current_offboard_mission_index{-1};
+	int _current_onboard_mission_index{ -1};
+	int _current_offboard_mission_index{ -1};
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {

@@ -85,7 +85,7 @@ EngineFailure::on_activation()
 void
 EngineFailure::on_active()
 {
-	if (is_mission_item_reached()) {
+	if (is_navigator_item_reached()) {
 		advance_ef();
 		set_ef_item();
 	}
@@ -103,17 +103,19 @@ EngineFailure::set_ef_item()
 	case EF_STATE_LOITERDOWN: {
 			//XXX create mission item at ground (below?) here
 
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
-			_mission_item.altitude_is_relative = false;
+			_navigator_item.lat = _navigator->get_global_position()->lat;
+			_navigator_item.lon = _navigator->get_global_position()->lon;
 			//XXX setting altitude to a very low value, evaluate other options
-			_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
+			_navigator_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
+			_navigator_item.x = _navigator->get_local_position()->x;
+			_navigator_item.y = _navigator->get_local_position()->y;
+			_navigator_item.z = _navigator->get_home_position()->z - 1000.0f;
+			_navigator_item.yaw = NAN;
+			_navigator_item.loiter_radius = _navigator->get_loiter_radius();
+			_navigator_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			_navigator_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_navigator_item.autocontinue = true;
+			_navigator_item.origin = ORIGIN_ONBOARD;
 
 			_navigator->set_can_loiter_at_sp(true);
 			break;
@@ -123,11 +125,11 @@ EngineFailure::set_ef_item()
 		break;
 	}
 
-	reset_mission_item_reached();
+	reset_navigator_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_apply_limitation(_mission_item);
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	navigator_apply_limitation(_navigation_item);
+	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();

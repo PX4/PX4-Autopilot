@@ -100,7 +100,7 @@ DataLinkLoss::on_activation()
 void
 DataLinkLoss::on_active()
 {
-	if (is_mission_item_reached()) {
+	if (is_navigator_item_reached()) {
 		advance_dll();
 		set_dll_item();
 	}
@@ -153,7 +153,7 @@ DataLinkLoss::set_dll_item()
 			/* Request flight termination from the commander */
 			_navigator->get_mission_result()->flight_termination = true;
 			_navigator->set_mission_result_updated();
-			reset_mission_item_reached();
+			reset_navigator_item_reached();
 			warnx("not switched to manual: request flight termination");
 			pos_sp_triplet->previous.valid = false;
 			pos_sp_triplet->current.valid = false;
@@ -165,10 +165,10 @@ DataLinkLoss::set_dll_item()
 		break;
 	}
 
-	reset_mission_item_reached();
+	reset_navigator_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -188,7 +188,7 @@ DataLinkLoss::advance_dll()
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();
-			reset_mission_item_reached();
+			reset_navigator_item_reached();
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 
 		} else {
@@ -213,7 +213,7 @@ DataLinkLoss::advance_dll()
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
-		reset_mission_item_reached();
+		reset_navigator_item_reached();
 		break;
 
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
@@ -222,7 +222,7 @@ DataLinkLoss::advance_dll()
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no manual control, terminating");
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
-		reset_mission_item_reached();
+		reset_navigator_item_reached();
 		break;
 
 	case DLL_STATE_TERMINATE:

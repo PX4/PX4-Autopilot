@@ -73,17 +73,17 @@ void
 Land::on_activation()
 {
 	/* set current mission item to Land */
-	set_land_item(&_mission_item, true);
+	set_land_item(&_navigator_item, true);
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
-	reset_mission_item_reached();
+	reset_navigator_item_reached();
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous.valid = false;
-	mission_apply_limitation(_mission_item);
-	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	navigator_apply_limitation(_navigation_item);
+	navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_can_loiter_at_sp(false);
@@ -94,13 +94,13 @@ Land::on_activation()
 void
 Land::on_active()
 {
-	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
+	if (is_navigator_item_reached() && !_navigator->get_mission_result()->finished) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
-		set_idle_item(&_mission_item);
+		set_idle_item(&_navigator_item);
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		navigator_item_to_position_setpoint(_navigator_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
