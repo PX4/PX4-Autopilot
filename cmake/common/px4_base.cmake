@@ -395,6 +395,7 @@ function(px4_add_common_flags)
 	set(cxx_compile_flags
 		-g
 		-fno-exceptions
+		-fcheck-new
 		-fno-rtti
 		-std=gnu++11
 		-fno-threadsafe-statics
