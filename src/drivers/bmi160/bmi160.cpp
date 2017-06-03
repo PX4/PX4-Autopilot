@@ -1131,7 +1131,7 @@ BMI160::measure()
 
 	check_registers();
 
-	if ((!(status && (0x80)))  && (!(status && (0x04)))) {
+	if ((!(status & (0x80)))  && (!(status & (0x04)))) {
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
@@ -1290,7 +1290,7 @@ BMI160::measure()
 	grb.temperature = _last_temperature;
 
 	/* return device ID */
-	grb.device_id = _gyro->_device_id.devid;
+	grb.device_id = _gyro->_device_id.devid;;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
