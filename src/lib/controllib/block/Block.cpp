@@ -41,6 +41,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <cstring>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 
