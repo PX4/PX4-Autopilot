@@ -344,6 +344,7 @@ function(px4_add_common_flags)
 		-Wunreachable-code
 		-Wunused-but-set-variable
 		-Wunused-variable
+		#-Wsign-conversion # TODO: fix and enable
 
 		# disabled warnings
 		-Wno-unused-parameter

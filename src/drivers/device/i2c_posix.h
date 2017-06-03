@@ -63,7 +63,7 @@ public:
 	/**
 	 * Get the address
 	 */
-	int16_t		get_address() const { return _address; }
+	uint16_t		get_address() const { return _address; }
 
 protected:
 	/**
