@@ -38,112 +38,18 @@
  */
 
 #include <math.h>
-#include <stdio.h>
 #include <float.h>
 
 #include "blocks.hpp"
 
-#define ASSERT_CL(T) if (!(T)) { printf("FAIL\n"); return -1; }
-
 namespace control
 {
-
-float BlockLimit::update(float input)
-{
-	if (input > getMax()) {
-		input = _max.get();
-
-	} else if (input < getMin()) {
-		input = getMin();
-	}
-
-	return input;
-}
-
-float BlockLimitSym::update(float input)
-{
-	if (input > getMax()) {
-		input = _max.get();
-
-	} else if (input < -getMax()) {
-		input = -getMax();
-	}
-
-	return input;
-}
-
-float BlockLowPass::update(float input)
-{
-	if (!PX4_ISFINITE(getState())) {
-		setState(input);
-	}
-
-	float b = 2 * float(M_PI) * getFCut() * getDt();
-	float a = b / (1 + b);
-	setState(a * input + (1 - a)*getState());
-	return getState();
-}
-
-
-float BlockHighPass::update(float input)
-{
-	float b = 2 * float(M_PI) * getFCut() * getDt();
-	float a = 1 / (1 + b);
-	setY(a * (getY() + input - getU()));
-	setU(input);
-	return getY();
-}
-
-float BlockLowPass2::update(float input)
-{
-	if (!PX4_ISFINITE(getState())) {
-		setState(input);
-	}
-
-	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
-		_lp.set_cutoff_frequency(_fs, getFCutParam());
-	}
-
-	_state = _lp.apply(input);
-	return _state;
-}
 
 float BlockIntegral::update(float input)
 {
 	// trapezoidal integration
 	setY(_limit.update(getY() + input * getDt()));
 	return getY();
-}
-
-float BlockIntegralTrap::update(float input)
-{
-	// trapezoidal integration
-	setY(_limit.update(getY() +
-			   (getU() + input) / 2.0f * getDt()));
-	setU(input);
-	return getY();
-}
-
-float BlockDerivative::update(float input)
-{
-	float output;
-
-	if (_initialized) {
-		output = _lowPass.update((input - getU()) / getDt());
-
-	} else {
-		// if this is the first call to update
-		// we have no valid derivative
-		// and so we use the assumption the
-		// input value is not changing much,
-		// which is the best we can do here.
-		_lowPass.update(0.0f);
-		output = 0.0f;
-		_initialized = true;
-	}
-
-	setU(input);
-	return output;
 }
 
 } // namespace control

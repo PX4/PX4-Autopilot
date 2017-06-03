@@ -32,28 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+/**
+ * An output trim/ saturation block
+ */
+class __EXPORT BlockOutput: public SuperBlock
+{
+public:
+// methods
+	BlockOutput(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name),
+		_trim(this, "TRIM"),
+		_limit(this, ""),
+		_val(0)
+	{
+		update(0);
+	};
+	virtual ~BlockOutput() {};
+	void update(float input)
+	{
+		_val = _limit.update(input + getTrim());
+	}
+// accessors
+	float getMin() { return _limit.getMin(); }
+	float getMax() { return _limit.getMax(); }
+	float getTrim() { return _trim.get(); }
+	float get() { return _val; }
+private:
+// attributes
+	control::BlockParamFloat _trim;
+	BlockLimit _limit;
+	float _val;
+};
+
+} // namespace control

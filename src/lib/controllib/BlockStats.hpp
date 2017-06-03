@@ -32,28 +32,71 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+template<class Type, size_t M>
+class __EXPORT BlockStats: public Block
+{
+
+public:
+// methods
+	BlockStats(SuperBlock *parent,
+		   const char *name) :
+		Block(parent, name),
+		_sum(),
+		_sumSq(),
+		_count(0)
+	{
+	};
+	virtual ~BlockStats() {};
+	void update(const matrix::Vector<Type, M> &u)
+	{
+		_sum += u;
+		_sumSq += u.emult(u);
+		_count += 1;
+	}
+	void reset()
+	{
+		_sum.setZero();
+		_sumSq.setZero();
+		_count = 0;
+	}
+// accessors
+	size_t getCount() { return _count; }
+	matrix::Vector<Type, M> getMean() { return _sum / _count; }
+	matrix::Vector<Type, M> getVar()
+	{
+		return (_sumSq - _sum.emult(_sum) / _count) / _count;
+	}
+	matrix::Vector<Type, M> getStdDev()
+	{
+		return getVar().pow(0.5);
+	}
+private:
+// attributes
+	matrix::Vector<Type, M> _sum;
+	matrix::Vector<Type, M> _sumSq;
+	size_t _count;
+};
+
+} // namespace control

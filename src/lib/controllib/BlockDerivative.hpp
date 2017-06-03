@@ -32,28 +32,69 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
 #include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+
+#include <px4_defines.h>
+#include <math.h>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A simple derivative approximation.
+ * This uses the previous and current input.
+ * This has a built in low pass filter.
+ * @see LowPass
+ */
+class __EXPORT BlockDerivative : public SuperBlock
+{
+public:
+// methods
+	BlockDerivative(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name),
+		_u(0),
+		_initialized(false),
+		_lowPass(this, "LP")
+	{};
+	virtual ~BlockDerivative() {};
+
+	/**
+	 * Update the state and get current derivative
+	 *
+	 * This call updates the state and gets the current
+	 * derivative. As the derivative is only valid
+	 * on the second call to update, it will return
+	 * no change (0) on the first. To get a closer
+	 * estimate of the derivative on the first call,
+	 * call setU() one time step before using the
+	 * return value of update().
+	 *
+	 * @param input the variable to calculate the derivative of
+	 * @return the current derivative
+	 */
+	float update(float input);
+// accessors
+	void setU(float u) {_u = u;}
+	float getU() {return _u;}
+	float getLP() {return _lowPass.getFCut();}
+	float getO() { return _lowPass.getState(); }
+protected:
+// attributes
+	float _u; /**< previous input */
+	bool _initialized;
+	BlockLowPass _lowPass; /**< low pass filter */
+};
+
+} // namespace control

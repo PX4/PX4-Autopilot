@@ -32,28 +32,75 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+class __EXPORT BlockRandGauss: public Block
+{
+public:
+// methods
+	BlockRandGauss(SuperBlock *parent,
+		       const char *name) :
+		Block(parent, name),
+		_mean(this, "MEAN"),
+		_stdDev(this, "DEV")
+	{
+		// seed should be initialized somewhere
+		// in main program for all calls to rand
+		// XXX currently in nuttx if you seed to 0, rand breaks
+	};
+	virtual ~BlockRandGauss() {};
+	float update()
+	{
+		static float V1, V2, S;
+		static int phase = 0;
+		float X;
+
+		if (phase == 0) {
+			do {
+				float U1 = (float)rand() / RAND_MAX;
+				float U2 = (float)rand() / RAND_MAX;
+				V1 = 2 * U1 - 1;
+				V2 = 2 * U2 - 1;
+				S = V1 * V1 + V2 * V2;
+			} while (S >= 1 || fabsf(S) < 1e-8f);
+
+			X = V1 * float(sqrtf(-2 * float(logf(S)) / S));
+
+		} else {
+			X = V2 * float(sqrtf(-2 * float(logf(S)) / S));
+		}
+
+		phase = 1 - phase;
+		return X * getStdDev() + getMean();
+	}
+// accessors
+	float getMean() { return _mean.get(); }
+	float getStdDev() { return _stdDev.get(); }
+private:
+// attributes
+	control::BlockParamFloat _mean;
+	control::BlockParamFloat _stdDev;
+};
+
+} // namespace control

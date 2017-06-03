@@ -32,28 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A low pass filter as described here:
+ * http://en.wikipedia.org/wiki/Low-pass_filter.
+ */
+class __EXPORT BlockLowPass : public Block
+{
+public:
+// methods
+	BlockLowPass(SuperBlock *parent, const char *name) :
+		Block(parent, name),
+		_state(0.0f / 0.0f /* initialize to invalid val, force into is_finite() check on first call */),
+		_fCut(this, "") // only one parameter, no need to name
+	{};
+	virtual ~BlockLowPass() {};
+	float update(float input);
+// accessors
+	float getState() { return _state; }
+	float getFCut() { return _fCut.get(); }
+	void setState(float state) { _state = state; }
+protected:
+// attributes
+	float _state;
+	control::BlockParamFloat _fCut;
+};
+
+} // namespace control

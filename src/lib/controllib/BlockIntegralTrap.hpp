@@ -32,28 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A trapezoidal integrator.
+ * http://en.wikipedia.org/wiki/Trapezoidal_rule
+ * A limiter is built into the class to bound the
+ * integral's internal state. This is important
+ * for windup protection.
+ * @see Limit
+ */
+class __EXPORT BlockIntegralTrap : public SuperBlock
+{
+public:
+// methods
+	BlockIntegralTrap(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name),
+		_u(0),
+		_y(0),
+		_limit(this, "") {};
+	virtual ~BlockIntegralTrap() {};
+	float update(float input);
+// accessors
+	float getU() {return _u;}
+	float getY() {return _y;}
+	float getMax() {return _limit.getMax();}
+	void setU(float u) {_u = u;}
+	void setY(float y) {_y = y;}
+protected:
+// attributes
+	float _u; /**< previous input */
+	float _y; /**< previous output */
+	BlockLimitSym _limit; /**< limiter */
+};
+
+} // namespace control
