@@ -2534,7 +2534,7 @@ PX4IO::print_status(bool extended_status)
 
 	if (heater_level != UINT16_MAX) {
 		if (heater_level == PX4IO_THERMAL_OFF) {
-			printf("\nIMU heater off", heater_level);
+			printf("\nIMU heater off");
 
 		} else {
 			printf("\nIMU heater level %d", heater_level);
