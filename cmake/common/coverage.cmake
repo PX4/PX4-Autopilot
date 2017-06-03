@@ -93,7 +93,9 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
         add_custom_target(${_targetname} DEPENDS ${coverage_info})
 
         add_custom_command(OUTPUT ${coverage_cleaned}
-                COMMAND COMMAND ${LCOV_PATH} --quiet --remove ${coverage_info} 'tests/*' '/usr/*' --output-file ${coverage_cleaned}
+                COMMAND COMMAND ${LCOV_PATH} --quiet
+                        --remove ${coverage_info} 'tests/*' '/usr/*' 'src/examples*'
+                        --output-file ${coverage_cleaned}
                 DEPENDS ${coverage_info}
         )
 
