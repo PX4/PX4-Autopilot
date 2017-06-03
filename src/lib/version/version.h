@@ -124,6 +124,11 @@ __EXPORT const char *px4_firmware_version_string(void);
 __EXPORT uint64_t px4_firmware_version_binary(void);
 
 /**
+ * MAVLink lib version in binary form (first part of the git tag)
+ */
+__EXPORT uint64_t px4_mavlink_lib_version_binary(void);
+
+/**
  * Operating system version in binary form (first part of the git tag)
  * @return this is not available on all OSes and can return 0
  */
