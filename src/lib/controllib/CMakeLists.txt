@@ -37,7 +37,6 @@ px4_add_module(
 		blocks.cpp
 		block/Block.cpp
 		block/BlockParam.cpp
-		uorb/blocks.cpp
 	DEPENDS
 		platforms__common
 	)

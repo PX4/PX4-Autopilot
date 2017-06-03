@@ -62,7 +62,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <controllib/uorb/blocks.hpp>
+#include <controllib/blocks.hpp>
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
