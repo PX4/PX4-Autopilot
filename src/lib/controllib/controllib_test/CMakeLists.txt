@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__controllib_test
+	MODULE lib__controllib__controllib_test
 	MAIN controllib_test
 	COMPILE_FLAGS
 	SRCS

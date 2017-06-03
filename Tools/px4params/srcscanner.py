@@ -14,20 +14,13 @@ class SourceScanner(object):
         Scans provided path and passes all found contents to the parser using
         parser.Parse method.
         """
-        extensions1 = tuple([".h"])
-        extensions2 = tuple([".cpp", ".c"])
+        extensions1 = tuple([".c"])
         for srcdir in srcdirs:
-            for dirname, dirnames, filenames in os.walk(srcdir):
-                for filename in filenames:
-                    if filename.endswith(extensions1):
-                        path = os.path.join(dirname, filename)
-                        if not self.ScanFile(path, parser):
-                            return False
-                for filename in filenames:
-                    if filename.endswith(extensions2):
-                        path = os.path.join(dirname, filename)
-                        if not self.ScanFile(path, parser):
-                            return False
+            for filename in os.listdir(srcdir):
+                if filename.endswith(extensions1):
+                    path = os.path.join(srcdir, filename)
+                    if not self.ScanFile(path, parser):
+                        return False
         return True
 
     def ScanFile(self, path, parser):

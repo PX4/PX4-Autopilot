@@ -59,7 +59,7 @@ set(config_module_list
 	#drivers/test_ppm
 	#lib/rc/rc_tests
 	#modules/commander/commander_tests
-	#modules/controllib_test
+	#lib/controllib/controllib_test
 	#modules/mavlink/mavlink_tests
 	#modules/unit_test
 	#modules/uORB/uORB_tests
