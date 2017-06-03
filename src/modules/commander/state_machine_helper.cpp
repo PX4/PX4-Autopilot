@@ -808,7 +808,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
 
-			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
+			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 6 && offb_loss_rc_act >= 0) {
 				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
 				    && status_flags->condition_home_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
