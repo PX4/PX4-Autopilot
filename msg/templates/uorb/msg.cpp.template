@@ -69,7 +69,7 @@ topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), fiel
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
-const char *__orb_@(topic_name)_fields = "@( ";".join(topic_fields) );";
+constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
 
 @[for multi_topic in topics]@
 ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size),
