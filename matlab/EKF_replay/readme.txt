@@ -2,7 +2,9 @@ Instructions for running the EKF replay
 
 1) Ensure this ‘EKF_replay’ directory is in a location you have full read and write access and add it and all its subdirectories to your path.
 
-2) Create a ‘TestData’ sub-directory inside ‘EKF_replay’ directory
+2) Create a ‘TestData’ sub-directory under the ‘EKF_replay’ directory
+
+A sample dataset can be downloaded here: https://drive.google.com/file/d/0By4v2BuLAaCfSW9fWl9aSWNGbGs/view?usp=sharing
 
 3a) If replaying APM data:
 
@@ -21,9 +23,9 @@ rng_data.mat
 flow_data.mat
 viso_data.mat
 
-Copy the generated .mat files into the /EKF_replay/TestData/APM directory.
+Note: If the rangefinder, optical flow or ZED camera odometer data are not present in the log, then the corresponding sections in the convert_apm_data.m script file will need to be commented out.
 
-If the rangefinder, optical flow or ZED camera odometer data are not present in the log, then the corresponding sections in the convert_apm_data.m script file will need to be commented out.
+Copy the generated .mat files into the /EKF_replay/TestData/APM directory.
 
 3b) If replaying PX4 data:
 
