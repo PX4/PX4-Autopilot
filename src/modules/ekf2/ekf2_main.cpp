@@ -130,8 +130,10 @@ private:
 	static constexpr float _dt_max = 0.02;
 	bool	_task_should_exit = false;
 	int	_control_task = -1;		// task handle for task
+
 	bool 	_replay_mode;			// should we use replay data from a log
-	int 	_publish_replay_mode;		// defines if we should publish replay messages
+	int32_t _publish_replay_mode;		// defines if we should publish replay messages
+
 	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
 	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
