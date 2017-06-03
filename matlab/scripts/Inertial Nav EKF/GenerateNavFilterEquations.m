@@ -76,7 +76,6 @@ dVelBias = [dvx_b; dvy_b; dvz_b];
 
 % define the quaternion rotation vector for the state estimate
 quat = [q0;q1;q2;q3];
-
 % derive the truth body to nav direction cosine matrix
 Tbn = Quat2Tbn(quat);
 
@@ -376,6 +375,21 @@ fix_c_code('K_VELZ.c');
 % reset workspace
 clear all;
 reset(symengine);
+
+% calculate Kalman gains vectors for X,Y,Z to take advantage of common
+% terms
+load('StatePrediction.mat');
+load('temp1.mat');
+load('temp2.mat');
+load('temp3.mat');
+load('temp4.mat');
+K_VELX = (P*transpose(H_VELX))/(H_VELX*P*transpose(H_VELX) + R_VEL); % Kalman gain vector
+K_VELY = (P*transpose(H_VELY))/(H_VELY*P*transpose(H_VELY) + R_VEL); % Kalman gain vector
+K_VELZ = (P*transpose(H_VELZ))/(H_VELZ*P*transpose(H_VELZ) + R_VEL); % Kalman gain vector
+K_VEL = simplify([K_VELX,K_VELY,K_VELZ]);
+ccode(K_VEL,'file','K_VEL.c');
+fix_c_code('K_VEL.c');
+
 
 %% derive equations for fusion of 321 sequence yaw measurement
 load('StatePrediction.mat');
