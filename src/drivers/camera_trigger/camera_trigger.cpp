@@ -499,7 +499,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	// default loop polling interval
-	int poll_interval_usec = 5000;
+	long unsigned poll_interval_usec = 5000;
 
 	if (trig->_command_sub < 0) {
 		trig->_command_sub = orb_subscribe(ORB_ID(vehicle_command));

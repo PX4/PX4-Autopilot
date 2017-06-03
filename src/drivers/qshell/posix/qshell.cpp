@@ -54,7 +54,7 @@ int QShell::main(std::vector<std::string> argList)
 
 	std::string cmd;
 
-	for (int i = 0; i < argList.size(); i++) {
+	for (unsigned i = 0; i < argList.size(); i++) {
 		cmd += argList[i];
 
 		if (i < argList.size() - 1) {
@@ -74,7 +74,7 @@ int QShell::main(std::vector<std::string> argList)
 
 	m_qshell_req.strlen = cmd.size();
 
-	for (int i = 0; i < cmd.size(); i++) {
+	for (unsigned i = 0; i < cmd.size(); i++) {
 		m_qshell_req.string[i] = (int) cmd[i];
 	}
 

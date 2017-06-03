@@ -66,7 +66,7 @@ int test_dataman(int argc, char *argv[]);
 static int
 task_main(int argc, char *argv[])
 {
-	char buffer[DM_MAX_DATA_SIZE];
+	uint8_t buffer[DM_MAX_DATA_SIZE];
 
 	PX4_INFO("Starting dataman test task %s", argv[1]);
 	/* try to read an invalid item */
@@ -92,9 +92,9 @@ task_main(int argc, char *argv[])
 		memset(buffer, my_id, sizeof(buffer));
 		buffer[1] = i;
 		unsigned hash = i ^ my_id;
-		unsigned len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
+		ssize_t len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
-		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
+		ssize_t ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
 		//PX4_INFO("ret: %d", ret);
 
 		if (ret != len) {
@@ -155,7 +155,7 @@ fail:
 
 int test_dataman(int argc, char *argv[])
 {
-	int i = 0;
+	unsigned i = 0;
 	unsigned num_tasks = 4;
 	char buffer[DM_MAX_DATA_SIZE];
 

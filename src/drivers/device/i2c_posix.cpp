@@ -282,13 +282,13 @@ ssize_t	I2C::write(file_t *filp, const char *buffer, size_t buflen)
 {
 	if (simulate) {
 		warnx("2C SIM I2C::write");
-		return buflen;
+		return (ssize_t)buflen;
 	}
 
 #ifndef __PX4_QURT
 	return ::write(_fd, buffer, buflen);
 #else
-	return buflen;
+	return (ssize_t)buflen;
 #endif
 }
 

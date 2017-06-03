@@ -336,8 +336,8 @@ function(px4_add_common_flags)
 		-Wshadow
 		-Wuninitialized
 		-Wunused-variable
+		#-Wsign-conversion # TODO: fix and enable
 
-		-Wno-sign-compare
 		-Wno-unused-parameter
 		)
 

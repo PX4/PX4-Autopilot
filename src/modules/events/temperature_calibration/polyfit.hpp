@@ -132,7 +132,7 @@ public:
 		IVTV = _VTV.I();
 
 		for (unsigned i = 0; i < _forder; i++) {
-			for (int j = 0; j < _forder; j++) {
+			for (unsigned j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)IVTV(i, j));
 			}
 
@@ -142,7 +142,7 @@ public:
 		for (unsigned i = 0; i < _forder; i++) {
 			res[i] = 0.0f;
 
-			for (int j = 0; j < _forder; j++) {
+			for (unsigned j = 0; j < _forder; j++) {
 				res[i] += IVTV(i, j) * (double)_VTY(j);
 			}
 
@@ -176,7 +176,7 @@ private:
 		int8_t z;
 
 		for (unsigned i = 0; i < _forder; i++) {
-			for (int j = 0; j < _forder; j++) {
+			for (unsigned j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)_VTV(i, j));
 			}
 
@@ -184,7 +184,7 @@ private:
 		}
 
 		for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
-			if (i < _forder) {
+			if (i < (int8_t)_forder) {
 				z = 0.0f;
 
 			} else {

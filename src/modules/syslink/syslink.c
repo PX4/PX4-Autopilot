@@ -118,7 +118,7 @@ int syslink_parse_char(syslink_parse_state *state, char c, syslink_message_t *ms
 
 		state->index++;
 
-		if (state->index >= sizeof(msg->cksum)) {
+		if (state->index >= (int)sizeof(msg->cksum)) {
 			state->state = SYSLINK_STATE_START;
 			state->index = 0;
 			return 1;

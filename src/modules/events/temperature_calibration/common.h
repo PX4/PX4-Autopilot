@@ -120,7 +120,7 @@ public:
 	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
 		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature, max_start_temperature) {}
 
-	virtual ~TemperatureCalibrationCommon() {}
+	virtual ~TemperatureCalibrationCommon() = default;
 
 	/**
 	 * @see TemperatureCalibrationBase::update()
@@ -186,6 +186,6 @@ protected:
 	 */
 	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
 
-	int _num_sensor_instances;
+	unsigned _num_sensor_instances{0};
 	int _sensor_subs[SENSOR_COUNT_MAX];
 };

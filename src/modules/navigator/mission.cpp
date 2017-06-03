@@ -1426,7 +1426,9 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 			mission.current_seq = 0;
 		}
 
-		dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s))) {
+			PX4_WARN("could not save mission state during reset");
+		}
 	}
 
 	dm_unlock(DM_KEY_MISSION_STATE);

@@ -175,7 +175,7 @@ using ::isfinite;
 // QURT specific
 #  include "dspal_math.h"
 #  define PX4_ROOTFSDIR
-#  define PX4_TICKS_PER_SEC 1000L
+#  define PX4_TICKS_PER_SEC 1000UL
 #  define SIOCDEVPRIVATE 999999
 
 // HEXAGON's isfinite() is erroneously defined as a macro even for C++,
@@ -189,7 +189,7 @@ using ::isfinite;
 // All POSIX except QURT.
 
 __BEGIN_DECLS
-extern long PX4_TICKS_PER_SEC;
+extern long unsigned PX4_TICKS_PER_SEC;
 __END_DECLS
 
 #  if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)

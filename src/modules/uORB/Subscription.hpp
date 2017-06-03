@@ -66,7 +66,7 @@ public:
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionBase(const struct orb_metadata *meta,
-			 unsigned interval = 0, unsigned instance = 0);
+			 unsigned interval = 0, int instance = 0);
 
 	/**
 	 * Check if there is a new update.

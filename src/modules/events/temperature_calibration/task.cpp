@@ -74,7 +74,7 @@ public:
 	/**
 	 * Destructor
 	 */
-	~TemperatureCalibration();
+	~TemperatureCalibration() = default;;
 
 	/**
 	 * Start task.
@@ -107,14 +107,10 @@ TemperatureCalibration::TemperatureCalibration(bool accel, bool baro, bool gyro)
 {
 }
 
-TemperatureCalibration::~TemperatureCalibration()
-{
-}
-
 void TemperatureCalibration::task_main()
 {
 	// subscribe to all gyro instances
-	int gyro_sub[SENSOR_COUNT_MAX];
+	int gyro_sub[SENSOR_COUNT_MAX] = {};
 	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 
@@ -221,7 +217,7 @@ void TemperatureCalibration::task_main()
 		if (!_gyro) {
 			sensor_gyro_s gyro_data;
 
-			for (int i = 0; i < num_gyro; ++i) {
+			for (unsigned i = 0; i < num_gyro; ++i) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 			}
 		}

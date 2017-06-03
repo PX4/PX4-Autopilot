@@ -198,7 +198,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
 
-	int last_active = 0;
+	unsigned last_active = 0;
 
 	while (!thread_should_exit) {
 
@@ -249,7 +249,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				}
 			}
 
-			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+			for (unsigned i = 0; i < thread_data.input_objs_len; ++i) {
 				if (!thread_data.input_objs[i]) {
 					alloc_failed = true;
 				}
@@ -300,7 +300,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
 
-			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+			for (unsigned i = 0; i < thread_data.input_objs_len; ++i) {
 
 				bool already_active = (last_active == i);
 
@@ -350,7 +350,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				//re-init objects
-				for (int i = 0; i < input_objs_len_max; ++i) {
+				for (unsigned i = 0; i < input_objs_len_max; ++i) {
 					if (thread_data.input_objs[i]) {
 						delete (thread_data.input_objs[i]);
 						thread_data.input_objs[i] = nullptr;
@@ -373,7 +373,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	orb_unsubscribe(parameter_update_sub);
 
-	for (int i = 0; i < input_objs_len_max; ++i) {
+	for (unsigned i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {
 			delete (thread_data.input_objs[i]);
 			thread_data.input_objs[i] = nullptr;
@@ -457,7 +457,7 @@ int vmount_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running && g_thread_data) {
 
-			for (int i = 0; i < g_thread_data->input_objs_len; ++i) {
+			for (unsigned i = 0; i < g_thread_data->input_objs_len; ++i) {
 				g_thread_data->input_objs[i]->print_status();
 			}
 

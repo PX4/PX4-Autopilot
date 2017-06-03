@@ -605,7 +605,7 @@ void Ekf2::task_main()
 				// Check if there has been a persistant change in magnetometer ID
 				orb_copy(ORB_ID(sensor_selection), sensor_selection_sub, &sensor_selection);
 
-				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != _mag_bias_id.get()) {
+				if (sensor_selection.mag_device_id != 0 && static_cast<int32_t>(sensor_selection.mag_device_id) != _mag_bias_id.get()) {
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
 					}
@@ -641,7 +641,7 @@ void Ekf2::task_main()
 				_mag_data_sum[2] += sensors.magnetometer_ga[2];
 				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
-				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
+				if (static_cast<int32_t>(mag_time_ms - _mag_time_ms_last_used) > _params->sensor_interval_min_ms) {
 					float mag_sample_count_inv = 1.0f / (float)_mag_sample_count;
 					// calculate mean of measurements and correct for learned bias offsets
 					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
@@ -655,7 +655,6 @@ void Ekf2::task_main()
 					_mag_data_sum[0] = 0.0f;
 					_mag_data_sum[1] = 0.0f;
 					_mag_data_sum[2] = 0.0f;
-
 				}
 			}
 		}
@@ -1090,7 +1089,7 @@ void Ekf2::task_main()
 				// Check and save the last valid calibration when we are disarmed
 				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
-				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
+				    && ((int32_t)sensor_selection.mag_device_id == _mag_bias_id.get())) {
 					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
