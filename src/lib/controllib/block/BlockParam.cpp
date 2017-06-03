@@ -77,7 +77,7 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 	_handle = param_find(fullname);
 
 	if (_handle == PARAM_INVALID) {
-		PX4_ERR("error finding param: %s\n", fullname);
+		PX4_ERR("error finding param: %s", fullname);
 	}
 };
 
