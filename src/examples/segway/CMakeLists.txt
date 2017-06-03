@@ -36,6 +36,7 @@ px4_add_module(
 	STACK_MAIN 1300
 	STACK_MAX 1300
 	SRCS
+		blocks.cpp
 		segway_main.cpp
 		BlockSegwayController.cpp
 		params.c

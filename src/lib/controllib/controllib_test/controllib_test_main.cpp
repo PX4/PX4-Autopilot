@@ -83,9 +83,8 @@ int basicBlocksTest()
 	failed = failed || blockPDTest() < 0;
 	failed = failed || blockPIDTest() < 0;
 	failed = failed || blockOutputTest() < 0;
-	// known failures
-	//failed = failed || blockRandUniformTest() < 0;
-	//failed = failed || blockRandGaussTest() < 0;
+	failed = failed || blockRandUniformTest() < 0;
+	failed = failed || blockRandGaussTest() < 0;
 	failed = failed || blockStatsTest() < 0;
 	failed = failed || blockDelayTest() < 0;
 	return failed ? -1 : 0;
@@ -532,25 +531,5 @@ extern "C" __EXPORT int controllib_test_main(int argc, char *argv[]);
 
 int controllib_test_main(int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
-	blockLimitTest();
-	blockLimitSymTest();
-	blockLowPassTest();
-	blockHighPassTest();
-	blockLowPass2Test();
-	blockIntegralTest();
-	blockIntegralTrapTest();
-	blockDerivativeTest();
-	blockPTest();
-	blockPITest();
-	blockPDTest();
-	blockPIDTest();
-	blockOutputTest();
-	//blockRandUniformTest();
-	// known failures
-	// blockRandGaussTest();
-	blockStatsTest();
-	blockDelayTest();
-	return 0;
+	return basicBlocksTest();
 }
