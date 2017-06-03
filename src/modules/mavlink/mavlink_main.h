@@ -344,7 +344,16 @@ public:
 	 * @param severity the log level
 	 */
 	void			send_statustext(unsigned char severity, const char *string);
+
+	/**
+	 * Send the capabilities of this autopilot in terms of the MAVLink spec
+	 */
 	void 			send_autopilot_capabilites();
+
+	/**
+	 * Send the protocol version of MAVLink
+	 */
+	void			send_protocol_version();
 
 	MavlinkStream 		*get_streams() const { return _streams; }
 

@@ -1302,6 +1302,27 @@ void Mavlink::send_autopilot_capabilites()
 	}
 }
 
+void Mavlink::send_protocol_version()
+{
+	mavlink_protocol_version_t msg = {};
+
+	msg.version = _protocol_version * 100;
+	msg.min_version = 100;
+	msg.max_version = 200;
+	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
+	// TODO add when available
+	//memcpy(&msg.spec_version_hash, &mavlink_spec_git_version_binary, sizeof(msg.spec_version_hash));
+	memcpy(&msg.library_version_hash, &mavlink_lib_git_version_binary, sizeof(msg.library_version_hash));
+
+	// Switch to MAVLink 2
+	int curr_proto_ver = _protocol_version;
+	set_proto_version(2);
+	// Send response - if it passes through the link its fine to use MAVLink 2
+	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
+	// Reset to previous value
+	set_proto_version(curr_proto_ver);
+}
+
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
 {
 	/* check if already subscribed to this topic */
