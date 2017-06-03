@@ -181,9 +181,9 @@ struct dragSample {
 
 struct parameters {
 	// measurement source control
-	int fusion_mode{MASK_USE_GPS};		// bitmasked integer that selects which aiding sources will be used
-	int vdist_sensor_type{VDIST_SENSOR_BARO};// selects the primary source for height data
-	int sensor_interval_min_ms{20};		// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
+	int32_t fusion_mode{MASK_USE_GPS};		// bitmasked integer that selects which aiding sources will be used
+	int32_t vdist_sensor_type{VDIST_SENSOR_BARO};// selects the primary source for height data
+	int32_t sensor_interval_min_ms{20};		// minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers.
 
 	// measurement time delays
 	float mag_delay_ms{0.0f};		// magnetometer measurement delay relative to the IMU (msec)
@@ -228,8 +228,8 @@ struct parameters {
 	float mag_declination_deg{0.0f};	// magnetic declination (degrees)
 	float heading_innov_gate{2.6f};		// heading fusion innovation consistency gate size (STD)
 	float mag_innov_gate{3.0f};		// magnetometer fusion innovation consistency gate size (STD)
-	int mag_declination_source{7};		// bitmask used to control the handling of declination data
-	int mag_fusion_type{0};			// integer used to specify the type of magnetometer fusion used
+	int32_t mag_declination_source{7};	// bitmask used to control the handling of declination data
+	int32_t mag_fusion_type{0};		// integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};		// when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/s**2)
 	float mag_yaw_rate_gate{0.25f};		// yaw rate threshold used by mode select logic (rad/sec)
 
@@ -255,17 +255,17 @@ struct parameters {
 	// optical flow fusion
 	float flow_noise{0.15f};		// observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};	// observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-	int flow_qual_min{1};			// minimum acceptable quality integer from  the flow sensor
+	int32_t flow_qual_min{1};		// minimum acceptable quality integer from  the flow sensor
 	float flow_innov_gate{3.0f};		// optical flow fusion innovation consistency gate size (STD)
 	float flow_rate_max{2.5f};		// maximum valid optical flow rate (rad/sec)
 
 	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
 	// good enough to set a local origin and commence aiding
-	int gps_check_mask{21};			// bitmask used to control which GPS quality checks are used
+	int32_t gps_check_mask{21};		// bitmask used to control which GPS quality checks are used
 	float req_hacc{5.0f};			// maximum acceptable horizontal position error
 	float req_vacc{8.0f};			// maximum acceptable vertical position error
 	float req_sacc{1.0f};			// maximum acceptable speed error
-	int req_nsats{6};			// minimum acceptable satellite count
+	int32_t req_nsats{6};			// minimum acceptable satellite count
 	float req_gdop{2.0f};			// maximum acceptable geometric dilution of precision
 	float req_hdrift{0.3f};			// maximum acceptable horizontal drift speed
 	float req_vdrift{0.5f};			// maximum acceptable vertical drift speed
