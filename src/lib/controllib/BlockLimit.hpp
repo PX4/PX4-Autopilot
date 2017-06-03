@@ -32,28 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A limiter/ saturation.
+ * The output of update is the input, bounded
+ * by min/max.
+ */
+class __EXPORT BlockLimit : public Block
+{
+public:
+// methods
+	BlockLimit(SuperBlock *parent, const char *name) :
+		Block(parent, name),
+		_min(this, "MIN"),
+		_max(this, "MAX")
+	{};
+	virtual ~BlockLimit() {};
+	float update(float input);
+// accessors
+	float getMin() { return _min.get(); }
+	float getMax() { return _max.get(); }
+protected:
+// attributes
+	control::BlockParamFloat _min;
+	control::BlockParamFloat _max;
+};
+
+} // namespace control

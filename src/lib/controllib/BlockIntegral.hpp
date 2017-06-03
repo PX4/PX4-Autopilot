@@ -32,28 +32,48 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
 #include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A rectangular integrator.
+ * A limiter is built into the class to bound the
+ * integral's internal state. This is important
+ * for windup protection.
+ * @see Limit
+ */
+class __EXPORT BlockIntegral: public SuperBlock
+{
+public:
+// methods
+	BlockIntegral(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name),
+		_y(0),
+		_limit(this, "") {};
+	virtual ~BlockIntegral() {};
+	float update(float input);
+// accessors
+	float getY() {return _y;}
+	float getMax() {return _limit.getMax();}
+	void setY(float y) {_y = y;}
+protected:
+// attributes
+	float _y; /**< previous output */
+	BlockLimitSym _limit; /**< limiter */
+};
+
+} // namespace control

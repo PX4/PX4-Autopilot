@@ -32,28 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.cpp
  *
  * Controller library code
  */
 
-#pragma once
+#include <math.h>
+#include <float.h>
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include "blocks.hpp"
+
+namespace control
+{
+
+float BlockLimitSym::update(float input)
+{
+	if (input > getMax()) {
+		input = _max.get();
+
+	} else if (input < -getMax()) {
+		input = -getMax();
+	}
+
+	return input;
+}
+
+} // namespace control

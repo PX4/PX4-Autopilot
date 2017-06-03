@@ -32,28 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.cpp
  *
  * Controller library code
  */
 
-#pragma once
+#include <math.h>
+#include <float.h>
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include "blocks.hpp"
+
+namespace control
+{
+
+float BlockLowPass2::update(float input)
+{
+	if (!PX4_ISFINITE(getState())) {
+		setState(input);
+	}
+
+	if (fabsf(_lp.get_cutoff_freq() - getFCutParam()) > FLT_EPSILON) {
+		_lp.set_cutoff_frequency(_fs, getFCutParam());
+	}
+
+	_state = _lp.apply(input);
+	return _state;
+}
+
+} // namespace control

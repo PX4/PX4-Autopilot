@@ -32,28 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file blocks.hpp
+ * @file blocks.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include "BlockDelay.hpp"
-#include "BlockDerivative.hpp"
-#include "BlockHighPass.hpp"
-#include "BlockIntegral.hpp"
-#include "BlockIntegralTrap.hpp"
-#include "BlockLimit.hpp"
-#include "BlockLimitSym.hpp"
-#include "BlockLowPass2.hpp"
-#include "BlockLowPass.hpp"
-#include "BlockLowPassVector.hpp"
-#include "BlockOutput.hpp"
-#include "BlockPD.hpp"
-#include "BlockP.hpp"
-#include "BlockPID.hpp"
-#include "BlockPI.hpp"
-#include "BlockRandGauss.hpp"
-#include "BlockRandUniform.hpp"
-#include "BlockStats.hpp"
+#include <px4_defines.h>
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mathlib/math/test/test.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
+
+#include "matrix/math.hpp"
+
+namespace control
+{
+
+/**
+ * A proportional-integral controller.
+ * @link http://en.wikipedia.org/wiki/PID_controller
+ */
+class __EXPORT BlockPI: public SuperBlock
+{
+public:
+// methods
+	BlockPI(SuperBlock *parent, const char *name) :
+		SuperBlock(parent, name),
+		_integral(this, "I"),
+		_kP(this, "P"),
+		_kI(this, "I")
+	{};
+	virtual ~BlockPI() {};
+	float update(float input)
+	{
+		return getKP() * input +
+		       getKI() * getIntegral().update(input);
+	}
+// accessors
+	float getKP() { return _kP.get(); }
+	float getKI() { return _kI.get(); }
+	BlockIntegral &getIntegral() { return _integral; }
+private:
+	BlockIntegral _integral;
+	control::BlockParamFloat _kP;
+	control::BlockParamFloat _kI;
+};
+
+} // namespace control
