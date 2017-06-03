@@ -417,7 +417,7 @@ void mtd_print_info(void)
 	printf("  neraseblocks:   %lu\n", neraseblocks);
 	printf("  No. partitions: %u\n", n_partitions_current);
 	printf("  Partition size: %u Blocks (%u bytes)\n", nblocks, partsize);
-	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
+	printf("  TOTAL SIZE: %lu KiB\n", neraseblocks * erasesize / 1024);
 
 }
 
