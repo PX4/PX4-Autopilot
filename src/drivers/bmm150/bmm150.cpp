@@ -247,7 +247,6 @@ usage()
 
 BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	_work{},
 	_external(false),
 	_running(false),
 	_call_interval(0),
@@ -279,8 +278,7 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
 	_duplicates(perf_alloc(PC_COUNT, "bmm150_duplicates")),
 	_rotation(rotation),
-	_got_duplicate(false),
-	_last_report{0}
+	_got_duplicate(false)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_BMM150;
 
