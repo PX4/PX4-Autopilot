@@ -1,0 +1,50 @@
+Instructions for running the EKF replay
+
+1) Ensure this ‘EKF_replay’ directory is in a location you have full read and write access and add it and all its subdirectories to your path.
+
+2) Create a ‘TestData’ sub-directory inside ‘EKF_replay’ directory
+
+3a) If replaying APM data:
+
+Collect data with LOG_REPLAY = 1 and LOG_DISARMED = 1.
+Convert data to a .mat file using the MissionPlanner ‘Create Matlab File’ option under the DataFlash Logs tab.
+Convert .mat file to the required data format using the convert_apm_data.m script file. This will generate the following data files:
+
+imu_data.mat
+baro_data.mat
+gps_data.mat
+mag_data.mat
+
+and optionally
+
+rng_data.mat
+flow_data.mat
+viso_data.mat
+
+Copy the generated .mat files into the /EKF_replay/TestData/APM directory.
+
+If the rangefinder, optical flow or ZED camera odometer data are not present in the log, then the corresponding sections in the convert_apm_data.m script file will need to be commented out.
+
+3b) If replaying PX4 data:
+
+Collect data with EK2_REC_RPL = 1
+Convert the .ulg log file to .csv files using the PX4/pyulog python script https://github.com/PX4/pyulog/blob/master/pyulog/ulog2csv.py
+Import the .csv file containing the sensor_combined_0 data into the matlab workspace and process it using …/EKF_replay/Common/convert_px4_sensor_combined_csv_data.m. This will generate the following data files:
+
+imu_data.mat
+baro_data.mat
+mag_data.mat
+
+Import the .csv file containing the vehicle_gps_position_0 data into the matlab workspace and process it using …/EKF_replay/Common/convert_px4_vehicle_gps_position_csv. This will generate the gps_data.mat file.
+
+Copy the generated .mat files into the /EKF_replay/TestData/PX4 directory.
+
+4) Make ‘…/EKF_replay/Filter’ the working directory.
+
+5) Execute ‘SetParameterDefaults’ at the command prompt to load the default filter tuning parameter struct ‘param’ into the workspace. The defaults have been set to provide robust estimation across the entire data set, not optimised for accuracy.
+
+6) Replay the data by running either the replay_apm_data.m or replay_px4_data.m script files. 
+
+Output plots are saved as .png files in the ‘…/EKF_replay/OutputPlots/‘ directory.
+
+Output data is written to the Matlab workspace in the ‘output’ struct.
