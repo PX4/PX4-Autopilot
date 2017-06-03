@@ -400,7 +400,7 @@ gazeboclean:
 	@rm -rf ~/.gazebo/*
 
 distclean: submodulesclean gazeboclean
-	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings"
+	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
 
 # --------------------------------------------------------------------
 
