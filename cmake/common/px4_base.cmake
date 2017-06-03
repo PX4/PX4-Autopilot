@@ -325,6 +325,7 @@ function(px4_add_common_flags)
 	set(warnings
 		-Wall
 		-Warray-bounds
+		-Wdisabled-optimization
 		-Werror
 		-Wextra
 		-Wfatal-errors
@@ -332,9 +333,12 @@ function(px4_add_common_flags)
 		-Wformat-security
 		-Winit-self
 		-Wmissing-declarations
+		-Wmissing-field-initializers
+		#-Wmissing-include-dirs # TODO: fix and enable
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
+		-Wunknown-pragmas
 		-Wunused-variable
 
 		-Wno-unused-parameter
@@ -362,17 +366,12 @@ function(px4_add_common_flags)
 		)
 	endif()
 
-	if ("${OS}" STREQUAL "qurt")
-		set(PIC_FLAG -fPIC)
-	endif()
-
 	set(_optimization_flags
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
 		-ffunction-sections
 		-fdata-sections
-		${PIC_FLAG}
 		)
 
 	set(c_warnings
