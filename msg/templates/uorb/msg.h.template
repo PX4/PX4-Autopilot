@@ -129,7 +129,7 @@ for constant in spec.constants:
     else:
         raise Exception("Type {0} not supported, add to to template file!".format(type_name))
 
-    print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
+    print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
 #endif
 };
