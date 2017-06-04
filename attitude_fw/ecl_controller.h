@@ -91,7 +91,7 @@ public:
 	void set_k_ff(float k_ff);
 	void set_integrator_max(float max);
 	void set_max_rate(float max_rate);
-	void set_bodyrate_setpoint(float rate) {_bodyrate_setpoint = rate;};
+	void set_bodyrate_setpoint(float rate) {_bodyrate_setpoint = rate;}
 
 	/* Getters */
 	float get_rate_error();

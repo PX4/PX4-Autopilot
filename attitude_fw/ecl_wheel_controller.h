@@ -65,7 +65,7 @@ public:
 
 	float control_bodyrate(const struct ECL_ControlData &ctl_data);
 
-	float control_euler_rate(const struct ECL_ControlData &ctl_data) {return 0;};
+	float control_euler_rate(const struct ECL_ControlData &ctl_data) {return 0;}
 };
 
 #endif // ECL_HEADING_CONTROLLER_H
