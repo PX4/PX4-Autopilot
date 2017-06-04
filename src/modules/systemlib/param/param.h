@@ -169,7 +169,7 @@ __EXPORT param_t	param_for_index(unsigned index);
 /**
  * Look up an used parameter by index.
  *
- * @param param		The parameter to obtain the index for.
+ * @param index		The parameter to obtain the index for.
  * @return		The index of the parameter in use, or -1 if the parameter does not exist.
  */
 __EXPORT param_t	param_for_used_index(unsigned index);
