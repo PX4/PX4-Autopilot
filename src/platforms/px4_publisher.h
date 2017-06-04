@@ -57,8 +57,8 @@ namespace px4
 class __EXPORT PublisherBase
 {
 public:
-	PublisherBase() {};
-	~PublisherBase() {};
+	PublisherBase() {}
+	~PublisherBase() {}
 };
 
 /**
@@ -68,8 +68,8 @@ template <typename T>
 class __EXPORT Publisher
 {
 public:
-	Publisher() {};
-	~Publisher() {};
+	Publisher() {}
+	~Publisher() {}
 
 	virtual int publish(const T &msg)  = 0;
 };
@@ -90,7 +90,7 @@ public:
 				kQueueSizeDefault))
 	{}
 
-	~PublisherROS() {};
+	~PublisherROS() {}
 
 	/** Publishes msg
 	 * @param msg	    the message which is published to the topic
