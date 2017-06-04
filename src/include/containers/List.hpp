@@ -53,7 +53,7 @@ public:
 	ListNode &operator=(ListNode &&) = delete;
 
 	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() { return _sibling; }
+	T getSibling() { return _sibling; }
 
 protected:
 	T _sibling;
@@ -78,7 +78,7 @@ public:
 		_head = newNode;
 	}
 
-	const T getHead() { return _head; }
+	T getHead() { return _head; }
 
 protected:
 	T _head;
