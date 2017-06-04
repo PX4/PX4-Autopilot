@@ -29,7 +29,6 @@ then
 		echo "ERROR [init] Estimator LPE not available. Using EKF2"
 		param set SYS_MC_EST_GROUP 2
 		param save
-		ekf2 start
 	fi
 fi
 
