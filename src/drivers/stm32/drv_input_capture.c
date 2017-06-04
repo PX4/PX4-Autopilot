@@ -393,7 +393,7 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 				break;
 
 			default:
-				return -EINVAL;;
+				return -EINVAL;
 			}
 
 			uint32_t timer = timer_io_channels[channel].timer_index;

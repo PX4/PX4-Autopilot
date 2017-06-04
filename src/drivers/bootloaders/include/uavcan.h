@@ -545,7 +545,7 @@ typedef struct packed_struct uavcan_GetNodeInfo_request_t {
 
 typedef struct packed_struct uavcan_GetNodeInfo_response_t {
 
-	uavcan_NodeStatus_t nodes_status;;
+	uavcan_NodeStatus_t nodes_status;
 	uavcan_SoftwareVersion_t software_version;
 	uavcan_HardwareVersion_t hardware_version;
 
