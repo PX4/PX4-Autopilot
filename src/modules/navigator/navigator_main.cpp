@@ -383,6 +383,7 @@ Navigator::task_main()
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
 				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
+				struct position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -405,6 +406,12 @@ Navigator::task_main()
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
 					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
+				} else if (curr->current.valid
+					   && PX4_ISFINITE(curr->current.lat)
+					   && PX4_ISFINITE(curr->current.lon)) {
+					rep->current.lat = curr->current.lat;
+					rep->current.lon = curr->current.lon;
 
 				} else {
 					rep->current.lat = get_global_position()->lat;
