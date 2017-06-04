@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
  * @unit ms
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 200);
+PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
 
 /**
  * Vision Position Estimator delay relative to IMU measurements
