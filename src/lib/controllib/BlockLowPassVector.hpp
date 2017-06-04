@@ -69,8 +69,8 @@ public:
 		for (int i = 0; i < M; i++) {
 			_state(i) = 0.0f / 0.0f;
 		}
-	};
-	virtual ~BlockLowPassVector() {};
+	}
+	virtual ~BlockLowPassVector() {}
 	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
 	{
 		for (int i = 0; i < M; i++) {

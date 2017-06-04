@@ -65,9 +65,8 @@ public:
 		_h(),
 		_index(0),
 		_delay(-1)
-	{
-	};
-	virtual ~BlockDelay() {};
+	{}
+	virtual ~BlockDelay() {}
 	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u)
 	{
 		// store current value

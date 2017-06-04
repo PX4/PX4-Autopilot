@@ -104,7 +104,7 @@ class __EXPORT SuperBlock :
 public:
 	friend class Block;
 
-	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {};
+	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {}
 	~SuperBlock() = default;
 
 	// no copy, assignment, move, move assignment
