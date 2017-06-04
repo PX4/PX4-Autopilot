@@ -68,8 +68,8 @@ public:
 		_fCut(this, ""), // only one parameter, no need to name
 		_fs(sample_freq),
 		_lp(_fs, _fCut.get())
-	{};
-	virtual ~BlockLowPass2() {};
+	{}
+	virtual ~BlockLowPass2() {}
 	float update(float input);
 // accessors
 	float getState() { return _state; }

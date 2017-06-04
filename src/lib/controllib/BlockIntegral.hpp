@@ -63,8 +63,8 @@ public:
 	BlockIntegral(SuperBlock *parent, const char *name) :
 		SuperBlock(parent, name),
 		_y(0),
-		_limit(this, "") {};
-	virtual ~BlockIntegral() {};
+		_limit(this, "") {}
+	virtual ~BlockIntegral() {}
 	float update(float input);
 // accessors
 	float getY() {return _y;}

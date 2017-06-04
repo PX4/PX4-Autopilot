@@ -67,8 +67,8 @@ public:
 		_u(0),
 		_initialized(false),
 		_lowPass(this, "LP")
-	{};
-	virtual ~BlockDerivative() {};
+	{}
+	virtual ~BlockDerivative() {}
 
 	/**
 	 * Update the state and get current derivative
