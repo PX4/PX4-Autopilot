@@ -68,8 +68,8 @@ public:
 		_integral(this, "I"),
 		_kP(this, "P"),
 		_kI(this, "I")
-	{};
-	virtual ~BlockPI() {};
+	{}
+	virtual ~BlockPI() {}
 	float update(float input)
 	{
 		return getKP() * input +
