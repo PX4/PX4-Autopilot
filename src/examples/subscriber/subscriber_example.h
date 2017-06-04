@@ -48,7 +48,7 @@ class SubscriberExample
 public:
 	SubscriberExample();
 
-	~SubscriberExample() {};
+	~SubscriberExample() {}
 
 	void spin() {_n.spin();}
 

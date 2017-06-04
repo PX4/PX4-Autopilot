@@ -89,7 +89,7 @@ public:
 	void get_mixer_input(Eigen::Vector4d &motor_inputs);
 
 protected:
-	void vehicle_attitude_setpoint_poll() {};
+	void vehicle_attitude_setpoint_poll() {}
 
 
 };
