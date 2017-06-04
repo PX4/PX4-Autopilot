@@ -54,9 +54,9 @@ public:
 	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *(*name)(), uint16_t (*id)()) :
 		new_instance(inst),
 		get_name(name),
-		get_id(id) {};
+		get_id(id) {}
 
-	~StreamListItem() {};
+	~StreamListItem() {}
 };
 
 extern const StreamListItem *streams_list[];

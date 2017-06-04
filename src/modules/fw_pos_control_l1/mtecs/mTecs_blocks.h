@@ -61,8 +61,8 @@ public:
 		_isAngularLimit(fAngularLimit),
 		_min(this, "MIN"),
 		_max(this, "MAX")
-	{};
-	virtual ~BlockOutputLimiter() {};
+	{}
+	virtual ~BlockOutputLimiter() {}
 	/*
 	 * Imposes the limits given by _min and _max on value
 	 *
@@ -116,8 +116,8 @@ public:
 		_kP(this, "P"),
 		_kI(this, "I"),
 		_offset(this, "OFF")
-	{};
-	virtual ~BlockFFPILimited() {};
+	{}
+	virtual ~BlockFFPILimited() {}
 	float update(float inputValue, float inputError) { return calcLimitedOutput(inputValue, inputError, _outputLimiter); }
 // accessors
 	BlockIntegral &getIntegral() { return _integral; }
@@ -159,8 +159,8 @@ public:
 // methods
 	BlockFFPILimitedCustom(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
 		BlockFFPILimited(parent, name, isAngularLimit)
-	{};
-	virtual ~BlockFFPILimitedCustom() {};
+	{}
+	virtual ~BlockFFPILimitedCustom() {}
 	float update(float inputValue, float inputError, BlockOutputLimiter *outputLimiter = NULL)
 	{
 		return calcLimitedOutput(inputValue, inputError, outputLimiter == NULL ? _outputLimiter : *outputLimiter);
@@ -176,8 +176,8 @@ public:
 		SuperBlock(parent, name),
 		_kP(this, "P"),
 		_outputLimiter(this, "", isAngularLimit)
-	{};
-	virtual ~BlockPLimited() {};
+	{}
+	virtual ~BlockPLimited() {}
 	float update(float input)
 	{
 		float difference = 0.0f;
@@ -204,8 +204,8 @@ public:
 		_kD(this, "D"),
 		_derivative(this, "D"),
 		_outputLimiter(this, "", isAngularLimit)
-	{};
-	virtual ~BlockPDLimited() {};
+	{}
+	virtual ~BlockPDLimited() {}
 	float update(float input)
 	{
 		float difference = 0.0f;

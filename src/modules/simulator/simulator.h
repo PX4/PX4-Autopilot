@@ -137,7 +137,7 @@ public:
 		px4_sem_init(&_lock, 0, _max_readers);
 	}
 
-	~Report() {};
+	~Report() {}
 
 	bool copyData(void *outbuf, int len)
 	{

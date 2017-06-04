@@ -1024,7 +1024,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 						altitude_desired_rel = L_altitude_rel;
 
 					} else {
-						altitude_desired_rel = _global_pos.alt - terrain_alt;;
+						altitude_desired_rel = _global_pos.alt - terrain_alt;
 					}
 				}
 

@@ -59,9 +59,9 @@ public:
 		overrideThrottleMaxEnabled(false),
 		overridePitchMinEnabled(false),
 		overridePitchMaxEnabled(false)
-	{};
+	{}
 
-	~LimitOverride() {};
+	~LimitOverride() {}
 
 	/*
 	* Override the limits of the outputlimiter instances given by the arguments with the limits saved in

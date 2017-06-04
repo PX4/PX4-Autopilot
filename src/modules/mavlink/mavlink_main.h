@@ -256,7 +256,7 @@ public:
 	/**
 	 * Set communication protocol for this mavlink instance
 	 */
-	void 		set_protocol(Protocol p) {_protocol = p;};
+	void 		set_protocol(Protocol p) {_protocol = p;}
 
 	/**
 	 * Get the manual input generation mode

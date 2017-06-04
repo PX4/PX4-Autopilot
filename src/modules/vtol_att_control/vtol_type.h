@@ -116,7 +116,7 @@ public:
 	/**
 	 * Update external state.
 	 */
-	virtual void update_external_state() {};
+	virtual void update_external_state() {}
 
 	/**
 	 * Write control values to actuator output topics.
@@ -127,7 +127,7 @@ public:
 	 * Special handling opportunity for the time right after transition to FW
 	 * before TECS is running.
 	 */
-	virtual void waiting_on_tecs() {};
+	virtual void waiting_on_tecs() {}
 
 	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
@@ -142,7 +142,7 @@ public:
 	void set_idle_mc();
 	void set_idle_fw();
 
-	mode get_mode() {return _vtol_mode;};
+	mode get_mode() {return _vtol_mode;}
 
 	virtual void parameters_update() = 0;
 

@@ -253,7 +253,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	RawAirspeedData airspeed = {};
 	airspeed.temperature = imu->temperature;
-	airspeed.diff_pressure = imu->diff_pressure + 0.001f * (hrt_absolute_time() & 0x01);;
+	airspeed.diff_pressure = imu->diff_pressure + 0.001f * (hrt_absolute_time() & 0x01);
 
 	write_airspeed_data(&airspeed);
 }
@@ -432,7 +432,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 				_hil_ref_timestamp = timestamp;
 				_hil_ref_lat = lat;
 				_hil_ref_lon = lon;
-				_hil_ref_alt = hil_state.alt / 1000.0f;;
+				_hil_ref_alt = hil_state.alt / 1000.0f;
 			}
 
 			float x;
