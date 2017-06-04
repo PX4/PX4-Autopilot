@@ -91,7 +91,7 @@ int base_main(int argc, char *argv[])
 	//base->printStoredMag();
 
 	// Test5: Feed in baro data at 50 Hz (too fast), check if filter samples correctly
-	float baro = 120.22f;;
+	float baro = 120.22f;
 	time_usec = 100000;
 
 	for (int i = 0; i < 100; i++) {
