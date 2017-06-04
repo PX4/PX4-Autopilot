@@ -30,6 +30,7 @@ set(config_module_list
 	drivers/trone
 	drivers/gps
 	drivers/pwm_out_sim
+	drivers/pca9685
 	drivers/hott
 	drivers/hott/hott_telemetry
 	drivers/hott/hott_sensors
