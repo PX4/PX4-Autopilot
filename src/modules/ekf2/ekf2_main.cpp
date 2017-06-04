@@ -101,7 +101,7 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	void 	set_replay_mode(bool replay) {_replay_mode = replay;};
+	void 	set_replay_mode(bool replay) { _replay_mode = replay; }
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 

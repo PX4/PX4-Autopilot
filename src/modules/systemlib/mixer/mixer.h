@@ -165,7 +165,7 @@ public:
 	 * @param control_cb		Callback invoked when reading controls.
 	 */
 	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
-	virtual ~Mixer() {};
+	virtual ~Mixer() {}
 
 	/**
 	 * Perform the mixing function.
@@ -197,7 +197,7 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max) {};
+	virtual void 			set_max_delta_out_once(float delta_out_max) {}
 
 	/**
 	 * @brief Set trim offset for this mixer
@@ -211,7 +211,7 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void 			set_thrust_factor(float val) {};
+	virtual void 			set_thrust_factor(float val) {}
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -408,7 +408,7 @@ class __EXPORT NullMixer : public Mixer
 {
 public:
 	NullMixer();
-	~NullMixer() {};
+	~NullMixer() {}
 
 	/**
 	 * Factory method.
@@ -428,7 +428,7 @@ public:
 	virtual unsigned		mix(float *outputs, unsigned space, uint16_t *status_reg);
 	virtual uint16_t		get_saturation_status(void);
 	virtual void			groups_required(uint32_t &groups);
-	virtual void 			set_offset(float trim) {};
+	virtual void 			set_offset(float trim) {}
 	unsigned set_trim(float trim)
 	{
 		return 0;

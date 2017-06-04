@@ -186,8 +186,8 @@ protected:
 		}										\
 	} while (0)
 
-	virtual void _init(void) { };		///< Run before each unit test. Override to provide custom behavior.
-	virtual void _cleanup(void) { };	///< Run after each unit test. Override to provide custom behavior.
+	virtual void _init(void) {}		///< Run before each unit test. Override to provide custom behavior.
+	virtual void _cleanup(void) {}		///< Run after each unit test. Override to provide custom behavior.
 
 	void _print_assert(const char *msg, const char *test, const char *file, int line)
 	{
