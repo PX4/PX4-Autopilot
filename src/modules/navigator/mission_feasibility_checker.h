@@ -79,7 +79,7 @@ private:
 			     float home_alt, bool home_valid, float default_acceptance_rad);
 
 public:
-	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {};
+	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}
 	~MissionFeasibilityChecker() = default;
 
 	MissionFeasibilityChecker(const MissionFeasibilityChecker &) = delete;

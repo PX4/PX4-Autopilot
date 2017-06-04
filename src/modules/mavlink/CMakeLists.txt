@@ -39,22 +39,23 @@ px4_add_module(
 	STACK_MAIN 1200
 	STACK_MAX 1500
 	COMPILE_FLAGS
+		-Wno-extra-semi
 		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		mavlink.c
-		mavlink_main.cpp
-		mavlink_mission.cpp
-		mavlink_parameters.cpp
-		mavlink_orb_subscription.cpp
-		mavlink_messages.cpp
-		mavlink_stream.cpp
-		mavlink_rate_limiter.cpp
-		mavlink_receiver.cpp
+		mavlink_command_sender.cpp
 		mavlink_ftp.cpp
 		mavlink_log_handler.cpp
+		mavlink_main.cpp
+		mavlink_messages.cpp
+		mavlink_mission.cpp
+		mavlink_orb_subscription.cpp
+		mavlink_parameters.cpp
+		mavlink_rate_limiter.cpp
+		mavlink_receiver.cpp
 		mavlink_shell.cpp
+		mavlink_stream.cpp
 		mavlink_ulog.cpp
-		mavlink_command_sender.cpp
 	DEPENDS
 		platforms__common
 	)
