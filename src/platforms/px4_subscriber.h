@@ -62,8 +62,8 @@ namespace px4
 class __EXPORT SubscriberBase
 {
 public:
-	SubscriberBase() {};
-	virtual ~SubscriberBase() {};
+	SubscriberBase() {}
+	virtual ~SubscriberBase() {}
 
 };
 
@@ -78,7 +78,7 @@ public:
 	Subscriber() :
 		SubscriberBase(),
 		_msg_current()
-	{};
+	{}
 
 	virtual ~Subscriber() {}
 
@@ -126,7 +126,7 @@ public:
 		_ros_sub(rnh->subscribe(T::handle(), kQueueSizeDefault, &SubscriberROS<T>::callback, this))
 	{}
 
-	virtual ~SubscriberROS() {};
+	virtual ~SubscriberROS() {}
 
 protected:
 	static const uint32_t kQueueSizeDefault = 1;		/**< Size of queue for ROS */
@@ -258,7 +258,7 @@ public:
 		_cbf(cbf)
 	{}
 
-	virtual ~SubscriberUORBCallback() {};
+	virtual ~SubscriberUORBCallback() {}
 
 	/**
 	 * Update Subscription
