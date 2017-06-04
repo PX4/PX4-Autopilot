@@ -326,6 +326,7 @@ function(px4_add_common_flags)
 		-Wall
 		-Warray-bounds
 		-Wdisabled-optimization
+		-Wdouble-promotion
 		-Werror
 		-Wextra
 		-Wfatal-errors
@@ -340,6 +341,8 @@ function(px4_add_common_flags)
 		-Wshadow
 		-Wuninitialized
 		-Wunknown-pragmas
+		-Wunreachable-code
+		-Wunused-but-set-variable
 		-Wunused-variable
 
 		# disabled warnings
@@ -349,15 +352,39 @@ function(px4_add_common_flags)
 
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		list(APPEND warnings
+			# fix these
+			-Wno-cast-align
+			-Wno-cast-qual
+			-Wno-comma
+			-Wno-conditional-uninitialized
+			-Wno-conversion
+			-Wno-covered-switch-default
+			-Wno-deprecated
+			-Wno-documentation
+			-Wno-exit-time-destructors
+			-Wno-extra-semi
+			-Wno-format-pedantic
+			-Wno-header-hygiene
+			-Wno-implicit-fallthrough
+			-Wno-missing-noreturn
+			-Wno-newline-eof
+			-Wno-non-virtual-dtor
+			-Wno-signed-enum-bitfield
+			-Wno-switch-enum
+			-Wno-undefined-func-template
+			-Wno-unreachable-code
+			-Wno-unreachable-code-break
+			-Wno-unreachable-code-return
+			-Wno-unused-macros
+			-Wno-used-but-marked-unused
+			-Wno-weak-template-vtables
+			-Wno-weak-vtables
+			-Wno-zero-length-array
+
 			-Wno-address-of-packed-member
+			-Wno-double-promotion
 			-Wno-incompatible-pointer-types-discards-qualifiers
 			-Wno-unknown-warning-option
-		)
-	else()
-		list(APPEND warnings
-			-Wdouble-promotion
-			-Wunreachable-code
-			-Wunused-but-set-variable
 		)
 	endif()
 
