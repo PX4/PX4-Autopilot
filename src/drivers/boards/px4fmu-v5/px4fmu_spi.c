@@ -89,7 +89,7 @@ static const uint32_t spi3selects_gpio[] = {FIXME};
 #endif
 static const uint32_t spi4selects_gpio[] = PX4_BARO_BUS_CS_GPIO;
 #ifdef CONFIG_STM32F7_SPI3
-static const uint32_t spi5selects_gpio[] = {FIXME};;
+static const uint32_t spi5selects_gpio[] = {FIXME};
 #error Need to define SPI5 Usage
 #endif
 static const uint32_t spi6selects_gpio[] = PX4_EXTERNAL_BUS_CS_GPIO;
