@@ -12,8 +12,8 @@
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
 then
-	echo "ERROR [init] Estimator INAV deprecated. Using LPE"
-	param set SYS_MC_EST_GROUP 1
+	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
+	param set SYS_MC_EST_GROUP 2
 	param save
 fi
 
@@ -21,11 +21,14 @@ fi
 if param compare SYS_MC_EST_GROUP 1
 then
 	# Try to start LPE. If it fails, start EKF2 as a default
-	# Unfortunately we do not build it on px4fmu-v2 duo to a limited flash.
+	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
 	if attitude_estimator_q start
 	then
 		local_position_estimator start
 	else
+		echo "ERROR [init] Estimator LPE not available. Using EKF2"
+		param set SYS_MC_EST_GROUP 2
+		param save
 		ekf2 start
 	fi
 fi
