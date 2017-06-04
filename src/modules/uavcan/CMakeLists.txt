@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
+set(UAVCAN_USE_CPP03 OFF CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
 string(TOUPPER "${OS}" OS_UPPER)
