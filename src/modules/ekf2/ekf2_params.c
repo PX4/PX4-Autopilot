@@ -82,7 +82,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
  * @unit ms
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 200);
+PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
 
 /**
  * Optical flow measurement delay relative to IMU measurements
