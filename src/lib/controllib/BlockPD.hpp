@@ -68,8 +68,8 @@ public:
 		_derivative(this, "D"),
 		_kP(this, "P"),
 		_kD(this, "D")
-	{};
-	virtual ~BlockPD() {};
+	{}
+	virtual ~BlockPD() {}
 	float update(float input)
 	{
 		return getKP() * input +
