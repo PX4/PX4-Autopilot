@@ -779,7 +779,7 @@ MK::mk_servo_set(unsigned int chan, short val)
 			if (OK == transfer(&msg[0], 1, &result[0], 2)) {
 				Motor[chan].Current = result[0];
 				Motor[chan].MaxPWM = result[1];
-				Motor[chan].Temperature = 255;;
+				Motor[chan].Temperature = 255;
 
 			} else {
 				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) { Motor[chan].State++; }	// error
