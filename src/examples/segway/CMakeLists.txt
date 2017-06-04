@@ -39,7 +39,6 @@ px4_add_module(
 		blocks.cpp
 		segway_main.cpp
 		BlockSegwayController.cpp
-		params.c
 	DEPENDS
 		platforms__common
 	)
