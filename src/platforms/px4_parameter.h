@@ -61,7 +61,7 @@ public:
 		_value(value)
 	{}
 
-	virtual ~ParameterBase() {};
+	virtual ~ParameterBase() {}
 
 	/**
 	 * Update the parameter value and return the value
@@ -95,7 +95,7 @@ public:
 		update();
 	}
 
-	~Parameter() {};
+	~Parameter() {}
 
 	/**
 	 * Update the parameter value
@@ -128,7 +128,7 @@ public:
 		update();
 	}
 
-	~Parameter() {};
+	~Parameter() {}
 
 	/**
 	 * Update the parameter value

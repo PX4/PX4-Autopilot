@@ -46,7 +46,7 @@ class VCDevNode;
 class VCDevExample
 {
 public:
-	VCDevExample() : _node(0) {};
+	VCDevExample() : _node(0) {}
 
 	~VCDevExample();
 
