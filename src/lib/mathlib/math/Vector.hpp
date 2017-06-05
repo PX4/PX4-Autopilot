@@ -83,7 +83,7 @@ public:
 
 	}
 
-	virtual ~VectorBase() {};
+	~VectorBase() = default;
 
 	/**
 	 * copy ctor

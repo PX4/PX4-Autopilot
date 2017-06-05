@@ -82,7 +82,7 @@ public:
 	{
 	}
 
-	virtual ~MatrixBase() {};
+	~MatrixBase() = default;
 
 	/**
 	 * copyt ctor
