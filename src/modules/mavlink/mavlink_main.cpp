@@ -101,6 +101,7 @@
 #define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
 #define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
+//#define MAVLINK_PRINT_PACKETS
 
 static Mavlink *_mavlink_instances = nullptr;
 
@@ -119,6 +120,13 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int leng
 
 	if (m != nullptr) {
 		m->send_bytes(ch, length);
+#ifdef MAVLINK_PRINT_PACKETS
+
+		for (unsigned i = 0; i < length; i++) {
+			printf("%02x", (unsigned char)ch[i]);
+		}
+
+#endif
 	}
 }
 
@@ -128,6 +136,9 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 
 	if (m != nullptr) {
 		(void)m->begin_send();
+#ifdef MAVLINK_PRINT_PACKETS
+		printf("START PACKET (%u): ", (unsigned)chan);
+#endif
 	}
 }
 
@@ -137,6 +148,9 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 
 	if (m != nullptr) {
 		(void)m->send_packet();
+#ifdef MAVLINK_PRINT_PACKETS
+		printf("\n");
+#endif
 	}
 }
 
