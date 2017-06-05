@@ -16,7 +16,7 @@ else
     flow_data = [];
 end
 
-% oad data required for ZED camera replay
+% load data required for ZED camera replay
 if exist('../TestData/APM/viso_data.mat','file')
     load '../TestData/APM/viso_data.mat';
 else
@@ -24,5 +24,14 @@ else
 end
 
 run('SetParameterDefaults.m');
+
 output = RunFilter(param,imu_data,mag_data,baro_data,gps_data,rng_data,flow_data,viso_data);
+
 PlotData(output);
+
+folder = '../OutputData';
+fileName = '../OutputData/ekf_replay_output.mat';
+if ~exist(folder,'dir')
+    mkdir(folder);
+end
+save(fileName,'output');
