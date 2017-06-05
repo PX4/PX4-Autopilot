@@ -12,7 +12,7 @@ set(config_module_list
 	systemcmds/ver
 	systemcmds/perf
 	modules/uORB
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/ekf2
 	modules/ekf2_replay

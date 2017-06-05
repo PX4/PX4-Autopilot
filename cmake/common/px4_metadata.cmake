@@ -38,8 +38,6 @@
 # 	utility functions
 #
 #		* px4_generate_messages
-#		* px4_generate_parameters_xml
-#		* px4_generate_parameters_source
 #		* px4_generate_airframes_xml
 #
 
@@ -169,116 +167,6 @@ endfunction()
 
 #=============================================================================
 #
-#	px4_generate_parameters_xml
-#
-#	Generates a parameters.xml file.
-#
-#	Usage:
-#		px4_generate_parameters_xml(OUT <param-xml_file>)
-#
-#	Input:
-#		BOARD : the board
-#		MODULES : a list of px4 modules used to limit scope of the paramaters
-#		OVERRIDES : A json dict with param names as keys and param default
-# 			overrides as values
-#
-#	Output:
-#		OUT	: the generated xml file
-#
-#	Example:
-#		px4_generate_parameters_xml(OUT parameters.xml)
-#
-function(px4_generate_parameters_xml)
-	px4_parse_function_args(
-		NAME px4_generate_parameters_xml
-		ONE_VALUE OUT BOARD OVERRIDES
-		MULTI_VALUE MODULES
-		REQUIRED MODULES OUT BOARD
-		ARGN ${ARGN})
-	set(path ${PX4_SOURCE_DIR}/src)
-	file(GLOB_RECURSE param_src_files
-		${PX4_SOURCE_DIR}/src/*params.c
-		)
-	if (NOT OVERRIDES)
-		set(OVERRIDES "{}")
-	endif()
-
-	# get full path for each module
-	set(module_list)
-	if(DISABLE_PARAMS_MODULE_SCOPING)
-		set(module_list ${path})
-	else()
-		foreach(module ${MODULES})
-			list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
-		endforeach()
-	endif()
-
-	add_custom_command(OUTPUT ${OUT}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			-s ${module_list} ${EXTERNAL_MODULES_LOCATION}
-			--board CONFIG_ARCH_${BOARD} --xml --inject-xml
-			--overrides ${OVERRIDES}
-		DEPENDS ${param_src_files} ${PX4_SOURCE_DIR}/Tools/px_process_params.py
-			${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-	)
-
-	set(${OUT} ${${OUT}} PARENT_SCOPE)
-endfunction()
-
-#=============================================================================
-#
-#	px4_generate_parameters_source
-#
-#	Generates a source file with all parameters.
-#
-#	Usage:
-#		px4_generate_parameters_source(OUT <list-source-files> XML <param-xml-file> MODULES px4 module list)
-#
-#	Input:
-#		XML   : the parameters.xml file
-#		MODULES : a list of px4 modules used to limit scope of the paramaters
-#		DEPS  : target dependencies
-#
-#	Output:
-#		OUT	: the generated source files
-#
-#	Example:
-#		px4_generate_parameters_source(OUT param_files XML parameters.xml MODULES lib/controllib modules/ekf2)
-#
-function(px4_generate_parameters_source)
-	px4_parse_function_args(
-		NAME px4_generate_parameters_source
-		ONE_VALUE OUT XML DEPS
-		MULTI_VALUE MODULES
-		REQUIRED MODULES OUT XML
-		ARGN ${ARGN})
-
-	set(generated_files
-		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.h
-		${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.c)
-
-	set_source_files_properties(${generated_files} PROPERTIES GENERATED TRUE)
-
-	if(DISABLE_PARAMS_MODULE_SCOPING)
-		add_custom_command(OUTPUT ${generated_files}
-			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-				--xml ${XML} --dest ${CMAKE_CURRENT_BINARY_DIR}
-			DEPENDS ${XML} ${DEPS}
-		)
-	else()
-		px4_join(OUT module_list LIST ${MODULES} GLUE ",")
-		add_custom_command(OUTPUT ${generated_files}
-			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-				--xml ${XML} --modules ${module_list} --dest ${CMAKE_CURRENT_BINARY_DIR}
-			DEPENDS ${XML} ${DEPS}
-		)
-	endif()
-
-	set(${OUT} ${generated_files} PARENT_SCOPE)
-endfunction()
-
-#=============================================================================
-#
 #	px4_generate_airframes_xml
 #
 #	Generates airframes.xml
@@ -299,14 +187,15 @@ endfunction()
 function(px4_generate_airframes_xml)
 	px4_parse_function_args(
 		NAME px4_generate_airframes_xml
-		ONE_VALUE OUT BOARD
-		REQUIRED OUT BOARD
+		ONE_VALUE BOARD
+		REQUIRED BOARD
 		ARGN ${ARGN})
-	set(process_airframes ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py)
-	add_custom_command(OUTPUT ${OUT}
-		COMMAND ${PYTHON_EXECUTABLE} ${process_airframes}
+
+	add_custom_command(OUTPUT ${PX4_SOURCE_DIR}/airframes.xml
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 			-a ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
+		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		)
-	set(${OUT} ${${OUT}} PARENT_SCOPE)
+	add_custom_target(airframes_xml DEPENDS ${PX4_SOURCE_DIR}/airframes.xml)
 endfunction()

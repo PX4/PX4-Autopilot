@@ -212,7 +212,7 @@ function(px4_add_module)
 	# default stack max to stack main
 	if(NOT STACK_MAIN AND STACK)
 		set(STACK_MAIN ${STACK})
-		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!!!!!!!!!!!!")
+		message(AUTHOR_WARNING "STACK deprecated, USE STACK_MAIN instead!")
 	endif()
 
 	foreach(property MAIN STACK_MAIN PRIORITY)
@@ -245,7 +245,7 @@ function(px4_add_module)
 	endif()
 
 	if(INCLUDES)
-		target_include_directories(${MODULE} ${INCLUDES})
+		target_include_directories(${MODULE} PRIVATE ${INCLUDES})
 	endif()
 
 	if(DEPENDS)
