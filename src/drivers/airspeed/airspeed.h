@@ -95,8 +95,8 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
