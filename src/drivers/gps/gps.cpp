@@ -713,21 +713,6 @@ GPS::task_main()
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 
 				if (_mode == GPS_DRIVER_MODE_UBX) {
-					/* Publish initial report that we have access to a GPS,
-					 * but set all critical state fields to indicate we have
-					 * no valid position lock
-					 */
-
-					/* reset the timestamp for data, because we have no data yet */
-					_report_gps_pos.timestamp = 0;
-					_report_gps_pos.timestamp_time_relative = 0;
-
-					/* set a massive variance */
-					_report_gps_pos.eph = 10000.0f;
-					_report_gps_pos.epv = 10000.0f;
-					_report_gps_pos.fix_type = 0;
-
-					publish();
 
 					/* GPS is obviously detected successfully, reset statistics */
 					_helper->resetUpdateRates();
