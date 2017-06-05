@@ -24,11 +24,6 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=tests_coverage
-    - os: linux
-      sudo: required
-      services:
-        - docker
       env: BUILD_TARGET=clang-tidy
     - os: linux
       sudo: required
@@ -77,8 +72,6 @@ script:
       ./Tools/docker_run.sh 'make check_format';
     elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
-    elif [[ "${BUILD_TARGET}" = "tests_coverage" ]]; then
-      ./Tools/docker_run.sh 'make tests_coverage';
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
@@ -97,18 +90,6 @@ after_success:
   # s3 upload cppcheck output for master branch
   - if [[ "${BUILD_TARGET}" = "cppcheck" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
          ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
-    fi
-  # s3 upload code coverage
-  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make s3put_coverage AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/coverage"';
-    fi
-  # coveralls code coverage report
-  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make coveralls_upload';
-    fi
-  # codecov code coverage report
-  - if [[ "${BUILD_TARGET}" = "tests_coverage" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
-         ./Tools/docker_run.sh 'make codecov_upload';
     fi
 
 addons:
