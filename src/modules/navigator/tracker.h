@@ -41,7 +41,7 @@
 
 
 // Enables verbose debug messages by the flight path tracker
-#define DEBUG_TRACKER
+//#define DEBUG_TRACKER
 
 
 #ifdef DEBUG_TRACKER

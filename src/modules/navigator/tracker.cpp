@@ -584,7 +584,7 @@ void Tracker::push_graph(fpos_t &position)
 		TRACKER_DBG("could reduce graph density from %.3f%% to %.3f%% in %f ms",
 			    (double)100 * ((double)1 - (double)free_space_before / (GRAPH_LENGTH * sizeof(delta_item_t))),
 			    (double)100 * ((double)1 - (double)get_free_graph_space() / (GRAPH_LENGTH * sizeof(delta_item_t))),
-			    start_time / 1e3f);
+			    (double)(start_time / 1e3f));
 	}
 
 

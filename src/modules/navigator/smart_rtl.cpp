@@ -196,7 +196,7 @@ float SmartRTL::bearing_to_setpoint(position_setpoint_s &sp)
 void SmartRTL::dump_setpoint(const char *name, position_setpoint_s &sp)
 {
 	TRACKER_DBG("%s setpoint is lat %f lon %f alt %f, distance %f, %s", name,
-		    sp.lat, sp.lon, sp.alt,
+		    sp.lat, sp.lon, (double)sp.alt,
 		    (double)distance_to_setpoint(sp), sp.valid ? "valid" : "invalid");
 }
 
