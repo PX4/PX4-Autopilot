@@ -305,26 +305,22 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: unittest run_tests_posix tests tests_coverage
-
-unittest:
-	echo "UNIT TEST DISABLED"
+.PHONY: run_tests_posix tests tests_coverage
 
 run_tests_posix:
 	$(MAKE) --no-print-directory posix_sitl_default test_results
 
-tests: unittest run_tests_posix
+tests: run_tests_posix
 
 tests_coverage:
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
 
 coveralls_upload:
 	@cpp-coveralls --include src/ \
-		--exclude src/lib/DriverFramework \
-		--exclude src/lib/ecl \
-		--exclude src/lib/Matrix \
+		--exclude=src/lib/DriverFramework \
+		--exclude=src/lib/ecl \
+		--exclude=src/lib/Matrix \
 		--exclude=src/modules/uavcan/libuavcan \
-		--exclude-pattern ".*/unittests/googletest/.*" \
 		--root . --build-root build_posix_sitl_default/ --follow-symlinks
 
 codecov_upload:

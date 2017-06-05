@@ -101,7 +101,7 @@ echo "TMPDIR=\"$TMPDIR\""
 
 # Make a list of all source and header files that we need to fix.
 # List of directories that we don't want to touch.
-EXCLUDE_FOLDERS=".git unittests Tools"
+EXCLUDE_FOLDERS=".git Tools"
 EXCLUDE_PATTERNS="examples matlab/scripts tests test unit_test *_test *_tests test_* apps/test_* UnitTests"
 # A regular expression for the exclude patterns.
 EXCLUDE_PATTERNS_RE="($(echo $EXCLUDE_PATTERNS | sed -e 's/\*/[^\/]*/g;s/ /|/g'))"

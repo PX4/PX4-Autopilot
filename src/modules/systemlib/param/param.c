@@ -84,7 +84,6 @@
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
 
-
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
 #else
@@ -111,15 +110,8 @@ static bool autosave_disabled = false;
 /**
  * Array of static parameter info.
  */
-#ifdef _UNIT_TEST
-extern struct param_info_s	param_array[];
-extern struct param_info_s	*param_info_base;
-extern struct param_info_s	*param_info_limit;
-#define param_info_count	(param_info_limit - param_info_base)
-#else
 static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
-#define	param_info_count		px4_parameters.param_count
-#endif /* _UNIT_TEST */
+#define	param_info_count px4_parameters.param_count
 
 /**
  * Storage for modified parameters.

@@ -22,10 +22,6 @@
 [submodule "Tools/sitl_gazebo"]
 	path = Tools/sitl_gazebo
 	url = https://github.com/PX4/sitl_gazebo.git
-[submodule "unittests/googletest"]
-	path = unittests/googletest
-	url = https://github.com/google/googletest.git
-	ignore = untracked
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git

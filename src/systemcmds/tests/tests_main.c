@@ -116,6 +116,7 @@ const struct {
 	{"matrix",		test_matrix,	0},
 	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"param",		test_param,	0},
+	{"parameters",	test_parameters,	0},
 	{"perf",		test_perf,	OPT_NOJIGTEST},
 	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
