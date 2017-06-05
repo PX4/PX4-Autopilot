@@ -99,8 +99,7 @@ static bool should_prearm = false;
 #define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
 #endif
 
-
-#define MIXER_VERBOSE
+//#define MIXER_VERBOSE
 
 class MixerTest : public UnitTest
 {
@@ -119,6 +118,11 @@ private:
 	bool load_mixer(const char *filename, unsigned expected_count, bool verbose = false);
 	bool load_mixer(const char *filename, const char *buf, unsigned loaded, unsigned expected_count,
 			const unsigned chunk_size, bool verbose);
+#if defined(MIXER_TUNING)
+	bool tuningTest();
+	bool storeMixerTest();
+	bool store_mixer_test(const char *filename);
+#endif
 
 	MixerGroup mixer_group;
 };
@@ -137,6 +141,10 @@ bool MixerTest::run_tests()
 	ut_run_test(loadComplexTest);
 	ut_run_test(loadAllTest);
 	ut_run_test(mixerTest);
+#if defined(MIXER_TUNING)
+	ut_run_test(tuningTest);
+	ut_run_test(storeMixerTest);
+#endif
 
 	return (_tests_failed == 0);
 }
@@ -611,3 +619,366 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 
 	return 0;
 }
+
+
+
+const mixer_param_s param_test_values[] = {
+	//index, type, mix_index, mix_sub_index, values[8], name[21], param_type, array_size, flags
+	//Multicopter main mixer
+	{0, MIXER_PARAM_MSG_TYPE_CHECKSUM,      0, 0,  { {.uintval = 0x5E9256D} }, "CHECKSUM_SCRIPT", 5, 1, 1},
+	{
+		1, MIXER_PARAM_MSG_TYPE_PARAM_METADATA, 0, 0,  { {.realval = 0.0},
+			{.realval = 1.0},
+			{.realval = -1.0},
+			{.realval = 0.01}
+		},    "METADATA_GLOBAL",  9, 4, 1
+	},
+	{2, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 0,  {},                        "MULTIROTOR",      9, 0, 1},
+	{3, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_ROLL_SCALE",   9, 1, 0},
+	{4, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_PITCH_SCALE",  9, 1, 0},
+	{5, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = 1.000000} }, "IN_YAW_SCALE",    9, 1, 0},
+	{6, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 0,  { {.realval = -1.000000} }, "IN_IDLE_SPEED",  9, 1, 0},
+	//First multicopter submixer
+	{7, MIXER_PARAM_MSG_TYPE_MIXTYPE,       0, 1,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR", 9, 0, 1},
+	{8, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = -0.927184} }, "OUT_ROLL_SCALE",  9, 1, 1},
+	{9, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 0.374607} }, "OUT_PITCH_SCALE",  9, 1, 1},
+	{10, MIXER_PARAM_MSG_TYPE_PARAMETER,     0, 1,  { {.realval = 1.000000} }, "OUT_YAW_SCALE",    9, 1, 1},
+	{11, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 1,  { {.realval = 1.000000} }, "OUT_SCALE",        9, 1, 1},
+	//Last multicopter submixer
+	{22, MIXER_PARAM_MSG_TYPE_MIXTYPE,      0, 4,  { {.realval = 0.000000} }, "MULTIROTOR_MOTOR",   9, 0, 1},
+	{23, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.777146} }, "OUT_ROLL_SCALE",    9, 1, 1},
+	{24, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -0.629320} }, "OUT_PITCH_SCALE",   9, 1, 1},
+	{25, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = -1.000000} }, "OUT_YAW_SCALE",     9, 1, 1},
+	{26, MIXER_PARAM_MSG_TYPE_PARAMETER,    0, 4,  { {.realval = 1.000000} },  "OUT_SCALE",         9, 1, 1},
+	//First SimpleMixer main output mixer
+	{27, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{28, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_NEG_SCALE",   9, 1, 0},
+	{29, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "OUT_POS_SCALE",   9, 1, 0},
+	{30, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 0.000000} }, "OUT_OFFSET",      9, 1, 0},
+	{31, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = -1.000000} }, "MIN_OUTPUT",     9, 1, 0},
+	{32, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 0,  { {.realval = 1.000000} }, "MAX_OUTPUT",      9, 1, 0},
+//	// First SimpleMixer input submixer
+	{33, MIXER_PARAM_MSG_TYPE_MIXTYPE,      1, 1,  { {.realval = 0.000000} }, "SIMPLE_INPUT",    9, 0, 1},
+	{34, MIXER_PARAM_MSG_TYPE_MIX_CONN,     1, 1,  { {.uintval = 0}, {.uintval = 4} }, "INPUT",    5, 2, 1},
+	{35, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_NEG_SCALE",    9, 1, 0},
+	{36, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "IN_POS_SCALE",    9, 1, 0},
+	{37, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 0.000000} }, "IN_OFFSET",       9, 1, 0},
+	{38, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = -1.000000} }, "MIN_INPUT",      9, 1, 0},
+	{39, MIXER_PARAM_MSG_TYPE_PARAMETER,    1, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0},
+	//First param of remaining mixers
+	{40, MIXER_PARAM_MSG_TYPE_MIXTYPE,      2, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{53, MIXER_PARAM_MSG_TYPE_MIXTYPE,      3, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	{66, MIXER_PARAM_MSG_TYPE_MIXTYPE,      4, 0,  { {.realval = 1.000000} }, "SIMPLE",          9, 0, 1},
+	//Last param of last mixer
+	{78, MIXER_PARAM_MSG_TYPE_PARAMETER,    4, 1,  { {.realval = 1.000000} }, "MAX_INPUT",       9, 1, 0}
+};
+
+
+#if defined(MIXER_TUNING)
+bool MixerTest::tuningTest()
+{
+#if defined(MIXER_VERBOSE)
+	const bool verbose = true;
+#else
+	const bool verbose = false;
+#endif
+	char buf[1024];
+	const char *mixpath = MIXER_PATH(quad_test.mix);
+	const int expected_mixer_count = 5;
+	const int expected_param_count = 79;
+
+	mixer_param_s param;
+
+	load_mixer_file(mixpath, &buf[0], sizeof(buf));
+	unsigned loaded = strlen(buf);
+
+	if (verbose) {
+		PX4_INFO("Mixer tuning test resetting and loading mixers from %s", mixpath);
+	}
+
+	mixer_group.reset();
+	mixer_group.load_from_buf(&buf[0], loaded);
+
+	int mixer_count = mixer_group.count();
+
+	if (verbose) {
+		PX4_INFO("Mixer tuning test - mixer count expected: %d - found %d mixers", expected_mixer_count, mixer_count);
+	}
+
+	if (mixer_count != expected_mixer_count) {
+		return false;
+	}
+
+	int param_count = mixer_group.group_param_count();
+
+	if (verbose) {
+		PX4_INFO("Mixer tuning test - param count expected: %d - found %d parameters", expected_param_count, param_count);
+	}
+
+	if (param_count != expected_param_count) {
+		return false;
+	}
+
+	//Check all parameters can be read
+	for (int i = 0; i < param_count; i++) {
+
+		memset(&param, 0, sizeof(param));
+		param.index = i;
+
+		if (mixer_group.group_get_param(&param) < 0) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - could not get parameter at index:%d", i);
+			}
+
+			return false;
+		}
+
+		if (verbose) {
+			switch (param.param_type) {
+			case 5: {
+					printf("Param - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals=[",
+					       param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+					       param.array_size, param.flags, param.name);
+
+					for (int v = 0; v < param.array_size; v++) {
+						printf(" 0x%X", param.values[v].uintval);
+					}
+
+					printf(" ]\n");
+					break;
+				}
+
+			case 9: {
+					printf("Param - Index:%-2d Mixer:%d Sub:%d Type:%d ParamType:%-2d Size:%d Flags:%-02X id:%-16s vals=[",
+					       param.index, param.mix_index, param.mix_sub_index, param.type, param.param_type,
+					       param.array_size, param.flags, param.name, (double) param.values[0].realval);
+
+					for (int v = 0; v < param.array_size; v++) {
+						printf(" %.4f", param.values[v].realval);
+					}
+
+					printf(" ]\n");
+					break;
+				}
+			}
+		}
+	}
+
+	const int param_test_val_count = sizeof(param_test_values) / sizeof(mixer_param_s);
+	PX4_INFO("Mixer tuning test - Testing values in mixer against %d test values", param_test_val_count);
+
+	for (int i = 0; i < param_test_val_count; i++) {
+		memset(&param, 0, sizeof(param));
+		param.index = param_test_values[i].index;
+		mixer_group.group_get_param(&param);
+
+		if (param.index != param_test_values[i].index) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter index was not as expected at index:%d", param_test_values[i].index);
+			}
+
+			return false;
+		}
+
+		if (param.mix_index != param_test_values[i].mix_index) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter mix_index was not as expected at index:%d", param_test_values[i].index);
+			}
+
+			return false;
+		}
+
+		if (param.mix_sub_index != param_test_values[i].mix_sub_index) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter mix_sub_index was not as expected at index:%d", param_test_values[i].index);
+			}
+
+			return false;
+		}
+
+		if (param.type != param_test_values[i].type) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter type was not as expected at index:%d", param_test_values[i].index);
+			}
+
+			return false;
+		}
+
+		if (param.param_type != param_test_values[i].param_type) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter param_type was not as expected at index:%d, read:%d, expected:%d",
+					 param_test_values[i].index, param.param_type, param_test_values[i].param_type);
+			}
+
+			return false;
+		}
+
+		if (param.array_size != param_test_values[i].array_size) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter array_size was not as expected at index:%d", param_test_values[i].index);
+			}
+
+			return false;
+		}
+
+		if (strncmp(param.name, param_test_values[i].name, 16) != 0) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter name was not as expected");
+			}
+
+			return false;
+		}
+
+		if (param.flags != param_test_values[i].flags) {
+			if (verbose) {
+				PX4_INFO("Mixer tuning test - parameter array_size was not as expected");
+			}
+
+			return false;
+		}
+
+		//Value comparison to go here
+	}
+
+	//Check for out of bounds paramter access
+	memset(&param, 0, sizeof(param));
+	param.index = expected_param_count;
+	mixer_group.group_get_param(&param);
+
+	if (mixer_group.group_get_param(&param) >= 0) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - Should have failure code returned at mixer index :%d", expected_param_count);
+		}
+
+		return false;
+	}
+
+	if ((param.flags & 0x80) == 0) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - Should have failure code set in flags at mixer index :%d", expected_param_count);
+		}
+
+		return false;
+	}
+
+
+	// Check parameters can be set or not set according to read only status.
+	for (int i = 0; i < param_test_val_count; i++) {
+		memset(&param, 0, sizeof(param));
+		param.index = param_test_values[i].index;
+		mixer_group.group_get_param(&param);
+		param.values[0].realval = (float) i + 2;
+		int result = mixer_group.group_set_param(&param);
+		bool read_only = ((param_test_values[i].flags & 0x01) == 1);
+
+		//Test if read only parameters are reporting a write failure
+		if ((read_only && (result == 0))) {
+			PX4_INFO("Mixer tuning test - Returned a valid write result on a read only register index:%d", param.index);
+		}
+
+		// Read back to verify the set value
+		param.values[0].realval = -1.0;
+		mixer_group.group_get_param(&param);
+
+		// Test if read/write params are written and read only are not written;
+		if (!read_only) {
+			if (param.values[0].realval != (float) i + 2) {
+				if (verbose) {
+					PX4_INFO("Mixer tuning test - Read/Write parameter did not read back correct at index:%d", param.index);
+				}
+
+				return -1;
+			}
+
+		} else {
+			if (param.values[0].realval == (float) i + 2) {
+				if (verbose) {
+					PX4_INFO("Mixer tuning test - Read only parameter read back written (incorrect) value at index:%d", param.index);
+				}
+
+				return -1;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool MixerTest::storeMixerTest()
+{
+	if (!store_mixer_test(MIXER_PATH(quad_test.mix))) {
+		return false;
+	}
+
+	if (!store_mixer_test(MIXER_PATH(complex_test.mix))) {
+		return false;
+	}
+
+	return true;
+}
+
+bool
+MixerTest::store_mixer_test(const char *filename)
+{
+#if defined(MIXER_VERBOSE)
+	const bool verbose = true;
+#else
+	const bool verbose = false;
+#endif
+	char loadbuf[1024];
+	char savebuf[1024];
+
+	if (load_mixer_file(filename, &loadbuf[0], sizeof(loadbuf)) < 0) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - Failed to load mixer file : %s", filename);
+		}
+
+		return false;
+	}
+
+	unsigned loaded = strlen(loadbuf);
+	unsigned original = loaded;
+
+	if (verbose) {
+		PX4_INFO("Mixer tuning test - Resetting and loading mixers from %s", filename);
+	}
+
+	mixer_group.reset();
+	mixer_group.load_from_buf(&loadbuf[0], loaded);
+
+	memset(&    savebuf, 0, sizeof(savebuf));
+	unsigned saved = sizeof(savebuf);
+
+	if (mixer_group.save_to_buf(&savebuf[0], saved) < 0) {
+		PX4_INFO("Mixer tuning test - Save to buffer returned error");
+		return false;
+	}
+
+	if (saved != strlen(savebuf)) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - save to buf returned buffer size not in agreement with strlen");
+		}
+
+		return false;
+	}
+
+	if (verbose) {
+		PX4_INFO("Mixer tuning test - Load buffer size:%d - Save buffer size:%d", original, saved);
+	}
+
+	if (saved != original) {
+		return false;
+	}
+
+	if (strncmp(loadbuf, savebuf, original) != 0) {
+		if (verbose) {
+			PX4_INFO("Mixer tuning test - Saved buffer did not match loaded buffer");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+#endif  //(MIXER_TUNING)

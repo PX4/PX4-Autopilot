@@ -223,3 +223,28 @@ NullMixer::from_text(const char *buf, unsigned &buflen)
 
 	return nm;
 }
+
+
+#if defined(MIXER_TUNING)
+#if !defined(MIXER_REMOTE)
+int
+NullMixer::to_text(char *buf, unsigned &buflen)
+{
+	char *bufpos = buf;
+	unsigned remaining = buflen;
+
+	int written = snprintf(bufpos, remaining, "Z:\n");
+	bufpos += written;
+	remaining -= written;
+
+	if (remaining < 1) {
+		return -1;
+	}
+
+	buflen = bufpos - buf;
+	return 0;
+}
+#endif //MIXER_REMOTE
+
+
+#endif //defined(MIXER_TUNING)

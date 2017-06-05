@@ -116,4 +116,54 @@ struct mixer_simple_s {
  * - save/serialise for saving tuned mixers.
  */
 
+
+/**
+ * Get the count of parameters in the group as (unsigned *)arg
+ */
+#define   MIXERIOCGETPARAMCOUNT         _MIXERIOC(10)
+
+
+/**
+ * Get the parameter at index
+ * return the value and metadata
+ */
+union paramval_u {
+	uint32_t uintval;
+	int32_t  intval;
+	float    realval;
+};
+
+struct mixer_param_s {
+	int16_t         index;
+	int8_t          type;
+	int16_t         mix_index;
+	int16_t         mix_sub_index;
+	paramval_u      values[8];
+	char            name[21];
+	int8_t          param_type;
+	int8_t          array_size;
+	uint8_t         flags;
+};
+#define   MIXERIOCGETPARAM		_MIXERIOC(11)
+
+
+/**
+ * Set the parameter at index for a mixer at index (mixer_param_s *)arg
+ * set the the mixer index and parameter index int the struct
+ * return 0 if success, -1 if fail.  Fail can indicate out of range.
+ * If failed then real value MAY be set in the mixer_param_s struct.
+ */
+#define MIXERIOCSETPARAM                 _MIXERIOC(14)
+
+
+/**
+ * Get mixer configuration text for serialization
+ */
+struct mixer_config_s {
+	char           *buff;
+	unsigned        size;
+};
+#define MIXERIOCGETCONFIG               _MIXERIOC(15)
+
+
 #endif /* _DRV_ACCEL_H */
