@@ -66,25 +66,24 @@
 #define PCA9685_DEFAULT_I2C_ADDR 0x40  // default i2c address for pca9685 默认i2c地址为0x40
 #define PCA9685_DEFAULT_I2C_BUS  1     // default i2c bus for pca9685  默认为1
 //! Main class that exports features for PCA9685 chip
-class PCA9685
-{
+class PCA9685 {
 public:
 
 	PCA9685();
-	PCA9685(int bus, int address);
-	void init(int bus, int address);
+	PCA9685(int,int);
+	void init(int,int);
 	virtual ~PCA9685();
 	void reset(void);
-	void setPWMFreq(int freq);
-	void setPWM(uint8_t channel, int on, int off);
-	void setPWM(uint8_t cahnnel, int off);
+	void setPWMFreq(int);
+	void setPWM(uint8_t, int, int);
+	void setPWM(uint8_t, int);
 private:
 	int _i2caddr;
 	int _i2cbus;
-	char _busfile[64];
-	uint8_t _dataBuffer[BUFFER_SIZE];
-	uint8_t read_byte(int fd, uint8_t address);
-	void write_byte(int fd, uint8_t address, uint8_t data);
+	char busfile[64];
+	uint8_t dataBuffer[BUFFER_SIZE];
+	uint8_t read_byte(int, uint8_t);
+	void write_byte(int, uint8_t, uint8_t);
 	int openfd();
 };
 #endif

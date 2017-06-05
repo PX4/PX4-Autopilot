@@ -59,43 +59,39 @@
  \param address the device address on bus
  */
 
-void PCA9685::init(int bus, int address)
-{
+void PCA9685::init(int bus, int address) {
 	_i2cbus = bus;
 	_i2caddr = address;
-	snprintf(_busfile, sizeof(_busfile), "/dev/i2c-%d", bus);
+	snprintf(busfile, sizeof(busfile), "/dev/i2c-%d", bus);
 	reset();
 	//usleep(10*1000);
 }
 
 
 PCA9685::PCA9685() :
-	_i2caddr(PCA9685_DEFAULT_I2C_ADDR),
-	_i2cbus(PCA9685_DEFAULT_I2C_BUS),
-	_dataBuffer {}
+_i2caddr(PCA9685_DEFAULT_I2C_ADDR),
+_i2cbus(PCA9685_DEFAULT_I2C_BUS),
+dataBuffer {}
 {
 
 }
 
-PCA9685::PCA9685(int bus, int address) :
-	_busfile {},
-	_dataBuffer {}
+PCA9685::PCA9685(int bus,int address) :
+busfile {},
+dataBuffer {}
 {
 	_i2cbus = bus;
 	_i2caddr = address;
-	snprintf(_busfile, sizeof(_busfile), "/dev/i2c-%d", bus);
+	snprintf(busfile, sizeof(busfile), "/dev/i2c-%d", bus);
 	reset();
 }
 
-PCA9685::~PCA9685()
-{
+PCA9685::~PCA9685() {
 	reset();
 }
 //! Sets PCA9685 mode to 00
-void PCA9685::reset()
-{
+void PCA9685::reset() {
 	int fd = openfd();
-
 	if (fd != -1) {
 		write_byte(fd, MODE1, 0x00); //Normal mode
 		write_byte(fd, MODE2, 0x04); //Normal mode
@@ -106,46 +102,41 @@ void PCA9685::reset()
 /*!
  \param freq desired frequency. 40Hz to 1000Hz using internal 25MHz oscillator.
  */
-void PCA9685::setPWMFreq(int freq)
-{
+void PCA9685::setPWMFreq(int freq) {
 	int fd = openfd();
-
 	if (fd != -1) {
 		uint8_t prescale = (CLOCK_FREQ / MAX_PWM_RES / freq)  - 1;
 		//printf ("Setting prescale value to: %d\n", prescale);
 		//printf ("Using Frequency: %d\n", freq);
 
-		uint8_t oldmode = read_byte(fd, MODE1);
-		uint8_t newmode = (oldmode & 0x7F) | 0x10;    //sleep
-		write_byte(fd, MODE1, newmode);        // go to sleep
-		write_byte(fd, PRE_SCALE, prescale);
-		write_byte(fd, MODE1, oldmode);
-		usleep(10 * 1000);
-		write_byte(fd, MODE1, oldmode | 0x80);
+ 		uint8_t oldmode = read_byte(fd, MODE1);
+    	uint8_t newmode = (oldmode & 0x7F) | 0x10;    //sleep
+    write_byte(fd, MODE1, newmode);        // go to sleep
+    write_byte(fd, PRE_SCALE, prescale);
+    write_byte(fd, MODE1, oldmode);
+    usleep(10*1000);
+    write_byte(fd, MODE1, oldmode | 0x80);
 
 		close(fd);
 	}
 }
 
-
-/**
- *send pwn vale to led(channel),
- *value should be range of 0-4095
+//! PWM a single channel
+/*!
+ \param led channel to set PWM value for
+ \param value 0-4095 value for PWM
  */
-void PCA9685::setPWM(uint8_t led, int value)
-{
+void PCA9685::setPWM(uint8_t led, int value) {
 	setPWM(led, 0, value);
 }
 //! PWM a single channel with custom on time
 /*!
- *send pwn vale to led(channel),
- *param on_value 0-4095 value to turn on the pulse
- *param off_value 0-4095 value to turn off the pulse
+ \param led channel to set PWM value for
+ \param on_value 0-4095 value to turn on the pulse
+ \param off_value 0-4095 value to turn off the pulse
  */
-void PCA9685::setPWM(uint8_t led, int on_value, int off_value)
-{
+void PCA9685::setPWM(uint8_t led, int on_value, int off_value) {
 	int fd = openfd();
-
 	if (fd != -1) {
 
 		write_byte(fd, LED0_ON_L + LED_MULTIPLYER * led, on_value & 0xFF);
@@ -166,21 +157,23 @@ void PCA9685::setPWM(uint8_t led, int on_value, int off_value)
  \param fd file descriptor for I/O
  \param address register address to read from
  */
-uint8_t PCA9685::read_byte(int fd, uint8_t address)
-{
+uint8_t PCA9685::read_byte(int fd, uint8_t address) {
 
 	return 0;
-	/*
+
 	uint8_t buff[BUFFER_SIZE];
 	buff[0] = address;
-
 	if (write(fd, buff, BUFFER_SIZE) != BUFFER_SIZE) {
+		printf("I2C slave 0x%x failed to go to register 0x%x [read_byte():write %d]", _i2caddr, address, errno);
 		return (-1);
+	} else {
+		if (read(fd, dataBuffer, BUFFER_SIZE) != BUFFER_SIZE) {
+			printf ("Could not read from I2C slave 0x%x, register 0x%x [read_byte():read %d]", _i2caddr, address, errno);
+			return (-1);
+		}
 	}
 
-	if (read(fd, _dataBuffer, BUFFER_SIZE) != BUFFER_SIZE) {
-		return (-1);
-	}*/
+
 }
 //! Write a single byte from PCA9685
 /*!
@@ -188,33 +181,32 @@ uint8_t PCA9685::read_byte(int fd, uint8_t address)
  \param address register address to write to
  \param data 8 bit data to write
  */
-void PCA9685::write_byte(int fd, uint8_t address, uint8_t data)
-{
+void PCA9685::write_byte(int fd, uint8_t address, uint8_t data) {
 	uint8_t buff[2];
 	buff[0] = address;
 	buff[1] = data;
-
 	if (write(fd, buff, sizeof(buff)) != 2) {
+		printf("Failed to write to I2C Slave 0x%x @ register 0x%x [write_byte():write %d]", _i2caddr, address, errno);
 		usleep(5000);
+	}else{
+		//printf("Wrote to I2C Slave 0x%x @ register 0x%x [0x%x]\n", _i2caddr, address, data);
 	}
 }
 //! Open device file for PCA9685 I2C bus
 /*!
  \return fd returns the file descriptor number or -1 on error
  */
-int PCA9685::openfd()
-{
+int PCA9685::openfd() {
 	int fd;
-
-	if ((fd = open(_busfile, O_RDWR)) < 0) {
-		//printf("Couldn't open I2C Bus %d [openfd():open %d]", _i2cbus, errno);
+	if ((fd = open(busfile, O_RDWR)) < 0) {
+		printf ("Couldn't open I2C Bus %d [openfd():open %d]", _i2cbus, errno);
 		return -1;
 	}
-
 	if (ioctl(fd, I2C_SLAVE, _i2caddr) < 0) {
-		//printf("I2C slave %d failed [openfd():ioctl %d]", _i2caddr, errno);
+		printf ("I2C slave %d failed [openfd():ioctl %d]", _i2caddr, errno);
 		return -1;
 	}
 
 	return fd;
 }
+Contact GitHub
