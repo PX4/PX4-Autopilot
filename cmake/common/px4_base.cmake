@@ -352,6 +352,8 @@ function(px4_add_common_flags)
 
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		list(APPEND warnings
+			-Wextra-semi
+
 			# fix these
 			-Wno-cast-align
 			-Wno-cast-qual
@@ -362,7 +364,6 @@ function(px4_add_common_flags)
 			-Wno-deprecated
 			-Wno-documentation
 			-Wno-exit-time-destructors
-			-Wno-extra-semi
 			-Wno-format-pedantic
 			-Wno-header-hygiene
 			-Wno-implicit-fallthrough

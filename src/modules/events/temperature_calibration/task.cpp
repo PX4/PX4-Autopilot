@@ -74,7 +74,7 @@ public:
 	/**
 	 * Destructor
 	 */
-	~TemperatureCalibration() = default;;
+	~TemperatureCalibration() = default;
 
 	/**
 	 * Start task.
