@@ -22,6 +22,7 @@ set(tests
 	mc_pos_control
 	mixer
 	param
+	parameters
 	perf
 	rc
 	servo
