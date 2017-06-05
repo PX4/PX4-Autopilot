@@ -307,9 +307,8 @@ format:
 # --------------------------------------------------------------------
 .PHONY: unittest run_tests_posix tests tests_coverage
 
-unittest: posix_sitl_default
-	$(call cmake-build,unittest,$(SRC_DIR)/unittests)
-	@(cd build_unittest && ctest -j2 --output-on-failure)
+unittest:
+	echo "UNIT TEST DISABLED"
 
 run_tests_posix:
 	$(MAKE) --no-print-directory posix_sitl_default test_results

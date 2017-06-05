@@ -14,10 +14,16 @@ class SourceScanner(object):
         Scans provided path and passes all found contents to the parser using
         parser.Parse method.
         """
-        extensions1 = tuple([".c"])
+        extensions1 = tuple([".h"])
+        extensions2 = tuple([".c"])
         for srcdir in srcdirs:
             for filename in os.listdir(srcdir):
                 if filename.endswith(extensions1):
+                    path = os.path.join(srcdir, filename)
+                    if not self.ScanFile(path, parser):
+                        return False
+            for filename in os.listdir(srcdir):
+                if filename.endswith(extensions2):
                     path = os.path.join(srcdir, filename)
                     if not self.ScanFile(path, parser):
                         return False

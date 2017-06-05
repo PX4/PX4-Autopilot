@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-# for generated files
-include_directories(${PX4_BINARY_DIR}/src/modules/param)
-
 set(SRCS
 	perf_counter.c
 	conversions.c
@@ -55,19 +52,16 @@ if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
 		printload.c
-		param/param.c
 		flashparams/flashparams.c
 		flashparams/flashfs.c
 		up_cxxinitialize.c
 		)
 elseif ("${CONFIG_SHMEM}" STREQUAL "1")
 	list(APPEND SRCS
-		param/param_shmem.c
 		print_load_posix.c
 		)
 else()
 	list(APPEND SRCS
-		param/param.c
 		print_load_posix.c
 		)
 endif()
@@ -85,6 +79,5 @@ px4_add_module(
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common
-		modules__param
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -341,8 +341,6 @@ int flash_param_save(void)
 	return param_export_internal(false);
 }
 
-
-
 int flash_param_load(void)
 {
 	param_reset_all();
