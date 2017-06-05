@@ -160,7 +160,7 @@ void PCA9685::setPWM(uint8_t led, int on_value, int off_value) {
 uint8_t PCA9685::read_byte(int fd, uint8_t address) {
 
 	return 0;
-	/*
+
 	uint8_t buff[BUFFER_SIZE];
 	buff[0] = address;
 	if (write(fd, buff, BUFFER_SIZE) != BUFFER_SIZE) {
@@ -171,7 +171,7 @@ uint8_t PCA9685::read_byte(int fd, uint8_t address) {
 			printf ("Could not read from I2C slave 0x%x, register 0x%x [read_byte():read %d]", _i2caddr, address, errno);
 			return (-1);
 		}
-	}*/
+	}
 
 
 }
@@ -188,6 +188,8 @@ void PCA9685::write_byte(int fd, uint8_t address, uint8_t data) {
 	if (write(fd, buff, sizeof(buff)) != 2) {
 		printf("Failed to write to I2C Slave 0x%x @ register 0x%x [write_byte():write %d]", _i2caddr, address, errno);
 		usleep(5000);
+	}else{
+		//printf("Wrote to I2C Slave 0x%x @ register 0x%x [0x%x]\n", _i2caddr, address, data);
 	}
 }
 //! Open device file for PCA9685 I2C bus
@@ -207,3 +209,4 @@ int PCA9685::openfd() {
 
 	return fd;
 }
+Contact GitHub
