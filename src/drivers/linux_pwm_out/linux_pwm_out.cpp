@@ -54,6 +54,7 @@
 #include "common.h"
 #include "navio_sysfs.h"
 #include "PCA9685.h"
+#include "ocpoc_mmap.h"
 
 namespace linux_pwm_out
 {
@@ -63,7 +64,7 @@ static bool _is_running = false;
 
 static char _device[64] = "/sys/class/pwm/pwmchip0";
 static char _protocol[64] = "navio";
-static int _max_mum_outputs = 8; ///< maximum number of outputs the driver should use
+static int _max_num_outputs = 8; ///< maximum number of outputs the driver should use
 static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
 
 // subscriptions
@@ -206,9 +207,13 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Starting PWM output in PCA9685 mode");
 		pwm_out = new PCA9685();
 
+	} else if (strcmp(_protocol, "ocpoc_mmap") == 0) {
+		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
+		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
+
 	} else { // navio
 		PX4_INFO("Starting PWM output in Navio mode");
-		pwm_out = new NavioSysfsPWMOut(_device, _max_mum_outputs);
+		pwm_out = new NavioSysfsPWMOut(_device, _max_num_outputs);
 	}
 
 	if (pwm_out->init() != 0) {
@@ -380,7 +385,7 @@ void usage()
 	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
 	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/quad_x.main.mix)");
-	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685)");
+	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685|ocpoc_mmap)");
 	PX4_INFO("                       (default is navio)");
 	PX4_INFO("       -n num_outputs : maximum number of outputs the driver should use");
 	PX4_INFO("                       (default is 8)");
@@ -433,7 +438,7 @@ int linux_pwm_out_main(int argc, char *argv[])
 					max_num = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
 				}
 
-				linux_pwm_out::_max_mum_outputs = max_num;
+				linux_pwm_out::_max_num_outputs = max_num;
 			}
 			break;
 		}
