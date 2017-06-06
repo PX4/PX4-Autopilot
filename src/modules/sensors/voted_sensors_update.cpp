@@ -398,12 +398,6 @@ void VotedSensorsUpdate::parameters_update()
 	/* run through all mag sensors */
 	for (unsigned s = 0; s < MAG_COUNT_MAX; s++) {
 
-		/* set a valid default rotation (same as board).
-		 * if the mag is configured, this might be replaced
-		 * in the section below.
-		 */
-		_mag_rotation[s] = _board_rotation;
-
 		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
 
 		DevHandle h;
@@ -425,8 +419,6 @@ void VotedSensorsUpdate::parameters_update()
 			(void)sprintf(str, "CAL_MAG%u_ID", i);
 			int device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
-			(void)sprintf(str, "CAL_MAG%u_ROT", i);
-			(void)param_find(str);
 
 			if (failed) {
 				DevMgr::releaseHandle(h);
@@ -452,9 +444,7 @@ void VotedSensorsUpdate::parameters_update()
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
 				if (h.ioctl(MAGIOCGEXTERNAL, 0) <= 0) {
-					/* mag is internal */
-					_mag_rotation[s] = _board_rotation;
-					/* reset param to -1 to indicate internal mag */
+					/* mag is internal - reset param to -1 to indicate internal mag */
 					int32_t minus_one;
 					param_get(param_find(str), &minus_one);
 
@@ -464,11 +454,11 @@ void VotedSensorsUpdate::parameters_update()
 					}
 
 				} else {
-
+					/* mag is external */
 					int32_t mag_rot;
 					param_get(param_find(str), &mag_rot);
 
-					/* check if this mag is still set as internal */
+					/* check if this mag is still set as internal, otherwise leave untouched */
 					if (mag_rot < 0) {
 						/* it was marked as internal, change to external with no rotation */
 						mag_rot = 0;
@@ -751,7 +741,7 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 							_mag_rotation[uorb_index] = _board_rotation;
 
 						} else {
-							// Set external magnetometers to use the paramter value
+							// Set external magnetometers to use the parameter value
 							get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
 						}
 					}
