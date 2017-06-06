@@ -230,9 +230,9 @@ void VotedSensorsUpdate::parameters_update()
 	unsigned accel_cal_found_count = 0;
 
 	/* run through all gyro sensors */
-	for (unsigned s = 0; s < GYRO_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
 
-		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -258,7 +258,7 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			if (s == 0 && device_id > 0) {
+			if (driver_index == 0 && device_id > 0) {
 				gyro_cal_found_count++;
 			}
 
@@ -313,9 +313,9 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all accel sensors */
-	for (unsigned s = 0; s < ACCEL_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
 
-		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -341,7 +341,7 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			if (s == 0 && device_id > 0) {
+			if (driver_index == 0 && device_id > 0) {
 				accel_cal_found_count++;
 			}
 
@@ -396,9 +396,9 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all mag sensors */
-	for (unsigned s = 0; s < MAG_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
 
-		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -408,7 +408,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		_mag_device_id[s] = h.ioctl(DEVIOCGDEVICEID, 0);
+		_mag_device_id[driver_index] = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -426,7 +426,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == _mag_device_id[s]) {
+			if (device_id == _mag_device_id[driver_index]) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
