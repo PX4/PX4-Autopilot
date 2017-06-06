@@ -142,6 +142,15 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 	}
 }
 
+void mavlink_start_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+
+	if (m != nullptr) {
+		(void)m->begin_send();
+	}
+}
+
 void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 {
 	Mavlink *m = Mavlink::get_instance((unsigned)chan);

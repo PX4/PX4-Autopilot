@@ -168,11 +168,10 @@ public:
 		BROADCAST_MODE_ON
 	};
 
-	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
-	{
+	static const char *mavlink_mode_str(enum MAVLINK_MODE mode) {
 		switch (mode) {
 		case MAVLINK_MODE_NORMAL:
-			return "Normal";
+				return "Normal";
 
 		case MAVLINK_MODE_CUSTOM:
 			return "Custom";
