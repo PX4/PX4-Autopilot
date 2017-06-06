@@ -210,7 +210,7 @@ RTL::set_rtl_item()
 			_navigator_item.lon = _navigator->get_home_position()->lon;
 			_navigator_item.x = _navigator->get_home_position()->x;
 			_navigator_item.y = _navigator->get_home_position()->y;
-			_navigator_item.z = _navigator->get_home_position()->z;
+			_navigator_item.z = _navigator->get_home_position()->z - _param_descend_alt.get();
 			_navigator_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
 
 			// check if we are already lower - then we will just stay there

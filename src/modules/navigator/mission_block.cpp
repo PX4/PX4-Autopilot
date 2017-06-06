@@ -737,7 +737,8 @@ MissionBlock::set_land_item(struct navigator_item_s *item, bool at_current_locat
 
 	}
 
-	item->altitude = 0;
+	item->altitude = 0; // not used -> position controller uses descend velocity
+	item->z = 100; // not used -> position controller uses descend velocity
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
