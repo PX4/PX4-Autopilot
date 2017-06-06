@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 0.5f);
+PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.5f);
 
 /**
  * Multicopter max rotation
