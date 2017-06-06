@@ -79,7 +79,6 @@ private:
 
 	pthread_mutex_t _samples_lock;
 	adc_msg_s _samples;
-	FILE *xadc_fd;
 };
 
 OcpocADC::OcpocADC()
@@ -153,7 +152,7 @@ int OcpocADC::read(struct adc_msg_s(*buf)[12], unsigned int len)
 	uint32_t buff[1];
 	int ret = 0;
 
-	xadc_fd = fopen(ADC_VOLTAGE_PATH, "r");
+	FILE *xadc_fd = fopen(ADC_VOLTAGE_PATH, "r");
 
 	if (xadc_fd != NULL) {
 		fscanf(xadc_fd, "%d", buff);
