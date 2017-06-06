@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-namespace rpi_pwm_out
+namespace linux_pwm_out
 {
 
 /**

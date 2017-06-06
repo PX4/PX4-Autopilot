@@ -53,7 +53,7 @@
 
 #include <px4_log.h>
 
-using namespace rpi_pwm_out;
+using namespace linux_pwm_out;
 
 void PCA9685::init(int bus, int address)
 {
