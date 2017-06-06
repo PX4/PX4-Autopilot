@@ -986,8 +986,6 @@ Mission::check_for_takeoff_altitude(struct navigator_item_s *item)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Takeoff to %.1f meters above home",
 				 (double)(item->altitude - _navigator->get_global_position()->alt));
 	}
-
-	return;
 }
 
 void
