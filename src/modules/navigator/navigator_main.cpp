@@ -919,13 +919,16 @@ Navigator::mission_item_to_navigator_item(struct navigator_item_s *nav_item, str
 
 	map_projection_project(get_local_reference_pos(), mission_item->lat, mission_item->lon, &nav_item->x, &nav_item->y);
 
+	nav_item->lat = mission_item->lat;
+	nav_item->lon = mission_item->lon;
+
 	if (mission_item->altitude_is_relative) {
 		nav_item->z = - mission_item->altitude;
-		nav_item->altitude = mission_item->altitude;
+		nav_item->altitude = mission_item->altitude + get_home_position()->alt;
 
 	} else {
 		nav_item->z = - (mission_item->altitude - get_local_reference_alt());
-		nav_item->altitude = mission_item->altitude + get_home_position()->alt;
+		nav_item->altitude = mission_item->altitude;
 	}
 
 	nav_item->yaw = mission_item->yaw;
