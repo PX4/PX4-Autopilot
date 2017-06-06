@@ -32,6 +32,4 @@ tests @test_name@
 dataman status
 dataman stop
 
-perf
-
 shutdown
