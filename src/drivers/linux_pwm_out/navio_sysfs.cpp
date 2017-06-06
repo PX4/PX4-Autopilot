@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <px4_log.h>
 
-using namespace rpi_pwm_out;
+using namespace linux_pwm_out;
 
 NavioSysfsPWMOut::NavioSysfsPWMOut(const char *device, int max_num_outputs)
 	: _device(device)

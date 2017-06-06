@@ -31,13 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__rpi_pwm_out
-	MAIN rpi_pwm_out
+	MODULE drivers__linux_pwm_out
+	MAIN linux_pwm_out
 	COMPILE_FLAGS
 	SRCS
 		PCA9685.cpp
 		navio_sysfs.cpp
-		rpi_pwm_out.cpp
+		linux_pwm_out.cpp
 	DEPENDS
 		platforms__common
 	)
