@@ -84,6 +84,8 @@ extern "C" {
 		cout.flush();
 		_ExitFlag = true;
 	}
+
+
 	void _SigFpeHandler(int sig_num);
 	void _SigFpeHandler(int sig_num)
 	{
@@ -91,6 +93,17 @@ extern "C" {
 		cout << endl << "floating point exception" << endl;
 		PX4_BACKTRACE();
 		cout.flush();
+	}
+
+
+	void _SigSegvHandler(int sig_num);
+	void _SigSegvHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "segmentation fault" << endl;
+		PX4_BACKTRACE();
+		cout.flush();
+		std::exit(1);
 	}
 }
 
@@ -310,9 +323,15 @@ int main(int argc, char **argv)
 	sig_fpe.sa_handler = _SigFpeHandler;
 	sig_fpe.sa_flags = 0;// not SA_RESTART!;
 
+	struct sigaction sig_segv;
+	memset(&sig_segv, 0, sizeof(struct sigaction));
+	sig_segv.sa_handler = _SigSegvHandler;
+	sig_segv.sa_flags = 0;// not SA_RESTART!;
+
 	sigaction(SIGINT, &sig_int, nullptr);
-	//sigaction(SIGTERM, &sig_int, NULL);
+	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
+	sigaction(SIGSEGV, &sig_segv, nullptr);
 
 	set_cpu_scaling();
 
