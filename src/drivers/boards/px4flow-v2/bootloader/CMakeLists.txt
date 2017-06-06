@@ -45,7 +45,6 @@ include_directories(.)
 px4_add_module(
 	MODULE drivers__boards__px4flow-v2__bootloader
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		boot.c
 		led.c
