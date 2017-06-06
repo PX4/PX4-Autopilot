@@ -38,6 +38,7 @@ px4_add_module(
 		PCA9685.cpp
 		navio_sysfs.cpp
 		linux_pwm_out.cpp
+		ocpoc_mmap.cpp
 	DEPENDS
 		platforms__common
 	)
