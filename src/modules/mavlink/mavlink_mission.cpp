@@ -1048,15 +1048,26 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		switch (_mission_type) {
 
 		case MAV_MISSION_TYPE_MISSION: {
-				dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
+				// check that we don't get a wrong item (hardening against wrong client implementations, the list here
+				// does not need to be complete)
+				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
+				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION ||
+				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION ||
+				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION ||
+				    mission_item.nav_cmd == MAV_CMD_NAV_RALLY_POINT) {
+					check_failed = true;
 
-				write_failed = dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
-							sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
+				} else {
+					dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
 
-				if (!write_failed) {
-					/* waypoint marked as current */
-					if (wp.current) {
-						_transfer_current_seq = wp.seq;
+					write_failed = dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item,
+								sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
+
+					if (!write_failed) {
+						/* waypoint marked as current */
+						if (wp.current) {
+							_transfer_current_seq = wp.seq;
+						}
 					}
 				}
 			}
