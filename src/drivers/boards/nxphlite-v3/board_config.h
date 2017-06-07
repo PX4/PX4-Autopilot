@@ -543,16 +543,6 @@ void board_spi_reset(int ms);
 void board_peripheral_reset(int ms);
 
 /************************************************************************************
- * Name: nxphlite_usbinitialize
- *
- * Description:
- *   Called to setup USB-related GPIO pins for the NXPHlite-v3 board.
- *
- ************************************************************************************/
-
-void nxphlite_usbinitialize(void);
-
-/************************************************************************************
  * Name: nxphlite_bringup
  *
  * Description:
