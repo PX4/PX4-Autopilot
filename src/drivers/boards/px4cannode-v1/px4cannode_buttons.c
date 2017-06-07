@@ -117,7 +117,7 @@ void board_button_initialize(void)
  *
  ****************************************************************************/
 
-uint8_t board_buttons(void)
+uint32_t board_buttons(void)
 {
 	return stm32_gpioread(BUTTON_BOOT0n) ? 0 : BUTTON_BOOT0_MASK;
 }
