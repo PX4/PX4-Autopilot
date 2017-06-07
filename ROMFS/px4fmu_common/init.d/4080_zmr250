@@ -35,9 +35,9 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
 
-	param set MC_ACRO_R_MAX 1080.0
-	param set MC_ACRO_P_MAX 1080.0
-	param set MC_ACRO_Y_MAX 1080.0
+	param set MC_ACRO_R_MAX 1000.0
+	param set MC_ACRO_P_MAX 1000.0
+	param set MC_ACRO_Y_MAX 1000.0
 
 	param set MC_TPA_BREAK_P 0.5
 	param set MC_TPA_BREAK_D 0.7
