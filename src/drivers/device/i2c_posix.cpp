@@ -50,7 +50,7 @@
 #include <sys/ioctl.h>
 
 #define PX4_SIMULATE_I2C 0
-static int simulate = PX4_SIMULATE_I2C;
+static constexpr const int simulate = PX4_SIMULATE_I2C;
 
 namespace device
 {
@@ -104,13 +104,6 @@ I2C::init()
 		return ret;
 	}
 
-	_fd = px4_open(get_devname(), PX4_F_RDONLY | PX4_F_WRONLY);
-
-	if (_fd < 0) {
-		DEVICE_DEBUG("px4_open failed of device %s", get_devname());
-		return PX4_ERROR;
-	}
-
 #ifdef __PX4_QURT
 	simulate = true;
 #endif
@@ -120,11 +113,14 @@ I2C::init()
 
 	} else {
 #ifndef __PX4_QURT
-		// Open the actual I2C device and map to the virtual dev name
-		_fd = ::open(get_devname(), O_RDWR);
+
+		// Open the actual I2C device
+		char dev_path[16];
+		snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", _bus);
+		_fd = ::open(dev_path, O_RDWR);
 
 		if (_fd < 0) {
-			warnx("could not open %s", get_devname());
+			PX4_ERR("could not open %s", dev_path);
 			px4_errno = errno;
 			return PX4_ERROR;
 		}
