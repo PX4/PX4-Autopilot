@@ -1392,9 +1392,6 @@ void MulticopterPositionControl::control_auto(float dt)
 					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 					       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
 
-		} else {
-			_curr_pos_sp(0) = _pos(0);
-			_curr_pos_sp(1) = _pos(1);
 		}
 
 		//only project setpoints if they are finite, else use current position
@@ -1554,6 +1551,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
+
 
 		/*
 		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
