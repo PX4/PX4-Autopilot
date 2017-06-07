@@ -20,7 +20,7 @@ then
 	param set MC_ROLL_P 2.0
 	param set MC_ROLLRATE_P 0.05
 	param set MC_ROLLRATE_I 0.2
-	param set MC_ROLLRATE_D	0.0015
+	param set MC_ROLLRATE_D 0.0015
 	param set MC_ROLL_TC 0.18
 
 	param set MC_PITCH_P 2.0
