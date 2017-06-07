@@ -69,7 +69,7 @@ static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
 
 // subscriptions
 int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
-int     _armed_sub;
+int     _armed_sub = -1;
 
 // publications
 orb_advert_t    _outputs_pub = nullptr;
@@ -226,18 +226,27 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
+	int rc_channels_sub = -1;
+
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
 
 	pwm_limit_init(&_pwm_limit);
 
-	// Main loop
 	while (!_task_should_exit) {
+
+		bool updated;
+		orb_check(_armed_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+		}
+
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
 
 		/* Timed out, do a periodic check for _task_should_exit. */
-		if (pret == 0) {
+		if (pret == 0 && !_armed.in_esc_calibration_mode) {
 			continue;
 		}
 
@@ -260,6 +269,30 @@ void task_main(int argc, char *argv[])
 
 				poll_id++;
 			}
+		}
+
+		if (_armed.in_esc_calibration_mode) {
+			if (rc_channels_sub == -1) {
+				// only subscribe when really needed: esc calibration is not something we use regularily
+				rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
+			}
+
+			rc_channels_s rc_channels;
+			int ret = orb_copy(ORB_ID(rc_channels), rc_channels_sub, &rc_channels);
+			_controls[0].control[0] = 0.f;
+			_controls[0].control[1] = 0.f;
+			_controls[0].control[2] = 0.f;
+			int channel = rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE];
+
+			if (ret == 0 && channel >= 0 && channel < sizeof(rc_channels.channels) / sizeof(rc_channels.channels[0])) {
+				_controls[0].control[3] = rc_channels.channels[channel];
+
+			} else {
+				_controls[0].control[3] = 1.f;
+			}
+
+			/* Switch off the PWM limit ramp for the calibration. */
+			_pwm_limit.state = PWM_LIMIT_STATE_ON;
 		}
 
 		if (_mixer_group != nullptr) {
@@ -302,6 +335,23 @@ void task_main(int argc, char *argv[])
 			if (_armed.lockdown || _armed.manual_lockdown) {
 				pwm_out->send_output_pwm(disarmed_pwm, _outputs.noutputs);
 
+			} else if (_armed.in_esc_calibration_mode) {
+
+				uint16_t pwm_value;
+
+				if (_controls[0].control[3] > 0.5f) { // use throttle to decide which value to use
+					pwm_value = _pwm_max;
+
+				} else {
+					pwm_value = _pwm_min;
+				}
+
+				for (int i = 0; i < _outputs.noutputs; ++i) {
+					pwm[i] = pwm_value;
+				}
+
+				pwm_out->send_output_pwm(pwm, _outputs.noutputs);
+
 			} else {
 				pwm_out->send_output_pwm(pwm, _outputs.noutputs);
 			}
@@ -317,13 +367,6 @@ void task_main(int argc, char *argv[])
 			PX4_ERR("Could not mix output! Exiting...");
 			_task_should_exit = true;
 		}
-
-		bool updated;
-		orb_check(_armed_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-		}
 	}
 
 	delete pwm_out;
@@ -334,7 +377,14 @@ void task_main(int argc, char *argv[])
 		}
 	}
 
-	orb_unsubscribe(_armed_sub);
+	if (_armed_sub != -1) {
+		orb_unsubscribe(_armed_sub);
+		_armed_sub = -1;
+	}
+
+	if (rc_channels_sub != -1) {
+		orb_unsubscribe(rc_channels_sub);
+	}
 
 	_is_running = false;
 
