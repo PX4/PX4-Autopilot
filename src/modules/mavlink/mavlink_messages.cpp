@@ -65,6 +65,7 @@
 #include <uORB/topics/camera_capture.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/debug_value.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
@@ -3171,6 +3172,69 @@ protected:
 	}
 };
 
+class MavlinkStreamDebug : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamDebug::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "DEBUG";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_DEBUG;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamDebug(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_debug_time > 0) ? MAVLINK_MSG_ID_DEBUG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_debug_sub;
+	uint64_t _debug_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamDebug(MavlinkStreamDebug &);
+	MavlinkStreamDebug &operator = (const MavlinkStreamDebug &);
+
+protected:
+	explicit MavlinkStreamDebug(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_debug_sub(_mavlink->add_orb_subscription(ORB_ID(debug_value))),
+		_debug_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct debug_value_s debug = {};
+
+		if (_debug_sub->update(&_debug_time, &debug)) {
+			mavlink_debug_t msg = {};
+
+			msg.time_boot_ms = debug.timestamp_ms;
+			msg.ind = debug.ind;
+			msg.value = debug.value;
+
+			mavlink_msg_debug_send_struct(_mavlink->get_channel(), &msg);
+		}
+	}
+};
+
 class MavlinkStreamNavControllerOutput : public MavlinkStream
 {
 public:
@@ -4168,6 +4232,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static, &MavlinkStreamActuatorControlTarget<2>::get_id_static),
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static, &MavlinkStreamActuatorControlTarget<3>::get_id_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static, &MavlinkStreamNamedValueFloat::get_id_static),
+	new StreamListItem(&MavlinkStreamDebug::new_instance, &MavlinkStreamDebug::get_name_static, &MavlinkStreamDebug::get_id_static),
 	new StreamListItem(&MavlinkStreamNavControllerOutput::new_instance, &MavlinkStreamNavControllerOutput::get_name_static, &MavlinkStreamNavControllerOutput::get_id_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static, &MavlinkStreamCameraCapture::get_id_static),
 	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static, &MavlinkStreamCameraTrigger::get_id_static),
