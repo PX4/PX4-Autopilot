@@ -100,7 +100,7 @@ protected:
 };
 
 typedef BlockParam<float> BlockParamFloat;
-typedef BlockParam<int> BlockParamInt;
+typedef BlockParam<int32_t> BlockParamInt;
 typedef BlockParam<float &> BlockParamExtFloat;
 typedef BlockParam<int32_t &> BlockParamExtInt;
 
