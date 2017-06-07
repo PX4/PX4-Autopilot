@@ -49,8 +49,14 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#ifdef __PX4_QURT
+#define PX4_SIMULATE_I2C 1
+#else
 #define PX4_SIMULATE_I2C 0
+#endif
+
 static constexpr const int simulate = PX4_SIMULATE_I2C;
+
 
 namespace device
 {
@@ -103,10 +109,6 @@ I2C::init()
 		DEVICE_DEBUG("VDev::init failed");
 		return ret;
 	}
-
-#ifdef __PX4_QURT
-	simulate = true;
-#endif
 
 	if (simulate) {
 		_fd = 10000;
