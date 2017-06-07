@@ -66,6 +66,8 @@ void BlockLocalPositionEstimator::gpsInit()
 				map_projection_reproject(&_map_ref, -_x(X_x), -_x(X_y), &gpsLatOrigin, &gpsLonOrigin);
 				// reinit origin
 				map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
+				// set timestamp when origin was set to current time
+				_time_origin = _timeStamp;
 
 				// always override alt origin on first GPS to fix
 				// possible baro offset in global altitude at init
