@@ -99,8 +99,8 @@ elseif ("${BOARD}" STREQUAL "bebop")
 	px4_add_adb_push_to_bebop(OUT ${UPLOAD_NAME}
 				OS ${OS}
 				BOARD ${BOARD}
-				FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_NAME}
-				DEPENDS ${APP_NAME}
+				FILES $<TARGET_FILE:px4>.stripped
+				DEPENDS ${APP_NAME}.stripped
 				DEST /usr/bin)
 
 elseif ("${BOARD}" STREQUAL "sitl")
@@ -141,11 +141,11 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/ROMFS DESTINATION ${CMAKE_INSTALL_DATADI
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/posix-configs DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
 
 add_custom_target(strip
-			DEPENDS px4.stripped
+			DEPENDS "${APP_NAME}.stripped"
 )
 
-add_custom_command(OUTPUT px4.stripped
-			COMMAND ${STRIP_TOOL} -R .comment -R .gnu.version $<TARGET_FILE:px4>
+add_custom_command(OUTPUT "${APP_NAME}.stripped"
+			COMMAND ${STRIP_TOOL} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
 			DEPENDS px4)
 
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
