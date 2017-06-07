@@ -138,6 +138,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_collision_report_pub(nullptr),
 	_control_state_pub(nullptr),
 	_debug_key_value_pub(nullptr),
+	_debug_value_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
@@ -310,6 +311,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
 		handle_message_named_value_float(msg);
+		break;
+
+	case MAVLINK_MSG_ID_DEBUG:
+		handle_message_debug(msg);
 		break;
 
 	default:
@@ -2381,6 +2386,26 @@ void MavlinkReceiver::handle_message_named_value_float(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(debug_key_value), _debug_key_value_pub, &debug_topic);
+	}
+}
+
+void MavlinkReceiver::handle_message_debug(mavlink_message_t *msg)
+{
+	mavlink_debug_t debug_msg;
+	debug_value_s debug_topic = {};
+
+	mavlink_msg_debug_decode(msg, &debug_msg);
+
+	debug_topic.timestamp = hrt_absolute_time();
+	debug_topic.timestamp_ms = debug_msg.time_boot_ms;
+	debug_topic.ind = debug_msg.ind;
+	debug_topic.value = debug_msg.value;
+
+	if (_debug_value_pub == nullptr) {
+		_debug_value_pub = orb_advertise(ORB_ID(debug_value), &debug_topic);
+
+	} else {
+		orb_publish(ORB_ID(debug_value), _debug_value_pub, &debug_topic);
 	}
 }
 
