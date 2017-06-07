@@ -1398,8 +1398,6 @@ void MulticopterPositionControl::control_auto(float dt)
 		if (PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
-		} else {
-			_curr_pos_sp(2) = _pos(2);
 		}
 
 		if (PX4_ISFINITE(_curr_pos_sp(0)) &&
@@ -1551,7 +1549,6 @@ void MulticopterPositionControl::control_auto(float dt)
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
-
 
 		/*
 		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
