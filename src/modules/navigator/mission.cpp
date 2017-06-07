@@ -636,6 +636,7 @@ Mission::set_mission_items()
 			}
 
 			_navigator_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+			_navigator_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			_navigator_item.yaw = _navigator->get_local_position()->yaw;
 
 			/* set position setpoint to target during the transition */
@@ -692,6 +693,7 @@ Mission::set_mission_items()
 		    && !_navigator->get_land_detected()->landed) {
 
 			_navigator_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+			_navigator_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			_navigator_item.autocontinue = true;
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 		}
@@ -967,7 +969,7 @@ Mission::set_align_navigator_item(struct navigator_item_s *item, struct navigato
 void
 Mission::check_for_takeoff_altitude(struct navigator_item_s *item)
 {
-	/* at this point the alitude should alwasy be either absolute for global
+	/* at this point the alitude should always be either absolute for global
 	 * and relative for local
 	 */
 
