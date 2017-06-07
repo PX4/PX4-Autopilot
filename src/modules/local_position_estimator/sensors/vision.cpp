@@ -42,6 +42,8 @@ void BlockLocalPositionEstimator::visionInit()
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
 						     double(_sub_vision_pos.get().ref_lat), double(_sub_vision_pos.get().ref_lon), double(_sub_vision_pos.get().ref_alt));
 			map_projection_init(&_map_ref, _sub_vision_pos.get().ref_lat, _sub_vision_pos.get().ref_lon);
+			// set timestamp when origin was set to current time
+			_time_origin = _timeStamp;
 		}
 
 		if (!_altOriginInitialized) {

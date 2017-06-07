@@ -345,6 +345,7 @@ private:
 	// misc
 	px4_pollfd_struct_t _polls[3];
 	uint64_t _timeStamp;
+	uint64_t _time_origin;
 	uint64_t _timeStampLastBaro;
 	uint64_t _time_last_hist;
 	uint64_t _time_last_flow;

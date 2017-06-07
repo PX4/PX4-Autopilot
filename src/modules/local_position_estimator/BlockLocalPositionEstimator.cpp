@@ -123,6 +123,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
+	_time_origin(0),
 	_timeStampLastBaro(hrt_absolute_time()),
 	_time_last_hist(0),
 	_time_last_flow(0),
@@ -378,6 +379,9 @@ void BlockLocalPositionEstimator::update()
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
 
+		// set timestamp when origin was set to current time
+		_time_origin = _timeStamp;
+
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
 					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
 
@@ -610,7 +614,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO);
-		_pub_lpos.get().ref_timestamp = _timeStamp;
+		_pub_lpos.get().ref_timestamp = _time_origin;
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _altOrigin;
