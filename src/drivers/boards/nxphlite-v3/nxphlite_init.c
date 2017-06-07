@@ -531,9 +531,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	nxphlite_automount_initialize();
 #endif
 
-
-	nxphlite_usbinitialize();
-
 	/* Configure SPI-based devices */
 
 #ifdef CONFIG_SPI
