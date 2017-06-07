@@ -37,6 +37,7 @@ set(config_module_list
 	#drivers/hott/hott_sensors
 	#drivers/blinkm
 	drivers/airspeed
+	drivers/sdp3x_airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
