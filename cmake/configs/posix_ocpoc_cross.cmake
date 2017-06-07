@@ -71,7 +71,7 @@ set(config_module_list
 	drivers/gps
 	drivers/ocpoc_adc
 	drivers/ocpoc_sbus_rc_in
-	drivers/ocpoc_mmap_pwm_out
+	drivers/linux_pwm_out
 	drivers/rgbled
 
 	#
