@@ -615,8 +615,8 @@ def main():
     portnum = 14550
 
     # COMMAND_LONG in MAVLink 1
-    heartbeatpacket = 'fe097001010000000100020c5103033c8a'.decode('hex')
-    commandpacket = 'fe210101014c00000000000000000000000000000000000000000000803f00000000f6000000008459'.decode('hex')
+    heartbeatpacket = bytearray.fromhex('fe097001010000000100020c5103033c8a')
+    commandpacket = bytearray.fromhex('fe210101014c00000000000000000000000000000000000000000000803f00000000f6000000008459')
 
     # initialize an UDP socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
