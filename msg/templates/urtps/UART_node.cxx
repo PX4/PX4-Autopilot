@@ -132,8 +132,7 @@ uint8_t UART_node::close_uart()
     return 0;
 }
 
-
-int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos, uint32_t max_size)
+int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos, uint32_t buff_total_len)
 {
     if (-1 == m_uart_filestream ||
         nullptr == out_buffer ||
@@ -141,89 +140,134 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
         return -1;
 
     // Read up to max_size characters from the port if they are there
-    
+
     //uint32_t &pos_to_write = rx_buff_pos;
-    char aux = 0;
     int rx_length = 0;
 
-    while (rx_buff_pos <= max_size) // Not enough
+    int readed = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), buff_total_len - rx_buff_pos);
+
+    if (readed <= 0)
     {
-        if (1 != read(m_uart_filestream, (void*)&aux, 1))
+        int errsv = errno;
+        //printf("UART Fail %d\n", errsv);
+        // printf("%d %d %d %d %d %d %d \n", EAGAIN, EBADF, EFAULT, EINTR, EINVAL, EIO, EISDIR);
+        if (errsv && EAGAIN != errsv)
         {
-            int errsv = errno;
-            //printf("UART Fail %d\n", errsv);
-            // printf("%d %d %d %d %d %d %d \n", EAGAIN, EBADF, EFAULT, EINTR, EINVAL, EIO, EISDIR);
-            if (errsv && EAGAIN != errsv)
-            {
-                printf("UART Fail %d\n", errsv);
-            }
-            return -1;
+            printf("UART Fail %d\n", errsv);
         }
-
-        rx_buffer[rx_buff_pos++] = aux;
-        if (rx_buff_pos < 3) continue;
-
-        if (aux == '>')
-        {
-            // Beginning
-            if (0 == strncmp(rx_buffer + (rx_buff_pos - 3), ">>>", 3))
-            {
-                if (rx_buff_pos > 3)
-                {
-                    printf("                                 (↓ %u)\n", rx_buff_pos - 3);
-                    rx_buffer[0] = rx_buffer[1] = rx_buffer[2] = '>';
-                    rx_buff_pos = 3;
-                }
-            }
-        }
-        else if (aux == '<')
-        {
-            // Ending
-            if (0 == strncmp(rx_buffer + (rx_buff_pos - 3), "<<<", 3) &&
-                0 == strncmp(rx_buffer, ">>>", 3))
-            {
-                rx_length = rx_buff_pos - 9; // [>,>,>,topic_ID,...,CRCHigh,CRCLow,<,<,<]
-                break;
-            }
-        }
-        if (rx_buff_pos > max_size)
-        {
-            printf("                                 (↓↓ %u)\n", max_size);
-            rx_buff_pos = 0;
-            return -1;
-        }
-    }
-
-    // Now rx_buffer is [>,>,>,topic_ID,payloadStart, ... ,payloadEnd,CRCHigh,CRCLow,<,<,<]
-
-    uint16_t read_crc = ((rx_buffer[3 + rx_length + 1] << 8) & 0xFF00) + (rx_buffer[3 + rx_length + 2] & 0x00FF);
-    uint16_t calc_crc = crc16((uint8_t*)rx_buffer + 4, rx_length);
-    if (read_crc != calc_crc)
-    {
-        printf("BAD CRC %u != %u\n", read_crc, calc_crc);
         return -1;
     }
 
-    *topic_ID = rx_buffer[3];
-    memmove(out_buffer, rx_buffer + 4, rx_length);
+    //printf("readed %d\n", readed);
+
+    /*printf(">>> |");
+    for (int i = 0; i < rx_buff_pos + readed; ++i)printf(" %hhu", rx_buffer[i]);
+    printf("\n");*/
+
+    // We read some
+    uint32_t last_valid_pos = rx_buff_pos + readed - 1;
+    uint32_t msg_start_pos = 0;
+    for (msg_start_pos = 0; msg_start_pos <= last_valid_pos - 2; ++msg_start_pos)
+    {
+        if ('>' == rx_buffer[msg_start_pos] && strncmp(rx_buffer + msg_start_pos, ">>>", 3) == 0)
+        {
+            //printf("start founded at %u\n", msg_start_pos);
+            break;
+        }
+    }
+
+    // Start not founded
+    if (msg_start_pos > last_valid_pos - 2)
+    {
+        //printf("start not founded, pos %u\n", last_valid_pos);
+        printf("                                 (↓↓ %u)\n", last_valid_pos - 1);
+        rx_buffer[0] = rx_buffer[last_valid_pos - 1];
+        rx_buffer[1] = rx_buffer[last_valid_pos];
+        rx_buff_pos = 2;
+        return -1;
+    }
+
+    /*
+     * [>,>,>,topic_ID,seq,payload_length,payloadStart, ... ,payloadEnd,CRCHigh,CRCLow,<,<,<]
+     */
+
+    // Start detected
+    uint8_t msg_len_pos = msg_start_pos + 5;
+
+    // We don't have space for the rest of message
+    if ((uint32_t(msg_len_pos) > uint32_t(buff_total_len - 1)) ||
+        (uint32_t(msg_len_pos + uint8_t(rx_buffer[msg_len_pos]) + 2) > uint32_t(buff_total_len - 1)))
+    {
+        /*if (msg_len_pos > buff_total_len - 1)
+            printf("don't have space, len_pos %hhu\n", msg_len_pos);
+        else
+        {
+            printf("don't have space, len_pos %hhu, len %hhu, MAX %u, %u > %u\n",
+                    msg_len_pos, rx_buffer[msg_len_pos], buff_total_len-1, uint32_t(msg_len_pos + uint8_t(rx_buffer[msg_len_pos]) + 2), uint32_t(buff_total_len - 1));
+        }*/
+
+        printf("                                 (↓ %u)\n", msg_start_pos);
+        memmove(rx_buffer, rx_buffer + msg_start_pos, last_valid_pos - msg_start_pos + 1);
+        rx_buff_pos = last_valid_pos - msg_start_pos + 1;
+        return 0;
+    }
+
+    uint8_t payload_len = rx_buffer[msg_len_pos];
+
+    //printf("payload_len %hhu\n", payload_len);
+
+    // We do not have a complete message yet
+    if(msg_len_pos + payload_len + 2 > last_valid_pos)
+    {
+        rx_buff_pos = last_valid_pos + 1;
+        //printf("do not have a complete message, pos %u\n", rx_buff_pos);
+        return 0;
+    }
+
+    // We have the whole message
+    uint8_t msg_end_pos = msg_len_pos + payload_len + 2;
+    uint32_t crc_pos = msg_len_pos + payload_len + 1;
+    uint16_t read_crc = ((rx_buffer[crc_pos] << 8) & 0xFF00) + (rx_buffer[crc_pos + 1] & 0x00FF);
+    uint16_t calc_crc = crc16((uint8_t*)rx_buffer + msg_len_pos + 1, payload_len);
+    if (read_crc != calc_crc || 0 == read_crc)
+    {
+        printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+        rx_buff_pos = 0;
+        if (last_valid_pos - msg_end_pos > 0)
+        {
+            printf("                                 (↓ %u)\n", msg_end_pos + 1);
+            memmove(rx_buffer, rx_buffer + msg_end_pos + 1, last_valid_pos - msg_end_pos);
+            rx_buff_pos = last_valid_pos - msg_end_pos;
+        }
+        return -1;
+    }
+
+    //printf("GOOD CRC %u == %u\n", read_crc, calc_crc);
+
+    *topic_ID = rx_buffer[msg_start_pos + 3];
+    memmove(out_buffer, rx_buffer + msg_len_pos + 1, payload_len);
+    rx_length = payload_len;
     rx_buff_pos = 0;
-
-    /*printf(">>>%hhu|", *topic_ID);
-    for (int i = 0; i < rx_length; ++i)printf(" %hhu", out_buffer[i]);
-    printf(" %hhu %hhu<<<\n", uint8_t((read_crc >> 8) & 0x00FF), uint8_t(read_crc & 0x00FF));*/
-
+    if (last_valid_pos - msg_end_pos > 0)
+    {
+        memmove(rx_buffer, rx_buffer + msg_end_pos + 1, last_valid_pos - msg_end_pos);
+        rx_buff_pos = last_valid_pos - msg_end_pos;
+    }
+    //printf("whole message, pos %u, len %d\n", rx_buff_pos, rx_length);
     return rx_length;
 }
 
 
-int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t length)
+int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t length, uint8_t seq)
 {
     if (m_uart_filestream == -1) return 2;
+
+    // [>,>,>,topic_ID,seq,payload_length,payload_start, ... ,payload_end,CRCHigh,CRCLow,<,<,<]
 
     uint16_t crc = crc16((uint8_t*)buffer, length);
 
     int ret = 0;
-    dprintf(m_uart_filestream, ">>>%c", topic_ID);    // topic_ID
+    dprintf(m_uart_filestream, ">>>%c%c%c", topic_ID, seq, (char)length);
     ret = write(m_uart_filestream, buffer, length);
 
     if (ret != length)
@@ -240,11 +284,11 @@ int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint32_t leng
         return ret;
     }
 
-    dprintf(m_uart_filestream, "%c%c<<<", uint8_t((crc >> 8) & 0x00FF), uint8_t(crc & 0x00FF));
+    dprintf(m_uart_filestream, "%c%c", uint8_t((crc >> 8) & 0x00FF), uint8_t(crc & 0x00FF));
 
-    /*printf(">>>%hhd|", topic_ID);
+    /*printf(">>>%hhd %c %c|", topic_ID, seq, (char)length);
     for (int i = 0; i < length; ++i)printf(" %hhu", buffer[i]);
-    printf("<<<\n");*/
+    printf("\n");*/
 
 
     return length;

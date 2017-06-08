@@ -59,7 +59,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <unistd.h>
 
 #define BUFFER_SIZE 1024
-#define USLEEP_MS 2000
+#define USLEEP_MS 0
 
 using namespace eprosima;
 using namespace eprosima::fastrtps;
@@ -106,7 +106,9 @@ int main(int argc, char** argv)
     int read = 0;
     char topic_ID = 255;
 @[end if]@
-
+@[if recv_topics]@
+    uint8_t seq = 0;
+@[end if]@
     struct timespec begin;
     bool start = true, receiving = false;
     do
@@ -152,13 +154,13 @@ int main(int argc, char** argv)
             msg.serialize(scdr);
             size_t len = scdr.getSerializedDataLength();
             //printf("[%d]>> %lu\n", @(id), msg.timestamp());
-            m_uartNode.writeToUART((char) @(message_id(topic)), scdr.getBufferPointer(), len);
+            m_uartNode.writeToUART((char) @(message_id(topic)), scdr.getBufferPointer(), len, seq++);
             ++sent;
         }
 @[end for]@
 @[end if]@
 
-        if (receiving && ++wait > 10)
+        if (receiving && ++wait > 1000)
         {
             struct timespec end;
             clock_gettime(0, &end);
