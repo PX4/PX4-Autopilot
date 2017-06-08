@@ -133,7 +133,7 @@ int micrortps_client_main(int argc, char *argv[])
     struct timespec begin;
     clock_gettime(0, &begin);
     int i = 0;
-    for (i = 0; i < loops; ++i)
+    while (true)
     {
 @[if send_topics]@
         int poll_ret = px4_poll(fds, @(len(send_topics)), poll_time);
@@ -179,6 +179,9 @@ int micrortps_client_main(int argc, char *argv[])
             }
         }
 @[end if]@
+        // loop forever if informed loop number is negative
+        if (loops > 0 && ++i >= loops)
+            break;
     }
 
     struct timespec end;
