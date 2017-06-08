@@ -260,6 +260,12 @@ function(px4_nuttx_add_export)
 		set(nuttx_patches_uses_terminal "USES_TERMINAL")
 	endif()
 
+	# NuttX build
+	# 1. copy NuttX to build directory
+	# 2. apply nuttx-patches
+	# 3. configure (first copy PX4 nuttx-configs)
+	# 4. NuttX build and export
+
 	# nuttx-patches
 	add_subdirectory(${PX4_SOURCE_DIR}/nuttx-patches ${PX4_BINARY_DIR}/${CONFIG})
 
@@ -329,7 +335,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${MAKE} --no-print-directory -C ${nuttx_build_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} oldconfig
 		COMMAND ${CP} ${nuttx_build_src}/nuttx/.config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
 		COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
-		DEPENDS nuttx_configure_${CONFIG}
+		DEPENDS nuttx_configure_${CONFIG} ${nuttx_build_src}/nuttx/.config
 		WORKING_DIRECTORY ${nuttx_build_src}/nuttx
 		COMMENT "Running NuttX make oldconfig for ${CONFIG} with ${config_nuttx_config}"
 		USES_TERMINAL)
@@ -339,7 +345,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${MAKE} --no-print-directory -C ${nuttx_build_src}/nuttx CONFIG_ARCH_BOARD=${CONFIG} menuconfig
 		COMMAND ${CP} ${nuttx_build_src}/nuttx/.config ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
 		COMMAND ${PX4_SOURCE_DIR}/Tools/nuttx_defconf_tool.sh ${PX4_SOURCE_DIR}/nuttx-configs/${CONFIG}/${config_nuttx_config}/defconfig
-		DEPENDS nuttx_configure_${CONFIG}
+		DEPENDS nuttx_configure_${CONFIG} ${nuttx_build_src}/nuttx/.config
 		WORKING_DIRECTORY ${nuttx_build_src}/nuttx
 		COMMENT "Running NuttX make menuconfig for ${CONFIG} with ${config_nuttx_config}"
 		USES_TERMINAL)
@@ -351,7 +357,7 @@ function(px4_nuttx_add_export)
 		COMMAND ${RM} -rf ${nuttx_export_dir}
 		COMMAND ${MAKE} ${nuttx_build_options} --no-print-directory -C ${nuttx_build_src}/nuttx -r CONFIG_ARCH_BOARD=${CONFIG} export ${nuttx_build_output}
 		COMMAND cmake -E touch ${nuttx_export_stamp}
-		DEPENDS nuttx_configure_${CONFIG}
+		DEPENDS nuttx_configure_${CONFIG} ${nuttx_build_src}/nuttx/.config
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}/${CONFIG}
 		COMMENT "Building NuttX for ${CONFIG} with ${config_nuttx_config}"
 		${nuttx_build_uses_terminal})
