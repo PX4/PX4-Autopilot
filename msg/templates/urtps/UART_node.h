@@ -24,7 +24,7 @@ public:
     UART_node();
     virtual ~UART_node();
 
-    uint8_t init_uart(const char * uart_name, uint32_t baudrate);
+    int init_uart(const char * uart_name, uint32_t baudrate);
     uint8_t close_uart();
     int16_t readFromUART(char* topic_ID, char out_buffer[], size_t buffer_size);
     int16_t writeToUART(const char topic_ID, char buffer[], uint16_t length, uint8_t seq);

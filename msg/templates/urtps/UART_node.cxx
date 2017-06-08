@@ -67,20 +67,20 @@ UART_node::~UART_node()
     close_uart();
 }
 
-uint8_t UART_node::init_uart(const char * uart_name, uint32_t baudrate)
+int UART_node::init_uart(const char * uart_name, uint32_t baudrate)
 {
     // Open a serial port
     m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (m_uart_filestream < 0)
     {
-        printf("failed to open port: %s\n", uart_name);
-        return 1;
+        printf("failed to open device: %s (%d)\n", uart_name, errno);
+        return -errno;
     }
 
     // If using shared UART, no need to set it up
     if (baudrate == 0) {
-        return 0;
+        return m_uart_filestream;
     }
 
     // Try to set baud rate
@@ -89,9 +89,10 @@ uint8_t UART_node::init_uart(const char * uart_name, uint32_t baudrate)
     // Back up the original uart configuration to restore it after exit
     if ((termios_state = tcgetattr(m_uart_filestream, &uart_config)) < 0)
     {
-        printf("ERR GET CONF %s: %d\n", uart_name, termios_state);
+        int errno_bkp = errno;
+        printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
         close(m_uart_filestream);
-        return 1;
+        return -errno_bkp;
     }
 
     // Clear ONLCR flag (which appends a CR for every LF)
@@ -103,17 +104,19 @@ uint8_t UART_node::init_uart(const char * uart_name, uint32_t baudrate)
         // Set baud rate
         if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0)
         {
-            printf("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+            int errno_bkp = errno;
+            printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
             close(m_uart_filestream);
-            return 1;
+            return -errno_bkp;
         }
     }
 
     if ((termios_state = tcsetattr(m_uart_filestream, TCSANOW, &uart_config)) < 0)
     {
-        printf("ERR SET CONF %s\n", uart_name);
+        int errno_bkp = errno;
+        printf("ERR SET CONF %s (%d)\n", uart_name, errno);
         close(m_uart_filestream);
-        return 1;
+        return -errno_bkp;
     }
 
     char aux[64];
@@ -126,7 +129,7 @@ uint8_t UART_node::init_uart(const char * uart_name, uint32_t baudrate)
     }
     if (flush) printf("flush\n");
 
-    return 0;
+    return m_uart_filestream;
 }
 
 

@@ -75,7 +75,7 @@ int micrortps_client_main(int argc, char *argv[])
     usleep(2000000);
 
     UART_node m_uartNode;
-    if (0 != m_uartNode.init_uart(device, baudrate))
+    if (m_uartNode.init_uart(device, baudrate) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
         return -1;
