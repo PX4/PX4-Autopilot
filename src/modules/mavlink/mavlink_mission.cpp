@@ -71,6 +71,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_time_last_recv(0),
 	_time_last_sent(0),
 	_time_last_reached(0),
+	_timeout_state(0),
 	_action_timeout(MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT),
 	_retry_timeout(MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT),
 	_int_mode(false),
@@ -376,24 +377,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 	}
 
 	/* check for timed-out operations */
-	if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
-	    && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
-		// try to request item again after timeout
-		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
-
-	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
-		   && hrt_elapsed_time(&_time_last_sent) > _retry_timeout) {
-		if (_transfer_seq == 0) {
-			/* try to send items count again after timeout */
-			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count);
-
-		} else {
-			/* try to send item again after timeout */
-			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq - 1);
-		}
-
-	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
-		   && hrt_elapsed_time(&_time_last_recv) > _action_timeout) {
+	if (_state != MAVLINK_WPM_STATE_IDLE && (now > _timeout_state)) {
 		_mavlink->send_statustext_critical("Operation timeout");
 
 		if (_verbose) { warnx("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state); }
@@ -402,6 +386,22 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		// since we are giving up, reset this state also, so another request can be started.
 		_transfer_in_progress = false;
+
+	} else if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
+		   && (now - _time_last_sent) > _retry_timeout) {
+		// try to request item again after timeout
+		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+
+	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
+		   && (now - _time_last_sent) > _retry_timeout) {
+		if (_transfer_seq == 0) {
+			/* try to send items count again after timeout */
+			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count);
+
+		} else {
+			/* try to send item again after timeout */
+			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq - 1);
+		}
 
 	} else if (_state == MAVLINK_WPM_STATE_IDLE) {
 		// reset flags
@@ -547,6 +547,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			_state = MAVLINK_WPM_STATE_SENDLIST;
+			_timeout_state = hrt_absolute_time() + _action_timeout;
 			_transfer_seq = 0;
 			_transfer_count = _count;
 			_transfer_partner_sysid = msg->sysid;
@@ -705,6 +706,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			if (_verbose) { warnx("WPM: MISSION_COUNT %u from ID %u, changing state to MAVLINK_WPM_STATE_GETLIST", wpc.count, msg->sysid); }
 
 			_state = MAVLINK_WPM_STATE_GETLIST;
+			_timeout_state = hrt_absolute_time() + _action_timeout;
 			_transfer_seq = 0;
 			_transfer_partner_sysid = msg->sysid;
 			_transfer_partner_compid = msg->compid;
