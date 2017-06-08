@@ -86,13 +86,12 @@ int micrortps_client_main(int argc, char *argv[])
 @[if send_topics]@
 
     /* subscribe to topics */
-    px4_pollfd_struct_t fds[@(len(send_topics))];
+    int fds[@(len(send_topics))];
 
     // orb_set_interval statblish an update interval period in milliseconds.
 @[for idx, topic in enumerate(send_topics)]@
-    fds[@(idx)].fd = orb_subscribe(ORB_ID(@(topic)));
-    orb_set_interval(fds[@(idx)].fd, update_time);
-    fds[@(idx)].events = POLLIN;
+    fds[@(idx)] = orb_subscribe(ORB_ID(@(topic)));
+    orb_set_interval(fds[@(idx)], update_time);
 @[end for]@
 @[end if]@
 @[if recv_topics]@
@@ -124,7 +123,6 @@ int micrortps_client_main(int argc, char *argv[])
 @[end if]@
 
 @[if send_topics]@
-    int error_counter = 0;
     uint32_t length = 0;
     uint8_t seq = 0;
 @[end if]@
@@ -142,29 +140,22 @@ int micrortps_client_main(int argc, char *argv[])
     while (true)
     {
 @[if send_topics]@
-        int poll_ret = px4_poll(fds, @(len(send_topics)), poll_time);
-
-        if (poll_ret < 0)
-        {
-            ++error_counter;
-        }
-        else
-        {
+        bool updated;
 @[for idx, topic in enumerate(send_topics)]@
-            if (fds[@(idx)].revents & POLLIN)
-            {
-                // obtained data for the file descriptor
-                struct @(topic)_s data;
-                // copy raw data into local buffer
-                orb_copy(ORB_ID(@(topic)), fds[@(idx)].fd, &data);
-                serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-                m_uartNode.writeToUART((char)@(message_id(topic)), data_buffer, length, seq++);
-                //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
-                ++sent;
-                total_send_lenght += (length + 9);
-            }
-@[end for]@
+        orb_check(fds[@(idx)], &updated);
+        if (updated)
+        {
+            // obtained data for the file descriptor
+            struct @(topic)_s data;
+            // copy raw data into local buffer
+            orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
+            serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
+            m_uartNode.writeToUART((char)@(message_id(topic)), data_buffer, length, seq++);
+            //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
+            ++sent;
+            total_send_lenght += (length + 9);
         }
+@[end for]@
 @[end if]@
 
 @[if recv_topics]@
