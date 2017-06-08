@@ -74,8 +74,9 @@ int micrortps_client_main(int argc, char *argv[])
     printf("device: %s update: %dms poll: %dms loops: %d usleep_ms: %d baudrate: %d\n", device, update_time, poll_time, loops, usleep_ms, baudrate);
     usleep(2000000);
 
+    int uart_fd;
     UART_node m_uartNode;
-    if (m_uartNode.init_uart(device, baudrate) < 0)
+    if ((uart_fd = m_uartNode.init_uart(device, baudrate)) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
         return -1;
@@ -130,6 +131,11 @@ int micrortps_client_main(int argc, char *argv[])
     uint32_t sent = 0, received = 0;
     uint64_t total_send_lenght = 0;
 
+    // We poll on UART, so we can use protocol splitter driver
+    struct pollfd poll_fd[1] = { };
+    poll_fd[0].fd = uart_fd;
+    poll_fd[0].events = POLLIN;
+
     struct timespec begin;
     clock_gettime(0, &begin);
     int i = 0;
@@ -161,24 +167,30 @@ int micrortps_client_main(int argc, char *argv[])
         }
 @[end if]@
 
-        usleep(usleep_ms);
 @[if recv_topics]@
-        char topic_ID = 255;
-        while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE))
+        int r = poll(poll_fd, 1, 100);
+        if (r == 1 && poll_fd[0].revents & POLLIN)
         {
-            switch (topic_ID)
+            char topic_ID = 255;
+            while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE))
             {
+                switch (topic_ID)
+                {
 @[for topic in recv_topics]@
-                case @(message_id(topic)):
-                    deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
-                    orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
-                    //printf("                >>[%d] %llu\n", @(message_id(topic)), @(topic)_data.timestamp);
-                    ++received;
-                break;
+                    case @(message_id(topic)):
+                        deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
+                        orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                        //printf("                >>[%d] %llu\n", @(message_id(topic)), @(topic)_data.timestamp);
+                        ++received;
+                    break;
 @[end for]@
+                }
             }
         }
 @[end if]@
+
+        usleep(usleep_ms);
+
         // loop forever if informed loop number is negative
         if (loops > 0 && ++i >= loops)
             break;
