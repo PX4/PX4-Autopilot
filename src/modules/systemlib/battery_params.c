@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.20f);
 
 /**
  * Low threshold
