@@ -67,7 +67,7 @@ UART_node::~UART_node()
     close_uart();
 }
 
-uint8_t UART_node::init_uart(const char * uart_name)
+uint8_t UART_node::init_uart(const char * uart_name, uint32_t baudrate)
 {
     // Open a serial port
     m_uart_filestream = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -76,6 +76,11 @@ uint8_t UART_node::init_uart(const char * uart_name)
     {
         printf("failed to open port: %s\n", uart_name);
         return 1;
+    }
+
+    // If using shared UART, no need to set it up
+    if (baudrate == 0) {
+        return 0;
     }
 
     // Try to set baud rate
@@ -96,7 +101,7 @@ uint8_t UART_node::init_uart(const char * uart_name)
     if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0)
     {
         // Set baud rate
-        if (cfsetispeed(&uart_config, B115200) < 0 || cfsetospeed(&uart_config, B115200) < 0)
+        if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0)
         {
             printf("ERR SET BAUD %s: %d\n", uart_name, termios_state);
             close(m_uart_filestream);

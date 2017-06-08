@@ -45,27 +45,37 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #define UPDATE_TIME_MS 0
 #define LOOPS 10000
 #define USLEEP_MS 0
+#define BAUDRATE 460800
+#define DEVICE "/dev/ttyACM0"
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
 int micrortps_client_main(int argc, char *argv[])
 {
+    // TODO use proper options with getopt here
+    const char *device = DEVICE;
+    if (argc > 1) device = argv[1];
+
     int update_time = UPDATE_TIME_MS;
-    if (argc > 1) update_time = atoi(argv[1]);
+    if (argc > 2) update_time = atoi(argv[2]);
 
     int poll_time = POLL_TIME_MS;
-    if (argc > 2) poll_time = atoi(argv[2]);
+    if (argc > 3) poll_time = atoi(argv[3]);
 
     int loops = LOOPS;
-    if (argc > 3) loops = atoi(argv[3]);
+    if (argc > 4) loops = atoi(argv[4]);
 
     int usleep_ms = USLEEP_MS;
-    if (argc > 4) usleep_ms = atoi(argv[4]);
+    if (argc > 5) usleep_ms = atoi(argv[5]);
 
-    printf("update: %dms poll: %dms loops: %d usleep_ms: %d\n", update_time, poll_time, loops, usleep_ms);
+    uint32_t baudrate = BAUDRATE;
+    if (argc > 6) baudrate = atoi(argv[6]);
+
+    printf("device: %s update: %dms poll: %dms loops: %d usleep_ms: %d baudrate: %d\n", device, update_time, poll_time, loops, usleep_ms, baudrate);
+    usleep(2000000);
 
     UART_node m_uartNode;
-    if (0 != m_uartNode.init_uart("/dev/ttyACM0"))
+    if (0 != m_uartNode.init_uart(device, baudrate))
     {
         printf("ERROR UART INIT, EXITING...\n");
         return -1;
