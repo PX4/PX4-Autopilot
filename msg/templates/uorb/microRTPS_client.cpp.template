@@ -72,10 +72,6 @@ int micrortps_client_main(int argc, char *argv[])
     }
 
     char data_buffer[BUFFER_SIZE] = {};
-@[if recv_topics]@
-    char rx_buffer[BUFFER_SIZE] = {};
-    uint32_t rx_buff_pos = 0u;
-@[end if]@
 @[if send_topics]@
 
     /* subscribe to topics */
@@ -158,7 +154,7 @@ int micrortps_client_main(int argc, char *argv[])
         usleep(usleep_ms);
 @[if recv_topics]@
         char topic_ID = 255;
-        while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, rx_buffer, rx_buff_pos, BUFFER_SIZE))
+        while (0 < m_uartNode.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE))
         {
             switch (topic_ID)
             {

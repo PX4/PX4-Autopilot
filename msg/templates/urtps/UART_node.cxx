@@ -132,11 +132,9 @@ uint8_t UART_node::close_uart()
     return 0;
 }
 
-int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffer[], uint32_t &rx_buff_pos, uint32_t buff_total_len)
+int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], uint32_t buff_total_len)
 {
-    if (-1 == m_uart_filestream ||
-        nullptr == out_buffer ||
-        nullptr == rx_buffer)
+    if (-1 == m_uart_filestream || nullptr == out_buffer)
         return -1;
 
     // Read up to max_size characters from the port if they are there
@@ -144,7 +142,7 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
     //uint32_t &pos_to_write = rx_buff_pos;
     int rx_length = 0;
 
-    int len = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), buff_total_len - rx_buff_pos);
+    int len = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
 
     if (len <= 0)
     {
