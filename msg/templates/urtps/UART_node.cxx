@@ -144,9 +144,9 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
     //uint32_t &pos_to_write = rx_buff_pos;
     int rx_length = 0;
 
-    int readed = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), buff_total_len - rx_buff_pos);
+    int len = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), buff_total_len - rx_buff_pos);
 
-    if (readed <= 0)
+    if (len <= 0)
     {
         int errsv = errno;
         //printf("UART Fail %d\n", errsv);
@@ -158,28 +158,28 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], char rx_buffe
         return -1;
     }
 
-    //printf("readed %d\n", readed);
+    //printf("read %d\n", len);
 
     /*printf(">>> |");
-    for (int i = 0; i < rx_buff_pos + readed; ++i)printf(" %hhu", rx_buffer[i]);
+    for (int i = 0; i < rx_buff_pos + len; ++i)printf(" %hhu", rx_buffer[i]);
     printf("\n");*/
 
     // We read some
-    uint32_t last_valid_pos = rx_buff_pos + readed - 1;
+    uint32_t last_valid_pos = rx_buff_pos + len - 1;
     uint32_t msg_start_pos = 0;
     for (msg_start_pos = 0; msg_start_pos <= last_valid_pos - 2; ++msg_start_pos)
     {
         if ('>' == rx_buffer[msg_start_pos] && strncmp(rx_buffer + msg_start_pos, ">>>", 3) == 0)
         {
-            //printf("start founded at %u\n", msg_start_pos);
+            //printf("start found at %u\n", msg_start_pos);
             break;
         }
     }
 
-    // Start not founded
+    // Start not found
     if (msg_start_pos > last_valid_pos - 2)
     {
-        //printf("start not founded, pos %u\n", last_valid_pos);
+        //printf("start not found, pos %u\n", last_valid_pos);
         printf("                                 (↓↓ %u)\n", last_valid_pos - 1);
         rx_buffer[0] = rx_buffer[last_valid_pos - 1];
         rx_buffer[1] = rx_buffer[last_valid_pos];
