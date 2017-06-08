@@ -26,8 +26,8 @@ public:
 
     uint8_t init_uart(const char * uart_name);
     uint8_t close_uart();
-    int16_t readFromUART(char* topic_ID, char out_buffer[], uint32_t max_size);
-    int16_t writeToUART(const char topic_ID, char buffer[], uint32_t length, uint8_t seq);
+    int16_t readFromUART(char* topic_ID, char out_buffer[], size_t buffer_size);
+    int16_t writeToUART(const char topic_ID, char buffer[], uint16_t length, uint8_t seq);
 
 protected:
     uint16_t crc16_byte(uint16_t crc, const uint8_t data);
@@ -35,7 +35,18 @@ protected:
 
 protected:
 
-    int m_uart_filestream;
-    uint32_t rx_buff_pos;
-    char rx_buffer[1024];
+    int m_uart_filestream = -1;
+    uint32_t rx_buff_pos = 0;
+    char rx_buffer[1024] = {};
+
+private:
+    struct __attribute__((packed)) Header {
+        char marker[3];
+        uint8_t topic_ID;
+        uint8_t seq;
+        uint8_t payload_len_h;
+        uint8_t payload_len_l;
+        uint8_t crc_h;
+        uint8_t crc_l;
+    };
 };
