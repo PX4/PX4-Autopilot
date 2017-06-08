@@ -76,7 +76,7 @@ private:
 
 	/* Checks specific to rotarywing airframes */
 	bool checkRotarywing(dm_item_t dm_current, size_t nMissionItems,
-			     float home_alt, bool home_valid, float default_acceptance_rad);
+			     float home_alt, bool home_valid, float default_altitude_acceptance_rad);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {};

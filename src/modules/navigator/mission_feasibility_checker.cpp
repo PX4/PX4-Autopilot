@@ -72,6 +72,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float 
 
 	bool &warning_issued = _navigator->get_mission_result()->warning;
 	const float default_acceptance_rad  = _navigator->get_default_acceptance_radius();
+	const float default_altitude_acceptance_rad  = _navigator->get_altitude_acceptance_radius();
 	const bool landed = _navigator->get_land_detected()->landed;
 
 	bool failed = false;
@@ -98,7 +99,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float 
 
 	if (isRotarywing) {
 		failed = failed
-			 || !checkRotarywing(dm_current, nMissionItems, home_alt, home_valid, default_acceptance_rad);
+			 || !checkRotarywing(dm_current, nMissionItems, home_alt, home_valid, default_altitude_acceptance_rad);
 
 	} else {
 		failed = failed
@@ -111,7 +112,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float 
 
 bool
 MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMissionItems,
-		float home_alt, bool home_valid, float default_acceptance_rad)
+		float home_alt, bool home_valid, float default_altitude_acceptance_rad)
 {
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem = {};
@@ -124,13 +125,14 @@ MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMission
 
 		// look for a takeoff waypoint
 		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF) {
-			// make sure that the altitude of the waypoint is at least one meter larger than the acceptance radius
+			// make sure that the altitude of the waypoint is at least one meter larger than the altitude acceptance radius
 			// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
 			float takeoff_alt = missionitem.altitude_is_relative ? missionitem.altitude : missionitem.altitude - home_alt;
 
 			// check if we should use default acceptance radius
-			float acceptance_radius = default_acceptance_rad;
+			float acceptance_radius = default_altitude_acceptance_rad;
 
+            // if a specific acceptance radius has been defined, use that one instead
 			if (missionitem.acceptance_radius > NAV_EPSILON_POSITION) {
 				acceptance_radius = missionitem.acceptance_radius;
 			}
