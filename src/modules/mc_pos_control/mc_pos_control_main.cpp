@@ -891,6 +891,20 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 		const matrix::Vector2f &unit_current_to_next)
 {
 
+	/* make sure that cruise speed is larger than minimum*/
+	if ((get_cruising_speed_xy() - _min_cruise_speed.get()) < SIGMA_NORM) {
+		return get_cruising_speed_xy();
+	}
+
+	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees
+	 * it needs to be alwawys larger than minimum cruise speed */
+	float middle_cruise_speed = 3.0f * (_min_cruise_speed.get() + SIGMA_NORM);
+
+	/* make sure that cruise speed is larger than middle cruise speed, otherwise set it to half of max/min*/
+	if ((get_cruising_speed_xy() - middle_cruise_speed) < SIGMA_NORM) {
+		middle_cruise_speed = (get_cruising_speed_xy() + _min_cruise_speed.get()) * 0.5f;
+	}
+
 	/* angle = cos(x) + 1.0
 	 * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0 */
 	float angle = 2.0f;
@@ -900,16 +914,9 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 	}
 
 	/* velocity close to target adjusted to angle
-	 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = vel_cruise/5.0 (this means that at 90degrees
-	 * the velocity at target should be 1/5 * cruising speed;
+	 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = middle_cruise_speed (this means that at 90degrees
+	 * the velocity at target is middle_cruise_speed);
 	 * angle = 2 -> vel_close = min_cruising_speed */
-
-	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle = 1.0 = 90degrees */
-	float middle_cruise_speed = 3.0f * (_min_cruise_speed.get() + SIGMA_NORM);
-
-	/* sanity check: make sure middle cruise speed is always in between min and max*/
-	middle_cruise_speed = (get_cruising_speed_xy() > middle_cruise_speed) ? middle_cruise_speed : get_cruising_speed_xy() -
-			      SIGMA_NORM;
 
 	/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
 	float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
