@@ -124,7 +124,6 @@ int micrortps_client_main(int argc, char *argv[])
 
 @[if send_topics]@
     uint32_t length = 0;
-    uint8_t seq = 0;
 @[end if]@
     uint32_t sent = 0, received = 0;
     uint64_t total_send_lenght = 0;
@@ -150,7 +149,7 @@ int micrortps_client_main(int argc, char *argv[])
             // copy raw data into local buffer
             orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
             serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-            m_uartNode.writeToUART((char)@(message_id(topic)), data_buffer, length, seq++);
+            m_uartNode.writeToUART((char)@(message_id(topic)), data_buffer, length);
             //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
             ++sent;
             total_send_lenght += (length + 9);

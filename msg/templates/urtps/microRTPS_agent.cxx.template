@@ -104,9 +104,6 @@ int main(int argc, char** argv)
     int read = 0;
     char topic_ID = 255;
 @[end if]@
-@[if recv_topics]@
-    uint8_t seq = 0;
-@[end if]@
     struct timespec begin;
     bool start = true, receiving = false;
     do
@@ -152,7 +149,7 @@ int main(int argc, char** argv)
             msg.serialize(scdr);
             size_t len = scdr.getSerializedDataLength();
             //printf("[%d]>> %lu\n", @(id), msg.timestamp());
-            m_uartNode.writeToUART((char) @(message_id(topic)), scdr.getBufferPointer(), len, seq++);
+            m_uartNode.writeToUART((char) @(message_id(topic)), scdr.getBufferPointer(), len);
             ++sent;
         }
 @[end for]@
