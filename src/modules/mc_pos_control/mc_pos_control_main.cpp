@@ -139,7 +139,6 @@ private:
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
-	control::BlockParamFloat _manual_land_alt; /**< altitude where landing is likely flying with sticks but in pos mode */
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
@@ -409,7 +408,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_home_pos{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
-	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
@@ -1568,7 +1566,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 		// Handle the landing gear based on the manual landing alt
-		const bool high_enough_for_landing_gear = (_pos(2) < _manual_land_alt.get() * 2.0f);
+		const bool high_enough_for_landing_gear = (-_pos(2) + _home_pos.z > 2.0f);
 
 		// During a mission or in loiter it's safe to retract the landing gear.
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
