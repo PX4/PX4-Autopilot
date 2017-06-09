@@ -150,8 +150,8 @@ private:
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
-	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 	control::BlockParamFloat _min_cruise_speed; /**< minimum cruising speed when passing waypoint */
+	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
@@ -410,7 +410,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
-	_target_threshold_xy(this, "TARGET_THRE"),
 	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
@@ -1531,12 +1530,15 @@ void MulticopterPositionControl::control_auto(float dt)
 				/* current velocity along track */
 				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
 
-				bool close_to_current = vec_pos_to_current.length() < _target_threshold_xy.get();
-				bool close_to_prev = (vec_prev_to_pos.length() < _target_threshold_xy.get()) &&
+				/* distance to target when brake should occur */
+				float target_threshold_xy = 1.5f * get_cruising_speed_xy();
+
+				bool close_to_current = vec_pos_to_current.length() < target_threshold_xy;
+				bool close_to_prev = (vec_prev_to_pos.length() < target_threshold_xy) &&
 						     (vec_prev_to_pos.length() < vec_pos_to_current.length());
 
 				/* indicates if we are at least half the distance from previous to current close to previous */
-				bool is_2_target_threshold = vec_prev_to_current.length() >= 2.0f * _target_threshold_xy.get();
+				bool is_2_target_threshold = vec_prev_to_current.length() >= 2.0f * target_threshold_xy;
 
 				/* check if the current setpoint is behind */
 				bool current_behind = ((vec_pos_to_current * -1.0f) * unit_prev_to_current) > 0.0f;
@@ -1574,12 +1576,15 @@ void MulticopterPositionControl::control_auto(float dt)
 					 * this velocity as final velocity when transition occurs from acceleration to deceleration.
 					 * This ensures smooth transition */
 					float final_cruise_speed = get_cruising_speed_xy();
-					float target_threshold = _target_threshold_xy.get();
 
 					if (!is_2_target_threshold) {
 
 						/* set target threshold to half dist pre-current */
-						target_threshold = vec_prev_to_current.length() * 0.5f;
+						target_threshold_xy = vec_prev_to_current.length() * 0.5f;
+
+						if ((target_threshold_xy - _nav_rad.get()) < SIGMA_NORM) {
+							target_threshold_xy = _nav_rad.get();
+						}
 
 						/* velocity close to current setpoint with default zero if no next setpoint is available */
 						float vel_close = 0.0f;
@@ -1593,12 +1598,12 @@ void MulticopterPositionControl::control_auto(float dt)
 						}
 
 						/* compute velocity at transition where vehicle switches from acceleration to deceleration */
-						if ((target_threshold - acceptance_radius) < SIGMA_NORM) {
+						if ((target_threshold_xy - acceptance_radius) < SIGMA_NORM) {
 							final_cruise_speed = vel_close;
 
 						} else {
-							float slope = (get_cruising_speed_xy() - vel_close) / (_target_threshold_xy.get() - acceptance_radius);
-							final_cruise_speed = slope  * (target_threshold - acceptance_radius) + vel_close;
+							float slope = (get_cruising_speed_xy() - vel_close) / (target_threshold_xy - acceptance_radius);
+							final_cruise_speed = slope  * (target_threshold_xy - acceptance_radius) + vel_close;
 							final_cruise_speed = (final_cruise_speed > vel_close) ? final_cruise_speed : vel_close;
 						}
 					}
@@ -1643,7 +1648,7 @@ void MulticopterPositionControl::control_auto(float dt)
 							vel_sp_along_track = vel_close;
 
 						} else {
-							float slope = (get_cruising_speed_xy() - vel_close) / (_target_threshold_xy.get() - _nav_rad.get()) ;
+							float slope = (get_cruising_speed_xy() - vel_close) / (target_threshold_xy - _nav_rad.get()) ;
 							vel_sp_along_track = slope  * (vec_closest_to_current.length() - _nav_rad.get()) + vel_close;
 						}
 
@@ -1658,7 +1663,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					} else {
 
 						/* we want to stop at current setpoint */
-						float slope = (get_cruising_speed_xy())  / _target_threshold_xy.get();
+						float slope = (get_cruising_speed_xy())  / target_threshold_xy;
 						vel_sp_along_track =  slope * (vec_closest_to_current.length());
 
 						/* since we want to slow down take over previous velocity setpoint along track if it was lower but ensure its not zero */
