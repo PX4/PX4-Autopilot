@@ -61,15 +61,16 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * Minimum Loiter altitude
  *
  * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
+ * set to -1, if there shouldn't be a minimum loiter altitude
  *
  * @unit m
- * @min 0
+ * @min -1
  * @max 80
  * @decimal 1
  * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
+PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
 
 /**
  * Persistent onboard mission storage
