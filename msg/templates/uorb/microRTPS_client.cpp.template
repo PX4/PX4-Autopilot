@@ -22,6 +22,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 
 }@
 #include <px4_config.h>
+#include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <unistd.h>
@@ -41,42 +42,82 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 @[end for]@
 
 #define BUFFER_SIZE 1024
-#define POLL_TIME_MS 0
 #define UPDATE_TIME_MS 0
 #define LOOPS 10000
-#define USLEEP_MS 0
+#define USLEEP 0
 #define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
+struct options {
+    const char *device;
+    int update_time;
+    int loops;
+    int usleep;
+    uint32_t baudrate;
+} _options = {
+    .device = DEVICE,
+    .update_time = UPDATE_TIME_MS,
+    .loops = LOOPS,
+    .usleep = USLEEP,
+    .baudrate = BAUDRATE
+};
+
+static void usage(const char *name)
+{
+    PX4_INFO("usage: %s [options]\n\n"
+             "  -d <device>             UART device. Default /dev/ttyACM0\n"
+             "  -u <update_time_ms>     Time for uORB subscribed topics update. Default 0\n"
+             "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
+             "  -s <sleep_time>         Time (microseconds) for which each iteration sleep. Default 0\n"
+             "  -b <baudrate>           UART device baudrate. Default 460800\n",
+             name);
+}
+
+static int parse_options(int argc, char *argv[])
+{
+    int ch;
+    int myoptind = 1;
+    const char *myoptarg = nullptr;
+
+    while ((ch = px4_getopt(argc, argv, "d:u:l:s:b:", &myoptind, &myoptarg)) != EOF) {
+        switch (ch) {
+        case 'd':
+            _options.device = myoptarg;
+            break;
+        case 'u':
+            _options.update_time = strtoul(myoptarg, nullptr, 10);
+            break;
+        case 'l':
+            _options.loops = strtol(myoptarg, nullptr, 10);
+            break;
+        case 's':
+            _options.usleep = strtoul(myoptarg, nullptr, 10);
+            break;
+        case 'b':
+            _options.baudrate = strtoul(myoptarg, nullptr, 10);
+            break;
+        default:
+            usage(argv[0]);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int micrortps_client_main(int argc, char *argv[])
 {
-    // TODO use proper options with getopt here
-    const char *device = DEVICE;
-    if (argc > 1) device = argv[1];
+    if (parse_options(argc, argv) < 0)
+        return -1;
 
-    int update_time = UPDATE_TIME_MS;
-    if (argc > 2) update_time = atoi(argv[2]);
-
-    int poll_time = POLL_TIME_MS;
-    if (argc > 3) poll_time = atoi(argv[3]);
-
-    int loops = LOOPS;
-    if (argc > 4) loops = atoi(argv[4]);
-
-    int usleep_ms = USLEEP_MS;
-    if (argc > 5) usleep_ms = atoi(argv[5]);
-
-    uint32_t baudrate = BAUDRATE;
-    if (argc > 6) baudrate = atoi(argv[6]);
-
-    printf("device: %s update: %dms poll: %dms loops: %d usleep_ms: %d baudrate: %d\n", device, update_time, poll_time, loops, usleep_ms, baudrate);
+    printf("device: %s update: %dms loops: %d usleep: %d baudrate: %d\n", _options.device, _options.update_time, _options.loops, _options.usleep, _options.baudrate);
     usleep(2000000);
 
     int uart_fd;
     UART_node m_uartNode;
-    if ((uart_fd = m_uartNode.init_uart(device, baudrate)) < 0)
+    if ((uart_fd = m_uartNode.init_uart(_options.device, _options.baudrate)) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
         return -1;
@@ -91,7 +132,7 @@ int micrortps_client_main(int argc, char *argv[])
     // orb_set_interval statblish an update interval period in milliseconds.
 @[for idx, topic in enumerate(send_topics)]@
     fds[@(idx)] = orb_subscribe(ORB_ID(@(topic)));
-    orb_set_interval(fds[@(idx)], update_time);
+    orb_set_interval(fds[@(idx)], _options.update_time);
 @[end for]@
 @[end if]@
 @[if recv_topics]@
@@ -181,10 +222,10 @@ int micrortps_client_main(int argc, char *argv[])
         }
 @[end if]@
 
-        usleep(usleep_ms);
+        usleep(_options.usleep);
 
         // loop forever if informed loop number is negative
-        if (loops > 0 && ++i >= loops)
+        if (_options.loops > 0 && ++i >= _options.loops)
             break;
     }
 
