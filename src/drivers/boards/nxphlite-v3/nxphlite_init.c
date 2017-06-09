@@ -294,11 +294,6 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 	return 0;
 }
 
-FAR struct spi_dev_s *kinetis_spibus_initialize(int bus);
-FAR struct spi_dev_s *kinetis_spibus_initialize(int bus)
-{
-	return NULL;
-}
 static void kinetis_serial_dma_poll(void)
 {
 	// todo:Stubbed
