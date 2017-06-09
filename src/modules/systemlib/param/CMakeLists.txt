@@ -77,15 +77,16 @@ add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.c and px4_parameters.h
 add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_generate_params.py
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
-		${parameters_xml}
-		${PX4_SOURCE_DIR}/Tools/px_generate_params.py
-		${PX4_SOURCE_DIR}/Tools/templates/px4_parameters.c.jinja
-		${PX4_SOURCE_DIR}/Tools/templates/px4_parameters.h.jinja
+		parameters_xml
+		${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
+		${CMAKE_CURRENT_SOURCE_DIR}/templates/px4_parameters.c.jinja
+		${CMAKE_CURRENT_SOURCE_DIR}/templates/px4_parameters.h.jinja
 	)
 set_source_files_properties(px4_parameters.c PROPERTIES GENERATED TRUE)
+set_source_files_properties(px4_parameters.h PROPERTIES GENERATED TRUE)
 
 px4_add_module(
 	MODULE modules__systemlib__param
@@ -95,6 +96,7 @@ px4_add_module(
 	SRCS
 		${SRCS}
 		px4_parameters.c
+		px4_parameters.h
 	DEPENDS
 		platforms__common
 	)
