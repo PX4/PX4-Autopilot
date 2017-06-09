@@ -415,12 +415,11 @@ fi
 if meas_airspeed start
 then
 else
-	if ets_airspeed start
+	if sdp3x_airspeed start
 	then
 	else
-		if ets_airspeed start -b 1
-		then
-		fi
+		ets_airspeed start
+		ets_airspeed start -b 1
 	fi
 fi
 
