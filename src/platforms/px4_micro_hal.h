@@ -185,7 +185,7 @@ __BEGIN_DECLS
 
 /* bus_num is zero based on kinetis and must be translated from the legacy one based */
 
-#    define px4_spibus_initialize(port_1based)       kinetis_spibus_initialize(port_1based-1)
+#    define px4_spibus_initialize(port_0based)       kinetis_spibus_initialize(port_0based)
 
 #    define px4_i2cbus_initialize(bus_num_0based)    kinetis_i2cbus_initialize(bus_num_0based)
 #    define px4_i2cbus_uninitialize(pdev)            kinetis_i2cbus_uninitialize(pdev)
