@@ -132,7 +132,7 @@ MissionFeasibilityChecker::checkRotarywing(dm_item_t dm_current, size_t nMission
 			// check if we should use default acceptance radius
 			float acceptance_radius = default_altitude_acceptance_rad;
 
-            // if a specific acceptance radius has been defined, use that one instead
+			// if a specific acceptance radius has been defined, use that one instead
 			if (missionitem.acceptance_radius > NAV_EPSILON_POSITION) {
 				acceptance_radius = missionitem.acceptance_radius;
 			}
