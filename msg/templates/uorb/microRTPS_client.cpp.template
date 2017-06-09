@@ -96,11 +96,10 @@ int micrortps_client_main(int argc, char *argv[])
 @[end if]@
 @[if recv_topics]@
 
-    /* advertise topics */
+    // Declare received topics
 @[for topic in recv_topics]@
     struct @(topic)_s @(topic)_data;
-    memset(&@(topic)_data, 0, sizeof(@(topic)_data));
-    orb_advert_t @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+    orb_advert_t @(topic)_pub = nullptr;
 @[end for]@
 @[end if]@
 @[if send_topics]@
@@ -169,7 +168,10 @@ int micrortps_client_main(int argc, char *argv[])
 @[for topic in recv_topics]@
                     case @(message_id(topic)):
                         deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
-                        orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                        if (!@(topic)_pub)
+                            @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+                        else
+                            orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
                         //printf("                >>[%d] %llu\n", @(message_id(topic)), @(topic)_data.timestamp);
                         ++received;
                     break;
