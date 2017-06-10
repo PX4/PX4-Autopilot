@@ -1,7 +1,6 @@
 Instructions for running the EKF replay
 
-1) Ensure this ‘EKF_replay’ directory is in a location you have full read and write access and add it and all its subdirectories to your path.
-
+1) Ensure the ‘EKF_replay’ directory is in a location you have full read and write access 
 2) Create a ‘TestData’ sub-directory under the ‘EKF_replay’ directory
 
 A sample dataset can be downloaded here: https://drive.google.com/file/d/0By4v2BuLAaCfSW9fWl9aSWNGbGs/view?usp=sharing

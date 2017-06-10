@@ -16,24 +16,24 @@ function output = RunFilter(param,imu_data,mag_data,baro_data,gps_data,varargin)
 
 nVarargs = length(varargin);
 if nVarargs >= 2
-    useOpticalFlow = ~isempty(varargin{1}) && ~isempty(varargin{2});
+    flowDataPresent = ~isempty(varargin{1}) && ~isempty(varargin{2});
     rng_data = varargin{1};
     flow_data = varargin{2};
-    if useOpticalFlow
+    if flowDataPresent
         fprintf('Using optical Flow Data\n',nVarargs);
     end
 else
-    useOpticalFlow = 0;
+    flowDataPresent = 0;
 end
 
 if nVarargs >= 3
-    useVisualOdometry = ~isempty(varargin{3});
+    visoDataPresent = ~isempty(varargin{3});
     viso_data = varargin{3};
-    if useVisualOdometry
+    if visoDataPresent
         fprintf('Using ZED camera odometry data\n',nVarargs);
     end
 else
-    useVisualOdometry = 0;
+    visoDataPresent = 0;
 end
 
 
@@ -43,7 +43,7 @@ end
 deg2rad = pi/180;
 gravity = 9.80665; % initial value of gravity - will be updated when WGS-84 position is known
 
-% initialise the state vector at the first position where there is OK GPS
+% initialise the state vector
 [states, imu_start_index] = InitStates(param,imu_data,gps_data,mag_data,baro_data);
 
 dt_imu_avg = 0.5 * (median(imu_data.gyro_dt) + median(imu_data.accel_dt));
@@ -69,6 +69,14 @@ output = struct('time_lapsed',[]',...
 covariance = InitCovariance(param,dt_imu_avg,1,gps_data);
 
 %% Main Loop
+
+% control flags
+gps_use_started = boolean(false);
+gps_use_blocked = boolean(false);
+viso_use_blocked = boolean(false);
+flow_use_blocked = boolean(false);
+
+% array access index variables
 imuIndex = imu_start_index;
 last_gps_index = 0;
 gps_fuse_index = 0;
@@ -80,18 +88,27 @@ last_flow_index = 0;
 flow_fuse_index = 0;
 last_viso_index = 0;
 viso_fuse_index = 0;
-delAngCov = [0;0;0];
-delVelCov = [0;0;0];
-dtCov = 0;
-dtCovInt = 0;
-covIndex = 0;
+last_range_index = 0;
+
+% covariance prediction variables
+delAngCov = [0;0;0]; % delta angle vector used by the covariance prediction (rad)
+delVelCov = [0;0;0]; % delta velocity vector used by the covariance prediction (m/sec)
+dtCov = 0; % time step used by the covariance prediction (sec)
+dtCovInt = 0; % accumulated time step of covariance predictions (sec)
+covIndex = 0; % covariance prediction frame counter
+
 output.magFuseMethod = param.fusion.magFuseMethod;
 range = 0.1;
-latest_range_index = 1;
+
+% variables used to control dead-reckoning timeout
+last_drift_constrain_time = - param.control.velDriftTimeLim;
+last_synthetic_velocity_fusion_time = 0;
+last_valid_range_time = - param.fusion.rngTimeout;
+
 for index = indexStart:indexStop
     
     % read IMU measurements
-    localTime=imu_data.time_us(imuIndex)*1e-6;
+    local_time=imu_data.time_us(imuIndex)*1e-6;
     delta_angle(:,1) = imu_data.del_ang(imuIndex,:);
     delta_velocity(:,1) = imu_data.del_vel(imuIndex,:);
     dt_imu = 0.5 * (imu_data.accel_dt(imuIndex) + imu_data.gyro_dt(imuIndex));
@@ -116,7 +133,7 @@ for index = indexStart:indexStop
         covIndex = covIndex + 1;
         
         % output state data
-        output.time_lapsed(covIndex) = localTime;
+        output.time_lapsed(covIndex) = local_time;
         output.euler_angles(covIndex,:) = QuatToEul(states(1:4)')';
         output.velocity_NED(covIndex,:) = states(5:7)';
         output.position_NED(covIndex,:) = states(8:10)';
@@ -131,17 +148,38 @@ for index = indexStart:indexStop
             output.state_variances(covIndex,i) = covariance(i,i);
         end
         
-        % Fuse new GPS data that has fallen beind the fusion time horizon
+        % Get most recent GPS data that had fallen behind the fusion time horizon
         latest_gps_index = find((gps_data.time_us - 1e6 * param.fusion.gpsTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-        if (latest_gps_index > last_gps_index)
+
+        % Check if GPS use is being blocked by the user
+        if ((local_time < param.control.gpsOnTime) && (local_time > param.control.gpsOffTime))
+            gps_use_started = false;
+            gps_use_blocked = true;
+        else
+            gps_use_blocked = false;
+        end
+        
+        % If we haven't started using GPS, check that the quality is sufficient before aligning the position and velocity states to GPS
+        if (~gps_use_started && ~gps_use_blocked)
+            if ((gps_data.spd_error(latest_gps_index) < param.control.gpsSpdErrLim) && (gps_data.pos_error(latest_gps_index) < param.control.gpsPosErrLim))
+                states(5:7) = gps_data.vel_ned(latest_gps_index,:);
+                states(8:9) = gps_data.pos_ned(latest_gps_index,1:2);
+                gps_use_started = true;
+                last_drift_constrain_time = local_time;
+            end
+        end
+        
+        % Fuse GPS data when available if GPS use has started
+        if (gps_use_started && ~gps_use_blocked && (latest_gps_index > last_gps_index))
             last_gps_index = latest_gps_index;
             gps_fuse_index = gps_fuse_index + 1;
+            last_drift_constrain_time = local_time;
             
             % fuse NED GPS velocity
             [states,covariance,velInnov,velInnovVar] = FuseVelocity(states,covariance,gps_data.vel_ned(latest_gps_index,:),param.fusion.gpsVelGate,gps_data.spd_error(latest_gps_index));
             
             % data logging
-            output.innovations.vel_time_lapsed(gps_fuse_index) = localTime;
+            output.innovations.vel_time_lapsed(gps_fuse_index) = local_time;
             output.innovations.vel_innov(gps_fuse_index,:) = velInnov';
             output.innovations.vel_innov_var(gps_fuse_index,:) = velInnovVar';
             
@@ -149,9 +187,17 @@ for index = indexStart:indexStop
             [states,covariance,posInnov,posInnovVar] = FusePosition(states,covariance,gps_data.pos_ned(latest_gps_index,:),param.fusion.gpsPosGate,gps_data.pos_error(latest_gps_index));
             
             % data logging
-            output.innovations.pos_time_lapsed(gps_fuse_index) = localTime;
+            output.innovations.pos_time_lapsed(gps_fuse_index) = local_time;
             output.innovations.posInnov(gps_fuse_index,:) = posInnov';
             output.innovations.posInnovVar(gps_fuse_index,:) = posInnovVar';
+        else
+            % Check if drift is being corrected by some form of aiding and if not, fuse in a zero position measurement at 5Hz to prevent states diverging
+            if ((local_time - last_drift_constrain_time) > param.control.velDriftTimeLim)
+                if ((local_time - last_synthetic_velocity_fusion_time) > 0.2)
+                    [states,covariance,~,~] = FusePosition(states,covariance,zeros(1,2),100.0,param.control.gpsPosErrLim);
+                    last_synthetic_velocity_fusion_time = local_time;
+                end
+            end
         end
         
         % Fuse new Baro data that has fallen beind the fusion time horizon
@@ -164,7 +210,7 @@ for index = indexStart:indexStop
             [states,covariance,hgtInnov,hgtInnovVar] = FuseBaroHeight(states,covariance,baro_data.height(latest_baro_index),param.fusion.baroHgtGate,param.fusion.baroHgtNoise);
             
             % data logging
-            output.innovations.hgt_time_lapsed(baro_fuse_index) = localTime;
+            output.innovations.hgt_time_lapsed(baro_fuse_index) = local_time;
             output.innovations.hgtInnov(baro_fuse_index) = hgtInnov;
             output.innovations.hgtInnovVar(baro_fuse_index) = hgtInnovVar;
         end
@@ -183,7 +229,7 @@ for index = indexStart:indexStop
                 [states,covariance,magInnov,magInnovVar] = FuseMagnetometer(states,covariance,mag_data.field_ga(latest_mag_index,:),param.fusion.magFieldGate, param.fusion.magFieldError^2);
                 
                 % data logging
-                output.innovations.mag_time_lapsed(mag_fuse_index) = localTime;
+                output.innovations.mag_time_lapsed(mag_fuse_index) = local_time;
                 output.innovations.magInnov(mag_fuse_index,:) = magInnov;
                 output.innovations.magInnovVar(mag_fuse_index,:) = magInnovVar;
                 
@@ -198,7 +244,7 @@ for index = indexStart:indexStop
                 [states, covariance, hdgInnov, hdgInnovVar] = FuseMagHeading(states, covariance, mag_data.field_ga(latest_mag_index,:), param.fusion.magDeclDeg*deg2rad, param.fusion.magHdgGate, param.fusion.magHdgError^2);
                 
                 % log data
-                output.innovations.mag_time_lapsed(mag_fuse_index) = localTime;
+                output.innovations.mag_time_lapsed(mag_fuse_index) = local_time;
                 output.innovations.hdgInnov(mag_fuse_index) = hdgInnov;
                 output.innovations.hdgInnovVar(mag_fuse_index) = hdgInnovVar;
                 
@@ -206,20 +252,29 @@ for index = indexStart:indexStop
             
         end
         
-        % Attempt to use optical flow and range finder data if available
-        if (useOpticalFlow)
+        % Check if optical flow use is being blocked by the user
+        if ((local_time < param.control.flowOnTime) && (local_time > param.control.flowOffTime))
+            flow_use_blocked = true;
+        else
+            flow_use_blocked = false;
+        end
+        
+        % Attempt to use optical flow and range finder data if available and not blocked
+        if (flowDataPresent && ~flow_use_blocked)
             
             % Get latest range finder data and gate to remove dropouts
-            latest_range_index = find((rng_data.time_us - 1e6 * param.fusion.rangeTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-            if (rng_data.dist(latest_range_index) < 5.0 && rng_data.dist(latest_range_index) > 0.05)
-                range = rng_data.dist(latest_range_index);
+            last_range_index = find((rng_data.time_us - 1e6 * param.fusion.rangeTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
+            if (rng_data.dist(last_range_index) < param.fusion.rngValidMin && rng_data.dist(last_range_index) > param.fusion.rngValidMin)
+                range = rng_data.dist(last_range_index);
+                last_valid_range_time = local_time;
             end
             
-            % Fuse optical flow data that has fallen behind the fusion time horizon
+            % Fuse optical flow data that has fallen behind the fusion time horizon if we have a valid range measurement
             latest_flow_index = find((flow_data.time_us - 1e6 * param.fusion.flowTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-            if (latest_flow_index > last_flow_index)
+            if ((latest_flow_index > last_flow_index) && ((local_time - last_valid_range_time) < param.fusion.rngTimeout))
                 last_flow_index = latest_flow_index;
                 flow_fuse_index = flow_fuse_index + 1;
+                last_drift_constrain_time = local_time;
                 
                 % fuse flow data
                 flowRate = [flow_data.flowX(latest_flow_index);flow_data.flowY(latest_flow_index)];
@@ -227,7 +282,7 @@ for index = indexStart:indexStop
                 [states,covariance,flowInnov,flowInnovVar] = FuseOpticalFlow(states, covariance, flowRate, bodyRate, range, param.fusion.flowRateError^2, param.fusion.flowGate);
                 
                 % data logging
-                output.innovations.flow_time_lapsed(flow_fuse_index) = localTime;
+                output.innovations.flow_time_lapsed(flow_fuse_index) = local_time;
                 output.innovations.flowInnov(flow_fuse_index,:) = flowInnov;
                 output.innovations.flowInnovVar(flow_fuse_index,:) = flowInnovVar;
                 
@@ -235,14 +290,22 @@ for index = indexStart:indexStop
             
         end
         
-        % attempt to use ZED camera visual odmetry data if available
-        if (useVisualOdometry)
+        % Check if optical flow use is being blocked by the user
+        if ((local_time < param.control.visoOnTime) && (local_time > param.control.visoOffTime))
+            viso_use_blocked = true;
+        else
+            viso_use_blocked = false;
+        end
+        
+        % attempt to use ZED camera visual odmetry data if available and not blocked
+        if (visoDataPresent && ~viso_use_blocked)
             
             % Fuse ZED camera body frame odmometry data that has fallen behind the fusion time horizon
             latest_viso_index = find((viso_data.time_us - 1e6 * param.fusion.bodyVelTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
             if (latest_viso_index > last_viso_index)
                 last_viso_index = latest_viso_index;
                 viso_fuse_index = viso_fuse_index + 1;
+                last_drift_constrain_time = local_time;
                 
                 % convert delta positon measurements to velocity
                 relVelBodyMea = [viso_data.dVelX(latest_viso_index);viso_data.dVelY(latest_viso_index);viso_data.dVelZ(latest_viso_index)]./viso_data.dt(latest_viso_index);
@@ -256,7 +319,7 @@ for index = indexStart:indexStop
                 [states,covariance,bodyVelInnov,bodyVelInnovVar] = FuseBodyVel(states, covariance, relVelBodyMea, bodyVelError^2, param.fusion.bodyVelGate);
                 
                 % data logging
-                output.innovations.bodyVel_time_lapsed(viso_fuse_index) = localTime;
+                output.innovations.bodyVel_time_lapsed(viso_fuse_index) = local_time;
                 output.innovations.bodyVelInnov(viso_fuse_index,:) = bodyVelInnov;
                 output.innovations.bodyVelInnovVar(viso_fuse_index,:) = bodyVelInnovVar;
                 
