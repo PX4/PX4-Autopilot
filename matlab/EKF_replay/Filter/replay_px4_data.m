@@ -17,11 +17,13 @@ run('SetParameterDefaults.m');
 output = RunFilter(param,imu_data,mag_data,baro_data,gps_data);
 
 % generate and save output plots
-PlotData(output);
+runIdentifier = ' : PX4 data replay ';
+folder = strcat('../OutputPlots/PX4');
+PlotData(output,folder,runIdentifier);
 
 % save output data
-folder = '../OutputData';
-fileName = '../OutputData/ekf_replay_output.mat';
+folder = '../OutputData/PX4';
+fileName = '../OutputData/PX4/ekf_replay_output.mat';
 if ~exist(folder,'dir')
     mkdir(folder);
 end
