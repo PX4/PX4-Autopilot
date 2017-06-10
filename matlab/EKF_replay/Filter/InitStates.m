@@ -7,9 +7,13 @@ deg2rad = pi/180;
 states = zeros(24,1);
 quat = [1;0;0;0];
 
-% find IMU start index that coresponds to first valid GPS data
-imu_start_index = (find(imu_data.time_us > gps_data.time_us(gps_data.start_index), 1, 'first' ) - 50);
-imu_start_index = max(imu_start_index,1);
+if (param.control.waitForGps == 1)
+    % find IMU start index that coresponds to first valid GPS data
+    imu_start_index = (find(imu_data.time_us > gps_data.time_us(gps_data.start_index), 1, 'first' ) - 50);
+    imu_start_index = max(imu_start_index,1);
+else
+    imu_start_index = 1;
+end
 
 % average first 100 accel readings to reduce effect of vibration
 initAccel(1) = mean(imu_data.del_vel(imu_start_index:imu_start_index+99,1));
@@ -21,8 +25,8 @@ initAccel(3) = mean(imu_data.del_vel(imu_start_index:imu_start_index+99,3));
 quat = AlignTilt(quat,initAccel);
 states(1:4) = quat;
 
-% find magnetometer start index that coresponds to first valid GPS data
-mag_start_index = (find(mag_data.time_us > gps_data.time_us(gps_data.start_index), 1, 'first' ) - 5);
+% find magnetometer start index
+mag_start_index = (find(mag_data.time_us > imu_data.time_us(imu_start_index), 1, 'first' ) - 5);
 mag_start_index = max(mag_start_index,1);
 
 % mean to reduce effect of noise in data
@@ -37,12 +41,18 @@ quat = AlignHeading(quat,magBody,param.fusion.magDeclDeg*deg2rad);
 Tbn = Quat2Tbn(quat);
 states(17:19) = Tbn*magBody;
 
-% initialise velocity and position using gps
-states(5:7) = gps_data.vel_ned(gps_data.start_index,:);
-states(8:9) = gps_data.pos_ned(gps_data.start_index,1:2);
+if (param.control.waitForGps == 1)
+    % initialise velocity and position using gps
+    states(5:7) = gps_data.vel_ned(gps_data.start_index,:);
+    states(8:9) = gps_data.pos_ned(gps_data.start_index,1:2);
+else
+    % initialise to be stationary at the origin
+    states(5:7) = zeros(1,3);
+    states(8:9) = zeros(1,2);
+end
 
-% find baro start index that coresponds to first valid GPS data
-baro_start_index = (find(baro_data.time_us > gps_data.time_us(gps_data.start_index), 1, 'first' ) - 10);
+% find baro start index
+baro_start_index = (find(baro_data.time_us > imu_data.time_us(imu_start_index), 1, 'first' ) - 10);
 baro_start_index = max(baro_start_index,1);
 
 % average baro data and initialise the vertical position

@@ -1,3 +1,14 @@
+%% Filter Control
+param.control.waitForGps = 0; % set to 1 if the filter start should be delayed until GPS checks to pass
+param.control.gpsSpdErrLim = 1.0; % GPS use will not start if reported GPS speed error is greater than this (m/s)
+param.control.gpsPosErrLim = 5.0; % GPS use will not start if reported GPS position error is greater than this (m)
+param.control.velDriftTimeLim = 5.0; % The maximum time without observations to constrain velocity drift before a zero velocity is fused to prevent the filter diverging (sec)
+param.control.gpsOffTime = 0; % GPS aiding will be turned off at this time (sec)
+param.control.gpsOnTime = 0; % GPS aiding will be turned back on at this time (sec)
+param.control.flowOffTime = 0; % optical flow aiding will be turned off at this time (sec)
+param.control.flowOnTime = 0; % optical flow aiding will be turned back on on at this time (sec)
+param.control.visoOffTime = 0; % visual odometry aiding will be turned off at this time (sec)
+param.control.visoOnTime = 0; % visual odometry aiding will be turned back on at this time (sec)
 
 %% GPS fusion
 param.fusion.gpsTimeDelay = 0.1; % GPS measurement delay relative to IMU (sec)
@@ -26,11 +37,14 @@ param.fusion.rangeTimeDelay = 0.05; % range fidner sensor delay relative to IMU 
 param.fusion.flowTimeDelay = 0.05; % Optical flow sensor time delay relative to IMU (sec)
 param.fusion.flowRateError = 0.5; % Observation noise 1SD for the flow sensor (rad/sec)
 param.fusion.flowGate = 5.0; % Size of the optical flow rate innovation consistency check gate in SD
+param.fusion.rngValidMin = 0.05; % ignore range measurements smaller than this (m)
+param.fusion.rngValidMin = 5.0; % ignore range measurements larger than this (m)
+param.fusion.rngTimeout = 2.0; % optical flow measurements will not be used if more than this time since valid range finder data was received (sec)
 
-%% Body frame velocity measurement fusion
+%% Visual odometry body frame velocity measurement fusion
 param.fusion.bodyVelTimeDelay = 0.01; % Optical flow sensor time delay relative to IMU (sec)
-param.fusion.bodyVelErrorMin = 0.5; % Observation noise 1SD for the odometry sensor at the highest quality value (m/sec)
-param.fusion.bodyVelErrorMax = 5.0; % Observation noise 1SD for the odometry sensor at the lowest quality value (m/sec)
+param.fusion.bodyVelErrorMin = 0.2; % Observation noise 1SD for the odometry sensor at the highest quality value (m/sec)
+param.fusion.bodyVelErrorMax = 1.8; % Observation noise 1SD for the odometry sensor at the lowest quality value (m/sec)
 param.fusion.bodyVelGate = 5.0; % Size of the optical flow rate innovation consistency check gate in SD
 
 %% State prediction error growth
