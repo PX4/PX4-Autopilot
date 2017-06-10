@@ -1,8 +1,5 @@
-function PlotData(output)
+function PlotData(output,folder,runIdentifier)
 rad2deg = 180/pi;
-runIdentifier = ' : EKF replay ';
-folder = strcat('../OutputPlots');
-
 if ~exist(folder,'dir')
     mkdir(folder);
 end
