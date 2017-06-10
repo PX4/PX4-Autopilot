@@ -412,10 +412,10 @@ then
 	lsm303d start
 fi
 
-if meas_airspeed start
+if sdp3x_airspeed start
 then
 else
-	if sdp3x_airspeed start
+	if meas_airspeed start
 	then
 	else
 		ets_airspeed start
