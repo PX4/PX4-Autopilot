@@ -730,6 +730,7 @@ Sensors::start()
 void Sensors::print_status()
 {
 	_voted_sensors_update.print_status();
+	_airspeed_validator.print();
 }
 
 

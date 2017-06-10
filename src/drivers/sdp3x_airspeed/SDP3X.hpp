@@ -67,7 +67,7 @@
 
 // Measurement rate is 20Hz
 #define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 5.0f
+#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
 
 class SDP3X : public Airspeed
