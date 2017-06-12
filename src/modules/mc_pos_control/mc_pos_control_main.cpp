@@ -1725,7 +1725,11 @@ void MulticopterPositionControl::control_auto(float dt)
 				} else if (close_to_current) {
 					/* slow down when close to current setpoint */
 
-					if (next_setpoint_valid && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+					/* check if altidue is within acceptance radius */
+					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
+
+					if (reached_altitude && next_setpoint_valid
+					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
 						/* get velocity close to current that depends on angle between prev-current and current-next line */
