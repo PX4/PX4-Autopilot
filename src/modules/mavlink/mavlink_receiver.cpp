@@ -188,6 +188,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 		break;
 
+	case MAVLINK_MSG_ID_COMMAND_ACK:
+		handle_message_command_ack(msg);
+		break;
+
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
 		handle_message_optical_flow_rad(msg);
 		break;
@@ -609,6 +613,19 @@ out:
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
+{
+	mavlink_command_ack_t ack;
+	mavlink_msg_command_ack_decode(msg, &ack);
+
+	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
+		if (msg->compid == MAV_COMP_ID_CAMERA) {
+			PX4_WARN("Got unsuccessful result %d from camera", ack.result);
 		}
 	}
 }
