@@ -112,6 +112,31 @@ then
 	fi
 fi
 
+if ver hwcmp PX4FMU_V4PRO
+then
+
+	# Internal SPI bus ICM-20608-G
+	if mpu6000 -R 2 -T 20608 start
+	then
+	fi
+
+	# Internal SPI bus mpu9250
+	if mpu9250 -R 2 start
+	then
+	fi
+
+	# Internal SPI bus
+	#if lis3mdl -R 0 start
+	#then
+	#fi
+
+	# Possible external compasses
+	if hmc5883 -C -T -X start
+	then
+	fi
+
+fi
+
 if ver hwcmp PX4FMU_V1
 then
 	# FMUv1

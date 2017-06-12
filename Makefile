@@ -134,6 +134,9 @@ px4fmu-v2_default:
 px4fmu-v4_default:
 	$(call cmake-build,nuttx_px4fmu-v4_default)
 
+px4fmu-v4pro_default:
+	$(call cmake-build,nuttx_px4fmu-v4pro_default)
+
 px4-stm32f4discovery_default:
 	$(call cmake-build,nuttx_px4-stm32f4discovery_default)
 
@@ -203,7 +206,7 @@ uavcan_firmware:
 check_format:
 	@./Tools/check_code_style.sh
 
-check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4-stm32f4discovery_default check_format tests
+check: px4fmu-v1_default px4fmu-v2_default px4fmu-v4_default px4fmu-v4pro_default px4-stm32f4discovery_default check_format tests
 
 unittest: posix_sitl_default
 	@(cd unittests && cmake -G$(PX4_CMAKE_GENERATOR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) && ctest)

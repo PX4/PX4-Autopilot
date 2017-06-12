@@ -15,6 +15,10 @@ enum spi_dev_e {
 	SPIDEV_MUX,         /* Select SPI multiplexer device */
 	SPIDEV_AUDIO_DATA,  /* Select SPI audio codec device data port */
 	SPIDEV_AUDIO_CTRL,  /* Select SPI audio codec device control port */
+	SPIDEV_MISC_1,
+	SPIDEV_MISC_2,
+	SPIDEV_MISC_3,
+	SPIDEV_MISC_4
 };
 
 /* Certain SPI devices may required different clocking modes */
