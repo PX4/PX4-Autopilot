@@ -200,30 +200,29 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
 
-
 	void copy_quaternion(float *quat)
 	{
 		for (unsigned i = 0; i < 4; i++) {
 			quat[i] = _output_new.quat_nominal(i);
 		}
 	}
+
 	// get the velocity of the body frame origin in local NED earth frame
 	void get_velocity(float *vel)
 	{
-		// calculate the average angular rate across the last IMU update
-		Vector3f ang_rate = _imu_sample_new.delta_ang * (1.0f / _imu_sample_new.delta_ang_dt);
-		// calculate the velocity of the relative to the body origin
-		// Note % operator has been overloaded to performa cross product
-		Vector3f vel_imu_rel_body = cross_product(ang_rate, _params.imu_pos_body);
-		// rotate the relative velocty into earth frame and subtract from the EKF velocity
-		// (which is at the IMU) to get velocity of the body origin
-		Vector3f vel_earth = _output_new.vel - _R_to_earth_now * vel_imu_rel_body;
-
-		// copy to output
+		Vector3f vel_earth = _output_new.vel - _vel_imu_rel_body_ned;
 		for (unsigned i = 0; i < 3; i++) {
 			vel[i] = vel_earth(i);
 		}
 	}
+
+	// get the derivative of the vertical position of the body frame origin in local NED earth frame
+	void get_pos_d_deriv(float *pos_d_deriv)
+	{
+		float var = _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
+		*pos_d_deriv = var;
+	}
+
 	// get the position of the body frame origin in local NED earth frame
 	void get_position(float *pos)
 	{
@@ -333,10 +332,14 @@ protected:
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
 	float _air_density{1.225f};		// air density (kg/m**3)
 
+	// Output Predictor
 	outputSample _output_sample_delayed{};	// filter output on the delayed time horizon
-	outputSample _output_new{};	// filter output on the non-delayed time horizon
-	imuSample _imu_sample_new{};	// imu sample capturing the newest imu data
-	Matrix3f _R_to_earth_now; // rotation matrix from body to earth frame at current time
+	outputSample _output_new{};		// filter output on the non-delayed time horizon
+	outputVert _output_vert_delayed{};	// vertical filter output on the delayed time horizon
+	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
+	imuSample _imu_sample_new{};		// imu sample capturing the newest imu data
+	Matrix3f _R_to_earth_now;		// rotation matrix from body to earth frame at current time
+	Vector3f _vel_imu_rel_body_ned;		// velocity of IMU relative to body origin in NED earth frame
 
 	uint64_t _imu_ticks{0};	// counter for imu updates
 
@@ -381,6 +384,7 @@ protected:
 	RingBuffer<flowSample> 	_flow_buffer;
 	RingBuffer<extVisionSample> _ext_vision_buffer;
 	RingBuffer<outputSample> _output_buffer;
+	RingBuffer<outputVert> _output_vert_buffer;
 	RingBuffer<dragSample> _drag_buffer;
 
 	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds

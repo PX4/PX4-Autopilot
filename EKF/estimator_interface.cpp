@@ -379,7 +379,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _flow_buffer.allocate(_obs_buffer_length) &&
 	      _ext_vision_buffer.allocate(_obs_buffer_length) &&
 	      _drag_buffer.allocate(_obs_buffer_length) &&
-	      _output_buffer.allocate(_imu_buffer_length))) {
+	      _output_buffer.allocate(_imu_buffer_length) &&
+	      _output_vert_buffer.allocate(_imu_buffer_length))) {
 		ECL_ERR("EKF buffer allocation failed!");
 		unallocate_buffers();
 		return false;
@@ -448,6 +449,7 @@ void EstimatorInterface::unallocate_buffers()
 	_flow_buffer.unallocate();
 	_ext_vision_buffer.unallocate();
 	_output_buffer.unallocate();
+	_output_vert_buffer.unallocate();
 
 }
 

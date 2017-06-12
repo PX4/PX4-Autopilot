@@ -79,9 +79,16 @@ struct ext_vision_message {
 
 struct outputSample {
 	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
-	Vector3f    vel;	// NED velocity estimate in earth frame in m/s
-	Vector3f    pos;	// NED position estimate in earth frame in m/s
-	uint64_t 	time_us;	// timestamp in microseconds
+	Vector3f    vel;		// NED velocity estimate in earth frame in m/s
+	Vector3f    pos;		// NED position estimate in earth frame in m/s
+	uint64_t    time_us;		// timestamp in microseconds
+};
+
+struct outputVert {
+	float	    vel_d;		// D velocity calculated using alternative algorithm
+	float	    vel_d_integ;	// Integral of vel_d
+	float	    dt;			// delta time in seconds
+	uint64_t    time_us;		// timestamp in microseconds
 };
 
 struct imuSample {
