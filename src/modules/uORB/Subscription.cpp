@@ -117,40 +117,6 @@ SubscriptionBase::~SubscriptionBase()
 	if (ret != PX4_OK) { PX4_ERR("orb unsubscribe failed"); }
 }
 
-template <class T>
-Subscription<T>::Subscription(const struct orb_metadata *meta,
-			      unsigned interval,
-			      int instance,
-			      List<SubscriptionNode *> *list) :
-	SubscriptionNode(meta, interval, instance, list),
-	_data() // initialize data structure to zero
-{
-}
-
-template <class T>
-Subscription<T>::Subscription(const Subscription &other) :
-	SubscriptionNode(other._meta, other.getInterval(), other._instance, nullptr),
-	_data() // initialize data structure to zero
-{
-}
-
-template <class T>
-Subscription<T>::~Subscription()
-{
-}
-
-template <class T>
-void Subscription<T>::update()
-{
-	SubscriptionBase::update((void *)(&_data));
-}
-
-template <class T>
-bool Subscription<T>::check_updated()
-{
-	return SubscriptionBase::updated();
-}
-
 template class __EXPORT Subscription<actuator_armed_s>;
 template class __EXPORT Subscription<actuator_controls_s>;
 template class __EXPORT Subscription<att_pos_mocap_s>;
