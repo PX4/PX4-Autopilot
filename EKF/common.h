@@ -266,7 +266,7 @@ struct parameters {
 	float flow_innov_gate{3.0f};		// optical flow fusion innovation consistency gate size (STD)
 	float flow_rate_max{2.5f};		// maximum valid optical flow rate (rad/sec)
 
-	// these parameters control the strictness of GPS quality checks used to determine uf the GPS is
+	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
 	int32_t gps_check_mask{21};		// bitmask used to control which GPS quality checks are used
 	float req_hacc{5.0f};			// maximum acceptable horizontal position error
@@ -290,8 +290,8 @@ struct parameters {
 
 	// accel bias learning control
 	float acc_bias_lim{0.4f};		// maximum accel bias magnitude (m/s/s)
-	float acc_bias_learn_acc_lim{25.0f};	// learning is disabled if the magnitude of the IMU acceleration vector is greeater than this (m/sec**2)
-	float acc_bias_learn_gyr_lim{3.0f};	// learning is disabled if the magnitude of the IMU angular rate vector is greeater than this (rad/sec)
+	float acc_bias_learn_acc_lim{25.0f};	// learning is disabled if the magnitude of the IMU acceleration vector is greater than this (m/sec**2)
+	float acc_bias_learn_gyr_lim{3.0f};	// learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
 	float acc_bias_learn_tc{0.5f};		// time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	unsigned no_gps_timeout_max{7000000};	// maximum time we allow dead reckoning while both gps position and velocity measurements are being
