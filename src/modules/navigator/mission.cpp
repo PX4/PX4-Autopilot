@@ -1113,8 +1113,10 @@ Mission::altitude_sp_foh_update()
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
-	// we set altitude directly so we can run this in parallel to the heading update
-	_navigator->set_position_setpoint_triplet_updated();
+	if (!_navigator->get_vstatus()->is_rotary_wing) {
+		// we set altitude directly so we can run this in parallel to the heading update
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }
 
 void
