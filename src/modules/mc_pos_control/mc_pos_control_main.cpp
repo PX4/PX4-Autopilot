@@ -410,8 +410,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
-	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
+	_cruise_speed_90(this, "CRUISE_90", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_min_cruise_speed(this, "CRUISE_MIN", true),
 	_nav_rad(this, "NAV_ACC_RAD", false),
@@ -890,18 +890,33 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 		const matrix::Vector2f &unit_current_to_next)
 {
 
+	/* minimum cruise speed when passing waypoint */
+	float min_cruise_speed = 1.0f;
+
 	/* make sure that cruise speed is larger than minimum*/
-	if ((get_cruising_speed_xy() - _min_cruise_speed.get()) < SIGMA_NORM) {
+	if ((get_cruising_speed_xy() - min_cruise_speed) < SIGMA_NORM) {
 		return get_cruising_speed_xy();
 	}
 
 	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees
-	 * it needs to be alwawys larger than minimum cruise speed */
-	float middle_cruise_speed = 3.0f * (_min_cruise_speed.get() + SIGMA_NORM);
+	 * it needs to be always larger than minimum cruise speed */
+	float middle_cruise_speed = _cruise_speed_90.get();
 
-	/* make sure that cruise speed is larger than middle cruise speed, otherwise set it to half of max/min*/
+	if ((middle_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
+		middle_cruise_speed = min_cruise_speed + SIGMA_NORM;
+	}
+
 	if ((get_cruising_speed_xy() - middle_cruise_speed) < SIGMA_NORM) {
-		middle_cruise_speed = (get_cruising_speed_xy() + _min_cruise_speed.get()) * 0.5f;
+		middle_cruise_speed = (get_cruising_speed_xy() + min_cruise_speed) * 0.5f;
+	}
+
+	/* if middle cruise speed is exactly in the middle, then compute
+	 * vel_close linearly
+	 */
+	bool use_linear_approach = false;
+
+	if (((get_cruising_speed_xy() + min_cruise_speed) * 0.5f) - middle_cruise_speed < SIGMA_NORM) {
+		use_linear_approach = true;
 	}
 
 	/* angle = cos(x) + 1.0
@@ -912,21 +927,35 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 		angle = unit_current_to_next * (unit_prev_to_current * -1.0f) + 1.0f;
 	}
 
-	/* velocity close to target adjusted to angle
-	 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = middle_cruise_speed (this means that at 90degrees
-	 * the velocity at target is middle_cruise_speed);
-	 * angle = 2 -> vel_close = min_cruising_speed */
+	/* compute velocity target close to waypoint */
+	float vel_close;
 
-	/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
-	float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
-		  (2.0f * middle_cruise_speed - get_cruising_speed_xy() - _min_cruise_speed.get());
-	float c =  get_cruising_speed_xy() - a;
-	float b = (middle_cruise_speed - c) / a;
-	float vel_close = a * powf(b, angle) + c;
+	if (use_linear_approach) {
+
+		/* velocity close to target adjusted to angle
+		 * vel_close =  m*x+q
+		 */
+		float slope = -(get_cruising_speed_xy() - min_cruise_speed) / 2.0f;
+		vel_close = slope * angle + get_cruising_speed_xy();
+
+	} else {
+
+		/* velocity close to target adjusted to angle
+		 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = middle_cruise_speed (this means that at 90degrees
+		 * the velocity at target is middle_cruise_speed);
+		 * angle = 2 -> vel_close = min_cruising_speed */
+
+		/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
+		float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
+			  (2.0f * middle_cruise_speed - get_cruising_speed_xy() - min_cruise_speed);
+		float c =  get_cruising_speed_xy() - a;
+		float b = (middle_cruise_speed - c) / a;
+		vel_close = a * powf(b, angle) + c;
+	}
 
 	/* sanity check: vel_close needs to be in between max and min */
-	if ((vel_close - _min_cruise_speed.get()) < SIGMA_SINGLE_OP) {
-		vel_close = _min_cruise_speed.get();
+	if ((vel_close - min_cruise_speed) < SIGMA_SINGLE_OP) {
+		vel_close = min_cruise_speed;
 
 	} else if (vel_close > get_cruising_speed_xy()) {
 		vel_close = get_cruising_speed_xy();
@@ -1676,6 +1705,10 @@ void MulticopterPositionControl::control_auto(float dt)
 							target_threshold_xy = _nav_rad.get();
 						}
 
+						if ((target_threshold - _nav_rad.get()) < SIGMA_NORM) {
+							target_threshold = _nav_rad.get();
+						}
+
 						/* velocity close to current setpoint with default zero if no next setpoint is available */
 						float vel_close = 0.0f;
 						float acceptance_radius = 0.0f;
@@ -1696,28 +1729,20 @@ void MulticopterPositionControl::control_auto(float dt)
 							final_cruise_speed = slope  * (target_threshold_xy - acceptance_radius) + vel_close;
 							final_cruise_speed = (final_cruise_speed > vel_close) ? final_cruise_speed : vel_close;
 						}
+
 					}
 
-					/* make sure final cruise speed is larger than minimum curise speed */
-					final_cruise_speed = (_min_cruise_speed.get() < final_cruise_speed) ? final_cruise_speed : _min_cruise_speed.get();
+					/* make sure final cruise speed is larger than 0*/
+					final_cruise_speed = (final_cruise_speed > SIGMA_NORM) ? final_cruise_speed : SIGMA_NORM;
+					vel_sp_along_track = final_cruise_speed;
 
+					/* we want to accelerate not too fast
+					* TODO: change the name acceleration_hor_man to something that can
+					* be used by auto and manual */
+					float acc_track = (final_cruise_speed - vel_sp_along_track_prev) / dt;
 
-					/* compute the velocity along the track depending on distance close to previous setpoint */
-					if ((target_threshold - _nav_rad.get()) < SIGMA_NORM) {
-						vel_sp_along_track = _min_cruise_speed.get();
-
-					} else {
-
-						vel_sp_along_track = final_cruise_speed;
-
-						/* we want to accelerate not too fast
-						 * TODO: change the name acceleration_hor_man to something that can
-						 * be used by auto and manual */
-						float acc_track = (final_cruise_speed - vel_sp_along_track_prev) / dt;
-
-						if (acc_track > _acceleration_hor_manual.get()) {
-							vel_sp_along_track = _acceleration_hor_manual.get() * dt + vel_sp_along_track_prev;
-						}
+					if (acc_track > _acceleration_hor_manual.get()) {
+						vel_sp_along_track = _acceleration_hor_manual.get() * dt + vel_sp_along_track_prev;
 					}
 
 					/* enforce minimum cruise speed */
@@ -1831,7 +1856,7 @@ void MulticopterPositionControl::control_auto(float dt)
 						cruise_sp = get_cruising_speed_xy();
 					}
 
-					/* sanity check: done divide by zero */
+					/* sanity check: don't divide by zero */
 					if (vec_pos_to_closest.length() > SIGMA_NORM) {
 						pos_sp(0) = _pos(0) + vec_pos_to_closest(0) / vec_pos_to_closest.length() * cruise_sp / _params.pos_p(0);
 						pos_sp(1) = _pos(1) + vec_pos_to_closest(1) / vec_pos_to_closest.length() * cruise_sp / _params.pos_p(1);
