@@ -722,6 +722,11 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
+
+				// Parameters update to get offsets and scaling loaded (if not already loaded)
+				parameters_update();
+
+				// Set device priority for the voter
 				int32_t priority = 0;
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
