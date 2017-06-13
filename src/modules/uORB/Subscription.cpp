@@ -37,34 +37,6 @@
  */
 
 #include "Subscription.hpp"
-#include "topics/actuator_armed.h"
-#include "topics/actuator_controls.h"
-#include "topics/att_pos_mocap.h"
-#include "topics/battery_status.h"
-#include "topics/control_state.h"
-#include "topics/distance_sensor.h"
-#include "topics/hil_sensor.h"
-#include "topics/home_position.h"
-#include "topics/log_message.h"
-#include "topics/manual_control_setpoint.h"
-#include "topics/mavlink_log.h"
-#include "topics/optical_flow.h"
-#include "topics/parameter_update.h"
-#include "topics/position_setpoint_triplet.h"
-#include "topics/rc_channels.h"
-#include "topics/satellite_info.h"
-#include "topics/sensor_combined.h"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_control_mode.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/vehicle_gps_position.h"
-#include "topics/vehicle_land_detected.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_local_position_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/vehicle_status.h"
-
 #include <px4_defines.h>
 
 namespace uORB

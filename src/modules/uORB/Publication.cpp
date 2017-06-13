@@ -37,21 +37,6 @@
  */
 
 #include "Publication.hpp"
-#include "topics/actuator_controls.h"
-#include "topics/actuator_direct.h"
-#include "topics/actuator_outputs.h"
-#include "topics/debug_key_value.h"
-#include "topics/ekf2_innovations.h"
-#include "topics/filtered_bottom_flow.h"
-#include "topics/rc_channels.h"
-#include "topics/tecs_status.h"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_rates_setpoint.h"
-
 #include <px4_defines.h>
 
 namespace uORB
