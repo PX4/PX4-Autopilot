@@ -50,37 +50,19 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 #define RCINPUT_MEASURE_INTERVAL_US 20000
-<<<<<<< HEAD
 namespace rpi_rc_in {
 class RcInput {
-=======
-namespace rpi_rc_in
-{
-class RcInput
-{
->>>>>>> master
 public:
 	int *mem;
 	key_t key;
 	int shmid;
 	RcInput() :
-<<<<<<< HEAD
 			mem(nullptr),key(4096),shmid(0),_shouldExit(false), _isRunning(false), _work { }, _rcinput_pub(
 					nullptr), _channels(8),//D8R-II plus
 			_data { } {
 		//memset(_ch_fd, 0, sizeof(_ch_fd));
 	}
 	~RcInput() {
-=======
-		mem(nullptr), key(4096), shmid(0), _shouldExit(false), _isRunning(false), _work { }, _rcinput_pub(
-			nullptr), _channels(8),//D8R-II plus
-		_data { }
-	{
-		//memset(_ch_fd, 0, sizeof(_ch_fd));
-	}
-	~RcInput()
-	{
->>>>>>> master
 		this->mem = nullptr;
 		work_cancel(HPWORK, &_work);
 		_isRunning = false;
@@ -95,12 +77,7 @@ public:
 	/* Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
-<<<<<<< HEAD
 	bool isRunning() {
-=======
-	bool isRunning()
-	{
->>>>>>> master
 		return _isRunning;
 	}
 
@@ -108,11 +85,7 @@ private:
 	void _cycle();
 	void _measure();
 
-<<<<<<< HEAD
 	bool _shouldExit;bool _isRunning;
-=======
-	bool _shouldExit; bool _isRunning;
->>>>>>> master
 	struct work_s _work;
 	orb_advert_t _rcinput_pub;
 	int _channels;

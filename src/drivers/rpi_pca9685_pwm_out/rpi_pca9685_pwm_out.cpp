@@ -348,7 +348,7 @@ int rpi_pca9685_pwm_out_main(int argc, char **argv)
 			strncpy(rpi_pca9685_pwm_out::_mixer_filename, myoptarg, sizeof(rpi_pca9685_pwm_out::_mixer_filename));
 			break;
 
-		case 'p'
+		case 'p':
 			_pca9685_bus = atoi(myoptarg);
 			break;
 		}
