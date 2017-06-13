@@ -1506,7 +1506,7 @@ void MulticopterPositionControl::control_auto(float dt)
 			if ((total_dist_z >  SIGMA_NORM) && (fabsf(_pos_sp(2) - _curr_pos_sp(2)) > SIGMA_NORM)) {
 
 				/* check sign */
-				bool flying_upward = _curr_pos_sp(2) < _prev_pos_sp(2);
+				bool flying_upward = _curr_pos_sp(2) < _pos(2);
 
 				/* final_vel_z is the max velocity which depends on the distance of total_dist_z
 				 * with default params.vel_max_up/down
@@ -1530,7 +1530,6 @@ void MulticopterPositionControl::control_auto(float dt)
 					 * to current and therefore it is not necessary to accelerate
 					 * up to full speed (=final_vel_z)
 					 */
-
 					target_threshold_z = total_dist_z * 0.5f;
 					/* get the velocity at target_threshold_z */
 					float final_vel_z_tmp = slope * (target_threshold_z) + min_vel_z;
@@ -1552,12 +1551,15 @@ void MulticopterPositionControl::control_auto(float dt)
 				} else if (dist_to_prev_z < target_threshold_z) {
 					/* we want to accelerate */
 
-					float acc_z = fabsf(vel_sp_z - _vel_sp_prev(2)) / dt;
+					float acc_z = (vel_sp_z - fabsf(_vel_sp(2))) / dt;
+					float acc_max = (flying_upward) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
 
-					if (acc_z > _acceleration_z_max_up.get()) {
-						vel_sp_z = _acceleration_z_max_up.get() * dt + fabsf(_vel_sp_prev(2));
+					if (acc_z > acc_max) {
+						vel_sp_z = _acceleration_z_max_up.get() * dt + fabsf(_vel_sp(2));
 					}
+
 				}
+
 
 				/* if we already close to current, then just take over the velocity that
 				 * we would have computed if going directly to the current setpoint
