@@ -10,6 +10,7 @@ add_definitions(
 	-D__DF_LINUX # For DriverFramework
 	-D__DF_RPI # For DriverFramework
 	-D__DF_RPI_SINGLE # For noshield
+	-D__DF_ARM_GENERIC # 有这个定义的，视为通用的ARM
 )
 
 
