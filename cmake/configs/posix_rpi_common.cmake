@@ -8,8 +8,7 @@ include(posix/px4_impl_posix)
 add_definitions(
 	-D__PX4_POSIX_RPI
 	-D__DF_LINUX # For DriverFramework
-	-D__DF_RPI # For raspberry pi
-        -D__DF_RPI_SINGLE # For raspberry pi without shield accessory
+	-D__DF_RPI # For DriverFramework
 )
 
 
@@ -49,10 +48,12 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/mc_att_control
-	modules/mc_pos_control
 	modules/fw_att_control
 	modules/fw_pos_control_l1
+	modules/gnd_att_control
+	modules/gnd_pos_control
+	modules/mc_att_control
+	modules/mc_pos_control
 	modules/vtol_att_control
 
 	#
@@ -61,7 +62,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -80,8 +81,6 @@ set(config_module_list
 	drivers/linux_gpio
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
-	drivers/rpi_rc_in
-	drivers/rpi_pca9685_pwm_out
 
 	#
 	# Libraries
