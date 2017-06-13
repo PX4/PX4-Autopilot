@@ -1058,11 +1058,15 @@ Mission::altitude_sp_foh_update()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* Don't change setpoint if last and current waypoint are not valid
-	 * or if the previous altitude isn't from a position or loiter setpoint
+	 * or if the previous altitude isn't from a position or loiter setpoint or
+	 * if rotary wing since that is handled in the mc_pos_control
 	 */
+
+
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
 	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
+	    _navigator->get_vstatus()->is_rotary_wing) {
 
 		return;
 	}
@@ -1113,10 +1117,10 @@ Mission::altitude_sp_foh_update()
 		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
 	}
 
-	if (!_navigator->get_vstatus()->is_rotary_wing) {
-		// we set altitude directly so we can run this in parallel to the heading update
-		_navigator->set_position_setpoint_triplet_updated();
-	}
+
+	// we set altitude directly so we can run this in parallel to the heading update
+	_navigator->set_position_setpoint_triplet_updated();
+
 }
 
 void
