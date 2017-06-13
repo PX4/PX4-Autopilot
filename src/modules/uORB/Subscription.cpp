@@ -117,32 +117,4 @@ SubscriptionBase::~SubscriptionBase()
 	if (ret != PX4_OK) { PX4_ERR("orb unsubscribe failed"); }
 }
 
-template class __EXPORT Subscription<actuator_armed_s>;
-template class __EXPORT Subscription<actuator_controls_s>;
-template class __EXPORT Subscription<att_pos_mocap_s>;
-template class __EXPORT Subscription<battery_status_s>;
-template class __EXPORT Subscription<control_state_s>;
-template class __EXPORT Subscription<distance_sensor_s>;
-template class __EXPORT Subscription<hil_sensor_s>;
-template class __EXPORT Subscription<home_position_s>;
-template class __EXPORT Subscription<log_message_s>;
-template class __EXPORT Subscription<manual_control_setpoint_s>;
-template class __EXPORT Subscription<mavlink_log_s>;
-template class __EXPORT Subscription<optical_flow_s>;
-template class __EXPORT Subscription<parameter_update_s>;
-template class __EXPORT Subscription<position_setpoint_triplet_s>;
-template class __EXPORT Subscription<rc_channels_s>;
-template class __EXPORT Subscription<satellite_info_s>;
-template class __EXPORT Subscription<sensor_combined_s>;
-template class __EXPORT Subscription<vehicle_attitude_s>;
-template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;
-template class __EXPORT Subscription<vehicle_control_mode_s>;
-template class __EXPORT Subscription<vehicle_global_position_s>;
-template class __EXPORT Subscription<vehicle_gps_position_s>;
-template class __EXPORT Subscription<vehicle_land_detected_s>;
-template class __EXPORT Subscription<vehicle_local_position_s>;
-template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
-template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
-template class __EXPORT Subscription<vehicle_status_s>;
-
 } // namespace uORB
