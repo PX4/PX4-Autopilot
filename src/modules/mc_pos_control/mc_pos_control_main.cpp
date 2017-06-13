@@ -953,15 +953,9 @@ MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_c
 		vel_close = a * powf(b, angle) + c;
 	}
 
-	/* sanity check: vel_close needs to be in between max and min */
-	if ((vel_close - min_cruise_speed) < SIGMA_SINGLE_OP) {
-		vel_close = min_cruise_speed;
+	/* vel_close needs to be in between max and min */
+	return math::constrain(vel_close, min_cruise_speed, get_cruising_speed_xy());
 
-	} else if (vel_close > get_cruising_speed_xy()) {
-		vel_close = get_cruising_speed_xy();
-	}
-
-	return vel_close;
 }
 
 float
@@ -1746,8 +1740,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					}
 
 					/* enforce minimum cruise speed */
-					vel_sp_along_track  = (vel_sp_along_track < SIGMA_NORM) ? SIGMA_NORM : vel_sp_along_track;
-					vel_sp_along_track 	= (vel_sp_along_track > final_cruise_speed) ? final_cruise_speed : vel_sp_along_track;
+					vel_sp_along_track  = math::constrain(vel_sp_along_track, SIGMA_NORM, final_cruise_speed);
 
 				} else if (close_to_current) {
 					/* slow down when close to current setpoint */
