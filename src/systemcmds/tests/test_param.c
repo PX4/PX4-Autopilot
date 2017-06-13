@@ -46,11 +46,6 @@
 #define PARAM_MAGIC1 12345678
 #define PARAM_MAGIC2 0xa5a5a5a5
 
-/**
- * @group Testing
- */
-PARAM_DEFINE_INT32(TEST_PARAMS, 12345678);
-
 int
 test_param(int argc, char *argv[])
 {

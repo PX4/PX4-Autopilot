@@ -123,6 +123,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// misc
 	_polls(),
 	_timeStamp(hrt_absolute_time()),
+	_time_origin(0),
 	_timeStampLastBaro(hrt_absolute_time()),
 	_time_last_hist(0),
 	_time_last_flow(0),
@@ -148,10 +149,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// masks
 	_sensorTimeout(255),
 	_sensorFault(0),
-	_estimatorInitialized(0),
-
-	// kf matrices
-	_x(), _u(), _P(), _R_att(), _eul()
+	_estimatorInitialized(0)
 {
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -282,7 +280,6 @@ void BlockLocalPositionEstimator::update()
 	_lastArmedState = armedState;
 
 	// see which updates are available
-	bool flowUpdated = _sub_flow.updated();
 	bool paramsUpdated = _sub_param_update.updated();
 	bool baroUpdated = false;
 
@@ -300,6 +297,7 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
+	bool flowUpdated = (_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
 	bool gpsUpdated = (_fusion.get() & FUSE_GPS) && _sub_gps.updated();
 	bool visionUpdated = (_fusion.get() & FUSE_VIS_POS) && _sub_vision_pos.updated();
 	bool mocapUpdated = _sub_mocap.updated();
@@ -380,6 +378,9 @@ void BlockLocalPositionEstimator::update()
 		map_projection_init(&_map_ref,
 				    _init_origin_lat.get(),
 				    _init_origin_lon.get());
+
+		// set timestamp when origin was set to current time
+		_time_origin = _timeStamp;
 
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
 					     double(_init_origin_lat.get()), double(_init_origin_lon.get()), double(_altOrigin));
@@ -563,11 +564,7 @@ bool BlockLocalPositionEstimator::landed()
 
 	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
 
-	if (!(_sub_land.get().landed || disarmed_not_falling)) {
-		return false;
-	}
-
-	return true;
+	return _sub_land.get().landed || disarmed_not_falling;
 }
 
 void BlockLocalPositionEstimator::publishLocalPos()
@@ -617,7 +614,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().yaw = _eul(2);
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO);
-		_pub_lpos.get().ref_timestamp = _timeStamp;
+		_pub_lpos.get().ref_timestamp = _time_origin;
 		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _altOrigin;

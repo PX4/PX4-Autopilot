@@ -362,6 +362,9 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	switch (command) {
 
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+
+	/* fallthrough */
+	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
 		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
 		break;
@@ -405,6 +408,10 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
+		/* send protocol version message */
+		_mavlink->send_protocol_version();
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);

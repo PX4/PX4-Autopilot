@@ -11,8 +11,8 @@
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
 then
-	echo "ERROR [init] Estimator INAV deprecated. Using LPE"
-	param set SYS_MC_EST_GROUP 1
+	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
+	param set SYS_MC_EST_GROUP 2
 	param save
 fi
 
@@ -25,7 +25,9 @@ then
 	then
 		local_position_estimator start
 	else
-		ekf2 start
+		echo "ERROR [init] Estimator LPE not available. Using EKF2"
+		param set SYS_MC_EST_GROUP 2
+		param save
 	fi
 fi
 

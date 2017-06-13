@@ -569,7 +569,6 @@ void VDev::showDevices()
 
 	pthread_mutex_unlock(&devmutex);
 
-#ifndef __PX4_UNIT_TESTS
 	PX4_INFO("DF Devices:");
 	const char *dev_path;
 	unsigned int index = 0;
@@ -583,8 +582,6 @@ void VDev::showDevices()
 			PX4_INFO("   %s", dev_path);
 		}
 	} while (i == 0);
-
-#endif
 }
 
 void VDev::showTopics()

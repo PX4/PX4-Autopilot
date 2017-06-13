@@ -62,7 +62,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <controllib/uorb/blocks.hpp>
+#include <controllib/blocks.hpp>
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -130,8 +130,10 @@ private:
 	static constexpr float _dt_max = 0.02;
 	bool	_task_should_exit = false;
 	int	_control_task = -1;		// task handle for task
+
 	bool 	_replay_mode;			// should we use replay data from a log
-	int 	_publish_replay_mode;		// defines if we should publish replay messages
+	int32_t _publish_replay_mode;		// defines if we should publish replay messages
+
 	float	_default_ev_pos_noise = 0.05f;	// external vision position noise used when an invalid value is supplied
 	float	_default_ev_ang_noise = 0.05f;	// external vision angle noise used when an invalid value is supplied
 
@@ -339,7 +341,6 @@ Ekf2::Ekf2():
 	_lp_roll_rate(250.0f, 30.0f),
 	_lp_pitch_rate(250.0f, 30.0f),
 	_lp_yaw_rate(250.0f, 20.0f),
-	_ekf(),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),

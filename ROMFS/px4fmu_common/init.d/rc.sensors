@@ -348,11 +348,11 @@ then
 	if mpu6000 -R 2 -T 20608 start
 	then
 	fi
-	
+
 	# Internal SPI bus ICM-20602
 	if mpu6000 -R 2 -T 20602 start
 	then
-	fi	
+	fi
 
 	# Internal SPI bus mpu9250
 	if mpu9250 -R 2 start
@@ -412,15 +412,14 @@ then
 	lsm303d start
 fi
 
-if meas_airspeed start
+if sdp3x_airspeed start
 then
 else
-	if ets_airspeed start
+	if meas_airspeed start
 	then
 	else
-		if ets_airspeed start -b 1
-		then
-		fi
+		ets_airspeed start
+		ets_airspeed start -b 1
 	fi
 fi
 

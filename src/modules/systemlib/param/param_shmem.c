@@ -96,15 +96,8 @@ static bool autosave_disabled = false;
 /**
  * Array of static parameter info.
  */
-#ifdef _UNIT_TEST
-extern struct param_info_s	param_array[];
-extern struct param_info_s	*param_info_base;
-extern struct param_info_s	*param_info_limit;
-#define param_info_count	(param_info_limit - param_info_base)
-#else
 static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
 #define	param_info_count		px4_parameters.param_count
-#endif /* _UNIT_TEST */
 
 /**
  * Storage for modified parameters.

@@ -84,9 +84,10 @@ private:
 	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
 
 	// Disallow copy
-	UnitTest(const uORBTest::UnitTest &) {};
+	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
+
 	static int pubsubtest_threadEntry(char *const argv[]);
-	int pubsublatency_main(void);
+	int pubsublatency_main();
 
 	static int pub_test_multi2_entry(char *const argv[]);
 	int pub_test_multi2_main();
@@ -133,7 +134,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 		return test_fail("orb_advertise failed (%i)", errno);
 	}
 
-	char *const args[1] = { NULL };
+	char *const args[1] = { nullptr };
 
 	pubsubtest_print = print;
 	pubsubtest_passed = false;

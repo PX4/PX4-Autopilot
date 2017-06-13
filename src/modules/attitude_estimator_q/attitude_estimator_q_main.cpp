@@ -459,20 +459,19 @@ void AttitudeEstimatorQ::task_main()
 			continue;
 		}
 
-		Vector<3> euler = _q.to_euler();
+		{
+			vehicle_attitude_s att = {
+				.timestamp = sensors.timestamp,
+				.rollspeed = _rates(0),
+				.pitchspeed = _rates(1),
+				.yawspeed = _rates(2),
+				.q = {_q(0), _q(1), _q(2), _q(3)}
+			};
 
-		struct vehicle_attitude_s att = {};
-		att.timestamp = sensors.timestamp;
-
-		att.rollspeed = _rates(0);
-		att.pitchspeed = _rates(1);
-		att.yawspeed = _rates(2);
-
-		memcpy(&att.q[0], _q.data, sizeof(att.q));
-
-		/* the instance count is not used here */
-		int att_inst;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
+			/* the instance count is not used here */
+			int att_inst;
+			orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
+		}
 
 		{
 			struct control_state_s ctrl_state = {};

@@ -45,7 +45,7 @@
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <fw_pos_control_l1/landingslope.h>
+#include <fw_pos_control_l1/Landingslope.hpp>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>

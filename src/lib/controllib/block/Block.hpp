@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file Block.h
+ * @file Block.hpp
  *
  * Controller library code
  */
 
 #pragma once
-
-#include <stdint.h>
-#include <inttypes.h>
 
 #include <containers/List.hpp>
 #include <uORB/Publication.hpp>
@@ -50,11 +47,11 @@
 namespace control
 {
 
-static const uint16_t maxChildrenPerBlock = 100;
-static const uint16_t maxParamsPerBlock = 100;
-static const uint16_t maxSubscriptionsPerBlock = 100;
-static const uint16_t maxPublicationsPerBlock = 100;
-static const uint8_t blockNameLengthMax = 40;
+static constexpr uint8_t maxChildrenPerBlock = 100;
+static constexpr uint8_t maxParamsPerBlock = 100;
+static constexpr uint8_t maxSubscriptionsPerBlock = 100;
+static constexpr uint8_t maxPublicationsPerBlock = 100;
+static constexpr uint8_t blockNameLengthMax = 40;
 
 // forward declaration
 class BlockParamBase;
@@ -62,39 +59,43 @@ class SuperBlock;
 
 /**
  */
-class __EXPORT Block :
-	public ListNode<Block *>
+class __EXPORT Block : public ListNode<Block *>
 {
 public:
 	friend class BlockParamBase;
-// methods
+
 	Block(SuperBlock *parent, const char *name);
+	virtual ~Block() = default;
+
+	// no copy, assignment, move, move assignment
+	Block(const Block &) = delete;
+	Block &operator=(const Block &) = delete;
+	Block(Block &&) = delete;
+	Block &operator=(Block &&) = delete;
+
 	void getName(char *name, size_t n);
-	virtual ~Block() {};
+
 	virtual void updateParams();
 	virtual void updateSubscriptions();
 	virtual void updatePublications();
+
 	virtual void setDt(float dt) { _dt = dt; }
-// accessors
 	float getDt() { return _dt; }
+
 protected:
-// accessors
+
 	SuperBlock *getParent() { return _parent; }
 	List<uORB::SubscriptionNode *> &getSubscriptions() { return _subscriptions; }
 	List<uORB::PublicationNode *> &getPublications() { return _publications; }
 	List<BlockParamBase *> &getParams() { return _params; }
-// attributes
+
 	const char *_name;
 	SuperBlock *_parent;
-	float _dt;
+	float _dt{0.0f};
+
 	List<uORB::SubscriptionNode *> _subscriptions;
 	List<uORB::PublicationNode *> _publications;
 	List<BlockParamBase *> _params;
-
-private:
-	/* this class has pointer data members and should not be copied (private constructor) */
-	Block(const control::Block &);
-	Block operator=(const control::Block &);
 };
 
 class __EXPORT SuperBlock :
@@ -102,39 +103,44 @@ class __EXPORT SuperBlock :
 {
 public:
 	friend class Block;
-// methods
-	SuperBlock(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_children()
-	{
-	}
-	virtual ~SuperBlock() {};
-	virtual void setDt(float dt);
-	virtual void updateParams()
+
+	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {};
+	~SuperBlock() = default;
+
+	// no copy, assignment, move, move assignment
+	SuperBlock(const SuperBlock &) = delete;
+	SuperBlock &operator=(const SuperBlock &) = delete;
+	SuperBlock(SuperBlock &&) = delete;
+	SuperBlock &operator=(SuperBlock &&) = delete;
+
+	void setDt(float dt) override;
+
+	void updateParams() override
 	{
 		Block::updateParams();
 
-		if (getChildren().getHead() != NULL) { updateChildParams(); }
+		if (getChildren().getHead() != nullptr) { updateChildParams(); }
 	}
-	virtual void updateSubscriptions()
+
+	void updateSubscriptions() override
 	{
 		Block::updateSubscriptions();
 
-		if (getChildren().getHead() != NULL) { updateChildSubscriptions(); }
+		if (getChildren().getHead() != nullptr) { updateChildSubscriptions(); }
 	}
-	virtual void updatePublications()
+	void updatePublications() override
 	{
 		Block::updatePublications();
 
-		if (getChildren().getHead() != NULL) { updateChildPublications(); }
+		if (getChildren().getHead() != nullptr) { updateChildPublications(); }
 	}
+
 protected:
-// methods
 	List<Block *> &getChildren() { return _children; }
 	void updateChildParams();
 	void updateChildSubscriptions();
 	void updateChildPublications();
-// attributes
+
 	List<Block *> _children;
 };
 

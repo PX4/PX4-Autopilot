@@ -64,7 +64,7 @@
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
 
-//#define PARAM_NO_ORB ///< if defined, avoid uorb depenency. This disables publication of parameter_update on param change
+//#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
 
 #if !defined(PARAM_NO_ORB)
@@ -83,7 +83,6 @@
 
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = NULL;
-
 
 #if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -111,15 +110,8 @@ static bool autosave_disabled = false;
 /**
  * Array of static parameter info.
  */
-#ifdef _UNIT_TEST
-extern struct param_info_s	param_array[];
-extern struct param_info_s	*param_info_base;
-extern struct param_info_s	*param_info_limit;
-#define param_info_count	(param_info_limit - param_info_base)
-#else
 static const struct param_info_s *param_info_base = (const struct param_info_s *) &px4_parameters;
-#define	param_info_count		px4_parameters.param_count
-#endif /* _UNIT_TEST */
+#define	param_info_count px4_parameters.param_count
 
 /**
  * Storage for modified parameters.
@@ -727,7 +719,14 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
 			if (s->val.p == NULL) {
-				s->val.p = malloc(param_size(param));
+				size_t psize = param_size(param);
+
+				if (psize > 0) {
+					s->val.p = malloc(psize);
+
+				} else {
+					s->val.p = NULL;
+				}
 
 				if (s->val.p == NULL) {
 					debug("failed to allocate parameter storage");
@@ -1168,7 +1167,14 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		}
 
 		/* XXX check actual file data size? */
-		tmp = malloc(param_size(param));
+		size_t psize = param_size(param);
+
+		if (psize > 0) {
+			tmp = malloc(psize);
+
+		} else {
+			tmp = NULL;
+		}
 
 		if (tmp == NULL) {
 			debug("failed allocating for '%s'", node->name);

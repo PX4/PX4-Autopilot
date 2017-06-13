@@ -59,7 +59,6 @@ RunwayTakeoff::RunwayTakeoff() :
 	_init_yaw(0),
 	_climbout(false),
 	_throttle_ramp_time(2 * 1e6),
-	_start_wp(),
 	_runway_takeoff_enabled(this, "TKOFF"),
 	_heading_mode(this, "HDG"),
 	_nav_alt(this, "NAV_ALT"),

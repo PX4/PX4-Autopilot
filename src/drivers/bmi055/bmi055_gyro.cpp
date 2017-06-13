@@ -184,7 +184,7 @@ BMI055_gyro::probe()
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+	PX4_ERR("unexpected whoami 0x%02x", _whoami);
 	return -EIO;
 }
 
@@ -768,6 +768,7 @@ BMI055_gyro::measure()
 
 	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
+	grb.device_id = _device_id.devid;
 
 	_gyro_reports->force(&grb);
 

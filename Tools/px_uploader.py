@@ -57,6 +57,7 @@ import sys
 import argparse
 import binascii
 import serial
+import socket
 import struct
 import json
 import zlib
@@ -203,9 +204,10 @@ class uploader(object):
             self.port.close()
 
     def open(self):
+        # upload timeout
         timeout = time.time() + 0.2
 
-        # Attempt to open the port while it exists and until timeout occurs
+        # attempt to open the port while it exists and until timeout occurs
         while self.port is not None:
             portopen = True
             try:
@@ -604,6 +606,27 @@ def main():
     fw = firmware(args.firmware)
     print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
     print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
+
+    # tell any GCS that might be connected to the autopilot to give up
+    # control of the serial port
+
+    # send to localhost and default GCS port
+    ipaddr = '127.0.0.1'
+    portnum = 14550
+
+    # COMMAND_LONG in MAVLink 1
+    heartbeatpacket = bytearray.fromhex('fe097001010000000100020c5103033c8a')
+    commandpacket = bytearray.fromhex('fe210101014c00000000000000000000000000000000000000000000803f00000000f6000000008459')
+
+    # initialize an UDP socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # send heartbeat to initialize connection and command to free the link
+    s.sendto(heartbeatpacket, (ipaddr, portnum))
+    s.sendto(commandpacket, (ipaddr, portnum))
+
+    # close the socket
+    s.close()
 
     # Spin waiting for a device to show up
     try:

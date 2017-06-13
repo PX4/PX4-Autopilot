@@ -880,14 +880,7 @@ FixedwingAttitudeControl::task_main()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
-			bool lock_integrator;
-
-			if (_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing) {
-				lock_integrator = false;
-
-			} else {
-				lock_integrator = true;
-			}
+			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing);
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -992,12 +985,6 @@ FixedwingAttitudeControl::task_main()
 				float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
 				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
-				float roll_sp = _parameters.rollsp_offset_rad;
-				float pitch_sp = _parameters.pitchsp_offset_rad;
-				float yaw_sp = 0.0f;
-				float yaw_manual = 0.0f;
-				float throttle_sp = 0.0f;
-
 				// in STABILIZED mode we need to generate the attitude setpoint
 				// from manual user inputs
 				if (!_vcontrol_mode.flag_control_climb_rate_enabled && !_vcontrol_mode.flag_control_offboard_enabled) {
@@ -1016,10 +1003,11 @@ FixedwingAttitudeControl::task_main()
 					orb_publish_auto(_attitude_setpoint_id, &_attitude_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
 				}
 
-				roll_sp = _att_sp.roll_body;
-				pitch_sp = _att_sp.pitch_body;
-				yaw_sp = _att_sp.yaw_body;
-				throttle_sp = _att_sp.thrust;
+				float roll_sp = _att_sp.roll_body;
+				float pitch_sp = _att_sp.pitch_body;
+				float yaw_sp = _att_sp.yaw_body;
+				float throttle_sp = _att_sp.thrust;
+				float yaw_manual = 0.0f;
 
 				/* allow manual yaw in manual modes */
 				if (_vcontrol_mode.flag_control_manual_enabled) {

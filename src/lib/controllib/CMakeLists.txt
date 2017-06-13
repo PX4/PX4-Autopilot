@@ -34,10 +34,16 @@ px4_add_module(
 	MODULE lib__controllib
 	COMPILE_FLAGS
 	SRCS
-		blocks.cpp
 		block/Block.cpp
 		block/BlockParam.cpp
-		uorb/blocks.cpp
+		BlockDerivative.cpp
+		BlockHighPass.cpp
+		BlockIntegral.cpp
+		BlockIntegralTrap.cpp
+		BlockLimit.cpp
+		BlockLimitSym.cpp
+		BlockLowPass.cpp
+		BlockLowPass2.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -53,7 +53,7 @@ add_definitions(
 		-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
 		)
 
-px4_share_subdirectory(RELDIR ../uavcan/libuavcan ARGS EXCLUDE_FROM_ALL)
+add_subdirectory(../uavcan/libuavcan uavcanesc_libuavcan)
 add_dependencies(uavcan platforms__nuttx)
 
 include_directories(../../drivers/bootloaders/include)
@@ -71,12 +71,12 @@ px4_add_module(
 		-Wno-deprecated-declarations
 		-O3
 	SRCS
-	uavcanesc_main.cpp
-    indication_controller.cpp
-    led.cpp
-    uavcanesc_params.c
-    ../systemlib/flashparams/flashparams.c
-    ../systemlib/flashparams/flashfs.c
+		uavcanesc_main.cpp
+		indication_controller.cpp
+		led.cpp
+		uavcanesc_params.c
+		../systemlib/flashparams/flashparams.c
+		../systemlib/flashparams/flashfs.c
 
 	DEPENDS
 		platforms__common

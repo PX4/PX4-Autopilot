@@ -57,5 +57,8 @@
 // set the queue size to the number of LED's, so that each led can be controlled individually
 static const int LED_UORB_QUEUE_LENGTH = BOARD_MAX_LEDS;
 
-
+#if defined(BOARD_RGBLED0_PATH)
+#define RGBLED0_DEVICE_PATH BOARD_RGBLED0_PATH
+#else
 #define RGBLED0_DEVICE_PATH "/dev/rgbled0"
+#endif

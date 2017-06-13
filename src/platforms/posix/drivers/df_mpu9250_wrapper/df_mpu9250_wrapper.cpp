@@ -143,8 +143,6 @@ private:
 		float z_scale;
 	} _gyro_calibration;
 
-	math::Matrix<3, 3>	    _rotation_matrix;
-
 	struct mag_calibration_s {
 		float x_offset;
 		float x_scale;
@@ -245,9 +243,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 		_mag_calibration.y_offset = 0.0f;
 		_mag_calibration.z_offset = 0.0f;
 	}
-
-	// Get sensor rotation matrix
-	get_rot_matrix(rotation, &_rotation_matrix);
 }
 
 DfMpu9250Wrapper::~DfMpu9250Wrapper()
@@ -714,15 +709,15 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		mag_report.y_raw = 0;
 		mag_report.z_raw = 0;
 
-		math::Vector<3> mag_val((data.mag_ga_x - _mag_calibration.x_offset) * _mag_calibration.x_scale,
-					(data.mag_ga_y - _mag_calibration.y_offset) * _mag_calibration.y_scale,
-					(data.mag_ga_z - _mag_calibration.z_offset) * _mag_calibration.z_scale);
+		xraw_f = data.mag_ga_x;
+		yraw_f = data.mag_ga_y;
+		zraw_f = data.mag_ga_z;
 
-		mag_val = _rotation_matrix * mag_val;
+		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-		mag_report.x = mag_val(0);
-		mag_report.y = mag_val(1);
-		mag_report.z = mag_val(2);
+		mag_report.x = (xraw_f - _mag_calibration.x_offset) * _mag_calibration.x_scale;
+		mag_report.y = (yraw_f - _mag_calibration.y_offset) * _mag_calibration.y_scale;
+		mag_report.z = (zraw_f - _mag_calibration.z_offset) * _mag_calibration.z_scale;
 	}
 
 	// TODO: when is this ever blocked?

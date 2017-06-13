@@ -230,9 +230,9 @@ void VotedSensorsUpdate::parameters_update()
 	unsigned accel_cal_found_count = 0;
 
 	/* run through all gyro sensors */
-	for (unsigned s = 0; s < GYRO_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
 
-		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -258,7 +258,7 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			if (s == 0 && device_id > 0) {
+			if (driver_index == 0 && device_id > 0) {
 				gyro_cal_found_count++;
 			}
 
@@ -313,9 +313,9 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all accel sensors */
-	for (unsigned s = 0; s < ACCEL_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
 
-		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -341,7 +341,7 @@ void VotedSensorsUpdate::parameters_update()
 				continue;
 			}
 
-			if (s == 0 && device_id > 0) {
+			if (driver_index == 0 && device_id > 0) {
 				accel_cal_found_count++;
 			}
 
@@ -396,15 +396,9 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* run through all mag sensors */
-	for (unsigned s = 0; s < MAG_COUNT_MAX; s++) {
+	for (unsigned driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
 
-		/* set a valid default rotation (same as board).
-		 * if the mag is configured, this might be replaced
-		 * in the section below.
-		 */
-		_mag_rotation[s] = _board_rotation;
-
-		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, s);
+		(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
 		DevMgr::getHandle(str, h);
@@ -414,7 +408,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		_mag_device_id[s] = h.ioctl(DEVIOCGDEVICEID, 0);
+		_mag_device_id[driver_index] = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -425,8 +419,6 @@ void VotedSensorsUpdate::parameters_update()
 			(void)sprintf(str, "CAL_MAG%u_ID", i);
 			int device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
-			(void)sprintf(str, "CAL_MAG%u_ROT", i);
-			(void)param_find(str);
 
 			if (failed) {
 				DevMgr::releaseHandle(h);
@@ -434,7 +426,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == _mag_device_id[s]) {
+			if (device_id == _mag_device_id[driver_index]) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -452,9 +444,7 @@ void VotedSensorsUpdate::parameters_update()
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
 				if (h.ioctl(MAGIOCGEXTERNAL, 0) <= 0) {
-					/* mag is internal */
-					_mag_rotation[s] = _board_rotation;
-					/* reset param to -1 to indicate internal mag */
+					/* mag is internal - reset param to -1 to indicate internal mag */
 					int32_t minus_one;
 					param_get(param_find(str), &minus_one);
 
@@ -464,11 +454,11 @@ void VotedSensorsUpdate::parameters_update()
 					}
 
 				} else {
-
+					/* mag is external */
 					int32_t mag_rot;
 					param_get(param_find(str), &mag_rot);
 
-					/* check if this mag is still set as internal */
+					/* check if this mag is still set as internal, otherwise leave untouched */
 					if (mag_rot < 0) {
 						/* it was marked as internal, change to external with no rotation */
 						mag_rot = 0;
@@ -736,15 +726,24 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
 
-				// match rotation parameters to uORB topics first time we get data
+				// Match rotation parameters to uORB topics first time we get data
 				char str[30];
 				int32_t mag_rot;
 
 				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
 					if (mag_report.device_id == _mag_device_id[driver_index]) {
+
 						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
 						param_get(param_find(str), &mag_rot);
-						get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+
+						if (mag_rot < 0) {
+							// Set internal magnetometers to use the board rotation
+							_mag_rotation[uorb_index] = _board_rotation;
+
+						} else {
+							// Set external magnetometers to use the parameter value
+							get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
+						}
 					}
 				}
 			}

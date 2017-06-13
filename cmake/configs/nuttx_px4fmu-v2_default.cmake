@@ -37,6 +37,7 @@ set(config_module_list
 	#drivers/hott/hott_sensors
 	#drivers/blinkm
 	drivers/airspeed
+	drivers/sdp3x_airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
 	drivers/frsky_telemetry
@@ -81,7 +82,7 @@ set(config_module_list
 	#drivers/test_ppm
 	#lib/rc/rc_tests
 	#modules/commander/commander_tests
-	#modules/controllib_test
+	#lib/controllib/controllib_test
 	#modules/mavlink/mavlink_tests
 	#modules/unit_test
 	#modules/uORB/uORB_tests
@@ -111,8 +112,10 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_pos_control_l1
 	modules/fw_att_control
+	modules/fw_pos_control_l1
+	modules/gnd_att_control
+	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -126,7 +129,7 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB

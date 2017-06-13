@@ -238,7 +238,6 @@ MissionBlock::is_mission_item_reached()
 
 			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
-				dist = -1.0f;
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
 
@@ -498,20 +497,14 @@ MissionBlock::get_time_inside(const struct mission_item_s &item)
 bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
-	if (item->nav_cmd == NAV_CMD_WAYPOINT ||
-	    item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	    item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	    item->nav_cmd == NAV_CMD_LAND ||
-	    item->nav_cmd == NAV_CMD_TAKEOFF ||
-	    item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	    item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	    item->nav_cmd == NAV_CMD_VTOL_LAND) {
-
-		return true;
-
-	}
-
-	return false;
+	return item->nav_cmd == NAV_CMD_WAYPOINT ||
+	       item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	       item->nav_cmd == NAV_CMD_LAND ||
+	       item->nav_cmd == NAV_CMD_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	       item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_VTOL_LAND;
 }
 
 void

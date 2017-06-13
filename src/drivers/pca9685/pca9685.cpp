@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -136,7 +136,7 @@ private:
 
 	int			_actuator_controls_sub;
 	struct actuator_controls_s  _actuator_controls;
-	uint16_t	    	_current_values[NUM_ACTUATOR_CONTROLS]; /**< stores the current pwm output
+	uint16_t	    	_current_values[actuator_controls_s::NUM_ACTUATOR_CONTROLS]; /**< stores the current pwm output
 										  values as sent to the setPin() */
 
 	bool _mode_on_initialized;  /** Set to true after the first call of i2cpwm in mode IOX_MODE_ON */
@@ -326,7 +326,7 @@ PCA9685::i2cpwm()
 		if (updated) {
 			orb_copy(ORB_ID(actuator_controls_2), _actuator_controls_sub, &_actuator_controls);
 
-			for (int i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 				/* Scale the controls to PWM, first multiply by pi to get rad,
 				 * the control[i] values are on the range -1 ... 1 */
 				uint16_t new_value = PCA9685_PWMCENTER +

@@ -267,22 +267,36 @@ elseif ("${BOARD}" STREQUAL "excelsior")
 		--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
 
 		)
-elseif ("${BOARD}" STREQUAL "rpi" AND "$ENV{RPI_USE_CLANG}" STREQUAL "1")
+elseif ("${BOARD}" STREQUAL "rpi")
+	SET(RPI_COMPILE_FLAGS
+		-mcpu=cortex-a53
+		-mfpu=neon
+		-mfloat-abi=hard
+	)
+	LIST(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
+	LIST(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
 
-	# Add the toolchain specific flags
-	set(clang_added_flags
-		-m32
-		--target=arm-linux-gnueabihf
-		-ccc-gcc-name arm-linux-gnueabihf
-		--sysroot=${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/arm-linux-gnueabihf/libc/)
+	FIND_PROGRAM(CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER})
 
-	set(added_c_flags ${POSIX_CMAKE_C_FLAGS} ${clang_added_flags})
-	list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${clang_added_flags})
-	list(APPEND added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${clang_added_flags})
+	GET_FILENAME_COMPONENT(CXX_COMPILER_PATH ${CXX_COMPILER_PATH} DIRECTORY)
+	GET_FILENAME_COMPONENT(CXX_COMPILER_PATH "${CXX_COMPILER_PATH}/../" ABSOLUTE)
+
+	IF ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+		set(CLANG_COMPILE_FLAGS
+			--target=arm-pc-linux-gnueabihf
+			-ccc-gcc-name arm-linux-gnueabihf-gcc
+			--sysroot=${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc
+			-I${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/include/
+		)
+
+		set(added_c_flags ${POSIX_CMAKE_C_FLAGS} ${CLANG_COMPILE_FLAGS})
+		list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS} ${CLANG_COMPILE_FLAGS})
+		list(APPEND added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${CLANG_COMPILE_FLAGS}
+			-B${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
+			-L${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
+		)
+	ENDIF()
 else()
-	# Add the toolchain specific flags
-        set(added_cflags ${POSIX_CMAKE_C_FLAGS})
-	list(APPEND added_cxx_flags ${POSIX_CMAKE_CXX_FLAGS})
 endif()
 
 	# output

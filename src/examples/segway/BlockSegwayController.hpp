@@ -2,7 +2,7 @@
 
 #include <px4_posix.h>
 #include <controllib/blocks.hpp>
-#include <controllib/uorb/blocks.hpp>
+#include "blocks.hpp"
 
 using control::BlockPI;
 using control::BlockP;
@@ -11,7 +11,7 @@ class BlockSegwayController : public control::BlockUorbEnabledAutopilot
 {
 public:
 	BlockSegwayController() :
-		BlockUorbEnabledAutopilot(NULL, "SEG"),
+		BlockUorbEnabledAutopilot(nullptr, "SEG"),
 		th2v(this, "TH2V"),
 		q2v(this, "Q2V"),
 		_attPoll(),

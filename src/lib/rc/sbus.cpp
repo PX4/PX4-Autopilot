@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,6 +53,11 @@
 #include <drivers/drv_hrt.h>
 
 #define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
+
+#if defined(__PX4_POSIX_OCPOC)
+#include <sys/ioctl.h>
+#include <linux/serial_core.h>
+#endif
 
 #define SBUS_START_SYMBOL	0x0f
 
@@ -152,6 +157,55 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_config(int sbus_fd, bool singlewire)
 {
+#if defined(__PX4_POSIX_OCPOC)
+	struct termios options;
+
+	if (tcgetattr(sbus_fd, &options) != 0) {
+		return -1;
+	}
+
+	tcflush(sbus_fd, TCIFLUSH);
+	bzero(&options, sizeof(options));
+
+	options.c_cflag |= (CLOCAL | CREAD);
+	options.c_cflag &= ~CSIZE;
+	options.c_cflag |= CS8;
+	options.c_cflag |= PARENB;
+	options.c_cflag &= ~PARODD;
+	options.c_iflag |= INPCK;
+	options.c_cflag |= CSTOPB;
+
+	options.c_cc[VTIME] = 0;
+	options.c_cc[VMIN] = 0;
+
+	cfsetispeed(&options, B38400);
+	cfsetospeed(&options, B38400);
+
+	tcflush(sbus_fd, TCIFLUSH);
+
+	if ((tcsetattr(sbus_fd, TCSANOW, &options)) != 0) {
+		return -1;
+	}
+
+	int baud = 100000;
+	struct serial_struct serials;
+
+	if ((ioctl(sbus_fd, TIOCGSERIAL, &serials)) < 0) {
+		return -1;
+	}
+
+	serials.flags = ASYNC_SPD_CUST;
+	serials.custom_divisor = serials.baud_base / baud;
+
+	if ((ioctl(sbus_fd, TIOCSSERIAL, &serials)) < 0) {
+		return -1;
+	}
+
+	ioctl(sbus_fd, TIOCGSERIAL, &serials);
+
+	tcflush(sbus_fd, TCIFLUSH);
+	return 0;
+#else
 	int ret = -1;
 
 	if (sbus_fd >= 0) {
@@ -180,6 +234,7 @@ sbus_config(int sbus_fd, bool singlewire)
 	}
 
 	return ret;
+#endif
 }
 
 void

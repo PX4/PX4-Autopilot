@@ -344,7 +344,16 @@ public:
 	 * @param severity the log level
 	 */
 	void			send_statustext(unsigned char severity, const char *string);
+
+	/**
+	 * Send the capabilities of this autopilot in terms of the MAVLink spec
+	 */
 	void 			send_autopilot_capabilites();
+
+	/**
+	 * Send the protocol version of MAVLink
+	 */
+	void			send_protocol_version();
 
 	MavlinkStream 		*get_streams() const { return _streams; }
 
@@ -417,13 +426,6 @@ public:
 	bool			is_usb_uart() { return _is_usb_uart; }
 
 	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
-
-	/**
-	 * Whether or not the system should be logging
-	 */
-	bool			get_logging_enabled() { return _logging_enabled; }
-
-	void			set_logging_enabled(bool logging) { _logging_enabled = logging; }
 
 	int				get_data_rate() { return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
@@ -561,7 +563,6 @@ private:
 	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
-	bool			_logging_enabled;
 	uint32_t		_broadcast_mode;
 
 	param_t			_param_system_id;

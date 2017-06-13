@@ -254,6 +254,11 @@ uint64_t px4_firmware_version_binary(void)
 	return PX4_GIT_VERSION_BINARY;
 }
 
+uint64_t px4_mavlink_lib_version_binary(void)
+{
+	return MAVLINK_LIB_GIT_VERSION_BINARY;
+}
+
 uint64_t px4_os_version_binary(void)
 {
 	//TODO: get NuttX version via git tag

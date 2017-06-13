@@ -948,7 +948,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->loiter_radius = mavlink_mission_item->param3;
-			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
+			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
 			break;
 
 		case MAV_CMD_NAV_LAND:
@@ -965,9 +965,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_LOITER_TO_ALT:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TO_ALT;
-			mission_item->force_heading = (mavlink_mission_item->param1 > 0) ? true : false;
+			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param2;
-			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
+			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
 			break;
 
 		case MAV_CMD_NAV_VTOL_TAKEOFF:

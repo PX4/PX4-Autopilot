@@ -5,15 +5,11 @@ language: cpp
 
 git:
   depth: 2000
+  submodules: false
 
 matrix:
   fast_finish: true
   include:
-    - os: linux
-      sudo: required
-      services:
-        - docker
-      env: BUILD_TARGET=qgc_firmware
     - os: linux
       sudo: required
       services:
@@ -23,7 +19,7 @@ matrix:
       sudo: required
       services:
         - docker
-      env: BUILD_TARGET=tests_linux
+      env: BUILD_TARGET=tests
     - os: linux
       sudo: required
       services:
@@ -33,60 +29,68 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=scan-build
+    - os: linux
+      sudo: required
+      services:
+        - docker
+      env: BUILD_TARGET=cppcheck
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=px4_metadata
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: BUILD_TARGET=coverity_scan
 
 cache:
   ccache: true
 
 before_install:
-  - if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_BRANCH}" == "coverity" ]]; then sudo apt-get install genromfs && pip install empy jinja2; fi
+  # install dependencies for the coverity build (target and branch), otherwise exit early
+  - if [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
+      if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then sudo apt-get install genromfs && pip install empy jinja2; else exit 0; fi;
+    fi
 
 env:
   global:
-# COVERITY KEY
+    # COVERITY KEY
     - secure: "NyaJoCGjU0Xc90Y6bxVYWLgjrJX5HlZsm/SPxruZ6I7xkGo19fJIFzGegOHQFR32D4AiKjllfjTUNy+ncckWplind0QwxtF4/kxXrz9XBfiby6X8jLYXIekrB6Ay0mBLGbniDdh+lpWtcyop6Dmkt5bdJCJuKY2nv9ENnhhs07M="
-# AWS KEY: $PX4_AWS_KEY
+    # AWS KEY: $PX4_AWS_KEY
     - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
-# AWS SECRET: $PX4_AWS_SECRET
+    # AWS SECRET: $PX4_AWS_SECRET
     - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 script:
-  - if [[ "${TRAVIS_BRANCH}" == "coverity" ]]; then
+  - if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then
       echo "no script for coverity build";
-    elif [[ "${BUILD_TARGET}" = "qgc_firmware" ]]; then
-      ./Tools/docker_run.sh 'make qgc_firmware';
+    elif [[ "${TRAVIS_BRANCH}" = "coverity" ]]; then
+      echo "exit early for coverity build" && exit 0;
     elif [[ "${BUILD_TARGET}" = "check_format" ]]; then
       ./Tools/docker_run.sh 'make check_format';
-    elif [[ "${BUILD_TARGET}" = "tests_linux" ]]; then
+    elif [[ "${BUILD_TARGET}" = "tests" ]]; then
       ./Tools/docker_run.sh 'make tests';
     elif [[ "${BUILD_TARGET}" = "px4_metadata" ]]; then
       ./Tools/docker_run.sh 'make px4_metadata';
     elif [[ "${BUILD_TARGET}" = "clang-tidy" ]]; then
-      ./Tools/docker_run.sh 'make clang-tidy-parallel';
+      ./Tools/docker_run.sh 'make clang-tidy-quiet';
     fi
 
 after_success:
-# s3 deploy individual firmware files (.px4), Firmware.zip, airframe.xml, and param.xml
-  - if [[ "${BUILD_TARGET}" = "qgc_firmware" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_firmware AWS_S3_BUCKET="px4-travis/archives/Firmware/${TRAVIS_BRANCH}/${TRAVIS_BUILD_ID}"'
-      && ./Tools/docker_run.sh 'make s3put_qgc_firmware AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+  # s3 upload airframe and parameter metadata
+  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
     fi
-  - if [[ "${BUILD_TARGET}" = "px4_metadata" && "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" != "coverity" ]]; then
-         ./Tools/docker_run.sh 'make s3put_parameters_markdown AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
+  # s3 upload clang scan-build output for master branch
+  - if [[ "${BUILD_TARGET}" = "scan-build" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/scan-build"';
     fi
-
-deploy:
-# on tags deploy Firmware.zip to Github releases
-  - provider: releases
-    api_key: 
-      secure: cdHWLRBxA5UlYpOS0Sp891QK7PFmMgQ5ZWs1aPt+sw0rIrowyWMHCwXNBEdUqaExHYNYgXCUDI0EzNgfB7ZcR63Qv1MQeoyamV4jsxlyAqDqmxNtWO82S6RhHGeMLk26VgFKzynVcEk1IYlQP2nqzMQLdu+jTrngERuAIrCdRuc=
-    file: "Firmware.zip"
-    skip_cleanup: true
-    on:
-      tags: true
-      all_branches: true
-      repo: PX4/Firmware
-      condition: $BUILD_TARGET = qgc_firmware
+  # s3 upload cppcheck output for master branch
+  - if [[ "${BUILD_TARGET}" = "cppcheck" && "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+         ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
+    fi
 
 addons:
   coverity_scan:

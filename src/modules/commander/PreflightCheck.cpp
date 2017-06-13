@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -383,9 +383,15 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 		goto out;
 	}
 
-	if (fabsf(airspeed.confidence) < 0.95f) {
+	/*
+	 * Check if voter thinks the confidence is low. High-end sensors might have virtually zero noise
+	 * on the bench and trigger false positives of the voter. Therefore only fail this
+	 * for a pre-arm check, as then the cover is off and the natural airflow in the field
+	 * will ensure there is not zero noise.
+	 */
+	if (prearm && fabsf(airspeed.confidence) < 0.95f) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR COMM ERROR");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR STUCK");
 		}
 		success = false;
 		goto out;
@@ -561,10 +567,18 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 	PX4_WARN("Preflight checks always pass on Snapdragon.");
 	return true;
 #elif defined(__PX4_POSIX_RPI)
-	PX4_WARN("Preflight checks always pass on RPI.");
-	return true;
+	if (reportFailures) {
+		PX4_WARN("Preflight checks for mag, acc, gyro always pass on RPI");
+	}
+
+	checkMag = false;
+	checkAcc = false;
+	checkGyro = false;
 #elif defined(__PX4_POSIX_BEBOP)
 	PX4_WARN("Preflight checks always pass on Bebop.");
+	return true;
+#elif defined(__PX4_POSIX_OCPOC)
+	PX4_WARN("Preflight checks always pass on OcPoC.");
 	return true;
 #endif
 

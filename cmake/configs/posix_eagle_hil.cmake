@@ -28,7 +28,7 @@ set(config_module_list
 
 	modules/mavlink
 
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
 	modules/sensors
