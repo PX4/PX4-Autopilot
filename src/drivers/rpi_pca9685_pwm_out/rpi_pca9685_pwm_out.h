@@ -94,6 +94,7 @@ int32_t _pwm_max;
 
 //PCA9685 device
 ::PCA9685 pwm;
+int _pca9685_bus=1; //默认兼容树莓派
 
 MixerGroup *_mixer_group = nullptr;
 

@@ -81,7 +81,7 @@ int rpi_pca9685_pwm_out::pwm_initialize()
 {
 	/**************初始化PCA9685开始*************/
 	/**************PCA965 initializing********/
-	pwm.init(1, 0x40);
+	pwm.init(_pca9685_bus, 0x40);
 	usleep(1000 * 100);
 	/****12BIT 精度输出下，好赢电调可以到200HZ刷新***/
 	/****200HZ for 12bit Resolution, support most of the esc***/
@@ -346,6 +346,10 @@ int rpi_pca9685_pwm_out_main(int argc, char **argv)
 
 		case 'm':
 			strncpy(rpi_pca9685_pwm_out::_mixer_filename, myoptarg, sizeof(rpi_pca9685_pwm_out::_mixer_filename));
+			break;
+
+		case 'p'
+			_pca9685_bus = atoi(myoptarg);
 			break;
 		}
 	}
