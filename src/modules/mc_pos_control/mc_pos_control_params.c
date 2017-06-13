@@ -245,20 +245,20 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Minimum horizontal velocity in mission
+ * Cruise speed when angle prev-current/current-next setpoint
+ * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
- * Normal horizontal velocity in AUTO modes (includes
- * also RTL / hold / etc.) and endpoint for
- * position stabilized mode (POSCTRL).
+ * Applies only in AUTO modes (includes
+ * also RTL / hold / etc.)
  *
  * @unit m/s
- * @min 0.05
- * @max 1.0
+ * @min 1.0
+ * @max
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_CRUISE_MIN, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
 
 /**
  * Maximum horizontal velocity setpoint for manual controlled mode
