@@ -926,7 +926,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					} else {
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					}
-                    
+
 					/* set the local pos values */
 					if (!offboard_control_mode.ignore_position) {
 						pos_sp_triplet.current.position_valid = true;
