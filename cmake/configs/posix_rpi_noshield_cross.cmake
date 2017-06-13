@@ -1,6 +1,4 @@
-# This file is shared between posix_rpi_native.cmake
-# and posix_rpi_cross.cmake.
-
+# 使用这个文件可在上位机交叉编译px4firmware
 include(posix/px4_impl_posix)
 
 # This definition allows to differentiate if this just the usual POSIX build
@@ -8,10 +6,10 @@ include(posix/px4_impl_posix)
 add_definitions(
 	-D__PX4_POSIX_RPI
 	-D__DF_LINUX # For DriverFramework
-	-D__DF_RPI # For DriverFramework
+	-D__DF_RPI # For raspberry pi
 )
 
-
+# 硬件驱动模块
 set(config_module_list
 	#
 	# Board support modules
@@ -19,17 +17,16 @@ set(config_module_list
 	drivers/device
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_lsm9ds1_wrapper
+	#platforms/posix/drivers/df_lsm9ds1_wrapper
 	platforms/posix/drivers/df_ms5611_wrapper
-	platforms/posix/drivers/df_hmc5883_wrapper
+	#platforms/posix/drivers/df_hmc5883_wrapper
 	platforms/posix/drivers/df_trone_wrapper
-	platforms/posix/drivers/df_isl29501_wrapper
+	#platforms/posix/drivers/df_isl29501_wrapper
 
 	#
 	# System commands
 	#
 	systemcmds/param
-	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/esc_calib
@@ -48,12 +45,10 @@ set(config_module_list
 	#
 	# Vehicle Control
 	#
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
+	modules/fw_att_control
+	modules/fw_pos_control_l1
 	modules/vtol_att_control
 
 	#
@@ -62,7 +57,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/systemlib/param
+	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -75,9 +70,8 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/navio_adc
-	drivers/navio_sysfs_rc_in
-	drivers/navio_sysfs_pwm_out
+	drivers/rpi_rc_in
+	drivers/rpi_pca9685_pwm_out
 	drivers/linux_gpio
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
@@ -114,9 +108,15 @@ set(config_module_list
 #
 set(config_df_driver_list
 	mpu9250
-	lsm9ds1
 	ms5611
-	hmc5883
 	trone
-	isl29501
 )
+
+# 设定交叉工具链
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-bcm2835-linux-gnueabihf-raspbian.cmake)
+
+
+#set(CMAKE_PROGRAM_PATH
+#	"${RPI_TOOLCHAIN_DIR}/arm-bcm2835-linux-gnueabihf/bin"
+#	${CMAKE_PROGRAM_PATH}
+#)
