@@ -255,6 +255,11 @@ then
 		then
 			set USE_IO no
 		fi
+
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+		then
+			set USE_IO no
+		fi
 	else
 		set USE_IO no
 	fi
@@ -443,7 +448,12 @@ then
 			set FMU_MODE serial
 		fi
 	else
-		gps start
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+		then
+			gps start -d /dev/ttyS2
+		else
+			gps start
+		fi
 	fi
 
 	set DATAMAN_OPT ""
@@ -690,6 +700,12 @@ then
 	if ver hwcmp PX4FMU_V1
 	then
 	else
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+		then
+			set MAVLINK_DEV /dev/ttyS3
+		else
+			set MAVLINK_DEV /dev/ttyS2
+		fi
 		# XXX We need a better way for runtime eval of shell variables,
 		# but this works for now
 		if param compare SYS_COMPANION 10
@@ -749,6 +765,23 @@ then
 		if param compare SYS_COMPANION 1500000
 		then
 			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
+		fi
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+			then
+			else
+			# Sensors on the PWM interface bank
+			# clear pins 5 and 6
+			if param compare SENS_EN_LL40LS 1
+			then
+				set FMU_MODE pwm4
+				set AUX_MODE pwm4
+			fi
+			if param greater TRIG_MODE 0
+			then
+				set FMU_MODE pwm4
+				set AUX_MODE pwm4
+				camera_trigger start
+			fi
 		fi
 	fi
 
