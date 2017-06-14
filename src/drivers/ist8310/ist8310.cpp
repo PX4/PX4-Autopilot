@@ -913,6 +913,7 @@ IST8310::collect()
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
+	new_report.is_external = !sensor_is_onboard;
 	new_report.error_count = perf_event_count(_comms_errors);
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;

@@ -11,3 +11,5 @@ int16 y_raw
 int16 z_raw
 
 uint32 device_id	# unique device ID for the sensor that does not change between power cycles
+uint8  is_external  # if 1, the mag is external (i.e. not built into the board)
+
