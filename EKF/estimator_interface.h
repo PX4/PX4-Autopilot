@@ -184,6 +184,9 @@ public:
 	// set flag if synthetic sideslip measurement should be fused
 	void set_fuse_beta_flag(bool fuse_beta) {_control_status.flags.fuse_beta = fuse_beta;}
 
+	// set flag if only only mag states should be updated by the magnetometer
+	void set_update_mag_states_only_flag(bool update_mag_states_only) {_control_status.flags.update_mag_states_only = update_mag_states_only;}
+
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) {_air_density = air_density;}
 
@@ -249,7 +252,7 @@ public:
 	virtual void get_gyro_bias(float bias[3]) = 0;
 
 	// get EKF mode status
-	void get_control_mode(uint16_t *val)
+	void get_control_mode(uint32_t *val)
 	{
 		*val = _control_status.value;
 	}
