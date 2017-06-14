@@ -172,11 +172,11 @@ function(px4_os_add_flags)
                 )
 
         set(added_definitions
-                -D__PX4_QURT
+		-D__PX4_QURT
 		-D__DF_QURT # For DriverFramework
 		-D__PX4_POSIX
 		-D__QAIC_SKEL_EXPORT=__EXPORT
-                )
+		)
 
 	# Add the toolchain specific flags
         set(added_cflags)
