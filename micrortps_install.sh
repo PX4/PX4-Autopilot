@@ -50,5 +50,7 @@ cp msgenerated/microRTPS_agent_CMakeLists.txt ${AGENT_FOLDER}/CMakeLists.txt
 cp msgenerated/*Publisher* ${AGENT_FOLDER} 2>/dev/null
 cp msgenerated/*Subscriber* ${AGENT_FOLDER} 2>/dev/null
 cp msgenerated/microRTPS_agent.cxx ${AGENT_FOLDER}
+cp msgenerated/RtpsTopics.h ${AGENT_FOLDER}
+cp msgenerated/RtpsTopics.cxx ${AGENT_FOLDER}
 
 #rm * && cmake .. -DCMAKE_PREFIX_PATH=/PATH/TO/Fast-RTPS/install && make all

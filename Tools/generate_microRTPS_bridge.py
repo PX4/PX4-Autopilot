@@ -45,6 +45,8 @@ urtps_templates_dir = root_path + "/msg/templates/urtps"
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_CLIENT_CMAKELIST_TEMPL_FILE = 'microRTPS_client_CMakeLists.txt.template'
+uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
+uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cxx.template'
 uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cxx.template'
 uRTPS_AGENT_CMAKELIST_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
 uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cxx.template'
@@ -79,6 +81,12 @@ px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_re
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
 				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TEMPL_FILE)
+
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
+				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
+
+px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
+				px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
 
 px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
                 px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)

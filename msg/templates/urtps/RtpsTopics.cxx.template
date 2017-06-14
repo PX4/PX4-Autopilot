@@ -1,0 +1,103 @@
+@###############################################
+@#
+@# EmPy template for generating RtpsTopics.cxx file
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@###############################################
+@{
+import genmsg.msgs
+import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
+from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+from message_id import * # this is in Tools/
+
+topic_names = [single_spec.short_name for single_spec in spec]
+send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
+}@
+#include "RtpsTopics.h"
+
+bool RtpsTopics::init()
+{
+@[if recv_topics]@
+    // Initialise subscribers
+@[for topic in recv_topics]@
+    if (_@(topic)_sub.init()) {
+        std::cout << "@(topic)vehicle_command subscriber started" << std::endl;
+    } else {
+        std::cout << "ERROR starting @(topic) subscriber" << std::endl;
+        return false;
+    }
+
+@[end for]@
+@[end if]@
+@[if send_topics]@
+    // Initialise publishers
+@[for topic in send_topics]@
+    if (_@(topic)_pub.init()) {
+        std::cout << "@(topic) publisher started" << std::endl;
+    } else {
+        std::cout << "ERROR starting @(topic) publisher" << std::endl;
+        return false;
+    }
+
+@[end for]@
+@[end if]@
+    return true;
+}
+
+@[if send_topics]@
+void RtpsTopics::publish(char topic_ID, char data_buffer[], size_t len)
+{
+    switch (topic_ID)
+    {
+@[for topic in send_topics]@
+        case @(message_id(topic)): // @(topic)
+        {
+            //printf("@(topic)\n");
+            //printf("buf %s\n", data_buffer);
+            @(topic)_ st;
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
+            eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+            st.deserialize(cdr_des);
+            _@(topic)_pub.publish(&st);
+            //printf("                >>[%d] %lu\n", @(message_id(topic)), st.timestamp());
+        }
+        break;
+@[end for]@
+    }
+}
+@[end if]@
+
+@[if recv_topics]@
+bool RtpsTopics::nextMsg(char *topic_ID, eprosima::fastcdr::Cdr &scdr)
+{
+    while (_next_sub_idx < sizeof(_sub_topics)/sizeof(_sub_topics[0])) {
+        switch (_sub_topics[_next_sub_idx])
+        {
+@[for topic in recv_topics]@
+        case @(message_id(topic)): // @(topic)
+            if (_@(topic)_sub.hasMsg()) {
+                @(topic)_ msg = _@(topic)_sub.getMsg();
+                msg.serialize(scdr);
+                *topic_ID = @(message_id(topic)); // @(topic)
+                goto ok;
+            }
+            break;
+@[end for]@
+        }
+        _next_sub_idx++;
+    }
+
+    _next_sub_idx = 0;
+    return false;
+
+ok:
+    _next_sub_idx++;
+    return true;
+}
+@[end if]@
