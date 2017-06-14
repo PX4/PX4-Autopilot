@@ -730,6 +730,8 @@ Sensors::start()
 void Sensors::print_status()
 {
 	_voted_sensors_update.print_status();
+
+	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
 }
 
