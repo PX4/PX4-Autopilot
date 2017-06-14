@@ -254,7 +254,6 @@ void VotedSensorsUpdate::parameters_update()
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
-				DevMgr::releaseHandle(h);
 				continue;
 			}
 
@@ -337,7 +336,6 @@ void VotedSensorsUpdate::parameters_update()
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
-				DevMgr::releaseHandle(h);
 				continue;
 			}
 
@@ -421,7 +419,6 @@ void VotedSensorsUpdate::parameters_update()
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
-				DevMgr::releaseHandle(h);
 				continue;
 			}
 
