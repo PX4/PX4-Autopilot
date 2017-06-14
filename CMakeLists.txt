@@ -293,10 +293,11 @@ find_package(PythonInterp REQUIRED)
 px4_find_python_module(jinja2 REQUIRED)
 
 #=============================================================================
-# cmake testing
+# testing
 #
 enable_testing()
 include(CTest)
+add_subdirectory(test)
 
 #=============================================================================
 # generate compile command database

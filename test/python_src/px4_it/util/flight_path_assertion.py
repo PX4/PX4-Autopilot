@@ -138,7 +138,7 @@ class FlightPathAssertion(threading.Thread):
         l = a + x * v
         self.center = l
         return linalg.norm(pos - l)
-    
+
     def stop(self):
         self.should_stop = True
 

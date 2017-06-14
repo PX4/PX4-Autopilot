@@ -1,0 +1,19 @@
+<launch>
+
+    <arg name="mission_file"/>
+
+    <arg name="ns" default="/"/>
+    <arg name="headless" default="true"/>
+    <arg name="gui" default="true"/>
+    <arg name="est" default="ekf2"/>
+
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="ns" value="$(arg ns)"/>
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="vehicle" value="standard_vtol"/>
+        <arg name="est" value="$(arg est)"/>
+    </include>
+
+    <test test-name="mission_test_vtol_new_1" pkg="px4" type="mission_test.py" time-limit="100.0" args="$(arg mission_file)" />
+</launch>

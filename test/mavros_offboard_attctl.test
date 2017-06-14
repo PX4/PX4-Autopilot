@@ -1,0 +1,6 @@
+<launch>
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+    </include>
+
+    <test test-name="mavros_offboard_attctl" pkg="px4" type="mavros_offboard_attctl_test.py" time-limit="20.0"/>
+</launch>

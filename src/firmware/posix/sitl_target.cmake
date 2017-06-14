@@ -126,6 +126,11 @@ foreach(viewer ${viewers})
 						USES_TERMINAL
 					DEPENDS logs_symlink
 					)
+
+			if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+				setup_target_for_coverage(${_targ_name}_coverage "${CMAKE_COMMAND} --build ${PX4_BINARY_DIR} -- ${_targ_name}" coverage_sitl.info)
+			endif()
+
 			list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			if (viewer STREQUAL "gazebo")
 				add_dependencies(${_targ_name} sitl_gazebo)

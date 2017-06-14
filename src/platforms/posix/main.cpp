@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 		vector<string> path_sym_links;
 		path_sym_links.push_back("ROMFS");
 		path_sym_links.push_back("posix-configs");
-		path_sym_links.push_back("test_data");
+		//path_sym_links.push_back("test_data");
 
 		for (int i = 0; i < path_sym_links.size(); i++) {
 			string path_sym_link = path_sym_links[i];

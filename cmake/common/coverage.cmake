@@ -36,10 +36,10 @@ find_program(GENHTML_PATH genhtml)
 
 # add code coverage build type
 
-set(CMAKE_C_FLAGS_COVERAGE "--coverage -ftest-coverage -fprofile-arcs -O0 -fno-default-inline -fno-inline"
+set(CMAKE_C_FLAGS_COVERAGE "--coverage -ftest-coverage -fprofile-arcs -O1 -fno-default-inline -fno-inline"
         CACHE STRING "Flags used by the C compiler during coverage builds" FORCE)
 
-set(CMAKE_CXX_FLAGS_COVERAGE "--coverage -ftest-coverage -fprofile-arcs -O0 -fno-default-inline -fno-inline -fno-elide-constructors"
+set(CMAKE_CXX_FLAGS_COVERAGE "--coverage -ftest-coverage -fprofile-arcs -O1 -fno-default-inline -fno-inline -fno-elide-constructors"
         CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
 
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "--coverage -ftest-coverage -lgcov"
@@ -62,14 +62,14 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
         cmake_parse_arguments(Coverage "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
         if (NOT LCOV_PATH)
-        message(FATAL_ERROR "lcov required")
+                message(FATAL_ERROR "lcov required")
         endif()
 
         if (NOT GENHTML_PATH)
-        message(FATAL_ERROR "genhtml required")
+                message(FATAL_ERROR "genhtml required")
         endif()
 
-        set(coverage_info "${CMAKE_BINARY_DIR}/coverage.info")
+        set(coverage_info "${CMAKE_BINARY_DIR}/coverage_${_targetname}.info")
         set(coverage_cleaned "${coverage_info}.cleaned")
 
         separate_arguments(test_command UNIX_COMMAND "${_testrunner}")
@@ -83,12 +83,13 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
                 COMMAND ${test_command} ${ARGV3}
 
                 # Capturing lcov counters and generating report
-                COMMAND ${LCOV_PATH} --quiet --base-directory ${CMAKE_BINARY_DIR} --directory ${CMAKE_SOURCE_DIR} --capture --output-file ${coverage_info}
+                COMMAND ${LCOV_PATH} --quiet --base-directory ${CMAKE_BINARY_DIR} --directory ${CMAKE_BINARY_DIR} --capture --output-file ${coverage_info}
 
                 DEPENDS px4
                 USES_TERMINAL
                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                COMMENT "Running code coverage and generating report."
+                COMMENT "Running code coverage and generating report"
+                VERBATIM
         )
         add_custom_target(${_targetname} DEPENDS ${coverage_info})
 

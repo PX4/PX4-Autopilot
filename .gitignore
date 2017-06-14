@@ -67,12 +67,9 @@ GTAGS
 ROMFS/px4fmu_common/uavcan/
 vectorcontrol/
 
-
 # CLion ignores
 .idea
 cmake-build-*/
-
-posix-configs/SITL/init/test/*_generated
 
 parameters.md
 airframes.md
@@ -82,3 +79,5 @@ cppcheck-result.xml
 cppcheck
 
 scan-build
+
+*.gcov

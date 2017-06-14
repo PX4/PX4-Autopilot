@@ -22,7 +22,7 @@
     <arg name="paused" default="false"/>
 
     <node name="sitl" pkg="px4" type="px4" output="screen"
-        args="$(find px4) $(arg rcS)">
+        args="$(find px4) -d $(arg rcS)">
     </node>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">

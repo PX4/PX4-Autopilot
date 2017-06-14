@@ -229,10 +229,10 @@ class MavrosMissionTest(unittest.TestCase):
             (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d, vtol_state_string)))
 
     def run_mission(self):
-	# Hack to wait until vehicle is ready
-	# TODO better integration with pre-flight status reporting
-	time.sleep(5)
-	"""switch mode: auto and arm"""
+        # Hack to wait until vehicle is ready
+        # TODO better integration with pre-flight status reporting
+        time.sleep(6)
+        """switch mode: auto and arm"""
         self._srv_cmd_long(False, 176, False,
                            # custom, auto, mission
                            1, 4, 4, 0, 0, 0, 0)
@@ -309,7 +309,7 @@ class MavrosMissionTest(unittest.TestCase):
             return
 
         self.mission_name = sys.argv[1]
-        mission_file = os.path.dirname(os.path.realpath(__file__)) + "/" + sys.argv[1]
+        mission_file = sys.argv[1]
 
         rospy.loginfo("reading mission %s", mission_file)
         wps = []
@@ -385,6 +385,7 @@ class MavrosMissionTest(unittest.TestCase):
         self.assertTrue(res['yaw_error_std'] < 5.0, str(res))
 
 if __name__ == '__main__':
+
     import rostest
     name = "mavros_mission_test"
     if len(sys.argv) > 1:

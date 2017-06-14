@@ -1,5 +1,25 @@
+
+
+set(extra_deps)
+if (CATKIN_ENABLE_TESTING)
+	find_package(rostest REQUIRED)
+	find_package(px4 REQUIRED)
+	find_package(mavlink_sitl_gazebo REQUIRED)
+
+	add_rostest(mavros_offboard_attctl.test)
+	add_rostest(mavros_offboard_posctl.test)
+
+	add_rostest(mavros_mission_vtol_standard.test ARGS mission_file:=${CMAKE_CURRENT_SOURCE_DIR}/missions/vtol_new_1.txt)
+
+	#catkin_add_nosetests(tests/test_your_node.py
+        #             DEPENDENCIES ${${PROJECT_NAME}_EXPORTED_TARGETS})
+	#  TIMEOUT
+	set(extra_deps sitl_gazebo)
+endif()
+
+
 #=============================================================================
-# tests
+# unit tests
 #
 
 # TODO: find a way to keep this in sync with tests_main
@@ -24,7 +44,7 @@ set(tests
 	param
 	parameters
 	perf
-	rc
+	#rc # todo copy test_data or symlink for rc_test
 	servo
 	sf0x
 	sleep
@@ -40,18 +60,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 foreach(test_name ${tests})
-	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
+	configure_file(templates/test_template.in ${CMAKE_CURRENT_BINARY_DIR}/test_${test_name}_generated)
 
 	add_test(NAME ${test_name}
-		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-			$<TARGET_FILE:px4>
-			posix-configs/SITL/init/test
-			none
-			none
-			test_${test_name}_generated
-			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
-			WORKING_DIRECTORY ${SITL_WORKING_DIR})
+		COMMAND $<TARGET_FILE:px4> -d ${PX4_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/test_${test_name}_generated
+		)
 
 	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
 	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
