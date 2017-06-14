@@ -783,6 +783,23 @@ then
 				camera_trigger start
 			fi
 		fi
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+			then
+			else
+			# Sensors on the PWM interface bank
+			# clear pins 5 and 6
+			if param compare SENS_EN_LL40LS 1
+			then
+				set FMU_MODE pwm4
+				set AUX_MODE pwm4
+			fi
+			if param greater TRIG_MODE 0
+			then
+				set FMU_MODE pwm4
+				set AUX_MODE pwm4
+				camera_trigger start
+			fi
+		fi
 	fi
 
 	unset MAVLINK_COMPANION_DEVICE
