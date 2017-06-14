@@ -384,24 +384,25 @@ union gps_check_fail_status_u {
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
-		uint16_t tilt_align  : 1; // 0 - true if the filter tilt alignment is complete
-		uint16_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
-		uint16_t gps         : 1; // 2 - true if GPS measurements are being fused
-		uint16_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
-		uint16_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
-		uint16_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
-		uint16_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
-		uint16_t in_air      : 1; // 7 - true when the vehicle is airborne
-		uint16_t wind        : 1; // 8 - true when wind velocity is being estimated
-		uint16_t baro_hgt    : 1; // 9 - true when baro height is being fused as a primary height reference
-		uint16_t rng_hgt     : 1; // 10 - true when range finder height is being fused as a primary height reference
-		uint16_t gps_hgt     : 1; // 11 - true when GPS height is being fused as a primary height reference
-		uint16_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
-		uint16_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
-		uint16_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
-		uint16_t fuse_beta   : 1; // 15 - true when synthetic sideslip measurements are being fused
+		uint32_t tilt_align  : 1; // 0 - true if the filter tilt alignment is complete
+		uint32_t yaw_align   : 1; // 1 - true if the filter yaw alignment is complete
+		uint32_t gps         : 1; // 2 - true if GPS measurements are being fused
+		uint32_t opt_flow    : 1; // 3 - true if optical flow measurements are being fused
+		uint32_t mag_hdg     : 1; // 4 - true if a simple magnetic yaw heading is being fused
+		uint32_t mag_3D      : 1; // 5 - true if 3-axis magnetometer measurement are being fused
+		uint32_t mag_dec     : 1; // 6 - true if synthetic magnetic declination measurements are being fused
+		uint32_t in_air      : 1; // 7 - true when the vehicle is airborne
+		uint32_t wind        : 1; // 8 - true when wind velocity is being estimated
+		uint32_t baro_hgt    : 1; // 9 - true when baro height is being fused as a primary height reference
+		uint32_t rng_hgt     : 1; // 10 - true when range finder height is being fused as a primary height reference
+		uint32_t gps_hgt     : 1; // 11 - true when GPS height is being fused as a primary height reference
+		uint32_t ev_pos      : 1; // 12 - true when local position data from external vision is being fused
+		uint32_t ev_yaw      : 1; // 13 - true when yaw data from external vision measurements is being fused
+		uint32_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
+		uint32_t fuse_beta   : 1; // 15 - true when synthetic sideslip measurements are being fused
+		uint32_t update_mag_states_only   : 1; // 16 - true when only the magnetometer states are updated by the magnetometer
 	} flags;
-	uint16_t value;
+	uint32_t value;
 };
 
 union ekf_solution_status {
