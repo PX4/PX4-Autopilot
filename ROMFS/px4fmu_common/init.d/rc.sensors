@@ -131,6 +131,36 @@ then
 	fi
 fi
 
+if ver hwcmp PX4_SAME70XPLAINED_V1
+then
+	# External I2C bus
+	if hmc5883 -C -T -X start
+	then
+	fi
+
+	set BOARD_FMUV3 false
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	if mpu9250 -R 2 start
+	then
+	fi
+fi
+
+if ver hwcmp PX4_SAME70XPLAINED_V1
+then
+	# External I2C bus
+	if hmc5883 -C -T -X start
+	then
+	fi
+
+	set BOARD_FMUV3 false
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	if mpu9250 -R 2 start
+	then
+	fi
+fi
+
 if ver hwcmp PX4FMU_V4
 then
 	# External I2C bus
