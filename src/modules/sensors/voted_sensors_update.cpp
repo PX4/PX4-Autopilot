@@ -406,6 +406,7 @@ void VotedSensorsUpdate::parameters_update()
 		}
 
 		int topic_device_id = report.device_id;
+		bool is_external = (bool)report.is_external;
 		_mag_device_id[topic_instance] = topic_device_id;
 
 		// find the driver handle that matches the topic_device_id
@@ -465,28 +466,25 @@ void VotedSensorsUpdate::parameters_update()
 
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
-				if (h.isValid()) { //FIXME: get the 'is external' information via uorb topic
-					if (h.ioctl(MAGIOCGEXTERNAL, 0) <= 0) {
-						/* mag is internal - reset param to -1 to indicate internal mag */
-						int32_t minus_one;
-						param_get(param_find(str), &minus_one);
+				if (is_external) {
+					int32_t mag_rot;
+					param_get(param_find(str), &mag_rot);
 
-						if (minus_one != MAG_ROT_VAL_INTERNAL) {
-							minus_one = MAG_ROT_VAL_INTERNAL;
-							param_set_no_notification(param_find(str), &minus_one);
-						}
+					/* check if this mag is still set as internal, otherwise leave untouched */
+					if (mag_rot < 0) {
+						/* it was marked as internal, change to external with no rotation */
+						mag_rot = 0;
+						param_set_no_notification(param_find(str), &mag_rot);
+					}
 
-					} else {
-						/* mag is external */
-						int32_t mag_rot;
-						param_get(param_find(str), &mag_rot);
+				} else {
+					/* mag is internal - reset param to -1 to indicate internal mag */
+					int32_t minus_one;
+					param_get(param_find(str), &minus_one);
 
-						/* check if this mag is still set as internal, otherwise leave untouched */
-						if (mag_rot < 0) {
-							/* it was marked as internal, change to external with no rotation */
-							mag_rot = 0;
-							param_set_no_notification(param_find(str), &mag_rot);
-						}
+					if (minus_one != MAG_ROT_VAL_INTERNAL) {
+						minus_one = MAG_ROT_VAL_INTERNAL;
+						param_set_no_notification(param_find(str), &minus_one);
 					}
 				}
 

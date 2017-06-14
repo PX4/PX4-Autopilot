@@ -251,7 +251,6 @@ BMM150 :: BMM150(int bus, const char *path, bool external, enum Rotation rotatio
 	_external(false),
 	_running(false),
 	_call_interval(0),
-	_report{0},
 	_reports(nullptr),
 	_collect_phase(false),
 	_scale{},
@@ -344,7 +343,7 @@ int BMM150::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -433,7 +432,7 @@ BMM150::stop()
 ssize_t
 BMM150::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(_report);
+	unsigned count = buflen / sizeof(mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
 	int ret = 0;
 
@@ -684,6 +683,7 @@ BMM150::collect()
 
 
 	mrb.timestamp = hrt_absolute_time();
+	mrb.is_external = is_external();
 
 	// report the error count as the number of bad transfers.
 	// This allows the higher level code to decide if it
