@@ -34,6 +34,7 @@
 /*
  * This file is a shim to bridge to nuttx_v3
  */
+
 #ifdef __PX4_NUTTX
 __BEGIN_DECLS
 #include <nuttx/spi/spi.h>
@@ -93,7 +94,7 @@ __BEGIN_DECLS
 /* The mfguid will be an array of bytes with
  * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
  *
- * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
@@ -165,7 +166,7 @@ __BEGIN_DECLS
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
-/* define common formating accross all commands */
+/* define common formating across all commands */
 
 #    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
 #    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
@@ -196,6 +197,65 @@ __BEGIN_DECLS
 #    define px4_arch_gpiowrite(pinset, value)       kinetis_gpiowrite(pinset, value)
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  kinetis_gpiosetevent(pinset,r,f, e,fp)
 #  endif
+
+#  if defined(CONFIG_ARCH_CHIP_SAMV7)
+#    include <sam_spi.h>
+#    include <sam_twihs.h>
+
+#    // Fixme: using ??
+#    define PX4_BBSRAM_SIZE          2048
+#    define PX4_BBSRAM_GETDESC_IOCTL 0
+
+//todo:define this for Atmel and add loader.
+/* Atmel defines the 128 bit UUID as
+ *  init8_t[8] that can be read as bytes using Start Read Unique Identifier
+ *
+ *  PX4 uses the bytes in bigendian order MSB to LSB
+ *   word  [0]    [1]    [2]   [3]
+ *   bits 127:96  95-64  63-32, 31-00,
+ */
+#    define PX4_CPU_UUID_BYTE_LENGTH                16
+#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
+
+/* The mfguid will be an array of bytes with
+ * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ *
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
+ */
+#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
+
+/* define common formating across all commands */
+
+#    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
+#    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
+
+#    define PX4_CPU_UUID_WORD32_UNIQUE_H            3 /* Least significant digits change the most */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_M            2 /* Middle High significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_L            1 /* Middle Low significant digits */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_N            0 /* Most significant digits change the least */
+
+/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
+#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
+#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
+
+#    define atmel_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
+
+#    define px4_savepanic(fileno, context, length)   atmel_bbsram_savepanic(fileno, context, length)
+
+/* bus_num is zero based on same70 and must be translated from the legacy one based */
+
+#    define px4_spibus_initialize(port_1based)       sam_spibus_initialize(port_1based-1)
+
+#    define px4_i2cbus_initialize(bus_num_1based)    sam_i2cbus_initialize(bus_num_1based-1)
+#    define px4_i2cbus_uninitialize(pdev)            sam_i2cbus_uninitialize(pdev)
+
+#    define px4_arch_configgpio(pinset)             sam_configgpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)           sam_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               sam_gpioread(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       sam_gpiowrite(pinset, value)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  sam_gpiosetevent(pinset,r,f, e,fp)
+#  endif
+
 #include <arch/board/board.h>
 __END_DECLS
 #endif
