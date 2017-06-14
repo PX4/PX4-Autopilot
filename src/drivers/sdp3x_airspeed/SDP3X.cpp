@@ -187,22 +187,22 @@ SDP3X::cycle()
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)
 {
-	uint8_t crc = 0xff;
+	uint8_t crc_value = 0xff;
 
 	// calculate 8-bit checksum with polynomial 0x31 (x^8 + x^5 + x^4 + 1)
 	for (unsigned i = 0; i < size; i++) {
-		crc ^= (data[i]);
+		crc_value ^= (data[i]);
 
 		for (int bit = 8; bit > 0; --bit) {
-			if (crc & 0x80) {
-				crc = (crc << 1) ^ 0x31;
+			if (crc_value & 0x80) {
+				crc_value = (crc_value << 1) ^ 0x31;
 
 			} else {
-				crc = (crc << 1);
+				crc_value = (crc_value << 1);
 			}
 		}
 	}
 
 	// verify checksum
-	return (crc == checksum);
+	return (crc_value == checksum);
 }
