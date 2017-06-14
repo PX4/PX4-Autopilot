@@ -700,6 +700,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	if (_mag_enabled) {
 		mag_report.timestamp = accel_report.timestamp;
+		mag_report.is_external = false;
 
 		mag_report.scaling = -1.0f;
 		mag_report.range_ga = -1.0f;
