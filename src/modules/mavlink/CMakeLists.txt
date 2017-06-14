@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
