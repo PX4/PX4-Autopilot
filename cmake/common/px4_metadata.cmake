@@ -191,11 +191,12 @@ function(px4_generate_airframes_xml)
 		REQUIRED BOARD
 		ARGN ${ARGN})
 
-	add_custom_command(OUTPUT ${PX4_SOURCE_DIR}/airframes.xml
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/airframes.xml
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 			-a ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${BOARD} --xml
 		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		COMMENT "Creating airframes.xml"
 		)
-	add_custom_target(airframes_xml DEPENDS ${PX4_SOURCE_DIR}/airframes.xml)
+	add_custom_target(airframes_xml DEPENDS ${PX4_BINARY_DIR}/airframes.xml)
 endfunction()
