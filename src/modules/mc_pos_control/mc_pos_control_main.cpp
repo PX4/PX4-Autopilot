@@ -1760,6 +1760,13 @@ void MulticopterPositionControl::control_auto(float dt)
 						/* make sure that vel_sp_along track is at least min */
 						vel_sp_along_track = (vel_sp_along_track < vel_close) ? vel_close : vel_sp_along_track;
 
+						/* if we are close to target and the previous velocity setpoints was smaller than
+						 * vel_sp_along_track, then take over the previous one
+						 * this ensures smoothness since we anyway want to slow down
+						 */
+						vel_sp_along_track = (vel_sp_along_track > vel_sp_along_track_prev) ?
+								     vel_sp_along_track_prev : vel_sp_along_track;
+
 					} else {
 
 						/* we want to stop at current setpoint */
