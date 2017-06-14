@@ -250,7 +250,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
-			int device_id;
+			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
@@ -306,7 +306,7 @@ void VotedSensorsUpdate::parameters_update()
 		// run through all stored calibrations and reset them
 		for (unsigned i = 0; i < GYRO_COUNT_MAX; i++) {
 
-			int device_id = 0;
+			int32_t device_id = 0;
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
 			(void)param_set(param_find(str), &device_id);
 		}
@@ -333,7 +333,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
-			int device_id;
+			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
@@ -389,7 +389,7 @@ void VotedSensorsUpdate::parameters_update()
 		// run through all stored calibrations and reset them
 		for (unsigned i = 0; i < ACCEL_COUNT_MAX; i++) {
 
-			int device_id = 0;
+			int32_t device_id = 0;
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
 			(void)param_set(param_find(str), &device_id);
 		}
@@ -417,7 +417,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_MAG%u_ID", i);
-			int device_id;
+			int32_t device_id;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			if (failed) {
