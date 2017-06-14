@@ -167,7 +167,7 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-        set(added_include_dirs
+	set(added_include_dirs
 		src/platforms/posix/include
 		)
 
