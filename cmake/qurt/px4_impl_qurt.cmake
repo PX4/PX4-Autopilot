@@ -160,18 +160,18 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
-        set(DSPAL_ROOT src/lib/DriverFramework/dspal)
-        set(added_include_dirs
-                ${DSPAL_ROOT}/include 
-                ${DSPAL_ROOT}/sys 
-                ${DSPAL_ROOT}/sys/sys 
-                ${DSPAL_ROOT}/mpu_spi/inc
-                ${DSPAL_ROOT}/uart_esc/inc
-                src/platforms/qurt/include
-                src/platforms/posix/include
-                )
+	set(DSPAL_ROOT src/lib/DriverFramework/dspal)
+	set(added_include_dirs
+		${DSPAL_ROOT}/include
+		${DSPAL_ROOT}/sys
+		${DSPAL_ROOT}/sys/sys
+		${DSPAL_ROOT}/mpu_spi/inc
+		${DSPAL_ROOT}/uart_esc/inc
+		src/platforms/qurt/include
+		src/platforms/posix/include
+		)
 
-        set(added_definitions
+	set(added_definitions
 		-D__PX4_QURT
 		-D__DF_QURT # For DriverFramework
 		-D__PX4_POSIX
@@ -179,8 +179,8 @@ function(px4_os_add_flags)
 		)
 
 	# Add the toolchain specific flags
-        set(added_cflags)
-        set(added_cxx_flags)
+	set(added_cflags)
+	set(added_cxx_flags)
 
 	# Clear -rdynamic flag which fails for hexagon
 	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
