@@ -1552,7 +1552,7 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* we want to accelerate */
 
 					float acc_z = (vel_sp_z - fabsf(_vel_sp(2))) / dt;
-					float acc_max = (flying_upward) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+					float acc_max = (flying_upward) ? (_acceleration_z_max_up.get() * 0.5f) : (_acceleration_z_max_down.get() * 0.5f);
 
 					if (acc_z > acc_max) {
 						vel_sp_z = _acceleration_z_max_up.get() * dt + fabsf(_vel_sp(2));
