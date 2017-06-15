@@ -157,6 +157,11 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
 
+	parameter_handles.wind_p_noise = param_find("WEST_W_P_NOISE");
+	parameter_handles.tas_scale_p_noise = param_find("WEST_SC_P_NOISE");
+	parameter_handles.tas_noise = param_find("WEST_TAS_NOISE");
+	parameter_handles.beta_noise = param_find("WEST_BETA_NOISE");
+
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
@@ -486,6 +491,11 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
 
 	param_get(parameter_handles.vibe_thresh, &parameters.vibration_warning_threshold);
+
+	param_get(parameter_handles.wind_p_noise, &parameters.wind_p_noise);
+	param_get(parameter_handles.tas_scale_p_noise, &parameters.tas_scale_p_noise);
+	param_get(parameter_handles.tas_noise, &parameters.tas_noise);
+	param_get(parameter_handles.beta_noise, &parameters.beta_noise);
 
 	return ret;
 }

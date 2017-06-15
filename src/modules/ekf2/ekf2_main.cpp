@@ -1115,19 +1115,19 @@ void Ekf2::task_main()
 				}
 
 				// Publish wind estimate
-				struct wind_estimate_s wind_estimate = {};
-				wind_estimate.timestamp = now;
-				wind_estimate.windspeed_north = status.states[22];
-				wind_estimate.windspeed_east = status.states[23];
-				wind_estimate.covariance_north = status.covariances[22];
-				wind_estimate.covariance_east = status.covariances[23];
+				// struct wind_estimate_s wind_estimate = {};
+				// wind_estimate.timestamp = now;
+				// wind_estimate.windspeed_north = status.states[22];
+				// wind_estimate.windspeed_east = status.states[23];
+				// wind_estimate.covariance_north = status.covariances[22];
+				// wind_estimate.covariance_east = status.covariances[23];
 
-				if (_wind_pub == nullptr) {
-					_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+				// if (_wind_pub == nullptr) {
+				// 	_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
 
-				} else {
-					orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-				}
+				// } else {
+				// 	orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
+				// }
 			}
 
 			// publish estimator innovation data

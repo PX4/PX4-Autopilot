@@ -3542,3 +3542,39 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
+
+/**
+ * Wind estimator wind process noise.
+ *
+ * @min 0
+ * @max 1
+ * @group Wind Estimator
+ */
+PARAM_DEFINE_FLOAT(WEST_W_P_NOISE, 0.1f);
+
+/**
+ * Wind estimator true airspeed scale process noise.
+ *
+ * @min 0
+ * @max 0.1
+ * @group Wind Estimator
+ */
+PARAM_DEFINE_FLOAT(WEST_SC_P_NOISE, 0.0001);
+
+/**
+ * Wind estimator true airspeed measurement noise.
+ *
+ * @min 0
+ * @max 4
+ * @group Wind Estimator
+ */
+PARAM_DEFINE_FLOAT(WEST_TAS_NOISE, 1.4);
+
+/**
+ * Wind estimator sideslip measurement noise.
+ *
+ * @min 0
+ * @max 1
+ * @group Wind Estimator
+ */
+PARAM_DEFINE_FLOAT(WEST_BETA_NOISE, 0.3);
