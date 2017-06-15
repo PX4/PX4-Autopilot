@@ -206,12 +206,13 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
  * hard altitude limit. This setting will
  * be consolidated with the GF_MAX_VER_DIST
  * parameter.
+ * A negative value indicates that there is no limit
  *
  * @unit m
- * @min 1.5
+ * @min -1
  * @max 10000
  * @decimal 2
  * @group Land Detector
  *
  */
-PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, 10000.0f);
+PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
