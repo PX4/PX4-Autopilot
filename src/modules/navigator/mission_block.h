@@ -120,6 +120,12 @@ protected:
 	 */
 	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
 
+	/**
+	 * This function limits the setpoint dependent
+	 * on vehicle model
+	*/
+	void	mission_apply_limitation(struct mission_item_s *item);
+
 	void issue_command(const mission_item_s &item);
 
 	float get_time_inside(const struct mission_item_s &item);
