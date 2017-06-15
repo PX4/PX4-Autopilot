@@ -87,6 +87,10 @@
 #    define GPIO_MAX_SERVO_PIN 7
 #  elif defined(GPIO_SERVO_6)
 #    define GPIO_MAX_SERVO_PIN 6
+#  elif defined(GPIO_SERVO_5)
+#    define GPIO_MAX_SERVO_PIN 5
+#  elif defined(GPIO_SERVO_4)
+#    define GPIO_MAX_SERVO_PIN 4
 #  endif
 #endif
 
