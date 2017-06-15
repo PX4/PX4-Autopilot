@@ -833,6 +833,8 @@ start(int argc, char *argv[])
 void
 stop()
 {
+	start_in_progress = false;
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
