@@ -20,7 +20,7 @@ uint16 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 6		# 6 : maximum allowed vertical positio
 uint16 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 7		# 7 : maximum allowed horizontal velocity discrepancy fail
 uint16 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 8		# 8 : maximum allowed vertical velocity discrepancy fail
 
-uint16 control_mode_flags	# Bitmask to indicate EKF logic state
+uint32 control_mode_flags	# Bitmask to indicate EKF logic state
 # 0 - true if the filter tilt alignment is complete
 # 1 - true if the filter yaw alignment is complete
 # 2 - true if GPS measurements are being fused
