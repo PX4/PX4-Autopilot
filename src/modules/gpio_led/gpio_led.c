@@ -58,13 +58,13 @@
 #include <drivers/drv_gpio.h>
 #include <modules/px4iofirmware/protocol.h>
 
-#define PIN_NAME "AUX OUT 1"
 
+#define CYCLE_RATE_HZ  5
+
+#define PIN_NAME "AUX OUT 1"
 
 /* Minimum pin number */
 #define GPIO_MIN_SERVO_PIN 1
-
-#define CYCLE_RATE_HZ  5
 
 /* Maximum */
 #if defined(GPIO_SERVO_16)
@@ -89,8 +89,12 @@
 #  define GPIO_MAX_SERVO_PIN 7
 #elif defined(GPIO_SERVO_6)
 #  define GPIO_MAX_SERVO_PIN 6
+#elif defined(GPIO_SERVO_5)
+#  define GPIO_MAX_SERVO_PIN 5
+#elif defined(GPIO_SERVO_4)
+#  define GPIO_MAX_SERVO_PIN 4
 #else
-#  error "Board must define GPIO_SERVO_1 and GPIO_SERVO_n where n is 6-16"
+#  error "Board must define GPIO_SERVO_1 and GPIO_SERVO_n where n is 4-16"
 #endif
 
 struct gpio_led_s {
