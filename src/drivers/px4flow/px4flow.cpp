@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #include <drivers/device/i2c.h>
 
@@ -80,12 +81,17 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define I2C_FLOW_ADDRESS 		0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
+#define I2C_FLOW_ADDRESS_DEFAULT    0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
+#define I2C_FLOW_ADDRESS_MIN        0x42	///< 7-bit address.
+#define I2C_FLOW_ADDRESS_MAX        0x49	///< 7-bit address.
 
 /* PX4FLOW Registers addresses */
 #define PX4FLOW_REG			0x16	///< Measure Register 22
 
-#define PX4FLOW_CONVERSION_INTERVAL	100000	///< in microseconds! 20000 = 50 Hz 100000 = 10Hz
+#define PX4FLOW_CONVERSION_INTERVAL_DEFAULT 100000	///< in microseconds! = 10Hz
+#define PX4FLOW_CONVERSION_INTERVAL_MIN      10000	///< in microseconds! = 100 Hz
+#define PX4FLOW_CONVERSION_INTERVAL_MAX    1000000	///< in microseconds! = 1 Hz
+
 #define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
 
 #define PX4FLOW_MAX_DISTANCE 5.0f
@@ -103,7 +109,8 @@ struct i2c_integral_frame f_integral;
 class PX4FLOW: public device::I2C
 {
 public:
-	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS, enum Rotation rotation = (enum Rotation)0);
+	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS_DEFAULT, enum Rotation rotation = (enum Rotation)0,
+		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT);
 	virtual ~PX4FLOW();
 
 	virtual int 		init();
@@ -134,7 +141,8 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	enum Rotation				_sensor_rotation;
+	int                 _conversion_interval;
+	enum Rotation       _sensor_rotation;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -180,7 +188,7 @@ private:
  */
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
+PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval) :
 	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
 	_reports(nullptr),
 	_sensor_ok(false),
@@ -192,6 +200,7 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),
+	_conversion_interval(conversion_interval),
 	_sensor_rotation(rotation)
 {
 	// disable debug() calls
@@ -312,7 +321,7 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(PX4FLOW_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -331,7 +340,7 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(PX4FLOW_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(_conversion_interval)) {
 						return -EINVAL;
 					}
 
@@ -658,17 +667,18 @@ bool start_in_progress = false;
 const int START_RETRY_COUNT = 5;
 const int START_RETRY_TIMEOUT = 1000;
 
-int	start();
-void	stop();
-void	test();
-void	reset();
-void	info();
+int start(int argc, char *argv[]);
+void stop();
+void test();
+void reset();
+void info();
+void usage();
 
 /**
  * Start the driver.
  */
 int
-start()
+start(int argc, char *argv[])
 {
 	int fd;
 
@@ -678,14 +688,59 @@ start()
 		return 1;
 	}
 
-	start_in_progress = true;
-
 	if (g_dev != nullptr) {
 		start_in_progress = false;
 		warnx("already started");
 		return 1;
 	}
 
+	/* parse command line options */
+	int address = I2C_FLOW_ADDRESS_DEFAULT;
+	int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT;
+
+	/* don't exit from getopt loop to leave getopt global variables in consistent state,
+	 * set error flag instead */
+	bool err_flag = false;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "a:i:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'a':
+			address = strtoul(myoptarg, nullptr, 16);
+
+			if (address < I2C_FLOW_ADDRESS_MIN || address > I2C_FLOW_ADDRESS_MAX) {
+				warnx("invalid i2c address '%s'", myoptarg);
+				err_flag = true;
+
+			}
+
+			break;
+
+		case 'i':
+			conversion_interval = strtoul(myoptarg, nullptr, 10);
+
+			if (conversion_interval < PX4FLOW_CONVERSION_INTERVAL_MIN || conversion_interval > PX4FLOW_CONVERSION_INTERVAL_MAX) {
+				warnx("invalid conversion interval '%s'", myoptarg);
+				err_flag = true;
+			}
+
+			break;
+
+		default:
+			err_flag = true;
+			break;
+		}
+	}
+
+	if (err_flag) {
+		usage();
+		return PX4_ERROR;
+	}
+
+	/* starting */
+	start_in_progress = true;
 	warnx("scanning I2C buses for device..");
 
 	int retry_nr = 0;
@@ -707,7 +762,7 @@ start()
 		while (*cur_bus != -1) {
 			/* create the driver */
 			/* warnx("trying bus %d", *cur_bus); */
-			g_dev = new PX4FLOW(*cur_bus);
+			g_dev = new PX4FLOW(*cur_bus, address, (enum Rotation)0, conversion_interval);
 
 			if (g_dev == nullptr) {
 				/* this is a fatal error */
@@ -909,16 +964,28 @@ info()
 	exit(0);
 }
 
+void usage()
+{
+	PX4_INFO("usage: px4flow {start|test|reset|info'}");
+	PX4_INFO("    [-a i2c_address]");
+	PX4_INFO("    [-i i2c_interval]");
+}
+
 } // namespace
 
 int
 px4flow_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		px4flow::usage();
+		return 1;
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		return px4flow::start();
+		return px4flow::start(argc, argv);
 	}
 
 	/*
@@ -949,5 +1016,6 @@ px4flow_main(int argc, char *argv[])
 		px4flow::info();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	px4flow::usage();
+	return 1;
 }
