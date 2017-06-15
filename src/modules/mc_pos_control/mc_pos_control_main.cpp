@@ -920,12 +920,9 @@ void
 MulticopterPositionControl::limit_altitude()
 {
 	if (_vehicle_land_detected.alt_max > 0.0f) {
-
-		float altitude_above_home = -_pos(2) + _home_pos.z;
-
-		/* in altitude control, lim_pos_sp(2)it setpoint */
-		if (_run_alt_control &&  altitude_above_home > _vehicle_land_detected.alt_max) {
-			_pos_sp(2) = -_vehicle_land_detected.alt_max +  _home_pos.z;
+		/* in altitude control, limit setpoint */
+		if (_run_alt_control && _pos_sp(2) <= -_vehicle_land_detected.alt_max) {
+			_pos_sp(2) = -_vehicle_land_detected.alt_max;
 			return;
 		}
 
@@ -939,15 +936,14 @@ MulticopterPositionControl::limit_altitude()
 			float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f *
 					   _acceleration_z_max_down.get() * delta_t *delta_t;
 
-			if ((-pos_z_next + _home_pos.z) > _vehicle_land_detected.alt_max) {
-				_pos_sp(2) = -_vehicle_land_detected.alt_max + _home_pos.z;
+			if (pos_z_next <= -_vehicle_land_detected.alt_max) {
+				_pos_sp(2) = -_vehicle_land_detected.alt_max;
 				_run_alt_control = true;
 				return;
 			}
 		}
 	}
 }
-
 
 bool
 MulticopterPositionControl::in_auto_takeoff()
