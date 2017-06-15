@@ -111,4 +111,6 @@ private:
 	orb_advert_t _report_pub;                ///< uORB pub for gnss position
 
 	int _orb_sub_gnss = -1;                  ///< uORB sub for gnss position, used for bridging uORB --> UAVCAN
+
+	bool _system_clock_set = false; ///< Have we set the system clock at least once from GNSS data?
 };
