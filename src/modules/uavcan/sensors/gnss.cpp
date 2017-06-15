@@ -346,6 +346,23 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 	}
 
+//TODO px4_clock_settime does nothing on the Snapdragon platform
+#ifndef __PX4_QURT
+
+	// If we haven't already done so, set the system clock using GPS data
+	if (valid_pos_cov && !_system_clock_set) {
+		timespec ts;
+		memset(&ts, 0, sizeof(ts));
+		// get the whole microseconds
+		ts.tv_sec = report.time_utc_usec / 1000000ULL;
+		// get the remainder microseconds and convert to nanoseconds
+		ts.tv_nsec = (report.time_utc_usec % 1000000ULL) * 1000;
+		px4_clock_settime(CLOCK_REALTIME, &ts);
+		_system_clock_set = true;
+	}
+
+#endif
+
 	report.satellites_used = msg.sats_used;
 
 	// Using PDOP for HDOP and VDOP
