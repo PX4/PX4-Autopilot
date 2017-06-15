@@ -928,7 +928,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
-					mavlink_log_critical(&mavlink_log_pub, "REJECTING component arm cmd");
+					mavlink_log_critical(&mavlink_log_pub, "Arming not possible in this state");
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
@@ -2802,7 +2802,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
-				mavlink_log_critical(&mavlink_log_pub, "main state transition denied");
+				mavlink_log_critical(&mavlink_log_pub, "Switching to this mode is currently not possible");
 			}
 
 			/* check throttle kill switch */
