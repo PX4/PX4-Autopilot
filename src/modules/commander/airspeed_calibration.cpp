@@ -146,7 +146,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%d)", diff_pres.error_count);
+				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%llu)", diff_pres.error_count);
 				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
