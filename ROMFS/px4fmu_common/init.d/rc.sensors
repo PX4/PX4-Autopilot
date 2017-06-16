@@ -388,6 +388,10 @@ then
 	lsm303d start
 fi
 
+#
+# Optional drivers
+#
+
 if sdp3x_airspeed start
 then
 fi
@@ -414,6 +418,59 @@ fi
 
 if ets_airspeed start -b 1
 then
+fi
+
+# Sensors on the PWM interface bank
+if param compare SENS_EN_LL40LS 1
+then
+	if pwm_input start
+	then
+		if ll40ls start pwm
+		then
+		fi
+	fi
+fi
+
+# Lidar-Lite on I2C
+if param compare SENS_EN_LL40LS 2
+then
+	if ll40ls start i2c
+	then
+	fi
+fi
+
+# lightware serial lidar sensor
+if param compare SENS_EN_SF0X 0
+then
+else
+	if sf0x start
+	then
+	fi
+fi
+
+# lightware i2c lidar sensor
+if param compare SENS_EN_SF1XX 0
+then
+else
+	if sf1xx start
+	then
+	fi
+fi
+
+# mb12xx sonar sensor
+if param compare SENS_EN_MB12XX 1
+then
+	if mb12xx start
+	then
+	fi
+fi
+
+# teraranger one tof sensor
+if param compare SENS_EN_TRONE 1
+then
+	if trone start
+	then
+	fi
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
