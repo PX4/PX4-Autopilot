@@ -82,7 +82,15 @@ void Ekf::controlFusionModes()
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
+
+	_delta_time_baro_us = _baro_sample_delayed.time_us;
 	_baro_data_ready = _baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
+
+	// if we have a new baro sample save the delta time between this sample and the last sample which is
+	// used below for baro offset calculations
+	if (_baro_data_ready) {
+		_delta_time_baro_us = _baro_sample_delayed.time_us - _delta_time_baro_us;
+	}
 
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	_R_rng_to_earth_2_2 = _R_to_earth(2, 0) * _sin_tilt_rng + _R_to_earth(2, 2) * _cos_tilt_rng;
@@ -102,11 +110,10 @@ void Ekf::controlFusionModes()
 	controlExternalVisionFusion();
 	controlOpticalFlowFusion();
 	controlGpsFusion();
-	controlBaroFusion();
-	controlRangeFinderFusion();
 	controlAirDataFusion();
 	controlBetaFusion();
 	controlDragFusion();
+	controlHeightFusion();
 
 	// for efficiency, fusion of direct state observations for position and velocity is performed sequentially
 	// in a single function using sensor data from multiple sources (GPS, external vision, baro, range finder, etc)
@@ -129,12 +136,8 @@ void Ekf::controlExternalVisionFusion()
 			// check for a exernal vision measurement that has fallen behind the fusion time horizon
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// turn on use of external vision measurements for position and height
-				_control_status.flags.ev_pos = true;
+				setControlEVHeight();
 				ECL_INFO("EKF commencing external vision position fusion");
-				// turn off other forms of height aiding
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
 				// reset the position, height and velocity
 				resetPosition();
 				resetVelocity();
@@ -198,10 +201,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the height observation
 		if (_params.vdist_sensor_type == VDIST_SENSOR_EV) {
-			_control_status.flags.baro_hgt = false;
-			_control_status.flags.gps_hgt = false;
-			_control_status.flags.rng_hgt = false;
-			_control_status.flags.ev_hgt = true;
+			setControlEVHeight();
 			_fuse_height = true;
 
 		}
@@ -424,15 +424,6 @@ void Ekf::controlGpsFusion()
 
 		}
 
-		// Determine if GPS should be used as the height source
-		if (((_params.vdist_sensor_type == VDIST_SENSOR_GPS)) && !_gps_hgt_faulty) {
-			_control_status.flags.baro_hgt = false;
-			_control_status.flags.gps_hgt = true;
-			_control_status.flags.rng_hgt = false;
-			_control_status.flags.ev_hgt = false;
-			_fuse_height = true;
-
-		}
 	} else {
 		// handle the case where we do not have GPS and have not been using it for an extended period, but are still relying on it
 		if ((_time_last_imu - _time_last_gps > 10e6) && (_time_last_imu - _time_last_airspeed > 1e6) && (_time_last_imu - _time_last_optflow > 1e6) && _control_status.flags.gps) {
@@ -523,10 +514,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_gps_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = true;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlGPSHeight();
 
 				// request a reset
 				reset_height = true;
@@ -537,10 +525,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlBaroHeight();
 
 				// request a reset
 				reset_height = true;
@@ -582,10 +567,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlBaroHeight();
 
 				// request a reset
 				reset_height = true;
@@ -596,10 +578,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_gps_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = true;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlGPSHeight();
 
 				// request a reset
 				reset_height = true;
@@ -634,10 +613,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlBaroHeight();
 
 				// request a reset
 				reset_height = true;
@@ -648,10 +624,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_rng_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = true;
-				_control_status.flags.ev_hgt = false;
+				setControlRangeHeight();
 
 				// request a reset
 				reset_height = true;
@@ -686,10 +659,7 @@ void Ekf::controlHeightSensorTimeouts()
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
-				_control_status.flags.baro_hgt = true;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = false;
+				setControlBaroHeight();
 
 				// request a reset
 				reset_height = true;
@@ -697,10 +667,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 			} else if (reset_to_ev) {
 				// reset the height mode
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = true;
+				setControlEVHeight();
 
 				// request a reset
 				reset_height = true;
@@ -724,57 +691,95 @@ void Ekf::controlHeightSensorTimeouts()
 	}
 }
 
-void Ekf::controlBaroFusion()
+void Ekf::controlHeightFusion()
 {
-	if (_baro_data_ready) {
-		// determine if we should use the baro as our height source
-		uint64_t last_baro_time_us = _baro_sample_delayed.time_us;
-		if (((_params.vdist_sensor_type == VDIST_SENSOR_BARO) || _control_status.flags.baro_hgt) && !_baro_hgt_faulty) {
-			_control_status.flags.baro_hgt = true;
-			_control_status.flags.gps_hgt = false;
-			_control_status.flags.rng_hgt = false;
-			_control_status.flags.ev_hgt = false;
-			_fuse_height = true;
+	// set control flags for the desired primary height source
 
-		}
-
-		// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro as a height reference
-		if (!_control_status.flags.baro_hgt) {
-			float local_time_step = 1e-6f*(float)(_baro_sample_delayed.time_us - last_baro_time_us);
-			local_time_step = math::constrain(local_time_step,0.0f,1.0f);
-			last_baro_time_us = _baro_sample_delayed.time_us;
-			float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt - _hgt_sensor_offset) + _state.pos(2) - _baro_hgt_offset;
-			_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
-
-		}
-	}
-}
-
-void Ekf::controlRangeFinderFusion()
-{
-	// determine if we should use range finder data for height
 	if (_range_data_ready) {
-		// set the height data source to range if requested
-		if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && !_rng_hgt_faulty) {
-			_control_status.flags.baro_hgt = false;
-			_control_status.flags.gps_hgt = false;
-			_control_status.flags.rng_hgt = true;
-			_control_status.flags.ev_hgt = false;
-
-		}
-
 		// correct the range data for position offset relative to the IMU
 		Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
 		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
+	}
 
-		// only use range finder as a height observation in the main filter if specifically enabled
-		if (_control_status.flags.rng_hgt) {
+
+	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
+
+		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+			setControlRangeHeight();
 			_fuse_height = true;
 
-		}
+			// we have just switched to using range finder, calculate height sensor offset such that current
+			// measurment matches our current height estimate
+			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+				if (_terrain_initialised) {
+					_hgt_sensor_offset = _terrain_vpos;
+				} else {
+					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				}
+			}
 
-	} else if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt) {
+		} else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
+			setControlBaroHeight();
+			_fuse_height = true;
+
+			// we have just switched to using baro height, we don't need to set a height sensor offset
+			// since we track a separate _baro_hgt_offset
+			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+				_hgt_sensor_offset = 0.0f;
+			}
+		}
+	}
+
+	// set the height data source to range if requested
+	if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && !_rng_hgt_faulty) {
+		setControlRangeHeight();
+		_fuse_height = _range_data_ready;
+	}
+
+	// Determine if GPS should be used as the height source
+	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
+		_in_range_aid_mode = rangeAidConditionsMet(_in_range_aid_mode);
+
+		if (_in_range_aid_mode && _range_data_ready && !_rng_hgt_faulty) {
+			setControlRangeHeight();
+			_fuse_height = true;
+
+			// we have just switched to using range finder, calculate height sensor offset such that current
+			// measurment matches our current height estimate
+			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+				if (_terrain_initialised) {
+					_hgt_sensor_offset = _terrain_vpos;
+				} else {
+					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				}
+			}
+
+		} else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
+			setControlGPSHeight();
+			_fuse_height = true;
+
+			// we have just switched to using gps height, calculate height sensor offset such that current
+			// measurment matches our current height estimate
+			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+			}
+		}
+	}
+
+	// calculate a filtered offset between the baro origin and local NED origin if we are not using the baro as a height reference
+	if (!_control_status.flags.baro_hgt && _baro_data_ready) {
+		float local_time_step = 1e-6f * _delta_time_baro_us;
+		local_time_step = math::constrain(local_time_step, 0.0f, 1.0f);
+
+		// apply a 10 second first order low pass filter to baro offset
+		float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt + _state.pos(
+				2) - _baro_hgt_offset);
+		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
+	}
+
+	if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt && !_range_data_ready) {
 		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
 		if (!_control_status.flags.in_air) {
@@ -784,7 +789,55 @@ void Ekf::controlRangeFinderFusion()
 		}
 
 		_fuse_height = true;
+	}
 
+
+}
+
+bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
+{
+	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
+	// under the following conditions
+	// 1) we are not further than max_range_for_dual_fusion away from the ground
+	// 2) our ground speed is not higher than max_vel_for_dual_fusion
+	// 3) Our terrain estimate is stable (needs better checks)
+	if (_params.range_aid) {
+		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
+		bool use_range_finder;
+		if (in_range_aid_mode) {
+			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
+
+		} else {
+			// if we were not using range aid in the previous iteration then require the current height above terrain to be
+			// smaller than 70 % of the maximum allowed ground distance for range aid
+			use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && _terrain_initialised;
+		}
+
+		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
+		                      && (_fault_status.value == 0);
+
+		if (horz_vel_valid) {
+			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
+
+			if (in_range_aid_mode) {
+				use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
+
+			} else {
+				// if we were not using range aid in the previous iteration then require the ground velocity to be
+				// smaller than 70 % of the maximum allowed ground velocity for range aid
+				use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
+			}
+
+		} else {
+			use_range_finder = false;
+		}
+
+		use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
+
+		return use_range_finder;
+
+	} else {
+		return false;
 	}
 }
 
@@ -824,15 +877,14 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-        // control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
+	// control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
 
-        // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
-        bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
-        bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
-	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)){
-                _control_status.flags.wind = false;
-
-        }
+	// If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
+	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
+	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
+		_control_status.flags.wind = false;
+	}
 
 	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
 
@@ -855,10 +907,10 @@ void Ekf::controlBetaFusion()
 			resetWindCovariance();
 		}
 
-                fuseSideslip();
+		fuseSideslip();
  	}
 
- 	
+
 
 }
 
