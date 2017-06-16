@@ -37,7 +37,7 @@ set(config_module_list
 	drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
-	drivers/meas_airspeed
+	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	drivers/frsky_telemetry
 	modules/sensors

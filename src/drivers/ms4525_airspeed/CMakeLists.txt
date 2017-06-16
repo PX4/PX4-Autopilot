@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__meas_airspeed
-	MAIN meas_airspeed
+	MODULE drivers__ms4525_airspeed
+	MAIN ms4525_airspeed
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		meas_airspeed.cpp
+		ms4525_airspeed.cpp
 	DEPENDS
 		platforms__common
 	)

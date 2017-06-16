@@ -32,7 +32,7 @@ set(config_module_list
 	drivers/lis3mdl
 	drivers/ll40ls
 	drivers/mb12xx
-	drivers/meas_airspeed
+	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	drivers/mkblctrl
 	drivers/mpu6000
