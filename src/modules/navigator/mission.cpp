@@ -1194,9 +1194,8 @@ Mission::do_abort_landing()
 
 	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
 	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
-	float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	float min_climbout = _navigator->get_global_position()->alt + (2 * _param_fw_climbout_diff.get());
-	float alt_sp = math::max(alt_landing + _param_loiter_min_alt.get(), min_climbout);
+	float alt_landing = _navigator_item.altitude;
+
 
 	// ignore _param_loiter_min_alt if smaller then 0 (-1)
 	float alt_sp;
