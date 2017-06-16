@@ -142,6 +142,11 @@ void VotedSensorsUpdate::parameters_update()
 
 	_board_rotation = board_rotation_offset * _board_rotation;
 
+	// initialze all mag rotations with the board rotation in case there is no calibration data available
+	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX; ++topic_instance) {
+		_mag_rotation[topic_instance] = _board_rotation;
+	}
+
 	/* Load & apply the sensor calibrations.
 	 * IMPORTANT: we assume all sensor drivers are running and published sensor data at this point
 	 */
@@ -466,9 +471,10 @@ void VotedSensorsUpdate::parameters_update()
 
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
+				int32_t mag_rot;
+				param_get(param_find(str), &mag_rot);
+
 				if (is_external) {
-					int32_t mag_rot;
-					param_get(param_find(str), &mag_rot);
 
 					/* check if this mag is still set as internal, otherwise leave untouched */
 					if (mag_rot < 0) {
@@ -479,13 +485,20 @@ void VotedSensorsUpdate::parameters_update()
 
 				} else {
 					/* mag is internal - reset param to -1 to indicate internal mag */
-					int32_t minus_one;
-					param_get(param_find(str), &minus_one);
-
-					if (minus_one != MAG_ROT_VAL_INTERNAL) {
-						minus_one = MAG_ROT_VAL_INTERNAL;
-						param_set_no_notification(param_find(str), &minus_one);
+					if (mag_rot != MAG_ROT_VAL_INTERNAL) {
+						mag_rot = MAG_ROT_VAL_INTERNAL;
+						param_set_no_notification(param_find(str), &mag_rot);
 					}
+				}
+
+				/* now get the mag rotation */
+				if (mag_rot >= 0) {
+					// Set external magnetometers to use the parameter value
+					get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[topic_instance]);
+
+				} else {
+					// Set internal magnetometers to use the board rotation
+					_mag_rotation[topic_instance] = _board_rotation;
 				}
 
 				if (failed) {
@@ -741,34 +754,13 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
 
-				// Parameters update to get offsets and scaling loaded (if not already loaded)
+				// Parameters update to get offsets, scaling & mag rotation loaded (if not already loaded)
 				parameters_update();
 
 				// Set device priority for the voter
 				int32_t priority = 0;
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
-
-				// Match rotation parameters to uORB topics first time we get data
-				char str[30];
-				int32_t mag_rot;
-
-				for (int driver_index = 0; driver_index < MAG_COUNT_MAX; driver_index++) {
-					if (mag_report.device_id == _mag_device_id[driver_index]) {
-
-						(void)sprintf(str, "CAL_MAG%u_ROT", driver_index);
-						param_get(param_find(str), &mag_rot);
-
-						if (mag_rot < 0) {
-							// Set internal magnetometers to use the board rotation
-							_mag_rotation[uorb_index] = _board_rotation;
-
-						} else {
-							// Set external magnetometers to use the parameter value
-							get_rot_matrix((enum Rotation)mag_rot, &_mag_rotation[uorb_index]);
-						}
-					}
-				}
 			}
 
 			math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
