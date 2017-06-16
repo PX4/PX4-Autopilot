@@ -57,6 +57,7 @@
 #define ISFINITE(x) __builtin_isfinite(x)
 #endif
 
+
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);

@@ -159,7 +159,7 @@ void Ekf::fuseVelPosHeight()
 			fuse_map[5] = true;
 			// use range finder with tilt correction
 			_vel_pos_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
-							     _params.rng_gnd_clearance));
+							     _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 			// observation variance - user parameter defined
 			R[5] = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
 			// innovation gate size

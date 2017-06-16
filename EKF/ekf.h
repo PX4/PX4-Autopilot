@@ -261,6 +261,7 @@ private:
 	float _imu_collection_time_adj{0.0f};	// the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
 	uint64_t _time_acc_bias_check{0};	// last time the  accel bias check passed (usec)
+	uint64_t _delta_time_baro_us{0};	// delta time between two consecutive delayed baro samples from the buffer (usec)
 
 	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
@@ -373,6 +374,9 @@ private:
 	uint64_t _time_bad_vert_accel{0};	// last time a bad vertical accel was detected (usec)
 	uint64_t _time_good_vert_accel{0};	// last time a good vertical accel was detected (usec)
 	bool _bad_vert_accel_detected{false};	// true when bad vertical accelerometer data has been detected
+
+    // variables used to control range aid functionality
+    bool _in_range_aid_mode;
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
@@ -501,11 +505,28 @@ private:
 	// control for height sensor timeouts, sensor changes and state resets
 	void controlHeightSensorTimeouts();
 
+	// control for combined height fusion mode (implemented for switching between baro and range height)
+	void controlHeightFusion();
+
+    bool rangeAidConditionsMet(bool in_range_aid_mode);
+
 	// return the square of two floating point numbers - used in auto coded sections
 	inline float sq(float var)
 	{
 		return var * var;
 	}
+
+	// set control flags to use baro height
+	void setControlBaroHeight();
+
+	// set control flags to use range height
+	void setControlRangeHeight();
+
+	// set control flags to use GPS height
+	void setControlGPSHeight();
+
+	// set control flags to use external vision height
+	void setControlEVHeight();
 
 	// zero the specified range of rows in the state covariance matrix
 	void zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
