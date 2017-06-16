@@ -43,7 +43,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <board_config.h>
 #include <stdio.h>
 #include <math.h>
@@ -71,34 +71,48 @@ int val_read(void *dest, volatile const void *src, int bytes)
 int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char *signature)
 {
 
-	warnx("write_otp: PX4 / %02X / %02X / %02X  / ... etc  \n", id_type, vid, pid);
+	warnx("write_otp: PX4 / %02X / %02lX / %02lX  / ... etc  \n", id_type, (unsigned long)vid, (unsigned long)pid);
 
 	int errors = 0;
 
 	// descriptor
-	if (F_write_byte(ADDR_OTP_START, 'P'))
+	if (F_write_byte(ADDR_OTP_START, 'P')) {
 		errors++;
-	  //  write the 'P' from PX4. to first byte in OTP
-	if (F_write_byte(ADDR_OTP_START + 1, 'X'))
-		errors++; //  write the 'P' from PX4. to first byte in OTP
-	if (F_write_byte(ADDR_OTP_START + 2, '4'))
+	}
+
+	//  write the 'P' from PX4. to first byte in OTP
+	if (F_write_byte(ADDR_OTP_START + 1, 'X')) {
+		errors++;        //  write the 'P' from PX4. to first byte in OTP
+	}
+
+	if (F_write_byte(ADDR_OTP_START + 2, '4')) {
 		errors++;
-	if (F_write_byte(ADDR_OTP_START + 3, '\0'))
+	}
+
+	if (F_write_byte(ADDR_OTP_START + 3, '\0')) {
 		errors++;
+	}
+
 	//id_type
-	if (F_write_byte(ADDR_OTP_START + 4, id_type))
+	if (F_write_byte(ADDR_OTP_START + 4, id_type)) {
 		errors++;
+	}
+
 	// vid and pid are 4 bytes each
-	if (F_write_word(ADDR_OTP_START + 5, vid))
+	if (F_write_word(ADDR_OTP_START + 5, vid)) {
 		errors++;
-	if (F_write_word(ADDR_OTP_START + 9, pid))
+	}
+
+	if (F_write_word(ADDR_OTP_START + 9, pid)) {
 		errors++;
+	}
 
 	// leave some 19 bytes of space, and go to the next block...
 	// then the auth sig starts
 	for (int i = 0 ; i < 128 ; i++) {
-		if (F_write_byte(ADDR_OTP_START + 32 + i, signature[i]))
+		if (F_write_byte(ADDR_OTP_START + 32 + i, signature[i])) {
 			errors++;
+		}
 	}
 
 	return errors;
@@ -123,8 +137,9 @@ int lock_otp(void)
 
 	// or just realise it's exctly 5x 32byte blocks we need to lock.  1 block for ID,type,vid,pid, and 4 blocks for certificate, which is 128 bytes.
 	for (int i = 0 ; i < locksize ; i++) {
-		if (F_write_byte(ADDR_OTP_LOCK_START + i, OTP_LOCK_LOCKED))
+		if (F_write_byte(ADDR_OTP_LOCK_START + i, OTP_LOCK_LOCKED)) {
 			errors++;
+		}
 	}
 
 	return errors;
@@ -170,7 +185,7 @@ void F_lock(void)
 }
 
 // flash write word.
-int F_write_word(uint32_t Address, uint32_t Data)
+int F_write_word(unsigned long Address, uint32_t Data)
 {
 	unsigned char octet[4] = {0, 0, 0, 0};
 
@@ -185,7 +200,7 @@ int F_write_word(uint32_t Address, uint32_t Data)
 }
 
 // flash write byte
-int F_write_byte(uint32_t Address, uint8_t Data)
+int F_write_byte(unsigned long Address, uint8_t Data)
 {
 	volatile int status = F_COMPLETE;
 

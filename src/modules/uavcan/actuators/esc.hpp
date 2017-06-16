@@ -48,18 +48,23 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <systemlib/perf_counter.h>
+#include <uORB/topics/esc_status.h>
+
 
 class UavcanEscController
 {
 public:
-	UavcanEscController(uavcan::INode& node);
+	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
 
 	int init();
 
 	void update_outputs(float *outputs, unsigned num_outputs);
 
-	void arm_esc(bool arm);
+	void arm_all_escs(bool arm);
+	void arm_single_esc(int num, bool arm);
+
+	void enable_idle_throttle_when_armed(bool value) { _run_at_idle_throttle_when_armed = value; }
 
 private:
 	/**
@@ -73,16 +78,21 @@ private:
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
 
-	static constexpr unsigned MAX_RATE_HZ = 100;			///< XXX make this configurable
-	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 5;
-	static constexpr unsigned MAX_ESCS = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
+	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
+	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
+	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
-	typedef uavcan::MethodBinder<UavcanEscController*,
+	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
 		StatusCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController*, void (UavcanEscController::*)(const uavcan::TimerEvent&)>
-		TimerCbBinder;
+	typedef uavcan::MethodBinder<UavcanEscController *, void (UavcanEscController::*)(const uavcan::TimerEvent &)>
+	TimerCbBinder;
+
+	bool		_armed = false;
+	bool		_run_at_idle_throttle_when_armed = false;
+	esc_status_s	_esc_status = {};
+	orb_advert_t	_esc_status_pub = nullptr;
 
 	/*
 	 * libuavcan related things
@@ -96,8 +106,8 @@ private:
 	/*
 	 * ESC states
 	 */
-	bool 				_armed = false;
-	uavcan::equipment::esc::Status	_states[MAX_ESCS];
+	uint32_t 			_armed_mask = 0;
+	uint8_t				_max_number_of_nonzero_outputs = 0;
 
 	/*
 	 * Perf counters

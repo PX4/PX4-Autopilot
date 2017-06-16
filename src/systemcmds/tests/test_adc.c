@@ -36,8 +36,10 @@
  * Test for the analog to digital converter.
  */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#include <px4_config.h>
+#include <px4_adc.h>
+#include <px4_posix.h>
+#include <px4_log.h>
 
 #include <sys/types.h>
 
@@ -46,22 +48,17 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
-#include <nuttx/spi.h>
+#include "tests_main.h"
 
-#include "tests.h"
-
-#include <nuttx/analog/adc.h>
 #include <drivers/drv_adc.h>
-#include <systemlib/err.h>
 
 int test_adc(int argc, char *argv[])
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
+		PX4_ERR("ERROR: can't open ADC device");
 		return 1;
 	}
 
@@ -69,10 +66,11 @@ int test_adc(int argc, char *argv[])
 		/* make space for a maximum of twelve channels */
 		struct adc_msg_s data[12];
 		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+		ssize_t count = px4_read(fd, data, sizeof(data));
 
-		if (count < 0)
+		if (count < 0) {
 			goto errout_with_dev;
+		}
 
 		unsigned channels = count / sizeof(data[0]);
 
@@ -84,11 +82,11 @@ int test_adc(int argc, char *argv[])
 		usleep(150000);
 	}
 
-	warnx("\t ADC test successful.\n");
+	printf("\t ADC test successful.\n");
 
 errout_with_dev:
 
-	if (fd != 0) close(fd);
+	if (fd != 0) { px4_close(fd); }
 
 	return OK;
 }

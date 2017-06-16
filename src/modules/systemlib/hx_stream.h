@@ -103,7 +103,7 @@ __EXPORT extern void		hx_stream_reset(hx_stream_t stream);
 /**
  * Prepare to send a frame.
  *
- * Use this in conjunction with hx_stream_send_next to 
+ * Use this in conjunction with hx_stream_send_next to
  * set the frame to be transmitted.
  *
  * Use hx_stream_send() to write to the stream fd directly.
@@ -124,7 +124,7 @@ __EXPORT extern int		hx_stream_start(hx_stream_t stream,
  * calling hx_stream_start first.
  *
  * @param stream	A handle returned from hx_stream_init.
- * @return		The byte to send, or -1 if there is 
+ * @return		The byte to send, or -1 if there is
  *			nothing left to send.
  */
 __EXPORT extern int		hx_stream_send_next(hx_stream_t stream);

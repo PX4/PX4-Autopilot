@@ -44,49 +44,63 @@
 struct position_estimator_inav_params {
 	float w_z_baro;
 	float w_z_gps_p;
+	float w_z_gps_v;
 	float w_z_vision_p;
-	float w_z_sonar;
+	float w_z_lidar;
 	float w_xy_gps_p;
 	float w_xy_gps_v;
 	float w_xy_vision_p;
 	float w_xy_vision_v;
+	float w_mocap_p;
 	float w_xy_flow;
 	float w_xy_res_v;
 	float w_gps_flow;
 	float w_acc_bias;
 	float flow_k;
 	float flow_q_min;
-	float sonar_filt;
-	float sonar_err;
+	float lidar_err;
 	float land_t;
 	float land_disp;
 	float land_thr;
 	int32_t no_vision;
 	float delay_gps;
+	float flow_module_offset_x;
+	float flow_module_offset_y;
+	int32_t disable_mocap;
+	int32_t enable_lidar_alt_est;
+	float lidar_calibration_offset;
+	int32_t att_ext_hdg_m;
 };
 
 struct position_estimator_inav_param_handles {
 	param_t w_z_baro;
 	param_t w_z_gps_p;
+	param_t w_z_gps_v;
 	param_t w_z_vision_p;
-	param_t w_z_sonar;
+	param_t w_z_lidar;
 	param_t w_xy_gps_p;
 	param_t w_xy_gps_v;
 	param_t w_xy_vision_p;
 	param_t w_xy_vision_v;
+	param_t w_mocap_p;
 	param_t w_xy_flow;
 	param_t w_xy_res_v;
 	param_t w_gps_flow;
 	param_t w_acc_bias;
 	param_t flow_k;
 	param_t flow_q_min;
-	param_t sonar_filt;
-	param_t sonar_err;
+	param_t lidar_err;
 	param_t land_t;
 	param_t land_disp;
 	param_t land_thr;
 	param_t no_vision;
 	param_t delay_gps;
+	param_t flow_module_offset_x;
+	param_t flow_module_offset_y;
+	param_t disable_mocap;
+	param_t enable_lidar_alt_est;
+	param_t lidar_calibration_offset;
+	param_t att_ext_hdg_m;
 };
 
 #define CBRK_NO_VISION_KEY	328754
@@ -95,10 +109,11 @@ struct position_estimator_inav_param_handles {
  * Initialize all parameter handles and values
  *
  */
-int parameters_init(struct position_estimator_inav_param_handles *h);
+int inav_parameters_init(struct position_estimator_inav_param_handles *h);
 
 /**
  * Update all parameters
  *
  */
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h,
+			   struct position_estimator_inav_params *p);

@@ -46,23 +46,24 @@
  * Each client has its own configuration.
  *
  * When mixing, outputs are produced by mixers in the order they are
- * added.  A simple mixer produces one output; a multotor mixer will
+ * added.  A simple mixer produces one output; a multirotor mixer will
  * produce several outputs, etc.
  */
 
 #ifndef _DRV_MIXER_H
 #define _DRV_MIXER_H
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define MIXER_DEVICE_PATH		"/dev/mixer"
+#define MIXER0_DEVICE_PATH		"/dev/mixer0"
 
 /*
  * ioctl() definitions
  */
 #define _MIXERIOCBASE		(0x2500)
-#define _MIXERIOC(_n)		(_IOC(_MIXERIOCBASE, _n))
+#define _MIXERIOC(_n)		(_PX4_IOC(_MIXERIOCBASE, _n))
 
 /** get the number of mixable outputs */
 #define MIXERIOCGETOUTPUTCOUNT	_MIXERIOC(0)

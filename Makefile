@@ -1,5 +1,6 @@
+############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,266 +29,390 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+############################################################################
 
+# Enforce the presence of the GIT repository
 #
-# Top-level Makefile for building PX4 firmware images.
-#
-
-#
-# Get path and tool configuration
-#
-export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
-include $(PX4_BASE)makefiles/setup.mk
-
-#
-# Get a version string provided by git
-# This assumes that git command is available and that
-# the directory holding this file also contains .git directory
-#
-GIT_DESC := $(shell git log -1 --pretty=format:%H)
-ifneq ($(words $(GIT_DESC)),1)
-    GIT_DESC := "unknown_git_version"
-endif
-export GIT_DESC
-
-#
-# Canned firmware configurations that we (know how to) build.
-#
-KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
-CONFIGS			?= $(KNOWN_CONFIGS)
-
-#
-# Boards that we (know how to) build NuttX export kits for.
-#
-KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
-BOARDS			?= $(KNOWN_BOARDS)
-
-#
-# Debugging
-#
-MQUIET			 = --no-print-directory
-#MQUIET			 = --print-directory
-
-################################################################################
-# No user-serviceable parts below
-################################################################################
-
-#
-# If the user has listed a config as a target, strip it out and override CONFIGS.
-#
-FIRMWARE_GOAL		 = firmware
-EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
-ifneq ($(EXPLICIT_CONFIGS),)
-CONFIGS			:= $(EXPLICIT_CONFIGS)
-.PHONY:			$(EXPLICIT_CONFIGS)
-$(EXPLICIT_CONFIGS):	all
-
-#
-# If the user has asked to upload, they must have also specified exactly one
-# config.
-#
-ifneq ($(filter upload,$(MAKECMDGOALS)),)
-ifneq ($(words $(EXPLICIT_CONFIGS)),1)
-$(error In order to upload, exactly one board config must be specified)
-endif
-FIRMWARE_GOAL		 = upload
-.PHONY: upload
-upload:
-	@:
-endif
+# We depend on our submodules, so we have to prevent attempts to
+# compile without it being present.
+ifeq ($(wildcard .git),)
+    $(error YOU HAVE TO USE GIT TO DOWNLOAD THIS REPOSITORY. ABORTING.)
 endif
 
+# Help
+# --------------------------------------------------------------------
+# Don't be afraid of this makefile, it is just passing
+# arguments to cmake to allow us to keep the wiki pages etc.
+# that describe how to build the px4 firmware
+# the same even when using cmake instead of make.
 #
-# Built products
+# Example usage:
 #
-DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
-STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
-FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
+# make px4fmu-v2_default 			(builds)
+# make px4fmu-v2_default upload 	(builds and uploads)
+# make px4fmu-v2_default test 		(builds and tests)
+#
+# This tells cmake to build the nuttx px4fmu-v2 default config in the
+# directory build_nuttx_px4fmu-v2_default and then call make
+# in that directory with the target upload.
 
-all:			checksubmodules $(DESIRED_FIRMWARES)
+#  explicity set default build target
+all: posix_sitl_default
 
-#
-# Copy FIRMWARES into the image directory.
-#
-# XXX copying the .bin files is a hack to work around the PX4IO uploader 
-#     not supporting .px4 files, and it should be deprecated onced that 
-#     is taken care of.
-#
-$(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
-	@$(ECHO) %% Copying $@
-	$(Q) $(COPY) $< $@
-	$(Q) $(COPY) $(patsubst %.px4,%.bin,$<) $(patsubst %.px4,%.bin,$@)
+# Parsing
+# --------------------------------------------------------------------
+# assume 1st argument passed is the main target, the
+# rest are arguments to pass to the makefile generated
+# by cmake in the subdirectory
+FIRST_ARG := $(firstword $(MAKECMDGOALS))
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+j ?= 4
 
-#
-# Generate FIRMWARES.
-#
-.PHONY: $(FIRMWARES)
-$(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
-$(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
-$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
-	@$(ECHO) %%%%
-	@$(ECHO) %%%% Building $(config) in $(work_dir)
-	@$(ECHO) %%%%
-	$(Q) $(MKDIR) -p $(work_dir)
-	$(Q) $(MAKE) -r -C $(work_dir) \
-		-f $(PX4_MK_DIR)firmware.mk \
-		CONFIG=$(config) \
-		WORK_DIR=$(work_dir) \
-		$(FIRMWARE_GOAL)
+NINJA_BIN := ninja
+ifndef NO_NINJA_BUILD
+	NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
 
-#
-# Make FMU firmwares depend on the corresponding IO firmware.
-#
-# This is a pretty vile hack, since it hard-codes knowledge of the FMU->IO dependency
-# and forces the _default config in all cases. There has to be a better way to do this...
-#
-FMU_VERSION		 = $(patsubst px4fmu-%,%,$(word 1, $(subst _, ,$(1))))
-define FMU_DEP
-$(BUILD_DIR)$(1).build/firmware.px4: $(IMAGE_DIR)px4io-$(call FMU_VERSION,$(1))_default.px4
-endef
-FMU_CONFIGS		:= $(filter px4fmu%,$(CONFIGS))
-$(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
-
-#
-# Build the NuttX export archives.
-#
-# Note that there are no explicit dependencies extended from these
-# archives. If NuttX is updated, the user is expected to rebuild the 
-# archives/build area manually. Likewise, when the 'archives' target is
-# invoked, all archives are always rebuilt.
-#
-# XXX Should support fetching/unpacking from a separate directory to permit
-#     downloads of the prebuilt archives as well...
-#
-NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
-.PHONY:			archives
-archives:		$(NUTTX_ARCHIVES)
-
-# We cannot build these parallel; note that we also force -j1 for the
-# sub-make invocations.
-ifneq ($(filter archives,$(MAKECMDGOALS)),)
-.NOTPARALLEL:
+	ifndef NINJA_BUILD
+		NINJA_BIN := ninja-build
+		NINJA_BUILD := $(shell $(NINJA_BIN) --version 2>/dev/null)
+	endif
 endif
 
-$(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)%.export:	configuration = nsh
-$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
-	@$(ECHO) %% Configuring NuttX for $(board)
-	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
-	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
-	@$(ECHO) %% Exporting NuttX for $(board)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
-	$(Q) $(MKDIR) -p $(dir $@)
-	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
-	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
+ifdef NINJA_BUILD
+	PX4_CMAKE_GENERATOR := Ninja
+	PX4_MAKE := $(NINJA_BIN)
 
-#
-# The user can run the NuttX 'menuconfig' tool for a single board configuration with
-# make BOARDS=<boardname> menuconfig
-#
-ifeq ($(MAKECMDGOALS),menuconfig)
-ifneq ($(words $(BOARDS)),1)
-$(error BOARDS must specify exactly one board for the menuconfig goal)
-endif
-BOARD			 = $(BOARDS)
-menuconfig: $(NUTTX_SRC)
-	@$(ECHO) %% Configuring NuttX for $(BOARD)
-	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
-	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
-	@$(ECHO) %% Running menuconfig for $(BOARD)
-	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
-	@$(ECHO) %% Saving configuration file
-	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
+	ifdef VERBOSE
+		PX4_MAKE_ARGS := -v
+	else
+		PX4_MAKE_ARGS :=
+	endif
 else
-menuconfig:
-	@$(ECHO) ""
-	@$(ECHO) "The menuconfig goal must be invoked without any other goal being specified"
-	@$(ECHO) ""
+	ifdef SYSTEMROOT
+		# Windows
+		PX4_CMAKE_GENERATOR := "MSYS\ Makefiles"
+	else
+		PX4_CMAKE_GENERATOR := "Unix\ Makefiles"
+	endif
+	PX4_MAKE = $(MAKE)
+	PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
-$(NUTTX_SRC):
-	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-$(UAVCAN_DIR):
-	$(Q) (./Tools/check_submodules.sh)
+# check if replay env variable is set & set build dir accordingly
+ifdef replay
+	BUILD_DIR_SUFFIX := _replay
+else
+	BUILD_DIR_SUFFIX :=
+endif
 
-.PHONY: checksubmodules
-checksubmodules:
-	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+# NuttX verbose output
+ifdef VN
+	export PX4_NUTTX_BUILD_VERBOSE=1
+	export V=1
+endif
 
-.PHONY: updatesubmodules
-updatesubmodules:
-	$(Q) (git submodule init)
-	$(Q) (git submodule update)
+# NuttX verbose patches output
+ifdef VNP
+	export PX4_NUTTX_PATCHES_VERBOSE=1
+endif
 
-#
-# Testing targets
-#
-testbuild:
-	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
+# additional config parameters passed to cmake
+CMAKE_ARGS :=
+ifdef EXTERNAL_MODULES_LOCATION
+	CMAKE_ARGS := -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
+endif
 
-#
-# Cleanup targets.  'clean' should remove all built products and force
-# a complete re-compilation, 'distclean' should remove everything 
-# that's generated leaving only files that are in source control.
-#
-.PHONY:	clean
+ifdef PX4_CMAKE_BUILD_TYPE
+	CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
+endif
+
+# Functions
+# --------------------------------------------------------------------
+# describe how to build a cmake config
+define cmake-build
++@$(eval BUILD_DIR = $(SRC_DIR)/build_$@$(BUILD_DIR_SUFFIX))
++@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2)  -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=$(1) $(CMAKE_ARGS) || (rm -rf $(BUILD_DIR)); fi
++@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
+endef
+
+define colorecho
++@tput setaf 6
++@echo $1
++@tput sgr0
+endef
+
+# Get a list of all config targets.
+ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+# Strip off leading nuttx_
+NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
+
+# ADD CONFIGS HERE
+# --------------------------------------------------------------------
+#  Do not put any spaces between function arguments.
+
+# All targets.
+$(ALL_CONFIG_TARGETS):
+	$(call cmake-build,$@,$(SRC_DIR))
+
+# Abbreviated config targets.
+
+# nuttx_ is left off by default; provide a rule to allow that.
+$(NUTTX_CONFIG_TARGETS):
+	$(call cmake-build,nuttx_$@,$(SRC_DIR))
+
+all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
+
+posix: posix_sitl_default
+broadcast: posix_sitl_broadcast
+
+# Multi- config targets.
+eagle_default: posix_eagle_default qurt_eagle_default
+eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
+excelsior_default: posix_excelsior_default qurt_excelsior_default
+excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
+
+
+# All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
+.PHONY: all posix broadcast eagle_default eagle_legacy_default excelsior_legacy_default excelsior_default all_nuttx_targets
+
+# Other targets
+# --------------------------------------------------------------------
+
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders sizes check quick_check
+
+# QGroundControl flashable NuttX firmware
+qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware sizes
+
+# px4fmu NuttX firmware
+px4fmu_firmware: \
+	check_px4fmu-v1_default \
+	check_px4fmu-v2_default \
+	check_px4fmu-v3_default \
+	check_px4fmu-v4_default \
+	check_px4fmu-v4pro_default \
+	check_px4fmu-v5_default \
+	sizes
+
+misc_qgc_extra_firmware: \
+	check_aerocore2_default \
+	check_aerofc-v1_default \
+	check_auav-x21_default \
+	check_crazyflie_default \
+	check_mindpx-v2_default \
+	check_px4fmu-v2_lpe \
+	check_tap-v1_default \
+	sizes
+
+# Other NuttX firmware
+alt_firmware: \
+	check_px4-stm32f4discovery_default \
+	check_px4cannode-v1_default \
+	check_px4esc-v1_default \
+	check_px4nucleoF767ZI-v1_default \
+	check_s2740vc-v1_default \
+	sizes
+
+checks_bootloaders: \
+	check_esc35-v1_bootloader \
+	check_px4cannode-v1_bootloader \
+	check_px4esc-v1_bootloader \
+	check_px4flow-v2_bootloader \
+	check_s2740vc-v1_bootloader \
+# not fitting in flash	check_zubaxgnss-v1_bootloader \
+	sizes
+
+sizes:
+	@-find build_* -name firmware_nuttx -type f | xargs size 2> /dev/null || :
+
+# All default targets that don't require a special build environment
+check: check_posix_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware checks_bootloaders tests check_format
+
+# quick_check builds a single nuttx and posix target, runs testing, and checks the style
+quick_check: check_posix_sitl_default check_px4fmu-v3_default tests check_format
+
+check_%:
+	@echo
+	$(call colorecho,"Building" $(subst check_,,$@))
+	@$(MAKE) --no-print-directory $(subst check_,,$@)
+	@echo
+
+# Documentation
+# --------------------------------------------------------------------
+.PHONY: parameters_metadata airframe_metadata px4_metadata
+
+parameters_metadata: posix_sitl_default
+	@python $(SRC_DIR)/Tools/px_process_params.py -s $(SRC_DIR)/src --markdown
+
+airframe_metadata:
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --markdown
+	@python ${SRC_DIR}/Tools/px_process_airframes.py -v -a ${SRC_DIR}/ROMFS/px4fmu_common/init.d --xml
+
+px4_metadata: parameters_metadata airframe_metadata
+
+# S3 upload helpers
+# --------------------------------------------------------------------
+# s3cmd uses these ENV variables
+#  AWS_ACCESS_KEY_ID
+#  AWS_SECRET_ACCESS_KEY
+#  AWS_S3_BUCKET
+.PHONY: s3put_firmware s3put_qgc_firmware s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware s3put_metadata s3put_scan-build s3put_cppcheck s3put_coverage
+
+Firmware.zip:
+	@rm -rf Firmware.zip
+	@zip --junk-paths Firmware.zip `find . -name \*.px4`
+
+s3put_firmware: Firmware.zip
+	$(SRC_DIR)/Tools/s3put.sh Firmware.zip
+
+s3put_qgc_firmware: s3put_px4fmu_firmware s3put_misc_qgc_extra_firmware
+
+s3put_px4fmu_firmware: px4fmu_firmware
+	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_misc_qgc_extra_firmware: misc_qgc_extra_firmware
+	@find $(SRC_DIR)/build_* -name "*.px4" -exec $(SRC_DIR)/Tools/s3put.sh "{}" \;
+
+s3put_metadata: px4_metadata
+	@$(SRC_DIR)/Tools/s3put.sh airframes.md
+	@$(SRC_DIR)/Tools/s3put.sh airframes.xml
+	@$(SRC_DIR)/Tools/s3put.sh build_posix_sitl_default/parameters.xml
+	@$(SRC_DIR)/Tools/s3put.sh parameters.md
+
+s3put_scan-build: scan-build
+	@cd $(SRC_DIR) && ./Tools/s3put.sh `find build_scan-build -mindepth 1 -maxdepth 1 -type d`/
+
+s3put_cppcheck: cppcheck
+	@cd $(SRC_DIR) && ./Tools/s3put.sh cppcheck/
+
+s3put_coverage: tests_coverage
+	@cd $(SRC_DIR) && ./Tools/s3put.sh build_posix_sitl_default/coverage-html/
+
+# Astyle
+# --------------------------------------------------------------------
+.PHONY: check_format format
+
+check_format:
+	$(call colorecho,"Checking formatting with astyle")
+	@$(SRC_DIR)/Tools/check_code_style_all.sh
+	@git diff --check
+
+format:
+	$(call colorecho,"Formatting with astyle")
+	@$(SRC_DIR)/Tools/check_code_style_all.sh --fix
+
+# Testing
+# --------------------------------------------------------------------
+.PHONY: run_tests_posix tests tests_coverage
+
+run_tests_posix:
+	$(MAKE) --no-print-directory posix_sitl_default test_results
+
+tests: run_tests_posix
+
+tests_coverage:
+	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
+
+coveralls_upload:
+	@cpp-coveralls --include src/ \
+		--exclude=src/lib/DriverFramework \
+		--exclude=src/lib/ecl \
+		--exclude=src/lib/Matrix \
+		--exclude=src/modules/uavcan/libuavcan \
+		--root . --build-root build_posix_sitl_default/ --follow-symlinks
+
+codecov_upload:
+	@/bin/bash -c "bash <(curl -s https://codecov.io/bash)"
+
+# static analyzers (scan-build, clang-tidy, cppcheck)
+# --------------------------------------------------------------------
+.PHONY: posix_sitl_default-clang scan-build clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck
+
+posix_sitl_default-clang:
+	@mkdir -p $(SRC_DIR)/build_posix_sitl_default-clang
+	@cd $(SRC_DIR)/build_posix_sitl_default-clang && cmake .. -GNinja -DCONFIG=posix_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+	@cd $(SRC_DIR)/build_posix_sitl_default-clang && ninja
+
+scan-build:
+	@export CCC_CC=clang
+	@export CCC_CXX=clang++
+	@mkdir -p $(SRC_DIR)/build_posix_sitl_default-scan-build
+	@cd $(SRC_DIR)/build_posix_sitl_default-scan-build && scan-build cmake .. -GNinja -DCONFIG=posix_sitl_default
+	@scan-build -o $(SRC_DIR)/build_scan-build cmake --build $(SRC_DIR)/build_posix_sitl_default-scan-build
+
+clang-tidy: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -p .
+
+# to automatically fix a single check at a time, eg modernize-redundant-void-arg
+#  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
+clang-tidy-fix: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && run-clang-tidy-4.0.py -header-filter=".*\.hpp" -j$(j) -fix -p .
+
+# modified version of run-clang-tidy.py to return error codes and only output relevant results
+clang-tidy-quiet: posix_sitl_default-clang
+	@cd build_posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+
+# TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
+cppcheck: posix_sitl_default
+	@cppcheck -i$(SRC_DIR)/src/examples --std=c++11 --std=c99 --std=posix --project=build_posix_sitl_default/compile_commands.json --xml-version=2 2> cppcheck-result.xml
+	@cppcheck-htmlreport --source-encoding=ascii --file=cppcheck-result.xml --report-dir=cppcheck --source-dir=$(SRC_DIR)/src/
+
+# Cleanup
+# --------------------------------------------------------------------
+.PHONY: clean submodulesclean distclean
+
 clean:
-	$(Q) $(RMDIR) $(BUILD_DIR)*.build
-	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
+	@rm -rf $(SRC_DIR)/build_*/
+	-@$(MAKE) --no-print-directory -C NuttX/nuttx clean
 
-.PHONY:	distclean
-distclean: clean
-	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
-	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)
+submodulesclean:
+	@git submodule foreach --quiet --recursive git clean -ff -x -d
+	@git submodule update --quiet --init --recursive --force || true
+	@git submodule sync --recursive
+	@git submodule update --init --recursive --force
 
-#
-# Print some help text
-#
-.PHONY: help
+submodulesupdate:
+	@git submodule update --quiet --init --recursive || true
+	@git submodule sync --recursive
+	@git submodule update --init --recursive
+
+gazeboclean:
+	@rm -rf ~/.gazebo/*
+
+distclean: submodulesclean gazeboclean
+	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea"
+
+# --------------------------------------------------------------------
+
+# All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
+%:
+	$(if $(filter $(FIRST_ARG),$@), \
+		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+
+CONFIGS:=$(shell ls cmake/configs | sed -e "s~.*/~~" | sed -e "s~\..*~~")
+
+#help:
+#	@echo
+#	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
+#	@echo "build configurations."
+#	@echo
+
+empty :=
+space := $(empty) $(empty)
+
+# Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:
-	@$(ECHO) ""
-	@$(ECHO) " PX4 firmware builder"
-	@$(ECHO) " ===================="
-	@$(ECHO) ""
-	@$(ECHO) "  Available targets:"
-	@$(ECHO) "  ------------------"
-	@$(ECHO) ""
-	@$(ECHO) "  archives"
-	@$(ECHO) "    Build the NuttX RTOS archives that are used by the firmware build."
-	@$(ECHO) ""
-	@$(ECHO) "  all"
-	@$(ECHO) "    Build all firmware configs: $(CONFIGS)"
-	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
-	@$(ECHO) ""
-	@for config in $(CONFIGS); do \
-		$(ECHO) "  $$config"; \
-		$(ECHO) "    Build just the $$config firmware configuration."; \
-		$(ECHO) ""; \
-	done
-	@$(ECHO) "  clean"
-	@$(ECHO) "    Remove all firmware build pieces."
-	@$(ECHO) ""
-	@$(ECHO) "  distclean"
-	@$(ECHO) "    Remove all compilation products, including NuttX RTOS archives."
-	@$(ECHO) ""
-	@$(ECHO) "  upload"
-	@$(ECHO) "    When exactly one config is being built, add this target to upload the"
-	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
-	@$(ECHO) "    all configurations."
-	@$(ECHO) ""
-	@$(ECHO) "  testbuild"
-	@$(ECHO) "    Perform a complete clean build of the entire tree."
-	@$(ECHO) ""
-	@$(ECHO) "  Common options:"
-	@$(ECHO) "  ---------------"
-	@$(ECHO) ""
-	@$(ECHO) "  V=1"
-	@$(ECHO) "    If V is set, more verbose output is printed during the build. This can"
-	@$(ECHO) "    help when diagnosing issues with the build or toolchain."
-	@$(ECHO) ""
+	@echo "Usage: $(MAKE) <target>"
+	@echo "Where <target> is one of:"
+	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
+		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS) $(NUTTX_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+	@echo
+	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
+	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."
+
+# Print a list of all config targets.
+list_config_targets:
+	@for targ in $(patsubst nuttx_%,[nuttx_]%,$(ALL_CONFIG_TARGETS)); do echo $$targ; done

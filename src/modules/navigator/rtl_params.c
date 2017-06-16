@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,36 +39,23 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * RTL parameters, accessible via MAVLink
  */
-
-/**
- * Loiter radius after RTL (FW only)
- *
- * Default value of loiter radius after RTL (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
 
 /**
  * RTL altitude
  *
  * Altitude to fly back in RTL in meters
  *
- * @unit meters
+ * @unit m
  * @min 0
- * @max 1
- * @group RTL
+ * @max 150
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
  */
-PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
@@ -77,22 +64,42 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
  * Stay at this altitude above home position after RTL descending.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
- * @unit meters
- * @min 0
+ * @unit m
+ * @min 2
  * @max 100
- * @group RTL
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
  */
-PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
+PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
 /**
  * RTL delay
  *
  * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
- * @unit seconds
+ * @unit s
  * @min -1
- * @max
- * @group RTL
+ * @max 300
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+
+/**
+ * Minimum distance to trigger rising to a safe altitude
+ *
+ * If the system is horizontally closer than this distance to home
+ * it will land straight on home instead of raising to the return
+ * altitude first.
+ *
+ * @unit m
+ * @min 0.5
+ * @max 20
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);

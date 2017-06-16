@@ -1,13 +1,26 @@
 #!nsh
 #
-# Generic 10" Hexa + geometry
+# @name Generic Hexarotor + geometry
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# @type Hexarotor +
+#
+# @output MAIN1 motor1
+# @output MAIN2 motor2
+# @output MAIN3 motor3
+# @output MAIN4 motor4
+# @output MAIN5 motor5
+# @output MAIN6 motor6
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Anton Babushkin <anton@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER FMU_hexa_+
+set MIXER hexa_+
 
-# We only can run one channel group with one rate, so set all 8 channels
-set PWM_OUTPUTS 12345678
+# Need to set all 8 channels
+set PWM_OUT 12345678

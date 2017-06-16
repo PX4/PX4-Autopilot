@@ -37,7 +37,7 @@
  * Implementation of AR.Drone 1.0 / 2.0 motor control interface
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -108,7 +108,7 @@ void ar_enable_broadcast(int fd)
 int ar_multiplexing_init()
 {
 	int		fd;
-	
+
 	fd = open(PX4FMU_DEVICE_PATH, 0);
 
 	if (fd < 0) {
@@ -176,7 +176,7 @@ int ar_select_motor(int fd, uint8_t motor)
 		ret += ioctl(fd, GPIO_CLEAR, motor_gpios);
 
 	} else {
-		/* select reqested motor */	
+		/* select reqested motor */
 		ret += ioctl(fd, GPIO_CLEAR, motor_gpio[motor - 1]);
 	}
 
@@ -199,7 +199,7 @@ int ar_deselect_motor(int fd, uint8_t motor)
 		ret += ioctl(fd, GPIO_SET, motor_gpios);
 
 	} else {
-		/* deselect reqested motor */	
+		/* deselect reqested motor */
 		ret = ioctl(fd, GPIO_SET, motor_gpio[motor - 1]);
 	}
 
@@ -235,7 +235,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 		 */
 		write(ardrone_uart, &(initbuf[0]), 1);
 		fsync(ardrone_uart);
-		usleep(UART_TRANSFER_TIME_BYTE_US*1);
+		usleep(UART_TRANSFER_TIME_BYTE_US * 1);
 
 		/*
 		 * write 0x91 - request checksum
@@ -243,7 +243,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 		 */
 		write(ardrone_uart, &(initbuf[1]), 1);
 		fsync(ardrone_uart);
-		usleep(UART_TRANSFER_TIME_BYTE_US*120);
+		usleep(UART_TRANSFER_TIME_BYTE_US * 120);
 
 		/*
 		 * write 0xA1 - set status OK
@@ -252,7 +252,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 		 */
 		write(ardrone_uart, &(initbuf[2]), 1);
 		fsync(ardrone_uart);
-		usleep(UART_TRANSFER_TIME_BYTE_US*1);
+		usleep(UART_TRANSFER_TIME_BYTE_US * 1);
 
 		/*
 		 * set as motor i, where i = 1..4
@@ -268,7 +268,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 		 */
 		write(ardrone_uart, &(initbuf[4]), 1);
 		fsync(ardrone_uart);
-		usleep(UART_TRANSFER_TIME_BYTE_US*11);
+		usleep(UART_TRANSFER_TIME_BYTE_US * 11);
 
 		ar_deselect_motor(gpios, i);
 		/* sleep 200 ms */
@@ -301,16 +301,18 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
 
 	if (errcounter != 0) {
-		fprintf(stderr, "[ardrone_interface] init sequence incomplete, failed %d times", -errcounter);
+		warnx("Failed %d times", -errcounter);
 		fflush(stdout);
 	}
+
 	return errcounter;
 }
 
 /**
  * Sets the leds on the motor controllers, 1 turns led on, 0 off.
  */
-void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green)
+void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green,
+		 uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green)
 {
 	/*
 	 * 2 bytes are sent. The first 3 bits describe the command: 011 means led control
@@ -322,12 +324,15 @@ void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t
 	 * 011 rrrr 0000 gggg 0
 	 */
 	uint8_t leds[2];
-	leds[0] = 0x60 | ((led4_red & 0x01) << 4) | ((led3_red & 0x01) << 3) | ((led2_red & 0x01) << 2) | ((led1_red & 0x01) << 1);
-	leds[1] = ((led4_green & 0x01) << 4) | ((led3_green & 0x01) << 3) | ((led2_green & 0x01) << 2) | ((led1_green & 0x01) << 1);
+	leds[0] = 0x60 | ((led4_red & 0x01) << 4) | ((led3_red & 0x01) << 3) | ((led2_red & 0x01) << 2) | ((
+				led1_red & 0x01) << 1);
+	leds[1] = ((led4_green & 0x01) << 4) | ((led3_green & 0x01) << 3) | ((led2_green & 0x01) << 2) | ((
+				led1_green & 0x01) << 1);
 	write(ardrone_uart, leds, 2);
 }
 
-int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4) {
+int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4)
+{
 	const unsigned int min_motor_interval = 4900;
 	static uint64_t last_motor_time = 0;
 
@@ -338,8 +343,10 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 	outputs.output[2] = motor3;
 	outputs.output[3] = motor4;
 	static orb_advert_t pub = 0;
+
 	if (pub == 0) {
-		pub = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+		/* advertise to channel 0 / primary */
+		pub = orb_advertise(ORB_ID(actuator_outputs), &outputs);
 	}
 
 	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {
@@ -350,19 +357,22 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 		fsync(ardrone_fd);
 
 		/* publish just written values */
-		orb_publish(ORB_ID_VEHICLE_CONTROLS, pub, &outputs);
+		orb_publish(ORB_ID(actuator_outputs), pub, &outputs);
 
 		if (ret == sizeof(buf)) {
 			return OK;
+
 		} else {
 			return ret;
 		}
+
 	} else {
 		return -ERROR;
 	}
 }
 
-void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators) {
+void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators)
+{
 
 	float roll_control = actuators->control[0];
 	float pitch_control = actuators->control[1];
@@ -384,7 +394,8 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	/* linearly scale the control inputs from 0 to startpoint_full_control */
 	if (motor_thrust < startpoint_full_control) {
-		output_band = motor_thrust/startpoint_full_control; // linear from 0 to 1
+		output_band = motor_thrust / startpoint_full_control; // linear from 0 to 1
+
 	} else {
 		output_band = 1.0f;
 	}
@@ -406,7 +417,7 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	motor_calc[3] = motor_thrust + (roll_control / 2 - pitch_control / 2 + yaw_control);
 
 	/* if one motor is saturated, reduce throttle */
-	float saturation = fmaxf(fmaxf(motor_calc[0], motor_calc[1]),fmaxf(motor_calc[2], motor_calc[3])) - max_thrust;
+	float saturation = fmaxf(fmaxf(motor_calc[0], motor_calc[1]), fmaxf(motor_calc[2], motor_calc[3])) - max_thrust;
 
 
 	if (saturation > 0.0f) {
@@ -427,16 +438,16 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	/* set the motor values */
 
 	/* scale up from 0..1 to 10..500) */
-	motor_pwm[0] = (uint16_t) (motor_calc[0] * ((float)max_gas - min_gas) + min_gas);
-	motor_pwm[1] = (uint16_t) (motor_calc[1] * ((float)max_gas - min_gas) + min_gas);
-	motor_pwm[2] = (uint16_t) (motor_calc[2] * ((float)max_gas - min_gas) + min_gas);
-	motor_pwm[3] = (uint16_t) (motor_calc[3] * ((float)max_gas - min_gas) + min_gas);
+	motor_pwm[0] = (uint16_t)(motor_calc[0] * ((float)max_gas - min_gas) + min_gas);
+	motor_pwm[1] = (uint16_t)(motor_calc[1] * ((float)max_gas - min_gas) + min_gas);
+	motor_pwm[2] = (uint16_t)(motor_calc[2] * ((float)max_gas - min_gas) + min_gas);
+	motor_pwm[3] = (uint16_t)(motor_calc[3] * ((float)max_gas - min_gas) + min_gas);
 
 	/* scale up from 0..1 to 10..500) */
-	motor_pwm[0] = (uint16_t) (motor_calc[0] * (float)((max_gas - min_gas) + min_gas));
-	motor_pwm[1] = (uint16_t) (motor_calc[1] * (float)((max_gas - min_gas) + min_gas));
-	motor_pwm[2] = (uint16_t) (motor_calc[2] * (float)((max_gas - min_gas) + min_gas));
-	motor_pwm[3] = (uint16_t) (motor_calc[3] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[0] = (uint16_t)(motor_calc[0] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[1] = (uint16_t)(motor_calc[1] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[2] = (uint16_t)(motor_calc[2] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[3] = (uint16_t)(motor_calc[3] * (float)((max_gas - min_gas) + min_gas));
 
 	/* Failsafe logic for min values - should never be necessary */
 	motor_pwm[0] = (motor_pwm[0] > 0) ? motor_pwm[0] : min_gas;

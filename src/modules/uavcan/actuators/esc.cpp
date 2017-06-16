@@ -40,12 +40,24 @@
 #include "esc.hpp"
 #include <systemlib/err.h>
 
+
+#define MOTOR_BIT(x) (1<<(x))
+
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
 	_orb_timer(node)
 {
+	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+
+	if (_perfcnt_invalid_input == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
+	}
+
+	if (_perfcnt_scaling_error == nullptr) {
+		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
+	}
 }
 
 UavcanEscController::~UavcanEscController()
@@ -58,8 +70,8 @@ int UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
-	if (res < 0)
-	{
+
+	if (res < 0) {
 		warnx("ESC status sub failed %i", res);
 		return res;
 	}
@@ -73,7 +85,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	if ((outputs == nullptr) || (num_outputs > MAX_ESCS)) {
+	if ((outputs == nullptr) ||
+	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
+	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -82,9 +96,11 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Rate limiting - we don't want to congest the bus
 	 */
 	const auto timestamp = _node.getMonotonicTime();
+
 	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
 		return;
 	}
+
 	_prev_cmd_pub = timestamp;
 
 	/*
@@ -93,27 +109,51 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
-	if (_armed) {
-		for (unsigned i = 0; i < num_outputs; i++) {
+	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
+	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
 
-			float scaled = (outputs[i] + 1.0F) * 0.5F * uavcan::equipment::esc::RawCommand::CMD_MAX;
-			if (scaled < 1.0F) {
-				scaled = 1.0F;  // Since we're armed, we don't want to stop it completely
+	for (unsigned i = 0; i < num_outputs; i++) {
+		if (_armed_mask & MOTOR_BIT(i)) {
+			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
+
+			// trim negative values back to minimum
+			if (scaled < cmd_min) {
+				scaled = cmd_min;
+				perf_count(_perfcnt_scaling_error);
 			}
 
-			if (scaled < uavcan::equipment::esc::RawCommand::CMD_MIN) {
-				scaled = uavcan::equipment::esc::RawCommand::CMD_MIN;
+			if (scaled > cmd_max) {
+				scaled = cmd_max;
 				perf_count(_perfcnt_scaling_error);
-			} else if (scaled > uavcan::equipment::esc::RawCommand::CMD_MAX) {
-				scaled = uavcan::equipment::esc::RawCommand::CMD_MAX;
-				perf_count(_perfcnt_scaling_error);
-			} else {
-				; // Correct value
 			}
 
-			msg.cmd.push_back(static_cast<unsigned>(scaled));
+			msg.cmd.push_back(static_cast<int>(scaled));
+
+			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
+
+		} else {
+			msg.cmd.push_back(static_cast<unsigned>(0));
 		}
 	}
+
+	/*
+	 * Remove channels that are always zero.
+	 * The objective of this optimization is to avoid broadcasting multi-frame transfers when a single frame
+	 * transfer would be enough. This is a valid optimization as the UAVCAN specification implies that all
+	 * non-specified ESC setpoints should be considered zero.
+	 * The positive outcome is a (marginally) lower bus traffic and lower CPU load.
+	 *
+	 * From the standpoint of the PX4 architecture, however, this is a hack. It should be investigated why
+	 * the mixer returns more outputs than are actually used.
+	 */
+	for (int index = int(msg.cmd.size()) - 1; index >= _max_number_of_nonzero_outputs; index--) {
+		if (msg.cmd[index] != 0) {
+			_max_number_of_nonzero_outputs = index + 1;
+			break;
+		}
+	}
+
+	msg.cmd.resize(_max_number_of_nonzero_outputs);
 
 	/*
 	 * Publish the command message to the bus
@@ -122,17 +162,54 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void UavcanEscController::arm_esc(bool arm)
+void UavcanEscController::arm_all_escs(bool arm)
 {
-	_armed = arm;
+	if (arm) {
+		_armed_mask = -1;
+
+	} else {
+		_armed_mask = 0;
+	}
+}
+
+void UavcanEscController::arm_single_esc(int num, bool arm)
+{
+	if (arm) {
+		_armed_mask = MOTOR_BIT(num);
+
+	} else {
+		_armed_mask = 0;
+	}
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
-	// TODO save status into a local storage; publish to ORB later from orb_pub_timer_cb()
+	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
+		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
+		_esc_status.timestamp = msg.getMonotonicTimestamp().toUSec();
+
+		auto &ref = _esc_status.esc[msg.esc_index];
+
+		ref.esc_address = msg.getSrcNodeID().get();
+
+		ref.esc_voltage     = msg.voltage;
+		ref.esc_current     = msg.current;
+		ref.esc_temperature = msg.temperature;
+		ref.esc_setpoint    = msg.power_rating_pct;
+		ref.esc_rpm         = msg.rpm;
+		ref.esc_errorcount  = msg.error_count;
+	}
 }
 
-void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent&)
+void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
-	// TODO publish to ORB
+	_esc_status.counter += 1;
+	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+
+	if (_esc_status_pub != nullptr) {
+		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
+
+	} else {
+		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
+	}
 }

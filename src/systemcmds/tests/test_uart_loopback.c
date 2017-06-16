@@ -35,22 +35,23 @@
  * @file test_uart_loopback.c
  * Tests the uart outputs
  *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -75,6 +76,10 @@ int test_uart_loopback(int argc, char *argv[])
 	}
 
 	if (uart5 < 0) {
+		if (uart2 >= 0) {
+			close(uart2);
+		}
+
 		printf("ERROR opening UART5, aborting..\n");
 		exit(uart5);
 	}
@@ -92,8 +97,9 @@ int test_uart_loopback(int argc, char *argv[])
 		/* uart2 -> uart5 */
 		r = write(uart2, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nwrite += r;
+		}
 
 //		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
@@ -101,8 +107,9 @@ int test_uart_loopback(int argc, char *argv[])
 		/* uart2 -> uart5 */
 		r = write(uart5, sample_uart5, sizeof(sample_uart5));
 
-		if (r > 0)
+		if (r > 0) {
 			uart5_nwrite += r;
+		}
 
 //		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
@@ -111,8 +118,9 @@ int test_uart_loopback(int argc, char *argv[])
 		do {
 			r = read(uart5, sample_uart2, sizeof(sample_uart2));
 
-			if (r > 0)
+			if (r > 0) {
 				uart5_nread += r;
+			}
 		} while (r > 0);
 
 //		printf("TEST #%d\n",i);
@@ -121,8 +129,9 @@ int test_uart_loopback(int argc, char *argv[])
 		do {
 			r = read(uart2, sample_uart5, sizeof(sample_uart5));
 
-			if (r > 0)
+			if (r > 0) {
 				uart2_nread += r;
+			}
 		} while (r > 0);
 
 //		printf("TEST #%d\n",i);
@@ -134,16 +143,19 @@ int test_uart_loopback(int argc, char *argv[])
 		/* try to read back values */
 		r = read(uart5, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart5_nread += r;
+		}
 
 		r = read(uart2, sample_uart5, sizeof(sample_uart5));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nread += r;
+		}
 
-		if ((uart2_nread == uart2_nwrite) && (uart5_nread == uart5_nwrite))
+		if ((uart2_nread == uart2_nwrite) && (uart5_nread == uart5_nwrite)) {
 			break;
+		}
 	}
 
 

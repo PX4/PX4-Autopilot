@@ -1,8 +1,6 @@
 /****************************************************************************
- * px4/sensors/test_gpio.c
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *            Lorenz Meier <lm@inf.ethz.ch>
+ *  Copyright (c) 2012, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,11 +31,14 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_uart_baudchange.c
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
+ */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_defines.h>
 
 #include <sys/types.h>
 
@@ -46,57 +47,22 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include <termios.h>
 #include <string.h>
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
-
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: test_led
- ****************************************************************************/
 
 int test_uart_baudchange(int argc, char *argv[])
 {
 	int uart2_nwrite = 0;
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
-	int uart2 = open("/dev/ttyS1", O_RDWR | O_NONBLOCK | O_NOCTTY); //
+	int uart2 = open("/dev/ttyS2", O_RDWR | O_NONBLOCK | O_NOCTTY); //
 
 	if (uart2 < 0) {
 		printf("ERROR opening UART2, aborting..\n");
@@ -109,34 +75,39 @@ int test_uart_baudchange(int argc, char *argv[])
 
 	int termios_state = 0;
 
-#define UART_BAUDRATE_RUNTIME_CONF
-#ifdef UART_BAUDRATE_RUNTIME_CONF
+	int ret;
 
 	if ((termios_state = tcgetattr(uart2, &uart2_config)) < 0) {
 		printf("ERROR getting termios config for UART2: %d\n", termios_state);
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
 
-	memcpy(&uart2_config_original, &uart2_config, sizeof(struct termios));
+	if ((termios_state = tcgetattr(uart2, &uart2_config_original)) < 0) {
+		printf("ERROR getting termios config for UART2: %d\n", termios_state);
+		ret = termios_state;
+		goto cleanup;
+	}
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart2_config, B9600) < 0 || cfsetospeed(&uart2_config, B9600) < 0) {
 		printf("ERROR setting termios config for UART2: %d\n", termios_state);
-		exit(ERROR);
+		ret = ERROR;
+		goto cleanup;
 	}
 
 	if ((termios_state = tcsetattr(uart2, TCSANOW, &uart2_config)) < 0) {
 		printf("ERROR setting termios config for UART2\n");
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
 
 	/* Set back to original settings */
 	if ((termios_state = tcsetattr(uart2, TCSANOW, &uart2_config_original)) < 0) {
 		printf("ERROR setting termios config for UART2\n");
-		exit(termios_state);
+		ret = termios_state;
+		goto cleanup;
 	}
-
-#endif
 
 	uint8_t sample_uart2[] = {'U', 'A', 'R', 'T', '2', ' ', '#', 0, '\n'};
 
@@ -146,8 +117,9 @@ int test_uart_baudchange(int argc, char *argv[])
 		/* uart2 -> */
 		r = write(uart2, sample_uart2, sizeof(sample_uart2));
 
-		if (r > 0)
+		if (r > 0) {
 			uart2_nwrite += r;
+		}
 	}
 
 	close(uart2);
@@ -155,4 +127,8 @@ int test_uart_baudchange(int argc, char *argv[])
 	printf("uart2_nwrite %d\n", uart2_nwrite);
 
 	return OK;
+cleanup:
+	close(uart2);
+	return ret;
+
 }

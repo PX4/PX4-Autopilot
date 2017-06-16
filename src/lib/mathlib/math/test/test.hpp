@@ -44,6 +44,15 @@
 //#include <stdlib.h>
 
 bool equal(float a, float b, float eps = 1e-5);
+
+bool greater_than(float a, float b);
+
+bool less_than(float a, float b);
+
+bool greater_than_or_equal(float a, float b);
+
+bool less_than_or_equal(float a, float b);
+
 void float2SigExp(
 	const float &num,
 	float &sig,

@@ -1058,7 +1058,7 @@ always used with the `users_by_name` hash table).
 
 Several sort orders
 ~~~~~~~~~~~~~~~~~~~
-It comes as no suprise that two hash tables can have different sort orders, but
+It comes as no surprise that two hash tables can have different sort orders, but
 this fact can also be used advantageously to sort the 'same items' in several
 ways. This is based on the ability to store a structure in several hash tables.
 

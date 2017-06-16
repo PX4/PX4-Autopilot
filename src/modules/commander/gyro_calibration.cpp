@@ -1,6 +1,6 @@
-/****************************************************************************
+ /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,271 +37,488 @@
  * Gyroscope calibration routine
  */
 
+#include <px4_config.h>
 #include "gyro_calibration.h"
 #include "calibration_messages.h"
+#include "calibration_routines.h"
 #include "commander_helper.h"
 
+#include <px4_posix.h>
+#include <px4_defines.h>
+#include <px4_time.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <math.h>
+#include <cmath>
+#include <string.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_correction.h>
 #include <drivers/drv_gyro.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
 static const char *sensor_name = "gyro";
 
-int do_gyro_calibration(int mavlink_fd)
+static const unsigned max_gyros = 3;
+
+/// Data passed to calibration worker routine
+typedef struct  {
+	orb_advert_t		*mavlink_log_pub;
+	int32_t			device_id[max_gyros];
+	int			gyro_sensor_sub[max_gyros];
+	int			sensor_correction_sub;
+	struct gyro_calibration_s	gyro_scale[max_gyros];
+	struct gyro_report	gyro_report_0;
+} gyro_worker_data_t;
+
+static calibrate_return gyro_calibration_worker(int cancel_sub, void* data)
 {
-	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
-	mavlink_log_info(mavlink_fd, "don't move system");
+	gyro_worker_data_t*	worker_data = (gyro_worker_data_t*)(data);
+	unsigned		calibration_counter[max_gyros] = { 0 }, slow_count = 0;
+	const unsigned		calibration_count = 5000;
+	struct gyro_report	gyro_report;
+	unsigned		poll_errcount = 0;
 
-	struct gyro_scale gyro_scale = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	int res = OK;
-
-	/* reset all offsets to zero and all scales to one */
-	int fd = open(GYRO_DEVICE_PATH, 0);
-	res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale);
-	close(fd);
-
-	if (res != OK) {
-		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
+	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+	if (orb_copy(ORB_ID(sensor_correction), worker_data->sensor_correction_sub, &sensor_correction) != 0) {
+		/* use default values */
+		memset(&sensor_correction, 0, sizeof(sensor_correction));
+		for (unsigned i = 0; i < 3; i++) {
+			sensor_correction.gyro_scale_0[i] = 1.0f;
+			sensor_correction.gyro_scale_1[i] = 1.0f;
+			sensor_correction.gyro_scale_2[i] = 1.0f;
+		}
 	}
 
-	if (res == OK) {
-		/* determine gyro mean values */
-		const unsigned calibration_count = 5000;
-		unsigned calibration_counter = 0;
-		unsigned poll_errcount = 0;
+	px4_pollfd_struct_t fds[max_gyros];
+	for (unsigned s = 0; s < max_gyros; s++) {
+		fds[s].fd = worker_data->gyro_sensor_sub[s];
+		fds[s].events = POLLIN;
+	}
 
-		/* subscribe to gyro sensor topic */
-		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro0));
-		struct gyro_report gyro_report;
+	memset(&worker_data->gyro_report_0, 0, sizeof(worker_data->gyro_report_0));
 
-		while (calibration_counter < calibration_count) {
-			/* wait blocking for new data */
-			struct pollfd fds[1];
-			fds[0].fd = sub_sensor_gyro;
-			fds[0].events = POLLIN;
 
-			int poll_ret = poll(fds, 1, 1000);
+	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
+	while (slow_count < calibration_count) {
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
+			return calibrate_return_cancelled;
+		}
 
-			if (poll_ret > 0) {
-				orb_copy(ORB_ID(sensor_gyro0), sub_sensor_gyro, &gyro_report);
-				gyro_scale.x_offset += gyro_report.x;
-				gyro_scale.y_offset += gyro_report.y;
-				gyro_scale.z_offset += gyro_report.z;
-				calibration_counter++;
+		/* check if there are new thermal corrections */
+		bool updated;
+		orb_check(worker_data->sensor_correction_sub, &updated);
 
-				if (calibration_counter % (calibration_count / 20) == 0) {
-					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+		if (updated) {
+			orb_copy(ORB_ID(sensor_correction), worker_data->sensor_correction_sub, &sensor_correction);
+		}
+
+		int poll_ret = px4_poll(&fds[0], max_gyros, 1000);
+
+		if (poll_ret > 0) {
+			unsigned update_count = calibration_count;
+			for (unsigned s = 0; s < max_gyros; s++) {
+				if (calibration_counter[s] >= calibration_count) {
+					// Skip if instance has enough samples
+					continue;
 				}
 
-			} else {
-				poll_errcount++;
+				bool changed;
+				orb_check(worker_data->gyro_sensor_sub[s], &changed);
+
+				if (changed) {
+					orb_copy(ORB_ID(sensor_gyro), worker_data->gyro_sensor_sub[s], &gyro_report);
+
+					if (s == 0) {
+						// take a working copy
+						worker_data->gyro_scale[s].x_offset += (gyro_report.x - sensor_correction.gyro_offset_0[0]) * sensor_correction.gyro_scale_0[0];
+						worker_data->gyro_scale[s].y_offset += (gyro_report.y - sensor_correction.gyro_offset_0[1]) * sensor_correction.gyro_scale_0[1];
+						worker_data->gyro_scale[s].z_offset += (gyro_report.z - sensor_correction.gyro_offset_0[2]) * sensor_correction.gyro_scale_0[2];
+
+						// take a reference copy of the primary sensor including correction for thermal drift
+						orb_copy(ORB_ID(sensor_gyro), worker_data->gyro_sensor_sub[s], &worker_data->gyro_report_0);
+						worker_data->gyro_report_0.x = (gyro_report.x - sensor_correction.gyro_offset_0[0]) * sensor_correction.gyro_scale_0[0];
+						worker_data->gyro_report_0.y = (gyro_report.y - sensor_correction.gyro_offset_0[1]) * sensor_correction.gyro_scale_0[1];
+						worker_data->gyro_report_0.z = (gyro_report.z - sensor_correction.gyro_offset_0[2]) * sensor_correction.gyro_scale_0[2];
+
+					} else if (s == 1) {
+						worker_data->gyro_scale[s].x_offset += (gyro_report.x - sensor_correction.gyro_offset_1[0]) * sensor_correction.gyro_scale_1[0];
+						worker_data->gyro_scale[s].y_offset += (gyro_report.y - sensor_correction.gyro_offset_1[1]) * sensor_correction.gyro_scale_1[1];
+						worker_data->gyro_scale[s].z_offset += (gyro_report.z - sensor_correction.gyro_offset_1[2]) * sensor_correction.gyro_scale_1[2];
+
+					} else if (s == 2) {
+						worker_data->gyro_scale[s].x_offset += (gyro_report.x - sensor_correction.gyro_offset_2[0]) * sensor_correction.gyro_scale_2[0];
+						worker_data->gyro_scale[s].y_offset += (gyro_report.y - sensor_correction.gyro_offset_2[1]) * sensor_correction.gyro_scale_2[1];
+						worker_data->gyro_scale[s].z_offset += (gyro_report.z - sensor_correction.gyro_offset_2[2]) * sensor_correction.gyro_scale_2[2];
+
+					} else {
+						worker_data->gyro_scale[s].x_offset += gyro_report.x;
+						worker_data->gyro_scale[s].y_offset += gyro_report.y;
+						worker_data->gyro_scale[s].z_offset += gyro_report.z;
+
+					}
+
+					calibration_counter[s]++;
+
+				}
+
+				// Maintain the sample count of the slowest sensor 
+				if (calibration_counter[s] && calibration_counter[s] < update_count) {
+					update_count = calibration_counter[s];
+				}
+
 			}
 
-			if (poll_errcount > 1000) {
-				mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
-				res = ERROR;
-				break;
+			if (update_count % (calibration_count / 20) == 0) {
+				calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (update_count * 100) / calibration_count);
+			}
+
+			// Propagate out the slowest sensor's count
+			if (slow_count < update_count) {
+				slow_count = update_count;
+			}
+
+		} else {
+			poll_errcount++;
+		}
+
+		if (poll_errcount > 1000) {
+			calibration_log_critical(worker_data->mavlink_log_pub, CAL_ERROR_SENSOR_MSG);
+			return calibrate_return_error;
+		}
+	}
+
+	for (unsigned s = 0; s < max_gyros; s++) {
+		if (worker_data->device_id[s] != 0 && calibration_counter[s] < calibration_count / 2) {
+			calibration_log_critical(worker_data->mavlink_log_pub, "[cal] ERROR: missing data, sensor %d", s)
+			return calibrate_return_error;
+		}
+
+		worker_data->gyro_scale[s].x_offset /= calibration_counter[s];
+		worker_data->gyro_scale[s].y_offset /= calibration_counter[s];
+		worker_data->gyro_scale[s].z_offset /= calibration_counter[s];
+	}
+
+	return calibrate_return_ok;
+}
+
+int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
+{
+	int			res = PX4_OK;
+	gyro_worker_data_t	worker_data = {};
+
+	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
+
+	worker_data.mavlink_log_pub = mavlink_log_pub;
+
+	struct gyro_calibration_s gyro_scale_zero;
+	gyro_scale_zero.x_offset = 0.0f;
+	gyro_scale_zero.x_scale = 1.0f;
+	gyro_scale_zero.y_offset = 0.0f;
+	gyro_scale_zero.y_scale = 1.0f;
+	gyro_scale_zero.z_offset = 0.0f;
+	gyro_scale_zero.z_scale = 1.0f;
+
+	int device_prio_max = 0;
+	int32_t device_id_primary = 0;
+
+	worker_data.sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
+
+	for (unsigned s = 0; s < max_gyros; s++) {
+		char str[30];
+
+		// Reset gyro ids to unavailable.
+		worker_data.device_id[s] = 0;
+		// And set default subscriber values.
+		worker_data.gyro_sensor_sub[s] = -1;
+		(void)sprintf(str, "CAL_GYRO%u_ID", s);
+		res = param_set_no_notification(param_find(str), &(worker_data.device_id[s]));
+		if (res != PX4_OK) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Unable to reset CAL_GYRO%u_ID", s);
+			return PX4_ERROR;
+		}
+
+		// Reset all offsets to 0 and scales to 1
+		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale_zero));
+#ifdef __PX4_NUTTX
+		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
+		int fd = px4_open(str, 0);
+		if (fd >= 0) {
+			worker_data.device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+			res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale_zero);
+			px4_close(fd);
+
+			if (res != PX4_OK) {
+				calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, s);
+				return PX4_ERROR;
 			}
 		}
-
-		close(sub_sensor_gyro);
-
-		gyro_scale.x_offset /= calibration_count;
-		gyro_scale.y_offset /= calibration_count;
-		gyro_scale.z_offset /= calibration_count;
-	}
-
-	if (res == OK) {
-		/* check offsets */
-		if (!isfinite(gyro_scale.x_offset) || !isfinite(gyro_scale.y_offset) || !isfinite(gyro_scale.z_offset)) {
-			mavlink_log_critical(mavlink_fd, "ERROR: offset is NaN");
-			res = ERROR;
+#else
+		(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_offset);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
 		}
-	}
-
-	if (res == OK) {
-		/* set offset parameters to new values */
-		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_scale.x_offset))
-		    || param_set(param_find("SENS_GYRO_YOFF"), &(gyro_scale.y_offset))
-		    || param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_scale.z_offset))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to set offset params");
-			res = ERROR;
+		(void)sprintf(str, "CAL_GYRO%u_YOFF", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.y_offset);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
 		}
-	}
-
-#if 0
-	/* beep on offset calibration end */
-	mavlink_log_info(mavlink_fd, "gyro offset calibration done");
-	tune_neutral();
-
-	/* scale calibration */
-	/* this was only a proof of concept and is currently not working. scaling will be set to 1.0 for now. */
-
-	mavlink_log_info(mavlink_fd, "offset done. Rotate for scale 30x or wait 5s to skip.");
-	warnx("offset calibration finished. Rotate for scale 30x, or do not rotate and wait for 5 seconds to skip.");
-
-	/* apply new offsets */
-	fd = open(GYRO_DEVICE_PATH, 0);
-
-	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale)) {
-		warn("WARNING: failed to apply new offsets for gyro");
-	}
-
-	close(fd);
-
-
-	unsigned rotations_count = 30;
-	float gyro_integral = 0.0f;
-	float baseline_integral = 0.0f;
-
-	// XXX change to mag topic
-	orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-
-	float mag_last = -atan2f(raw.magnetometer_ga[1], raw.magnetometer_ga[0]);
-
-	if (mag_last > M_PI_F) { mag_last -= 2 * M_PI_F; }
-
-	if (mag_last < -M_PI_F) { mag_last += 2 * M_PI_F; }
-
-
-	uint64_t last_time = hrt_absolute_time();
-	uint64_t start_time = hrt_absolute_time();
-
-	while ((int)fabsf(baseline_integral / (2.0f * M_PI_F)) < rotations_count) {
-
-		/* abort this loop if not rotated more than 180 degrees within 5 seconds */
-		if ((fabsf(baseline_integral / (2.0f * M_PI_F)) < 0.6f)
-		    && (hrt_absolute_time() - start_time > 5 * 1e6)) {
-			mavlink_log_info(mavlink_fd, "scale skipped, gyro calibration done");
-			close(sub_sensor_combined);
-			return OK;
+		(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_offset);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
 		}
-
-		/* wait blocking for new data */
-		struct pollfd fds[1];
-		fds[0].fd = sub_sensor_combined;
-		fds[0].events = POLLIN;
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-
-			float dt_ms = (hrt_absolute_time() - last_time) / 1e3f;
-			last_time = hrt_absolute_time();
-
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-
-			// XXX this is just a proof of concept and needs world / body
-			// transformation and more
-
-			//math::Vector2f magNav(raw.magnetometer_ga);
-
-			// calculate error between estimate and measurement
-			// apply declination correction for true heading as well.
-			//float mag = -atan2f(magNav(1),magNav(0));
-			float mag = -atan2f(raw.magnetometer_ga[1], raw.magnetometer_ga[0]);
-
-			if (mag > M_PI_F) { mag -= 2 * M_PI_F; }
-
-			if (mag < -M_PI_F) { mag += 2 * M_PI_F; }
-
-			float diff = mag - mag_last;
-
-			if (diff > M_PI_F) { diff -= 2 * M_PI_F; }
-
-			if (diff < -M_PI_F) { diff += 2 * M_PI_F; }
-
-			baseline_integral += diff;
-			mag_last = mag;
-			// Jump through some timing scale hoops to avoid
-			// operating near the 1e6/1e8 max sane resolution of float.
-			gyro_integral += (raw.gyro_rad_s[2] * dt_ms) / 1e3f;
-
-//			warnx("dbg: b: %6.4f, g: %6.4f", (double)baseline_integral, (double)gyro_integral);
-
-			// } else if (poll_ret == 0) {
-			// 	/* any poll failure for 1s is a reason to abort */
-			// 	mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
-			// 	return;
+		(void)sprintf(str, "CAL_GYRO%u_XSCALE", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_scale);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
 		}
-	}
-
-	float gyro_scale = baseline_integral / gyro_integral;
-
-	warnx("gyro scale: yaw (z): %6.4f", (double)gyro_scale);
-	mavlink_log_info(mavlink_fd, "gyro scale: yaw (z): %6.4f", (double)gyro_scale);
-
-
-	if (!isfinite(gyro_scale.x_scale) || !isfinite(gyro_scale.y_scale) || !isfinite(gyro_scale.z_scale)) {
-		mavlink_log_info(mavlink_fd, "gyro scale calibration FAILED (NaN)");
-		close(sub_sensor_gyro);
-		mavlink_log_critical(mavlink_fd, "gyro calibration failed");
-		return ERROR;
-	}
-
-	/* beep on calibration end */
-	mavlink_log_info(mavlink_fd, "gyro scale calibration done");
-	tune_neutral();
-
+		(void)sprintf(str, "CAL_GYRO%u_YSCALE", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.y_scale);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", s);
+		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_scale);
+		if (res != PX4_OK) {
+			PX4_ERR("unable to reset %s", str);
+		}
+		param_notify_changes();
 #endif
 
-	if (res == OK) {
-		/* set scale parameters to new values */
-		if (param_set(param_find("SENS_GYRO_XSCALE"), &(gyro_scale.x_scale))
-		    || param_set(param_find("SENS_GYRO_YSCALE"), &(gyro_scale.y_scale))
-		    || param_set(param_find("SENS_GYRO_ZSCALE"), &(gyro_scale.z_scale))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to set scale params");
-			res = ERROR;
+	}
+
+	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+
+	// Warn that we will not calibrate more than max_gyros gyroscopes
+	if (orb_gyro_count > max_gyros) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Detected %u gyros, but will calibrate only %u", orb_gyro_count, max_gyros);
+	}
+
+	for (unsigned cur_gyro = 0; cur_gyro < orb_gyro_count && cur_gyro < max_gyros; cur_gyro++) {
+
+		// Lock in to correct ORB instance
+		bool found_cur_gyro = false;
+		for(unsigned i = 0; i < orb_gyro_count && !found_cur_gyro; i++) {
+			worker_data.gyro_sensor_sub[cur_gyro] = orb_subscribe_multi(ORB_ID(sensor_gyro), i);
+
+			struct gyro_report report;
+			orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[cur_gyro], &report);
+
+#ifdef __PX4_NUTTX
+
+			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
+			// and match it up with the one from the uORB subscription, because the
+			// instance ordering of uORB and the order of the FDs may not be the same.
+
+			if(report.device_id == worker_data.device_id[cur_gyro]) {
+				// Device IDs match, correct ORB instance for this gyro
+				found_cur_gyro = true;
+			} else {
+				orb_unsubscribe(worker_data.gyro_sensor_sub[cur_gyro]);
+			}
+
+#else
+
+			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
+			worker_data.device_id[cur_gyro] = report.device_id;
+			found_cur_gyro = true;
+
+#endif
+		}
+
+		if(!found_cur_gyro) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u (ID %u) no matching uORB devid", cur_gyro, worker_data.device_id[cur_gyro]);
+			res = calibrate_return_error;
+			break;
+		}
+
+		if (worker_data.device_id[cur_gyro] != 0) {
+			// Get priority
+			int32_t prio;
+			orb_priority(worker_data.gyro_sensor_sub[cur_gyro], &prio);
+
+			if (prio > device_prio_max) {
+				device_prio_max = prio;
+				device_id_primary = worker_data.device_id[cur_gyro];
+			}
+		} else {
+			calibration_log_critical(mavlink_log_pub, "[cal] Gyro #%u no device id, abort", cur_gyro);
 		}
 	}
 
-	if (res == OK) {
-		/* apply new scaling and offsets */
-		fd = open(GYRO_DEVICE_PATH, 0);
-		res = ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale);
-		close(fd);
+	int cancel_sub  = calibrate_cancel_subscribe();
 
-		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+	unsigned try_count = 0;
+	unsigned max_tries = 20;
+	res = PX4_ERROR;
+
+	do {
+		// Calibrate gyro and ensure user didn't move
+		calibrate_return cal_return = gyro_calibration_worker(cancel_sub, &worker_data);
+
+		if (cal_return == calibrate_return_cancelled) {
+			// Cancel message already sent, we are done here
+			res = PX4_ERROR;
+			break;
+
+		} else if (cal_return == calibrate_return_error) {
+			res = PX4_ERROR;
+
+		} else {
+			/* check offsets */
+			float xdiff = worker_data.gyro_report_0.x - worker_data.gyro_scale[0].x_offset;
+			float ydiff = worker_data.gyro_report_0.y - worker_data.gyro_scale[0].y_offset;
+			float zdiff = worker_data.gyro_report_0.z - worker_data.gyro_scale[0].z_offset;
+
+			/* maximum allowable calibration error in radians */
+			const float maxoff = 0.01f;
+
+			if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
+			    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
+			    !PX4_ISFINITE(worker_data.gyro_scale[0].z_offset) ||
+			    fabsf(xdiff) > maxoff ||
+			    fabsf(ydiff) > maxoff ||
+			    fabsf(zdiff) > maxoff) {
+
+				calibration_log_critical(mavlink_log_pub, "[cal] motion, retrying..");
+				res = PX4_ERROR;
+
+			} else {
+				res = PX4_OK;
+			}
+		}
+		try_count++;
+
+	} while (res == PX4_ERROR && try_count <= max_tries);
+
+	if (try_count >= max_tries) {
+		calibration_log_critical(mavlink_log_pub, "[cal] ERROR: Motion during calibration");
+		res = PX4_ERROR;
+	}
+
+	calibrate_cancel_unsubscribe(cancel_sub);
+
+	for (unsigned s = 0; s < max_gyros; s++) {
+		px4_close(worker_data.gyro_sensor_sub[s]);
+	}
+
+	if (res == PX4_OK) {
+
+		/* set offset parameters to new values */
+		bool failed = false;
+
+		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
+
+		bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
+
+		for (unsigned uorb_index = 0; uorb_index < max_gyros; uorb_index++) {
+			if (worker_data.device_id[uorb_index] != 0) {
+				char str[30];
+
+				/* check if thermal compensation is enabled */
+				int32_t tc_enabled_int;
+				param_get(param_find("TC_G_ENABLE"), &(tc_enabled_int));
+				if (tc_enabled_int == 1) {
+					/* Get struct containing sensor thermal compensation data */
+					struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+					memset(&sensor_correction, 0, sizeof(sensor_correction));
+					orb_copy(ORB_ID(sensor_correction), worker_data.sensor_correction_sub, &sensor_correction);
+
+					/* don't allow a parameter instance to be calibrated again by another uORB instance */
+					if (!tc_locked[sensor_correction.gyro_mapping[uorb_index]]) {
+						tc_locked[sensor_correction.gyro_mapping[uorb_index]] = true;
+
+						/* update the _X0_ terms to include the additional offset */
+						int32_t handle;
+						float val;
+						for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
+							val = 0.0f;
+							(void)sprintf(str, "TC_G%u_X0_%u", sensor_correction.gyro_mapping[uorb_index], axis_index);
+							handle = param_find(str);
+							param_get(handle, &val);
+							if (axis_index == 0) {
+								val += worker_data.gyro_scale[uorb_index].x_offset;
+
+							} else if (axis_index == 1) {
+								val += worker_data.gyro_scale[uorb_index].y_offset;
+
+							} else if (axis_index == 2) {
+								val += worker_data.gyro_scale[uorb_index].z_offset;
+
+							}
+							failed |= (PX4_OK != param_set_no_notification(handle, &val));
+						}
+						param_notify_changes();
+					}
+
+					// Ensure the calibration values used the driver are at default settings
+					worker_data.gyro_scale[uorb_index].x_offset = 0.f;
+					worker_data.gyro_scale[uorb_index].y_offset = 0.f;
+					worker_data.gyro_scale[uorb_index].z_offset = 0.f;
+				}
+
+				(void)sprintf(str, "CAL_GYRO%u_XOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].x_offset)));
+				(void)sprintf(str, "CAL_GYRO%u_YOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].y_offset)));
+				(void)sprintf(str, "CAL_GYRO%u_ZOFF", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.gyro_scale[uorb_index].z_offset)));
+
+				(void)sprintf(str, "CAL_GYRO%u_ID", uorb_index);
+				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[uorb_index])));
+
+#ifdef __PX4_NUTTX
+				/* apply new scaling and offsets */
+				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, uorb_index);
+				int fd = px4_open(str, 0);
+
+				if (fd < 0) {
+					failed = true;
+					continue;
+				}
+
+				res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&worker_data.gyro_scale[uorb_index]);
+				px4_close(fd);
+
+				if (res != PX4_OK) {
+					calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, 1);
+				}
+#endif
+			}
+		}
+
+		if (failed) {
+			calibration_log_critical(mavlink_log_pub, "[cal] ERROR: failed to set offset params");
+			res = PX4_ERROR;
 		}
 	}
 
-	if (res == OK) {
-		/* auto-save to EEPROM */
-		res = param_save_default();
+	/* store board ID */
+	uuid_uint32_t mcu_id;
+	board_get_uuid32(mcu_id);
 
-		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
-		}
-	}
+	/* store last 32bit number - not unique, but unique in a given set */
+	(void)param_set(param_find("CAL_BOARD_ID"), &mcu_id[PX4_CPU_UUID_WORD32_UNIQUE_H]);
 
-	if (res == OK) {
-		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+	/* if there is a any preflight-check system response, let the barrage of messages through */
+	usleep(200000);
 
+	if (res == PX4_OK) {
+		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 	} else {
-		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
 	}
+
+	orb_unsubscribe(worker_data.sensor_correction_sub);
+
+	/* give this message enough time to propagate */
+	usleep(600000);
 
 	return res;
 }

@@ -53,19 +53,16 @@ NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-NavigatorMode::~NavigatorMode()
-{
-}
-
 void
-NavigatorMode::run(bool active) {
+NavigatorMode::run(bool active)
+{
 	if (active) {
 		if (_first_run) {
 			/* first run */
 			_first_run = false;
 			/* Reset stay in failsafe flag */
 			_navigator->get_mission_result()->stay_in_failsafe = false;
-			_navigator->publish_mission_result();
+			_navigator->set_mission_result_updated();
 			on_activation();
 
 		} else {

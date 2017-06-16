@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,12 +36,8 @@
  *
  * Parameters for DLL
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Thomas Gubler <thomas@px4.io>
  */
-
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
 
 /*
  * Data Link Loss parameters, accessible via MAVLink
@@ -52,9 +48,12 @@
  *
  * The amount of time in seconds the system should wait at the comms hold waypoint
  *
- * @unit seconds
+ * @unit s
  * @min 0.0
- * @group DLL
+ * @max 3600.0
+ * @decimal 0
+ * @increment 1
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
 
@@ -63,9 +62,10 @@ PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
  *
  * Latitude of comms hold waypoint
  *
- * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
+ * @unit deg * 1e7
+ * @min -900000000
+ * @max 900000000
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
 
@@ -74,9 +74,10 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, -266072120);
  *
  * Longitude of comms hold waypoint
  *
- * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
+ * @unit deg * 1e7
+ * @min -1800000000
+ * @max 1800000000
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
 
@@ -86,19 +87,25 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
  * Altitude of comms hold waypoint
  *
  * @unit m
- * @min 0.0
- * @group DLL
+ * @min -50
+ * @max 30000
+ * @decimal 1
+ * @increment 0.5
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
 
 /**
- * Aifield hole wait time
+ * Airfield home wait time
  *
  * The amount of time in seconds the system should wait at the airfield home waypoint
  *
- * @unit seconds
+ * @unit s
  * @min 0.0
- * @group DLL
+ * @max 3600.0
+ * @decimal 0
+ * @increment 1
+ * @group Data Link Loss
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
 
@@ -107,9 +114,9 @@ PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
  *
  * After more than this number of data link timeouts the aircraft returns home directly
  *
- * @group DLL
  * @min 0
  * @max 1000
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_N, 2);
 
@@ -119,8 +126,7 @@ PARAM_DEFINE_INT32(NAV_DLL_N, 2);
  * If set to 1 the system will skip the comms hold wp on data link loss and will directly fly to
  * airfield home
  *
- * @group DLL
- * @min 0
- * @max 1
+ * @boolean
+ * @group Data Link Loss
  */
 PARAM_DEFINE_INT32(NAV_DLL_CHSK, 0);

@@ -35,17 +35,17 @@
  * @file px4io_init.c
  *
  * PX4IO-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * stm32_boardinitialize() function that is called during cpu startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -53,6 +53,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
 
 #include "stm32.h"
 #include "board_config.h"
@@ -61,7 +62,7 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 #include <drivers/drv_pwm_output.h>
 
 /****************************************************************************
@@ -87,7 +88,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_RELAY1_EN);
 	stm32_configgpio(GPIO_RELAY2_EN);
 
-    	/* turn off - all leds are active low */
+	/* turn off - all leds are active low */
 	stm32_gpiowrite(GPIO_LED1, true);
 	stm32_gpiowrite(GPIO_LED2, true);
 	stm32_gpiowrite(GPIO_LED3, true);

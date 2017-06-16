@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,8 +42,10 @@
 
 #pragma once
 
+#include <px4_config.h>
+
 __BEGIN_DECLS
 
-__EXPORT int get_board_serial(uint8_t *serialid);
+__EXPORT int get_board_serial(uuid_byte_t serialid);
 
 __END_DECLS

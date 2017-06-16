@@ -47,7 +47,7 @@ MavlinkStream::MavlinkStream(Mavlink *mavlink) :
 	next(nullptr),
 	_mavlink(mavlink),
 	_interval(1000000),
-	_last_sent(0)
+	_last_sent(0 /* 0 means unlimited - updates on every iteration */)
 {
 }
 
@@ -70,22 +70,51 @@ MavlinkStream::set_interval(const unsigned int interval)
 int
 MavlinkStream::update(const hrt_abstime t)
 {
-	uint64_t dt = t - _last_sent;
-	unsigned int interval = _interval;
+	// If the message has never been sent before we want
+	// to send it immediately and can return right away
+	if (_last_sent == 0) {
+		// this will give different messages on the same run a different
+		// initial timestamp which will help spacing them out
+		// on the link scheduling
+		_last_sent = hrt_absolute_time();
+#ifndef __PX4_QURT
+		send(t);
+#endif
+		return 0;
+	}
+
+	// One of the previous iterations sent the update
+	// already before the deadline
+	if (_last_sent > t) {
+		return -1;
+	}
+
+	int64_t dt = t - _last_sent;
+	int interval = _interval;
 
 	if (!const_rate()) {
 		interval /= _mavlink->get_rate_mult();
 	}
 
-	if (dt > 0 && dt >= interval) {
-		/* interval expired, send message */
-		send(t);
-		if (const_rate()) {
-			_last_sent = (t / _interval) * _interval;
+	// send the message if it is due or
+	// if it will overrun the next scheduled send interval
+	// by 40% of the interval time. This helps to avoid
+	// sending a scheduled message on average slower than
+	// scheduled. Doing this at 50% would risk sending
+	// the message too often as the loop runtime of the app
+	// needs to be accounted for as well.
+	// This method is not theoretically optimal but a suitable
+	// stopgap as it hits its deadlines well (0.5 Hz, 50 Hz and 250 Hz)
 
-		} else {
-			_last_sent = t;
-		}
+	if (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 4)) {
+		// interval expired, send message
+#ifndef __PX4_QURT
+		send(t);
+#endif
+		// if the interval is non-zero do not use the actual time but
+		// increment at a fixed rate, so that processing delays do not
+		// distort the average rate
+		_last_sent = (interval > 0) ? _last_sent + interval : t;
 
 		return 0;
 	}

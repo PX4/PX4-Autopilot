@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4io/include/board.h
+ * nuttx-configs/px4io-v1/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
@@ -82,7 +82,9 @@
 /* APB2 timer 1 will receive PCLK2. */
 
 #define STM32_APB2_TIM1_CLKIN   (STM32_PCLK2_FREQUENCY)
-#define STM32_APB2_TIM8_CLKIN   (STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM15_CLKIN  (STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM16_CLKIN  (STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM17_CLKIN  (STM32_PCLK2_FREQUENCY)
 
 /* APB1 clock (PCLK1) is HCLK (24MHz) */
 
@@ -91,10 +93,35 @@
 
 /* All timers run off PCLK */
 
-#define STM32_APB1_TIM1_CLKIN   (STM32_PCLK2_FREQUENCY)
+
 #define STM32_APB1_TIM2_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM3_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM5_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM6_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM7_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM12_CLKIN  (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM13_CLKIN  (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM14_CLKIN  (STM32_PCLK1_FREQUENCY)
+
+/* Timer Frequencies, if APBx is set to 1, frequency is same to APBx
+ * otherwise frequency is 2xAPBx.
+ * Note: TIM1, 15-17 are on APB2, others on APB1
+ */
+
+#define BOARD_TIM1_FREQUENCY    STM32_APB2_TIM1_CLKIN
+#define BOARD_TIM2_FREQUENCY    STM32_APB1_TIM2_CLKIN
+#define BOARD_TIM3_FREQUENCY    STM32_APB1_TIM3_CLKIN
+#define BOARD_TIM4_FREQUENCY    STM32_APB1_TIM4_CLKIN
+#define BOARD_TIM5_FREQUENCY    STM32_APB1_TIM5_CLKIN
+#define BOARD_TIM6_FREQUENCY    STM32_APB1_TIM6_CLKIN
+#define BOARD_TIM7_FREQUENCY    STM32_APB1_TIM7_CLKIN
+#define BOARD_TIM12_FREQUENCY   STM32_APB1_TIM12_CLKIN
+#define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
+#define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
+#define BOARD_TIM15_FREQUENCY   STM32_APB2_TIM15_CLKIN
+#define BOARD_TIM16_FREQUENCY   STM32_APB2_TIM16_CLKIN
+#define BOARD_TIM17_FREQUENCY   STM32_APB2_TIM17_CLKIN
 
 /*
  * Some of the USART pins are not available; override the GPIO
@@ -143,7 +170,7 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-    
+
 #if defined(__cplusplus)
 }
 #endif

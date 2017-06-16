@@ -1,21 +1,34 @@
 #!nsh
 #
-# Team Blacksheep Discovery Quadcopter
+# @name Team Blacksheep Discovery
 #
-# Anton Babushkin <anton.babushkin@me.com>, Simon Wilks <sjwilks@gmail.com>, Thomas Gubler <thomasgubler@gmail.com>
+# @type Quadrotor Wide
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 feed-through of RC AUX1 channel
+# @output MAIN6 feed-through of RC AUX2 channel
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC FLAPS channel
+#
+# @maintainer Anton Babushkin <anton@px4.io>, Simon Wilks <simon@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
-	# TODO review MC_YAWRATE_I
-	param set MC_ROLL_P 8.0
-	param set MC_ROLLRATE_P 0.07
+	param set MC_ROLL_P 6.5
+	param set MC_ROLLRATE_P 0.1
 	param set MC_ROLLRATE_I 0.05
 	param set MC_ROLLRATE_D 0.0017
-	param set MC_PITCH_P 8.0
-	param set MC_PITCHRATE_P 0.1
+	param set MC_PITCH_P 6.5
+	param set MC_PITCHRATE_P 0.14
 	param set MC_PITCHRATE_I 0.1
 	param set MC_PITCHRATE_D 0.0025
 	param set MC_YAW_P 2.8
@@ -24,6 +37,6 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set MIXER FMU_quad_w
+set MIXER quad_w
 
-set PWM_OUTPUTS 1234
+set PWM_OUT 1234

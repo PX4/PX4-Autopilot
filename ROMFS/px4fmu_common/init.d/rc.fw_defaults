@@ -2,17 +2,24 @@
 
 set VEHICLE_TYPE fw
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 #
 # Default parameters for FW
 #
-	param set NAV_LAND_ALT 90
-	param set NAV_RTL_ALT 100
-	param set NAV_RTL_LAND_T -1
-	param set NAV_ACCEPT_RAD 50
-	param set FW_T_HRATE_P 0.01
-	param set FW_T_RLL2THR 15
-	param set FW_T_SRATE_P 0.01
-	param set FW_T_TIME_CONST 5
+	param set RTL_RETURN_ALT 100
+	param set RTL_DESCEND_ALT 100
+	param set RTL_LAND_DELAY -1
+
+	# FW uses L1 distance for acceptance radius
+	#  set a smaller NAV_ACC_RAD for vertical acceptance distance
+	param set NAV_ACC_RAD 10
+
+	param set MIS_LTRMIN_ALT 25
+	param set MIS_TAKEOFF_ALT 25
 fi
+
+# This is the gimbal pass mixer
+set MIXER_AUX pass
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234

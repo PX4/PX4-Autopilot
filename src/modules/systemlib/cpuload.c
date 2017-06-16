@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- * 	     Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,19 +36,18 @@
  *
  * Measurement of CPU load of each individual task.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Lorenz Meier <lorenz@px4.io>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <nuttx/config.h>
-#include <nuttx/sched.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <arch/arch.h>
+//#include <arch/arch.h>
 
-#include <debug.h>
+//#include <debug.h>
 
 #include <sys/time.h>
 
@@ -61,8 +58,13 @@
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-__EXPORT void sched_note_start(FAR struct tcb_s *tcb);
-__EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
+#ifdef __PX4_NUTTX
+
+# include <nuttx/sched_note.h>
+
+void sched_note_suspend(FAR struct tcb_s *tcb);
+void sched_note_resume(FAR struct tcb_s *tcb);
+
 __EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
 
 __EXPORT struct system_load_s system_load;
@@ -78,8 +80,6 @@ void cpuload_initialize_once()
 		system_load.tasks[i].valid = false;
 	}
 
-	uint64_t now = hrt_absolute_time();
-
 	int static_tasks_count = 2;	// there are at least 2 threads that should be initialized statically - "idle" and "init"
 
 #ifdef CONFIG_PAGING
@@ -94,12 +94,14 @@ void cpuload_initialize_once()
 
 	// perform static initialization of "system" threads
 	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++) {
-		system_load.tasks[system_load.total_count].start_time = now;
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
-		system_load.tasks[system_load.total_count].tcb = sched_gettcb(system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
+		system_load.tasks[system_load.total_count].tcb = sched_gettcb(
+					system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
 		system_load.tasks[system_load.total_count].valid = true;
 	}
+
+	system_load.initialized = true;
 }
 
 void sched_note_start(FAR struct tcb_s *tcb)
@@ -107,16 +109,17 @@ void sched_note_start(FAR struct tcb_s *tcb)
 	/* search first free slot */
 	int i;
 
-	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
-		if (!system_load.tasks[i].valid) {
-			/* slot is available */
-			system_load.tasks[i].start_time = hrt_absolute_time();
-			system_load.tasks[i].total_runtime = 0;
-			system_load.tasks[i].curr_start_time = 0;
-			system_load.tasks[i].tcb = tcb;
-			system_load.tasks[i].valid = true;
-			system_load.total_count++;
-			break;
+	if (system_load.initialized) {
+		for (i = 1; i < CONFIG_MAX_TASKS; i++) {
+			if (!system_load.tasks[i].valid) {
+				/* slot is available */
+				system_load.tasks[i].total_runtime = 0;
+				system_load.tasks[i].curr_start_time = 0;
+				system_load.tasks[i].tcb = tcb;
+				system_load.tasks[i].valid = true;
+				system_load.total_count++;
+				break;
+			}
 		}
 	}
 }
@@ -125,45 +128,54 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 {
 	int i;
 
-	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
-		if (system_load.tasks[i].tcb->pid == tcb->pid) {
-			/* mark slot as fee */
-			system_load.tasks[i].valid = false;
-			system_load.tasks[i].total_runtime = 0;
-			system_load.tasks[i].curr_start_time = 0;
-			system_load.tasks[i].tcb = NULL;
-			system_load.total_count--;
-			break;
-		}
-	}
-}
-
-void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
-{
-	uint64_t new_time = hrt_absolute_time();
-
-	/* Kind of inefficient: find both tasks and update times */
-	uint8_t both_found = 0;
-
-	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
-		/* Task ending its current scheduling run */
-		if (system_load.tasks[i].tcb->pid == pFromTcb->pid) {
-			//if (system_load.tasks[i].curr_start_time != 0)
-			{
-				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
+	if (system_load.initialized) {
+		for (i = 1; i < CONFIG_MAX_TASKS; i++) {
+			if (system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
+				/* mark slot as fee */
+				system_load.tasks[i].valid = false;
+				system_load.tasks[i].total_runtime = 0;
+				system_load.tasks[i].curr_start_time = 0;
+				system_load.tasks[i].tcb = NULL;
+				system_load.total_count--;
+				break;
 			}
-			both_found++;
-
-		} else if (system_load.tasks[i].tcb->pid == pToTcb->pid) {
-			system_load.tasks[i].curr_start_time = new_time;
-			both_found++;
-		}
-
-		/* Do only iterate as long as needed */
-		if (both_found == 2) {
-			break;
 		}
 	}
 }
 
+void sched_note_suspend(FAR struct tcb_s *tcb)
+{
+
+	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
+		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+			/* Task ending its current scheduling run */
+			if (system_load.tasks[i].valid && system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
+				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
+				break;
+			}
+		}
+	}
+}
+
+void sched_note_resume(FAR struct tcb_s *tcb)
+{
+
+	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
+		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+			if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == tcb->pid) {
+				system_load.tasks[i].curr_start_time = new_time;
+				break;
+			}
+		}
+	}
+
+}
+
+#else
+__EXPORT struct system_load_s system_load;
+#endif
 #endif /* CONFIG_SCHED_INSTRUMENTATION */

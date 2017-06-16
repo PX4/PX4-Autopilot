@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,9 @@
  * @file mavlink_mission.h
  * MAVLink mission manager interface definition.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Julian Oes <julian@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #pragma once
@@ -46,7 +46,6 @@
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
-#include "mavlink_stream.h"
 
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
@@ -67,49 +66,50 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
 #define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
-class MavlinkMissionManager : public MavlinkStream {
+class Mavlink;
+
+class MavlinkMissionManager
+{
 public:
+	explicit MavlinkMissionManager(Mavlink *mavlink);
+
 	~MavlinkMissionManager();
 
-	const char *get_name() const
-	{
-		return MavlinkMissionManager::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "MISSION_ITEM";
-	}
-
-	uint8_t get_id()
-	{
-		return MAVLINK_MSG_ID_MISSION_ITEM;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkMissionManager(mavlink);
-	}
-
-	unsigned get_size();
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	void handle_message(const mavlink_message_t *msg);
 
 	void set_verbose(bool v) { _verbose = v; }
+
+	void check_active_mission(void);
 
 private:
 	enum MAVLINK_WPM_STATES _state;					///< Current state
 
 	uint64_t		_time_last_recv;
 	uint64_t		_time_last_sent;
+	uint64_t		_time_last_reached;			///< last time when the vehicle reached a waypoint
 
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
-	unsigned		_max_count;				///< Maximum number of mission items
 
-	int			_dataman_id;				///< Dataman storage ID for active mission
-	unsigned		_count;					///< Count of items in active mission
-	int			_current_seq;				///< Current item sequence in active mission
+	bool			_int_mode;				///< Use accurate int32 instead of float
+
+	unsigned		_max_count;				///< Maximum number of mission items
+	unsigned		_filesystem_errcount;			///< File system error count
+
+	static int		_dataman_id;				///< Global Dataman storage ID for active mission
+	int			_my_dataman_id;				///< class Dataman storage ID
+	static bool		_dataman_init;				///< Dataman initialized
+
+	static unsigned		_count;					///< Count of items in active mission
+	static int		_current_seq;				///< Current item sequence in active mission
+
+	static int		_last_reached;				///< Last reached waypoint in active mission (-1 means nothing reached)
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
 	unsigned		_transfer_count;			///< Items count in current transmission
@@ -117,6 +117,7 @@ private:
 	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
 	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
 	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
+	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
@@ -126,9 +127,14 @@ private:
 
 	bool _verbose;
 
+	Mavlink *_mavlink;
+
+	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
+		2;	///< Error count limit before stopping to report FS errors
+
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
-	MavlinkMissionManager& operator = (const MavlinkMissionManager &);
+	MavlinkMissionManager &operator = (const MavlinkMissionManager &);
 
 	void init_offboard_mission();
 
@@ -172,25 +178,34 @@ private:
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
 	void handle_mission_request(const mavlink_message_t *msg);
+	void handle_mission_request_int(const mavlink_message_t *msg);
+	void handle_mission_request_both(const mavlink_message_t *msg);
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
 	void handle_mission_item(const mavlink_message_t *msg);
+	void handle_mission_item_int(const mavlink_message_t *msg);
+	void handle_mission_item_both(const mavlink_message_t *msg);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
 	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 *
+	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
+	 *			       depending on _int_mode
+	 * @param mission_item	       pointer to mission_item to construct
 	 */
 	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM message.
+	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 *
+	 * @param mission_item:		pointer to the existing mission item
+	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
+	 *				depending on _int_mode.
 	 */
-	int format_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
+					mavlink_mission_item_t *mavlink_mission_item);
 
-protected:
-	explicit MavlinkMissionManager(Mavlink *mavlink);
-
-	void send(const hrt_abstime t);
 };

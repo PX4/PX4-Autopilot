@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,8 +40,56 @@
 #ifndef _DRV_SENSOR_H
 #define _DRV_SENSOR_H
 
+#include <px4_defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
+
+#include "drv_device.h"
+
+/**
+ * Sensor type definitions.
+ *
+ * Used to create a unique device id for redundant and combo sensors
+ */
+
+#define DRV_MAG_DEVTYPE_HMC5883  0x01
+#define DRV_MAG_DEVTYPE_LSM303D  0x02
+#define DRV_MAG_DEVTYPE_ACCELSIM 0x03
+#define DRV_MAG_DEVTYPE_MPU9250  0x04
+#define DRV_MAG_DEVTYPE_LIS3MDL  0x05
+#define DRV_MAG_DEVTYPE_IST8310  0x06
+#define DRV_ACC_DEVTYPE_LSM303D  0x11
+#define DRV_ACC_DEVTYPE_BMA180   0x12
+#define DRV_ACC_DEVTYPE_MPU6000  0x13
+#define DRV_ACC_DEVTYPE_ACCELSIM 0x14
+#define DRV_ACC_DEVTYPE_GYROSIM  0x15
+#define DRV_ACC_DEVTYPE_MPU9250  0x16
+#define DRV_ACC_DEVTYPE_BMI160   0x17
+#define DRV_GYR_DEVTYPE_MPU6000  0x21
+#define DRV_GYR_DEVTYPE_L3GD20   0x22
+#define DRV_GYR_DEVTYPE_GYROSIM  0x23
+#define DRV_GYR_DEVTYPE_MPU9250  0x24
+#define DRV_GYR_DEVTYPE_BMI160   0x25
+#define DRV_RNG_DEVTYPE_MB12XX   0x31
+#define DRV_RNG_DEVTYPE_LL40LS   0x32
+#define DRV_ACC_DEVTYPE_MPU6050  0x33
+#define DRV_ACC_DEVTYPE_MPU6500  0x34
+#define DRV_GYR_DEVTYPE_MPU6050  0x35
+#define DRV_GYR_DEVTYPE_MPU6500  0x36
+#define DRV_ACC_DEVTYPE_ICM20602	0x37
+#define DRV_GYR_DEVTYPE_ICM20602	0x38
+#define DRV_ACC_DEVTYPE_ICM20608	0x39
+#define DRV_GYR_DEVTYPE_ICM20608	0x3A
+#define DRV_ACC_DEVTYPE_ICM20689	0x3B
+#define DRV_GYR_DEVTYPE_ICM20689	0x3C
+#define DRV_BARO_DEVTYPE_MS5611		0x3D
+#define DRV_BARO_DEVTYPE_MS5607		0x3E
+#define DRV_BARO_DEVTYPE_BMP280		0x3F
+#define DRV_BARO_DEVTYPE_LPS25H		0x40
+#define DRV_ACC_DEVTYPE_BMI055		0x41
+#define DRV_GYR_DEVTYPE_BMI055		0x42
+#define DRV_MAG_DEVTYPE_BMM150		0x43
+#define DRV_BARO_DEVTYPE_BMP285		0x44
 
 /*
  * ioctl() definitions
@@ -51,7 +99,7 @@
  */
 
 #define _SENSORIOCBASE		(0x2000)
-#define _SENSORIOC(_n)		(_IOC(_SENSORIOCBASE, _n))
+#define _SENSORIOC(_n)		(_PX4_IOC(_SENSORIOCBASE, _n))
 
 /**
  * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE
@@ -82,8 +130,23 @@
 #define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
 
 /**
- * Reset the sensor to its default configuration.
+ * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
+
+/**
+ * Set the sensor orientation
+ */
+#define SENSORIOCSROTATION	_SENSORIOC(5)
+
+/**
+ * Get the sensor orientation
+ */
+#define SENSORIOCGROTATION	_SENSORIOC(6)
+
+/**
+ * Test the sensor calibration
+ */
+#define SENSORIOCCALTEST	_SENSORIOC(7)
 
 #endif /* _DRV_SENSOR_H */

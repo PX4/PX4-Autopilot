@@ -37,7 +37,8 @@
  * Implementation of AR.Drone 1.0 / 2.0 motor control interface.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -88,9 +89,11 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: ardrone_interface {start|stop|status} [-d <UART>]\n\n");
+	if (reason) {
+		warnx("%s\n", reason);
+	}
+
+	warnx("usage: {start|stop|status} [-d <UART>]\n\n");
 	exit(1);
 }
 
@@ -98,30 +101,31 @@ usage(const char *reason)
  * The deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
- * 
+ *
  * The actual stack size should be set in the call
  * to task_create().
  */
 int ardrone_interface_main(int argc, char *argv[])
 {
-		if (argc < 1)
+	if (argc < 2) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("ardrone_interface already running\n");
+			warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		ardrone_interface_task = task_spawn_cmd("ardrone_interface",
-						    SCHED_DEFAULT,
-						    SCHED_PRIORITY_MAX - 15,
-						    1100,
-						    ardrone_interface_thread_main,
-						    (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		ardrone_interface_task = px4_task_spawn_cmd("ardrone_interface",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 15,
+					 1100,
+					 ardrone_interface_thread_main,
+					 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
 
@@ -132,10 +136,12 @@ int ardrone_interface_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tardrone_interface is running\n");
+			warnx("running");
+
 		} else {
-			printf("\tardrone_interface not started\n");
+			warnx("not started");
 		}
+
 		exit(0);
 	}
 
@@ -158,7 +164,7 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		fprintf(stderr, "[ardrone_interface] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+		warnx("ERR: TCGETATTR %s: %d", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
@@ -171,14 +177,14 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		warnx("ERR: cfsetispeed %s: %d", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		warnx("ERR: tcsetattr: %s", uart_name);
 		close(uart);
 		return -1;
 	}
@@ -191,9 +197,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	char *device = "/dev/ttyS1";
-
-	/* welcome user */
-	printf("[ardrone_interface] Control started, taking over motors\n");
 
 	/* File descriptors */
 	int gpios;
@@ -210,19 +213,23 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--motor") == 0) {
-			if (i+1 < argc) {
-				int motor = atoi(argv[i+1]);
+			if (i + 1 < argc) {
+				int motor = atoi(argv[i + 1]);
+
 				if (motor > 0 && motor < 5) {
 					test_motor = motor;
+
 				} else {
 					thread_running = false;
 					errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
 				}
+
 			} else {
 				thread_running = false;
 				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
 			}
 		}
+
 		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
 			if (argc > i + 1) {
 				device = argv[i + 1];
@@ -237,7 +244,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	struct termios uart_config_original;
 
 	if (motor_test_mode) {
-		printf("[ardrone_interface] Motor test mode enabled, setting 10 %% thrust.\n");
+		warnx("setting 10 %% thrust.\n");
 	}
 
 	/* Led animation */
@@ -255,9 +262,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	printf("[ardrone_interface] Motors initialized - ready.\n");
-	fflush(stdout);
-
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	ardrone_write = ardrone_open_uart(device, &uart_config_original);
 
@@ -265,7 +269,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	gpios = ar_multiplexing_init();
 
 	if (ardrone_write < 0) {
-		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
+		warnx("No UART, exiting.");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -273,7 +277,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	/* initialize motors */
 	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
-		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
+		warnx("motor init fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -294,7 +298,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	gpios = ar_multiplexing_init();
 
 	if (ardrone_write < 0) {
-		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
+		warnx("write fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -302,7 +306,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	/* initialize motors */
 	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
-		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
+		warnx("motor init fail");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -315,6 +319,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 				int motors[4] = {0, 0, 0, 0};
 				motors[test_motor - 1] = 10;
 				ardrone_write_motor_commands(ardrone_write, motors[0], motors[1], motors[2], motors[3]);
+
 			} else {
 				ardrone_write_motor_commands(ardrone_write, 10, 10, 10, 10);
 			}
@@ -325,11 +330,11 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			/* get a local copy of the actuator controls */
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-			
+
 			/* for now only spin if armed and immediately shut down
 			 * if in failsafe
 			 */
-			if (armed.armed && !armed.lockdown) {
+			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
 
 			} else {
@@ -339,33 +344,33 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		if (counter % 24 == 0) {
-			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 0) { ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 1) { ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 2) ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0 , 0);
+			if (led_counter == 2) { ar_set_leds(ardrone_write, 1, 0, 0, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 3) ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0 , 0);
+			if (led_counter == 3) { ar_set_leds(ardrone_write, 0, 0, 0, 1, 0, 0, 0, 0); }
 
-			if (led_counter == 4) ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0 , 0);
+			if (led_counter == 4) { ar_set_leds(ardrone_write, 0, 0, 1, 1, 0, 0, 0, 0); }
 
-			if (led_counter == 5) ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0 , 0);
+			if (led_counter == 5) { ar_set_leds(ardrone_write, 0, 0, 1, 0, 0, 0, 0, 0); }
 
-			if (led_counter == 6) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0 , 0);
+			if (led_counter == 6) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 1, 0, 0); }
 
-			if (led_counter == 7) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0 , 0);
+			if (led_counter == 7) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 1, 0, 0); }
 
-			if (led_counter == 8) ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0 , 0);
+			if (led_counter == 8) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 1, 0, 0, 0); }
 
-			if (led_counter == 9) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0 , 1);
+			if (led_counter == 9) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 0, 1); }
 
-			if (led_counter == 10) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 1);
+			if (led_counter == 10) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1, 1); }
 
-			if (led_counter == 11) ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1 , 0);
+			if (led_counter == 11) { ar_set_leds(ardrone_write, 0, 0, 0, 0, 0, 0, 1, 0); }
 
 			led_counter++;
 
-			if (led_counter == 12) led_counter = 0;
+			if (led_counter == 12) { led_counter = 0; }
 		}
 
 		/* run at approximately 200 Hz */
@@ -378,10 +383,8 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	int termios_state;
 
 	if ((termios_state = tcsetattr(ardrone_write, TCSANOW, &uart_config_original)) < 0) {
-		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for (tcsetattr)\n");
+		warnx("ERR: tcsetattr");
 	}
-
-	printf("[ardrone_interface] Restored original UART config, exiting..\n");
 
 	/* close uarts */
 	close(ardrone_write);

@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4fmu/include/board.h
+ * nuttx-configs/px4fmu-v2/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
@@ -146,41 +146,53 @@
 #define STM32_APB2_TIM11_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 
 /* Timer Frequencies, if APBx is set to 1, frequency is same to APBx
- * otherwise frequency is 2xAPBx. 
- * Note: TIM1,8 are on APB2, others on APB1
+ * otherwise frequency is 2xAPBx.
+ * Note: TIM1,8-11 are on APB2, others on APB1
  */
 
-#define STM32_TIM18_FREQUENCY   (2*STM32_PCLK2_FREQUENCY)
-#define STM32_TIM27_FREQUENCY   (2*STM32_PCLK1_FREQUENCY)
+#define BOARD_TIM1_FREQUENCY    STM32_APB2_TIM1_CLKIN
+#define BOARD_TIM2_FREQUENCY    STM32_APB1_TIM2_CLKIN
+#define BOARD_TIM3_FREQUENCY    STM32_APB1_TIM3_CLKIN
+#define BOARD_TIM4_FREQUENCY    STM32_APB1_TIM4_CLKIN
+#define BOARD_TIM5_FREQUENCY    STM32_APB1_TIM5_CLKIN
+#define BOARD_TIM6_FREQUENCY    STM32_APB1_TIM6_CLKIN
+#define BOARD_TIM7_FREQUENCY    STM32_APB1_TIM7_CLKIN
+#define BOARD_TIM8_FREQUENCY    STM32_APB2_TIM8_CLKIN
+#define BOARD_TIM9_FREQUENCY    STM32_APB2_TIM9_CLKIN
+#define BOARD_TIM10_FREQUENCY   STM32_APB2_TIM10_CLKIN
+#define BOARD_TIM11_FREQUENCY   STM32_APB2_TIM11_CLKIN
+#define BOARD_TIM12_FREQUENCY   STM32_APB1_TIM12_CLKIN
+#define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
+#define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
 
-/* SDIO dividers.  Note that slower clocking is required when DMA is disabled 
+/* SDIO dividers.  Note that slower clocking is required when DMA is disabled
  * in order to avoid RX overrun/TX underrun errors due to delayed responses
  * to service FIFOs in interrupt driven mode.  These values have not been
  * tuned!!!
  *
- * HCLK=72MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(178+2)=400 KHz
+ * SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(118+2)=400 KHz
  */
-  
-#define SDIO_INIT_CLKDIV        (178 << SDIO_CLKCR_CLKDIV_SHIFT)
 
-/* DMA ON:  HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(2+2)=18 MHz
- * DMA OFF: HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(3+2)=14.4 MHz
+#define SDIO_INIT_CLKDIV        (118 << SDIO_CLKCR_CLKDIV_SHIFT)
+
+/* DMA ON:  SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(1+2)=16 MHz
+ * DMA OFF: SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(2+2)=12 MHz
  */
 
 #ifdef CONFIG_SDIO_DMA
-#  define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT) 
+#  define SDIO_MMCXFR_CLKDIV    (1 << SDIO_CLKCR_CLKDIV_SHIFT)
 #else
-#  define SDIO_MMCXFR_CLKDIV    (3 << SDIO_CLKCR_CLKDIV_SHIFT) 
+#  define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT)
 #endif
 
-/* DMA ON:  HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(1+2)=24 MHz
- * DMA OFF: HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(3+2)=14.4 MHz
+/* DMA ON:  SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(1+2)=16 MHz
+ * DMA OFF: SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(2+2)=12 MHz
  */
 
 #ifdef CONFIG_SDIO_DMA
 #  define SDIO_SDXFR_CLKDIV     (1 << SDIO_CLKCR_CLKDIV_SHIFT)
 #else
-#  define SDIO_SDXFR_CLKDIV     (3 << SDIO_CLKCR_CLKDIV_SHIFT)
+#  define SDIO_SDXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
 #endif
 
 /* DMA Channl/Stream Selections *****************************************************/
@@ -196,81 +208,127 @@
 
 /* Alternate function pin selections ************************************************/
 
-/*
- * UARTs.
- */
-#define GPIO_USART1_RX	GPIO_USART1_RX_1	/* console in from IO */
-#define GPIO_USART1_TX	0			/* USART1 is RX-only */
+/* UARTs */
 
-#define GPIO_USART2_RX	GPIO_USART2_RX_2
-#define GPIO_USART2_TX	GPIO_USART2_TX_2
-#define GPIO_USART2_RTS	GPIO_USART2_RTS_2
-#define GPIO_USART2_CTS	GPIO_USART2_CTS_2
+#define GPIO_USART1_RX   GPIO_USART1_RX_1    /* Console in from IO */
+#define GPIO_USART1_TX   0                   /* USART1 is RX-only */
 
-#define GPIO_USART3_RX	GPIO_USART3_RX_3
-#define GPIO_USART3_TX	GPIO_USART3_TX_3
-#define GPIO_USART3_RTS	GPIO_USART3_RTS_2
-#define GPIO_USART3_CTS	GPIO_USART3_CTS_2
+#define GPIO_USART2_RX   GPIO_USART2_RX_2
+#define GPIO_USART2_TX   GPIO_USART2_TX_2
+#define GPIO_USART2_RTS  GPIO_USART2_RTS_2
+#define GPIO_USART2_CTS  GPIO_USART2_CTS_2
 
-#define GPIO_UART4_RX	GPIO_UART4_RX_1
-#define GPIO_UART4_TX	GPIO_UART4_TX_1
+#define GPIO_USART3_RX   GPIO_USART3_RX_3
+#define GPIO_USART3_TX   GPIO_USART3_TX_3
+#define GPIO_USART3_RTS  GPIO_USART3_RTS_2
+#define GPIO_USART3_CTS  GPIO_USART3_CTS_2
 
-#define GPIO_USART6_RX	GPIO_USART6_RX_1
-#define GPIO_USART6_TX	GPIO_USART6_TX_1
+#define GPIO_UART4_RX    GPIO_UART4_RX_1
+#define GPIO_UART4_TX    GPIO_UART4_TX_1
 
-#define GPIO_UART7_RX	GPIO_UART7_RX_1
-#define GPIO_UART7_TX	GPIO_UART7_TX_1
+#define GPIO_USART6_RX   GPIO_USART6_RX_1
+#define GPIO_USART6_TX   GPIO_USART6_TX_1
+
+#define GPIO_UART7_RX    GPIO_UART7_RX_1
+#define GPIO_UART7_TX    GPIO_UART7_TX_1
 
 /* UART8 has no alternate pin config */
 
 /* UART RX DMA configurations */
+
 #define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
-/* 
- * CAN
+/* CAN
  *
- * CAN1 is routed to the onboard transceiver. 
+ * CAN1 is routed to the onboard transceiver.
  * CAN2 is routed to the expansion connector.
  */
-#define GPIO_CAN1_RX	GPIO_CAN1_RX_3
-#define GPIO_CAN1_TX	GPIO_CAN1_TX_3
-#define GPIO_CAN2_RX	GPIO_CAN2_RX_1
-#define GPIO_CAN2_TX	GPIO_CAN2_TX_2
 
-/*
- * I2C
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_3
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_3
+#define GPIO_CAN2_RX     GPIO_CAN2_RX_1
+#define GPIO_CAN2_TX     GPIO_CAN2_TX_2
+
+/* I2C
  *
  * The optional _GPIO configurations allow the I2C driver to manually
  * reset the bus to clear stuck slaves.  They match the pin configuration,
  * but are normally-high GPIOs.
  */
-#define GPIO_I2C1_SCL		GPIO_I2C1_SCL_2
-#define GPIO_I2C1_SDA		GPIO_I2C1_SDA_2
-#define GPIO_I2C1_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
-#define GPIO_I2C1_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
 
-#define GPIO_I2C2_SCL		GPIO_I2C2_SCL_1
-#define GPIO_I2C2_SDA		GPIO_I2C2_SDA_1
-#define GPIO_I2C2_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_I2C2_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
+#define GPIO_I2C1_SCL    GPIO_I2C1_SCL_2
+#define GPIO_I2C1_SDA    GPIO_I2C1_SDA_2
+#define GPIO_I2C1_SCL_GPIO \
+   (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
+#define GPIO_I2C1_SDA_GPIO \
+   (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
 
-/*
- * SPI
+#define GPIO_I2C2_SCL    GPIO_I2C2_SCL_1
+#define GPIO_I2C2_SDA    GPIO_I2C2_SDA_1
+#define GPIO_I2C2_SCL_GPIO \
+   (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN10)
+#define GPIO_I2C2_SDA_GPIO \
+   (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
+
+/* SPI
  *
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
  */
-#define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI1_SCK	(GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)
 
-#define GPIO_SPI2_MISO	(GPIO_SPI2_MISO_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI2_MOSI	(GPIO_SPI2_MOSI_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI2_SCK	(GPIO_SPI2_SCK_2|GPIO_SPEED_50MHz)
+#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1
+#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1
 
-#define GPIO_SPI4_MISO	(GPIO_SPI4_MISO_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI4_MOSI	(GPIO_SPI4_MOSI_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI4_SCK	(GPIO_SPI4_SCK_1|GPIO_SPEED_50MHz)
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1
+#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_2
+
+#define GPIO_SPI4_MISO	GPIO_SPI4_MISO_1
+#define GPIO_SPI4_MOSI	GPIO_SPI4_MOSI_1
+#define GPIO_SPI4_SCK	GPIO_SPI4_SCK_1
+
+/* LED Definitions.  Needed if CONFIG_ARCH_LEDs is defined */
+
+#define LED_STARTED      0
+#define LED_HEAPALLOCATE 0
+#define LED_IRQSENABLED  0
+#define LED_STACKCREATED 1
+#define LED_INIRQ        1
+#define LED_SIGNAL       1
+#define LED_ASSERTION    1
+#define LED_PANIC        1
+
+/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+
+#if defined(CONFIG_BOARD_USE_PROBES)
+# define PROBE_N(n) (1<<((n)-1))
+# define PROBE_1	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)
+# define PROBE_2	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN13)
+# define PROBE_3	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)
+# define PROBE_4	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
+# define PROBE_5	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+# define PROBE_6	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+
+# define PROBE_INIT(mask) \
+	do { \
+		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+	} while(0)
+
+# define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
+# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+#endif
+
+
 
 /************************************************************************************
  * Public Data
@@ -294,7 +352,7 @@ extern "C" {
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/

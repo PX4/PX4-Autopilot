@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,29 +40,31 @@
 #include "sensor_bridge.hpp"
 #include <drivers/drv_mag.h>
 
-#include <uavcan/equipment/ahrs/Magnetometer.hpp>
+#include <uavcan/equipment/ahrs/MagneticFieldStrength.hpp>
 
 class UavcanMagnetometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
-	UavcanMagnetometerBridge(uavcan::INode& node);
+	UavcanMagnetometerBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
 	int init() override;
 
 private:
+	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
-	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg);
+	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg);
 
-	typedef uavcan::MethodBinder<UavcanMagnetometerBridge*,
+	typedef uavcan::MethodBinder < UavcanMagnetometerBridge *,
 		void (UavcanMagnetometerBridge::*)
-			(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>&)>
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &) >
 		MagCbBinder;
 
-	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
-	mag_scale _scale = {};
+	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength, MagCbBinder> _sub_mag;
+	struct mag_calibration_s _scale = {};
+	mag_report _report =  {};
 };

@@ -37,7 +37,7 @@
  * Implementation of commonly used conversions.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <float.h>
 
 #include "conversions.h"

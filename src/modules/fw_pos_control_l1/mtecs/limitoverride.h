@@ -69,20 +69,32 @@ public:
 	* @return true if the limit was applied
 	*/
 	bool applyOverride(BlockOutputLimiter &outputLimiterThrottle,
-			BlockOutputLimiter &outputLimiterPitch);
+			   BlockOutputLimiter &outputLimiterPitch);
 
 	/* Functions to enable or disable the override */
-	void enableThrottleMinOverride(float value) { enable(&overrideThrottleMinEnabled,
-			&overrideThrottleMin, value); }
+	void enableThrottleMinOverride(float value)
+	{
+		enable(&overrideThrottleMinEnabled,
+		       &overrideThrottleMin, value);
+	}
 	void disableThrottleMinOverride() { disable(&overrideThrottleMinEnabled); }
-	void enableThrottleMaxOverride(float value) { enable(&overrideThrottleMaxEnabled,
-			&overrideThrottleMax, value); }
+	void enableThrottleMaxOverride(float value)
+	{
+		enable(&overrideThrottleMaxEnabled,
+		       &overrideThrottleMax, value);
+	}
 	void disableThrottleMaxOverride() { disable(&overrideThrottleMaxEnabled); }
-	void enablePitchMinOverride(float value) { enable(&overridePitchMinEnabled,
-			&overridePitchMin, value); }
+	void enablePitchMinOverride(float value)
+	{
+		enable(&overridePitchMinEnabled,
+		       &overridePitchMin, value);
+	}
 	void disablePitchMinOverride() { disable(&overridePitchMinEnabled); }
-	void enablePitchMaxOverride(float value) { enable(&overridePitchMaxEnabled,
-			&overridePitchMax, value); }
+	void enablePitchMaxOverride(float value)
+	{
+		enable(&overridePitchMaxEnabled,
+		       &overridePitchMax, value);
+	}
 	void disablePitchMaxOverride() { disable(&overridePitchMaxEnabled); }
 
 protected:

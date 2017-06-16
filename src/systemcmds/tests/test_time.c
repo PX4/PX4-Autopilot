@@ -36,8 +36,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
 #include <sys/types.h>
 
 #include <stdio.h>
@@ -45,11 +46,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -90,8 +90,9 @@ cycletime(void)
 
 	cycles = *(unsigned long *)0xe0001004;
 
-	if (cycles < lasttime)
+	if (cycles < lasttime) {
 		basetime += 0x100000000ULL;
+	}
 
 	lasttime = cycles;
 
@@ -103,7 +104,7 @@ cycletime(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: test_led
+ * Name: test_time
  ****************************************************************************/
 
 int test_time(int argc, char *argv[])
@@ -120,12 +121,12 @@ int test_time(int argc, char *argv[])
 	delta = 0;
 
 	for (unsigned i = 0; i < 100; i++) {
-		uint32_t flags = irqsave();
+		uint32_t flags = px4_enter_critical_section();
 
 		h = hrt_absolute_time();
 		c = cycletime();
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 
 		delta += h - c;
 	}
@@ -137,24 +138,26 @@ int test_time(int argc, char *argv[])
 
 		usleep(rand());
 
-		uint32_t flags = irqsave();
+		uint32_t flags = px4_enter_critical_section();
 
 		c = cycletime();
 		h = hrt_absolute_time();
 
-		irqrestore(flags);
+		px4_leave_critical_section(flags);
 
 		delta = abs(h - c);
 		deltadelta = abs(delta - lowdelta);
 
-		if (deltadelta > maxdelta)
+		if (deltadelta > maxdelta) {
 			maxdelta = deltadelta;
+		}
 
-		if (deltadelta > 1000)
-			fprintf(stderr, "h %llu  c %llu  d %lld\n", h, c, delta - lowdelta);
+		if (deltadelta > 1000) {
+			fprintf(stderr, "h %" PRIu64 " c %" PRIu64 " d %" PRId64 "\n", h, c, delta - lowdelta);
+		}
 	}
 
-	printf("Maximum jitter %lldus\n", maxdelta);
+	printf("Maximum jitter %" PRId64 "us\n", maxdelta);
 
 	return 0;
 }

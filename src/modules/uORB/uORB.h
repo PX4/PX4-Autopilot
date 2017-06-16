@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,8 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Hack until everything is using this header
-#include <systemlib/visibility.h>
 
 /**
  * Object metadata.
@@ -52,9 +50,30 @@
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const size_t o_size;		/**< object size */
+	const size_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
+	const char *o_fields;		/**< semicolon separated list of fields (with type) */
 };
 
 typedef const struct orb_metadata *orb_id_t;
+
+/**
+ * Maximum number of multi topic instances
+ */
+#define ORB_MULTI_MAX_INSTANCES	4 // This must be < 10 (because it's the last char of the node path)
+
+/**
+ * Topic priority.
+ * Relevant for multi-topics / topic groups
+ */
+enum ORB_PRIO {
+	ORB_PRIO_MIN = 1, // leave 0 free for other purposes, eg. marking an uninitialized value
+	ORB_PRIO_VERY_LOW = 25,
+	ORB_PRIO_LOW = 50,
+	ORB_PRIO_DEFAULT = 75,
+	ORB_PRIO_HIGH = 100,
+	ORB_PRIO_VERY_HIGH = 125,
+	ORB_PRIO_MAX = 255
+};
 
 /**
  * Generates a pointer to the uORB metadata structure for
@@ -68,22 +87,14 @@ typedef const struct orb_metadata *orb_id_t;
 #define ORB_ID(_name)		&__orb_##_name
 
 /**
- * Declare (prototype) the uORB metadata for a topic.
- *
- * Note that optional topics are declared weak; this allows a potential
- * subscriber to attempt to subscribe to a topic that is not known to the
- * system at runtime.  The ORB_ID() macro will return NULL/nullptr for
- * such a topic, and attempts to advertise or subscribe to it will
- * return -1/ENOENT (see below).
+ * Declare (prototype) the uORB metadata for a topic (used by code generators).
  *
  * @param _name		The name of the topic.
  */
 #if defined(__cplusplus)
 # define ORB_DECLARE(_name)		extern "C" const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern "C" const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
 #else
 # define ORB_DECLARE(_name)		extern const struct orb_metadata __orb_##_name __EXPORT
-# define ORB_DECLARE_OPTIONAL(_name)	extern const struct orb_metadata __orb_##_name __EXPORT __attribute__((weak))
 #endif
 
 /**
@@ -97,11 +108,15 @@ typedef const struct orb_metadata *orb_id_t;
  *
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
+ * @param _size_no_padding	Struct size w/o padding at the end
+ * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
  */
-#define ORB_DEFINE(_name, _struct)			\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
-		sizeof(_struct)				\
+		sizeof(_struct),		\
+		_size_no_padding,			\
+		_fields					\
 	}; struct hack
 
 __BEGIN_DECLS
@@ -116,7 +131,35 @@ __BEGIN_DECLS
  * a file-descriptor-based handle would not otherwise be in scope for the
  * publisher.
  */
-typedef intptr_t	orb_advert_t;
+typedef void 	*orb_advert_t;
+
+/**
+ * @see uORB::Manager::orb_advertise()
+ */
+extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_advertise()
+ */
+extern orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data,
+					unsigned int queue_size) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_advertise_multi()
+ */
+extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
+					int priority) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_advertise_multi()
+ */
+extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
+		int priority, unsigned int queue_size) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_unadvertise()
+ */
+extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
 
 /**
  * Advertise as the publisher of a topic.
@@ -124,141 +167,82 @@ typedef intptr_t	orb_advert_t;
  * This performs the initial advertisement of a topic; it creates the topic
  * node in /obj if required and publishes the initial data.
  *
- * Any number of advertisers may publish to a topic; publications are atomic
- * but co-ordination between publishers is not provided by the ORB. 
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @param data		A pointer to the initial data to be published.
- *			For topics updated by interrupt handlers, the advertisement
- *			must be performed from non-interrupt context.
- * @return		ERROR on error, otherwise returns a handle
- *			that can be used to publish to the topic.
- *			If the topic in question is not known (due to an
- *			ORB_DEFINE with no corresponding ORB_DECLARE)
- *			this function will return -1 and set errno to ENOENT.
+ * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
-extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
+extern int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
+			    int priority);
 
 /**
- * Publish new data to a topic.
- *
- * The data is atomically published to the topic and any waiting subscribers
- * will be notified.  Subscribers that are not waiting can check the topic
- * for updates using orb_check and/or orb_stat.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @handle		The handle returned from orb_advertise.
- * @param data		A pointer to the data to be published.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
+ * @see uORB::Manager::orb_publish()
  */
 extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
 
 /**
- * Subscribe to a topic.
- *
- * The returned value is a file descriptor that can be passed to poll()
- * in order to wait for updates to a topic, as well as topic_read,
- * orb_check and orb_stat.
- *
- * Subscription will succeed even if the topic has not been advertised;
- * in this case the topic will have a timestamp of zero, it will never
- * signal a poll() event, checking will always return false and it cannot
- * be copied. When the topic is subsequently advertised, poll, check,
- * stat and copy calls will react to the initial publication that is
- * performed as part of the advertisement.
- *
- * Subscription will fail if the topic is not known to the system, i.e.
- * there is nothing in the system that has declared the topic and thus it
- * can never be published.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @return		ERROR on error, otherwise returns a handle
- *			that can be used to read and update the topic.
- *			If the topic in question is not known (due to an
- *			ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
- *			this function will return -1 and set errno to ENOENT.
+ * @see uORB::Manager::orb_subscribe()
  */
 extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
 
 /**
- * Unsubscribe from a topic.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
+ * @see uORB::Manager::orb_subscribe_multi()
+ */
+extern int	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_unsubscribe()
  */
 extern int	orb_unsubscribe(int handle) __EXPORT;
 
 /**
- * Fetch data from a topic.
- *
- * This is the only operation that will reset the internal marker that
- * indicates that a topic has been updated for a subscriber. Once poll
- * or check return indicating that an updaet is available, this call
- * must be used to update the subscription.
- *
- * @param meta		The uORB metadata (usually from the ORB_ID() macro)
- *			for the topic.
- * @param handle	A handle returned from orb_subscribe.
- * @param buffer	Pointer to the buffer receiving the data, or NULL
- *			if the caller wants to clear the updated flag without
- *			using the data.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
+ * @see uORB::Manager::orb_copy()
  */
 extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) __EXPORT;
 
 /**
- * Check whether a topic has been published to since the last orb_copy.
- *
- * This check can be used to determine whether to copy the topic when
- * not using poll(), or to avoid the overhead of calling poll() when the
- * topic is likely to have updated.
- *
- * Updates are tracked on a per-handle basis; this call will continue to
- * return true until orb_copy is called using the same handle. This interface
- * should be preferred over calling orb_stat due to the race window between
- * stat and copy that can lead to missed updates.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param updated	Set to true if the topic has been updated since the
- *			last time it was copied using this handle.
- * @return		OK if the check was successful, ERROR otherwise with
- *			errno set accordingly.
+ * @see uORB::Manager::orb_check()
  */
 extern int	orb_check(int handle, bool *updated) __EXPORT;
 
 /**
- * Return the last time that the topic was updated.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param time		Returns the absolute time that the topic was updated, or zero if it has
- *			never been updated. Time is measured in microseconds.
- * @return		OK on success, ERROR otherwise with errno set accordingly.
+ * @see uORB::Manager::orb_stat()
  */
 extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
- * Set the minimum interval between which updates are seen for a subscription.
+ * @see uORB::Manager::orb_exists()
+ */
+extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
+
+/**
+ * Get the number of published instances of a topic group
  *
- * If this interval is set, the subscriber will not see more than one update
- * within the period.
- *
- * Specifically, the first time an update is reported to the subscriber a timer
- * is started. The update will continue to be reported via poll and orb_check, but
- * once fetched via orb_copy another update will not be reported until the timer
- * expires.
- *
- * This feature can be used to pace a subscriber that is watching a topic that
- * would otherwise update too quickly.
- *
- * @param handle	A handle returned from orb_subscribe.
- * @param interval	An interval period in milliseconds.
- * @return		OK on success, ERROR otherwise with ERRNO set accordingly.
+ * @param meta    ORB topic metadata.
+ * @return    The number of published instances of this topic
+ */
+extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_priority()
+ */
+extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_set_interval()
  */
 extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 
+/**
+ * @see uORB::Manager::orb_get_interval()
+ */
+extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
+
 __END_DECLS
+
+/* Diverse uORB header defines */ //XXX: move to better location
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
+typedef uint8_t arming_state_t;
+typedef uint8_t main_state_t;
+typedef uint8_t hil_state_t;
+typedef uint8_t navigation_state_t;
+typedef uint8_t switch_pos_t;
 
 #endif /* _UORB_UORB_H */

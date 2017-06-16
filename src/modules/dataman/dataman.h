@@ -39,95 +39,159 @@
 #ifndef _DATAMANAGER_H
 #define _DATAMANAGER_H
 
+#include <string.h>
+#include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
+#include <uORB/topics/fence_vertex.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	/** Types of items that the data manager can store */
-	typedef enum {
-		DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
-		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
-		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
-		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
-		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
-		DM_KEY_MISSION_STATE,		/* Persistent mission state */
-		DM_KEY_NUM_KEYS			/* Total number of item types defined */
-	} dm_item_t;
+/** Types of items that the data manager can store */
+typedef enum {
+	DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
+	DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
+	DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
+	DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
+	DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
+	DM_KEY_MISSION_STATE,		/* Persistent mission state */
+	DM_KEY_COMPAT,
+	DM_KEY_NUM_KEYS			/* Total number of item types defined */
+} dm_item_t;
 
-	#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1)
+#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1)
 
-	/** The maximum number of instances for each item type */
-	enum {
-		DM_KEY_SAFE_POINTS_MAX = 8,
-		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
-		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_MISSION_STATE_MAX = 1
-	};
+#if defined(MEMORY_CONSTRAINED_SYSTEM)
+enum {
+	DM_KEY_SAFE_POINTS_MAX = 8,
+#ifdef __cplusplus
+	DM_KEY_FENCE_POINTS_MAX = fence_s::GEOFENCE_MAX_VERTICES,
+#else
+	DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
+#endif
+	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
+	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
+	DM_KEY_WAYPOINTS_ONBOARD_MAX = (NUM_MISSIONS_SUPPORTED / 10),
+	DM_KEY_MISSION_STATE_MAX = 1,
+	DM_KEY_COMPAT_MAX = 1
+};
+#else
+/** The maximum number of instances for each item type */
+enum {
+	DM_KEY_SAFE_POINTS_MAX = 8,
+#ifdef __cplusplus
+	DM_KEY_FENCE_POINTS_MAX = fence_s::GEOFENCE_MAX_VERTICES,
+#else
+	DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
+#endif
+	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
+	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
+	DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
+	DM_KEY_MISSION_STATE_MAX = 1,
+	DM_KEY_COMPAT_MAX = 1
+};
+#endif
+/** Data persistence levels */
+typedef enum {
+	DM_PERSIST_POWER_ON_RESET = 0,	/* Data survives all resets */
+	DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
+	DM_PERSIST_VOLATILE             /* Data does not survive resets */
+} dm_persitence_t;
 
-	/** Data persistence levels */
-	typedef enum {
-		DM_PERSIST_POWER_ON_RESET = 0,	/* Data survives all resets */
-		DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
-		DM_PERSIST_VOLATILE             /* Data does not survive resets */
-	} dm_persitence_t;
+/** The reason for the last reset */
+typedef enum {
+	DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
+	DM_INIT_REASON_IN_FLIGHT,		/* Data survives in-flight resets only */
+	DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
+} dm_reset_reason;
 
-	/** The reason for the last reset */
-	typedef enum {
-		DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
-		DM_INIT_REASON_IN_FLIGHT,		/* Data survives in-flight resets only */
-		DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
-	} dm_reset_reason;
+struct dataman_compat_s {
+	uint64_t key;
+};
 
-	/** Maximum size in bytes of a single item instance */
-	#define DM_MAX_DATA_SIZE 124
+/* increment this define whenever a binary incompatible change is performed */
+#define DM_COMPAT_VERSION	1ULL
 
-	/** Retrieve from the data manager store */
-	__EXPORT ssize_t
-	dm_read(
-		dm_item_t item,			/* The item type to retrieve */
-		unsigned char index,		/* The index of the item */
-		void *buffer,			/* Pointer to caller data buffer */
-		size_t buflen			/* Length in bytes of data to retrieve */
-	);
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + (sizeof(struct mission_s) << 16) + (sizeof(struct fence_vertex_s) << 8) + sizeof(struct dataman_compat_s))
 
-	/** write to the data manager store */
-	__EXPORT ssize_t
-	dm_write(
-		dm_item_t  item,		/* The item type to store */
-		unsigned char index,		/* The index of the item */
-		dm_persitence_t persistence,	/* The persistence level of this item */
-		const void *buffer,		/* Pointer to caller data buffer */
-		size_t buflen			/* Length in bytes of data to retrieve */
-	);
+/** Maximum size in bytes of a single item instance is
+ * defined by adding the structure type to the union below
+ */
 
-	/** Lock all items of this type */
-	__EXPORT void
-	dm_lock(
-		dm_item_t item			/* The item type to clear */
-		);
+typedef union dataman_max_size_t {
+	struct mission_item_s		mission_item;
+	struct mission_s			mission;
+	struct fence_vertex_s		vertex;
+	struct dataman_compat_s		compat;
+} dataman_max_size_t;
 
-	/** Unlock all items of this type */
-	__EXPORT void
-	dm_unlock(
-		dm_item_t item			/* The item type to clear */
-		);
 
-	/** Erase all items of this type */
-	__EXPORT int
-	dm_clear(
-		dm_item_t item			/* The item type to clear */
-		);
+#define DM_MAX_DATA_SIZE sizeof(dataman_max_size_t)
 
-	/** Tell the data manager about the type of the last reset */
-	__EXPORT int
-	dm_restart(
-		dm_reset_reason restart_type	/* The last reset type */
-	);
+/** Retrieve from the data manager store */
+__EXPORT ssize_t
+dm_read(
+	dm_item_t item,			/* The item type to retrieve */
+	unsigned index,			/* The index of the item */
+	void *buffer,			/* Pointer to caller data buffer */
+	size_t buflen			/* Length in bytes of data to retrieve */
+);
+
+/** write to the data manager store */
+__EXPORT ssize_t
+dm_write(
+	dm_item_t  item,		/* The item type to store */
+	unsigned index,			/* The index of the item */
+	dm_persitence_t persistence,	/* The persistence level of this item */
+	const void *buffer,		/* Pointer to caller data buffer */
+	size_t buflen			/* Length in bytes of data to retrieve */
+);
+
+/** Lock all items of this type */
+__EXPORT void
+dm_lock(
+	dm_item_t item			/* The item type to clear */
+);
+
+/** Unlock all items of this type */
+__EXPORT void
+dm_unlock(
+	dm_item_t item			/* The item type to clear */
+);
+
+/** Erase all items of this type */
+__EXPORT int
+dm_clear(
+	dm_item_t item			/* The item type to clear */
+);
+
+/** Tell the data manager about the type of the last reset */
+__EXPORT int
+dm_restart(
+	dm_reset_reason restart_type	/* The last reset type */
+);
+
+#if defined(FLASH_BASED_DATAMAN)
+typedef struct dm_sector_descriptor_t {
+	uint8_t       page;
+	uint32_t      size;
+	uint32_t      address;
+} dm_sector_descriptor_t;
+
+/**
+ * Set the flash sector description were data should persist data
+ *
+ * Important: do not use a Flash sector from the same bank that STM32 read
+ * instructions or the CPU will held for sometime during Flash erase and write
+ * and this could cause your drone to fall.
+ */
+__EXPORT int
+dm_flash_sector_description_set(
+	const dm_sector_descriptor_t *description
+);
+#endif
 
 #ifdef __cplusplus
 }

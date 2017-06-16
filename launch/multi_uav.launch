@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="headless" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="debug" default="false"/>
+  <arg name="ns" default="iris"/>
+  <arg name="log_file" default="$(arg ns)"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find rotors_gazebo)/worlds/basic.world"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+  
+   <group ns="iris">
+      <include file="$(find rotors_gazebo)/launch/spawn_iris.launch">
+        <arg name="model" value="$(find rotors_description)/urdf/iris_gesture_sensors.gazebo" />
+        <arg name="enable_logging" value="$(arg enable_logging)" />
+        <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+        <arg name="log_file" value="$(arg log_file)"/>
+        <arg name="x" value="1"/>
+        <arg name="y" value="0"/>
+      </include>
+      <arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
+      <include file="$(find mavros)/launch/px4.launch">
+        <arg name="fcu_url" value="$(arg fcu_url)" />
+      </include>
+   </group>
+   <include file="$(find px4)/launch/iris.launch">
+     <arg name="ns" value="iris"/>
+   </include>   
+      
+   <group ns="ardrone">
+      <include file="$(find rotors_gazebo)/launch/spawn_ardrone.launch">
+        <arg name="model" value="$(find rotors_description)/urdf/ardrone_base.xacro" />
+        <arg name="enable_logging" value="$(arg enable_logging)" />
+        <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+        <arg name="log_file" value="$(arg log_file)"/>
+        <arg name="x" value="-1"/>
+        <arg name="y" value="0"/>
+      </include>
+      <arg name="fcu_url" default="udp://localhost:14570@localhost:14575" />
+      <include file="$(find mavros)/launch/px4.launch">
+        <arg name="fcu_url" value="$(arg fcu_url)" />
+      </include>
+   </group>
+   <include file="$(find px4)/launch/ardrone.launch">
+	<arg name="ns" value="ardrone"/>
+	<arg name="mavlink_fcu_url" value="udp://localhost:14575@localhost:14570"/>
+   </include>
+
+</launch>   

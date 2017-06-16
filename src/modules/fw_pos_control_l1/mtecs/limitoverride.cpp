@@ -41,10 +41,11 @@
 
 #include "limitoverride.h"
 
-namespace fwPosctrl {
+namespace fwPosctrl
+{
 
 bool LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
-		BlockOutputLimiter &outputLimiterPitch)
+				  BlockOutputLimiter &outputLimiterPitch)
 {
 	bool ret = false;
 
@@ -52,14 +53,17 @@ bool LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
 		outputLimiterThrottle.setMin(overrideThrottleMin);
 		ret = true;
 	}
+
 	if (overrideThrottleMaxEnabled)	{
 		outputLimiterThrottle.setMax(overrideThrottleMax);
 		ret = true;
 	}
+
 	if (overridePitchMinEnabled)	{
 		outputLimiterPitch.setMin(overridePitchMin);
 		ret = true;
 	}
+
 	if (overridePitchMaxEnabled)	{
 		outputLimiterPitch.setMax(overridePitchMax);
 		ret = true;

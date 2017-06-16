@@ -43,8 +43,6 @@
 #ifndef OTP_H_
 #define OTP_H_
 
-__BEGIN_DECLS
-
 #define ADDR_OTP_START			0x1FFF7800
 #define ADDR_OTP_LOCK_START		0x1FFF7A00
 
@@ -54,6 +52,7 @@ __BEGIN_DECLS
 
 
 #include <unistd.h>
+#include <stdint.h>
 #include <stdio.h>
 
 // possible flash statuses
@@ -64,30 +63,30 @@ __BEGIN_DECLS
 #define F_COMPLETE 5
 
 typedef struct {
-	volatile uint32_t accesscontrol;      // 0x00
-	volatile uint32_t key;     //  0x04
-	volatile uint32_t optionkey;  //  0x08
-	volatile uint32_t status;       // 0x0C
-	volatile uint32_t control;       // 0x10
-	volatile uint32_t optioncontrol;    //0x14
+	volatile unsigned long accesscontrol;      // 0x00
+	volatile unsigned long key;     //  0x04
+	volatile unsigned long optionkey;  //  0x08
+	volatile unsigned long status;       // 0x0C
+	volatile unsigned long control;       // 0x10
+	volatile unsigned long optioncontrol;    //0x14
 } flash_registers;
 
-#define PERIPH_BASE           ((uint32_t)0x40000000) //Peripheral base address
+#define PERIPH_BASE           ((unsigned long)0x40000000) //Peripheral base address
 #define AHB1PERIPH_BASE       (PERIPH_BASE + 0x00020000)
 #define F_R_BASE          (AHB1PERIPH_BASE + 0x3C00)
 #define FLASH               ((flash_registers *) F_R_BASE)
 
-#define F_BSY ((uint32_t)0x00010000) //FLASH Busy flag bit
-#define F_OPERR ((uint32_t)0x00000002) //FLASH operation Error flag bit
-#define F_WRPERR ((uint32_t)0x00000010) //FLASH Write protected error flag bit
-#define CR_PSIZE_MASK ((uint32_t)0xFFFFFCFF)
-#define F_PSIZE_WORD ((uint32_t)0x00000200)
-#define F_PSIZE_BYTE ((uint32_t)0x00000000)
-#define F_CR_PG ((uint32_t)0x00000001) // a bit in the F_CR register
-#define F_CR_LOCK ((uint32_t)0x80000000) // also another bit.
+#define F_BSY ((unsigned long)0x00010000) //FLASH Busy flag bit
+#define F_OPERR ((unsigned long)0x00000002) //FLASH operation Error flag bit
+#define F_WRPERR ((unsigned long)0x00000010) //FLASH Write protected error flag bit
+#define CR_PSIZE_MASK ((unsigned long)0xFFFFFCFF)
+#define F_PSIZE_WORD ((unsigned long)0x00000200)
+#define F_PSIZE_BYTE ((unsigned long)0x00000000)
+#define F_CR_PG ((unsigned long)0x00000001) // a bit in the F_CR register
+#define F_CR_LOCK ((unsigned long)0x80000000) // also another bit.
 
-#define F_KEY1 ((uint32_t)0x45670123)
-#define F_KEY2 ((uint32_t)0xCDEF89AB)
+#define F_KEY1 ((unsigned long)0x45670123)
+#define F_KEY2 ((unsigned long)0xCDEF89AB)
 #define IS_F_ADDRESS(ADDRESS) ((((ADDRESS) >= 0x08000000) && ((ADDRESS) < 0x080FFFFF)) || (((ADDRESS) >= 0x1FFF7800) && ((ADDRESS) < 0x1FFF7A0F)))
 
 
@@ -129,6 +128,7 @@ union udid {
 };
 #pragma pack(pop)
 
+__BEGIN_DECLS
 
 /**
  *   s
@@ -143,8 +143,8 @@ __EXPORT int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char *signat
 __EXPORT int lock_otp(void);
 
 
-__EXPORT int F_write_byte(uint32_t Address, uint8_t Data);
-__EXPORT int F_write_word(uint32_t Address, uint32_t Data);
+__EXPORT int F_write_byte(unsigned long Address, uint8_t Data);
+__EXPORT int F_write_word(unsigned long Address, uint32_t Data);
 
 __END_DECLS
 

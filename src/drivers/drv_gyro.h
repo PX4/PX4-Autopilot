@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,30 +46,16 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define GYRO_DEVICE_PATH	"/dev/gyro"
+#define GYRO_BASE_DEVICE_PATH	"/dev/gyro"
+#define GYRO0_DEVICE_PATH	"/dev/gyro0"
+#define GYRO1_DEVICE_PATH	"/dev/gyro1"
+#define GYRO2_DEVICE_PATH	"/dev/gyro2"
 
-/**
- * gyro report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct gyro_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	float x;		/**< angular velocity in the NED X board axis in rad/s */
-	float y;		/**< angular velocity in the NED Y board axis in rad/s */
-	float z;		/**< angular velocity in the NED Z board axis in rad/s */
-	float temperature;	/**< temperature in degrees celcius */
-	float range_rad_s;
-	float scaling;
-
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-	int16_t temperature_raw;
-};
+#include <uORB/topics/sensor_gyro.h>
+#define gyro_report sensor_gyro_s
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct gyro_scale {
+struct gyro_calibration_s {
 	float	x_offset;
 	float	x_scale;
 	float	y_offset;
@@ -79,21 +65,16 @@ struct gyro_scale {
 };
 
 /*
- * ObjDev tag for raw gyro data.
- */
-ORB_DECLARE(sensor_gyro0);
-ORB_DECLARE(sensor_gyro1);
-ORB_DECLARE(sensor_gyro2);
-
-/*
  * ioctl() definitions
  */
 
 #define _GYROIOCBASE		(0x2300)
-#define _GYROIOC(_n)		(_IOC(_GYROIOCBASE, _n))
+#define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
 
 /** set the gyro internal sample rate to at least (arg) Hz */
 #define GYROIOCSSAMPLERATE	_GYROIOC(0)
+
+#define GYRO_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
 
 /** return the gyro internal sample rate in Hz */
 #define GYROIOCGSAMPLERATE	_GYROIOC(1)
@@ -118,5 +99,15 @@ ORB_DECLARE(sensor_gyro2);
 
 /** check the status of the sensor */
 #define GYROIOCSELFTEST		_GYROIOC(8)
+
+/** set the hardware low-pass filter cut-off no lower than (arg) Hz */
+#define GYROIOCSHWLOWPASS	_GYROIOC(9)
+
+/** get the hardware low-pass filter cut-off in Hz*/
+#define GYROIOCGHWLOWPASS	_GYROIOC(10)
+
+/** determine if hardware is external or onboard */
+#define GYROIOCGEXTERNAL	_GYROIOC(12)
+
 
 #endif /* _DRV_GYRO_H */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,40 +37,67 @@
  * Tests related to the parameter system.
  */
 
+#include <px4_defines.h>
 #include <stdio.h>
 #include "systemlib/err.h"
-
 #include "systemlib/param/param.h"
-#include "tests.h"
+#include "tests_main.h"
 
-PARAM_DEFINE_INT32(test, 0x12345678);
+#define PARAM_MAGIC1 12345678
+#define PARAM_MAGIC2 0xa5a5a5a5
 
 int
 test_param(int argc, char *argv[])
 {
 	param_t		p;
 
-	p = param_find("test");
-	if (p == PARAM_INVALID)
-		errx(1, "test parameter not found");
+	p = param_find("TEST_PARAMS");
+
+	if (p == PARAM_INVALID) {
+		warnx("test parameter not found");
+		return 1;
+	}
+
+	if (param_reset(p) != OK) {
+		warnx("failed param reset");
+		return 1;
+	}
 
 	param_type_t t = param_type(p);
-	if (t != PARAM_TYPE_INT32)
-		errx(1, "test parameter type mismatch (got %u)", (unsigned)t);
 
-	int32_t	val;
-	if (param_get(p, &val) != 0)
-		errx(1, "failed to read test parameter");
-	if (val != 0x12345678)
-		errx(1, "parameter value mismatch");
+	if (t != PARAM_TYPE_INT32) {
+		warnx("test parameter type mismatch (got %u)", (unsigned)t);
+		return 1;
+	}
 
-	val = 0xa5a5a5a5;
-	if (param_set(p, &val) != 0)
-		errx(1, "failed to write test parameter");
-	if (param_get(p, &val) != 0)
-		errx(1, "failed to re-read test parameter");
-	if ((uint32_t)val != 0xa5a5a5a5)
-		errx(1, "parameter value mismatch after write");
+	int32_t	val = -1;
+
+	if (param_get(p, &val) != OK) {
+		warnx("failed to read test parameter");
+		return 1;
+	}
+
+	if (val != PARAM_MAGIC1) {
+		warnx("parameter value mismatch");
+		return 1;
+	}
+
+	val = PARAM_MAGIC2;
+
+	if (param_set(p, &val) != OK) {
+		warnx("failed to write test parameter");
+		return 1;
+	}
+
+	if (param_get(p, &val) != OK) {
+		warnx("failed to re-read test parameter");
+		return 1;
+	}
+
+	if ((uint32_t)val != PARAM_MAGIC2) {
+		warnx("parameter value mismatch after write");
+		return 1;
+	}
 
 	warnx("parameter test PASS");
 

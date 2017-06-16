@@ -2,11 +2,18 @@
 #
 # PX4FMU startup script for test hackery.
 #
+set unit_test_failure 0
+
 uorb start
+
+if rgbled start
+then
+	led_control on -c blue
+fi
 
 if sercon
 then
-	echo "[init] USB interface connected"
+	echo "[i] USB interface connected"
 
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
@@ -15,14 +22,14 @@ fi
 #
 # Try to mount the microSD card.
 #
-echo "[init] looking for microSD..."
-if mount -t vfat /dev/mmcsd0 /fs/microsd
+mount -t vfat /dev/mmcsd0 /fs/microsd
+if [ $? == 0 ]
 then
-	echo "[init] card mounted at /fs/microsd"
+	echo "[i] card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	echo "[init] no microSD card found"
+	echo "[i] no microSD card found"
 	# Play SOS
 	tone_alarm error
 fi
@@ -31,16 +38,41 @@ fi
 # Start a minimal system
 #
 
-if [ -f /etc/extras/px4io-v2_default.bin ]
+#
+# Start the ORB (first app to start)
+#
+uorb start
+
+#
+# Load parameters
+#
+set PARAM_FILE /fs/microsd/params
+if mtd start
 then
-	set io_file /etc/extras/px4io-v2_default.bin
+	set PARAM_FILE /fs/mtd_params
+fi
+
+param select $PARAM_FILE
+if param load
+then
+	echo "[param] Loaded: $PARAM_FILE"
 else
-	set io_file /etc/extras/px4io-v1_default.bin
+	echo "[param] FAILED loading $PARAM_FILE"
+fi
+
+if [ -f /etc/extras/px4io-v2.bin ]
+then
+	set io_file /etc/extras/px4io-v2.bin
+else
+	set io_file /etc/extras/px4io-v1.bin
 fi
 
 if px4io start
 then
 	echo "PX4IO OK"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} px4io_start"
 fi
 
 if px4io checkcrc $io_file
@@ -51,7 +83,6 @@ else
 	tone_alarm MBABGP
 	if px4io forceupdate 14662 $io_file
 	then
-		usleep 500000
 		if px4io start
 		then
 			echo "PX4IO restart OK"
@@ -59,12 +90,14 @@ else
 		else
 			echo "PX4IO restart failed"
 			tone_alarm MNGGG
-			sleep 5
-			reboot
+			set unit_test_failure 1
+			set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 		fi
 	else
 		echo "PX4IO update failed"
 		tone_alarm MNGGG
+		set unit_test_failure 1
+		set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 	fi
 fi
 
@@ -76,32 +109,24 @@ then
 	tests mount
 fi
 
+sh /etc/init.d/rc.sensors
+
+ver all
+
 #
 # Run unit tests at board boot, reporting failure as needed.
 # Add new unit tests using the same pattern as below.
 #
 
-set unit_test_failure 0
-
-if mavlink_tests
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} mavlink_tests"
-fi
-
-if commander_tests
-then
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} commander_tests"
-fi
-
-if [ $unit_test_failure == 0 ]
+if tests all
 then
 	echo
 	echo "All Unit Tests PASSED"
+	led_control on -c green
 else
 	echo
-	echo "Some Unit Tests FAILED:${unit_test_failure_list}"
+	echo "Some Unit Tests FAILED"
+	led_control on -c red
 fi
+
+free

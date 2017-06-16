@@ -104,8 +104,8 @@ interface_init(void)
 	rx_dma = stm32_dmachannel(PX4FMU_SERIAL_RX_DMA);
 
 	/* configure pins for serial use */
-	stm32_configgpio(PX4FMU_SERIAL_TX_GPIO);
-	stm32_configgpio(PX4FMU_SERIAL_RX_GPIO);
+	px4_arch_configgpio(PX4FMU_SERIAL_TX_GPIO);
+	px4_arch_configgpio(PX4FMU_SERIAL_RX_GPIO);
 
 	/* reset and configure the UART */
 	rCR1 = 0;
@@ -131,14 +131,19 @@ interface_init(void)
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 #if 0	/* keep this for signal integrity testing */
+
 	for (;;) {
 		while (!(rSR & USART_SR_TXE))
 			;
+
 		rDR = 0xfa;
+
 		while (!(rSR & USART_SR_TXE))
 			;
+
 		rDR = 0xa0;
 	}
+
 #endif
 
 	/* configure RX DMA and return to listening state */
@@ -153,6 +158,7 @@ rx_handle_packet(void)
 	/* check packet CRC */
 	uint8_t crc = dma_packet.crc;
 	dma_packet.crc = 0;
+
 	if (crc != crc_packet(&dma_packet)) {
 		perf_count(pc_crcerr);
 
@@ -170,11 +176,13 @@ rx_handle_packet(void)
 		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet))) {
 			perf_count(pc_regerr);
 			dma_packet.count_code = PKT_CODE_ERROR;
+
 		} else {
 			dma_packet.count_code = PKT_CODE_SUCCESS;
 		}
+
 		return;
-	} 
+	}
 
 	if (PKT_CODE(dma_packet) == PKT_CODE_READ) {
 
@@ -185,17 +193,22 @@ rx_handle_packet(void)
 		if (registers_get(dma_packet.page, dma_packet.offset, &registers, &count) < 0) {
 			perf_count(pc_regerr);
 			dma_packet.count_code = PKT_CODE_ERROR;
+
 		} else {
 			/* constrain reply to requested size */
-			if (count > PKT_MAX_REGS)
+			if (count > PKT_MAX_REGS) {
 				count = PKT_MAX_REGS;
-			if (count > PKT_COUNT(dma_packet))
+			}
+
+			if (count > PKT_COUNT(dma_packet)) {
 				count = PKT_COUNT(dma_packet);
+			}
 
 			/* copy reply registers into DMA buffer */
 			memcpy((void *)&dma_packet.regs[0], registers, count * 2);
 			dma_packet.count_code = count | PKT_CODE_SUCCESS;
 		}
+
 		return;
 	}
 
@@ -250,16 +263,22 @@ serial_interrupt(int irq, void *context)
 	(void)rDR;		/* required to clear any of the interrupt status that brought us here */
 
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
-		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
-		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
+		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
 
 		perf_count(pc_errors);
-		if (sr & USART_SR_ORE)
+
+		if (sr & USART_SR_ORE) {
 			perf_count(pc_ore);
-		if (sr & USART_SR_NE)
+		}
+
+		if (sr & USART_SR_NE) {
 			perf_count(pc_ne);
-		if (sr & USART_SR_FE)
+		}
+
+		if (sr & USART_SR_FE) {
 			perf_count(pc_fe);
+		}
 
 		/* send a line break - this will abort transmission/reception on the other end */
 		rCR1 |= USART_CR1_SBK;
@@ -270,7 +289,7 @@ serial_interrupt(int irq, void *context)
 
 	if (sr & USART_SR_IDLE) {
 
-		/* 
+		/*
 		 * If we saw an error, don't bother looking at the packet - it should have
 		 * been aborted by the sender and will definitely be bad. Get the DMA reconfigured
 		 * ready for their retry.
@@ -284,10 +303,11 @@ serial_interrupt(int irq, void *context)
 
 		/*
 		 * The sender has stopped sending - this is probably the end of a packet.
-		 * Check the received length against the length in the header to see if 
+		 * Check the received length against the length in the header to see if
 		 * we have something that looks like a packet.
 		 */
 		unsigned length = sizeof(dma_packet) - stm32_dmaresidual(rx_dma);
+
 		if ((length < 1) || (length < PKT_SIZE(dma_packet))) {
 
 			/* it was too short - possibly truncated */

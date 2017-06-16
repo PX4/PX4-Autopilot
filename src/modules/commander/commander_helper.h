@@ -46,43 +46,43 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 
 bool is_multirotor(const struct vehicle_status_s *current_status);
 bool is_rotary_wing(const struct vehicle_status_s *current_status);
+bool is_vtol(const struct vehicle_status_s *current_status);
 
 int buzzer_init(void);
 void buzzer_deinit(void);
 
+void set_tune_override(int tune);
 void set_tune(int tune);
+void tune_home_set(bool use_buzzer);
+void tune_mission_ok(bool use_buzzer);
+void tune_mission_fail(bool use_buzzer);
 void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);
 void tune_negative(bool use_buzzer);
+void tune_failsafe(bool use_buzzer);
 
 int blink_msg_state();
 
+/* methods to control the onboard LED(s) */
 int led_init(void);
 void led_deinit(void);
 int led_toggle(int led);
 int led_on(int led);
 int led_off(int led);
 
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
 /**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @param voltage the current battery voltage
- * @param discharged the discharged capacity
- * @param throttle_normalized the normalized throttle magnitude from 0 to 1. Negative throttle should be converted to this range as well, as it consumes energy.
- * @return the estimated remaining capacity in 0..1
+ * set the LED color & mode
+ * @param color @see led_control_s::COLOR_*
+ * @param mode @see led_control_s::MODE_*
  */
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode);
+
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio);
 
 #endif /* COMMANDER_HELPER_H_ */

@@ -44,7 +44,8 @@
 #include <lib/geo/geo.h>
 #include <stdio.h>
 
-namespace fwPosctrl {
+namespace fwPosctrl
+{
 
 mTecs::mTecs() :
 	SuperBlock(NULL, "MT"),
@@ -52,15 +53,17 @@ mTecs::mTecs() :
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
-	_status(&getPublications(), ORB_ID(tecs_status)),
+#if defined(__PX4_NUTTX)
+	_status(ORB_ID(tecs_status), -1, &getPublications()),
+#endif // defined(__PX4_NUTTX)
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
 	_controlAltitude(this, "FPA", true),
 	_controlAirSpeed(this, "ACC"),
-	_flightPathAngleLowpass(this, "FPA_LP"),
-	_altitudeLowpass(this, "ALT_LP"),
-	_airspeedLowpass(this, "A_LP"),
+	_flightPathAngleLowpass(this, "FPA_LP", 50),
+	_altitudeLowpass(this, "ALT_LP", 50),
+	_airspeedLowpass(this, "A_LP", 50),
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
 	_pitchSp(0.0f),
@@ -83,11 +86,11 @@ mTecs::~mTecs()
 }
 
 int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
-		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
+			       float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
-			!isfinite(altitudeSp) || !isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(altitude) ||
+	    !PX4_ISFINITE(altitudeSp) || !PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -104,25 +107,28 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("***");
-		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, altitude filtered %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)altitudeFiltered, (double)flightPathAngleSp);
+		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, altitude filtered %.4f, flightPathAngleSp %.4f",
+		      (double)altitudeSp, (double)altitude, (double)altitudeFiltered, (double)flightPathAngleSp);
 	}
 
+#if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.altitudeSp = altitudeSp;
-	_status.altitude_filtered = altitudeFiltered;
+	_status.get().altitudeSp = altitudeSp;
+	_status.get().altitude_filtered = altitudeFiltered;
+#endif // defined(__PX4_NUTTX)
 
 
 	/* use flightpath angle setpoint for total energy control */
 	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed,
-			airspeedSp, mode, limitOverride);
+					  airspeedSp, mode, limitOverride);
 }
 
 int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
-		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
+				      float airspeedSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+	    !PX4_ISFINITE(airspeed) || !PX4_ISFINITE(airspeedSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
 
@@ -138,14 +144,16 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f airspeedFiltered %.4f,"
-				"accelerationLongitudinalSp%.4f",
-				(double)airspeedSp, (double)airspeed,
-				(double)airspeedFiltered, (double)accelerationLongitudinalSp);
+		      "accelerationLongitudinalSp%.4f",
+		      (double)airspeedSp, (double)airspeed,
+		      (double)airspeedFiltered, (double)accelerationLongitudinalSp);
 	}
 
+#if defined(__PX4_NUTTX)
 	/* Write part of the status message */
-	_status.airspeedSp = airspeedSp;
-	_status.airspeed_filtered = airspeedFiltered;
+	_status.get().airspeedSp = airspeedSp;
+	_status.get().airspeed_filtered = airspeedFiltered;
+#endif // defined(__PX4_NUTTX)
 
 
 	/* use longitudinal acceleration setpoint for total energy control */
@@ -154,13 +162,14 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 }
 
 int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
-		float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride)
+		float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
-	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeedFiltered) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
+	if (!PX4_ISFINITE(flightPathAngle) || !PX4_ISFINITE(flightPathAngleSp) ||
+	    !PX4_ISFINITE(airspeedFiltered) || !PX4_ISFINITE(accelerationLongitudinalSp) || !PX4_ISFINITE(mode)) {
 		return -1;
 	}
+
 	/* time measurement */
 	updateTimeMeasurement();
 
@@ -173,9 +182,11 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	/* calculate values (energies) */
 	float flightPathAngleError = flightPathAngleSp - flightPathAngleFiltered;
 	float airspeedDerivative = 0.0f;
-	if(_airspeedDerivative.getDt() > 0.0f) {
+
+	if (_airspeedDerivative.getDt() > 0.0f) {
 		airspeedDerivative = _airspeedDerivative.update(airspeedFiltered);
 	}
+
 	float airspeedDerivativeNorm = airspeedDerivative / CONSTANTS_ONE_G;
 	float airspeedDerivativeSp = accelerationLongitudinalSp;
 	float airspeedDerivativeNormSp = airspeedDerivativeSp / CONSTANTS_ONE_G;
@@ -194,49 +205,57 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
-				(double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2, (double)airspeedDerivativeNorm);
+		      (double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2,
+		      (double)airspeedDerivativeNorm);
 		debug("energyDistributionRateSp %.2f, energyDistributionRate %.2f, energyDistributionRateError %.2f energyDistributionRateError2 %.2f",
-				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
+		      (double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError,
+		      (double)energyDistributionRateError2);
 	}
 
 	/* Check airspeed: if below safe value switch to underspeed mode (if not in land or takeoff mode) */
-	if (mode != TECS_MODE_LAND && mode != TECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
-		mode = TECS_MODE_UNDERSPEED;
+	if (mode != MTECS_MODE_LAND && mode != MTECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
+		mode = MTECS_MODE_UNDERSPEED;
 	}
 
-	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
+	/* Set special output limiters if we are not in MTECS_MODE_NORMAL */
 	BlockOutputLimiter *outputLimiterThrottle = &_controlTotalEnergy.getOutputLimiter();
 	BlockOutputLimiter *outputLimiterPitch = &_controlEnergyDistribution.getOutputLimiter();
-	if (mode == TECS_MODE_TAKEOFF) {
+
+	if (mode == MTECS_MODE_TAKEOFF) {
 		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
-	} else if (mode == TECS_MODE_LAND) {
+
+	} else if (mode == MTECS_MODE_LAND) {
 		// only limit pitch but do not limit throttle
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == TECS_MODE_LAND_THROTTLELIM) {
+
+	} else if (mode == MTECS_MODE_LAND_THROTTLELIM) {
 		outputLimiterThrottle = &_BlockOutputLimiterLandThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
-	} else if (mode == TECS_MODE_UNDERSPEED) {
+
+	} else if (mode == MTECS_MODE_UNDERSPEED) {
 		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
 
-	/* Apply overrride given by the limitOverride argument (this is used for limits which are not given by
+	/* Apply override given by the limitOverride argument (this is used for limits which are not given by
 	 * parameters such as pitch limits with takeoff waypoints or throttle limits when the launchdetector
 	 * is running) */
 	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
-	/* Write part of the status message */
-	_status.flightPathAngleSp = flightPathAngleSp;
-	_status.flightPathAngle = flightPathAngle;
-	_status.flightPathAngleFiltered = flightPathAngleFiltered;
-	_status.airspeedDerivativeSp = airspeedDerivativeSp;
-	_status.airspeedDerivative = airspeedDerivative;
-	_status.totalEnergyRateSp = totalEnergyRateSp;
-	_status.totalEnergyRate = totalEnergyRate;
-	_status.energyDistributionRateSp = energyDistributionRateSp;
-	_status.energyDistributionRate = energyDistributionRate;
-	_status.mode = mode;
+// #if defined(__PX4_NUTTX)
+	// /* Write part of the status message */
+	// _status.flightPathAngleSp = flightPathAngleSp;
+	// _status.flightPathAngle = flightPathAngle;
+	// _status.flightPathAngleFiltered = flightPathAngleFiltered;
+	// _status.airspeedDerivativeSp = airspeedDerivativeSp;
+	// _status.airspeedDerivative = airspeedDerivative;
+	// _status.totalEnergyRateSp = totalEnergyRateSp;
+	// _status.totalEnergyRate = totalEnergyRate;
+	// _status.energyDistributionRateSp = energyDistributionRateSp;
+	// _status.energyDistributionRate = energyDistributionRate;
+	// _status.mode = mode;
+// #endif // defined(__PX4_NUTTX)
 
 	/** update control blocks **/
 	/* update total energy rate control block */
@@ -248,13 +267,15 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 
 	if (_counter % 10 == 0) {
 		debug("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",
-				(double)_throttleSp, (double)_pitchSp,
-				(double)flightPathAngleSp, (double)flightPathAngle,
-				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
+		      (double)_throttleSp, (double)_pitchSp,
+		      (double)flightPathAngleSp, (double)flightPathAngle,
+		      (double)accelerationLongitudinalSp, (double)airspeedDerivative);
 	}
 
-	/* publish status messge */
+#if defined(__PX4_NUTTX)
+	/* publish status message */
 	_status.update();
+#endif // defined(__PX4_NUTTX)
 
 	/* clean up */
 	_firstIterationAfterReset = false;
@@ -283,11 +304,13 @@ void mTecs::updateTimeMeasurement()
 {
 	if (!_dtCalculated) {
 		float deltaTSeconds = 0.0f;
+
 		if (!_firstIterationAfterReset) {
 			hrt_abstime timestampNow = hrt_absolute_time();
 			deltaTSeconds = (float)(timestampNow - timestampLastIteration) * 1e-6f;
 			timestampLastIteration = timestampNow;
 		}
+
 		setDt(deltaTSeconds);
 
 		_dtCalculated = true;
@@ -302,7 +325,8 @@ void mTecs::debug_print(const char *fmt, va_list args)
 	fprintf(stderr, "\n");
 }
 
-void mTecs::debug(const char *fmt, ...) {
+void mTecs::debug(const char *fmt, ...)
+{
 
 	if (!_debug) {
 		return;

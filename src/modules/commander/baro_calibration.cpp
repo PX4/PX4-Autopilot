@@ -41,20 +41,15 @@
 #include <poll.h>
 #include <math.h>
 #include <fcntl.h>
+#include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_baro.h>
-#include <mavlink/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <systemlib/param/param.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
-int do_baro_calibration(int mavlink_fd)
+int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 {
 	// TODO implement this
-	return ERROR;
+	return PX4_ERROR;
 }

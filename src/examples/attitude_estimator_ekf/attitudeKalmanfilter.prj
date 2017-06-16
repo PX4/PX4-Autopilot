@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deployment-project plugin="plugin.matlabcoder" plugin-version="R2013a">
+  <configuration target="target.matlab.coder" target-name="MEX, C, and C++ Code Generation" name="attitudeKalmanfilter" location="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf" file="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf/attitudeKalmanfilter.prj" build-checksum="1213478164">
+    <profile key="profile.mex">
+      <param.MergeInstrumentationResults>false</param.MergeInstrumentationResults>
+      <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
+      <param.RanInstrumentedMex>false</param.RanInstrumentedMex>
+      <param.WorkingFolder>option.WorkingFolder.Project</param.WorkingFolder>
+      <param.SpecifiedWorkingFolder />
+      <param.BuildFolder>option.BuildFolder.Project</param.BuildFolder>
+      <param.SpecifiedBuildFolder />
+      <param.SearchPaths />
+      <param.ResponsivenessChecks>true</param.ResponsivenessChecks>
+      <param.ExtrinsicCalls>true</param.ExtrinsicCalls>
+      <param.IntegrityChecks>true</param.IntegrityChecks>
+      <param.SaturateOnIntegerOverflow>true</param.SaturateOnIntegerOverflow>
+      <param.GlobalDataSyncMethod>option.GlobalDataSyncMethod.SyncAlways</param.GlobalDataSyncMethod>
+      <param.EnableVariableSizing>true</param.EnableVariableSizing>
+      <param.DynamicMemoryAllocation>option.DynamicMemoryAllocation.Threshold</param.DynamicMemoryAllocation>
+      <param.DynamicMemoryAllocationThreshold>65536</param.DynamicMemoryAllocationThreshold>
+      <param.StackUsageMax>200000</param.StackUsageMax>
+      <param.FilePartitionMethod>option.FilePartitionMethod.MapMFileToCFile</param.FilePartitionMethod>
+      <param.GenerateComments>true</param.GenerateComments>
+      <param.MATLABSourceComments>false</param.MATLABSourceComments>
+      <param.ReservedNameArray />
+      <param.EnableScreener>true</param.EnableScreener>
+      <param.EnableDebugging>false</param.EnableDebugging>
+      <param.GenerateReport>true</param.GenerateReport>
+      <param.LaunchReport>false</param.LaunchReport>
+      <param.CustomSourceCode />
+      <param.CustomHeaderCode />
+      <param.CustomInitializer />
+      <param.CustomTerminator />
+      <param.CustomInclude />
+      <param.CustomSource />
+      <param.CustomLibrary />
+      <param.PostCodeGenCommand />
+      <param.ProposeFixedPointDataTypes>true</param.ProposeFixedPointDataTypes>
+      <param.mex.GenCodeOnly>false</param.mex.GenCodeOnly>
+      <param.ConstantFoldingTimeout>40000</param.ConstantFoldingTimeout>
+      <param.RecursionLimit>100</param.RecursionLimit>
+      <param.TargetLang>option.TargetLang.C</param.TargetLang>
+      <param.EchoExpressions>true</param.EchoExpressions>
+      <param.InlineThreshold>10</param.InlineThreshold>
+      <param.InlineThresholdMax>200</param.InlineThresholdMax>
+      <param.InlineStackLimit>4000</param.InlineStackLimit>
+      <param.EnableMemcpy>true</param.EnableMemcpy>
+      <param.MemcpyThreshold>64</param.MemcpyThreshold>
+      <param.EnableOpenMP>true</param.EnableOpenMP>
+      <param.InitFltsAndDblsToZero>true</param.InitFltsAndDblsToZero>
+      <param.ConstantInputs>option.ConstantInputs.CheckValues</param.ConstantInputs>
+      <unset>
+        <param.MergeInstrumentationResults />
+        <param.BuiltInstrumentedMex />
+        <param.RanInstrumentedMex />
+        <param.WorkingFolder />
+        <param.SpecifiedWorkingFolder />
+        <param.BuildFolder />
+        <param.SpecifiedBuildFolder />
+        <param.SearchPaths />
+        <param.ResponsivenessChecks />
+        <param.ExtrinsicCalls />
+        <param.IntegrityChecks />
+        <param.SaturateOnIntegerOverflow />
+        <param.GlobalDataSyncMethod />
+        <param.EnableVariableSizing />
+        <param.DynamicMemoryAllocation />
+        <param.DynamicMemoryAllocationThreshold />
+        <param.StackUsageMax />
+        <param.FilePartitionMethod />
+        <param.GenerateComments />
+        <param.MATLABSourceComments />
+        <param.ReservedNameArray />
+        <param.EnableScreener />
+        <param.EnableDebugging />
+        <param.GenerateReport />
+        <param.LaunchReport />
+        <param.CustomSourceCode />
+        <param.CustomHeaderCode />
+        <param.CustomInitializer />
+        <param.CustomTerminator />
+        <param.CustomInclude />
+        <param.CustomSource />
+        <param.CustomLibrary />
+        <param.PostCodeGenCommand />
+        <param.ProposeFixedPointDataTypes />
+        <param.mex.GenCodeOnly />
+        <param.ConstantFoldingTimeout />
+        <param.RecursionLimit />
+        <param.TargetLang />
+        <param.EchoExpressions />
+        <param.InlineThreshold />
+        <param.InlineThresholdMax />
+        <param.InlineStackLimit />
+        <param.EnableMemcpy />
+        <param.MemcpyThreshold />
+        <param.EnableOpenMP />
+        <param.InitFltsAndDblsToZero />
+        <param.ConstantInputs />
+      </unset>
+    </profile>
+    <profile key="profile.c">
+      <param.grt.GenCodeOnly>true</param.grt.GenCodeOnly>
+      <param.WorkingFolder>option.WorkingFolder.Project</param.WorkingFolder>
+      <param.SpecifiedWorkingFolder />
+      <param.BuildFolder>option.BuildFolder.Specified</param.BuildFolder>
+      <param.SpecifiedBuildFolder>codegen</param.SpecifiedBuildFolder>
+      <param.SearchPaths />
+      <param.SaturateOnIntegerOverflow>true</param.SaturateOnIntegerOverflow>
+      <param.PurelyIntegerCode>false</param.PurelyIntegerCode>
+      <param.SupportNonFinite>false</param.SupportNonFinite>
+      <param.EnableVariableSizing>false</param.EnableVariableSizing>
+      <param.DynamicMemoryAllocation>option.DynamicMemoryAllocation.Threshold</param.DynamicMemoryAllocation>
+      <param.DynamicMemoryAllocationThreshold>65536</param.DynamicMemoryAllocationThreshold>
+      <param.StackUsageMax>4000</param.StackUsageMax>
+      <param.MultiInstanceCode>false</param.MultiInstanceCode>
+      <param.FilePartitionMethod>option.FilePartitionMethod.SingleFile</param.FilePartitionMethod>
+      <param.GenerateComments>true</param.GenerateComments>
+      <param.MATLABSourceComments>true</param.MATLABSourceComments>
+      <param.MATLABFcnDesc>false</param.MATLABFcnDesc>
+      <param.DataTypeReplacement>option.DataTypeReplacement.CBuiltIn</param.DataTypeReplacement>
+      <param.ConvertIfToSwitch>false</param.ConvertIfToSwitch>
+      <param.PreserveExternInFcnDecls>true</param.PreserveExternInFcnDecls>
+      <param.ParenthesesLevel>option.ParenthesesLevel.Nominal</param.ParenthesesLevel>
+      <param.MaxIdLength>31</param.MaxIdLength>
+      <param.CustomSymbolStrGlobalVar>$M$N</param.CustomSymbolStrGlobalVar>
+      <param.CustomSymbolStrType>$M$N</param.CustomSymbolStrType>
+      <param.CustomSymbolStrField>$M$N</param.CustomSymbolStrField>
+      <param.CustomSymbolStrFcn>$M$N</param.CustomSymbolStrFcn>
+      <param.CustomSymbolStrTmpVar>$M$N</param.CustomSymbolStrTmpVar>
+      <param.CustomSymbolStrMacro>$M$N</param.CustomSymbolStrMacro>
+      <param.CustomSymbolStrEMXArray>emxArray_$M$N</param.CustomSymbolStrEMXArray>
+      <param.CustomSymbolStrEMXArrayFcn>emx$M$N</param.CustomSymbolStrEMXArrayFcn>
+      <param.ReservedNameArray />
+      <param.EnableScreener>true</param.EnableScreener>
+      <param.Verbose>false</param.Verbose>
+      <param.GenerateReport>true</param.GenerateReport>
+      <param.GenerateCodeMetricsReport>true</param.GenerateCodeMetricsReport>
+      <param.GenerateCodeReplacementReport>false</param.GenerateCodeReplacementReport>
+      <param.LaunchReport>true</param.LaunchReport>
+      <param.CustomSourceCode />
+      <param.CustomHeaderCode />
+      <param.CustomInitializer />
+      <param.CustomTerminator />
+      <param.CustomInclude />
+      <param.CustomSource />
+      <param.CustomLibrary />
+      <param.PostCodeGenCommand />
+      <param.CodeReplacementLibrary>C89/C90 (ANSI)</param.CodeReplacementLibrary>
+      <param.SameHardware>true</param.SameHardware>
+      <param.HardwareVendor.Production>ARM Compatible</param.HardwareVendor.Production>
+      <param.HardwareType.Production>ARM Cortex</param.HardwareType.Production>
+      <var.instance.enabled.Production>true</var.instance.enabled.Production>
+      <param.HardwareSizeChar.Production>8</param.HardwareSizeChar.Production>
+      <param.HardwareSizeShort.Production>16</param.HardwareSizeShort.Production>
+      <param.HardwareSizeInt.Production>32</param.HardwareSizeInt.Production>
+      <param.HardwareSizeLong.Production>32</param.HardwareSizeLong.Production>
+      <param.HardwareSizeLongLong.Production>64</param.HardwareSizeLongLong.Production>
+      <param.HardwareSizeFloat.Production>32</param.HardwareSizeFloat.Production>
+      <param.HardwareSizeDouble.Production>64</param.HardwareSizeDouble.Production>
+      <param.HardwareSizeWord.Production>32</param.HardwareSizeWord.Production>
+      <param.HardwareSizePointer.Production>32</param.HardwareSizePointer.Production>
+      <param.HardwareEndianness.Production>option.HardwareEndianness.Little</param.HardwareEndianness.Production>
+      <param.HardwareArithmeticRightShift.Production>true</param.HardwareArithmeticRightShift.Production>
+      <param.HardwareLongLongMode.Production>false</param.HardwareLongLongMode.Production>
+      <param.HardwareAtomicIntegerSize.Production>option.HardwareAtomicIntegerSize.Long</param.HardwareAtomicIntegerSize.Production>
+      <param.HardwareAtomicFloatSize.Production>option.HardwareAtomicFloatSize.Double</param.HardwareAtomicFloatSize.Production>
+      <param.HardwareDivisionRounding.Production>option.HardwareDivisionRounding.Undefined</param.HardwareDivisionRounding.Production>
+      <param.HardwareVendor.Target>Generic</param.HardwareVendor.Target>
+      <param.HardwareType.Target>MATLAB Host Computer</param.HardwareType.Target>
+      <var.instance.enabled.Target>false</var.instance.enabled.Target>
+      <param.HardwareSizeChar.Target>8</param.HardwareSizeChar.Target>
+      <param.HardwareSizeShort.Target>16</param.HardwareSizeShort.Target>
+      <param.HardwareSizeInt.Target>32</param.HardwareSizeInt.Target>
+      <param.HardwareSizeLong.Target>64</param.HardwareSizeLong.Target>
+      <param.HardwareSizeLongLong.Target>64</param.HardwareSizeLongLong.Target>
+      <param.HardwareSizeFloat.Target>32</param.HardwareSizeFloat.Target>
+      <param.HardwareSizeDouble.Target>64</param.HardwareSizeDouble.Target>
+      <param.HardwareSizeWord.Target>64</param.HardwareSizeWord.Target>
+      <param.HardwareSizePointer.Target>64</param.HardwareSizePointer.Target>
+      <param.HardwareEndianness.Target>option.HardwareEndianness.Little</param.HardwareEndianness.Target>
+      <param.HardwareArithmeticRightShift.Target>true</param.HardwareArithmeticRightShift.Target>
+      <param.HardwareLongLongMode.Target>true</param.HardwareLongLongMode.Target>
+      <param.HardwareAtomicIntegerSize.Target>option.HardwareAtomicIntegerSize.Char</param.HardwareAtomicIntegerSize.Target>
+      <param.HardwareAtomicFloatSize.Target>option.HardwareAtomicFloatSize.None</param.HardwareAtomicFloatSize.Target>
+      <param.HardwareDivisionRounding.Target>option.HardwareDivisionRounding.Zero</param.HardwareDivisionRounding.Target>
+      <param.Toolchain>Automatically locate an installed toolchain</param.Toolchain>
+      <param.BuildConfiguration>Faster Builds</param.BuildConfiguration>
+      <param.CustomToolchainOptions />
+      <param.ConstantFoldingTimeout>40000</param.ConstantFoldingTimeout>
+      <param.RecursionLimit>100</param.RecursionLimit>
+      <param.IncludeTerminateFcn>true</param.IncludeTerminateFcn>
+      <param.TargetLang>option.TargetLang.C</param.TargetLang>
+      <param.CCompilerOptimization>option.CCompilerOptimization.On</param.CCompilerOptimization>
+      <param.CCompilerCustomOptimizations />
+      <param.GenerateMakefile>true</param.GenerateMakefile>
+      <param.BuildToolEnable>false</param.BuildToolEnable>
+      <param.MakeCommand>make_rtw</param.MakeCommand>
+      <param.TemplateMakefile>default_tmf</param.TemplateMakefile>
+      <param.BuildToolConfiguration />
+      <param.InlineThreshold>10</param.InlineThreshold>
+      <param.InlineThresholdMax>200</param.InlineThresholdMax>
+      <param.InlineStackLimit>4000</param.InlineStackLimit>
+      <param.EnableMemcpy>true</param.EnableMemcpy>
+      <param.MemcpyThreshold>64</param.MemcpyThreshold>
+      <param.EnableOpenMP>true</param.EnableOpenMP>
+      <param.InitFltsAndDblsToZero>true</param.InitFltsAndDblsToZero>
+      <param.PassStructByReference>false</param.PassStructByReference>
+      <param.UseECoderFeatures>true</param.UseECoderFeatures>
+      <unset>
+        <param.WorkingFolder />
+        <param.SpecifiedWorkingFolder />
+        <param.SearchPaths />
+        <param.SaturateOnIntegerOverflow />
+        <param.PurelyIntegerCode />
+        <param.DynamicMemoryAllocation />
+        <param.DynamicMemoryAllocationThreshold />
+        <param.MultiInstanceCode />
+        <param.GenerateComments />
+        <param.MATLABFcnDesc />
+        <param.DataTypeReplacement />
+        <param.ConvertIfToSwitch />
+        <param.PreserveExternInFcnDecls />
+        <param.ParenthesesLevel />
+        <param.MaxIdLength />
+        <param.CustomSymbolStrGlobalVar />
+        <param.CustomSymbolStrType />
+        <param.CustomSymbolStrField />
+        <param.CustomSymbolStrFcn />
+        <param.CustomSymbolStrTmpVar />
+        <param.CustomSymbolStrMacro />
+        <param.CustomSymbolStrEMXArray />
+        <param.CustomSymbolStrEMXArrayFcn />
+        <param.ReservedNameArray />
+        <param.EnableScreener />
+        <param.Verbose />
+        <param.GenerateReport />
+        <param.GenerateCodeMetricsReport />
+        <param.GenerateCodeReplacementReport />
+        <param.CustomInclude />
+        <param.CustomSource />
+        <param.CustomLibrary />
+        <param.SameHardware />
+        <var.instance.enabled.Production />
+        <param.HardwareSizeChar.Production />
+        <param.HardwareSizeShort.Production />
+        <param.HardwareSizeInt.Production />
+        <param.HardwareSizeLong.Production />
+        <param.HardwareSizeLongLong.Production />
+        <param.HardwareSizeFloat.Production />
+        <param.HardwareSizeDouble.Production />
+        <param.HardwareSizeWord.Production />
+        <param.HardwareSizePointer.Production />
+        <param.HardwareEndianness.Production />
+        <param.HardwareLongLongMode.Production />
+        <param.HardwareDivisionRounding.Production />
+        <var.instance.enabled.Target />
+        <param.HardwareSizeChar.Target />
+        <param.HardwareSizeShort.Target />
+        <param.HardwareSizeInt.Target />
+        <param.HardwareSizeLongLong.Target />
+        <param.HardwareSizeFloat.Target />
+        <param.HardwareSizeDouble.Target />
+        <param.HardwareEndianness.Target />
+        <param.HardwareAtomicFloatSize.Target />
+        <param.CustomToolchainOptions />
+        <param.ConstantFoldingTimeout />
+        <param.RecursionLimit />
+        <param.IncludeTerminateFcn />
+        <param.TargetLang />
+        <param.CCompilerCustomOptimizations />
+        <param.GenerateMakefile />
+        <param.BuildToolEnable />
+        <param.MakeCommand />
+        <param.TemplateMakefile />
+        <param.BuildToolConfiguration />
+        <param.InlineThreshold />
+        <param.InlineThresholdMax />
+        <param.InlineStackLimit />
+        <param.EnableMemcpy />
+        <param.MemcpyThreshold />
+        <param.EnableOpenMP />
+        <param.InitFltsAndDblsToZero />
+        <param.UseECoderFeatures />
+      </unset>
+    </profile>
+    <param.outputfile>/opt/matlab/r2013b/bin/codegen/codegen/lib/AttitudeEKF/AttitudeEKF.a</param.outputfile>
+    <param.version>R2012a</param.version>
+    <param.HasECoderFeatures>true</param.HasECoderFeatures>
+    <param.mex.mainhtml>t:\private\desktop-dinfk-xp\Attitude_Kalmanfilter\codegen\mex\attitudeKalmanfilter\html\index.html</param.mex.mainhtml>
+    <param.grt.mainhtml>/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf/codegen/html/index.html</param.grt.mainhtml>
+    <param.CallGeneratedCodeFromTest>true</param.CallGeneratedCodeFromTest>
+    <param.VerificationMode>option.VerificationMode.None</param.VerificationMode>
+    <param.SILDebugging>false</param.SILDebugging>
+    <param.DefaultTestFile>${PROJECT_ROOT}/AttitudeEKF_Test.m</param.DefaultTestFile>
+    <param.AutoInferDefaultFile>${PROJECT_ROOT}/AttitudeEKF_Test.m</param.AutoInferDefaultFile>
+    <param.AutoInferUseVariableSize>false</param.AutoInferUseVariableSize>
+    <param.AutoInferUseUnboundedSize>false</param.AutoInferUseUnboundedSize>
+    <param.AutoInferVariableSizeThreshold>1024</param.AutoInferVariableSizeThreshold>
+    <param.AutoInferUnboundedSizeThreshold>2048</param.AutoInferUnboundedSizeThreshold>
+    <param.mex.outputfile>AttitudeEKF_mex</param.mex.outputfile>
+    <param.grt.outputfile>AttitudeEKF</param.grt.outputfile>
+    <param.artifact>option.target.artifact.lib</param.artifact>
+    <param.FixedPointTypeProposalMode>option.FixedPointTypeProposalMode.ProposeFractionLengths</param.FixedPointTypeProposalMode>
+    <param.DefaultProposedFixedPointType>numerictype([],16,12)</param.DefaultProposedFixedPointType>
+    <param.MinMaxSafetyMargin>0</param.MinMaxSafetyMargin>
+    <param.OptimizeWholeNumbers>true</param.OptimizeWholeNumbers>
+    <param.LaunchInstrumentationReport>false</param.LaunchInstrumentationReport>
+    <param.OpenInstrumentationReportInBrowser>false</param.OpenInstrumentationReportInBrowser>
+    <param.CreatePrintableInstrumentationReport>false</param.CreatePrintableInstrumentationReport>
+    <param.EnableAutoExtrinsicCalls>true</param.EnableAutoExtrinsicCalls>
+    <param.UsePreconditions>false</param.UsePreconditions>
+    <param.FeatureFlags />
+    <param.FixedPointMode>option.FixedPointMode.None</param.FixedPointMode>
+    <param.AutoScaleLoopIndexVariables>false</param.AutoScaleLoopIndexVariables>
+    <param.ComputedFixedPointData />
+    <param.UserFixedPointData />
+    <param.DefaultWordLength>16</param.DefaultWordLength>
+    <param.DefaultFractionLength>4</param.DefaultFractionLength>
+    <param.FixedPointSafetyMargin>0</param.FixedPointSafetyMargin>
+    <param.FixedPointFimath>fimath('RoundingMethod', 'Floor', 'OverflowAction', 'Wrap', 'ProductMode', 'FullPrecision', 'MaxProductWordLength', 128, 'SumMode', 'FullPrecision', 'MaxSumWordLength', 128)</param.FixedPointFimath>
+    <param.FixedPointTypeSource>option.FixedPointTypeSource.SimAndDerived</param.FixedPointTypeSource>
+    <param.StaticAnalysisTimeout />
+    <param.StaticAnalysisGlobalRangesOnly>false</param.StaticAnalysisGlobalRangesOnly>
+    <param.LogAllIOValues>false</param.LogAllIOValues>
+    <param.LogHistogram>false</param.LogHistogram>
+    <param.ShowCoverage>true</param.ShowCoverage>
+    <param.ExcludedFixedPointVerificationFiles />
+    <param.ExcludedFixedPointSimulationFiles />
+    <param.InstrumentedBuildChecksum />
+    <param.FixedPointStaticAnalysisChecksum />
+    <param.InstrumentedMexFile />
+    <param.FixedPointValidationChecksum />
+    <param.FixedPointSourceCodeChecksum />
+    <param.FixedPointFunctionReplacements />
+    <param.OptimizeWholeNumbers>true</param.OptimizeWholeNumbers>
+    <param.GeneratedFixedPointFileSuffix>_fixpt</param.GeneratedFixedPointFileSuffix>
+    <param.DefaultFixedPointSignedness>option.DefaultFixedPointSignedness.Automatic</param.DefaultFixedPointSignedness>
+    <unset>
+      <param.outputfile />
+      <param.version />
+      <param.HasECoderFeatures />
+      <param.CallGeneratedCodeFromTest />
+      <param.VerificationMode />
+      <param.SILDebugging />
+      <param.AutoInferUseVariableSize />
+      <param.AutoInferUseUnboundedSize />
+      <param.AutoInferVariableSizeThreshold />
+      <param.AutoInferUnboundedSizeThreshold />
+      <param.mex.outputfile />
+      <param.grt.outputfile />
+      <param.FixedPointTypeProposalMode />
+      <param.DefaultProposedFixedPointType />
+      <param.MinMaxSafetyMargin />
+      <param.OptimizeWholeNumbers />
+      <param.LaunchInstrumentationReport />
+      <param.OpenInstrumentationReportInBrowser />
+      <param.CreatePrintableInstrumentationReport />
+      <param.EnableAutoExtrinsicCalls />
+      <param.UsePreconditions />
+      <param.FeatureFlags />
+      <param.FixedPointMode />
+      <param.AutoScaleLoopIndexVariables />
+      <param.ComputedFixedPointData />
+      <param.UserFixedPointData />
+      <param.DefaultWordLength />
+      <param.DefaultFractionLength />
+      <param.FixedPointSafetyMargin />
+      <param.FixedPointFimath />
+      <param.FixedPointTypeSource />
+      <param.StaticAnalysisTimeout />
+      <param.StaticAnalysisGlobalRangesOnly />
+      <param.LogAllIOValues />
+      <param.LogHistogram />
+      <param.ShowCoverage />
+      <param.ExcludedFixedPointVerificationFiles />
+      <param.ExcludedFixedPointSimulationFiles />
+      <param.InstrumentedBuildChecksum />
+      <param.FixedPointStaticAnalysisChecksum />
+      <param.InstrumentedMexFile />
+      <param.FixedPointValidationChecksum />
+      <param.FixedPointSourceCodeChecksum />
+      <param.FixedPointFunctionReplacements />
+      <param.GeneratedFixedPointFileSuffix />
+      <param.DefaultFixedPointSignedness />
+    </unset>
+    <fileset.entrypoints>
+      <file value="${PROJECT_ROOT}/AttitudeEKF.m" custom-data-expanded="true">
+        <Inputs fileName="AttitudeEKF.m" functionName="AttitudeEKF">
+          <Input Name="approx_prediction">
+            <Class>uint8</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="use_inertia_matrix">
+            <Class>uint8</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="zFlag">
+            <Class>uint8</Class>
+            <UserDefined>false</UserDefined>
+            <Size>3 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="dt">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="z">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>9 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="q_rotSpeed">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="q_rotAcc">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="q_acc">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="q_mag">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="r_gyro">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="r_accel">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="r_mag">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>1 x 1</Size>
+            <Complex>false</Complex>
+          </Input>
+          <Input Name="J">
+            <Class>single</Class>
+            <UserDefined>false</UserDefined>
+            <Size>3 x 3</Size>
+            <Complex>false</Complex>
+          </Input>
+        </Inputs>
+      </file>
+    </fileset.entrypoints>
+    <fileset.testbench>
+      <file>${PROJECT_ROOT}/AttitudeEKF_Test.m</file>
+    </fileset.testbench>
+    <fileset.package />
+    <build-deliverables>
+      <file name="AttitudeEKF.a" location="${MATLAB_ROOT}/bin/codegen/codegen/lib/AttitudeEKF" optional="false">/opt/matlab/r2013b/bin/codegen/codegen/lib/AttitudeEKF/AttitudeEKF.a</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>/opt/matlab/r2013b</root>
+      <toolboxes>
+        <toolbox name="fixedpoint" />
+      </toolboxes>
+    </matlab>
+    <platform>
+      <unix>true</unix>
+      <mac>false</mac>
+      <windows>false</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>true</linux>
+      <solaris>false</solaris>
+      <osver>3.16.1-1-ARCH</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>glnxa64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
+

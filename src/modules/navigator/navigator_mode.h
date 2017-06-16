@@ -56,15 +56,10 @@ class Navigator;
 class NavigatorMode : public control::SuperBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
 	NavigatorMode(Navigator *navigator, const char *name);
-
-	/**
-	 * Destructor
-	 */
-	virtual ~NavigatorMode();
+	virtual ~NavigatorMode() = default;
+	NavigatorMode(const NavigatorMode &) = delete;
+	NavigatorMode operator=(const NavigatorMode &) = delete;
 
 	void run(bool active);
 
@@ -74,7 +69,7 @@ public:
 	virtual void on_inactive();
 
 	/**
-	 * This function is called one time when mode become active, poos_sp_triplet must be initialized here
+	 * This function is called one time when mode become active, pos_sp_triplet must be initialized here
 	 */
 	virtual void on_activation();
 
@@ -84,16 +79,10 @@ public:
 	virtual void on_active();
 
 protected:
-	Navigator *_navigator;
+	Navigator *_navigator{nullptr};
 
 private:
-	bool _first_run;
-
-	/* this class has ptr data members, so it should not be copied,
-	 * consequently the copy constructors are private.
-	 */
-	NavigatorMode(const NavigatorMode&);
-	NavigatorMode operator=(const NavigatorMode&);
+	bool _first_run{true};
 };
 
 #endif

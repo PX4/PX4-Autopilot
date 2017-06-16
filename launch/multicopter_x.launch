@@ -1,0 +1,14 @@
+<launch>
+<arg name="ns"/>
+<arg name="mavlink_fcu_url"/>
+
+<include file="$(find px4)/launch/multicopter.launch">
+	<arg name="ns" value="$(arg ns)"/>
+	<arg name="mavlink_fcu_url" value="$(arg mavlink_fcu_url)" />
+</include>
+
+<group ns="$(arg ns)">
+	<param name="mixer" type="string" value="x" />
+</group>
+
+</launch>

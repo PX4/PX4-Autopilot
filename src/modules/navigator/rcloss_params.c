@@ -39,10 +39,6 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
 /*
  * OBC RC Loss mode parameters, accessible via MAVLink
  */
@@ -53,8 +49,10 @@
  * The amount of time in seconds the system should loiter at current position before termination
  * Set to -1 to make the system skip loitering
  *
- * @unit seconds
+ * @unit s
  * @min -1.0
- * @group RCL
+ * @decimal 1
+ * @increment 0.1
+ * @group Radio Signal Loss
  */
 PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);

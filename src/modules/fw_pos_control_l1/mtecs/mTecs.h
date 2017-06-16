@@ -49,10 +49,24 @@
 #include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
+
+#if defined(__PX4_NUTTX)
 #include <uORB/topics/tecs_status.h>
+#endif // defined(__PX4_NUTTX)
 
 namespace fwPosctrl
 {
+
+/* corresponds to TECS_MODE in tecs_status.msg */
+enum MTECS_MODE {
+	MTECS_MODE_NORMAL = 0,
+	MTECS_MODE_UNDERSPEED = 1,
+	MTECS_MODE_TAKEOFF = 2,
+	MTECS_MODE_LAND = 3,
+	MTECS_MODE_LAND_THROTTLELIM = 4,
+	MTECS_MODE_BAD_DESCENT = 5,
+	MTECS_MODE_CLIMBOUT = 6
+};
 
 /* Main class of the mTecs */
 class mTecs : public control::SuperBlock
@@ -65,19 +79,19 @@ public:
 	 * Control in altitude setpoint and speed mode
 	 */
 	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
-			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
+				float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
 	 */
 	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
-			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
+				       float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
 	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
-			float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride);
+					      float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Reset all integrators
@@ -94,6 +108,10 @@ public:
 	float getThrottleSetpoint() { return _throttleSp; }
 	float getPitchSetpoint() { return _pitchSp; }
 	float airspeedLowpassUpdate(float input) { return _airspeedLowpass.update(input); }
+	float getFlightPathAngleLowpassState() { return _flightPathAngleLowpass.getState(); }
+	float getAltitudeLowpassState() { return _altitudeLowpass.getState(); }
+	float getAirspeedLowpassState() { return _airspeedLowpass.getState(); }
+	float getAirspeedDerivativeLowpassState() { return _airspeedDerivative.getO(); }
 
 protected:
 	/* parameters */
@@ -101,7 +119,9 @@ protected:
 	control::BlockParamFloat _airspeedMin;		/**< minimal airspeed */
 
 	/* Publications */
+#if defined(__PX4_NUTTX)
 	uORB::Publication<tecs_status_s> _status;	/**< publish internal values for logging */
+#endif // defined(__PX4_NUTTX)
 
 	/* control blocks */
 	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output
@@ -114,9 +134,9 @@ protected:
 								  setpoint */
 
 	/* Other calculation Blocks */
-	control::BlockLowPass _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
-	control::BlockLowPass _altitudeLowpass;	/**< low pass filter for altitude */
-	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
+	control::BlockLowPass2 _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
+	control::BlockLowPass2 _altitudeLowpass;	/**< low pass filter for altitude */
+	control::BlockLowPass2 _airspeedLowpass;		/**< low pass filter for airspeed */
 	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
 	/* Output setpoints */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,9 +38,11 @@
 
 #pragma once
 
+#include <assert.h>
+
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
-
+#include <systemlib/err.h>
 
 namespace uORB
 {
@@ -49,8 +51,7 @@ namespace uORB
  * Base subscription warapper class, used in list traversal
  * of various subscriptions.
  */
-class __EXPORT SubscriptionBase :
-	public ListNode<SubscriptionBase *>
+class __EXPORT SubscriptionBase
 {
 public:
 // methods
@@ -58,35 +59,95 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
+	 * @param meta The uORB metadata (usually from the ORB_ID()
+	 * 	macro) for the topic.
+	 * @param interval  The minimum interval in milliseconds
+	 * 	between updates
+	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionBase(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle() {
-		if (list != NULL) list->add(this);
-	}
+	SubscriptionBase(const struct orb_metadata *meta,
+			 unsigned interval = 0, unsigned instance = 0);
+
+	/**
+	 * Check if there is a new update.
+	 * */
 	bool updated();
-	void update() {
-		if (updated()) {
-			orb_copy(_meta, _handle, getDataVoidPtr());
-		}
-	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~SubscriptionBase() {
-		orb_unsubscribe(_handle);
-	}
+
+	/**
+	 * Update the struct
+	 * @param data The uORB message struct we are updating.
+	 */
+	void update(void *data);
+
+	/**
+	 * Deconstructor
+	 */
+	virtual ~SubscriptionBase();
+
 // accessors
 	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
+	int getHandle() const { return _handle; }
+
+	unsigned getInterval() const
+	{
+		unsigned int interval;
+		orb_get_interval(getHandle(), &interval);
+		return interval;
+	}
 protected:
 // accessors
 	void setHandle(int handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
+	int _instance;
 	int _handle;
+private:
+	// disallow copy
+	SubscriptionBase(const SubscriptionBase &other);
+	// disallow assignment
+	SubscriptionBase &operator=(const SubscriptionBase &other);
+};
+
+/**
+ * alias class name so it is clear that the base class
+ */
+typedef SubscriptionBase SubscriptionTiny;
+
+/**
+ * The subscription base class as a list node.
+ */
+class __EXPORT SubscriptionNode :
+
+	public SubscriptionBase,
+	public ListNode<SubscriptionNode *>
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID()
+	 * 	macro) for the topic.
+	 * @param interval  The minimum interval in milliseconds
+	 * 	between updates
+	 * @param instance The instance for multi sub.
+	 * @param list 	A pointer to a list of subscriptions
+	 * 	that this should be appended to.
+	 */
+	SubscriptionNode(const struct orb_metadata *meta,
+			 unsigned interval = 0,
+			 int instance = 0,
+			 List<SubscriptionNode *> *list = nullptr) :
+		SubscriptionBase(meta, interval, instance)
+	{
+		if (list != nullptr) { list->add(this); }
+	}
+
+	/**
+	 * This function is the callback for list traversal
+	 * updates, a child class must implement it.
+	 */
+	virtual void update() = 0;
+
 };
 
 /**
@@ -94,35 +155,68 @@ protected:
  */
 template<class T>
 class __EXPORT Subscription :
-	public T, // this must be first!
-	public SubscriptionBase
+	public SubscriptionNode
 {
 public:
 	/**
 	 * Constructor
 	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 * @param interval  The minimum interval in milliseconds between updates
+	 * @param meta The uORB metadata (usually from
+	 * 	the ORB_ID() macro) for the topic.
+	 * @param interval  The minimum interval in milliseconds
+	 * 	between updates
+	 * @param list A list interface for adding to
+	 * 	list during construction
 	 */
-	Subscription(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta, unsigned interval);
+	Subscription(const struct orb_metadata *meta,
+		     unsigned interval = 0,
+		     int instance = 0,
+		     List<SubscriptionNode *> *list = nullptr):
+		SubscriptionNode(meta, interval, instance, list),
+		_data() // initialize data structure to zero
+	{}
+
+
+	Subscription(const Subscription &other):
+		SubscriptionNode(other._meta, other.getInterval(), other._instance, nullptr),
+		_data() // initialize data structure to zero
+	{}
+
+
 	/**
 	 * Deconstructor
 	 */
-	virtual ~Subscription();
+	virtual ~Subscription()
+	{}
+
+
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	void update()
+	{
+		SubscriptionBase::update((void *)(&_data));
+	}
+
+
+	/**
+	 * Create an update function that uses the embedded struct.
+	 */
+	bool check_updated()
+	{
+		return SubscriptionBase::updated();
+	}
 
 	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
-	T getData();
+	 * This function gets the T struct data
+	 * */
+	const T &get() const
+	{
+		return _data;
+	}
+
+private:
+	T _data;
 };
 
 } // namespace uORB

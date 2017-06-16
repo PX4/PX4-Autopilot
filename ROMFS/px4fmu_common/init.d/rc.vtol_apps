@@ -1,0 +1,53 @@
+#!nsh
+#
+# Standard apps for vtol:
+# att & pos estimator, att & pos control.
+#
+#
+
+
+#---------------------------------------
+# Estimator group selction
+#
+# INAV (deprecated)
+if param compare SYS_MC_EST_GROUP 0
+then
+	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
+	param set SYS_MC_EST_GROUP 2
+	param save
+fi
+
+# LPE
+if param compare SYS_MC_EST_GROUP 1
+then
+	# Try to start LPE. If it fails, start EKF2 as a default
+	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
+	if attitude_estimator_q start
+	then
+		local_position_estimator start
+	else
+		echo "ERROR [init] Estimator LPE not available. Using EKF2"
+		param set SYS_MC_EST_GROUP 2
+		param save
+	fi
+fi
+
+# EKF
+if param compare SYS_MC_EST_GROUP 2
+then
+	ekf2 start
+fi
+#---------------------------------------
+
+
+vtol_att_control start
+mc_att_control start
+mc_pos_control start
+fw_att_control start
+fw_pos_control_l1 start
+
+#
+# Start Land Detector
+# Multicopter for now until we have something for VTOL
+#
+land_detector start vtol

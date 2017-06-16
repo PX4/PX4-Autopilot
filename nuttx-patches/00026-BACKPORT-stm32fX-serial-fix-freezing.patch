@@ -1,0 +1,193 @@
+diff --git NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
+index 644c810..b885440 100644
+--- NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
++++ NuttX/nuttx/arch/arm/src/stm32/stm32_serial.c
+@@ -1088,10 +1088,10 @@ static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t valu
+ }
+ 
+ /****************************************************************************
+- * Name: up_restoreusartint
++ * Name: up_setusartint
+  ****************************************************************************/
+ 
+-static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
++static inline void up_setusartint(struct up_dev_s *priv, uint16_t ie)
+ {
+   uint32_t cr;
+ 
+@@ -1113,11 +1113,30 @@ static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
+ }
+ 
+ /****************************************************************************
++ * Name: up_restoreusartint
++ ****************************************************************************/
++
++static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
++{
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
++  up_setusartint(priv, ie);
++
++  leave_critical_section(flags);
++}
++
++/****************************************************************************
+  * Name: up_disableusartint
+  ****************************************************************************/
+ 
+-static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
++static void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
+ {
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
+   if (ie)
+     {
+       uint32_t cr1;
+@@ -1154,7 +1173,9 @@ static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
+ 
+   /* Disable all interrupts */
+ 
+-  up_restoreusartint(priv, 0);
++  up_setusartint(priv, 0);
++
++  leave_critical_section(flags);
+ }
+ 
+ /****************************************************************************
+diff --git NuttX/nuttx/arch/arm/src/stm32f7/stm32_serial.c NuttX/nuttx/arch/arm/src/stm32f7/stm32_serial.c
+index 1f5445a..faae72a 100644
+--- NuttX/nuttx/arch/arm/src/stm32f7/stm32_serial.c
++++ NuttX/nuttx/arch/arm/src/stm32f7/stm32_serial.c
+@@ -1070,10 +1070,10 @@ static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t valu
+ }
+ 
+ /****************************************************************************
+- * Name: up_restoreusartint
++ * Name: up_setusartint
+  ****************************************************************************/
+ 
+-static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
++static inline void up_setusartint(struct up_dev_s *priv, uint16_t ie)
+ {
+   uint32_t cr;
+ 
+@@ -1095,11 +1095,30 @@ static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
+ }
+ 
+ /****************************************************************************
++ * Name: up_restoreusartint
++ ****************************************************************************/
++
++static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
++{
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
++  up_setusartint(priv, ie);
++
++  leave_critical_section(flags);
++}
++
++/****************************************************************************
+  * Name: up_disableusartint
+  ****************************************************************************/
+ 
+-static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
++static void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
+ {
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
+   if (ie)
+     {
+       uint32_t cr1;
+@@ -1136,7 +1155,9 @@ static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
+ 
+   /* Disable all interrupts */
+ 
+-  up_restoreusartint(priv, 0);
++  up_setusartint(priv, 0);
++
++  leave_critical_section(flags);
+ }
+ 
+ /****************************************************************************
+@@ -2928,6 +2949,7 @@ int up_putc(int ch)
+ 
+   up_lowputc(ch);
+   up_restoreusartint(priv, ie);
++
+ #endif
+   return ch;
+ }
+diff --git NuttX/nuttx/arch/arm/src/stm32l4/stm32l4_serial.c NuttX/nuttx/arch/arm/src/stm32l4/stm32l4_serial.c
+index dfef76a..8f1fa77 100644
+--- NuttX/nuttx/arch/arm/src/stm32l4/stm32l4_serial.c
++++ NuttX/nuttx/arch/arm/src/stm32l4/stm32l4_serial.c
+@@ -783,11 +783,11 @@ static inline void stm32l4serial_putreg(FAR struct stm32l4_serial_s *priv,
+ }
+ 
+ /****************************************************************************
+- * Name: stm32l4serial_restoreusartint
++ * Name: stm32l4serial_setusartint
+  ****************************************************************************/
+ 
+-static void stm32l4serial_restoreusartint(FAR struct stm32l4_serial_s *priv,
+-                                          uint16_t ie)
++static inline void stm32l4serial_setusartint(FAR struct stm32l4_serial_s *priv,
++                                             uint16_t ie)
+ {
+   uint32_t cr;
+ 
+@@ -809,12 +809,32 @@ static void stm32l4serial_restoreusartint(FAR struct stm32l4_serial_s *priv,
+ }
+ 
+ /****************************************************************************
++ * Name: up_restoreusartint
++ ****************************************************************************/
++
++static void stm32l4serial_restoreusartint(FAR struct stm32l4_serial_s *priv,
++                                          uint16_t ie)
++{
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
++  stm32l4serial_setusartint(priv, ie);
++
++  leave_critical_section(flags);
++}
++
++/****************************************************************************
+  * Name: stm32l4serial_disableusartint
+  ****************************************************************************/
+ 
+-static inline void stm32l4serial_disableusartint(FAR struct stm32l4_serial_s *priv,
+-                                                 FAR uint16_t *ie)
++static void stm32l4serial_disableusartint(FAR struct stm32l4_serial_s *priv,
++                                          FAR uint16_t *ie)
+ {
++  irqstate_t flags;
++
++  flags = enter_critical_section();
++
+   if (ie)
+     {
+       uint32_t cr1;
+@@ -851,7 +871,9 @@ static inline void stm32l4serial_disableusartint(FAR struct stm32l4_serial_s *pr
+ 
+   /* Disable all interrupts */
+ 
+-  stm32l4serial_restoreusartint(priv, 0);
++  stm32l4serial_setusartint(priv, 0);
++
++  leave_critical_section(flags);
+ }
+ 
+ /****************************************************************************

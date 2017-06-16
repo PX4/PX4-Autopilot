@@ -51,7 +51,7 @@
  */
 
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <drivers/device/i2c.h>
 
@@ -138,7 +138,7 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-	CONVERSION_INTERVAL, path),
+			CONVERSION_INTERVAL, path),
 	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
 	_t_system_power(-1),
 	system_power{}
@@ -186,13 +186,19 @@ MEASAirspeed::collect()
 
 	switch (status) {
 	case 0:
+		// Normal Operation. Good Data Packet
 		break;
 
 	case 1:
-		/* fallthrough */
+		// Reserved
+		return -EAGAIN;
+
 	case 2:
-		/* fallthrough */
+		// Stale Data. Data has been fetched since last measurement cycle.
+		return -EAGAIN;
+
 	case 3:
+		// Fault Detected
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return -EAGAIN;
@@ -219,11 +225,11 @@ MEASAirspeed::collect()
 	  are generated when the bottom port is used as the static
 	  port on the pitot and top port is used as the dynamic port
 	 */
-	float diff_press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
+	float diff_press_PSI = -((dp_raw - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
 	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
-        // correct for 5V rail voltage if possible
-        voltage_correction(diff_press_pa_raw, temperature);
+	// correct for 5V rail voltage if possible
+	voltage_correction(diff_press_pa_raw, temperature);
 
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
@@ -249,7 +255,7 @@ MEASAirspeed::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
@@ -276,6 +282,7 @@ MEASAirspeed::cycle()
 
 		/* perform collection */
 		ret = collect();
+
 		if (OK != ret) {
 			/* restart the measurement state machine */
 			start();
@@ -304,8 +311,9 @@ MEASAirspeed::cycle()
 
 	/* measurement phase */
 	ret = measure();
+
 	if (OK != ret) {
-		debug("measure error");
+		DEVICE_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);
@@ -331,19 +339,24 @@ MEASAirspeed::cycle()
 void
 MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#if defined(ADC_SCALED_V5_SENSE)
+
 	if (_t_system_power == -1) {
 		_t_system_power = orb_subscribe(ORB_ID(system_power));
 	}
+
 	if (_t_system_power == -1) {
 		// not available
 		return;
 	}
+
 	bool updated = false;
 	orb_check(_t_system_power, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
 	}
+
 	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
 		// not valid, skip correction
 		return;
@@ -354,12 +367,15 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	  apply a piecewise linear correction, flattening at 0.5V from 5V
 	 */
 	float voltage_diff = system_power.voltage5V_v - 5.0f;
+
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
 	}
+
 	if (voltage_diff < -0.5f) {
 		voltage_diff = -0.5f;
 	}
+
 	diff_press_pa -= voltage_diff * slope;
 
 	/*
@@ -367,14 +383,17 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	 */
 	const float temp_slope = 0.887f;
 	voltage_diff = system_power.voltage5V_v - 5.0f;
+
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
 	}
+
 	if (voltage_diff < -1.0f) {
 		voltage_diff = -1.0f;
 	}
+
 	temperature -= voltage_diff * temp_slope;
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // defined(ADC_SCALED_V5_SENSE)
 }
 
 /**
@@ -382,12 +401,6 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
  */
 namespace meas_airspeed
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 MEASAirspeed	*g_dev = nullptr;
 
@@ -437,7 +450,7 @@ start(int i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -488,10 +501,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", PATH_MS4525);
 	}
 
 	/* do a simple demand read */
@@ -519,7 +532,7 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			errx(1, "timed out");
 		}
 
 		/* now go get it */
@@ -548,7 +561,7 @@ test()
 void
 reset()
 {
-	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+	int fd = open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");

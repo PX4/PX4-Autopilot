@@ -1,17 +1,25 @@
 #!nsh
 #
-# ARDrone
+# @name AR.Drone Frame
+#
+# @type Quadrotor x
+#
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-echo "[init] 4008_ardrone: PX4FMU on PX4IOAR carrier board"
-
-# Just use the default multicopter settings.
 sh /etc/init.d/rc.mc_defaults
 
 #
 # Load default params for this platform
 #
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
     # Set all params here, then disable autoconfig
     param set MC_ROLL_P 6.0
@@ -27,8 +35,8 @@ then
     param set MC_YAWRATE_I 0.2
     param set MC_YAWRATE_D 0.0
     param set MC_YAW_FF 0.8
-    
-    param set BAT_V_SCALING 0.00838095238
+
+    param set BAT_V_DIV 34.32838
 fi
 
 set OUTPUT_MODE ardrone

@@ -1,0 +1,29 @@
+machine:
+  xcode:
+    version: 8.2
+
+checkout:
+  post:
+    # workaround for known git bug where attempting to fetch a missing commit fails early on the first try
+    - git submodule update --init --recursive || true
+    - git submodule sync --recursive
+    - git submodule deinit -f . && rm -rf .git/modules
+    - git submodule update --init --recursive --force
+
+dependencies:
+  pre:
+    # PX4 OSX instructions 2017-04-28: https://dev.px4.io/en/setup/dev_env_mac.html
+
+    # After installing Homebrew, copy these commands to your shell:
+    - brew tap PX4/px4
+    - brew update
+    - brew install genromfs gcc-arm-none-eabi ninja
+
+    # Then install the required python packages:
+    - sudo -H easy_install pip
+    - sudo -H pip install empy jinja2
+
+test:
+  override:
+    - make tests
+    - make px4fmu-v3_default

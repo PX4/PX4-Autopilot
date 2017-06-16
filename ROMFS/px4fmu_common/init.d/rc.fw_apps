@@ -3,10 +3,18 @@
 # Standard apps for fixed wing
 #
 
+# LPE
+if param compare SYS_MC_EST_GROUP 1
+then
+	echo "ERROR [init] Estimator LPE not supported on fixed wing. Using EKF2"
+	param set SYS_MC_EST_GROUP 2
+	param save
+fi
+
 #
 # Start the attitude and position estimator
 #
-ekf_att_pos_estimator start
+ekf2 start
 
 #
 # Start attitude controller
@@ -14,4 +22,7 @@ ekf_att_pos_estimator start
 fw_att_control start
 fw_pos_control_l1 start
 
-bottle_drop start
+#
+# Start Land Detector
+#
+land_detector start fixedwing

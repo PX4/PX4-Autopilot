@@ -51,16 +51,20 @@ public:
 	};
 
 	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
-	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
+		: myState(0), myTable(table), myNsignals(nSignals) {}
 
-	#define NO_ACTION &StateTable::doNothing
-	#define ACTION(_target) StateTable::Action(_target)
+	StateTable(const StateTable &) = delete;
+	StateTable &operator=(const StateTable &) = delete;
+
+#define NO_ACTION &StateTable::doNothing
+#define ACTION(_target) StateTable::Action(_target)
 
 	virtual ~StateTable() {}
 
-	void dispatch(unsigned const sig) {
+	void dispatch(unsigned const sig)
+	{
 		/* get transition using state table */
-		Tran const *t = myTable + myState*myNsignals + sig;
+		Tran const *t = myTable + myState * myNsignals + sig;
 
 		/* accept new state */
 		myState = t->nextState;
@@ -68,7 +72,8 @@ public:
 		/*  */
 		(this->*(t->action))();
 	}
-	void doNothing() {
+	void doNothing()
+	{
 		return;
 	}
 protected:
@@ -76,7 +81,6 @@ protected:
 private:
 	Tran const *myTable;
 	unsigned myNsignals;
-	unsigned myNstates;
 };
 
 #endif

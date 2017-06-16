@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
- /**
-  * @file px4io_i2c.cpp
-  *
-  * I2C interface for PX4IO
-  */
+/**
+ * @file px4io_i2c.cpp
+ *
+ * I2C interface for PX4IO
+ */
 
 /* XXX trim includes */
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -53,9 +53,9 @@
 
 #include <drivers/device/i2c.h>
 
-#ifdef PX4_I2C_OBDEV_PX4IO
+#include "px4io_driver.h"
 
-device::Device	*PX4IO_i2c_interface();
+#ifdef PX4_I2C_OBDEV_PX4IO
 
 class PX4IO_I2C : public device::I2C
 {
@@ -94,8 +94,10 @@ PX4IO_I2C::init()
 	int ret;
 
 	ret = I2C::init();
-	if (ret != OK)
+
+	if (ret != OK) {
 		goto out;
+	}
 
 	/* XXX really should do something more here */
 
@@ -133,8 +135,11 @@ PX4IO_I2C::write(unsigned address, void *data, unsigned count)
 	msgv[1].length = 2 * count;
 
 	int ret = transfer(msgv, 2);
-	if (ret == OK)
+
+	if (ret == OK) {
 		ret = count;
+	}
+
 	return ret;
 }
 
@@ -161,8 +166,11 @@ PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 	msgv[1].length = 2 * count;
 
 	int ret = transfer(msgv, 2);
-	if (ret == OK)
+
+	if (ret == OK) {
 		ret = count;
+	}
+
 	return ret;
 }
 

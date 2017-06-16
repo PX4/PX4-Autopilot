@@ -41,12 +41,12 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/can.h>
+#include <nuttx/drivers/can.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
@@ -72,21 +72,6 @@
 #  define CAN_PORT 1
 #else
 #  define CAN_PORT 2
-#endif
-
-/* Debug ***************************************************************************/
-/* Non-standard debug that may be enabled just for testing CAN */
-
-#ifdef CONFIG_DEBUG_CAN
-#  define candbg    dbg
-#  define canvdbg   vdbg
-#  define canlldbg  lldbg
-#  define canllvdbg llvdbg
-#else
-#  define candbg(x...)
-#  define canvdbg(x...)
-#  define canlldbg(x...)
-#  define canllvdbg(x...)
 #endif
 
 /************************************************************************************
@@ -120,7 +105,7 @@ int can_devinit(void)
 		can = stm32_caninitialize(CAN_PORT);
 
 		if (can == NULL) {
-			candbg("ERROR:  Failed to get CAN interface\n");
+			canerr("ERROR:  Failed to get CAN interface\n");
 			return -ENODEV;
 		}
 
@@ -129,7 +114,7 @@ int can_devinit(void)
 		ret = can_register("/dev/can0", can);
 
 		if (ret < 0) {
-			candbg("ERROR: can_register failed: %d\n", ret);
+			canerr("ERROR: can_register failed: %d\n", ret);
 			return ret;
 		}
 

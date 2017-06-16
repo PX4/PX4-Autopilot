@@ -1,80 +1,82 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-    # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules
-    echo "Skipping submodules. NUTTX_SRC is set to $NUTTX_SRC"
-    exit 0
+function check_git_submodule {
+
+# The .git exists in a submodule if init and update have been done.
+if [ -f $1"/.git" ] || [ -d $1"/.git" ];
+then
+	SUBMODULE_STATUS=$(git submodule summary "$1")
+	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
+	if ! [[ -z "$STATUSRETVAL" ]];
+	then
+		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
+		echo ""
+		echo -e "Different commits:"
+		echo -e "$SUBMODULE_STATUS"
+		echo ""
+		echo ""
+		echo -e " *******************************************************************************"
+		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
+		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
+		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
+		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
+		echo -e " *******************************************************************************"
+		echo ""
+		echo ""
+		echo -e "   Only for EXPERTS:"
+		echo -e "   $1 submodule is not in the recommended version."
+		echo -e "   Hit 'y' and <ENTER> to continue the build with this version. Hit <ENTER> to resolve manually."
+		echo -e "   Use \033[94mgit add $1 && git commit -m 'Updated $1'\033[0m to choose this version (careful!)"
+		echo ""
+		read user_cmd
+		if [ "$user_cmd" == "y" ]
+		then
+			echo "Continuing build with manually overridden submodule.."
+		elif [ "$user_cmd" == "u" ]
+		then
+			git submodule sync --recursive
+			git submodule update --init --recursive
+			echo "Submodule fixed, continuing build.."
+		else
+			echo "Build aborted."
+			exit 1
+		fi
+	fi
+else
+	echo "REINITIALIZING GIT SUBMODULES"
+	echo "no git repo found in $1/.git"
+	git submodule sync --recursive -- $1;
+	git submodule update --init --recursive $1;
+fi
+
 }
 
-if [ -d NuttX/nuttx ];
-	then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i "NuttX" | grep "<")
-	if [ -z "$STATUSRETVAL" ]; then
-		echo "Checked NuttX submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "   NuttX sub repo not at correct version. Try 'git submodule update'"
-		echo "   or follow instructions on http://pixhawk.org/dev/git/submodules"
-		echo ""
-		echo "   DO NOT FORGET TO RUN 'make distclean && make archives' AFTER EACH NUTTX UPDATE!"
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
-
-
-if [ -d mavlink/include/mavlink/v1.0 ];
-	then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i "mavlink/include/mavlink/v1.0" | grep "<")
-	if [ -z "$STATUSRETVAL" ]; then
-		echo "Checked mavlink submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
-
-
-if [ -d uavcan ]
+# If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
+if [ "$#" != "0" ];
 then
-	STATUSRETVAL=$(git submodule summary | grep -A20 -i uavcan | grep "<")
-	if [ -z "$STATUSRETVAL" ]
-	then
-		echo "Checked uavcan submodule, correct version found"
-	else
-		echo ""
-		echo ""
-		echo "uavcan sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
-		echo ""
-		echo ""
-		echo "New commits required:"
-		echo "$(git submodule summary)"
-		echo ""
-		exit 1
-	fi
-else
-	git submodule init;
-	git submodule update;
-fi
+# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
 
-exit 0
+	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
+		exit 0
+	}
+
+	git submodule update --recursive $1
+
+else
+
+	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
+		exit 0
+	}
+
+	submodules=$(git submodule status --recursive | awk '{ print $2 }')
+	for i in $submodules;
+	do
+		check_git_submodule $i
+	done
+
+fi
+	exit 0

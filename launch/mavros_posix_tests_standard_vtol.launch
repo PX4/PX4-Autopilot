@@ -1,0 +1,26 @@
+<launch>
+    <!-- Posix SITL MAVROS integration tests -->
+
+    <arg name="ns" default="/"/>
+    <arg name="headless" default="true"/>
+    <arg name="gui" default="false"/>
+    <arg name="est" default="ekf2"/>
+
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="ns" value="$(arg ns)"/>
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="vehicle" value="standard_vtol"/>
+        <arg name="est" value="$(arg est)"/>
+    </include>
+
+    <group ns="$(arg ns)">
+        <test test-name="mission_test_new_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_1.txt" />
+        <test test-name="mission_test_new_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_new_2.txt" />
+        <test test-name="mission_test_old_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_1.txt" />
+        <test test-name="mission_test_old_2" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_2.txt" />
+        <test test-name="mission_test_old_3" pkg="px4" type="mission_test.py" time-limit="300.0" args="vtol_old_3.txt" />
+    </group>
+</launch>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

@@ -45,7 +45,7 @@
 /*
  * IUavcanSensorBridge
  */
-void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list)
+void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
 	list.add(new UavcanBarometerBridge(node));
 	list.add(new UavcanMagnetometerBridge(node));
@@ -62,7 +62,7 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 			(void)unregister_class_devname(_class_devname, _channels[i].class_instance);
 		}
 	}
-	delete [] _orb_topics;
+
 	delete [] _channels;
 }
 
@@ -86,7 +86,7 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 			return;           // Give up immediately - saves some CPU time
 		}
 
-		log("adding channel %d...", node_id);
+		DEVICE_LOG("adding channel %d...", node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
@@ -99,47 +99,53 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		// No free channels left
 		if (channel == nullptr) {
 			_out_of_channels = true;
-			log("out of channels");
+			DEVICE_LOG("out of channels");
 			return;
 		}
 
+		// update device id as we now know our device node_id
+		_device_id.devid_s.address = static_cast<uint8_t>(node_id);
+
 		// Ask the CDev helper which class instance we can take
 		const int class_instance = register_class_devname(_class_devname);
+
 		if (class_instance < 0 || class_instance >= int(_max_channels)) {
 			_out_of_channels = true;
-			log("out of class instances");
+			DEVICE_LOG("out of class instances");
 			(void)unregister_class_devname(_class_devname, class_instance);
 			return;
 		}
 
 		// Publish to the appropriate topic, abort on failure
-		channel->orb_id         = _orb_topics[class_instance];
 		channel->node_id        = node_id;
 		channel->class_instance = class_instance;
 
-		channel->orb_advert = orb_advertise(channel->orb_id, report);
-		if (channel->orb_advert < 0) {
-			log("ADVERTISE FAILED");
+		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
+		if (channel->orb_advert == nullptr) {
+			DEVICE_LOG("ADVERTISE FAILED");
 			(void)unregister_class_devname(_class_devname, class_instance);
 			*channel = Channel();
 			return;
 		}
 
-		log("channel %d class instance %d ok", channel->node_id, channel->class_instance);
+		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 	}
+
 	assert(channel != nullptr);
 
-	(void)orb_publish(channel->orb_id, channel->orb_advert, report);
+	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
 unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
+
 	for (unsigned i = 0; i < _max_channels; i++) {
 		if (_channels[i].node_id >= 0) {
 			out += 1;
 		}
 	}
+
 	return out;
 }
 
@@ -151,6 +157,7 @@ void UavcanCDevSensorBridgeBase::print_status() const
 		if (_channels[i].node_id >= 0) {
 			printf("channel %d: node id %d --> class instance %d\n",
 			       i, _channels[i].node_id, _channels[i].class_instance);
+
 		} else {
 			printf("channel %d: empty\n", i);
 		}

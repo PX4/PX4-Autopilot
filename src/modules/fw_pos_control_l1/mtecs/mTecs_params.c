@@ -32,15 +32,11 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file mTecs_params.c
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
 
 /*
  * Controller parameters, accessible via MAVLink
@@ -49,10 +45,7 @@
 /**
  * mTECS enabled
  *
- * Set to 1 to enable mTECS
- *
- * @min 0
- * @max 1
+ * @boolean
  * @group mTECS
  */
 PARAM_DEFINE_INT32(MT_ENABLED, 0);
@@ -126,7 +119,6 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
  */
 PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
 
-
 /**
  * Total Energy Distribution Offset (Cruise pitch sp)
  *
@@ -157,8 +149,8 @@ PARAM_DEFINE_FLOAT(MT_THR_MAX, 1.0f);
 /**
  * Minimal Pitch Setpoint in Degrees
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -167,8 +159,8 @@ PARAM_DEFINE_FLOAT(MT_PIT_MIN, -45.0f);
 /**
  * Maximal Pitch Setpoint in Degrees
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -177,6 +169,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 /**
  * Lowpass (cutoff freq.) for altitude
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
@@ -184,6 +177,7 @@ PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
 /**
  * Lowpass (cutoff freq.) for the flight path angle
  *
+ * @unit Hz
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_LP, 1.0f);
@@ -192,8 +186,8 @@ PARAM_DEFINE_FLOAT(MT_FPA_LP, 1.0f);
  * P gain for the altitude control
  * Maps the altitude error to the flight path angle setpoint
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_P, 0.3f);
@@ -202,8 +196,8 @@ PARAM_DEFINE_FLOAT(MT_FPA_P, 0.3f);
  * D gain for the altitude control
  * Maps the change of altitude error to the flight path angle setpoint
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
@@ -215,12 +209,11 @@ PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
  */
 PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
 
-
 /**
  * Minimal flight path angle setpoint
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -229,8 +222,8 @@ PARAM_DEFINE_FLOAT(MT_FPA_MIN, -20.0f);
 /**
  * Maximal flight path angle setpoint
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -254,8 +247,8 @@ PARAM_DEFINE_FLOAT(MT_AD_LP, 0.5f);
  * P gain for the airspeed control
  * Maps the airspeed error to the acceleration setpoint
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_P, 0.3f);
@@ -264,8 +257,8 @@ PARAM_DEFINE_FLOAT(MT_ACC_P, 0.3f);
  * D gain for the airspeed control
  * Maps the change of airspeed error to the acceleration setpoint
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_D, 0.0f);
@@ -280,7 +273,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 0.5f);
 /**
  * Minimal acceleration (air)
  *
- * @unit m/s^2
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
@@ -288,7 +281,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 /**
  * Maximal acceleration (air)
  *
-* @unit m/s^2
+ * @unit m/s/s
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
@@ -296,8 +289,8 @@ PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
 /**
  * Minimal throttle during takeoff
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_TKF_THR_MIN, 1.0f);
@@ -305,8 +298,8 @@ PARAM_DEFINE_FLOAT(MT_TKF_THR_MIN, 1.0f);
 /**
  * Maximal throttle during takeoff
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_TKF_THR_MAX, 1.0f);
@@ -314,8 +307,8 @@ PARAM_DEFINE_FLOAT(MT_TKF_THR_MAX, 1.0f);
 /**
  * Minimal pitch during takeoff
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -324,8 +317,8 @@ PARAM_DEFINE_FLOAT(MT_TKF_PIT_MIN, 0.0f);
 /**
  * Maximal pitch during takeoff
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -334,8 +327,8 @@ PARAM_DEFINE_FLOAT(MT_TKF_PIT_MAX, 45.0f);
 /**
  * Minimal throttle in underspeed mode
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_USP_THR_MIN, 1.0f);
@@ -343,8 +336,8 @@ PARAM_DEFINE_FLOAT(MT_USP_THR_MIN, 1.0f);
 /**
  * Maximal throttle in underspeed mode
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_USP_THR_MAX, 1.0f);
@@ -352,8 +345,8 @@ PARAM_DEFINE_FLOAT(MT_USP_THR_MAX, 1.0f);
 /**
  * Minimal pitch in underspeed mode
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -362,8 +355,8 @@ PARAM_DEFINE_FLOAT(MT_USP_PIT_MIN, -45.0f);
 /**
  * Maximal pitch in underspeed mode
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -372,8 +365,8 @@ PARAM_DEFINE_FLOAT(MT_USP_PIT_MAX, 0.0f);
 /**
  * Minimal throttle in landing mode (only last phase of landing)
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_LND_THR_MIN, 0.0f);
@@ -381,8 +374,8 @@ PARAM_DEFINE_FLOAT(MT_LND_THR_MIN, 0.0f);
 /**
  * Maximal throttle in landing mode (only last phase of landing)
  *
- * @min 0.0f
- * @max 1.0f
+ * @min 0.0
+ * @max 1.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_LND_THR_MAX, 0.0f);
@@ -390,8 +383,8 @@ PARAM_DEFINE_FLOAT(MT_LND_THR_MAX, 0.0f);
 /**
  * Minimal pitch in landing mode
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -400,8 +393,8 @@ PARAM_DEFINE_FLOAT(MT_LND_PIT_MIN, -5.0f);
 /**
  * Maximal pitch in landing mode
  *
- * @min -90.0f
- * @max 90.0f
+ * @min -90.0
+ * @max 90.0
  * @unit deg
  * @group mTECS
  */
@@ -410,8 +403,8 @@ PARAM_DEFINE_FLOAT(MT_LND_PIT_MAX, 15.0f);
 /**
  * Integrator Limit for Total Energy Rate Control
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_THR_I_MAX, 10.0f);
@@ -419,8 +412,8 @@ PARAM_DEFINE_FLOAT(MT_THR_I_MAX, 10.0f);
 /**
  * Integrator Limit for Energy Distribution Rate Control
  *
- * @min 0.0f
- * @max 10.0f
+ * @min 0.0
+ * @max 10.0
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_PIT_I_MAX, 10.0f);

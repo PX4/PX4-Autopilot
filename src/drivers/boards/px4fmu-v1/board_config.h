@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,24 +43,19 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
+#include <nuttx/board.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
-#include <stm32.h>
-#include <arch/board/board.h>
- 
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+#define BOARD_USES_PX4IO_VERSION       1
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
-#define UDID_START		0x1FFF7A10
 
 //#ifdef CONFIG_STM32_SPI2
 //#  error "SPI2 is not supported on this board"
@@ -114,12 +109,29 @@ __BEGIN_DECLS
  * Note that these are unshifted addresses.
  */
 #define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_MS5611	0x76
 #define PX4_I2C_OBDEV_EEPROM	NOTDEFINED
 #define PX4_I2C_OBDEV_LED	0x55
 
 #define PX4_I2C_OBDEV_PX4IO_BL	0x18
 #define PX4_I2C_OBDEV_PX4IO	0x1a
+
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13)
+
+// ADC defines to be used in sensors.cpp to read from a particular channel
+#define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV   (5.7013919372f)
+#define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
 /* User GPIOs
  *
@@ -144,7 +156,7 @@ __BEGIN_DECLS
 #define GPIO_GPIO6_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN13)
 #define GPIO_GPIO7_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN12)
 #define GPIO_GPIO_DIR		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
-
+#define BOARD_GPIO_SHARED_BUFFERED_BITS 3
 /*
  * Tone alarm output
  */
@@ -171,6 +183,13 @@ __BEGIN_DECLS
 #define GPIO_TIM2_CH2OUT	GPIO_TIM2_CH2OUT_1
 #define GPIO_TIM2_CH3OUT	GPIO_TIM2_CH3OUT_1
 #define GPIO_TIM2_CH4OUT	GPIO_TIM2_CH4OUT_1
+#define DIRECT_PWM_OUTPUT_CHANNELS	4
+
+#define GPIO_TIM2_CH1IN		GPIO_TIM2_CH1IN_1
+#define GPIO_TIM2_CH2IN		GPIO_TIM2_CH2IN_1
+#define GPIO_TIM2_CH3IN		GPIO_TIM2_CH3IN_1
+#define GPIO_TIM2_CH4IN		GPIO_TIM2_CH4IN_1
+#define DIRECT_INPUT_TIMER_CHANNELS  4
 
 /* USB OTG FS
  *
@@ -184,6 +203,45 @@ __BEGIN_DECLS
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 #define HRT_PPM_CHANNEL		3	/* use capture/compare channel 3 */
 #define GPIO_PPM_IN		(GPIO_ALT|GPIO_AF1|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
+
+
+#define	BOARD_NAME "PX4FMU_V1"
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_FMU_GPIO_TAB  { \
+		{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0}, \
+		{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0}, \
+		{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1}, \
+		{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, GPIO_USART2_RTS_1}, \
+		{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, GPIO_USART2_TX_1}, \
+		{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1}, \
+		{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2}, \
+		{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2}, }
+
+/*
+ * GPIO numbers.
+ *
+ * For shared pins, alternate function 1 selects the non-GPIO mode
+ * (USART2, CAN2, etc.)
+ */
+#define GPIO_EXT_1     (1<<0)  /**< high-power GPIO 1 */
+#define GPIO_EXT_2     (1<<1)  /**< high-power GPIO 1 */
+#define GPIO_MULTI_1   (1<<2)  /**< USART2 CTS */
+#define GPIO_MULTI_2   (1<<3)  /**< USART2 RTS */
+#define GPIO_MULTI_3   (1<<4)  /**< USART2 TX */
+#define GPIO_MULTI_4   (1<<5)  /**< USART2 RX */
+#define GPIO_CAN_TX    (1<<6)  /**< CAN2 TX */
+#define GPIO_CAN_RX    (1<<7)  /**< CAN2 RX */
+
+
+/* BOARD_HAS_MULTI_PURPOSE_GPIO defined because the board
+ * has alternate uses for GPIO as noted in that the third
+ * column above has entries.
+ */
+#define BOARD_HAS_MULTI_PURPOSE_GPIO 1
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types
@@ -208,6 +266,13 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
+#define board_spi_reset(ms)
+
+extern void stm32_usbinitialize(void);
+
+#define board_peripheral_reset(ms)
+
+#include "../common/board_common.h"
 
 #endif /* __ASSEMBLY__ */
 

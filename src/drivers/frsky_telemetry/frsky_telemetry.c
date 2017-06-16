@@ -35,11 +35,13 @@
 /**
  * @file frsky_telemetry.c
  * @author Stefan Rado <px4@sradonia.net>
+ * @author Mark Whitehorn <kd0aij@github.com>
  *
- * FrSky telemetry implementation.
+ * FrSky D8 mode and SmartPort (D16 mode) telemetry implementation.
  *
- * This daemon emulates an FrSky sensor hub by periodically sending data
- * packets to an attached FrSky receiver.
+ * This daemon emulates the FrSky Sensor Hub for D8 mode.
+ * For X series receivers (D16 mode) it emulates SmartPort sensors by responding to polling
+ * packets received from an attached FrSky X series receiver.
  *
  */
 
@@ -48,12 +50,18 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
+#include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <termios.h>
 
+#include <px4_tasks.h>
+#include <systemlib/err.h>
+#include <termios.h>
+#include <drivers/drv_hrt.h>
+#include <uORB/topics/sensor_baro.h>
+#include <math.h>	// NAN
+
+#include "sPort_data.h"
 #include "frsky_data.h"
 
 
@@ -61,21 +69,25 @@
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
+typedef enum { SCANNING, SPORT, DTYPE } frsky_state_t;
+static frsky_state_t frsky_state = SCANNING;
 
 /* functions */
-static int frsky_open_uart(const char *uart_name, struct termios *uart_config_original);
+static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
+static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed);
 static void usage(void);
 static int frsky_telemetry_thread_main(int argc, char *argv[]);
 __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 
+#define DEBUG
 
 /**
  * Opens the UART device and sets all required serial parameters.
  */
-static int frsky_open_uart(const char *uart_name, struct termios *uart_config_original)
+static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original)
 {
 	/* Open UART */
-	const int uart = open(uart_name, O_WRONLY | O_NOCTTY);
+	const int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart < 0) {
 		err(1, "Error opening port: %s", uart_name);
@@ -83,31 +95,45 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
+
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
+		warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 	/* Fill the struct for the new configuration */
-	struct termios uart_config;
-	tcgetattr(uart, &uart_config);
+	tcgetattr(uart, uart_config);
 
 	/* Disable output post-processing */
-	uart_config.c_oflag &= ~OPOST;
+	uart_config->c_oflag &= ~OPOST;
 
 	/* Set baud rate */
 	static const speed_t speed = B9600;
 
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
+		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
-	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+	if ((termios_state = tcsetattr(uart, TCSANOW, uart_config)) < 0) {
+		warnx("ERR: %s (tcsetattr)\n", uart_name);
 		close(uart);
+		return -1;
+	}
+
+	return uart;
+}
+
+static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed)
+{
+
+	if (cfsetispeed(uart_config, speed) < 0) {
+		return -1;
+	}
+
+	if (tcsetattr(uart, TCSANOW, uart_config) < 0) {
 		return -1;
 	}
 
@@ -120,9 +146,9 @@ static int frsky_open_uart(const char *uart_name, struct termios *uart_config_or
 static void usage()
 {
 	fprintf(stderr,
-			"usage: frsky_telemetry start [-d <devicename>]\n"
-			"       frsky_telemetry stop\n"
-			"       frsky_telemetry status\n");
+		"usage: frsky_telemetry start [-d <devicename>]\n"
+		"       frsky_telemetry stop\n"
+		"       frsky_telemetry status\n");
 	exit(1);
 }
 
@@ -132,13 +158,14 @@ static void usage()
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	/* Default values for arguments */
-	char *device_name = "/dev/ttyS1"; /* USART2 */
+	char *device_name = "/dev/ttyS6"; /* USART8 */
 
 	/* Work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
 
 	int ch;
+
 	while ((ch = getopt(argc, argv, "d:")) != EOF) {
 		switch (ch) {
 		case 'd':
@@ -151,46 +178,385 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		}
 	}
 
-	/* Print welcome text */
-	warnx("FrSky telemetry interface starting...");
-
-	/* Open UART */
+	/* Open UART assuming D type telemetry */
 	struct termios uart_config_original;
-	const int uart = frsky_open_uart(device_name, &uart_config_original);
+	struct termios uart_config;
+	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
 
-	if (uart < 0)
+	if (uart < 0) {
+		warnx("could not open %s", device_name);
 		err(1, "could not open %s", device_name);
+	}
 
-	/* Subscribe to topics */
-	frsky_init();
+	/* poll descriptor */
+	struct pollfd fds[1];
+	fds[0].fd = uart;
+	fds[0].events = POLLIN;
 
 	thread_running = true;
 
 	/* Main thread loop */
-	unsigned int iteration = 0;
-	while (!thread_should_exit) {
+	char sbuf[20];
+	frsky_state = SCANNING;
+	frsky_state_t baudRate = DTYPE;
 
-		/* Sleep 200 ms */
-		usleep(200000);
+	while (!thread_should_exit && frsky_state == SCANNING) {
+		/* 2 byte polling frames indicate SmartPort telemetry
+		 * 11 byte packets indicate D type telemetry
+		 */
+		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
 
-		/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
-		frsky_send_frame1(uart);
+		if (status > 0) {
+			/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2
+			 * Wait long enough for 11 bytes at 9600 baud
+			 */
+			usleep(12000);
+			int nbytes = read(uart, &sbuf[0], sizeof(sbuf));
+			PX4_DEBUG("frsky input: %d bytes: %x %x, speed: %d", nbytes, sbuf[0], sbuf[1], baudRate);
 
-		/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
-		if (iteration % 5 == 0)
-		{
-			frsky_send_frame2(uart);
+			// look for valid header byte
+			if (nbytes > 10) {
+				if (baudRate == DTYPE) {
+					// see if we got a valid D-type hostframe
+					struct adc_linkquality host_frame;
+
+					if (frsky_parse_host((uint8_t *)&sbuf[0], nbytes, &host_frame)) {
+						frsky_state = baudRate;
+						break;
+					}
+
+				} else {
+					// check for alternating S.port start bytes
+					int index = 0;
+
+					while (index < 2 && sbuf[index] != 0x7E) { index++; }
+
+					if (index < 2) {
+
+						int success = 1;
+
+						for (int i = index + 2; i < nbytes; i += 2) {
+							if (sbuf[i] != 0x7E) { success = 0; break; }
+						}
+
+						if (success) {
+							frsky_state = baudRate;
+							break;
+						}
+					}
+				}
+
+			}
+
+			// alternate between S.port and D-type baud rates
+			if (baudRate == SPORT) {
+				PX4_DEBUG("setting baud rate to %d", 9600);
+				set_uart_speed(uart, &uart_config, B9600);
+				baudRate = DTYPE;
+
+			} else {
+				PX4_DEBUG("setting baud rate to %d", 57600);
+				set_uart_speed(uart, &uart_config, B57600);
+				baudRate = SPORT;
+
+			}
+
+			// wait a second
+			usleep(1000000);
+			// flush buffer
+			read(uart, &sbuf[0], sizeof(sbuf));
+
+		}
+	}
+
+	if (frsky_state == SPORT) {
+		/* Subscribe to topics */
+		if (!sPort_init()) {
+			err(1, "could not allocate memory");
 		}
 
-		/* Send frame 3 (every 5000ms): date, time */
-		if (iteration % 25 == 0)
-		{
-			frsky_send_frame3(uart);
+		PX4_INFO("sending FrSky SmartPort telemetry");
 
-			iteration = 0;
+		struct sensor_baro_s *sensor_baro = malloc(sizeof(struct sensor_baro_s));
+
+		if (sensor_baro == NULL) {
+			err(1, "could not allocate memory");
 		}
 
-		iteration++;
+		static float filtered_alt = NAN;
+		int sensor_sub = orb_subscribe(ORB_ID(sensor_baro));
+
+		/* send S.port telemetry */
+		while (!thread_should_exit) {
+
+			/* wait for poll frame starting with value 0x7E
+			* note that only the bus master is supposed to put a 0x7E on the bus.
+			* slaves use byte stuffing to send 0x7E and 0x7D.
+			* we expect a poll frame every 12msec
+			*/
+			int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
+
+			if (status < 1) { continue; }
+
+			// read 1 byte
+			int newBytes = read(uart, &sbuf[0], 1);
+
+			if (newBytes < 1 || sbuf[0] != 0x7E) { continue; }
+
+			/* wait for ID byte */
+			status = poll(fds, sizeof(fds) / sizeof(fds[0]), 50);
+
+			if (status < 1) { continue; }
+
+			hrt_abstime now = hrt_absolute_time();
+
+			newBytes = read(uart, &sbuf[1], 1);
+
+			/* get a local copy of the current sensor values
+			 * in order to apply a lowpass filter to baro pressure.
+			 */
+			static float last_baro_alt = 0;
+			bool sensor_updated;
+			orb_check(sensor_sub, &sensor_updated);
+
+			if (sensor_updated) {
+				orb_copy(ORB_ID(sensor_baro), sensor_sub, sensor_baro);
+
+				if (isnan(filtered_alt)) {
+					filtered_alt = sensor_baro->altitude;
+
+				} else {
+					filtered_alt = .05f * sensor_baro->altitude + .95f * filtered_alt;
+				}
+			}
+
+			// allow a minimum of 500usec before reply
+			usleep(500);
+
+			sPort_update_topics();
+
+			static hrt_abstime lastBATV = 0;
+			static hrt_abstime lastCUR = 0;
+			static hrt_abstime lastALT = 0;
+			static hrt_abstime lastSPD = 0;
+			static hrt_abstime lastFUEL = 0;
+			static hrt_abstime lastVSPD = 0;
+			static hrt_abstime lastGPS = 0;
+			static hrt_abstime lastNAV_STATE = 0;
+			static hrt_abstime lastGPS_FIX = 0;
+
+
+			switch (sbuf[1]) {
+
+			case SMARTPORT_POLL_1:
+
+				/* report BATV at 1Hz */
+				if (now - lastBATV > 1000 * 1000) {
+					lastBATV = now;
+					/* send battery voltage */
+					sPort_send_BATV(uart);
+				}
+
+				break;
+
+
+			case SMARTPORT_POLL_2:
+
+				/* report battery current at 5Hz */
+				if (now - lastCUR > 200 * 1000) {
+					lastCUR = now;
+					/* send battery current */
+					sPort_send_CUR(uart);
+				}
+
+				break;
+
+
+			case SMARTPORT_POLL_3:
+
+				/* report altitude at 5Hz */
+				if (now - lastALT > 200 * 1000) {
+					lastALT = now;
+					/* send altitude */
+					sPort_send_ALT(uart);
+				}
+
+				break;
+
+
+			case SMARTPORT_POLL_4:
+
+				/* report speed at 5Hz */
+				if (now - lastSPD > 200 * 1000) {
+					lastSPD = now;
+					/* send speed */
+					sPort_send_SPD(uart);
+				}
+
+				break;
+
+			case SMARTPORT_POLL_5:
+
+				/* report fuel at 1Hz */
+				if (now - lastFUEL > 1000 * 1000) {
+					lastFUEL = now;
+					/* send fuel */
+					sPort_send_FUEL(uart);
+				}
+
+				break;
+
+			case SMARTPORT_POLL_6:
+
+				/* report vertical speed at 10Hz */
+				if (now - lastVSPD > 100 * 1000) {
+					/* estimate vertical speed using first difference and delta t */
+					uint64_t dt = now - lastVSPD;
+					float speed  = (filtered_alt - last_baro_alt) / (1e-6f * (float)dt);
+
+					/* save current alt and timestamp */
+					last_baro_alt = filtered_alt;
+					lastVSPD = now;
+
+					sPort_send_VSPD(uart, speed);
+				}
+
+				break;
+
+			case SMARTPORT_POLL_7:
+
+				/* report GPS data elements at 5*5Hz */
+				if (now - lastGPS > 100 * 1000) {
+					static int elementCount = 0;
+
+					switch (elementCount) {
+
+					case 0:
+						sPort_send_GPS_LON(uart);
+						elementCount++;
+						break;
+
+					case 1:
+						sPort_send_GPS_LAT(uart);
+						elementCount++;
+						break;
+
+					case 2:
+						sPort_send_GPS_CRS(uart);
+						elementCount++;
+						break;
+
+					case 3:
+						sPort_send_GPS_ALT(uart);
+						elementCount++;
+						break;
+
+					case 4:
+						sPort_send_GPS_SPD(uart);
+						elementCount++;
+						break;
+
+					case 5:
+						sPort_send_GPS_TIME(uart);
+						elementCount = 0;
+						break;
+					}
+
+				}
+
+			case SMARTPORT_POLL_8:
+
+				/* report nav_state as DIY_NAVSTATE 2Hz */
+				if (now - lastNAV_STATE > 500 * 1000) {
+					lastNAV_STATE = now;
+					/* send T1 */
+					sPort_send_NAV_STATE(uart);
+				}
+
+				/* report satcount and fix as DIY_GPSFIX at 2Hz */
+				else if (now - lastGPS_FIX > 500 * 1000) {
+					lastGPS_FIX = now;
+					/* send T2 */
+					sPort_send_GPS_FIX(uart);
+				}
+
+				break;
+			}
+		}
+
+		PX4_DEBUG("freeing sPort memory");
+		sPort_deinit();
+		free(sensor_baro);
+
+		/* either no traffic on the port (0=>timeout), or D type packet */
+
+	} else if (frsky_state == DTYPE) {
+		/* detected D type telemetry: reconfigure UART */
+		PX4_INFO("sending FrSky D type telemetry");
+		int status = set_uart_speed(uart, &uart_config, B9600);
+
+		if (status < 0) {
+			PX4_DEBUG("error setting speed for %s, quitting", device_name);
+			/* Reset the UART flags to original state */
+			tcsetattr(uart, TCSANOW, &uart_config_original);
+			close(uart);
+
+			thread_running = false;
+			return 0;
+		}
+
+		int iteration = 0;
+
+		/* Subscribe to topics */
+		if (!frsky_init()) {
+			err(1, "could not allocate memory");
+		}
+
+		struct adc_linkquality host_frame;
+
+		/* send D8 mode telemetry */
+		while (!thread_should_exit) {
+
+			/* Sleep 100 ms */
+			usleep(100000);
+
+			/* parse incoming data */
+			int nbytes = read(uart, &sbuf[0], sizeof(sbuf));
+			bool new_input = frsky_parse_host((uint8_t *)&sbuf[0], nbytes, &host_frame);
+
+			/* the RSSI value could be useful */
+			if (false && new_input) {
+				warnx("host frame: ad1:%u, ad2: %u, rssi: %u",
+				      host_frame.ad1, host_frame.ad2, host_frame.linkq);
+			}
+
+			frsky_update_topics();
+
+			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
+			if (iteration % 2 == 0) {
+				frsky_send_frame1(uart);
+			}
+
+			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
+			if (iteration % 10 == 0) {
+				frsky_send_frame2(uart);
+			}
+
+			/* Send frame 3 (every 5000ms): date, time */
+			if (iteration % 50 == 0) {
+				frsky_send_frame3(uart);
+
+				iteration = 0;
+			}
+
+			iteration++;
+		}
+
+//		/* TODO: flush the input buffer if in full duplex mode */
+//		read(uart, &sbuf[0], sizeof(sbuf));
+		PX4_DEBUG("freeing frsky memory");
+		frsky_deinit();
+
 	}
 
 	/* Reset the UART flags to original state */
@@ -215,16 +581,17 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		/* this is not an error */
-		if (thread_running)
+		if (thread_running) {
 			errx(0, "frsky_telemetry already running");
+		}
 
 		thread_should_exit = false;
-		frsky_task = task_spawn_cmd("frsky_telemetry",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_DEFAULT,
-					  2000,
-					  frsky_telemetry_thread_main,
-					  (const char **)argv);
+		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
+						SCHED_DEFAULT,
+						200,
+						1268,
+						frsky_telemetry_thread_main,
+						(char *const *)argv);
 
 		while (!thread_running) {
 			usleep(200);
@@ -236,13 +603,14 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 
 		/* this is not an error */
-		if (!thread_running)
+		if (!thread_running) {
 			errx(0, "frsky_telemetry already stopped");
+		}
 
 		thread_should_exit = true;
 
 		while (thread_running) {
-			usleep(200000);
+			usleep(1000000);
 			warnx(".");
 		}
 
@@ -252,7 +620,20 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			errx(0, "running");
+			switch (frsky_state) {
+			case SCANNING:
+				errx(0, "running: SCANNING");
+				break;
+
+			case SPORT:
+				errx(0, "running: SPORT");
+				break;
+
+			case DTYPE:
+				errx(0, "running: DTYPE");
+				break;
+
+			}
 
 		} else {
 			errx(1, "not running");

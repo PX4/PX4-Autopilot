@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm32f4discovery/src/up_cxxinitialize.c
+ * src/modules/systemlib/up_cxxinitialize.c
  * arch/arm/src/board/up_cxxinitialize.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,12 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
+#include <stdint.h>
 
-#include <debug.h>
+//#include <debug.h>
 
-#include <nuttx/arch.h>
+//#include <nuttx/arch.h>
 
 //#include <arch/stm32/chip.h>
 //#include "chip.h"
@@ -53,25 +54,12 @@
 /* Debug ****************************************************************************/
 /* Non-standard debug that may be enabled just for testing the static constructors */
 
-#ifndef CONFIG_DEBUG
-#  undef CONFIG_DEBUG_CXX
-#endif
+#undef CONFIG_DEBUG_CXX
 
 #ifdef CONFIG_DEBUG_CXX
-#  define cxxdbg              dbg
-#  define cxxlldbg            lldbg
-#  ifdef CONFIG_DEBUG_VERBOSE
-#    define cxxvdbg           vdbg
-#    define cxxllvdbg         llvdbg
+#    define cxxinfo  _info
 #  else
-#    define cxxvdbg(x...)
-#    define cxxllvdbg(x...)
-#  endif
-#else
-#  define cxxdbg(x...)
-#  define cxxlldbg(x...)
-#  define cxxvdbg(x...)
-#  define cxxllvdbg(x...)
+#    define cxxinfo(x...)
 #endif
 
 /************************************************************************************
@@ -117,34 +105,33 @@ extern uint32_t _etext;
  *   This function should then be called in the application-specific
  *   user_start logic in order to perform the C++ initialization.  NOTE
  *   that no component of the core NuttX RTOS logic is involved; This
- *   function defintion only provides the 'contract' between application
+ *   function definition only provides the 'contract' between application
  *   specific C++ code and platform-specific toolchain support
  *
  ***************************************************************************/
 
-__EXPORT void up_cxxinitialize(void)
+__EXPORT void up_cxxinitialize(void);
+void up_cxxinitialize(void)
 {
-  initializer_t *initp;
+	initializer_t *initp;
 
-  cxxdbg("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
-         &_sinit, &_einit, &_stext, &_etext);
+	cxxinfo("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
+		&_sinit, &_einit, &_stext, &_etext);
 
-  /* Visit each entry in the initialzation table */
+	/* Visit each entry in the initialzation table */
 
-  for (initp = &_sinit; initp != &_einit; initp++)
-    {
-      initializer_t initializer = *initp;
-      cxxdbg("initp: %p initializer: %p\n", initp, initializer);
+	for (initp = &_sinit; initp != &_einit; initp++) {
+		initializer_t initializer = *initp;
+		cxxinfo("initp: %p initializer: %p\n", initp, initializer);
 
-      /* Make sure that the address is non-NULL and lies in the text region
-       * defined by the linker script.  Some toolchains may put NULL values
-       * or counts in the initialization table
-       */
+		/* Make sure that the address is non-NULL and lies in the text region
+		 * defined by the linker script.  Some toolchains may put NULL values
+		 * or counts in the initialization table
+		 */
 
-      if ((void*)initializer > (void*)&_stext && (void*)initializer < (void*)&_etext)
-        {
-          cxxdbg("Calling %p\n", initializer);
-          initializer();
-        }
-    }
+		if ((void *)initializer > (void *)&_stext && (void *)initializer < (void *)&_etext) {
+			cxxinfo("Calling %p\n", initializer);
+			initializer();
+		}
+	}
 }

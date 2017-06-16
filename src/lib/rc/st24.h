@@ -73,7 +73,7 @@ typedef struct {
 typedef struct {
 	uint16_t t;			///< packet counter or clock
 	uint8_t	rssi;			///< signal strength
-	uint8_t	packet_count;		///< Number of UART packets sent since reception of last RF frame (this tells something about age / rate)
+	uint8_t	lost_count;		///< Number of UART packets sent since reception of last RF frame (100 frame means RC timeout of 1s)
 	uint8_t	channel[18];		///< channel data, 12 channels (12 bit numbers)
 } ChannelData12;
 
@@ -84,7 +84,7 @@ typedef struct {
 typedef struct {
 	uint16_t t;			///< packet counter or clock
 	uint8_t	rssi;			///< signal strength
-	uint8_t	packet_count;		///< Number of UART packets sent since reception of last RF frame (this tells something about age / rate)
+	uint8_t	lost_count;		///< Number of UART packets sent since reception of last RF frame (100 frame means RC timeout of 1s)
 	uint8_t	channel[36];		///< channel data, 24 channels (12 bit numbers)
 } ChannelData24;
 
@@ -152,12 +152,12 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
  *
  * @param byte current char to read
  * @param rssi pointer to a byte where the RSSI value is written back to
- * @param rx_count pointer to a byte where the receive count of packets signce last wireless frame is written back to
+ * @param lost_count pointer to a byte where the receive count of packets since last wireless frame is written back to ( > 0 if RC is lost)
  * @param channels pointer to a datastructure of size max_chan_count where channel values (12 bit) are written back to
  * @param max_chan_count maximum channels to decode - if more channels are decoded, the last n are skipped and success (0) is returned
  * @return 0 for success (a decoded packet), 1 for no packet yet (accumulating), 2 for unknown packet, 3 for out of sync, 4 for checksum error
  */
-__EXPORT int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
-			     uint16_t *channels, uint16_t max_chan_count);
+__EXPORT int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count,
+			 uint16_t *channels, uint16_t max_chan_count);
 
 __END_DECLS

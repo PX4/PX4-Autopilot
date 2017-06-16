@@ -51,7 +51,51 @@ bool __EXPORT equal(float a, float b, float epsilon)
 		printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
 
-	} else return true;
+	} else { return true; }
+}
+
+bool __EXPORT greater_than(float a, float b)
+{
+	if (a > b) {
+		return true;
+
+	} else {
+		printf("not a > b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
+		return false;
+	}
+}
+
+bool __EXPORT less_than(float a, float b)
+{
+	if (a < b) {
+		return true;
+
+	} else {
+		printf("not a < b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
+		return false;
+	}
+}
+
+bool __EXPORT greater_than_or_equal(float a, float b)
+{
+	if (a >= b) {
+		return true;
+
+	} else {
+		printf("not a >= b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
+		return false;
+	}
+}
+
+bool __EXPORT less_than_or_equal(float a, float b)
+{
+	if (a <= b) {
+		return true;
+
+	} else {
+		printf("not a <= b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
+		return false;
+	}
 }
 
 void __EXPORT float2SigExp(
@@ -59,6 +103,9 @@ void __EXPORT float2SigExp(
 	float &sig,
 	int &exp)
 {
+// FIXME - This code makes no sense when exp is an int
+// FIXME - isnan and isinf not defined for QuRT
+#ifndef __PX4_QURT
 	if (isnan(num) || isinf(num)) {
 		sig = 0.0f;
 		exp = -99;
@@ -80,14 +127,16 @@ void __EXPORT float2SigExp(
 		exp = floor(exp);
 	}
 
+#endif
+
 	sig = num;
 
 	// cheap power since it is integer
 	if (exp > 0) {
-		for (int i = 0; i < abs(exp); i++) sig /= 10;
+		for (int i = 0; i < abs(exp); i++) { sig /= 10; }
 
 	} else {
-		for (int i = 0; i < abs(exp); i++) sig *= 10;
+		for (int i = 0; i < abs(exp); i++) { sig *= 10; }
 	}
 }
 

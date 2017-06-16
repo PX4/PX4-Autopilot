@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
@@ -46,24 +46,22 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 #include <time.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
 
-#include <nuttx/spi.h>
-
-#include "tests.h"
+#include "tests_main.h"
 
 int test_servo(int argc, char *argv[])
 {
-	int fd, result;
+	int fd;
+	int result = 0;
 	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
 	servo_position_t pos;
 
-	fd = open(PWM_OUTPUT_DEVICE_PATH, O_RDWR);
+	fd = open(PWM_OUTPUT0_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
 		printf("failed opening /dev/pwm_servo\n");
@@ -81,9 +79,10 @@ int test_servo(int argc, char *argv[])
 
 	unsigned servo_count;
 	result = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+
 	if (result != OK) {
 		warnx("PWM_SERVO_GET_COUNT");
-		return ERROR;
+		goto out;
 	}
 
 	for (unsigned i = 0; i < servo_count; i++) {
@@ -100,12 +99,19 @@ int test_servo(int argc, char *argv[])
 
 	/* tell safety that its ok to disable it with the switch */
 	result = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-	if (result != OK)
+
+	if (result != OK) {
 		warnx("FAIL: PWM_SERVO_SET_ARM_OK");
+		goto out;
+	}
+
 	/* tell output device that the system is armed (it will output values if safety is off) */
 	result = ioctl(fd, PWM_SERVO_ARM, 0);
-	if (result != OK)
+
+	if (result != OK) {
 		warnx("FAIL: PWM_SERVO_ARM");
+		goto out;
+	}
 
 	usleep(5000000);
 	printf("Advancing channel 0 to 1500\n");
@@ -113,5 +119,10 @@ int test_servo(int argc, char *argv[])
 	printf("Advancing channel 1 to 1800\n");
 	result = ioctl(fd, PWM_SERVO_SET(1), 1800);
 out:
-	return 0;
+
+	if (fd >= 0) {
+		close(fd);
+	}
+
+	return result;
 }

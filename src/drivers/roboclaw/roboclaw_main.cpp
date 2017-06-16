@@ -43,7 +43,7 @@
  *
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ static void usage();
 static void usage()
 {
 	fprintf(stderr, "usage: roboclaw "
-			"{start|stop|status|test}\n\n");
+		"{start|stop|status|test}\n\n");
 }
 
 /**
@@ -92,8 +92,9 @@ static void usage()
 int roboclaw_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
+	if (argc < 2) {
 		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -104,25 +105,27 @@ int roboclaw_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("roboclaw",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 2048,
-					 roboclaw_thread_main,
-					 (const char **)argv);
+		deamon_task = px4_task_spawn_cmd("roboclaw",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 10,
+						 2048,
+						 roboclaw_thread_main,
+						 (char *const *)argv);
 		exit(0);
 
 	} else if (!strcmp(argv[1], "test")) {
 
-		const char * deviceName = "/dev/ttyS2";
+		const char *deviceName = "/dev/ttyS2";
 		uint8_t address = 128;
 		uint16_t pulsesPerRev = 1200;
 
 		if (argc == 2) {
 			printf("testing with default settings\n");
+
 		} else if (argc != 4) {
 			printf("usage: roboclaw test device address pulses_per_rev\n");
 			exit(-1);
+
 		} else {
 			deviceName = argv[2];
 			address = strtoul(argv[3], nullptr, 0);
@@ -130,7 +133,7 @@ int roboclaw_main(int argc, char *argv[])
 		}
 
 		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
+		       deviceName, address, pulsesPerRev);
 
 		roboclawTest(deviceName, address, pulsesPerRev);
 		thread_should_exit = true;
@@ -149,6 +152,7 @@ int roboclaw_main(int argc, char *argv[])
 		} else {
 			printf("\troboclaw app not started\n");
 		}
+
 		exit(0);
 	}
 
@@ -161,8 +165,8 @@ int roboclaw_thread_main(int argc, char *argv[])
 	printf("[roboclaw] starting\n");
 
 	// skip parent process args
-	argc -=2;
-	argv +=2;
+	argc -= 2;
+	argv += 2;
 
 	if (argc < 3) {
 		printf("usage: roboclaw start device address\n");
@@ -174,7 +178,7 @@ int roboclaw_thread_main(int argc, char *argv[])
 	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
 
 	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-			deviceName, address, pulsesPerRev);
+	       deviceName, address, pulsesPerRev);
 
 	// start
 	RoboClaw roboclaw(deviceName, address, pulsesPerRev);

@@ -37,7 +37,7 @@
  * AeroCore LED backend.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <stdbool.h>
 
@@ -45,6 +45,7 @@
 #include "board_config.h"
 
 #include <arch/board/board.h>
+#include <systemlib/err.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -54,7 +55,7 @@
  * CONFIG_ARCH_LEDS configuration switch.
  */
 __BEGIN_DECLS
-extern void led_init();
+extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 extern void led_toggle(int led);
@@ -102,17 +103,23 @@ __EXPORT void led_toggle(int led)
 {
 	switch (led) {
 	case 0:
-		if (stm32_gpioread(GPIO_LED0))
+		if (stm32_gpioread(GPIO_LED0)) {
 			stm32_gpiowrite(GPIO_LED0, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED0, true);
+		}
+
 		break;
 
 	case 1:
-		if (stm32_gpioread(GPIO_LED1))
+		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
-		else
+
+		} else {
 			stm32_gpiowrite(GPIO_LED1, true);
+		}
+
 		break;
 
 	default:

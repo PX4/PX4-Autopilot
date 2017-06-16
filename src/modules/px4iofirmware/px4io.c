@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  * Top-level logic for the PX4IO module.
  */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <nuttx/arch.h>
 
 #include <stdio.h>	// required for task_create
@@ -47,12 +47,14 @@
 #include <poll.h>
 #include <signal.h>
 #include <crc32.h>
+#include <syslog.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/systemlib.h>
 
 #include <stm32_uart.h>
 
@@ -61,13 +63,13 @@
 
 __EXPORT int user_start(int argc, char *argv[]);
 
-extern void up_cxxinitialize(void);
-
 struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
 pwm_limit_t pwm_limit;
+
+float dt;
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -82,8 +84,12 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
-#define NUM_MSG 2
-static char msg[NUM_MSG][40];
+#define NUM_MSG 1
+static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
+
+static void heartbeat_blink(void);
+static void ring_blink(void);
+static void update_mem_usage(void);
 
 /*
  * add a debug message to be printed on the console
@@ -94,11 +100,12 @@ isr_debug(uint8_t level, const char *fmt, ...)
 	if (level > r_page_setup[PX4IO_P_SETUP_SET_DEBUG]) {
 		return;
 	}
+
 	va_list ap;
 	va_start(ap, fmt);
 	vsnprintf(msg[msg_next_in], sizeof(msg[0]), fmt, ap);
 	va_end(ap);
-	msg_next_in = (msg_next_in+1) % NUM_MSG;
+	msg_next_in = (msg_next_in + 1) % NUM_MSG;
 	msg_counter++;
 }
 
@@ -110,12 +117,36 @@ show_debug_messages(void)
 {
 	if (msg_counter != last_msg_counter) {
 		uint32_t n = msg_counter - last_msg_counter;
-		if (n > NUM_MSG) n = NUM_MSG;
+
+		if (n > NUM_MSG) { n = NUM_MSG; }
+
 		last_msg_counter = msg_counter;
+
 		while (n--) {
 			debug("%s", msg[msg_next_out]);
-			msg_next_out = (msg_next_out+1) % NUM_MSG;
+			msg_next_out = (msg_next_out + 1) % NUM_MSG;
 		}
+	}
+}
+
+/*
+ * Get the memory usage at 2 Hz while not armed
+ */
+static void
+update_mem_usage(void)
+{
+	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+		return;
+	}
+
+	static uint64_t last_mem_time = 0;
+	uint64_t now = hrt_absolute_time();
+
+	if (now - last_mem_time > (500 * 1000)) {
+		struct mallinfo minfo = mallinfo();
+		r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
+		last_mem_time = now;
 	}
 }
 
@@ -126,6 +157,65 @@ heartbeat_blink(void)
 	LED_BLUE(heartbeat = !heartbeat);
 }
 
+static void
+ring_blink(void)
+{
+#ifdef GPIO_LED4
+
+	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+		LED_RING(1);
+		return;
+	}
+
+	// XXX this led code does have
+	// intentionally a few magic numbers.
+	const unsigned max_brightness = 118;
+
+	static unsigned counter = 0;
+	static unsigned brightness = max_brightness;
+	static unsigned brightness_counter = 0;
+	static unsigned on_counter = 0;
+
+	if (brightness_counter < max_brightness) {
+
+		bool on = ((on_counter * 100) / brightness_counter + 1) <= ((brightness * 100) / max_brightness + 1);
+
+		// XXX once led is PWM driven,
+		// remove the ! in the line below
+		// to return to the proper breathe
+		// animation / pattern (currently inverted)
+		LED_RING(!on);
+		brightness_counter++;
+
+		if (on) {
+			on_counter++;
+		}
+
+	} else {
+
+		if (counter >= 62) {
+			counter = 0;
+		}
+
+		int n;
+
+		if (counter < 32) {
+			n = counter;
+
+		} else {
+			n = 62 - counter;
+		}
+
+		brightness = (n * n) / 8;
+		brightness_counter = 0;
+		on_counter = 0;
+		counter++;
+	}
+
+#endif
+}
+
 static uint64_t reboot_time;
 
 /**
@@ -133,7 +223,7 @@ static uint64_t reboot_time;
  */
 void schedule_reboot(uint32_t time_delta_usec)
 {
-    reboot_time = hrt_absolute_time() + time_delta_usec;
+	reboot_time = hrt_absolute_time() + time_delta_usec;
 }
 
 /**
@@ -141,9 +231,9 @@ void schedule_reboot(uint32_t time_delta_usec)
  */
 static void check_reboot(void)
 {
-    if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
-        up_systemreset();
-    }
+	if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
+		up_systemreset();
+	}
 }
 
 static void
@@ -153,19 +243,35 @@ calculate_fw_crc(void)
 #define APP_LOAD_ADDRESS 0x08001000
 	// compute CRC of the current firmware
 	uint32_t sum = 0;
+
 	for (unsigned p = 0; p < APP_SIZE_MAX; p += 4) {
 		uint32_t bytes = *(uint32_t *)(p + APP_LOAD_ADDRESS);
 		sum = crc32part((uint8_t *)&bytes, sizeof(bytes), sum);
 	}
+
 	r_page_setup[PX4IO_P_SETUP_CRC]   = sum & 0xFFFF;
-	r_page_setup[PX4IO_P_SETUP_CRC+1] = sum >> 16;
+	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
 int
 user_start(int argc, char *argv[])
 {
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	up_pwm_servo_init(0xff);
+
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+
 	/* run C++ ctors before we go any further */
+
 	up_cxxinitialize();
+
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
+
+#else
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
@@ -185,12 +291,15 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* print some startup info */
-	lowsyslog("\nPX4IO: starting\n");
+	syslog(LOG_INFO, "\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
 	LED_BLUE(false);
 	LED_SAFETY(false);
+#ifdef GPIO_LED4
+	LED_RING(false);
+#endif
 
 	/* turn on servo power (if supported) */
 #ifdef POWER_SERVO
@@ -204,9 +313,6 @@ user_start(int argc, char *argv[])
 
 	/* start the safety switch handler */
 	safety_init();
-
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	up_pwm_servo_init(0xff);
 
 	/* initialise the control inputs */
 	controls_init();
@@ -227,7 +333,8 @@ user_start(int argc, char *argv[])
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+	r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.mxordblk;
+	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
@@ -243,11 +350,11 @@ user_start(int argc, char *argv[])
 	 * allocations. We don't want him to be able to
 	 * get past that point. This needs to be clearly
 	 * documented in the dev guide.
-         *
+	 *
 	 */
 	if (minfo.mxordblk < 600) {
 
-		lowsyslog("ERR: not enough MEM");
+		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
 
 		while (true) {
@@ -255,10 +362,12 @@ user_start(int argc, char *argv[])
 			if (phase) {
 				LED_AMBER(true);
 				LED_BLUE(false);
+
 			} else {
 				LED_AMBER(false);
 				LED_BLUE(true);
 			}
+
 			up_udelay(250000);
 
 			phase = !phase;
@@ -273,8 +382,19 @@ user_start(int argc, char *argv[])
 	 */
 
 	uint64_t last_debug_time = 0;
-        uint64_t last_heartbeat_time = 0;
+	uint64_t last_heartbeat_time = 0;
+	uint64_t last_loop_time = 0;
+
 	for (;;) {
+		dt = (hrt_absolute_time() - last_loop_time) / 1000000.0f;
+		last_loop_time = hrt_absolute_time();
+
+		if (dt < 0.0001f) {
+			dt = 0.0001f;
+
+		} else if (dt > 0.02f) {
+			dt = 0.02f;
+		}
 
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
@@ -289,12 +409,43 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
-                if ((hrt_absolute_time() - last_heartbeat_time) > 250*1000) {
-                    last_heartbeat_time = hrt_absolute_time();
-                    heartbeat_blink();
-                }
+		/* some boards such as Pixhawk 2.1 made
+		   the unfortunate choice to combine the blue led channel with
+		   the IMU heater. We need a software hack to fix the hardware hack
+		   by allowing to disable the LED / heater.
+		 */
+		if (r_page_setup[PX4IO_P_SETUP_THERMAL] == PX4IO_THERMAL_IGNORE) {
+			/*
+			  blink blue LED at 4Hz in normal operation. When in
+			  override blink 4x faster so the user can clearly see
+			  that override is happening. This helps when
+			  pre-flight testing the override system
+			 */
+			uint32_t heartbeat_period_us = 250 * 1000UL;
 
-                check_reboot();
+			if (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) {
+				heartbeat_period_us /= 4;
+			}
+
+			if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+				last_heartbeat_time = hrt_absolute_time();
+				heartbeat_blink();
+			}
+
+		} else if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
+			/* switch resistive heater off */
+			LED_BLUE(false);
+
+		} else {
+			/* switch resistive heater hard on */
+			LED_BLUE(true);
+		}
+
+		update_mem_usage();
+
+		ring_blink();
+
+		check_reboot();
 
 		/* check for debug activity (default: none) */
 		show_debug_messages();
@@ -304,7 +455,7 @@ user_start(int argc, char *argv[])
 		 */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
 
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", 
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u",
 				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,

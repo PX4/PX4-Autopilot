@@ -37,7 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
 #include <sys/types.h>
 
@@ -46,11 +46,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
 
 #include <arch/board/board.h>
 
-#include "tests.h"
+#include "tests_main.h"
 
 #include <math.h>
 #include <float.h>
@@ -95,7 +94,7 @@ int test_uart_send(int argc, char *argv[])
 	/* input handling */
 	char *uart_name = "/dev/ttyS3";
 
-	if (argc > 1) uart_name = argv[1];
+	if (argc > 1) { uart_name = argv[1]; }
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
 	int test_uart = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY); //

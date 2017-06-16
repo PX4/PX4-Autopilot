@@ -1,28 +1,34 @@
 #!nsh
 #
-# Hobbyking Micro Integrated PCB Quadcopter
-# with SimonK ESC firmware and Mystery A1510 motors
+# @name Hobbyking Micro PCB
 #
-# Thomas Gubler <thomasgubler@gmail.com>
+# @type Quadrotor x
 #
-echo "HK Micro PCB Quad"
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
+# @maintainer Thomas Gubler <thomas@px4.io>
+#
 
 sh /etc/init.d/4001_quad_x
 
-if [ $DO_AUTOCONFIG == yes ]
+if [ $AUTOCNF == yes ]
 then
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.1
-	param set MC_ROLLRATE_I 0.0
+	param set MC_ROLLRATE_I 0.05
 	param set MC_ROLLRATE_D 0.003
 	param set MC_PITCH_P 7.0
 	param set MC_PITCHRATE_P 0.1
-	param set MC_PITCHRATE_I 0.0
+	param set MC_PITCHRATE_I 0.05
 	param set MC_PITCHRATE_D 0.003
 	param set MC_YAW_P 2.8
 	param set MC_YAWRATE_P 0.2
-	param set MC_YAWRATE_I 0.0
+	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
+	param set PWM_MIN 1200
 fi
-
-set PWM_MIN 1200

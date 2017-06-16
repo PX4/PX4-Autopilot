@@ -36,7 +36,7 @@
  ****************************************************************************/
 
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,12 +68,18 @@ int perf_main(int argc, char *argv[])
 		if (strcmp(argv[1], "reset") == 0) {
 			perf_reset_all();
 			return 0;
+
+		} else if (strcmp(argv[1], "latency") == 0) {
+			perf_print_latency(1 /* stdout */);
+			fflush(stdout);
+			return 0;
 		}
-		printf("Usage: perf <reset>\n");
+
+		printf("Usage: perf [reset | latency]\n");
 		return -1;
 	}
 
-	perf_print_all(0 /* stdout */);
+	perf_print_all(1 /* stdout */);
 	fflush(stdout);
 	return 0;
 }

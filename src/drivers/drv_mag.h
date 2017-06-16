@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,30 +44,16 @@
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#define MAG_DEVICE_PATH		"/dev/mag"
+#define MAG_BASE_DEVICE_PATH	"/dev/mag"
+#define MAG0_DEVICE_PATH	"/dev/mag0"
+#define MAG1_DEVICE_PATH	"/dev/mag1"
+#define MAG2_DEVICE_PATH	"/dev/mag2"
 
-/**
- * mag report structure.  Reads from the device must be in multiples of this
- * structure.
- *
- * Output values are in gauss.
- */
-struct mag_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	float x;
-	float y;
-	float z;
-	float range_ga;
-	float scaling;
-
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-};
+#include <uORB/topics/sensor_mag.h>
+#define mag_report sensor_mag_s
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct mag_scale {
+struct mag_calibration_s {
 	float	x_offset;
 	float	x_scale;
 	float	y_offset;
@@ -77,24 +63,11 @@ struct mag_scale {
 };
 
 /*
- * ObjDev tag for raw magnetometer data.
- */
-ORB_DECLARE(sensor_mag0);
-ORB_DECLARE(sensor_mag1);
-ORB_DECLARE(sensor_mag2);
-
-/*
- * mag device types, for _device_id
- */
-#define DRV_MAG_DEVTYPE_HMC5883 1
-#define DRV_MAG_DEVTYPE_LSM303D 2
-
-/*
  * ioctl() definitions
  */
 
 #define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
+#define _MAGIOC(_n)		(_PX4_IOC(_MAGIOCBASE, _n))
 
 /** set the mag internal sample rate to at least (arg) Hz */
 #define MAGIOCSSAMPLERATE	_MAGIOC(0)
@@ -131,5 +104,8 @@ ORB_DECLARE(sensor_mag2);
 
 /** determine if mag is external or onboard */
 #define MAGIOCGEXTERNAL		_MAGIOC(11)
+
+/** enable/disable temperature compensation */
+#define MAGIOCSTEMPCOMP		_MAGIOC(12)
 
 #endif /* _DRV_MAG_H */
