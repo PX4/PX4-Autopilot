@@ -942,7 +942,8 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Select primary magnetometer
+ * Select primary magnetometer.
+ * DEPRECATED, only used on V1 hardware
  *
  * @min 0
  * @max 2
