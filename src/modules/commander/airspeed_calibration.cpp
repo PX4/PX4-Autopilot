@@ -215,18 +215,13 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			calibration_counter++;
 
-			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
+			if (fabsf(diff_pres.differential_pressure_filtered_pa) < 50.0f) {
 				if (calibration_counter % 500 == 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+					calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
 				}
-				continue;
-			}
-
-			/* do not allow negative values */
-			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
-				calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+			} else if (diff_pres.differential_pressure_filtered_pa < 0.0f) {
+				/* do not allow negative values */
+				calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
 				calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -238,14 +233,13 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 				/* save */
 				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-				(void)param_save_default();
+				param_save_default();
 
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
 
 			} else {
-				calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
-					(int)diff_pres.differential_pressure_raw_pa);
+				calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
 				break;
 			}
 
