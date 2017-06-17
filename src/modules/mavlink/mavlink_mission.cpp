@@ -1228,7 +1228,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			}
 
 			if (ret == PX4_OK) {
-				if (_verbose) { PX4_INFO("WPM: CLEAR_ALL OK"); }
+				if (_verbose) { PX4_INFO("WPM: CLEAR_ALL OK (mission_type=%i)", _mission_type); }
 
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
 
