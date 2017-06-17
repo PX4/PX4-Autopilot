@@ -37,9 +37,37 @@
  * Shared defines for the mpl3115a2 driver.
  */
 
+#define MPL3115A2_REG_WHO_AM_I   0x0c
+#define MPL3115A2_WHO_AM_I       0xC4
+
+#define OUT_P_MSB                0x01
+
+#define MPL3115A2_CTRL_REG1      0x26
+#  define CTRL_REG1_ALT          (1 << 7)
+#  define CTRL_REG1_RAW          (1 << 6)
+#  define CTRL_REG1_OS_SHIFTS    (3)
+#  define CTRL_REG1_OS_MASK      (0x7 << CTRL_REG1_OS_SHIFTS)
+#  define CTRL_REG1_OS(n)        (((n)& 0x7) << CTRL_REG1_OS_SHIFTS)
+#  define CTRL_REG1_RST          (1 << 2)
+#  define CTRL_REG1_OST          (1 << 1)
+#  define CTRL_REG1_SBYB         (1 << 0)
+
 /* interface ioctls */
-#define IOCTL_RESET			2
-#define IOCTL_MEASURE			3
+#define IOCTL_RESET         1
+#define IOCTL_MEASURE       2
+
+typedef begin_packed_struct struct MPL3115A2_data_t {
+	union {
+		uint32_t q;
+		uint16_t w[sizeof(q) / sizeof(uint16_t)];
+		uint8_t  b[sizeof(q) / sizeof(uint8_t)];
+	} pressure;
+
+	union {
+		uint16_t w;
+		uint8_t  b[sizeof(w)];
+	} temperature;
+} end_packed_struct MPL3115A2_data_t;
 
 /* interface factories */
 extern device::Device *MPL3115A2_i2c_interface(uint8_t busnum);
