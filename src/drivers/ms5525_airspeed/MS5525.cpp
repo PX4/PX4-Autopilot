@@ -117,7 +117,7 @@ MS5525::init_ms5525()
 		C5 = prom[5];
 		C6 = prom[6];
 
-		Tref = C5 * (1UL << Q5);
+		Tref = int64_t(C5) * (1UL << Q5);
 
 		return true;
 
@@ -223,31 +223,31 @@ MS5525::collect()
 
 	// Difference between actual and reference temperature
 	//  dT = D2 - Tref
-	const int32_t dT = D2 - Tref;
+	const int64_t dT = D2 - Tref;
 
 	// Measured temperature
 	//  TEMP = 20°C + dT * TEMPSENS
-	const int32_t TEMP = 2000 + (dT * C6) / (1L << Q6);
+	const int64_t TEMP = 2000 + (dT * int64_t(C6)) / (1UL << Q6);
 
 	// Offset at actual temperature
 	//  OFF = OFF_T1 + TCO * dT
-	const int64_t OFF = C2 * (1L << Q2) + (C4 * dT) / (1L << Q4);
+	const int64_t OFF = int64_t(C2) * (1UL << Q2) + (int64_t(C4) * dT) / (1UL << Q4);
 
 	// Sensitivity at actual temperature
 	//  SENS = SENS_T1 + TCS * dT
-	const int64_t SENS = C1 * (1L << Q1) + (C3 * dT) / (1L << Q3);
+	const int64_t SENS = int64_t(C1) * (1UL << Q1) + (int64_t(C3) * dT) / (1UL << Q3);
 
 	// Temperature Compensated Pressure (example 24996 = 2.4996 psi)
 	//  P = D1 * SENS - OFF
-	const int64_t P = (((int64_t)D1 * SENS) / (1L << 21) - OFF) / (1L << 15);
+	const int64_t P = (D1 * SENS / (1UL << 21) - OFF) / (1UL << 15);
 
-	const float diff_press_PSI = (float)P * 0.0001f;
+	const float diff_press_PSI = P * 0.0001f;
 
 	// 1 PSI = 6894.76 Pascals
 	const float PSI_to_Pa = 6894.757f;
 	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
-	const float temperature_c = (float)TEMP * 0.01f;
+	const float temperature_c = TEMP * 0.01f;
 
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
