@@ -52,7 +52,6 @@
 #include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 #include <px4_defines.h>
-#include <uORB/topics/fence.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
