@@ -1,47 +1,23 @@
 function quat = AlignHeading( ...
     quat, ... % quaternion state vector
-    magMea, ... % body frame magnetic flux measurements
-    declination)  % Estimated magnetic field delination at current location
+    magMea, ... % body frame magnetic flux measurements 
+    declination)  % Estimated magnetic field delination at current location (rad)
 
-% Calculate the predicted magnetic declination
-Tbn = Quat2Tbn(quat);
-magMeasNED = Tbn*magMea;
-predDec = atan2(magMeasNED(2),magMeasNED(1));
+% Get the Euler angles and set yaw to zero
+euler = QuatToEul(quat);
+euler(3) = 0.0;
 
-% Calculate the measurement innovation
-innovation = predDec - declination;
+% calculate the rotation matrix from body to earth frame
+quat_zero_yaw = EulToQuat(euler);
+Tbn_zero_yaw = Quat2Tbn(quat_zero_yaw);
 
-if (innovation > pi)
-    innovation = innovation - 2*pi;
-elseif (innovation < -pi)
-    innovation = innovation + 2*pi;
-end
+% Rotate the magnetic field measurement into earth frame
+magMeasNED = Tbn_zero_yaw*magMea;
 
-% form the NED rotation vector
-deltaRotNED = -[0;0;innovation];
+% Use the projection onto the horizontal to calculate the yaw angle
+euler(3) = declination - atan2(magMeasNED(2),magMeasNED(1));
 
-% rotate into body axes
-% Calculate the body to nav cosine matrix
-Tbn = Quat2Tbn(quat);
-deltaRotBody = transpose(Tbn)*deltaRotNED;
-
-% Convert the error rotation vector to its equivalent quaternion
-% error = truth - estimate
-rotationMag = abs(innovation);
-if rotationMag<1e-6
-    deltaQuat = single([1;0;0;0]);
-else
-    deltaQuat = [cos(0.5*rotationMag); [deltaRotBody(1);deltaRotBody(2);deltaRotBody(3)]/rotationMag*sin(0.5*rotationMag)];
-end
-
-% Update the quaternion states by rotating from the previous attitude through
-% the delta angle rotation quaternion
-quat = [quat(1)*deltaQuat(1)-transpose(quat(2:4))*deltaQuat(2:4); quat(1)*deltaQuat(2:4) + deltaQuat(1)*quat(2:4) + cross(quat(2:4),deltaQuat(2:4))];
-
-% normalise the updated quaternion states
-quatMag = sqrt(quat(1)^2 + quat(2)^2 + quat(3)^2 + quat(4)^2);
-if (quatMag > 1e-12)
-    quat = quat / quatMag;
-end
+% convert to a quaternion
+quat = EulToQuat(euler);
 
 end
