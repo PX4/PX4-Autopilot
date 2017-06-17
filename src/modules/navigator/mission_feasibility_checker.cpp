@@ -49,10 +49,6 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/fence.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
-#include <uORB/topics/vehicle_status.h>
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission, float max_waypoint_distance,
