@@ -98,13 +98,11 @@ enum MPL3115A2_BUS {
  * MPL3115A2 internal constants and data structures.
  */
 
-/*
- * Maximum internal conversion time for TBD
- */
 #define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MPL3115A2_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-#define MPL3115A2_BARO_DEVICE_PATH_EXT	"/dev/mpl3115a2_ext"
-#define MPL3115A2_BARO_DEVICE_PATH_INT	"/dev/mpl3115a2_int"
+#define MPL3115A2_OSR                   0       /* Over Sample rate of 1 6MS Minimum time between data samples */
+#define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
+#define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
+#define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"
 
 class MPL3115A2 : public device::CDev
 {
@@ -130,12 +128,8 @@ protected:
 
 	ringbuffer::RingBuffer	*_reports;
 	bool			_collect_phase;
-	unsigned		_measure_phase;
 
-	/* intermediate TBD! temperature values per MPL3115A2 datasheet */
-	int32_t			_TEMP;
-	int64_t			_OFF;
-	int64_t			_SENS;
+	/*  */
 	float			_P;
 	float			_T;
 
@@ -206,6 +200,7 @@ protected:
 	 * Collect the result of the most recent measurement.
 	 */
 	virtual int		collect();
+
 };
 
 /*
@@ -219,10 +214,8 @@ MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
 	_measure_ticks(0),
 	_reports(nullptr),
 	_collect_phase(false),
-	_measure_phase(0),
-	_TEMP(0),
-	_OFF(0),
-	_SENS(0),
+	_P(0),
+	_T(0),
 	_msl_pressure(101325),
 	_baro_topic(nullptr),
 	_orb_class_instance(-1),
@@ -288,33 +281,34 @@ MPL3115A2::init()
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	struct baro_report brp;
-	/* do a first measurement cycle to populate reports with valid data */
-	_measure_phase = 0;
 	_reports->flush();
 
 	while (true) {
-		/* do temperature first */
-		if (OK != measure()) {
+
+		/* First reading */
+		do  {
+			ret = measure();
+
+			if (ret == -EAGAIN) {
+				usleep(500);
+			}
+		} while (ret == -EAGAIN);
+
+		if (ret != OK) {
 			ret = -EIO;
 			break;
 		}
 
-		usleep(MPL3115A2_CONVERSION_INTERVAL);
+		/* First reading */
+		do  {
+			ret = collect();
 
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
+			if (ret == -EAGAIN) {
+				usleep(500);
+			}
+		} while (ret == -EAGAIN);
 
-		/* now do a pressure measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		usleep(MPL3115A2_CONVERSION_INTERVAL);
-
-		if (OK != collect()) {
+		if (ret != OK) {
 			ret = -EIO;
 			break;
 		}
@@ -376,29 +370,21 @@ MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* manual measurement - run one conversion */
 	do {
-		_measure_phase = 0;
 		_reports->flush();
 
-		/* do temperature first */
-		if (OK != measure()) {
+		/* First reading */
+		do  {
+			ret = measure();
+
+			if (ret == -EAGAIN) {
+				usleep(1000);
+			}
+		} while (ret == -EAGAIN);
+
+		if (ret != OK) {
 			ret = -EIO;
 			break;
 		}
-
-		usleep(MPL3115A2_CONVERSION_INTERVAL);
-
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* now do a pressure measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		usleep(MPL3115A2_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
 			ret = -EIO;
@@ -506,12 +492,15 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
 
-	case SENSORIOCRESET:
-		/*
-		 * Since we are initialized, we do not need to do anything, since the
-		 * PROM is correctly read and the part does not need to be configured.
-		 */
-		return OK;
+	case SENSORIOCRESET: {
+			/*
+			 * Since we are initialized, we do not need to do anything, since the
+			 * PROM is correctly read and the part does not need to be configured.
+			 */
+			unsigned int dummy;
+			_interface->ioctl(IOCTL_RESET, dummy);
+			return OK;
+		}
 
 	case BAROIOCSMSLPRESSURE:
 
@@ -541,7 +530,6 @@ MPL3115A2::start_cycle(unsigned delay_ticks)
 
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_measure_phase = 0;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
@@ -574,17 +562,7 @@ MPL3115A2::cycle()
 		/* perform collection */
 		ret = collect();
 
-		if (ret != OK) {
-			if (ret == -6) {
-				/*
-				 * The mpl3115a2 seems to regularly fail to respond to
-				 * its address; this happens often enough that we'd rather not
-				 * spam the console with a message for this.
-				 */
-			} else {
-				//DEVICE_LOG("collection error %d", ret);
-			}
-
+		if (ret == -EIO) {
 			/* issue a reset command to the sensor */
 			_interface->ioctl(IOCTL_RESET, dummy);
 			/* reset the collection state machine and try again - we need
@@ -595,32 +573,27 @@ MPL3115A2::cycle()
 			return;
 		}
 
-		/* next phase is measurement */
-		_collect_phase = false;
 
-		/*
-		 * Is there a collect->measure gap?
-		 * Don't inject one after temperature measurements, so we can keep
-		 * doing pressure measurements at something close to the desired rate.
-		 */
-		if ((_measure_phase != 0) &&
-		    (_measure_ticks > USEC2TICK(MPL3115A2_CONVERSION_INTERVAL))) {
+		if (ret == -EAGAIN) {
 
-			/* schedule a fresh cycle call when we are ready to measure again */
+			/* Ready read it on next cycle */
 			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&MPL3115A2::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(MPL3115A2_CONVERSION_INTERVAL));
-
+				   USEC2TICK(MPL3115A2_CONVERSION_INTERVAL));
 			return;
 		}
+
+		/* next phase is measurement */
+		_collect_phase = false;
 	}
 
-	/* measurement phase */
+	/* Look for a ready condition */
+
 	ret = measure();
 
-	if (ret != OK) {
+	if (ret == -EIO) {
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
@@ -628,7 +601,7 @@ MPL3115A2::cycle()
 		return;
 	}
 
-	/* next phase is collection */
+	/* next phase is measurement */
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
@@ -647,149 +620,115 @@ MPL3115A2::measure()
 	perf_begin(_measure_perf);
 
 	/*
-	 * In phase TBD
+	 * Send the command to read the ADC for P and T.
 	 */
-	unsigned addr = 0;
-
-	/*
-	 * Send the command to begin measuring.
-	 */
+	unsigned addr = (MPL3115A2_CTRL_REG1 << 8) | MPL3115A2_CTRL_TRIGGER;
 	ret = _interface->ioctl(IOCTL_MEASURE, addr);
 
-	if (OK != ret) {
+	if (ret == -EIO) {
 		perf_count(_comms_errors);
 	}
 
 	perf_end(_measure_perf);
 
-	return ret;
+	return PX4_OK;
 }
 
 int
 MPL3115A2::collect()
 {
 	int ret;
-	uint32_t raw;
+	MPL3115A2_data_t reading;
+	uint8_t ctrl;
 
 	perf_begin(_sample_perf);
 
+	ret = _interface->read(MPL3115A2_CTRL_REG1, (void *)&ctrl, 1);
+
+	if (ret == -EIO) {
+		perf_end(_sample_perf);
+		return ret;
+	}
+
+	if (ctrl & CTRL_REG1_OST) {
+		perf_end(_sample_perf);
+		return -EAGAIN;
+	}
+
 	struct baro_report report;
+
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
+
 	report.error_count = perf_event_count(_comms_errors);
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	ret = _interface->read(0, (void *)&raw, 0);
+	ret = _interface->read(OUT_P_MSB, (void *)&reading, sizeof(reading));
 
-	if (ret < 0) {
+	if (ret == -EIO) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	/* handle a measurement */
-	if (_measure_phase == 0) {
 
-		/* temperature offset (in ADC units) */
-		int32_t dT = (int32_t)raw;
+	_T = (float) reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
 
-		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
-		_TEMP = 2000 + (int32_t)(((int64_t)dT * 1) >> 23);
+	_P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
-		/* base sensor scale/offset values */
+	report.temperature = _T;
+	report.pressure = _P / 100.0f;		/* convert to millibar */
 
-		/* Perform MPL3115A2 Caculation */
+	/* return device ID */
+	report.device_id = _device_id.devid;
 
-		_OFF  = ((int64_t) 1 << 16) + (((int64_t)1 * dT) >> 7);
-		_SENS = ((int64_t)1 << 15) + (((int64_t)1 * dT) >> 8);
+	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
-		/* MPL3115A2 temperature compensation */
+	/*
+	 * PERFORMANCE HINT:
+	 *
+	 * The single precision calculation is 50 microseconds faster than the double
+	 * precision variant. It is however not obvious if double precision is required.
+	 * Pending more inspection and tests, we'll leave the double precision variant active.
+	 *
+	 * Measurements:
+	 * 	double precision: mpl3115a2_read: 992 events, 258641us elapsed, min 202us max 305us
+	 *	single precision: mpl3115a2_read: 963 events, 208066us elapsed, min 202us max 241us
+	 */
 
-		if (_TEMP < 2000) {
+	/* tropospheric properties (0-11km) for standard atmosphere */
+	const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
+	const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
+	const double g  = 9.80665;	/* gravity constant in m/s/s */
+	const double R  = 287.05;	/* ideal gas constant in J/kg/K */
 
-			int32_t T2 = POW2(dT) >> 31;
+	/* current pressure at MSL in kPa */
+	double p1 = _msl_pressure / 1000.0;
 
-			int64_t f = POW2((int64_t)_TEMP - 2000);
-			int64_t OFF2 = 5 * f >> 1;
-			int64_t SENS2 = 5 * f >> 2;
+	/* measured pressure in kPa */
+	double p = (double) _P / 1000.0;
 
-			if (_TEMP < -1500) {
+	/*
+	 * Solve:
+	 *
+	 *     /        -(aR / g)     \
+	 *    | (p / p1)          . T1 | - T1
+	 *     \                      /
+	 * h = -------------------------------  + h1
+	 *                   a
+	 */
+	report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
-				int64_t f2 = POW2(_TEMP + 1500);
-				OFF2 += 7 * f2;
-				SENS2 += 11 * f2 >> 1;
-			}
-
-			_TEMP -= T2;
-			_OFF  -= OFF2;
-			_SENS -= SENS2;
-		}
-
-	} else {
-
-		/* pressure calculation, result in Pa */
-		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
-		_P = P * 0.01f;
-		_T = _TEMP * 0.01f;
-
-		/* generate a new report */
-		report.temperature = _TEMP / 100.0f;
-		report.pressure = P / 100.0f;		/* convert to millibar */
-
-		/* return device ID */
-		report.device_id = _device_id.devid;
-
-		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
-
-		/*
-		 * PERFORMANCE HINT:
-		 *
-		 * The single precision calculation is 50 microseconds faster than the double
-		 * precision variant. It is however not obvious if double precision is required.
-		 * Pending more inspection and tests, we'll leave the double precision variant active.
-		 *
-		 * Measurements:
-		 * 	double precision: mpl3115a2_read: 992 events, 258641us elapsed, min 202us max 305us
-		 *	single precision: mpl3115a2_read: 963 events, 208066us elapsed, min 202us max 241us
-		 */
-
-		/* tropospheric properties (0-11km) for standard atmosphere */
-		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-		const double g  = 9.80665;	/* gravity constant in m/s/s */
-		const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-		/* current pressure at MSL in kPa */
-		double p1 = _msl_pressure / 1000.0;
-
-		/* measured pressure in kPa */
-		double p = P / 1000.0;
-
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-
+	/* publish it */
+	if (!(_pub_blocked) && _baro_topic != nullptr) {
 		/* publish it */
-		if (!(_pub_blocked) && _baro_topic != nullptr) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-		}
-
-		_reports->force(&report);
-
-		/* notify anyone waiting for data */
-		poll_notify(POLLIN);
+		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 	}
 
-	/* update the measurement state machine */
-	INCREMENT(_measure_phase, MPL3115A2_MEASUREMENT_RATIO + 1);
+	_reports->force(&report);
+
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
 
 	perf_end(_sample_perf);
 
@@ -804,9 +743,6 @@ MPL3115A2::print_info()
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 	printf("device:         mpl3115a2\n");
-	printf("TEMP:           %d\n", _TEMP);
-	printf("SENS:           %lld\n", _SENS);
-	printf("OFF:            %lld\n", _OFF);
 	printf("P:              %.3f\n", (double)_P);
 	printf("T:              %.3f\n", (double)_T);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
@@ -1144,14 +1080,10 @@ calibrate(unsigned altitude, enum MPL3115A2_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'calibrate'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");
-	warnx("    -S    (external SPI bus)");
-	warnx("    -s    (internal SPI bus)");
-	warnx("    -T    5611|5607 (default 5611)");
-	warnx("    -T    0 (autodetect version)");
 
 }
 
@@ -1220,10 +1152,11 @@ mpl3115a2_main(int argc, char *argv[])
 			errx(1, "missing altitude");
 		}
 
-		long altitude = strtol(argv[optind + 1], nullptr, 10);
+		long altitude = strtol(argv[myoptind + 1], nullptr, 10);
 
 		mpl3115a2::calibrate(altitude, busid);
 	}
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	mpl3115a2::usage();
+	exit(1);
 }
