@@ -216,8 +216,10 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			calibration_counter++;
 
 			if (fabsf(diff_pres.differential_pressure_filtered_pa) < 50.0f) {
+
 				if (calibration_counter % 500 == 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					tune_neutral(true);
 				}
 			} else if (diff_pres.differential_pressure_filtered_pa < 0.0f) {
 				/* do not allow negative values */

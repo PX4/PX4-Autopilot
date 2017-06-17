@@ -78,7 +78,8 @@ private:
 	int measure() override;
 	int collect() override;
 
-	math::LowPassFilter2p _filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
+	// temperature is read once every 10 cycles
+	math::LowPassFilter2p _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command
@@ -122,7 +123,7 @@ private:
 	uint16_t C5{0};
 	uint16_t C6{0};
 
-	uint32_t Tref{0};
+	int64_t Tref{0};
 
 	// last readings for D1 (uncompensated pressure) and D2 (uncompensated temperature)
 	uint32_t D1{0};
