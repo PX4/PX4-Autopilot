@@ -15,13 +15,6 @@ close all;
 %load sysdata.mat;
 %mag_meas = [magnetometer_ga0';magnetometer_ga1';magnetometer_ga2'];
 
-% direct loading of .px4log files
-ecl_path = '/Users/paul/src/pacflyer_PX4/PX4/src/lib/ecl/matlab/analysis';
-addpath ecl_path;
-data1 = importPX4log('/Users/paul/Downloads/20170507_1013_sess006.px4log','IMU');
-data2 = importPX4log('/Users/paul/Downloads/20170507_1013_sess007.px4log','IMU');
-data3 = importPX4log('/Users/paul/Downloads/20170507_1013_sess008.px4log','IMU');
-
 % thin data points to use data every 5 deg
 delta_angle_lim = 5* pi/180;
 counter = 1;
