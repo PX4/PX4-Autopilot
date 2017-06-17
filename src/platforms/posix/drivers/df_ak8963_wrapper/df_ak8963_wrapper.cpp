@@ -278,6 +278,7 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 
 	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.is_external = true;
 
 	// TODO: remove these (or get the values)
 	mag_report.x_raw = 0;

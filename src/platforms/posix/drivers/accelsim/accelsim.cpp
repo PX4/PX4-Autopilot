@@ -915,8 +915,7 @@ ACCELSIM::mag_measure()
 	} raw_mag_report;
 #pragma pack(pop)
 
-	mag_report mag_report;
-	memset(&mag_report, 0, sizeof(mag_report));
+	mag_report mag_report = {};
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -946,6 +945,7 @@ ACCELSIM::mag_measure()
 
 
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.is_external = false;
 
 	mag_report.x_raw = (int16_t)(raw_mag_report.x / _mag_range_scale);
 	mag_report.y_raw = (int16_t)(raw_mag_report.y / _mag_range_scale);

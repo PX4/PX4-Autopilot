@@ -135,14 +135,6 @@ LPS25H_SPI::ioctl(unsigned operation, unsigned &arg)
 
 	switch (operation) {
 
-	case MAGIOCGEXTERNAL:
-		/*
-		 * Even if this sensor is on the external SPI
-		 * bus it is still internal to the autopilot
-		 * assembly, so always return 0 for internal.
-		 */
-		return 0;
-
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 

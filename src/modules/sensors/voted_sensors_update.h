@@ -274,7 +274,7 @@ private:
 	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
 	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
 	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
-	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {};
+	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
 	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] = {};
 	uint32_t _mag_device_id[SENSOR_COUNT_MAX] = {};
