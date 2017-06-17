@@ -57,8 +57,6 @@
 #include "board_config.h"
 
 #define MPL3115A2_ADDRESS        0x60
-#define MPL3115A2_REG_WHO_AM_I   0x0c
-#define MPL3115A2_WHO_AM_I       0xC4
 
 device::Device *MPL3115A2_i2c_interface(uint8_t busnum);
 
@@ -84,7 +82,9 @@ private:
 	 */
 	int		_measure(unsigned addr);
 
-	int reg_read(unsigned reg, void *data, unsigned count);
+	int reg_read(uint8_t reg, void *data, unsigned count = 1);
+	int reg_write(uint8_t reg, uint8_t data);
+	int	reset();
 
 };
 
@@ -112,24 +112,53 @@ MPL3115A2_I2C::init()
 }
 
 int
+MPL3115A2_I2C::reset()
+{
+	int max = 10;
+	reg_write(MPL3115A2_CTRL_REG1, CTRL_REG1_RST);
+	int rv = CTRL_REG1_RST;
+	int ret = 1;
+
+	while (ret == 1 && (rv & CTRL_REG1_RST) && max--) {
+		usleep(4000);
+		ret = reg_read(MPL3115A2_CTRL_REG1, &rv);
+	}
+
+	return ret == 1 ? PX4_OK : ret;
+}
+
+int
 MPL3115A2_I2C::read(unsigned offset, void *data, unsigned count)
 {
-	union _cvt {
-		uint8_t	b[4];
-		uint32_t w;
-	} *cvt = (_cvt *)data;
-	uint8_t buf[3];
 
-	/* read the most recent measurement */
-	uint8_t cmd = 0;
-	int ret = transfer(&cmd, 1, &buf[0], 3);
+	int ret = -EINVAL;
 
-	if (ret == PX4_OK) {
-		/* fetch the raw value */
-		cvt->b[0] = buf[2];
-		cvt->b[1] = buf[1];
-		cvt->b[2] = buf[0];
-		cvt->b[3] = 0;
+	switch (offset) {
+	case MPL3115A2_CTRL_REG1:
+		ret = reg_read(offset, data, count);
+		break;
+
+	case OUT_P_MSB: {
+			union _cvt {
+				MPL3115A2_data_t reading;
+			} *cvt = (_cvt *)data;
+
+			/* read the most recent measurement
+			 * 3 Pressure and 2 temprtture
+			 */
+			uint8_t	b[3 + 2];
+			uint8_t reg = (uint8_t) offset;
+
+			ret = transfer(&reg, 1, &b[0], sizeof(b));
+
+			if (ret == PX4_OK) {
+				cvt->reading.pressure.q = ((uint32_t)b[0]) << 18 | ((uint32_t) b[1]) <<  10 | (((uint32_t)b[2]) & 0xc0) << 2 | ((
+								  b[2] & 0x30) >> 4);
+				cvt->reading.temperature.w = ((uint16_t) b[3]) << 8 | (b[4] >> 4);
+
+			}
+		}
+		break;
 	}
 
 	return ret;
@@ -142,8 +171,7 @@ MPL3115A2_I2C::ioctl(unsigned operation, unsigned &arg)
 
 	switch (operation) {
 	case IOCTL_RESET:
-		PX4_ERR("Not implemented");
-		ret = EINVAL;
+		ret = reset();
 		break;
 
 	case IOCTL_MEASURE:
@@ -163,7 +191,7 @@ MPL3115A2_I2C::probe()
 	_retries = 10;
 	uint8_t whoami = 0;
 
-	if ((reg_read(MPL3115A2_REG_WHO_AM_I, &whoami, 1) > 0) && (whoami == MPL3115A2_WHO_AM_I)) {
+	if ((reg_read(MPL3115A2_REG_WHO_AM_I, &whoami) > 0) && (whoami == MPL3115A2_WHO_AM_I)) {
 		/*
 		 * Disable retries; we may enable them selectively in some cases,
 		 * but the device gets confused if we retry some of the commands.
@@ -183,15 +211,20 @@ MPL3115A2_I2C::_measure(unsigned addr)
 	 * means the device did or did not see the command.
 	 */
 	_retries = 0;
-
-	uint8_t cmd = addr;
-	return transfer(&cmd, 1, nullptr, 0);
+	return reg_write((addr >> 8) & 0xff, addr & 0xff);
 }
 
 
-int MPL3115A2_I2C::reg_read(unsigned reg, void *data, unsigned count)
+int MPL3115A2_I2C::reg_read(uint8_t reg, void *data, unsigned count)
 {
 	uint8_t cmd = reg;
 	int ret = transfer(&cmd, 1, (uint8_t *)data, count);
 	return ret == PX4_OK ? count : ret;
+}
+
+int MPL3115A2_I2C::reg_write(uint8_t reg, uint8_t data)
+{
+	uint8_t buf[2] = { reg, data};
+	int ret = transfer(buf, sizeof(buf), NULL, 0);
+	return ret == PX4_OK ? 2 : ret;
 }
