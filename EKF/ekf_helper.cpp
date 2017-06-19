@@ -310,8 +310,8 @@ void Ekf::resetHeight()
 void Ekf::alignOutputFilter()
 {
 	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
-	Quaternion quat_inv = _state.quat_nominal.inversed();
-	Quaternion q_delta =  _output_sample_delayed.quat_nominal * quat_inv;
+	Quatf quat_inv = _state.quat_nominal.inversed();
+	Quatf q_delta =  _output_sample_delayed.quat_nominal * quat_inv;
 	q_delta.normalize();
 
 	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
@@ -336,7 +336,7 @@ void Ekf::alignOutputFilter()
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
-	Quaternion quat_before_reset = _state.quat_nominal;
+	Quatf quat_before_reset = _state.quat_nominal;
 
 	// calculate the variance for the rotation estimate expressed as a rotation vector
 	// this will be used later to reset the quaternion state covariances
@@ -351,16 +351,16 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		// use a 321 sequence
 
 		// rotate the magnetometer measurement into earth frame
-		matrix::Euler<float> euler321(_state.quat_nominal);
+		Eulerf euler321(_state.quat_nominal);
 
 		// Set the yaw angle to zero and calculate the rotation matrix from body to earth frame
 		euler321(2) = 0.0f;
-		matrix::Dcm<float> R_to_earth(euler321);
+		Dcmf R_to_earth(euler321);
 
 		// calculate the observed yaw angle
 		if (_params.fusion_mode & MASK_USE_EVYAW) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
@@ -377,7 +377,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quaternion(euler321);
+		_state.quat_nominal = Quatf(euler321);
 
 	} else {
 		// use a 312 sequence
@@ -400,7 +400,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		float s0 = sinf(euler312(0));
 		float c0 = cosf(euler312(0));
 
-		matrix::Dcm<float> R_to_earth;
+		Dcmf R_to_earth;
 		R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
 		R_to_earth(1, 1) = c0 * c1;
 		R_to_earth(2, 2) = c2 * c1;
@@ -414,7 +414,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		// calculate the observed yaw angle
 		if (_params.fusion_mode & MASK_USE_EVYAW) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
@@ -444,7 +444,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		// calculate initial quaternion states for the ekf
 		// we don't change the output attitude to avoid jumps
-		_state.quat_nominal = Quaternion(R_to_earth);
+		_state.quat_nominal = Quatf(R_to_earth);
 	}
 
 	// update transformation matrix from body to world frame using the current estimate
@@ -976,7 +976,7 @@ Vector3f EstimatorInterface::cross_product(const Vector3f &vecIn1, const Vector3
 }
 
 // calculate the inverse rotation matrix from a quaternion rotation
-Matrix3f EstimatorInterface::quat_to_invrotmat(const Quaternion &quat)
+Matrix3f EstimatorInterface::quat_to_invrotmat(const Quatf &quat)
 {
 	float q00 = quat(0) * quat(0);
 	float q11 = quat(1) * quat(1);

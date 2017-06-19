@@ -222,7 +222,7 @@ private:
 		float velD_change;	// Down velocity change due to last reset (m/s)
 		Vector2f posNE_change;	// North, East position change due to last reset (m)
 		float posD_change;	// Down position change due to last reset (m)
-		Quaternion quat_change;	// quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
+		Quatf quat_change;	// quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
 	} _state_reset_status{};
 
 	float _dt_ekf_avg{0.001f * FILTER_UPDATE_PERIOD_MS};		// average update rate of the ekf
@@ -264,7 +264,7 @@ private:
 
 	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
 
-	matrix::Dcm<float> _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
+	Dcmf _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
 
 	// used by magnetometer fusion mode selection
 	Vector2f _accel_lpf_NE;			// Low pass filtered horizontal earth frame acceleration (m/s**2)
@@ -306,7 +306,7 @@ private:
 	// output predictor states
 	Vector3f _delta_angle_corr;	// delta angle correction vector
 	imuSample _imu_down_sampled{};	// down sampled imu data (sensor rate -> filter update rate)
-	Quaternion _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
+	Quatf _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
 	Vector3f _vel_err_integ;	// integral of velocity tracking error
 	Vector3f _pos_err_integ;	// integral of position tracking error
 	float _output_tracking_error[3] {}; // contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
