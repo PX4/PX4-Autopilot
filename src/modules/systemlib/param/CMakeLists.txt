@@ -80,7 +80,7 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
-		parameters_xml
+		${PX4_BINARY_DIR}/parameters.xml
 		${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		${CMAKE_CURRENT_SOURCE_DIR}/templates/px4_parameters.c.jinja
 		${CMAKE_CURRENT_SOURCE_DIR}/templates/px4_parameters.h.jinja
