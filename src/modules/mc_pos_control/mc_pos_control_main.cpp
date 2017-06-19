@@ -233,6 +233,7 @@ private:
 	bool _alt_hold_engaged;
 	bool _run_pos_control;
 	bool _run_alt_control;
+	bool _pos_first_nonfinite;
 
 	bool _reset_int_z = true;
 	bool _reset_int_xy = true;
@@ -429,6 +430,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_hold_engaged(false),
 	_run_pos_control(true),
 	_run_alt_control(true),
+	_pos_first_nonfinite(true),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
 	_in_landing(false),
@@ -1390,6 +1392,14 @@ void MulticopterPositionControl::control_auto(float dt)
 					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 					       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
 
+			_pos_first_nonfinite = true;
+
+		} else { // use current position if NAN -> e.g. land
+			if (_pos_first_nonfinite) {
+				_curr_pos_sp.data[0] = _pos(0);
+				_curr_pos_sp.data[1] = _pos(1);
+				_pos_first_nonfinite = false;
+			}
 		}
 
 		//only project setpoints if they are finite, else use current position
