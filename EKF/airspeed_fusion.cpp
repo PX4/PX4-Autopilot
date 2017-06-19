@@ -231,7 +231,7 @@ void Ekf::get_wind_velocity(float *wind)
 void Ekf::resetWindStates()
 {
 	// get euler yaw angle
-	matrix::Euler<float> euler321(_state.quat_nominal);
+	Eulerf euler321(_state.quat_nominal);
 	float euler_yaw = euler321(2);
 
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < 5e5)) {
@@ -243,6 +243,5 @@ void Ekf::resetWindStates()
 		// If we don't have an airspeed measurement, then assume the wind is zero
 		_state.wind_vel(0) = 0.0f;
 		_state.wind_vel(1) = 0.0f;
-
 	}
 }

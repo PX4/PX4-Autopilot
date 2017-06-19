@@ -80,7 +80,7 @@ void Ekf::fuseDrag()
 	rel_wind(0) = vn - vwn;
 	rel_wind(1) = ve - vwe;
 	rel_wind(2) = vd;
-	matrix::Dcm<float> earth_to_body(_state.quat_nominal);
+	Dcmf earth_to_body(_state.quat_nominal);
 	earth_to_body = earth_to_body.transpose();
 	rel_wind = earth_to_body * rel_wind;
 

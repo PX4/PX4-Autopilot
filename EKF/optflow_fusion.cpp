@@ -69,7 +69,7 @@ void Ekf::fuseOptFlow()
 	float heightAboveGndEst = math::max((_terrain_vpos - _state.pos(2)), gndclearance);
 
 	// get rotation nmatrix from earth to body
-	matrix::Dcm<float> earth_to_body(_state.quat_nominal);
+	Dcmf earth_to_body(_state.quat_nominal);
 	earth_to_body = earth_to_body.transpose();
 
 	// calculate the sensor position relative to the IMU
