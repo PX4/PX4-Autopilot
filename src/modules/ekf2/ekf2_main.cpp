@@ -260,6 +260,7 @@ private:
 
 	// range finder fusion
 	control::BlockParamExtFloat _range_noise;		// observation noise for range finder measurements (m)
+	control::BlockParamExtFloat _range_noise_scaler; // scale factor from range to range noise (m/m)
 	control::BlockParamExtFloat _range_innov_gate;	// range finder fusion innovation consistency gate size (STD)
 	control::BlockParamExtFloat _rng_gnd_clearance;	// minimum valid value for range when on ground (m)
 	control::BlockParamExtFloat _rng_pitch_offset;	// range sensor pitch offset (rad)
@@ -394,6 +395,7 @@ Ekf2::Ekf2():
 	_fusion_mode(this, "EKF2_AID_MASK", false, _params->fusion_mode),
 	_vdist_sensor_type(this, "EKF2_HGT_MODE", false, _params->vdist_sensor_type),
 	_range_noise(this, "EKF2_RNG_NOISE", false, _params->range_noise),
+	_range_noise_scaler(this, "EKF2_RNG_SFE", false, _params->range_noise_scaler),
 	_range_innov_gate(this, "EKF2_RNG_GATE", false, _params->range_innov_gate),
 	_rng_gnd_clearance(this, "EKF2_MIN_RNG", false, _params->rng_gnd_clearance),
 	_rng_pitch_offset(this, "EKF2_RNG_PITCH", false, _params->rng_sens_pitch),
