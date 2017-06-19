@@ -104,7 +104,7 @@ private:
 	int write_command(uint16_t command);
 
 	bool _inited{false};
-	int16_t _scale{0};
+	uint16_t _scale{0};
 };
 
 #endif /* DRIVERS_SDP3X_AIRSPEED_HPP_ */

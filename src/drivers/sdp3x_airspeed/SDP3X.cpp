@@ -86,7 +86,7 @@ SDP3X::init_sdp3x()
 
 	// step 3 - get scale
 	uint8_t val[9];
-	ret = transfer(nullptr, 0, &val[0], 9);
+	ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -110,9 +110,9 @@ SDP3X::collect()
 {
 	perf_begin(_sample_perf);
 
-	// read 6 bytes from the sensor
+	// read 9 bytes from the sensor
 	uint8_t val[6];
-	int ret = transfer(nullptr, 0, &val[0], 6);
+	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -128,8 +128,8 @@ SDP3X::collect()
 		ret = 0;
 	}
 
-	int16_t P = (((uint16_t)val[0]) << 8) | val[1];
-	int16_t temp = (((uint16_t)val[3]) << 8) | val[4];
+	int16_t P = (((int16_t)val[0]) << 8) | val[1];
+	int16_t temp = (((int16_t)val[3]) << 8) | val[4];
 
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
