@@ -78,7 +78,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/battery.h>
-#include <wind_estimator/wind_estimator.h>
+#include <wind_estimator/WindEstimator.hpp>
 
 #include <conversion/rotation.h>
 

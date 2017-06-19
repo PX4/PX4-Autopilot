@@ -32,49 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file wind_estimator.cpp
+ * @file WindEstimator.cpp
  * A wind and airspeed scale estimator.
  */
 
-#include "wind_estimator.h"
-#include <mathlib/mathlib.h>
+#include "WindEstimator.hpp"
 
-using namespace matrix;
 
-WindEstimator::WindEstimator() :
-	_state(),
-	_P(),
-	_tas_innov(0.0f),
-	_tas_innov_var(0.0f),
-	_beta_innov(0.0f),
-	_beta_innov_var(0.0f),
-	_initialised(false)
-{
-
-}
-
-WindEstimator::~WindEstimator()
-{
-
-}
-
-bool WindEstimator::initialise(float velI[3], float velIvar[2], float tas_meas)
+bool
+WindEstimator::initialise(const Vector3f &velI, const Vector2f &velIvar, const float tas_meas)
 {
 	// do no initialise if ground velocity is low
 	// this should prevent the filter from initialising on the ground
-	if (sqrtf(velI[0] * velI[0] + velI[1] * velI[1]) < 3.0f) {
+	if (sqrtf(velI(0) * velI(0) + velI(1) * velI(1)) < 3.0f) {
 		return false;
 	}
 
-	float v_n = velI[0];
-	float v_e = velI[1];
+	const float v_n = velI(0);
+	const float v_e = velI(1);
 
 	// estimate heading from ground velocity
-	float heading_est = atan2f(v_e, v_n);
+	const float heading_est = atan2f(v_e, v_n);
 
 	// initilaise wind states assuming zero side slip and horizontal flight
-	_state(w_n) = velI[w_n] - tas_meas * cosf(heading_est);
-	_state(w_e) = velI[w_e] - tas_meas * sinf(heading_est);
+	_state(w_n) = velI(w_n) - tas_meas * cosf(heading_est);
+	_state(w_e) = velI(w_e) - tas_meas * sinf(heading_est);
 	_state(tas) = 1.0f;
 
 	// compute jacobian of states wrt north/each earth velocity states and true airspeed measurement
@@ -86,7 +68,7 @@ bool WindEstimator::initialise(float velI[3], float velIvar[2], float tas_meas)
 	float L5 = 1.0f / sqrtf(L2);
 	float L6 = -L5 * tas_meas;
 
-	Matrix<float, 3, 3> L;
+	Matrix3f L;
 	L.setZero();
 	L(0, 0) = L4;
 	L(0, 1) = L0 * L3 + L6;
@@ -96,8 +78,8 @@ bool WindEstimator::initialise(float velI[3], float velIvar[2], float tas_meas)
 
 	// get an estimate of the state covariance matrix given the estimated variance of ground velocity
 	// and measured airspeed
-	_P(w_n, w_n) = velIvar[0];
-	_P(w_e, w_e) = velIvar[1];
+	_P(w_n, w_n) = velIvar(0);
+	_P(w_e, w_e) = velIvar(1);
 	_P(tas, tas) = 0.0001f;
 
 	_P = L * _P * L.transpose();
@@ -105,7 +87,8 @@ bool WindEstimator::initialise(float velI[3], float velIvar[2], float tas_meas)
 	return true;
 }
 
-void WindEstimator::update(float dt)
+void
+WindEstimator::update(const float dt)
 {
 	if (!_initialised) {
 		return;
@@ -118,7 +101,7 @@ void WindEstimator::update(float dt)
 	float SPP1 = SPP0 * q_w;
 	float SPP2 = SPP1 + _P(0, 1);
 
-	Matrix<float, 3, 3> P_next;
+	Matrix3f P_next;
 
 	P_next(0, 0) = SPP1 + _P(0, 0);
 	P_next(0, 1) = SPP2;
@@ -133,28 +116,27 @@ void WindEstimator::update(float dt)
 	_P = P_next;
 }
 
-void WindEstimator::fuse_airspeed(float true_airspeed, float velI[3], float velIvar[2])
+void
+WindEstimator::fuse_airspeed(const float true_airspeed, const Vector3f &velI, const Vector2f &velIvar)
 {
-	velIvar[0] = velIvar[0] < 0.01f ? 0.01f : velIvar[0];
-	velIvar[1] = velIvar[1] < 0.01f ? 0.01f : velIvar[1];
-
+	Vector2f velIvar_constrained = { max(0.01f, velIvar(0)), max(0.01f, velIvar(1)) };
 
 	if (!_initialised) {
 		// try to initialise
-		_initialised =	initialise(velI, velIvar, true_airspeed);
+		_initialised =	initialise(velI, velIvar_constrained, true_airspeed);
 		return;
 	}
 
 	// assign helper variables
-	float v_n = velI[0];
-	float v_e = velI[1];
-	float v_d = velI[2];
+	const float v_n = velI(0);
+	const float v_e = velI(1);
+	const float v_d = velI(2);
 
-	float k_tas = _state(tas);
+	const float k_tas = _state(tas);
 
 	// compute kalman gain K
-	float HH0 = sqrtf(v_d * v_d + (v_e - w_e) * (v_e - w_e) + (v_n - w_n) * (v_n - w_n));
-	float HH1 = k_tas / HH0;
+	const float HH0 = sqrtf(v_d * v_d + (v_e - w_e) * (v_e - w_e) + (v_n - w_n) * (v_n - w_n));
+	const float HH1 = k_tas / HH0;
 
 	Matrix<float, 1, 3> H_tas;
 	H_tas(0, 0) = HH1 * (-v_n + w_n);
@@ -163,13 +145,14 @@ void WindEstimator::fuse_airspeed(float true_airspeed, float velI[3], float velI
 
 	Matrix<float, 3, 1> K = _P * H_tas.transpose();
 
-	Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
+	const Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
 	K /= (S._data[0][0]);
 
 	// compute innovation
-	float airspeed_pred = _state(tas) * sqrtf((v_n - _state(w_n)) * (v_n - _state(w_n)) + (v_e - _state(w_e)) *
-			      (v_e - _state(w_e)) + v_d * v_d);
+	const float airspeed_pred = _state(tas) * sqrtf((v_n - _state(w_n)) * (v_n - _state(w_n)) + (v_e - _state(w_e)) *
+				    (v_e - _state(w_e)) + v_d * v_d);
+
 	_tas_innov = true_airspeed - airspeed_pred;
 
 	// innovation variance
@@ -186,32 +169,33 @@ void WindEstimator::fuse_airspeed(float true_airspeed, float velI[3], float velI
 	run_sanity_checks();
 }
 
-void WindEstimator::fuse_beta(float velI[3], float q_att[4])
+void
+WindEstimator::fuse_beta(const Vector3f &velI, const Quatf &q_att)
 {
 	if (!_initialised) {return;}
 
-	float v_n = velI[0];
-	float v_e = velI[1];
-	float v_d = velI[2];
+	const float v_n = velI(0);
+	const float v_e = velI(1);
+	const float v_d = velI(2);
 
 	// compute sideslip observation vector
-	float HB0 = 2.0f * q_att[0];
-	float HB1 = HB0 * q_att[3];
-	float HB2 = 2.0f * q_att[1];
-	float HB3 = HB2 * q_att[2];
+	float HB0 = 2.0f * q_att(0);
+	float HB1 = HB0 * q_att(3);
+	float HB2 = 2.0f * q_att(1);
+	float HB3 = HB2 * q_att(2);
 	float HB4 = v_e - w_e;
 	float HB5 = HB1 + HB3;
 	float HB6 = v_n - w_n;
-	float HB7 = q_att[0] * q_att[0];
-	float HB8 = q_att[3] * q_att[3];
+	float HB7 = q_att(0) * q_att(0);
+	float HB8 = q_att(3) * q_att(3);
 	float HB9 = HB7 - HB8;
-	float HB10 = q_att[1] * q_att[1];
-	float HB11 = q_att[2] * q_att[2];
+	float HB10 = q_att(1) * q_att(1);
+	float HB11 = q_att(2) * q_att(2);
 	float HB12 = HB10 - HB11;
 	float HB13 = HB12 + HB9;
-	float HB14 = HB13 * HB6 + HB4 * HB5 + v_d * (-HB0 * q_att[2] + HB2 * q_att[3]);
+	float HB14 = HB13 * HB6 + HB4 * HB5 + v_d * (-HB0 * q_att(2) + HB2 * q_att(3));
 	float HB15 = 1.0f / HB14;
-	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) + v_d * (HB0 * q_att[1] + 2.0f * q_att[2] * q_att[3])) /
+	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) + v_d * (HB0 * q_att(1) + 2.0f * q_att(2) * q_att(3))) /
 		     (HB14 * HB14);
 
 	Matrix<float, 1, 3> H_beta;
@@ -222,19 +206,21 @@ void WindEstimator::fuse_beta(float velI[3], float q_att[4])
 	// compute kalman gain
 	Matrix<float, 3, 1> K = _P * H_beta.transpose();
 
-	Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
+	const Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
 
 	K /= (S._data[0][0]);
 
 	// compute predicted side slip angle
-	Vector3f rel_wind = Vector3f(velI[0] - _state(w_n), velI[1] - _state(w_e), velI[2]);
+	Vector3f rel_wind = Vector3f(velI(0) - _state(w_n), velI(1) - _state(w_e), velI(2));
 	Dcmf R_body_to_earth = Quatf(q_att);
 	rel_wind = R_body_to_earth.transpose() * rel_wind;
 
-	if (fabsf(rel_wind(0)) < 0.1f) {return;}
+	if (fabsf(rel_wind(0)) < 0.1f) {
+		return;
+	}
 
 	// use small angle approximation, sin(x) = x for small x
-	float beta_pred = rel_wind(1) / rel_wind(0);
+	const float beta_pred = rel_wind(1) / rel_wind(0);
 
 	_beta_innov = 0.0f - beta_pred;
 	_beta_innov_var = S._data[0][0];
@@ -250,7 +236,8 @@ void WindEstimator::fuse_beta(float velI[3], float q_att[4])
 	run_sanity_checks();
 }
 
-void WindEstimator::run_sanity_checks()
+void
+WindEstimator::run_sanity_checks()
 {
 	for (unsigned i = 0; i < 3; i++) {
 		if (_P(i, i) < 0.0f) {
@@ -274,7 +261,7 @@ void WindEstimator::run_sanity_checks()
 	}
 
 	// constrain airspeed scale factor
-	_state(tas) = math::constrain(_state(tas), 0.7f, 1.0f);
+	_state(tas) = constrain(_state(tas), 0.7f, 1.0f);
 
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {

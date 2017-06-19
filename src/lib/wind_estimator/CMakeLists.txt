@@ -35,7 +35,7 @@ px4_add_module(
 	STACK_MAIN 1024
 	COMPILE_FLAGS
 	SRCS
-		wind_estimator.cpp
+		WindEstimator.cpp
 	DEPENDS
 		platforms__common
 	)

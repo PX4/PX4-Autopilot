@@ -63,7 +63,7 @@
 #include <platforms/px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <controllib/blocks.hpp>
-#include <wind_estimator/wind_estimator.h>
+#include <wind_estimator/WindEstimator.hpp>
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -755,7 +755,7 @@ void Ekf2::task_main()
 			ev_data.posNED(0) = ev_pos.x;
 			ev_data.posNED(1) = ev_pos.y;
 			ev_data.posNED(2) = ev_pos.z;
-			Quaternion q(ev_att.q);
+			Quatf q(ev_att.q);
 			ev_data.quat = q;
 
 			// position measurement error from parameters. TODO : use covariances from topic
