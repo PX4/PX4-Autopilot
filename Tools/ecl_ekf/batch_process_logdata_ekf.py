@@ -24,4 +24,4 @@ print("\n"+"analysing all .ulog files in "+ulog_directory)
 for file in os.listdir(ulog_directory):
     if file.endswith(".ulg"):
         print("\n"+"loading "+file+" for analysis")
-        os.system("python process_logdata_ekf.py "+ulog_directory+"/"+file)
+        os.system("python process_logdata_ekf.py '{}'".format(os.path.join(ulog_directory, file)))
