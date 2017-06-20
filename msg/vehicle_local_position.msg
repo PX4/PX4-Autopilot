@@ -37,11 +37,6 @@ uint8 z_reset_counter
 uint8 vxy_reset_counter
 uint8 vz_reset_counter
 
-# Acceleration in NED frame
-float32 ax        # North acceleration in NED earth-fixed frame, (metres/sec^2)
-float32 ay        # East acceleration in NED earth-fixed frame, (metres/sec^2)
-float32 az        # Down acceleration in NED earth-fixed frame, (metres/sec^2)
-
 # Heading
 float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
 
