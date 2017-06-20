@@ -189,11 +189,6 @@ private:
 	orb_advert_t _replay_pub;
 	orb_advert_t _ekf2_timestamps_pub;
 
-	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;
-	math::LowPassFilter2p _lp_pitch_rate;
-	math::LowPassFilter2p _lp_yaw_rate;
-
 	Ekf _ekf;
 
 	parameters *_params;	// pointer to ekf parameter struct (located in _ekf class instance)
@@ -338,9 +333,6 @@ Ekf2::Ekf2():
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
 	_ekf2_timestamps_pub(nullptr),
-	_lp_roll_rate(250.0f, 30.0f),
-	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
@@ -792,20 +784,22 @@ void Ekf2::task_main()
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 
-			float gyro_rad[3];
+			float gyro_bias[3] = {};
+			_ekf.get_gyro_bias(gyro_bias);
+
+			const float gyro_rad[3] = {
+				sensors.gyro_rad[0] - gyro_bias[0],
+				sensors.gyro_rad[1] - gyro_bias[1],
+				sensors.gyro_rad[2] - gyro_bias[2],
+			};
 
 			{
 				// generate control state data
 				control_state_s ctrl_state = {};
-				float gyro_bias[3] = {};
-				_ekf.get_gyro_bias(gyro_bias);
 				ctrl_state.timestamp = now;
-				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
-				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
-				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
-				ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
-				ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
-				ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
+				ctrl_state.roll_rate = gyro_rad[0];
+				ctrl_state.pitch_rate = gyro_rad[1];
+				ctrl_state.yaw_rate = gyro_rad[2];
 				ctrl_state.roll_rate_bias = gyro_bias[0];
 				ctrl_state.pitch_rate_bias = gyro_bias[1];
 				ctrl_state.yaw_rate_bias = gyro_bias[2];
