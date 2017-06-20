@@ -19,7 +19,4 @@ uint8 AIRSPD_MODE_DISABLED = 2	# airspeed is disabled
 float32 airspeed		# Airspeed, estimated
 bool airspeed_valid		# False: Non-finite values or non-updating sensor
 
-float32[3] vel_variance	# Variance in body velocity estimate
-float32[3] pos_variance	# Variance in local position estimate
-
 float32 horz_acc_mag		# low pass filtered magnitude of the horizontal acceleration

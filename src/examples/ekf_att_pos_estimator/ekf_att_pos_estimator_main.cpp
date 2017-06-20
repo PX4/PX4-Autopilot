@@ -858,15 +858,15 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
 	Vector3f v_n_var(_ekf->P[4][4], _ekf->P[5][5], _ekf->P[6][6]);
 	Vector3f v_b = _ekf->Tnb * v_n;
-	Vector3f v_b_var = _ekf->Tnb * v_n_var;
+	//Vector3f v_b_var = _ekf->Tnb * v_n_var;
 
 	_ctrl_state.x_vel = v_b.x;
 	_ctrl_state.y_vel = v_b.y;
 	_ctrl_state.z_vel = v_b.z;
 
-	_ctrl_state.vel_variance[0] = v_b_var.x;
-	_ctrl_state.vel_variance[1] = v_b_var.y;
-	_ctrl_state.vel_variance[2] = v_b_var.z;
+	//_ctrl_state.vel_variance[0] = v_b_var.x;
+	//_ctrl_state.vel_variance[1] = v_b_var.y;
+	//_ctrl_state.vel_variance[2] = v_b_var.z;
 
 	/* Local Position */
 	_ctrl_state.x_pos = _ekf->states[7];
@@ -875,9 +875,9 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	// XXX need to announce change of Z reference somehow elegantly
 	_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
 
-	_ctrl_state.pos_variance[0] = _ekf->P[7][7];
-	_ctrl_state.pos_variance[1] = _ekf->P[8][8];
-	_ctrl_state.pos_variance[2] = _ekf->P[9][9];
+	//_ctrl_state.pos_variance[0] = _ekf->P[7][7];
+	//_ctrl_state.pos_variance[1] = _ekf->P[8][8];
+	//_ctrl_state.pos_variance[2] = _ekf->P[9][9];
 
 	/* Attitude */
 	_ctrl_state.timestamp = _last_sensor_timestamp;
