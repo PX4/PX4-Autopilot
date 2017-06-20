@@ -44,7 +44,7 @@
 #ifndef QUATERNION_HPP
 #define QUATERNION_HPP
 
-#include <math.h>
+#include <cmath>
 
 #include "Vector.hpp"
 #include "Matrix.hpp"

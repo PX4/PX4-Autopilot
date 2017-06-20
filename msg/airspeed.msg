@@ -4,3 +4,4 @@ float32 true_airspeed_unfiltered_m_s	# true airspeed in meters per second, -1 if
 float32 air_temperature_celsius		# air temperature in degrees celsius, -1000 if unknown
 float32 confidence			# confidence value from 0 to 1 for this sensor
 float32 differential_pressure_filtered_pa # filtered differential pressure, can be negative
+float32 scale 				# estimated airspeed scale factor.
