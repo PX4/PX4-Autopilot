@@ -1,7 +1,9 @@
 # This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
-float32 rollspeed	# Angular velocity about body north axis (x) in rad/s
-float32 pitchspeed	# Angular velocity about body east axis (y) in rad/s
-float32 yawspeed	# Angular velocity about body down axis (z) in rad/s
-float32[4] q		# Quaternion (NED)
+
+float32 rollspeed	# Bias corrected angular velocity about X body axis in rad/s
+float32 pitchspeed	# Bias corrected angular velocity about Y body axis in rad/s
+float32 yawspeed	# Bias corrected angular velocity about Z body axis in rad/s
+
+float32[4] q		# Quaternion rotation from NED earth frame to XYZ body frame
 
 # TOPICS vehicle_attitude vehicle_attitude_groundtruth vehicle_vision_attitude
