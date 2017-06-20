@@ -784,25 +784,10 @@ void Ekf2::task_main()
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 
-			float gyro_bias[3] = {};
-			_ekf.get_gyro_bias(gyro_bias);
-
-			const float gyro_rad[3] = {
-				sensors.gyro_rad[0] - gyro_bias[0],
-				sensors.gyro_rad[1] - gyro_bias[1],
-				sensors.gyro_rad[2] - gyro_bias[2],
-			};
-
 			{
 				// generate control state data
 				control_state_s ctrl_state = {};
 				ctrl_state.timestamp = now;
-				ctrl_state.roll_rate = gyro_rad[0];
-				ctrl_state.pitch_rate = gyro_rad[1];
-				ctrl_state.yaw_rate = gyro_rad[2];
-				ctrl_state.roll_rate_bias = gyro_bias[0];
-				ctrl_state.pitch_rate_bias = gyro_bias[1];
-				ctrl_state.yaw_rate_bias = gyro_bias[2];
 
 				// Velocity in body frame
 				Vector3f v_n(velocity);
@@ -819,11 +804,6 @@ void Ekf2::task_main()
 				ctrl_state.x_pos = position[0];
 				ctrl_state.y_pos = position[1];
 				ctrl_state.z_pos = position[2];
-
-				// Attitude quaternion
-				q.copyTo(ctrl_state.q);
-
-				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
 
 				// Acceleration data
 				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
@@ -878,10 +858,18 @@ void Ekf2::task_main()
 				att.timestamp = now;
 
 				q.copyTo(att.q);
+				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-				att.rollspeed = gyro_rad[0];
-				att.pitchspeed = gyro_rad[1];
-				att.yawspeed = gyro_rad[2];
+				float gyro_bias[3] = {};
+				_ekf.get_gyro_bias(gyro_bias);
+
+				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
+				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
+				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+
+				att.roll_rate_bias = gyro_bias[0];
+				att.pitch_rate_bias = gyro_bias[1];
+				att.yaw_rate_bias = gyro_bias[2];
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {

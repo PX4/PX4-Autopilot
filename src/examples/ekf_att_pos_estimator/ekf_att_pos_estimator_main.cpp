@@ -829,6 +829,11 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
 	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
+	/* Gyro bias estimates */
+	_att.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
+
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
 		/* publish the attitude */
@@ -876,10 +881,6 @@ void AttitudePositionEstimatorEKF::publishControlState()
 
 	/* Attitude */
 	_ctrl_state.timestamp = _last_sensor_timestamp;
-	_ctrl_state.q[0] = _ekf->states[0];
-	_ctrl_state.q[1] = _ekf->states[1];
-	_ctrl_state.q[2] = _ekf->states[2];
-	_ctrl_state.q[3] = _ekf->states[3];
 
 	// use estimated velocity for airspeed estimate
 	if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
@@ -901,16 +902,6 @@ void AttitudePositionEstimatorEKF::publishControlState()
 		// do nothing, airspeed has been declared as non-valid above, controllers
 		// will handle this assuming always trim airspeed
 	}
-
-	/* Attitude Rates */
-	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
-	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
-	_ctrl_state.yaw_rate = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
-
-	/* Gyro bias estimates */
-	_ctrl_state.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
-	_ctrl_state.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
-	_ctrl_state.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
 
 	/* Guard from bad data */
 	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||

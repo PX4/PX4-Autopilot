@@ -452,44 +452,34 @@ void AttitudeEstimatorQ::task_main()
 			continue;
 		}
 
-		{
-			vehicle_attitude_s att = {
-				.timestamp = sensors.timestamp,
-				.rollspeed = _rates(0),
-				.pitchspeed = _rates(1),
-				.yawspeed = _rates(2),
-				.q = {_q(0), _q(1), _q(2), _q(3)}
-			};
+		vehicle_attitude_s att = {
+			.timestamp = sensors.timestamp,
+			.rollspeed = _rates(0),
+			.pitchspeed = _rates(1),
+			.yawspeed = _rates(2),
 
-			/* the instance count is not used here */
-			int att_inst;
-			orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
-		}
+			/* TODO get bias estimates from estimator */
+			.roll_rate_bias = 0.0f,
+			.pitch_rate_bias = 0.0f,
+			.yaw_rate_bias = 0.0f,
+
+			.q = {_q(0), _q(1), _q(2), _q(3)},
+			.delta_q_reset = {},
+			.quat_reset_counter = 0,
+		};
+
+		/* the instance count is not used here */
+		int att_inst;
+		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
 
 		{
 			struct control_state_s ctrl_state = {};
 
 			ctrl_state.timestamp = sensors.timestamp;
 
-			/* attitude quaternions for control state */
-			ctrl_state.q[0] = _q(0);
-			ctrl_state.q[1] = _q(1);
-			ctrl_state.q[2] = _q(2);
-			ctrl_state.q[3] = _q(3);
-
 			ctrl_state.x_acc = _accel(0);
 			ctrl_state.y_acc = _accel(1);
 			ctrl_state.z_acc = _accel(2);
-
-			/* attitude rates for control state */
-			ctrl_state.roll_rate = _rates(0);
-			ctrl_state.pitch_rate = _rates(1);
-			ctrl_state.yaw_rate = _rates(2);
-
-			/* TODO get bias estimates from estimator */
-			ctrl_state.roll_rate_bias = 0.0f;
-			ctrl_state.pitch_rate_bias = 0.0f;
-			ctrl_state.yaw_rate_bias = 0.0f;
 
 			ctrl_state.airspeed_valid = false;
 

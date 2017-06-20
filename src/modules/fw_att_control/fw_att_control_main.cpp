@@ -60,6 +60,7 @@
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -112,6 +113,7 @@ private:
 	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle */
 
+	int		_att_sub;			/**< vehicle attitude */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_battery_status_sub;		/**< battery status subscription */
 	int		_ctrl_state_sub;		/**< control state subscription */
@@ -136,6 +138,7 @@ private:
 	struct battery_status_s				_battery_status;	/**< battery status */
 	struct control_state_s				_ctrl_state;	/**< control state */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
+	struct vehicle_attitude_s			_att;		/**< vehicle attitude setpoint */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
@@ -311,6 +314,11 @@ private:
 	void		vehicle_manual_poll();
 
 	/**
+	 * Check for control state updates
+	 */
+	void		control_state_poll();
+
+	/**
 	 * Check for set triplet updates.
 	 */
 	void		vehicle_setpoint_poll();
@@ -359,6 +367,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_control_task(-1),
 
 	/* subscriptions */
+	_att_sub(-1),
 	_att_sp_sub(-1),
 	_battery_status_sub(-1),
 	_ctrl_state_sub(-1),
@@ -400,6 +409,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	/* safely initialize structs */
 	_actuators = {};
 	_actuators_airframe = {};
+	_att = {};
 	_att_sp = {};
 	_battery_status = {};
 	_ctrl_state = {};
@@ -643,6 +653,18 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
+FixedwingAttitudeControl::control_state_poll()
+{
+	/* check if there is a new setpoint */
+	bool updated;
+	orb_check(_ctrl_state_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+	}
+}
+
+void
 FixedwingAttitudeControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -729,6 +751,7 @@ FixedwingAttitudeControl::task_main()
 	/*
 	 * do subscriptions
 	 */
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -742,6 +765,7 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
+	control_state_poll();
 	vehicle_setpoint_poll();
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
@@ -755,7 +779,7 @@ FixedwingAttitudeControl::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _ctrl_state_sub;
+	fds[1].fd = _att_sub;
 	fds[1].events = POLLIN;
 
 	_task_running = true;
@@ -801,11 +825,10 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* load local copies */
-			orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-
+			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
 			/* get current rotation matrix and euler angles from control state quaternions */
-			math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+			math::Quaternion q_att(_att.q[0], _att.q[1], _att.q[2], _att.q[3]);
 			_R = q_att.to_dcm();
 
 			math::Vector<3> euler_angles;
@@ -856,23 +879,18 @@ FixedwingAttitudeControl::task_main()
 				_yaw     = euler_angles(2);
 
 				/* lastly, roll- and yawspeed have to be swaped */
-				float helper = _ctrl_state.roll_rate;
-				_ctrl_state.roll_rate = -_ctrl_state.yaw_rate;
-				_ctrl_state.yaw_rate = helper;
+				float helper = _att.rollspeed;
+				_att.rollspeed = -_att.yawspeed;
+				_att.yawspeed = helper;
 			}
 
+			control_state_poll();
 			vehicle_setpoint_poll();
-
 			vehicle_control_mode_poll();
-
 			vehicle_manual_poll();
-
 			global_pos_poll();
-
 			vehicle_status_poll();
-
 			vehicle_land_detected_poll();
-
 			battery_status_poll();
 
 			// the position controller will not emit attitude setpoints in some modes
@@ -1045,9 +1063,9 @@ FixedwingAttitudeControl::task_main()
 				control_input.roll = _roll;
 				control_input.pitch = _pitch;
 				control_input.yaw = _yaw;
-				control_input.body_x_rate = _ctrl_state.roll_rate;
-				control_input.body_y_rate = _ctrl_state.pitch_rate;
-				control_input.body_z_rate = _ctrl_state.yaw_rate;
+				control_input.body_x_rate = _att.rollspeed;
+				control_input.body_y_rate = _att.pitchspeed;
+				control_input.body_z_rate = _att.yawspeed;
 				control_input.roll_setpoint = roll_sp;
 				control_input.pitch_setpoint = pitch_sp;
 				control_input.yaw_setpoint = yaw_sp;
@@ -1229,9 +1247,9 @@ FixedwingAttitudeControl::task_main()
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
-			_actuators.timestamp_sample = _ctrl_state.timestamp;
+			_actuators.timestamp_sample = _att.timestamp;
 			_actuators_airframe.timestamp = hrt_absolute_time();
-			_actuators_airframe.timestamp_sample = _ctrl_state.timestamp;
+			_actuators_airframe.timestamp_sample = _att.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_vcontrol_mode.flag_control_rates_enabled ||

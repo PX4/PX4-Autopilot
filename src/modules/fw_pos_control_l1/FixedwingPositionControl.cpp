@@ -338,8 +338,23 @@ FixedwingPositionControl::control_state_poll()
 		}
 	}
 
+	/* update TECS state */
+	_tecs.enable_airspeed(_airspeed_valid);
+}
+
+void
+FixedwingPositionControl::vehicle_attitude_poll()
+{
+	/* check if there is a new position */
+	bool updated;
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+	}
+
 	/* set rotation matrix and euler angles */
-	math::Quaternion q_att(_ctrl_state.q);
+	math::Quaternion q_att(_att.q);
 	_R_nb = q_att.to_dcm();
 
 	math::Vector<3> euler_angles;
@@ -347,9 +362,6 @@ FixedwingPositionControl::control_state_poll()
 	_roll    = euler_angles(0);
 	_pitch   = euler_angles(1);
 	_yaw     = euler_angles(2);
-
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
 }
 
 void
@@ -1050,8 +1062,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-					Eulerf euler(Quatf(_ctrl_state.q));
-					_runway_takeoff.init(euler.psi(), _global_pos.lat, _global_pos.lon);
+					_runway_takeoff.init(_yaw, _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1258,7 +1269,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		    fabsf(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
-			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+			if (fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
@@ -1489,6 +1500,7 @@ FixedwingPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -1582,6 +1594,7 @@ FixedwingPositionControl::task_main()
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
 			control_state_poll();
+			vehicle_attitude_poll();
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
 

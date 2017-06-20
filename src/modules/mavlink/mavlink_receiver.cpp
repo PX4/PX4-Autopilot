@@ -136,6 +136,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
 	_control_state_pub(nullptr),
+	_vehicle_attitude_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
@@ -2295,9 +2296,14 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	//Roll Rates:
 	//ctrl_state: body angular rate (rad/s, x forward/y right/z down)
 	//hil_state : body frame angular speed (rad/s)
-	ctrl_state.roll_rate = hil_state.rollspeed;
-	ctrl_state.pitch_rate = hil_state.pitchspeed;
-	ctrl_state.yaw_rate = hil_state.yawspeed;
+
+	vehicle_attitude_s vehicle_attitude = {};
+	vehicle_attitude.rollspeed = hil_state.rollspeed;
+	vehicle_attitude.pitchspeed = hil_state.pitchspeed;
+	vehicle_attitude.yawspeed = hil_state.yawspeed;
+
+	// Attitude quaternion
+	q.copyTo(vehicle_attitude.q);
 
 	// Local Position NED:
 	//ctrl_state: position in local earth frame
@@ -2310,9 +2316,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	ctrl_state.x_pos = x;
 	ctrl_state.y_pos = y;
 	ctrl_state.z_pos = hil_state.alt / 1000.0f;
-
-	// Attitude quaternion
-	q.copyTo(ctrl_state.q);
 
 	// Velocity
 	//ctrl_state: velocity in body frame (x forward/y right/z down)
@@ -2342,6 +2345,14 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	} else {
 		orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
+	}
+
+	// publish vehicle_attitude data
+	if (_vehicle_attitude_pub == nullptr) {
+		_vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &vehicle_attitude);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_attitude), _vehicle_attitude_pub, &vehicle_attitude);
 	}
 }
 

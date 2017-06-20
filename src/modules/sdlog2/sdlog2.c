@@ -2262,9 +2262,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
 				log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
 				log_msg.body.log_CTS.airspeed = buf.ctrl_state.airspeed;
-				log_msg.body.log_CTS.roll_rate = buf.ctrl_state.roll_rate;
-				log_msg.body.log_CTS.pitch_rate = buf.ctrl_state.pitch_rate;
-				log_msg.body.log_CTS.yaw_rate = buf.ctrl_state.yaw_rate;
 				LOGBUFFER_WRITE_AND_COUNT(CTS);
 			}
 		}
