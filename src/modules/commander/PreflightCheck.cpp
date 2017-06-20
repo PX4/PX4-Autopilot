@@ -460,7 +460,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, bool optional, bool report_
 	int sub = orb_subscribe(ORB_ID(estimator_status));
 	bool updated;
 	orb_check(sub,&updated);
-	struct estimator_status_s status;
+	struct estimator_status_s status = {};
 	orb_copy(ORB_ID(estimator_status), sub, &status);
 	orb_unsubscribe(sub);
 

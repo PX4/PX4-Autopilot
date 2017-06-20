@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013, 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,14 +93,6 @@
 #include <drivers/drv_tone_alarm.h>
 
 #include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <math.h>
 #include <ctype.h>
 
@@ -296,45 +288,54 @@ class ToneAlarm : public device::CDev
 {
 public:
 	ToneAlarm();
-	~ToneAlarm();
+	~ToneAlarm() override = default;
 
-	virtual int		init();
+	int init() override;
 
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
-	inline const char	*name(int tune)
+	int ioctl(file *filp, int cmd, unsigned long arg) override;
+	ssize_t write(file *filp, const char *buffer, size_t len) override;
+
+	inline const char *name(int tune)
 	{
 		return _tune_names[tune];
 	}
+
+private:
+	static constexpr unsigned _tune_max{1024 * 8}; // be reasonable about user tunes
+
+	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES] {};
+	const char		 *_tune_names[TONE_NUMBER_OF_TUNES] {};
+
+	// semitone offsets from C for the characters 'A'-'G'
+	const uint8_t _note_tab[7] = {9, 11, 0, 2, 4, 5, 7};
+
+	unsigned		_default_tune_number{0}; // number of currently playing default tune (0 for none)
+
+	const char		*_user_tune{nullptr};
+
+	const char		*_tune{nullptr};		// current tune string
+	const char		*_next{nullptr};		// next note in the string
+
+	unsigned		_tempo{0};
+	unsigned		_note_length{0};
 
 	enum {
 		CBRK_OFF = 0,
 		CBRK_ON,
 		CBRK_UNINIT
-	};
+	} _cbrk{CBRK_UNINIT};
 
-private:
-	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
-	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES];
-	const char		 *_tune_names[TONE_NUMBER_OF_TUNES];
-	static const uint8_t	_note_tab[];
+	enum {
+		MODE_NORMAL,
+		MODE_LEGATO,
+		MODE_STACCATO
+	} _note_mode{MODE_NORMAL};
 
-	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
+	unsigned		_octave{0};
+	unsigned		_silence_length{0}; // if nonzero, silence before next note
+	bool			_repeat{false};	// if true, tune restarts at end
 
-	const char		*_user_tune;
-
-	const char		*_tune;		// current tune string
-	const char		*_next;		// next note in the string
-
-	unsigned		_tempo;
-	unsigned		_note_length;
-	enum { MODE_NORMAL, MODE_LEGATO, MODE_STACCATO} _note_mode;
-	unsigned		_octave;
-	unsigned		_silence_length; // if nonzero, silence before next note
-	bool			_repeat;	// if true, tune restarts at end
-	int				_cbrk;	//if true, no audio output
-
-	hrt_call		_note_call;	// HRT callout for note completion
+	hrt_call		_note_call{};	// HRT callout for note completion
 
 	// Convert a note value in the range C1 to B7 into a divisor for
 	// the configured timer's clock.
@@ -387,22 +388,12 @@ private:
 
 };
 
-// semitone offsets from C for the characters 'A'-'G'
-const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
-
 /*
  * Driver 'main' command.
  */
 extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
-
-ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
-	_default_tune_number(0),
-	_user_tune(nullptr),
-	_tune(nullptr),
-	_next(nullptr),
-	_cbrk(CBRK_OFF)
+ToneAlarm::ToneAlarm() : CDev("tone_alarm", TONEALARM0_DEVICE_PATH)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -430,17 +421,13 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
 	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
 	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
-	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	            // gps warning
-	_tune_names[TONE_ARMING_FAILURE_TUNE] = "arming_failure";            //fail to arm
+	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	        // gps warning
+	_tune_names[TONE_ARMING_FAILURE_TUNE] = "arming_failure";       //fail to arm
 	_tune_names[TONE_PARACHUTE_RELEASE_TUNE] = "parachute_release";	// parachute release
-	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
-	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
+	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";		// ekf warning
+	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";		// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
-}
-
-ToneAlarm::~ToneAlarm()
-{
 }
 
 int
@@ -571,10 +558,17 @@ ToneAlarm::start_note(unsigned note)
 {
 	// check if circuit breaker is enabled
 	if (_cbrk == CBRK_UNINIT) {
-		_cbrk = circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY);
+		if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
+			_cbrk = CBRK_ON;
+
+		} else {
+			_cbrk = CBRK_OFF;
+		}
 	}
 
-	if (_cbrk != CBRK_OFF) { return; }
+	if (_cbrk != CBRK_OFF) {
+		return;
+	}
 
 	// compute the divisor
 	unsigned divisor = note_to_divisor(note);
@@ -836,8 +830,6 @@ tune_end:
 		_tune = nullptr;
 		_default_tune_number = 0;
 	}
-
-	return;
 }
 
 int
@@ -1062,21 +1054,20 @@ tone_alarm_main(int argc, char *argv[])
 
 		if (!strcmp(argv1, "start")) {
 			play_tune(TONE_STOP_TUNE);
-		}
 
-		if (!strcmp(argv1, "stop")) {
+		} else if (!strcmp(argv1, "stop")) {
 			play_tune(TONE_STOP_TUNE);
-		}
 
-		if ((tune = strtol(argv1, nullptr, 10)) != 0) {
+		} else if ((tune = strtol(argv1, nullptr, 10)) != 0) {
 			play_tune(tune);
 		}
 
 		/* It might be a tune name */
-		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
+		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++) {
 			if (!strcmp(g_dev->name(tune), argv1)) {
 				play_tune(tune);
 			}
+		}
 
 		/* If it is a file name then load and play it as a string */
 		if (*argv1 == '/') {

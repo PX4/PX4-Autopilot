@@ -50,15 +50,8 @@
 class Battery : public control::SuperBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Battery();
-
-	/**
-	 * Destructor
-	 */
-	~Battery();
+	~Battery() = default;
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -108,13 +101,13 @@ private:
 	control::BlockParamFloat _param_crit_thr;
 	control::BlockParamFloat _param_emergency_thr;
 
-	float _voltage_filtered_v;
-	float _current_filtered_a;
-	float _discharged_mah;
-	float _remaining_voltage;		///< normalized battery charge level remaining based on voltage
-	float _remaining_capacity;		///< normalized battery charge level remaining based on capacity
-	float _remaining;			///< normalized battery charge level, selected based on config param
-	float _scale;
-	uint8_t _warning;
-	hrt_abstime _last_timestamp;
+	float _voltage_filtered_v{-1.0f};
+	float _current_filtered_a{-1.0f};
+	float _discharged_mah{0.0f};
+	float _remaining_voltage{1.0f};		///< normalized battery charge level remaining based on voltage
+	float _remaining_capacity{1.0f};	///< normalized battery charge level remaining based on capacity
+	float _remaining{1.0f};			///< normalized battery charge level, selected based on config param
+	float _scale{1.0f};
+	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
+	hrt_abstime _last_timestamp{0};
 };

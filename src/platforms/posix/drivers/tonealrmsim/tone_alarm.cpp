@@ -86,30 +86,17 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
-
+#include <cctype>
 #include <drivers/device/device.h>
-#include <drivers/drv_tone_alarm.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <math.h>
-#include <ctype.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
+#include <drivers/drv_tone_alarm.h>
+#include <px4_posix.h>
+#include <systemlib/circuit_breaker.h>
 #include <systemlib/err.h>
 
 #include "VirtDevObj.hpp"
+
+#define CBRK_BUZZER_KEY 782097
 
 using namespace DriverFramework;
 
@@ -117,36 +104,52 @@ class ToneAlarm : public VirtDevObj
 {
 public:
 	ToneAlarm();
-	~ToneAlarm();
+	~ToneAlarm() override = default;
 
-	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
-	virtual ssize_t		devWrite(const void *buffer, size_t len);
-	inline const char	*name(int tune)
+	int devIOCTL(unsigned long cmd, unsigned long arg) override;
+	ssize_t devWrite(const void *buffer, size_t len) override;
+
+	inline const char *name(int tune)
 	{
 		return _tune_names[tune];
 	}
 
 private:
-	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
-	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES];
-	const char		 *_tune_names[TONE_NUMBER_OF_TUNES];
-	static const uint8_t	_note_tab[];
+	static constexpr unsigned _tune_max{1024 * 8}; // be reasonable about user tunes
 
-	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
+	const char		 *_default_tunes[TONE_NUMBER_OF_TUNES] {};
+	const char		 *_tune_names[TONE_NUMBER_OF_TUNES] {};
 
-	const char		*_user_tune;
+	// semitone offsets from C for the characters 'A'-'G'
+	const uint8_t _note_tab[7] = {9, 11, 0, 2, 4, 5, 7};
 
-	const char		*_tune;		// current tune string
-	const char		*_next;		// next note in the string
+	unsigned		_default_tune_number{0}; // number of currently playing default tune (0 for none)
 
-	unsigned		_tempo;
-	unsigned		_note_length;
-	enum { MODE_NORMAL, MODE_LEGATO, MODE_STACCATO} _note_mode;
-	unsigned		_octave;
-	unsigned		_silence_length; // if nonzero, silence before next note
-	bool			_repeat;	// if true, tune restarts at end
+	const char		*_user_tune{nullptr};
 
-	hrt_call		_note_call;	// HRT callout for note completion
+	const char		*_tune{nullptr};		// current tune string
+	const char		*_next{nullptr};		// next note in the string
+
+	unsigned		_tempo{0};
+	unsigned		_note_length{0};
+
+	enum {
+		CBRK_OFF = 0,
+		CBRK_ON,
+		CBRK_UNINIT
+	} _cbrk{CBRK_UNINIT};
+
+	enum {
+		MODE_NORMAL,
+		MODE_LEGATO,
+		MODE_STACCATO
+	} _note_mode{MODE_NORMAL};
+
+	unsigned		_octave{0};
+	unsigned		_silence_length{0}; // if nonzero, silence before next note
+	bool			_repeat{false};	// if true, tune restarts at end
+
+	hrt_call		_note_call{};	// HRT callout for note completion
 
 	// Convert a note value in the range C1 to B7 into a divisor for
 	// the configured timer's clock.
@@ -198,25 +201,15 @@ private:
 	static void		next_trampoline(void *arg);
 
 	// Unused
-	virtual void _measure() {}
+	void _measure() override {}
 };
-
-// semitone offsets from C for the characters 'A'-'G'
-const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
 /*
  * Driver 'main' command.
  */
 extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
-
-ToneAlarm::ToneAlarm() :
-	VirtDevObj("tone_alarm", TONEALARM0_DEVICE_PATH, nullptr, 0),
-	_default_tune_number(0),
-	_user_tune(nullptr),
-	_tune(nullptr),
-	_next(nullptr),
-	_note_call{}
+ToneAlarm::ToneAlarm() : VirtDevObj("tone_alarm", TONEALARM0_DEVICE_PATH, nullptr, 0)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -234,6 +227,7 @@ ToneAlarm::ToneAlarm() :
 	_default_tunes[TONE_EKF_WARNING_TUNE] = "MFT255L8ddd#d#eeff";				// ekf warning
 	_default_tunes[TONE_BARO_WARNING_TUNE] = "MFT255L4gf#fed#d";				// baro warning
 	_default_tunes[TONE_SINGLE_BEEP_TUNE] = "MFT100a8";                             // single beep
+	_default_tunes[TONE_HOME_SET] = "MFT100L4>G#6A#6B#4";
 
 	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
 	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
@@ -243,17 +237,13 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
 	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
 	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
-	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	            // gps warning
-	_tune_names[TONE_ARMING_FAILURE_TUNE] = "arming_failure";            //fail to arm
+	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	        // gps warning
+	_tune_names[TONE_ARMING_FAILURE_TUNE] = "arming_failure";       //fail to arm
 	_tune_names[TONE_PARACHUTE_RELEASE_TUNE] = "parachute_release";	// parachute release
-	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";				// ekf warning
-	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
+	_tune_names[TONE_EKF_WARNING_TUNE] = "ekf_warning";		// ekf warning
+	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";		// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
-}
-
-ToneAlarm::~ToneAlarm()
-{
 }
 
 unsigned
@@ -331,13 +321,23 @@ ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
 	return rest_period;
 }
 
-static void do_something(unsigned x)
-{
-}
-
 void
 ToneAlarm::start_note(unsigned note)
 {
+	// check if circuit breaker is enabled
+	if (_cbrk == CBRK_UNINIT) {
+		if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
+			_cbrk = CBRK_ON;
+
+		} else {
+			_cbrk = CBRK_OFF;
+		}
+	}
+
+	if (_cbrk != CBRK_OFF) {
+		return;
+	}
+
 	// compute the divisor
 	unsigned divisor = note_to_divisor(note);
 
@@ -348,8 +348,6 @@ ToneAlarm::start_note(unsigned note)
 	// calculate the timer period for the selected prescaler value
 	unsigned period = (divisor / (prescale + 1)) - 1;
 
-	// Silence warning of unused var
-	do_something(period);
 	PX4_DEBUG("ToneAlarm::start_note %u", period);
 }
 
@@ -593,7 +591,6 @@ tune_end:
 		_tune = nullptr;
 		_default_tune_number = 0;
 	}
-
 }
 
 int
@@ -800,7 +797,7 @@ int
 tone_alarm_main(int argc, char *argv[])
 {
 	unsigned tune;
-	int ret = 1;
+	int ret = PX4_ERROR;
 
 	/* start the driver lazily */
 	if (g_dev == nullptr) {
@@ -808,13 +805,13 @@ tone_alarm_main(int argc, char *argv[])
 
 		if (g_dev == nullptr) {
 			PX4_WARN("couldn't allocate the ToneAlarm driver");
-			return 1;
+			return PX4_ERROR;
 		}
 
 		if (g_dev->init() != OK) {
 			delete g_dev;
 			PX4_WARN("ToneAlarm init failed");
-			return 1;
+			return PX4_ERROR;
 		}
 	}
 
@@ -823,25 +820,24 @@ tone_alarm_main(int argc, char *argv[])
 
 		if (!strcmp(argv1, "start")) {
 			ret = play_tune(TONE_STOP_TUNE);
-		}
 
-		else if (!strcmp(argv1, "stop")) {
+		} else if (!strcmp(argv1, "stop")) {
 			ret = play_tune(TONE_STOP_TUNE);
-		}
 
-		else if ((tune = strtol(argv1, nullptr, 10)) != 0) {
+		} else if ((tune = strtol(argv1, nullptr, 10)) != 0) {
 			ret = play_tune(tune);
 		}
 
+
 		/* If it is a file name then load and play it as a string */
-		else if (*argv1 == '/') {
+		if (*argv1 == '/') {
 			FILE *fd = fopen(argv1, "r");
 			int sz;
 			char *buffer;
 
 			if (fd == nullptr) {
 				PX4_WARN("couldn't open '%s'", argv1);
-				return 1;
+				return PX4_ERROR;
 			}
 
 			fseek(fd, 0, SEEK_END);
@@ -851,7 +847,7 @@ tone_alarm_main(int argc, char *argv[])
 
 			if (buffer == nullptr) {
 				PX4_WARN("not enough memory memory");
-				return 1;
+				return PX4_ERROR;
 			}
 
 			// FIXME - Make GCC happy
@@ -861,10 +857,9 @@ tone_alarm_main(int argc, char *argv[])
 			buffer[sz] = 0;
 			ret = play_string(buffer, true);
 			fclose(fd);
-		}
 
-		/* if it looks like a PLAY string... */
-		else if (argv1 && (strlen(argv1) > 2)) {
+		} else if (argv1 && (strlen(argv1) > 2)) {
+			/* if it looks like a PLAY string... */
 			if (*argv1 == 'M') {
 				ret = play_string(argv1, false);
 			}
@@ -879,7 +874,7 @@ tone_alarm_main(int argc, char *argv[])
 			}
 
 			PX4_WARN("unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
-			ret = 1;
+			ret = PX4_ERROR;
 		}
 	}
 

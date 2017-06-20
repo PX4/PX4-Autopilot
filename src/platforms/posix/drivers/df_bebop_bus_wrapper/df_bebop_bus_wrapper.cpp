@@ -197,7 +197,7 @@ int DfBebopBusWrapper::set_esc_speeds(const float speed_scaled[4])
 int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 {
 
-	battery_status_s battery_report;
+	battery_status_s battery_report = {};
 	const hrt_abstime timestamp = hrt_absolute_time();
 
 	// TODO Check if this is the right way for the Bebop

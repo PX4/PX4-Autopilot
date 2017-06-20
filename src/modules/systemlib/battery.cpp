@@ -41,6 +41,8 @@
 
 #include "battery.h"
 
+#include <mathlib/mathlib.h>
+
 Battery::Battery() :
 	SuperBlock(nullptr, "BAT"),
 	_param_v_empty(this, "V_EMPTY"),
@@ -51,35 +53,28 @@ Battery::Battery() :
 	_param_r_internal(this, "R_INTERNAL"),
 	_param_low_thr(this, "LOW_THR"),
 	_param_crit_thr(this, "CRIT_THR"),
-	_param_emergency_thr(this, "EMERGEN_THR"),
-	_voltage_filtered_v(-1.0f),
-	_discharged_mah(0.0f),
-	_remaining_voltage(1.0f),
-	_remaining_capacity(1.0f),
-	_remaining(1.0f),
-	_scale(1.0f),
-	_warning(battery_status_s::BATTERY_WARNING_NONE),
-	_last_timestamp(0)
+	_param_emergency_thr(this, "EMERGEN_THR")
 {
 	/* load initial params */
 	updateParams();
 }
 
-Battery::~Battery()
-{
-}
-
 void
 Battery::reset(battery_status_s *battery_status)
 {
-	memset(battery_status, 0, sizeof(*battery_status));
+	battery_status->timestamp = 0;
+	battery_status->voltage_v = 0.0f;
+	battery_status->voltage_filtered_v = 0.0f;
 	battery_status->current_a = -1.0f;
+	battery_status->current_filtered_a = -1.0f;
 	battery_status->remaining = 1.0f;
 	battery_status->scale = 1.0f;
 	battery_status->cell_count = _param_n_cells.get();
+	battery_status->connected = false;
+
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
-	battery_status->connected = false;
+
 }
 
 void
@@ -138,7 +133,6 @@ Battery::filterCurrent(float current_a)
 	}
 }
 
-
 void
 Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 {
@@ -181,8 +175,8 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	const float voltage_range = (_param_v_full.get() - _param_v_empty.get());
 
 	// remaining battery capacity based on voltage
-	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic))
-			       / (_param_n_cells.get() * voltage_range);
+	const float rvoltage = (voltage_v - (_param_n_cells.get() * bat_v_empty_dynamic)) /
+			       (_param_n_cells.get() * voltage_range);
 	const float rvoltage_filt = _remaining_voltage * 0.99f + rvoltage * 0.01f;
 
 	if (PX4_ISFINITE(rvoltage_filt)) {
@@ -198,17 +192,14 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle_norm
 	}
 
 	// limit to sane values
-	_remaining_voltage = (_remaining_voltage < 0.0f) ? 0.0f : _remaining_voltage;
-	_remaining_voltage = (_remaining_voltage > 1.0f) ? 1.0f : _remaining_voltage;
-
-	_remaining_capacity = (_remaining_capacity < 0.0f) ? 0.0f : _remaining_capacity;
-	_remaining_capacity = (_remaining_capacity > 1.0f) ? 1.0f : _remaining_capacity;
+	_remaining_voltage = math::constrain(_remaining_voltage, 0.0f, 1.0f);
+	_remaining_capacity = math::constrain(_remaining_capacity, 0.0f, 1.0f);
 
 	// choose which quantity we're using for final reporting
 	if (_param_capacity.get() > 0.0f) {
 		// if battery capacity is known, use discharged current for estimate,
 		// but don't show more than voltage estimate
-		_remaining = fminf(_remaining_voltage, _remaining_capacity);
+		_remaining = math::min(_remaining_voltage, _remaining_capacity);
 
 	} else {
 		// else use voltage
@@ -239,12 +230,14 @@ Battery::computeScale()
 	// reusing capacity calculation to get single cell voltage before drop
 	const float bat_v = _param_v_empty.get() + (voltage_range * _remaining_voltage);
 
-	_scale = _param_v_full.get() / bat_v;
+	const float scale = _param_v_full.get() / bat_v;
 
-	if (_scale > 1.3f) { // Allow at most 30% compensation
-		_scale = 1.3f;
+	if (PX4_ISFINITE(scale)) {
+		// Allow at most 30% compensation
+		// Shouldn't ever be more than the power at full battery
+		_scale = math::constrain(scale, 1.0f, 1.3f);
 
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.0f) { // Shouldn't ever be more than the power at full battery
+	} else {
 		_scale = 1.0f;
 	}
 }
