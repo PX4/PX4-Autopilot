@@ -70,7 +70,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
@@ -149,8 +148,6 @@ private:
 	uint32_t _balt_time_ms_last_used =
 		0;	///< time stamp of the last averaged barometric altitude measurement sent to the EKF (mSec)
 
-	float _acc_hor_filt = 0.0f; 	///< low-pass filtered horizontal acceleration (m/sec**2)
-
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
@@ -171,7 +168,6 @@ private:
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
 	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
@@ -342,7 +338,6 @@ Ekf2::Ekf2():
 	_publish_replay_mode(0),
 	_att_pub(nullptr),
 	_lpos_pub(nullptr),
-	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
 	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
@@ -850,116 +845,51 @@ void Ekf2::run()
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 
-			float gyro_bias[3] = {};
-			_ekf.get_gyro_bias(gyro_bias);
+			// Calculate wind-compensated velocity in body frame
+			Vector3f v_wind_comp(velocity);
+			matrix::Dcm<float> R_to_body(q.inversed());
+			float velNE_wind[2] = {};
+			_ekf.get_wind_velocity(velNE_wind);
+			v_wind_comp(0) -= velNE_wind[0];
+			v_wind_comp(1) -= velNE_wind[1];
+			_vel_body_wind = R_to_body * v_wind_comp; // TODO : move this elsewhere
+				
+			// use estimated velocity for airspeed estimate
+			// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
+			// if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
+			// 	// use measured airspeed
+			// 	if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
+			// 	    && airspeed.timestamp > 0) {
+			// 		ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
+			// 		ctrl_state.airspeed_valid = true;
 
-			const float gyro_rad[3] = {
-				sensors.gyro_rad[0] - gyro_bias[0],
-				sensors.gyro_rad[1] - gyro_bias[1],
-				sensors.gyro_rad[2] - gyro_bias[2],
-			};
+			// 	} else {
+			// 		// This airspeed mode requires a measurement which we no longer have, so wind relative speed
+			// 		// is used as a surrogate and the validity is set to false.
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = false;
 
-			{
-				// generate control state data
-				control_state_s ctrl_state = {};
-				ctrl_state.timestamp = now;
-				ctrl_state.roll_rate = gyro_rad[0];
-				ctrl_state.pitch_rate = gyro_rad[1];
-				ctrl_state.yaw_rate = gyro_rad[2];
-				ctrl_state.roll_rate_bias = gyro_bias[0];
-				ctrl_state.pitch_rate_bias = gyro_bias[1];
-				ctrl_state.yaw_rate_bias = gyro_bias[2];
+			// 	}
 
-				// Velocity in body frame
-				Vector3f v_n(velocity);
-				matrix::Dcm<float> R_to_body(q.inversed());
-				Vector3f v_b = R_to_body * v_n;
-				ctrl_state.x_vel = v_b(0);
-				ctrl_state.y_vel = v_b(1);
-				ctrl_state.z_vel = v_b(2);
+			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
+			// 	if (_ekf.local_position_is_valid()) {
+			// 		// This airspeed mode uses an estimate which is calculated from the wind relative speed
+			// 		// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
+			// 		// use that to set the validity of the estimated airspeed.
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = true;
 
-				// Calculate velocity relative to wind in body frame
-				float velNE_wind[2] = {};
-				_ekf.get_wind_velocity(velNE_wind);
-				v_n(0) -= velNE_wind[0];
-				v_n(1) -= velNE_wind[1];
-				_vel_body_wind = R_to_body * v_n;
+			// 	}
 
-				// Local Position NED
-				float position[3];
-				_ekf.get_position(position);
-				ctrl_state.x_pos = position[0];
-				ctrl_state.y_pos = position[1];
-				ctrl_state.z_pos = position[2];
+			// } else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
+			// 	// This airspeed mode has disabled airspeed use and controllers will handle this.
+			// 	// We still return wind relative speed as a surrogate and set the validity to zero.
+			// 	if (_ekf.local_position_is_valid()) {
+			// 		ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
+			// 		ctrl_state.airspeed_valid = false;
 
-				// Attitude quaternion
-				q.copyTo(ctrl_state.q);
-
-				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
-
-				// Acceleration data
-				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
-
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				ctrl_state.x_acc = acceleration(0) - accel_bias[0];
-				ctrl_state.y_acc = acceleration(1) - accel_bias[1];
-				ctrl_state.z_acc = acceleration(2) - accel_bias[2];
-
-				// compute lowpass filtered horizontal acceleration
-				acceleration = R_to_body.transpose() * acceleration;
-				_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
-						acceleration(1) * acceleration(1));
-				ctrl_state.horz_acc_mag = _acc_hor_filt;
-
-				ctrl_state.airspeed_valid = false;
-
-				// use estimated velocity for airspeed estimate
-				// TODO move this out of the estimators and put it into a dedicated air data consolidation algorithm
-				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
-					// use measured airspeed
-					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
-					    && airspeed.timestamp > 0) {
-						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-						ctrl_state.airspeed_valid = true;
-
-					} else {
-						// This airspeed mode requires a measurement which we no longer have, so wind relative speed
-						// is used as a surrogate and the validity is set to false.
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = false;
-
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
-					if (_ekf.local_position_is_valid()) {
-						// This airspeed mode uses an estimate which is calculated from the wind relative speed
-						// TODO modify the ecl EKF to provide a boolean validity with the wind speed estimate and
-						// use that to set the validity of the estimated airspeed.
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = true;
-
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-					// This airspeed mode has disabled airspeed use and controllers will handle this.
-					// We still return wind relative speed as a surrogate and set the validity to zero.
-					if (_ekf.local_position_is_valid()) {
-						ctrl_state.airspeed = sqrtf(v_n(0) * v_n(0) + v_n(1) * v_n(1) + v_n(2) * v_n(2));
-						ctrl_state.airspeed_valid = false;
-
-					}
-				}
-
-				// publish control state data
-				if (_control_state_pub == nullptr) {
-					_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-				} else {
-					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-				}
-			}
-
+			// 	}
+			// }
 
 			{
 				// generate vehicle attitude quaternion data
@@ -967,10 +897,18 @@ void Ekf2::run()
 				att.timestamp = now;
 
 				q.copyTo(att.q);
+				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-				att.rollspeed = gyro_rad[0];
-				att.pitchspeed = gyro_rad[1];
-				att.yawspeed = gyro_rad[2];
+				float gyro_bias[3] = {};
+				_ekf.get_gyro_bias(gyro_bias);
+
+				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
+				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
+				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+
+				att.roll_rate_bias = gyro_bias[0];
+				att.pitch_rate_bias = gyro_bias[1];
+				att.yaw_rate_bias = gyro_bias[2];
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {

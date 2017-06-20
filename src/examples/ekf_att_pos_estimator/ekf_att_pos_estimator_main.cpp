@@ -141,14 +141,12 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	/* publications */
 	_att_pub(nullptr),
-	_ctrl_state_pub(nullptr),
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_wind_pub(nullptr),
 
 	_att{},
-	_ctrl_state{},
 	_gyro{},
 	_accel{},
 	_mag{},
@@ -714,9 +712,6 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Publish attitude estimations
 					publishAttitude();
 
-					// publish control state
-					publishControlState();
-
 					// Publish Local Position estimations
 					publishLocalPosition();
 
@@ -829,6 +824,11 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
 	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
+	/* Gyro bias estimates */
+	_att.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
+	_att.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
+	_att.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
+
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
 		/* publish the attitude */
@@ -837,100 +837,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	} else {
 		/* advertise and publish */
 		_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
-	}
-}
-
-void AttitudePositionEstimatorEKF::publishControlState()
-{
-	/* Accelerations in Body Frame */
-	_ctrl_state.x_acc = _ekf->accel.x;
-	_ctrl_state.y_acc = _ekf->accel.y;
-	_ctrl_state.z_acc = _ekf->accel.z - _ekf->states[13];
-
-	_ctrl_state.horz_acc_mag = _ekf->getAccNavMagHorizontal();
-
-	/* Velocity in Body Frame */
-	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
-	Vector3f v_n_var(_ekf->P[4][4], _ekf->P[5][5], _ekf->P[6][6]);
-	Vector3f v_b = _ekf->Tnb * v_n;
-	Vector3f v_b_var = _ekf->Tnb * v_n_var;
-
-	_ctrl_state.x_vel = v_b.x;
-	_ctrl_state.y_vel = v_b.y;
-	_ctrl_state.z_vel = v_b.z;
-
-	_ctrl_state.vel_variance[0] = v_b_var.x;
-	_ctrl_state.vel_variance[1] = v_b_var.y;
-	_ctrl_state.vel_variance[2] = v_b_var.z;
-
-	/* Local Position */
-	_ctrl_state.x_pos = _ekf->states[7];
-	_ctrl_state.y_pos = _ekf->states[8];
-
-	// XXX need to announce change of Z reference somehow elegantly
-	_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
-
-	_ctrl_state.pos_variance[0] = _ekf->P[7][7];
-	_ctrl_state.pos_variance[1] = _ekf->P[8][8];
-	_ctrl_state.pos_variance[2] = _ekf->P[9][9];
-
-	/* Attitude */
-	_ctrl_state.timestamp = _last_sensor_timestamp;
-	_ctrl_state.q[0] = _ekf->states[0];
-	_ctrl_state.q[1] = _ekf->states[1];
-	_ctrl_state.q[2] = _ekf->states[2];
-	_ctrl_state.q[3] = _ekf->states[3];
-
-	// use estimated velocity for airspeed estimate
-	if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
-		// use measured airspeed
-		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-		    && _airspeed.timestamp > 0) {
-			_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-			_ctrl_state.airspeed_valid = true;
-		}
-
-	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
-		if (_local_pos.v_xy_valid && _local_pos.v_z_valid) {
-			_ctrl_state.airspeed = sqrtf(_ekf->states[4] * _ekf->states[4]
-				+ _ekf->states[5] * _ekf->states[5] + _ekf->states[6] * _ekf->states[6]);
-			_ctrl_state.airspeed_valid = true;
-		}
-
-	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
-		// do nothing, airspeed has been declared as non-valid above, controllers
-		// will handle this assuming always trim airspeed
-	}
-
-	/* Attitude Rates */
-	_ctrl_state.roll_rate = _LP_att_P.apply(_ekf->dAngIMU.x / _ekf->dtIMU) - _ekf->states[10] / _ekf->dtIMUfilt;
-	_ctrl_state.pitch_rate = _LP_att_Q.apply(_ekf->dAngIMU.y / _ekf->dtIMU) - _ekf->states[11] / _ekf->dtIMUfilt;
-	_ctrl_state.yaw_rate = _LP_att_R.apply(_ekf->dAngIMU.z / _ekf->dtIMU) - _ekf->states[12] / _ekf->dtIMUfilt;
-
-	/* Gyro bias estimates */
-	_ctrl_state.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
-	_ctrl_state.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
-	_ctrl_state.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
-
-	/* Guard from bad data */
-	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.y_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.z_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.x_pos) ||
-	    !PX4_ISFINITE(_ctrl_state.y_pos) ||
-	    !PX4_ISFINITE(_ctrl_state.z_pos)) {
-		// bad data, abort publication
-		return;
-	}
-
-	/* lazily publish the control state only once available */
-	if (_ctrl_state_pub != nullptr) {
-		/* publish the control state */
-		orb_publish(ORB_ID(control_state), _ctrl_state_pub, &_ctrl_state);
-
-	} else {
-		/* advertise and publish */
-		_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &_ctrl_state);
 	}
 }
 

@@ -49,7 +49,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/actuator_controls.h>
@@ -155,14 +154,12 @@ private:
     int     _armedSub;
 
     orb_advert_t    _att_pub;           /**< vehicle attitude */
-    orb_advert_t    _ctrl_state_pub;        /**< control state */
     orb_advert_t    _global_pos_pub;        /**< global position */
     orb_advert_t    _local_pos_pub;         /**< position in local frame */
     orb_advert_t    _estimator_status_pub;      /**< status of the estimator */
     orb_advert_t    _wind_pub;          /**< wind estimate */
 
     struct vehicle_attitude_s           _att;           /**< vehicle attitude */
-    struct control_state_s              _ctrl_state;    /**< control state */
     struct gyro_report                  _gyro;
     struct accel_report                 _accel;
     struct mag_report                   _mag;
@@ -322,12 +319,6 @@ private:
     *   Publish the euler and quaternions for attitude estimation
     **/
     void publishAttitude();
-
-    /**
-    * @brief
-    *   Publish the system state for control modules
-    **/
-    void publishControlState();
 
     /**
     * @brief
