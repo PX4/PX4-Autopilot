@@ -51,7 +51,7 @@ ver all
 #
 set MODE autostart
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set TUNE_ERR "ML<<CP4CP4CP4CP4CP4"
 set LOG_FILE /fs/microsd/bootlog.txt
 
 #
@@ -69,9 +69,6 @@ then
 			hardfault_log reset
 			tone_alarm stop
 		fi
-	else
-		# Start playing the startup tune
-		tone_alarm start
 	fi
 else
 	tone_alarm MBAGP
@@ -110,6 +107,12 @@ then
 	# Start the ORB (first app to start)
 	#
 	uorb start
+
+	# Start tone driver
+	tone_alarm start
+
+	# play startup tone
+	tune_control play -t 1
 
 	#
 	# Load parameters
@@ -349,7 +352,7 @@ then
 					fi
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
-					tone_alarm ${TUNE_ERR}
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		fi
@@ -358,7 +361,7 @@ then
 		if [ $IO_PRESENT == no ]
 		then
 			echo "PX4IO not found" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -m ${TUNE_ERR}
 		fi
 	fi
 
@@ -476,7 +479,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "PX4IO start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tune_control play -m  ${TUNE_ERR}
 			fi
 		fi
 
@@ -486,7 +489,7 @@ then
 			then
 			else
 				echo "FMU start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 		fi
 
@@ -506,7 +509,7 @@ then
 			then
 			else
 				echo "MK start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 			unset MKBLCTRL_ARG
 		fi
@@ -517,7 +520,7 @@ then
 			if pwm_out_sim mode_pwm16
 			then
 			else
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 		fi
 
@@ -533,7 +536,7 @@ then
 					sh /etc/init.d/rc.io
 				else
 					echo "PX4IO start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		else
@@ -543,7 +546,7 @@ then
 				then
 				else
 					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		fi
