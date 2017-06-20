@@ -797,14 +797,6 @@ void Ekf2::task_main()
 				ctrl_state.y_vel = v_b(1);
 				ctrl_state.z_vel = v_b(2);
 
-
-				// Local Position NED
-				float position[3];
-				_ekf.get_position(position);
-				ctrl_state.x_pos = position[0];
-				ctrl_state.y_pos = position[1];
-				ctrl_state.z_pos = position[2];
-
 				// Acceleration data
 				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
 

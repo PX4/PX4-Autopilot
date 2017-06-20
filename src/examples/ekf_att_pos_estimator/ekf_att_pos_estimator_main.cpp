@@ -869,11 +869,11 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	//_ctrl_state.vel_variance[2] = v_b_var.z;
 
 	/* Local Position */
-	_ctrl_state.x_pos = _ekf->states[7];
-	_ctrl_state.y_pos = _ekf->states[8];
+	//_ctrl_state.x_pos = _ekf->states[7];
+	//_ctrl_state.y_pos = _ekf->states[8];
 
 	// XXX need to announce change of Z reference somehow elegantly
-	_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
+	//_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
 
 	//_ctrl_state.pos_variance[0] = _ekf->P[7][7];
 	//_ctrl_state.pos_variance[1] = _ekf->P[8][8];
@@ -906,10 +906,7 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	/* Guard from bad data */
 	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
 	    !PX4_ISFINITE(_ctrl_state.y_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.z_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.x_pos) ||
-	    !PX4_ISFINITE(_ctrl_state.y_pos) ||
-	    !PX4_ISFINITE(_ctrl_state.z_pos)) {
+	    !PX4_ISFINITE(_ctrl_state.z_vel)) {
 		// bad data, abort publication
 		return;
 	}
