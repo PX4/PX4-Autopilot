@@ -136,7 +136,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
-	_control_state_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
@@ -2281,66 +2280,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 		}
-	}
-
-	/* control state */
-	control_state_s ctrl_state = {};
-	matrix::Quatf q(hil_state.attitude_quaternion);
-	matrix::Dcmf R_to_body(q.inversed());
-
-	//Time
-	ctrl_state.timestamp = hrt_absolute_time();
-
-	//Roll Rates:
-	//ctrl_state: body angular rate (rad/s, x forward/y right/z down)
-	//hil_state : body frame angular speed (rad/s)
-	ctrl_state.roll_rate = hil_state.rollspeed;
-	ctrl_state.pitch_rate = hil_state.pitchspeed;
-	ctrl_state.yaw_rate = hil_state.yawspeed;
-
-	// Local Position NED:
-	//ctrl_state: position in local earth frame
-	//hil_state : Latitude/Longitude expressed as * 1E7
-	float x = 0.0f;
-	float y = 0.0f;
-	double lat = hil_state.lat * 1e-7;
-	double lon = hil_state.lon * 1e-7;
-	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
-	ctrl_state.x_pos = x;
-	ctrl_state.y_pos = y;
-	ctrl_state.z_pos = hil_state.alt / 1000.0f;
-
-	// Attitude quaternion
-	q.copyTo(ctrl_state.q);
-
-	// Velocity
-	//ctrl_state: velocity in body frame (x forward/y right/z down)
-	//hil_state : Ground Speed in NED expressed as m/s * 100
-	matrix::Vector3f v_n(hil_state.vx, hil_state.vy, hil_state.vz);
-	matrix::Vector3f v_b = R_to_body * v_n;
-	ctrl_state.x_vel = v_b(0) / 100.0f;
-	ctrl_state.y_vel = v_b(1) / 100.0f;
-	ctrl_state.z_vel = v_b(2) / 100.0f;
-
-	// Acceleration
-	//ctrl_state: acceleration in body frame
-	//hil_state : acceleration in body frame
-	ctrl_state.x_acc = hil_state.xacc;
-	ctrl_state.y_acc = hil_state.yacc;
-	ctrl_state.z_acc = hil_state.zacc;
-
-	static float _acc_hor_filt = 0;
-	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
-			ctrl_state.y_acc);
-	ctrl_state.horz_acc_mag = _acc_hor_filt;
-	ctrl_state.airspeed_valid = false;
-
-	// publish control state data
-	if (_control_state_pub == nullptr) {
-		_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-	} else {
-		orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 	}
 }
 

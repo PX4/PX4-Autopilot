@@ -56,7 +56,6 @@
 #include <px4_vehicle_rates_setpoint.h>
 #include <px4_mc_virtual_rates_setpoint.h>
 #include <px4_vehicle_attitude.h>
-#include <px4_control_state.h>
 #include <px4_vehicle_control_mode.h>
 #include <px4_actuator_armed.h>
 #include <px4_parameter_update.h>
@@ -81,7 +80,6 @@
 #include <platforms/nuttx/px4_messages/px4_actuator_controls.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude.h>
-#include <platforms/nuttx/px4_messages/px4_control_state.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_control_mode.h>
 #include <platforms/nuttx/px4_messages/px4_actuator_armed.h>
 #include <platforms/nuttx/px4_messages/px4_parameter_update.h>
@@ -111,7 +109,6 @@
 #include <platforms/posix/px4_messages/px4_actuator_controls.h>
 #include <platforms/posix/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/posix/px4_messages/px4_vehicle_attitude.h>
-#include <platforms/posix/px4_messages/px4_control_state.h>
 #include <platforms/posix/px4_messages/px4_vehicle_control_mode.h>
 #include <platforms/posix/px4_messages/px4_actuator_armed.h>
 #include <platforms/posix/px4_messages/px4_parameter_update.h>
@@ -137,7 +134,6 @@
 #include <platforms/qurt/px4_messages/px4_actuator_controls.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_rates_setpoint.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_attitude.h>
-#include <platforms/qurt/px4_messages/px4_control_state.h>
 #include <platforms/qurt/px4_messages/px4_vehicle_control_mode.h>
 #include <platforms/qurt/px4_messages/px4_actuator_armed.h>
 #include <platforms/qurt/px4_messages/px4_parameter_update.h>

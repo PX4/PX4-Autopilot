@@ -44,7 +44,6 @@ set(msg_file_names
 	camera_capture.msg
 	collision_report.msg
 	commander_state.msg
-	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
 	differential_pressure.msg
