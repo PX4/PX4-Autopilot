@@ -241,7 +241,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		int32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations that are applied at the driver level*/
@@ -324,7 +324,7 @@ void VotedSensorsUpdate::parameters_update()
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		int32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */

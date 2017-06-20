@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-# for generated files
-include_directories(${PX4_BINARY_DIR}/src/modules/param)
-
 set(SRCS
 	airspeed.c
 	battery.cpp
@@ -59,10 +56,6 @@ if(${OS} STREQUAL "nuttx")
 		printload.c
 		up_cxxinitialize.c
 		)
-elseif ("${CONFIG_SHMEM}" STREQUAL "1")
-	list(APPEND SRCS
-		print_load_posix.c
-		)
 else()
 	list(APPEND SRCS
 		print_load_posix.c
@@ -82,6 +75,5 @@ px4_add_module(
 	SRCS ${SRCS}
 	DEPENDS
 		platforms__common
-		modules__param
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

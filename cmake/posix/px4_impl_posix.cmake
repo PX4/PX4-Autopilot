@@ -266,8 +266,6 @@ function(px4_os_add_flags)
 
 			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
 			)
-
-			)
 	elseif (${BOARD} STREQUAL "rpi")
 		set(RPI_COMPILE_FLAGS
 			-mcpu=cortex-a53

@@ -571,7 +571,6 @@ function(px4_os_add_flags)
 	set(added_exe_linker_flags
 		-Wl,--warn-common
 		-Wl,--gc-sections
-		#,--print-gc-sections
 		)
 
 	set(cpu_flags)
