@@ -372,6 +372,7 @@ function(px4_add_common_flags)
 		-ffunction-sections
 		-fdata-sections
 		-fno-math-errno
+		-fmerge-all-constants
 		${PIC_FLAG}
 		)
 
