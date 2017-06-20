@@ -371,6 +371,7 @@ function(px4_add_common_flags)
 		-funsafe-math-optimizations
 		-ffunction-sections
 		-fdata-sections
+		-fno-math-errno
 		${PIC_FLAG}
 		)
 
