@@ -1151,10 +1151,6 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	vision_position.vy = pos.vy;
 	vision_position.vz = pos.vz;
 
-	vision_position.ax = pos.ax;
-	vision_position.ay = pos.ay;
-	vision_position.az = pos.az;
-
 	// Low risk change for now. TODO : full covariance matrix
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
 	vision_position.epv = sqrtf(pos.covariance[17]);
