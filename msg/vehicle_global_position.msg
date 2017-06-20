@@ -11,7 +11,7 @@ float32 alt			# Altitude AMSL, (meters)
 float64[2] delta_lat_lon # Reset delta for horizontal position coordinates
 float32 delta_alt 	# Reset delta for altitude
 uint8 lat_lon_reset_counter	# Counter for reset events on horizontal position coordinates
-uint8 alt_reset_counter 		# Counter for reset events on altitude
+uint8 alt_reset_counter 	# Counter for reset events on altitude
 float32 vel_n			# North velocity in NED earth-fixed frame, (metres/sec)
 float32 vel_e			# East velocity in NED earth-fixed frame, (metres/sec)
 float32 vel_d			# Down velocity in NED earth-fixed frame, (metres/sec)
