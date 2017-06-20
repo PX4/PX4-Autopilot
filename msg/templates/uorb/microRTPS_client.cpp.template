@@ -64,9 +64,12 @@ struct options {
     .baudrate = BAUDRATE
 };
 
+static int _rtps_task = -1;
+static bool _should_exit_task = false;
+
 static void usage(const char *name)
 {
-    PX4_INFO("usage: %s [options]\n\n"
+    PX4_INFO("usage: %s start|stop [options]\n\n"
              "  -d <device>             UART device. Default /dev/ttyACM0\n"
              "  -u <update_time_ms>     Time for uORB subscribed topics update. Default 0\n"
              "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
@@ -99,7 +102,7 @@ static int parse_options(int argc, char *argv[])
             _options.baudrate = strtoul(myoptarg, nullptr, 10);
             break;
         default:
-            usage(argv[0]);
+            usage(argv[1]);
             return -1;
         }
     }
@@ -107,10 +110,12 @@ static int parse_options(int argc, char *argv[])
     return 0;
 }
 
-int micrortps_client_main(int argc, char *argv[])
+static int micrortps_start(int argc, char *argv[])
 {
-    if (parse_options(argc, argv) < 0)
+    if (parse_options(argc, argv) < 0) {
+        _rtps_task = -1;
         return -1;
+    }
 
     printf("device: %s update: %dms loops: %d usleep: %d baudrate: %d\n", _options.device, _options.update_time, _options.loops, _options.usleep, _options.baudrate);
     usleep(2000000);
@@ -120,6 +125,7 @@ int micrortps_client_main(int argc, char *argv[])
     if ((uart_fd = m_uartNode.init_uart(_options.device, _options.baudrate)) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
+        _rtps_task = -1;
         return -1;
     }
 
@@ -176,7 +182,8 @@ int micrortps_client_main(int argc, char *argv[])
     struct timespec begin;
     clock_gettime(0, &begin);
     int i = 0;
-    while (true)
+    _should_exit_task = false;
+    while (!_should_exit_task)
     {
 @[if send_topics]@
         bool updated;
@@ -237,5 +244,52 @@ int micrortps_client_main(int argc, char *argv[])
 
     PX4_INFO("exiting");
     fflush(stdout);
+
+    _rtps_task = -1;
+
     return 0;
+}
+
+int micrortps_client_main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        usage(argv[0]);
+        return -1;
+    }
+
+    if (!strcmp(argv[1], "start")) {
+        if (_rtps_task != -1) {
+            PX4_INFO("Already running");
+            return -1;
+        }
+
+        _rtps_task = px4_task_spawn_cmd("rtps",
+                SCHED_DEFAULT,
+                SCHED_PRIORITY_DEFAULT,
+                4096,
+                (px4_main_t) micrortps_start,
+                (char *const *)argv);
+
+        if (_rtps_task < 0) {
+            PX4_WARN("Could not start task");
+            _rtps_task = -1;
+            return -1;
+        }
+
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "stop")) {
+        if (_rtps_task == -1) {
+            PX4_INFO("Not running");
+            return -1;
+        }
+
+        _should_exit_task = true;
+        return 0;
+    }
+
+    usage(argv[0]);
+
+    return -1;
 }
