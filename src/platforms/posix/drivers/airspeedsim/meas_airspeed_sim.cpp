@@ -194,18 +194,11 @@ MEASAirspeedSim::collect()
 
 	struct differential_pressure_s report;
 
-	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
-	}
-
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw);
-
+	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
@@ -279,18 +272,6 @@ MEASAirspeedSim::cycle()
 		   (worker_t)&AirspeedSim::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
-}
-
-/**
-   correct for 5V rail voltage if the system_power ORB topic is
-   available
-
-   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
-   offset versus voltage for 3 sensors
- */
-void
-MEASAirspeedSim::voltage_correction(float &diff_press_pa, float &temperature)
-{
 }
 
 /**

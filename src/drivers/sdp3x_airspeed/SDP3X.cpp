@@ -134,25 +134,15 @@ SDP3X::collect()
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	// the raw value still should be compensated for the known offset
-	diff_press_pa_raw -= _diff_pres_offset;
-
 	differential_pressure_s report;
-
-	// track maximum differential pressure measured (so we can work out top speed).
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
-	}
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature_c;
-	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
-	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
+	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
+	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		// publish it
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 

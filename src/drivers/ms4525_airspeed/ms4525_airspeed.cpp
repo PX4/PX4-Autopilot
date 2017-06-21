@@ -234,9 +234,6 @@ MEASAirspeed::collect()
 	// correct for 5V rail voltage if possible
 	voltage_correction(diff_press_pa_raw, temperature);
 
-	// the raw value still should be compensated for the known offset
-	diff_press_pa_raw -= _diff_pres_offset;
-
 	/*
 	  With the above calculation the MS4525 sensor will produce a
 	  positive number when the top port is used as a dynamic port
@@ -245,18 +242,11 @@ MEASAirspeed::collect()
 
 	struct differential_pressure_s report;
 
-	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
-	}
-
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw);
-
-	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
+	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
+	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
