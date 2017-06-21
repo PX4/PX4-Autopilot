@@ -147,6 +147,11 @@ set(config_module_list
 	examples/segway
 
 	#
+	# Hippocampus (AUV)
+	#
+	examples/hippocampus_example_app
+
+	#
 	# Demo apps
 	#
 
