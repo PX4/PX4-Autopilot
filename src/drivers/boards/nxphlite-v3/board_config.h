@@ -228,11 +228,12 @@ __BEGIN_DECLS
 #define GPIO_SPI2_EXT                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN15)
 
 /* SPI device reset signals
- * In Inactive state
+ * In Active state
  */
 
-#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN12)
-#define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN25)
+/* Init in reset */
+#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN12)
+#define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE   | PIN_PORTA | PIN25)
 
 /* Sensor interrupts */
 
