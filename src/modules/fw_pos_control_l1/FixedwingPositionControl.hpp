@@ -84,7 +84,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
@@ -151,7 +151,7 @@ private:
 	bool		_task_should_exit{false};		///< if true, sensor task should exit */
 	bool		_task_running{false};			///< if true, task is running in its mainloop */
 
-	int		_global_pos_sub{-1};
+	int		_local_pos_sub{-1};
 	int		_pos_sp_triplet_sub{-1};
 	int		_control_mode_sub{-1};			///< control mode subscription */
 	int		_vehicle_attitude_sub{-1};		///< vehicle attitude subscription */
@@ -174,7 +174,7 @@ private:
 	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
 	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
-	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
+	vehicle_local_position_s	_local_pos {};			///< local vehicle position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
@@ -410,7 +410,7 @@ private:
 	/**
 	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
 	 */
-	float		get_terrain_altitude_takeoff(float takeoff_alt, const vehicle_global_position_s &global_pos);
+	float		get_terrain_altitude_takeoff(float takeoff_alt);
 
 	/**
 	 * Check if we are in a takeoff situation
