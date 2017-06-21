@@ -358,7 +358,7 @@ ADC::update_system_power(void)
 	}
 
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V4
 	system_power_s system_power = {};
 	system_power.timestamp = hrt_absolute_time();
 
@@ -379,15 +379,9 @@ ADC::update_system_power(void)
 	system_power.brick_valid   = stm32_gpioread(GPIO_VDD_BRICK_VALID);
 	system_power.servo_valid   = 1;
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
 	// OC pins are not supported
 	system_power.periph_5V_OC  = 0;
 	system_power.hipower_5V_OC = 0;
-#else //this is for V4PRO
-	// OC pins are active low
-	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
-	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);	
-#endif
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {
@@ -397,7 +391,42 @@ ADC::update_system_power(void)
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V4 // CONFIG_ARCH_BOARD_PX4FMU_V4PRO
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V4
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
+	system_power_s system_power = {};
+	system_power.timestamp = hrt_absolute_time();
+
+	system_power.voltage5V_v = 0;
+
+	for (unsigned i = 0; i < _channel_count; i++) {
+		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
+			// it is 2:1 scaled
+			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
+		}
+	}
+
+	// these are not ADC related, but it is convenient to
+	// publish these to the same topic
+	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
+
+	// note that the valid pins are active low
+        //Pixhawk Pro cannot be powered from servo rail, it has 2nd power brick instead
+        //Servo rail voltage can still be measured
+	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_BRICK2_VALID);
+
+	// OC pins are active low
+	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
+	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+
+	/* lazily publish */
+	if (_to_system_power != nullptr) {
+		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
+
+	} else {
+		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
+	}
+#endif //CONFIG_ARCH_BOARD_PX4FMU_V4PRO
 }
 
 uint16_t
