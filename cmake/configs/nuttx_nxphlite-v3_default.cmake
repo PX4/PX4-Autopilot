@@ -18,6 +18,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards/nxphlite-v3
 	drivers/rgbled
+	drivers/fxos8700cq
 	drivers/mpu6000
 	drivers/mpu9250
 	drivers/hmc5883
