@@ -578,7 +578,7 @@ PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 PARAM_DEFINE_FLOAT(EKF2_RNG_NOISE, 0.1f);
 
 /**
- * Range finder range depednat noise scaler.
+ * Range finder range dependant noise scaler.
  *
  * Specifies the increase in range finder noise with range.
  *
