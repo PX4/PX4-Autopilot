@@ -429,10 +429,18 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
 		/* need local position */
 		if (status_flags->condition_local_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
+	case commander_state_s::MAIN_STATE_AUTO_LAND:
+
+		/* need height estimation */
+		if (status_flags->condition_local_altitude_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
