@@ -629,7 +629,6 @@ struct log_DPRS_s {
 	uint64_t error_count;
 	float differential_pressure_raw_pa;
 	float differential_pressure_filtered_pa;
-	float max_differential_pressure_pa;
 	float temperature;
 };
 

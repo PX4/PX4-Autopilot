@@ -75,7 +75,6 @@ AirspeedSim::AirspeedSim(int bus, int address, unsigned conversion_interval, con
 	VDev("AIRSPEEDSIM", path),
 	_reports(nullptr),
 	_retries(0),
-	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_last_published_sensor_ok(true), /* initialize differently to force publication */
 	_measure_ticks(0),

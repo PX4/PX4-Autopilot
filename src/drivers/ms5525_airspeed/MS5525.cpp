@@ -244,26 +244,17 @@ MS5525::collect()
 	const float diff_press_PSI = P * 0.0001f;
 
 	// 1 PSI = 6894.76 Pascals
-	const float PSI_to_Pa = 6894.757f;
-	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
+	static constexpr float PSI_to_Pa = 6894.757f;
+	const float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
 	const float temperature_c = TEMP * 0.01f;
-
-	// the raw value still should be compensated for the known offset
-	diff_press_pa_raw -= _diff_pres_offset;
-
-	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa_raw;
-	}
 
 	differential_pressure_s diff_pressure = {
 		.timestamp = hrt_absolute_time(),
 		.error_count = perf_event_count(_comms_errors),
-		.differential_pressure_raw_pa = diff_press_pa_raw,
-		.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw),
-		.max_differential_pressure_pa = _max_differential_pressure_pa,
-		.temperature = temperature_c
+		.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset,
+		.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset,
+		.temperature = temperature_c,
 	};
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {

@@ -2040,7 +2040,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_DPRS.error_count = buf.diff_pres.error_count;
 				log_msg.body.log_DPRS.differential_pressure_raw_pa = buf.diff_pres.differential_pressure_raw_pa;
 				log_msg.body.log_DPRS.differential_pressure_filtered_pa = buf.diff_pres.differential_pressure_filtered_pa;
-				log_msg.body.log_DPRS.max_differential_pressure_pa = buf.diff_pres.max_differential_pressure_pa;
 				log_msg.body.log_DPRS.temperature = buf.diff_pres.temperature;
 				LOGBUFFER_WRITE_AND_COUNT(DPRS);
 			}

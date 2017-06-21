@@ -171,18 +171,12 @@ ETSAirspeed::collect()
 	// The raw value still should be compensated for the known offset
 	diff_pres_pa_raw -= _diff_pres_offset;
 
-	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_pres_pa_raw > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_pres_pa_raw;
-	}
-
 	report.error_count = perf_event_count(_comms_errors);
 
 	// XXX we may want to smooth out the readings to remove noise.
 	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
 	report.differential_pressure_raw_pa = diff_pres_pa_raw;
 	report.temperature = -1000.0f;
-	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		/* publish it */
