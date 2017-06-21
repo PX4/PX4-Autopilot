@@ -82,6 +82,25 @@ static const uint32_t spi2selects_gpio[] = PX4_EXTERNAL_BUS_CS_GPIO;
 
 __EXPORT void board_spi_reset(int ms)
 {
+	/* First float the A_MISO line tied to SA0 */
+
+	kinetis_pinconfig(PX4_MK_GPIO(PIN_SPI1_SIN, PIN_MODE_ANALOG));
+
+	/* Power Down and up */
+	kinetis_gpiowrite(GPIO_SENSOR_P_EN, true);
+	up_mdelay(1);
+	kinetis_gpiowrite(GPIO_SENSOR_P_EN, false);
+	up_mdelay(1);
+
+	/* Set Rests Active  */
+
+	kinetis_gpiowrite(GPIO_GM_nRST, false);
+	kinetis_gpiowrite(GPIO_A_RST, true);
+	up_mdelay(ms);
+	kinetis_gpiowrite(GPIO_A_RST, false);
+	kinetis_gpiowrite(GPIO_GM_nRST, true);
+
+	kinetis_pinconfig(PIN_SPI1_SIN);
 
 }
 
@@ -95,9 +114,8 @@ __EXPORT void board_spi_reset(int ms)
 
 void nxphlite_spidev_initialize(void)
 {
+	board_spi_reset(10);
 
-	kinetis_pinconfig(GPIO_GM_nRST);
-	kinetis_pinconfig(GPIO_A_RST);
 	kinetis_pinconfig(GPIO_EXTI_BARO_INT1);
 	kinetis_pinconfig(GPIO_P_INT);
 
