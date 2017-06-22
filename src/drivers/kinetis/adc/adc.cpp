@@ -72,7 +72,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/adc_report.h>
 
-#if 1|defined(ADC_CHANNELS)
+#if defined(ADC_CHANNELS)
 
 typedef uint32_t 	adc_chan_t;
 #define ADC_TOTAL_CHANNELS 		32
@@ -110,6 +110,8 @@ typedef uint32_t 	adc_chan_t;
 #define rCLM2(adc)  REG(adc, KINETIS_ADC_CLM2_OFFSET) /* ADC minus-side general calibration value register */
 #define rCLM1(adc)  REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
 #define rCLM0(adc)  REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
+
+bool g_board_usb_connected = false;
 
 class ADC : public device::CDev
 {
@@ -370,13 +372,25 @@ ADC::update_system_power(hrt_abstime now)
 
 	system_power.voltage5V_v = 0;
 
-#if defined(ADC_5V_RAIL_SENSE)
+#if defined(ADC_5V_RAIL_SENSE) || defined(BOARD_ADC_USB_CONNECTED)
 
 	for (unsigned i = 0; i < _channel_count; i++) {
+#if defined(ADC_5V_RAIL_SENSE)
+
 		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
 		}
+
+#endif
+#if defined(BOARD_ADC_USB_CONNECTED)
+
+		if (_samples[i].am_channel == BOARD_ADC_USB_CONNECTED) {
+			// > that 50% assum connected
+			system_power.usb_connected = _samples[i].am_data > (4096 / 2);
+		}
+
+#endif
 	}
 
 #endif
@@ -387,7 +401,7 @@ ADC::update_system_power(hrt_abstime now)
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
 
-	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
+	g_board_usb_connected = system_power.usb_connected;
 
 	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
@@ -459,7 +473,7 @@ test(void)
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
-		adc_msg_s data[12];
+		adc_msg_s data[ADC_TOTAL_CHANNELS];
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0) {
