@@ -115,6 +115,7 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+extern bool g_board_usb_connected;
 __END_DECLS
 
 /****************************************************************************
@@ -139,7 +140,7 @@ __END_DECLS
 int board_read_VBUS_state(void)
 {
 	// read  *         36   ADC0_SE21  USB_VBUS_VALID
-	return 0;
+	return g_board_usb_connected ? 0 : 1;
 }
 
 /************************************************************************************
