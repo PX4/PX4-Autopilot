@@ -416,7 +416,7 @@ __BEGIN_DECLS
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
-#define BOARD_ADC_USB_CONNECTED board_read_VBUS_state()
+#define BOARD_ADC_USB_CONNECTED ADC_USB_VBUS_VALID /* VBUS valid is read on an ADC pin */
 #define BOARD_ADC_BRICK_VALID   (1)
 #define BOARD_ADC_SERVO_VALID   (1)
 #define BOARD_ADC_PERIPH_5V_OC  (0)
