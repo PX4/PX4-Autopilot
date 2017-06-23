@@ -746,6 +746,25 @@ void Ekf::controlHeightFusion()
 	if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && !_rng_hgt_faulty) {
 		setControlRangeHeight();
 		_fuse_height = _range_data_ready;
+
+		// we have just switched to using range finder, calculate height sensor offset such that current
+		// measurment matches our current height estimate
+		if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+			if (_terrain_initialised) {
+				_hgt_sensor_offset = _terrain_vpos;
+			} else {
+				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+			}
+		}
+	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && _baro_data_ready && !_baro_hgt_faulty) {
+		setControlBaroHeight();
+		_fuse_height = true;
+
+		// we have just switched to using baro height, we don't need to set a height sensor offset
+		// since we track a separate _baro_hgt_offset
+		if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+			_hgt_sensor_offset = 0.0f;
+		}
 	}
 
 	// Determine if GPS should be used as the height source
