@@ -41,5 +41,4 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-target_link_libraries(examples__micrortps_client lib__micro-CDR)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

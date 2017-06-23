@@ -4,6 +4,13 @@
 # on the Linux side of the Snapdragon.
 include(configs/posix_sdflight_default)
 
+list(APPEND config_module_list
+	lib/micro-CDR
+
+	# micro-RTPS
+	#examples/micrortps_client_udp
+)
+
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/cmake_hexagon/toolchain/Toolchain-arm-linux-gnueabihf.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")

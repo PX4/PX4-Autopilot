@@ -381,8 +381,10 @@ px4_generate_messages(TARGET msg_gen
 	MSG_FILES ${msg_files}
 	OS ${OS}
 	INCLUDES ${msg_include_paths}
-	DEPENDS git_genmsg git_gencpp prebuild_targets
+	DEPENDS git_genmsg git_gencpp git_micro_cdr prebuild_targets
 	)
+include_directories("${PX4_SOURCE_DIR}/src/lib/micro-CDR/include"
+					"${PX4_BINARY_DIR}/src/lib/micro-CDR/include/microcdr")
 
 px4_generate_airframes_xml(BOARD ${BOARD})
 

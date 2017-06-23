@@ -239,8 +239,8 @@ static int micrortps_start(int argc, char *argv[])
     struct timespec end;
     clock_gettime(0, &end);
     double elapsed_secs2 = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
-    printf("\nSENT: %d RECEIVED: %d in %d LOOPS\n%llu bytes in %.03f seconds sent %.02fKB/s\n",
-            sent, received, i, total_send_lenght, elapsed_secs2, (double)total_send_lenght/(1000*elapsed_secs2));
+    printf("\nSENT: %lu RECEIVED: %lu in %d LOOPS\n%llu bytes in %.03f seconds sent %.02fKB/s\n",
+            (unsigned long)sent, (unsigned long)received, i, total_send_lenght, elapsed_secs2, (double)total_send_lenght/(1000*elapsed_secs2));
 
     PX4_INFO("exiting");
     fflush(stdout);
