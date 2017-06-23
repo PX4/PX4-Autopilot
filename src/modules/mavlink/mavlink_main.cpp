@@ -1953,17 +1953,15 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
+	uint64_t ack_time = 0;
 	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
 	 * beginning and not just when the topic exists. */
 	ack_sub->subscribe_from_beginning(true);
 
-	uint64_t ack_time = 0;
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
-	struct vehicle_command_ack_s command_ack;
-	ack_sub->update(&ack_time, &command_ack);
 
 	/* add default streams depending on mode */
 
@@ -2204,6 +2202,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
+		struct vehicle_command_ack_s command_ack = {};
 
 		if (ack_sub->update(&ack_time, &command_ack)) {
 			mavlink_command_ack_t msg;
