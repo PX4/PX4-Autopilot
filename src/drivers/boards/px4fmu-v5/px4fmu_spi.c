@@ -454,6 +454,14 @@ __EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, enum spi_dev_e devi
 	return SPI_STATUS_PRESENT;
 }
 
+/************************************************************************************
+ * Name: board_spi_reset
+ *
+ * Description:
+ *
+ *
+ ************************************************************************************/
+
 __EXPORT void board_spi_reset(int ms)
 {
 	/* disable SPI bus */
