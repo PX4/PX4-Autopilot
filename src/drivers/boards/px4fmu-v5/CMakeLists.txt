@@ -39,6 +39,7 @@ px4_add_module(
 		../common/stm32/board_mcu_version.c
 		../common/board_crashdump.c
 		../common/board_dma_alloc.c
+		../common/board_gpio_init.c
 #		WIP px4fmu_can.c
 		px4fmu_init.c
 		px4fmu_sdio.c
