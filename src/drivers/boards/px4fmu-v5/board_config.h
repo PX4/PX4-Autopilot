@@ -277,7 +277,7 @@ __BEGIN_DECLS
 
 /* PWM
  *
- * 4  PWM outputs are configured.
+ * 8  PWM outputs are configured.
  *
  * Pins:
  *
