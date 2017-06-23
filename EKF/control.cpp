@@ -508,7 +508,6 @@ void Ekf::controlHeightSensorTimeouts()
 			if (reset_to_gps) {
 				// set height sensor health
 				_baro_hgt_faulty = true;
-				_gps_hgt_faulty = false;
 
 				// declare the GPS height healthy
 				_gps_hgt_faulty = false;
