@@ -60,10 +60,12 @@ __BEGIN_DECLS
 /* Configuration ************************************************************************************/
 
 /* PX4FMU GPIOs ***********************************************************************************/
-/* LEDs */
-#define GPIO_LED1              /* PB1 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_LED2              /* PC6 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
-#define GPIO_LED3              /* PC7 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
+
+/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
+
+#define GPIO_LED1              /* PB1 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
+#define GPIO_LED2              /* PC6 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
+#define GPIO_LED3              /* PC7 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
 
 #define GPIO_nLED_RED    GPIO_LED1
 #define GPIO_nLED_GREEN  GPIO_LED2
