@@ -205,59 +205,19 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	board_on_reset(-1); /* Reset PWM first thing */
+
 	/* configure LEDs */
+
 	board_autoled_initialize();
 
-	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	/* configure pins */
 
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN0);	/* ADC_BATTERY_VOLTAGE_CHANNEL  */
-	stm32_configgpio(GPIO_ADC1_IN1);	/* ADC_BATTERY_CURRENT_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* ADC_BATTERY1_VOLTAGE_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* ADC_BATTERY1_CURRENT_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* ADC_5V_RAIL_SENSE */
-	stm32_configgpio(GPIO_ADC1_IN8);	/* ADC_RC_RSSI_CHANNEL */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* ADC_INT_1 */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* ADC_INT_2 */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* ADC_INT_3 */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* ADC_INT_4 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* ADC_INT_5 */
-
-	/* Configure the HEATER off */
-
-	stm32_configgpio(GPIO_HEATER);
-
-
-	/* Configure the CAN Silent Control pins and keep them low */
-
-	stm32_configgpio(GPIO_CAN1_SILENCE);
-	stm32_configgpio(GPIO_CAN2_SILENCE);
-	stm32_configgpio(GPIO_CAN3_SILENCE);
-
-	/* configure power supply control/sense pins */
-
-	stm32_configgpio(GPIO_POWER_IN_A);
-	stm32_configgpio(GPIO_POWER_IN_B);
-	stm32_configgpio(GPIO_POWER_IN_C);
-
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_nVDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-	stm32_configgpio(GPIO_VDD_3V3V_SD_CARD_EN);
-	stm32_configgpio(GPIO_VDD_5V_RC_EN);
-	stm32_configgpio(GPIO_VDD_5V_WIFI_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SPEKTRUM_POWER_EN);
-
-	stm32_configgpio(GPIO_nSAFETY_SWITCH_LED_OUT);
-	stm32_configgpio(GPIO_SAFETY_SWITCH_IN);
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
+
 	stm32_spiinitialize();
 
 }
