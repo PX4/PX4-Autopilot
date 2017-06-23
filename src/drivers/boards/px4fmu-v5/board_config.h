@@ -205,6 +205,7 @@ __BEGIN_DECLS
  *
  * Note that these are unshifted addresses.
  */
+
 #define PX4_I2C_OBDEV_LED	    0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 #define PX4_I2C_OBDEV_LIS3MDL	0x1e
@@ -215,23 +216,50 @@ __BEGIN_DECLS
  * These are the channel numbers of the ADCs of the microcontroller that
  * can be used by the Px4 Firmware in the adc driver
  */
-#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | \
-	(1 << 8) | \
-	(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
+/* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL     0
-#define ADC_BATTERY_CURRENT_CHANNEL     1
-#define ADC_BATTERY1_VOLTAGE_CHANNEL    2
-#define ADC_BATTERY1_CURRENT_CHANNEL    3
-#define ADC_5V_RAIL_SENSE               4 /* NOT to FMUv5 spec on test HW ONLY - delete this on when running on FMUv5 spec-ed HW */
-#define ADC_RC_RSSI_CHANNEL             8
-#define ADC_SCALED_V5                   10
-#define ADC_SCALED_VDD_3V3_SENSORS      11
-#define ADC_INT_3                       12
-#define ADC_INT_4                       13
-#define ADC_INT_5                       14
+#define ADC1_CH(n)                      (n)
+#define ADC1_GPIO(n)                    GPIO_ADC1_IN##n
+
+#define PX4_ADC_GPIO  \
+	ADC1_GPIO(0), \
+	ADC1_GPIO(1), \
+	ADC1_GPIO(2), \
+	ADC1_GPIO(3), \
+	ADC1_GPIO(4), \
+	ADC1_GPIO(8), \
+	ADC1_GPIO(10), \
+	ADC1_GPIO(11), \
+	ADC1_GPIO(12), \
+	ADC1_GPIO(13), \
+	ADC1_GPIO(14)
+
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL             ADC1_CH(0)
+#define ADC_BATTERY_CURRENT_CHANNEL             ADC1_CH(1)
+#define ADC_BATTERY1_VOLTAGE_CHANNEL            ADC1_CH(2)
+#define ADC_BATTERY1_CURRENT_CHANNEL            ADC1_CH(3)
+#define ADC1_SPARE_2_CHANNEL                    ADC1_CH(4)
+#define ADC_RC_RSSI_CHANNEL                     ADC1_CH(8)
+#define ADC_SCALED_V5_CHANNEL                   ADC1_CH(10)
+#define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL      ADC1_CH(11)
+#define HW_VER_SENSE_CHANNEL                    ADC1_CH(12)
+#define HW_REV_SENSE_CHANNEL                    ADC1_CH(13)
+#define ADC1_SPARE_1_CHANNEL                    ADC1_CH(14)
+
+#define ADC_CHANNELS ((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+		      (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+		      (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+		      (1 << ADC_BATTERY1_VOLTAGE_CHANNEL) | \
+		      (1 << ADC_BATTERY1_CURRENT_CHANNEL) | \
+		      (1 << ADC1_SPARE_2_CHANNEL) | \
+		      (1 << ADC_RC_RSSI_CHANNEL) | \
+		      (1 << ADC_SCALED_V5_CHANNEL) | \
+		      (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
+		      (1 << HW_VER_SENSE_CHANNEL) | \
+		      (1 << HW_REV_SENSE_CHANNEL) | \
+		      (1 << ADC1_SPARE_1_CHANNEL))
 
 /* CAN Silence
  *
