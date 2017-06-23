@@ -515,6 +515,10 @@ __BEGIN_DECLS
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+/* This boar provides the board_on_reset interface */
+
+#define BOARD_HAS_ON_RESET 1
+
 /* The list of GPIO that will be initialized */
 
 #define PX4_GPIO_PWM_INIT_LIST { \
