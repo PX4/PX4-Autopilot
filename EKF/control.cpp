@@ -665,7 +665,6 @@ void Ekf::controlHeightSensorTimeouts()
 
 			if (reset_to_baro) {
 				// set height sensor health
-				_rng_hgt_faulty = true;
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
