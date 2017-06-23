@@ -515,6 +515,39 @@ __BEGIN_DECLS
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+/* The list of GPIO that will be initialized */
+
+#define PX4_GPIO_PWM_INIT_LIST { \
+		GPIO_GPIO7_INPUT, \
+		GPIO_GPIO6_INPUT, \
+		GPIO_GPIO5_INPUT, \
+		GPIO_GPIO4_INPUT, \
+		GPIO_GPIO3_INPUT, \
+		GPIO_GPIO2_INPUT, \
+		GPIO_GPIO1_INPUT, \
+		GPIO_GPIO0_INPUT, \
+	}
+
+#define PX4_GPIO_INIT_LIST { \
+		PX4_ADC_GPIO, \
+		GPIO_HEATER, \
+		GPIO_CAN1_SILENT_S0, \
+		GPIO_CAN2_SILENT_S1, \
+		GPIO_CAN3_SILENT_S2, \
+		GPIO_POWER_IN_A, \
+		GPIO_POWER_IN_B, \
+		GPIO_POWER_IN_C, \
+		GPIO_VDD_BRICK_VALID, \
+		GPIO_nVDD_5V_PERIPH_EN, \
+		GPIO_VDD_3V3_SENSORS_EN, \
+		GPIO_VDD_3V3V_SD_CARD_EN, \
+		GPIO_VDD_5V_RC_EN, \
+		GPIO_VDD_5V_WIFI_EN, \
+		GPIO_VDD_3V3_SPEKTRUM_POWER_EN, \
+		GPIO_nSAFETY_SWITCH_LED_OUT, \
+		GPIO_SAFETY_SWITCH_IN, \
+	}
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/

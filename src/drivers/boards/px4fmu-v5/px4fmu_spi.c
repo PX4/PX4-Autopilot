@@ -109,59 +109,23 @@ static const uint32_t spi6selects_gpio[] = PX4_EXTERNAL2_BUS_CS_GPIO;
 __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32F7_SPI1
-
-	for (int cs = 0; cs < arraySize(spi1selects_gpio); cs++) {
-		if (spi1selects_gpio[cs] != 0) {
-			stm32_configgpio(spi1selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi1selects_gpio, arraySize(spi1selects_gpio));
 #endif
 
 #ifdef CONFIG_STM32F7_SPI2
-
-	for (int cs = 0; cs < arraySize(spi2selects_gpio); cs++) {
-		if (spi2selects_gpio[cs] != 0) {
-			stm32_configgpio(spi2selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi2selects_gpio, arraySize(spi2selects_gpio));
 #endif
 #ifdef CONFIG_STM32F7_SPI3
-
-	for (int cs = 0; cs < arraySize(spi3selects_gpio); cs++) {
-		if (spi3selects_gpio[cs] != 0) {
-			stm32_configgpio(spi3selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi3selects_gpio, arraySize(spi3selects_gpio));
 #endif
 #ifdef CONFIG_STM32F7_SPI4
-
-	for (int cs = 0; cs < arraySize(spi4selects_gpio); cs++) {
-		if (spi4selects_gpio[cs] != 0) {
-			stm32_configgpio(spi4selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi4selects_gpio, arraySize(spi4selects_gpio));
 #endif
 #ifdef CONFIG_STM32F7_SPI5
-
-	for (int cs = 0; cs < arraySize(spi5selects_gpio); cs++) {
-		if (spi5selects_gpio[cs] != 0) {
-			stm32_configgpio(spi5selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi5selects_gpio, arraySize(spi5selects_gpio));
 #endif
 #ifdef CONFIG_STM32F7_SPI6
-
-	for (int cs = 0; cs < arraySize(spi6selects_gpio); cs++) {
-		if (spi6selects_gpio[cs] != 0) {
-			stm32_configgpio(spi6selects_gpio[cs]);
-		}
-	}
-
+	board_gpio_init(spi6selects_gpio, arraySize(spi6selects_gpio));
 #endif
 
 }
