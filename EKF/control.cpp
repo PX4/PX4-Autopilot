@@ -479,6 +479,17 @@ void Ekf::controlHeightSensorTimeouts()
 	// check if height has been inertial deadreckoning for too long
 	bool hgt_fusion_timeout = ((_time_last_imu - _time_last_hgt_fuse) > 5e6);
 
+	// if in range aid mode, check faultiness that otherwise would never change back
+	if (_params.range_aid) {
+		// check if range finder data is available
+		rangeSample rng_init = _range_buffer.get_newest();
+		_rng_hgt_faulty = ((_time_last_imu - rng_init.time_us) > 2 * RNG_MAX_INTERVAL);
+
+		// check if GPS height is available
+		gpsSample gps_init = _gps_buffer.get_newest();
+		_gps_hgt_faulty = ((_time_last_imu - gps_init.time_us) > 2 * GPS_MAX_INTERVAL);
+	}
+
 	// reset the vertical position and velocity states
 	if ((P[9][9] > sq(_params.hgt_reset_lim)) && (hgt_fusion_timeout || continuous_bad_accel_hgt)) {
 		// boolean that indicates we will do a height reset
