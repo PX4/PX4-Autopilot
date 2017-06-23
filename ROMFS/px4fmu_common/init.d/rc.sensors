@@ -44,6 +44,8 @@ if ver hwcmp NXPHLITE_V3
 then
 	# Internal I2C
 	mpl3115a2 -I start
+	# Internal SPI
+	fxos8700cq start -a 8 -R 0
 fi
 
 if ver hwcmp AUAV_X21
