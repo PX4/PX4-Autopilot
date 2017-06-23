@@ -193,6 +193,30 @@ __EXPORT void board_peripheral_reset(int ms)
 }
 
 /************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+
+	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
+
+	if (status >= 0) {
+		up_mdelay(6);
+	}
+}
+
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
