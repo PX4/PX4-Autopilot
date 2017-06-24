@@ -482,7 +482,7 @@ __BEGIN_DECLS
 		{0,                      GPIO_nVDD_5V_PERIPH_EN,         0}, \
 		{0,                      GPIO_VDD_5V_RC_EN,              0}, \
 		{0,                      GPIO_VDD_5V_WIFI_EN,            0}, \
-		{0,                      GPIO_VDD_3V3V_SD_CARD_EN,       0}, }
+		{0,                      GPIO_VDD_3V3_SD_CARD_EN,        0}, }
 
 /*
  * GPIO numbers.
@@ -509,7 +509,7 @@ __BEGIN_DECLS
 #define GPIO_PERIPH_5V_POWER_EN  (1<<14)  /**< PG4  - GPIO_PERIPH_5V_EN        */
 #define GPIO_RC_POWER_EN         (1<<15)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
 #define GPIO_WIFI_POWER_EN       (1<<16)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
-#define GPIO_SD_CARD_POWER_EN    (1<<17)  /**< PG7  - GPIO_VDD_3V3V_SD_CARD_EN */
+#define GPIO_SD_CARD_POWER_EN    (1<<17)  /**< PG7  - GPIO_VDD_3V3_SD_CARD_EN */
 
 /* This board provides a DMA pool and APIs */
 
@@ -544,7 +544,7 @@ __BEGIN_DECLS
 		GPIO_VDD_BRICK_VALID, \
 		GPIO_nVDD_5V_PERIPH_EN, \
 		GPIO_VDD_3V3_SENSORS_EN, \
-		GPIO_VDD_3V3V_SD_CARD_EN, \
+		GPIO_VDD_3V3_SD_CARD_EN, \
 		GPIO_VDD_5V_RC_EN, \
 		GPIO_VDD_5V_WIFI_EN, \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN, \
