@@ -47,6 +47,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_log.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -88,22 +89,6 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -297,7 +282,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		PX4_ERR("DMA alloc FAILED");
 	}
 
 	/* configure CPU load estimation */
@@ -359,7 +344,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (hadCrash == OK) {
 
-		message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		PX4_ERR("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
 			" while booting to halt the system!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
@@ -381,7 +366,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
-			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
+			PX4_ERR("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
 				reboots,
 				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
 
@@ -434,7 +419,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 						break;
 					} // Inner Switch
 
-					message("\nEnter B - Continue booting\n" \
+					PX4_ERR("\nEnter B - Continue booting\n" \
 						"Enter C - Clear the fault log\n" \
 						"Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
@@ -471,6 +456,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 #ifdef CONFIG_MMCSD
+
 	ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
