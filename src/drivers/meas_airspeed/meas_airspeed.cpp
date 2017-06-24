@@ -210,6 +210,13 @@ MEASAirspeed::collect()
 	dp_raw = 0x3FFF & dp_raw;
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
+
+	// dT max is almost certainly an invalid reading
+	if (dT_raw == 2047) {
+		perf_count(_comms_errors);
+		return -EAGAIN;
+	}
+
 	float temperature = ((200.0f * dT_raw) / 2047) - 50;
 
 	// Calculate differential pressure. As its centered around 8000
