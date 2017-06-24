@@ -42,6 +42,7 @@
  ************************************************************************************/
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -65,20 +66,6 @@
 /* Configuration ************************************************************/
 
 /* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /* Define CS GPIO array */
 static const uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;
@@ -151,7 +138,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_sensors = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi_sensors) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		return -ENODEV;
 	}
 
@@ -170,7 +157,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_memory = stm32_spibus_initialize(PX4_SPI_BUS_MEMORY);
 
 	if (!spi_memory) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
 		return -ENODEV;
 	}
 
@@ -190,7 +177,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_baro = stm32_spibus_initialize(PX4_SPI_BUS_BARO);
 
 	if (!spi_baro) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_BARO);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_BARO);
 		return -ENODEV;
 	}
 
@@ -210,7 +197,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_ext = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL1);
 
 	if (!spi_ext) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
 		return -ENODEV;
 	}
 
@@ -227,7 +214,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_ext = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL2);
 
 	if (!spi_ext) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL2);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL2);
 		return -ENODEV;
 	}
 
