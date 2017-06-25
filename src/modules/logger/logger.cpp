@@ -189,7 +189,7 @@ namespace logger
 void Logger::usage(const char *reason)
 {
 	if (reason) {
-		PX4_WARN("%s\n", reason);
+		PX4_WARN("%s", reason);
 	}
 
 	PX4_INFO("usage: logger {start|stop|on|off|status} [-r <log rate>] [-b <buffer size>]\n"
