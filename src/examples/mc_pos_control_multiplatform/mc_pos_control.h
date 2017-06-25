@@ -88,9 +88,6 @@ protected:
 
 	Publisher<px4_vehicle_attitude_setpoint>	*_att_sp_pub;			/**< attitude setpoint publication */
 	Publisher<px4_vehicle_local_position_setpoint>	*_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
-	Publisher<px4_vehicle_global_velocity_setpoint>
-	*_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
-
 
 	Subscriber<px4_vehicle_attitude> *_att;				    /**< vehicle attitude */
 	Subscriber<px4_vehicle_control_mode> *_control_mode;		    /**< vehicle control mode */
@@ -100,11 +97,9 @@ protected:
 	Subscriber<px4_vehicle_local_position> *_local_pos;		    /**< local position */
 	Subscriber<px4_position_setpoint_triplet> *_pos_sp_triplet;	    /**< local position */
 	Subscriber<px4_vehicle_local_position_setpoint> *_local_pos_sp;	    /**< local position */
-	Subscriber<px4_vehicle_global_velocity_setpoint> *_global_vel_sp;   /**< local position */
 
 	px4_vehicle_attitude_setpoint _att_sp_msg;
 	px4_vehicle_local_position_setpoint _local_pos_sp_msg;
-	px4_vehicle_global_velocity_setpoint _global_vel_sp_msg;
 
 	px4::NodeHandle _n;
 

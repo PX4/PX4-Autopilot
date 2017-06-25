@@ -115,7 +115,6 @@ set(msg_file_names
 	vehicle_control_mode.msg
 	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
-	vehicle_global_velocity_setpoint.msg
 	vehicle_gps_position.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
