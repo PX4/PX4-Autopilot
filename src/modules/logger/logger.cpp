@@ -576,7 +576,6 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_global_velocity_setpoint", 200);
 	add_topic("vehicle_vision_position");
 	add_topic("vehicle_vision_attitude");
 	add_topic("battery_status", 300);

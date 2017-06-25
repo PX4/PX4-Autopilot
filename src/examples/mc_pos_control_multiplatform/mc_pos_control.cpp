@@ -58,12 +58,10 @@ MulticopterPositionControlMultiplatform::MulticopterPositionControlMultiplatform
 	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
-	_global_vel_sp_pub(nullptr),
 
 	/* outgoing messages */
 	_att_sp_msg(),
 	_local_pos_sp_msg(),
-	_global_vel_sp_msg(),
 
 	_n(_appState),
 
@@ -116,8 +114,6 @@ _R()
 	_pos_sp_triplet = _n.subscribe<px4_position_setpoint_triplet>
 			  (&MulticopterPositionControlMultiplatform::handle_position_setpoint_triplet, this, 0);
 	_local_pos_sp = _n.subscribe<px4_vehicle_local_position_setpoint>(0);
-	_global_vel_sp = _n.subscribe<px4_vehicle_global_velocity_setpoint>(0);
-
 
 	_params.pos_p.zero();
 	_params.vel_p.zero();
@@ -698,18 +694,6 @@ void  MulticopterPositionControlMultiplatform::handle_vehicle_attitude(const px4
 			if (!_control_mode->data().flag_control_manual_enabled && _pos_sp_triplet->data().current.valid
 			    && _pos_sp_triplet->data().current.type == _pos_sp_triplet->data().current.SETPOINT_TYPE_LAND) {
 				_vel_sp(2) = _params.land_speed;
-			}
-
-			_global_vel_sp_msg.data().vx = _vel_sp(0);
-			_global_vel_sp_msg.data().vy = _vel_sp(1);
-			_global_vel_sp_msg.data().vz = _vel_sp(2);
-
-			/* publish velocity setpoint */
-			if (_global_vel_sp_pub != nullptr) {
-				_global_vel_sp_pub->publish(_global_vel_sp_msg);
-
-			} else {
-				_global_vel_sp_pub = _n.advertise<px4_vehicle_global_velocity_setpoint>();
 			}
 
 			if (_control_mode->data().flag_control_climb_rate_enabled || _control_mode->data().flag_control_velocity_enabled) {

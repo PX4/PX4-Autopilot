@@ -79,7 +79,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/att_pos_mocap.h>
-#include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -1186,7 +1185,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
 		struct esc_status_s esc;
-		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
 		struct distance_sensor_s distance_sensor;
@@ -1302,7 +1300,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int rc_sub;
 		int airspeed_sub;
 		int esc_sub;
-		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_subs[ORB_MULTI_MAX_INSTANCES];
 		int distance_sensor_sub;
@@ -1348,7 +1345,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.rc_sub = -1;
 	subs.airspeed_sub = -1;
 	subs.esc_sub = -1;
-	subs.global_vel_sp_sub = -1;
 	subs.battery_sub = -1;
 	subs.distance_sensor_sub = -1;
 	subs.estimator_status_sub = -1;
@@ -2067,15 +2063,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_ESC.esc_setpoint_raw = buf.esc.esc[i].esc_setpoint_raw;
 					LOGBUFFER_WRITE_AND_COUNT(ESC);
 				}
-			}
-
-			/* --- GLOBAL VELOCITY SETPOINT --- */
-			if (copy_if_updated(ORB_ID(vehicle_global_velocity_setpoint), &subs.global_vel_sp_sub, &buf.global_vel_sp)) {
-				log_msg.msg_type = LOG_GVSP_MSG;
-				log_msg.body.log_GVSP.vx = buf.global_vel_sp.vx;
-				log_msg.body.log_GVSP.vy = buf.global_vel_sp.vy;
-				log_msg.body.log_GVSP.vz = buf.global_vel_sp.vz;
-				LOGBUFFER_WRITE_AND_COUNT(GVSP);
 			}
 
 			/* --- BATTERY --- */
