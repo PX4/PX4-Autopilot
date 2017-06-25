@@ -686,9 +686,13 @@ GPS::task_main()
 				_mode = GPS_DRIVER_MODE_UBX;
 
 			/* FALLTHROUGH */
+			case GPS_DRIVER_MODE_UBX: {
+					int32_t param_gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
+					param_get(param_find("GPS_UBX_DYNMODEL"), &param_gps_ubx_dynmodel);
 
-			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+					_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+								   param_gps_ubx_dynmodel);
+				}
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
