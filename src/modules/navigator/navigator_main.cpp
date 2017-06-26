@@ -657,10 +657,7 @@ Navigator::task_main()
 		/* if nothing is running, set position setpoint triplet invalid once */
 		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {
 			_pos_sp_triplet_published_invalid_once = true;
-			_pos_sp_triplet.previous.valid = false;
-			_pos_sp_triplet.current.valid = false;
-			_pos_sp_triplet.next.valid = false;
-			_pos_sp_triplet_updated = true;
+			reset_triplets();
 		}
 
 		if (_pos_sp_triplet_updated) {
@@ -814,6 +811,17 @@ Navigator::reset_cruising_speed()
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
 }
+
+void
+Navigator::reset_triplets()
+{
+	_pos_sp_triplet.current.valid = false;
+	_pos_sp_triplet.previous.valid = false;
+	_pos_sp_triplet.next.valid = false;
+	_pos_sp_triplet_updated = true;
+}
+
+
 
 float
 Navigator::get_cruising_throttle()
