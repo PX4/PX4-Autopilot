@@ -36,7 +36,6 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Dennis Mannhart <dennis@px4.io>
  */
 
 #ifndef NAVIGATOR_H
