@@ -36,7 +36,7 @@ param.fusion.magDeclDeg = 10.5; % Magnetic declination in deg
 %% Optical flow measurement fusion
 param.fusion.rangeTimeDelay = 0.05; % range fidner sensor delay relative to IMU (sec)
 param.fusion.flowTimeDelay = 0.05; % Optical flow sensor time delay relative to IMU (sec)
-param.fusion.flowRateError = 0.5; % Observation noise 1SD for the flow sensor (rad/sec)
+param.fusion.flowRateError = 0.1; % Observation noise 1SD for the flow sensor (rad/sec)
 param.fusion.flowGate = 5.0; % Size of the optical flow rate innovation consistency check gate in SD
 param.fusion.rngValidMin = 0.05; % range measurements wil be constrained to be  no less than this (m)
 param.fusion.rngValidMax = 5.0; % ignore range measurements larger than this (m)
