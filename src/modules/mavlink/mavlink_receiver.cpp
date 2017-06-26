@@ -1104,37 +1104,49 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 				actuator_controls.control[i] = set_actuator_control_target.controls[i];
 			}
 
-			switch(set_actuator_control_target.group_mlx){
-				case 0:
-					if (_actuator_controls_pubs[0] == nullptr) {
-						_actuator_controls_pubs[0] = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
-					} else {
-						orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pubs[0], &actuator_controls);
-					}
-					break;
-				case 1:
-					if (_actuator_controls_pubs[1] == nullptr) {
-						_actuator_controls_pubs[1] = orb_advertise(ORB_ID(actuator_controls_1), &actuator_controls);
-					} else {
-						orb_publish(ORB_ID(actuator_controls_1), _actuator_controls_pubs[1], &actuator_controls);
-					}
-					break;
-				case 2:
-					if (_actuator_controls_pubs[2] == nullptr) {
-						_actuator_controls_pubs[2] = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
-					} else {
-						orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_pubs[2], &actuator_controls);
-					}
-					break;
-				case 3:
-					if (_actuator_controls_pubs[3] == nullptr) {
-						_actuator_controls_pubs[3] = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
-					} else {
-						orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pubs[3], &actuator_controls);
-					}
-					break;
-				default:
-					break;
+			switch (set_actuator_control_target.group_mlx) {
+			case 0:
+				if (_actuator_controls_pubs[0] == nullptr) {
+					_actuator_controls_pubs[0] = orb_advertise(ORB_ID(actuator_controls_0), &actuator_controls);
+
+				} else {
+					orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pubs[0], &actuator_controls);
+				}
+
+				break;
+
+			case 1:
+				if (_actuator_controls_pubs[1] == nullptr) {
+					_actuator_controls_pubs[1] = orb_advertise(ORB_ID(actuator_controls_1), &actuator_controls);
+
+				} else {
+					orb_publish(ORB_ID(actuator_controls_1), _actuator_controls_pubs[1], &actuator_controls);
+				}
+
+				break;
+
+			case 2:
+				if (_actuator_controls_pubs[2] == nullptr) {
+					_actuator_controls_pubs[2] = orb_advertise(ORB_ID(actuator_controls_2), &actuator_controls);
+
+				} else {
+					orb_publish(ORB_ID(actuator_controls_2), _actuator_controls_pubs[2], &actuator_controls);
+				}
+
+				break;
+
+			case 3:
+				if (_actuator_controls_pubs[3] == nullptr) {
+					_actuator_controls_pubs[3] = orb_advertise(ORB_ID(actuator_controls_3), &actuator_controls);
+
+				} else {
+					orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pubs[3], &actuator_controls);
+				}
+
+				break;
+
+			default:
+				break;
 			}
 		}
 	}
