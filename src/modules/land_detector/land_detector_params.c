@@ -206,7 +206,7 @@ PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);
  * hard altitude limit. This setting will
  * be consolidated with the GF_MAX_VER_DIST
  * parameter.
- * A negative value indicates that there is no limit
+ * A negative value indicates no altitude limitation.
  *
  * @unit m
  * @min -1
