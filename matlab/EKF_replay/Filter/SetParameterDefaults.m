@@ -9,17 +9,18 @@ param.control.flowOffTime = 0; % optical flow aiding will be turned off at this 
 param.control.flowOnTime = 0; % optical flow aiding will be turned back on on at this time (sec)
 param.control.visoOffTime = 0; % visual odometry aiding will be turned off at this time (sec)
 param.control.visoOnTime = 0; % visual odometry aiding will be turned back on at this time (sec)
+param.control.rollAlignErr = 0.0; % initial roll misalignment (rad)
+param.control.pitchAlignErr = 0.0; % initial pitch misalignment (rad)
+param.control.yawAlignErr = 0.0; % initial yaw misalignment (rad)
 
 %% GPS fusion
 param.fusion.gpsTimeDelay = 0.1; % GPS measurement delay relative to IMU (sec)
-param.fusion.gpsCheckTimeout = 5.0; % Length of time that GPS measurements will be rejected by the filter before states are reset to the GPS velocity. (sec)
 param.fusion.gpsVelGate = 5.0; % Size of the IMU velocity innovation consistency check gate in SD
 param.fusion.gpsPosGate = 5.0; % Size of the IMU velocity innovation consistency check gate in SD
 param.fusion.gpsCheckTimeout = 10.0; % Length of time that GPS measurements will be rejected by the filter before states are reset to the GPS velocity. (sec)
 
 %% Baro fusion
 param.fusion.baroTimeDelay = 0.05; % Baro measurement delay relative to IMU (sec)
-param.fusion.baroCheckTimeout = 5.0; % Length of time that baro measurements will be rejected by the filter before states are reset to the baro height. (sec)
 param.fusion.baroHgtGate = 5.0; % Size of the IMU velocity innovation consistency check gate in SD
 param.fusion.baroHgtNoise = 2.0; % 1SD observation noise of the baro measurements (m)
 
@@ -37,8 +38,8 @@ param.fusion.rangeTimeDelay = 0.05; % range fidner sensor delay relative to IMU 
 param.fusion.flowTimeDelay = 0.05; % Optical flow sensor time delay relative to IMU (sec)
 param.fusion.flowRateError = 0.5; % Observation noise 1SD for the flow sensor (rad/sec)
 param.fusion.flowGate = 5.0; % Size of the optical flow rate innovation consistency check gate in SD
-param.fusion.rngValidMin = 0.05; % ignore range measurements smaller than this (m)
-param.fusion.rngValidMin = 5.0; % ignore range measurements larger than this (m)
+param.fusion.rngValidMin = 0.05; % range measurements wil be constrained to be  no less than this (m)
+param.fusion.rngValidMax = 5.0; % ignore range measurements larger than this (m)
 param.fusion.rngTimeout = 2.0; % optical flow measurements will not be used if more than this time since valid range finder data was received (sec)
 
 %% Visual odometry body frame velocity measurement fusion
@@ -54,7 +55,6 @@ param.prediction.dAngBiasPnoise = 0.001; % IMU gyro bias 1SD rate of change (rad
 param.prediction.dVelBiasPnoise = 0.03; % IMU accel bias 1SD rate of change (m/sec^3)
 param.prediction.angRateNoise = 0.015; % IMU gyro 1SD rate process noise (rad/sec)
 param.prediction.accelNoise = 0.35; % IMU accelerometer 1SD error noise including switch on bias uncertainty. (m/sec^2)
-param.prediction.windPnoiseNE = 0.1; % wind state process 1SD rate of change (m/sec^2)
 
 %% Initial Uncertainty
 param.alignment.posErrNE = 10.0; % Initial 1SD position error when aligning without GPS. (m/sec)

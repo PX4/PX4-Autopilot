@@ -68,7 +68,7 @@ flow_data.qual = OF(:,3)/255; % scale quality from 0 to 1
 flow_data.flowX = OF(:,4); % optical flow rate about the X body axis (rad/sec)
 flow_data.flowY = OF(:,5); % optical flow rate about the Y body axis (rad/sec)
 flow_data.bodyX = OF(:,6); % angular rate about the X body axis (rad/sec)
-flow_data.bodyY = OF(:,7); % time period the measurement was sampled across (sec)
+flow_data.bodyY = OF(:,7); % angular rate about the Y body axis (rad/sec)
 
 %% save visual odometry data
 clear viso_data;

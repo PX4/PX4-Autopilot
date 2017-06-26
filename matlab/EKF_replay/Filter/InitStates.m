@@ -25,6 +25,10 @@ initAccel(3) = mean(imu_data.del_vel(imu_start_index:imu_start_index+99,3))./mea
 quat = AlignTilt(quat,initAccel);
 states(1:4) = quat;
 
+% add a roll, pitch, yaw mislignment
+quat_align_err = EulToQuat([param.control.rollAlignErr,param.control.pitchAlignErr,param.control.yawAlignErr]);
+quat = QuatMult(quat,quat_align_err);
+
 % find magnetometer start index
 mag_start_index = (find(mag_data.time_us > imu_data.time_us(imu_start_index), 1, 'first' ) - 5);
 mag_start_index = max(mag_start_index,1);
