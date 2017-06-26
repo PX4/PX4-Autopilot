@@ -730,9 +730,11 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_baro_data_ready && !_baro_hgt_faulty && !_in_range_aid_mode) {
+		} else if (_baro_data_ready && !_baro_hgt_faulty &&
+			         !(_in_range_aid_mode && !_range_data_ready && !_rng_hgt_faulty)) {
 			setControlBaroHeight();
 			_fuse_height = true;
+			_in_range_aid_mode = false;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -785,9 +787,11 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_gps_data_ready && !_gps_hgt_faulty && !_in_range_aid_mode) {
+		} else if (_gps_data_ready && !_gps_hgt_faulty &&
+		           !(_in_range_aid_mode && !_range_data_ready && !_rng_hgt_faulty)) {
 			setControlGPSHeight();
 			_fuse_height = true;
+			_in_range_aid_mode = false;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurment matches our current height estimate
