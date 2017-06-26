@@ -6,6 +6,9 @@ gps_data.hgt_error = epv;
 
 % set reference point used to set NED origin when GPS accuracy is sufficient
 gps_data.start_index = max(min(find(gps_data.pos_error < 5.0)),min(find(gps_data.spd_error < 1.0)));
+if isempty(gps_data.start_index)
+    gps_data.start_index = find(gps_data.pos_error == min(gps_data.pos_error));
+end
 gps_data.refLLH = [1e-7*lat(gps_data.start_index);1e-7*lon(gps_data.start_index);0.001*alt(gps_data.start_index)];
 
 % convert GPS data to NED

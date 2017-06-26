@@ -264,14 +264,15 @@ for index = indexStart:indexStop
             
             % Get latest range finder data and gate to remove dropouts
             last_range_index = find((rng_data.time_us - 1e6 * param.fusion.rangeTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-            if (rng_data.dist(last_range_index) < param.fusion.rngValidMin && rng_data.dist(last_range_index) > param.fusion.rngValidMin)
-                range = rng_data.dist(last_range_index);
+            if (rng_data.dist(last_range_index) < param.fusion.rngValidMax)
+                range = max(rng_data.dist(last_range_index) , param.fusion.rngValidMin);
                 last_valid_range_time = local_time;
             end
             
             % Fuse optical flow data that has fallen behind the fusion time horizon if we have a valid range measurement
             latest_flow_index = find((flow_data.time_us - 1e6 * param.fusion.flowTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-            if ((latest_flow_index > last_flow_index) && ((local_time - last_valid_range_time) < param.fusion.rngTimeout))
+            
+            if (~isempty(latest_flow_index) && (latest_flow_index > last_flow_index) && ((local_time - last_valid_range_time) < param.fusion.rngTimeout))
                 last_flow_index = latest_flow_index;
                 flow_fuse_index = flow_fuse_index + 1;
                 last_drift_constrain_time = local_time;

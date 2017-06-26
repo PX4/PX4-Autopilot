@@ -290,79 +290,84 @@ if (output.magFuseMethod <= 1)
     title(titleText);
     ylabel('declination (deg)');
     xlabel('time (sec)');
-     
+    
     fileName='earth_field_estimates.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
 end
 
 %% plot velocity innovations
-figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
-h=gcf;
-set(h,'PaperOrientation','portrait');
-set(h,'PaperUnits','normalized');
-set(h,'PaperPosition', [0 0 1 1]);
-
-subplot(3,1,1);
-plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,1),sqrt(output.innovations.vel_innov_var(:,1)),-sqrt(output.innovations.vel_innov_var(:,1))]);
-grid on;
-titleText=strcat({'Velocity Innovations and Variances'},runIdentifier);
-title(titleText);
-ylabel('North (m/s)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-subplot(3,1,2);
-plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,2),sqrt(output.innovations.vel_innov_var(:,2)),-sqrt(output.innovations.vel_innov_var(:,2))]);
-grid on;
-ylabel('East (m/s)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-subplot(3,1,3);
-plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,3),sqrt(output.innovations.vel_innov_var(:,3)),-sqrt(output.innovations.vel_innov_var(:,3))]);
-grid on;
-ylabel('Down (m/s)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-fileName='velocity_fusion.png';
-fullFileName = fullfile(folder, fileName);
-saveas(h,fullFileName);
+if isfield(output.innovations,'vel_innov')
+    
+    figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
+    h=gcf;
+    set(h,'PaperOrientation','portrait');
+    set(h,'PaperUnits','normalized');
+    set(h,'PaperPosition', [0 0 1 1]);
+    
+    subplot(3,1,1);
+    plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,1),sqrt(output.innovations.vel_innov_var(:,1)),-sqrt(output.innovations.vel_innov_var(:,1))]);
+    grid on;
+    titleText=strcat({'Velocity Innovations and Variances'},runIdentifier);
+    title(titleText);
+    ylabel('North (m/s)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    subplot(3,1,2);
+    plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,2),sqrt(output.innovations.vel_innov_var(:,2)),-sqrt(output.innovations.vel_innov_var(:,2))]);
+    grid on;
+    ylabel('East (m/s)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    subplot(3,1,3);
+    plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,3),sqrt(output.innovations.vel_innov_var(:,3)),-sqrt(output.innovations.vel_innov_var(:,3))]);
+    grid on;
+    ylabel('Down (m/s)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    fileName='velocity_fusion.png';
+    fullFileName = fullfile(folder, fileName);
+    saveas(h,fullFileName);
+end
 
 %% plot position innovations
-figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
-h=gcf;
-set(h,'PaperOrientation','portrait');
-set(h,'PaperUnits','normalized');
-set(h,'PaperPosition', [0 0 1 1]);
-
-subplot(3,1,1);
-plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,1),sqrt(output.innovations.posInnovVar(:,1)),-sqrt(output.innovations.posInnovVar(:,1))]);
-grid on;
-titleText=strcat({'Position Innovations and Variances'},runIdentifier);
-title(titleText);
-ylabel('North (m)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-subplot(3,1,2);
-plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,2),sqrt(output.innovations.posInnovVar(:,2)),-sqrt(output.innovations.posInnovVar(:,2))]);
-grid on;
-ylabel('East (m)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-subplot(3,1,3);
-plot(output.innovations.hgt_time_lapsed',[output.innovations.hgtInnov(:),sqrt(output.innovations.hgtInnovVar(:)),-sqrt(output.innovations.hgtInnovVar(:))]);
-grid on;
-ylabel('Up (m)');
-xlabel('time (sec)');
-legend('innovation','variance sqrt','variance sqrt');
-
-fileName='position_fusion.png';
-fullFileName = fullfile(folder, fileName);
-saveas(h,fullFileName);
+if isfield(output.innovations,'pos_innov')
+    figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
+    h=gcf;
+    set(h,'PaperOrientation','portrait');
+    set(h,'PaperUnits','normalized');
+    set(h,'PaperPosition', [0 0 1 1]);
+    
+    subplot(3,1,1);
+    plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,1),sqrt(output.innovations.posInnovVar(:,1)),-sqrt(output.innovations.posInnovVar(:,1))]);
+    grid on;
+    titleText=strcat({'Position Innovations and Variances'},runIdentifier);
+    title(titleText);
+    ylabel('North (m)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    subplot(3,1,2);
+    plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,2),sqrt(output.innovations.posInnovVar(:,2)),-sqrt(output.innovations.posInnovVar(:,2))]);
+    grid on;
+    ylabel('East (m)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    subplot(3,1,3);
+    plot(output.innovations.hgt_time_lapsed',[output.innovations.hgtInnov(:),sqrt(output.innovations.hgtInnovVar(:)),-sqrt(output.innovations.hgtInnovVar(:))]);
+    grid on;
+    ylabel('Up (m)');
+    xlabel('time (sec)');
+    legend('innovation','variance sqrt','variance sqrt');
+    
+    fileName='position_fusion.png';
+    fullFileName = fullfile(folder, fileName);
+    saveas(h,fullFileName);
+end
 
 %% plot magnetometer innovations
 if isfield(output.innovations,'magInnov')
@@ -447,6 +452,7 @@ if isfield(output.innovations,'flowInnov')
     set(h,'PaperPosition', [0 0 1 1]);
     subplot(2,1,1);
     plot(output.innovations.flow_time_lapsed,[output.innovations.flowInnov(:,1)';sqrt(output.innovations.flowInnovVar(:,1))';-sqrt(output.innovations.flowInnovVar(:,1))']);
+    ylim([-1.0 1.0]);
     grid on;
     title(strcat({'Optical Flow Innovations and Variances'},runIdentifier));
     ylabel('X (rad/sec)');
@@ -454,6 +460,7 @@ if isfield(output.innovations,'flowInnov')
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
     subplot(2,1,2);
     plot(output.innovations.flow_time_lapsed,[output.innovations.flowInnov(:,2)';sqrt(output.innovations.flowInnovVar(:,2))';-sqrt(output.innovations.flowInnovVar(:,2))']);
+    ylim([-1.0 1.0]);
     grid on;
     ylabel('Y (rad/sec)');
     xlabel('time (sec)');
@@ -471,7 +478,7 @@ if isfield(output.innovations,'bodyVelInnov')
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-
+    
     subplot(3,1,1);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,1)';sqrt(output.innovations.bodyVelInnovVar(:,1))';-sqrt(output.innovations.bodyVelInnovVar(:,1))']);
     grid on;
@@ -479,23 +486,23 @@ if isfield(output.innovations,'bodyVelInnov')
     ylabel('X (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-
+    
     subplot(3,1,2);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,2)';sqrt(output.innovations.bodyVelInnovVar(:,2))';-sqrt(output.innovations.bodyVelInnovVar(:,2))']);
     grid on;
     ylabel('Y (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-
+    
     subplot(3,1,3);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,3)';sqrt(output.innovations.bodyVelInnovVar(:,3))';-sqrt(output.innovations.bodyVelInnovVar(:,3))']);
     grid on;
     ylabel('Z (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-
+    
     fileName='zed_camera_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
-
+    
 end
