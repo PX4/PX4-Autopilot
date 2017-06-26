@@ -225,7 +225,7 @@ void
 Battery::determineWarning(bool connected)
 {
 	if (connected) {
-		// propagate warning state only if the state is higher, otherwise remain in current waringin state
+		// propagate warning state only if the state is higher, otherwise remain in current warning state
 		if (_remaining < _param_emergency_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
