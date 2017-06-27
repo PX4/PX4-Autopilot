@@ -3,13 +3,14 @@
 # @name Generic Hexa coaxial geometry
 #
 # @type Hexarotor Coaxial
+# @class Copter
 #
 # @output MAIN1 front right top, CW; angle:60; direction:CW
 # @output MAIN2 front right bottom, CCW; angle:60; direction:CCW
 # @output MAIN3 back top, CW; angle:180; direction:CW
 # @output MAIN4 back bottom, CCW; angle:180; direction:CCW
 # @output MAIN5 front left top, CW; angle:-60; direction:CW
-# @output MAIN6 front left bottom, CCW;angle:-60; direction:CCW 
+# @output MAIN6 front left bottom, CCW;angle:-60; direction:CCW
 #
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
