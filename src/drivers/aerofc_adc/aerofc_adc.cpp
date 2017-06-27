@@ -73,7 +73,7 @@ private:
 	static void cycle_trampoline(void *arg);
 
 	struct work_s _work;
-	adc_msg_s _sample;
+	px4_adc_msg_t _sample;
 	pthread_mutex_t _sample_mutex;
 };
 
@@ -87,7 +87,7 @@ static void test()
 		err(1, "can't open ADC device");
 	}
 
-	adc_msg_s data[MAX_CHANNEL];
+	px4_adc_msg_t data[MAX_CHANNEL];
 	ssize_t count = read(fd, data, sizeof(data));
 
 	if (count < 0) {

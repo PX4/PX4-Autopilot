@@ -43,7 +43,6 @@
 
 #include <board_config.h>
 
-#include <px4_adc.h>
 #include <px4_config.h>
 #include <px4_module.h>
 #include <px4_getopt.h>
@@ -422,7 +421,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		struct adc_msg_s buf_adc[12];
+		px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 

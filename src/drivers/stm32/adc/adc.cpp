@@ -122,7 +122,7 @@ private:
 	perf_counter_t		_sample_perf;
 
 	unsigned		_channel_count;
-	adc_msg_s		*_samples;		/**< sample buffer */
+	px4_adc_msg_t		*_samples;		/**< sample buffer */
 
 	orb_advert_t		_to_system_power;
 	orb_advert_t		_to_adc_report;
@@ -168,7 +168,11 @@ ADC::ADC(uint32_t channels) :
 		}
 	}
 
-	_samples = new adc_msg_s[_channel_count];
+	if (_channel_count > PX4_MAX_ADC_CHANNELS) {
+		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small:is %d needed:%d", PX4_MAX_ADC_CHANNELS, _channel_count);
+	}
+
+	_samples = new px4_adc_msg_t[_channel_count];
 
 	/* prefill the channel numbers in the sample array */
 	if (_samples != nullptr) {
@@ -265,7 +269,7 @@ ADC::ioctl(file *filp, int cmd, unsigned long arg)
 ssize_t
 ADC::read(file *filp, char *buffer, size_t len)
 {
-	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
+	const size_t maxsize = sizeof(px4_adc_msg_t) * _channel_count;
 
 	if (len > maxsize) {
 		len = maxsize;
@@ -441,7 +445,7 @@ test(void)
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
-		adc_msg_s data[12];
+		px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0) {
