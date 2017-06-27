@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMUv2 internal definitions
+ * PX4FMUv4Pro internal definitions
  */
 
 #pragma once
@@ -46,12 +46,6 @@
 #include <px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
-
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
-#include <stm32.h>
-#include <arch/board/board.h>
 
 /****************************************************************************************************
  * Definitions
@@ -192,15 +186,17 @@ __BEGIN_DECLS
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
-#define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
-
 // ADC defines to be used in sensors.cpp to read from a particular channel
-#define ADC_BATTERY_VOLTAGE_CHANNEL	2
-#define ADC_BATTERY_CURRENT_CHANNEL	3
-#define ADC_5V_RAIL_SENSE		4
-#define ADC_BATTERY2_VOLTAGE_CHANNEL	11
-#define ADC_BATTERY2_CURRENT_CHANNEL	13
-//#define ADC_RC_RSSI_CHANNEL		11
+
+#define ADC_BATTERY1_VOLTAGE_CHANNEL	2   // PA2
+#define ADC_BATTERY1_CURRENT_CHANNEL	3   // PA3
+#define ADC_5V_RAIL_SENSE				4   // PA4
+#define ADC_BATTERY2_VOLTAGE_CHANNEL	11  // PC1
+#define ADC_BATTERY2_CURRENT_CHANNEL	13  // PC3
+
+#define ADC_CHANNELS (1 << ADC_BATTERY1_VOLTAGE_CHANNEL) | (1 << ADC_BATTERY1_CURRENT_CHANNEL) | \
+	(1 << ADC_5V_RAIL_SENSE) | \
+	(1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | (1 << ADC_BATTERY2_CURRENT_CHANNEL)
 
 /* Define Battery 1 Voltage Divider and A per V
  */
@@ -233,15 +229,16 @@ __BEGIN_DECLS
 #define GPIO_GPIO5_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 
 /* Power supply control and monitoring GPIOs */
-#define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN5)
-#define GPIO_VDD_BRICK2_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_nVDD_BRICK1_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_nVDD_BRICK2_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN5)
+#define BOARD_NUMBER_BRICKS     2
+#define GPIO_nVDD_USB_VALID		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
 #define GPIO_VDD_3V3_SENSORS_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_VDD_3V3_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
 #define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN10)
 #define GPIO_VDD_5V_HIPOWER_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN4)
 #define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_FLOAT|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_FLOAT|GPIO_PORTF|GPIO_PIN3)
-#define GPIO_VBUS_VALID		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
 
 /* Tone alarm output */
 #define TONE_ALARM_TIMER	2	/* timer 2 */
@@ -317,8 +314,9 @@ __BEGIN_DECLS
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID   (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
-#define BOARD_ADC_BRICK2_VALID  (px4_arch_gpioread(GPIO_VDD_BRICK2_VALID))
+#define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
+#define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
+#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 #define BOARD_ADC_SERVO_VALID   (1)
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
@@ -334,9 +332,9 @@ __BEGIN_DECLS
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
 		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
 		{0,                      GPIO_VDD_3V3_PERIPH_EN,  0}, \
-		{GPIO_VDD_BRICK_VALID,   0,                       0}, \
-		{GPIO_VDD_BRICK2_VALID,  0,                       0}, \
-		{GPIO_VBUS_VALID,        0,                       0}, \
+		{GPIO_nVDD_BRICK1_VALID, 0,                       0}, \
+		{GPIO_nVDD_BRICK2_VALID, 0,                       0}, \
+		{GPIO_nVDD_USB_VALID,    0,                       0}, \
 		{GPIO_VDD_5V_HIPOWER_OC, 0,                       0}, \
 		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
 
@@ -355,9 +353,9 @@ __BEGIN_DECLS
 #define GPIO_3V3_SENSORS_EN    (1<<6)  /**< PE3  - GPIO_VDD_3V3_SENSORS_EN */
 #define GPIO_3V3_PERIPH_EN     (1<<7)  /**< PC5  - GPIO_VDD_3V3_PERIPH_EN  */
 
-#define GPIO_BRICK_VALID       (1<<8)  /**< PG5  - !GPIO_VDD_BRICK_VALID */
-#define GPIO_BRICK2_VALID      (1<<9)  /**< PB5  - !GPIO_VDD_BRICK2_VALID */
-#define GPIO_USB_VBUS_VALID    (1<<10) /**< PC0  - !GPIO_VBUS_VALID */
+#define GPIO_BRICK1_VALID      (1<<8)  /**< PB5  - GPIO_nVDD_BRICK1_VALID */
+#define GPIO_BRICK2_VALID      (1<<9)  /**< PG5  - GPIO_nVDD_BRICK2_VALID */
+#define GPIO_USB_VBUS_VALID    (1<<10) /**< PC0  - GPIO_nVDD_USB_VALID */
 
 #define GPIO_5V_HIPOWER_OC     (1<<11) /**< PF3  - !GPIO_VDD_5V_RC_OC */
 #define GPIO_5V_PERIPH_OC      (1<<12) /**< PE10 - !GPIO_VDD_5V_PERIPH_OC */
@@ -367,6 +365,8 @@ __BEGIN_DECLS
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types

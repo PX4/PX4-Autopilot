@@ -187,12 +187,12 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_EN);
 
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_VDD_BRICK2_VALID);
+	stm32_configgpio(GPIO_nVDD_BRICK1_VALID);
+	stm32_configgpio(GPIO_nVDD_BRICK2_VALID);
+	stm32_configgpio(GPIO_nVDD_USB_VALID);
 
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-	stm32_configgpio(GPIO_VBUS_VALID);
 
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_8266_GPIO0);
