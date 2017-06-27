@@ -10,6 +10,65 @@ class ParameterGroup(object):
         self.name = name
         self.params = []
 
+        if (self.name == "Standard Plane"):
+            self.type = "Plane"
+        elif (self.name == "Flying Wing"):
+            self.type =  "Plane"
+        elif (self.name == "Quadrotor x"):
+            self.type =  "Copter"
+        elif (self.name == "Quadrotor +"):
+            self.type =  "Copter"
+        elif (self.name == "Hexarotor x"):
+            self.type =  "Copter"
+        elif (self.name == "Hexarotor +"):
+            self.type =  "Copter"
+        elif (self.name == "Octorotor +"):
+            self.type =  "Copter"
+        elif (self.name == "Octorotor x"):
+            self.type =  "Copter"
+        elif (self.name == "Octorotor Coaxial"):
+            self.type =  "Copter"
+        elif (self.name == "Octo Coax Wide"):
+            self.type =  "Copter"
+        elif (self.name == "Quadrotor Wide"):
+            self.type =  "Copter"
+        elif (self.name == "Quadrotor H"):
+            self.type =  "Copter"
+        elif (self.name == "Quadrotor asymmetric"):
+            self.type =  "Copter"
+        elif (self.name == "Simulation"):
+            self.type =  "Simulation"
+        elif (self.name == "Plane A-Tail"):
+            self.type =  "Plane"
+        elif (self.name == "VTOL Duo Tailsitter"):
+            self.type =  "VTOL"
+        elif (self.name == "Standard VTOL"):
+            self.type =  "VTOL"
+        elif (self.name == "VTOL Quad Tailsitter"):
+            self.type =  "VTOL"
+        elif (self.name == "VTOL Tiltrotor"):
+            self.type =  "VTOL"
+        elif (self.name == "Coaxial Helicopter"):
+            self.type =  "Copter"
+        elif (self.name == "Helicopter"):
+            self.type =  "Copter"
+        elif (self.name == "Hexarotor Coaxial"):
+            self.type =  "Copter"
+        elif (self.name == "Y6A"):
+            self.type =  "Copter"
+        elif (self.name == "Tricopter Y-"):
+            self.type =  "Copter"
+        elif (self.name == "Tricopter Y+"):
+            self.type =  "Copter"
+        elif (self.name == "Rover"):
+            self.type =  "Rover"
+        elif (self.name == "Boat"):
+            self.type = "Boat"
+        elif (self.name == "custom"):
+            self.type = "Unknown"
+        else:
+            self.type = "Unknown"
+
     def AddParameter(self, param):
         """
         Add parameter to the group
@@ -22,6 +81,12 @@ class ParameterGroup(object):
         """
         return self.name
 
+    def GetType(self):
+        """
+        Get parameter group vehicle type.
+        """
+        return self.type
+        
     def GetImageName(self):
         """
         Get parameter group image base name (w/o extension)
@@ -80,6 +145,8 @@ class ParameterGroup(object):
             return "Boat"
         return "AirframeUnknown"
 
+
+        
     def GetParams(self):
         """
         Returns the parsed list of parameters. Every parameter is a Parameter
@@ -456,5 +523,6 @@ class SourceParser(object):
         """
         groups = self.param_groups.values()
         groups = sorted(groups, key=lambda x: x.GetName())
+        groups = sorted(groups, key=lambda x: x.GetType())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
         return groups
