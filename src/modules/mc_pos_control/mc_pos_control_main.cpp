@@ -754,17 +754,21 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
 		/* we need either a valid position setpoint or a valid velocity setpoint */
-		_pos_sp_triplet.current.valid = false;
-		_pos_sp_triplet.previous.valid = false;
 
 		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+		    && PX4_ISFINITE(_pos_sp_triplet.current.alt) && _pos_sp_triplet.current.valid) {
 			_pos_sp_triplet.current.valid = true;
+
+		} else {
+			_pos_sp_triplet.current.valid = false;
 		}
 
 		if (PX4_ISFINITE(_pos_sp_triplet.previous.lat) && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
-		    && PX4_ISFINITE(_pos_sp_triplet.previous.alt)) {
+		    && PX4_ISFINITE(_pos_sp_triplet.previous.alt) && _pos_sp_triplet.previous.valid) {
 			_pos_sp_triplet.previous.valid = true;
+
+		} else {
+			_pos_sp_triplet.previous.valid = false;
 		}
 	}
 
@@ -1466,6 +1470,9 @@ void MulticopterPositionControl::control_auto(float dt)
 		if (diff.length() > FLT_EPSILON) {
 			triplet_updated = true;
 		}
+
+		/* we need to update _curr_pos_sp always since navigator applies slew rate on z */
+		_curr_pos_sp = curr_pos_sp;
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
@@ -1500,7 +1507,6 @@ void MulticopterPositionControl::control_auto(float dt)
 			next_setpoint_valid = true;
 		}
 	}
-
 
 	/* Auto logic:
 	 * The vehicle should follow the line previous-current.
@@ -1589,7 +1595,6 @@ void MulticopterPositionControl::control_auto(float dt)
 
 				}
 
-
 				/* if we already close to current, then just take over the velocity that
 				 * we would have computed if going directly to the current setpoint
 				 */
@@ -1603,7 +1608,6 @@ void MulticopterPositionControl::control_auto(float dt)
 				vel_sp_z = (flying_upward) ? -vel_sp_z : vel_sp_z;
 				/* compute pos_sp(2) */
 				pos_sp(2) = _pos(2) + vel_sp_z / _params.pos_p(2);
-
 			}
 
 			/*
