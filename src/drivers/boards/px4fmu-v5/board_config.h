@@ -425,7 +425,7 @@ __BEGIN_DECLS
  *
  * PA9  OTG_FS_VBUS VBUS sensing
  */
-#define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
 #define HRT_TIMER		     8  /* use timer8 for the HRT */

@@ -229,10 +229,9 @@ stm32_boardinitialize(void)
 
 	stm32_spiinitialize();
 
-	/* Power on the SD Card */
+	/* configure USB interfaces */
 
-	SD_CARD_POWER_CTRL(true);
-
+	stm32_usbinitialize();
 
 }
 
