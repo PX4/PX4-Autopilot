@@ -213,19 +213,19 @@ __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNEL
 		.timer_channel = 2,
 	},
 	{
-		.gpio_out = LED_TIM5_CH1OUT,
+		.gpio_out = UILED_TIM5_CH1OUT,
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 1,
 	},
 	{
-		.gpio_out = LED_TIM5_CH2OUT,
+		.gpio_out = UILED_TIM5_CH2OUT,
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 2,
 	},
 	{
-		.gpio_out = LED_TIM5_CH3OUT,
+		.gpio_out = UILED_TIM5_CH3OUT,
 		.gpio_in  = 0,
 		.timer_index = 1,
 		.timer_channel = 3,
