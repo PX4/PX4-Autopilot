@@ -11,6 +11,7 @@
 # @board aerofc-v1 exclude
 #
 # @type Quadrotor x
+# @class Copter
 #
 
 sh /etc/init.d/4001_quad_x

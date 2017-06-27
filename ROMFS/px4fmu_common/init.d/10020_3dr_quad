@@ -3,6 +3,7 @@
 # @name 3DR DIY Quad
 #
 # @type Quadrotor x
+# @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

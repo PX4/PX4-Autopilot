@@ -3,6 +3,7 @@
 # @name Axial Racing AX10
 #
 # @type Rover
+# @class Rover
 #
 # @output MAIN1 pass-through of control group 0, channel 0
 # @output MAIN2 pass-through of control group 0, channel 1

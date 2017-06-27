@@ -3,6 +3,7 @@
 # @name ZMR250 Racer
 #
 # @type Quadrotor x
+# @class Copter
 #
 # @board px4fmu-v1 exclude
 # @board px4fmu-v2 exclude

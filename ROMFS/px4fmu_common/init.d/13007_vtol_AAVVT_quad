@@ -3,6 +3,7 @@
 # @name Generic AAVVT v-tail plane airframe with Quad VTOL.
 #
 # @type Standard VTOL
+# @class VTOL
 #
 # @maintainer Sander Smeets <sander@droneslab.com>
 #
