@@ -334,7 +334,7 @@ if isfield(output.innovations,'vel_innov')
 end
 
 %% plot position innovations
-if isfield(output.innovations,'pos_innov')
+if isfield(output.innovations,'posInnov')
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
