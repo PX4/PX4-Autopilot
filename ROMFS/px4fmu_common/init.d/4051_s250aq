@@ -6,6 +6,7 @@
 # @board px4fmu-v2 exclude
 #
 # @type Quadrotor asymmetric
+# @class Copter
 #
 # @output MAIN1 motor1 (front right: CCW)
 # @output MAIN2 motor2 (back left: CCW)
@@ -15,7 +16,7 @@
 # @output MAIN5 feed-through of RC AUX1 channel
 # @output MAIN6 feed-through of RC AUX2 channel
 #
-# @maintainer Mark Whitehorn <kd0aij@gmail.com>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults

@@ -10,6 +10,8 @@
 # @board px4fmu-v5 exclude
 #
 # @type Quadrotor x
+# @class Copter
+#
 
 sh /etc/init.d/rc.mc_defaults
 
