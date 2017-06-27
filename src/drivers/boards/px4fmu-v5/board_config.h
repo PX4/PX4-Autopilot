@@ -428,8 +428,8 @@ __BEGIN_DECLS
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER		    8	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL   3	/* use capture/compare channel 3 */
+#define HRT_TIMER		     8  /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL    3  /* use capture/compare channel 3 */
 
 #define HRT_PPM_CHANNEL         /* T8C1 */  1	/* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
@@ -440,7 +440,7 @@ __BEGIN_DECLS
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-#define PWMIN_TIMER             4
+#define PWMIN_TIMER          4
 #define PWMIN_TIMER_CHANNEL     /* T4C2 */ 2
 #define GPIO_PWM_IN             /* PD13 */ GPIO_TIM4_CH2IN
 
@@ -470,8 +470,8 @@ __BEGIN_DECLS
 #define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define SDIO_SLOTNO             0  /* Only one slot */
-#define SDIO_MINOR              0
+#define SDIO_SLOTNO                    0  /* Only one slot */
+#define SDIO_MINOR                     0
 
 /* SD card bringup does not work if performed on the IDLE thread because it
  * will cause waiting.  Use either:
@@ -560,7 +560,7 @@ __BEGIN_DECLS
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
-/* This boar provides the board_on_reset interface */
+/* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
 
