@@ -5,6 +5,7 @@
 # @url https://pixhawk.org/platforms/planes/z-84_wing_wing
 #
 # @type Flying Wing
+# @class Plane
 #
 # @output MAIN1 left aileron
 # @output MAIN2 right aileron
