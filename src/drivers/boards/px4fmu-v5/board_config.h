@@ -444,10 +444,16 @@ __BEGIN_DECLS
 #define PWMIN_TIMER_CHANNEL     /* T4C2 */ 2
 #define GPIO_PWM_IN             /* PD13 */ GPIO_TIM4_CH2IN
 
-#define GPIO_RSSI_IN            /* PB0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
+/* Shared pins Both FMU and PX4IO control/monitor
+ * FMU Initializes these pins to passive input until it is known
+ * if we have and PX4IO on board
+ */
 
-#define GPIO_nSAFETY_SWITCH_LED_OUT  /* PE12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
-#define GPIO_SAFETY_SWITCH_IN        /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
+#define GPIO_RSSI_IN                       /* PB0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
+#define GPIO_RSSI_IN_INIT                  /* PB0  */ 0 /* Leave as ADC RSSI_IN */
+#define GPIO_nSAFETY_SWITCH_LED_OUT        /* PE12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+#define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PE12 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTE|GPIO_PIN12)
+#define GPIO_SAFETY_SWITCH_IN              /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 
 #define INVERT_RC_INPUT(_invert_true)      board_rc_input(_invert_true);
 
@@ -578,23 +584,29 @@ __BEGIN_DECLS
 	}
 
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO, \
-		GPIO_HEATER, \
-		GPIO_CAN1_SILENT_S0, \
-		GPIO_CAN2_SILENT_S1, \
-		GPIO_CAN3_SILENT_S2, \
-		GPIO_POWER_IN_A, \
-		GPIO_POWER_IN_B, \
-		GPIO_POWER_IN_C, \
-		GPIO_VDD_BRICK_VALID, \
-		GPIO_nVDD_5V_PERIPH_EN, \
-		GPIO_VDD_3V3_SENSORS_EN, \
-		GPIO_VDD_3V3_SD_CARD_EN, \
-		GPIO_VDD_5V_RC_EN, \
-		GPIO_VDD_5V_WIFI_EN, \
-		GPIO_VDD_3V3_SPEKTRUM_POWER_EN, \
-		GPIO_nSAFETY_SWITCH_LED_OUT, \
-		GPIO_SAFETY_SWITCH_IN, \
+		PX4_ADC_GPIO,                     \
+		GPIO_HW_REV_DRIVE,                \
+		GPIO_HW_VER_DRIVE,                \
+		GPIO_CAN1_SILENT_S0,              \
+		GPIO_CAN2_SILENT_S1,              \
+		GPIO_CAN3_SILENT_S2,              \
+		GPIO_HEATER,                      \
+		GPIO_nPOWER_IN_A,                 \
+		GPIO_nPOWER_IN_B,                 \
+		GPIO_nPOWER_IN_C,                 \
+		GPIO_nVDD_5V_PERIPH_EN,           \
+		GPIO_nVDD_5V_PERIPH_OC,           \
+		GPIO_nVDD_5V_HIPOWER_EN,          \
+		GPIO_nVDD_5V_HIPOWER_OC,          \
+		GPIO_VDD_3V3_SENSORS_EN,          \
+		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
+		GPIO_VDD_5V_RC_EN,                \
+		GPIO_VDD_5V_WIFI_EN,              \
+		GPIO_VDD_3V3_SD_CARD_EN,          \
+		GPIO_TONE_ALARM_IDLE,             \
+		GPIO_RSSI_IN_INIT,                \
+		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
+		GPIO_SAFETY_SWITCH_IN             \
 	}
 
 /****************************************************************************************************
