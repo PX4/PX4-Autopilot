@@ -282,6 +282,22 @@ __BEGIN_DECLS
  */
 #define GPIO_HEATER        /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 
+/* PWM Capture
+ *
+ * 3  PWM Capture inputs are configured.
+ *
+ * Pins:
+ *
+ * FMU_CAP1 : PA5  : TIM2_CH1
+ * FMU_CAP2 : PB3  : TIM2_CH2
+ * FMU_CAP3 : PB11 : TIM2_CH4
+ */
+#define GPIO_TIM2_CH1_IN     /* PA5   T22C1  FMU_CAP1 */ GPIO_TIM2_CH1IN_3
+#define GPIO_TIM2_CH2_IN     /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2IN_2
+#define GPIO_TIM2_CH4_IN     /* PB1   T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
+
+#define DIRECT_PWM_CAPTURE_CHANNELS  3
+
 /* PWM
  *
  * 8  PWM outputs are configured.
