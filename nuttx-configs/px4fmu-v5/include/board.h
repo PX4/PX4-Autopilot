@@ -341,7 +341,7 @@
 #define GPIO_USART6_RX   GPIO_USART6_RX_2   /* PG9  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_2   /* PG14 */
 #define GPIO_USART6_RTS  GPIO_USART6_RTS_2  /* PG8  */
-#define GPIO_USART6_CTT  GPIO_USART6_CTS_2  /* PG15 */
+#define GPIO_USART6_CTS  GPIO_USART6_CTS_2  /* PG15 */
 
 #define GPIO_UART7_RX    GPIO_UART7_RX_2    /* PF6 */
 #define GPIO_UART7_TX    GPIO_UART7_TX_1    /* PE8 */
@@ -511,6 +511,8 @@
 # define PROBE_4    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)   /* PE9  */
 # define PROBE_5    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)  /* PD13 */
 # define PROBE_6    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)  /* PD14 */
+# define PROBE_7    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN6)   /* PH6  */
+# define PROBE_8    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN9)   /* PH9  */
 
 # define PROBE_INIT(mask) \
     do { \
@@ -520,6 +522,8 @@
         if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
         if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
         if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+        if ((mask)& PROBE_N(7)) { stm32_configgpio(PROBE_7); } \
+        if ((mask)& PROBE_N(8)) { stm32_configgpio(PROBE_8); } \
     } while(0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
