@@ -3,6 +3,7 @@
 # @name QuadRanger
 #
 # @type Standard VTOL
+# @class VTOL
 #
 # @maintainer Sander Smeets <sander@droneslab.com>
 #
