@@ -157,6 +157,47 @@ __EXPORT void board_peripheral_reset(int ms)
 }
 
 /************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	UNUSED(status);
+	/* configure the GPIO pins to outputs and keep them low */
+
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+
+	/* On resets invoked from system (not boot) insure we establish a low
+	 * output state (discharge the pins) on PWM pins before they become inputs.
+	 *
+	 * We also delay the onset of the that 3.1 Ms pulse as boot. This has
+	 * triggered some ESC to spin. By adding this delay here the reset
+	 * is pushed out > 400 ms. So the ESC PWM input can not mistake
+	 * the 3.1 Ms pulse as a valid PWM command.
+	 *
+	 * fixme:Establish in upstream NuttX an CONFIG_IO_INIT_STATE to
+	 * the initialize the IO lines in the clock config.
+	 *
+	 */
+
+	if (status >= 0) {
+		up_mdelay(400);
+	}
+}
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -169,7 +210,12 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* Reset all PWM to Low outputs */
+
+	board_on_reset(-1);
+
 	/* configure LEDs */
+
 	board_autoled_initialize();
 
 	/* Start with Power off */
@@ -201,20 +247,12 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_8266_RST);
 	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
 
-	/* configure the GPIO pins to outputs and keep them low */
-	stm32_configgpio(GPIO_GPIO0_OUTPUT);
-	stm32_configgpio(GPIO_GPIO1_OUTPUT);
-	stm32_configgpio(GPIO_GPIO2_OUTPUT);
-	stm32_configgpio(GPIO_GPIO3_OUTPUT);
-	stm32_configgpio(GPIO_GPIO4_OUTPUT);
-	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
 	/* configure SPI interfaces
 	 * is deferred to board_app_initialize
 	 * to delay the sensor power up with
 	 * out adding a delay
 	 */
-
 
 	stm32_usbinitialize();
 
