@@ -62,7 +62,7 @@
 
 #define MAX_CMD_LEN 100
 
-#define PX4_MAX_TASKS 100
+#define PX4_MAX_TASKS 50
 #define SHELL_TASK_ID (PX4_MAX_TASKS+1)
 
 pthread_t _shell_task_id = 0;
