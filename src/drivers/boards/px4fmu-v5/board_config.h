@@ -221,44 +221,52 @@ __BEGIN_DECLS
 #define ADC1_CH(n)                      (n)
 #define ADC1_GPIO(n)                    GPIO_ADC1_IN##n
 
+/* Define GPIO pins used as ADC N.B. Channel numbers must match below */
+
 #define PX4_ADC_GPIO  \
-	ADC1_GPIO(0), \
-	ADC1_GPIO(1), \
-	ADC1_GPIO(2), \
-	ADC1_GPIO(3), \
-	ADC1_GPIO(4), \
-	ADC1_GPIO(8), \
-	ADC1_GPIO(10), \
-	ADC1_GPIO(11), \
-	ADC1_GPIO(12), \
-	ADC1_GPIO(13), \
-	ADC1_GPIO(14)
+	/* PA0 */  ADC1_GPIO(0),  \
+	/* PA1 */  ADC1_GPIO(1),  \
+	/* PA2 */  ADC1_GPIO(2),  \
+	/* PA3 */  ADC1_GPIO(3),  \
+	/* PA4 */  ADC1_GPIO(4),  \
+	/* PB8 */  ADC1_GPIO(8),  \
+	/* PC0 */  ADC1_GPIO(10), \
+	/* PC1 */  ADC1_GPIO(11), \
+	/* PC2 */  ADC1_GPIO(12), \
+	/* PC3 */  ADC1_GPIO(13), \
+	/* PC4 */  ADC1_GPIO(14)
 
+/* Define Channel numbers must match above GPIO pin IN(n)*/
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL             ADC1_CH(0)
-#define ADC_BATTERY_CURRENT_CHANNEL             ADC1_CH(1)
-#define ADC_BATTERY1_VOLTAGE_CHANNEL            ADC1_CH(2)
-#define ADC_BATTERY1_CURRENT_CHANNEL            ADC1_CH(3)
-#define ADC1_SPARE_2_CHANNEL                    ADC1_CH(4)
-#define ADC_RC_RSSI_CHANNEL                     ADC1_CH(8)
-#define ADC_SCALED_V5_CHANNEL                   ADC1_CH(10)
-#define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL      ADC1_CH(11)
-#define HW_VER_SENSE_CHANNEL                    ADC1_CH(12)
-#define HW_REV_SENSE_CHANNEL                    ADC1_CH(13)
-#define ADC1_SPARE_1_CHANNEL                    ADC1_CH(14)
+#define ADC_BATTERY1_VOLTAGE_CHANNEL        /* PA0 */  ADC1_CH(0)
+#define ADC_BATTERY1_CURRENT_CHANNEL        /* PA1 */  ADC1_CH(1)
+#define ADC_BATTERY2_VOLTAGE_CHANNEL        /* PA2 */  ADC1_CH(2)
+#define ADC_BATTERY2_CURRENT_CHANNEL        /* PA3 */  ADC1_CH(3)
+#define ADC1_SPARE_2_CHANNEL                /* PA4 */  ADC1_CH(4)
+#define ADC_RSSI_IN_CHANNEL                 /* PB8 */  ADC1_CH(8)
+#define ADC_SCALED_V5_CHANNEL               /* PC0 */  ADC1_CH(10)
+#define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL  /* PC1 */  ADC1_CH(11)
+#define ADC_HW_VER_SENSE_CHANNEL            /* PC2 */  ADC1_CH(12)
+#define ADC_HW_REV_SENSE_CHANNEL            /* PC3 */  ADC1_CH(13)
+#define ADC1_SPARE_1_CHANNEL                /* PC4 */  ADC1_CH(14)
 
-#define ADC_CHANNELS ((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-		      (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-		      (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-		      (1 << ADC_BATTERY1_VOLTAGE_CHANNEL) | \
-		      (1 << ADC_BATTERY1_CURRENT_CHANNEL) | \
-		      (1 << ADC1_SPARE_2_CHANNEL) | \
-		      (1 << ADC_RC_RSSI_CHANNEL) | \
-		      (1 << ADC_SCALED_V5_CHANNEL) | \
-		      (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
-		      (1 << HW_VER_SENSE_CHANNEL) | \
-		      (1 << HW_REV_SENSE_CHANNEL) | \
-		      (1 << ADC1_SPARE_1_CHANNEL))
+#define ADC_CHANNELS \
+	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
+	 (1 << ADC_BATTERY1_CURRENT_CHANNEL)       | \
+	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL)       | \
+	 (1 << ADC_BATTERY2_CURRENT_CHANNEL)       | \
+	 (1 << ADC1_SPARE_2_CHANNEL)               | \
+	 (1 << ADC_RSSI_IN_CHANNEL)                | \
+	 (1 << ADC_SCALED_V5_CHANNEL)              | \
+	 (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
+	 (1 << ADC_HW_VER_SENSE_CHANNEL)           | \
+	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
+	 (1 << ADC1_SPARE_1_CHANNEL))
+
+/* HW Version and Revision drive signals Default to 1 to detect */
+
+#define GPIO_HW_REV_DRIVE    /* PH14  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTH|GPIO_PIN14)
+#define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 
 /* CAN Silence
  *
@@ -356,28 +364,35 @@ __BEGIN_DECLS
 
 /* Power supply control and monitoring GPIOs */
 
-#define GPIO_POWER_IN_A           /* PG1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN1)
-#define GPIO_POWER_IN_B           /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
-#define GPIO_POWER_IN_C           /* PG3  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN3)
+#define GPIO_nPOWER_IN_A                /* PG1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN1)
+#define GPIO_nPOWER_IN_B                /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
+#define GPIO_nPOWER_IN_C                /* PG3  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN3)
 
-#define GPIO_VDD_BRICK_VALID            GPIO_POWER_IN_A /* Legacy */
-#define GPIO_VDD_BRICK1_VALID           GPIO_POWER_IN_A /* Brick 1 Is Choose */
-#define GPIO_VDD_BRICK2_VALID           GPIO_POWER_IN_B /* Brick 2 Is Choose  */
+#define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
+#define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
 #define BOARD_NUMBER_BRICKS             2
-#define GPIO_VDD_USB_VALID              GPIO_POWER_IN_C /* USB     Is Choose */
+#define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
-#define GPIO_VDD_3V3_SENSORS_EN         /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
-#define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
-#define GPIO_VDD_5V_RC_EN               /* PG5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN5)
-#define GPIO_VDD_5V_WIFI_EN             /* PG6  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN5)
+#define GPIO_nVDD_5V_PERIPH_OC          /* PE15 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
+#define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
+#define GPIO_nVDD_5V_HIPOWER_OC         /* PG13 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTF|GPIO_PIN13)
+#define GPIO_VDD_3V3_SENSORS_EN         /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_VDD_5V_RC_EN               /* PG5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
+#define GPIO_VDD_5V_WIFI_EN             /* PG6  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PG7  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN7)
 
-/* Active High SD Card Power enable */
 
-#define SD_CARD_POWER_CTRL(on_true)    px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
+/* Define True logic Power Control in arch agnostic form */
 
-#define GPIO_nVDD_5V_PERIPH_OC    /* PE15 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
+#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
+#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
+#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
+#define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
+#define VDD_5V_RC_EN(on_true)              px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
+#define VDD_5V_WIFI_EN(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_WIFI_EN, (on_true))
+#define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 
 /* Tone alarm output */
 #define TONE_ALARM_TIMER		9	/* timer 9 */
@@ -418,7 +433,7 @@ __BEGIN_DECLS
 
 /* Power switch controls ******************************************************/
 
-#define SPEKTRUM_POWER(_on_true)           px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (_on_true))
+#define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
  * FMUv5 has a separate RC_IN
@@ -456,10 +471,12 @@ __BEGIN_DECLS
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID   (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
+#define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
+#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 #define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
-#define BOARD_ADC_HIPOWER_5V_OC (0)
+#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
+#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
@@ -472,43 +489,51 @@ __BEGIN_DECLS
 		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,              0}, \
 		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,              0}, \
 		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,              0}, \
-		{GPIO_POWER_IN_A,        0,                              0}, \
-		{GPIO_POWER_IN_B,        0,                              0}, \
-		{GPIO_POWER_IN_C,        0,                              0}, \
-		{0,                      GPIO_VDD_3V3_SENSORS_EN,        0}, \
-		{GPIO_VDD_BRICK_VALID,   0,                              0}, \
-		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 0}, \
+		{GPIO_nPOWER_IN_A,       0,                              0}, \
+		{GPIO_nPOWER_IN_B,       0,                              0}, \
+		{GPIO_nPOWER_IN_C,       0,                              0}, \
 		{0,                      GPIO_nVDD_5V_PERIPH_EN,         0}, \
+		{GPIO_nVDD_5V_PERIPH_OC, 0,                              0}, \
+		{0,                      GPIO_nVDD_5V_HIPOWER_EN,        0}, \
+		{GPIO_nVDD_5V_HIPOWER_OC,0,                              0}, \
+		{0,                      GPIO_VDD_3V3_SENSORS_EN,        0}, \
+		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 0}, \
 		{0,                      GPIO_VDD_5V_RC_EN,              0}, \
 		{0,                      GPIO_VDD_5V_WIFI_EN,            0}, \
-		{0,                      GPIO_VDD_3V3_SD_CARD_EN,        0}, }
+		{0,                      GPIO_VDD_3V3_SD_CARD_EN,        0}, \
+		{0,                      GPIO_HW_REV_DRIVE,              0}, \
+		{0,                      GPIO_HW_VER_DRIVE,              0}, \
+	}
 
 /*
  * GPIO numbers.
  *
  * There are no alternate functions on this board.
  */
-#define GPIO_SERVO_1             (1<<0)   /**< servo 1 output */
-#define GPIO_SERVO_2             (1<<1)   /**< servo 2 output */
-#define GPIO_SERVO_3             (1<<2)   /**< servo 3 output */
-#define GPIO_SERVO_4             (1<<3)   /**< servo 4 output */
-#define GPIO_SERVO_5             (1<<4)   /**< servo 5 output */
-#define GPIO_SERVO_6             (1<<5)   /**< servo 6 output */
-#define GPIO_SERVO_7             (1<<6)   /**< servo 7 output */
-#define GPIO_SERVO_8             (1<<7)   /**< servo 8 output */
+#define GPIO_SERVO_1                (1<<0)   /**< servo 1 output */
+#define GPIO_SERVO_2                (1<<1)   /**< servo 2 output */
+#define GPIO_SERVO_3                (1<<2)   /**< servo 3 output */
+#define GPIO_SERVO_4                (1<<3)   /**< servo 4 output */
+#define GPIO_SERVO_5                (1<<4)   /**< servo 5 output */
+#define GPIO_SERVO_6                (1<<5)   /**< servo 6 output */
+#define GPIO_SERVO_7                (1<<6)   /**< servo 7 output */
+#define GPIO_SERVO_8                (1<<7)   /**< servo 8 output */
 
-#define GPIO_POWER_INPUT_A       (1<<8)   /**<PG1 GPIO_POWER_IN_A */
-#define GPIO_POWER_INPUT_B       (1<<9)   /**<PG2 GPIO_POWER_IN_B */
-#define GPIO_POWER_INPUT_C       (1<<10)  /**<PG3 GPIO_POWER_IN_C */
+#define GPIO_nPOWER_INPUT_A         (1<<8)   /**<PG1 GPIO_nPOWER_IN_A */
+#define GPIO_nPOWER_INPUT_B         (1<<9)   /**<PG2 GPIO_nPOWER_IN_B */
+#define GPIO_nPOWER_INPUT_C         (1<<10)  /**<PG3 GPIO_nPOWER_IN_C */
 
-#define GPIO_3V3_SENSORS_EN      (1<<11)  /**< PE3  - VDD_3V3_SENSORS_EN */
-#define GPIO_BRICK_VALID         (1<<12)  /**< PB10 - !VDD_BRICK_VALID */
-#define GPIO_SPEKTRUM_POWER      (1<<13)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
-
-#define GPIO_PERIPH_5V_POWER_EN  (1<<14)  /**< PG4  - GPIO_PERIPH_5V_EN        */
-#define GPIO_RC_POWER_EN         (1<<15)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
-#define GPIO_WIFI_POWER_EN       (1<<16)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
-#define GPIO_SD_CARD_POWER_EN    (1<<17)  /**< PG7  - GPIO_VDD_3V3_SD_CARD_EN */
+#define GPIO_PERIPH_5V_POWER_EN     (1<<11)  /**< PG4  - GPIO_nVDD_5V_PERIPH_EN */
+#define GPIO_PERIPH_5V_POWER_OC     (1<<12)  /**< PE15 - GPIO_nVDD_5V_PERIPH_OC */
+#define GPIO_PERIPH_5V_HIPOWER_EN   (1<<13)  /**< PF12 - GPIO_nVDD_5V_HIPOWER_EN */
+#define GPIO_PERIPH_5V_HIPOWER_OC   (1<<14)  /**< PG13 - GPIO_nVDD_5V_HIPOWER_OC */
+#define GPIO_3V3_SENSORS_EN         (1<<15)  /**< PE3  - VDD_3V3_SENSORS_EN */
+#define GPIO_SPEKTRUM_POWER         (1<<16)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
+#define GPIO_RC_POWER_EN            (1<<17)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
+#define GPIO_WIFI_POWER_EN          (1<<18)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
+#define GPIO_SD_CARD_POWER_EN       (1<<19)  /**< PG7  - GPIO_VDD_3V3_SD_CARD_EN */
+#define GPIO_HW_REV_DRIVE_EN        (1<<20)  /**< PH14 - GPIO_HW_REV_DRIVE */
+#define GPIO_HW_VER_DRIVE_EN        (1<<21)  /**< PG0  - GPIO_HW_VER_DRIVE */
 
 /* This board provides a DMA pool and APIs */
 
