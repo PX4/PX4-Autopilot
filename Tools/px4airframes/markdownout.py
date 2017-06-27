@@ -12,7 +12,7 @@ class MarkdownTablesOutput():
 
         result += """This page lists all supported airframes and types including
  the motor assignment and numbering. The motors in **green** rotate clockwise,
- the ones in **blue** conterclockwise.\n\n"""
+ the ones in **blue** counterclockwise.\n\n"""
 
         for group in groups:
 
