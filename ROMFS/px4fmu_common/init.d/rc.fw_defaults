@@ -17,6 +17,8 @@ then
 
 	param set MIS_LTRMIN_ALT 25
 	param set MIS_TAKEOFF_ALT 25
+
+	param set PWM_RATE 50
 fi
 
 # This is the gimbal pass mixer
