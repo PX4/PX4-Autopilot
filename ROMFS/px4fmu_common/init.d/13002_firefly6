@@ -2,7 +2,10 @@
 #
 # @name BirdsEyeView Aerobotics FireFly6
 # @type VTOL Tiltrotor
+# @class VTOL
+#
 # @maintainer Roman Bapst <roman@uaventure.com>
+#
 # @output MAIN1 Front right motor bottom
 # @output MAIN2 Front right motor top
 # @output MAIN3 Back motor bottom
