@@ -18,10 +18,10 @@ class MarkdownTablesOutput():
         
 
         for group in groups:
-            if group.GetType() not in type_set:
+            if group.GetClass() not in type_set:
                #result += '\n<span id="type_%s"></span>\n' % group.GetType().lower()
-               result += '## %s\n\n' % group.GetType()
-               type_set.add(group.type)
+               result += '## %s\n\n' % group.GetClass()
+               type_set.add(group.GetClass())
 
             result += '### %s\n\n' % group.GetName()
 

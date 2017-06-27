@@ -6,68 +6,11 @@ class ParameterGroup(object):
     """
     Single parameter group
     """
-    def __init__(self, name):
+    def __init__(self, name, af_class):
         self.name = name
+        self.af_class = af_class
         self.params = []
 
-        if (self.name == "Standard Plane"):
-            self.type = "Plane"
-        elif (self.name == "Flying Wing"):
-            self.type =  "Plane"
-        elif (self.name == "Quadrotor x"):
-            self.type =  "Copter"
-        elif (self.name == "Quadrotor +"):
-            self.type =  "Copter"
-        elif (self.name == "Hexarotor x"):
-            self.type =  "Copter"
-        elif (self.name == "Hexarotor +"):
-            self.type =  "Copter"
-        elif (self.name == "Octorotor +"):
-            self.type =  "Copter"
-        elif (self.name == "Octorotor x"):
-            self.type =  "Copter"
-        elif (self.name == "Octorotor Coaxial"):
-            self.type =  "Copter"
-        elif (self.name == "Octo Coax Wide"):
-            self.type =  "Copter"
-        elif (self.name == "Quadrotor Wide"):
-            self.type =  "Copter"
-        elif (self.name == "Quadrotor H"):
-            self.type =  "Copter"
-        elif (self.name == "Quadrotor asymmetric"):
-            self.type =  "Copter"
-        elif (self.name == "Simulation"):
-            self.type =  "Simulation"
-        elif (self.name == "Plane A-Tail"):
-            self.type =  "Plane"
-        elif (self.name == "VTOL Duo Tailsitter"):
-            self.type =  "VTOL"
-        elif (self.name == "Standard VTOL"):
-            self.type =  "VTOL"
-        elif (self.name == "VTOL Quad Tailsitter"):
-            self.type =  "VTOL"
-        elif (self.name == "VTOL Tiltrotor"):
-            self.type =  "VTOL"
-        elif (self.name == "Coaxial Helicopter"):
-            self.type =  "Copter"
-        elif (self.name == "Helicopter"):
-            self.type =  "Copter"
-        elif (self.name == "Hexarotor Coaxial"):
-            self.type =  "Copter"
-        elif (self.name == "Y6A"):
-            self.type =  "Copter"
-        elif (self.name == "Tricopter Y-"):
-            self.type =  "Copter"
-        elif (self.name == "Tricopter Y+"):
-            self.type =  "Copter"
-        elif (self.name == "Rover"):
-            self.type =  "Rover"
-        elif (self.name == "Boat"):
-            self.type = "Boat"
-        elif (self.name == "custom"):
-            self.type = "Unknown"
-        else:
-            self.type = "Unknown"
 
     def AddParameter(self, param):
         """
@@ -81,11 +24,11 @@ class ParameterGroup(object):
         """
         return self.name
 
-    def GetType(self):
+    def GetClass(self):
         """
         Get parameter group vehicle type.
         """
-        return self.type
+        return self.af_class
         
     def GetImageName(self):
         """
@@ -462,9 +405,13 @@ class SourceParser(object):
             param.SetArch(arch, archs[arch])
 
         # Store the parameter
-        if airframe_type not in self.param_groups:
-            self.param_groups[airframe_type] = ParameterGroup(airframe_type)
-        self.param_groups[airframe_type].AddParameter(param)
+        
+        #Create a class-specific airframe group. This is needed to catch cases where an airframe type might cross classes (e.g. simulation)
+        class_group_identifier=airframe_type+airframe_class
+        if class_group_identifier not in self.param_groups:
+            #self.param_groups[airframe_type] = ParameterGroup(airframe_type)  #HW TEST REMOVE
+            self.param_groups[class_group_identifier] = ParameterGroup(airframe_type, airframe_class)
+        self.param_groups[class_group_identifier].AddParameter(param)
 
         return True
 
@@ -523,6 +470,6 @@ class SourceParser(object):
         """
         groups = self.param_groups.values()
         groups = sorted(groups, key=lambda x: x.GetName())
-        groups = sorted(groups, key=lambda x: x.GetType())
+        groups = sorted(groups, key=lambda x: x.GetClass())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
         return groups
