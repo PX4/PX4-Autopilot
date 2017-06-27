@@ -113,13 +113,14 @@ class Parameter(object):
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self, path, name, airframe_type, airframe_id, maintainer):
+    def __init__(self, path, name, airframe_type, airframe_class, airframe_id, maintainer):
         self.fields = {}
         self.outputs = {}
         self.archs = {}
         self.path = path
         self.name = name
         self.type = airframe_type
+        self.af_class = airframe_class
         self.id = airframe_id
         self.maintainer = maintainer
 
@@ -131,6 +132,9 @@ class Parameter(object):
 
     def GetType(self):
         return self.type
+
+    def GetClass(self):
+        return self.af_class
 
     def GetId(self):
         return self.id
@@ -337,6 +341,7 @@ class SourceParser(object):
         airframe_type = None
         maintainer = "John Doe <john@example.com>"
         airframe_name = None
+        airframe_class = None
 
         # Done with file, store
         for tag in tags:
@@ -344,6 +349,8 @@ class SourceParser(object):
                 maintainer = tags[tag]
             elif tag == "type":
                 airframe_type = tags[tag]
+            elif tag == "class":
+                airframe_class = tags[tag]
             elif tag == "name":
                 airframe_name = tags[tag]
             elif tag not in self.valid_tags:
@@ -355,12 +362,16 @@ class SourceParser(object):
             sys.stderr.write("Aborting due to missing @type tag in file: '%s'\n" % path)
             return False
 
+        if airframe_class == None:
+            sys.stderr.write("Aborting due to missing @class tag in file: '%s'\n" % path)
+            return False
+
         if airframe_name == None:
             sys.stderr.write("Aborting due to missing @name tag in file: '%s'\n" % path)
             return False
 
         # We already know this is an airframe config, so add it
-        param = Parameter(path, airframe_name, airframe_type, airframe_id, maintainer)
+        param = Parameter(path, airframe_name, airframe_type, airframe_class, airframe_id, maintainer)
 
         # Done with file, store
         for tag in tags:
@@ -368,6 +379,8 @@ class SourceParser(object):
                 maintainer = tags[tag]
             if tag == "type":
                 airframe_type = tags[tag]
+            if tag == "class":
+                airframe_class = tags[tag]
             if tag == "name":
                 airframe_name = tags[tag]
             else:
