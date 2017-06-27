@@ -63,18 +63,8 @@ fi
 
 if ver hwcmp AUAV_X21
 then
-	# I2C bus
-	if hmc5883 -C -T start
-	then
-	fi
-
-	# I2C bus
-	if lis3mdl start
-	then
-	fi
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	if mpu6000 -R 2 -T 20602 start
+	# External I2C bus
+	if hmc5883 -C -T -X start
 	then
 	fi
 
