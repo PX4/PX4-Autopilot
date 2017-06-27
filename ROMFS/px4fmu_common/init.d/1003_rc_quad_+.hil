@@ -3,8 +3,9 @@
 # @name HIL Quadcopter +
 #
 # @type Simulation
+# @class Copter
 #
-# @maintainer Anton Babushkin <anton@px4.io>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
 sh /etc/init.d/rc.mc_defaults
