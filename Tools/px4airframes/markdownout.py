@@ -13,10 +13,17 @@ class MarkdownTablesOutput():
         result += """This page lists all supported airframes and types including
  the motor assignment and numbering. The motors in **green** rotate clockwise,
  the ones in **blue** counterclockwise.\n\n"""
+ 
+        type_set = set()
+        
 
         for group in groups:
+            if group.GetType() not in type_set:
+               #result += '\n<span id="type_%s"></span>\n' % group.GetType().lower()
+               result += '## %s\n\n' % group.GetType()
+               type_set.add(group.type)
 
-            result += '## %s\n\n' % group.GetName()
+            result += '### %s\n\n' % group.GetName()
 
             # Display an image of the frame
             image_name = group.GetImageName()
