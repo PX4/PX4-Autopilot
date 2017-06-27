@@ -3,6 +3,7 @@
 # @name Skyhunter 1800
 #
 # @type Standard Plane
+# @class Plane
 #
 # @output MAIN1 aileron
 # @output MAIN2 elevator
