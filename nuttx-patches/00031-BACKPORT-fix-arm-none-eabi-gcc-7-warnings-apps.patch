@@ -1,0 +1,71 @@
+--- NuttX/apps/nshlib/nsh_syscmds.c
++++ NuttX/apps/nshlib/nsh_syscmds.c
+@@ -86,7 +86,9 @@
+  * Private Data
+  ****************************************************************************/
+
++#ifndef CONFIG_NSH_DISABLE_UNAME
+ static const char g_unknown[] = "unknown";
++#endif
+
+ /****************************************************************************
+  * Public Functions
+diff --git NuttX/apps/nshlib/nsh_proccmds.c b/nshlib/nsh_proccmds.c
+index 116dd96d..abd37970 100644
+--- NuttX/apps/nshlib/nsh_proccmds.c
++++ NuttX/apps/nshlib/nsh_proccmds.c
+@@ -108,24 +108,30 @@ struct nsh_taskstatus_s
+
+ /* Status strings */
+
++#ifndef CONFIG_NSH_DISABLE_PS
+ #if 0 /* Not used */
+ static const char g_name[]      = "Name:";
+ #endif
++
+ static const char g_type[]      = "Type:";
++
+ #ifdef CONFIG_SCHED_HAVE_PARENT
+ #ifdef HAVE_GROUPID
+ static const char g_groupid[]   = "Group:";
+ #else
+ static const char g_ppid[]      = "PPID:";
+ #endif
+-#endif
++#endif /* CONFIG_SCHED_HAVE_PARENT */
++
+ #ifdef CONFIG_SMP
+ static const char g_cpu[]       = "CPU:";
+ #endif
++
+ static const char g_state[]     = "State:";
+ static const char g_flags[]     = "Flags:";
+ static const char g_priority[]  = "Priority:";
+ static const char g_scheduler[] = "Scheduler:";
++
+ #ifndef CONFIG_DISABLE_SIGNALS
+ static const char g_sigmask[]   = "SigMask:";
+ #endif
+@@ -135,7 +141,8 @@ static const char g_stacksize[] = "StackSize:";
+ #ifdef CONFIG_STACK_COLORATION
+ static const char g_stackused[] = "StackUsed:";
+ #endif
+-#endif
++#endif /* !CONFIG_NSH_DISABLE_PSSTACKUSAGE */
++#endif /* !CONFIG_NSH_DISABLE_PS */
+
+ /****************************************************************************
+  * Private Functions
+@@ -471,10 +478,10 @@ static int ps_callback(FAR struct nsh_vtbl_s *vtbl, FAR const char *dirpath,
+         }
+     }
+
+-  nsh_output(vtbl, "%6.6u ", (unsigned int)stack_size);
++  nsh_output(vtbl, "%06u ", (unsigned int)stack_size);
+
+ #ifdef CONFIG_STACK_COLORATION
+-  nsh_output(vtbl, "%6.6u ", (unsigned int)stack_used);
++  nsh_output(vtbl, "%06u ", (unsigned int)stack_used);
+
+   stack_filled = 0;
+   if (stack_size > 0 && stack_used > 0)
