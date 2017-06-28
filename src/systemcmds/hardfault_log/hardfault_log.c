@@ -309,16 +309,16 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 				for (int i = 0; i < chunk; i++) {
 					if (wtopaddr == topaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker));
+						strncat(marker, sp_name, sizeof(marker) - 1);
 						strncat(marker, " top", sizeof(marker));
 
 					} else if (wtopaddr == spaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker));
+						strncat(marker, sp_name, sizeof(marker) - 1);
 
 					} else if (wtopaddr == botaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker));
+						strncat(marker, sp_name, sizeof(marker) - 1);
 						strncat(marker, " bottom", sizeof(marker));
 
 					} else {
