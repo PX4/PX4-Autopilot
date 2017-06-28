@@ -66,6 +66,7 @@ public:
 	virtual int activate()
 	{
 		FlightTask::activate();
+		_hold_position = matrix::Vector3f(NAN, NAN, NAN);
 		return 0;
 	};
 
@@ -87,30 +88,56 @@ public:
 	{
 		FlightTask::update();
 
-		matrix::Vector3f man_vel_sp;
-		man_vel_sp(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
-		man_vel_sp(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
-		man_vel_sp(2) = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
+		/* prepare stick input */
+		matrix::Vector2f sick_xy;
+		sick_xy(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _hold_dz.get());
+		sick_xy(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _hold_dz.get());
+		float stick_z = -math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _hold_dz.get());
 
-		const float man_vel_hor_length = matrix::Vector2f(man_vel_sp.data()).length();
+		const float stick_xy_length = sick_xy.length();
 
-		/* saturate such that magnitude is never larger than 1 */
-		if (man_vel_hor_length > 1.0f) {
-			man_vel_sp(0) /= man_vel_hor_length;
-			man_vel_sp(1) /= man_vel_hor_length;
+		/* saturate such that magnitude in xy is never larger than 1 */
+		if (stick_xy_length > 1.0f) {
+			sick_xy /= stick_xy_length;
 		}
 
-		/* rotate setpoint to be in NED frame */
-		man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, get_input_frame_yaw())) * man_vel_sp;
+		/* rotate stick input to produce velocity setpoint in NED frame */
+		matrix::Vector3f velocity_setpoint(sick_xy(0), sick_xy(1), stick_z);
+		velocity_setpoint = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, get_input_frame_yaw())) * velocity_setpoint;
 
-		/* scale smaller than unit length vector to maximal manual speed (m/s) */
+		/* scale [0,1] length velocity vector to maximal manual speed (in m/s) */
 		matrix::Vector3f vel_scale(_velocity_hor_manual.get(),
 					   _velocity_hor_manual.get(),
-					   (man_vel_sp(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
-		man_vel_sp = man_vel_sp.emult(vel_scale);
+					   (velocity_setpoint(2) > 0.0f) ? _z_vel_max_down.get() : _z_vel_max_up.get());
+		velocity_setpoint = velocity_setpoint.emult(vel_scale);
 
-		_set_position_setpoint(matrix::Vector3f(NAN, NAN, NAN));
-		_set_velocity_setpoint(man_vel_sp);
+		_set_velocity_setpoint(velocity_setpoint);
+		//printf("------");
+		//velocity_setpoint.print();
+
+		/* handle position and altitude hold */
+		const bool stick_xy_zero = stick_xy_length <= FLT_EPSILON;
+
+		if (stick_xy_zero && !PX4_ISFINITE(_hold_position(0))) {
+			_hold_position(0) = _position(0);
+			_hold_position(1) = _position(1);
+
+		} else if (!stick_xy_zero) {
+			_hold_position(0) = NAN;
+			_hold_position(1) = NAN;
+		}
+
+		const bool stick_z_zero = fabsf(stick_z) <= FLT_EPSILON;
+
+		if (stick_z_zero && !PX4_ISFINITE(_hold_position(2))) {
+			_hold_position(2) = _position(2);
+
+		} else if (!stick_z_zero) {
+			_hold_position(2) = NAN;
+		}
+
+		_set_position_setpoint(_hold_position);
+		//_hold_position.print();
 		return 0;
 	};
 
@@ -132,4 +159,5 @@ private:
 
 	uORB::Subscription<control_state_s> _sub_control_state;
 
+	matrix::Vector3f _hold_position;
 };
