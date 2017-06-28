@@ -1,0 +1,330 @@
+diff --git NuttX/nuttx/fs/vfs/fs_lseek.c NuttX/nuttx/fs/vfs/fs_lseek.c
+index be74239eca..bea398c0a3 100644
+--- NuttX/nuttx/fs/vfs/fs_lseek.c
++++ NuttX/nuttx/fs/vfs/fs_lseek.c
+@@ -99,7 +99,7 @@ off_t file_seek(FAR struct file *filep, off_t offset, int whence)
+         {
+           case SEEK_CUR:
+             offset += filep->f_pos;
+-
++            /* FALLTHROUGH */
+           case SEEK_SET:
+             if (offset >= 0)
+               {
+diff --git NuttX/nuttx/libc/stdio/lib_sscanf.c NuttX/nuttx/libc/stdio/lib_sscanf.c
+index 0bc413295b..f2b9a8d4e8 100644
+--- NuttX/nuttx/libc/stdio/lib_sscanf.c
++++ NuttX/nuttx/libc/stdio/lib_sscanf.c
+@@ -417,6 +417,7 @@ int vsscanf(FAR const char *buf, FAR const char *fmt, va_list ap)
+                     default:
+                     case 'd':
+                       sign = true;
++                      /* FALLTHROUGH */
+                     case 'u':
+                       base = 10;
+                       break;
+diff --git NuttX/nuttx/libc/stdlib/lib_strtod.c NuttX/nuttx/libc/stdlib/lib_strtod.c
+index 62da9e0f6e..af830abf50 100644
+--- NuttX/nuttx/libc/stdlib/lib_strtod.c
++++ NuttX/nuttx/libc/stdlib/lib_strtod.c
+@@ -113,8 +113,10 @@ double strtod(FAR const char *str, FAR char **endptr)
+     {
+     case '-':
+       negative = 1; /* Fall through to increment position */
++      /* FALLTHROUGH */
+     case '+':
+       p++;
++      /* FALLTHROUGH */
+     default:
+       break;
+     }
+@@ -175,8 +177,10 @@ double strtod(FAR const char *str, FAR char **endptr)
+         {
+         case '-':
+           negative = 1;   /* Fall through to increment pos */
++          /* FALLTHROUGH */
+         case '+':
+           p++;
++          /* FALLTHROUGH */
+         default:
+           break;
+         }
+diff --git NuttX/nuttx/libc/stdlib/lib_strtof.c NuttX/nuttx/libc/stdlib/lib_strtof.c
+index 467842f4e6..6571e2d77e 100644
+--- NuttX/nuttx/libc/stdlib/lib_strtof.c
++++ NuttX/nuttx/libc/stdlib/lib_strtof.c
+@@ -115,8 +115,10 @@ float strtof(FAR const char *str, FAR char **endptr)
+     {
+     case '-':
+       negative = 1; /* Fall through to increment position */
++      /* FALLTHROUGH */
+     case '+':
+       p++;
++      /* FALLTHROUGH */
+     default:
+       break;
+     }
+@@ -177,8 +179,10 @@ float strtof(FAR const char *str, FAR char **endptr)
+         {
+         case '-':
+           negative = 1;   /* Fall through to increment pos */
++          /* FALLTHROUGH */
+         case '+':
+           p++;
++          /* FALLTHROUGH */
+         default:
+           break;
+         }
+diff --git NuttX/nuttx/libc/stdlib/lib_strtold.c NuttX/nuttx/libc/stdlib/lib_strtold.c
+index c306392cec..ac9368e893 100644
+--- NuttX/nuttx/libc/stdlib/lib_strtold.c
++++ NuttX/nuttx/libc/stdlib/lib_strtold.c
+@@ -113,8 +113,10 @@ long double strtold(FAR const char *str, FAR char **endptr)
+     {
+     case '-':
+       negative = 1; /* Fall through to increment position */
++      /* FALLTHROUGH */
+     case '+':
+       p++;
++      /* FALLTHROUGH */
+     default:
+       break;
+     }
+@@ -175,8 +177,10 @@ long double strtold(FAR const char *str, FAR char **endptr)
+         {
+         case '-':
+           negative = 1;   /* Fall through to increment pos */
++          /* FALLTHROUGH */
+         case '+':
+           p++;
++          /* FALLTHROUGH */
+         default:
+           break;
+         }
+diff --git NuttX/nuttx/libc/stdio/lib_dtoa.c NuttX/nuttx/libc/stdio/lib_dtoa.c
+index 8ddc3bfd35..0cc3b48fdd 100644
+--- NuttX/nuttx/libc/stdio/lib_dtoa.c
++++ NuttX/nuttx/libc/stdio/lib_dtoa.c
+@@ -591,6 +591,7 @@ static int cmp(Bigint * a, Bigint * b)
+           break;
+         }
+     }
++
+   return 0;
+ }
+
+@@ -784,6 +785,7 @@ static Bigint *d2b(double d, int *e, int *bits)
+     }
+   while (!x[i])
+     --i;
++
+   b->wds = i + 1;
+ #endif
+   if (de)
+@@ -817,11 +819,6 @@ static const double bigtens[] =
+   1e16, 1e32, 1e64, 1e128, 1e256
+ };
+
+-static const double tinytens[] =
+-{
+-  1e-16, 1e-32, 1e-64, 1e-128, 1e-256
+-};
+-
+ #  define n_bigtens 5
+ #else
+ static const double bigtens[] =
+@@ -829,11 +826,6 @@ static const double bigtens[] =
+   1e16, 1e32
+ };
+
+-static const double tinytens[] =
+-{
+-  1e-16, 1e-32
+-};
+-
+ #  define n_bigtens 2
+ #endif
+
+@@ -849,12 +841,14 @@ static int quorem(Bigint * b, Bigint * S)
+ #endif
+
+   n = S->wds;
++
+ #ifdef CONFIG_DEBUG_LIB
+   if (b->wds > n)
+     {
+       lerr("ERROR: oversize b in quorem\n");
+     }
+ #endif
++
+   if (b->wds < n)
+     {
+       return 0;
+@@ -865,17 +859,19 @@ static int quorem(Bigint * b, Bigint * S)
+   bx = b->x;
+   bxe = bx + n;
+   q = *bxe / (*sxe + 1);        /* ensure q <= true quotient */
++
+ #ifdef CONFIG_DEBUG_LIB
+   if (q > 9)
+-   {
+-     lerr("ERROR: oversized quotient in quorem\n");
+-   }
++    {
++      lerr("ERROR: oversized quotient in quorem\n");
++    }
+ #endif
+
+   if (q)
+     {
+       borrow = 0;
+       carry = 0;
++
+       do
+         {
+ #ifdef Pack_32
+@@ -912,6 +908,7 @@ static int quorem(Bigint * b, Bigint * S)
+           b->wds = n;
+         }
+     }
++
+   if (cmp(b, S) >= 0)
+     {
+       q++;
+@@ -919,6 +916,7 @@ static int quorem(Bigint * b, Bigint * S)
+       carry = 0;
+       bx = b->x;
+       sx = S->x;
++
+       do
+         {
+ #ifdef Pack_32
+@@ -943,12 +941,14 @@ static int quorem(Bigint * b, Bigint * S)
+ #endif
+         }
+       while (sx <= sxe);
++
+       bx = b->x;
+       bxe = bx + n;
+       if (!*bxe)
+         {
+           while (--bxe > bx && !*bxe)
+             --n;
++
+           b->wds = n;
+         }
+     }
+@@ -1041,7 +1041,8 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+
+   if (word0(d) & Sign_bit)
+     {
+-      /* set sign for everything, including 0's and NaNs */
++      /* Set sign for everything, including 0's and NaNs */
++
+       *sign = 1;
+       word0(d) &= ~Sign_bit;    /* clear sign bit */
+     }
+@@ -1058,6 +1059,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+ #endif
+     {
+       /* Infinity or NaN */
++
+       *decpt = 9999;
+       s =
+ #ifdef IEEE_Arith
+@@ -1076,6 +1078,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+       return s;
+     }
+ #endif
++
+   if (!d)
+     {
+       *decpt = 1;
+@@ -1190,7 +1193,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+
+     case 2:
+       leftright = 0;
+-      /* no break */
++      /* FALLTHROUGH */
+     case 4:
+       if (ndigits <= 0)
+         {
+@@ -1202,7 +1205,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+
+     case 3:
+       leftright = 0;
+-      /* no break */
++      /* FALLTHROUGH */
+     case 5:
+       i = ndigits + k + 1;
+       ilim = i;
+@@ -1241,7 +1244,8 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+
+           if (j & Bletch)
+             {
+-              /* prevent overflows */
++              /* Prevent overflows */
++
+               j &= Bletch - 1;
+               d /= bigtens[n_bigtens - 1];
+               ieps++;
+@@ -1292,8 +1296,10 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+           d -= 5.;
+           if (d > eps)
+             goto one_digit;
++
+           if (d < -eps)
+             goto no_digits;
++
+           goto fast_failed;
+         }
+
+@@ -1357,6 +1363,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+ #ifndef No_leftright
+         }
+ #endif
++
+     fast_failed:
+       s = s0;
+       d = d2;
+@@ -1386,8 +1393,10 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+         {
+           L = (int)(d / ds);
+           d -= L * ds;
++
+ #ifdef Check_FLT_ROUNDS
+           /* If FLT_ROUNDS == 2, L will usually be high by 1 */
++
+           if (d < 0)
+             {
+               L--;
+@@ -1411,6 +1420,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+
+                   ++*s++;
+                 }
++
+               break;
+             }
+
+@@ -1500,6 +1510,7 @@ char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve)
+       if (!word1(d) && !(word0(d) & Bndry_mask) && word0(d) & Exp_mask)
+         {
+           /* The special case */
++
+           b2 += Log2P;
+           s2 += Log2P;
+           spec_case = 1;
+diff --git NuttX/nuttx/drivers/mmcsd/mmcsd_spi.c NuttX/nuttx/drivers/mmcsd/mmcsd_spi.c
+index 2a4cdee73d..c50c3b1456 100644
+--- NuttX/nuttx/drivers/mmcsd/mmcsd_spi.c
++++ b/drivers/mmcsd/mmcsd_spi.c
+@@ -326,7 +326,9 @@ static const struct mmcsd_cmdinfo_s g_cmd0   = {CMD0,   MMCSD_CMDRESP_R1, 0x95};
+ static const struct mmcsd_cmdinfo_s g_cmd1   = {CMD1,   MMCSD_CMDRESP_R1, 0xff};
+ static const struct mmcsd_cmdinfo_s g_cmd8   = {CMD8,   MMCSD_CMDRESP_R7, 0x87};
+ static const struct mmcsd_cmdinfo_s g_cmd9   = {CMD9,   MMCSD_CMDRESP_R1, 0xff};
++#if 0 /*not used */
+ static const struct mmcsd_cmdinfo_s g_cmd10  = {CMD10,  MMCSD_CMDRESP_R1, 0xff};
++#endif
+ static const struct mmcsd_cmdinfo_s g_cmd12  = {CMD12,  MMCSD_CMDRESP_R1, 0xff};
+ static const struct mmcsd_cmdinfo_s g_cmd16  = {CMD16,  MMCSD_CMDRESP_R1, 0xff};
+ static const struct mmcsd_cmdinfo_s g_cmd17  = {CMD17,  MMCSD_CMDRESP_R1, 0xff};

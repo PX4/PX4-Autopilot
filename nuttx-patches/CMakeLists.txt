@@ -59,6 +59,8 @@ set(nuttx_patches
 	00025-BACKPORT-add-set-ex-to-nsh.patch
 	00026-BACKPORT-stm32fX-serial-fix-freezing.patch
 	00027-BACKPORT-stm32-sdio-1-bit-and-16G-fix.patch
+	00030-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-nuttx.patch
+	00031-BACKPORT-fix-arm-none-eabi-gcc-7-warnings-apps.patch
 	90000-PENDING-wip-inflight-to-upstream.patch
 	)
 
