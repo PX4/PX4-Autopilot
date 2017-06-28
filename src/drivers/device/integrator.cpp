@@ -105,7 +105,7 @@ Integrator::put(uint64_t timestamp, math::Vector<3> &val, math::Vector<3> &integ
 	_last_integration_time = timestamp;
 
 	// Only do auto reset if auto reset interval is not 0.
-	if (_auto_reset_interval > 0 && (timestamp - _last_reset_time) > _auto_reset_interval) {
+	if (_auto_reset_interval > 0 && (timestamp - _last_reset_time) >= _auto_reset_interval) {
 
 		// apply coning corrections if required
 		if (_coning_comp_on) {
