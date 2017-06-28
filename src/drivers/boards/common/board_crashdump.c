@@ -16,6 +16,11 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 	}
 }
 
+static uint32_t *__attribute__((noinline)) __sdata_addr(void)
+{
+	return &_sdata;
+}
+
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
 	/* We need a chunk of ram to save the complete context in.
@@ -25,7 +30,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 	 * Unfortunately this is hard to test. See dead below
 	 */
 
-	fullcontext_s *pdump = (fullcontext_s *)&_sdata;
+	fullcontext_s *pdump = (fullcontext_s *)__sdata_addr();
 
 	(void)enter_critical_section();
 
