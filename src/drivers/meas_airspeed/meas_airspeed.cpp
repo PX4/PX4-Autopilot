@@ -236,7 +236,10 @@ MEASAirspeed::collect()
 	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
 	// correct for 5V rail voltage if possible
-	voltage_correction(diff_press_pa_raw, temperature);
+	// The stability benefits of the voltage/temp correction are unclear and should be experimentally reconfirmed
+	// The last experimental test of this was in 2014
+	// This voltage/temp correction conflicts with current MS4525DO datasheet 
+	// voltage_correction(diff_press_pa_raw, temperature);
 
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
