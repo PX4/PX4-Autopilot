@@ -411,7 +411,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 
 	if (fabsf(airspeed.differential_pressure_filtered_pa) > 15.0f && !prearm) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: HIGH AIRSPEED, CHECK CALIBRATION");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED CALIBRATION BAD OR PITOT UNCOVERED");
 		}
 		success = false;
 		goto out;
