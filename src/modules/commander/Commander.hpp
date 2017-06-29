@@ -35,13 +35,17 @@
 #define COMMANDER_HPP_
 
 #include <controllib/blocks.hpp>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/Publication.hpp>
 
 class Commander : public control::SuperBlock
 {
 public:
 	Commander() :
 		SuperBlock(nullptr, "COM"),
-		_pub_control_mode(ORB_ID(vehicle_control_mode), -1, &getPublications())
+		_pub_control_mode(ORB_ID(vehicle_control_mode), -1, &getPublications()),
+		_pub_status_flags(ORB_ID(vehicle_status_flags), -1, &getPublications())
 	{
 
 	}
@@ -54,8 +58,10 @@ public:
 private:
 
 	void publish_control_mode();
+	void publish_status_flags();
 
 	uORB::Publication<vehicle_control_mode_s> _pub_control_mode;
+	uORB::Publication<vehicle_status_flags_s> _pub_status_flags;
 
 };
 

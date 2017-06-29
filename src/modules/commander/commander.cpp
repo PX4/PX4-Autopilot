@@ -331,10 +331,6 @@ void *commander_low_prio_loop(void *arg);
 static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 					orb_advert_t &command_ack_pub, vehicle_command_ack_s &command_ack);
 
-/* publish vehicle status flags from the global variable status_flags*/
-static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
-
-
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
 	// Note: this can be called from IRQ handlers, so we publish a message that will be handled
@@ -1509,8 +1505,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	mission_s mission;
 
 	orb_advert_t commander_state_pub = nullptr;
-
-	orb_advert_t vehicle_status_flags_pub = nullptr;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
@@ -3187,7 +3181,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 		}
 
 		/* publish vehicle_status_flags */
-		publish_status_flags(vehicle_status_flags_pub);
+		publish_status_flags();
 
 		/* publish internal state for logging purposes */
 		if (commander_state_pub != nullptr) {
@@ -4409,9 +4403,11 @@ void *commander_low_prio_loop(void *arg)
 	return nullptr;
 }
 
-void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
-	struct vehicle_status_flags_s v_flags;
-	memset(&v_flags, 0, sizeof(v_flags));
+void Commander::publish_status_flags() {
+	vehicle_status_flags_s& v_flags = _pub_status_flags.get();
+
+	v_flags.timestamp = hrt_abstime();
+
 	/* set condition status flags */
 	if (status_flags.condition_calibration_enabled) {
 		v_flags.conditions |= vehicle_status_flags_s::CONDITION_CALIBRATION_ENABLE_MASK;
@@ -4520,10 +4516,5 @@ void publish_status_flags(orb_advert_t &vehicle_status_flags_pub) {
 		v_flags.other_flags |= vehicle_status_flags_s::EVER_HAD_BAROMETER_DATA_MASK;
 	}
 
-	/* publish vehicle_status_flags */
-	if (vehicle_status_flags_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_status_flags), vehicle_status_flags_pub, &v_flags);
-	} else {
-		vehicle_status_flags_pub = orb_advertise(ORB_ID(vehicle_status_flags), &v_flags);
-	}
+	_pub_status_flags.update();
 }
