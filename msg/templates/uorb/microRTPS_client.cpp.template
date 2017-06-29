@@ -77,7 +77,7 @@ static void usage(const char *name)
              "  -u <update_time_ms>     Time for uORB subscribed topics update. Default 0\n"
              "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
              "  -s <sleep_time>         Time (microseconds) for which each iteration sleep. Default 0\n"
-             "  -b <baudrate>           UART device baudrate. Default 460800\n",
+             "  -b <baudrate>           UART device baudrate. Default 460800\n"
              "  -p <poll_ms>            Time in ms to poll over UART\n",
              name);
 }
