@@ -129,6 +129,7 @@ int UART_node::init_uart(const char * uart_name, uint32_t baudrate)
         usleep(1000);
     }
     if (flush) printf("flush\n");
+    else printf("no flush\n");
 
     return m_uart_filestream;
 }
@@ -147,8 +148,6 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], size_t buffer
         return -1;
 
     // Read up to max_size characters from the port if they are there
-
-    //uint32_t &pos_to_write = rx_buff_pos;
 
     int len = read(m_uart_filestream, (void*)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
 
@@ -196,7 +195,7 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], size_t buffer
     }
 
     /*
-     * [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+     * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
      */
 
     struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
@@ -229,6 +228,7 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], size_t buffer
     uint16_t calc_crc = crc16((uint8_t*)rx_buffer + msg_start_pos + sizeof(struct Header), payload_len);
     if (read_crc != calc_crc) {
         printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+        printf("                                 (↓ %lu)\n", sizeof(struct Header) + payload_len);
         ret = -1;
     } else {
         //printf("GOOD CRC %u == %u\n", read_crc, calc_crc);
@@ -270,7 +270,7 @@ int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint16_t leng
         goto err;
 
     ret = write(m_uart_filestream, buffer, length);
-    if (ret != sizeof(header))
+    if (ret != length)
         goto err;
 
     /*printf(">>>%hhd %c %c|", topic_ID, seq, (char)length);

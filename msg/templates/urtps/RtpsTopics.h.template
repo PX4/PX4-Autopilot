@@ -35,11 +35,8 @@ public:
     void publish(char topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
-    // Get next available topic and put it on scdr
-    // return false when all topics were iterated or when no more
-    // topics have messages
-    // TODO could this be a proper C++ iterator?
-    bool nextMsg(char *topic_ID, eprosima::fastcdr::Cdr &scdr);
+    bool hasMsg(char *topic_ID);
+    bool getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr);
 @[end if]@
 
 private:

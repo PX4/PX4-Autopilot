@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     std::string uart_dev = "/dev/ttyACM0";
     uint32_t baud = 460800;
     if (argc > 1) uart_dev = std::string(argv[1]);
-    if (argc > 2) baud = atoi(argv[1]);
+    if (argc > 2) baud = atoi(argv[2]);
     if (m_uartNode.init_uart(uart_dev.c_str(), baud) < 0)
     {
         printf("EXITING...\n");
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     }
 
     int usleep_ms = USLEEP_MS;
-    if (argc > 2) usleep_ms = atoi(argv[2]);
+    if (argc > 3) usleep_ms = atoi(argv[3]);
 
     char data_buffer[BUFFER_SIZE] = {};
     int received = 0, sent = 0, wait = 0, total_read = 0;
@@ -105,14 +105,17 @@ int main(int argc, char** argv)
 @[if recv_topics]@
 
         // Send subscribed topics over UART
-        eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
-        eprosima::fastcdr::Cdr scdr(cdrbuffer);
-        while (topics.nextMsg(&topic_ID, scdr))
+        while (topics.hasMsg(&topic_ID))
         {
-            size_t len = scdr.getSerializedDataLength();
-            //printf("[%d]>> %lu\n", topic_ID, msg.timestamp());
-            m_uartNode.writeToUART(topic_ID, scdr.getBufferPointer(), len);
-            ++sent;
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, sizeof(data_buffer));
+            eprosima::fastcdr::Cdr scdr(cdrbuffer);
+            if (topics.getMsg(topic_ID, scdr))
+            {
+                size_t len = scdr.getSerializedDataLength();
+                //printf("[%d]>> %lu\n", topic_ID, msg.timestamp());
+                m_uartNode.writeToUART(topic_ID, scdr.getBufferPointer(), len);
+                ++sent;
+            }
         }
 @[end if]@
 

@@ -72,32 +72,56 @@ void RtpsTopics::publish(char topic_ID, char data_buffer[], size_t len)
     }
 }
 @[end if]@
-
 @[if recv_topics]@
-bool RtpsTopics::nextMsg(char *topic_ID, eprosima::fastcdr::Cdr &scdr)
+
+bool RtpsTopics::hasMsg(char *topic_ID)
 {
-    while (_next_sub_idx < sizeof(_sub_topics)/sizeof(_sub_topics[0])) {
+    if (nullptr == topic_ID) return false;
+
+    *topic_ID = 0;
+    while (_next_sub_idx < @(len(recv_topics)) && 0 == *topic_ID)
+    {
         switch (_sub_topics[_next_sub_idx])
         {
 @[for topic in recv_topics]@
-        case @(message_id(topic)): // @(topic)
-            if (_@(topic)_sub.hasMsg()) {
-                @(topic)_ msg = _@(topic)_sub.getMsg();
-                msg.serialize(scdr);
-                *topic_ID = @(message_id(topic)); // @(topic)
-                goto ok;
-            }
-            break;
+            case @(message_id(topic)): if (_@(topic)_sub.hasMsg()) *topic_ID = @(message_id(topic)); break;
 @[end for]@
+            default:
+                printf("Unexpected topic ID\n");
+            break;
         }
         _next_sub_idx++;
     }
 
-    _next_sub_idx = 0;
-    return false;
+    if (0 == *topic_ID)
+    {
+        _next_sub_idx = 0;
+        return false;
+    }
 
-ok:
-    _next_sub_idx++;
     return true;
+}
+
+bool RtpsTopics::getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr)
+{
+    bool ret = false;
+    switch (topic_ID)
+    {
+@[for topic in recv_topics]@
+        case @(message_id(topic)): // @(topic)
+            if (_@(topic)_sub.hasMsg())
+            {
+                @(topic)_ msg = _@(topic)_sub.getMsg();
+                msg.serialize(scdr);
+                ret = true;
+            }
+        break;
+@[end for]@
+        default:
+            printf("Unexpected topic ID\n");
+        break;
+    }
+
+    return ret;
 }
 @[end if]@

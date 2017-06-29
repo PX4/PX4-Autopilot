@@ -47,6 +47,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #define USLEEP 0
 #define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
+#define POLL_MS 1
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
@@ -56,12 +57,14 @@ struct options {
     int loops;
     int usleep;
     uint32_t baudrate;
+    int poll_ms;
 } _options = {
     .device = DEVICE,
     .update_time = UPDATE_TIME_MS,
     .loops = LOOPS,
     .usleep = USLEEP,
-    .baudrate = BAUDRATE
+    .baudrate = BAUDRATE,
+    .poll_ms = POLL_MS
 };
 
 static int _rtps_task = -1;
@@ -75,6 +78,7 @@ static void usage(const char *name)
              "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
              "  -s <sleep_time>         Time (microseconds) for which each iteration sleep. Default 0\n"
              "  -b <baudrate>           UART device baudrate. Default 460800\n",
+             "  -p <poll_ms>            Time in ms to poll over UART\n",
              name);
 }
 
@@ -84,7 +88,7 @@ static int parse_options(int argc, char *argv[])
     int myoptind = 1;
     const char *myoptarg = nullptr;
 
-    while ((ch = px4_getopt(argc, argv, "d:u:l:s:b:", &myoptind, &myoptarg)) != EOF) {
+    while ((ch = px4_getopt(argc, argv, "d:u:l:s:b:p:", &myoptind, &myoptarg)) != EOF) {
         switch (ch) {
         case 'd':
             _options.device = myoptarg;
@@ -100,6 +104,9 @@ static int parse_options(int argc, char *argv[])
             break;
         case 'b':
             _options.baudrate = strtoul(myoptarg, nullptr, 10);
+            break;
+        case 'p':
+            _options.poll_ms = strtoul(myoptarg, nullptr, 10);
             break;
         default:
             usage(argv[1]);
@@ -117,7 +124,8 @@ static int micrortps_start(int argc, char *argv[])
         return -1;
     }
 
-    printf("device: %s update: %dms loops: %d usleep: %d baudrate: %d\n", _options.device, _options.update_time, _options.loops, _options.usleep, _options.baudrate);
+    printf("device: %s update: %dms loops: %d usleep: %d baudrate: %d poll: %dms\n",
+           _options.device, _options.update_time, _options.loops, _options.usleep, _options.baudrate, _options.poll_ms);
     usleep(2000000);
 
     int uart_fd;
@@ -174,10 +182,12 @@ static int micrortps_start(int argc, char *argv[])
     uint32_t sent = 0, received = 0;
     uint64_t total_send_lenght = 0;
 
+@[if recv_topics]@
     // We poll on UART, so we can use protocol splitter driver
     struct pollfd poll_fd[1] = { };
     poll_fd[0].fd = uart_fd;
     poll_fd[0].events = POLLIN;
+@[end if]@
 
     struct timespec begin;
     clock_gettime(0, &begin);
@@ -205,7 +215,7 @@ static int micrortps_start(int argc, char *argv[])
 @[end if]@
 
 @[if recv_topics]@
-        int r = poll(poll_fd, 1, 100);
+        int r = poll(poll_fd, 1, _options.poll_ms);
         if (r == 1 && poll_fd[0].revents & POLLIN)
         {
             char topic_ID = 255;
