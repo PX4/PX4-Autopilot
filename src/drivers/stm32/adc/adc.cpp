@@ -351,20 +351,42 @@ ADC::update_system_power(hrt_abstime now)
 	system_power.timestamp = now;
 
 	system_power.voltage5V_v = 0;
+	system_power.voltage3V3_v = 0;
+	system_power.v3v3_valid = 0;
 
-	/* HW provides ADC_SCALED_V5_SENSE */
-
-#  if defined(ADC_SCALED_V5_SENSE)
+	/* Assume HW provides only ADC_SCALED_V5_SENSE */
+	int cnt = 1;
+	/* HW provides both ADC_SCALED_V5_SENSE and ADC_SCALED_V3V3_SENSORS_SENSE */
+#  if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
+	cnt++;
+#  endif
 
 	for (unsigned i = 0; i < _channel_count; i++) {
+#  if defined(ADC_SCALED_V5_SENSE)
+
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
 			system_power.voltage5V_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / 4096);
+			cnt--;
+
+		} else
+#  endif
+#  if defined(ADC_SCALED_V3V3_SENSORS_SENSE)
+		{
+			if (_samples[i].am_channel == ADC_SCALED_V3V3_SENSORS_SENSE) {
+				// it is 2:1 scaled
+				system_power.voltage3V3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f));
+				system_power.v3v3_valid = 1;
+				cnt--;
+			}
+		}
+
+#  endif
+
+		if (cnt == 0) {
 			break;
 		}
 	}
-
-#  endif
 
 	/* Note once the board_config.h provides BOARD_ADC_USB_CONNECTED,
 	 * It must provide the true logic GPIO BOARD_ADC_xxxx macros.
@@ -373,8 +395,23 @@ ADC::update_system_power(hrt_abstime now)
 	// publish these to the same topic
 
 	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
+	/* If provided used the Valid signal from HW*/
+#if defined(BOARD_ADC_USB_VALID)
+	system_power.usb_vaild = BOARD_ADC_USB_VALID;
+#else
+	/* If not provided then use connected */
+	system_power.usb_vaild  = system_power.usb_connected;
+#endif
 
-	system_power.brick_valid   = BOARD_ADC_BRICK_VALID;
+	/* The valid signals (HW dependent) are associated with each brick */
+
+	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+	system_power.brick_valid = 0;
+
+	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		system_power.brick_valid |=  valid_chan[b] ? 1 << b : 0;
+	}
+
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
 	// OC pins are active low
