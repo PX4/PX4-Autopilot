@@ -258,7 +258,7 @@ private:
 	 */
 	int add_topics_from_file(const char *fname);
 
-	void add_default_topics();
+	void add_common_topics();
 	void add_estimator_replay_topics();
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();

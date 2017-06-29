@@ -554,7 +554,7 @@ bool Logger::copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, 
 	return updated;
 }
 
-void Logger::add_default_topics()
+void Logger::add_common_topics()
 {
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("vehicle_attitude_groundtruth", 10);
@@ -748,21 +748,22 @@ void Logger::run()
 		}
 
 		if (_sdlog_profile == SDLOG_PROFILE_DEFAULT) {
-			add_default_topics();
+			add_common_topics();
+			add_estimator_replay_topics();
 
 		} else if (_sdlog_profile == SDLOG_PROFILE_ESTIMATOR_REPLAY) {
-			add_default_topics();
+			add_common_topics();
 			add_estimator_replay_topics();
 
 		} else if (_sdlog_profile == SDLOG_PROFILE_THERMAL_CALIBRATION) {
 			add_thermal_calibration_topics();
 
 		} else if (_sdlog_profile == SDLOG_PROFILE_SYSTEM_IDENTIFICATION) {
-			add_default_topics();
+			add_common_topics();
 			add_system_identification_topics();
 
 		} else {
-			add_default_topics();
+			add_common_topics();
 			add_estimator_replay_topics();
 		}
 	}
