@@ -168,7 +168,8 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
-	orb_advert_t	_battery_pub;			/**< battery status */
+	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] = {nullptr};			/**< battery status */
+	int 			_battery_pub_intance0ndx = 0; /**< track the index of instance 0 */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
@@ -177,11 +178,11 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
-	struct battery_status_s _battery_status;	/**< battery status */
+	struct battery_status_s _battery_status[BOARD_NUMBER_BRICKS];	/**< battery status */
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	Battery		_battery;			/**< Helper lib to publish battery_status topic. */
+	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
 
 	Parameters		_parameters;			/**< local copies of interesting parameters */
 	ParameterHandles	_parameter_handles;		/**< handles for interesting parameters */
@@ -240,7 +241,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	/* publications */
 	_sensor_pub(nullptr),
-	_battery_pub(nullptr),
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 	_sensor_preflight(nullptr),
@@ -404,7 +404,9 @@ Sensors::parameter_update_poll(bool forced)
 			px4_close(fd);
 		}
 
-		_battery.updateParams();
+		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+			_battery[b].updateParams();
+		}
 	}
 }
 
@@ -425,31 +427,45 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-		float bat_voltage_v = 0.0f;
-		float bat_current_a = 0.0f;
-		bool updated_battery = false;
+		//todo:abosorb into new class Power
+
+		/* For legacy support we publish the battery_status for the Battery that is
+		 * associated with the Brick that is the selected source for VDD_5V_IN
+		 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+		 * Like in the FMUv4
+		 */
+
+		/* The ADC channela that  are associated with each brick, in power controller
+		 * priority order highest to lowest, as defined by the board config.
+		 */
+
+		int   bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
+		int   bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
+
+		/* The valid signals (HW dependent) are associated with each brick */
+
+		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+
+		/* Per Brick readings with default unread channels at 0 */
+
+		float bat_current_a[BOARD_NUMBER_BRICKS] = {0.0f};
+		float bat_voltage_v[BOARD_NUMBER_BRICKS] = {0.0f};
+
+		/* Based on the valid_chan, used to indicate the selected the lowest index
+		 * (highest priority) supply that is the source for the VDD_5V_IN
+		 * When < 0 none selected
+		 */
+
+		int selected_source = -1;
+		orb_advert_t tmp_h = nullptr;
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-
-				/* look for specific channels and process the raw voltage to measurement data */
-				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-					/* Voltage in volts */
-					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
-
-					if (bat_voltage_v > 0.5f) {
-						updated_battery = true;
-					}
-
-				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = (((float)(buf_adc[i].am_data) * _parameters.battery_current_scaling)
-							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
 					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
@@ -474,18 +490,64 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 								 ORB_PRIO_DEFAULT);
 					}
 
+				} else
 #endif
+				{
+					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+						/* Do this once for the lowest (highest priority supply on power controller)
+						 * that is valid
+						 */
+						if (selected_source < 0 && valid_chan[b]) {
+							/* Indicate the lowest brick (highest priority supply on power controller)
+							 * that is valid as the one that is the selected source for the
+							 * VDD_5V_IN
+							 */
+
+							selected_source = b;
+
+							/* Move the selected_source to instance 0 */
+							if (_battery_pub_intance0ndx != b) {
+
+								tmp_h = _battery_pub[_battery_pub_intance0ndx];
+								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[b];
+								_battery_pub[b] = tmp_h;
+								_battery_pub_intance0ndx = b;
+							}
+						}
+
+						// todo:per brick scaling
+						/* look for specific channels and process the raw voltage to measurement data */
+						if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
+							/* Voltage in volts */
+							bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+
+						} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
+							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
+									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+						}
+					}
 				}
 			}
 
-			if (_parameters.battery_source == 0 && updated_battery) {
-				actuator_controls_s ctrl;
-				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							     _armed, &_battery_status);
+			if (_parameters.battery_source == 0) {
 
-				int instance;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
+				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+					/* Consider the brick connected if there is a voltage */
+
+					bool connected = bat_voltage_v[b] > 1.5f;
+
+					actuator_controls_s ctrl;
+					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+
+					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
+									connected, selected_source == b, b,
+									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+									_armed,  &_battery_status[b]);
+					int instance;
+					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
+				}
 			}
 
 			_last_adc = t;
@@ -526,7 +588,9 @@ Sensors::run()
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
-	_battery.reset(&_battery_status);
+	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		_battery[b].reset(&_battery_status[b]);
+	}
 
 	/* get a set of initial values */
 	_voted_sensors_update.sensors_poll(raw);
