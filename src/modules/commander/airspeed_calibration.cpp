@@ -213,37 +213,36 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			calibration_counter++;
+			if (fabsf(diff_pres.differential_pressure_filtered_pa) > 50.0f) {
+				if (diff_pres.differential_pressure_filtered_pa > 0) {
+					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					break;
+				} else {
+					/* do not allow negative values */
+					calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
-			if (fabsf(diff_pres.differential_pressure_filtered_pa) < 50.0f) {
+					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
+					diff_pres_offset = 0.0f;
+					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+						goto error_return;
+					}
 
-				if (calibration_counter % 500 == 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-					tune_neutral(true);
-				}
-			} else if (diff_pres.differential_pressure_filtered_pa < 0.0f) {
-				/* do not allow negative values */
-				calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-				calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					/* save */
+					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
+					param_save_default();
 
-				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
-				diff_pres_offset = 0.0f;
-				if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-					calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+					feedback_calibration_failed(mavlink_log_pub);
 					goto error_return;
 				}
-
-				/* save */
-				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-				param_save_default();
-
-				feedback_calibration_failed(mavlink_log_pub);
-				goto error_return;
-
-			} else {
-				calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-				break;
 			}
+
+			if (calibration_counter % 500 == 0) {
+				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+				tune_neutral(true);
+			}
+			calibration_counter++;
 
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
