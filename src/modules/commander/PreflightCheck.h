@@ -43,7 +43,7 @@
 
 #pragma once
 
-namespace Commander
+namespace Preflight
 {
 /**
 * Runs a preflight check on all sensors to see if they are properly calibrated and healthy

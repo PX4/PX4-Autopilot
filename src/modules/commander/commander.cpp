@@ -44,6 +44,8 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
+#include "Commander.hpp"
+
 #include <cmath>	// NAN
 
 /* commander module headers */
@@ -134,6 +136,8 @@ typedef enum VEHICLE_MODE_FLAG
 	VEHICLE_MODE_FLAG_SAFETY_ARMED=128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
 	VEHICLE_MODE_FLAG_ENUM_END=129, /*  | */
 } VEHICLE_MODE_FLAG;
+
+Commander *commander::g_control;
 
 static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage signal to noise ratio allowed for GPS reception */
 
@@ -288,7 +292,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 /**
  * Mainloop of commander.
  */
-int commander_thread_main(int argc, char *argv[]);
 
 void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
 			 battery_status_s *battery_local, const cpuload_s *cpuload_local);
@@ -390,11 +393,11 @@ int commander_main(int argc, char *argv[])
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_DEFAULT + 40,
 					     3700,
-					     commander_thread_main,
+					     (px4_main_t)&Commander::task_main_trampoline,
 					     (char * const *)&argv[0]);
 
-		unsigned constexpr max_wait_us = 1000000;
-		unsigned constexpr max_wait_steps = 2000;
+		static unsigned constexpr max_wait_us = 1000000;
+		static unsigned constexpr max_wait_steps = 2000;
 
 		unsigned i;
 		for (i = 0; i < max_wait_steps; i++) {
@@ -1295,7 +1298,23 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	status_flags.condition_home_position_valid = true;
 }
 
-int commander_thread_main(int argc, char *argv[])
+void
+Commander::task_main_trampoline(int argc, char *argv[])
+{
+	commander::g_control = new Commander();
+
+	if (commander::g_control == nullptr) {
+		PX4_WARN("OUT OF MEM");
+		return;
+	}
+
+	/* only returns on exit */
+	commander::g_control->commander_thread_main(argc, argv);
+	delete commander::g_control;
+	commander::g_control = nullptr;
+}
+
+int Commander::commander_thread_main(int argc, char *argv[])
 {
 	/* not yet initialized */
 	commander_initialized = false;
@@ -1738,7 +1757,7 @@ int commander_thread_main(int argc, char *argv[])
 		set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	} else {
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
-			status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true,
+			status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status_flags.circuit_breaker_engaged_gpsfailure_check,
 				/* checkDynamic */ false, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
@@ -2002,12 +2021,12 @@ int commander_thread_main(int argc, char *argv[])
 					/* provide RC and sensor status feedback to the user */
 					if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 						/* HITL configuration: check only RC input */
-						(void)Commander::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
+						Preflight::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
 								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					} else {
 						/* check sensors also */
-						(void)Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
+						Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !arm_without_gps,
 								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					}
@@ -4321,7 +4340,7 @@ void *commander_low_prio_loop(void *arg)
 							checkAirspeed = true;
 						}
 
-						status_flags.condition_system_sensors_initialized = Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
+						status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
 							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !arm_without_gps,
 							/* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 
