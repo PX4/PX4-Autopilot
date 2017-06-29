@@ -47,12 +47,7 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
-#include <chip.h>
 #include <stm32_gpio.h>
-#include <arch/board/board.h>
 
 /****************************************************************************************************
  * Definitions
@@ -608,6 +603,8 @@ __BEGIN_DECLS
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN             \
 	}
+
+__BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Types
