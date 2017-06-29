@@ -397,11 +397,13 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_log_name_timestamp(log_name_timestamp),
 	_writer(backend, buffer_size, queue_size),
 	_log_interval(log_interval),
-	_sdlog_mode(0)
+	_sdlog_mode(SDLOG_MODE_ARM_UNTIL_DISARM),
+	_sdlog_profile(SDLOG_PROFILE_DEFAULT)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
 	_sdlog_mode_handle = param_find("SDLOG_MODE");
+	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 
 	if (poll_topic_name) {
 		const orb_metadata **topics = orb_get_topics();
@@ -598,8 +600,11 @@ void Logger::add_default_topics()
 	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
 	add_topic("sensor_preflight", 50);
 	add_topic("task_stack_info");
+}
 
-	/* for estimator replay (need to be at full rate) */
+void Logger::add_estimator_replay_topics()
+{
+	// for estimator replay (need to be at full rate)
 	add_topic("airspeed");
 	add_topic("distance_sensor");
 	add_topic("ekf2_timestamps");
@@ -609,13 +614,21 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status");
 }
 
-void Logger::add_calibration_topics()
+void Logger::add_thermal_calibration_topics()
 {
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-
 	add_topic("sensor_gyro", 100);
 	add_topic("sensor_accel", 100);
 	add_topic("sensor_baro", 100);
+}
+
+void Logger::add_system_identification_topics()
+{
+	// for system id need to log imu and controls at full rate
+	add_topic("sensor_gyro");
+	add_topic("sensor_accel");
+	add_topic("actuator_controls_0");
+	add_topic("actuator_controls_1");
 }
 
 int Logger::add_topics_from_file(const char *fname)
@@ -730,11 +743,27 @@ void Logger::run()
 			param_get(_sdlog_mode_handle, &_sdlog_mode);
 		}
 
-		if (_sdlog_mode == 3) {
-			add_calibration_topics();
+		if (_sdlog_profile_handle != PARAM_INVALID) {
+			param_get(_sdlog_profile_handle, &_sdlog_profile);
+		}
+
+		if (_sdlog_profile == SDLOG_PROFILE_DEFAULT) {
+			add_default_topics();
+
+		} else if (_sdlog_profile == SDLOG_PROFILE_ESTIMATOR_REPLAY) {
+			add_default_topics();
+			add_estimator_replay_topics();
+
+		} else if (_sdlog_profile == SDLOG_PROFILE_THERMAL_CALIBRATION) {
+			add_thermal_calibration_topics();
+
+		} else if (_sdlog_profile == SDLOG_PROFILE_SYSTEM_IDENTIFICATION) {
+			add_default_topics();
+			add_system_identification_topics();
 
 		} else {
 			add_default_topics();
+			add_estimator_replay_topics();
 		}
 	}
 

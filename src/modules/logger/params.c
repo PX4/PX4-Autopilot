@@ -60,14 +60,32 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
- * @value 3 from boot until shutdown - IMU and Baro data only (used for thermal calibration)
+ *
+ * @min 0
+ * @max 2
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+
+/**
+ * Logging Topic Profile
+ *
+ * Selects a set of topics appropriate for specific tasks.
+ *
+ * This parameter is only for the new logger (SYS_LOGGER=1).
+ *
+ * @value 0 default
+ * @value 1 estimator replay
+ * @value 2 thermal calibration
+ * @value 3 system identification
  *
  * @min 0
  * @max 3
  * @reboot_required true
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+PARAM_DEFINE_INT32(SDLOG_PROFILE, 0);
 
 /**
  * Maximum number of log directories to keep

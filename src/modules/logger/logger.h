@@ -58,6 +58,19 @@ namespace px4
 namespace logger
 {
 
+enum {
+	SDLOG_MODE_ARM_UNTIL_DISARM = 0,
+	SDLOG_MODE_BOOT_UNTIL_DISARM = 1,
+	SDLOG_MODE_BOOT_UNTIL_SHUTDOWN = 2
+};
+
+enum {
+	SDLOG_PROFILE_DEFAULT = 0,
+	SDLOG_PROFILE_ESTIMATOR_REPLAY = 1,
+	SDLOG_PROFILE_THERMAL_CALIBRATION = 2,
+	SDLOG_PROFILE_SYSTEM_IDENTIFICATION = 3
+};
+
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES];
 	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
@@ -246,7 +259,9 @@ private:
 	int add_topics_from_file(const char *fname);
 
 	void add_default_topics();
-	void add_calibration_topics();
+	void add_estimator_replay_topics();
+	void add_thermal_calibration_topics();
+	void add_system_identification_topics();
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result);
 
@@ -306,7 +321,9 @@ private:
 
 	// control
 	param_t _sdlog_mode_handle;
+	param_t _sdlog_profile_handle;
 	int32_t _sdlog_mode;
+	int32_t _sdlog_profile;
 
 };
 
