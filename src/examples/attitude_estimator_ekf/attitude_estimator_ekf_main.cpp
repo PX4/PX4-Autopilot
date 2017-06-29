@@ -353,10 +353,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			/* check if we're in HIL - not getting sensor data is fine then */
 			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
-			if (!control_mode.flag_system_hil_enabled) {
-				warnx("WARNING: Not getting sensor data - sensor app running?");
-			}
-
 		} else {
 
 			/* only update parameters if they changed */
