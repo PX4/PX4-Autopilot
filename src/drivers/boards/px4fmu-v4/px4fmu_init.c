@@ -179,7 +179,7 @@ __EXPORT void board_on_reset(int status)
 	 */
 
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(400);
 	}
 }
 
