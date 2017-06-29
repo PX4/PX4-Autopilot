@@ -88,7 +88,7 @@
   accelerometer values. This time reduction is enough to cope with
   worst case timing jitter due to other timers
  */
-#define MPU9250_TIMER_REDUCTION				200
+#define MPU9250_TIMER_REDUCTION				10
 
 
 /*
@@ -137,7 +137,9 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-	_sample_rate(1000),
+	_sample_rate(MPU9250_GYRO_DEFAULT_RATE),
+	_sample_interval_accel(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_accel")),
+	_sample_interval_gyro(perf_alloc(PC_INTERVAL, "mpu6k_sample_interval_gyro")),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
@@ -160,8 +162,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_rotation(rotation),
 	_checked_next(0),
 	_last_temperature(0),
-	_last_accel_data{},
-	_got_duplicate(false)
+	_last_accel{}
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -237,6 +238,8 @@ MPU9250::~MPU9250()
 	}
 
 	/* delete the perf counter */
+	perf_free(_sample_interval_accel);
+	perf_free(_sample_interval_gyro);
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
@@ -257,7 +260,11 @@ MPU9250::init()
 #endif
 
 
+	/* probe again to get our settings that are based on the device type */
+
 	int ret = probe();
+
+	/* if probe failed, bail now */
 
 	if (ret != OK) {
 		DEVICE_DEBUG("MPU9250 probe failed");
@@ -742,10 +749,10 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_GYRO_MAX_RATE);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_GYRO_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -756,7 +763,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (ticks < 125) {
 						return -EINVAL;
 					}
 
@@ -1211,49 +1218,6 @@ MPU9250::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU9250_NUM_CHECKED_REGISTERS;
 }
 
-bool MPU9250::check_null_data(uint32_t *data, uint8_t size)
-{
-	while (size--) {
-		if (*data++) {
-			perf_count(_good_transfers);
-			return false;
-		}
-	}
-
-	// all zero data - probably a SPI bus error
-	perf_count(_bad_transfers);
-	perf_end(_sample_perf);
-	// note that we don't call reset() here as a reset()
-	// costs 20ms with interrupts disabled. That means if
-	// the mpu6k does go bad it would cause a FMU failure,
-	// regardless of whether another sensor is available,
-	return true;
-}
-
-bool MPU9250::check_duplicate(uint8_t *accel_data)
-{
-	/*
-	   see if this is duplicate accelerometer data. Note that we
-	   can't use the data ready interrupt status bit in the status
-	   register as that also goes high on new gyro data, and when
-	   we run with BITS_DLPF_CFG_256HZ_NOLPF2 the gyro is being
-	   sampled at 8kHz, so we would incorrectly think we have new
-	   data when we are in fact getting duplicate accelerometer data.
-	*/
-	if (!_got_duplicate && memcmp(accel_data, &_last_accel_data, sizeof(_last_accel_data)) == 0) {
-		// it isn't new data - wait for next timer
-		perf_end(_sample_perf);
-		perf_count(_duplicates);
-		_got_duplicate = true;
-
-	} else {
-		memcpy(&_last_accel_data, accel_data, sizeof(_last_accel_data));
-		_got_duplicate = false;
-	}
-
-	return _got_duplicate;
-}
-
 void
 MPU9250::measure()
 {
@@ -1280,6 +1244,9 @@ MPU9250::measure()
 	/*
 	 * Fetch the full set of measurements from the MPU9250 in one pass.
 	 */
+
+	// sensor transfer at high clock speed
+
 	if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
 				   (uint8_t *)&mpu_report,
 				   sizeof(mpu_report))) {
@@ -1288,7 +1255,23 @@ MPU9250::measure()
 
 	check_registers();
 
-	if (check_duplicate(&mpu_report.accel_x[0])) {
+	/*
+	 * Check for good transfer
+	 */
+	if (mpu_report.accel_x == 0 &&
+	    mpu_report.accel_y == 0 &&
+	    mpu_report.accel_z == 0 &&
+	    mpu_report.temp == 0 &&
+	    mpu_report.gyro_x == 0 &&
+	    mpu_report.gyro_y == 0 &&
+	    mpu_report.gyro_z == 0) {
+		// all zero data - probably a SPI bus error
+		perf_count(_bad_transfers);
+		perf_end(_sample_perf);
+		// note that we don't call reset() here as a reset()
+		// costs 20ms with interrupts disabled. That means if
+		// the mpu6k does go bad it would cause a FMU failure,
+		// regardless of whether another sensor is available,
 		return;
 	}
 
@@ -1305,175 +1288,250 @@ MPU9250::measure()
 
 #endif
 
-	/*
-	 * Convert from big to little endian
-	 */
-	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-	report.temp    = int16_t_from_bytes(mpu_report.temp);
-	report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+	perf_count(_good_transfers);
 
-	if (check_null_data((uint32_t *)&report, sizeof(report) / 4)) {
-		return;
+	uint64_t stamp = hrt_absolute_time();
+
+	/*
+	 * Accel
+	 */
+	if (memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) != 0) {
+		memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
+
+		// updates sample interval
+		perf_count(_sample_interval_accel);
+
+		/*
+		 * Convert from big to little endian
+		 */
+		report.temp = int16_t_from_bytes(mpu_report.temp);
+		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+
+		/*
+		 * Swap axes and negate y
+		 */
+		int16_t accel_xt = report.accel_y;
+		int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+
+		/*
+		 * Apply the swap
+		 */
+		report.accel_x = accel_xt;
+		report.accel_y = accel_yt;
+
+		/*
+		 * Report buffers.
+		 */
+		accel_report	arb;
+
+		/*
+		 * Adjust and scale results to m/s^2.
+		 */
+		arb.timestamp = stamp;
+
+		// report the error count as the sum of the number of bad
+		// transfers and bad register reads. This allows the higher
+		// level code to decide if it should use this sensor based on
+		// whether it has had failures
+		arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+
+		/*
+		 * 1) Scale raw value to SI units using scaling from datasheet.
+		 * 2) Subtract static offset (in SI units)
+		 * 3) Scale the statically calibrated values with a linear
+		 *    dynamically obtained factor
+		 *
+		 * Note: the static sensor offset is the number the sensor outputs
+		 * 	 at a nominally 'zero' input. Therefore the offset has to
+		 * 	 be subtracted.
+		 *
+		 *	 Example: A gyro outputs a value of 74 at zero angular rate
+		 *	 	  the offset is 74 from the origin and subtracting
+		 *		  74 from all measurements centers them around zero.
+		 */
+
+
+		/* NOTE: Axes have been swapped to match the board a few lines above. */
+
+		arb.x_raw = report.accel_x;
+		arb.y_raw = report.accel_y;
+		arb.z_raw = report.accel_z;
+
+		float xraw_f = report.accel_x;
+		float yraw_f = report.accel_y;
+		float zraw_f = report.accel_z;
+
+		// apply user specified rotation
+		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+		// apply calibration data
+		math::Vector<3> aval;
+		aval(0) = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+		aval(1) = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+		aval(2) = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+		// apply lowpass filter
+		arb.x = _accel_filter_x.apply(aval(0));
+		arb.y = _accel_filter_y.apply(aval(1));
+		arb.z = _accel_filter_z.apply(aval(2));
+
+		math::Vector<3> aval_integrated;
+
+		bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+		arb.x_integral = aval_integrated(0);
+		arb.y_integral = aval_integrated(1);
+		arb.z_integral = aval_integrated(2);
+
+		arb.scaling = _accel_range_scale;
+		arb.range_m_s2 = _accel_range_m_s2;
+
+		_last_temperature = (report.temp) / 361.0f + 35.0f;
+
+		arb.temperature_raw = report.temp;
+		arb.temperature = _last_temperature;
+
+		/* return device ID */
+		arb.device_id = _device_id.devid;
+
+		_accel_reports->force(&arb);
+
+		/* notify anyone waiting for data */
+		if (accel_notify) {
+			poll_notify(POLLIN);
+		}
+
+		if (accel_notify && !(_pub_blocked)) {
+			/* log the time of this report */
+			perf_begin(_controller_latency_perf);
+			/* publish it */
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		}
+
+	} else {
+		perf_count(_duplicates);
 	}
 
-	if (_register_wait != 0) {
-		// we are waiting for some good transfers before using the sensor again
-		// We still increment _good_transfers, but don't return any data yet
-		_register_wait--;
-		return;
-	}
-
 	/*
-	 * Swap axes and negate y
+	 * Gyro
 	 */
-	int16_t accel_xt = report.accel_y;
-	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+	{
+		// updates sample interval
+		perf_count(_sample_interval_gyro);
 
-	int16_t gyro_xt = report.gyro_y;
-	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
+		/*
+		 * Convert from big to little endian
+		 */
+		report.temp = int16_t_from_bytes(mpu_report.temp);
+		report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
+		report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
+		report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
 
-	/*
-	 * Apply the swap
-	 */
-	report.accel_x = accel_xt;
-	report.accel_y = accel_yt;
-	report.gyro_x = gyro_xt;
-	report.gyro_y = gyro_yt;
 
-	/*
-	 * Report buffers.
-	 */
-	accel_report		arb;
-	gyro_report		grb;
+		if (_register_wait != 0) {
+			// we are waiting for some good transfers before using
+			// the sensor again. We still increment
+			// _good_transfers, but don't return any data yet
+			_register_wait--;
+			return;
+		}
 
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
+		/*
+		 * Swap axes and negate y
+		 */
+		int16_t gyro_xt = report.gyro_y;
+		int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
 
-	// report the error count as the sum of the number of bad
-	// transfers and bad register reads. This allows the higher
-	// level code to decide if it should use this sensor based on
-	// whether it has had failures
-	grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+		/*
+		 * Apply the swap
+		 */
+		report.gyro_x = gyro_xt;
+		report.gyro_y = gyro_yt;
 
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
-	 */
+		/*
+		 * Report buffers.
+		 */
+		gyro_report		grb;
 
-	/* NOTE: Axes have been swapped to match the board a few lines above. */
+		/*
+		 * Adjust and scale results to m/s^2.
+		 */
+		grb.timestamp = stamp;
 
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
+		// report the error count as the sum of the number of bad
+		// transfers and bad register reads. This allows the higher
+		// level code to decide if it should use this sensor based on
+		// whether it has had failures
+		grb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
 
-	float xraw_f = report.accel_x;
-	float yraw_f = report.accel_y;
-	float zraw_f = report.accel_z;
+		/*
+		 * 1) Scale raw value to SI units using scaling from datasheet.
+		 * 2) Subtract static offset (in SI units)
+		 * 3) Scale the statically calibrated values with a linear
+		 *    dynamically obtained factor
+		 *
+		 * Note: the static sensor offset is the number the sensor outputs
+		 * 	 at a nominally 'zero' input. Therefore the offset has to
+		 * 	 be subtracted.
+		 *
+		 *	 Example: A gyro outputs a value of 74 at zero angular rate
+		 *	 	  the offset is 74 from the origin and subtracting
+		 *		  74 from all measurements centers them around zero.
+		 */
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+		/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	arb.x = _accel_filter_x.apply(x_in_new);
-	arb.y = _accel_filter_y.apply(y_in_new);
-	arb.z = _accel_filter_z.apply(z_in_new);
+		grb.x_raw = report.gyro_x;
+		grb.y_raw = report.gyro_y;
+		grb.z_raw = report.gyro_z;
 
-	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> aval_integrated;
+		float xraw_f = report.gyro_x;
+		float yraw_f = report.gyro_y;
+		float zraw_f = report.gyro_z;
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
-	arb.x_integral = aval_integrated(0);
-	arb.y_integral = aval_integrated(1);
-	arb.z_integral = aval_integrated(2);
+		// apply user specified rotation
+		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
+		// apply calibration
+		math::Vector<3> gval;
+		gval(0) = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+		gval(1) = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+		gval(2) = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	_last_temperature = (report.temp) / 361.0f + 35.0f;
+		// apply lowpass filter
+		grb.x = _gyro_filter_x.apply(gval(0));
+		grb.y = _gyro_filter_y.apply(gval(1));
+		grb.z = _gyro_filter_z.apply(gval(2));
 
-	arb.temperature_raw = report.temp;
-	arb.temperature = _last_temperature;
+		math::Vector<3> gval_integrated;
 
-	/* return device ID */
-	arb.device_id = _device_id.devid;
+		bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
+		grb.x_integral = gval_integrated(0);
+		grb.y_integral = gval_integrated(1);
+		grb.z_integral = gval_integrated(2);
 
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
+		grb.scaling = _gyro_range_scale;
+		grb.range_rad_s = _gyro_range_rad_s;
 
-	xraw_f = report.gyro_x;
-	yraw_f = report.gyro_y;
-	zraw_f = report.gyro_z;
+		grb.temperature_raw = report.temp;
+		grb.temperature = _last_temperature;
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+		/* return device ID */
+		grb.device_id = _gyro->_device_id.devid;
 
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+		_gyro_reports->force(&grb);
 
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
+		/* notify anyone waiting for data */
+		if (gyro_notify) {
+			_gyro->parent_poll_notify();
+		}
 
-	math::Vector<3> gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-	math::Vector<3> gval_integrated;
-
-	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
-	grb.x_integral = gval_integrated(0);
-	grb.y_integral = gval_integrated(1);
-	grb.z_integral = gval_integrated(2);
-
-	grb.scaling = _gyro_range_scale;
-	grb.range_rad_s = _gyro_range_rad_s;
-
-	grb.temperature_raw = report.temp;
-	grb.temperature = _last_temperature;
-
-	/* return device ID */
-	grb.device_id = _gyro->_device_id.devid;
-
-	_accel_reports->force(&arb);
-	_gyro_reports->force(&grb);
-
-	/* notify anyone waiting for data */
-	if (accel_notify) {
-		poll_notify(POLLIN);
-	}
-
-	if (gyro_notify) {
-		_gyro->parent_poll_notify();
-	}
-
-	if (accel_notify && !(_pub_blocked)) {
-		/* log the time of this report */
-		perf_begin(_controller_latency_perf);
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-	}
-
-	if (gyro_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		if (gyro_notify && !(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		}
 	}
 
 	/* stop measuring */
@@ -1483,6 +1541,8 @@ MPU9250::measure()
 void
 MPU9250::print_info()
 {
+	perf_print_counter(_sample_interval_accel);
+	perf_print_counter(_sample_interval_gyro);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
