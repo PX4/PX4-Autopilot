@@ -83,7 +83,9 @@ Battery::reset(battery_status_s *battery_status)
 }
 
 void
-Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, float throttle_normalized,
+Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
+			     bool connected, bool selected_source, int priority,
+			     float throttle_normalized,
 			     bool armed, battery_status_s *battery_status)
 {
 	reset(battery_status);
@@ -104,7 +106,9 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->discharged_mah = _discharged_mah;
 		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
-		battery_status->connected = true;
+		battery_status->connected = connected;
+		battery_status->system_source = selected_source;
+		battery_status->priority = priority;
 	}
 }
 
