@@ -39,12 +39,23 @@
 class Commander : public control::SuperBlock
 {
 public:
-	Commander() : SuperBlock(nullptr, "COM") {}
+	Commander() :
+		SuperBlock(nullptr, "COM"),
+		_pub_control_mode(ORB_ID(vehicle_control_mode), -1, &getPublications())
+	{
+
+	}
+
 	~Commander() = default;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-
 	int commander_thread_main(int argc, char *argv[]);
+
+private:
+
+	void publish_control_mode();
+
+	uORB::Publication<vehicle_control_mode_s> _pub_control_mode;
 
 };
 

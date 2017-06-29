@@ -54,7 +54,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/led_control.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>

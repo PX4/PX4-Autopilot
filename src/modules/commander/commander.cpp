@@ -227,7 +227,6 @@ static struct vehicle_roi_s _roi = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static struct vehicle_control_mode_s control_mode = {};
 static struct offboard_control_mode_s offboard_control_mode = {};
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
@@ -305,8 +304,6 @@ transition_result_t set_main_state_rc(struct vehicle_status_s *status, vehicle_g
 void reset_posvel_validity(vehicle_global_position_s *global_position, vehicle_local_position_s *local_position, bool *changed);
 
 void check_posvel_validity(bool data_valid, float data_accuracy, float required_accuracy, uint64_t data_timestamp_us, hrt_abstime *last_fail_time_us, int64_t *probation_time_us, bool *valid_state, bool *validity_changed);
-
-void set_control_mode();
 
 bool stabilization_required();
 
@@ -1399,40 +1396,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
-	// These are too verbose, but we will retain them a little longer
-	// until we are sure we really don't need them.
-
-	// const char *main_states_str[commander_state_s::MAIN_STATE_MAX];
-	// main_states_str[commander_state_s::MAIN_STATE_MANUAL]			= "MANUAL";
-	// main_states_str[commander_state_s::MAIN_STATE_ALTCTL]			= "ALTCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_POSCTL]			= "POSCTL";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
-	// main_states_str[commander_state_s::MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
-	// main_states_str[commander_state_s::MAIN_STATE_ACRO]			= "ACRO";
-	// main_states_str[commander_state_s::MAIN_STATE_STAB]			= "STAB";
-	// main_states_str[commander_state_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
-
-	// const char *nav_states_str[vehicle_status_s::NAVIGATION_STATE_MAX];
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_MANUAL]			= "MANUAL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_STAB]				= "STAB";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_RATTITUDE]		= "RATTITUDE";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_POSCTL]			= "POSCTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF]		= "AUTO_TAKEOFF";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER]		= "AUTO_RCRECOVER";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL]	= "AUTO_LANDENGFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL]	= "AUTO_LANDGPSFAIL";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_ACRO]			= "ACRO";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_AUTO_LAND]			= "LAND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
-	// nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
-
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1528,10 +1491,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	memset(&armed, 0, sizeof(armed));
 	/* armed topic */
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
-
-	/* vehicle control mode topic */
-	memset(&control_mode, 0, sizeof(control_mode));
-	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	/* home position */
 	orb_advert_t home_pub = nullptr;
@@ -3132,9 +3091,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
-			set_control_mode();
-			control_mode.timestamp = now;
-			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
+			publish_control_mode();
 
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
@@ -3873,8 +3830,12 @@ check_posvel_validity(bool data_valid, float data_accuracy, float required_accur
 }
 
 void
-set_control_mode()
+Commander::publish_control_mode()
 {
+	vehicle_control_mode_s& control_mode = _pub_control_mode.get();
+
+	control_mode.timestamp = hrt_abstime();
+
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
@@ -4080,6 +4041,8 @@ set_control_mode()
 	default:
 		break;
 	}
+
+	_pub_control_mode.update();
 }
 
 bool

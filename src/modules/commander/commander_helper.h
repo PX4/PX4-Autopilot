@@ -45,7 +45,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <drivers/drv_led.h>
 #include <drivers/drv_board_led.h>
 
