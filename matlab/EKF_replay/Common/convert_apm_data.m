@@ -11,7 +11,7 @@ for source_index = 1:length(BARO)
     end
 end
 
-%% convert IMU data to delta angles and velocities using trapezoidal integration
+%% extract IMU delta angles and velocity data
 clear imu_data;
 imu_data.time_us = IMT(:,2);
 imu_data.gyro_dt = IMT(:,5);
