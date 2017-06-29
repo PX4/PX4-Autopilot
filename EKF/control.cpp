@@ -740,6 +740,16 @@ void Ekf::controlHeightFusion()
 			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
+		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
+			// switch to gps if there was a reset to gps
+			_fuse_height = true;
+			_in_range_aid_mode = false;
+
+			// we have just switched to using gps height, calculate height sensor offset such that current
+			// measurment matches our current height estimate
+			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+			}
 		}
 	}
 
@@ -796,6 +806,16 @@ void Ekf::controlHeightFusion()
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+			}
+		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
+			// switch to baro if there was a reset to baro
+			_fuse_height = true;
+			_in_range_aid_mode = false;
+
+			// we have just switched to using baro height, we don't need to set a height sensor offset
+			// since we track a separate _baro_hgt_offset
+			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+				_hgt_sensor_offset = 0.0f;
 			}
 		}
 	}
