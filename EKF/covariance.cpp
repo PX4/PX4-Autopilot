@@ -100,8 +100,8 @@ void Ekf::initialiseCovariance()
 	}
 
 	// wind
-	P[22][22] = 1.0f;
-	P[23][23] = 1.0f;
+	P[22][22] = sq(_params.initial_wind_uncertainty);
+	P[23][23] = sq(_params.initial_wind_uncertainty);
 
 }
 
@@ -204,7 +204,7 @@ void Ekf::predictCovariance()
 	float wind_vel_sig;
 
 	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
-	if (_control_status.flags.wind && (P[22][22] + P[23][23]) < 2.0f) {
+	if (_control_status.flags.wind && (P[22][22] + P[23][23]) < 2.0f * sq(_params.initial_wind_uncertainty)) {
 		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
 
 	} else {
