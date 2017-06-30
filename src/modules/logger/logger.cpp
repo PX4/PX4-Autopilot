@@ -496,17 +496,30 @@ int Logger::add_topic(const char *name, unsigned interval = 0)
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(name, topics[i]->o_name) == 0) {
-			fd = add_topic(topics[i]);
-			PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
-			break;
+			bool already_added = false;
+
+			// check if already added: if so, only update the interval
+			for (size_t j = 0; j < _subscriptions.size(); ++j) {
+				if (_subscriptions[j].metadata == topics[i]) {
+					PX4_DEBUG("logging topic %s, interval: %i, already added, only setting interval",
+						  topics[i]->o_name, interval);
+					fd = _subscriptions[j].fd[0];
+					already_added = true;
+					break;
+				}
+			}
+
+			if (!already_added) {
+				fd = add_topic(topics[i]);
+				PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
+				break;
+			}
 		}
 	}
 
 	// if we poll on a topic, we don't set the interval and let the polled topic define the maximum interval
-	if (!_polling_topic_meta) {
-		if (fd >= 0 && interval != 0) {
-			orb_set_interval(fd, interval);
-		}
+	if (!_polling_topic_meta && fd >= 0) {
+		orb_set_interval(fd, interval);
 	}
 
 	return fd;
