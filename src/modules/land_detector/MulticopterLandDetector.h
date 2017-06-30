@@ -44,6 +44,7 @@
 
 #include <systemlib/param/param.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -97,6 +98,7 @@ private:
 		param_t manual_stick_down_threshold;
 		param_t altitude_max;
 		param_t manual_stick_up_position_takeoff_threshold;
+		param_t landSpeed;
 	} _paramHandle;
 
 	struct {
@@ -112,9 +114,11 @@ private:
 		float manual_stick_down_threshold;
 		float altitude_max;
 		float manual_stick_up_position_takeoff_threshold;
+		float landSpeed;
 	} _params;
 
 	int _vehicleLocalPositionSub;
+	int _vehicleLocalPositionSetpointSub;
 	int _actuatorsSub;
 	int _armingSub;
 	int _attitudeSub;
@@ -124,6 +128,7 @@ private:
 	int _battery_sub;
 
 	struct vehicle_local_position_s		_vehicleLocalPosition;
+	struct vehicle_local_position_setpoint_s _vehicleLocalPositionSetpoint;
 	struct actuator_controls_s		_actuators;
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
@@ -142,6 +147,7 @@ private:
 	bool _has_manual_control_present();
 	bool _has_minimal_thrust();
 	bool _has_low_thrust();
+	bool _is_velocity_control_active();
 };
 
 
