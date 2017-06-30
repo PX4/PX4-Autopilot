@@ -39,7 +39,6 @@
 
 #include <px4_log.h>
 #include <px4_defines.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -48,6 +47,7 @@
 #include <fcntl.h>
 #include <sched.h>
 #include <unistd.h>
+#include <asm/unistd.h>
 #include <string.h>
 #include <pthread.h>
 #include <limits.h>
@@ -68,22 +68,24 @@
 pthread_t _shell_task_id = 0;
 pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct task_entry {
-	pthread_t pid;
-	std::string name;
-	bool isused;
-	task_entry() : isused(false) {}
-};
-
-static task_entry taskmap[PX4_MAX_TASKS] = {};
-
-typedef struct {
+typedef struct pthdata_t {
 	px4_main_t entry;
 	char name[16]; //pthread_setname_np is restricted to 16 chars
+	long int tid;
 	int argc;
 	char *argv[];
 	// strings are allocated after the struct data
 } pthdata_t;
+
+struct task_entry {
+	pthread_t pid;
+	std::string name;
+	bool isused;
+	pthdata_t *taskdata;
+	task_entry() : isused(false) {}
+};
+
+static task_entry taskmap[PX4_MAX_TASKS] = {};
 
 static void *entry_adapter(void *ptr)
 {
@@ -97,6 +99,8 @@ static void *entry_adapter(void *ptr)
 #else
 	rv = pthread_setname_np(pthread_self(), data->name);
 #endif
+
+	data->tid = (long int)syscall(__NR_gettid);
 
 	if (rv) {
 		PX4_ERR("px4_task_spawn_cmd: failed to set name of thread %d %d\n", rv, errno);
@@ -243,6 +247,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return -ENOSPC;
 	}
 
+	taskmap[taskid].taskdata = taskdata;
+
 	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *) taskdata);
 
 	if (rv != 0) {
@@ -362,7 +368,8 @@ void px4_show_tasks()
 
 	for (idx = 0; idx < PX4_MAX_TASKS; idx++) {
 		if (taskmap[idx].isused) {
-			PX4_INFO("   %-10s %lu", taskmap[idx].name.c_str(), (unsigned long)taskmap[idx].pid);
+			long int tid = taskmap[idx].taskdata->tid;
+			PX4_INFO("   %-10s %ld", taskmap[idx].name.c_str(), tid);
 			count++;
 		}
 	}
