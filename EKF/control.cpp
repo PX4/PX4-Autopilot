@@ -79,6 +79,14 @@ void Ekf::controlFusionModes()
 
 	}
 
+	// check faultiness (before pop_first_older_than) to see if we can change back to original height sensor
+	baroSample baro_init = _baro_buffer.get_newest();
+	_baro_hgt_faulty = !((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+	gpsSample gps_init = _gps_buffer.get_newest();
+	_gps_hgt_faulty = !((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
+	rangeSample rng_init = _range_buffer.get_newest();
+	_rng_hgt_faulty = !((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
+
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
@@ -479,17 +487,6 @@ void Ekf::controlHeightSensorTimeouts()
 	// check if height has been inertial deadreckoning for too long
 	bool hgt_fusion_timeout = ((_time_last_imu - _time_last_hgt_fuse) > 5e6);
 
-	// if in range aid mode, check faultiness that otherwise would never change back
-	if (_params.range_aid) {
-		// check if range finder data is available
-		rangeSample rng_init = _range_buffer.get_newest();
-		_rng_hgt_faulty = ((_time_last_imu - rng_init.time_us) > 2 * RNG_MAX_INTERVAL);
-
-		// check if GPS height is available
-		gpsSample gps_init = _gps_buffer.get_newest();
-		_gps_hgt_faulty = ((_time_last_imu - gps_init.time_us) > 2 * GPS_MAX_INTERVAL);
-	}
-
 	// reset the vertical position and velocity states
 	if ((P[9][9] > sq(_params.hgt_reset_lim)) && (hgt_fusion_timeout || continuous_bad_accel_hgt)) {
 		// boolean that indicates we will do a height reset
@@ -740,6 +737,16 @@ void Ekf::controlHeightFusion()
 			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
 				_hgt_sensor_offset = 0.0f;
 			}
+		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
+			// switch to gps if there was a reset to gps
+			_fuse_height = true;
+			_in_range_aid_mode = false;
+
+			// we have just switched to using gps height, calculate height sensor offset such that current
+			// measurment matches our current height estimate
+			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+			}
 		}
 	}
 
@@ -796,6 +803,16 @@ void Ekf::controlHeightFusion()
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+			}
+		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
+			// switch to baro if there was a reset to baro
+			_fuse_height = true;
+			_in_range_aid_mode = false;
+
+			// we have just switched to using baro height, we don't need to set a height sensor offset
+			// since we track a separate _baro_hgt_offset
+			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
+				_hgt_sensor_offset = 0.0f;
 			}
 		}
 	}
