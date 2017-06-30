@@ -1,6 +1,10 @@
 <launch>
 
-    <!-- MAVROS posix SITL environment launch script modified for hippocmapus from mavros_posix_sitl-->
+    <!--
+        MAVROS posix SITL environment launch script modified for hippocam,pus from mavros_posix_sitl.
+        The HippoCampus is an autonomous underwater vehicle (AUV) designed by the Technical University Hamburg-Harburg.
+        https://www.tuhh.de/mum/forschung/forschungsgebiete-und-projekte/flow-field-estimation-with-a-swarm-of-auvs.html
+    -->
 
     <arg name="x" default="0"/>
     <arg name="y" default="0"/>

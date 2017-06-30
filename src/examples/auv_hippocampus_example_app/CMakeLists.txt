@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__hippocampus_example_app
-	MAIN hippocampus_example_app
+	MODULE examples__auv_hippocampus_example_app
+	MAIN auv_hippocampus_example_app
 	STACK_MAIN 2000
 	SRCS
-		hippocampus_example_app.c
+		auv_hippocampus_example_app.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -149,7 +149,7 @@ set(config_module_list
 	#
 	# Hippocampus (AUV)
 	#
-	examples/hippocampus_example_app
+	examples/auv_hippocampus_example_app
 
 	#
 	# Demo apps
