@@ -1560,9 +1560,8 @@ int Commander::commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	status.system_type = _param_mav_type.get();
-	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
-	status.is_vtol = is_vtol(&status);
+	status.is_rotary_wing = is_rotary_wing() || is_vtol();
+	status.is_vtol = is_vtol();
 	status.rc_input_mode = _param_rc_in_off.get();
 
 	bool checkAirspeed = false;
@@ -1591,7 +1590,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 			// sensor diagnostics done continuously, not just at boot so don't warn about any issues just yet
 			status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true,
 				checkAirspeed, (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !status_flags.circuit_breaker_engaged_gpsfailure_check,
-				/* checkDynamic */ false, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
+				/* checkDynamic */ false, is_vtol(), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 			set_tune_override(TONE_STARTUP_TUNE); //normal boot tune
 	}
 
@@ -1646,7 +1645,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 			/* update parameters */
 			if (!armed.armed) {
 				/* disable manual override for all systems that rely on electronic stabilization */
-				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
+				if (is_rotary_wing() || (is_vtol() && vtol_status.vtol_in_rw_mode)) {
 					status.is_rotary_wing = true;
 
 				} else {
@@ -1654,7 +1653,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 				}
 
 				/* set vehicle_status.is_vtol flag */
-				status.is_vtol = is_vtol(&status);
+				status.is_vtol = is_vtol();
 
 				/* check and update system / component ID */
 				status.system_id = _param_mav_sys_id.get();
@@ -1788,12 +1787,12 @@ int Commander::commander_thread_main(int argc, char *argv[])
 						/* HITL configuration: check only RC input */
 						Preflight::preflightCheck(&mavlink_log_pub, false, false, false, false, false,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), false,
-								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
+								 /* checkDynamic */ true, is_vtol(), /* reportFailures */ false, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					} else {
 						/* check sensors also */
 						Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !arm_without_gps,
-								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
+								 /* checkDynamic */ true, is_vtol(), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					}
 
 					// Provide feedback on mission state
@@ -1938,7 +1937,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
-			if (is_vtol(&status)) {
+			if (is_vtol()) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
 				status.in_transition_mode = vtol_status.vtol_in_trans_mode;
 				status.in_transition_to_fw = vtol_status.in_transition_to_fw;
@@ -4087,7 +4086,7 @@ void *commander_low_prio_loop(void* /*unused*/)
 
 						status_flags.condition_system_sensors_initialized = Preflight::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
 							!(status.rc_input_mode >= vehicle_status_s::RC_IN_MODE_OFF), !arm_without_gps,
-							/* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
+							/* checkDynamic */ true, false, /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 
 						arming_state_transition(&status,
 									&battery,
@@ -4305,4 +4304,31 @@ void Commander::publish_status_flags() {
 	}
 
 	_pub_status_flags.update();
+}
+
+bool
+Commander::is_multirotor() const
+{
+	return ((_param_mav_type.get() == VEHICLE_TYPE_QUADROTOR) ||
+		(_param_mav_type.get() == VEHICLE_TYPE_HEXAROTOR) ||
+		(_param_mav_type.get() == VEHICLE_TYPE_OCTOROTOR) ||
+		(_param_mav_type.get() == VEHICLE_TYPE_TRICOPTER));
+}
+
+bool
+Commander::is_rotary_wing() const
+{
+	return is_multirotor() || (_param_mav_type.get() == VEHICLE_TYPE_HELICOPTER)
+		   || (_param_mav_type.get() == VEHICLE_TYPE_COAXIAL);
+}
+
+bool
+Commander::is_vtol() const {
+	return (_param_mav_type.get() == VEHICLE_TYPE_VTOL_DUOROTOR ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_QUADROTOR ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_TILTROTOR ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED2 ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED3 ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED4 ||
+			_param_mav_type.get() == VEHICLE_TYPE_VTOL_RESERVED5);
 }

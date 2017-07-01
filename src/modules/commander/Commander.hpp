@@ -154,8 +154,6 @@ private:
 	BlockParamBool _param_rc_override;
 
 
-
-
 	void publish_control_mode();
 	void publish_status_flags();
 
@@ -196,6 +194,25 @@ private:
 	// vehicle_land_detected
 	// vehicle_local_position
 	// vtol_vehicle_status
+
+	static constexpr int32_t VEHICLE_TYPE_QUADROTOR = 2;
+	static constexpr int32_t VEHICLE_TYPE_COAXIAL = 3;
+	static constexpr int32_t VEHICLE_TYPE_HELICOPTER = 4;
+	static constexpr int32_t VEHICLE_TYPE_HEXAROTOR = 13;
+	static constexpr int32_t VEHICLE_TYPE_OCTOROTOR = 14;
+	static constexpr int32_t VEHICLE_TYPE_TRICOPTER = 15;
+
+	static constexpr int32_t VEHICLE_TYPE_VTOL_DUOROTOR = 19;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_QUADROTOR = 20;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_TILTROTOR = 21;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_RESERVED2 = 22;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_RESERVED3 = 23;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_RESERVED4 = 24;
+	static constexpr int32_t VEHICLE_TYPE_VTOL_RESERVED5 = 25;
+
+	bool is_multirotor() const;
+	bool is_rotary_wing() const;
+	bool is_vtol() const;
 
 
 };

@@ -65,45 +65,7 @@
 
 using namespace DriverFramework;
 
-#define VEHICLE_TYPE_QUADROTOR 2
-#define VEHICLE_TYPE_COAXIAL 3
-#define VEHICLE_TYPE_HELICOPTER 4
-#define VEHICLE_TYPE_HEXAROTOR 13
-#define VEHICLE_TYPE_OCTOROTOR 14
-#define VEHICLE_TYPE_TRICOPTER 15
-#define VEHICLE_TYPE_VTOL_DUOROTOR 19
-#define VEHICLE_TYPE_VTOL_QUADROTOR 20
-#define VEHICLE_TYPE_VTOL_TILTROTOR 21
-#define VEHICLE_TYPE_VTOL_RESERVED2 22
-#define VEHICLE_TYPE_VTOL_RESERVED3 23
-#define VEHICLE_TYPE_VTOL_RESERVED4 24
-#define VEHICLE_TYPE_VTOL_RESERVED5 25
-
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
-
-bool is_multirotor(const struct vehicle_status_s *current_status)
-{
-	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
-		(current_status->system_type == VEHICLE_TYPE_TRICOPTER));
-}
-
-bool is_rotary_wing(const struct vehicle_status_s *current_status)
-{
-	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
-}
-
-bool is_vtol(const struct vehicle_status_s * current_status) {
-	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED2 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
-		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
-}
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
 static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence

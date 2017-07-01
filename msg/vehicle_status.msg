@@ -47,7 +47,6 @@ uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state
 
-uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint32 system_id			# system id, contains MAVLink's system ID field
 uint32 component_id			# subsystem / component id, contains MAVLink's component ID field
 
