@@ -500,6 +500,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	printf("main: %d\n", px4_gettid());
+
 	if (!daemon_mode) {
 		string mystr;
 		string string_buffer[CMD_BUFF_SIZE];

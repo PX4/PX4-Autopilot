@@ -159,6 +159,8 @@ void *LogWriterFile::run_helper(void *context)
 {
 	px4_prctl(PR_SET_NAME, "log_writer_file", px4_getpid());
 
+	PX4_WARN("log_writer_file: %d", px4_gettid());
+
 	reinterpret_cast<LogWriterFile *>(context)->run();
 	return nullptr;
 }

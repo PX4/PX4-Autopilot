@@ -2531,6 +2531,8 @@ void MavlinkReceiver::smooth_time_offset(int64_t offset_ns)
 void *MavlinkReceiver::start_helper(void *context)
 {
 
+	PX4_WARN("MavlinkReceiver::start_helper: %d", px4_gettid());
+
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
 
 	if (!rcv) {
