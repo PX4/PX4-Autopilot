@@ -1361,7 +1361,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.xy_global && local_pos.z_global) {
 				/* publish global position */
 				global_pos.timestamp = t;
-				global_pos.time_utc_usec = gps.time_utc_usec;
 
 				double est_lat, est_lon;
 				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
@@ -1393,8 +1392,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					global_pos.terrain_alt_valid = false;
 				}
-
-				global_pos.pressure_alt = sensor.baro_alt_meter;
 
 				if (vehicle_global_position_pub == nullptr) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

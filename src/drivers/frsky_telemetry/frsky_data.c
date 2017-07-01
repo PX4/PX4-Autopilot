@@ -53,6 +53,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -93,10 +94,12 @@
 
 static struct battery_status_s *battery_status;
 static struct vehicle_global_position_s *global_pos;
+static struct vehicle_gps_position_s *gps;
 static struct sensor_combined_s *sensor_combined;
 
 static int battery_status_sub = -1;
 static int vehicle_global_position_sub = -1;
+static int vehicle_gps_position_sub = -1;
 static int sensor_sub = -1;
 
 /**
@@ -106,14 +109,16 @@ bool frsky_init()
 {
 	battery_status = malloc(sizeof(struct battery_status_s));
 	global_pos = malloc(sizeof(struct vehicle_global_position_s));
+	gps = malloc(sizeof(struct vehicle_gps_position_s));
 	sensor_combined = malloc(sizeof(struct sensor_combined_s));
 
-	if (battery_status == NULL || global_pos == NULL || sensor_combined == NULL) {
+	if (battery_status == NULL || global_pos == NULL || gps == NULL || sensor_combined == NULL) {
 		return false;
 	}
 
 	battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 	vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	return true;
 }
@@ -122,6 +127,7 @@ void frsky_deinit()
 {
 	free(battery_status);
 	free(global_pos);
+	free(gps);
 	free(sensor_combined);
 }
 
@@ -195,6 +201,13 @@ void frsky_update_topics()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, global_pos);
 	}
+
+	/* get a local copy of the global position data */
+	orb_check(vehicle_gps_position_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, gps);
+	}
 }
 
 /**
@@ -245,9 +258,6 @@ void frsky_send_frame2(int uart)
 	int sec = 0;
 
 	if (global_pos->timestamp != 0 && hrt_absolute_time() < global_pos->timestamp + 20000) {
-		time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
-		struct tm *tm_gps = gmtime(&time_gps);
-
 		course = (global_pos->yaw + M_PI_F) / M_PI_F * 180.0f;
 		lat    = frsky_format_gps(fabsf(global_pos->lat));
 		lat_ns = (global_pos->lat < 0) ? 'S' : 'N';
@@ -256,6 +266,12 @@ void frsky_send_frame2(int uart)
 		speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e)
 			 * 25.0f / 46.0f;
 		alt    = global_pos->alt;
+	}
+
+	if (gps->timestamp != 0 && hrt_absolute_time() < gps->timestamp + 20000) {
+		time_t time_gps = gps->time_utc_usec / 1000000ULL;
+		struct tm *tm_gps = gmtime(&time_gps);
+
 		sec    = tm_gps->tm_sec;
 	}
 
@@ -291,7 +307,7 @@ void frsky_send_frame2(int uart)
 void frsky_send_frame3(int uart)
 {
 	/* send formatted frame */
-	time_t time_gps = global_pos->time_utc_usec / 1000000ULL;
+	time_t time_gps = gps->time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);

@@ -903,12 +903,10 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 		map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
 		_global_pos.lat = est_lat;
 		_global_pos.lon = est_lon;
-		_global_pos.time_utc_usec = _gps.time_utc_usec;
 
 	} else {
 		_global_pos.lat = 0.0;
 		_global_pos.lon = 0.0;
-		_global_pos.time_utc_usec = 0;
 	}
 
 	if (_local_pos.v_xy_valid) {
@@ -940,9 +938,6 @@ void AttitudePositionEstimatorEKF::publishGlobalPosition()
 	} else {
 		_global_pos.terrain_alt_valid = false;
 	}
-
-	/* baro altitude */
-	_global_pos.pressure_alt = _ekf->baroHgt;
 
 	_global_pos.yaw = _local_pos.yaw;
 
