@@ -944,7 +944,6 @@ bool handle_command(struct vehicle_status_s *status_local,
 				warnx("forcing failsafe (termination)");
 
 				/* param2 is currently used for other failsafe modes */
-				status_local->engine_failure_cmd = false;
 				status_flags.data_link_lost_cmd = false;
 				status_flags.gps_failure_cmd = false;
 				status_flags.rc_signal_lost_cmd = false;
@@ -953,11 +952,6 @@ bool handle_command(struct vehicle_status_s *status_local,
 				if ((int)cmd->param2 <= 0) {
 					/* reset all commanded failure modes */
 					warnx("reset all non-flighttermination failsafe commands");
-
-				} else if ((int)cmd->param2 == 1) {
-					/* trigger engine failure mode */
-					status_local->engine_failure_cmd = true;
-					warnx("engine failure mode commanded");
 
 				} else if ((int)cmd->param2 == 2) {
 					/* trigger data link loss mode */
@@ -1934,7 +1928,6 @@ int Commander::commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			/* vtol status changed */
 			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
-			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
 			if (is_vtol()) {
@@ -3826,7 +3819,7 @@ bool
 stabilization_required()
 {
 	return (status.is_rotary_wing ||		// is a rotary wing, or
-		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
+		vtol_status.fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
 		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
 			!status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
 }

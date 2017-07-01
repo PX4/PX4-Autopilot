@@ -645,10 +645,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		 * - depending on datalink, RC and if the mission is finished */
 
 		/* first look at the commands */
-		if (status->engine_failure_cmd) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
-
-		} else if (status_flags->data_link_lost_cmd) {
+		if (status_flags->data_link_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS;
 
 		} else if (status_flags->gps_failure_cmd) {
