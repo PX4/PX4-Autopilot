@@ -711,7 +711,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	return arming_res;
 }
 
-bool handle_command(struct vehicle_status_s *status_local,
+bool
+Commander::handle_command(struct vehicle_status_s *status_local,
 		    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
 		    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
 		    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
@@ -1864,7 +1865,7 @@ int Commander::commander_thread_main(int argc, char *argv[])
 		}
 
 		// Check if quality checking of position accuracy and consistency is to be performed
-		bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
+		const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
 
 		/* update global position estimate and check for timeout */
 		bool gpos_updated =  false;

@@ -195,6 +195,14 @@ private:
 	// vehicle_local_position
 	// vtol_vehicle_status
 
+	bool handle_command(struct vehicle_status_s *status_local,
+			    struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
+			    struct home_position_s *home, struct vehicle_global_position_s *global_pos,
+			    struct vehicle_local_position_s *local_pos, orb_advert_t *home_pub,
+			    orb_advert_t *command_ack_pub, struct vehicle_command_ack_s *command_ack,
+			    struct vehicle_roi_s *roi, orb_advert_t *roi_pub, bool *changed);
+
+
 	static constexpr int32_t VEHICLE_TYPE_QUADROTOR = 2;
 	static constexpr int32_t VEHICLE_TYPE_COAXIAL = 3;
 	static constexpr int32_t VEHICLE_TYPE_HELICOPTER = 4;
