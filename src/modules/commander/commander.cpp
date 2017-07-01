@@ -144,7 +144,6 @@ static constexpr float STICK_ON_OFF_LIMIT = 0.9f;
 static constexpr hrt_abstime POSITION_TIMEOUT = (1 * 1000 * 1000);	/**< consider the local or global position estimate invalid after 1000ms */
 static constexpr hrt_abstime FAILSAFE_DEFAULT_TIMEOUT = (3 * 1000 * 1000);	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 static constexpr hrt_abstime OFFBOARD_TIMEOUT = 500000;
-static constexpr hrt_abstime DIFFPRESS_TIMEOUT = 2000000;
 
 static constexpr hrt_abstime HOTPLUG_SENS_TIMEOUT = (8 * 1000 * 1000);	/**< wait for hotplug sensors to come online for upto 8 seconds */
 
