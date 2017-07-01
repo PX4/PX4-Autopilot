@@ -55,9 +55,10 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -72,6 +73,8 @@
 
 using matrix::Eulerf;
 using matrix::Quatf;
+
+using uORB::Subscription;
 
 /**
  * Fixedwing attitude control app start / stop handling function
@@ -116,7 +119,6 @@ private:
 	int		_att_sub;			/**< vehicle attitude */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_battery_status_sub;		/**< battery status subscription */
-	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_manual_sub;			/**< notification of manual control updates */
 	int		_params_sub;			/**< notification of parameter updates */
@@ -136,7 +138,6 @@ private:
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
 	struct battery_status_s				_battery_status;	/**< battery status */
-	struct control_state_s				_ctrl_state;	/**< control state */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_attitude_s			_att;		/**< vehicle attitude setpoint */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
@@ -146,16 +147,16 @@ private:
 	struct vehicle_rates_setpoint_s			_rates_sp;	/* attitude rates setpoint */
 	struct vehicle_status_s				_vehicle_status;	/**< vehicle status */
 
+	Subscription<airspeed_s>			_sub_airspeed;
+
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
-	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 	bool		_debug;				/**< if set to true, print debug output */
 
 	float _flaps_applied;
 	float _flaperons_applied;
-
 
 	struct {
 		float p_tc;
@@ -278,30 +279,23 @@ private:
 
 		param_t bat_scale_en;
 
-	}		_parameter_handles{};		/**< handles for interesting parameters */
+	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	// Rotation matrix and euler angles to extract from control state
 	math::Matrix<3, 3> _R;
-	float _roll;
-	float _pitch;
-	float _yaw;
+	float _roll{0.0f};
+	float _pitch{0.0f};
+	float _yaw{0.0f};
 
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;
 	ECL_YawController				_yaw_ctrl;
 	ECL_WheelController			_wheel_ctrl;
 
-
 	/**
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-
-	/**
-	 * Update control outputs
-	 *
-	 */
-	void		control_update();
 
 	/**
 	 * Check for changes in vehicle control mode.
@@ -312,11 +306,6 @@ private:
 	 * Check for changes in manual inputs.
 	 */
 	void		vehicle_manual_poll();
-
-	/**
-	 * Check for control state updates
-	 */
-	void		control_state_poll();
 
 	/**
 	 * Check for set triplet updates.
@@ -370,7 +359,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_att_sub(-1),
 	_att_sp_sub(-1),
 	_battery_status_sub(-1),
-	_ctrl_state_sub(-1),
 	_global_pos_sub(-1),
 	_manual_sub(-1),
 	_params_sub(-1),
@@ -388,17 +376,13 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_actuators_id(nullptr),
 	_attitude_setpoint_id(nullptr),
 
+	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
+
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
-#if 0
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano")),
-#else
-	_nonfinite_input_perf(nullptr),
-	_nonfinite_output_perf(nullptr),
-#endif
 	/* states */
-	_setpoint_valid(false),
 	_debug(false),
 	_flaps_applied(0),
 	_flaperons_applied(0),
@@ -412,7 +396,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_att = {};
 	_att_sp = {};
 	_battery_status = {};
-	_ctrl_state = {};
 	_global_pos = {};
 	_manual = {};
 	_rates_sp = {};
@@ -653,18 +636,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 }
 
 void
-FixedwingAttitudeControl::control_state_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_ctrl_state_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -673,7 +644,6 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 
 	if (att_sp_updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-		_setpoint_valid = true;
 	}
 }
 
@@ -753,7 +723,6 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -765,13 +734,13 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	control_state_poll();
 	vehicle_setpoint_poll();
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
 	vehicle_status_poll();
 	vehicle_land_detected_poll();
 	battery_status_poll();
+	_sub_airspeed.update();
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[2];
@@ -884,7 +853,7 @@ FixedwingAttitudeControl::task_main()
 				_att.yawspeed = helper;
 			}
 
-			control_state_poll();
+			_sub_airspeed.update();
 			vehicle_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
@@ -970,19 +939,17 @@ FixedwingAttitudeControl::task_main()
 				/* scale around tuning airspeed */
 				float airspeed;
 
-				bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed);
-
 				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
-				if (nonfinite || !_ctrl_state.airspeed_valid) {
-					airspeed = _parameters.airspeed_trim;
+				const bool airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
+							    && ((_sub_airspeed.get().timestamp - hrt_absolute_time()) < 1e6);
 
-					if (nonfinite) {
-						perf_count(_nonfinite_input_perf);
-					}
+				if (airspeed_valid) {
+					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+					airspeed = math::max(0.5f, _sub_airspeed.get().indicated_airspeed_m_s);
 
 				} else {
-					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.5f, _ctrl_state.airspeed);
+					airspeed = _parameters.airspeed_trim;
+					perf_count(_nonfinite_input_perf);
 				}
 
 				/*

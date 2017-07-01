@@ -882,27 +882,6 @@ void AttitudePositionEstimatorEKF::publishControlState()
 	/* Attitude */
 	_ctrl_state.timestamp = _last_sensor_timestamp;
 
-	// use estimated velocity for airspeed estimate
-	if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
-		// use measured airspeed
-		if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-		    && _airspeed.timestamp > 0) {
-			_ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-			_ctrl_state.airspeed_valid = true;
-		}
-
-	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
-		if (_local_pos.v_xy_valid && _local_pos.v_z_valid) {
-			_ctrl_state.airspeed = sqrtf(_ekf->states[4] * _ekf->states[4]
-				+ _ekf->states[5] * _ekf->states[5] + _ekf->states[6] * _ekf->states[6]);
-			_ctrl_state.airspeed_valid = true;
-		}
-
-	} else if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
-		// do nothing, airspeed has been declared as non-valid above, controllers
-		// will handle this assuming always trim airspeed
-	}
-
 	/* Guard from bad data */
 	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
 	    !PX4_ISFINITE(_ctrl_state.y_vel) ||

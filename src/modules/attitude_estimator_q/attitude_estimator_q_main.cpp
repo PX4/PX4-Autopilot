@@ -481,29 +481,6 @@ void AttitudeEstimatorQ::task_main()
 			ctrl_state.y_acc = _accel(1);
 			ctrl_state.z_acc = _accel(2);
 
-			ctrl_state.airspeed_valid = false;
-
-			if (_airspeed_mode == control_state_s::AIRSPD_MODE_MEAS) {
-				// use measured airspeed
-				if (PX4_ISFINITE(_airspeed.indicated_airspeed_m_s) && hrt_absolute_time() - _airspeed.timestamp < 1e6
-				    && _airspeed.timestamp > 0) {
-					ctrl_state.airspeed = _airspeed.indicated_airspeed_m_s;
-					ctrl_state.airspeed_valid = true;
-				}
-			}
-
-			else if (_airspeed_mode == control_state_s::AIRSPD_MODE_EST) {
-				// use estimated body velocity as airspeed estimate
-				if (hrt_absolute_time() - _gpos.timestamp < 1e6) {
-					ctrl_state.airspeed = sqrtf(_gpos.vel_n * _gpos.vel_n + _gpos.vel_e * _gpos.vel_e + _gpos.vel_d * _gpos.vel_d);
-					ctrl_state.airspeed_valid = true;
-				}
-
-			} else if (_airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
-				// do nothing, airspeed has been declared as non-valid above, controllers
-				// will handle this assuming always trim airspeed
-			}
-
 			/* the instance count is not used here */
 			int ctrl_inst;
 			/* publish to control state topic */

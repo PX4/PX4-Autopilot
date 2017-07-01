@@ -2308,7 +2308,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
 			ctrl_state.y_acc);
 	ctrl_state.horz_acc_mag = _acc_hor_filt;
-	ctrl_state.airspeed_valid = false;
 
 	// publish control state data
 	if (_control_state_pub == nullptr) {

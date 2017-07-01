@@ -745,7 +745,6 @@ void Ekf2Replay::logIfUpdated()
 		log_message.body.control_state.vx_body = control_state.x_vel;
 		log_message.body.control_state.vy_body = control_state.y_vel;
 		log_message.body.control_state.vz_body = control_state.z_vel;
-		log_message.body.control_state.airspeed = control_state.airspeed;
 		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_CTS_MSG].length);
 	}
 }
