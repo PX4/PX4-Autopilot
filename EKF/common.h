@@ -219,6 +219,7 @@ struct parameters {
 	float switch_on_gyro_bias{0.1f};	// 1-sigma gyro bias uncertainty at switch on (rad/sec)
 	float switch_on_accel_bias{0.2f};	// 1-sigma accelerometer bias uncertainty at switch on (m/s**2)
 	float initial_tilt_err{0.1f};		// 1-sigma tilt error after initial alignment using gravity vector (rad)
+	float initial_wind_uncertainty{1.0f};	// 1-sigma initial uncertainty in wind velocity (m/s)
 
 	// position and velocity fusion
 	float gps_vel_noise{5.0e-1f};		// observation noise for gps velocity fusion (m/sec)

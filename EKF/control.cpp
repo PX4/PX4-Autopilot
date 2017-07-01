@@ -894,11 +894,10 @@ void Ekf::controlAirDataFusion()
 {
         // control activation and initialisation/reset of wind states required for airspeed fusion
 
-        // If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
         bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
         bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
 	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
-                // if the airspeed or sideslip measurements have timed out for 10 seconds we declare the wind estimate to be invalid
 		_control_status.flags.wind = false;
 
 	}
@@ -928,7 +927,7 @@ void Ekf::controlBetaFusion()
 {
 	// control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
 
-	// If both airspeed and sideslip fusion have timed out then we no longer have valid wind estimates
+	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
 	bool sideslip_timed_out = _time_last_imu - _time_last_beta_fuse > 10e6;
 	bool airspeed_timed_out = _time_last_imu - _time_last_arsp_fuse > 10e6;
 	if(_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
@@ -965,19 +964,22 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if (_params.fusion_mode & MASK_USE_DRAG && _control_status.flags.in_air) {
-		if (!_control_status.flags.wind) {
-			// reset the wind states and covariances when starting drag accel fusion
-			_control_status.flags.wind = true;
-			resetWindStates();
-			resetWindCovariance();
+	if (_params.fusion_mode & MASK_USE_DRAG ) {
+		if (_control_status.flags.in_air) {
+			if (!_control_status.flags.wind) {
+				// reset the wind states and covariances when starting drag accel fusion
+				_control_status.flags.wind = true;
+				resetWindStates();
+				resetWindCovariance();
 
-		} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
-			fuseDrag();
+			} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
+				fuseDrag();
+
+			}
+		} else {
+			_control_status.flags.wind = false;
 
 		}
-	} else {
-		_control_status.flags.wind = false;
 	}
 }
 
