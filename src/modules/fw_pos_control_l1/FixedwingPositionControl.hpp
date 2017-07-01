@@ -74,7 +74,6 @@
 #include <systemlib/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>

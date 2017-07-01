@@ -67,7 +67,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>

@@ -66,7 +66,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -1199,7 +1198,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vtol_vehicle_status_s vtol_status;
 		struct time_offset_s time_offset;
 		struct mc_att_ctrl_status_s mc_att_ctrl_status;
-		struct control_state_s ctrl_state;
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
@@ -1313,7 +1311,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int wind_sub;
 		int tsync_sub;
 		int mc_att_ctrl_status_sub;
-		int ctrl_state_sub;
 		int innov_sub;
 		int cam_trig_sub;
 		int replay_sub;
@@ -1358,7 +1355,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.wind_sub = -1;
 	subs.tsync_sub = -1;
 	subs.mc_att_ctrl_status_sub = -1;
-	subs.ctrl_state_sub = -1;
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
@@ -2253,15 +2249,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_MACS.pitch_rate_integ = buf.mc_att_ctrl_status.pitch_rate_integ;
 				log_msg.body.log_MACS.yaw_rate_integ = buf.mc_att_ctrl_status.yaw_rate_integ;
 				LOGBUFFER_WRITE_AND_COUNT(MACS);
-			}
-
-			/* --- CONTROL STATE --- */
-			if (copy_if_updated(ORB_ID(control_state), &subs.ctrl_state_sub, &buf.ctrl_state)) {
-				log_msg.msg_type = LOG_CTS_MSG;
-				log_msg.body.log_CTS.vx_body = buf.ctrl_state.x_vel;
-				log_msg.body.log_CTS.vy_body = buf.ctrl_state.y_vel;
-				log_msg.body.log_CTS.vz_body = buf.ctrl_state.z_vel;
-				LOGBUFFER_WRITE_AND_COUNT(CTS);
 			}
 		}
 

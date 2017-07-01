@@ -55,7 +55,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/att_pos_mocap.h>
@@ -125,7 +124,6 @@ private:
 	int		_airspeed_sub = -1;
 	int		_global_pos_sub = -1;
 	orb_advert_t	_att_pub = nullptr;
-	orb_advert_t	_ctrl_state_pub = nullptr;
 	orb_advert_t	_est_state_pub = nullptr;
 
 	struct {
@@ -471,21 +469,6 @@ void AttitudeEstimatorQ::task_main()
 		/* the instance count is not used here */
 		int att_inst;
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
-
-		{
-			struct control_state_s ctrl_state = {};
-
-			ctrl_state.timestamp = sensors.timestamp;
-
-			ctrl_state.x_acc = _accel(0);
-			ctrl_state.y_acc = _accel(1);
-			ctrl_state.z_acc = _accel(2);
-
-			/* the instance count is not used here */
-			int ctrl_inst;
-			/* publish to control state topic */
-			orb_publish_auto(ORB_ID(control_state), &_ctrl_state_pub, &ctrl_state, &ctrl_inst, ORB_PRIO_HIGH);
-		}
 
 		{
 			//struct estimator_status_s est = {};

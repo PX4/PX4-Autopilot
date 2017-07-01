@@ -141,14 +141,12 @@ AttitudePositionEstimatorEKF::AttitudePositionEstimatorEKF() :
 
 	/* publications */
 	_att_pub(nullptr),
-	_ctrl_state_pub(nullptr),
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_wind_pub(nullptr),
 
 	_att{},
-	_ctrl_state{},
 	_gyro{},
 	_accel{},
 	_mag{},
@@ -714,9 +712,6 @@ void AttitudePositionEstimatorEKF::task_main()
 					// Publish attitude estimations
 					publishAttitude();
 
-					// publish control state
-					publishControlState();
-
 					// Publish Local Position estimations
 					publishLocalPosition();
 
@@ -842,62 +837,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	} else {
 		/* advertise and publish */
 		_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
-	}
-}
-
-void AttitudePositionEstimatorEKF::publishControlState()
-{
-	/* Accelerations in Body Frame */
-	_ctrl_state.x_acc = _ekf->accel.x;
-	_ctrl_state.y_acc = _ekf->accel.y;
-	_ctrl_state.z_acc = _ekf->accel.z - _ekf->states[13];
-
-	_ctrl_state.horz_acc_mag = _ekf->getAccNavMagHorizontal();
-
-	/* Velocity in Body Frame */
-	Vector3f v_n(_ekf->states[4], _ekf->states[5], _ekf->states[6]);
-	Vector3f v_n_var(_ekf->P[4][4], _ekf->P[5][5], _ekf->P[6][6]);
-	Vector3f v_b = _ekf->Tnb * v_n;
-	//Vector3f v_b_var = _ekf->Tnb * v_n_var;
-
-	_ctrl_state.x_vel = v_b.x;
-	_ctrl_state.y_vel = v_b.y;
-	_ctrl_state.z_vel = v_b.z;
-
-	//_ctrl_state.vel_variance[0] = v_b_var.x;
-	//_ctrl_state.vel_variance[1] = v_b_var.y;
-	//_ctrl_state.vel_variance[2] = v_b_var.z;
-
-	/* Local Position */
-	//_ctrl_state.x_pos = _ekf->states[7];
-	//_ctrl_state.y_pos = _ekf->states[8];
-
-	// XXX need to announce change of Z reference somehow elegantly
-	//_ctrl_state.z_pos = _ekf->states[9] - _filter_ref_offset;
-
-	//_ctrl_state.pos_variance[0] = _ekf->P[7][7];
-	//_ctrl_state.pos_variance[1] = _ekf->P[8][8];
-	//_ctrl_state.pos_variance[2] = _ekf->P[9][9];
-
-	/* Attitude */
-	_ctrl_state.timestamp = _last_sensor_timestamp;
-
-	/* Guard from bad data */
-	if (!PX4_ISFINITE(_ctrl_state.x_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.y_vel) ||
-	    !PX4_ISFINITE(_ctrl_state.z_vel)) {
-		// bad data, abort publication
-		return;
-	}
-
-	/* lazily publish the control state only once available */
-	if (_ctrl_state_pub != nullptr) {
-		/* publish the control state */
-		orb_publish(ORB_ID(control_state), _ctrl_state_pub, &_ctrl_state);
-
-	} else {
-		/* advertise and publish */
-		_ctrl_state_pub = orb_advertise(ORB_ID(control_state), &_ctrl_state);
 	}
 }
 

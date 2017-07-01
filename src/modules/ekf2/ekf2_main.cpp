@@ -69,7 +69,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
@@ -181,7 +180,6 @@ private:
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
 	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
@@ -326,7 +324,6 @@ Ekf2::Ekf2():
 	_publish_replay_mode(0),
 	_att_pub(nullptr),
 	_lpos_pub(nullptr),
-	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
 	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
@@ -783,44 +780,6 @@ void Ekf2::task_main()
 
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
-
-			{
-				// generate control state data
-				control_state_s ctrl_state = {};
-				ctrl_state.timestamp = now;
-
-				// Velocity in body frame
-				Vector3f v_n(velocity);
-				matrix::Dcm<float> R_to_body(q.inversed());
-				Vector3f v_b = R_to_body * v_n;
-				ctrl_state.x_vel = v_b(0);
-				ctrl_state.y_vel = v_b(1);
-				ctrl_state.z_vel = v_b(2);
-
-				// Acceleration data
-				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
-
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				ctrl_state.x_acc = acceleration(0) - accel_bias[0];
-				ctrl_state.y_acc = acceleration(1) - accel_bias[1];
-				ctrl_state.z_acc = acceleration(2) - accel_bias[2];
-
-				// compute lowpass filtered horizontal acceleration
-				acceleration = R_to_body.transpose() * acceleration;
-				_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
-						acceleration(1) * acceleration(1));
-				ctrl_state.horz_acc_mag = _acc_hor_filt;
-
-				// publish control state data
-				if (_control_state_pub == nullptr) {
-					_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-				} else {
-					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-				}
-			}
-
 
 			{
 				// generate vehicle attitude quaternion data

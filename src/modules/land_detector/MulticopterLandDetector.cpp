@@ -57,7 +57,7 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_armingSub(-1),
 	_attitudeSub(-1),
 	_manualSub(-1),
-	_ctrl_state_sub(-1),
+	_sensor_combined_sub(-1),
 	_vehicle_control_mode_sub(-1),
 	_battery_sub(-1),
 	_vehicleLocalPosition{},
@@ -65,7 +65,7 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_arming{},
 	_vehicleAttitude{},
 	_manual{},
-	_ctrl_state{},
+	_sensors{},
 	_control_mode{},
 	_battery{},
 	_min_trust_start(0),
@@ -94,7 +94,7 @@ void MulticopterLandDetector::_initialize_topics()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
@@ -106,7 +106,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
-	_orb_update(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+	_orb_update(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
 }
@@ -137,14 +137,14 @@ bool MulticopterLandDetector::_get_freefall_state()
 		return false;
 	}
 
-	if (_ctrl_state.timestamp == 0) {
-		// _ctrl_state is not valid yet, we have to assume we're not falling.
+	if (_sensors.timestamp == 0) {
+		// _sensors is not valid yet, we have to assume we're not falling.
 		return false;
 	}
 
-	float acc_norm = _ctrl_state.x_acc * _ctrl_state.x_acc
-			 + _ctrl_state.y_acc * _ctrl_state.y_acc
-			 + _ctrl_state.z_acc * _ctrl_state.z_acc;
+	float acc_norm = _sensors.accelerometer_m_s2[0] * _sensors.accelerometer_m_s2[0]
+			 + _sensors.accelerometer_m_s2[1] * _sensors.accelerometer_m_s2[1]
+			 + _sensors.accelerometer_m_s2[2] * _sensors.accelerometer_m_s2[2];
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
 	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
