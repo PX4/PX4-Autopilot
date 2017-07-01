@@ -518,11 +518,17 @@ int DfMpu9250Wrapper::_publish(const struct accel_data &data)
 	math::Vector<3> aval_integrated;
 
 	uint64_t integral_dt;
+#if 0
 	accel_notify = _accel_int.put_with_interval(MPU9250_ACCEL_SAMPLE_RATE_INTERVAL_US
 			, aval
 			, aval_integrated
 			, integral_dt);
-
+#else
+	accel_notify = _accel_int.put(timestamp
+			, aval
+			, aval_integrated
+			, integral_dt);
+#endif
 	if (accel_notify) {
 		accel_report accel_report = {
 				.timestamp = timestamp,
@@ -549,7 +555,7 @@ int DfMpu9250Wrapper::_publish(const struct accel_data &data)
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		} else {
 			_accel_topic = orb_advertise_multi_queue(ORB_ID(sensor_accel), &accel_report,
-							   &_accel_orb_class_instance, ORB_PRIO_DEFAULT, 2);
+							   &_accel_orb_class_instance, ORB_PRIO_DEFAULT, 1);
 
 			if (_accel_topic == nullptr) {
 				PX4_ERR("sensor_accel advert fail");
@@ -608,11 +614,17 @@ int DfMpu9250Wrapper::_publish(const struct gyro_data &data)
 	math::Vector<3> gval_integrated;
 
 	uint64_t integral_dt;
+#if 0
 	gyro_notify = _gyro_int.put_with_interval(MPU9250_GYRO_SAMPLE_RATE_INTERVAL_US
 			, gval
 			, gval_integrated
 			, integral_dt);
-
+#else
+	gyro_notify = _gyro_int.put(timestamp
+			, gval
+			, gval_integrated
+			, integral_dt);
+#endif
 	if (gyro_notify) {
 		gyro_report gyro_report = {
 				.timestamp = timestamp,
@@ -639,7 +651,7 @@ int DfMpu9250Wrapper::_publish(const struct gyro_data &data)
 			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
 		} else {
 			_gyro_topic = orb_advertise_multi_queue(ORB_ID(sensor_gyro), &gyro_report,
-							  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT, 2);
+							  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT, 1);
 
 			if (_gyro_topic == nullptr) {
 				PX4_ERR("sensor_gyro advert fail");
@@ -708,8 +720,8 @@ int DfMpu9250Wrapper::_publish(const struct mag_data &data)
 		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 	} else {
 		_mag_topic = orb_advertise_multi_queue(ORB_ID(sensor_mag), &mag_report,
-						 &_mag_orb_class_instance, ORB_PRIO_DEFAULT, 2);
-		if (_gyro_topic == nullptr) {
+						 &_mag_orb_class_instance, ORB_PRIO_DEFAULT, 1);
+		if (_mag_topic == nullptr) {
 			PX4_ERR("sensor_mag advert fail");
 			return -1;
 		}
