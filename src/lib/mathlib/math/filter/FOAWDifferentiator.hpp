@@ -32,12 +32,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/// @file	FOAWDifferentiator.hpp
-/// @brief	A class to implement a first order adaptive windowing differentiator 
-/// Author: Mathieu Bresciani <brescianimathieu@gmail.com>
-/// From:  Discrete-Time Adaptive Windowing for Velocity Estimation
-/// Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
+/*
+ * @file	FOAWDifferentiator.hpp
+ * @brief	A class to implement a first order adaptive windowing differentiator 
+ * Author: Mathieu Bresciani <brescianimathieu@gmail.com>
+ * From:  Discrete-Time Adaptive Windowing for Velocity Estimation
+ * Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
+ */
 
 #pragma once
 
@@ -51,51 +52,82 @@ public:
 
     // Destructor
     ~FOAWDifferentiator();
+
     /**
-     * Change filter parameters
+     * Change the main parameter of the differenciator
+     * A small value will make the differenciator more agressive and close to a raw first order derivative
+     * A large value will force the differenciator to use more samples (max 15) to compute the
+     * least squares slope (smoother output, but less reactive).
      */
     void set_noise_level(float delta);
 
+    /**
+     * Set the elapsed time between two measurements
+     */
     void set_sample_time(float dt);
 
     /**
      * Add a new raw value to the filter
      *
-     * @return retrieve the filtered result
+     * @return Retrieve the filtered result
      */
     float apply(float sample);
 
     /**
-     * Return noise level parameter (delta) 
+     * @return Retrieve the noise level parameter (_delta) 
      */
     float get_noise_level(void); 
+
+    /**
+     * @return Retrieve the size of the window used to compute the derivative
+     */
     uint8_t get_last_window_size(void);
 
     /**
-     * Reset the filter state to this value
+     * Reset the filter
      */
     void reset(void);
 
 private:
 
+    /*
+     * Handles the paramaters of a first order curve
+     * f = a*x + b
+     */
     struct fit_params{
         float a;
         float b;
     }fit_val;
 
+    /*
+     * Moves all the samples in the buffer one step forward
+     * The oldest sample if thrown away
+     */
     void shift_buffer(void);
+
+    /*
+     * Add a new sample at the beginning of the buffer
+     */
     void add_sample(float sample);
+
+    /*
+     * Performs a fit using only the first and last values
+     */
     void end_fit_FOAW(uint8_t window_size);
+
+    /*
+     * Permorms a fit based on a least squares estimate using all the samples inside the window
+     */
     void best_fit_FOAW(uint8_t window_size);
     float fit(void);
 
 
-    float           _dt;
-    float           _delta; 
-    float           _buffer[15];        // past samples
-    uint8_t         _nb_samples;
-    uint8_t         _last_window_size;
-    static const uint8_t   _max_window_size = 14;
+    float           _dt;                            // Sample time
+    float           _delta;                         // Noise level parameter 
+    float           _buffer[15];                    // Buffer of samples
+    uint8_t         _nb_samples;                    // Number of samples inside the buffer
+    uint8_t         _last_window_size;              // Size of the window used to compute the derivative
+    static const uint8_t   _max_window_size = 14;   // Maximum possible size of the window
 };
 
 } // namespace math

@@ -33,9 +33,14 @@
  *
  ****************************************************************************/
 
-/// @file	FOAWFilter.cpp
-/// @brief	A class to implement a first order adaptive windowing filter for derivative smoothing 
-/// Author: Mathieu Bresciani <brescianimathieu@gmail.com>
+
+/*
+ * @file	FOAWDifferentiator.cpp
+ * @brief	A class to implement a first order adaptive windowing differentiator 
+ * Author: Mathieu Bresciani <brescianimathieu@gmail.com>
+ * From:  Discrete-Time Adaptive Windowing for Velocity Estimation
+ * Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
+ */
 
 #include <px4_defines.h>
 #include "FOAWDifferentiator.hpp"
@@ -132,6 +137,7 @@ namespace math
 
         last_sample_pos = _nb_samples - 1;
 
+        // First order least squares fit of all the points inside the window
         for (i = 0; i <= window_size; i++) {
            sum1 += _buffer[last_sample_pos - i];
            sum2 += _buffer[last_sample_pos - i]*i;
@@ -149,12 +155,14 @@ namespace math
         else{
             fit_val.a = (sum1 - sum2)/den;
         }
-        //fit_val.b = _buffer[last_sample_pos];
+
         fit_val.b = y_mean + fit_val.a*window_size*_dt/2;
 
         return;
     }
 
+    // TODO; Add a way to be able to select the method you prefer (End-fit is faster but less accurate)
+    // Performs the Best-fit-R algorithm
     float FOAWDifferentiator::fit(void)
     {
         uint8_t window_size;
@@ -172,7 +180,7 @@ namespace math
         slope = 0.0f;
         window_size = 1;
 
-        //slope = end_fit_FOAW(window_size); 
+        //end_fit_FOAW(window_size); 
         best_fit_FOAW(window_size);
         slope = fit_val.a;
         result = slope;
@@ -182,7 +190,8 @@ namespace math
         }
 
         for (window_size = 2; window_size <= (_nb_samples-1); window_size++) {
-            end_fit_FOAW(window_size);
+            //end_fit_FOAW(window_size); 
+            best_fit_FOAW(window_size);
             slope = fit_val.a;
 
             // Check if all the values are around the fit +/- delta
