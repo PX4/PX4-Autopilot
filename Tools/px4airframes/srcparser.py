@@ -403,6 +403,9 @@ class SourceParser(object):
         # Store outputs
         for arch in archs:
             param.SetArch(arch, archs[arch])
+            
+
+        
 
         # Store the parameter
         
@@ -472,4 +475,18 @@ class SourceParser(object):
         groups = sorted(groups, key=lambda x: x.GetName())
         groups = sorted(groups, key=lambda x: x.GetClass())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
+        
+        #Rename duplicate groups to include the class (creating unique headings in page TOC)
+        duplicate_test=set()
+        duplicate_set=set()
+        for group in groups:
+            if group.GetName() in duplicate_test:
+                duplicate_set.add(group.GetName())
+            else:
+                duplicate_test.add(group.GetName() )
+        for group in groups:
+            if group.GetName() in duplicate_set:
+                group.name=group.GetName()+' (%s)' % group.GetClass()
+
+        
         return groups
