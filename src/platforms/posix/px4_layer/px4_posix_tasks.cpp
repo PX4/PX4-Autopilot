@@ -428,6 +428,16 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
+pthread_t px4_get_handle(px4_task_t pid)
+{
+	return taskmap[pid].pid;
+}
+
+int px4_gettid()
+{
+	return syscall(__NR_gettid);
+}
+
 int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv;

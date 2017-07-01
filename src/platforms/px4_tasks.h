@@ -138,5 +138,7 @@ __EXPORT int px4_prctl(int option, const char *arg2, px4_task_t pid);
 /** return the name of the current task */
 __EXPORT const char *px4_get_taskname(void);
 
+__EXPORT pthread_t px4_get_handle(px4_task_t pid);
+__EXPORT int px4_gettid(void);
 __END_DECLS
 
