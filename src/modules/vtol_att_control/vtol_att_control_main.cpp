@@ -691,7 +691,6 @@ void VtolAttitudeControl::task_main()
 		/* wait for up to 100ms for data */
 		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
-
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
 			continue;
@@ -703,6 +702,14 @@ void VtolAttitudeControl::task_main()
 			/* sleep a bit before next try */
 			usleep(100000);
 			continue;
+		}
+
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
+		}
+
+		if (fds[1].revents & POLLIN) {
+			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 		}
 
 		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
@@ -762,8 +769,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from mc attitude controller
 			if (fds[0].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
-
 				_vtol_type->update_mc_state();
 
 				fill_mc_att_rates_sp();
@@ -776,7 +781,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from fw attitude controller
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 				vehicle_manual_poll();
 
 				_vtol_type->update_fw_state();
