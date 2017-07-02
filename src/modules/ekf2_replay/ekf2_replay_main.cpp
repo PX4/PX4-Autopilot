@@ -65,7 +65,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
@@ -85,7 +84,6 @@ struct {
 	union {
 		struct log_ATT_s att;
 		struct log_LPOS_s lpos;
-		struct log_CTS_s control_state;
 		struct log_EST0_s est0;
 		struct log_EST1_s est1;
 		struct log_EST2_s est2;
@@ -143,7 +141,6 @@ private:
 	int _estimator_status_sub;
 	int _innov_sub;
 	int _lpos_sub;
-	int _control_state_sub;
 
 	char *_file_name;
 
@@ -227,7 +224,6 @@ Ekf2Replay::Ekf2Replay(char *logfile) :
 	_estimator_status_sub(-1),
 	_innov_sub(-1),
 	_lpos_sub(-1),
-	_control_state_sub(-1),
 	_formats{},
 	_sensors{},
 	_gps{},
@@ -732,25 +728,6 @@ void Ekf2Replay::logIfUpdated()
 		_tasInnovSumSq += innov.airspeed_innov * innov.airspeed_innov;
 
 	}
-
-	// update control state
-	orb_check(_control_state_sub, &updated);
-
-	if (updated) {
-		struct control_state_s control_state = {};
-		orb_copy(ORB_ID(control_state), _control_state_sub, &control_state);
-		log_message.type = LOG_CTS_MSG;
-		log_message.head1 = HEAD_BYTE1;
-		log_message.head2 = HEAD_BYTE2;
-		log_message.body.control_state.vx_body = control_state.x_vel;
-		log_message.body.control_state.vy_body = control_state.y_vel;
-		log_message.body.control_state.vz_body = control_state.z_vel;
-		log_message.body.control_state.airspeed = control_state.airspeed;
-		log_message.body.control_state.roll_rate = control_state.roll_rate;
-		log_message.body.control_state.pitch_rate = control_state.pitch_rate;
-		log_message.body.control_state.yaw_rate = control_state.yaw_rate;
-		writeMessage(_write_fd, (void *)&log_message.head1, _formats[LOG_CTS_MSG].length);
-	}
 }
 
 void Ekf2Replay::publishAndWaitForEstimator()
@@ -871,7 +848,6 @@ void Ekf2Replay::task_main()
 	_estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
 	_innov_sub = orb_subscribe(ORB_ID(ekf2_innovations));
 	_lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_control_state_sub = orb_subscribe(ORB_ID(control_state));
 
 	// we use attitude updates from the estimator for synchronisation
 	_fds[0].fd = _att_sub;

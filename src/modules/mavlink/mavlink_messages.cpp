@@ -689,7 +689,6 @@ protected:
 			msg.zmag = sensor.magnetometer_ga[2];
 			msg.abs_pressure = 0;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
-			msg.pressure_alt = sensor.baro_alt_meter;
 			msg.temperature = sensor.baro_temp_celcius;
 			msg.fields_updated = fields_updated;
 

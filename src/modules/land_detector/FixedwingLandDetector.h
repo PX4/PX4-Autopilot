@@ -42,9 +42,10 @@
 
 #pragma once
 
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include "LandDetector.h"
 
@@ -76,27 +77,29 @@ private:
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
 		param_t maxIntVelocity;
-	} _paramHandle;
+	} _paramHandle{};
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
 		float maxIntVelocity;
-	} _params;
+	} _params{};
 
-	int _controlStateSub;
-	int _armingSub;
-	int _airspeedSub;
+	int _armingSub{-1};
+	int _airspeedSub{-1};
+	int _sensor_combined_sub{-1};
+	int _local_pos_sub{-1};
 
-	struct control_state_s _controlState;
-	struct actuator_armed_s _arming;
-	struct airspeed_s _airspeed;
+	actuator_armed_s _arming{};
+	airspeed_s _airspeed{};
+	sensor_combined_s _sensors{};
+	vehicle_local_position_s _local_pos{};
 
-	float _velocity_xy_filtered;
-	float _velocity_z_filtered;
-	float _airspeed_filtered;
-	float _accel_horz_lp;
+	float _velocity_xy_filtered{0.0f};
+	float _velocity_z_filtered{0.0f};
+	float _airspeed_filtered{0.0f};
+	float _accel_horz_lp{0.0f};
 };
 
 } // namespace land_detector

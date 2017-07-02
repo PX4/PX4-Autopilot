@@ -48,6 +48,7 @@ static int _control_task = -1;			/**< task handle for sensor task */
 
 using matrix::Eulerf;
 using matrix::Quatf;
+using matrix::Vector3f;
 
 /**
  * L1 control app start / stop handling function
@@ -64,6 +65,8 @@ GroundRoverPositionControl	*g_control = nullptr;
 
 GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* performance counters */
+	_sub_attitude(ORB_ID(vehicle_attitude), 0, 0, nullptr),
+	_sub_sensors(ORB_ID(sensor_combined), 0, 0, nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");
@@ -179,17 +182,6 @@ GroundRoverPositionControl::manual_control_setpoint_poll()
 }
 
 void
-GroundRoverPositionControl::control_state_poll()
-{
-	bool ctrl_state_updated;
-	orb_check(_ctrl_state_sub, &ctrl_state_updated);
-
-	if (ctrl_state_updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-	}
-}
-
-void
 GroundRoverPositionControl::position_setpoint_triplet_poll()
 {
 	bool pos_sp_triplet_updated;
@@ -260,9 +252,16 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
 			}
 
+			// Velocity in body frame
+			const Dcmf R_to_body(Quatf(_sub_attitude.get().q).inversed());
+			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
+
+			const float x_vel = vel(0);
+			const float x_acc = _sub_sensors.get().accelerometer_m_s2[0];
+
 			//Compute airspeed control out and just scale it as a constant
 			mission_throttle = _parameters.throttle_speed_scaler
-					   * pid_calculate(&_speed_ctrl, mission_target_speed, _ctrl_state.x_vel, _ctrl_state.x_acc, dt);
+					   * pid_calculate(&_speed_ctrl, mission_target_speed, x_vel, x_acc, dt);
 
 			// Constrain throttle between min and max
 			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
@@ -331,7 +330,6 @@ void
 GroundRoverPositionControl::task_main()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -409,9 +407,10 @@ GroundRoverPositionControl::task_main()
 			// update the reset counters in any case
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
-			control_state_poll();
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
+			_sub_attitude.update();
+			_sub_sensors.update();
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);

@@ -591,7 +591,6 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 50);
 	add_topic("tecs_status", 20);
 	add_topic("wind_estimate", 100);
-	add_topic("control_state", 100);
 	add_topic("camera_trigger");
 	add_topic("camera_capture");
 	add_topic("cpuload");

@@ -135,7 +135,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
-	_control_state_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
@@ -1134,9 +1133,6 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 
 	vision_position.timestamp = sync_stamp(pos.time_usec);
 
-	// Use the estimator type to identify the external estimate
-	vision_position.estimator_type = pos.estimator_type;
-
 	vision_position.xy_valid = true;
 	vision_position.z_valid = true;
 	vision_position.v_xy_valid = true;
@@ -1149,10 +1145,6 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	vision_position.vx = pos.vx;
 	vision_position.vy = pos.vy;
 	vision_position.vz = pos.vz;
-
-	vision_position.ax = pos.ax;
-	vision_position.ay = pos.ay;
-	vision_position.az = pos.az;
 
 	// Low risk change for now. TODO : full covariance matrix
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
@@ -1177,9 +1169,6 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
 	struct vehicle_local_position_s vision_position = {};
-
-	// Use the estimator type to identify the simple vision estimate
-	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 	vision_position.timestamp = sync_stamp(pos.usec);
 	vision_position.x = pos.x;
@@ -1932,7 +1921,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu.abs_pressure;
-		baro.altitude = imu.pressure_alt;
 		baro.temperature = imu.temperature;
 
 		/* fake device ID */
@@ -2165,7 +2153,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* global position */
 	{
 		struct vehicle_global_position_s hil_global_pos = {};
-		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
 
 		hil_global_pos.timestamp = timestamp;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
@@ -2174,7 +2161,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
-		hil_global_pos.yaw = euler.psi();
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
@@ -2282,66 +2268,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 		}
-	}
-
-	/* control state */
-	control_state_s ctrl_state = {};
-	matrix::Quatf q(hil_state.attitude_quaternion);
-	matrix::Dcmf R_to_body(q.inversed());
-
-	//Time
-	ctrl_state.timestamp = hrt_absolute_time();
-
-	//Roll Rates:
-	//ctrl_state: body angular rate (rad/s, x forward/y right/z down)
-	//hil_state : body frame angular speed (rad/s)
-	ctrl_state.roll_rate = hil_state.rollspeed;
-	ctrl_state.pitch_rate = hil_state.pitchspeed;
-	ctrl_state.yaw_rate = hil_state.yawspeed;
-
-	// Local Position NED:
-	//ctrl_state: position in local earth frame
-	//hil_state : Latitude/Longitude expressed as * 1E7
-	float x = 0.0f;
-	float y = 0.0f;
-	double lat = hil_state.lat * 1e-7;
-	double lon = hil_state.lon * 1e-7;
-	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
-	ctrl_state.x_pos = x;
-	ctrl_state.y_pos = y;
-	ctrl_state.z_pos = hil_state.alt / 1000.0f;
-
-	// Attitude quaternion
-	q.copyTo(ctrl_state.q);
-
-	// Velocity
-	//ctrl_state: velocity in body frame (x forward/y right/z down)
-	//hil_state : Ground Speed in NED expressed as m/s * 100
-	matrix::Vector3f v_n(hil_state.vx, hil_state.vy, hil_state.vz);
-	matrix::Vector3f v_b = R_to_body * v_n;
-	ctrl_state.x_vel = v_b(0) / 100.0f;
-	ctrl_state.y_vel = v_b(1) / 100.0f;
-	ctrl_state.z_vel = v_b(2) / 100.0f;
-
-	// Acceleration
-	//ctrl_state: acceleration in body frame
-	//hil_state : acceleration in body frame
-	ctrl_state.x_acc = hil_state.xacc;
-	ctrl_state.y_acc = hil_state.yacc;
-	ctrl_state.z_acc = hil_state.zacc;
-
-	static float _acc_hor_filt = 0;
-	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
-			ctrl_state.y_acc);
-	ctrl_state.horz_acc_mag = _acc_hor_filt;
-	ctrl_state.airspeed_valid = false;
-
-	// publish control state data
-	if (_control_state_pub == nullptr) {
-		_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-	} else {
-		orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 	}
 }
 

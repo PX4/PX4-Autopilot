@@ -76,7 +76,7 @@ private:
 		float front_trans_time_min;
 		float down_pitch_max;
 		float forward_thrust_scale;
-		int airspeed_mode;
+		int32_t airspeed_disabled;
 		float pitch_setpoint_offset;
 	} _params_standard;
 

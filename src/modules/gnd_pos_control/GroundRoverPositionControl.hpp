@@ -54,17 +54,21 @@
 #include <mathlib/mathlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/pid/pid.h>
-#include <uORB/topics/control_state.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/uORB.h>
 
 using matrix::Dcmf;
+
+using uORB::Subscription;
 
 class GroundRoverPositionControl
 {
@@ -96,19 +100,20 @@ private:
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
 	int		_control_mode_sub{-1};		/**< control mode subscription */
-	int		_ctrl_state_sub{-1};			/**< control state subscription */
 	int		_global_pos_sub{-1};
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 
-	control_state_s				_ctrl_state{};			/**< control state */
 	fw_pos_ctrl_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
+
+	Subscription<vehicle_attitude_s>	_sub_attitude;
+	Subscription<sensor_combined_s>	_sub_sensors;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -180,7 +185,6 @@ private:
 	int		parameters_update();
 
 	void		manual_control_setpoint_poll();
-	void		control_state_poll();
 	void		position_setpoint_triplet_poll();
 	void		vehicle_control_mode_poll();
 

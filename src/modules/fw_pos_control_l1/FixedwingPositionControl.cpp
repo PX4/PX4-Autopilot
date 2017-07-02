@@ -39,6 +39,8 @@ FixedwingPositionControl *l1_control::g_control;
 static int _control_task = -1;			///< task handle for sensor task */
 
 FixedwingPositionControl::FixedwingPositionControl() :
+	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
+	_sub_sensors(ORB_ID(sensor_combined), 0, 0, nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -134,7 +136,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
 	param_get(_parameter_handles.airspeed_trans, &(_parameters.airspeed_trans));
-	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_mode));
+	param_get(_parameter_handles.airspeed_mode, &(_parameters.airspeed_disabled));
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
@@ -319,27 +321,47 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 }
 
 void
-FixedwingPositionControl::control_state_poll()
+FixedwingPositionControl::airspeed_poll()
 {
-	/* check if there is a new position */
-	bool ctrl_state_updated;
-	orb_check(_ctrl_state_sub, &ctrl_state_updated);
-
-	if (ctrl_state_updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
-		_airspeed_valid = _ctrl_state.airspeed_valid;
+	if (_sub_airspeed.updated()) {
+		_sub_airspeed.update();
+		_airspeed_valid = PX4_ISFINITE(_sub_airspeed.get().indicated_airspeed_m_s)
+				  && PX4_ISFINITE(_sub_airspeed.get().true_airspeed_m_s);
 		_airspeed_last_received = hrt_absolute_time();
+		_airspeed = _sub_airspeed.get().indicated_airspeed_m_s;
+
+		if (_sub_airspeed.get().indicated_airspeed_m_s > 0.0f
+		    && _sub_airspeed.get().true_airspeed_m_s > _sub_airspeed.get().indicated_airspeed_m_s) {
+			_eas2tas = max(_sub_airspeed.get().true_airspeed_m_s / _sub_airspeed.get().indicated_airspeed_m_s, 1.0f);
+
+		} else {
+			_eas2tas = 1.0f;
+		}
 
 	} else {
-
 		/* no airspeed updates for one second */
 		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_received) > 1e6) {
 			_airspeed_valid = false;
 		}
 	}
 
+	/* update TECS state */
+	_tecs.enable_airspeed(_airspeed_valid);
+}
+
+void
+FixedwingPositionControl::vehicle_attitude_poll()
+{
+	/* check if there is a new position */
+	bool updated;
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+	}
+
 	/* set rotation matrix and euler angles */
-	math::Quaternion q_att(_ctrl_state.q);
+	math::Quaternion q_att(_att.q);
 	_R_nb = q_att.to_dcm();
 
 	math::Vector<3> euler_angles;
@@ -347,9 +369,6 @@ FixedwingPositionControl::control_state_poll()
 	_roll    = euler_angles(0);
 	_pitch   = euler_angles(1);
 	_yaw     = euler_angles(2);
-
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
 }
 
 void
@@ -627,7 +646,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
 
 	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_ctrl_state.x_acc, _ctrl_state.y_acc, _ctrl_state.z_acc);
+	math::Vector<3> accel_body(_sub_sensors.get().accelerometer_m_s2);
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
@@ -646,14 +665,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				    _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS filters */
-	_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
+	_tecs.update_state(_global_pos.alt, _airspeed, _R_nb,
 			   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 
 	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 	// l1 navigation logic breaks down when wind speed exceeds max airspeed
 	// compute 2D groundspeed from airspeed-heading projection
-	math::Vector<2> air_speed_2d{_ctrl_state.airspeed * cosf(_yaw), _ctrl_state.airspeed * sinf(_yaw)};
+	math::Vector<2> air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
 	math::Vector<2> nav_speed_2d{0.0f, 0.0f};
 
 	// angle between air_speed_2d and ground_speed
@@ -1050,8 +1069,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
 				if (!_runway_takeoff.isInitialized()) {
-					Eulerf euler(Quatf(_ctrl_state.q));
-					_runway_takeoff.init(euler.psi(), _global_pos.lat, _global_pos.lon);
+					_runway_takeoff.init(_yaw, _global_pos.lat, _global_pos.lon);
 
 					/* need this already before takeoff is detected
 					 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1063,7 +1081,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 				float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt, _global_pos);
 
 				// update runway takeoff helper
-				_runway_takeoff.update(_ctrl_state.airspeed, _global_pos.alt - terrain_alt,
+				_runway_takeoff.update(_airspeed, _global_pos.alt - terrain_alt,
 						       _global_pos.lat, _global_pos.lon, &_mavlink_log_pub);
 
 				/*
@@ -1112,7 +1130,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 						}
 
 						/* Detect launch */
-						_launchDetector.update(_ctrl_state.x_acc);
+						_launchDetector.update(_sub_sensors.get().accelerometer_m_s2[0]);
 
 						/* update our copy of the launch detection state */
 						_launch_detection_state = _launchDetector.getLaunchDetected();
@@ -1258,7 +1276,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 		    fabsf(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
-			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+			if (fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
@@ -1487,8 +1505,8 @@ FixedwingPositionControl::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -1542,6 +1560,7 @@ FixedwingPositionControl::task_main()
 		vehicle_command_poll();
 		vehicle_land_detected_poll();
 		vehicle_status_poll();
+		_sub_sensors.update();
 
 		/* only update parameters if they changed */
 		if ((fds[0].revents & POLLIN) != 0) {
@@ -1581,7 +1600,8 @@ FixedwingPositionControl::task_main()
 			_alt_reset_counter = _global_pos.alt_reset_counter;
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
-			control_state_poll();
+			airspeed_poll();
+			vehicle_attitude_poll();
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
 
@@ -1730,12 +1750,12 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 			_was_in_transition = true;
 
 			// set this to transition airspeed to init tecs correctly
-			if (_parameters.airspeed_mode == control_state_s::AIRSPD_MODE_DISABLED) {
+			if (_parameters.airspeed_disabled) {
 				// some vtols fly without airspeed sensor
 				_asp_after_transition = _parameters.airspeed_trans;
 
 			} else {
-				_asp_after_transition = _ctrl_state.airspeed;
+				_asp_after_transition = _airspeed;
 			}
 
 			_asp_after_transition = constrain(_asp_after_transition, _parameters.airspeed_min, _parameters.airspeed_max);
@@ -1744,8 +1764,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 			// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 			_asp_after_transition += dt * 2; // increase 2m/s
 
-			if (_asp_after_transition < airspeed_sp && _ctrl_state.airspeed < airspeed_sp) {
-				airspeed_sp = max(_asp_after_transition, _ctrl_state.airspeed);
+			if (_asp_after_transition < airspeed_sp && _airspeed < airspeed_sp) {
+				airspeed_sp = max(_asp_after_transition, _airspeed);
 
 			} else {
 				_was_in_transition = false;
@@ -1790,11 +1810,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		pitch_for_tecs = euler(1);
 	}
 
-	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
-
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    _global_pos.alt, alt_sp,
-				    airspeed_sp, _ctrl_state.airspeed, eas2tas,
+				    airspeed_sp, _airspeed, _eas2tas,
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);

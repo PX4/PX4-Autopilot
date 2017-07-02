@@ -55,11 +55,11 @@
 #include <px4_posix.h>
 #include <drivers/drv_hrt.h>
 
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -111,13 +111,14 @@ private:
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_ctrl_state_sub;		/**< control state subscription */
+	int		_vehicle_attitude_sub;		/**< control state subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_sub;			/**< notification of manual control updates */
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_home_pos_sub; 			/**< home position */
+
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 
@@ -125,7 +126,7 @@ private:
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
@@ -376,7 +377,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
-	_ctrl_state_sub(-1),
+	_vehicle_attitude_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
@@ -390,7 +391,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
-	_ctrl_state{},
+	_att{},
 	_att_sp{},
 	_manual{},
 	_control_mode{},
@@ -437,7 +438,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_heading_reset_counter(0)
 {
 	// Make the quaternion valid for control state
-	_ctrl_state.q[0] = 1.0f;
+	_att.q[0] = 1.0f;
 
 	_ref_pos = {};
 
@@ -655,23 +656,23 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
-	orb_check(_ctrl_state_sub, &updated);
+	orb_check(_vehicle_attitude_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+		math::Quaternion q_att(_att.q[0], _att.q[1], _att.q[2], _att.q[3]);
 		_R = q_att.to_dcm();
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
 
 		if (_control_mode.flag_control_manual_enabled) {
-			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
-				_heading_reset_counter = _ctrl_state.quat_reset_counter;
-				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
-							 _ctrl_state.delta_q_reset[3]);
+			if (_heading_reset_counter != _att.quat_reset_counter) {
+				_heading_reset_counter = _att.quat_reset_counter;
+				math::Quaternion delta_q(_att.delta_q_reset[0], _att.delta_q_reset[1], _att.delta_q_reset[2],
+							 _att.delta_q_reset[3]);
 
 				// we only extract the heading change from the delta quaternion
 				math::Vector<3> delta_euler = delta_q.to_euler();
@@ -2217,7 +2218,7 @@ MulticopterPositionControl::task_main()
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));

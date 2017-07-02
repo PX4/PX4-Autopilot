@@ -42,18 +42,18 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/battery_status.h>
-
 #include "LandDetector.h"
+
+#include <systemlib/param/param.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 namespace land_detector
 {
@@ -117,7 +117,7 @@ private:
 	int _armingSub;
 	int _attitudeSub;
 	int _manualSub;
-	int _ctrl_state_sub;
+	int _sensor_combined_sub;
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
 
@@ -126,7 +126,7 @@ private:
 	struct actuator_armed_s			_arming;
 	struct vehicle_attitude_s		_vehicleAttitude;
 	struct manual_control_setpoint_s	_manual;
-	struct control_state_s			_ctrl_state;
+	struct sensor_combined_s			_sensors;
 	struct vehicle_control_mode_s		_control_mode;
 	struct battery_status_s _battery;
 

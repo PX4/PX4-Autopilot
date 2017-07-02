@@ -53,7 +53,6 @@
 #include <systemlib/perf_counter.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -81,7 +80,7 @@ private:
 
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
 	int		_battery_status_sub{-1};		/**< battery status subscription */
-	int		_ctrl_state_sub{-1};		/**< control state subscription */
+	int		_att_sub{-1};		/**< control state subscription */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
@@ -90,8 +89,8 @@ private:
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	battery_status_s				_battery_status {};	/**< battery status */
-	control_state_s				_ctrl_state {};	/**< control state */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
+	vehicle_attitude_s				_att {};	/**< control state */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
 

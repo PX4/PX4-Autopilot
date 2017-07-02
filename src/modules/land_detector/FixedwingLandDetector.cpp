@@ -50,19 +50,7 @@
 namespace land_detector
 {
 
-FixedwingLandDetector::FixedwingLandDetector() :
-	_paramHandle(),
-	_params(),
-	_controlStateSub(-1),
-	_armingSub(-1),
-	_airspeedSub(-1),
-	_controlState{},
-	_arming{},
-	_airspeed{},
-	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f),
-	_airspeed_filtered(0.0f),
-	_accel_horz_lp(0.0f)
+FixedwingLandDetector::FixedwingLandDetector()
 {
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
@@ -72,16 +60,18 @@ FixedwingLandDetector::FixedwingLandDetector() :
 
 void FixedwingLandDetector::_initialize_topics()
 {
-	_controlStateSub = orb_subscribe(ORB_ID(control_state));
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
 void FixedwingLandDetector::_update_topics()
 {
-	_orb_update(ORB_ID(control_state), _controlStateSub, &_controlState);
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	_orb_update(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensors);
+	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 }
 
 void FixedwingLandDetector::_update_params()
@@ -96,8 +86,8 @@ float FixedwingLandDetector::_get_max_altitude()
 {
 	// TODO
 	// This means no altitude limit as the limit
-	// is always current position plus 1000 meters
-	return -_controlState.z_pos + 1000;
+	// is always 100000 meters
+	return 100000;
 }
 
 bool FixedwingLandDetector::_get_freefall_state()
@@ -107,7 +97,6 @@ bool FixedwingLandDetector::_get_freefall_state()
 }
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
-
 	// TODO
 	return false;
 }
@@ -121,15 +110,18 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_controlState.timestamp) < 500 * 1000) {
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_controlState.x_vel *
-				_controlState.x_vel + _controlState.y_vel * _controlState.y_vel);
+	if (hrt_elapsed_time(&_local_pos.timestamp) < 500 * 1000) {
+
+		// horizontal velocity
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy *
+				_local_pos.vy);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
 
-		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_controlState.z_vel);
+		// vertical velocity
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_local_pos.vz);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
@@ -139,7 +131,9 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// a leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses
-		_accel_horz_lp = _accel_horz_lp * 0.8f + _controlState.horz_acc_mag * 0.18f;
+		const float acc_hor = sqrtf(_sensors.accelerometer_m_s2[0] * _sensors.accelerometer_m_s2[0] +
+					    _sensors.accelerometer_m_s2[1] * _sensors.accelerometer_m_s2[1]);
+		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
 
 		// crude land detector for fixedwing
 		landDetected = _velocity_xy_filtered < _params.maxVelocity

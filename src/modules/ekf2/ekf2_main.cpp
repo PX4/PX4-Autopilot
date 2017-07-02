@@ -69,7 +69,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/estimator_status.h>
@@ -181,18 +180,12 @@ private:
 
 	orb_advert_t _att_pub;
 	orb_advert_t _lpos_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _vehicle_global_position_pub;
 	orb_advert_t _wind_pub;
 	orb_advert_t _estimator_status_pub;
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
 	orb_advert_t _ekf2_timestamps_pub;
-
-	/* Low pass filter for attitude rates */
-	math::LowPassFilter2p _lp_roll_rate;
-	math::LowPassFilter2p _lp_pitch_rate;
-	math::LowPassFilter2p _lp_yaw_rate;
 
 	Ekf _ekf;
 
@@ -336,16 +329,12 @@ Ekf2::Ekf2():
 	_publish_replay_mode(0),
 	_att_pub(nullptr),
 	_lpos_pub(nullptr),
-	_control_state_pub(nullptr),
 	_vehicle_global_position_pub(nullptr),
 	_wind_pub(nullptr),
 	_estimator_status_pub(nullptr),
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
 	_ekf2_timestamps_pub(nullptr),
-	_lp_roll_rate(250.0f, 30.0f),
-	_lp_pitch_rate(250.0f, 30.0f),
-	_lp_yaw_rate(250.0f, 20.0f),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
@@ -801,102 +790,24 @@ void Ekf2::task_main()
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 
-			float gyro_rad[3];
-
-			{
-				// generate control state data
-				control_state_s ctrl_state = {};
-				float gyro_bias[3] = {};
-				_ekf.get_gyro_bias(gyro_bias);
-				ctrl_state.timestamp = now;
-				gyro_rad[0] = sensors.gyro_rad[0] - gyro_bias[0];
-				gyro_rad[1] = sensors.gyro_rad[1] - gyro_bias[1];
-				gyro_rad[2] = sensors.gyro_rad[2] - gyro_bias[2];
-				ctrl_state.roll_rate = _lp_roll_rate.apply(gyro_rad[0]);
-				ctrl_state.pitch_rate = _lp_pitch_rate.apply(gyro_rad[1]);
-				ctrl_state.yaw_rate = _lp_yaw_rate.apply(gyro_rad[2]);
-				ctrl_state.roll_rate_bias = gyro_bias[0];
-				ctrl_state.pitch_rate_bias = gyro_bias[1];
-				ctrl_state.yaw_rate_bias = gyro_bias[2];
-
-				// Velocity in body frame
-				Vector3f v_n(velocity);
-				matrix::Dcm<float> R_to_body(q.inversed());
-				Vector3f v_b = R_to_body * v_n;
-				ctrl_state.x_vel = v_b(0);
-				ctrl_state.y_vel = v_b(1);
-				ctrl_state.z_vel = v_b(2);
-
-
-				// Local Position NED
-				float position[3];
-				_ekf.get_position(position);
-				ctrl_state.x_pos = position[0];
-				ctrl_state.y_pos = position[1];
-				ctrl_state.z_pos = position[2];
-
-				// Attitude quaternion
-				q.copyTo(ctrl_state.q);
-
-				_ekf.get_quat_reset(&ctrl_state.delta_q_reset[0], &ctrl_state.quat_reset_counter);
-
-				// Acceleration data
-				matrix::Vector<float, 3> acceleration(sensors.accelerometer_m_s2);
-
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				ctrl_state.x_acc = acceleration(0) - accel_bias[0];
-				ctrl_state.y_acc = acceleration(1) - accel_bias[1];
-				ctrl_state.z_acc = acceleration(2) - accel_bias[2];
-
-				// compute lowpass filtered horizontal acceleration
-				acceleration = R_to_body.transpose() * acceleration;
-				_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(acceleration(0) * acceleration(0) +
-						acceleration(1) * acceleration(1));
-				ctrl_state.horz_acc_mag = _acc_hor_filt;
-
-				ctrl_state.airspeed_valid = false;
-
-				// use estimated velocity for airspeed estimate
-				if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_MEAS) {
-					// use measured airspeed
-					if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && now - airspeed.timestamp < 1e6
-					    && airspeed.timestamp > 0) {
-						ctrl_state.airspeed = airspeed.indicated_airspeed_m_s;
-						ctrl_state.airspeed_valid = true;
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_EST) {
-					if (_ekf.local_position_is_valid()) {
-						ctrl_state.airspeed = sqrtf(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2]);
-						ctrl_state.airspeed_valid = true;
-					}
-
-				} else if (_airspeed_mode.get() == control_state_s::AIRSPD_MODE_DISABLED) {
-					// do nothing, airspeed has been declared as non-valid above, controllers
-					// will handle this assuming always trim airspeed
-				}
-
-				// publish control state data
-				if (_control_state_pub == nullptr) {
-					_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-				} else {
-					orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
-				}
-			}
-
-
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
 				att.timestamp = now;
 
 				q.copyTo(att.q);
+				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-				att.rollspeed = gyro_rad[0];
-				att.pitchspeed = gyro_rad[1];
-				att.yawspeed = gyro_rad[2];
+				float gyro_bias[3] = {};
+				_ekf.get_gyro_bias(gyro_bias);
+
+				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
+				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
+				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+
+				att.roll_rate_bias = gyro_bias[0];
+				att.pitch_rate_bias = gyro_bias[1];
+				att.yaw_rate_bias = gyro_bias[2];
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
@@ -946,7 +857,6 @@ void Ekf2::task_main()
 			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);
 			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
-			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
@@ -971,7 +881,6 @@ void Ekf2::task_main()
 				struct vehicle_global_position_s global_pos = {};
 
 				global_pos.timestamp = now;
-				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
 				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
@@ -1009,8 +918,6 @@ void Ekf2::task_main()
 				}
 
 				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-
-				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
 
 				if (_vehicle_global_position_pub == nullptr) {
 					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
