@@ -910,6 +910,35 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 	return ret;
 }
 
+int hardfault_store_ulog_filename(const char *log_file)
+{
+	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
+
+	if (fd < 0) {
+		return -errno;
+	}
+
+	int n = strlen(log_file);
+
+	if (n >= HARDFAULT_MAX_ULOG_FILE_LEN) {
+		syslog(LOG_INFO, "ULog file name too long (%s, %i>=%i)\n", log_file, n, HARDFAULT_MAX_ULOG_FILE_LEN);
+		return -EINVAL;
+	}
+
+	if (n + 1 != write(fd, log_file, n + 1)) {
+		close(fd);
+		return -errno;
+	}
+
+	int ret = close(fd);
+
+	if (ret != 0) {
+		return -errno;
+	}
+
+	return 0;
+}
+
 /****************************************************************************
  * Name: hardfault_log_main
  ****************************************************************************/
