@@ -159,21 +159,20 @@ void Ekf::controlExternalVisionFusion()
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observaton quaternion
 				// get the roll, pitch, yaw estimates from the quaternion states
-				matrix::Quaternion<float> q_init(_state.quat_nominal(0), _state.quat_nominal(1), _state.quat_nominal(2),
-							    _state.quat_nominal(3));
-				matrix::Euler<float> euler_init(q_init);
+				Quatf q_init(_state.quat_nominal);
+				Eulerf euler_init(q_init);
 
 				// get initial yaw from the observation quaternion
 				extVisionSample ev_newest = _ext_vision_buffer.get_newest();
-				matrix::Quaternion<float> q_obs(ev_newest.quat(0), ev_newest.quat(1), ev_newest.quat(2), ev_newest.quat(3));
-				matrix::Euler<float> euler_obs(q_obs);
+				Quatf q_obs(ev_newest.quat);
+				Eulerf euler_obs(q_obs);
 				euler_init(2) = euler_obs(2);
 
 				// save a copy of the quaternion state for later use in calculating the amount of reset change
-				Quaternion quat_before_reset = _state.quat_nominal;
+				Quatf quat_before_reset = _state.quat_nominal;
 
 				// calculate initial quaternion states for the ekf
-				_state.quat_nominal = Quaternion(euler_init);
+				_state.quat_nominal = Quatf(euler_init);
 
 				// calculate the amount that the quaternion has changed by
 				_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();

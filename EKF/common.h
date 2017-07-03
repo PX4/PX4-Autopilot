@@ -42,6 +42,15 @@
 
 namespace estimator
 {
+
+using matrix::Dcmf;
+using matrix::Eulerf;
+using matrix::Matrix3f;
+using matrix::Quatf;
+using matrix::Vector2f;
+using matrix::Vector3f;
+using matrix::wrap_pi;
+
 struct gps_message {
 	uint64_t time_usec;
 	int32_t lat;                // Latitude in 1E-7 degrees
@@ -58,11 +67,6 @@ struct gps_message {
 	float gdop;                 // geometric dilution of precision
 };
 
-typedef matrix::Vector<float, 2> Vector2f;
-typedef matrix::Vector<float, 3> Vector3f;
-typedef matrix::Quaternion<float> Quaternion;
-typedef matrix::Matrix<float, 3, 3> Matrix3f;
-
 struct flow_message {
 	uint8_t quality;			// Quality of Flow data
 	Vector2f flowdata;			// Flow data received
@@ -72,13 +76,13 @@ struct flow_message {
 
 struct ext_vision_message {
 	Vector3f posNED;  // measured NED position relative to the local origin (m)
-	Quaternion quat;  // measured quaternion orientation defining rotation from NED to body frame
+	Quatf quat;  // measured quaternion orientation defining rotation from NED to body frame
 	float posErr;     // 1-Sigma spherical position accuracy (m)
 	float angErr;     // 1-Sigma angular error (rad)
 };
 
 struct outputSample {
-	Quaternion  quat_nominal;	// nominal quaternion describing vehicle attitude
+	Quatf  quat_nominal;	// nominal quaternion describing vehicle attitude
 	Vector3f    vel;		// NED velocity estimate in earth frame in m/s
 	Vector3f    pos;		// NED position estimate in earth frame in m/s
 	uint64_t    time_us;		// timestamp in microseconds
@@ -141,7 +145,7 @@ struct flowSample {
 
 struct extVisionSample {
 	Vector3f posNED;  // measured NED position relative to the local origin (m)
-	Quaternion quat;  // measured quaternion orientation defining rotation from NED to body frame
+	Quatf quat;  // measured quaternion orientation defining rotation from NED to body frame
 	float posErr;     // 1-Sigma spherical position accuracy (m)
 	float angErr;     // 1-Sigma angular error (rad)
 	uint64_t time_us; // timestamp of the measurement in microseconds
@@ -318,7 +322,7 @@ struct parameters {
 };
 
 struct stateSample {
-	Quaternion  quat_nominal; // quaternion defining the rotaton from earth to body frame
+	Quatf  quat_nominal; // quaternion defining the rotaton from earth to body frame
 	Vector3f    vel;	// NED velocity in earth frame in m/s
 	Vector3f    pos;	// NED position in earth frame in m
 	Vector3f    gyro_bias;	// delta angle bias estimate in rad

@@ -420,6 +420,6 @@ protected:
 	Vector3f cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2);
 
 	// calculate the inverse rotation matrix from a quaternion rotation
-	Matrix3f quat_to_invrotmat(const Quaternion &quat);
+	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
 };
