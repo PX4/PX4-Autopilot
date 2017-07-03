@@ -1622,6 +1622,12 @@ void Logger::write_version()
 	write_info("sys_os_name", px4_os_name());
 	const char *os_version = px4_os_version_string();
 
+	const char *git_branch = px4_firmware_git_branch();
+
+	if (git_branch && git_branch[0]) {
+		write_info("ver_sw_branch", git_branch);
+	}
+
 	if (os_version) {
 		write_info("sys_os_ver", os_version);
 	}
