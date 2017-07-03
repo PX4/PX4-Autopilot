@@ -66,7 +66,7 @@ def main():
                         const="airframes.md",
                         metavar="FILENAME",
                         help="Create Markdown file"
-                             " (default FILENAME: airframes.md)")
+                             " (default FILENAME: airframes_reference.md)")
     parser.add_argument("-s", "--start-script",
                         nargs='?',
                         const="rc.autostart",
