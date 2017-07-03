@@ -2,7 +2,7 @@
 #
 # @name Wing Wing (aka Z-84) Flying Wing
 #
-# @url https://pixhawk.org/platforms/planes/z-84_wing_wing
+# @url https://docs.px4.io/en/framebuild_plane/wing_wing_z84.html
 #
 # @type Flying Wing
 # @class Plane
