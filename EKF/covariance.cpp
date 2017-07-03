@@ -729,11 +729,43 @@ void Ekf::fixCovarianceErrors()
 		zeroRows(P,13,15);
 		zeroCols(P,13,15);
 	} else {
-		// constrain variances
-		for (int i = 13; i <= 15; i++) {
-			P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[4]);
+		// Find the maximum delta velocity bias state variance and request a covariance reset if any variance is below the safe minimum
+		const float minSafeStateVar = 1e-9f;
+		float maxStateVar = minSafeStateVar;
+		bool resetRequired = false;
+		for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
+		    if (P[stateIndex][stateIndex] > maxStateVar) {
+			maxStateVar = P[stateIndex][stateIndex];
+		    } else if (P[stateIndex][stateIndex] < minSafeStateVar) {
+			resetRequired = true;
+		    }
 		}
 
+		// To ensure stability of the covariance matrix operations, the ratio of a max and min variance must
+		// not exceed 100 and the minimum variance must not fall below the target minimum
+		// Also limit variance to a maximum equivalent to a 1g uncertainty
+		const float minStateVarTarget = 1E-8f;
+		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
+		for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
+			P[stateIndex][stateIndex] = math::constrain(P[stateIndex][stateIndex], minAllowedStateVar, sq(_gravity_mss * _dt_ekf_avg));
+		}
+
+		// If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero
+		if (resetRequired) {
+		    float delVelBiasVar[3];
+		    // store all delta velocity bias variances
+		    for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
+			delVelBiasVar[stateIndex-13] = P[stateIndex][stateIndex];
+		    }
+		    // reset all delta velocity bias covariances
+		    zeroCols(P,13,15);
+		    // restore all delta velocity bias variances
+		    for (uint8_t stateIndex=13; stateIndex<=15; stateIndex++) {
+			P[stateIndex][stateIndex] = delVelBiasVar[stateIndex-13];
+		    }
+		}
+
+		// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
 		// calculate accel bias term aligned with the gravity vector
 		float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
 		float down_dvel_bias = 0.0f;
