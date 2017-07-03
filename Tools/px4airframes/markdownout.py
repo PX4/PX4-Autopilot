@@ -19,7 +19,6 @@ class MarkdownTablesOutput():
 
         for group in groups:
             if group.GetClass() not in type_set:
-               #result += '\n<span id="type_%s"></span>\n' % group.GetType().lower()
                result += '## %s\n\n' % group.GetClass()
                type_set.add(group.GetClass())
 
@@ -88,6 +87,8 @@ class MarkdownTablesOutput():
                     if maintainer != '':
                         maintainer_entry = '<p>Maintainer: %s</p>' % (maintainer)
                     url = param.GetFieldValue('url')
+                    name_anchor='id="%s_%s_%s"' % (group.GetClass(),group.GetName(),name)
+                    name_anchor=name_anchor.replace(' ','_').lower()
                     name_entry = name
                     if url != '':
                         name_entry = '<a href="%s">%s</a>' % (url, name)
@@ -114,8 +115,8 @@ class MarkdownTablesOutput():
                     else:
                         outputs_entry = ''
 
-                    result += ('<tr>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
-                        (name_entry, maintainer_entry, airframe_id_entry,
+                    result += ('<tr %s>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
+                        (name_anchor, name_entry, maintainer_entry, airframe_id_entry,
                         outputs_entry))
 
 
