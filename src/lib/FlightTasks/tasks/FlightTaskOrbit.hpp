@@ -58,6 +58,9 @@ public:
 	virtual int activate()
 	{
 		FlightTask::activate();
+		r = 1.f;
+		v =  0.5f;
+		altitude = 6.f;
 		return 0;
 	};
 
@@ -80,7 +83,7 @@ public:
 		FlightTask::update();
 
 		r += _sticks(0) * _deltatime;
-		r = math::constrain(r, 0.5f, 4.f);
+		r = math::constrain(r, 1.f, 20.f);
 		v -= _sticks(1) * _deltatime;
 		v = math::constrain(v, -7.f, 7.f);
 		altitude += _sticks(2) * _deltatime;
