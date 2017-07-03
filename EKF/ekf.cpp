@@ -275,8 +275,8 @@ bool Ekf::initialiseFilter()
 		}
 
 		// calculate initial tilt alignment
-		matrix::Euler<float> euler_init(roll, pitch, 0.0f);
-		_state.quat_nominal = Quaternion(euler_init);
+		Eulerf euler_init(roll, pitch, 0.0f);
+		_state.quat_nominal = Quatf(euler_init);
 		_output_new.quat_nominal = _state.quat_nominal;
 
 		// update transformation matrix from body to world frame
@@ -340,7 +340,7 @@ void Ekf::predictState()
 	corrected_delta_ang -= -_R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
 
 	// convert the delta angle to a delta quaternion
-	Quaternion dq;
+	Quatf dq;
 	dq.from_axis_angle(corrected_delta_ang);
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
@@ -400,13 +400,13 @@ bool Ekf::collect_imu(imuSample &imu)
 
 	// use a quaternion to accumulate delta angle data
 	// this quaternion represents the rotation from the start to end of the accumulation period
-	Quaternion delta_q;
+	Quatf delta_q;
 	delta_q.rotate(imu.delta_ang);
 	_q_down_sampled =  _q_down_sampled * delta_q;
 	_q_down_sampled.normalize();
 
 	// rotate the accumulated delta velocity data forward each time so it is always in the updated rotation frame
-	matrix::Dcm<float> delta_R(delta_q.inversed());
+	Dcmf delta_R(delta_q.inversed());
 	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
 
 	// accumulate the most recent delta velocity data at the updated rotation frame
@@ -481,7 +481,7 @@ void Ekf::calculateOutputStates()
 	delta_angle += _delta_angle_corr;
 
 	// convert the delta angle to an equivalent delta quaternions
-	Quaternion dq;
+	Quatf dq;
 	dq.from_axis_angle(delta_angle);
 
 	// rotate the previous INS quaternion by the delta quaternions
@@ -538,8 +538,8 @@ void Ekf::calculateOutputStates()
 		_output_vert_delayed = _output_vert_buffer.get_oldest();
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-		Quaternion quat_inv = _state.quat_nominal.inversed();
-		Quaternion q_error =  _output_sample_delayed.quat_nominal * quat_inv;
+		Quatf quat_inv = _state.quat_nominal.inversed();
+		Quatf q_error =  _output_sample_delayed.quat_nominal * quat_inv;
 		q_error.normalize();
 
 		// convert the quaternion delta to a delta angle

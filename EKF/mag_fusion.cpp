@@ -72,7 +72,7 @@ void Ekf::fuseMag()
 	SH_MAG[8] = 2.0f*magE*q3;
 
 	// rotate magnetometer earth field state into body frame
-	matrix::Dcm<float> R_to_body(_state.quat_nominal);
+	Dcmf R_to_body(_state.quat_nominal);
 	R_to_body = R_to_body.transpose();
 
 	Vector3f mag_I_rot = R_to_body * _state.mag_I;
@@ -421,7 +421,7 @@ void Ekf::fuseHeading()
 	float R_YAW = 1.0f;
 	float predicted_hdg;
 	float H_YAW[4];
-	matrix::Vector3f mag_earth_pred;
+	Vector3f mag_earth_pred;
 	float measured_hdg;
 
 	// determine if a 321 or 312 Euler sequence is best
@@ -457,12 +457,12 @@ void Ekf::fuseHeading()
 		H_YAW[3] = t8*t14*(q0*t3+q0*t4-q0*t5+q0*t6+q1*q2*q3*2.0f)*2.0f;
 
 		// rotate the magnetometer measurement into earth frame
-		matrix::Euler<float> euler321(_state.quat_nominal);
+		Eulerf euler321(_state.quat_nominal);
 		predicted_hdg = euler321(2); // we will need the predicted heading to calculate the innovation
 
 		// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
 		euler321(2) = 0.0f;
-		matrix::Dcm<float> R_to_earth(euler321);
+		Dcmf R_to_earth(euler321);
 
 		// calculate the observed yaw angle
 		if (_control_status.flags.mag_hdg) {
@@ -472,7 +472,7 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 		} else if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			measured_hdg = atan2f(R_to_earth_ev(1, 0) , R_to_earth_ev(0, 0));
 		} else {
@@ -531,7 +531,7 @@ void Ekf::fuseHeading()
 		float s0 = sinf(euler312(0));
 		float c0 = cosf(euler312(0));
 
-		matrix::Dcm<float> R_to_earth;
+		Dcmf R_to_earth;
 		R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
 		R_to_earth(1, 1) = c0 * c1;
 		R_to_earth(2, 2) = c2 * c1;
@@ -550,7 +550,7 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 		} else if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			matrix::Dcm<float> R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			measured_hdg = atan2f(-R_to_earth_ev(0, 1) , R_to_earth_ev(1, 1));
 		} else {
@@ -630,13 +630,13 @@ void Ekf::fuseHeading()
 	}
 
 	// wrap the heading to the interval between +-pi
-	measured_hdg = matrix::wrap_pi(measured_hdg);
+	measured_hdg = wrap_pi(measured_hdg);
 
 	// calculate the innovation
 	_heading_innov = predicted_hdg - measured_hdg;
 
 	// wrap the innovation to the interval between +-pi
-	_heading_innov = matrix::wrap_pi(_heading_innov);
+	_heading_innov = wrap_pi(_heading_innov);
 
 	// innovation test ratio
 	_yaw_test_ratio = sq(_heading_innov) / (sq(math::max(_params.heading_innov_gate, 1.0f)) * _heading_innov_var);
