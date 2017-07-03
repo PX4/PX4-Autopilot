@@ -81,8 +81,8 @@ int main(int argc, char** argv)
     topics.init();
 @[if send_topics]@
     int read = 0;
-    char topic_ID = 255;
 @[end if]@
+    char topic_ID = 255;
     struct timespec begin;
     bool receiving = false;
     do
