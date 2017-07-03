@@ -128,6 +128,7 @@ private:
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_limit_vel_xy = false;				/**<true if velocity in xy should be farther limited */
+	bool 		_pos_first_nonfinite = true; 		/**<true if triplets current is non-finite */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -919,7 +920,7 @@ MulticopterPositionControl::limit_altitude()
 		float delta_t = -_vel(2) / _acceleration_z_max_down.get();
 
 		/* predicted position */
-		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f*_acceleration_z_max_down.get() * delta_t *delta_t;
+		float pos_z_next = _pos(2) + _vel(2) * delta_t + 0.5f * _acceleration_z_max_down.get() * delta_t *delta_t;
 
 		if (pos_z_next <= -_vehicle_land_detected.alt_max) {
 			_pos_sp(2) = -_vehicle_land_detected.alt_max;
@@ -1292,7 +1293,7 @@ MulticopterPositionControl::control_manual(float dt)
 	float yaw_input_frame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
 
 	/* setpoint in NED frame */
-	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_fame)) * man_vel_sp;
+	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_frame)) * man_vel_sp;
 
 	/* adjust acceleration based on stick input only if jerk max < jerk min */
 	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
