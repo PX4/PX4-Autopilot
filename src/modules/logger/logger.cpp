@@ -1605,10 +1605,20 @@ void Logger::write_header()
 	header.magic[4] = 0x01;
 	header.magic[5] = 0x12;
 	header.magic[6] = 0x35;
-	header.magic[7] = 0x00; //file version 0
+	header.magic[7] = 0x01; //file version 1
 	header.timestamp = hrt_absolute_time();
 	_writer.lock();
 	write_message(&header, sizeof(header));
+
+	// write the Flags message: this MUST be written right after the ulog header
+	ulog_message_flag_bits_s flag_bits;
+
+	memset(&flag_bits, 0, sizeof(flag_bits));
+	flag_bits.msg_size = sizeof(flag_bits) - ULOG_MSG_HEADER_LEN;
+	flag_bits.msg_type = static_cast<uint8_t>(ULogMessageType::FLAG_BITS);
+
+	write_message(&flag_bits, sizeof(flag_bits));
+
 	_writer.unlock();
 }
 
