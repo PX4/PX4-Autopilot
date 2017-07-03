@@ -38,6 +38,9 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_posix.h>
+#ifdef __PX4_NUTTX
+#include <systemlib/hardfault_log.h>
+#endif /* __PX4_NUTTX */
 
 namespace px4
 {
@@ -87,25 +90,36 @@ void LogWriterFile::start_log(const char *filename)
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
 		_should_run = false;
 		return;
+	}
 
-	} else {
+	if (_buffer == nullptr) {
+		_buffer = new uint8_t[_buffer_size];
 
 		if (_buffer == nullptr) {
-			_buffer = new uint8_t[_buffer_size];
-
-			if (_buffer == nullptr) {
-				PX4_ERR("Can't create log buffer");
-				::close(_fd);
-				_fd = -1;
-				_should_run = false;
-				return;
-			}
+			PX4_ERR("Can't create log buffer");
+			::close(_fd);
+			_fd = -1;
+			_should_run = false;
+			return;
 		}
-
-		PX4_INFO("Opened log file: %s", filename);
-		_should_run = true;
-		_running = true;
 	}
+
+#ifdef __PX4_NUTTX
+	// register the current file with the hardfault handler: if the system crashes,
+	// the hardfault handler will append the crash log to that file on the next reboot.
+	// Note that we don't deregister it when closing the log, so that crashes after disarming
+	// are appended as well (the same holds for crashes before arming, which can be a bit misleading)
+	int ret = hardfault_store_ulog_filename(filename);
+
+	if (ret) {
+		PX4_ERR("Failed to register ULog file to the hardfault handler (%i)", ret);
+	}
+
+#endif /* __PX4_NUTTX */
+
+	PX4_INFO("Opened log file: %s", filename);
+	_should_run = true;
+	_running = true;
 
 	// Clear buffer and counters
 	_head = 0;
