@@ -156,6 +156,11 @@ uint32_t px4_firmware_version(void)
 	return version_tag_to_number(PX4_GIT_TAG_STR);
 }
 
+const char *px4_firmware_git_branch(void)
+{
+	return PX4_GIT_BRANCH_NAME;
+}
+
 uint32_t px4_board_version(void)
 {
 #if defined(__PX4_NUTTX)

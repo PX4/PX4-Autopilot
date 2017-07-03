@@ -119,6 +119,12 @@ __EXPORT const char *px4_toolchain_version(void);
 __EXPORT const char *px4_firmware_version_string(void);
 
 /**
+ * get the git branch name (can be empty, for example if HEAD points to a tag)
+ */
+__EXPORT const char *px4_firmware_git_branch(void);
+
+
+/**
  * Firmware version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
