@@ -412,7 +412,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
 
 /**
- * Maximum horizontal manual acceleration
+ * Acceleration for auto and for manual
  *
  * @unit m/s/s
  * @min 2.0
@@ -421,7 +421,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAN, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 5.0f);
 
 /**
  * Slow horizontal manual deceleration for manual mode
