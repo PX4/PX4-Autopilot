@@ -968,7 +968,6 @@ void Ekf2::run()
 			}
 
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
-			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
 
 			bool dead_reckoning;
 			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv, &dead_reckoning);
@@ -993,7 +992,6 @@ void Ekf2::run()
 				struct vehicle_global_position_s global_pos = {};
 
 				global_pos.timestamp = now;
-				global_pos.time_utc_usec = gps.time_utc_usec; // GPS UTC timestamp in microseconds
 
 				double est_lat, est_lon, lat_pre_reset, lon_pre_reset;
 				map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &est_lat, &est_lon);
@@ -1030,9 +1028,9 @@ void Ekf2::run()
 					global_pos.terrain_alt_valid = false; // Terrain altitude estimate is valid
 				}
 
-				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-
 				global_pos.pressure_alt = sensors.baro_alt_meter; // Pressure altitude AMSL (m)
+
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
 				if (_vehicle_global_position_pub == nullptr) {
 					_vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
