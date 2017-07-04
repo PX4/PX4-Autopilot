@@ -321,7 +321,6 @@ private:
 	hrt_abstime					_next_load_print = 0; ///< timestamp when to print the process load
 
 	// control
-	param_t _sdlog_mode_handle;
 	param_t _sdlog_profile_handle;
 };
 
