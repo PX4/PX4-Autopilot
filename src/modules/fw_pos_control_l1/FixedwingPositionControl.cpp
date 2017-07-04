@@ -40,7 +40,7 @@ static int _control_task = -1;			///< task handle for sensor task */
 
 FixedwingPositionControl::FixedwingPositionControl() :
 	_sub_airspeed(ORB_ID(airspeed), 0, 0, nullptr),
-	_sub_sensors(ORB_ID(sensor_combined), 0, 0, nullptr),
+	_sub_sensors(ORB_ID(sensor_corrected), 0, 0, nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control"))
 {
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -646,7 +646,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
 
 	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sub_sensors.get().accelerometer_m_s2);
+	math::Vector<3> accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
@@ -1129,8 +1129,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 							_launch_detection_notify = hrt_absolute_time();
 						}
 
-						/* Detect launch */
-						_launchDetector.update(_sub_sensors.get().accelerometer_m_s2[0]);
+						/* Detect launch using body X (forward) acceleration */
+						_launchDetector.update(_sub_sensors.get().accel_x);
 
 						/* update our copy of the launch detection state */
 						_launch_detection_state = _launchDetector.getLaunchDetected();

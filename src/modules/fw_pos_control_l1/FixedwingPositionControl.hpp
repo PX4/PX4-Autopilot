@@ -78,7 +78,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -178,8 +178,7 @@ private:
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
 	Subscription<airspeed_s> _sub_airspeed;
-	Subscription<sensor_combined_s> _sub_sensors;
-
+	Subscription<sensor_corrected_s> _sub_sensors;
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
