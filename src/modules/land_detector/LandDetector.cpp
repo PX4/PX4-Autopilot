@@ -148,7 +148,7 @@ void LandDetector::_cycle()
 			// We landed
 			_total_flight_time += now - _takeoff_time;
 			_takeoff_time = 0;
-			int32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
+			uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
 			param_set_no_notification(_p_total_flight_time_high, &flight_time);
 			flight_time = _total_flight_time & 0xffffffff;
 			param_set_no_notification(_p_total_flight_time_low, &flight_time);
@@ -188,7 +188,7 @@ void LandDetector::_check_params(const bool force)
 
 	if (updated || force) {
 		_update_params();
-		int32_t flight_time;
+		uint32_t flight_time;
 		param_get(_p_total_flight_time_high, &flight_time);
 		_total_flight_time = ((uint64_t)flight_time) << 32;
 		param_get(_p_total_flight_time_low, &flight_time);
