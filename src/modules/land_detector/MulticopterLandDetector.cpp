@@ -214,7 +214,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
-	bool in_descend = _is_velocity_control_active() && (_vehicleLocalPositionSetpoint.vz >= 0.9f * _params.landSpeed);
+	bool in_descend = _is_climb_rate_enabled()
+			  && (_vehicleLocalPositionSetpoint.vz >= 0.9f * math::max(_params.landSpeed, 0.1f));
 	bool hit_ground = in_descend && !verticalMovement;
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
@@ -360,13 +361,12 @@ bool MulticopterLandDetector::_has_manual_control_present()
 	return _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
 }
 
-bool MulticopterLandDetector::_is_velocity_control_active()
+bool MulticopterLandDetector::_is_climb_rate_enabled()
 {
-	bool is_finite = PX4_ISFINITE(_vehicleLocalPositionSetpoint.vx) && PX4_ISFINITE(_vehicleLocalPositionSetpoint.vy)
-			 && PX4_ISFINITE(_vehicleLocalPositionSetpoint.vz);
+	bool has_updated = (_vehicleLocalPositionSetpoint.timestamp != 0)
+			   && (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500000);
 
-	return (_vehicleLocalPositionSetpoint.timestamp != 0) &&
-	       (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500000) && is_finite;
+	return (_control_mode.flag_control_climb_rate_enabled && has_updated && PX4_ISFINITE(_vehicleLocalPositionSetpoint.vz));
 }
 
 bool MulticopterLandDetector::_has_low_thrust()

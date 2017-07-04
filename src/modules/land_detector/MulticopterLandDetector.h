@@ -147,7 +147,7 @@ private:
 	bool _has_manual_control_present();
 	bool _has_minimal_thrust();
 	bool _has_low_thrust();
-	bool _is_velocity_control_active();
+	bool _is_climb_rate_enabled();
 };
 
 
