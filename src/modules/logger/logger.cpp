@@ -749,6 +749,7 @@ void Logger::run()
 
 		// get the logging profile
 		SDLogProfile sdlog_profile = SDLogProfile::DEFAULT;
+
 		if (_sdlog_profile_handle != PARAM_INVALID) {
 			param_get(_sdlog_profile_handle, &sdlog_profile);
 		}
