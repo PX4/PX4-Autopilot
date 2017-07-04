@@ -56,9 +56,13 @@
  * This macro can be overriden if needed.
  */
 #ifndef UAVCAN_GENERAL_PURPOSE_PLATFORM
-# define UAVCAN_GENERAL_PURPOSE_PLATFORM (defined(__linux__)    || defined(__linux)     || defined(__APPLE__)   ||\
-                                          defined(_WIN64)       || defined(_WIN32)      || defined(__ANDROID__) ||\
-                                          defined(_SYSTYPE_BSD) || defined(__FreeBSD__))
+# if (defined(__linux__)    || defined(__linux)     || defined(__APPLE__)   ||\
+      defined(_WIN64)       || defined(_WIN32)      || defined(__ANDROID__) ||\
+      defined(_SYSTYPE_BSD) || defined(__FreeBSD__))
+#  define UAVCAN_GENERAL_PURPOSE_PLATFORM 1
+# else
+#  define UAVCAN_GENERAL_PURPOSE_PLATFORM 0
+# endif
 #endif
 
 /**
