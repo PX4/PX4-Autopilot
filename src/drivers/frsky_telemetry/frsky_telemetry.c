@@ -464,6 +464,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 				}
 
+			/* FALLTHROUGH */
+
 			case SMARTPORT_POLL_8:
 
 				/* report nav_state as DIY_NAVSTATE 2Hz */
