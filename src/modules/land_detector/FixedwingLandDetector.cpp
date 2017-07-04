@@ -63,14 +63,14 @@ void FixedwingLandDetector::_initialize_topics()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_sensor_corrected_sub = orb_subscribe(ORB_ID(sensor_corrected));
 }
 
 void FixedwingLandDetector::_update_topics()
 {
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
-	_orb_update(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensors);
+	_orb_update(ORB_ID(sensor_corrected), _sensor_corrected_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 }
 
@@ -138,8 +138,8 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// a leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses
-		const float acc_hor = sqrtf(_sensors.accelerometer_m_s2[0] * _sensors.accelerometer_m_s2[0] +
-					    _sensors.accelerometer_m_s2[1] * _sensors.accelerometer_m_s2[1]);
+		const float acc_hor = sqrtf(_sensors.accel_x * _sensors.accel_x +
+					    _sensors.accel_y * _sensors.accel_y);
 		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
 
 		// crude land detector for fixedwing
