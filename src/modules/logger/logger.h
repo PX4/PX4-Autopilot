@@ -217,6 +217,7 @@ private:
 	void write_version();
 
 	void write_info(const char *name, const char *value);
+	void write_info_multiple(const char *name, const char *value, bool is_continued);
 	void write_info(const char *name, int32_t value);
 	void write_info(const char *name, uint32_t value);
 

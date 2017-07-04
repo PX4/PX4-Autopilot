@@ -1435,18 +1435,18 @@ void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
 	const int buffer_length = 256;
 	char buffer[buffer_length];
-	char perf_name[32];
+	const char *perf_name;
 
 	perf_print_counter_buffer(buffer, buffer_length, handle);
 
 	if (callback_data->preflight) {
-		snprintf(perf_name, 32, "perf_counter_preflight-%02i", callback_data->counter);
+		perf_name = "perf_counter_preflight";
 
 	} else {
-		snprintf(perf_name, 32, "perf_counter_postflight-%02i", callback_data->counter);
+		perf_name = "perf_counter_postflight";
 	}
 
-	callback_data->logger->write_info(perf_name, buffer);
+	callback_data->logger->write_info_multiple(perf_name, buffer, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
@@ -1465,20 +1465,20 @@ void Logger::write_perf_data(bool preflight)
 void Logger::print_load_callback(void *user)
 {
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
-	char perf_name[32];
+	const char *perf_name;
 
 	if (!callback_data->buffer) {
 		return;
 	}
 
 	if (callback_data->preflight) {
-		snprintf(perf_name, 32, "perf_top_preflight-%02i", callback_data->counter);
+		perf_name = "perf_top_preflight";
 
 	} else {
-		snprintf(perf_name, 32, "perf_top_postflight-%02i", callback_data->counter);
+		perf_name = "perf_top_postflight";
 	}
 
-	callback_data->logger->write_info(perf_name, callback_data->buffer);
+	callback_data->logger->write_info_multiple(perf_name, callback_data->buffer, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
@@ -1576,6 +1576,32 @@ void Logger::write_info(const char *name, const char *value)
 	ulog_message_info_header_s msg;
 	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
+
+	/* construct format key (type and name) */
+	size_t vlen = strlen(value);
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%zu] %s", vlen, name);
+	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
+
+	/* copy string value directly to buffer */
+	if (vlen < (sizeof(msg) - msg_size)) {
+		memcpy(&buffer[msg_size], value, vlen);
+		msg_size += vlen;
+
+		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+
+		write_message(buffer, msg_size);
+	}
+
+	_writer.unlock();
+}
+
+void Logger::write_info_multiple(const char *name, const char *value, bool is_continued)
+{
+	_writer.lock();
+	ulog_message_info_multiple_header_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO_MULTIPLE);
+	msg.is_continued = is_continued;
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
