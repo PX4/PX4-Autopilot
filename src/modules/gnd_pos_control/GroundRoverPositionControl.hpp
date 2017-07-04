@@ -59,7 +59,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -113,7 +113,7 @@ private:
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 
 	Subscription<vehicle_attitude_s>	_sub_attitude;
-	Subscription<sensor_combined_s>	_sub_sensors;
+	Subscription<sensor_corrected_s>	_sub_sensors;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
