@@ -103,7 +103,7 @@ set(config_module_list
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
-	modules/rtps
+	modules/rtps_udp
 
 	#
 	# Libraries

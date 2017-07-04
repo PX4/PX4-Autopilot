@@ -39,9 +39,6 @@ px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uo
 out_dir = parser.parse_args().outdir[0]
 print("Files created in: " + out_dir)
 
-if os.path.isdir(out_dir):
-    shutil.rmtree(out_dir)
-
 uorb_templates_dir = msg_folder+"/templates/uorb"
 urtps_templates_dir = msg_folder+"/templates/urtps"
 

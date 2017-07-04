@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-include_directories(udp)
+include_directories(.)
 
-set(msg_out_path udp)
+set(msg_out_path .)
 set(topic_msg_path ${PX4_SOURCE_DIR}/msg)
 
 set(topic_files)
@@ -41,7 +41,7 @@ foreach(topic ${config_rtps_send_topics} ${config_rtps_receive_topics})
 	list(APPEND topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
 endforeach()
 
-set(topic_bridge_files_out udp/microRTPS_UDP_client.cpp udp/RtpsTopics.cxx udp/RtpsTopics.h)
+set(topic_bridge_files_out microRTPS_UDP_client.cpp RtpsTopics.cxx RtpsTopics.h)
 foreach(topic ${config_rtps_send_topics})
 	list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cxx)
 	list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.h)
@@ -70,8 +70,8 @@ px4_add_module(
 	STACK_MAIN 4096
 	COMPILE_FLAGS
 	SRCS
-		udp/microRTPS_UDP_client.cpp
-		udp/UDP_node.cxx
+		microRTPS_UDP_client.cpp
+		UDP_node.cxx
 	DEPENDS
 		platforms__common
 	)
