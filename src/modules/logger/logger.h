@@ -58,14 +58,7 @@ namespace px4
 namespace logger
 {
 
-enum class SDLogMode {
-	ARM_UNTIL_DISARM = 0,
-	BOOT_UNTIL_DISARM,
-	BOOT_UNTIL_SHUTDOWN,
-	N_MODES
-};
-
-enum class SDLogProfile {
+enum class SDLogProfile : int32_t {
 	DEFAULT = 0,
 	THERMAL_CALIBRATION,
 	SYSTEM_IDENTIFICATION,
