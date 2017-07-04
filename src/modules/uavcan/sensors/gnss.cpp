@@ -189,6 +189,7 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 		vel_cov[7] = msg.covariance[19];
 		vel_cov[8] = msg.covariance[20];
 	}
+	/* FALLTHROUGH */
 
 	// Full matrix 6x6.
 	// This code has been carefully optimized by hand. We could use unpackSquareMatrix(), but it's slow.
@@ -220,6 +221,7 @@ void UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavc
 		vel_cov[7] = msg.covariance[34];
 		vel_cov[8] = msg.covariance[35];
 	}
+	/* FALLTHROUGH */
 
 	// Either empty or invalid sized, interpret as zero matrix
 	default: {
