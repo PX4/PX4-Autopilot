@@ -824,11 +824,6 @@ void AttitudePositionEstimatorEKF::publishAttitude()
 	_att.pitchspeed = _ekf->dAngIMU.y / _ekf->dtIMU - _ekf->states[11] / _ekf->dtIMUfilt;
 	_att.yawspeed = _ekf->dAngIMU.z / _ekf->dtIMU - _ekf->states[12] / _ekf->dtIMUfilt;
 
-	/* Gyro bias estimates */
-	_att.roll_rate_bias = _ekf->states[10] / _ekf->dtIMUfilt;
-	_att.pitch_rate_bias = _ekf->states[11] / _ekf->dtIMUfilt;
-	_att.yaw_rate_bias = _ekf->states[12] / _ekf->dtIMUfilt;
-
 	/* lazily publish the attitude only once available */
 	if (_att_pub != nullptr) {
 		/* publish the attitude */
