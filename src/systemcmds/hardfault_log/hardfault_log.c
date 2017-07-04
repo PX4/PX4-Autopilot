@@ -583,7 +583,7 @@ static int write_user_stack(int fdin, int fdout, info_s *pi, char *buffer,
 }
 
 /**
- * Append hardfault data to the stored ULog file (stored in BBSRAM).
+ * Append hardfault data to the stored ULog file (the log path is stored in BBSRAM).
  * @param caller
  * @param fdin file descriptor for plain-text hardhault log to read from
  * @return 0 on success, -errno otherwise
@@ -609,6 +609,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 	}
 
 	if (read(fd, ulog_file_name, HARDFAULT_MAX_ULOG_FILE_LEN) != HARDFAULT_MAX_ULOG_FILE_LEN) {
+		close(fd);
 		return -errno;
 	}
 
@@ -1119,35 +1120,6 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 	}
 
 	return ret;
-}
-
-int hardfault_store_ulog_filename(const char *log_file)
-{
-	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
-
-	if (fd < 0) {
-		return -errno;
-	}
-
-	int n = strlen(log_file);
-
-	if (n >= HARDFAULT_MAX_ULOG_FILE_LEN) {
-		syslog(LOG_INFO, "ULog file name too long (%s, %i>=%i)\n", log_file, n, HARDFAULT_MAX_ULOG_FILE_LEN);
-		return -EINVAL;
-	}
-
-	if (n + 1 != write(fd, log_file, n + 1)) {
-		close(fd);
-		return -errno;
-	}
-
-	int ret = close(fd);
-
-	if (ret != 0) {
-		return -errno;
-	}
-
-	return 0;
 }
 
 /****************************************************************************

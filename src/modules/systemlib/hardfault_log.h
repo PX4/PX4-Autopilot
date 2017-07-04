@@ -63,7 +63,7 @@
  * It will be truncated by the call to stm32_bbsram_savepanic
  */
 #define BBSRAM_HEADER_SIZE 20 /* This is an assumption */
-#define BBSRAM_USED ((4*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2+BBSRAM_SIZE_FN3))
+#define BBSRAM_USED ((5*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2+BBSRAM_SIZE_FN3))
 #define BBSRAM_REAMINING (PX4_BBSRAM_SIZE-BBSRAM_USED)
 #if CONFIG_ARCH_INTERRUPTSTACK <= 3
 #  define BBSRAM_NUMBER_STACKS 1
@@ -355,25 +355,5 @@ int hardfault_rearm(char *caller) weak_function;
  *
  ****************************************************************************/
 int hardfault_increment_reboot(char *caller, bool reset) weak_function;
-
-
-/****************************************************************************
- * Name: hardfault_store_ulog_filename
- *
- * Description:
- *      Permanently store the current ulog file name. A crash dump will
- *      be appended to this file (must be ULog).
- *
- *
- * Inputs:
- *   - log_file:  full path to the log file
- *
- *  Returned Value:
- *
- *    OK  or errno
- *
- *
- ****************************************************************************/
-int hardfault_store_ulog_filename(const char *log_file);
 
 __END_DECLS
