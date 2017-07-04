@@ -119,19 +119,16 @@ private:
 	perf_counter_t _accel_published;
 	perf_counter_t _accel_callbacks;
 	perf_counter_t _accel_interval;
-	perf_counter_t _accel_duplicates;
 	perf_counter_t _accel_range_hits;
 
 	perf_counter_t _gyro_published;
 	perf_counter_t _gyro_callbacks;
 	perf_counter_t _gyro_interval;
-	perf_counter_t _gyro_duplicates;
 	perf_counter_t _gyro_range_hits;
 
 	perf_counter_t _mag_published;
 	perf_counter_t _mag_callbacks;
 	perf_counter_t _mag_interval;
-	perf_counter_t _mag_duplicates;
 	perf_counter_t _mag_overflows;
 	perf_counter_t _mag_overruns;
 
@@ -139,6 +136,13 @@ private:
 	perf_counter_t _fifo_reads;
 	perf_counter_t _fifo_avg_packets;
 	perf_counter_t _fifo_corruptions;
+
+#if MPU9250_CHECK_DUPLICATES
+	perf_counter_t _accel_duplicates;
+	perf_counter_t _gyro_duplicates;
+	perf_counter_t _mag_duplicates;
+#endif
+
 	perf_counter_t _errors;
 
 	hrt_abstime _last_accel_range_hit_time;

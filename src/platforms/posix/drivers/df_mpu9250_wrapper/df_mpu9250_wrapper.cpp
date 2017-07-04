@@ -73,8 +73,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_gyro_filter_x(MPU9250_GYRO_SAMPLE_RATE_HZ, MPU9250_GYRO_FILTER_FREQ),
 	_gyro_filter_y(MPU9250_GYRO_SAMPLE_RATE_HZ, MPU9250_GYRO_FILTER_FREQ),
 	_gyro_filter_z(MPU9250_GYRO_SAMPLE_RATE_HZ, MPU9250_GYRO_FILTER_FREQ),
-	_last_accel_range_hit_time(0),
-	_last_accel_range_hit_count(0),
 	_mag_enabled(mag_enabled),
 	_rotation(rotation)
 {
@@ -115,9 +113,11 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_accel_range_hits = perf_alloc(PC_COUNT, "mpu9250_accel_range_hits");
 	_gyro_range_hits = perf_alloc(PC_COUNT, "mpu9250_gyro_range_hits");
 
+#if MPU9250_CHECK_DUPLICATES
 	_accel_duplicates = perf_alloc(PC_COUNT, "mpu9250_accel_duplicates");
 	_gyro_duplicates = perf_alloc(PC_COUNT, "mpu9250_gyro_duplicates");
 	_mag_duplicates = perf_alloc(PC_COUNT, "mpu9250_mag_duplicates");
+#endif
 
 	_mag_overflows = perf_alloc(PC_COUNT, "mpu9250_mag_overflows");
 	_mag_overruns = perf_alloc(PC_COUNT, "mpu9250_mag_overruns");
@@ -128,6 +128,12 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_fifo_corruptions = perf_alloc(PC_COUNT, "mpu9250_fifo_corruptions");
 
 	_errors = perf_alloc(PC_COUNT, "mpu9250_errors");
+
+	_last_accel_range_hit_time = 0;
+	_last_accel_range_hit_count = 0;
+
+	_last_gyro_range_hit_time = 0;
+	_last_gyro_range_hit_count = 0;
 }
 
 DfMpu9250Wrapper::~DfMpu9250Wrapper()
@@ -144,9 +150,11 @@ DfMpu9250Wrapper::~DfMpu9250Wrapper()
 	perf_free(_accel_range_hits);
 	perf_free(_gyro_range_hits);
 
+#if MPU9250_CHECK_DUPLICATES
 	perf_free(_accel_duplicates);
 	perf_free(_gyro_duplicates);
 	perf_free(_mag_duplicates);
+#endif
 
 	perf_free(_mag_overflows);
 	perf_free(_mag_overruns);
@@ -207,18 +215,15 @@ void DfMpu9250Wrapper::info()
 	perf_print_counter(_accel_callbacks);
 	perf_print_counter(_accel_interval);
 	perf_print_counter(_accel_range_hits);
-	perf_print_counter(_accel_duplicates);
 
 	perf_print_counter(_gyro_published);
 	perf_print_counter(_gyro_callbacks);
 	perf_print_counter(_gyro_interval);
 	perf_print_counter(_gyro_range_hits);
-	perf_print_counter(_gyro_duplicates);
 
 	perf_print_counter(_mag_published);
 	perf_print_counter(_mag_callbacks);
 	perf_print_counter(_mag_interval);
-	perf_print_counter(_mag_duplicates);
 	perf_print_counter(_mag_overflows);
 	perf_print_counter(_mag_overruns);
 
@@ -228,6 +233,13 @@ void DfMpu9250Wrapper::info()
 	perf_print_counter(_fifo_corruptions);
 
 	perf_print_counter(_errors);
+
+#if MPU9250_CHECK_DUPLICATES
+	perf_print_counter(_accel_duplicates);
+	perf_print_counter(_gyro_duplicates);
+	perf_print_counter(_mag_duplicates);
+#endif
+
 }
 
 void DfMpu9250Wrapper::_update_gyro_calibration()
@@ -474,9 +486,11 @@ int DfMpu9250Wrapper::_publish(const struct accel_data &data)
 	perf_set_count(_accel_range_hits, _counters.accel_range_hits);
 	perf_set_count(_gyro_range_hits, _counters.gyro_range_hits);
 
+#if MPU9250_CHECK_DUPLICATES
 	perf_set_count(_accel_duplicates, _counters.accel_duplicates);
 	perf_set_count(_gyro_duplicates, _counters.gyro_duplicates);
 	perf_set_count(_mag_duplicates, _counters.mag_duplicates);
+#endif
 
 	perf_set_count(_mag_overflows, _counters.mag_overflows);
 	perf_set_count(_mag_overruns, _counters.mag_overruns);
