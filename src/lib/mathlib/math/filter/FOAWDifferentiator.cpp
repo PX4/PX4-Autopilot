@@ -143,12 +143,13 @@ namespace math
            sum2 += _buffer[last_sample_pos - i]*i;
         }
 
-        y_mean = sum1/window_size;
+        y_mean = sum1/(window_size+1);
         sum1 *= window_size;
         sum2 *= 2;
 
-        den = _dt*window_size*(window_size+1)*(window_size+2)/6;
+        den = _dt*window_size*(window_size+1)*(window_size+2)/6.0f;
 
+        // Prevents division by zero
         if (den < 0.0001f && den > -0.0001f) {
             fit_val.a = 0.0f;
         }
@@ -156,7 +157,7 @@ namespace math
             fit_val.a = (sum1 - sum2)/den;
         }
 
-        fit_val.b = y_mean + fit_val.a*window_size*_dt/2;
+        fit_val.b = y_mean + fit_val.a*window_size*_dt/2.0f;
 
         return;
     }
@@ -184,6 +185,7 @@ namespace math
         best_fit_FOAW(window_size);
         slope = fit_val.a;
         result = slope;
+        _last_window_size = window_size;
 
         if (last_sample_pos == 0) {
             return 0.0f;
