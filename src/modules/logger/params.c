@@ -76,12 +76,11 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * This parameter is only for the new logger (SYS_LOGGER=1).
  *
  * @value 0 default
- * @value 1 estimator replay
- * @value 2 thermal calibration
- * @value 3 system identification
+ * @value 1 thermal calibration
+ * @value 2 system identification
  *
  * @min 0
- * @max 3
+ * @max 2
  * @reboot_required true
  * @group SD Logging
  */
