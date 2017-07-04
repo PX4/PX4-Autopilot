@@ -1,0 +1,173 @@
+@###############################################
+@#
+@# EmPy template for generating <msg>_uRTPS_UDP.cpp file
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@###############################################
+@{
+import genmsg.msgs
+import gencpp
+from px_generate_uorb_topic_helper import * # this is in Tools/
+from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+from message_id import * # this is in Tools/
+
+topic_names = [single_spec.short_name for single_spec in spec]
+send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
+
+}@
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <poll.h>
+#include <string.h>
+#include <termios.h>
+#include <ctime>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <arpa/inet.h>
+
+#include <microcdr/microCdr.h>
+#include <uORB/uORB.h>
+
+#include "UDP_node.h"
+
+@[for topic in list(set(topic_names))]@
+#include <uORB/topics/@(topic).h>
+@[end for]@
+
+#define BUFFER_SIZE 1024
+#define UPDATE_TIME_MS 0
+#define LOOPS 10000
+#define USLEEP_MS 0
+
+extern "C" __EXPORT int micrortps_client_udp_main(int argc, char *argv[]);
+void* send(void*);
+
+static bool _should_exit_task = false;
+static uint32_t _received = 0;
+static int _started = 0;
+
+UDP_node udp_node;
+
+void* send(void*)
+{
+    char data_buffer[BUFFER_SIZE] = {};
+
+    /* subscribe to topics */
+     px4_pollfd_struct_t fds[@(len(send_topics))];
+
+    // orb_set_interval statblish an update interval period in milliseconds.
+    @[for idx, topic in enumerate(send_topics)]@
+    fds[@idx].fd = orb_subscribe(ORB_ID(@(topic)));
+    orb_set_interval(fds[@idx].fd, 1000);
+    fds[@idx].events = POLLIN;
+    @[end for]@
+
+    // microBuffer to serialized using the user defined buffer
+    struct microBuffer microBufferWriter;
+    initStaticAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferWriter);
+    // microCDR structs for managing the microBuffer
+    struct microCDR microCDRWriter;
+    initMicroCDR(&microCDRWriter, &microBufferWriter);
+
+    _started++;
+    uint32_t length = 0;
+    while (!_should_exit_task)
+    {
+        int poll_ret = px4_poll(fds, @(len(send_topics)), 1000);
+        if (poll_ret >= 0)
+        {
+            @[for idx, topic in enumerate(send_topics)]@
+            if (fds[@idx].revents & POLLIN)
+            {
+                // obtained data for the file descriptor
+                struct @(topic)_s data;
+                // copy raw data into local buffer
+                orb_copy(ORB_ID(@(topic)), fds[@idx].fd, &data);
+                serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
+                udp_node.write((char)@(message_id(topic)), data_buffer, length);
+            }
+            @[end for]@
+        }
+    }
+
+    return 0;
+}
+
+int micrortps_client_udp_main(int argc, char *argv[])
+{
+
+    if (0 != udp_node.init(2020, 2019))
+    {
+        printf("ERROR UDP INIT, EXITING...\n");
+        return -1;
+    }
+
+
+    // create a thread for sending data to the simulator
+    pthread_t sender_thread;
+    // initialize threads
+    pthread_attr_t sender_thread_attr;
+    pthread_attr_init(&sender_thread_attr);
+    pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(4000));
+    struct sched_param param;
+    (void)pthread_attr_getschedparam(&sender_thread_attr, &param);
+    // low priority
+    param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
+    (void)pthread_attr_setschedparam(&sender_thread_attr, &param);
+    // got data from simulator, now activate the sending thread
+    _should_exit_task = false;
+    pthread_create(&sender_thread, &sender_thread_attr, send, nullptr);
+    pthread_attr_destroy(&sender_thread_attr);
+
+    // microBuffer to deserialize
+    char data_buffer[BUFFER_SIZE] = {};
+    struct microBuffer microBufferReader;
+    initDeserializedAlignedBuffer(data_buffer, BUFFER_SIZE, &microBufferReader);
+    // microCDR structs for managing the microBuffer
+    struct microCDR microCDRReader;
+    initMicroCDR(&microCDRReader, &microBufferReader);
+
+    @[for idx, topic in enumerate(send_topics)]@
+    struct @(topic)_s @(topic)_data {};
+    orb_advert_t @(topic)_pub = 0;
+    @[end for]@
+
+    _received = 0;
+    while (!_should_exit_task)
+    {
+        char topic_ID = 255;
+        if (0 < udp_node.read(&topic_ID, data_buffer))
+        {
+            switch (topic_ID)
+            {
+                @[for idx, topic in enumerate(send_topics)]@
+                case @(message_id(topic)):
+                    deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
+                    if (!@(topic)_pub)
+                        @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+                    else
+                        orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                    ++_received;
+                break;
+                @[end for]@
+            }
+        }
+    }
+
+    pthread_join(sender_thread, nullptr);
+    udp_node.close();
+    PX4_INFO("exiting");
+    fflush(stdout);
+    return 0;
+}
