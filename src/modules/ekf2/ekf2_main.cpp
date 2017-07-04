@@ -66,6 +66,8 @@
 #include <controllib/blocks.hpp>
 
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -174,6 +176,7 @@ private:
 	orb_advert_t _estimator_innovations_pub;
 	orb_advert_t _replay_pub;
 	orb_advert_t _ekf2_timestamps_pub;
+	orb_advert_t _sensor_corrected_pub;
 
 	// Used to correct baro data for positional errors
 	Vector3f _vel_body_wind = {};	// XYZ velocity relative to wind in body frame (m/s)
@@ -344,6 +347,7 @@ Ekf2::Ekf2():
 	_estimator_innovations_pub(nullptr),
 	_replay_pub(nullptr),
 	_ekf2_timestamps_pub(nullptr),
+	_sensor_corrected_pub(nullptr),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(this, "EKF2_MIN_OBS_DT", false, _params->sensor_interval_min_ms),
 	_mag_delay_ms(this, "EKF2_MAG_DELAY", false, _params->mag_delay_ms),
@@ -891,6 +895,12 @@ void Ekf2::run()
 			// 	}
 			// }
 
+			// In-run bias estimates
+			float gyro_bias[3] = {};
+			_ekf.get_gyro_bias(gyro_bias);
+			float accel_bias[3] = {};
+			_ekf.get_accel_bias(accel_bias);
+
 			{
 				// generate vehicle attitude quaternion data
 				struct vehicle_attitude_s att = {};
@@ -898,9 +908,6 @@ void Ekf2::run()
 
 				q.copyTo(att.q);
 				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
-
-				float gyro_bias[3] = {};
-				_ekf.get_gyro_bias(gyro_bias);
 
 				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
 				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
@@ -1035,6 +1042,45 @@ void Ekf2::run()
 				}
 			}
 
+			// publish all corrected sensor readings and bias estimates after mag calibration is updated above
+			{
+				struct sensor_corrected_s corr = {};
+
+				corr.timestamp = now;
+
+				corr.gyro_x = sensors.gyro_rad[0] - gyro_bias[0];
+				corr.gyro_y = sensors.gyro_rad[1] - gyro_bias[1];
+				corr.gyro_z = sensors.gyro_rad[2] - gyro_bias[2];
+
+				corr.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
+				corr.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
+				corr.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+
+				corr.mag_x = sensors.magnetometer_ga[0] - (_last_valid_mag_cal[0] / 1000.0f); // mGauss -> Gauss
+				corr.mag_y = sensors.magnetometer_ga[1] - (_last_valid_mag_cal[1] / 1000.0f); // mGauss -> Gauss
+				corr.mag_z = sensors.magnetometer_ga[2] - (_last_valid_mag_cal[2] / 1000.0f); // mGauss -> Gauss
+
+				corr.gyro_x_bias = gyro_bias[0];
+				corr.gyro_y_bias = gyro_bias[1];
+				corr.gyro_z_bias = gyro_bias[2];
+
+				corr.accel_x_bias = accel_bias[0];
+				corr.accel_y_bias = accel_bias[1];
+				corr.accel_z_bias = accel_bias[2];
+
+				corr.mag_x_bias = _last_valid_mag_cal[0];
+				corr.mag_y_bias = _last_valid_mag_cal[1];
+				corr.mag_z_bias = _last_valid_mag_cal[2];
+
+				if (_sensor_corrected_pub == nullptr) {
+					_sensor_corrected_pub = orb_advertise(ORB_ID(sensor_corrected), &corr);
+
+				} else {
+					orb_publish(ORB_ID(sensor_corrected), _sensor_corrected_pub, &corr);
+				}
+
+			}
+
 			// publish estimator status
 			{
 				struct estimator_status_s status = {};
@@ -1119,13 +1165,13 @@ void Ekf2::run()
 					}
 				}
 
-				// Check and save the last valid calibration when we are disarmed
-				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
+				// Check and update the last valid magnetometer calibration
+				if ((status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
 					control::BlockParamFloat *mag_biases[] = { &_mag_bias_x, &_mag_bias_y, &_mag_bias_z };
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+						// update bias estimates
 						if (_valid_cal_available[axis_index]) {
 							// calculate weighting using ratio of variances and update stored bias values
 							float weighting = _mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
@@ -1133,15 +1179,19 @@ void Ekf2::run()
 							weighting = math::constrain(weighting, 0.0f, _mag_bias_alpha.get());
 							float mag_bias_saved = mag_biases[axis_index]->get();
 							_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
-							mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
-							mag_biases[axis_index]->commit_no_notification();
+
+							// Only save parameters when disarmed
+							if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+								mag_biases[axis_index]->set(_last_valid_mag_cal[axis_index]);
+								mag_biases[axis_index]->commit_no_notification();
+
+								// reset to prevent data being saved too frequently
+								_total_cal_time_us = 0;
+							}
 
 							_valid_cal_available[axis_index] = false;
 						}
 					}
-
-					// reset to prevent data being saved too frequently
-					_total_cal_time_us = 0;
 				}
 
 				// Publish wind estimate
