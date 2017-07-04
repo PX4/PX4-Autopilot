@@ -452,6 +452,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		memset(&vcmd, 0, sizeof(vcmd));
 
+		vcmd.timestamp = hrt_absolute_time();
+
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = cmd_mavlink.param1;
 
@@ -558,6 +560,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		struct vehicle_command_s vcmd;
 
 		memset(&vcmd, 0, sizeof(vcmd));
+
+		vcmd.timestamp = hrt_absolute_time();
 
 		/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = cmd_mavlink.param1;
@@ -767,6 +771,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.source_system = msg->sysid;
 	vcmd.source_component = msg->compid;
 	vcmd.confirmation = 1;
+	vcmd.timestamp = hrt_absolute_time();
 
 	if (_cmd_pub == nullptr) {
 		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);

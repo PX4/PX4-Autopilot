@@ -475,6 +475,7 @@ Navigator::task_main()
 					vcmd.param1 = land_start;
 					vcmd.param2 = 0;
 
+					vcmd.timestamp = hrt_absolute_time();
 					publish_vehicle_cmd(vcmd);
 
 				} else {
