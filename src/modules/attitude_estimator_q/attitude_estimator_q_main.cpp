@@ -456,11 +456,6 @@ void AttitudeEstimatorQ::task_main()
 			.pitchspeed = _rates(1),
 			.yawspeed = _rates(2),
 
-			/* TODO get bias estimates from estimator */
-			.roll_rate_bias = 0.0f,
-			.pitch_rate_bias = 0.0f,
-			.yaw_rate_bias = 0.0f,
-
 			.q = {_q(0), _q(1), _q(2), _q(3)},
 			.delta_q_reset = {},
 			.quat_reset_counter = 0,
