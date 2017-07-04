@@ -44,7 +44,7 @@
 
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 #include "LandDetector.h"
@@ -90,12 +90,12 @@ private:
 
 	int _armingSub{-1};
 	int _airspeedSub{-1};
-	int _sensor_combined_sub{-1};
+	int _sensor_corrected_sub{-1};
 	int _local_pos_sub{-1};
 
 	actuator_armed_s _arming{};
 	airspeed_s _airspeed{};
-	sensor_combined_s _sensors{};
+	sensor_corrected_s _sensors{};
 	vehicle_local_position_s _local_pos{};
 
 	float _velocity_xy_filtered{0.0f};
