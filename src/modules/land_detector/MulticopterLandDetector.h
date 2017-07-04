@@ -54,7 +54,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -126,7 +126,7 @@ private:
 	int _armingSub;
 	int _attitudeSub;
 	int _manualSub;
-	int _sensor_combined_sub;
+	int _sensor_corrected_sub;
 	int _vehicle_control_mode_sub;
 	int _battery_sub;
 
@@ -136,7 +136,7 @@ private:
 	struct actuator_armed_s						_arming;
 	struct vehicle_attitude_s					_vehicleAttitude;
 	struct manual_control_setpoint_s			_manual;
-	struct sensor_combined_s					_sensors;
+	struct sensor_corrected_s					_sensors;
 	struct vehicle_control_mode_s				_control_mode;
 	struct battery_status_s						_battery;
 

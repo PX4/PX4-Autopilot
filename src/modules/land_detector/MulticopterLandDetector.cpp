@@ -80,7 +80,7 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_armingSub(-1),
 	_attitudeSub(-1),
 	_manualSub(-1),
-	_sensor_combined_sub(-1),
+	_sensor_corrected_sub(-1),
 	_vehicle_control_mode_sub(-1),
 	_battery_sub(-1),
 	_vehicleLocalPosition{},
@@ -120,7 +120,7 @@ void MulticopterLandDetector::_initialize_topics()
 	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_manualSub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_sensor_corrected_sub = orb_subscribe(ORB_ID(sensor_corrected));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
@@ -133,7 +133,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
 	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
 	_orb_update(ORB_ID(manual_control_setpoint), _manualSub, &_manual);
-	_orb_update(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensors);
+	_orb_update(ORB_ID(sensor_corrected), _sensor_corrected_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
 }
@@ -170,9 +170,9 @@ bool MulticopterLandDetector::_get_freefall_state()
 		return false;
 	}
 
-	float acc_norm = _sensors.accelerometer_m_s2[0] * _sensors.accelerometer_m_s2[0]
-			 + _sensors.accelerometer_m_s2[1] * _sensors.accelerometer_m_s2[1]
-			 + _sensors.accelerometer_m_s2[2] * _sensors.accelerometer_m_s2[2];
+	float acc_norm = _sensors.accel_x * _sensors.accel_x
+			 + _sensors.accel_y * _sensors.accel_y
+			 + _sensors.accel_z * _sensors.accel_z;
 	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
 
 	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
