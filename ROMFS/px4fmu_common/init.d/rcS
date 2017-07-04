@@ -872,7 +872,6 @@ then
 			then
 				set LOGGER_BUF 64
 				param set SDLOG_MODE 2
-				param set SDLOG_PROFILE 2
 			fi
 			if param compare SDLOG_MODE 1
 			then
