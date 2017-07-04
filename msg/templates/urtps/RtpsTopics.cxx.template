@@ -27,7 +27,7 @@ bool RtpsTopics::init()
     // Initialise subscribers
 @[for topic in recv_topics]@
     if (_@(topic)_sub.init()) {
-        std::cout << "@(topic)vehicle_command subscriber started" << std::endl;
+        std::cout << "@(topic) subscriber started" << std::endl;
     } else {
         std::cout << "ERROR starting @(topic) subscriber" << std::endl;
         return false;

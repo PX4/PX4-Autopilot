@@ -72,7 +72,6 @@ struct options {
 static int _rtps_task = -1;
 static bool _should_exit_task = false;
 UART_node uart_node;
-uint64_t sent = 0, total_send_lenght = 0;
 
 static void usage(const char *name)
 {
@@ -115,9 +114,12 @@ static int parse_options(int argc, char *argv[])
 void* send(void*)
 {
     char data_buffer[BUFFER_SIZE] = {};
+    uint64_t sent = 0, total_sent = 0;
+    int loop = 0, read = 0;
+    uint32_t length = 0;
 
     /* subscribe to topics */
-    int fds[@(len(send_topics))];
+    int fds[@(len(send_topics))] = {};
 
     // orb_set_interval statblish an update interval period in milliseconds.
 @[for idx, topic in enumerate(send_topics)]@
@@ -132,8 +134,8 @@ void* send(void*)
     struct microCDR microCDRWriter;
     initMicroCDR(&microCDRWriter, &microBufferWriter);
 
-    int i = 0;
-    uint32_t length = 0;
+    struct timespec begin;
+    clock_gettime(0, &begin);
 
     while (!_should_exit_task)
     {
@@ -147,19 +149,24 @@ void* send(void*)
             // copy raw data into local buffer
             orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
             serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-            uart_node.writeToUART((char)@(message_id(topic)), data_buffer, length);
             //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
-            ++sent;
-            total_send_lenght += (length + 9);
+            if (0 < (read = uart_node.writeToUART((char)@(message_id(topic)), data_buffer, length)))
+            {
+                total_sent += read;
+                ++sent;
+            }
         }
 @[end for]@
 
         usleep(_options.sleep_ms*1000);
-        ++i;
+        ++loop;
     }
 
-    printf("\nSENT: %lu messages in %d LOOPS, %llu bytes\n",
-            (unsigned long)sent, i, total_send_lenght);
+    struct timespec end;
+    clock_gettime(0, &end);
+    double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
+    printf("\nSENT:     %lu messages in %d LOOPS, %llu bytes in %.03f seconds - %.02fKB/s\n",
+            (unsigned long)sent, loop, total_sent, elapsed_secs, (double)total_sent/(1000*elapsed_secs));
 
     return nullptr;
 }
@@ -182,16 +189,17 @@ static int launch_send_thread(pthread_t &sender_thread)
 
 static int micrortps_start(int argc, char *argv[])
 {
-    if (parse_options(argc, argv) < 0) {
+    if (parse_options(argc, argv) < 0)
+    {
         _rtps_task = -1;
         return -1;
     }
 
-    printf("device: %s; update: %dms; loops: %d; sleep: %dms; baudrate: %d; poll: %dms\n",
+    printf("\ndevice: %s; update: %dms; loops: %d; sleep: %dms; baudrate: %d; poll: %dms\n\n",
            _options.device, _options.update_time_ms, _options.loops, _options.sleep_ms, _options.baudrate, _options.poll_ms);
-    usleep(2000000);
+    sleep(1);
 
-    int uart_fd;
+    int uart_fd = 0;
     if ((uart_fd = uart_node.init_uart(_options.device, _options.baudrate)) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
@@ -201,6 +209,7 @@ static int micrortps_start(int argc, char *argv[])
 @[if recv_topics]@
 
     char data_buffer[BUFFER_SIZE] = {};
+    int read = 0, total_read = 0;
 
     // Declare received topics
 @[for topic in recv_topics]@
@@ -224,7 +233,7 @@ static int micrortps_start(int argc, char *argv[])
     uint32_t received = 0;
     struct timespec begin;
     clock_gettime(0, &begin);
-    int i = 0;
+    int loop = 0;
     _should_exit_task = false;
 @[if send_topics]@
 
@@ -240,8 +249,9 @@ static int micrortps_start(int argc, char *argv[])
         if (r == 1 && (poll_fd[0].revents & POLLIN))
         {
             char topic_ID = 255;
-            while (0 < uart_node.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE))
+            while (0 < (read = uart_node.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE)))
             {
+                total_read += read;
                 switch (topic_ID)
                 {
 @[for topic in recv_topics]@
@@ -260,20 +270,21 @@ static int micrortps_start(int argc, char *argv[])
         }
 @[end if]@
 
-        usleep(_options.sleep_ms*1000);
-
         // loop forever if informed loop number is negative
-        if (_options.loops > 0 && ++i >= _options.loops)
-            break;
-    }
+        if (_options.loops > 0 && ++loop >= _options.loops) break;
 
+        usleep(_options.sleep_ms*1000);
+    }
+@[if send_topics]@
     _should_exit_task = true;
+    pthread_join(sender_thread, 0);
+@[end if]@
 
     struct timespec end;
     clock_gettime(0, &end);
-    double elapsed_secs2 = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
-    printf("\nSENT: %lu RECEIVED: %lu in %d LOOPS\n%llu bytes in %.03f seconds sent %.02fKB/s\n",
-            (unsigned long)sent, (unsigned long)received, i, total_send_lenght, elapsed_secs2, (double)total_send_lenght/(1000*elapsed_secs2));
+    double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
+    printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
+            (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
 
     PX4_INFO("exiting");
     fflush(stdout);

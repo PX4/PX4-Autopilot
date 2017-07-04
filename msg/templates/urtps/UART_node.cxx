@@ -235,7 +235,7 @@ int16_t UART_node::readFromUART(char* topic_ID, char out_buffer[], size_t buffer
         // copy message to outbuffer and set other return values
         memmove(out_buffer, rx_buffer + msg_start_pos + sizeof(struct Header), payload_len);
         *topic_ID = header->topic_ID;
-        ret = payload_len;
+        ret = payload_len + sizeof(struct Header);
     }
 
     // discard message from rx_buffer
@@ -277,7 +277,7 @@ int16_t UART_node::writeToUART(const char topic_ID, char buffer[], uint16_t leng
     for (int i = 0; i < length; ++i)printf(" %hhu", buffer[i]);
     printf("\n");*/
 
-    return length;
+    return length + sizeof(header);
 
 err:
     int errsv = errno;
