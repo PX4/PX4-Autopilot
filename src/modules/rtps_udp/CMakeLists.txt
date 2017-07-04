@@ -65,7 +65,7 @@ add_custom_command(OUTPUT ${topic_bridge_files_out}
 	)
 
 px4_add_module(
-	MODULE modules__rtps
+	MODULE modules__rtps_udp
 	MAIN micrortps_client_udp
 	STACK_MAIN 4096
 	COMPILE_FLAGS

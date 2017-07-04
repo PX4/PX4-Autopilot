@@ -56,6 +56,7 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 	modules/navigator
+	modules/rtps_udp
 
 	lib/controllib
 	lib/mathlib

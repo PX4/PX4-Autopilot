@@ -172,6 +172,9 @@ set(config_module_list
 
 	# EKF
 	examples/ekf_att_pos_estimator
+
+	# micro-RTPS
+	lib/micro-CDR
 )
 
 set(config_extra_builtin_cmds
