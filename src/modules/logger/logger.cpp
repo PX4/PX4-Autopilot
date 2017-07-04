@@ -396,13 +396,10 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_log_until_shutdown(log_until_shutdown),
 	_log_name_timestamp(log_name_timestamp),
 	_writer(backend, buffer_size, queue_size),
-	_log_interval(log_interval),
-	_sdlog_mode(SDLOG_MODE_ARM_UNTIL_DISARM),
-	_sdlog_profile(SDLOG_PROFILE_DEFAULT)
+	_log_interval(log_interval)
 {
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
 	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
-	_sdlog_mode_handle = param_find("SDLOG_MODE");
 	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 
 	if (poll_topic_name) {
@@ -576,72 +573,71 @@ void Logger::add_common_topics()
 #endif
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-
-	add_topic("vehicle_attitude", 30);
-	add_topic("actuator_outputs", 100);
-	add_topic("telemetry_status");
-	add_topic("vehicle_command");
-	add_topic("vtol_vehicle_status", 100);
-	add_topic("commander_state", 100);
-	add_topic("satellite_info");
-	add_topic("vehicle_attitude_setpoint", 30);
-	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
-	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
-	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_vision_position");
-	add_topic("vehicle_vision_attitude");
-	add_topic("battery_status", 300);
-	add_topic("system_power", 300);
-	add_topic("position_setpoint_triplet", 200);
+	add_topic("actuator_outputs", 100);
+	add_topic("airspeed");
 	add_topic("att_pos_mocap", 50);
-	add_topic("optical_flow", 50);
-	add_topic("rc_channels", 100);
-	add_topic("input_rc", 100);
+	add_topic("battery_status", 300);
+	add_topic("camera_capture");
+	add_topic("camera_trigger");
+	add_topic("commander_state", 100);
+	add_topic("control_state", 100);
+	add_topic("cpuload");
 	add_topic("differential_pressure", 50);
+	add_topic("distance_sensor");
+	add_topic("ekf2_innovations", 50);
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200); //this one is large
-	add_topic("ekf2_innovations", 50);
-	add_topic("tecs_status", 20);
-	add_topic("wind_estimate", 100);
-	add_topic("control_state", 100);
-	add_topic("camera_trigger");
-	add_topic("camera_capture");
-	add_topic("cpuload");
-	add_topic("gps_dump"); //this will only be published if GPS_DUMP_COMM is set
+	add_topic("gps_dump"); //this will only be published if gps_dump_comm is set
+	add_topic("input_rc", 100);
+	add_topic("optical_flow", 50);
+	add_topic("position_setpoint_triplet", 200);
+	add_topic("rc_channels", 100);
+	add_topic("satellite_info");
+	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 50);
+	add_topic("system_power", 300);
 	add_topic("task_stack_info");
+	add_topic("tecs_status", 20);
+	add_topic("telemetry_status");
+	add_topic("vehicle_attitude", 30);
+	add_topic("vehicle_attitude_setpoint", 30);
+	add_topic("vehicle_command");
+	add_topic("vehicle_global_position", 200);
+	add_topic("vehicle_gps_position");
+	add_topic("vehicle_land_detected");
+	add_topic("vehicle_local_position", 100);
+	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("vehicle_rates_setpoint", 30);
+	add_topic("vehicle_status");
+	add_topic("vehicle_vision_attitude");
+	add_topic("vehicle_vision_position");
+	add_topic("vtol_vehicle_status", 100);
+	add_topic("wind_estimate", 100);
 }
 
 void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
-	add_topic("airspeed");
-	add_topic("distance_sensor");
 	add_topic("ekf2_timestamps");
 	add_topic("sensor_combined");
-	add_topic("vehicle_gps_position");
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_status");
 }
 
 void Logger::add_thermal_calibration_topics()
 {
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-	add_topic("sensor_gyro", 100);
 	add_topic("sensor_accel", 100);
 	add_topic("sensor_baro", 100);
+	add_topic("sensor_gyro", 100);
 }
 
 void Logger::add_system_identification_topics()
 {
 	// for system id need to log imu and controls at full rate
-	add_topic("sensor_gyro");
-	add_topic("sensor_accel");
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
+	add_topic("sensor_combined");
 }
 
 int Logger::add_topics_from_file(const char *fname)
@@ -751,27 +747,21 @@ void Logger::run()
 
 	} else {
 
-		/* get the logging mode */
-		if (_sdlog_mode_handle != PARAM_INVALID) {
-			param_get(_sdlog_mode_handle, &_sdlog_mode);
-		}
-
+		// get the logging profile
+		SDLogProfile sdlog_profile = SDLogProfile::DEFAULT;
 		if (_sdlog_profile_handle != PARAM_INVALID) {
-			param_get(_sdlog_profile_handle, &_sdlog_profile);
+			param_get(_sdlog_profile_handle, &sdlog_profile);
 		}
 
-		if (_sdlog_profile == SDLOG_PROFILE_DEFAULT) {
+		// load appropriate topics for profile
+		if (sdlog_profile == SDLogProfile::DEFAULT) {
 			add_common_topics();
 			add_estimator_replay_topics();
 
-		} else if (_sdlog_profile == SDLOG_PROFILE_ESTIMATOR_REPLAY) {
-			add_common_topics();
-			add_estimator_replay_topics();
-
-		} else if (_sdlog_profile == SDLOG_PROFILE_THERMAL_CALIBRATION) {
+		} else if (sdlog_profile == SDLogProfile::THERMAL_CALIBRATION) {
 			add_thermal_calibration_topics();
 
-		} else if (_sdlog_profile == SDLOG_PROFILE_SYSTEM_IDENTIFICATION) {
+		} else if (sdlog_profile == SDLogProfile::SYSTEM_IDENTIFICATION) {
 			add_common_topics();
 			add_system_identification_topics();
 

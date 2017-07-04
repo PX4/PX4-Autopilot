@@ -58,17 +58,17 @@ namespace px4
 namespace logger
 {
 
-enum {
-	SDLOG_MODE_ARM_UNTIL_DISARM = 0,
-	SDLOG_MODE_BOOT_UNTIL_DISARM = 1,
-	SDLOG_MODE_BOOT_UNTIL_SHUTDOWN = 2
+enum class SDLogMode {
+	ARM_UNTIL_DISARM = 0,
+	BOOT_UNTIL_DISARM = 1,
+	BOOT_UNTIL_SHUTDOWN = 2
 };
 
-enum {
-	SDLOG_PROFILE_DEFAULT = 0,
-	SDLOG_PROFILE_ESTIMATOR_REPLAY = 1,
-	SDLOG_PROFILE_THERMAL_CALIBRATION = 2,
-	SDLOG_PROFILE_SYSTEM_IDENTIFICATION = 3
+enum class SDLogProfile {
+	DEFAULT = 0,
+	ESTIMATOR_REPLAY = 1,
+	THERMAL_CALIBRATION = 2,
+	SYSTEM_IDENTIFICATION = 3
 };
 
 struct LoggerSubscription {
@@ -322,9 +322,6 @@ private:
 	// control
 	param_t _sdlog_mode_handle;
 	param_t _sdlog_profile_handle;
-	int32_t _sdlog_mode;
-	int32_t _sdlog_profile;
-
 };
 
 } //namespace logger
