@@ -906,10 +906,6 @@ void Ekf2::run()
 				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
 				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
-				att.roll_rate_bias = gyro_bias[0];
-				att.pitch_rate_bias = gyro_bias[1];
-				att.yaw_rate_bias = gyro_bias[2];
-
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
