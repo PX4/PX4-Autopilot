@@ -66,18 +66,15 @@ static void		hrt_call_reschedule(void);
 
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
-
-#ifdef __PX4_QURT
+#ifndef __PX4_QURT
+static hrt_abstime px4_timestart = 0;
+#else
 static int32_t dsp_offset = 0;
 #endif
-
-#if defined(CONFIG_ARCH_BOARD_SITL)
 static hrt_abstime _start_delay_time = 0;
 static hrt_abstime _delay_interval = 0;
 static hrt_abstime max_time = 0;
-static hrt_abstime px4_timestart = 0;
 pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
 static void
 hrt_call_invoke(void);
@@ -163,7 +160,13 @@ hrt_abstime _hrt_absolute_time_internal(void)
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts) + dsp_offset;
 
-#elif defined(CONFIG_ARCH_BOARD_SITL)
+#elif (defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR))
+	// Don't do any offseting on the Linux side on the Snapdragon.
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts_to_abstime(&ts);
+
+#else
+
 	if (!px4_timestart) {
 		px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 		px4_timestart = ts_to_abstime(&ts);
@@ -171,9 +174,6 @@ hrt_abstime _hrt_absolute_time_internal(void)
 
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts) - px4_timestart;
-#else
-	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts);
 #endif
 }
 
@@ -190,10 +190,9 @@ int hrt_set_absolute_time_offset(int32_t time_diff_us)
  */
 hrt_abstime hrt_absolute_time(void)
 {
-#if defined (CONFIG_ARCH_BOARD_SITL)
-	hrt_abstime ret;
-
 	pthread_mutex_lock(&_hrt_mutex);
+
+	hrt_abstime ret;
 
 	if (_start_delay_time > 0) {
 		ret = _start_delay_time;
@@ -213,18 +212,14 @@ hrt_abstime hrt_absolute_time(void)
 	pthread_mutex_unlock(&_hrt_mutex);
 
 	return ret;
-#else
-	return _hrt_absolute_time_internal();
-#endif
 }
 
 __EXPORT hrt_abstime hrt_reset(void)
 {
-#if defined (CONFIG_ARCH_BOARD_SITL)
-	max_time = 0;
+#ifndef __PX4_QURT
 	px4_timestart = 0;
 #endif
-
+	max_time = 0;
 	return _hrt_absolute_time_internal();
 }
 
@@ -330,7 +325,6 @@ void	hrt_init(void)
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
 
-#if defined(CONFIG_ARCH_BOARD_SITL)
 void	hrt_start_delay()
 {
 	pthread_mutex_lock(&_hrt_mutex);
@@ -352,7 +346,6 @@ void	hrt_stop_delay()
 	pthread_mutex_unlock(&_hrt_mutex);
 
 }
-#endif
 
 static void
 hrt_call_enter(struct hrt_call *entry)

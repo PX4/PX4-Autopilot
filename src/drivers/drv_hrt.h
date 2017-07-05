@@ -173,7 +173,6 @@ __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
 
-#if defined(CONFIG_ARCH_BOARD_SITL)
 /**
  * Start to delay the HRT return value.
  *
@@ -186,8 +185,6 @@ __EXPORT extern	void	hrt_start_delay(void);
  * Stop to delay the HRT.
  */
 __EXPORT extern void	hrt_stop_delay(void);
-
-#endif
 
 #endif
 
