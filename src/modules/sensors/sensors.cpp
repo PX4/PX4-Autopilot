@@ -495,10 +495,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				{
 					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-						/* Do this once for the lowest (highest priority supply on power controller)
-						 * that is valid
+						/* Once we have subscriptions, Do this once for the lowest (highest priority
+						 * supply on power controller) that is valid.
 						 */
-						if (selected_source < 0 && valid_chan[b]) {
+						if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
 							/* Indicate the lowest brick (highest priority supply on power controller)
 							 * that is valid as the one that is the selected source for the
 							 * VDD_5V_IN
