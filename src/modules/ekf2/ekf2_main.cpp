@@ -326,8 +326,6 @@ private:
 	_mag_bias_saved_variance; // Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
 	control::BlockParamFloat _mag_bias_alpha; // maximum fraction of the learned bias that is applied each disarm
 
-	int update_subscriptions();
-
 };
 
 Ekf2::Ekf2():
