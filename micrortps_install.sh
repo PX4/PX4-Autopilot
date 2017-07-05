@@ -16,7 +16,7 @@ if [ ! -d "${CLIENT_FOLDER}" ]; then
 fi
 
 
-cp msg/templates/urtps/UART_node.* ${CLIENT_FOLDER}
+cp msg/templates/urtps/microRTPS_transport.* ${CLIENT_FOLDER}
 cp msgenerated/microRTPS_client_CMakeLists.txt ${CLIENT_FOLDER}/CMakeLists.txt
 cp msgenerated/microRTPS_client.cpp ${CLIENT_FOLDER}
 
@@ -45,7 +45,7 @@ cp * ../
 rm ../*PubSubMain.cxx ../makefile*
 cd -
 
-cp msg/templates/urtps/UART_node.* ${AGENT_FOLDER}
+cp msg/templates/urtps/microRTPS_transport.* ${AGENT_FOLDER}
 cp msgenerated/microRTPS_agent_CMakeLists.txt ${AGENT_FOLDER}/CMakeLists.txt
 cp msgenerated/*Publisher* ${AGENT_FOLDER} 2>/dev/null
 cp msgenerated/*Subscriber* ${AGENT_FOLDER} 2>/dev/null

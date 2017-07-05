@@ -36,7 +36,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <microcdr/microCdr.h>
 #include <uORB/uORB.h>
 
-#include "UART_node.h"
+#include "microRTPS_transport.h"
 
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
@@ -150,7 +150,7 @@ void* send(void*)
             orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
             serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
             //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
-            if (0 < (read = uart_node.writeToUART((char)@(message_id(topic)), data_buffer, length)))
+            if (0 < (read = uart_node.write((char)@(message_id(topic)), data_buffer, length)))
             {
                 total_sent += read;
                 ++sent;
@@ -200,7 +200,7 @@ static int micrortps_start(int argc, char *argv[])
     sleep(1);
 
     int uart_fd = 0;
-    if ((uart_fd = uart_node.init_uart(_options.device, _options.baudrate)) < 0)
+    if ((uart_fd = uart_node.init(_options.device, _options.baudrate)) < 0)
     {
         printf("ERROR UART INIT, EXITING...\n");
         _rtps_task = -1;
@@ -250,7 +250,7 @@ static int micrortps_start(int argc, char *argv[])
         if (r == 1 && (poll_fd[0].revents & POLLIN))
         {
             char topic_ID = 255;
-            while (0 < (read = uart_node.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE)))
+            while (0 < (read = uart_node.read(&topic_ID, data_buffer, BUFFER_SIZE)))
             {
                 total_read += read;
                 switch (topic_ID)
@@ -287,7 +287,7 @@ static int micrortps_start(int argc, char *argv[])
     printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
             (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
 
-    uart_node.close_uart();
+    uart_node.close();
     PX4_INFO("exiting");
     fflush(stdout);
 

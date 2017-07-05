@@ -53,7 +53,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <fastrtps/utils/eClock.h>
 #include <fastrtps/Domain.h>
 
-#include "UART_node.h"
+#include "microRTPS_transport.h"
 #include "RtpsTopics.h"
 
 #define BUFFER_SIZE 1024
@@ -123,7 +123,7 @@ static int parse_options(int argc, char **argv)
 }
 @[if recv_topics]@
 
-void send(void *data)
+void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
     int length = 0;
@@ -140,7 +140,7 @@ void send(void *data)
             {
                 length = scdr.getSerializedDataLength();
                 //printf("[%d]>> %lu\n", topic_ID, msg.timestamp());
-                if (0 < (length = uart_node.writeToUART(topic_ID, scdr.getBufferPointer(), length)))
+                if (0 < (length = uart_node.write(topic_ID, scdr.getBufferPointer(), length)))
                 {
                     total_sent += length;
                     ++sent;
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
 {
     int uart_fd = 0;
     if (-1 == parse_options(argc, argv) ||
-        (uart_fd = uart_node.init_uart(_options.device, _options.baudrate)) < 0)
+        (uart_fd = uart_node.init(_options.device, _options.baudrate)) < 0)
     {
         printf("EXITING...\n");
         return -1;
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 
     running = true;
 @[if recv_topics]@
-    std::thread sender_thread(send, nullptr);
+    std::thread sender_thread(t_send, nullptr);
 @[end if]@
 
     while (running)
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
         if (r == 1 && (poll_fd[0].revents & POLLIN))
         {
             // Publish messages received from UART
-            while (0 < (length = uart_node.readFromUART(&topic_ID, data_buffer, BUFFER_SIZE)))
+            while (0 < (length = uart_node.read(&topic_ID, data_buffer, BUFFER_SIZE)))
             {
                 topics.publish(topic_ID, data_buffer, sizeof(data_buffer));
                 ++received;
