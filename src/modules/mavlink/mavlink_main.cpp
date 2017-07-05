@@ -85,6 +85,7 @@
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_rate_limiter.h"
+#include "mavlink_command_sender.h"
 
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
@@ -2450,6 +2451,7 @@ int
 Mavlink::start(int argc, char *argv[])
 {
 	MavlinkULog::initialize();
+	MavlinkCommandSender::initialize();
 
 	// Wait for the instance count to go up one
 	// before returning to the shell
