@@ -6,9 +6,11 @@ class ParameterGroup(object):
     """
     Single parameter group
     """
-    def __init__(self, name):
+    def __init__(self, name, af_class):
         self.name = name
+        self.af_class = af_class
         self.params = []
+
 
     def AddParameter(self, param):
         """
@@ -22,6 +24,12 @@ class ParameterGroup(object):
         """
         return self.name
 
+    def GetClass(self):
+        """
+        Get parameter group vehicle type.
+        """
+        return self.af_class
+        
     def GetImageName(self):
         """
         Get parameter group image base name (w/o extension)
@@ -80,6 +88,8 @@ class ParameterGroup(object):
             return "Boat"
         return "AirframeUnknown"
 
+
+        
     def GetParams(self):
         """
         Returns the parsed list of parameters. Every parameter is a Parameter
@@ -393,11 +403,18 @@ class SourceParser(object):
         # Store outputs
         for arch in archs:
             param.SetArch(arch, archs[arch])
+            
+
+        
 
         # Store the parameter
-        if airframe_type not in self.param_groups:
-            self.param_groups[airframe_type] = ParameterGroup(airframe_type)
-        self.param_groups[airframe_type].AddParameter(param)
+        
+        #Create a class-specific airframe group. This is needed to catch cases where an airframe type might cross classes (e.g. simulation)
+        class_group_identifier=airframe_type+airframe_class
+        if class_group_identifier not in self.param_groups:
+            #self.param_groups[airframe_type] = ParameterGroup(airframe_type)  #HW TEST REMOVE
+            self.param_groups[class_group_identifier] = ParameterGroup(airframe_type, airframe_class)
+        self.param_groups[class_group_identifier].AddParameter(param)
 
         return True
 
@@ -456,5 +473,20 @@ class SourceParser(object):
         """
         groups = self.param_groups.values()
         groups = sorted(groups, key=lambda x: x.GetName())
+        groups = sorted(groups, key=lambda x: x.GetClass())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
+        
+        #Rename duplicate groups to include the class (creating unique headings in page TOC)
+        duplicate_test=set()
+        duplicate_set=set()
+        for group in groups:
+            if group.GetName() in duplicate_test:
+                duplicate_set.add(group.GetName())
+            else:
+                duplicate_test.add(group.GetName() )
+        for group in groups:
+            if group.GetName() in duplicate_set:
+                group.name=group.GetName()+' (%s)' % group.GetClass()
+
+        
         return groups
