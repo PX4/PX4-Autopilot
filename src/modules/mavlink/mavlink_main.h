@@ -111,6 +111,8 @@ public:
 
 	static Mavlink		*get_instance(unsigned instance);
 
+	static Mavlink		*get_instance_for_status(const mavlink_status_t *status);
+
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
@@ -177,6 +179,12 @@ public:
 	enum BROADCAST_MODE {
 		BROADCAST_MODE_OFF = 0,
 		BROADCAST_MODE_ON
+	};
+
+	enum PROTO_SIGN {
+		PROTO_SIGN_OPTIONAL = 0,
+		PROTO_SIGN_NON_USB,
+		PROTO_SIGN_ALWAYS
 	};
 
 	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
@@ -305,6 +313,9 @@ public:
 	 */
 	int             	send_packet();
 
+	void			begin_signing();
+	void			end_signing();
+
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
 	 */
@@ -424,6 +435,12 @@ public:
 
 	Protocol 		get_protocol() { return _protocol; }
 
+	unsigned		get_proto_sign() { return _proto_sign; }
+
+	void			increase_proto_sign_err() { _proto_sign_err++; }
+
+	unsigned		get_proto_sign_err() { return _proto_sign_err; }
+
 	unsigned short		get_network_port() { return _network_port; }
 
 	unsigned short		get_remote_port() { return _remote_port; }
@@ -491,6 +508,7 @@ private:
 	static constexpr float MAVLINK_MIN_MULTIPLIER = 0.0005f;
 	mavlink_message_t _mavlink_buffer;
 	mavlink_status_t _mavlink_status;
+	mavlink_signing_t _mavlink_signing;
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
@@ -589,12 +607,14 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex;
 	pthread_mutex_t		_send_mutex;
+	pthread_mutex_t		_signing_mutex;
 
 	bool			_param_initialized;
 	uint32_t		_broadcast_mode;
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
+	param_t			_param_proto_sign;
 	param_t			_param_proto_ver;
 	param_t			_param_radio_id;
 	param_t			_param_system_type;
@@ -603,6 +623,8 @@ private:
 	param_t			_param_broadcast;
 
 	unsigned		_system_type;
+	unsigned		_proto_sign;
+	unsigned		_proto_sign_err;
 	static bool		_config_link_on;
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
