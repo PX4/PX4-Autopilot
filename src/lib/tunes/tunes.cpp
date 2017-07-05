@@ -59,18 +59,25 @@ Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_n
 	_default_mode(default_mode),
 	_default_octave(default_octave)
 {
-	config_tone();
+	config_tone(false);
 }
 
 Tunes::Tunes(): Tunes(120, 4, 4, NoteMode::NORMAL)
 {
 }
 
-void Tunes::config_tone()
+void Tunes::config_tone(bool repeat_flag)
 {
 	// reset pointer
-	_tune = nullptr;
-	_next = nullptr;
+	if (!repeat_flag)	{
+		_tune = nullptr;
+		_next = nullptr;
+
+	} else {
+		_tune = _start_tune;
+		_next = _tune;
+	}
+
 	// reset music parameter
 	_tempo = _default_tempo;
 	_note_length = _default_note_length;
@@ -96,7 +103,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
 		case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
 			reset_playing_tune = true;
-			config_tone();
+			config_tone(false);
 
 		case tune_control_s::TUNE_ID_ARMING_WARNING:
 		case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
@@ -112,6 +119,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			// TODO: come up with a better strategy
 			if (_tune == nullptr || reset_playing_tune || tune_control.tune_override) {
 				_tune = _default_tunes[tune_control.tune_id];
+				_start_tune = _default_tunes[tune_control.tune_id];
 				_next = _tune;
 			}
 
@@ -131,6 +139,7 @@ void Tunes::set_string(const char *string)
 	// set tune string the first time
 	if (_tune == nullptr) {
 		_tune = string;
+		_start_tune = string;
 		_next = _tune;
 	}
 }
@@ -321,12 +330,12 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 tune_error:
 	// syslog(LOG_ERR, "tune error\n");
 	_repeat = false;		// don't loop on error
-	config_tone();
+	config_tone(_repeat);
 	return TUNE_ERROR;
 	// stop (and potentially restart) the tune
 tune_end:
 	// restore intial parameter
-	config_tone();
+	config_tone(_repeat);
 
 	if (_repeat) {
 		return TUNE_CONTINUE;
