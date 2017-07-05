@@ -43,8 +43,8 @@ set PWM_AUX_DISARMED 900
 param set PWM_AUX_MIN 1075
 param set PWM_AUX_MAX 1950
 
-set MIXER dodeca_main_outputs_cox
-set MIXER_AUX dodeca_aux_outputs_cox
+set MIXER dodeca_top_cox
+set MIXER_AUX dodeca_bottom_cox
 
 # Need to set all 8 channels
 set PWM_OUT 12345678

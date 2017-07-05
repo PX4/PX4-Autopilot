@@ -173,10 +173,10 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		geometry = MultirotorGeometry::OCTA_COX;
 
 	} else if (!strcmp(geomname, "6m")) {
-		geometry = MultirotorGeometry::DODECA_MAIN_OUTPUTS_COX;
+		geometry = MultirotorGeometry::DODECA_TOP_COX;
 
 	} else if (!strcmp(geomname, "6a")) {
-		geometry = MultirotorGeometry::DODECA_AUX_OUTPUTS_COX;
+		geometry = MultirotorGeometry::DODECA_BOTTOM_COX;
 
 
 #if 0
