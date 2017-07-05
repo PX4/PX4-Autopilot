@@ -101,6 +101,7 @@ private:
 
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string
+	const char *_start_tune = nullptr; ///< pointer to repeat tune
 
 	unsigned _tempo;
 	unsigned _note_length;
@@ -168,8 +169,8 @@ private:
 	unsigned next_dots();
 
 	/**
-	 * set the tune parameters to default
+	 * if repeat false set the tune parameters to default else point to the beginning of the tune
 	 */
-	void config_tone();
+	void config_tone(bool repeat);
 
 };
