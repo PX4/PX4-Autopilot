@@ -209,7 +209,7 @@ static int micrortps_start(int argc, char *argv[])
 @[if recv_topics]@
 
     char data_buffer[BUFFER_SIZE] = {};
-    int read = 0, total_read = 0;
+    int read = 0;
 
     // Declare received topics
 @[for topic in recv_topics]@
@@ -230,6 +230,7 @@ static int micrortps_start(int argc, char *argv[])
     poll_fd[0].events = POLLIN;
 @[end if]@
 
+    int total_read = 0;
     uint32_t received = 0;
     struct timespec begin;
     clock_gettime(0, &begin);
@@ -286,6 +287,7 @@ static int micrortps_start(int argc, char *argv[])
     printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
             (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
 
+    uart_node.close_uart();
     PX4_INFO("exiting");
     fflush(stdout);
 

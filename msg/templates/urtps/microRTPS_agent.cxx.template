@@ -44,6 +44,8 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <thread>
 #include <unistd.h>
 #include <poll.h>
+#include <chrono>
+#include <ctime>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -61,7 +63,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #define SLEEP_US 1
 #define BAUDRATE 460800
 #define POLL_MS 0
-#define WAIT_CNST 3000000
+#define WAIT_CNST 2
 
 using namespace eprosima;
 using namespace eprosima::fastrtps;
@@ -167,11 +169,11 @@ int main(int argc, char** argv)
 
 @[if send_topics]@
     char data_buffer[BUFFER_SIZE] = {};
-    int received = 0, wait = 0, loop = 0;
+    int received = 0, loop = 0;
     int length = 0, total_read = 0;
     bool receiving = false;
     char topic_ID = 255;
-    struct timespec begin;
+    std::chrono::time_point<std::chrono::steady_clock> start, end;
 
     struct pollfd poll_fd[1] = {};
     poll_fd[0].fd = uart_fd;
@@ -188,12 +190,9 @@ int main(int argc, char** argv)
     while (running)
     {
 @[if send_topics]@
-        if (!receiving)
-        {
-            clock_gettime(0, &begin);
-        }
-
+        ++loop;
         int r = poll(poll_fd, 1, _options.poll_ms);
+        if (!receiving) start = std::chrono::steady_clock::now();
         if (r == 1 && (poll_fd[0].revents & POLLIN))
         {
             // Publish messages received from UART
@@ -203,27 +202,23 @@ int main(int argc, char** argv)
                 ++received;
                 total_read += length;
                 receiving = true;
-                wait = 0;
+                end = std::chrono::steady_clock::now();
             }
         }
 
-        if (receiving && ++wait > (WAIT_CNST/(_options.sleep_us + _options.poll_ms*1000)))
+        if (receiving && std::chrono::duration<double>(std::chrono::steady_clock::now() - end).count() > WAIT_CNST)
         {
-            struct timespec end;
-            clock_gettime(0, &end);
-            double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000)
-                                  - double(wait*(_options.sleep_us + _options.poll_ms*1000))/double(1000000);
+            std::chrono::duration<double>  elapsed_secs = end - start;
             printf("\nSENT:     %lu messages - %lu bytes\n",
                     (unsigned long)sent, (unsigned long)total_sent);
             printf("RECEIVED: %d messages - %d bytes; %d LOOPS - %.03f seconds - %.02fKB/s\n\n",
-                    received, total_read, loop, elapsed_secs, (double)total_read/(1000*elapsed_secs));
-            received = sent = total_read = total_sent = wait = 0;
+                    received, total_read, loop, elapsed_secs.count(), (double)total_read/(1000*elapsed_secs.count()));
+            received = sent = total_read = total_sent = 0;
             receiving = false;
         }
 
 @[end if]@
         usleep(_options.sleep_us);
-        ++loop;
     }
 
     return 0;
