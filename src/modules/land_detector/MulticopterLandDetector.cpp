@@ -263,15 +263,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		_min_trust_start = 0;
 	}
 
-	// Return status based on armed state and throttle if no position lock is available.
-	if (!_has_altitude_lock()) {
-		// The system has minimum trust set (manual or in failsafe)
-		// if this persists for 8 seconds AND the drone is not
-		// falling consider it to be landed. This should even sustain
-		// quite acrobatic flight.
-		return (_min_trust_start > 0) && (hrt_elapsed_time(&_min_trust_start) > 8000000);
-	}
-
 	float armThresholdFactor = 1.0f;
 
 	// Widen acceptance thresholds for landed state right after arming
@@ -286,6 +277,22 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	bool rotating = (fabsf(_vehicleAttitude.rollspeed)  > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.pitchspeed) > maxRotationScaled) ||
 			(fabsf(_vehicleAttitude.yawspeed) > maxRotationScaled);
+
+	// Return status based on armed state and throttle if no position lock is available.
+	if (!_has_altitude_lock() && !rotating) {
+		// The system has minimum trust set (manual or in failsafe)
+		// if this persists for 8 seconds AND the drone is not
+		// falling consider it to be landed. This should even sustain
+		// quite acrobatic flight.
+		if ((_min_trust_start > 0) &&
+		    (hrt_elapsed_time(&_min_trust_start) > 8000000)) {
+
+			return true;
+
+		} else {
+			return false;
+		}
+	}
 
 	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating) {
 		// Ground contact, no thrust and no movement -> landed
