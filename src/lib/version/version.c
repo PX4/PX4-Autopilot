@@ -58,6 +58,27 @@ enum FIRMWARE_TYPE {
 	FIRMWARE_TYPE_RELEASE = 255
 };
 
+typedef enum {
+	PATCH=0,
+	MINOR=8,
+	MAJOR=16
+} version_type_t;
+
+static void string_to_int(int8_t mag, version_type_t v_type, uint32_t *ver, int start, const char *tag)
+{
+	const char *curr = &tag[start];
+	uint32_t temp_ver = 0;
+
+	while (curr <= &tag[mag])
+	{
+		temp_ver = (temp_ver << 3) + (temp_ver << 1) + (*curr - '0');
+
+		curr++;
+	}
+
+	*ver = (temp_ver << v_type) + *ver;
+}
+
 /**
  * Convert a version tag string to a number
  * @param tag version tag in one of the following forms:
@@ -74,6 +95,7 @@ static uint32_t version_tag_to_number(const char *tag)
 	unsigned mag = 0;
 	int32_t type = -1;
 	unsigned dashcount = 0;
+	version_type_t v_type = PATCH;
 
 	for (int i = len - 1; i >= 0; i--) {
 
@@ -82,20 +104,33 @@ static uint32_t version_tag_to_number(const char *tag)
 		}
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
-			if (mag < 32) {
-				char number = tag[i] - '0';
-
-				ver += (number << mag);
-				mag += 4;
+			if (!mag)
+			{
+				mag = i;
 			}
 
-		} else if (tag[i] == '.') {
-			if (mag % 8) {
-				mag += 4;
+			if (i == 0)
+			{
+				string_to_int(mag, v_type, &ver, i, tag);
 			}
 
-			continue;
+		} else if ((tag[i] == '.') || (i==0)) {
+			string_to_int(mag, v_type, &ver, (i + 1), tag);
 
+			mag = 0;
+
+			switch(v_type)
+			{
+			case PATCH:
+				v_type = MINOR;
+				break;
+			case MINOR:
+				v_type = MAJOR;
+				break;
+			case MAJOR:
+			default:
+				break;
+						}
 		} else if (i > 3 && type == -1) {
 			/* scan and look for signature characters for each type */
 			const char *curr = &tag[i - 1];
