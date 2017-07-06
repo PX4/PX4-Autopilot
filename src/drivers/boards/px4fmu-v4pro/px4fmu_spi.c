@@ -48,7 +48,7 @@
 #include <debug.h>
 //#include <unistd.h>
 
-//#include <nuttx/spi/spi.h>
+#include <nuttx/spi.h>
 #include <arch/board/board.h>
 
 #include <up_arch.h>
