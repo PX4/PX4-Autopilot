@@ -42,25 +42,20 @@
 #include <px4_log.h>
 #include <cassert>
 
-bool MavlinkCommandSender::_init = false;
 MavlinkCommandSender *MavlinkCommandSender::_instance = nullptr;
 px4_sem_t MavlinkCommandSender::_lock;
 
 void MavlinkCommandSender::initialize()
 {
-	if (_init) {
-		return;
-	}
-
 	px4_sem_init(&_lock, 1, 1);
-	_init = true;
+
+	if (_instance == nullptr) {
+		_instance = new MavlinkCommandSender();
+	}
 }
 
 MavlinkCommandSender &MavlinkCommandSender::instance()
 {
-	if (_instance == nullptr) {
-		_instance = new MavlinkCommandSender();
-	}
 
 	return *_instance;
 }
