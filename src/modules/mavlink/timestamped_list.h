@@ -66,7 +66,7 @@ public:
 	/**
 	 * Insert a value into the list, overwrite the oldest entry if full.
 	 */
-	void put(T new_value)
+	void put(const T &new_value)
 	{
 		hrt_abstime now = hrt_absolute_time();
 
