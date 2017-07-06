@@ -208,6 +208,13 @@ bool Replay::readFileDefinitions(std::ifstream &file)
 		}
 
 		switch (message_header.msg_type) {
+		case (int)ULogMessageType::FLAG_BITS:
+			if (!readFlagBits(file, message_header.msg_size)) {
+				return false;
+			}
+
+			break;
+
 		case (int)ULogMessageType::FORMAT:
 			if (!readFormat(file, message_header.msg_size)) {
 				return false;
@@ -227,6 +234,7 @@ bool Replay::readFileDefinitions(std::ifstream &file)
 			return true;
 
 		case (int)ULogMessageType::INFO: //skip
+		case (int)ULogMessageType::INFO_MULTIPLE: //skip
 			file.seekg(message_header.msg_size, ios::cur);
 			break;
 
@@ -235,6 +243,52 @@ bool Replay::readFileDefinitions(std::ifstream &file)
 				(int)message_header.msg_type, (int)message_header.msg_size, (int)file.tellg());
 			file.seekg(message_header.msg_size, ios::cur);
 			break;
+		}
+	}
+
+	return true;
+}
+
+bool Replay::readFlagBits(std::ifstream &file, uint16_t msg_size)
+{
+	if (msg_size != 40) {
+		PX4_ERR("unsupported message length for FLAG_BITS message (%i)", msg_size);
+		return false;
+	}
+
+	_read_buffer.reserve(msg_size);
+	uint8_t *message = (uint8_t *)_read_buffer.data();
+	file.read((char *)message, msg_size);
+	//uint8_t *compat_flags = message;
+	uint8_t *incompat_flags = message + 8;
+
+	// handle & validate the flags
+	bool contains_appended_data = incompat_flags[0] & ULOG_INCOMPAT_FLAG0_DATA_APPENDED_MASK;
+	bool has_unknown_incompat_bits = false;
+
+	if (incompat_flags[0] & ~0x1) {
+		has_unknown_incompat_bits = true;
+	}
+
+	for (int i = 1; i < 8; ++i) {
+		if (incompat_flags[i]) {
+			has_unknown_incompat_bits = true;
+		}
+	}
+
+	if (has_unknown_incompat_bits) {
+		PX4_ERR("Log contains unknown incompat bits set. Refusing to parse");
+		return false;
+	}
+
+	if (contains_appended_data) {
+		uint64_t appended_offsets[3];
+		memcpy(appended_offsets, message + 16, sizeof(appended_offsets));
+
+		if (appended_offsets[0] > 0) {
+			// the appended data is currently only used for hardfault dumps, so it's safe to ignore it.
+			PX4_INFO("Log contains appended data. Replay will ignore this data");
+			_read_until_file_position = appended_offsets[0];
 		}
 	}
 
@@ -480,6 +534,11 @@ bool Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, in
 			break;
 		}
 
+		if (((streamoff)cur_pos) + ULOG_MSG_HEADER_LEN + message_header.msg_size > _read_until_file_position) {
+			file.setstate(std::ios::eofbit);
+			break;
+		}
+
 		switch (message_header.msg_type) {
 		case (int)ULogMessageType::ADD_LOGGED_MSG:
 			readAndAddSubscription(file, message_header.msg_size);
@@ -514,6 +573,7 @@ bool Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, in
 		case (int)ULogMessageType::PARAMETER:
 		case (int)ULogMessageType::DROPOUT:
 		case (int)ULogMessageType::INFO:
+		case (int)ULogMessageType::INFO_MULTIPLE:
 		case (int)ULogMessageType::SYNC:
 		case (int)ULogMessageType::LOGGING:
 			file.seekg(message_header.msg_size, ios::cur);

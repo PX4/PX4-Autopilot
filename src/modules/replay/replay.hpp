@@ -169,6 +169,8 @@ private:
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
 
+	uint64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
+
 	bool readFileHeader(std::ifstream &file);
 
 	/**
@@ -181,6 +183,7 @@ private:
 	///file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
 	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
+	bool readFlagBits(std::ifstream &file, uint16_t msg_size);
 
 	/**
 	 * Read the file header and definitions sections. Apply the parameters from this section
