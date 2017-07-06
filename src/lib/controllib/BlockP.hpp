@@ -66,8 +66,8 @@ public:
 	BlockP(SuperBlock *parent, const char *name) :
 		Block(parent, name),
 		_kP(this, "") // only one param, no need to name
-	{};
-	virtual ~BlockP() {};
+	{}
+	virtual ~BlockP() {}
 	float update(float input)
 	{
 		return getKP() * input;

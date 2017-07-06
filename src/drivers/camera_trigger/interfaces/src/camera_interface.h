@@ -27,24 +27,24 @@ public:
 	 * trigger the camera
 	 * @param enable
 	 */
-	virtual void trigger(bool enable) {};
+	virtual void trigger(bool enable) {}
 
 	/**
 	 * send command to turn the camera on/off
 	 * @param enable
 	 */
-	virtual void send_toggle_power(bool enable) {};
+	virtual void send_toggle_power(bool enable) {}
 
 	/**
 	 * send command to prevent the camera from sleeping
 	 * @param enable
 	 */
-	virtual void send_keep_alive(bool enable) {};
+	virtual void send_keep_alive(bool enable) {}
 
 	/**
 	 * Display info.
 	 */
-	virtual void info() {};
+	virtual void info() {}
 
 	/**
 	 * Checks if the interface has support for
@@ -65,7 +65,7 @@ protected:
 	/**
 	 * setup the interface
 	 */
-	virtual void setup() {};
+	virtual void setup() {}
 
 	/**
 	 * get the hardware configuration

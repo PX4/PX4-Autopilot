@@ -48,8 +48,8 @@
 class QShell
 {
 public:
-	QShell() {};
-	~QShell() {};
+	QShell() {}
+	~QShell() {}
 
 	int main(std::vector<std::string> argList);
 

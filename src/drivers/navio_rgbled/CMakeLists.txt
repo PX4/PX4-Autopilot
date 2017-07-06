@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-include_directories(../navio_gpio)
 
 px4_add_module(
 	MODULE drivers__navio_rgbled

@@ -1083,7 +1083,7 @@ MPU9250::start()
 		hrt_call_every(&_call,
 			       1000,
 			       _call_interval - MPU9250_TIMER_REDUCTION,
-			       (hrt_callout)&MPU9250::measure_trampoline, this);;
+			       (hrt_callout)&MPU9250::measure_trampoline, this);
 
 	} else {
 #ifdef USE_I2C

@@ -68,8 +68,8 @@ public:
 		_u(0),
 		_y(0),
 		_fCut(this, "") // only one parameter, no need to name
-	{};
-	virtual ~BlockHighPass() {};
+	{}
+	virtual ~BlockHighPass() {}
 	float update(float input);
 // accessors
 	float getU() {return _u;}

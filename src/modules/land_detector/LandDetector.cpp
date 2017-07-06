@@ -50,19 +50,7 @@ namespace land_detector
 {
 
 
-LandDetector::LandDetector() :
-	_landDetectedPub(nullptr),
-	_landDetected{0, false, false},
-	_parameterSub(0),
-	_state{},
-	_freefall_hysteresis(false),
-	_landed_hysteresis(true),
-	_ground_contact_hysteresis(true),
-	_taskShouldExit(false),
-	_taskIsRunning(false),
-	_total_flight_time{0},
-	_takeoff_time{0},
-	_work{}
+LandDetector::LandDetector()
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);

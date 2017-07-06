@@ -208,7 +208,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[_bus - 1];;
+			msgv[msgs].frequency = _bus_clocks[_bus - 1];
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;

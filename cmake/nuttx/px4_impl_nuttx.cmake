@@ -559,39 +559,19 @@ function(px4_os_add_flags)
 		${nuttx_export_dir}/arch/armv7-m
 		${nuttx_export_root}/apps/include
 		)
+
 	set(added_link_dirs
 		${nuttx_export_dir}/libs
 		)
+
 	set(added_definitions
 		-D__PX4_NUTTX
 		)
 
-	if(NOT "${config_nuttx_config}" STREQUAL "bootloader")
-		list(APPEND added_definitions -D__DF_NUTTX)
-	endif()
-
-	set(added_c_flags
-		-nodefaultlibs
-		-nostdlib
+	set(added_exe_linker_flags
+		-Wl,--warn-common
+		-Wl,--gc-sections
 		)
-	set(added_cxx_flags
-		-nodefaultlibs
-		-nostdlib
-		)
-
-	set(added_optimization_flags)
-
-	set(added_exe_linker_flags) # none currently
-
-	set(instrument_flags)
-	if ("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
-		set(instrument_flags
-			-finstrument-functions
-			-ffixed-r10
-			)
-		list(APPEND c_flags ${instrument_flags})
-		list(APPEND cxx_flags ${instrument_flags})
-	endif()
 
 	set(cpu_flags)
 	if (${config_nuttx_hw} STREQUAL "m7")
@@ -616,8 +596,33 @@ function(px4_os_add_flags)
 			-march=armv7-m
 			)
 	endif()
-	list(APPEND c_flags ${cpu_flags})
-	list(APPEND cxx_flags ${cpu_flags})
+
+	set(added_c_flags
+		${cpu_flags}
+		-nodefaultlibs
+		-nostdlib
+		)
+
+	set(added_cxx_flags
+		${cpu_flags}
+		-nodefaultlibs
+		-nostdlib
+		)
+
+	if ("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
+		set(instrument_flags
+			-finstrument-functions
+			-ffixed-r10
+			)
+		list(APPEND c_flags ${instrument_flags})
+		list(APPEND cxx_flags ${instrument_flags})
+	endif()
+
+	if ("${config_nuttx_config}" STREQUAL "bootloader")
+		list(APPEND added_c_flags -Wno-missing-include-dirs)
+	else()
+		list(APPEND added_definitions -D__DF_NUTTX)
+	endif()
 
 	# output
 	foreach(var ${inout_vars})

@@ -114,16 +114,16 @@ protected:
 	/**
 	 * called when entering the main replay loop
 	 */
-	virtual void onEnterMainLoop() {};
+	virtual void onEnterMainLoop() {}
 	/**
 	 * called when exiting the main replay loop
 	 */
-	virtual void onExitMainLoop() {};
+	virtual void onExitMainLoop() {}
 
 	/**
 	 * called when a new subscription is added
 	 */
-	virtual void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {};
+	virtual void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {}
 
 	/**
 	 * handle delay until topic can be published.

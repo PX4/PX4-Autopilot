@@ -1532,8 +1532,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
-	unsigned stick_off_counter = 0;
-	unsigned stick_on_counter = 0;
+	int32_t stick_off_counter = 0;
+	int32_t stick_on_counter = 0;
 
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
@@ -3259,7 +3259,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
-		int overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1000 : 250000;
+		unsigned overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1000 : 250000;
 
 		/* set mode */
 		if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
@@ -3465,7 +3465,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 	/* we know something has changed - check if we are in mode slot operation */
 	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
-		if (sp_man.mode_slot >= sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0])) {
+		if (sp_man.mode_slot >= manual_control_setpoint_s::MODE_SLOT_MAX) {
 			warnx("m slot overflow");
 			return TRANSITION_DENIED;
 		}
@@ -3774,7 +3774,7 @@ check_posvel_validity(bool data_valid, float data_accuracy, float required_accur
 		if (!level_check_pass) {
 			*probation_time_us += (now - *last_fail_time_us) * POSVEL_VALID_PROBATION_FACTOR;
 			*last_fail_time_us = now;
-		} else if (now - *last_fail_time_us > *probation_time_us) {
+		} else if (static_cast<int64_t>(now - *last_fail_time_us) > *probation_time_us) {
 			pos_inaccurate = false;
 			pos_status_changed = true;
 			*last_fail_time_us = 0;

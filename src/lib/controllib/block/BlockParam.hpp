@@ -59,7 +59,7 @@ public:
 	 * @param parent_prefix Set to true to include the parent name in the parameter name
 	 */
 	BlockParamBase(Block *parent, const char *name, bool parent_prefix = true);
-	virtual ~BlockParamBase() {};
+	virtual ~BlockParamBase() {}
 
 	virtual void update() = 0;
 	const char *getName() { return param_name(_handle); }
@@ -87,13 +87,13 @@ public:
 	T get() const { return _val; }
 
 	// Store the parameter value to the parameter storage (@see param_set())
-	void commit() { param_set(_handle, &_val); };
+	void commit() { param_set(_handle, &_val); }
 
 	// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	void commit_no_notification() { param_set_no_notification(_handle, &_val); };
+	void commit_no_notification() { param_set_no_notification(_handle, &_val); }
 
-	void set(T val) { _val = val; };
-	void update() override { param_get(_handle, &_val); };
+	void set(T val) { _val = val; }
+	void update() override { param_get(_handle, &_val); }
 
 protected:
 	T _val;

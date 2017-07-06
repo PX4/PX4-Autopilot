@@ -219,7 +219,7 @@ protected:
 	virtual int       probe();
 
 private:
-	work_s            _work;
+	work_s            _work{};
 	bool _external;
 
 	bool _running;
@@ -268,7 +268,7 @@ private:
 	enum Rotation       _rotation;
 	bool            _got_duplicate;
 
-	struct mag_report   _last_report;           /**< used for info() */
+	mag_report   _last_report {};          /**< used for info() */
 
 	int             init_trim_registers(void);
 

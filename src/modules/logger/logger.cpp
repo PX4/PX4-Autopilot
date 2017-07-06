@@ -746,7 +746,8 @@ void Logger::run()
 	}
 
 	//all topics added. Get required message buffer size
-	int max_msg_size = 0, ret;
+	unsigned max_msg_size = 0;
+	int ret = 0;
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
@@ -1007,7 +1008,7 @@ void Logger::run()
 
 			/* subscription update */
 			if (next_subscribe_topic_index != -1) {
-				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
@@ -1137,7 +1138,7 @@ int Logger::create_log_dir(tm *tt)
 	if (tt) {
 		int n = snprintf(_log_dir, sizeof(_log_dir), "%s/", LOG_ROOT);
 
-		if (n >= sizeof(_log_dir)) {
+		if (n >= (int)sizeof(_log_dir)) {
 			PX4_ERR("log path too long");
 			return -1;
 		}
@@ -1158,7 +1159,7 @@ int Logger::create_log_dir(tm *tt)
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			int n = snprintf(_log_dir, sizeof(_log_dir), "%s/sess%03u", LOG_ROOT, dir_number);
 
-			if (n >= sizeof(_log_dir)) {
+			if (n >= (int)sizeof(_log_dir)) {
 				PX4_ERR("log path too long (%i)", n);
 				return -1;
 			}
@@ -1192,7 +1193,7 @@ bool Logger::file_exist(const char *filename)
 
 int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 {
-	tm tt;
+	tm tt = {};
 	bool time_ok = false;
 
 	if (_log_name_timestamp) {
@@ -1281,7 +1282,7 @@ bool Logger::get_log_time(struct tm *tt, bool boot_time)
 
 	if (use_clock_time) {
 		/* take clock time if there's no fix (yet) */
-		struct timespec ts;
+		struct timespec ts = {};
 		px4_clock_gettime(CLOCK_REALTIME, &ts);
 		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 
@@ -1418,7 +1419,7 @@ void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 
 void Logger::write_perf_data(bool preflight)
 {
-	perf_callback_data_t callback_data;
+	perf_callback_data_t callback_data = {};
 	callback_data.logger = this;
 	callback_data.counter = 0;
 	callback_data.preflight = preflight;
@@ -1464,7 +1465,7 @@ void Logger::initialize_load_output()
 
 void Logger::write_load_output(bool preflight)
 {
-	perf_callback_data_t callback_data;
+	perf_callback_data_t callback_data = {};
 	char buffer[140];
 	callback_data.logger = this;
 	callback_data.counter = 0;
@@ -1481,7 +1482,7 @@ void Logger::write_load_output(bool preflight)
 void Logger::write_formats()
 {
 	_writer.lock();
-	ulog_message_format_s msg;
+	ulog_message_format_s msg = {};
 	const orb_metadata **topics = orb_get_topics();
 
 	//write all known formats
@@ -1539,7 +1540,7 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 void Logger::write_info(const char *name, const char *value)
 {
 	_writer.lock();
-	ulog_message_info_header_s msg;
+	ulog_message_info_header_s msg = {};
 	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
@@ -1576,7 +1577,7 @@ template<typename T>
 void Logger::write_info_template(const char *name, T value, const char *type_str)
 {
 	_writer.lock();
-	ulog_message_info_header_s msg;
+	ulog_message_info_header_s msg = {};
 	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
@@ -1597,7 +1598,7 @@ void Logger::write_info_template(const char *name, T value, const char *type_str
 
 void Logger::write_header()
 {
-	ulog_file_header_s header;
+	ulog_file_header_s header = {};
 	header.magic[0] = 'U';
 	header.magic[1] = 'L';
 	header.magic[2] = 'o';
@@ -1668,7 +1669,7 @@ void Logger::write_version()
 void Logger::write_parameters()
 {
 	_writer.lock();
-	ulog_message_parameter_header_s msg;
+	ulog_message_parameter_header_s msg = {};
 	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
@@ -1725,7 +1726,7 @@ void Logger::write_parameters()
 void Logger::write_changed_parameters()
 {
 	_writer.lock();
-	ulog_message_parameter_header_s msg;
+	ulog_message_parameter_header_s msg = {};
 	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
 
 	msg.msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
@@ -1883,7 +1884,7 @@ int Logger::check_free_space()
 				     day_min);
 		}
 
-		if (n >= sizeof(directory_to_delete)) {
+		if (n >= (int)sizeof(directory_to_delete)) {
 			PX4_ERR("log path too long (%i)", n);
 			break;
 		}
@@ -1979,5 +1980,5 @@ void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t
 
 }
 
-}
-}
+} // namespace logger
+} // namespace px4

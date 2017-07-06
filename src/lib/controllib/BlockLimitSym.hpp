@@ -67,8 +67,8 @@ public:
 	BlockLimitSym(SuperBlock *parent, const char *name) :
 		Block(parent, name),
 		_max(this, "MAX")
-	{};
-	virtual ~BlockLimitSym() {};
+	{}
+	virtual ~BlockLimitSym() {}
 	float update(float input);
 // accessors
 	float getMax() { return _max.get(); }

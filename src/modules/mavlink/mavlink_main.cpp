@@ -392,7 +392,7 @@ Mavlink::instance_count()
 }
 
 Mavlink *
-Mavlink::get_instance(unsigned instance)
+Mavlink::get_instance(int instance)
 {
 	Mavlink *inst;
 	LL_FOREACH(::_mavlink_instances, inst) {
@@ -1103,7 +1103,7 @@ Mavlink::find_broadcast_address()
 		return;
 	}
 
-	size_t offset = 0;
+	int offset = 0;
 	// Later used to point to next network interface in buffer.
 	struct ifreq *cur_ifreq = (struct ifreq *) & (((uint8_t *)ifconf.ifc_req)[offset]);
 

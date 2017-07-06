@@ -106,7 +106,7 @@ public:
 
 	static Mavlink		*new_instance();
 
-	static Mavlink		*get_instance(unsigned instance);
+	static Mavlink		*get_instance(int instance);
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
@@ -256,7 +256,7 @@ public:
 	/**
 	 * Set communication protocol for this mavlink instance
 	 */
-	void 		set_protocol(Protocol p) {_protocol = p;};
+	void 		set_protocol(Protocol p) {_protocol = p;}
 
 	/**
 	 * Get the manual input generation mode

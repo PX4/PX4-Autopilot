@@ -503,8 +503,8 @@ VDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	}
 
 	if (_max_pollwaiters > 0) {
-		memset(new_pollset + _max_pollwaiters, 0, sizeof(px4_pollfd_struct_t *) * (new_count - _max_pollwaiters));
-		memcpy(new_pollset, _pollset, sizeof(px4_pollfd_struct_t *) * _max_pollwaiters);
+		memset(new_pollset + _max_pollwaiters, 0, sizeof(px4_pollfd_struct_t *) * (size_t)(new_count - _max_pollwaiters));
+		memcpy(new_pollset, _pollset, sizeof(px4_pollfd_struct_t *) * (size_t)_max_pollwaiters);
 		delete[](_pollset);
 	}
 

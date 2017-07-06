@@ -44,9 +44,9 @@
 class HelloExample
 {
 public:
-	HelloExample() {};
+	HelloExample() {}
 
-	~HelloExample() {};
+	~HelloExample() {}
 
 	int main();
 

@@ -54,7 +54,7 @@ public:
 		memset(&_hpwork, 0, sizeof(_hpwork));
 	};
 
-	~WQueueTest() {};
+	~WQueueTest() {}
 
 	int main();
 

@@ -76,8 +76,8 @@ static bool _thread_should_exit = false;		/**< motor_ramp exit flag */
 static bool _thread_running = false;		/**< motor_ramp status flag */
 static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
 static float _ramp_time;
-static int _min_pwm;
-static int _max_pwm;
+static unsigned _min_pwm;
+static unsigned _max_pwm;
 static Mode _mode;
 static char *_mode_c;
 
@@ -194,9 +194,6 @@ int motor_ramp_main(int argc, char *argv[])
 					      motor_ramp_thread_main,
 					      (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 	return 0;
-
-	usage("unrecognized command");
-	return 1;
 }
 
 bool min_pwm_valid(unsigned pwm_value)
@@ -218,7 +215,7 @@ int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
 
 	pwm_values.channel_count = max_channels;
 
-	for (int i = 0; i < max_channels; i++) {
+	for (unsigned i = 0; i < max_channels; i++) {
 		pwm_values.values[i] = pwm_value;
 	}
 

@@ -43,7 +43,7 @@ namespace uORB
 {
 
 SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta,
-				   unsigned interval, unsigned instance) :
+				   unsigned interval, int instance) :
 	_meta(meta),
 	_instance(instance),
 	_handle()

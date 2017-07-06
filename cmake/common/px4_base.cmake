@@ -325,91 +325,134 @@ function(px4_add_common_flags)
 	set(warnings
 		-Wall
 		-Warray-bounds
+		-Wdisabled-optimization
+		-Wdouble-promotion
 		-Werror
 		-Wextra
 		-Wfatal-errors
 		-Wfloat-equal
 		-Wformat-security
 		-Winit-self
+		-Wlogical-op
 		-Wmissing-declarations
+		-Wmissing-field-initializers
+		-Wmissing-include-dirs
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
+		-Wunknown-pragmas
+		-Wunreachable-code
+		-Wunused-but-set-variable
 		-Wunused-variable
+		#-Wsign-conversion # TODO: fix and enable
 
-		-Wno-sign-compare
+		# disabled warnings
 		-Wno-unused-parameter
 		)
 
-	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
-		# QuRT 6.4.X compiler identifies as Clang but does not support this option
-		if (NOT ${OS} STREQUAL "qurt")
-			list(APPEND warnings
-				-Qunused-arguments
-				-Wno-unused-const-variable
-				-Wno-varargs
-				-Wno-address-of-packed-member
-				-Wno-unknown-warning-option
-			)
-		endif()
-	else()
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		list(APPEND warnings
-			-Wunused-but-set-variable
-			-Wformat=1
-			#-Wlogical-op # very verbose due to eigen
-			-Wdouble-promotion
+			-Wextra-semi
+
+			# fix these
+			-Wno-cast-align
+			-Wno-cast-qual
+			-Wno-comma
+			-Wno-conditional-uninitialized
+			-Wno-conversion
+			-Wno-covered-switch-default
+			-Wno-deprecated
+			-Wno-documentation
+			-Wno-exit-time-destructors
+			-Wno-format-pedantic
+			-Wno-header-hygiene
+			-Wno-implicit-fallthrough
+			-Wno-missing-noreturn
+			-Wno-newline-eof
+			-Wno-non-virtual-dtor
+			-Wno-signed-enum-bitfield
+			-Wno-switch-enum
+			-Wno-undefined-func-template
+			-Wno-unreachable-code
+			-Wno-unreachable-code-break
+			-Wno-unreachable-code-return
+			-Wno-unused-macros
+			-Wno-used-but-marked-unused
+			-Wno-weak-template-vtables
+			-Wno-weak-vtables
+			-Wno-zero-length-array
+
+			-Wno-address-of-packed-member
+			-Wno-double-promotion
+			-Wno-incompatible-pointer-types-discards-qualifiers
+			-Wno-unknown-warning-option
 		)
 	endif()
 
-	if ("${OS}" STREQUAL "qurt")
-		set(PIC_FLAG -fPIC)
-	endif()
+	set(added_c_flags
+		-std=gnu99
 
-	set(_optimization_flags
+		${warnings}
+		-Wbad-function-cast
+		-Wmissing-prototypes
+		-Wnested-externs
+		-Wstrict-prototypes
+
+		-Wno-discarded-qualifiers # TODO: fix discarded qualifiers
+		-Wno-ignored-qualifiers # TODO: fix ignored qualifiers
+
+		-g
+		-fno-common
+		-fvisibility=hidden
+		-include visibility.h
+	)
+
+	set(added_cxx_flags
+		-std=gnu++11
+
+		${warnings}
+
+		-g
+
+		-DCONFIG_WCHAR_BUILTIN
+		-D__CUSTOM_FILE_IO__
+
+		-fno-exceptions
+		-fno-rtti
+		-fno-threadsafe-statics
+		-fvisibility=hidden
+		-include visibility.h
+	)
+
+	set(added_optimization_flags
+		-fdata-sections
+		-ffunction-sections
 		-fno-strict-aliasing
 		-fomit-frame-pointer
 		-funsafe-math-optimizations
-		-ffunction-sections
-		-fdata-sections
-		${PIC_FLAG}
-		)
-
-	set(c_warnings
-		-Wbad-function-cast
-		-Wstrict-prototypes
-		-Wmissing-prototypes
-		-Wnested-externs
-		)
-
-	set(c_compile_flags
-		-g
-		-std=gnu99
-		-fno-common
-		)
-
-	set(cxx_warnings
-		-Wno-missing-field-initializers
-		-Wreorder
-		)
-
-	set(cxx_compile_flags
-		-g
-		-fno-exceptions
-		-fno-rtti
-		-std=gnu++11
-		-fno-threadsafe-statics
-		-DCONFIG_WCHAR_BUILTIN
-		-D__CUSTOM_FILE_IO__
-		)
+	)
 
 	# regular Clang or AppleClang
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		# force color for clang (needed for clang + ccache)
-		list(APPEND _optimization_flags
+		list(APPEND added_optimization_flags
+			-Qunused-arguments
 			-fcolor-diagnostics
 		)
-	else()
-		list(APPEND _optimization_flags
+	elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+			# force color for gcc > 4.9
+			list(APPEND added_optimization_flags
+				-fdiagnostics-color=always
+			)
+		else()
+			# older versions of GCC don't recognize {} initialization
+			list(APPEND added_optimization_flags
+				-Wno-missing-field-initializers
+			)
+		endif()
+
+		list(APPEND added_optimization_flags
 			-fno-strength-reduce
 			-fno-builtin-printf
 		)
@@ -421,38 +464,6 @@ function(px4_add_common_flags)
 			-fcheck-new
 		)
 	endif()
-
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-			# force color for gcc > 4.9
-			list(APPEND _optimization_flags
-				-fdiagnostics-color=always
-			)
-		endif()
-	endif()
-
-	set(visibility_flags
-		-fvisibility=hidden
-		-include visibility.h
-		)
-
-	set(added_c_flags
-		${c_compile_flags}
-		${warnings}
-		${c_warnings}
-		${visibility_flags}
-		)
-
-	set(added_cxx_flags
-		${cxx_compile_flags}
-		${warnings}
-		${cxx_warnings}
-		${visibility_flags}
-		)
-
-	set(added_optimization_flags
-		${_optimization_flags}
-		)
 
 	set(added_include_dirs
 		${PX4_BINARY_DIR}
@@ -466,9 +477,9 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
-		)
+	)
 
-	set(added_link_dirs) # none used currently
+	set(added_link_dirs)
 	set(added_exe_linker_flags)
 
 	string(TOUPPER ${BOARD} board_upper)
@@ -478,14 +489,6 @@ function(px4_add_common_flags)
 		-DCONFIG_ARCH_BOARD_${board_config}
 		-D__STDC_FORMAT_MACROS
 		)
-
-	if (NOT (APPLE AND (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")))
-		set(added_exe_linker_flags
-			-Wl,--warn-common
-			-Wl,--gc-sections
-			#,--print-gc-sections
-			)
-	endif()
 
 	# output
 	foreach(var ${inout_vars})

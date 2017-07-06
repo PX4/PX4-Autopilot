@@ -651,7 +651,7 @@ static int erase_sector(sector_descriptor_t *sm, flash_entry_header_t *pf)
 		last_erased = sm->page;
 		ssize_t size = up_progmem_erasepage(page);
 
-		if (size < 0 || size != sm->size) {
+		if (size < 0 || size != (ssize_t)sm->size) {
 			rv = size;
 		}
 	}

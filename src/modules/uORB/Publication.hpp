@@ -152,7 +152,7 @@ public:
 	/**
 	 * Deconstructor
 	 **/
-	virtual ~Publication() {};
+	virtual ~Publication() {}
 
 	/*
 	 * This function gets the T struct

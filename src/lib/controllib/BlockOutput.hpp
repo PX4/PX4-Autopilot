@@ -68,8 +68,9 @@ public:
 		_val(0)
 	{
 		update(0);
-	};
-	virtual ~BlockOutput() {};
+	}
+
+	virtual ~BlockOutput() {}
 	void update(float input)
 	{
 		_val = _limit.update(input + getTrim());

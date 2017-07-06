@@ -272,7 +272,7 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 	bool ret = false;
 
 	// write new data into a ring buffer
-	for (unsigned i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 
 		_head++;
 
@@ -302,7 +302,7 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 	// go through the buffer backwards starting from the newest byte
 	// if we find a header byte and the previous two bytes weren't header bytes
 	// then we found the newest package.
-	for (unsigned i = 0; i < num_bytes; i++) {
+	for (int i = 0; i < num_bytes; i++) {
 		if (is_header_byte(_buf[index])) {
 			if (no_header_counter >= 2) {
 				int raw = (byte1 & 0x7F);

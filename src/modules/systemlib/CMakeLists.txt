@@ -32,33 +32,29 @@
 ############################################################################
 
 set(SRCS
-	perf_counter.c
-	conversions.c
-	cpuload.c
-	pid/pid.c
 	airspeed.c
-	mavlink_log.c
-	rc_check.c
-	otp.c
+	battery.cpp
 	board_serial.c
-	pwm_limit/pwm_limit.c
 	bson/tinybson.c
 	circuit_breaker.cpp
-	battery.cpp
+	conversions.c
+	cpuload.c
 	hysteresis/hysteresis.cpp
+	mavlink_log.c
+	otp.c
+	perf_counter.c
+	pid/pid.c
+	pwm_limit/pwm_limit.c
+	rc_check.c
 	)
 
 if(${OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		err.c
-		printload.c
-		flashparams/flashparams.c
 		flashparams/flashfs.c
+		flashparams/flashparams.c
+		printload.c
 		up_cxxinitialize.c
-		)
-elseif ("${CONFIG_SHMEM}" STREQUAL "1")
-	list(APPEND SRCS
-		print_load_posix.c
 		)
 else()
 	list(APPEND SRCS

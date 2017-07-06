@@ -56,7 +56,7 @@ extern pthread_t _shell_task_id;
 
 __BEGIN_DECLS
 
-long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
+long unsigned PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
 #ifdef CONFIG_SHMEM
 extern void init_params(void);

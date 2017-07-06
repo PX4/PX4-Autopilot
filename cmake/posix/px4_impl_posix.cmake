@@ -167,27 +167,32 @@ function(px4_os_add_flags)
 		LINK_DIRS ${LINK_DIRS}
 		DEFINITIONS ${DEFINITIONS})
 
+	set(added_cxx_flags)
+	set(added_c_flags)
+	set(added_exe_linker_flags)
+
 	set(added_include_dirs
 		src/platforms/posix/include
-		)
+	)
+
+	set(added_definitions
+		-D__PX4_POSIX
+		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
+	)
 
 	# This block sets added_definitions and added_cxx_flags.
 	if(UNIX AND APPLE)
-		set(added_definitions
-			-D__PX4_POSIX
+		list(APPEND added_definitions
 			-D__PX4_DARWIN
 			-D__DF_DARWIN
-			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 			)
-
-		set(added_cxx_flags)
 
 		if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 			message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
 		endif()
 
-		EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-		STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+		exec_program(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
+		string(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
 		# message(STATUS "PX4 Darwin Version: ${DARWIN_VERSION}")
 		if (DARWIN_VERSION LESS 16)
 			list(APPEND added_definitions
@@ -198,26 +203,20 @@ function(px4_os_add_flags)
 		endif()
 
 	else()
-
-		set(added_definitions
-			-D__PX4_POSIX
+		list(APPEND added_definitions
 			-D__PX4_LINUX
 			-D__DF_LINUX
 			-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 			)
 
 		# Use -pthread For linux/g++.
-		set(added_cxx_flags
+		list(APPEND added_cxx_flags
 			-pthread
 			)
 
 	endif()
 
-	set(added_exe_linker_flags)
-
-	# This block sets added_c_flags (appends to others).
-	if ("${BOARD}" STREQUAL "eagle")
-
+	if (${BOARD} STREQUAL "eagle")
 		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
 		else()
@@ -225,10 +224,14 @@ function(px4_os_add_flags)
 		endif()
 
 		# Add the toolchain specific flags
-		set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT})
+		list(APPEND added_c_flags
+			${POSIX_CMAKE_C_FLAGS}
+			-Wno-write-strings
+			--sysroot=${HEXAGON_ARM_SYSROOT})
 
 		list(APPEND added_cxx_flags
 			${POSIX_CMAKE_CXX_FLAGS}
+			-Wno-missing-field-initializers
 			--sysroot=${HEXAGON_ARM_SYSROOT}
 			)
 
@@ -237,8 +240,7 @@ function(px4_os_add_flags)
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib
 			--sysroot=${HEXAGON_ARM_SYSROOT}
 			)
-	# This block sets added_c_flags (appends to others).
-	elseif ("${BOARD}" STREQUAL "excelsior")
+	elseif (${BOARD} STREQUAL "excelsior")
 
 		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
@@ -248,31 +250,32 @@ function(px4_os_add_flags)
 
 		# Add the toolchain specific flags
 
-		set(added_cflags ${POSIX_CMAKE_C_FLAGS} --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
+		list(APPEND added_c_flags
+			${POSIX_CMAKE_C_FLAGS}
+			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
+			)
 
 		list(APPEND added_cxx_flags
 			${POSIX_CMAKE_CXX_FLAGS}
-			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
-
+			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
 			)
 
 		list(APPEND added_exe_linker_flags
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/usr/lib
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/lib
 
-			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096  -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
-
+			--sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork
 			)
-	elseif ("${BOARD}" STREQUAL "rpi")
-		SET(RPI_COMPILE_FLAGS
+	elseif (${BOARD} STREQUAL "rpi")
+		set(RPI_COMPILE_FLAGS
 			-mcpu=cortex-a53
 			-mfpu=neon
 			-mfloat-abi=hard
 		)
-		LIST(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
-		LIST(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
+		list(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
+		list(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
 
-		FIND_PROGRAM(CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER})
+		find_program(CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER})
 
 		GET_FILENAME_COMPONENT(CXX_COMPILER_PATH ${CXX_COMPILER_PATH} DIRECTORY)
 		GET_FILENAME_COMPONENT(CXX_COMPILER_PATH "${CXX_COMPILER_PATH}/../" ABSOLUTE)

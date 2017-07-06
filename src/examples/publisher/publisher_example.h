@@ -46,7 +46,7 @@ class PublisherExample
 public:
 	PublisherExample();
 
-	~PublisherExample() {};
+	~PublisherExample() {}
 
 	int main();
 

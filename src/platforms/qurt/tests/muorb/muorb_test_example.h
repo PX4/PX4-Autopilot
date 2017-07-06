@@ -40,8 +40,8 @@
 class MuorbTestExample
 {
 public:
-	MuorbTestExample() {};
-	~MuorbTestExample() {};
+	MuorbTestExample() {}
+	~MuorbTestExample() {}
 
 	int main();
 

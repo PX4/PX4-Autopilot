@@ -379,8 +379,8 @@ param_count_used(void)
 	// ensure the allocation has been done
 	if (get_param_info_count()) {
 
-		for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
+			for (int j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 					count++;
 				}
@@ -406,14 +406,14 @@ param_for_index(unsigned index)
 param_t
 param_for_used_index(unsigned index)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 
 	if (count && index < count) {
 		/* walk all params and count used params */
 		unsigned used_count = 0;
 
 		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+			for (int j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 
 					/* we found the right used count,
@@ -454,7 +454,7 @@ param_get_used_index(param_t param)
 	int used_count = 0;
 
 	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+		for (int j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
 				if ((unsigned)param == i * bits_per_allocation_unit + j) {

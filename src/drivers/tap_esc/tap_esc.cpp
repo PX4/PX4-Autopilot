@@ -745,7 +745,7 @@ TAP_ESC::cycle()
 		} else {
 
 			// Use the system defaults
-			for (int i = 0; i < esc_count; ++i) {
+			for (unsigned i = 0; i < esc_count; ++i) {
 				motor_out[i] = _outputs.output[i];
 			}
 		}

@@ -69,6 +69,7 @@ px4_add_module(
 	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
+		-Wno-sign-compare
 		-O3
 	SRCS
 		uavcanesc_main.cpp

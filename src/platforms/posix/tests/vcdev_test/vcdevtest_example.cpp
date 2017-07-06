@@ -105,7 +105,7 @@ public:
 	VCDevNode() :
 		VDev("vcdevtest", TESTDEV),
 		_is_open_for_write(false),
-		_write_offset(0) {};
+		_write_offset(0) {}
 
 	~VCDevNode() {}
 

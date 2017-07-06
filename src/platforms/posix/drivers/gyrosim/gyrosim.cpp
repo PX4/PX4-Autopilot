@@ -293,7 +293,7 @@ protected:
 
 	void			parent_poll_notify();
 
-	virtual void 		_measure() {};
+	virtual void 		_measure() {}
 private:
 	GYROSIM			*_parent;
 	orb_advert_t		_gyro_topic;

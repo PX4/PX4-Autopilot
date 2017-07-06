@@ -148,16 +148,16 @@ protected:
 	/** Time interval in us in which wider acceptance thresholds are used after arming. */
 	static constexpr uint64_t LAND_DETECTOR_ARM_PHASE_TIME_US = 2000000;
 
-	orb_advert_t _landDetectedPub;
-	struct vehicle_land_detected_s _landDetected;
+	orb_advert_t _landDetectedPub{nullptr};
+	vehicle_land_detected_s _landDetected{};
 
-	int _parameterSub;
+	int _parameterSub{-1};
 
-	LandDetectionState _state;
+	LandDetectionState _state{LandDetectionState::LANDED};
 
-	systemlib::Hysteresis _freefall_hysteresis;
-	systemlib::Hysteresis _landed_hysteresis;
-	systemlib::Hysteresis _ground_contact_hysteresis;
+	systemlib::Hysteresis _freefall_hysteresis{false};
+	systemlib::Hysteresis _landed_hysteresis{true};
+	systemlib::Hysteresis _ground_contact_hysteresis{true};
 
 	float _altitude_max;
 
@@ -170,16 +170,16 @@ private:
 
 	void _update_state();
 
-	bool _taskShouldExit;
-	bool _taskIsRunning;
+	bool _taskShouldExit{false};
+	bool _taskIsRunning{false};
 
-	param_t _p_total_flight_time_high;
-	param_t _p_total_flight_time_low;
-	uint64_t _total_flight_time; ///< in microseconds
-	hrt_abstime _takeoff_time;
+	param_t _p_total_flight_time_high{PARAM_INVALID};
+	param_t _p_total_flight_time_low{PARAM_INVALID};
+	uint64_t _total_flight_time{0}; ///< in microseconds
 
+	hrt_abstime _takeoff_time{0};
 
-	struct work_s	_work;
+	struct work_s _work {};
 };
 
 

@@ -98,7 +98,7 @@ int QShell::main()
 				std::string arg;
 				std::vector<std::string> appargs;
 
-				for (int str_idx = 0; str_idx < m_qshell_req.strlen; str_idx++) {
+				for (unsigned str_idx = 0; str_idx < m_qshell_req.strlen; str_idx++) {
 					current_char = m_qshell_req.string[str_idx];
 
 					if (isspace(current_char)) { // split at spaces

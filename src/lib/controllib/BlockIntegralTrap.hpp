@@ -71,8 +71,8 @@ public:
 		SuperBlock(parent, name),
 		_u(0),
 		_y(0),
-		_limit(this, "") {};
-	virtual ~BlockIntegralTrap() {};
+		_limit(this, "") {}
+	virtual ~BlockIntegralTrap() {}
 	float update(float input);
 // accessors
 	float getU() {return _u;}

@@ -91,6 +91,7 @@ set_source_files_properties(px4_parameters.h PROPERTIES GENERATED TRUE)
 px4_add_module(
 	MODULE modules__systemlib__param
 	COMPILE_FLAGS
+		-Wno-sign-compare
 	INCLUDES
 		${CMAKE_CURRENT_BINARY_DIR}
 	SRCS

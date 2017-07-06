@@ -67,7 +67,7 @@ Format characters in the format string for binary log messages
 #define SDLOG2_FORMAT_H_
 
 #define LOG_PACKET_HEADER_LEN	   3
-#define LOG_PACKET_HEADER	       uint8_t head1, head2, msg_type;
+#define LOG_PACKET_HEADER	       uint8_t head1, head2, msg_type
 #define LOG_PACKET_HEADER_INIT(id) .head1 = HEAD_BYTE1, .head2 = HEAD_BYTE2, .msg_type = id
 
 // once the logging code is all converted we will remove these from

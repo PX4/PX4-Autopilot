@@ -445,7 +445,7 @@ int create_log_dir()
 	bool time_ok = get_log_time_tt(&tt, true);
 
 	if (log_name_timestamp && time_ok) {
-		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
+		unsigned n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
 		if (n >= sizeof(log_dir)) {
 			PX4_ERR("log path too long");
 			return -1;
@@ -464,7 +464,7 @@ int create_log_dir()
 		 * let's re-use it. */
 		while (dir_number <= MAX_NO_LOGFOLDER && !sess_folder_created) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
-			int n = snprintf(log_dir, sizeof(log_dir), "%s/sess%03u", log_root, dir_number);
+			unsigned n = snprintf(log_dir, sizeof(log_dir), "%s/sess%03u", log_root, dir_number);
 			if (n >= sizeof(log_dir)) {
 				PX4_ERR("log path too long");
 				return -1;
@@ -1639,7 +1639,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.msg_type = LOG_RPL6_MSG;
 					log_msg.body.log_RPL6.time_airs_usec = buf.replay.asp_timestamp;
 					log_msg.body.log_RPL6.indicated_airspeed_m_s = buf.replay.indicated_airspeed_m_s;
-					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;;
+					log_msg.body.log_RPL6.true_airspeed_m_s = buf.replay.true_airspeed_m_s;
 					LOGBUFFER_WRITE_AND_COUNT(RPL6);
 				}
 
