@@ -63,7 +63,7 @@ public:
 		delete[] _list;
 	}
 
-	/*
+	/**
 	 * Insert a value into the list, overwrite the oldest entry if full.
 	 */
 	void put(T new_value)
@@ -93,7 +93,7 @@ public:
 		_list[oldest_i].value = new_value;
 	}
 
-	/*
+	/**
 	 * Before iterating using get_next(), reset to start.
 	 */
 	void reset_to_start()
@@ -101,7 +101,7 @@ public:
 		_current_i = -1;
 	}
 
-	/*
+	/**
 	 * Iterate through all active values (not sorted).
 	 * Return nullptr if at end of list.
 	 *
@@ -122,7 +122,7 @@ public:
 		return nullptr;
 	}
 
-	/*
+	/**
 	 * Disable the last item that we have gotten.
 	 */
 	void drop_current()
@@ -132,7 +132,7 @@ public:
 		}
 	}
 
-	/*
+	/**
 	 * Update the timestamp of the item we have gotten.
 	 */
 	void update_current()
