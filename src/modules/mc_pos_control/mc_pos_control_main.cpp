@@ -218,6 +218,7 @@ private:
 	struct map_projection_reference_s _ref_pos;
 	float _ref_alt;
 	hrt_abstime _ref_timestamp;
+	hrt_abstime _last_warn;
 
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
@@ -347,6 +348,8 @@ private:
 	 */
 	void limit_altitude();
 
+	void warn_rate_limited(const char *str);
+
 	/*
 	 * limit vel horizontally when close to target
 	 */
@@ -413,6 +416,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_z_deriv(this, "VELD"),
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
+	_last_warn(0),
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
 	_do_reset_alt_pos_flag(true),
@@ -524,6 +528,17 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	}
 
 	pos_control::g_control = nullptr;
+}
+
+void
+MulticopterPositionControl::warn_rate_limited(const char *string)
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_warn > 200000) {
+		PX4_WARN(string);
+		_last_warn = now;
+	}
 }
 
 int
