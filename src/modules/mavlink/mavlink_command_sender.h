@@ -98,10 +98,7 @@ private:
 		px4_sem_post(&_lock);
 	}
 
-
-	static bool _init;
 	static MavlinkCommandSender *_instance;
-
 	static px4_sem_t _lock;
 
 	// There are MAVLINK_COMM_0 to MAVLINK_COMM_3, so it should be 4.
