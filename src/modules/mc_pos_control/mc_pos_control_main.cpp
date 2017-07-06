@@ -1709,14 +1709,14 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	limit_altitude();
 
 	if (_run_alt_control) {
-		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+		if (PX4_ISFINITE(_pos_sp(2))) {
+			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
+
+		} else {
+			_vel_sp(2) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in z");
+		}
 	}
-
-	/* make sure velocity setpoint is saturated in xy*/
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
-				  _vel_sp(1) * _vel_sp(1));
-
-	slow_land_gradual_velocity_limit();
 
 	/* we are close to target and want to limit velocity in xy */
 	if (_limit_vel_xy) {
@@ -1742,6 +1742,10 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
+	/* apply slewrate (aka acceleration limit) for smooth flying */
+	vel_sp_slewrate(dt);
+	_vel_sp_prev = _vel_sp;
+
 	/* limit vertical takeoff speed if we are in auto takeoff */
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
@@ -1749,18 +1753,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 		_vel_sp(2) = math::max(_vel_sp(2), -_params.tko_speed);
 	}
-
-	/* apply slewrate (aka acceleration limit) for smooth flying */
-	vel_sp_slewrate(dt);
-	_vel_sp_prev = _vel_sp;
-
-	/* make sure velocity setpoint is constrained in all directions*/
-	if (vel_norm_xy > _vel_max_xy) {
-		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
-	}
-
-	_vel_sp(2) = math::max(_vel_sp(2), -_params.vel_max_up);
 
 	/* special velocity setpoint limitation for smooth takeoff */
 	if (_in_takeoff) {
@@ -1772,6 +1764,17 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		/* limit vertical velocity to the current ramp value */
 		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
 	}
+
+	/* make sure velocity setpoint is saturated in xy*/
+	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+
+	/* make sure velocity setpoint is constrained in all directions*/
+	if (vel_norm_xy > _vel_max_xy) {
+		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
+	}
+
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
 }
 
 void
