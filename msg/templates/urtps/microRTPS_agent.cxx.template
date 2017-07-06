@@ -75,22 +75,14 @@ struct options {
         UART,
         UDP
     };
-    eTransports transport;
-    const char *device;
-    int sleep_us;
-    uint32_t baudrate;
-    int poll_ms;
-    uint16_t recv_port;
-    uint16_t send_port;
-} _options = {
-    .transport = options::eTransports::UART,
-    .device = DEVICE,
-    .sleep_us = SLEEP_US,
-    .baudrate = BAUDRATE,
-    .poll_ms = POLL_MS,
-    .recv_port = DEFAULT_RECV_PORT,
-    .send_port = DEFAULT_SEND_PORT
-};
+    eTransports transport = options::eTransports::UART;
+    char device[64] = DEVICE;
+    int sleep_us = SLEEP_US;
+    uint32_t baudrate = BAUDRATE;
+    int poll_ms = POLL_MS;
+    uint16_t recv_port = DEFAULT_RECV_PORT;
+    uint16_t send_port = DEFAULT_SEND_PORT;
+} _options;
 
 static void usage(const char *name)
 {
@@ -115,11 +107,11 @@ static int parse_options(int argc, char **argv)
         {
             case 't': _options.transport      = strcmp(optarg, "UDP") == 0?
                                                  options::eTransports::UDP
-                                                :options::eTransports::UART; break;
-            case 'd': _options.device         = optarg; break;
-            case 'w': _options.sleep_us       = strtol(optarg, nullptr, 10); break;
+                                                :options::eTransports::UART;  break;
+            case 'd': if (nullptr != optarg) strcpy(_options.device, optarg); break;
+            case 'w': _options.sleep_us       = strtol(optarg, nullptr, 10);  break;
             case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10); break;
-            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10); break;
+            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);  break;
             case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10); break;
             case 's': _options.send_port      = strtoul(optarg, nullptr, 10); break;
             default:
@@ -189,7 +181,7 @@ int main(int argc, char** argv)
     {
         case options::eTransports::UART:
         {
-            transport_node = new UART_node(_options.device, _options.baudrate);
+            transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
             printf("\nUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n\n",
                    _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms);
         }
@@ -242,9 +234,8 @@ int main(int argc, char** argv)
             ++received;
             total_read += length;
             receiving = true;
+            end = std::chrono::steady_clock::now();
         }
-
-        if (receiving) end = std::chrono::steady_clock::now();
 
         if ((receiving && std::chrono::duration<double>(std::chrono::steady_clock::now() - end).count() > WAIT_CNST) ||
             (!running  && loop > 1))

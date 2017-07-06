@@ -17,7 +17,7 @@
 #include <string>
 #include <cstring>
 #include <arpa/inet.h>
-
+#include <poll.h>
 
 class Transport_node
 {
@@ -57,7 +57,7 @@ private:
 class UART_node: public Transport_node
 {
 public:
-    UART_node(const char *uart_name, uint32_t baudrate);
+    UART_node(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
     virtual ~UART_node();
 
     int init();
@@ -69,8 +69,10 @@ protected:
     bool fds_OK();
 
     int uart_fd;
-    std::string uart_name;
+    char uart_name[64] = {};
     uint32_t baudrate;
+    uint32_t poll_ms;
+    struct pollfd poll_fd[1] = {};
 };
 
 class UDP_node: public Transport_node

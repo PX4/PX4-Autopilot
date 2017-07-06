@@ -14,7 +14,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <string>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -89,7 +88,7 @@ ssize_t Transport_node::read(char* topic_ID, char out_buffer[], size_t buffer_le
     if (len <= 0)
     {
         int errsv = errno;
-        if (errsv && EAGAIN != errsv)
+        if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv)
         {
             printf("Read fail %d\n", errsv);
         }
@@ -207,13 +206,13 @@ err:
     return len;
 }
 
-UART_node::UART_node(const char *_uart_name, uint32_t _baudrate):
+UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
         uart_fd(-1),
-        uart_name(_uart_name),
-        baudrate(_baudrate)
+        baudrate(_baudrate),
+        poll_ms(_poll_ms)
 
 {
-
+    if (nullptr != _uart_name) strcpy(uart_name, _uart_name);
 }
 
 UART_node::~UART_node()
@@ -224,11 +223,11 @@ UART_node::~UART_node()
 int UART_node::init()
 {
     // Open a serial port
-    uart_fd = open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (uart_fd < 0)
     {
-        printf("failed to open device: %s (%d)\n", uart_name.c_str(), errno);
+        printf("failed to open device: %s (%d)\n", uart_name, errno);
         return -errno;
     }
 
@@ -244,7 +243,7 @@ int UART_node::init()
     if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
     {
         int errno_bkp = errno;
-        printf("ERR GET CONF %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
+        printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
         close();
         return -errno_bkp;
     }
@@ -253,13 +252,13 @@ int UART_node::init()
     uart_config.c_oflag &= ~ONLCR;
 
     // USB serial is indicated by /dev/ttyACM0
-    if (strcmp(uart_name.c_str(), "/dev/ttyACM0") != 0 && strcmp(uart_name.c_str(), "/dev/ttyACM1") != 0)
+    if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0)
     {
         // Set baud rate
         if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0)
         {
             int errno_bkp = errno;
-            printf("ERR SET BAUD %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
+            printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
             close();
             return -errno_bkp;
         }
@@ -268,7 +267,7 @@ int UART_node::init()
     if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
     {
         int errno_bkp = errno;
-        printf("ERR SET CONF %s (%d)\n", uart_name.c_str(), errno);
+        printf("ERR SET CONF %s (%d)\n", uart_name, errno);
         close();
         return -errno_bkp;
     }
@@ -284,6 +283,9 @@ int UART_node::init()
     if (flush) printf("flush\n");
     else printf("no flush\n");
 
+    poll_fd[0].fd = uart_fd;
+    poll_fd[0].events = POLLIN;
+
     return uart_fd;
 }
 
@@ -294,15 +296,26 @@ bool UART_node::fds_OK()
 
 uint8_t UART_node::close()
 {
-    printf("Close UART\n");
-    ::close(uart_fd);
+    if (-1 != uart_fd)
+    {
+        printf("Close UART\n");
+        ::close(uart_fd);
+        uart_fd = -1;
+        memset(&poll_fd, 0, sizeof(poll_fd));
+    }
     return 0;
 }
 
 ssize_t UART_node::node_read(void *buffer, size_t len)
 {
     if (nullptr == buffer || !fds_OK()) return -1;
-    return ::read(uart_fd, buffer, len);
+    ssize_t ret = 0;
+    int r = poll(poll_fd, 1, poll_ms);
+    if (r == 1 && (poll_fd[0].revents & POLLIN))
+    {
+        ret = ::read(uart_fd, buffer, len);
+    }
+    return ret;
 }
 
 ssize_t UART_node::node_write(void *buffer, size_t len)
@@ -339,6 +352,7 @@ bool UDP_node::fds_OK()
 
 int UDP_node::init_receiver(uint16_t udp_port)
 {
+#ifndef __PX4_NUTTX
     // udp socket data
     memset((char *)&receiver_inaddr, 0, sizeof(receiver_inaddr));
     receiver_inaddr.sin_family = AF_INET;
@@ -360,13 +374,14 @@ int UDP_node::init_receiver(uint16_t udp_port)
     }
 
     printf("connected to server!\n");
+#endif /* __PX4_NUTTX */
 
     return 0;
-
 }
 
 int UDP_node::init_sender(uint16_t udp_port)
 {
+#ifndef __PX4_NUTTX
     if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
         printf("create socket failed\n");
@@ -382,12 +397,14 @@ int UDP_node::init_sender(uint16_t udp_port)
         printf("inet_aton() failed\n");
         return -1;
     }
+#endif /* __PX4_NUTTX */
 
     return 0;
 }
 
 uint8_t UDP_node::close()
 {
+#ifndef __PX4_NUTTX
     if (sender_fd != -1)
     {
         printf("Close sender socket\n");
@@ -403,21 +420,28 @@ uint8_t UDP_node::close()
         ::close(receiver_fd);
         receiver_fd = -1;
     }
-
+#endif /* __PX4_NUTTX */
     return 0;
 }
 
 ssize_t UDP_node::node_read(void *buffer, size_t len)
 {
     if (nullptr == buffer || !fds_OK()) return -1;
-
+    int ret = 0;
+#ifndef __PX4_NUTTX
     // Blocking call
     static socklen_t addrlen = sizeof(receiver_outaddr);
-    return recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr*) &receiver_outaddr, &addrlen);
+    ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr*) &receiver_outaddr, &addrlen);
+#endif /* __PX4_NUTTX */
+    return ret;
 }
 
 ssize_t UDP_node::node_write(void *buffer, size_t len)
 {
     if (nullptr == buffer || !fds_OK()) return -1;
-    return sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
+    int ret = 0;
+#ifndef __PX4_NUTTX
+    ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
+#endif /* __PX4_NUTTX */
+    return ret;
 }

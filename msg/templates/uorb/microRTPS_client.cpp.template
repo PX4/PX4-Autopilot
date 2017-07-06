@@ -27,7 +27,6 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <px4_posix.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <poll.h>
 #include <string.h>
 #include <termios.h>
 #include <ctime>
@@ -61,26 +60,16 @@ struct options {
         UART,
         UDP
     };
-    eTransports transport;
-    const char *device;
-    int update_time_ms;
-    int loops;
-    int sleep_ms;
-    uint32_t baudrate;
-    int poll_ms;
-    uint16_t recv_port;
-    uint16_t send_port;
-} _options = {
-    .transport = options::eTransports::UART,
-    .device = DEVICE,
-    .update_time_ms = UPDATE_TIME_MS,
-    .loops = LOOPS,
-    .sleep_ms = SLEEP_MS,
-    .baudrate = BAUDRATE,
-    .poll_ms = POLL_MS,
-    .recv_port = DEFAULT_RECV_PORT,
-    .send_port = DEFAULT_SEND_PORT
-};
+    eTransports transport = options::eTransports::UART;
+    char device[64] = DEVICE;
+    int update_time_ms = UPDATE_TIME_MS;
+    int loops = LOOPS;
+    int sleep_ms = SLEEP_MS;
+    uint32_t baudrate = BAUDRATE;
+    int poll_ms = POLL_MS;
+    uint16_t recv_port = DEFAULT_RECV_PORT;
+    uint16_t send_port = DEFAULT_SEND_PORT;
+} _options;
 
 static int _rtps_task = -1;
 static bool _should_exit_task = false;
@@ -113,15 +102,15 @@ static int parse_options(int argc, char *argv[])
         {
             case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0?
                                                  options::eTransports::UDP
-                                                :options::eTransports::UART;   break;
-            case 'd': _options.device         = myoptarg;                      break;
-            case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10); break;
-            case 'l': _options.loops          = strtol(myoptarg, nullptr, 10); break;
-            case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10); break;
-            case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10);  break;
-            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);   break;
-            case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10);  break;
-            case 's': _options.send_port      = strtoul(optarg, nullptr, 10);  break;
+                                                :options::eTransports::UART;      break;
+            case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg); break;
+            case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10);    break;
+            case 'l': _options.loops          = strtol(myoptarg, nullptr, 10);    break;
+            case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);    break;
+            case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10);     break;
+            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);      break;
+            case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10);     break;
+            case 's': _options.send_port      = strtoul(optarg, nullptr, 10);     break;
             default:
                 usage(argv[1]);
             return -1;
@@ -220,7 +209,7 @@ static int micrortps_start(int argc, char *argv[])
     {
         case options::eTransports::UART:
         {
-            transport_node = new UART_node(_options.device, _options.baudrate);
+            transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
             printf("\nUART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms\n\n",
                    _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms);
         }
