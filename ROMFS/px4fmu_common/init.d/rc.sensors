@@ -328,12 +328,12 @@ fi
 if ver hwcmp PX4FMU_V4PRO
 then
 	# Internal SPI bus ICM-20608-G
-	if mpu6000 -R 2 -T 20608 start
+	if mpu6000 -R 2 -T 20608 -a 16 start
 	then
 	fi
 
 	# Internal SPI bus ICM-20602
-	if mpu6000 -R 2 -T 20602 start
+	if mpu6000 -R 2 -T 20602 -a 16 start
 	then
 	fi
 
