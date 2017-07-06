@@ -69,7 +69,7 @@ public:
 	 * thread-safe
 	 * @return 0 on success, <0 otherwise
 	 */
-	int handle_vehicle_command(struct vehicle_command_s &command, mavlink_channel_t channel);
+	int handle_vehicle_command(const struct vehicle_command_s &command, mavlink_channel_t channel);
 
 	/**
 	 * Check timeouts to verify if an commands need retransmission.

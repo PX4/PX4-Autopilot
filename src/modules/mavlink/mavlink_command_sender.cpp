@@ -70,7 +70,7 @@ MavlinkCommandSender::~MavlinkCommandSender()
 	px4_sem_destroy(&_lock);
 }
 
-int MavlinkCommandSender::handle_vehicle_command(struct vehicle_command_s &command, mavlink_channel_t channel)
+int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s &command, mavlink_channel_t channel)
 {
 	assert(channel < MAX_MAVLINK_CHANNEL);
 
