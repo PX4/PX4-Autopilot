@@ -85,5 +85,5 @@ set(config_module_list
 	platforms/posix/work_queue
 
 	# micro-RTPS
-	#examples/micrortps_client_udp
+	#examples/micrortps_client
 	)

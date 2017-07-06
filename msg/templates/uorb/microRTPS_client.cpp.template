@@ -49,39 +49,55 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
+#define DEFAULT_RECV_PORT 2019
+#define DEFAULT_SEND_PORT 2020
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 void* send(void *data);
 
 struct options {
+    enum class eTransports
+    {
+        UART,
+        UDP
+    };
+    eTransports transport;
     const char *device;
     int update_time_ms;
     int loops;
     int sleep_ms;
     uint32_t baudrate;
     int poll_ms;
+    uint16_t recv_port;
+    uint16_t send_port;
 } _options = {
+    .transport = options::eTransports::UART,
     .device = DEVICE,
     .update_time_ms = UPDATE_TIME_MS,
     .loops = LOOPS,
     .sleep_ms = SLEEP_MS,
     .baudrate = BAUDRATE,
-    .poll_ms = POLL_MS
+    .poll_ms = POLL_MS,
+    .recv_port = DEFAULT_RECV_PORT,
+    .send_port = DEFAULT_SEND_PORT
 };
 
 static int _rtps_task = -1;
 static bool _should_exit_task = false;
-UART_node uart_node;
+Transport_node *transport_node = nullptr;
 
 static void usage(const char *name)
 {
-    PX4_INFO("usage: %s start|stop [options]\n\n"
+    PX4_INFO("usage: %s [options]\n\n"
+             "  -t <transport>          [UART|UDP] Default UART\n"
              "  -d <device>             UART device. Default /dev/ttyACM0\n"
              "  -u <update_time_ms>     Time in ms for uORB subscribed topics update. Default 0\n"
              "  -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000\n"
-             "  -s <sleep_time_ms>      Time in ms for which each iteration sleep. Default 1ms\n"
+             "  -w <sleep_time_ms>      Time in ms for which each iteration sleep. Default 1ms\n"
              "  -b <baudrate>           UART device baudrate. Default 460800\n"
-             "  -p <poll_ms>            Time in ms to poll over UART. Default 1ms\n",
+             "  -p <poll_ms>            Time in ms to poll over UART. Default 1ms\n"
+             "  -r <reception port>     UDP port for receiving. Default 2019\n"
+             "  -s <sending port>       UDP port for sending. Default 2020\n",
              name);
 }
 
@@ -91,16 +107,21 @@ static int parse_options(int argc, char *argv[])
     int myoptind = 1;
     const char *myoptarg = nullptr;
 
-    while ((ch = px4_getopt(argc, argv, "d:u:l:s:b:p:", &myoptind, &myoptarg)) != EOF)
+    while ((ch = px4_getopt(argc, argv, "t:d:u:l:w:b:p:r:s:", &myoptind, &myoptarg)) != EOF)
     {
         switch (ch)
         {
-            case 'd': _options.device         = myoptarg;                       break;
-            case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10);  break;
-            case 'l': _options.loops          = strtol(myoptarg, nullptr, 10);  break;
-            case 's': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);  break;
-            case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10); break;
-            case 'p': _options.poll_ms        = strtol(myoptarg, nullptr, 10);  break;
+            case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0?
+                                                 options::eTransports::UDP
+                                                :options::eTransports::UART;   break;
+            case 'd': _options.device         = myoptarg;                      break;
+            case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10); break;
+            case 'l': _options.loops          = strtol(myoptarg, nullptr, 10); break;
+            case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10); break;
+            case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10);  break;
+            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);   break;
+            case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10);  break;
+            case 's': _options.send_port      = strtoul(optarg, nullptr, 10);  break;
             default:
                 usage(argv[1]);
             return -1;
@@ -149,8 +170,7 @@ void* send(void*)
             // copy raw data into local buffer
             orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
             serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
-            //printf("[%d]>> %llu\n", @(message_id(topic)), data.timestamp);
-            if (0 < (read = uart_node.write((char)@(message_id(topic)), data_buffer, length)))
+            if (0 < (read = transport_node->write((char)@(message_id(topic)), data_buffer, length)))
             {
                 total_sent += read;
                 ++sent;
@@ -189,23 +209,43 @@ static int launch_send_thread(pthread_t &sender_thread)
 
 static int micrortps_start(int argc, char *argv[])
 {
-    if (parse_options(argc, argv) < 0)
+    if (0 > parse_options(argc, argv))
     {
+        printf("EXITING...\n");
         _rtps_task = -1;
         return -1;
     }
 
-    printf("\ndevice: %s; update: %dms; loops: %d; sleep: %dms; baudrate: %d; poll: %dms\n\n",
-           _options.device, _options.update_time_ms, _options.loops, _options.sleep_ms, _options.baudrate, _options.poll_ms);
+    switch (_options.transport)
+    {
+        case options::eTransports::UART:
+        {
+            transport_node = new UART_node(_options.device, _options.baudrate);
+            printf("\nUART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms\n\n",
+                   _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms);
+        }
+        break;
+        case options::eTransports::UDP:
+        {
+            transport_node = new UDP_node(_options.recv_port, _options.send_port);
+            printf("\nUDP transport: recv port: %u; send port: %u; sleep: %dms\n\n",
+                    _options.recv_port, _options.send_port, _options.sleep_ms);
+        }
+        break;
+        default:
+            _rtps_task = -1;
+            printf("EXITING...\n");
+        return -1;
+    }
+
+    if (0 > transport_node->init())
+    {
+        printf("EXITING...\n");
+        _rtps_task = -1;
+        return -1;
+    }
+
     sleep(1);
-
-    int uart_fd = 0;
-    if ((uart_fd = uart_node.init(_options.device, _options.baudrate)) < 0)
-    {
-        printf("ERROR UART INIT, EXITING...\n");
-        _rtps_task = -1;
-        return -1;
-    }
 @[if recv_topics]@
 
     char data_buffer[BUFFER_SIZE] = {};
@@ -223,15 +263,11 @@ static int micrortps_start(int argc, char *argv[])
     // microCDR structs for managing the microBuffer
     struct microCDR microCDRReader;
     initMicroCDR(&microCDRReader, &microBufferReader);
-
-    // We poll on UART, so we can use protocol splitter driver
-    struct pollfd poll_fd[1] = { };
-    poll_fd[0].fd = uart_fd;
-    poll_fd[0].events = POLLIN;
 @[end if]@
 
     int total_read = 0;
     uint32_t received = 0;
+    char topic_ID = 255;
     struct timespec begin;
     clock_gettime(0, &begin);
     int loop = 0;
@@ -246,35 +282,35 @@ static int micrortps_start(int argc, char *argv[])
     while (!_should_exit_task)
     {
 @[if recv_topics]@
-        int r = poll(poll_fd, 1, _options.poll_ms);
-        if (r == 1 && (poll_fd[0].revents & POLLIN))
+        while (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)))
         {
-            char topic_ID = 255;
-            while (0 < (read = uart_node.read(&topic_ID, data_buffer, BUFFER_SIZE)))
+            total_read += read;
+            switch (topic_ID)
             {
-                total_read += read;
-                switch (topic_ID)
-                {
 @[for topic in recv_topics]@
-                    case @(message_id(topic)):
-                        deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
-                        if (!@(topic)_pub)
-                            @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
-                        else
-                            orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
-                        //printf("                >>[%d] %llu\n", @(message_id(topic)), @(topic)_data.timestamp);
-                        ++received;
-                    break;
-@[end for]@
+                case @(message_id(topic)):
+                {
+                    deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
+                    if (!@(topic)_pub)
+                        @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
+                    else
+                        orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                    ++received;
                 }
+                break;
+@[end for]@
+                default:
+                    printf("Unexpected topic ID\n");
+                break;
             }
         }
 @[end if]@
 
         // loop forever if informed loop number is negative
-        if (_options.loops > 0 && ++loop >= _options.loops) break;
+        if (_options.loops > 0 && loop >= _options.loops) break;
 
         usleep(_options.sleep_ms*1000);
+        ++loop;
     }
 @[if send_topics]@
     _should_exit_task = true;
@@ -287,7 +323,8 @@ static int micrortps_start(int argc, char *argv[])
     printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
             (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
 
-    uart_node.close();
+    delete transport_node;
+    transport_node = nullptr;
     PX4_INFO("exiting");
     fflush(stdout);
 
@@ -298,13 +335,16 @@ static int micrortps_start(int argc, char *argv[])
 
 int micrortps_client_main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 2)
+    {
         usage(argv[0]);
         return -1;
     }
 
-    if (!strcmp(argv[1], "start")) {
-        if (_rtps_task != -1) {
+    if (!strcmp(argv[1], "start"))
+    {
+        if (_rtps_task != -1)
+        {
             PX4_INFO("Already running");
             return -1;
         }
@@ -316,7 +356,8 @@ int micrortps_client_main(int argc, char *argv[])
                 (px4_main_t) micrortps_start,
                 (char *const *)argv);
 
-        if (_rtps_task < 0) {
+        if (_rtps_task < 0)
+        {
             PX4_WARN("Could not start task");
             _rtps_task = -1;
             return -1;
@@ -325,13 +366,16 @@ int micrortps_client_main(int argc, char *argv[])
         return 0;
     }
 
-    if (!strcmp(argv[1], "stop")) {
-        if (_rtps_task == -1) {
+    if (!strcmp(argv[1], "stop"))
+    {
+        if (_rtps_task == -1)
+        {
             PX4_INFO("Not running");
             return -1;
         }
 
         _should_exit_task = true;
+        if (nullptr != transport_node) transport_node->close();
         return 0;
     }
 

@@ -25,9 +25,10 @@ public:
     Transport_node();
     virtual ~Transport_node();
 
+    virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}
     ssize_t read(char* topic_ID, char out_buffer[], size_t buffer_len);
-    ssize_t write(const char topic_ID, char buffer[], uint32_t length);
+    ssize_t write(const char topic_ID, char buffer[], size_t length);
 
 protected:
     virtual ssize_t node_read(void *buffer, size_t len) = 0;
@@ -56,10 +57,10 @@ private:
 class UART_node: public Transport_node
 {
 public:
-    UART_node();
+    UART_node(const char *uart_name, uint32_t baudrate);
     virtual ~UART_node();
 
-    int init(const char * uart_name, uint32_t baudrate);
+    int init();
     uint8_t close();
 
 protected:
@@ -68,15 +69,17 @@ protected:
     bool fds_OK();
 
     int uart_fd;
+    std::string uart_name;
+    uint32_t baudrate;
 };
 
 class UDP_node: public Transport_node
 {
 public:
-    UDP_node();
+    UDP_node(uint16_t udp_port_recv, uint16_t udp_port_send);
     virtual ~UDP_node();
 
-    int init(uint16_t udp_port_recv, uint16_t udp_port_send);
+    int init();
     uint8_t close();
 
 protected:
@@ -88,6 +91,8 @@ protected:
 
     int sender_fd;
     int receiver_fd;
+    uint16_t udp_port_recv;
+    uint16_t udp_port_send;
     struct sockaddr_in sender_outaddr;
     struct sockaddr_in receiver_inaddr;
     struct sockaddr_in receiver_outaddr;

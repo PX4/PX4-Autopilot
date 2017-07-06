@@ -65,7 +65,6 @@ Transport_node::Transport_node(): rx_buff_pos(0)
 
 Transport_node::~Transport_node()
 {
-    close();
 }
 
 uint16_t Transport_node::crc16_byte(uint16_t crc, const uint8_t data)
@@ -165,7 +164,7 @@ ssize_t Transport_node::read(char* topic_ID, char out_buffer[], size_t buffer_le
     return len;
 }
 
-ssize_t Transport_node::write(const char topic_ID, char buffer[], uint32_t length)
+ssize_t Transport_node::write(const char topic_ID, char buffer[], size_t length)
 {
     if (!fds_OK()) return -1;
 
@@ -196,7 +195,7 @@ ssize_t Transport_node::write(const char topic_ID, char buffer[], uint32_t lengt
     ssize_t len = node_write(&header, sizeof(header));
     if (len != sizeof(header)) goto err;
     len = node_write(buffer, length);
-    if (len != length) goto err;
+    if (len != ssize_t(length)) goto err;
 
     return len + sizeof(header);
 
@@ -208,22 +207,28 @@ err:
     return len;
 }
 
-UART_node::UART_node(): uart_fd(-1)
+UART_node::UART_node(const char *_uart_name, uint32_t _baudrate):
+        uart_fd(-1),
+        uart_name(_uart_name),
+        baudrate(_baudrate)
+
 {
+
 }
 
 UART_node::~UART_node()
 {
+    close();
 }
 
-int UART_node::init(const char * uart_name, uint32_t baudrate)
+int UART_node::init()
 {
     // Open a serial port
-    uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    uart_fd = open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (uart_fd < 0)
     {
-        printf("failed to open device: %s (%d)\n", uart_name, errno);
+        printf("failed to open device: %s (%d)\n", uart_name.c_str(), errno);
         return -errno;
     }
 
@@ -239,7 +244,7 @@ int UART_node::init(const char * uart_name, uint32_t baudrate)
     if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
     {
         int errno_bkp = errno;
-        printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+        printf("ERR GET CONF %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
         close();
         return -errno_bkp;
     }
@@ -248,13 +253,13 @@ int UART_node::init(const char * uart_name, uint32_t baudrate)
     uart_config.c_oflag &= ~ONLCR;
 
     // USB serial is indicated by /dev/ttyACM0
-    if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0)
+    if (strcmp(uart_name.c_str(), "/dev/ttyACM0") != 0 && strcmp(uart_name.c_str(), "/dev/ttyACM1") != 0)
     {
         // Set baud rate
         if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0)
         {
             int errno_bkp = errno;
-            printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+            printf("ERR SET BAUD %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
             close();
             return -errno_bkp;
         }
@@ -263,7 +268,7 @@ int UART_node::init(const char * uart_name, uint32_t baudrate)
     if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
     {
         int errno_bkp = errno;
-        printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+        printf("ERR SET CONF %s (%d)\n", uart_name.c_str(), errno);
         close();
         return -errno_bkp;
     }
@@ -307,15 +312,20 @@ ssize_t UART_node::node_write(void *buffer, size_t len)
 }
 
 
-UDP_node::UDP_node(): sender_fd(-1), receiver_fd(-1)
+UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
+        sender_fd(-1),
+        receiver_fd(-1),
+        udp_port_recv(_udp_port_recv),
+        udp_port_send(_udp_port_send)
 {
 }
 
 UDP_node::~UDP_node()
 {
+    close();
 }
 
-int UDP_node::init(uint16_t udp_port_recv, uint16_t udp_port_send)
+int UDP_node::init()
 {
     if (0 > init_receiver(udp_port_recv) || 0 > init_sender(udp_port_send))
         return -1;
@@ -378,9 +388,22 @@ int UDP_node::init_sender(uint16_t udp_port)
 
 uint8_t UDP_node::close()
 {
-    printf("Close sockets\n");
-    ::close(sender_fd);
-    ::close(receiver_fd);
+    if (sender_fd != -1)
+    {
+        printf("Close sender socket\n");
+        shutdown(sender_fd, SHUT_RDWR);
+        ::close(sender_fd);
+        sender_fd = -1;
+    }
+
+    if (receiver_fd != -1)
+    {
+        printf("Close receiver socket\n");
+        shutdown(receiver_fd, SHUT_RDWR);
+        ::close(receiver_fd);
+        receiver_fd = -1;
+    }
+
     return 0;
 }
 
