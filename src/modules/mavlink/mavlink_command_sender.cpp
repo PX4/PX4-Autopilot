@@ -141,7 +141,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		if (item->command.command == ack.command &&
 		    from_sysid == item->command.target_system &&
 		    from_compid == item->command.target_component) {
-			PX4_INFO("handling result %d for command %d: %d", ack.result, ack.command);
+			PX4_INFO("dropping command %d", ack.command);
 			// Drop it anyway because the command seems to have arrived at the destination, even if we
 			// receive IN_PROGRESS because we trust that it will be handled after that.
 			_commands.drop_current();
