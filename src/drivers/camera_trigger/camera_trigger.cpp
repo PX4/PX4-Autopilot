@@ -601,6 +601,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 				}
 			}
 
+			// Trigger once immediately if param is set
+			if (cmd.param3 > 0.0f) {
+				// Schedule shot
+				trig->_one_shot = true;
+			}
+
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
