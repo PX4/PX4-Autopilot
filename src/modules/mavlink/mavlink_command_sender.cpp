@@ -77,7 +77,6 @@ MavlinkCommandSender::~MavlinkCommandSender()
 
 int MavlinkCommandSender::handle_vehicle_command(struct vehicle_command_s &command, mavlink_channel_t channel)
 {
-	assert(0 <= channel);
 	assert(channel < MAX_MAVLINK_CHANNEL);
 
 	lock();
@@ -154,7 +153,6 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 
 void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 {
-	assert(0 <= channel);
 	assert(channel < MAX_MAVLINK_CHANNEL);
 
 	lock();
