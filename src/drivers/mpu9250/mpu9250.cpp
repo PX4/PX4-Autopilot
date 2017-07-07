@@ -293,6 +293,7 @@ MPU9250::init()
 	}
 
 	if (reset() != OK) {
+		PX4_ERR("Exiting! Device failed to take initialization");
 		goto out;
 	}
 
