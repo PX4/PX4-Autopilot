@@ -1685,6 +1685,17 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
 			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
 
+			float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
+						  _vel_sp(1) * _vel_sp(1));
+
+			float vel_cruise_xy = get_cruising_speed_xy();
+
+			/* make sure xy velocity setpoint is constrained to cruise velocity*/
+			if (vel_norm_xy > vel_cruise_xy) {
+				_vel_sp(0) = _vel_sp(0) * vel_cruise_xy / vel_norm_xy;
+				_vel_sp(1) = _vel_sp(1) * vel_cruise_xy / vel_norm_xy;
+			}
+
 		} else {
 			_vel_sp(0) = 0.0f;
 			_vel_sp(1) = 0.0f;
@@ -1696,10 +1707,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	if (_run_alt_control) {
 		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
 	}
-
-	/* make sure velocity setpoint is saturated in xy*/
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
-				  _vel_sp(1) * _vel_sp(1));
 
 	slow_land_gradual_velocity_limit();
 
@@ -1737,7 +1744,10 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
 	vel_sp_slewrate(dt);
-	_vel_sp_prev = _vel_sp;
+
+	/* make sure velocity setpoint is saturated in xy*/
+	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
+				  _vel_sp(1) * _vel_sp(1));
 
 	/* make sure velocity setpoint is constrained in all directions*/
 	if (vel_norm_xy > _vel_max_xy) {
@@ -1746,6 +1756,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::max(_vel_sp(2), -_params.vel_max_up);
+
+	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff */
 	if (_in_takeoff) {
