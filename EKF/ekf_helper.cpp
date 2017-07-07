@@ -361,6 +361,8 @@ bool Ekf::realignYawGPS()
 
 		// correct yaw angle using GPS ground course if compass yaw bad
 		if (badMagYaw) {
+			ECL_WARN("EKF bad yaw corrected using GPS course");
+
 			// save a copy of the quaternion state for later use in calculating the amount of reset change
 			Quatf quat_before_reset = _state.quat_nominal;
 
@@ -459,11 +461,17 @@ bool Ekf::realignYawGPS()
 			// capture the reset event
 			_state_reset_status.quat_counter++;
 
+			// the alignment using GPS has been successful
+			return true;
+
+		} else {
+			// attempt a normal alignment using the magnetometer
+			return resetMagHeading(_mag_sample_delayed.mag);
+
 		}
 
-		return true;
-
 	} else {
+		// we were unable to verify the alignment
 		return false;
 
 	}
