@@ -421,24 +421,25 @@ int MPU9250::reset()
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
 
-	uint8_t retries = 10;
+	uint8_t retries = 3;
+	bool all_ok = false;
 
-	while (retries--) {
-		bool all_ok = true;
+	while (!all_ok && retries--) {
+
+		// Assume all checked values are as expected
+		all_ok = true;
+		uint8_t reg;
 
 		for (uint8_t i = 0; i < MPU9250_NUM_CHECKED_REGISTERS; i++) {
-			if (read_reg(_checked_registers[i]) != _checked_values[i]) {
+			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
 				write_reg(_checked_registers[i], _checked_values[i]);
+				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d", _checked_registers[i], reg, _checked_values[i], retries);
 				all_ok = false;
 			}
 		}
-
-		if (all_ok) {
-			break;
-		}
 	}
 
-	return OK;
+	return all_ok ? OK : -EIO;
 }
 
 int
