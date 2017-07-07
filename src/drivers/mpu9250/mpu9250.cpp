@@ -417,7 +417,16 @@ int MPU9250::reset()
 #else
 	bool bypass = false;
 #endif
-	// INT: Clear on any read, also use i2c bypass is master mode isn't needed
+
+	/* INT: Clear on any read.
+	 * If this instance is for a device is on I2C bus the Mag will have an i2c interface
+	 * that it will use to access the either: a) the internal mag device on the internal I2C bus
+	 * or b) it could be used to access a downstream I2C devices connected to the chip on
+	 * it's AUX_{ASD|SCL} pins. In either case we need to disconnect (bypass) the internal master
+	 * controller that chip provides as a SPI to I2C bridge.
+	 * so bypass is true if the mag has an i2c non null interfaces.
+	 */
+
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
