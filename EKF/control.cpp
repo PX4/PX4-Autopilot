@@ -1050,7 +1050,7 @@ void Ekf::controlMagFusion()
 				if (!_control_status.flags.mag_3D) {
 					if (!_flt_mag_align_complete) {
 						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
-						if (_control_status.flags.fixed_wing) {
+						if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 							_control_status.flags.yaw_align = realignYawGPS();
 							_flt_mag_align_complete = _control_status.flags.yaw_align;
 						} else {
@@ -1069,9 +1069,9 @@ void Ekf::controlMagFusion()
 					}
 				}
 
-				// use 3D mag fusion when airborne
-				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = true;
+				// only use one type of mag fusion at the same time
+				_control_status.flags.mag_3D = _flt_mag_align_complete;
+				_control_status.flags.mag_hdg = !_control_status.flags.mag_3D;
 
 			} else {
 				// save magnetic field state variances for next time
