@@ -412,6 +412,7 @@ union filter_control_status_u {
 		uint32_t ev_hgt      : 1; // 14 - true when height data from external vision measurements is being fused
 		uint32_t fuse_beta   : 1; // 15 - true when synthetic sideslip measurements are being fused
 		uint32_t update_mag_states_only   : 1; // 16 - true when only the magnetometer states are updated by the magnetometer
+		uint32_t fixed_wing  : 1; // 17 - true when the vehicle is operating as a fixed wing vehicle
 	} flags;
 	uint32_t value;
 };

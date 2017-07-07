@@ -1050,14 +1050,12 @@ void Ekf::controlMagFusion()
 				if (!_control_status.flags.mag_3D) {
 					if (!_flt_mag_align_complete) {
 						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
-						// if we are doing wind estimation and using the zero sideslip assumotion, then it is reasonable to assume the plane is flying forward
-						bool zeroSideslipValid = _control_status.flags.fuse_beta;
-						if (zeroSideslipValid) {
-							_flt_mag_align_complete = _control_status.flags.yaw_align = realignYawGPS();
-
+						if (_control_status.flags.fixed_wing) {
+							_control_status.flags.yaw_align = realignYawGPS();
+							_flt_mag_align_complete = _control_status.flags.yaw_align;
 						} else {
-							_flt_mag_align_complete = _control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
-
+							_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
+							_flt_mag_align_complete = _control_status.flags.yaw_align;
 						}
 					} else {
 						// reset the mag field covariances
