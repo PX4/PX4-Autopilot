@@ -1209,7 +1209,7 @@ bool MPU9250::check_null_data(uint32_t *data, uint8_t size)
 	perf_end(_sample_perf);
 	// note that we don't call reset() here as a reset()
 	// costs 20ms with interrupts disabled. That means if
-	// the mpu6k does go bad it would cause a FMU failure,
+	// the mpu9250 does go bad it would cause a FMU failure,
 	// regardless of whether another sensor is available,
 	return true;
 }
