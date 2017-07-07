@@ -133,6 +133,8 @@ For create the application, compile the code:
    $ cmake ..
    $ make
 
+**NOTE**: To cross compile for Snapdragon Fligth platform you can see this `link <https://github.com/eProsima/PX4-FastRTPS-PoC-Snapdragon-UDP#how-to-use>`_.
+
 To launch the publisher run:
 
 .. code-block:: shell
