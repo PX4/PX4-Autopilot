@@ -374,40 +374,29 @@ int MPU9250::reset()
 {
 	irqstate_t state;
 
-	// Hold off sampling for 60 ms
+	// Hold off sampling for 4 ms
 	state = px4_enter_critical_section();
-	_reset_wait = hrt_absolute_time() + 60000;
+	_reset_wait = hrt_absolute_time() + 4000;
 
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-	up_udelay(10000);
 
 	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-	up_udelay(1000);
-
 	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
-	up_udelay(1000);
 
 	px4_leave_critical_section(state);
 
-	// Hold off sampling for 30 ms
-
-	state = px4_enter_critical_section();
-	_reset_wait = hrt_absolute_time() + 30000;
-	px4_leave_critical_section(state);
+	usleep(1000);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
-	usleep(1000);
 
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
-	usleep(1000);
 
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
-	usleep(1000);
 
 	// correct gyro scale factors
 	// scale to rad/s in SI units
@@ -419,24 +408,18 @@ int MPU9250::reset()
 
 	set_accel_range(ACCEL_RANGE_G);
 
-	usleep(1000);
-
 	// INT CFG => Interrupt on Data Ready
 	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
-	usleep(1000);
 
 #ifdef USE_I2C
 	bool bypass = !_mag->is_passthrough();
 #else
 	bool bypass = false;
 #endif
-	write_checked_reg(MPUREG_INT_PIN_CFG,
-			  BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN :
-					  0)); // INT: Clear on any read, also use i2c bypass is master mode isn't needed
-	usleep(1000);
+	// INT: Clear on any read, also use i2c bypass is master mode isn't needed
+	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
-	usleep(1000);
 
 	uint8_t retries = 10;
 
