@@ -90,7 +90,8 @@
  */
 #define MPU9250_TIMER_REDUCTION				200
 
-
+/* Set accel range used */
+#define ACCEL_RANGE_G  16
 /*
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
@@ -416,7 +417,7 @@ int MPU9250::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	set_accel_range(16);
+	set_accel_range(ACCEL_RANGE_G);
 
 	usleep(1000);
 
