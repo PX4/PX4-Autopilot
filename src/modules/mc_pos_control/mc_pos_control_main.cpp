@@ -1733,7 +1733,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	/* limit vertical downwards speed (positive z) close to ground
-	 * for now we use the altitude above home and assume that we want to land at same hight as we took off */
+	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
 	float vel_limit = math::gradual(altitude_above_home,
 					_params.slow_land_alt2, _params.slow_land_alt1,
 					_params.land_speed, _params.vel_max_down);
