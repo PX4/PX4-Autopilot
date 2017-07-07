@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -763,7 +763,7 @@ void Ekf2::task_main()
 			ev_data.posNED(0) = ev_pos.x;
 			ev_data.posNED(1) = ev_pos.y;
 			ev_data.posNED(2) = ev_pos.z;
-			Quatf q(ev_att.q);
+			matrix::Quatf q(ev_att.q);
 			ev_data.quat = q;
 
 			// position measurement error from parameters. TODO : use covariances from topic
