@@ -266,8 +266,8 @@ function(px4_os_add_flags)
 	elseif ("${BOARD}" STREQUAL "rpi")
 		SET(RPI_COMPILE_FLAGS
 			-mcpu=cortex-a53
-			-mfpu=neon
-			-mfloat-abi=hard
+			#-mfpu=neon
+			#-mfloat-abi=hard
 		)
 		LIST(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
 		LIST(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
