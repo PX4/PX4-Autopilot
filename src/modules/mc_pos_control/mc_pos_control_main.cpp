@@ -284,8 +284,6 @@ private:
 
 	float		throttle_curve(float ctl, float ctr);
 
-	void		slow_land_gradual_velocity_limit();
-
 	/**
 	 * Update reference for local position projection
 	 */
@@ -909,21 +907,6 @@ MulticopterPositionControl::get_cruising_speed_xy()
 	 */
 	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && (_pos_sp_triplet.current.cruising_speed > 0.1f)) ?
 		_pos_sp_triplet.current.cruising_speed : _params.vel_cruise_xy);
-}
-
-void
-MulticopterPositionControl::slow_land_gradual_velocity_limit()
-{
-	/*
-	 * Make sure downward velocity (positive Z) is limited close to ground.
-	 * for now we use the home altitude and assume that we want to land on a similar absolute altitude.
-	 */
-	float altitude_above_home = -_pos(2) + _home_pos.z;
-	float vel_limit = math::gradual(altitude_above_home,
-					_params.slow_land_alt2, _params.slow_land_alt1,
-					_params.land_speed, _params.vel_max_down);
-
-	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 }
 
 void
@@ -1676,7 +1659,6 @@ MulticopterPositionControl::control_position(float dt)
 	    _control_mode.flag_control_acceleration_enabled) {
 		calculate_thrust_setpoint(dt);
 
-
 	} else {
 		_reset_int_z = true;
 	}
@@ -1687,6 +1669,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
+
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
@@ -1695,6 +1678,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		} else {
 			_vel_sp(0) = 0.0f;
 			_vel_sp(1) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in x and y");
+
 		}
 	}
 
@@ -1734,33 +1719,43 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		_vel_sp(2) = 0.0f;
 	}
 
+
+	/* limit vertical upwards speed in auto takeoff and close to ground */
+	float altitude_above_home = -_pos(2) + _home_pos.z;
+
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && !_control_mode.flag_control_manual_enabled) {
+		float vel_limit = math::gradual(altitude_above_home,
+						_params.slow_land_alt2, _params.slow_land_alt1,
+						_params.tko_speed, _params.vel_max_up);
+		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
+	}
+
+	/* limit vertical downwards speed (positive z) close to ground
+	 * for now we use the altitude above home and assume that we want to land at same hight as we took off */
+	float vel_limit = math::gradual(altitude_above_home,
+					_params.slow_land_alt2, _params.slow_land_alt1,
+					_params.land_speed, _params.vel_max_down);
+
+	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
+
 	/* apply slewrate (aka acceleration limit) for smooth flying */
 	vel_sp_slewrate(dt);
 	_vel_sp_prev = _vel_sp;
 
-	/* limit vertical takeoff speed if we are in auto takeoff */
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && !_control_mode.flag_control_manual_enabled) {
-
-		_vel_sp(2) = math::max(_vel_sp(2), -_params.tko_speed);
-	}
-
-	/* special velocity setpoint limitation for smooth takeoff */
+	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_takeoff) {
 		_in_takeoff = _takeoff_vel_limit < -_vel_sp(2);
-
 		/* ramp vertical velocity limit up to takeoff speed */
-		_takeoff_vel_limit += _params.tko_speed * dt / _takeoff_ramp_time.get();
-
+		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
 		/* limit vertical velocity to the current ramp value */
 		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
 	}
 
-	/* make sure velocity setpoint is saturated in xy*/
+	/* make sure velocity setpoint is constrained in all directions (xyz) */
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
-	/* make sure velocity setpoint is constrained in all directions*/
 	if (vel_norm_xy > _vel_max_xy) {
 		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
 		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
@@ -1792,6 +1787,13 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 
 	} else {
 		_reset_int_xy = true;
+	}
+
+	/* if any of the velocity setpoint is bogus, it's probably safest to command no velocity at all. */
+	for (int i = 0; i < 3; ++i) {
+		if (!PX4_ISFINITE(_vel_sp(i))) {
+			_vel_sp(i) = 0.0f;
+		}
 	}
 
 	/* velocity error */
