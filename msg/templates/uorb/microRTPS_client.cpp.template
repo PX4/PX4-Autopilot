@@ -77,7 +77,7 @@ Transport_node *transport_node = nullptr;
 
 static void usage(const char *name)
 {
-    PX4_INFO("usage: %s [options]\n\n"
+    PX4_INFO("usage: %s start|stop [options]\n\n"
              "  -t <transport>          [UART|UDP] Default UART\n"
              "  -d <device>             UART device. Default /dev/ttyACM0\n"
              "  -u <update_time_ms>     Time in ms for uORB subscribed topics update. Default 0\n"

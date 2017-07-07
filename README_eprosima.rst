@@ -1,7 +1,7 @@
-PX4-FastRTPS
-============
+PX4-FastRTPS bridge
+===================
 
-This is a fork of PX4 Firmware repository to add communication capabilities between a **PX4 Autopilot** (in this README we will talk about **PIXracer**) and a machine running **Fast RTPS** through serial ports using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
+This bridge add communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or sockets UDP using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
 
 .. image:: doc/1_general-white.png
 
@@ -17,7 +17,7 @@ The support for the new functionality added is mainly carried on inside three ne
    void serialize_sensor_combined(const sensor_combined_s *input, char *output, uint32_t *length);
    void deserialize_sensor_combined(struct sensor_combined_s *output, char *input);
 
--  We have the capability under demand of the generation of an application to send and receive through a selected UART the serializated info from several topics (*miroRTPS_client.cpp*).
+-  We have the capability under demand of the generation of an application to send and receive, through a selected UART or selected UDP ports, the serializated info from several topics (*miroRTPS_client.cpp*).
 
 .. image:: doc/2_trasnmitter-white.png
 
@@ -45,6 +45,8 @@ The argument **--send/-s** means that the application from PX4 side will send th
     microRTPS_agent.cxx
     microRTPS_client_CMakeLists.txt
     microRTPS_client.cpp
+    RtpsTopics.cxx
+    RtpsTopics.h
     sensor_baro_.idl
     sensor_baro_Publisher.cxx
     sensor_baro_Publisher.h
@@ -63,38 +65,45 @@ For automating the code installation we need to run a script. The script creates
 
 **CAUTION**: This script erase some files from */path/to/micrortps_agent/install-dir*
 
-PX4 Firmware
-------------
+PX4 Firmware: the micro RTPS client
+-----------------------------------
 
-On the *PX4* side, it will be used an application running an uORB node. This node could be subscribed to a several internal topics as well as publish under these. The application receive from a internal publishers the messages in a loop, serializes the struct and writes it trough an UART port selected by the user. Also will be reading from the UART port and publish to the internal subscribers.
+On the *PX4* side, it will be used an application running as a uORB node and as a micro RTPS node at same time. This applicatgion as uORB node could be subscribed to a several topics as well as publish under internal uORB topics. The application receive from a internal publishers the messages, serializes the struct and writes it trough an UART device or UDP port selected by the user. Also will be reading from the UART device or UDP port and then publish the info to the internal subscribers.
 
 Steps to use the auto generated application:
 
--  Uncomment in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file the *#examples/micrortps_client* to compile this appication along the **PX4** firmware:
+-  Uncomment or add the line *examples/micrortps_client* in cmake configs to compile this application along the **PX4** firmware. For the *Pixracer* platform we found this in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file and for the *Snapdragon Flight* platform we found it in *cmake/configs/posix_sdflight_default.cmake*:
 
 .. code-block:: shell
 
     # eProsima app
     examples/micrortps_client
 
--  Construct and upload the firmware executing:
+-  Construct and upload the firmware executing, for example:
 
 .. code-block:: shell
 
+   # For Pixracer:
    $ make px4fmu-v4_default upload
+   # For Snapdragon Flight:
+   $ make eagle_default upload
 
-After uploading the firmware, the application can be launched on *NuttShell* typing its name and passing an available serial port as argument. Using */dev/ttyACM0*
-will use the USB port as output. Using */dev/ttyS1* or */dev/ttyS2* will write the output through TELEM1 or TELEM2 ports respectively.
+After uploading the firmware, the application can be launched typing its name and passing an variable number of arguments as shown bellow:
 
 .. code-block:: shell
 
-    > micrortps_client [U [P [L [S]]]]
-        U: minimum update time in ms for uORB topics
-        P: maximum wait (poll) time in ms for new uORB topic updates
-        L: number of loops of the application
-        S: sleep time for each loop in us
+    > micrortps_client start|stop [options]
+      -t <transport>          [UART|UDP] Default UART
+      -d <device>             UART device. Default /dev/ttyACM0
+      -u <update_time_ms>     Time in ms for uORB subscribed topics update. Default 0
+      -l <loops>              How many iterations will this program have. -1 for infinite. Default 10000
+      -w <sleep_time_ms>      Time in ms for which each iteration sleep. Default 1ms
+      -b <baudrate>           UART device baudrate. Default 460800
+      -p <poll_ms>            Time in ms to poll over UART. Default 1ms
+      -r <reception port>     UDP port for receiving. Default 2019
+      -s <sending port>       UDP port for sending. Default 2020
 
-    > micrortps_client 10 10 1000 2000 #by default
+    > micrortps_client start #by default -t UART -d /dev/ttyACM0 -u 0 -l 10000 -w 1 -b 460800 -p 1
 
 **NOTE**: If the UART port selected is busy, it's possible that Mavlink applications were using them. If it is the case, you can stop Mavlink from NuttShell typing:
 
@@ -102,19 +111,18 @@ will use the USB port as output. Using */dev/ttyS1* or */dev/ttyS2* will write t
 
     > mavlink stop-all
 
-Fast RTPS (Raspberry PI application)
-------------------------------------
+Fast RTPS: the micro RTPS agent
+-------------------------------
 
 The *Fast RTPS* side will be explained taking a *Raspberry Pi* board to run an application as example.
 
-The application have several functions and possibilities of use: get the sensor data from a system that is using the *PX4 Firmware* (reading the info from the selected UART),
-publish this to a *Fast RTPS* environment, write info to the UART from topics that are expected in the *PX4* side with the info even from subscribed messages from *Fast RTPS* side.
+The application have several functions and possibilities of use: get the sensor data from a system that is using the *PX4 Firmware* (obtaining the information from the selected transport: UDP or UART), publish this to a *Fast RTPS* environment and, in the other direction, to send through the selected transport the information of topics that are expected in the *PX4* side with the info even from subscribed messages from *Fast RTPS* side.
 
 Before runnning the application, it is needed to have installed Fast RTPS. Visit it installation `manual <http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html>`_ for more information.
 
 This section explains how create *Fast RTPS* applications using the files generated by **generate_microRTPS_bridge.py** and **fastrtpsgen** (this step performed inside install script) from *Fast RTPS*.
 
-This application allow to launch a publisher that will be using the information coming from the uORB topic in the PX4 side thanks to the autogenerated idl file from the original msg file. The publisher will read data from the UART, deserializes it, and make a Fast RTPS message mapping the attributes from the uORB message. The subscriber simply receives the Fast RTPS messages and print them to the terminal. The subscriber can be launched on the Raspberry Pi or in any another device connected in the same network.
+On the *Fast RTPS* side, it will be used an application running as a Fast RTPS node and as a micro RTPS node at same time. This application allow to launch RTPS publishers and subscribers that will be using the information coming from and sending to uORB topics in the PX4 side thanks to the autogenerated idl file from the original msg file. The publisher will read data from UART/UDP, deserializes it, and make a Fast RTPS message mapping the attributes from the uORB message. The subscriber simply receives the Fast RTPS messages and send in the reverse sequence to the PX4 side. The subscriber can be launched on the Raspberry Pi or in any another device connected in the same network.
 
 For create the application, compile the code:
 
@@ -129,11 +137,16 @@ To launch the publisher run:
 
 .. code-block:: shell
 
-    $ ./micrortps_receiver [UART [S]]
-      UART: selected UART
-      S: sleep time for each loop in us
+    $ ./micrortps_agent [options]
+      -t <transport>          [UART|UDP] Default UART
+      -d <device>             UART device. Default /dev/ttyACM0
+      -w <sleep_time_us>      Time in us for which each iteration sleep. Default 1ms
+      -b <baudrate>           UART device baudrate. Default 460800
+      -p <poll_ms>            Time in ms to poll over UART. Default 1ms
+      -r <reception port>     UDP port for receiving. Default 2019
+      -s <sending port>       UDP port for sending. Default 2020
 
-    $ ./micrortps_receiver /dev/ttyACM0 2000 #by default
+    $ ./micrortps_agent # by default -t UART -d /dev/ttyACM0 -w 1 -b 460800 -p 1
 
 Now we can add some code to print some info on the screen, for example:
 
@@ -175,7 +188,7 @@ Now we can add some code to print some info on the screen, for example:
             }
     }
 
-**NOTE**: Normally, it's necessary set up the UART port in the Raspberry Pi. To enable the serial port available on Raspberry Pi connector:
+**NOTE**: Normally, for UART transport it's necessary set up the UART port in the Raspberry Pi. To enable the serial port available on Raspberry Pi connector:
 
 1. Make sure the userid (default is pi) is a member of the dialout group:
 
@@ -200,15 +213,13 @@ Go to *Interfacing options > Serial*, NO to *Would you like a login shell to be 
 
 And enable UART setting *enable_uart=1*.
 
-Result
-------
+Graphical example of usage
+--------------------------
 
-The entire application will follow this flow chart:
+This flow chart shows graphically how works a bridge for an example of use that sends the topic sensor_combined from a Pixracer to a Raspberry Pi through UART.
 
 .. image:: doc/architecture.png
 
 If all steps has been followed, you should see this output on the subscriber side of Fast RTPS.
 
 .. image:: doc/subscriber.png
-
-A video of this final process as demostration is available on `https://youtu.be/NF65EPD-6aY <https://youtu.be/NF65EPD-6aY>`_
