@@ -154,12 +154,12 @@ ETSAirspeed::collect()
 		return ret;
 	}
 
-	uint16_t diff_pres_pa_raw = val[1] << 8 | val[0];
+	float diff_pres_pa_raw = (float)(val[1] << 8 | val[0]);
 
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
 
-	if (diff_pres_pa_raw == 0) {
+	if (diff_pres_pa_raw < FLT_EPSILON) {
 		// a zero value indicates no measurement
 		// since the noise floor has been arbitrarily killed
 		// it defeats our stuck sensor detection - the best we
