@@ -124,7 +124,7 @@ int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s 
 void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
 		uint8_t from_sysid, uint8_t from_compid)
 {
-	CMD_DEBUG("handling result %d for command %d: %d from %d, %d",
+	CMD_DEBUG("handling result %d for command %d: %d from %d",
 		 ack.result, ack.command, from_sysid, from_compid);
 	lock();
 
