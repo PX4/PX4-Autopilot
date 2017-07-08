@@ -720,8 +720,15 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case SENSORIOCRESET:
-		return reset();
+	case SENSORIOCRESET: {
+			int ret = reset();
+
+			if (_whoami == MPU_WHOAMI_9250) {
+				return (ret == OK ? _mag->ioctl(filp, cmd, arg) : ret);
+			}
+
+			return ret;
+		}
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
