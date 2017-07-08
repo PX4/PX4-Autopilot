@@ -388,6 +388,10 @@ int MPU9250::reset()
 
 	usleep(1000);
 
+	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
+
+	write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
+
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
 
