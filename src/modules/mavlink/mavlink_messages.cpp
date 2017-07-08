@@ -458,11 +458,17 @@ protected:
 			/* only send commands for other systems/components, don't forward broadcast commands */
 			if ((cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) &&
 			    (cmd.target_component != MAV_COMP_ID_ALL)) {
-				PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+
+				if (_mavlink->verbose()) {
+					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
+
 				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 
 			} else {
-				PX4_INFO("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				if (_mavlink->verbose()) {
+					PX4_INFO("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
 			}
 		}
 
