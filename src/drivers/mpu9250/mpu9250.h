@@ -463,6 +463,17 @@ private:
 	void			write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
+	 * Modify a checked register in the mpu
+	 *
+	 * Bits are cleared before bits are set.
+	 *
+	 * @param reg		The register to modify.
+	 * @param clearbits	Bits in the register to clear.
+	 * @param setbits	Bits in the register to set.
+	 */
+	void			modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+
+	/**
 	 * Set the mpu measurement range.
 	 *
 	 * @param max_g		The maximum G value the range must support.
