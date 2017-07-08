@@ -9,6 +9,8 @@
 # @output MAIN2 elevator
 # @output MAIN3 rudder
 # @output MAIN4 throttle
+# @output MAIN5 flaps
+# @output MAIN6 gear
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

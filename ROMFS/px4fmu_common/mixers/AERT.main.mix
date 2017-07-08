@@ -9,7 +9,7 @@ elevator to output 1, the rudder to output 2 and the throttle to output 3.
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
 (roll), 1 (pitch) and 3 (thrust).
 
-Aileron mixer
+CH1: Aileron mixer
 -------------
 Two scalers total (output, roll).
 
@@ -26,7 +26,7 @@ M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
 
-Elevator mixer
+CH2: Elevator mixer
 ------------
 Two scalers total (output, roll).
 
@@ -39,7 +39,7 @@ M: 1
 O:       10000   10000      0 -10000  10000
 S: 0 1  -10000  -10000      0 -10000  10000
 
-Rudder mixer
+CH3: Rudder mixer
 ------------
 Two scalers total (output, yaw).
 
@@ -52,7 +52,7 @@ M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 2  10000  10000      0 -10000  10000
 
-Motor speed mixer
+CH4: Motor speed mixer
 -----------------
 Two scalers total (output, thrust).
 
@@ -62,3 +62,20 @@ range.  Inputs below zero are treated as zero.
 M: 1
 O:      10000  10000      0 -10000  10000
 S: 0 3      0  20000 -10000 -10000  10000
+
+CH5: Flaps mixer
+------------
+Flaps are controlled automatically in position control and auto
+but can also be controlled manually
+
+M: 1
+O: 5000 10000 0 -10000 10000
+S: 0 4 10000 10000 0 -10000 10000
+
+Ch6: Landing gear mixer
+------------
+By default pass-through of gear switch
+
+M: 1
+O: 10000 10000 0 -10000 10000
+S: 3 5 10000 10000 0 -10000 10000
