@@ -473,7 +473,7 @@ int Logger::add_topic(const orb_metadata *topic)
 	fd = orb_subscribe(topic);
 
 	if (fd < 0) {
-		PX4_WARN("logger: orb_subscribe failed (%i)", errno);
+		PX4_WARN("logger: %s subscribe failed (%i)", topic->o_name, errno);
 		return -1;
 	}
 
