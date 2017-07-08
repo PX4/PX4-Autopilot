@@ -64,9 +64,10 @@
 #include <drivers/drv_airspeed.h>
 
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include "PreflightCheck.h"
 
@@ -366,15 +367,27 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, unsigned instance, bool opt
 	return success;
 }
 
-static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail, bool prearm, hrt_abstime time_since_boot)
+static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool report_fail, bool prearm)
 {
 	bool success = true;
 	int ret;
-	int fd = orb_subscribe(ORB_ID(airspeed));
+	int fd_airspeed = orb_subscribe(ORB_ID(airspeed));
+	int fd_diffpres = orb_subscribe(ORB_ID(differential_pressure));
+
+	struct differential_pressure_s differential_pressure;
+
+	if ((ret = orb_copy(ORB_ID(differential_pressure), fd_diffpres, &differential_pressure)) ||
+	    (hrt_elapsed_time(&differential_pressure.timestamp) > (500 * 1000))) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+		}
+		success = false;
+		goto out;
+	}
 
 	struct airspeed_s airspeed;
 
-	if ((ret = orb_copy(ORB_ID(airspeed), fd, &airspeed)) ||
+	if ((ret = orb_copy(ORB_ID(airspeed), fd_airspeed, &airspeed)) ||
 	    (hrt_elapsed_time(&airspeed.timestamp) > (500 * 1000))) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
@@ -398,27 +411,23 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	}
 
 	/**
-	 * Check if differential pressure is off by more than 15Pa which equals to 5m/s when measuring no airspeed.
+	 * Check if differential pressure is off by more than 15Pa which equals ~5m/s when measuring no airspeed.
 	 * Negative and positive offsets are considered. Do not check anymore while arming because pitot cover
 	 * might have been removed.
 	 */
 
-	if (time_since_boot < 1e6) {
-		// the airspeed driver filter doesn't deliver the actual value yet
-		success = false;
-		goto out;
-	}
 
-	if (fabsf(airspeed.differential_pressure_filtered_pa) > 15.0f && !prearm) {
+	if (fabsf(differential_pressure.differential_pressure_filtered_pa) > 15.0f && !prearm) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED CALIBRATION BAD OR PITOT UNCOVERED");
+			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: CHECK AIRSPEED CAL OR PITOT");
 		}
 		success = false;
 		goto out;
 	}
 
 out:
-	orb_unsubscribe(fd);
+	orb_unsubscribe(fd_airspeed);
+	orb_unsubscribe(fd_diffpres);
 	return success;
 }
 
@@ -560,6 +569,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 		    bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS,
 		    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot)
 {
+
+	if (time_since_boot < 1e6) {
+		// the airspeed driver filter doesn't deliver the actual value yet
+		return true;
+	}
 
 #ifdef __PX4_QURT
 	// WARNING: Preflight checks are important and should be added back when
@@ -706,7 +720,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
 
 	/* ---- AIRSPEED ---- */
 	if (checkAirspeed) {
-		if (!airspeedCheck(mavlink_log_pub, true, reportFailures, prearm, time_since_boot)) {
+		if (!airspeedCheck(mavlink_log_pub, true, reportFailures, prearm)) {
 			failed = true;
 		}
 	}

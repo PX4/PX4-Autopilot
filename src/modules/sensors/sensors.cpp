@@ -395,7 +395,6 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 						   _voted_sensors_update.baro_pressure(), air_temperature_celsius));
 
 		_airspeed.air_temperature_celsius = air_temperature_celsius;
-		_airspeed.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
 		int instance;
 		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &_airspeed, &instance, ORB_PRIO_DEFAULT);
