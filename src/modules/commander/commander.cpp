@@ -1686,6 +1686,8 @@ int commander_thread_main(int argc, char *argv[])
 		checkAirspeed = true;
 	}
 
+	commander_boot_timestamp = hrt_absolute_time();
+
 	// Run preflight check
 	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
@@ -1721,8 +1723,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t rc_arm_hyst = 100;
 	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
-
-	commander_boot_timestamp = hrt_absolute_time();
 
 	transition_result_t arming_ret;
 
