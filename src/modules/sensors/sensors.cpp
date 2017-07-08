@@ -489,7 +489,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					}
 
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
+					bat_current_a = (((float)(buf_adc[i].am_data) * _parameters.battery_current_scaling)
 							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
