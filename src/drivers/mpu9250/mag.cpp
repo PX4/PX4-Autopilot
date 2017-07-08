@@ -101,7 +101,6 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char 
 	_mag_scale.z_scale  = 1.0f;
 
 	_mag_range_scale = MPU9250_MAG_RANGE_GA;
-	_debug_enabled = true;
 }
 
 MPU9250_mag::~MPU9250_mag()

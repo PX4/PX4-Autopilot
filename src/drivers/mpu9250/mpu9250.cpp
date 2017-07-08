@@ -377,7 +377,7 @@ int MPU9250::reset()
 
 	// Hold off sampling for 4 ms
 	state = px4_enter_critical_section();
-	_reset_wait = hrt_absolute_time() + 4000;
+	_reset_wait = hrt_absolute_time() + 10000;
 
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 
