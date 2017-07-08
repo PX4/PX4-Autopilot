@@ -1014,6 +1014,17 @@ MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 }
 
 void
+MPU9250::modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+{
+	uint8_t	val;
+
+	val = read_reg(reg);
+	val &= ~clearbits;
+	val |= setbits;
+	write_checked_reg(reg, val);
+}
+
+void
 MPU9250::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
