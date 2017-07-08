@@ -1300,6 +1300,7 @@ MPU9250::measure()
 	if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
 				   (uint8_t *)&mpu_report,
 				   sizeof(mpu_report))) {
+		perf_end(_sample_perf);
 		return;
 	}
 
