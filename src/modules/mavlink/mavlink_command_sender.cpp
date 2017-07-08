@@ -125,8 +125,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		uint8_t from_sysid, uint8_t from_compid)
 {
 	CMD_DEBUG("handling result %d for command %d: %d from %d",
-		 static_cast<unsigned int>(ack.result), static_cast<unsigned int>(ack.command),
-		 static_cast<unsigned int>(from_sysid), static_cast<unsigned int>(from_compid));
+		 ack.result, ack.command, from_sysid, from_compid);
 	lock();
 
 	_commands.reset_to_start();
@@ -187,9 +186,8 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			mavlink_msg_command_long_send_struct(channel, &item->command);
 			item->num_sent_per_channel[channel]++;
 
-			CMD_DEBUG("%x timeout (behind), retries: %d/%d, channel: %d",
-				 static_cast<unsigned int>(item), item->num_sent_per_channel[channel],
-				 max_sent, channel);
+			CMD_DEBUG("%p timeout (behind), retries: %d/%d, channel: %d",
+				 item, item->num_sent_per_channel[channel], max_sent, channel);
 
 		} else if (item->num_sent_per_channel[channel] == max_sent &&
 			   min_sent == max_sent) {
@@ -198,7 +196,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// drop the item, and continue with other items.
 			if (item->num_sent_per_channel[channel] + 1 > RETRIES) {
 				_commands.drop_current();
-				CMD_DEBUG("%x, timeout dropped", static_cast<unsigned int>(item));
+				CMD_DEBUG("%p, timeout dropped", item);
 				continue;
 			}
 
@@ -208,9 +206,8 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// Therefore, we are the ones setting the timestamp of this retry round.
 			item->last_time_sent_us = hrt_absolute_time();
 
-			CMD_DEBUG("%x timeout (first), retries: %d/%d, channel: %d",
-				 static_cast<unsigned int>(item), item->num_sent_per_channel[channel],
-				 max_sent, channel);
+			CMD_DEBUG("%p timeout (first), retries: %d/%d, channel: %d",
+				 item, item->num_sent_per_channel[channel], max_sent, channel);
 
 		} else {
 			// We are already ahead, so this should not happen.
