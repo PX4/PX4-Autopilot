@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Standard AERT Plane
+# @name Standard Plane
 #
 # @type Standard Plane
 # @class Plane
@@ -21,7 +21,10 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-set MIXER AERT
+set MIXER AETRFG
 
-# use PWM parameters for throttle channel
-set PWM_OUT 4
+set PWM_RATE 50
+set PWM_AUX_RATE 50
+
+# rate must be set by group (see pwm info)
+# throttle is in the same group as servos
