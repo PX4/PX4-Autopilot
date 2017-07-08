@@ -297,11 +297,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET:
-		/*
-		 * TODO: we could implement a reset of the AK8963 registers
-		 */
-		//return reset();
-		return _parent->ioctl(filp, cmd, arg);
+		return ak8963_reset();
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -508,10 +504,23 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 
 
 
-void
+int
 MPU9250_mag::ak8963_reset(void)
 {
-	write_reg(AK8963REG_CNTL2, AK8963_RESET);
+	// First initialize it to use the bus
+
+	int rv = ak8963_setup();
+
+	if (rv == OK) {
+
+		// Now reset the mag
+		write_reg(AK8963REG_CNTL2, AK8963_RESET);
+		// Then re-initialize the bus/mag
+		rv = ak8963_setup();
+	}
+
+	return rv;
+
 }
 
 bool
