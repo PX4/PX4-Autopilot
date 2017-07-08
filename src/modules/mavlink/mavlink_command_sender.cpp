@@ -74,11 +74,6 @@ MavlinkCommandSender::~MavlinkCommandSender()
 
 int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s &command, mavlink_channel_t channel)
 {
-	if (channel >= MAX_MAVLINK_CHANNEL) {
-		PX4_ERR("chan count out of bounds");
-		return 1;
-	}
-
 	lock();
 	CMD_DEBUG("getting vehicle command with timestamp %" PRIu64 ", channel: %d", command.timestamp, channel);
 
@@ -152,11 +147,6 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 
 void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 {
-	if (channel >= MAX_MAVLINK_CHANNEL) {
-		PX4_ERR("chan count out of bounds");
-		return;
-	}
-
 	lock();
 
 	_commands.reset_to_start();
