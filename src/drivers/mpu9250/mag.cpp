@@ -101,6 +101,7 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char 
 	_mag_scale.z_scale  = 1.0f;
 
 	_mag_range_scale = MPU9250_MAG_RANGE_GA;
+	_debug_enabled = true;
 }
 
 MPU9250_mag::~MPU9250_mag()
@@ -153,7 +154,7 @@ MPU9250_mag::init()
 		//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 		if (_mag_topic == nullptr) {
-			warnx("ADVERT FAIL");
+			PX4_ERR("ADVERT FAIL");
 		}
 	}
 
