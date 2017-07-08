@@ -42,6 +42,8 @@
 #include <px4_log.h>
 #include <cassert>
 
+#define CMD_DEBUG(FMT, ...) PX4_LOG_NAMED_COND("cmd sender", _debug_enabled, FMT, ##__VA_ARGS__)
+
 MavlinkCommandSender *MavlinkCommandSender::_instance = nullptr;
 px4_sem_t MavlinkCommandSender::_lock;
 
@@ -61,7 +63,7 @@ MavlinkCommandSender &MavlinkCommandSender::instance()
 }
 
 MavlinkCommandSender::MavlinkCommandSender() :
-	_commands(5)
+	_commands(3)
 {
 }
 
@@ -72,10 +74,13 @@ MavlinkCommandSender::~MavlinkCommandSender()
 
 int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s &command, mavlink_channel_t channel)
 {
-	assert(channel < MAX_MAVLINK_CHANNEL);
+	if (channel >= MAX_MAVLINK_CHANNEL) {
+		PX4_ERR("chan count out of bounds");
+		return 1;
+	}
 
 	lock();
-	PX4_INFO("getting vehicle command with timestamp %" PRIu64 ", channel: %d", command.timestamp, channel);
+	CMD_DEBUG("getting vehicle command with timestamp %" PRIu64 ", channel: %d", command.timestamp, channel);
 
 	mavlink_command_long_t msg = {};
 	msg.target_system = command.target_system;
@@ -100,7 +105,7 @@ int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s 
 			// We should activate the channel by setting num_sent_per_channel from -1 to 0.
 			item->num_sent_per_channel[channel] = 0;
 
-			PX4_INFO("already existing");
+			CMD_DEBUG("already existing");
 			already_existing = true;
 
 			break;
@@ -124,7 +129,7 @@ int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s 
 void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
 		uint8_t from_sysid, uint8_t from_compid)
 {
-	PX4_INFO("handling result %d for command %d: %d from %d, %d",
+	CMD_DEBUG("handling result %d for command %d: %d from %d, %d",
 		 ack.result, ack.command, from_sysid, from_compid);
 	lock();
 
@@ -135,7 +140,6 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		if (item->command.command == ack.command &&
 		    from_sysid == item->command.target_system &&
 		    from_compid == item->command.target_component) {
-			PX4_INFO("dropping command %d", ack.command);
 			// Drop it anyway because the command seems to have arrived at the destination, even if we
 			// receive IN_PROGRESS because we trust that it will be handled after that.
 			_commands.drop_current();
@@ -148,7 +152,10 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 
 void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 {
-	assert(channel < MAX_MAVLINK_CHANNEL);
+	if (channel >= MAX_MAVLINK_CHANNEL) {
+		PX4_ERR("chan count out of bounds");
+		return;
+	}
 
 	lock();
 
@@ -189,7 +196,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			mavlink_msg_command_long_send_struct(channel, &item->command);
 			item->num_sent_per_channel[channel]++;
 
-			PX4_INFO("%x timeout (behind), retries: %d/%d, channel: %d",
+			CMD_DEBUG("%x timeout (behind), retries: %d/%d, channel: %d",
 				 item, item->num_sent_per_channel[channel], max_sent, channel);
 
 		} else if (item->num_sent_per_channel[channel] == max_sent &&
@@ -199,7 +206,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// drop the item, and continue with other items.
 			if (item->num_sent_per_channel[channel] + 1 > RETRIES) {
 				_commands.drop_current();
-				PX4_INFO("%x, timeout dropped", item);
+				CMD_DEBUG("%x, timeout dropped", item);
 				continue;
 			}
 
@@ -209,7 +216,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// Therefore, we are the ones setting the timestamp of this retry round.
 			item->last_time_sent_us = hrt_absolute_time();
 
-			PX4_INFO("%x timeout (first), retries: %d/%d, channel: %d",
+			CMD_DEBUG("%x timeout (first), retries: %d/%d, channel: %d",
 				 item, item->num_sent_per_channel[channel], max_sent, channel);
 
 		} else {
