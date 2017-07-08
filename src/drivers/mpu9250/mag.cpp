@@ -123,36 +123,38 @@ MPU9250_mag::~MPU9250_mag()
 int
 MPU9250_mag::init()
 {
-	int ret;
+	int ret = ak8963_setup();
 
-	ret = CDev::init();
+	if (ret == OK) {
 
-	/* if setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 mag init failed");
-		return ret;
-	}
+		ret = CDev::init();
 
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+		/* if setup failed, bail now */
+		if (ret != OK) {
+			DEVICE_DEBUG("MPU9250 mag init failed");
+			return ret;
+		}
 
-	if (_mag_reports == nullptr) {
-		goto out;
-	}
+		_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
-	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+		if (_mag_reports == nullptr) {
+			goto out;
+		}
 
-	ak8963_setup();
+		_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrp;
-	_mag_reports->get(&mrp);
 
-	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, ORB_PRIO_LOW);
-//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct mag_report mrp;
+		_mag_reports->get(&mrp);
 
-	if (_mag_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+						 &_mag_orb_class_instance, ORB_PRIO_LOW);
+		//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+		if (_mag_topic == nullptr) {
+			warnx("ADVERT FAIL");
+		}
 	}
 
 out:
