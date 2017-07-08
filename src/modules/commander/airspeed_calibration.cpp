@@ -167,7 +167,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (PX4_ISFINITE(diff_pres_offset)) {
 
-		int  fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
+		int fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 		if (fd_scale > 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
