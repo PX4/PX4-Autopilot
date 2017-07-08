@@ -57,14 +57,11 @@ class RTL : public MissionBlock
 {
 public:
 	RTL(Navigator *navigator, const char *name);
+	~RTL() = default;
 
-	~RTL();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
 private:
 	/**

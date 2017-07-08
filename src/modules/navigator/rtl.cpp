@@ -37,25 +37,18 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-#include <fcntl.h>
-#include <float.h>
+#include "rtl.h"
+#include "navigator.h"
 
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
 #include <geo/geo.h>
-
-#include <uORB/uORB.h>
-#include <navigator/navigation.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/uORB.h>
 
-#include "navigator.h"
-#include "rtl.h"
-
-#define DELAY_SIGMA	0.01f
+static constexpr float DELAY_SIGMA = 0.01f;
 
 RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
@@ -68,12 +61,9 @@ RTL::RTL(Navigator *navigator, const char *name) :
 {
 	/* load initial params */
 	updateParams();
+
 	/* initial reset */
 	on_inactive();
-}
-
-RTL::~RTL()
-{
 }
 
 void
@@ -86,8 +76,7 @@ RTL::on_inactive()
 float
 RTL::get_rtl_altitude()
 {
-	return (_param_return_alt.get() < _navigator->get_land_detected()->alt_max) ? _param_return_alt.get() :
-	       _navigator->get_land_detected()->alt_max;
+	return math::min(_param_return_alt.get(), _navigator->get_land_detected()->alt_max);
 }
 
 void
@@ -102,19 +91,17 @@ RTL::on_activation()
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
-		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
+
+	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt + get_rtl_altitude())) {
 
 		/* if lower than return altitude, climb up first */
-
-	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt
-			+ get_rtl_altitude())) {
 		_rtl_state = RTL_STATE_CLIMB;
 
-		/* otherwise go straight to return */
-
 	} else {
-		/* set altitude setpoint to current altitude */
+		/* otherwise go straight to return */
 		_rtl_state = RTL_STATE_RETURN;
+
+		/* set altitude setpoint to current altitude */
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = _navigator->get_global_position()->alt;
 	}
@@ -289,8 +276,6 @@ RTL::set_rtl_item()
 
 	case RTL_STATE_LANDED: {
 			set_idle_item(&_mission_item);
-
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, landed");
 			break;
 		}
 
