@@ -583,8 +583,16 @@ void Logger::add_common_topics()
 void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
+	add_topic("airspeed");
+	add_topic("distance_sensor");
 	add_topic("ekf2_timestamps");
+	add_topic("optical_flow");
 	add_topic("sensor_combined");
+	add_topic("sensor_selection");
+	add_topic("vehicle_gps_position");
+	add_topic("vehicle_status");
+	add_topic("vehicle_vision_attitude");
+	add_topic("vehicle_vision_position");
 }
 
 void Logger::add_thermal_calibration_topics()
