@@ -185,7 +185,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 			success = false;
 			goto out;
 
-		} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.5f) {
+		} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.8f) {
 			if (report_status) {
 				mavlink_log_info(mavlink_log_pub, "PREFLIGHT ADVICE: ACCELS INCONSISTENT - CHECK CAL");
 
