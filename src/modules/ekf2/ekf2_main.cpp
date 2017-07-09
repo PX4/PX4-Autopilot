@@ -464,11 +464,9 @@ void Ekf2::run()
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 
-	px4_pollfd_struct_t fds[2] = {};
+	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = sensors_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = params_sub;
-	fds[1].events = POLLIN;
 
 	// initialise parameter cache
 	updateParams();
@@ -490,6 +488,11 @@ void Ekf2::run()
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
+		if (!(fds[0].revents & POLLIN)) {
+			// no new data
+			continue;
+		}
+
 		if (ret < 0) {
 			// Poll error, sleep and try again
 			usleep(10000);
@@ -500,18 +503,14 @@ void Ekf2::run()
 			continue;
 		}
 
-		if (fds[1].revents & POLLIN) {
+		bool params_updated = false;
+		orb_check(params_sub, &params_updated);
+
+		if (params_updated) {
 			// read from param to clear updated flag
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), params_sub, &update);
 			updateParams();
-
-			// fetch sensor data in next loop
-			continue;
-
-		} else if (!(fds[0].revents & POLLIN)) {
-			// no new data
-			continue;
 		}
 
 		bool gps_updated = false;
