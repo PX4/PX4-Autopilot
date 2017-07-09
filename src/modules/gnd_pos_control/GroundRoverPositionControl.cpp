@@ -505,7 +505,7 @@ GroundRoverPositionControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
+					   SCHED_PRIORITY_POSITION_CONTROL,
 					   1700,
 					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
