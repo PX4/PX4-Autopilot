@@ -650,7 +650,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 	/* start the task */
 	_task_id = px4_task_spawn_cmd("sensors",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 6,
+				      SCHED_PRIORITY_SENSOR_HUB,
 				      2000,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
