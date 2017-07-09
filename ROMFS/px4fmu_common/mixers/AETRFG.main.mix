@@ -7,7 +7,7 @@ assumes the aileron servo(s) are connected to output 0, the elevator to
 output 1, the throttle to output 2 and the rudder to output 3.
 
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
-(roll), 1 (pitch), 2 (yaw), 3 (thrust), 4 (flaps), 7 (landing gear)
+(roll), 1 (pitch), 2 (thrust), 3 (yaw), 4 (flaps), 7 (landing gear)
 
 CH1: Aileron mixer
 -------------
