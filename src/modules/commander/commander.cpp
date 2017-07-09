@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -813,7 +813,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 							break;
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
-							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+							if (_mission_result.valid) {
+								main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+							} else {
+								main_ret = TRANSITION_DENIED;
+							}
 							break;
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
@@ -1975,6 +1979,11 @@ int commander_thread_main(int argc, char *argv[])
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !arm_without_gps,
 								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
 					}
+
+					// Provide feedback on mission state
+					if (!_mission_result.valid && hotplug_timeout && _home.timestamp > 0) {
+						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					}
 				}
 
 				/* set (and don't reset) telemetry via USB as active once a MAVLink connection is up */
@@ -2615,21 +2624,19 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Only evaluate mission state if home is set,
 		 * this prevents false positives for the mission
-		 * rejection. Back off 2 seconds to not overlay
+		 * rejection. Back off 3 seconds to not overlay
 		 * home tune.
 		 */
 		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			(hrt_elapsed_time(&_home.timestamp) > 3000000) &&
 			_last_mission_instance != _mission_result.instance_count) {
 
 			if (!_mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);
-				warnx("mission fail");
 			} else if (_mission_result.warning) {
 				/* the mission has a warning */
 				tune_mission_fail(true);
-				warnx("mission warning");
 			} else {
 				/* the mission is valid */
 				tune_mission_ok(true);
