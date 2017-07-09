@@ -74,7 +74,6 @@
 #include <systemlib/board_serial.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
-#include <systemlib/scheduling_priorities.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_input_capture.h>
