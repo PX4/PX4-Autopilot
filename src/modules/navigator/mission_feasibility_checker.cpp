@@ -394,7 +394,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 		// if DO_LAND_START found then require valid landing AFTER
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
 			if (land_start_found) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start.");
 				return false;
 
 			} else {
@@ -432,8 +432,8 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 						if (delta_altitude < 0) {
 							if (missionitem_previous.altitude > slope_alt_req) {
 								/* Landing waypoint is above altitude of slope at the given waypoint distance */
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach");
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down %.1fm or move further away by %.1fm",
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach.");
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down %.1fm or move further away by %.1fm.",
 										     (double)(slope_alt_req - missionitem_previous.altitude),
 										     (double)(wp_distance_req - wp_distance));
 
@@ -442,13 +442,13 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 
 						} else {
 							/* Landing waypoint is above last waypoint */
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing above last waypoint");
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing above last waypoint.");
 							return false;
 						}
 
 					} else {
 						/* Last wp is in flare region */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: waypoint within landing flare");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: waypoint within landing flare.");
 						return false;
 					}
 
@@ -456,24 +456,24 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 
 				} else {
 					// mission item before land doesn't have a position
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: need landing approach");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: need landing approach.");
 					return false;
 				}
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with land waypoint");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with land waypoint.");
 				return false;
 			}
 		}
 	}
 
 	if (land_start_req && !land_start_found) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: land start required");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: land start required.");
 		return false;
 	}
 
 	if (land_start_found && (!landing_valid || (do_land_start_index > landing_approach_index))) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start.");
 		return false;
 	}
 
@@ -501,7 +501,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 					if (dist_to_1wp < dist_first_wp) {
 						if (dist_to_1wp > ((dist_first_wp * 3) / 2)) {
 							/* allow at 2/3 distance, but warn */
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission entry point very far: %d m.", (int)dist_to_1wp);
 							warning_issued = true;
 						}
 
@@ -509,7 +509,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 					} else {
 						/* item is too far from home */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "First waypoint too far: %d m > %d, refusing mission",
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission entry point too far: %dm, %dm max.",
 								     (int)dist_to_1wp, (int)dist_first_wp);
 						warning_issued = true;
 						return false;
@@ -518,7 +518,7 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 
 			} else {
 				/* error reading, mission is invalid */
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "error reading offboard mission");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Error reading offboard mission.");
 				return false;
 			}
 		}
