@@ -899,25 +899,21 @@ PX4FMU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 	}
 }
 
-
 int
 PX4FMU::start()
 {
-
 	if (!_run_as_task) {
 
 		/* schedule a cycle to start things */
-
 		work_queue(HPWORK, &_work, (worker_t)&PX4FMU::cycle_trampoline, this, 0);
 
 	} else {
 
 		/* start the IO interface task */
-
 		_task = px4_task_spawn_cmd("fmuservo",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_FAST_DRIVER - 1,
-					   1280,
+					   1310,
 					   (main_t)&PX4FMU::task_main_trampoline,
 					   nullptr);
 
