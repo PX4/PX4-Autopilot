@@ -668,14 +668,12 @@ void VtolAttitudeControl::task_main()
 	_vtol_type->set_idle_mc();
 
 	/* wakeup source*/
-	px4_pollfd_struct_t fds[3] = {};	/*input_mc, input_fw, parameters*/
+	px4_pollfd_struct_t fds[2] = {};	/*input_mc, input_fw, parameters*/
 
 	fds[0].fd     = _actuator_inputs_mc;
 	fds[0].events = POLLIN;
 	fds[1].fd     = _actuator_inputs_fw;
 	fds[1].events = POLLIN;
-	fds[2].fd     = _params_sub;
-	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
 		/*Advertise/Publish vtol vehicle status*/
@@ -712,9 +710,13 @@ void VtolAttitudeControl::task_main()
 			orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
 		}
 
-		if (fds[2].revents & POLLIN) {	//parameters were updated, read them now
+		/* only update parameters if they changed */
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
