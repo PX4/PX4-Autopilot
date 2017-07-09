@@ -2429,7 +2429,7 @@ MulticopterPositionControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
+					   SCHED_PRIORITY_POSITION_CONTROL,
 					   1900,
 					   (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
 					   nullptr);
