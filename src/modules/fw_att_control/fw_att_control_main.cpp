@@ -1274,7 +1274,7 @@ FixedwingAttitudeControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("fw_att_control",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
+					   SCHED_PRIORITY_MAX - 4,
 					   1500,
 					   (px4_main_t)&FixedwingAttitudeControl::task_main_trampoline,
 					   nullptr);
