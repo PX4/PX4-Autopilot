@@ -1017,7 +1017,7 @@ PX4FMU::task_spawn(int argc, char *argv[])
 
 		_task_id = px4_task_spawn_cmd("fmu",
 					      SCHED_DEFAULT,
-					      SCHED_PRIORITY_FAST_DRIVER - 1,
+					      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					      1310,
 					      (px4_main_t)&run_trampoline,
 					      nullptr);
