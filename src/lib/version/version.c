@@ -59,9 +59,9 @@ enum FIRMWARE_TYPE {
 };
 
 typedef enum {
-	PATCH=0,
-	MINOR=8,
-	MAJOR=16
+	PATCH = 0,
+	MINOR = 8,
+	MAJOR = 16
 } version_type_t;
 
 /**
@@ -76,8 +76,7 @@ static uint32_t string_to_int(const char *tag, int start, int end)
 	const char *curr = &tag[start];
 	uint32_t temp_ver = 0;
 
-	while (curr <= &tag[end])
-	{
+	while (curr <= &tag[end]) {
 		temp_ver = (temp_ver * 10)  + (*curr - '0');
 
 		curr++;
@@ -113,35 +112,35 @@ static uint32_t version_tag_to_number(const char *tag)
 		}
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
-			if (!end)
-			{
+			if (!end) {
 				end = i;
 			}
 
-			if (i == 0)
-			{
+			if (i == 0) {
 				uint32_t temp_ver = string_to_int(tag, i, end);
 				ver = (temp_ver << v_type) + ver;
 			}
 
-		} else if ((tag[i] == '.') || (i==0)) {
+		} else if ((tag[i] == '.') || (i == 0)) {
 			uint32_t temp_ver = string_to_int(tag, (i + 1), end);
 			ver = (temp_ver << v_type) + ver;
 
 			end = 0;
 
-			switch(v_type)
-			{
+			switch (v_type) {
 			case PATCH:
 				v_type = MINOR;
 				break;
+
 			case MINOR:
 				v_type = MAJOR;
 				break;
+
 			case MAJOR:
 			default:
 				break;
-						}
+			}
+
 		} else if (i > 3 && type == -1) {
 			/* scan and look for signature characters for each type */
 			const char *curr = &tag[i - 1];
