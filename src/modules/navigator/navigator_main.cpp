@@ -685,7 +685,7 @@ Navigator::start()
 	/* start the task */
 	_navigator_task = px4_task_spawn_cmd("navigator",
 					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT + 5,
+					     SCHED_PRIORITY_NAVIGATION,
 					     1800,
 					     (px4_main_t)&Navigator::task_main_trampoline,
 					     nullptr);
