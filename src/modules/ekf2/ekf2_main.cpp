@@ -165,6 +165,7 @@ private:
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	// last time the EKF was operating a mode that estimates magnetomer biases (usec)
 	hrt_abstime _total_cal_time_us = 0;	// accumulated calibration time since the last save
+	hrt_abstime _last_time_slip_us = 0;	///< Last time slip
 	float _last_valid_mag_cal[3] = {};	// last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	// true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	// variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
@@ -451,8 +452,9 @@ Ekf2::~Ekf2()
 
 void Ekf2::print_status()
 {
-	warnx("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
-	warnx("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_INFO("time slip: %" PRIu64 " us", _last_time_slip_us);
 }
 
 void Ekf2::task_main()
@@ -1042,6 +1044,7 @@ void Ekf2::task_main()
 				// monitor time slippage
 				if (start_time_us != 0 && now > start_time_us) {
 					status.time_slip = (float)(1e-6 * ((double)(now - start_time_us) - (double) integrated_time_us));
+					_last_time_slip_us = (now - start_time_us) - integrated_time_us;
 
 				} else {
 					status.time_slip = 0.0f;
