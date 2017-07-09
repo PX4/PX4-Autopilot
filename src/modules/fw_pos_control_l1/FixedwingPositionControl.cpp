@@ -1512,13 +1512,11 @@ FixedwingPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2];
+	px4_pollfd_struct_t fds[1];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _global_pos_sub;
-	fds[1].events = POLLIN;
 
 	_task_running = true;
 
@@ -1534,7 +1532,7 @@ FixedwingPositionControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -1544,9 +1542,12 @@ FixedwingPositionControl::task_main()
 		vehicle_status_poll();
 
 		/* only update parameters if they changed */
-		if ((fds[0].revents & POLLIN) != 0) {
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
 			/* read from param to clear updated flag */
-			parameter_update_s update {};
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -1554,7 +1555,7 @@ FixedwingPositionControl::task_main()
 		}
 
 		/* only run controller if position changed */
-		if ((fds[1].revents & POLLIN) != 0) {
+		if ((fds[0].revents & POLLIN) != 0) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
