@@ -391,8 +391,8 @@ void Standard::update_mc_state()
 		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
 				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
 
-		// limit desired pitch
-		float pitch_new = -_params_standard.down_pitch_max;
+		// return the vehicle to level position
+		float pitch_new = 0;
 
 		// create corrected desired body z axis in heading frame
 		matrix::Dcmf R_tmp = matrix::Eulerf(roll_new, pitch_new, 0.0f);
