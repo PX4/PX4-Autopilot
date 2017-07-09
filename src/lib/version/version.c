@@ -64,25 +64,34 @@ typedef enum {
 	MAJOR=16
 } version_type_t;
 
-static void string_to_int(int8_t mag, version_type_t v_type, uint32_t *ver, int start, const char *tag)
+/**
+ * Convert a version number from string to int
+ * @param version tag
+ * @param start index of the fist char
+ * @param end index of the last char
+ * @return version number as int
+ */
+static uint32_t string_to_int(const char *tag, int start, int end)
 {
 	const char *curr = &tag[start];
 	uint32_t temp_ver = 0;
 
-	while (curr <= &tag[mag])
+	while (curr <= &tag[end])
 	{
-		temp_ver = (temp_ver << 3) + (temp_ver << 1) + (*curr - '0');
+		temp_ver = (temp_ver * 10)  + (*curr - '0');
 
 		curr++;
 	}
 
-	*ver = (temp_ver << v_type) + *ver;
+	return temp_ver;
 }
 
 /**
  * Convert a version tag string to a number
  * @param tag version tag in one of the following forms:
  *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - dev: v1.4.0rc3-7-g7e282f57-dirty
+ *            - dev: v1.4.0-dirty
  *            - rc: v1.4.0rc4
  *            - release: v1.4.0
  *            - linux: 7.9.3
@@ -92,7 +101,7 @@ static uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
-	unsigned mag = 0;
+	int end = 0;
 	int32_t type = -1;
 	unsigned dashcount = 0;
 	version_type_t v_type = PATCH;
@@ -104,20 +113,22 @@ static uint32_t version_tag_to_number(const char *tag)
 		}
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
-			if (!mag)
+			if (!end)
 			{
-				mag = i;
+				end = i;
 			}
 
 			if (i == 0)
 			{
-				string_to_int(mag, v_type, &ver, i, tag);
+				uint32_t temp_ver = string_to_int(tag, i, end);
+				ver = (temp_ver << v_type) + ver;
 			}
 
 		} else if ((tag[i] == '.') || (i==0)) {
-			string_to_int(mag, v_type, &ver, (i + 1), tag);
+			uint32_t temp_ver = string_to_int(tag, (i + 1), end);
+			ver = (temp_ver << v_type) + ver;
 
-			mag = 0;
+			end = 0;
 
 			switch(v_type)
 			{
@@ -166,7 +177,7 @@ static uint32_t version_tag_to_number(const char *tag)
 			 * are seeing non-numeric characters (eg. '-')
 			 */
 			ver = 0;
-			mag = 0;
+			end = 0;
 		}
 	}
 
