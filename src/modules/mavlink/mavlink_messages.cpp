@@ -385,7 +385,7 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (!_mavlink->get_logbuffer()->empty()) {
+		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected()) {
 
 			struct mavlink_log_s mavlink_log = {};
 
