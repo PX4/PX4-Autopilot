@@ -65,12 +65,12 @@
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
+#include <px4_tasks.h>
 #include <px4_time.h>
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_gps.h>
