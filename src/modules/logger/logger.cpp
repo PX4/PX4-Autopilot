@@ -192,7 +192,7 @@ int Logger::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 10,
+				      SCHED_PRIORITY_LOG_CAPTURE,
 				      3600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
