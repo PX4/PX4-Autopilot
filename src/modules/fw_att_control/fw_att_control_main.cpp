@@ -750,13 +750,11 @@ FixedwingAttitudeControl::task_main()
 	battery_status_poll();
 
 	/* wakeup source */
-	px4_pollfd_struct_t fds[2];
+	px4_pollfd_struct_t fds[1];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _ctrl_state_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _ctrl_state_sub;
-	fds[1].events = POLLIN;
 
 	_task_running = true;
 
@@ -773,16 +771,19 @@ FixedwingAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_WARN("poll error %d, %d", pret, errno);
 			continue;
 		}
 
 		perf_begin(_loop_perf);
 
 		/* only update parameters if they changed */
-		if (fds[0].revents & POLLIN) {
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -790,7 +791,7 @@ FixedwingAttitudeControl::task_main()
 		}
 
 		/* only run controller if attitude changed */
-		if (fds[1].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
