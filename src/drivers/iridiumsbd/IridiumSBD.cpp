@@ -33,6 +33,8 @@
 
 #include "IridiumSBD.h"
 
+#include <px4_tasks.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -45,7 +47,6 @@
 #include <nuttx/config.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
 
 #include "drivers/drv_iridiumsbd.h"
