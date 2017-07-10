@@ -145,10 +145,6 @@ bool set_nav_state(struct vehicle_status_s *status,
 		   const int offb_loss_rc_act,
 		   const int posctl_nav_loss_act);
 
-void set_rc_loss_nav_state(struct vehicle_status_s *status,
-			   struct actuator_armed_s *armed,
-			   status_flags_s *status_flags,
-			   const link_loss_actions_t link_loss_act);
 /*
  * Checks the validty of position data aaainst the requirements of the current navigation
  * mode and switches mode if position data required is not available.
@@ -160,10 +156,11 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 			       const bool use_rc, // true if a mode using RC control can be used as a fallback
 			       const bool using_global_pos); // true when the current mode requires a global position estimate
 
-void set_data_link_loss_nav_state(struct vehicle_status_s *status,
-				  struct actuator_armed_s *armed,
-				  status_flags_s *status_flags,
-				  const link_loss_actions_t link_loss_act);
+void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+
+void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
+						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
 int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
