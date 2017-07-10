@@ -150,6 +150,7 @@ void Ekf::controlExternalVisionFusion()
 				resetPosition();
 				resetVelocity();
 				resetHeight();
+				_control_status.flags.ev_pos=true;
 			}
 		}
 
