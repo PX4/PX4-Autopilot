@@ -9,6 +9,7 @@ bool warning			# true if mission is valid, but has potentially problematic items
 bool reached			# true if mission has been reached
 bool finished			# true if mission has been completed
 bool failure			# true if the mission cannot continue or be completed for some reason
+bool landing			# true if mission is currently landing
 
 bool stay_in_failsafe		# true if the commander should not switch out of the failsafe mode
 bool flight_termination		# true if the navigator demands a flight termination from the commander app

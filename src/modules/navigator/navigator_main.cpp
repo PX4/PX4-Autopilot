@@ -579,8 +579,15 @@ Navigator::task_main()
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_pos_sp_triplet_published_invalid_once = false;
 			_navigation_mode = &_rtl;
+
+			if (_rtl.mission_landing()) {
+				if (_mission.land()) {
+					_navigation_mode = &_mission;
+				}
+			}
+
+			_pos_sp_triplet_published_invalid_once = false;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:

@@ -67,6 +67,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
+	_param_rtl_land_type(this, "RTL_LAND_TYPE", false),
 	_missionFeasibilityChecker(navigator)
 {
 	updateParams();
@@ -271,11 +272,43 @@ Mission::find_offboard_land_start()
 		}
 
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
+			_land_start_index = i;
 			return i;
 		}
 	}
 
 	return -1;
+}
+
+bool
+Mission::land()
+{
+	// if not currently landing, jump to do_land_start
+	if (_navigator->get_mission_result()->landing) {
+		return true;
+
+	} else {
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+		for (size_t i = 0; i < _offboard_mission.count; i++) {
+			struct mission_item_s missionitem = {};
+			const ssize_t len = sizeof(missionitem);
+
+			if (dm_read(dm_current, i, &missionitem, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				return false;
+			}
+
+			if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
+				if (set_current_offboard_mission_index(i)) {
+					_navigator->get_mission_result()->landing = true;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void
@@ -362,6 +395,8 @@ Mission::update_offboard_mission()
 
 			/* reset work item if new mission has been accepted */
 			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+			_land_start_index = find_offboard_land_start();
 		}
 
 	} else {
@@ -1372,6 +1407,19 @@ Mission::set_current_offboard_mission_item()
 {
 	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
+
+	// update mission result landing
+	const bool landed = _navigator->get_land_detected()->landed;
+	const bool do_land_start = (_current_offboard_mission_index >= _land_start_index);
+	const bool on_landing = (_mission_item.nav_cmd == NAV_CMD_LAND);
+
+	if (!landed && (do_land_start || on_landing)) {
+		_navigator->get_mission_result()->landing = true;
+
+	} else {
+		_navigator->get_mission_result()->landing = false;
+	}
+
 	_navigator->get_mission_result()->seq_current = _current_offboard_mission_index;
 	_navigator->set_mission_result_updated();
 
@@ -1391,7 +1439,9 @@ Mission::check_mission_valid(bool force)
 	if ((!_home_inited && _navigator->home_position_valid()) || force) {
 
 		_navigator->get_mission_result()->valid =
-			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission, _param_dist_1wp.get(), false);
+			_missionFeasibilityChecker.checkMissionFeasible(_offboard_mission,
+					_param_dist_1wp.get(),
+					(_param_rtl_land_type.get() == 1));
 
 		_navigator->get_mission_result()->seq_total = _offboard_mission.count;
 		_navigator->increment_mission_instance_count();

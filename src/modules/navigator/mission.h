@@ -92,6 +92,8 @@ public:
 
 	int find_offboard_land_start();
 
+	bool land();
+
 private:
 	/**
 	 * Update onboard mission topic
@@ -240,6 +242,7 @@ private:
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_fw_climbout_diff;
+	control::BlockParamInt _param_rtl_land_type;
 
 	struct mission_s _onboard_mission {};
 	struct mission_s _offboard_mission {};
@@ -247,6 +250,8 @@ private:
 	int _current_onboard_mission_index{-1};
 	int _current_offboard_mission_index{-1};
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	int _land_start_index{INT16_MAX};
 
 	enum {
 		MISSION_TYPE_NONE,
