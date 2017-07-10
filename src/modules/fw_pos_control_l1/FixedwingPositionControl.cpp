@@ -1466,15 +1466,12 @@ FixedwingPositionControl::handle_command()
 {
 	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 		// only abort landing before point of no return (horizontal and vertical)
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		if (_control_mode.flag_control_auto_enabled &&
+		    _pos_sp_triplet.current.valid &&
+		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (_land_noreturn_vertical) {
-				mavlink_log_info(&_mavlink_log_pub, "Landing, can't abort after flare");
-
-			} else {
-				_fw_pos_ctrl_status.abort_landing = true;
-				mavlink_log_info(&_mavlink_log_pub, "Landing, aborted");
-			}
+			_fw_pos_ctrl_status.abort_landing = true;
+			mavlink_log_critical(&_mavlink_log_pub, "Landing, aborted");
 		}
 	}
 }

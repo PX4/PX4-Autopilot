@@ -88,7 +88,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int			start();
+	int		start();
 
 	/**
 	 * Display the navigator status.

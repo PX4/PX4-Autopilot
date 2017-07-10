@@ -467,15 +467,15 @@ Navigator::task_main()
 				int land_start = _mission.find_offboard_land_start();
 
 				if (land_start != -1) {
-					vehicle_command_s vcmd = {};
-					vcmd.target_system = get_vstatus()->system_id;
-					vcmd.target_component = get_vstatus()->component_id;
-					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.param1 = land_start;
-					vcmd.param2 = 0;
+					vehicle_command_s cmd_mission_start = {};
+					cmd_mission_start.timestamp = hrt_absolute_time();
+					cmd_mission_start.target_system = get_vstatus()->system_id;
+					cmd_mission_start.target_component = get_vstatus()->component_id;
+					cmd_mission_start.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
+					cmd_mission_start.param1 = land_start;
+					cmd_mission_start.param2 = 0;
 
-					vcmd.timestamp = hrt_absolute_time();
-					publish_vehicle_cmd(vcmd);
+					publish_vehicle_cmd(cmd_mission_start);
 
 				} else {
 					PX4_WARN("planned landing not available");

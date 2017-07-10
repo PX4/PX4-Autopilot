@@ -510,12 +510,12 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	       item->nav_cmd == NAV_CMD_VTOL_LAND;
 }
 
-void
+bool
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
-		return;
+		return false;
 	}
 
 	sp->lat = item->lat;
@@ -601,6 +601,8 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	}
 
 	sp->valid = true;
+
+	return sp->valid;
 }
 
 void
