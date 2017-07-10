@@ -390,7 +390,7 @@ void Standard::update_mc_state()
 				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
 
 		// return the vehicle to level position
-		float pitch_new = 0;
+		float pitch_new = 0.0f;
 
 		// create corrected desired body z axis in heading frame
 		matrix::Dcmf R_tmp = matrix::Eulerf(roll_new, pitch_new, 0.0f);
