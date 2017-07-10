@@ -1807,7 +1807,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		thrust_sp(1) = 0.0f;
 	}
 
-	if (!in_auto_takeoff) {
+	if (!in_auto_takeoff()) {
 		if (_vehicle_land_detected.ground_contact) {
 			/* if still or already on ground command zero xy thrust_sp in body
 			 * frame to consider uneven ground */
