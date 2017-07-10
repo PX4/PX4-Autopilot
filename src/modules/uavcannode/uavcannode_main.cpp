@@ -32,6 +32,7 @@
 
 #include <px4_config.h>
 #include <px4_log.h>
+#include <px4_tasks.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
@@ -48,7 +49,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
-#include <systemlib/scheduling_priorities.h>
 #include <version/version.h>
 __BEGIN_DECLS
 #include <nuttx/board.h>
