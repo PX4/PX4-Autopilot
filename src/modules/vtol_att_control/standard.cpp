@@ -356,8 +356,10 @@ void Standard::update_mc_state()
 		_flag_enable_mc_motors = false;
 	}
 
-	// if the thrust scale param is zero then the pusher-for-pitch strategy is disabled and we can return
-	if (_params_standard.forward_thrust_scale < FLT_EPSILON) {
+	// if the thrust scale param is zero or the drone is on manual mode,
+	// then the pusher-for-pitch strategy is disabled and we can return
+	if (_params_standard.forward_thrust_scale < FLT_EPSILON ||
+		!_v_control_mode->flag_control_position_enabled) {
 		return;
 	}
 
