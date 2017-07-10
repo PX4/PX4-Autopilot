@@ -74,12 +74,16 @@
 
 
 /*
-  The MPU9250 can only handle high SPI bus speeds on the sensor and
-  interrupt status registers. All other registers have a maximum 1MHz
-  SPI speed
+ * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
+ * interrupt status registers. All other registers have a maximum 1MHz
+ * SPI speed
+ *
+ * The Actual Value will be rounded down by the spi driver.
+ * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
+ * it will be 11.250 Mhz
  */
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU9250 */
+#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
 
 device::Device *MPU9250_SPI_interface(int bus, bool external_bus);
