@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,11 +37,13 @@
  * Implements basic functionality of UAVCAN node.
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- *		 David Sidrane <david_s5@nscdg.com>
- *		 Andreas Jochum <Andreas@NicaDrone.com>
+ * @author David Sidrane <david_s5@nscdg.com>
+ * @author Andreas Jochum <Andreas@NicaDrone.com>
+ *
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -51,7 +53,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
-#include <systemlib/scheduling_priorities.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
