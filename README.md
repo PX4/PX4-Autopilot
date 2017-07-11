@@ -1,6 +1,6 @@
 ## FORK INFO ##
 
-Please added functionality for **PX4 Autopilot** to **Fast RTPS** in [README_eprosima.rst](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.rst) 
+Please added functionality for **PX4 Autopilot** to **Fast RTPS** in [README_eprosima](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.md)
 
 ## PX4 Pro Drone Autopilot ##
 
