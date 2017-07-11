@@ -5,8 +5,6 @@ This bridge add communication capabilities between a **PX4 Autopilot** and a **F
 
 ![alt text](doc/1_general-white.png)
 
-
-
 ## Automatic code generation
 
 The support for the new functionality added is mainly carried on inside three new (automatic generated) code blocks.

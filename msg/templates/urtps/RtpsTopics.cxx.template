@@ -72,14 +72,11 @@ void RtpsTopics::publish(char topic_ID, char data_buffer[], size_t len)
 @[for topic in send_topics]@
         case @(message_id(topic)): // @(topic)
         {
-            //printf("@(topic)\n");
-            //printf("buf %s\n", data_buffer);
             @(topic)_ st;
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
             _@(topic)_pub.publish(&st);
-            //printf("                >>[%d] %lu\n", @(message_id(topic)), st.timestamp());
         }
         break;
 @[end for]@
@@ -135,7 +132,7 @@ bool RtpsTopics::getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr)
         break;
 @[end for]@
         default:
-            printf("Unexpected topic ID to getMsg\n");
+            printf("Unexpected topic ID '%hhu' to getMsg\n", topic_ID);
         break;
     }
 

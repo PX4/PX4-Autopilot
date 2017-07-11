@@ -128,7 +128,6 @@ static int parse_options(int argc, char **argv)
 
     return 0;
 }
-@[if recv_topics]@
 
 void signal_handler(int signum)
 {
@@ -136,6 +135,7 @@ void signal_handler(int signum)
    running = 0;
    transport_node->close();
 }
+@[if recv_topics]@
 
 void t_send(void *data)
 {
@@ -252,7 +252,9 @@ int main(int argc, char** argv)
 @[end if]@
         usleep(_options.sleep_us);
     }
+@[if recv_topics]@
     sender_thread.join();
+@[end if]@
     delete transport_node;
     transport_node = nullptr;
 

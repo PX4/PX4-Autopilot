@@ -169,7 +169,7 @@ void* send(void*)
         if (updated)
         {
             // obtained data for the file descriptor
-            struct @(topic)_s data;
+            struct @(topic)_s data = {};
             // copy raw data into local buffer
             orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data);
             serialize_@(topic)(&data, data_buffer, &length, &microCDRWriter);
@@ -253,6 +253,7 @@ static int micrortps_start(int argc, char *argv[])
 
     char data_buffer[BUFFER_SIZE] = {};
     int read = 0;
+    char topic_ID = 255;
 
     // Declare received topics
 @[for topic in recv_topics]@
@@ -270,7 +271,6 @@ static int micrortps_start(int argc, char *argv[])
 
     int total_read = 0;
     uint32_t received = 0;
-    char topic_ID = 255;
     struct timespec begin;
     clock_gettime(0, &begin);
     int loop = 0;
