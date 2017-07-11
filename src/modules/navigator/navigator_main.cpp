@@ -403,25 +403,32 @@ Navigator::task_main()
 					rep->current.yaw = NAN;
 				}
 
+				// Position change with optional altitude change
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
 					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
 
-				} else if (curr->current.valid
+					if (PX4_ISFINITE(cmd.param7)) {
+						rep->current.alt = cmd.param7;
+
+					} else {
+						rep->current.alt = get_global_position()->alt;
+					}
+
+					// Altitude without position change
+
+				} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
 					   && PX4_ISFINITE(curr->current.lat)
 					   && PX4_ISFINITE(curr->current.lon)) {
 					rep->current.lat = curr->current.lat;
 					rep->current.lon = curr->current.lon;
+					rep->current.alt = cmd.param7;
+
+					// All three set to NaN - hold in current position
 
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
-				}
-
-				if (PX4_ISFINITE(cmd.param7)) {
-					rep->current.alt = cmd.param7;
-
-				} else {
 					rep->current.alt = get_global_position()->alt;
 				}
 
