@@ -457,7 +457,7 @@ protected:
 
 			/* only send commands for other systems/components, don't forward broadcast commands */
 			if ((cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) &&
-			    (cmd.target_component != MAV_COMP_ID_ALL)) {
+			    (cmd.target_system != 0)) {
 
 				if (_mavlink->verbose()) {
 					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
