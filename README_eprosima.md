@@ -269,8 +269,11 @@ Go to *Interfacing options > Serial*, NO to *Would you like a login shell to be 
 
 And enable UART setting *enable_uart=1*.
 
-## Graphical example of usage
+## Hello world and Throughput test
 
+Please click in [Hello world](https://github.com/eProsima/Firmware/blob/micrortps/hello_world.md) or in [Throughput test](https://github.com/eProsima/Firmware/blob/micrortps/throughput_test.md) to see these couple of operative example of use.
+
+## Graphical example of usage
 
 This flow chart shows graphically how works a bridge for an example of use that sends the topic sensor_combined from a Pixracer to a Raspberry Pi through UART.
 
