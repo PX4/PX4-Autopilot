@@ -2,7 +2,7 @@
 
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
 /*
  * @file    FOAWDifferentiator.hpp
  * @brief   A class to implement a first order adaptive windowing differentiator
- * Author: Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  * From:  Discrete-Time Adaptive Windowing for Velocity Estimation
  * Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
  */
@@ -76,17 +76,17 @@ public:
 	/**
 	 * @return Retrieve the noise level parameter (_delta)
 	 */
-	float get_noise_level(void);
+	float get_noise_level();
 
 	/**
 	 * @return Retrieve the size of the window used to compute the derivative
 	 */
-	uint8_t get_last_window_size(void);
+	uint8_t get_last_window_size();
 
 	/**
 	 * Reset the filter
 	 */
-	void reset(void);
+	void reset();
 
 private:
 
@@ -103,7 +103,7 @@ private:
 	 * Moves all the samples in the buffer one step forward
 	 * The oldest sample if thrown away
 	 */
-	void shift_buffer(void);
+	void shift_buffer();
 
 	/*
 	 * Add a new sample at the beginning of the buffer
@@ -119,7 +119,7 @@ private:
 	 * Permorms a fit based on a least squares estimate using all the samples inside the window
 	 */
 	void best_fit_FOAW(uint8_t window_size);
-	float fit(void);
+	float fit();
 
 
 	float           _dt;                            // Sample time

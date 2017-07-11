@@ -2,7 +2,7 @@
 
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 /*
  * @file    FOAWDifferentiator.cpp
  * @brief   A class to implement a first order adaptive windowing differentiator
- * Author: Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  * From:  Discrete-Time Adaptive Windowing for Velocity Estimation
  * Farrokh Janabi-Sharifi, Vincent Hayward, and Chung-Shin J. Chen
  */
@@ -70,12 +70,12 @@ void FOAWDifferentiator::set_sample_time(float dt)
 	_dt = dt;
 }
 
-uint8_t FOAWDifferentiator::get_last_window_size(void)
+uint8_t FOAWDifferentiator::get_last_window_size()
 {
 	return _last_window_size;
 }
 
-void FOAWDifferentiator::reset(void)
+void FOAWDifferentiator::reset()
 {
 	memset(&_buffer, 0, sizeof(_buffer));
 	_nb_samples = 0;
@@ -95,12 +95,11 @@ void FOAWDifferentiator::add_sample(float sample)
 	_buffer[_nb_samples - 1] = sample;
 }
 
-void FOAWDifferentiator::shift_buffer(void)
+void FOAWDifferentiator::shift_buffer()
 {
 	for (int i = 0; i < (_nb_samples - 1); i++) {
 		_buffer[i] = _buffer[i + 1];
 	}
-
 }
 
 void FOAWDifferentiator::end_fit_FOAW(uint8_t window_size)
@@ -115,8 +114,6 @@ void FOAWDifferentiator::end_fit_FOAW(uint8_t window_size)
 	d_time  = window_size * _dt;
 	fit_val.a = d_amplitude / d_time;
 	fit_val.b = _buffer[last_sample_pos];
-
-	return;
 }
 
 void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
@@ -158,13 +155,11 @@ void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
 	}
 
 	fit_val.b = y_mean + fit_val.a * window_size * _dt / 2.0f;
-
-	return;
 }
 
 // TODO; Add a way to be able to select the method you prefer (End-fit is faster but less accurate)
 // Performs the Best-fit-R algorithm
-float FOAWDifferentiator::fit(void)
+float FOAWDifferentiator::fit()
 {
 	uint8_t window_size;
 	uint8_t j;
