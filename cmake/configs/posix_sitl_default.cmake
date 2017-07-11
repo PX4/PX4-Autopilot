@@ -77,6 +77,7 @@ set(config_module_list
 	modules/ekf2_replay
 	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/iekf
 
 	#
 	# Vehicle Control

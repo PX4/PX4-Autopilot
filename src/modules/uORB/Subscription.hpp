@@ -110,6 +110,7 @@ private:
 
 /**
  * alias class name so it is clear that the base class
+ * can be used by itself if desired
  */
 typedef SubscriptionBase SubscriptionTiny;
 

@@ -97,9 +97,10 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  *
  * @value 1 local_position_estimator, attitude_estimator_q
  * @value 2 ekf2
+ * @value 3 iekf
  *
  * @min 1
- * @max 2
+ * @max 3
  * @reboot_required true
  * @group System
  */
