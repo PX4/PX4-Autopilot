@@ -375,9 +375,9 @@ int MPU9250::reset()
 {
 	irqstate_t state;
 
-	// Hold off sampling for 4 ms
+	// Hold off sampling until done (100 MS will be shortened)
 	state = px4_enter_critical_section();
-	_reset_wait = hrt_absolute_time() + 10000;
+	_reset_wait = hrt_absolute_time() + 100000;
 
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 
@@ -452,6 +452,15 @@ int MPU9250::reset()
 			}
 		}
 	}
+
+
+	if (all_ok && _whoami == MPU_WHOAMI_9250) {
+		all_ok = _mag->ak8963_reset() == OK;
+	}
+
+	state = px4_enter_critical_section();
+	_reset_wait = hrt_absolute_time() + 10;
+	px4_leave_critical_section(state);
 
 	return all_ok ? OK : -EIO;
 }
@@ -721,13 +730,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET: {
-			int ret = reset();
-
-			if (_whoami == MPU_WHOAMI_9250) {
-				return (ret == OK ? _mag->ioctl(filp, cmd, arg) : ret);
-			}
-
-			return ret;
+			return reset();
 		}
 
 	case SENSORIOCSPOLLRATE: {
