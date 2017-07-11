@@ -160,7 +160,6 @@ private:
 		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
 
 	float _acc_hor_filt = 0.0f; 	// low-pass filtered horizontal acceleration
-	bool _mag_decl_saved = false;	// true when the declination for the current position has been saved
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	// last time the EKF was operating a mode that estimates magnetomer biases (usec)
