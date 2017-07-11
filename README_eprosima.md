@@ -28,39 +28,97 @@ The support for the new functionality added is mainly carried on inside three ne
 
 ![alt text](doc/4_both-white.png)
 
-The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, on this way:
+The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
+
+### Generate and installing the client and the agent
+
+**NOTE**: Before continue we need to have installed Fast RTPS. Visit its installation [manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
+
+To generate and install the code for the client (PX4 side) and the agent (Fast RTPS side) we need to execute the python script **generate_microRTPS_bridge.py** hosted in *Tools* folder.
 
   ```sh
-  $ usage: generate_microRTPS_bridge.py [-h] [--send/-s *.msg [*.msg ...]] [--receive/-r *.msg [*.msg ...]]
+  $ cd /path/to/PX4/Firmware
+  $ python Tools/generate_microRTPS_bridge.py -h
+  usage: generate_microRTPS_bridge.py [-h] [-s *.msg [*.msg ...]]
+                                      [-r *.msg [*.msg ...]] [-a] [-c]
+                                      [-t MSGDIR] [-o AGENTDIR] [-u CLIENTDIR]
+                                      [-f FASTRTPSGEN]
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -s *.msg [*.msg ...], --send *.msg [*.msg ...]
+                          Topics to be sended
+    -r *.msg [*.msg ...], --receive *.msg [*.msg ...]
+                          Topics to be received
+    -a, --agent           Flag for generate the agent, by default is true if -c
+                          is not specified
+    -c, --client          Flag for generate the client, by default is true if -a
+                          is not specified
+    -t MSGDIR, --topic-msg-dir MSGDIR
+                          Topics message dir, by default msg/
+    -o AGENTDIR, --agent-outdir AGENTDIR
+                          Agent output dir, by default micrortps_agent/
+    -u CLIENTDIR, --client-outdir CLIENTDIR
+                          Client output dir, by default,
+                          src/examples/micrortps_client
+    -f FASTRTPSGEN, --fastrtpsgen-dir FASTRTPSGEN
+                          fastrtpsgen installation dir, by default /bin
+  ```
+
+ - The argument **--send/-s** means that the application from PX4 side will send these messages, and the argument **--receive/-r** specifies which messages is going to be received.
+
+ - The output appears in CLIENTDIR (**-o src/examples/micrortps_client**, by default) and in the AGENTDIR (**-u micrortps_agent**, by default). **CAUTION**: This script erase the content of the CLIENTDIR and the AGENTDIR before create new files and folders.
+
+ - If no flag **-a** or **-c** is specified, both the client and the agent will be generated and installed.
+
+ - The **-f** option may be needed if *Fast RTPS* was installed in other path different to default one (*-f /path/to/fastrtps/installation/bin*).
+
+An example of use:
+
+  ```sh
+  $ cd /path/to/PX4/Firmware
   $ python Tools/generate_microRTPS_bridge.py -s msg/sensor_baro.msg -r msg/sensor_combined.msg
   ```
-The argument **--send/-s** means that the application from PX4 side will send these messages, and the argument **--receive/-r** specifies which messages is going to be received. The output appears in the *msgenerated* folder, in this case:
+Checking the correct installation:
 
   ```sh
-  $ ls msgenerated/
-  microRTPS_agent_CMakeLists.txt
-  microRTPS_agent.cxx
-  microRTPS_client_CMakeLists.txt
-  microRTPS_client.cpp
-  RtpsTopics.cxx
-  RtpsTopics.h
-  sensor_baro_.idl
-  sensor_baro_Publisher.cxx
-  sensor_baro_Publisher.h
-  sensor_combined_.idl
-  sensor_combined_Subscriber.cxx
-  sensor_combined_Subscriber.h
+  $ tree micrortps_agent
+  micrortps_agent
+  ├── build
+  ├── CMakeLists.txt
+  ├── idl
+  │   ├── sensor_baro_.idl
+  │   └── sensor_combined_.idl
+  ├── microRTPS_agent.cxx
+  ├── microRTPS_transport.cxx
+  ├── microRTPS_transport.h
+  ├── RtpsTopics.cxx
+  ├── RtpsTopics.h
+  ├── sensor_baro_.cxx
+  ├── sensor_baro_.h
+  ├── sensor_baro_Publisher.cxx
+  ├── sensor_baro_Publisher.h
+  ├── sensor_baro_PubSubTypes.cxx
+  ├── sensor_baro_PubSubTypes.h
+  ├── sensor_combined_.cxx
+  ├── sensor_combined_.h
+  ├── sensor_combined_PubSubTypes.cxx
+  ├── sensor_combined_PubSubTypes.h
+  ├── sensor_combined_Subscriber.cxx
+  └── sensor_combined_Subscriber.h
+
+  2 directories, 20 files
   ```
+  ```sh
+  $ tree src/examples/micrortps_client
+  src/examples/micrortps_client
+  ├── CMakeLists.txt
+  ├── microRTPS_client.cpp
+  ├── microRTPS_transport.cxx
+  └── microRTPS_transport.h
 
-## Installig code
-
-At this point we need to have installed Fast RTPS to continue. Visit its installation [manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
-
-For automating the code installation we need to run a script. The script creates */path/to/micrortps_agent/install-dir* and *src/example/micrortps_client* if doesn't exist, and install both applications inside:
-
-    $ ./micrortps_install.sh /path/to/micrortps_agent/install-dir /path/to/Fast-RTPS/install-dir/bin/
-
-**CAUTION**: This script erase some files from */path/to/micrortps_agent/install-dir*
+  0 directories, 4 files
+  ```
 
 PX4 Firmware: the micro RTPS client
 -----------------------------------
