@@ -172,6 +172,9 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 	board_autoled_initialize();
 
+	/* Start with Power off */
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+
 	/* configure ADC pins */
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
@@ -181,7 +184,6 @@ stm32_boardinitialize(void)
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_3V3_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_EN);
 
@@ -207,8 +209,12 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_GPIO4_OUTPUT);
 	stm32_configgpio(GPIO_GPIO5_OUTPUT);
 
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
+	/* configure SPI interfaces
+	 * is deferred to board_app_initialize
+	 * to delay the sensor power up with
+	 * out adding a delay
+	 */
+
 
 	stm32_usbinitialize();
 
@@ -261,6 +267,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
+
+	/* Bring up the Sensor power */
+
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+	/* Now it is ok to drvie the pins high
+	 * so configure SPI CPIO */
+
+	stm32_spiinitialize();
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
