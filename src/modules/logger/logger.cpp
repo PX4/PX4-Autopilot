@@ -591,6 +591,7 @@ void Logger::add_common_topics()
 	add_topic("estimator_status", 200); //this one is large
 	add_topic("gps_dump"); //this will only be published if gps_dump_comm is set
 	add_topic("input_rc", 100);
+	add_topic("mc_att_ctrl_status");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rc_channels", 100);
