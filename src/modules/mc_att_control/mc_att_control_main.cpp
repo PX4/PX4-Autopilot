@@ -1309,6 +1309,9 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.timestamp = hrt_absolute_time();
 
 				_controller_status.raw_derivative = _raw_diff;
+				_controller_status.roll_foaw_derivative = _foaw_roll.get_last_derivative();
+				_controller_status.pitch_foaw_derivative = _foaw_pitch.get_last_derivative();
+				_controller_status.yaw_foaw_derivative = _foaw_yaw.get_last_derivative();
 				_controller_status.rates_lpf = _rates_lpf;
 				_controller_status.raw_derivative_rates_lpf = _raw_diff_gyro_lpf;
 				_controller_status.window_size = _diff_gyo_lpf.get_last_window_size();

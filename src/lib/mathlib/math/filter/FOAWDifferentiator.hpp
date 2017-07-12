@@ -86,7 +86,7 @@ public:
 	/**
 	 * @return Retrieve the last computed derivative
 	 */
-	uint8_t get_last_derivative();
+	float get_last_derivative();
 
 	/**
 	 * Reset the filter

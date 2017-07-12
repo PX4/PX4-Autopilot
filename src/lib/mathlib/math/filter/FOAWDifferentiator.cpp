@@ -76,7 +76,7 @@ uint8_t FOAWDifferentiator::get_last_window_size()
 	return _last_window_size;
 }
 
-uint8_t FOAWDifferentiator::get_last_derivative()
+float FOAWDifferentiator::get_last_derivative()
 {
 	return _fit_val.a;
 }
