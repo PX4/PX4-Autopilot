@@ -286,14 +286,13 @@ Navigator::task_main()
 			/* timed out - periodic check for _task_should_exit, etc. */
 			if (global_pos_available_once) {
 				global_pos_available_once = false;
-				PX4_WARN("global position timeout");
 			}
 
 			/* Let the loop run anyway, don't do `continue` here. */
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			PX4_ERR("nav: poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %d, %d", pret, errno);
 			usleep(10000);
 			continue;
 
@@ -384,6 +383,7 @@ Navigator::task_main()
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
 				struct position_setpoint_triplet_s *rep = get_reposition_triplet();
+				struct position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 				// store current position as previous position and goal as next
 				rep->previous.yaw = get_global_position()->yaw;
@@ -403,19 +403,32 @@ Navigator::task_main()
 					rep->current.yaw = NAN;
 				}
 
+				// Position change with optional altitude change
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
 					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
 
+					if (PX4_ISFINITE(cmd.param7)) {
+						rep->current.alt = cmd.param7;
+
+					} else {
+						rep->current.alt = get_global_position()->alt;
+					}
+
+					// Altitude without position change
+
+				} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
+					   && PX4_ISFINITE(curr->current.lat)
+					   && PX4_ISFINITE(curr->current.lon)) {
+					rep->current.lat = curr->current.lat;
+					rep->current.lon = curr->current.lon;
+					rep->current.alt = cmd.param7;
+
+					// All three set to NaN - hold in current position
+
 				} else {
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
-				}
-
-				if (PX4_ISFINITE(cmd.param7)) {
-					rep->current.alt = cmd.param7;
-
-				} else {
 					rep->current.alt = get_global_position()->alt;
 				}
 
@@ -475,6 +488,7 @@ Navigator::task_main()
 					vcmd.param1 = land_start;
 					vcmd.param2 = 0;
 
+					vcmd.timestamp = hrt_absolute_time();
 					publish_vehicle_cmd(vcmd);
 
 				} else {

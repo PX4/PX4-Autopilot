@@ -44,3 +44,4 @@
  ****************************************************************************************************/
 
 #include "../px4fmu-v2/board_config.h"
+#define PX4_SPIDEV_ICM_20608  PX4_SPIDEV_ACCEL_MAG // PixhawkMini has ICM_20608 on GPIO_SPI_CS_ACCEL_MAG

@@ -484,6 +484,7 @@ void
 CameraTrigger::test()
 {
 	struct vehicle_command_s cmd = {};
+	cmd.timestamp = hrt_absolute_time();
 	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
 	cmd.param5 = 1.0f;
 
@@ -599,6 +600,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 					trig->_activation_time = cmd.param2;
 					param_set(trig->_p_activation_time, &(trig->_activation_time));
 				}
+			}
+
+			// Trigger once immediately if param is set
+			if (cmd.param3 > 0.0f) {
+				// Schedule shot
+				trig->_one_shot = true;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;

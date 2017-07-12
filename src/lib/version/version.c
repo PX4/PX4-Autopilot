@@ -58,10 +58,39 @@ enum FIRMWARE_TYPE {
 	FIRMWARE_TYPE_RELEASE = 255
 };
 
+typedef enum {
+	PATCH = 0,
+	MINOR = 8,
+	MAJOR = 16
+} version_type_t;
+
+/**
+ * Convert a version number from string to int
+ * @param version tag
+ * @param start index of the fist char
+ * @param end index of the last char
+ * @return version number as int
+ */
+static uint32_t string_to_int(const char *tag, int start, int end)
+{
+	const char *curr = &tag[start];
+	uint32_t temp_ver = 0;
+
+	while (curr <= &tag[end]) {
+		temp_ver = (temp_ver * 10)  + (*curr - '0');
+
+		curr++;
+	}
+
+	return temp_ver;
+}
+
 /**
  * Convert a version tag string to a number
  * @param tag version tag in one of the following forms:
  *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - dev: v1.4.0rc3-7-g7e282f57-dirty
+ *            - dev: v1.4.0-dirty
  *            - rc: v1.4.0rc4
  *            - release: v1.4.0
  *            - linux: 7.9.3
@@ -71,9 +100,10 @@ static uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
-	unsigned mag = 0;
+	int end = 0;
 	int32_t type = -1;
 	unsigned dashcount = 0;
+	version_type_t v_type = PATCH;
 
 	for (int i = len - 1; i >= 0; i--) {
 
@@ -82,19 +112,34 @@ static uint32_t version_tag_to_number(const char *tag)
 		}
 
 		if (tag[i] >= '0' && tag[i] <= '9') {
-			if (mag < 32) {
-				char number = tag[i] - '0';
-
-				ver += (number << mag);
-				mag += 4;
+			if (!end) {
+				end = i;
 			}
 
-		} else if (tag[i] == '.') {
-			if (mag % 8) {
-				mag += 4;
+			if (i == 0) {
+				uint32_t temp_ver = string_to_int(tag, i, end);
+				ver = (temp_ver << v_type) + ver;
 			}
 
-			continue;
+		} else if ((tag[i] == '.') || (i == 0)) {
+			uint32_t temp_ver = string_to_int(tag, (i + 1), end);
+			ver = (temp_ver << v_type) + ver;
+
+			end = 0;
+
+			switch (v_type) {
+			case PATCH:
+				v_type = MINOR;
+				break;
+
+			case MINOR:
+				v_type = MAJOR;
+				break;
+
+			case MAJOR:
+			default:
+				break;
+			}
 
 		} else if (i > 3 && type == -1) {
 			/* scan and look for signature characters for each type */
@@ -131,7 +176,7 @@ static uint32_t version_tag_to_number(const char *tag)
 			 * are seeing non-numeric characters (eg. '-')
 			 */
 			ver = 0;
-			mag = 0;
+			end = 0;
 		}
 	}
 
@@ -154,6 +199,11 @@ static uint32_t version_tag_to_number(const char *tag)
 uint32_t px4_firmware_version(void)
 {
 	return version_tag_to_number(PX4_GIT_TAG_STR);
+}
+
+const char *px4_firmware_git_branch(void)
+{
+	return PX4_GIT_BRANCH_NAME;
 }
 
 uint32_t px4_board_version(void)

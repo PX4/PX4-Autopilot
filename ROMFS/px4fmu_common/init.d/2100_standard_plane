@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Standard AETR Plane
+# @name Standard Plane
 #
 # @type Standard Plane
 # @class Plane
@@ -10,6 +10,7 @@
 # @output MAIN3 throttle
 # @output MAIN4 rudder
 # @output MAIN5 flaps
+# @output MAIN6 gear
 #
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
@@ -20,10 +21,10 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-set MIXER AETR
+set MIXER AETRFG
 
-# use PWM parameters for throttle channel
-set PWM_OUT 3
-set PWM_DISARMED p:PWM_DISARMED
-set PWM_MIN p:PWM_MIN
-set PWM_MAX p:PWM_MAX
+set PWM_RATE 50
+set PWM_AUX_RATE 50
+
+# rate must be set by group (see pwm info)
+# throttle is in the same group as servos

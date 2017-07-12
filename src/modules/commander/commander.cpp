@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -495,6 +495,8 @@ int commander_main(int argc, char *argv[])
 				cmd.param6 = NAN;
 				cmd.param7 = NAN;
 
+				cmd.timestamp = hrt_absolute_time();
+
 				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 				(void)orb_unadvertise(h);
 
@@ -811,7 +813,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 							break;
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
-							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+							if (_mission_result.valid) {
+								main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+							} else {
+								main_ret = TRANSITION_DENIED;
+							}
 							break;
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
@@ -1160,7 +1166,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		if (_mission_result.valid) {
 
 			// requested first mission item valid
-			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= 0) && (cmd->param1 < _mission_result.seq_total)) {
+			if (PX4_ISFINITE(cmd->param1) && (cmd->param1 >= -1) && (cmd->param1 < _mission_result.seq_total)) {
 
 				// switch to AUTO_MISSION and ARM
 				if ((TRANSITION_DENIED != main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state))
@@ -1684,6 +1690,8 @@ int commander_thread_main(int argc, char *argv[])
 		checkAirspeed = true;
 	}
 
+	commander_boot_timestamp = hrt_absolute_time();
+
 	// Run preflight check
 	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
@@ -1719,8 +1727,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t rc_arm_hyst = 100;
 	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
-
-	commander_boot_timestamp = hrt_absolute_time();
 
 	transition_result_t arming_ret;
 
@@ -1972,6 +1978,11 @@ int commander_thread_main(int argc, char *argv[])
 						(void)Commander::preflightCheck(&mavlink_log_pub, true, true, true, true, checkAirspeed,
 								(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT), !arm_without_gps,
 								 /* checkDynamic */ true, is_vtol(&status), /* reportFailures */ hotplug_timeout, /* prearm */ false, hrt_elapsed_time(&commander_boot_timestamp));
+					}
+
+					// Provide feedback on mission state
+					if (!_mission_result.valid && hotplug_timeout && _home.timestamp > 0) {
+						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
 					}
 				}
 
@@ -2613,21 +2624,19 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Only evaluate mission state if home is set,
 		 * this prevents false positives for the mission
-		 * rejection. Back off 2 seconds to not overlay
+		 * rejection. Back off 3 seconds to not overlay
 		 * home tune.
 		 */
 		if (status_flags.condition_home_position_valid &&
-			(hrt_elapsed_time(&_home.timestamp) > 2000000) &&
+			(hrt_elapsed_time(&_home.timestamp) > 3000000) &&
 			_last_mission_instance != _mission_result.instance_count) {
 
 			if (!_mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);
-				warnx("mission fail");
 			} else if (_mission_result.warning) {
 				/* the mission has a warning */
 				tune_mission_fail(true);
-				warnx("mission warning");
 			} else {
 				/* the mission is valid */
 				tune_mission_ok(true);

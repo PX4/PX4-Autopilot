@@ -4,9 +4,15 @@ set VEHICLE_TYPE fw
 
 if [ $AUTOCNF == yes ]
 then
-#
-# Default parameters for FW
-#
+	#
+	# Default parameters for FW
+	#
+
+	param set EKF2_ARSP_THR 8.0
+	param set EKF2_FUSE_BETA 0
+	param set EKF2_MAG_ACCLIM 0
+	param set EKF2_MAG_YAWLIM 0
+
 	param set RTL_RETURN_ALT 100
 	param set RTL_DESCEND_ALT 100
 	param set RTL_LAND_DELAY -1
@@ -19,6 +25,9 @@ then
 	param set MIS_TAKEOFF_ALT 25
 
 	param set PWM_RATE 50
+
+	# FW takeoff acceleration can easily exceed ublox GPS 2G default
+	param set GPS_UBX_DYNMODEL 8
 fi
 
 # This is the gimbal pass mixer

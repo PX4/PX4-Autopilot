@@ -40,7 +40,6 @@ then
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
 
-	param set MPC_XY_FF 0.2
 	param set MPC_XY_VEL_MAX 2
 	param set PWM_MIN 1080
 fi

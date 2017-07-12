@@ -321,7 +321,7 @@ int GPS::init()
 
 	/* start the GPS driver worker task */
 	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1550, (px4_main_t)&GPS::task_main_trampoline, args);
+				   SCHED_PRIORITY_SLOW_DRIVER, 1610, (px4_main_t)&GPS::task_main_trampoline, args);
 
 	if (_task < 0) {
 		PX4_WARN("task start failed: %d", errno);

@@ -41,6 +41,7 @@
 #include <nuttx/arch.h>
 
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -190,7 +191,7 @@ static int format_fault_file_name(struct timespec *ts, char *buffer, unsigned in
 /****************************************************************************
  * identify
  ****************************************************************************/
-static void identify(char *caller)
+static void identify(const char *caller)
 {
 	if (caller) {
 		syslog(LOG_INFO, "[%s] ", caller);
@@ -581,6 +582,200 @@ static int write_user_stack(int fdin, int fdout, info_s *pi, char *buffer,
 	return ret;
 }
 
+/**
+ * Append hardfault data to the stored ULog file (the log path is stored in BBSRAM).
+ * @param caller
+ * @param fdin file descriptor for plain-text hardhault log to read from
+ * @return 0 on success, -errno otherwise
+ */
+static int hardfault_append_to_ulog(const char *caller, int fdin)
+{
+
+	int ret = 0;
+	int write_size_remaining = lseek(fdin, 0, SEEK_END);
+
+	if (write_size_remaining < 0) {
+		return -EINVAL;
+	}
+
+	lseek(fdin, 0, SEEK_SET);
+
+	// get the last ulog file
+	char ulog_file_name[HARDFAULT_MAX_ULOG_FILE_LEN];
+	int fd = open(HARDFAULT_ULOG_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		return -errno;
+	}
+
+	if (read(fd, ulog_file_name, HARDFAULT_MAX_ULOG_FILE_LEN) != HARDFAULT_MAX_ULOG_FILE_LEN) {
+		close(fd);
+		return -errno;
+	}
+
+	close(fd);
+	ulog_file_name[HARDFAULT_MAX_ULOG_FILE_LEN - 1] = 0; //ensure null-termination
+
+	identify(caller);
+	syslog(LOG_INFO, "Appending to ULog %s\n", ulog_file_name);
+
+	// get the ulog file size
+	struct stat st;
+
+	if (stat(ulog_file_name, &st) == -1) {
+		return -errno;
+	}
+
+	const off_t ulog_file_size = st.st_size;
+
+	// open the ulog file
+	int ulog_fd = open(ulog_file_name, O_RDWR);
+
+	if (ulog_fd < 0) {
+		return -errno;
+	}
+
+	uint8_t chunk[256];
+
+	//verify it's an ULog file
+	char magic[8];
+	magic[0] = 'U';
+	magic[1] = 'L';
+	magic[2] = 'o';
+	magic[3] = 'g';
+	magic[4] = 0x01;
+	magic[5] = 0x12;
+	magic[6] = 0x35;
+
+	if (read(ulog_fd, chunk, 8) != 8) {
+		identify(caller);
+		syslog(LOG_INFO, "Reading ULog header failed\n");
+		return -EINVAL;
+	}
+
+	if (memcmp(magic, chunk, 7) != 0) {
+		return -EINVAL;
+	}
+
+	// set the 'appended data' bit
+	const int flag_offset = 16 + 3 + 8; // ulog header+message header+compat flags
+	lseek(ulog_fd, flag_offset, SEEK_SET);
+
+	if (read(ulog_fd, chunk, 1) != 1) {
+		ret = -errno;
+		goto out;
+	}
+
+	chunk[0] |= 1 << 0;
+	lseek(ulog_fd, flag_offset, SEEK_SET);
+
+	if (write(ulog_fd, chunk, 1) != 1) {
+		ret = -errno;
+		goto out;
+	}
+
+	// set the offset (find the first that is 0, assuming we're on little endian), see definition of FLAG_BITS message
+	const int append_file_offset = 16 + 3 + 8 + 8; // ulog header+message header+compat flags+incompat flags
+	bool found = false;
+
+	for (int i = 0; i < 3; ++i) { // there is a maximum of 3 offsets we can use
+		int current_offset = append_file_offset + i * 8;
+		lseek(ulog_fd, current_offset, SEEK_SET);
+		uint64_t offset;
+
+		if (read(ulog_fd, &offset, sizeof(offset)) != sizeof(offset)) {
+			ret = -errno;
+			goto out;
+		}
+
+		if (offset == 0) { // nothing appended yet
+			lseek(ulog_fd, current_offset, SEEK_SET);
+			offset = ulog_file_size;
+
+			if (write(ulog_fd, &offset, sizeof(offset)) != sizeof(offset)) {
+				ret = -errno;
+				goto out;
+			}
+
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) {
+		identify(caller);
+		syslog(LOG_ERR, "Cannot append more data to ULog (no offsets left)\n");
+		ret = -EINVAL;
+		goto out;
+	}
+
+
+	// now append the data
+	lseek(ulog_fd, 0, SEEK_END);
+
+	const int max_bytes_to_write = (1 << 16) - 100; // limit is given by max uint16 minus message header and key
+	uint8_t is_continued = 0;
+
+	while (write_size_remaining > 0) { // we might need to split into several ULog messages
+		int bytes_to_write = write_size_remaining;
+
+		if (bytes_to_write > max_bytes_to_write) {
+			bytes_to_write = max_bytes_to_write;
+		}
+
+		chunk[2] = 'M'; // msg_type
+		chunk[3] = is_continued;
+		is_continued = 1;
+		const int key_len = snprintf((char *)chunk + 5, sizeof(chunk) - 5, "char[%i] hardfault_plain", bytes_to_write);
+		chunk[4] = key_len;
+		const uint16_t ulog_msg_len = bytes_to_write + key_len + 5 - 3; // subtract ULog msg header
+		memcpy(chunk, &ulog_msg_len, sizeof(uint16_t));
+
+		if (write(ulog_fd, chunk, key_len + 5) != key_len + 5) {
+			ret = -errno;
+			goto out;
+		}
+
+		int num_read;
+
+		while (bytes_to_write > 0) {
+			// read a chunk from fdin to memory and then write it to the file
+			int max_read = sizeof(chunk);
+
+			if (max_read > bytes_to_write) {
+				max_read = bytes_to_write;
+			}
+
+			num_read = read(fdin, chunk, max_read);
+
+			if (num_read <= 0) {
+				identify(caller);
+				syslog(LOG_ERR, "read() failed: %i, %i\n", num_read, errno);
+				ret = -1;
+				goto out;
+			}
+
+			ret = write(ulog_fd, chunk, num_read);
+
+			if (ret != num_read) {
+				ret = -errno;
+				goto out;
+			}
+
+			bytes_to_write -= num_read;
+			write_size_remaining -= num_read;
+		}
+	}
+
+	ret = 0;
+
+out:
+	close(ulog_fd);
+
+	return ret;
+}
+
+
 /****************************************************************************
  * commit
  ****************************************************************************/
@@ -615,12 +810,29 @@ static int hardfault_commit(char *caller)
 				if (ret == OK) {
 					int fdout = open(path, O_RDWR | O_CREAT);
 
-					if (fdout > 0) {
+					if (fdout >= 0) {
 						identify(caller);
 						syslog(LOG_INFO, "Saving Fault Log file %s\n", path);
 						ret = hardfault_write(caller, fdout, HARDFAULT_FILE_FORMAT, true);
 						identify(caller);
 						syslog(LOG_INFO, "Done saving Fault Log file\n");
+
+						// now save the same data to the last ulog file by copying from the txt file
+						// (not the fastest, but a simple way to do it). We also want to keep a separate
+						// .txt file around, since that is a bit less prone to FS errors than the ULog
+						if (ret == OK) {
+							ret = hardfault_append_to_ulog(caller, fdout);
+
+							if (ret == OK) {
+								identify(caller);
+								syslog(LOG_INFO, "Successfully appended to ULog\n");
+
+							} else {
+								identify(caller);
+								syslog(LOG_INFO, "Failed to append to ULog (%i)\n", ret);
+							}
+						}
+
 						close(fdout);
 					}
 				}

@@ -389,6 +389,7 @@ int sdlog2_main(int argc, char *argv[])
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 1;
+		cmd.timestamp = hrt_absolute_time();
 		orb_advertise(ORB_ID(vehicle_command), &cmd);
 		return 0;
 	}
@@ -399,6 +400,7 @@ int sdlog2_main(int argc, char *argv[])
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 2;
+		cmd.timestamp = hrt_absolute_time();
 		orb_advertise(ORB_ID(vehicle_command), &cmd);
 		return 0;
 	}

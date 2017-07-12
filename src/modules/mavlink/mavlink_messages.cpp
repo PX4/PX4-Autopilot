@@ -44,6 +44,7 @@
 
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
+#include "mavlink_command_sender.h"
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
@@ -384,7 +385,7 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (!_mavlink->get_logbuffer()->empty()) {
+		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected()) {
 
 			struct mavlink_log_s mavlink_log = {};
 
@@ -453,25 +454,25 @@ protected:
 		struct vehicle_command_s cmd;
 
 		if (_cmd_sub->update(&_cmd_time, &cmd)) {
-			/* only send commands for other systems/components */
-			if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
-				mavlink_command_long_t msg = {};
 
-				msg.target_system = cmd.target_system;
-				msg.target_component = cmd.target_component;
-				msg.command = cmd.command;
-				msg.confirmation = cmd.confirmation;
-				msg.param1 = cmd.param1;
-				msg.param2 = cmd.param2;
-				msg.param3 = cmd.param3;
-				msg.param4 = cmd.param4;
-				msg.param5 = cmd.param5;
-				msg.param6 = cmd.param6;
-				msg.param7 = cmd.param7;
+			/* only send commands for other systems/components, don't forward broadcast commands */
+			if ((cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) &&
+			    (cmd.target_system != 0)) {
 
-				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &msg);
+				if (_mavlink->verbose()) {
+					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
+
+				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
+
+			} else {
+				if (_mavlink->verbose()) {
+					PX4_INFO("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
 			}
 		}
+
+		MavlinkCommandSender::instance().check_timeout(_mavlink->get_channel());
 	}
 };
 

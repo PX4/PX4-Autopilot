@@ -41,6 +41,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -122,36 +123,38 @@ MPU9250_mag::~MPU9250_mag()
 int
 MPU9250_mag::init()
 {
-	int ret;
+	int ret = ak8963_setup();
 
-	ret = CDev::init();
+	if (ret == OK) {
 
-	/* if setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 mag init failed");
-		return ret;
-	}
+		ret = CDev::init();
 
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+		/* if setup failed, bail now */
+		if (ret != OK) {
+			DEVICE_DEBUG("MPU9250 mag init failed");
+			return ret;
+		}
 
-	if (_mag_reports == nullptr) {
-		goto out;
-	}
+		_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
-	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+		if (_mag_reports == nullptr) {
+			goto out;
+		}
 
-	ak8963_setup();
+		_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrp;
-	_mag_reports->get(&mrp);
 
-	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, ORB_PRIO_LOW);
-//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct mag_report mrp;
+		_mag_reports->get(&mrp);
 
-	if (_mag_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+						 &_mag_orb_class_instance, ORB_PRIO_LOW);
+		//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+		if (_mag_topic == nullptr) {
+			PX4_ERR("ADVERT FAIL");
+		}
 	}
 
 out:
@@ -294,11 +297,7 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case SENSORIOCRESET:
-		/*
-		 * TODO: we could implement a reset of the AK8963 registers
-		 */
-		//return reset();
-		return _parent->ioctl(filp, cmd, arg);
+		return ak8963_reset();
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -470,18 +469,11 @@ MPU9250_mag::read_reg(unsigned int reg)
 
 
 bool
-MPU9250_mag::ak8963_check_id(void)
+MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
 {
-	for (int i = 0; i < 5; i++) {
+	deviceid = read_reg(AK8963REG_WIA);
 
-		uint8_t deviceid = read_reg(AK8963REG_WIA);
-
-		if (AK8963_DEVICE_ID == deviceid) {
-			return true;
-		}
-	}
-
-	return false;
+	return (AK8963_DEVICE_ID == deviceid);
 }
 
 /*
@@ -512,10 +504,23 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 
 
 
-void
+int
 MPU9250_mag::ak8963_reset(void)
 {
-	write_reg(AK8963REG_CNTL2, AK8963_RESET);
+	// First initialize it to use the bus
+
+	int rv = ak8963_setup();
+
+	if (rv == OK) {
+
+		// Now reset the mag
+		write_reg(AK8963REG_CNTL2, AK8963_RESET);
+		// Then re-initialize the bus/mag
+		rv = ak8963_setup();
+	}
+
+	return rv;
+
 }
 
 bool
@@ -552,42 +557,71 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	return true;
 }
 
-bool
+int
 MPU9250_mag::ak8963_setup(void)
 {
 	int retries = 10;
 
-	/* Configures the parent to act in master mode */
-	if (_interface == nullptr) {
-		uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
-		_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl | BIT_I2C_MST_EN);
-		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+	do {
 
-	} else {
-		//	uint8_t user_ctrl = _parent->read_reg(MPUREG_USER_CTRL);
+		/* When _interface is null we are using SPI and must
+		 * use the parent interface to configure the device to act
+		 * in master mode (SPI to I2C bridge)
+		 */
+		if (_interface == nullptr) {
+			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
+			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 
-		//	// Passthrough mode
-		//	_parent->write_checked_reg(MPUREG_USER_CTRL, user_ctrl & (~BIT_I2C_MST_EN));
-	}
+		} else {
+			_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
+		}
 
-	if (!ak8963_check_id()) {
-		::printf("AK8963: bad id\n");
-	}
+		uint8_t id = 0;
 
-	while (!ak8963_read_adjustments()) {
-		if (!retries--) {
-			::printf("AK8963: failed to read adjustment data\n");
+		if (ak8963_check_id(id)) {
 			break;
 		}
+
+		retries--;
+
+		if (retries < 8) {
+			PX4_ERR("AK8963: bad id %d retries %d", id, retries);
+			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+			up_udelay(100);
+		}
+	} while (retries > 0);
+
+	if (retries > 0) {
+		retries = 10;
+
+		while (!ak8963_read_adjustments() && retries) {
+			retries--;
+			PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
+
+			if (retries == 5) {
+				_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+				up_udelay(100);
+			}
+		}
+	}
+
+	if (retries == 0) {
+		PX4_ERR("AK8963: failed to initialize, disabled!");
+		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+		_parent->write_reg(MPUREG_I2C_MST_CTRL, 0);
+		return -EIO;
 	}
 
 	write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
 
 	if (_interface == NULL) {
-		/* Configure mpu to internally read ak8963 data  */
+
+		/* Configure mpu' I2c Master interface to read ak8963 data
+		 * Into to fifo
+		 */
 		set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
 	}
 
-	return true;
+	return OK;
 }
