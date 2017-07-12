@@ -3,7 +3,7 @@
 
 This bridge add communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or sockets UDP using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
 
-![alt text](doc/1_general-white.png)
+![alt text](resources/1_general-white.png)
 
 ## Automatic code generation
 
@@ -12,21 +12,21 @@ The support for the new functionality added is mainly carried on inside three ne
 -  It's added a CDR serialization support directly on the original type support of the uORB topic adding a new interface to the code that do this directly. For *sensor_combined.msg* topic looks like this:
 
   ```sh
-  void serialize_sensor_combined(const sensor_combined_s *input, char *output, uint32_t *length);
-  void deserialize_sensor_combined(struct sensor_combined_s *output, char *input);
+  void serialize_sensor_combined(const struct sensor_combined_s *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
+  void deserialize_sensor_combined(struct sensor_combined_s *output, char *input, struct microCDR *microCDRReader);
   ```
 
 -  We have the capability under demand of the generation of an application to send and receive, through a selected UART or selected UDP ports, the serializated info from several topics (*miroRTPS_client.cpp*).
 
-![alt text](doc/2_trasnmitter-white.png)
+![alt text](resources/2_trasnmitter-white.png)
 
 -  We also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS** through auto generated *microRTPS_agent.cxx* application and .idl files for demanded topics. For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
 
-![alt text](doc/3_receiver-white.png)
+![alt text](resources/3_receiver-white.png)
 
 -  This covers the entire spectrum of communications.
 
-![alt text](doc/4_both-white.png)
+![alt text](resources/4_both-white.png)
 
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
 
@@ -36,7 +36,7 @@ The code for extended topic support is generated within the normal PX4 Firmware 
 
 To generate and install the code for the client (PX4 side) and the agent (Fast RTPS side) we need to execute the python script **generate_microRTPS_bridge.py** hosted in *Tools* folder.
 
-  ```sh
+  ```text
   $ cd /path/to/PX4/Firmware
   $ python Tools/generate_microRTPS_bridge.py -h
   usage: generate_microRTPS_bridge.py [-h] [-s *.msg [*.msg ...]]
@@ -139,13 +139,15 @@ Steps to use the auto generated application:
   ```sh
   # For Pixracer:
   $ make px4fmu-v4_default upload
+  ```
+  ```sh
   # For Snapdragon Flight:
   $ make eagle_default upload
   ```
 
 After uploading the firmware, the application can be launched typing its name and passing an variable number of arguments as shown bellow:
 
-  ```sh
+  ```text
   > micrortps_client start|stop [options]
     -t <transport>          [UART|UDP] Default UART
     -d <device>             UART device. Default /dev/ttyACM0
@@ -156,7 +158,8 @@ After uploading the firmware, the application can be launched typing its name an
     -p <poll_ms>            Time in ms to poll over UART. Default 1ms
     -r <reception port>     UDP port for receiving. Default 2019
     -s <sending port>       UDP port for sending. Default 2020
-
+  ```
+  ```sh
   > micrortps_client start #by default -t UART -d /dev/ttyACM0 -u 0 -l 10000 -w 1 -b 460800 -p 1
   ```
 
@@ -190,7 +193,7 @@ For create the application, compile the code:
 
 To launch the publisher run:
 
-  ```sh
+  ```text
   $ ./micrortps_agent [options]
     -t <transport>          [UART|UDP] Default UART
     -d <device>             UART device. Default /dev/ttyACM0
@@ -199,13 +202,14 @@ To launch the publisher run:
     -p <poll_ms>            Time in ms to poll over UART. Default 1ms
     -r <reception port>     UDP port for receiving. Default 2019
     -s <sending port>       UDP port for sending. Default 2020
-
+  ```
+  ```sh
   $ ./micrortps_agent # by default -t UART -d /dev/ttyACM0 -w 1 -b 460800 -p 1
   ```
 
 Now we can add some code to print some info on the screen, for example:
 
-  ```sh
+  ```cpp
   void sensor_combined_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
   {
       // Take data
@@ -271,14 +275,14 @@ And enable UART setting *enable_uart=1*.
 
 ## Hello world and Throughput test
 
-Please click in [Hello world](https://github.com/eProsima/Firmware/blob/micrortps/hello_world.md) or in [Throughput test](https://github.com/eProsima/Firmware/blob/micrortps/throughput_test.md) to see these couple of operative example of use.
+Please click in [Hello world](hello_world.md) or in [Throughput test](throughput_test.md) to see these couple of operative example of use.
 
 ## Graphical example of usage
 
 This flow chart shows graphically how works a bridge for an example of use that sends the topic sensor_combined from a Pixracer to a Raspberry Pi through UART.
 
-![alt text](doc/architecture.png)
+![alt text](resources/architecture.png)
 
 If all steps has been followed, you should see this output on the subscriber side of Fast RTPS.
 
-![alt text](doc/subscriber.png)
+![alt text](resources/subscriber.png)

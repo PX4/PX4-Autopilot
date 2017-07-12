@@ -71,7 +71,7 @@ Now, we have to modify the client to send a *throughput_256* message each time s
   ```
 ## Result
 
-After compile and launch both the [client](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.md#px4-firmware-the-micro-rtps-client) and the [agent](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
+After compile and launch both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
 
   ```sh
   SENT:     13255 messages in 13255 LOOPS, 3512575 bytes in 30.994 seconds - 113.33KB/s

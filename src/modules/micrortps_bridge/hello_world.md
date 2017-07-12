@@ -1,4 +1,4 @@
-# Hellow world
+# Hello world
 
 As a basic example we go to explain how implement a simple use case what sends information of some sensors (*sensor_combined* uORB topic) in the direction PX4-Fast RTPS and receives information as a text message (*log_message* uORB topic) sent in the other direction.
 
@@ -8,9 +8,9 @@ As a basic example we go to explain how implement a simple use case what sends i
   $ cd /path/to/PX4/Firmware
   $ python Tools/generate_microRTPS_bridge.py --send msg/sensor_combined.msg --receive msg/sensor_combined.msg msg/log_message.msg
   ```
-**NOTE**: It may be needed specify other different arguments, as the path to the Fast RTPS *bin* installation folder if it was installed in other path different to default one (*-f /path/to/fastrtps/installation/bin*).
+**NOTE**: It may be needed specify other different arguments, as the path to the Fast RTPS *bin* installation folder if it was installed in other path different to default one (*-f /path/to/fastrtps/installation/bin*). For more information, click this [link](README.md#generate-and-installing-the-client-and-the-agent).
 
-That generate and install the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *micrortps_agent*.
 
 To see the message received in the client (**src/examples/micrortps_client/microRTPS_client.cpp**) we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
 
@@ -76,7 +76,7 @@ To see the message received in the client (**src/examples/micrortps_client/micro
 ```
 ## Result
 
-After compile and launch both the [client](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.md#px4-firmware-the-micro-rtps-client) and the [agent](https://github.com/eProsima/Firmware/blob/micrortps/README_eprosima.md#fast-rtps-the-micro-rtps-agent) we obtain this kind of messages in the client shell window (showing the message created in the agent with info from temperature sensor in the PX4 side):
+After compile and launch both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain this kind of messages in the client shell window (showing the message created in the agent with info from temperature sensor in the PX4 side):
 
 ```sh
   ...
