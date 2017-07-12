@@ -582,14 +582,16 @@ void Ekf2::run()
 
 		// push imu data into estimator
 		float gyro_integral[3];
-		gyro_integral[0] = sensors.gyro_rad[0] * sensors.gyro_integral_dt;
-		gyro_integral[1] = sensors.gyro_rad[1] * sensors.gyro_integral_dt;
-		gyro_integral[2] = sensors.gyro_rad[2] * sensors.gyro_integral_dt;
+		float gyro_dt = sensors.gyro_integral_dt / 1.e6f;
+		gyro_integral[0] = sensors.gyro_rad[0] * gyro_dt;
+		gyro_integral[1] = sensors.gyro_rad[1] * gyro_dt;
+		gyro_integral[2] = sensors.gyro_rad[2] * gyro_dt;
 		float accel_integral[3];
-		accel_integral[0] = sensors.accelerometer_m_s2[0] * sensors.accelerometer_integral_dt;
-		accel_integral[1] = sensors.accelerometer_m_s2[1] * sensors.accelerometer_integral_dt;
-		accel_integral[2] = sensors.accelerometer_m_s2[2] * sensors.accelerometer_integral_dt;
-		_ekf.setIMUData(now, sensors.gyro_integral_dt * 1.e6f, sensors.accelerometer_integral_dt * 1.e6f,
+		float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
+		accel_integral[0] = sensors.accelerometer_m_s2[0] * accel_dt;
+		accel_integral[1] = sensors.accelerometer_m_s2[1] * accel_dt;
+		accel_integral[2] = sensors.accelerometer_m_s2[2] * accel_dt;
+		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt,
 				gyro_integral, accel_integral);
 
 		// read mag data
@@ -780,7 +782,7 @@ void Ekf2::run()
 				start_time_us = now;
 
 			} else if (start_time_us > 0) {
-				integrated_time_us += (uint64_t)((double)sensors.gyro_integral_dt * 1.0e6);
+				integrated_time_us += sensors.gyro_integral_dt;
 			}
 
 			matrix::Quaternion<float> q;
@@ -1160,7 +1162,7 @@ void Ekf2::run()
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					float alpha = math::constrain(sensors.accelerometer_integral_dt * _innov_lpf_tau_inv, 0.0f, 1.0f);
+					float alpha = math::constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
 					float beta = 1.0f - alpha;
 					_vel_innov_lpf_ned(0) = beta * _vel_innov_lpf_ned(0) + alpha * math::constrain(innovations.vel_pos_innov[0],
 								-_vel_innov_spike_lim, _vel_innov_spike_lim);
