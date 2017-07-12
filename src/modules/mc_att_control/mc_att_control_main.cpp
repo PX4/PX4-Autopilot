@@ -293,9 +293,9 @@ private:
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
 
-	math::FOAWDifferentiator _foaw_roll;
-	math::FOAWDifferentiator _foaw_pitch;
-	math::FOAWDifferentiator _foaw_yaw;
+	math::FOAWDifferentiator _foaw_rollrate;
+	math::FOAWDifferentiator _foaw_pitchrate;
+	math::FOAWDifferentiator _foaw_yawrate;
 	math::FOAWDifferentiator _diff_gyo_lpf;
 	math::LowPassFilter2p _gyro_filter;
 
@@ -441,9 +441,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
 	_ts_opt_recovery(nullptr),
 
-	_foaw_roll(0.004f, 0.025f), // FOWA differentiator (dt, noise amplitude)
-	_foaw_pitch(0.004f, 0.025f),
-	_foaw_yaw(0.004f, 0.025f),
+	_foaw_rollrate(0.004f, 0.025f), // FOWA differentiator (dt, noise amplitude)
+	_foaw_pitchrate(0.004f, 0.025f),
+	_foaw_yawrate(0.004f, 0.025f),
 	_diff_gyo_lpf(0.004f, 0.0075f),
 	_gyro_filter(250.0f, 100.0f)
 {
@@ -1049,12 +1049,12 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
 	math::Vector<3> derivative;
-	_foaw_roll.set_sample_time(dt);
-	_foaw_pitch.set_sample_time(dt);
-	_foaw_yaw.set_sample_time(dt);
-	derivative(0) = _foaw_roll.apply(rates(0));
-	derivative(1) = _foaw_pitch.apply(rates(1));
-	derivative(2) = _foaw_yaw.apply(rates(2));
+	_foaw_rollrate.set_sample_time(dt);
+	_foaw_pitchrate.set_sample_time(dt);
+	_foaw_yawrate.set_sample_time(dt);
+	derivative(0) = _foaw_rollrate.apply(rates(0));
+	derivative(1) = _foaw_pitchrate.apply(rates(1));
+	derivative(2) = _foaw_yawrate.apply(rates(2));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int +
@@ -1312,9 +1312,9 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.timestamp = hrt_absolute_time();
 
 				_controller_status.raw_derivative = _raw_diff;
-				_controller_status.roll_foaw_derivative = _foaw_roll.get_last_derivative();
-				_controller_status.pitch_foaw_derivative = _foaw_pitch.get_last_derivative();
-				_controller_status.yaw_foaw_derivative = _foaw_yaw.get_last_derivative();
+				_controller_status.rollrate_foaw_derivative = _foaw_rollrate.get_last_derivative();
+				_controller_status.pitchrate_foaw_derivative = _foaw_pitchrate.get_last_derivative();
+				_controller_status.yawrate_foaw_derivative = _foaw_yawrate.get_last_derivative();
 				_controller_status.rates_lpf = _rates_lpf;
 				_controller_status.raw_derivative_rates_lpf = _raw_diff_gyro_lpf;
 				_controller_status.window_size = _diff_gyo_lpf.get_last_window_size();
