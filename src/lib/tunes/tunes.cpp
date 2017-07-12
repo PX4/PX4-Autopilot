@@ -94,6 +94,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		case tune_control_s::TUNE_ID_CUSTOM:
 			_frequency = (unsigned)tune_control.frequency;
 			_duration = (unsigned)tune_control.duration;
+			_silence = (unsigned)tune_control.silence;
 			_using_custom_msg = true;
 			break;
 
@@ -151,7 +152,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 		_using_custom_msg = false;
 		frequency = _frequency;
 		duration = _duration;
-		silence = 0;
+		silence = _silence;
 		return TUNE_STOP;
 	}
 
@@ -169,6 +170,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration, unsigned &sile
 		int c = next_char();
 
 		if (c == 0) {
+			silence = 0;
 			goto tune_end;
 		}
 
