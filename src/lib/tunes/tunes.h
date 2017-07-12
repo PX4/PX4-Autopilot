@@ -42,7 +42,7 @@
 // TODO: find better way to include the number of tunes, maybe include them in the lib directly?
 #include <drivers/drv_tone_alarm.h>
 
-#define TUNE_MAX_UPDATE_INTERVAL_US 330000
+#define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
 class Tunes
 {
@@ -115,6 +115,7 @@ private:
 
 	unsigned _frequency;
 	unsigned _duration;
+	unsigned _silence;
 	bool _using_custom_msg = false;
 
 	/**
