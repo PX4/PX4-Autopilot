@@ -1,6 +1,6 @@
 
-uint64 gyro_integral_dt		# gyro integration period in s
-uint64 accelerometer_integral_dt 	# accelerometer integration period in s
+uint64 gyro_integral_dt		# gyro integration period in us
+uint64 accelerometer_integral_dt 	# accelerometer integration period in us
 uint64 magnetometer_timestamp 		# timestamp of magnetometer measurement in us
 uint64 baro_timestamp			# timestamp of barometer measurement in us
 uint64 rng_timestamp			# timestamp of range finder measurement in us
