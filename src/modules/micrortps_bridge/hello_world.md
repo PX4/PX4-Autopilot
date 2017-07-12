@@ -12,9 +12,13 @@ As a basic example we go to explain how implement a simple use case what sends i
 
 That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
-To see the message received in the client (**src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp**) we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
+To see the message received in the client one time each second (**src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp**), we change the default value of the sleep to 1000 and we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
 
   ```cpp
+  ...
+  #define SLEEP_MS 1000
+  ...
+  ...
   ...
   case 36:
   {
