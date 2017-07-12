@@ -84,6 +84,11 @@ public:
 	uint8_t get_last_window_size();
 
 	/**
+	 * @return Retrieve the last computed derivative
+	 */
+	float get_last_derivative();
+
+	/**
 	 * Reset the filter
 	 */
 	void reset();
@@ -97,7 +102,7 @@ private:
 	struct fit_params {
 		float a;
 		float b;
-	} fit_val;
+	} _fit_val;
 
 	/*
 	 * Moves all the samples in the buffer one step forward

@@ -48,6 +48,7 @@
 
 namespace math
 {
+
 FOAWDifferentiator::FOAWDifferentiator(float dt, float noise_level)
 {
 	set_noise_level(noise_level);
@@ -73,6 +74,11 @@ void FOAWDifferentiator::set_sample_time(float dt)
 uint8_t FOAWDifferentiator::get_last_window_size()
 {
 	return _last_window_size;
+}
+
+float FOAWDifferentiator::get_last_derivative()
+{
+	return _fit_val.a;
 }
 
 void FOAWDifferentiator::reset()
@@ -112,8 +118,8 @@ void FOAWDifferentiator::end_fit_FOAW(uint8_t window_size)
 
 	d_amplitude = _buffer[last_sample_pos] - _buffer[last_sample_pos - window_size];
 	d_time  = window_size * _dt;
-	fit_val.a = d_amplitude / d_time;
-	fit_val.b = _buffer[last_sample_pos];
+	_fit_val.a = d_amplitude / d_time;
+	_fit_val.b = _buffer[last_sample_pos];
 }
 
 void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
@@ -129,8 +135,8 @@ void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
 	sum2 = 0.0f;
 	den = 0.0f;
 	y_mean = 0.0f;
-	fit_val.a = 0.0f;
-	fit_val.b = 0.0f;
+	_fit_val.a = 0.0f;
+	_fit_val.b = 0.0f;
 
 	last_sample_pos = _nb_samples - 1;
 
@@ -148,13 +154,13 @@ void FOAWDifferentiator::best_fit_FOAW(uint8_t window_size)
 
 	// Prevents division by zero
 	if (den < 0.0001f && den > -0.0001f) {
-		fit_val.a = 0.0f;
+		_fit_val.a = 0.0f;
 
 	} else {
-		fit_val.a = (sum1 - sum2) / den;
+		_fit_val.a = (sum1 - sum2) / den;
 	}
 
-	fit_val.b = y_mean + fit_val.a * window_size * _dt / 2.0f;
+	_fit_val.b = y_mean + _fit_val.a * window_size * _dt / 2.0f;
 }
 
 // TODO; Add a way to be able to select the method you prefer (End-fit is faster but less accurate)
@@ -178,7 +184,7 @@ float FOAWDifferentiator::fit()
 
 	//end_fit_FOAW(window_size);
 	best_fit_FOAW(window_size);
-	slope = fit_val.a;
+	slope = _fit_val.a;
 	result = slope;
 	_last_window_size = window_size;
 
@@ -189,12 +195,12 @@ float FOAWDifferentiator::fit()
 	for (window_size = 2; window_size <= (_nb_samples - 1); window_size++) {
 		//end_fit_FOAW(window_size);
 		best_fit_FOAW(window_size);
-		slope = fit_val.a;
+		slope = _fit_val.a;
 
 		// Check if all the values are around the fit +/- delta
 		for (j = 1; j < window_size; j++) {
 			// Compute a point on the slope
-			pos = fit_val.b - slope * j * _dt;
+			pos = _fit_val.b - slope * j * _dt;
 
 			// Compute min and max bounds
 			float max_bound = pos + _delta;
@@ -238,7 +244,5 @@ float FOAWDifferentiator::apply(float sample)
 
 	return derivative;
 }
-
-
 
 } // namespace math
