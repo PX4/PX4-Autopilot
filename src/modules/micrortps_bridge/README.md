@@ -159,6 +159,7 @@ After uploading the firmware, the application can be launched typing its name an
     -r <reception port>     UDP port for receiving. Default 2019
     -s <sending port>       UDP port for sending. Default 2020
   ```
+  **NOTE**: If we are working with a USB-serial adapter the **-b** option will be ignored and will be working at maximum speed of the link.
   ```sh
   > micrortps_client start #by default -t UART -d /dev/ttyACM0 -u 0 -l 10000 -w 1 -b 460800 -p 1
   ```
@@ -203,6 +204,7 @@ To launch the publisher run:
     -r <reception port>     UDP port for receiving. Default 2019
     -s <sending port>       UDP port for sending. Default 2020
   ```
+  **NOTE**: If we are working with a USB-serial adapter the **-b** option will be ignored and will be working at maximum speed of the link.
   ```sh
   $ ./micrortps_agent # by default -t UART -d /dev/ttyACM0 -w 1 -b 460800 -p 1
   ```
