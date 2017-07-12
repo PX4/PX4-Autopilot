@@ -563,7 +563,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 				accel_data = math::Vector<3>(accel_report.x_integral * dt_inv, accel_report.y_integral * dt_inv,
 							     accel_report.z_integral * dt_inv);
 
-				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt / 1.e6f;
+				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt;
 
 			} else {
 				// using the value instead of the integral (the integral is the prefered choice)
@@ -579,7 +579,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// approximate the  delta time using the difference in accel data time stamps
 				_last_sensor_data[uorb_index].accelerometer_integral_dt =
-					(accel_report.timestamp - _last_accel_timestamp[uorb_index]) / 1.e6f;
+					(accel_report.timestamp - _last_accel_timestamp[uorb_index]);
 			}
 
 			// handle temperature compensation
@@ -670,7 +670,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 				gyro_rate = math::Vector<3>(gyro_report.x_integral * dt_inv, gyro_report.y_integral * dt_inv,
 							    gyro_report.z_integral * dt_inv);
 
-				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt / 1.e6f;
+				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt;
 
 			} else {
 				//using the value instead of the integral (the integral is the prefered choice)
@@ -686,7 +686,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 				// approximate the  delta time using the difference in gyro data time stamps
 				_last_sensor_data[uorb_index].gyro_integral_dt =
-					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp) / 1.e6f;
+					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp);
 			}
 
 			// handle temperature compensation

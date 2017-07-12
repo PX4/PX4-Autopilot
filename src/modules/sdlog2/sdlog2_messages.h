@@ -518,8 +518,8 @@ struct log_EST5_s {
 #define LOG_RPL1_MSG 51
 struct log_RPL1_s {
 	uint64_t time_ref;
-	float gyro_integral_dt;
-	float accelerometer_integral_dt;
+	uint64_t gyro_integral_dt;
+	uint64_t accelerometer_integral_dt;
 	uint64_t magnetometer_timestamp;
 	uint64_t baro_timestamp;
 	float gyro_x_rad;
