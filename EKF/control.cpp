@@ -773,10 +773,16 @@ void Ekf::controlHeightFusion()
 		// we have just switched to using range finder, calculate height sensor offset such that current
 		// measurment matches our current height estimate
 		if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-			if (_terrain_initialised) {
+			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
+			if (_control_status.flags.in_air && _terrain_initialised) {
+
 				_hgt_sensor_offset = _terrain_vpos;
-			} else {
+			} else if (_control_status.flags.in_air) {
+
 				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+			} else {
+
+				_hgt_sensor_offset = _params.rng_gnd_clearance;
 			}
 		}
 	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && _baro_data_ready && !_baro_hgt_faulty) {
