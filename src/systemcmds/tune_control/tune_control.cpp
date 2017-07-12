@@ -179,6 +179,7 @@ tune_control_main(int argc, char *argv[])
 				tune_control.tune_id = 0;
 				tune_control.frequency = (uint16_t)frequency;
 				tune_control.duration = (uint32_t)duration;
+				tune_control.silence = (uint32_t)silence;
 				publish_tune_control(tune_control);
 				usleep(duration + silence);
 				exit_counter++;
