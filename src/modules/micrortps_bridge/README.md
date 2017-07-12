@@ -1,40 +1,48 @@
 # PX4-FastRTPS bridge
 
 
-This bridge add communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or sockets UDP using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
+This bridge adds communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or
+UDP sockets using **CDR serialization**. The goal is carrying information from the drone to the DDS world through **Fast RTPS**,
+and putting information into the drone from DDS as same manner.
 
 ![alt text](res/1_general-white.png)
 
 ## Automatic code generation
 
-The support for the new functionality added is mainly carried on inside three new (automatic generated) code blocks.
+The support for the new added functionality is mainly done within three new (automatically generated) code blocks.
 
--  It's added a CDR serialization support directly on the original type support of the uORB topic adding a new interface to the code that do this directly. For *sensor_combined.msg* topic looks like this:
+-  CDR serialization support is generated for every uORB topic adding new iterfaces what for *sensor_combined.msg* topic looks like this:
 
   ```sh
   void serialize_sensor_combined(const struct sensor_combined_s *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
   void deserialize_sensor_combined(struct sensor_combined_s *output, char *input, struct microCDR *microCDRReader);
   ```
 
--  We have the capability under demand of the generation of an application to send and receive, through a selected UART or selected UDP ports, the serializated info from several topics (*miroRTPS_client.cpp*).
+-  User can generate an application to send and receive through a selected UART or selected UDP ports, the CDR serialized data
+    from several topics. This can be done calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder.
 
 ![alt text](res/2_trasnmitter-white.png)
 
--  We also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS** through auto generated *microRTPS_agent.cxx* application and .idl files for demanded topics. For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
+-  Also the other side of the communication can be generated, a bridge application between CDR serialized data and the
+DDS world (using **Fast RTPS**). This can be done calling the script **generate_microRTPS_bridge.py** placed in Tools folder.
+This application is encapsuled in *microRTPS_agent.cxx* source file and .idl files for demanded topics.
+For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
 
 ![alt text](res/3_receiver-white.png)
 
--  This covers the entire spectrum of communications.
+This covers the entire spectrum of communications.
 
 ![alt text](res/4_both-white.png)
 
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
 
-### Generate and installing the client and the agent
+### Generating and installing the client and the agent
 
-**NOTE**: Before continue we need to have installed Fast RTPS. Visit its installation [manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
+**NOTE**: Before continue we need to have installed Fast RTPS. Visit its installation
+[manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
 
-To generate and install the code for the client (PX4 side) and the agent (Fast RTPS side) we need to execute the python script **generate_microRTPS_bridge.py** hosted in *Tools* folder.
+To generate and install the code for the client (PX4 side) and the agent (Fast RTPS side) we need to execute the python script
+**generate_microRTPS_bridge.py** hosted in *Tools* folder.
 
   ```text
   $ cd /path/to/PX4/Firmware
@@ -124,7 +132,11 @@ Checking the correct installation:
 PX4 Firmware: the micro RTPS client
 -----------------------------------
 
-On the *PX4* side, it will be used an application running as a uORB node and as a micro RTPS node at same time. This applicatgion as uORB node could be subscribed to a several topics as well as publish under internal uORB topics. The application receive from a internal publishers the messages, serializes the struct and writes it trough an UART device or UDP port selected by the user. Also will be reading from the UART device or UDP port and then publish the info to the internal subscribers.
+On the *PX4* side, it will be used an application running as a uORB node and as a micro RTPS node at same time.
+This application as uORB node could be subscribed to a several topics as well as publish under internal uORB topics.
+The application receives from a internal publishers the messages, serializes the struct and writes it trough an UART
+device or UDP port selected by the user. Also will be reading from the UART device or UDP port and then publish the info
+to the internal subscribers.
 
 Steps to use the auto generated application:
 
@@ -179,7 +191,10 @@ After uploading the firmware, the application can be launched typing its name an
 
 The *Fast RTPS* side will be explained taking a *Raspberry Pi* board to run an application as example.
 
-The application have several functions and possibilities of use: get the sensor data from a system that is using the *PX4 Firmware* (obtaining the information from the selected transport: UDP or UART), publish this to a *Fast RTPS* environment and, in the other direction, to send through the selected transport the information of topics that are expected in the *PX4* side with the info even from subscribed messages from *Fast RTPS* side.
+The application has several functions and possibilities of use: get the sensor data from a system that is using the *PX4
+Firmware* (obtaining the information from the selected transport: UDP or UART), publish this to a *Fast RTPS* environment
+and, in the other direction, to send through the selected transport the information of topics that are expected in the
+*PX4* side with the info even from subscribed messages from *Fast RTPS* side.
 
 Before runnning the application, it is needed to have installed Fast RTPS. Visit it installation [manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
 
@@ -187,7 +202,7 @@ This section explains how create *Fast RTPS* applications using the files genera
 
 On the *Fast RTPS* side, it will be used an application running as a Fast RTPS node and as a micro RTPS node at same time. This application allow to launch RTPS publishers and subscribers that will be using the information coming from and sending to uORB topics in the PX4 side thanks to the autogenerated idl file from the original msg file. The publisher will read data from UART/UDP, deserializes it, and make a Fast RTPS message mapping the attributes from the uORB message. The subscriber simply receives the Fast RTPS messages and send in the reverse sequence to the PX4 side. The subscriber can be launched on the Raspberry Pi or in any another device connected in the same network.
 
-For create the application, compile the code:
+To create the application, compile the code:
 
   ```sh
   $ cd /agent/installation/path/
@@ -196,7 +211,7 @@ For create the application, compile the code:
   $ make
   ```
 
-**NOTE**: To cross compile for Snapdragon Fligth platform you can see this [link](https://github.com/eProsima/PX4-FastRTPS-PoC-Snapdragon-UDP#how-to-use).
+**NOTE**: To crosscompiling for Snapdragon Fligth platform you can see this [link](https://github.com/eProsima/PX4-FastRTPS-PoC-Snapdragon-UDP#how-to-use).
 
 To launch the publisher run:
 
