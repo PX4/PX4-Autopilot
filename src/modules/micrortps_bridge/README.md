@@ -3,7 +3,7 @@
 
 This bridge add communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or sockets UDP using **CDR serialization**, aims to get information from a drone and carry to the DDS world through **Fast RTPS** and put information into the drone from DDS as same manner.
 
-![alt text](resources/1_general-white.png)
+![alt text](res/1_general-white.png)
 
 ## Automatic code generation
 
@@ -18,15 +18,15 @@ The support for the new functionality added is mainly carried on inside three ne
 
 -  We have the capability under demand of the generation of an application to send and receive, through a selected UART or selected UDP ports, the serializated info from several topics (*miroRTPS_client.cpp*).
 
-![alt text](resources/2_trasnmitter-white.png)
+![alt text](res/2_trasnmitter-white.png)
 
 -  We also have the capacity of generate automatically the support for the other side of the communication, **Fast RTPS** through auto generated *microRTPS_agent.cxx* application and .idl files for demanded topics. For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
 
-![alt text](resources/3_receiver-white.png)
+![alt text](res/3_receiver-white.png)
 
 -  This covers the entire spectrum of communications.
 
-![alt text](resources/4_both-white.png)
+![alt text](res/4_both-white.png)
 
 The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
 
@@ -281,8 +281,8 @@ Please click in [Hello world](hello_world.md) or in [Throughput test](throughput
 
 This flow chart shows graphically how works a bridge for an example of use that sends the topic sensor_combined from a Pixracer to a Raspberry Pi through UART.
 
-![alt text](resources/architecture.png)
+![alt text](res/architecture.png)
 
 If all steps has been followed, you should see this output on the subscriber side of Fast RTPS.
 
-![alt text](resources/subscriber.png)
+![alt text](res/subscriber.png)
