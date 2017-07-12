@@ -10,9 +10,9 @@ As a basic example we go to explain how implement a simple use case what sends i
   ```
 **NOTE**: It may be needed specify other different arguments, as the path to the Fast RTPS *bin* installation folder if it was installed in other path different to default one (*-f /path/to/fastrtps/installation/bin*). For more information, click this [link](README.md#generate-and-installing-the-client-and-the-agent).
 
-That generates and installs the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
-To see the message received in the client (**src/examples/micrortps_client/microRTPS_client.cpp**) we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
+To see the message received in the client (**src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp**) we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
 
   ```cpp
   ...
@@ -30,7 +30,7 @@ To see the message received in the client (**src/examples/micrortps_client/micro
   ```
  Now, we change the agent in order to send a log message each time we receive a **Fast RTPS message** with the info of the uORB topic *sensor_combined* (in the Fast RTPS world this topic will be called *sensor_combined_PubSubTopic*).
 
-  - In the **micrortps_agent/RtpsTopic.cxx** file we will change the *RtpsTopics::getMsg* function to return a *log_message* for each *sensor_combined* with the text "*The temperature is XX.XXXXXXX celsius degrees*":
+  - In the **src/modules/micrortps_bridge/micrortps_agent/RtpsTopic.cxx** file we will change the *RtpsTopics::getMsg* function to return a *log_message* for each *sensor_combined* with the text "*The temperature is XX.XXXXXXX celsius degrees*":
 
 ```cpp
  bool RtpsTopics::getMsg(const char topic_ID, eprosima::fastcdr::Cdr &scdr)
@@ -58,7 +58,7 @@ To see the message received in the client (**src/examples/micrortps_client/micro
  }
  ```
 
- - In the **micrortps_agent/microRTPS_agent.cxx** we will change the topic ID of the received message to the topic ID of the *log_message* (**36**) that is really the topic we are handling:
+ - In the **src/micrortps_bridge/micrortps_agent/microRTPS_agent.cxx** we will change the topic ID of the received message to the topic ID of the *log_message* (**36**) that is really the topic we are handling:
 
 ```cpp
   ...

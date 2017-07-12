@@ -36,7 +36,6 @@ px4_add_module(
 	MAIN micrortps_client
 	STACK_MAIN 4096
 	SRCS
-		microRTPS_transport.cxx
 		microRTPS_client.cpp
 	DEPENDS
 		platforms__common

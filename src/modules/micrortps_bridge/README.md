@@ -57,17 +57,18 @@ To generate and install the code for the client (PX4 side) and the agent (Fast R
     -t MSGDIR, --topic-msg-dir MSGDIR
                           Topics message dir, by default msg/
     -o AGENTDIR, --agent-outdir AGENTDIR
-                          Agent output dir, by default micrortps_agent/
+                          Agent output dir, by default
+                          src/modules/micrortps_bridge/micrortps_agent
     -u CLIENTDIR, --client-outdir CLIENTDIR
-                          Client output dir, by default,
-                          src/examples/micrortps_client
+                          Client output dir, by default
+                          src/modules/micrortps_bridge/micrortps_client
     -f FASTRTPSGEN, --fastrtpsgen-dir FASTRTPSGEN
                           fastrtpsgen installation dir, by default /bin
   ```
 
  - The argument **--send/-s** means that the application from PX4 side will send these messages, and the argument **--receive/-r** specifies which messages is going to be received.
 
- - The output appears in CLIENTDIR (**-o src/examples/micrortps_client**, by default) and in the AGENTDIR (**-u micrortps_agent**, by default). **CAUTION**: This script erase the content of the CLIENTDIR and the AGENTDIR before create new files and folders.
+ - The output appears in CLIENTDIR (**-o src/modules/micrortps_bridge/micrortps_client**, by default) and in the AGENTDIR (**-u src/modules/micrortps_bridge/micrortps_agent**, by default). **CAUTION**: This script erase the content of the CLIENTDIR and the AGENTDIR before create new files and folders.
 
  - If no flag **-a** or **-c** is specified, both the client and the agent will be generated and installed.
 
@@ -82,8 +83,8 @@ An example of use:
 Checking the correct installation:
 
   ```sh
-  $ tree micrortps_agent
-  micrortps_agent
+  $ tree src/modules/micrortps_bridge/micrortps_agent
+  src/modules/micrortps_bridge/micrortps_agent
   ├── build
   ├── CMakeLists.txt
   ├── idl
@@ -110,8 +111,8 @@ Checking the correct installation:
   2 directories, 20 files
   ```
   ```sh
-  $ tree src/examples/micrortps_client
-  src/examples/micrortps_client
+  $ tree src/modules/micrortps_bridge/micrortps_client
+  src/modules/micrortps_bridge/micrortps_client
   ├── CMakeLists.txt
   ├── microRTPS_client.cpp
   ├── microRTPS_transport.cxx
@@ -127,13 +128,18 @@ On the *PX4* side, it will be used an application running as a uORB node and as 
 
 Steps to use the auto generated application:
 
--  Uncomment or add the line *examples/micrortps_client* in cmake configs to compile this application along the **PX4** firmware. For the *Pixracer* platform we found this in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file and for the *Snapdragon Flight* platform we found it in *cmake/configs/posix_sdflight_default.cmake*:
+-  Check that the line **modules/micrortps_bridge/micrortps_client** and the line **lib/micro-CDR** exist in the .cmake config file for the target platform (*cmake/configs/*). This enables the compilation of the client along the **PX4** firmware. For the *Pixracer* platform we found this in *cmake/configs/nuttx_px4fmu-v4_default.cmake* file and for the *Snapdragon Flight* platform we found it in *cmake/configs/posix_sdflight_default.cmake*:
 
   ```sh
-  # eProsima app
-  examples/micrortps_client
+  set(config_module_list
+      ...
+      lib/micro-CDR
+      ...
+      # micro RTPS
+      modules/micrortps_bridge/micrortps_client
+      ...
+      )
   ```
-
 -  Construct and upload the firmware executing, for example:
 
   ```sh

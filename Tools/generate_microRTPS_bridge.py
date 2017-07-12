@@ -40,8 +40,8 @@ parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str
 parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Flag for generate the agent, by default is true if -c is not specified")
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
-parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default micrortps_agent/", default="micrortps_agent")
-parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default, src/examples/micrortps_client", default="src/examples/micrortps_client")
+parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default="src/modules/micrortps_bridge/micrortps_agent")
+parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default="src/modules/micrortps_bridge/micrortps_client")
 parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs=1, help="fastrtpsgen installation dir, by default /bin", default="/bin")
 
 if len(sys.argv) <= 1:
@@ -159,10 +159,8 @@ def generate_client(out_dir):
 
 if agent:
     generate_agent(agent_out_dir)
-    print("\nAgent created in: " + agent_out_dir + "\n")
+    print("\nAgent created in: " + agent_out_dir)
 
 if client:
     generate_client(client_out_dir)
-    print("\nClient created in: " + client_out_dir + "\n")
-
-
+    print("\nClient created in: " + client_out_dir)

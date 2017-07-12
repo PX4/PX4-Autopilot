@@ -141,6 +141,9 @@ set(config_module_list
 	modules/uORB
 	modules/dataman
 
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
+
 	#
 	# Libraries
 	#
@@ -202,9 +205,6 @@ set(config_module_list
 
 	# EKF
 	examples/ekf_att_pos_estimator
-
-	# micro-RTPS
-	#examples/micrortps_client
 )
 
 set(config_extra_builtin_cmds
