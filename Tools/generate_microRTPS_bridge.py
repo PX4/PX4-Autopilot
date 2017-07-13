@@ -42,22 +42,29 @@ parser.add_argument("-c", "--client", dest='client', action="store_true", help="
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default="src/modules/micrortps_bridge/micrortps_agent")
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default="src/modules/micrortps_bridge/micrortps_client")
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs=1, help="fastrtpsgen installation dir, by default /bin", default="/bin")
+parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs=1, help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
 
 if len(sys.argv) <= 1:
     parser.print_usage()
     exit(-1)
 
 # Parse arguments
-msg_files_send = parser.parse_args().send
-msg_files_receive = parser.parse_args().receive
-agent = parser.parse_args().agent
-client = parser.parse_args().client
-msg_folder = get_absolute_path(parser.parse_args().msgdir)
+args = parser.parse_args()
+msg_files_send = args.send
+msg_files_receive = args.receive
+agent = args.agent
+client = args.client
+msg_folder = get_absolute_path(args.msgdir)
 px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT)
-agent_out_dir = get_absolute_path(parser.parse_args().agentdir)
-client_out_dir = get_absolute_path(parser.parse_args().clientdir)
-fastrtpsgen_dir = get_absolute_path(parser.parse_args().fastrtpsgen)
+agent_out_dir = get_absolute_path(args.agentdir)
+client_out_dir = get_absolute_path(args.clientdir)
+
+if args.fastrtpsgen != "":
+    # Path to fastrtpsgen is explicitly specified
+    fastrtpsgen_path = get_absolute_path(args.fastrtpsgen) + "/fastrtpsgen"
+else:
+    # Assume fastrtpsgen is in PATH
+    fastrtpsgen_path = "fastrtpsgen"
 
 # If nothing specified it's generated both
 if agent == False and client == False:
@@ -66,14 +73,14 @@ if agent == False and client == False:
 
 
 if agent:
-    _continue = str(raw_input("\nFiles in " +  agent_out_dir + " will be erased, continue?[Y/N]\n"))
-    if _continue != "Y" and _continue != "y":
+    _continue = str(raw_input("\nFiles in " +  agent_out_dir + " will be erased, continue?[Y/n]\n"))
+    if _continue == "N" or _continue == "n":
         print("Aborting execution...")
         exit(-1)
 
 if client:
-    _continue = str(raw_input("\nFiles in " +  client_out_dir + " will be erased, continue?[Y/N]\n"))
-    if _continue != "Y" and _continue != "y":
+    _continue = str(raw_input("\nFiles in " +  client_out_dir + " will be erased, continue?[Y/n]\n"))
+    if _continue == "N" or _continue == "n":
         print("Aborting execution...")
         exit(-1)
 
@@ -130,7 +137,9 @@ def generate_agent(out_dir):
     # Final steps to install agent
     os.system("mkdir -p " + agent_out_dir + "/fastrtpsgen")
     for idl_file in glob.glob( agent_out_dir + "/idl/*.idl"):
-        os.system("cd " + agent_out_dir + "/fastrtpsgen && " + fastrtpsgen_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file)
+        ret = os.system("cd " + agent_out_dir + "/fastrtpsgen && " + fastrtpsgen_path + " -example x64Linux2.6gcc " + idl_file)
+        if ret:
+            raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
 
     os.system("rm " + agent_out_dir + "/fastrtpsgen/*PubSubMain.cxx "
                     + agent_out_dir + "/fastrtpsgen/makefile* "
