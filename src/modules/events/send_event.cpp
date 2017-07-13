@@ -257,8 +257,8 @@ int SendEvent::custom_command(int argc, char *argv[])
 		}
 
 		vehicle_command_s cmd = {};
-		cmd.target_system = -1;
-		cmd.target_component = -1;
+		cmd.target_system = 0;
+		cmd.target_component = 0;
 
 		cmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 		cmd.param1 = (gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN;
