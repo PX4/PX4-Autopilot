@@ -41,7 +41,7 @@ foreach(topic ${config_rtps_send_topics} ${config_rtps_receive_topics})
 	list(APPEND topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
 endforeach()
 
-set(topic_bridge_files_out microRTPS_UDP_client.cpp RtpsTopics.cxx RtpsTopics.h)
+set(topic_bridge_files_out microRTPS_client.cpp RtpsTopics.cxx RtpsTopics.h)
 foreach(topic ${config_rtps_send_topics})
 	list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cxx)
 	list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.h)
@@ -54,7 +54,7 @@ endforeach()
 
 add_custom_command(OUTPUT ${topic_bridge_files_out}
 	COMMAND ${PYTHON_EXECUTABLE}
-	${PX4_SOURCE_DIR}/Tools/generate_microRTPS_UDP_bridge.py
+	${PX4_SOURCE_DIR}/Tools/generate_microRTPS_bridge.py
 	-s ${config_rtps_send_topics}
 	-r ${config_rtps_receive_topics}
 	-t ${topic_msg_path}
