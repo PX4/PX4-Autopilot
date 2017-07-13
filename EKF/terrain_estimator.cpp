@@ -145,6 +145,7 @@ void Ekf::fuseHagl()
 		}
 
 	} else {
+		_innov_check_fail_status.flags.reject_hagl = true;
 		return;
 	}
 }
@@ -155,7 +156,7 @@ bool Ekf::get_terrain_vert_pos(float *ret)
 {
 	memcpy(ret, &_terrain_vpos, sizeof(float));
 
-	if (_terrain_initialised && _range_data_continuous) {
+	if (_terrain_initialised && _range_data_continuous && !_innov_check_fail_status.flags.reject_hagl) {
 		return true;
 
 	} else {
