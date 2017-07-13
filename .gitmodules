@@ -27,7 +27,7 @@
 	url = https://github.com/PX4/Matrix.git
 [submodule "src/lib/DriverFramework"]
 	path = src/lib/DriverFramework
-	url = https://github.com/PX4/DriverFramework.git
+	url = https://github.com/nicolaerosia/DriverFramework.git
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
 	url = https://github.com/PX4/ecl.git

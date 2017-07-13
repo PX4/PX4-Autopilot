@@ -329,6 +329,18 @@ int GPS::init()
 		return -errno;
 	}
 
+	pthread_t handle = px4_get_handle(_task);
+	int ret;
+	int cpu = 3;
+	cpu_set_t cpuset;
+	/* Set this cpu-affinity */
+	CPU_ZERO(&cpuset);
+	CPU_SET(cpu, &cpuset);
+	ret = pthread_setaffinity_np(handle, sizeof(cpu_set_t), &cpuset);
+	if (ret != 0) {
+		PX4_WARN("pthread_setaffinity_np(%d) failed, ret=%d\n", cpu, ret);
+	}
+
 	return OK;
 }
 
@@ -345,7 +357,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	case GPSCallbackType::readDeviceData: {
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
 
-			if (num_read > 0) {
+			if (num_read > 0 && gps->_interface != GPSHelper::Interface::SPI) {
 				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, false);
 			}
 
@@ -369,7 +381,8 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		break;
 
 	case GPSCallbackType::setClock:
-		px4_clock_settime(CLOCK_REALTIME, (timespec *)data1);
+		/* do not set time */
+		/* px4_clock_settime(CLOCK_REALTIME, (timespec *)data1); */
 		break;
 	}
 
@@ -381,6 +394,11 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	handleInjectDataTopic();
 
 #if !defined(__PX4_QURT)
+	if (_interface == GPSHelper::Interface::SPI) {
+		int ret = ::read(_serial_fd, buf, buf_length);
+
+		return ret;
+	}
 
 	/* For non QURT, use the usual polling. */
 
@@ -740,15 +758,20 @@ GPS::task_main()
 
 				int helper_ret;
 
-				while ((helper_ret = _helper->receive(TIMEOUT_5HZ)) > 0 && !_task_should_exit) {
+				while (!_task_should_exit) {
+					helper_ret = _helper->receive(TIMEOUT_5HZ);
 
-					if (helper_ret & 1) {
+					if (helper_ret > 0) {
+
+					}
+
+					if (helper_ret == 1) {
 						publish();
 
 						last_rate_count++;
 					}
 
-					if (_p_report_sat_info && (helper_ret & 2)) {
+					if (_p_report_sat_info && (helper_ret == 2)) {
 						publishSatelliteInfo();
 					}
 
@@ -788,6 +811,14 @@ GPS::task_main()
 //						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
 					}
+
+					/* back off required for SPI */
+					if (helper_ret == 1 || helper_ret == 2) {
+						usleep(180000);
+					} else {
+						usleep(10000);
+					}
+
 				}
 
 				if (_healthy) {

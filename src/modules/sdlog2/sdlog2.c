@@ -608,6 +608,8 @@ static void *logwriter_thread(void *arg)
 	/* set name */
 	px4_prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
+	PX4_WARN("logwriter_thread: d", px4_gettid());
+
 	int log_fd = open_log_file();
 
 	if (log_fd < 0) {
