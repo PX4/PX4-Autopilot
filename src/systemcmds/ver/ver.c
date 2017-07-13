@@ -128,10 +128,10 @@ int ver_main(int argc, char *argv[])
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 
 				if (type == 255) {
-					printf("FW version: Release %x.%x.%x (%u)\n", major, minor, patch, fwver);
+					printf("FW version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("FW version: %x.%x.%x %x (%u)\n", major, minor, patch, type, fwver);
+					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
 
@@ -143,10 +143,10 @@ int ver_main(int argc, char *argv[])
 				printf("OS: %s\n", px4_os_name());
 
 				if (type == 255) {
-					printf("OS version: Release %x.%x.%x (%u)\n", major, minor, patch, fwver);
+					printf("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("OS version: %x.%x.%x %x (%u)\n", major, minor, patch, type, fwver);
+					printf("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				const char *os_git_hash = px4_os_version_string();
