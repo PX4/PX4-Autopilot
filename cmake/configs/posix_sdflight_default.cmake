@@ -64,10 +64,9 @@ set(config_module_list
 	modules/simulator
 	modules/commander
 	modules/navigator
-	modules/rtps_udp
 
-    # micro RTPS
-    modules/micrortps_bridge/micrortps_client
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
 
 	lib/controllib
 	lib/mathlib

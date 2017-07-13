@@ -103,7 +103,9 @@ set(config_module_list
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
-	modules/rtps_udp
+
+        # micro RTPS
+        modules/micrortps_bridge/micrortps_client
 
 	#
 	# Libraries
