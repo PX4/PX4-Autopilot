@@ -104,3 +104,4 @@ uint8 target_component		# Component which should execute the command, 0 for all 
 uint8 source_system		# System sending the command
 uint8 source_component		# Component sending the command
 uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
+uint8 from_external

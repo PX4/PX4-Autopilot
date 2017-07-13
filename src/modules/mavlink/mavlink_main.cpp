@@ -2205,12 +2205,14 @@ Mavlink::task_main(int argc, char *argv[])
 		struct vehicle_command_ack_s command_ack = {};
 
 		if (ack_sub->update(&ack_time, &command_ack)) {
-			mavlink_command_ack_t msg;
-			msg.result = command_ack.result;
-			msg.command = command_ack.command;
-			current_command_ack = command_ack.command;
+			if (!command_ack.from_external) {
+				mavlink_command_ack_t msg;
+				msg.result = command_ack.result;
+				msg.command = command_ack.command;
+				current_command_ack = command_ack.command;
 
-			mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+			}
 		}
 
 		struct mavlink_log_s mavlink_log;

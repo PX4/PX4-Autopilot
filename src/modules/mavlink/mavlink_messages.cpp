@@ -455,10 +455,7 @@ protected:
 
 		if (_cmd_sub->update(&_cmd_time, &cmd)) {
 
-			/* only send commands for other systems/components, don't forward broadcast commands */
-			if ((cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) &&
-			    (cmd.target_system != 0)) {
-
+			if (!cmd.from_external) {
 				if (_mavlink->verbose()) {
 					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 				}
