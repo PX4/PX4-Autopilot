@@ -8,3 +8,4 @@ uint32 ORB_QUEUE_LENGTH = 3
 
 uint16 command
 uint8 result
+uint8 from_external
