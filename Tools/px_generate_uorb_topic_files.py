@@ -59,7 +59,7 @@ Required python packages not installed.
 
 On a Debian/Ubuntu system please run:
 
-  sudo apt-get install python-empy python-genmsg
+  sudo apt-get install python-empy
   sudo pip install catkin_pkg
 
 On MacOS please run:
