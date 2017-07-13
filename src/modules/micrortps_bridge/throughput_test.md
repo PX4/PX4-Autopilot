@@ -39,7 +39,7 @@ And giving it a topic id, adding a line in the *Tools/message_id.py* script:
   $ python Tools/generate_microRTPS_bridge.py --send msg/throughput_256.msg --receive msg/throughput_256.msg
   ```
 
-That generate and install the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
 Now, we have to modify the client to send a *throughput_256* message each time since nobody publish under this topic. In the file **src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp** inside the *send* function the loop should look like this:
 
@@ -71,7 +71,7 @@ Now, we have to modify the client to send a *throughput_256* message each time s
   ```
 ## Result
 
-After compile and launch both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
+After compiling and launching both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
 
   ```sh
   SENT:     13255 messages in 13255 LOOPS, 3512575 bytes in 30.994 seconds - 113.33KB/s

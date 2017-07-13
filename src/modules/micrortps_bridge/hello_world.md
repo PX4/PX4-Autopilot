@@ -80,7 +80,7 @@ To see the message received in the client one time each second (**src/modules/mi
 ```
 ## Result
 
-After compile and launch both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain this kind of messages in the client shell window (showing the message created in the agent with info from temperature sensor in the PX4 side):
+After compiling and launching both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain this kind of messages in the client shell window (showing the message created in the agent with info from temperature sensor in the PX4 side):
 
 ```sh
   ...
