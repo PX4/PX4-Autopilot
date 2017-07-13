@@ -461,7 +461,7 @@ protected:
 		struct vehicle_command_s cmd;
 		bool sent = false;
 
-		if (_cmd_sub->update(&_cmd_time, &cmd)) {
+		if (_cmd_sub->update_if_changed(&cmd)) {
 
 			if (!cmd.from_external) {
 				if (_mavlink->verbose()) {
