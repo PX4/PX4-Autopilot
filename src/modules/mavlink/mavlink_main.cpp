@@ -1809,6 +1809,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
 				_src_addr_initialized = true;
+				set_protocol(TCP);
 
 			} else {
 				warnx("invalid partner ip '%s'", myoptarg);
