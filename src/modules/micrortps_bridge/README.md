@@ -2,8 +2,9 @@
 
 
 This bridge adds communication capabilities between a **PX4 Autopilot** and a **Fast RTPS** application through serial ports or
-UDP sockets using **CDR serialization**. The goal is carrying information from the drone to the DDS world through **Fast RTPS**,
-and putting information into the drone from DDS as same manner.
+UDP sockets using **CDR serialization**. The goal is to provide a DDS (Data Distribution Service) interface to PX4. This interface allows sharing information also with the upcoming release of ROS (Robot Operating System), ROS2.
+
+DDS is an standard from the OMG (Object Management Group) providing a real-time pub/sub middleware widely used in aerospace, defense and IoT applications, while in Robotics has been adopted as the middleware for ROS2.
 
 ![alt text](res/1_general-white.png)
 
