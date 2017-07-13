@@ -231,6 +231,21 @@ void Ekf::controlExternalVisionFusion()
 			fuseHeading();
 		}
 	}
+
+	// handle the case when we are relying on ev data and lose it
+	if (_control_status.flags.ev_pos && !_control_status.flags.gps && !_control_status.flags.opt_flow) {
+		// We are relying on ev aiding to constrain drift so after 5s without aiding we need to do something
+		if ((_time_last_imu - _time_last_pos_fuse > 5e6)) {
+			// Switch to the non-aiding mode, zero the velocity states
+			// and set the synthetic position to the current estimate
+			_control_status.flags.ev_pos = false;
+			_last_known_posNE(0) = _state.pos(0);
+			_last_known_posNE(1) = _state.pos(1);
+			_state.vel.setZero();
+
+		}
+	}
+
 }
 
 void Ekf::controlOpticalFlowFusion()
@@ -321,7 +336,7 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 		// handle the case when we are relying on optical flow fusion and lose it
-		if (_control_status.flags.opt_flow && !_control_status.flags.gps) {
+		if (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) {
 			// We are relying on flow aiding to constrain attitude drift so after 5s without aiding we need to do something
 			if ((_time_last_imu - _time_last_of_fuse > 5e6)) {
 				// Switch to the non-aiding mode, zero the velocity states
