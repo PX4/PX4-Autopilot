@@ -95,6 +95,36 @@ public:
 
 protected:
 
+	/**
+	 * @class Compatibility base class to convert topics to an updated format
+	 */
+	class CompatBase
+	{
+	public:
+		virtual ~CompatBase() = default;
+
+		/**
+		 * apply compatibility to a topic
+		 * @param data input topic (can be modified in place)
+		 * @return new topic data
+		 */
+		virtual void *apply(void *data) = 0;
+	};
+
+	class CompatSensorCombinedDtType : public CompatBase
+	{
+	public:
+		CompatSensorCombinedDtType(int gyro_integral_dt_offset_log, int gyro_integral_dt_offset_intern,
+					   int accelerometer_integral_dt_offset_log, int accelerometer_integral_dt_offset_intern);
+
+		void *apply(void *data) override;
+	private:
+		int _gyro_integral_dt_offset_log;
+		int _gyro_integral_dt_offset_intern;
+		int _accelerometer_integral_dt_offset_log;
+		int _accelerometer_integral_dt_offset_intern;
+	};
+
 	struct Subscription {
 
 		const orb_metadata *orb_meta = nullptr; ///< if nullptr, this subscription is invalid
@@ -106,6 +136,8 @@ protected:
 
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
+
+		CompatBase *compat = nullptr;
 
 		// statistics
 		int error_counter = 0;
