@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file pwm.c
+ * @file pwm.cpp
  *
  * PWM servo output configuration and monitoring tool.
  */
@@ -43,6 +43,7 @@
 #include <px4_getopt.h>
 #include <px4_defines.h>
 #include <px4_log.h>
+#include <px4_module.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,59 +67,90 @@
 #include "drivers/drv_pwm_output.h"
 
 static void	usage(const char *reason);
+__BEGIN_DECLS
 __EXPORT int	pwm_main(int argc, char *argv[]);
+__END_DECLS
 
 
 static void
 usage(const char *reason)
 {
-	if (reason != NULL) {
+	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
 
-	PX4_INFO(
-		"usage:\n"
-		"pwm arm|disarm|rate|failsafe|disarmed|min|max|test|steps|info  ...\n"
-		"\n"
-		"arm\t\t\t\tArm output\n"
-		"disarm\t\t\t\tDisarm output\n"
-		"\n"
-		"oneshot ...\t\t\tConfigure Oneshot\n"
-		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\n"
-		"rate ...\t\t\tConfigure PWM rates\n"
-		"\t[-g <channel group>]\t(e.g. 0,1,2)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-r <alt_rate>\t\tPWM rate (0 - oneshot, 50 to 400 Hz)\n"
-		"\n"
-		"failsafe ...\t\t\tFailsafe PWM\n"
-		"disarmed ...\t\t\tDisarmed PWM\n"
-		"min ...\t\t\t\tMinimum PWM\n"
-		"max ...\t\t\t\tMaximum PWM\n"
-//	     "trim ...\t\t\tTrim PWM\n"
-		"\t[-e]\t\t\trobust error handling\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-p <pwm value>\t\tPWM value\n"
-		"\n"
-		"test ...\t\t\tDirectly set PWM\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\t[-m <channel mask> ]\t(e.g. 0xF)\n"
-		"\t[-a]\t\t\tConfigure all outputs\n"
-		"\t-p <pwm value>\t\tPWM value\n"
-		"\n"
-		"steps ...\t\t\tRun 5 steps\n"
-		"\t[-c <channels>]\t\t(e.g. 1234)\n"
-		"\n"
-		"info\t\t\t\tPrint information\n"
-		"\n"
-		"\t-v\t\t\tVerbose\n"
-		"\t-d <dev>\t\t(default " PWM_OUTPUT0_DEVICE_PATH ")\n"
-	);
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This command is used to configure PWM outputs for servo and ESC control.
+
+The default device `/dev/pwm_output0` are the Main channels, AUX channels are on `/dev/pwm_output1` (`-d` parameter).
+
+It is used in the startup script to make sure the PWM parameters (`PWM_*`) are applied (or the ones provided
+by the airframe config if specified). `pwm info` shows the current settings (the trim value is an offset
+and configured with `PWM_MAIN_TRIMx` and `PWM_AUX_TRIMx`).
+
+The disarmed value should be set such that the motors don't spin (it's also used for the kill switch), at the
+minimum value they should spin.
+
+Channels are assigned to a group. Due to hardware limitations, the update rate can only be set per group. Use
+`pwm info` to display the groups. If the `-c` argument is used, all channels of any included group must be included.
+
+The parameters `-p` and `-r` can be set to a parameter instead of specifying an integer: use -p p:PWM_MIN for example.
+
+Note that in OneShot mode, the PWM range [1000, 2000] is automatically mapped to [125, 250].
+
+### Examples
+Set the PWM rate for all channels to 400 Hz:
+$ pwm rate -a -r 400
+
+Test the outputs of eg. channels 1 and 3, and set the PWM value to 1200 us:
+$ pwm arm
+$ pwm test -c 13 -p 1200
+
+)DESCR_STR");
+
+
+	PRINT_MODULE_USAGE_NAME("pwm", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("arm", "Arm output");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print current configuration of all channels");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode");
+	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Force Termination Failsafe mode");
+	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
+	PRINT_MODULE_USAGE_PARAM_INT('r', -1, 50, 400, "PWM Rate in Hz (0 = Oneshot, otherwise 50 to 400Hz)", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("oneshot", "Configure Oneshot125 (rate is set to 0)");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("failsafe", "Set Failsafe PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("disarmed", "Set Disarmed PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("min", "Set Minimum PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("max", "Set Maximum PWM value");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set Output to a specific value until 'q' or 'c' or 'ctrl-c' pressed");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("steps", "Run 5 steps from 0 to 100%");
+
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'failsafe', 'disarmed', 'min', 'max' and 'test' require a PWM value:");
+	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 4000, "PWM value (eg. 1100)", false);
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'failsafe', 'disarmed', 'min', 'max', 'test' and 'steps' "
+					 "additionally require to specify the channels with one of the following commands:");
+	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
+					true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm info' to show groups)",
+				     true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("These parameters apply to all commands:");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/pwm_output0", "<file:dev>", "Select PWM output device", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Exit with 1 instead of 0 on error", true);
 
 }
 
@@ -185,20 +217,20 @@ pwm_main(int argc, char *argv[])
 	int pwm_value = 0;
 
 	if (argc < 2) {
-		usage(NULL);
+		usage(nullptr);
 		return 1;
 	}
 
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:vec:g:m:ap:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'd':
-			if (NULL == strstr(myoptarg, "/dev/")) {
+			if (nullptr == strstr(myoptarg, "/dev/")) {
 				PX4_WARN("device %s not valid", myoptarg);
-				usage(NULL);
+				usage(nullptr);
 				return 1;
 			}
 
@@ -210,7 +242,7 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		case 'e':
-			error_on_warn = false;
+			error_on_warn = true;
 			break;
 
 		case 'c':
@@ -264,13 +296,13 @@ pwm_main(int argc, char *argv[])
 			break;
 
 		default:
-			usage(NULL);
+			usage(nullptr);
 			return 1;
 		}
 	}
 
 	if (myoptind >= argc) {
-		usage(NULL);
+		usage(nullptr);
 		return 1;
 	}
 
@@ -957,7 +989,7 @@ pwm_main(int argc, char *argv[])
 				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 1);
 
 			} else {
-				/* force failsafe */
+				/* disable failsafe */
 				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
 			}
 
@@ -981,7 +1013,7 @@ pwm_main(int argc, char *argv[])
 				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 1);
 
 			} else {
-				/* force failsafe */
+				/* disable failsafe */
 				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 0);
 			}
 
@@ -993,6 +1025,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 	}
 
-	usage(NULL);
+	usage(nullptr);
 	return 0;
 }

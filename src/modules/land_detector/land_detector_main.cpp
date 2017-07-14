@@ -50,7 +50,6 @@
 #include <errno.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/systemlib.h>	//Scheduler
-#include <systemlib/err.h>			//print to console
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
@@ -61,180 +60,126 @@
 namespace land_detector
 {
 
-// Function prototypes
-static int land_detector_start(const char *mode);
-static void land_detector_stop();
-
-/**
- * land detector app start / stop handling function
- * This makes the land detector module accessible from the nuttx shell
- * @ingroup apps
- */
 extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
-// Private variables
-static LandDetector *land_detector_task = nullptr;
 static char _currentMode[12];
 
-/**
- * Stop the task, force killing it if it doesn't stop by itself
- */
-static void land_detector_stop()
+int LandDetector::task_spawn(int argc, char *argv[])
 {
-	if (land_detector_task == nullptr) {
-		PX4_WARN("not running");
-		return;
-	}
-
-	land_detector_task->stop();
-
-	// Wait for task to die
-	int i = 0;
-
-	do {
-		// wait 20ms at a time
-		usleep(20000);
-
-	} while (land_detector_task->is_running() && ++i < 50);
-
-
-	delete land_detector_task;
-	land_detector_task = nullptr;
-	PX4_WARN("land_detector has been stopped");
-}
-
-/**
- * Start new task, fails if it is already running. Returns OK if successful
- */
-static int land_detector_start(const char *mode)
-{
-	if (land_detector_task != nullptr) {
-		PX4_WARN("already running");
+	if (argc < 2) {
+		print_usage();
 		return -1;
 	}
 
-	//Allocate memory
-	if (!strcmp(mode, "fixedwing")) {
-		land_detector_task = new FixedwingLandDetector();
+	LandDetector *obj;
 
-	} else if (!strcmp(mode, "multicopter")) {
-		land_detector_task = new MulticopterLandDetector();
+	if (!strcmp(argv[1], "fixedwing")) {
+		obj = new FixedwingLandDetector();
 
-	} else if (!strcmp(mode, "vtol")) {
-		land_detector_task = new VtolLandDetector();
+	} else if (!strcmp(argv[1], "multicopter")) {
+		obj = new MulticopterLandDetector();
 
-	} else if (!strcmp(mode, "ugv")) {
-		land_detector_task = new RoverLandDetector();
+	} else if (!strcmp(argv[1], "vtol")) {
+		obj = new VtolLandDetector();
+
+	} else if (!strcmp(argv[1], "ugv")) {
+		obj = new RoverLandDetector();
 
 	} else {
-		PX4_WARN("[mode] must be either 'fixedwing', 'multicopter', or 'vtol'");
+		print_usage("unknown mode");
 		return -1;
 	}
 
-	// Check if alloc worked
-	if (land_detector_task == nullptr) {
-		PX4_WARN("alloc failed");
+	if (!obj) {
+		PX4_ERR("alloc failed");
 		return -1;
 	}
 
-	// Start new thread task
-	int ret = land_detector_task->start();
+	int ret = obj->start();
 
-	if (ret) {
-		PX4_WARN("task start failed: %d", -errno);
-		return -1;
-	}
-
-	// Avoid memory fragmentation by not exiting start handler until the task has fully started
-	const uint64_t timeout = hrt_absolute_time() + 5000000; // 5 second timeout
-
-	// Do one sleep before the first check
-	usleep(10000);
-
-	if (!land_detector_task->is_running()) {
-		while (!land_detector_task->is_running()) {
-			usleep(50000);
-
-			if (hrt_absolute_time() > timeout) {
-				PX4_WARN("start failed - timeout");
-				land_detector_stop();
-				return 1;
-			}
-		}
+	if (ret < 0) {
+		delete obj;
+		return ret;
 	}
 
 	// Remember current active mode
-	strncpy(_currentMode, mode, sizeof(_currentMode) - 1);
+	strncpy(_currentMode, argv[1], sizeof(_currentMode) - 1);
 	_currentMode[sizeof(_currentMode) - 1] = '\0';
+
+	wait_until_running(); // this will wait until _object is set from the cycle method
+	_task_id = task_id_is_work_queue;
+	return 0;
+}
+
+int LandDetector::print_status()
+{
+	PX4_INFO("running (%s)", _currentMode);
+	LandDetector::LandDetectionState state = get_state();
+
+	switch (state) {
+	case LandDetector::LandDetectionState::FLYING:
+		PX4_INFO("State: Flying");
+		break;
+
+	case LandDetector::LandDetectionState::LANDED:
+		PX4_INFO("State: Landed");
+		break;
+
+	case LandDetector::LandDetectionState::FREEFALL:
+		PX4_INFO("State: Freefall");
+		break;
+
+	default:
+		PX4_ERR("State: unknown");
+		break;
+	}
 
 	return 0;
 }
 
-/**
- * Main entry point for this module
- */
+int LandDetector::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_ERR("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module to detect the freefall and landed state of the vehicle, and publishing the `vehicle_land_detected` topic.
+Each vehicle type (multirotor, fixedwing, vtol, ...) provides its own algorithm, taking into account various
+states, such as commanded thrust, arming state and vehicle motion.
+
+### Implementation
+Every type is implemented in its own class with a common base class. The base class maintains a state (landed,
+maybe_landed, ground_contact). Each possible state is implemented in the derived classes. A hysteresis and a fixed
+priority of each internal state determines the actual land_detector state.
+
+#### Multicopter Land Detector
+**ground_contact**: thrust setpoint and velocity in z-direction must be below a defined threshold for time
+GROUND_CONTACT_TRIGGER_TIME_US. When ground_contact is detected, the position controller turns off the thrust setpoint
+in body x and y.
+
+**maybe_landed**: it requires ground_contact together with a tighter thrust setpoint threshold and no velocity in the
+horizontal direction. The trigger time is defined by MAYBE_LAND_TRIGGER_TIME. When maybe_landed is detected, the
+position controller sets the thrust setpoint to zero.
+
+**landed**: it requires maybe_landed to be true for time LAND_DETECTOR_TRIGGER_TIME_US.
+
+The module runs periodically on the HP work queue.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("land_detector", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
+	PRINT_MODULE_USAGE_ARG("fixedwing|multicopter|vtol|rover", "Select vehicle type", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	return 0;
+}
+
+
 int land_detector_main(int argc, char *argv[])
 {
-
-	if (argc < 2) {
-		goto exiterr;
-	}
-
-	if (argc >= 2 && !strcmp(argv[1], "start")) {
-		if (land_detector_start(argv[2]) != 0) {
-			PX4_WARN("land_detector start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		land_detector_stop();
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (land_detector_task) {
-
-			if (land_detector_task->is_running()) {
-				PX4_INFO("running (%s)", _currentMode);
-				LandDetector::LandDetectionState state = land_detector_task->get_state();
-
-				switch (state) {
-				case LandDetector::LandDetectionState::FLYING:
-					PX4_INFO("State: Flying");
-					break;
-
-				case LandDetector::LandDetectionState::LANDED:
-					PX4_INFO("State: Landed");
-					break;
-
-				case LandDetector::LandDetectionState::FREEFALL:
-					PX4_INFO("State: Freefall");
-					break;
-
-				default:
-					PX4_ERR("State: unknown");
-					break;
-				}
-
-			} else {
-				PX4_WARN("exists, but not running (%s)", _currentMode);
-			}
-
-			return 0;
-
-		} else {
-			PX4_WARN("not running");
-			return 1;
-		}
-	}
-
-exiterr:
-	PX4_WARN("usage: land_detector {start|stop|status} [mode]");
-	PX4_WARN("mode can either be 'fixedwing' or 'multicopter'");
-	return 1;
+	return LandDetector::main(argc, argv);
 }
 
 }

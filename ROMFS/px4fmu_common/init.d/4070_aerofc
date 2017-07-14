@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Intel Aero RTF
+# @name Intel Aero Ready to Fly Drone
 #
 # @board px4fmu-v1 exclude
 # @board px4fmu-v2 exclude
@@ -11,6 +11,8 @@
 #
 # @type Quadrotor x
 # @class Copter
+#
+# @maintainer Lucas de Marchi
 #
 
 sh /etc/init.d/rc.mc_defaults

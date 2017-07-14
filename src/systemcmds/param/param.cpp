@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file param.c
+ * @file param.cpp
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Andreas Antener <andreas@uaventure.com>
  *
@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 
 #include <errno.h>
@@ -63,7 +64,9 @@
 #endif
 #include "systemlib/err.h"
 
+__BEGIN_DECLS
 __EXPORT int param_main(int argc, char *argv[]);
+__END_DECLS
 
 enum COMPARE_OPERATOR {
 	COMPARE_OPERATOR_EQUAL = 0,
@@ -77,7 +80,7 @@ enum COMPARE_OPERATOR {
 #endif
 
 static int 	do_save(const char *param_file_name);
-static int	do_save_default(void);
+static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static int	do_show(const char *search_string, bool only_changed);
@@ -88,6 +91,69 @@ static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum
 static int 	do_reset(const char *excludes[], int num_excludes);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
+
+static void print_usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Command to access and manipulate parameters via shell or script.
+
+This is used for example in the startup script to set airframe-specific parameters.
+
+Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
+or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
+need to be (re-)configured on every boot).
+
+Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
+parameters to a ground control station.
+
+### Examples
+Change the airframe and make sure the airframe's default parameters are loaded:
+$ param set SYS_AUTOSTART 4001
+$ param set SYS_AUTOCONFIG 1
+$ reboot
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("param", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("load", "Load params from a file (overwrite all)");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("select", "Select default file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use <root>/eeprom/parameters if not given)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params", true);
+	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set parameter to a value");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
+	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("compare", "Compare a param with a value. Command will succeed if equal");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("greater",
+					 "Compare a param with a value. Command will succeed if param is greater than the value");
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset params to default");
+	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset_nostart",
+					 "Reset params to default, but keep SYS_AUTOSTART and SYS_AUTOCONFIG");
+	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("index", "Show param for a given index");
+	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("index_used", "Show used param for a given index");
+	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("find", "Show index of a param");
+	PRINT_MODULE_USAGE_ARG("<param>", "param name", false);
+}
 
 int
 param_main(int argc, char *argv[])
@@ -133,7 +199,7 @@ param_main(int argc, char *argv[])
 				param_set_default_file(argv[2]);
 
 			} else {
-				param_set_default_file(NULL);
+				param_set_default_file(nullptr);
 			}
 
 			PX4_INFO("selected parameter default file %s", param_get_default_file());
@@ -148,7 +214,7 @@ param_main(int argc, char *argv[])
 						return do_show(argv[3], true);
 
 					} else {
-						return do_show(NULL, true);
+						return do_show(nullptr, true);
 					}
 
 				} else {
@@ -156,7 +222,7 @@ param_main(int argc, char *argv[])
 				}
 
 			} else {
-				return do_show(NULL, false);
+				return do_show(nullptr, false);
 			}
 		}
 
@@ -202,7 +268,7 @@ param_main(int argc, char *argv[])
 				return do_reset((const char **) &argv[2], argc - 2);
 
 			} else {
-				return do_reset(NULL, 0);
+				return do_reset(nullptr, 0);
 			}
 		}
 
@@ -211,7 +277,7 @@ param_main(int argc, char *argv[])
 				return do_reset_nostart((const char **) &argv[2], argc - 2);
 
 			} else {
-				return do_reset_nostart(NULL, 0);
+				return do_reset_nostart(nullptr, 0);
 			}
 		}
 
@@ -246,7 +312,7 @@ param_main(int argc, char *argv[])
 		}
 	}
 
-	PX4_INFO("expected a command, try 'load', 'import', 'show [-c] [<filter>]', 'set <param> <value>', 'compare',\n'index', 'index_used', 'find', 'greater', 'select', 'save', or 'reset' ");
+	print_usage();
 	return 1;
 }
 
@@ -343,7 +409,7 @@ do_import(const char *param_file_name)
 #endif
 
 static int
-do_save_default(void)
+do_save_default()
 {
 	return param_save_default();
 }
@@ -428,7 +494,7 @@ do_show_print(void *arg, param_t param)
 	const char *p_name = (const char *)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
-	if (!(arg == NULL)) {
+	if (!(arg == nullptr)) {
 
 		/* start search */
 		const char *ss = search_string;

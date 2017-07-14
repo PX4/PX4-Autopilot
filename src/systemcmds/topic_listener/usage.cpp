@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,56 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
- * Tool similar to UNIX reboot command
+ * @file usage.cpp
+ * Note: this file is not used in the build, it's just for documenting the module
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
 #include <px4_module.h>
-#include <px4_shutdown.h>
-#include <systemlib/systemlib.h>
 
-__EXPORT int reboot_main(int argc, char *argv[]);
-
-static void print_usage(void)
+static void
+usage()
 {
-	PRINT_MODULE_DESCRIPTION("Reboot the system");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+Utility to listen on uORB topics and print the data to the console.
 
-	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
-	PRINT_MODULE_USAGE_PARAM_FLAG('b', "Reboot into bootloader", true);
+Limitation: it can only listen to the first instance of a topic.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("listener", "command");
+	PRINT_MODULE_USAGE_ARG("<topic_name> [<num_msgs>]", "uORB topic name and optionally number of messages (default=1)", false);
 }
 
-int reboot_main(int argc, char *argv[])
-{
-	int ch;
-	bool to_bootloader = false;
-
-	int myoptind = 1;
-	const char *myoptarg = NULL;
-
-	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
-		switch (ch) {
-		case 'b':
-			to_bootloader = true;
-			break;
-
-		default:
-			print_usage();
-			return 1;
-
-		}
-	}
-
-	int ret = px4_shutdown_request(true, to_bootloader);
-
-	if (ret < 0) {
-		PX4_ERR("reboot failed (%i)", ret);
-		return -1;
-	}
-
-	while (1) { usleep(1); } // this command should not return on success
-
-	return 0;
-}
