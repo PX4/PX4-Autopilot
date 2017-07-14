@@ -332,42 +332,18 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	subscription.multi_id = multi_id;
 
 
-	//find the timestamp offset (not necessarily the first field)
-	string fields = orb_meta->o_fields;
-	size_t prev_field_end = 0;
-	size_t field_end = fields.find(';');
-	bool timestamp_found = false;
-	subscription.timestamp_offset = 0;
-
-	while (field_end != string::npos && !timestamp_found) {
-		size_t space_pos = fields.find(' ', prev_field_end);
-
-		if (space_pos != string::npos) {
-			string type_name_full = fields.substr(prev_field_end, space_pos - prev_field_end);
-			string field_name = fields.substr(space_pos + 1, field_end - space_pos - 1);
-
-			if (field_name == "timestamp") {
-				timestamp_found = true;
-
-				if (type_name_full != "uint64_t") {
-					PX4_ERR("Unsupported timestamp type %s, ignoring the topic %s", type_name_full.c_str(),
-						orb_meta->o_name);
-					return true;
-				}
-
-			} else {
-				subscription.timestamp_offset += sizeOfFullType(type_name_full);
-			}
-		}
-
-		prev_field_end = field_end + 1;
-		field_end = fields.find(';', prev_field_end);
-	}
+	//find the timestamp offset
+	int field_size;
+	bool timestamp_found = findFieldOffset(orb_meta->o_fields, "timestamp", subscription.timestamp_offset, field_size);
 
 	if (!timestamp_found) {
 		return true;
 	}
 
+	if (field_size != 8) {
+		PX4_ERR("Unsupported timestamp with size %i, ignoring the topic %s", field_size, orb_meta->o_name);
+		return true;
+	}
 
 	//find first data message (and the timestamp)
 	streampos cur_pos = file.tellg();
@@ -397,6 +373,37 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	return true;
 }
+
+bool Replay::findFieldOffset(const string &format, const string &field_name, int &offset, int &field_size)
+{
+	size_t prev_field_end = 0;
+	size_t field_end = format.find(';');
+	offset = 0;
+	field_size = 0;
+
+	while (field_end != string::npos) {
+		size_t space_pos = format.find(' ', prev_field_end);
+
+		if (space_pos != string::npos) {
+			string type_name_full = format.substr(prev_field_end, space_pos - prev_field_end);
+			string cur_field_name = format.substr(space_pos + 1, field_end - space_pos - 1);
+
+			if (cur_field_name == field_name) {
+				field_size = sizeOfFullType(type_name_full);
+				return true;
+
+			} else {
+				offset += sizeOfFullType(type_name_full);
+			}
+		}
+
+		prev_field_end = field_end + 1;
+		field_end = format.find(';', prev_field_end);
+	}
+
+	return false;
+}
+
 
 bool Replay::readAndHandleAdditionalMessages(std::ifstream &file, std::streampos end_position)
 {
