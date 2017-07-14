@@ -386,6 +386,15 @@ int MPU9250::reset()
 {
 	irqstate_t state;
 
+	/* When the mpu9250 starts from 0V the internal power on circuit
+	 * per the data sheet will require:
+	 *
+	 * Start-up time for register read/write From power-up Typ:11 max:100 ms
+	 *
+	 */
+
+	usleep(110000);
+
 	// Hold off sampling until done (100 MS will be shortened)
 	state = px4_enter_critical_section();
 	_reset_wait = hrt_absolute_time() + 100000;
@@ -410,7 +419,6 @@ int MPU9250::reset()
 int MPU9250::reset_mpu()
 {
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-
 	write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
 	write_checked_reg(MPUREG_PWR_MGMT_2, 0);
 
