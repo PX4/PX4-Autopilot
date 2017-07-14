@@ -10,24 +10,23 @@ DDS is an standard from the OMG (Object Management Group) providing a real-time 
 
 ## Automatic code generation
 
-The support for the new added functionality is mainly done within three new (automatically generated) code blocks.
+The support for the functionality is mainly done within three new (automatically generated) code blocks.
 
--  CDR serialization support is generated for every uORB topic adding new iterfaces what for *sensor_combined.msg* topic looks like this:
+-  CDR serialization support is generated for every uORB topic adding a interfaces what for *sensor_combined.msg* topic looks like this:
 
   ```sh
   void serialize_sensor_combined(const struct sensor_combined_s *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
   void deserialize_sensor_combined(struct sensor_combined_s *output, char *input, struct microCDR *microCDRReader);
   ```
 
--  User can generate an application to send and receive through a selected UART or selected UDP ports, the CDR serialized data
-    from several topics. This can be done calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder.
+-  An application to send and receive the CDR serialized data from several topics through a selected UART or selected UDP ports. This is called the client.
 
 ![alt text](res/2_trasnmitter-white.png)
 
--  Also the other side of the communication can be generated, a bridge application between CDR serialized data and the
-DDS world (using **Fast RTPS**). This can be done calling the script **generate_microRTPS_bridge.py** placed in Tools folder.
-This application is encapsuled in *microRTPS_agent.cxx* source file and .idl files for demanded topics.
-For the case of *sensor_combined* topic it's generated *sensor_combined_.idl* file.
+-  The other side of the communication is an application between CDR serialized data and the
+ROS2/DDS world (using **Fast RTPS**). An important step in this part is the generation of a idl file for each topic which
+is the translation of the correspondent msg file. For the case of  *sensor_combined* topic it's generated the
+*sensor_combined_.idl* file from *sensor_combined.msg* file. This application is called the agent.
 
 ![alt text](res/3_receiver-white.png)
 
@@ -35,14 +34,40 @@ This covers the entire spectrum of communications.
 
 ![alt text](res/4_both-white.png)
 
-The code for extended topic support is generated within the normal PX4 Firmware generation process. The other will be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
+These pieces of code are generated within the normal PX4 Firmware generation process. Also can be generated under demand calling the script **generate_microRTPS_bridge.py** placed in *Tools* folder, see section below.
 
-### Generating and installing the client and the agent
+### Generating the client and the agent
 
 **NOTE**: Before continue we need to have installed Fast RTPS. Visit its installation
 [manual](http://eprosima-fast-rtps.readthedocs.io/en/latest/sources.html) for more information.
 
-To generate and install the code for the client (PX4 side) and the agent (Fast RTPS side) we need to execute the python script
+The generation of the code is performed automatically through the normal process of compilation of the PX4 Firmware. Only we need to specify the topics we want to send and receive. For that purpose we need to add them in the **.cmake** file (*cmake/configs*) correspondent with our target platform in this way:
+
+```cmake
+set(config_rtps_send_topics
+   sensor_accel
+   sensor_baro
+   sensor_gyro
+   ...
+   )
+
+set(config_rtps_receive_topics
+   sensor_combined
+   telemetry_status
+   wind_estimate
+   ...
+   )
+```
+
+The client application will be generated in *build_OURPLATFORM/src/modules/micrortps_bridge/micrortps_client/* folder and the agent will be created in *src/modules/micrortps_bridge/micrortps_agent/* folder.
+
+**NOTE**: In the process of the agent generation we use a Fast RTPS tool called **fastrtpsgen**. If you don't have installed Fast RTPS in the default path you need to specify the directory of installation of fastrtpsgen setting the environment variable **FASTRTPSGEN_DIR** before make executing in this way:
+
+```sh
+export FASTRTPSGEN_DIR=/path//to/fastrtps/install/folder/bin
+```
+
+Also is possible to generate and install the code for the client and the agent outside the normal process of PX4 generation executing directly the python script
 **generate_microRTPS_bridge.py** hosted in *Tools* folder.
 
   ```text
@@ -73,6 +98,7 @@ To generate and install the code for the client (PX4 side) and the agent (Fast R
                           src/modules/micrortps_bridge/micrortps_client
     -f FASTRTPSGEN, --fastrtpsgen-dir FASTRTPSGEN
                           fastrtpsgen installation dir, by default /bin
+    --no-delete           Do not delete dir tree output dir(s)
   ```
 
  - The argument **--send/-s** means that the application from PX4 side will send these messages, and the argument **--receive/-r** specifies which messages is going to be received.
