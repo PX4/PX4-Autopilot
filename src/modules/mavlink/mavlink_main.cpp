@@ -2795,6 +2795,9 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("verbose", "Set verbose mode for all running instances");
+	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status for all instances");
