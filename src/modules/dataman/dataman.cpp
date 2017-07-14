@@ -228,8 +228,8 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 
 /* Table of the len of each item type */
 static const unsigned g_per_item_size[DM_KEY_NUM_KEYS] = {
-	sizeof(struct home_position_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct fence_vertex_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_save_point_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
