@@ -113,6 +113,16 @@ protected:
 	};
 
 	/**
+	 * Find the offset & field size in bytes for a given field name
+	 * @param format format string, as specified by ULog
+	 * @param field_name search for this field
+	 * @param offset returned offset
+	 * @param field_size returned field size
+	 * @return true if found, false otherwise
+	 */
+	static bool findFieldOffset(const std::string &format, const std::string &field_name, int &offset, int &field_size);
+
+	/**
 	 * publish an orb topic
 	 * @param sub
 	 * @param data
