@@ -57,6 +57,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/FOAWDifferentiator.hpp>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -275,6 +276,10 @@ private:
 
 	TailsitterRecovery *_ts_opt_recovery{nullptr};	/**< Computes optimal rates for tailsitter recovery */
 
+	math::FOAWDifferentiator _foaw_rollrate;
+	math::FOAWDifferentiator _foaw_pitchrate;
+	math::FOAWDifferentiator _foaw_yawrate;
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -372,7 +377,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_saturation_status{},
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
-	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
+	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
+	_foaw_rollrate(0.004f, 0.025f), // FOWA differentiator (dt, noise amplitude)
+	_foaw_pitchrate(0.004f, 0.025f),
+	_foaw_yawrate(0.004f, 0.025f)
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;
@@ -1001,10 +1009,17 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
+	math::Vector<3> derivative;
+	_foaw_rollrate.set_sample_time(dt);
+	_foaw_pitchrate.set_sample_time(dt);
+	_foaw_yawrate.set_sample_time(dt);
+	derivative(0) = _foaw_rollrate.apply(rates(0));
+	derivative(1) = _foaw_pitchrate.apply(rates(1));
+	derivative(2) = _foaw_yawrate.apply(rates(2));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
-		       _rates_int +
-		       rates_d_scaled.emult(_rates_prev - rates) / dt +
+		       _rates_int -
+		       rates_d_scaled.emult(derivative) +
 		       _params.rate_ff.emult(_rates_sp);
 
 	_rates_sp_prev = _rates_sp;
@@ -1251,6 +1266,11 @@ MulticopterAttitudeControl::task_main()
 				_controller_status.pitch_rate_integ = _rates_int(1);
 				_controller_status.yaw_rate_integ = _rates_int(2);
 				_controller_status.timestamp = hrt_absolute_time();
+
+				_controller_status.roll_rate_foaw_deriv = _foaw_rollrate.get_last_derivative();
+				_controller_status.pitch_rate_foaw_deriv = _foaw_pitchrate.get_last_derivative();
+				_controller_status.yaw_rate_foaw_deriv = _foaw_yawrate.get_last_derivative();
+				_controller_status.window_size = _foaw_rollrate.get_last_window_size();
 
 				if (!_actuators_0_circuit_breaker_enabled) {
 					if (_actuators_0_pub != nullptr) {
