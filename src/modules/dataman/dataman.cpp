@@ -770,7 +770,7 @@ static int  _ram_restart(dm_reset_reason reason)
 
 	/* Loop through all of the data segments and delete those that are not persistent */
 
-	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
+	for (int item = (int)DM_KEY_SAFE_POINTS; item < (int)DM_KEY_NUM_KEYS; item++) {
 		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
 			/* check if segment contains data */
 			if (buffer[0]) {
@@ -809,7 +809,7 @@ _file_restart(dm_reset_reason reason)
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	for (dm_item_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; item++) {
+	for (int item = (int)DM_KEY_SAFE_POINTS; item < (int)DM_KEY_NUM_KEYS; item++) {
 		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
 			/* Get data segment at current offset */
 			if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
@@ -1252,7 +1252,7 @@ task_main(int argc, char *argv[])
 	/* Initialize global variables */
 	g_key_offsets[0] = 0;
 
-	for (dm_item_t i = 0; i < (DM_KEY_NUM_KEYS - 1); i++) {
+	for (int i = 0; i < ((int)DM_KEY_NUM_KEYS - 1); i++) {
 		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * g_per_item_size[i]);
 	}
 
