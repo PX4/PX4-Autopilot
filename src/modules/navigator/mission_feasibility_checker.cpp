@@ -188,7 +188,8 @@ MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionIt
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(&missionitem) && !geofence.inside(missionitem)) {
+			if (MissionBlock::item_contains_position(&missionitem) &&
+			    !geofence.check(missionitem)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %d", i + 1);
 				return false;
