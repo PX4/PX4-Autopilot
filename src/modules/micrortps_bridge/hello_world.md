@@ -6,13 +6,13 @@ As a basic example we go to explain how implement a simple use case what sends i
 
   ``` sh
   $ cd /path/to/PX4/Firmware
-  $ python Tools/generate_microRTPS_bridge.py --send msg/sensor_combined.msg --receive msg/sensor_combined.msg msg/log_message.msg
+  $ python Tools/generate_microRTPS_bridge.py --send msg/sensor_combined.msg --receive msg/sensor_combined.msg msg/log_message.msg -u src/examples/micrortps_client
   ```
 **NOTE**: It may be needed specify other different arguments, as the path to the Fast RTPS *bin* installation folder if it was installed in other path different to default one (*-f /path/to/fastrtps/installation/bin*). For more information, click this [link](README.md#generate-and-installing-the-client-and-the-agent).
 
-That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
-To see the message received in the client one time each second (**src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp**), we change the default value of the sleep to 1000 and we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
+To see the message received in the client one time each second (**src/examples/micrortps_client/microRTPS_client.cpp**), we change the default value of the sleep to 1000 and we will add this *printf* to the code under the *orb_publish* line for *log_message* topic (line 274):
 
   ```cpp
   ...
@@ -32,6 +32,32 @@ To see the message received in the client one time each second (**src/modules/mi
   }
   ...
   ```
+To enable the compilation of the example client we need to modify the *micrortps_client* line in the cmake of our platform (*cmake/configs*) in that way:
+
+``` cmake
+set(config_module_list
+  ...
+  #src/modules/micrortps_bridge/micrortps_client
+  src/examples/micrortps_client
+  ...
+)
+```
+
+Also we need to a add basic CMakeLists.txt like that:
+
+``` cmake
+px4_add_module(
+	MODULE examples__micrortps_client
+	MAIN micrortps_client
+	STACK_MAIN 4096
+	SRCS
+		microRTPS_transport.cxx
+		microRTPS_client.cpp
+	DEPENDS
+		platforms__common
+	)
+```
+
  Now, we change the agent in order to send a log message each time we receive a **Fast RTPS message** with the info of the uORB topic *sensor_combined* (in the Fast RTPS world this topic will be called *sensor_combined_PubSubTopic*).
 
   - In the **src/modules/micrortps_bridge/micrortps_agent/RtpsTopic.cxx** file we will change the *RtpsTopics::getMsg* function to return a *log_message* for each *sensor_combined* with the text "*The temperature is XX.XXXXXXX celsius degrees*":

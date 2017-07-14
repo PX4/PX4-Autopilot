@@ -36,12 +36,12 @@ And giving it a topic id, adding a line in the *Tools/message_id.py* script:
 
   ``` sh
   $ cd /path/to/PX4/Firmware
-  $ python Tools/generate_microRTPS_bridge.py --send msg/throughput_256.msg --receive msg/throughput_256.msg
+  $ python Tools/generate_microRTPS_bridge.py --send msg/throughput_256.msg --receive msg/throughput_256.msg -u src/examples/micrortps_client
   ```
 
-That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
-Now, we have to modify the client to send a *throughput_256* message each time since nobody publish under this topic. In the file **src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp** inside the *send* function the loop should look like this:
+Now, we have to modify the client to send a *throughput_256* message each time since nobody publish under this topic. In the file **src/examples/micrortps_client/microRTPS_client.cpp** inside the *send* function the loop should look like this:
 
   ``` cpp
   ...
@@ -69,6 +69,32 @@ Now, we have to modify the client to send a *throughput_256* message each time s
   }
   ...
   ```
+  To enable the compilation of the example client we need to modify the *micrortps_client* line in the cmake of our platform (*cmake/configs*) in that way:
+
+  ``` cmake
+  set(config_module_list
+    ...
+    #src/modules/micrortps_bridge/micrortps_client
+    src/examples/micrortps_client
+    ...
+  )
+  ```
+
+  Also we need to a add basic CMakeLists.txt like that:
+
+  ``` cmake
+  px4_add_module(
+  	MODULE examples__micrortps_client
+  	MAIN micrortps_client
+  	STACK_MAIN 4096
+  	SRCS
+  		microRTPS_transport.cxx
+  		microRTPS_client.cpp
+  	DEPENDS
+  		platforms__common
+  	)
+  ```
+
 ## Result
 
 After compiling and launching both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
