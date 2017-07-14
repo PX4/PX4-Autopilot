@@ -171,7 +171,7 @@ The module runs periodically on the HP work queue.
 
 	PRINT_MODULE_USAGE_NAME("land_detector", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
-	PRINT_MODULE_USAGE_ARG("fixedwing|multicopter|vtol|rover", "Select vehicle type", false);
+	PRINT_MODULE_USAGE_ARG("fixedwing|multicopter|vtol|ugv", "Select vehicle type", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
