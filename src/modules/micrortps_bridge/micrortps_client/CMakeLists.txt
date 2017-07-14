@@ -61,7 +61,7 @@ endforeach()
 add_custom_command(OUTPUT ${topic_bridge_files_out}
 	COMMAND ${PYTHON_EXECUTABLE}
 	${PX4_SOURCE_DIR}/Tools/generate_microRTPS_bridge.py
-	-c 
+	-f $ENV{FASTRTPSGEN_DIR}
 	--no-delete
 	-s ${send_topic_files}
 	-r ${receive_topic_files}

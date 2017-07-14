@@ -62,7 +62,7 @@ GTAGS
 *.creator.user
 *.files
 *.includes
-msgenerated/
+src/modules/micrortps_bridge/micrortps_agent/
 
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/

@@ -207,6 +207,15 @@ set(config_module_list
 	examples/ekf_att_pos_estimator
 )
 
+set(config_rtps_send_topics
+   sensor_baro
+   )
+
+set(config_rtps_receive_topics
+   sensor_combined
+   )
+
+
 set(config_extra_builtin_cmds
 	serdis
 	sercon

@@ -42,7 +42,7 @@ parser.add_argument("-c", "--client", dest='client', action="store_true", help="
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default="src/modules/micrortps_bridge/micrortps_agent")
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default="src/modules/micrortps_bridge/micrortps_client")
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs=1, help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
+parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?', help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
 parser.add_argument("--no-delete", dest='no_del', action="store_true", help="Do not delete dir tree output dir(s)")
 
 if len(sys.argv) <= 1:
@@ -61,12 +61,12 @@ px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uo
 agent_out_dir = get_absolute_path(args.agentdir)
 client_out_dir = get_absolute_path(args.clientdir)
 
-if args.fastrtpsgen != "":
-    # Path to fastrtpsgen is explicitly specified
-    fastrtpsgen_path = get_absolute_path(args.fastrtpsgen) + "/fastrtpsgen"
-else:
+if args.fastrtpsgen is None or args.fastrtpsgen == "":
     # Assume fastrtpsgen is in PATH
     fastrtpsgen_path = "fastrtpsgen"
+else:
+    # Path to fastrtpsgen is explicitly specified
+    fastrtpsgen_path = get_absolute_path(args.fastrtpsgen) + "/fastrtpsgen"
 
 # If nothing specified it's generated both
 if agent == False and client == False:
