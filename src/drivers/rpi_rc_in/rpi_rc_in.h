@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charl. All rights reserved.
- *   Copyright (C) 2017 Fan.zhang. All rights reserved. 421395590@qq.com
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 Fan.zhang. All rights reserved. 421395590@qq.com
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +32,13 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+/*! @file rpi_rc_in.h
+ * Raspberry Pi driver to publish RC input from shared memory.
+ * It requires the ppmdecode program (https://github.com/crossa/raspberry-pi-ppm-rc-in)
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ipc.h>
@@ -49,50 +55,48 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
-#define RCINPUT_MEASURE_INTERVAL_US 20000
-namespace rpi_rc_in {
-class RcInput {
-public:
-	int *mem;
-	key_t key;
-	int shmid;
-	RcInput() :
-			mem(nullptr),key(4096),shmid(0),_shouldExit(false), _isRunning(false), _work { }, _rcinput_pub(
-					nullptr), _channels(8),//D8R-II plus
-			_data { } {
-		//memset(_ch_fd, 0, sizeof(_ch_fd));
-	}
-	~RcInput() {
-		this->mem = nullptr;
-		work_cancel(HPWORK, &_work);
-		_isRunning = false;
-	}
 
-	/* @return 0 on success, -errno on failure */
+#define RCINPUT_MEASURE_INTERVAL_US 20000
+
+namespace rpi_rc_in
+{
+class RcInput
+{
+public:
+	RcInput() = default;
+
+	~RcInput();
+
+	/** @return 0 on success, -errno on failure */
 	int start();
 
-	/* @return 0 on success, -errno on failure */
+	/** @return 0 on success, -errno on failure */
 	void stop();
 
-	/* Trampoline for the work queue. */
+	/** Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
-	bool isRunning() {
-		return _isRunning;
+	bool is_running()
+	{
+		return _is_running;
 	}
 
 private:
 	void _cycle();
 	void _measure();
 
-	bool _shouldExit;bool _isRunning;
-	struct work_s _work;
-	orb_advert_t _rcinput_pub;
-	int _channels;
-	//int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS];
-	struct input_rc_s _data;
-
 	int rpi_rc_init();
+
+	bool _should_exit = false;
+	bool _is_running = false;
+	struct work_s _work = {};
+	orb_advert_t _rcinput_pub = nullptr;
+	int _channels = 8; //D8R-II plus
+	struct input_rc_s _data = {};
+
+	int *_mem = nullptr;
+	key_t _key = 4096; ///< shared memory key (matches the ppmdecode program's key)
+	int _shmid = 0;
 };
 
 static void usage(const char *reason);

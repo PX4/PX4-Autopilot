@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charl. All rights reserved.
- *   Copyright (C) 2017 Fan.zhang. All rights reserved. 421395590@qq.com
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 Fan.zhang. All rights reserved. 421395590@qq.com
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,18 +34,30 @@
 #include "rpi_rc_in.h"
 
 using namespace rpi_rc_in;
-//---------------------------------------------------------------------------------------------------------//
-int RcInput::rpi_rc_init() {
+
+RcInput::~RcInput()
+{
+	if (_mem) {
+		shmdt(_mem);
+		_mem = nullptr;
+	}
+
+	work_cancel(HPWORK, &_work);
+	_is_running = false;
+}
+
+int RcInput::rpi_rc_init()
+{
 	int i;
+
 	//--------------初始化共享内存映射----------------------------//
-	if ((this->shmid = shmget(this->key, sizeof(int) * this->_channels, 0666))
-			< 0) {
-		PX4_WARN("无法访问共享内存。Faild to access shared memory");
+	if ((_shmid = shmget(_key, sizeof(int) * _channels, 0666)) < 0) {
+		PX4_WARN("Faild to access shared memory");
 		return -1;
 	}
 
-	if ((this->mem = (int*) shmat(this->shmid, NULL, 0)) == (void *) -1) {
-		PX4_WARN("无法映射共享内存。Faild to mapping shared memory");
+	if ((_mem = (int *) shmat(_shmid, NULL, 0)) == (void *) - 1) {
+		PX4_WARN("Faild to map shared memory");
 		return -1;
 	}
 
@@ -55,17 +66,10 @@ int RcInput::rpi_rc_init() {
 		_data.values[i] = UINT16_MAX;
 	}
 
-	_rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
-
-	if (_rcinput_pub == nullptr) {
-		PX4_WARN("error: advertise failed");
-		return -1;
-	}
-
 	return 0;
 }
-//---------------------------------------------------------------------------------------------------------//
-int RcInput::start() {
+int RcInput::start()
+{
 	int result = 0;
 
 	result = rpi_rc_init();
@@ -75,42 +79,47 @@ int RcInput::start() {
 		return -1;
 	}
 
-	_isRunning = true;
-	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline,
-			this, 0);
+	_is_running = true;
+	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this, 0);
 
 	if (result == -1) {
-		_isRunning = false;
+		_is_running = false;
 	}
 
 	return result;
 }
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::stop() {
-	_shouldExit = true;
+
+void RcInput::stop()
+{
+	_should_exit = true;
 }
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::cycle_trampoline(void *arg) {
+
+void RcInput::cycle_trampoline(void *arg)
+{
 	RcInput *dev = reinterpret_cast<RcInput *>(arg);
 	dev->_cycle();
 }
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::_cycle() {
+
+void RcInput::_cycle()
+{
 	_measure();
 
-	if (!_shouldExit) {
+	if (!_should_exit) {
 		work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this,
-				USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
 	}
 }
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::_measure(void) {
+
+void RcInput::_measure(void)
+{
 	uint64_t ts;
 	// PWM数据发布
 	// read pwm value from shared memory
-	int i=0;
-	for(i=0;i<_channels;++i){
-		_data.values[i] = (*(this->mem+i)<=0)?UINT16_MAX:*(this->mem+i);
+	int i = 0;
+
+	for (i = 0; i < _channels; ++i) {
+		int value = _mem[i]; // access the shared memory (with a single read)
+		_data.values[i] = (value <= 0) ? UINT16_MAX : value;
 	}
 
 	ts = hrt_absolute_time();
@@ -125,21 +134,26 @@ void RcInput::_measure(void) {
 	_data.rc_lost = false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
-	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
-}
-//---------------------------------------------------------------------------------------------------------//
-/**
- * Print the correct usage.
- */
+	if (nullptr == _rcinput_pub) {
+		int instance;
+		_rcinput_pub = orb_advertise_multi(ORB_ID(input_rc), &_data, &instance, ORB_PRIO_DEFAULT);
 
-static void rpi_rc_in::usage(const char *reason) {
+	} else {
+		orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
+	}
+}
+
+static void rpi_rc_in::usage(const char *reason)
+{
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
-	PX4_INFO("用法: rpi_rc_in {start|stop|status}");
+
+	PX4_INFO("rpi_rc_in {start|stop|status}");
 }
-//---------------------------------------------------------------------------------------------------------//
-int rpi_rc_in_main(int argc, char **argv) {
+
+int rpi_rc_in_main(int argc, char **argv)
+{
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
@@ -147,8 +161,8 @@ int rpi_rc_in_main(int argc, char **argv) {
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (rc_input != nullptr && rc_input->isRunning()) {
-			PX4_WARN("运行中。running");
+		if (rc_input != nullptr && rc_input->is_running()) {
+			PX4_INFO("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -157,14 +171,14 @@ int rpi_rc_in_main(int argc, char **argv) {
 
 		// Check if alloc worked.
 		if (nullptr == rc_input) {
-			PX4_ERR("遥控输入模块初始化错误。Rc input moduel  initialization faild");
+			PX4_ERR("Rc input module initialization faild");
 			return -1;
 		}
 
 		int ret = rc_input->start();
 
 		if (ret != 0) {
-			PX4_ERR("遥控输入模块未能启动。 Rc input module failure");
+			PX4_ERR("Rc input module failure");
 		}
 
 		return 0;
@@ -172,8 +186,8 @@ int rpi_rc_in_main(int argc, char **argv) {
 
 	if (!strcmp(argv[1], "stop")) {
 
-		if (rc_input == nullptr || !rc_input->isRunning()) {
-			PX4_WARN("模块未运行。 Not runing");
+		if (rc_input == nullptr || !rc_input->is_running()) {
+			PX4_WARN("Not running");
 			/* this is not an error */
 			return 0;
 		}
@@ -187,7 +201,7 @@ int rpi_rc_in_main(int argc, char **argv) {
 			/* wait up to 3s */
 			usleep(100000);
 
-		} while (rc_input->isRunning() && ++i < 30);
+		} while (rc_input->is_running() && ++i < 30);
 
 		delete rc_input;
 		rc_input = nullptr;
@@ -196,18 +210,17 @@ int rpi_rc_in_main(int argc, char **argv) {
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (rc_input != nullptr && rc_input->isRunning()) {
-			PX4_INFO("运行中。 running");
+		if (rc_input != nullptr && rc_input->is_running()) {
+			PX4_INFO("running");
 
 		} else {
-			PX4_INFO("未运行。 Not runing\n");
+			PX4_INFO("Not running");
 		}
 
 		return 0;
 	}
 
-	usage("不知道你要做什么。 rpi_rc_in start|stop|status");
+	usage("rpi_rc_in start|stop|status");
 	return 1;
 
 }
-//---------------------------------------------------------------------------------------------------------//
