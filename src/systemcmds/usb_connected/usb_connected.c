@@ -34,12 +34,11 @@
 /**
  * @file usb_connected.c
  *
- * utility to check if USB is connected. Used in startup scripts
- *
  * @author Andrew Tridgell
  */
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,8 +48,23 @@
 
 __EXPORT int usb_connected_main(int argc, char *argv[]);
 
+static void print_usage()
+{
+
+	PRINT_MODULE_DESCRIPTION("Utility to check if USB is connected. Was previously used in startup scripts.\n"
+				 "A return value of 0 means USB is connected, 1 otherwise."
+				);
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("usb_connected", "command");
+}
+
 int
 usb_connected_main(int argc, char *argv[])
 {
+	if (argc > 1) {
+		print_usage();
+		return 0;
+	}
+
 	return px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
 }

@@ -40,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <px4_time.h>
@@ -88,49 +89,36 @@
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
 
-class Ekf2;
-
-namespace ekf2
-{
-Ekf2 *instance = nullptr;
-}
-
-
-class Ekf2 : public control::SuperBlock
+class Ekf2 : public control::SuperBlock, public ModuleBase<Ekf2>
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Ekf2();
 
-	/**
-	 * Destructor, also kills task.
-	 */
 	~Ekf2();
 
-	/**
-	 * Start task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static Ekf2 *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
 
 	void 	set_replay_mode(bool replay) {_replay_mode = replay;};
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 
-	void		task_main();
-
-	void print_status();
-
-	void exit() { _task_should_exit = true; }
+	int print_status() override;
 
 private:
 	static constexpr float _dt_max = 0.02;
-	bool	_task_should_exit = false;
-	int	_control_task = -1;		// task handle for task
-
 	bool 	_replay_mode;			// should we use replay data from a log
 	int32_t _publish_replay_mode;		// defines if we should publish replay messages
 
@@ -450,14 +438,15 @@ Ekf2::~Ekf2()
 
 }
 
-void Ekf2::print_status()
+int Ekf2::print_status()
 {
-	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "[YES]" : "[NO]");
-	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "[YES]" : "[NO]");
+	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "yes" : "no");
+	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "yes" : "no");
 	PX4_INFO("time slip: %" PRIu64 " us", _last_time_slip_us);
+	return 0;
 }
 
-void Ekf2::task_main()
+void Ekf2::run()
 {
 	// subscribe to relevant topics
 	int sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -495,7 +484,7 @@ void Ekf2::task_main()
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
 		if (ret < 0) {
@@ -1378,110 +1367,70 @@ void Ekf2::task_main()
 	orb_unsubscribe(vehicle_land_detected_sub);
 	orb_unsubscribe(status_sub);
 	orb_unsubscribe(sensor_selection_sub);
-
-	delete ekf2::instance;
-	ekf2::instance = nullptr;
 }
 
-void Ekf2::task_main_trampoline(int argc, char *argv[])
+Ekf2 *Ekf2::instantiate(int argc, char *argv[])
 {
-	ekf2::instance->task_main();
+	Ekf2 *instance = new Ekf2();
+
+	if (instance) {
+		if (argc >= 2 && !strcmp(argv[1], "-r")) {
+			instance->set_replay_mode(true);
+		}
+	}
+
+	return instance;
 }
 
-int Ekf2::start()
+int Ekf2::custom_command(int argc, char *argv[])
 {
-	ASSERT(_control_task == -1);
+	return print_usage("unknown command");
+}
 
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("ekf2",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
-					   5900,
-					   (px4_main_t)&Ekf2::task_main_trampoline,
-					   nullptr);
+int Ekf2::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
 
-	if (_control_task < 0) {
-		PX4_WARN("task start failed");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
+
+The documentation can be found on the [tuning_the_ecl_ekf](https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html) page.
+
+ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+timestamps from the sensor topics.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int Ekf2::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("ekf2",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX - 5,
+				      5900,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
 		return -errno;
 	}
 
-	return OK;
+	return 0;
 }
 
 int ekf2_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_WARN("usage: ekf2 {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (ekf2::instance != nullptr) {
-			PX4_WARN("already running");
-			return 1;
-		}
-
-		ekf2::instance = new Ekf2();
-
-		if (ekf2::instance == nullptr) {
-			PX4_WARN("alloc failed");
-			return 1;
-		}
-
-		if (argc >= 3) {
-			if (!strcmp(argv[2], "--replay")) {
-				ekf2::instance->set_replay_mode(true);
-			}
-		}
-
-		if (OK != ekf2::instance->start()) {
-			delete ekf2::instance;
-			ekf2::instance = nullptr;
-			PX4_WARN("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (ekf2::instance == nullptr) {
-			PX4_WARN("not running");
-			return 1;
-		}
-
-		ekf2::instance->exit();
-
-		// wait for the destruction of the instance
-		while (ekf2::instance != nullptr) {
-			usleep(50000);
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "print")) {
-		if (ekf2::instance != nullptr) {
-
-			return 0;
-		}
-
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (ekf2::instance) {
-			PX4_WARN("running");
-			ekf2::instance->print_status();
-			return 0;
-
-		} else {
-			PX4_WARN("not running");
-			return 1;
-		}
-	}
-
-	PX4_WARN("unrecognized command");
-	return 1;
+	return Ekf2::main(argc, argv);
 }

@@ -31,11 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__navio_sysfs_pwm_out
-	MAIN navio_sysfs_pwm_out
+	MODULE drivers__linux_pwm_out
+	MAIN linux_pwm_out
 	COMPILE_FLAGS
 	SRCS
-		navio_sysfs_pwm_out.cpp
+		PCA9685.cpp
+		navio_sysfs.cpp
+		linux_pwm_out.cpp
+		ocpoc_mmap.cpp
 	DEPENDS
 		platforms__common
 	)

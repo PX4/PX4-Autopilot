@@ -316,9 +316,6 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 
 	perf_end(_mag_sample_perf);
 
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
-
 	return 0;
 };
 

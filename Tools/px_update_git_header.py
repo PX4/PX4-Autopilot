@@ -23,7 +23,7 @@ try:
 except:
     git_branch_name = ''
 git_version_short = git_version[0:16]
-nuttx_git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
+nuttx_git_tag = subprocess.check_output('git describe --always --tags --match nuttx-*  --dirty'.split(),
                                   cwd='NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip().replace("nuttx-","v")
 nuttx_git_tag = re.sub('-.*','.0',nuttx_git_tag)
 nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),

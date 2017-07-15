@@ -224,3 +224,4 @@ int rpi_rc_in_main(int argc, char **argv)
 	return 1;
 
 }
+

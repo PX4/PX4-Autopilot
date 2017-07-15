@@ -554,9 +554,6 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 		}
 
-		/* Notify anyone waiting for data. */
-		DevMgr::updateNotify(*this);
-
 		// Report if there are high vibrations, every 10 times it happens.
 		const bool threshold_reached = (data.accel_range_hit_counter - _last_accel_range_hit_count > 10);
 

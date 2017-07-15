@@ -502,7 +502,7 @@ void io_timer_trigger(void)
 			}
 		}
 
-		/* Now do them all wit the shortest delay in between */
+		/* Now do them all with the shortest delay in between */
 
 		irqstate_t flags = px4_enter_critical_section();
 
