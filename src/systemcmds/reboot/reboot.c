@@ -40,10 +40,19 @@
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
+#include <px4_module.h>
 #include <px4_shutdown.h>
 #include <systemlib/systemlib.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
+
+static void print_usage(void)
+{
+	PRINT_MODULE_DESCRIPTION("Reboot the system");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
+	PRINT_MODULE_USAGE_PARAM_FLAG('b', "Reboot into bootloader", true);
+}
 
 int reboot_main(int argc, char *argv[])
 {
@@ -60,9 +69,8 @@ int reboot_main(int argc, char *argv[])
 			break;
 
 		default:
-			PX4_ERR("usage: reboot [-b]\n"
-				"   -b   reboot into the bootloader");
-			break;
+			print_usage();
+			return 1;
 
 		}
 	}

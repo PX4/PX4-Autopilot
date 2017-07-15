@@ -41,11 +41,11 @@
 */
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
-#include <systemlib/err.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -75,10 +75,25 @@ static const char mfg_uid_str[]         = "mfguid";
 static void usage(const char *reason)
 {
 	if (reason != NULL) {
-		printf("%s\n", reason);
+		printf("%s\n\n", reason);
 	}
 
-	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu|mfguid|uid|uri}\n\n");
+	PRINT_MODULE_DESCRIPTION("Tool to print various version information");
+
+	PRINT_MODULE_USAGE_NAME("ver", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hw", "Hardware architecture");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mcu", "MCU info");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("git", "git version information");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("gcc", "Compiler info");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("uid", "UUID");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mfguid", "Manufacturer UUID");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("uri", "Build URI");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hw>", "Hardware to compare against (eg. PX4FMU_V4)", false);
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -105,7 +120,7 @@ int ver_main(int argc, char *argv[])
 					return ret;
 
 				} else {
-					warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
 					return 1;
 				}
 			}
@@ -128,10 +143,10 @@ int ver_main(int argc, char *argv[])
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 
 				if (type == 255) {
-					printf("FW version: Release %x.%x.%x (%u)\n", major, minor, patch, fwver);
+					printf("FW version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("FW version: %x.%x.%x %x (%u)\n", major, minor, patch, type, fwver);
+					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
 
@@ -143,10 +158,10 @@ int ver_main(int argc, char *argv[])
 				printf("OS: %s\n", px4_os_name());
 
 				if (type == 255) {
-					printf("OS version: Release %x.%x.%x (%u)\n", major, minor, patch, fwver);
+					printf("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("OS version: %x.%x.%x %x (%u)\n", major, minor, patch, type, fwver);
+					printf("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				const char *os_git_hash = px4_os_version_string();
@@ -228,12 +243,12 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (ret == 1) {
-				warn("unknown command.\n");
+				PX4_ERR("unknown command");
 				return 1;
 			}
 
 		} else {
-			usage("Error, input parameter NULL.\n");
+			usage("Error, input parameter NULL.");
 		}
 
 	} else {

@@ -45,13 +45,13 @@
 #include <unistd.h>
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <px4_workqueue.h>
 #include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
-#include <systemlib/err.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
 
@@ -71,35 +71,37 @@ extern "C" __EXPORT int load_mon_main(int argc, char *argv[]);
 // Run it at 1 Hz.
 const unsigned LOAD_MON_INTERVAL_US = 1000000;
 
-class LoadMon
+class LoadMon : public ModuleBase<LoadMon>
 {
 public:
 	LoadMon();
 	~LoadMon();
 
-	/* Start the load monitoring
-	 *
-	 * @return 0 if successfull, -1 on error. */
-	int start();
+	static int task_spawn(int argc, char *argv[]);
 
-	/* Stop the load monitoring */
-	void stop();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[])
+	{
+		return print_usage("unknown command");
+	}
 
-	/* Trampoline for the work queue. */
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
+	/** Trampoline for the work queue. */
 	static void cycle_trampoline(void *arg);
 
-	bool isRunning() { return _taskIsRunning; }
-
-	void printStatus();
-
 private:
-	/* Do a compute and schedule the next cycle. */
+	/** Do a compute and schedule the next cycle. */
 	void _cycle();
 
-	/* Do a calculation of the CPU load and publish it. */
+	/** Do a calculation of the CPU load and publish it. */
 	void _compute();
 
-	/* Calculate the memory usage */
+	/** Calculate the memory usage */
 	float _ram_used();
 
 #ifdef __PX4_NUTTX
@@ -111,8 +113,6 @@ private:
 	orb_advert_t _task_stack_info_pub;
 #endif
 
-	bool _taskShouldExit;
-	bool _taskIsRunning;
 	struct work_s _work;
 
 	struct cpuload_s _cpuload;
@@ -128,9 +128,7 @@ LoadMon::LoadMon() :
 	_stack_task_index(0),
 	_task_stack_info_pub(nullptr),
 #endif
-	_taskShouldExit(false),
-	_taskIsRunning(false),
-	_work{},
+	_work {},
 	_cpuload{},
 	_cpuload_pub(nullptr),
 	_last_idle_time(0),
@@ -154,20 +152,29 @@ LoadMon::LoadMon() :
 
 LoadMon::~LoadMon()
 {
-	work_cancel(LPWORK, &_work);
 	perf_free(_stack_perf);
-	_taskIsRunning = false;
 }
 
-int LoadMon::start()
+int LoadMon::task_spawn(int argc, char *argv[])
 {
+	LoadMon *obj = new LoadMon();
+
+	if (!obj) {
+		PX4_ERR("alloc failed");
+		return -1;
+	}
+
 	/* Schedule a cycle to start things. */
-	return work_queue(LPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this, 0);
-}
+	int ret = work_queue(LPWORK, &obj->_work, (worker_t)&LoadMon::cycle_trampoline, obj, 0);
 
-void LoadMon::stop()
-{
-	_taskShouldExit = true;
+	if (ret < 0) {
+		delete obj;
+		return ret;
+	}
+
+	_object = obj;
+	_task_id = task_id_is_work_queue;
+	return 0;
 }
 
 void
@@ -180,13 +187,14 @@ LoadMon::cycle_trampoline(void *arg)
 
 void LoadMon::_cycle()
 {
-	_taskIsRunning = true;
-
 	_compute();
 
-	if (!_taskShouldExit) {
+	if (!should_exit()) {
 		work_queue(LPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this,
 			   USEC2TICK(LOAD_MON_INTERVAL_US));
+
+	} else {
+		exit_and_cleanup();
 	}
 }
 
@@ -311,108 +319,39 @@ void LoadMon::_stack_usage()
 }
 #endif
 
-void LoadMon::printStatus()
+int LoadMon::print_status()
 {
+	PX4_INFO("running");
 	perf_print_counter(_stack_perf);
+	return 0;
 }
 
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
+int LoadMon::print_usage(const char *reason)
 {
 	if (reason) {
-		PX4_ERR("%s", reason);
+		PX4_ERR("%s\n", reason);
 	}
 
-	PX4_INFO("usage: load_mon {start|stop|status}");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Background process running periodically with 1 Hz on the LP work queue to calculate the CPU load and RAM
+usage and publish the `cpuload` topic.
+
+On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,
+which will also appear in the log file.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("load_mon", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	return 0;
 }
 
 
-static LoadMon *load_mon = nullptr;
-
-/**
- * The daemon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- *
- * The actual stack size should be set in the call
- * to task_create().
- */
 int load_mon_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		usage("missing command");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (load_mon != nullptr && load_mon->isRunning()) {
-			PX4_WARN("already running");
-			/* this is not an error */
-			return 0;
-		}
-
-		load_mon = new LoadMon();
-
-		// Check if alloc worked.
-		if (load_mon == nullptr) {
-			PX4_ERR("alloc failed");
-			return -1;
-		}
-
-		int ret = load_mon->start();
-
-		if (ret != 0) {
-			PX4_ERR("start failed");
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		if (load_mon == nullptr || load_mon->isRunning()) {
-			PX4_WARN("not running");
-			/* this is not an error */
-			return 0;
-		}
-
-		load_mon->stop();
-
-		// Wait for task to die
-		int i = 0;
-
-		do {
-			/* wait up to 3s */
-			usleep(100000);
-
-		} while (load_mon->isRunning() && ++i < 30);
-
-		delete load_mon;
-		load_mon = nullptr;
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (load_mon != nullptr && load_mon->isRunning()) {
-			PX4_INFO("running");
-			load_mon->printStatus();
-
-		} else {
-			PX4_INFO("not running\n");
-		}
-
-		return 0;
-	}
-
-	usage("unrecognized command");
-	return 1;
+	return LoadMon::main(argc, argv);
 }
 
 } // namespace load_mon

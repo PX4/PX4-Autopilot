@@ -34,22 +34,19 @@
 /**
  * @file sensors.cpp
  *
- * PX4 Flight Core transitional mapping layer.
- *
- * This app / class mapps the PX4 middleware layer / drivers to the application
- * layer of the PX4 Flight Core. Individual sensors can be accessed directly as
- * well instead of relying on the sensor_combined topic.
- *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Beat Küng <beat-kueng@gmx.net>
  */
 
 #include <board_config.h>
 
 #include <px4_adc.h>
 #include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
@@ -133,36 +130,35 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
-class Sensors
+class Sensors : public ModuleBase<Sensors>
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Sensors(bool hil_enabled);
 
-	/**
-	 * Destructor, also kills the sensors task.
-	 */
-	~Sensors();
+	~Sensors() {}
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
+	/** @see ModuleBase */
+	static Sensors *instantiate(int argc, char *argv[]);
 
-	void	print_status();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
 
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
-
-	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
-	int 		_sensors_task;			/**< task handle for sensor task */
 
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed;				/**< arming status of the vehicle */
@@ -230,29 +226,11 @@ private:
 	 *				data should be returned.
 	 */
 	void		adc_poll(struct sensor_combined_s &raw);
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 };
-
-namespace sensors
-{
-
-Sensors	*g_sensors = nullptr;
-}
 
 Sensors::Sensors(bool hil_enabled) :
 	_last_adc(0),
 
-	_task_should_exit(true),
-	_sensors_task(-1),
 	_hil_enabled(hil_enabled),
 	_armed(false),
 
@@ -281,31 +259,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
-}
-
-Sensors::~Sensors()
-{
-	if (_sensors_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_sensors_task);
-				break;
-			}
-		} while (_sensors_task != -1);
-	}
-
-	sensors::g_sensors = nullptr;
 }
 
 int
@@ -542,18 +495,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	}
 }
 
-void
-Sensors::task_main_trampoline(int argc, char *argv[])
-{
-	sensors::g_sensors->task_main();
-}
 
 void
-Sensors::task_main()
+Sensors::run()
 {
-
-	int ret = 0;
-
 	if (!_hil_enabled) {
 #if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
 		adc_init();
@@ -606,11 +551,9 @@ Sensors::task_main()
 
 	poll_fds.events = POLLIN;
 
-	_task_should_exit = false;
-
 	uint64_t last_config_update = hrt_absolute_time();
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		/* use the best-voted gyro to pace output */
 		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
@@ -619,7 +562,7 @@ Sensors::task_main()
 		 * if a gyro fails) */
 		int pret = px4_poll(&poll_fds, 1, 50);
 
-		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
+		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -700,104 +643,114 @@ Sensors::task_main()
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
-
-	_sensors_task = -1;
-	px4_task_exit(ret);
 }
 
-int
-Sensors::start()
+int Sensors::task_spawn(int argc, char *argv[])
 {
-	ASSERT(_sensors_task == -1);
-
 	/* start the task */
-	_sensors_task = px4_task_spawn_cmd("sensors",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 6,
-					   2000,
-					   (px4_main_t)&Sensors::task_main_trampoline,
-					   nullptr);
+	_task_id = px4_task_spawn_cmd("sensors",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX - 6,
+				      2000,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	/* wait until the task is up and running or has failed */
-	while (_sensors_task > 0 && _task_should_exit) {
-		usleep(100);
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
 	}
 
-	if (_sensors_task < 0) {
-		return -PX4_ERROR;
-	}
-
-	return OK;
+	return 0;
 }
 
-void Sensors::print_status()
+int Sensors::print_status()
 {
 	_voted_sensors_update.print_status();
 
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
+
+	return 0;
 }
 
+int Sensors::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int Sensors::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The sensors module is central to the whole system. It takes low-level output from drivers, turns
+it into a more usable form, and publishes it for the rest of the system.
+
+The provided functionality includes:
+- Read the output from the sensor drivers (`sensor_gyro`, etc.).
+  If there are multiple of the same type, do voting and failover handling.
+  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
+  topics is `sensor_combined`, used by many parts of the system.
+- Do RC channel mapping: read the raw input channels (`input_rc`), then apply the calibration, map the RC channels
+  to the configured channels & mode switches, low-pass filter, and then publish as `rc_channels` and
+  `manual_control_setpoint`.
+- Read the output from the ADC driver (via ioctl interface) and publish `battery_status`.
+- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
+  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
+  sensor drivers must already be running when `sensors` is started.
+- Do preflight sensor consistency checks and publish the `sensor_preflight` topic.
+
+### Implementation
+It runs in its own thread and polls on the currently selected gyro topic.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sensors", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Start in HIL mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+Sensors *Sensors::instantiate(int argc, char *argv[])
+{
+	bool hil_enabled = false;
+	bool error_flag = false;
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "h", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'h':
+			hil_enabled = true;
+			break;
+
+		case '?':
+			error_flag = true;
+			break;
+
+		default:
+			PX4_WARN("unrecognized flag");
+			error_flag = true;
+			break;
+		}
+	}
+
+	if (error_flag) {
+		return nullptr;
+	}
+
+	return new Sensors(hil_enabled);;
+}
 
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_INFO("usage: sensors {start|stop|status}");
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (sensors::g_sensors != nullptr) {
-			PX4_INFO("already running");
-			return 0;
-		}
-
-		bool hil_enabled = false;
-
-		if (argc > 2 && !strcmp(argv[2], "-hil")) {
-			hil_enabled = true;
-		}
-
-		sensors::g_sensors = new Sensors(hil_enabled);
-
-		if (sensors::g_sensors == nullptr) {
-			PX4_ERR("alloc failed");
-			return 1;
-		}
-
-		if (OK != sensors::g_sensors->start()) {
-			delete sensors::g_sensors;
-			sensors::g_sensors = nullptr;
-			PX4_ERR("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (sensors::g_sensors == nullptr) {
-			PX4_INFO("not running");
-			return 1;
-		}
-
-		delete sensors::g_sensors;
-		sensors::g_sensors = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (sensors::g_sensors) {
-			sensors::g_sensors->print_status();
-			return 0;
-
-		} else {
-			PX4_INFO("not running");
-			return 1;
-		}
-	}
-
-	PX4_ERR("unrecognized command");
-	return 1;
+	return Sensors::main(argc, argv);
 }

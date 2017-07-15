@@ -42,6 +42,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1747,7 +1748,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fpvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fvwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, nullptr, 10);
@@ -2699,22 +2700,70 @@ Mavlink::set_boot_complete()
 
 static void usage()
 {
-	PX4_INFO("usage: mavlink {start|status|stream|stop-all|boot_complete}");
-	PX4_INFO("    [-d device]");
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+This module implements the MAVLink protocol, which can be used on a Serial link or UDP network connection.
+It communicates with the system via uORB: some messages are directly handled in the module (eg. mission
+protocol), others are published via uORB (eg. vehicle_command).
+
+Streams are used to send periodic messages with a specific rate, such as the vehicle attitude.
+When starting the mavlink instance, a mode can be specified, which defines the set of enabled streams with their rates.
+For a running instance, streams can be configured via `mavlink stream` command.
+
+There can be multiple independent instances of the module, each connected to one serial device or network port.
+
+### Implementation
+The implementation uses 2 threads, a sending and a receiving thread. The sender runs at a fixed rate and dynamically
+reduces the rates of the streams if the combined bandwidth is higher than the configured rate (`-r`) or the
+physical link becomes saturated. This can be checked with `mavlink status`, see if `rate mult` is less than 1.
+
+**Careful**: some of the data is accessed and modified from both threads, so when changing code or extend the
+functionality, this needs to be take into account, in order to avoid race conditions and corrupt data.
+
+### Examples
+Start mavlink on ttyS1 serial with baudrate 921600 and maximum sending rate of 80kB/s:
+$ mavlink start -d /dev/ttyS1 -b 921600 -m onboard -r 80000
+
+Start mavlink on UDP port 14556 and enable the HIGHRES_IMU message with 50Hz:
+$ mavlink start -u 14556 -r 1000000
+$ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mavlink", "communication");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start a new instance");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS1", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 57600, 9600, 3000000, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 10, 10000000, "Maximum sending data rate in B/s (if 0, use baudrate / 20)", true);
 #ifdef __PX4_POSIX
-	PX4_INFO("    [-u network_port]");
-	PX4_INFO("    [-o remote_port]");
-	PX4_INFO("    [-t partner_ip]");
+	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
+					"Partner IP (broadcasting can be enabled via MAV_BROADCAST param)", true);
 #endif
-	PX4_INFO("    [-b baudrate]");
-	PX4_INFO("    [-r rate]");
-	PX4_INFO("    [-m mode]");
-	PX4_INFO("    [-s stream]");
-	PX4_INFO("    [-f]");
-	PX4_INFO("    [-p]");
-	PX4_INFO("    [-v]");
-	PX4_INFO("    [-w]");
-	PX4_INFO("    [-x]");
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium",
+					"Mode: sets default streams and rates", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status for all instances");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stream", "Configure the sending rate of a stream for a running instance");
+#ifdef __PX4_POSIX
+	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 65536, "Select Mavlink instance via local Network Port", true);
+#endif
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('s', nullptr, nullptr, "Mavlink stream to configure", false);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('r', 0.f, 0.f, 2000.f, "Rate in Hz (0 = turn off)", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("boot_complete",
+					 "Enable sending of messages. (Must be) called as last step in startup script.");
+
 }
 
 int mavlink_main(int argc, char *argv[])

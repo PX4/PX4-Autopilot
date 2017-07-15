@@ -171,9 +171,6 @@ int DfBebopRangeFinderWrapper::_publish(struct bebop_range &data)
 		orb_publish(ORB_ID(distance_sensor), _range_topic, &distance_data);
 	}
 
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
-
 	return 0;
 };
 

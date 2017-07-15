@@ -36,7 +36,6 @@ px4_add_module(
 	STACK 1024
 	STACK_MAIN 1024
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		IridiumSBD.cpp
 		iridiumsbd_params.c

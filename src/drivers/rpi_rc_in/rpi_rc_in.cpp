@@ -224,3 +224,7 @@ int rpi_rc_in_main(int argc, char **argv)
 	return 1;
 
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5618f34f3bf99792d03261d50929d279dba0a78d

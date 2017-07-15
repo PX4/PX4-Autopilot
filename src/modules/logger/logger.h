@@ -41,6 +41,7 @@
 #include <version/version.h>
 #include <systemlib/param/param.h>
 #include <systemlib/printload.h>
+#include <px4_module.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -87,13 +88,31 @@ struct LoggerSubscription {
 	}
 };
 
-class Logger
+class Logger : public ModuleBase<Logger>
 {
 public:
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
 	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
 
 	~Logger();
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static Logger *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/**
 	 * Tell the logger that we're in replay mode. This must be called
@@ -116,25 +135,17 @@ public:
 	 */
 	int add_topic(const orb_metadata *topic);
 
-	static int start(char *const *argv);
-
 	/**
 	 * request the logger thread to stop (this method does not block).
 	 * @return true if the logger is stopped, false if (still) running
 	 */
-	static bool request_stop();
+	static bool request_stop_static();
 
-	static void usage(const char *reason);
-
-	void status();
 	void print_statistics();
 
 	void set_arm_override(bool override) { _arm_override = override; }
 
 private:
-	static void run_trampoline(int argc, char *argv[]);
-
-	void run();
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
@@ -284,7 +295,6 @@ private:
 	char 						_log_dir[LOG_DIR_LEN];
 	int						_sess_dir_index = 1; ///< search starting index for 'sess<i>' directory name
 	char 						_log_file_name[32];
-	bool						_task_should_exit = true;
 	bool						_has_log_dir = false;
 	bool						_was_armed = false;
 	bool						_arm_override;
