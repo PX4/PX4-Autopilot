@@ -476,7 +476,6 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		}
 
 	} else {
-		PX4_INFO("forwarding command %d", item->nav_cmd);
 		struct vehicle_command_s cmd = {};
 		mission_item_to_vehicle_command(item, &cmd);
 		const hrt_abstime now = hrt_absolute_time();
