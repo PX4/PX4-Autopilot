@@ -83,9 +83,7 @@ nStates=numel(stateVector);
 % Define vector of process equations
 stateVectorNew = [quatNew;vNew;pNew;dAngBiasNew;dVelBiasNew;magNnew;magEnew;magDnew;magXnew;magYnew;magZnew;vwnNew;vweNew];
 
-%% derive the covariance prediction equation
-% This reduces the number of floating point operations by a factor of 6 or
-% more compared to using the standard matrix operations in code
+%% derive the state transition and state error matrix
 
 % Define the control (disturbance) vector. Error growth in the inertial
 % solution is assumed to be driven by 'noise' in the delta angles and
@@ -201,3 +199,13 @@ declination = atan(magE/magN);
 T_MAG = jacobian(declination,[magN,magE]);
 
 f = matlabFunction(T_MAG,'file','transfer_matrix.m');
+
+%% calculate Quaternion to Euler angle error transfer matrix
+% quat = [q0;q1;q2;q3];
+% syms roll pitch yaw 'real';
+roll = atan2(2*(quat(3)*quat(4)+quat(1)*quat(2)) , (quat(1)*quat(1) - quat(2)*quat(2) - quat(3)*quat(3) + quat(4)*quat(4)));
+pitch = -asin(2*(quat(2)*quat(4)-quat(1)*quat(3)));
+yaw = atan2(2*(quat(2)*quat(3)+quat(1)*quat(4)) , (quat(1)*quat(1) + quat(2)*quat(2) - quat(3)*quat(3) - quat(4)*quat(4)));
+euler = [roll;pitch;yaw];
+error_transfer_matrix = jacobian(euler,quat);
+matlabFunction(error_transfer_matrix,'file','quat_to_euler_error_transfer_matrix.m');

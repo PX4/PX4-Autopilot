@@ -27,7 +27,7 @@ else
 end
 
 % load default parameters
-run('SetParameterDefaults.m');
+run('SetParameters.m');
 
 % run the filter replay 
 output = RunFilter(param,imu_data,mag_data,baro_data,gps_data,rng_data,flow_data,viso_data);

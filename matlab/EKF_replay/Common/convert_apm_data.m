@@ -74,12 +74,12 @@ flow_data.bodyY = OF(:,7); % angular rate about the Y body axis (rad/sec)
 clear viso_data;
 viso_data.time_us = VISO(:,2);
 viso_data.dt = VISO(:,3); % time period the measurement was sampled across (sec)
-viso_data.dAngX = VISO(:,4); % delta angle about the X body axis
-viso_data.dAngY = VISO(:,5); % delta angle about the Y body axis
-viso_data.dAngZ = VISO(:,6); % delta angle about the Z body axis
-viso_data.dVelX = VISO(:,7); % delta velocity along the X body axis
-viso_data.dVelY = VISO(:,8); % delta velocity along the Y body axis
-viso_data.dVelZ = VISO(:,9); % delta velocity along the Z body axis
+viso_data.dAngX = VISO(:,4); % delta angle about the X body axis (rad)
+viso_data.dAngY = VISO(:,5); % delta angle about the Y body axis (rad)
+viso_data.dAngZ = VISO(:,6); % delta angle about the Z body axis (rad)
+viso_data.dPosX = VISO(:,7); % delta position along the X body axis (m)
+viso_data.dPosY = VISO(:,8); % delta position along the Y body axis (m)
+viso_data.dPosZ = VISO(:,9); % delta position along the Z body axis (m)
 viso_data.qual = VISO(:,10)/100; % quality from 0 - 1
 
 %% save data and clear workspace

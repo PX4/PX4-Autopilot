@@ -33,8 +33,9 @@ delVel = delVel - states(14:16);
 % Savage, P.G.
 % Strapdown Associates
 % 2015, WBN-14010
-correctedDelVel= delVel + ...
-    0.5*cross(prevDelAng + delAng , prevDelVel + delVel) + 1/6*cross(prevDelAng + delAng , cross(prevDelAng + delAng , prevDelVel + delVel)) +  1/12*(cross(prevDelAng , delVel) + cross(prevDelVel , delAng));
+% correctedDelVel= delVel + ...
+%     0.5*cross(prevDelAng + delAng , prevDelVel + delVel) + 1/6*cross(prevDelAng + delAng , cross(prevDelAng + delAng , prevDelVel + delVel)) +  1/12*(cross(prevDelAng , delVel) + cross(prevDelVel , delAng));
+correctedDelVel= delVel;
 
 % Calculate earth delta angle spin vector
 delAngEarth_NED(1,1) = 0.000072921 * cos(latitude) * dt;
@@ -47,7 +48,8 @@ delAngEarth_NED(3,1) = -0.000072921 * sin(latitude) * dt;
 % R. B. MILLER, 
 % Journal of Guidance, Control, and Dynamics
 % July, Vol. 6, No. 4, pp. 287-291, Eqn 11 
-correctedDelAng   = delAng - 1/12*cross(prevDelAng , delAng) - transpose(Tbn_prev)*delAngEarth_NED;
+% correctedDelAng   = delAng - 1/12*cross(prevDelAng , delAng) - transpose(Tbn_prev)*delAngEarth_NED;
+correctedDelAng   = delAng - transpose(Tbn_prev)*delAngEarth_NED;
 
 % Save current measurements
 prevDelAng = delAng;
