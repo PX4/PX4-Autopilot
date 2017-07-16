@@ -150,8 +150,8 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params except RC* and total flight time
-		param reset_nostart RC* LND_FLIGHT_T_*
+		# Wipe out params except RC*, TC*, and total flight time
+		param reset_nostart RC* TC* LND_FLIGHT_T_*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
@@ -190,8 +190,6 @@ then
 	set MK_MODE none
 	set FMU_MODE pwm
 	set AUX_MODE pwm
-	set MAVLINK_F default
-	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set FAILSAFE none
@@ -211,7 +209,6 @@ then
 		if ver hwcmp PX4FMU_V5
 		then
 			set USE_IO no
-			set MAVLINK_COMPANION_DEVICE /dev/ttyS3
 		fi
 
 		if ver hwcmp MINDPX_V2
@@ -447,21 +444,16 @@ then
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	#
+	# Commander needs to be this early for in-air-restarts
 	if [ $HIL == yes ]
 	then
 		sensors start -h
+		commander start -hil
 	else
 		sh /etc/init.d/rc.sensors
+		commander start
 	fi
 	unset HIL
-
-	# Needs to be this early for in-air-restarts
-	if [ $OUTPUT_MODE == hil ]
-	then
-	    commander start -hil
-	else
-	    commander start
-	fi
 
 	if send_event start
 	then
@@ -626,115 +618,8 @@ then
 		fi
 	fi
 
-	if [ $MAVLINK_F == default ]
-	then
-		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
-		if [ $TTYS1_BUSY == yes ]
-		then
-			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			set MAVLINK_F "-r 1200 -d /dev/ttyS0"
-
-			# Exit from nsh to free port for mavlink
-			set EXIT_ON_END yes
-		else
-			set MAVLINK_F "-r 1200"
-			# Avoid using ttyS1 for MAVLink on FMUv4
-			if ver hwcmp PX4FMU_V4
-			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS1"
-				# Start MAVLink on Wifi (ESP8266 port)
-				mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
-			fi
-
-			if ver hwcmp AEROFC_V1
-			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS4"
-			fi
-		fi
-
-		if ver hwcmp CRAZYFLIE
-		then
-			# Avoid using either of the two available serials
-			set MAVLINK_F none
-		fi
-	fi
-
-	if [ "x$MAVLINK_F" == xnone ]
-	then
-	else
-		mavlink start ${MAVLINK_F}
-	fi
-	unset MAVLINK_F
-
-	#
-	# MAVLink onboard / TELEM2
-	#
-	if ver hwcmp PX4FMU_V1
-	then
-	else
-		# XXX We need a better way for runtime eval of shell variables,
-		# but this works for now
-		if param compare SYS_COMPANION 10
-		then
-			frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
-		fi
-		if param compare SYS_COMPANION 20
-		then
-			syslink start
-			mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
-		fi
-		if param compare SYS_COMPANION 921600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x
-		fi
-		if param compare SYS_COMPANION 57600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x
-		fi
-		if param compare SYS_COMPANION 460800
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x
-		fi
-		if param compare SYS_COMPANION 157600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
-		fi
-		if param compare SYS_COMPANION 257600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x
-		fi
-		if param compare SYS_COMPANION 319200
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000
-		fi
-		if param compare SYS_COMPANION 338400
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000
-		fi
-		if param compare SYS_COMPANION 357600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000
-		fi
-		if param compare SYS_COMPANION 3115200
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000
-		fi
-		if param compare SYS_COMPANION 419200
-		then
-			iridiumsbd start -d /dev/ttyS2
-			mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
-		fi
-		if param compare SYS_COMPANION 1921600
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
-		fi
-		if param compare SYS_COMPANION 1500000
-		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x
-		fi
-	fi
-
-	unset MAVLINK_COMPANION_DEVICE
+	# start mavlink
+	sh /etc/init.d/rc.mavlink
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
@@ -777,13 +662,6 @@ then
 		px4flow start &
 	fi
 
-	if ver hwcmp AEROFC_V1
-	then
-	else
-		# Start MAVLink
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
-
 	#
 	# Start up ARDrone Motor interface
 	#
@@ -792,189 +670,40 @@ then
 		ardrone_interface start -d /dev/ttyS1
 	fi
 
-	#
 	# Fixed wing setup
-	#
 	if [ $VEHICLE_TYPE == fw ]
 	then
-		if [ $MIXER == none ]
-		then
-			# Set default mixer for fixed wing if not defined
-			set MIXER AERT
-		fi
-
-		if [ $MAV_TYPE == none ]
-		then
-			# Use MAV_TYPE = 1 (fixed wing) if not defined
-			set MAV_TYPE 1
-		fi
-
-		param set MAV_TYPE ${MAV_TYPE}
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard fixedwing apps
 		sh /etc/init.d/rc.fw_apps
 	fi
 
-	#
 	# Multicopters setup
-	#
 	if [ $VEHICLE_TYPE == mc ]
 	then
-		if [ $MIXER == none ]
-		then
-			echo "Mixer undefined"
-		fi
-
-		if [ $MAV_TYPE == none ]
-		then
-			# Use mixer to detect vehicle type
-			if [ $MIXER == quad_x -o $MIXER == quad_+ ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == quad_w -o $MIXER == quad_dc ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == quad_h ]
-			then
-				set MAV_TYPE 2
-			fi
-			if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
-			then
-				set MAV_TYPE 15
-			fi
-			if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == hexa_cox ]
-			then
-				set MAV_TYPE 13
-			fi
-			if [ $MIXER == octo_x -o $MIXER == octo_+ ]
-			then
-				set MAV_TYPE 14
-			fi
-			if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
-			then
-				set MAV_TYPE 14
-			fi
-			if [ $MIXER == coax ]
-			then
-				set MAV_TYPE 3
-			fi
-		fi
-
-		# Still no MAV_TYPE found
-		if [ $MAV_TYPE == none ]
-		then
-			echo "Unknown MAV_TYPE"
-			param set MAV_TYPE 2
-		else
-			param set MAV_TYPE ${MAV_TYPE}
-		fi
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard multicopter apps
 		sh /etc/init.d/rc.mc_apps
 	fi
 
-	#
 	# VTOL setup
-	#
 	if [ $VEHICLE_TYPE == vtol ]
 	then
-		if [ $MIXER == none ]
-		then
-			echo "VTOL mixer undefined"
-		fi
-
-		# Still no MAV_TYPE found
-		if [ $MAV_TYPE == none ]
-		then
-			echo "Unknown MAV_TYPE"
-			param set MAV_TYPE 19
-		else
-			param set MAV_TYPE ${MAV_TYPE}
-		fi
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard vtol apps
 		sh /etc/init.d/rc.vtol_apps
 	fi
 
-	#
 	# UGV setup
-	#
 	if [ $VEHICLE_TYPE == ugv ]
 	then
-		if [ $MIXER == none ]
-		then
-			# Set default mixer for UGV if not defined
-			set MIXER ugv_generic
-		fi
-
-		if [ $MAV_TYPE == none ]
-		then
-			# Use MAV_TYPE = 10 (UGV) if not defined
-			set MAV_TYPE 10
-		fi
-
-		param set MAV_TYPE ${MAV_TYPE}
-
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
-
-		# Start standard UGV apps
 		sh /etc/init.d/rc.ugv_apps
 	fi
 
-	#
-	# For snapdragon, we need a passthrough mode
-	# Do not run any mavlink instances since we need the serial port for
-	# communication with Snapdragon.
-	#
+	# passthrough mode
 	if [ $VEHICLE_TYPE == passthrough ]
 	then
-		mavlink stop-all
-		commander stop
+		sh /etc/init.d/rc.passthrough
+	fi
 
-		# Stop multicopter attitude controller if it is running, the controls come
-		# from Snapdragon.
-		if mc_att_control stop
-		then
-		fi
-
-		# Start snapdragon interface on serial port.
-		if ver hwcmp PX4FMU_V2
-		then
-			# On Pixfalcon use the standard telemetry port (Telem 1).
-			snapdragon_rc_pwm start -d /dev/ttyS1
-			px4io start
-		fi
-
-		if ver hwcmp PX4FMU_V4
-		then
-			# On Pixracer use Telem 2 port (TL2).
-			snapdragon_rc_pwm start -d /dev/ttyS2
-			fmu mode_pwm4
-		fi
-
-		pwm failsafe -c 1234 -p 900
-		pwm disarmed -c 1234 -p 900
-
-		# Arm straightaway.
-		pwm arm
-		# Use 400 Hz PWM on all channels.
-		pwm rate -a -r 400
+	# Generic setup (autostart ID not found)
+	if [ $VEHICLE_TYPE == none ]
+	then
+		echo "No autostart ID found"
 	fi
 
 	unset MAV_TYPE
@@ -993,14 +722,6 @@ then
 	#
 	navigator start
 
-	#
-	# Generic setup (autostart ID not found)
-	#
-	if [ $VEHICLE_TYPE == none ]
-	then
-		echo "No autostart ID found"
-	fi
-
 	# Start any custom addons
 	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
@@ -1014,7 +735,6 @@ then
 	then
 		# CF2 shouldn't have an sd card
 	else
-
 		if ver hwcmp AEROCORE2
 		then
 			# AEROCORE2 shouldn't have an sd card

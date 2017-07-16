@@ -1,0 +1,41 @@
+#!nsh
+set +e
+
+#
+# For snapdragon, we need a passthrough mode
+# Do not run any mavlink instances since we need the serial port for
+# communication with Snapdragon.
+#
+
+mavlink stop-all
+commander stop
+
+# Stop multicopter attitude controller if it is running, the controls come
+# from Snapdragon.
+if mc_att_control stop
+then
+fi
+
+# Start snapdragon interface on serial port.
+if ver hwcmp PX4FMU_V2
+then
+	# On Pixfalcon use the standard telemetry port (Telem 1).
+	snapdragon_rc_pwm start -d /dev/ttyS1
+	px4io start
+fi
+
+if ver hwcmp PX4FMU_V4
+then
+	# On Pixracer use Telem 2 port (TL2).
+	snapdragon_rc_pwm start -d /dev/ttyS2
+	fmu mode_pwm4
+fi
+
+pwm failsafe -c 1234 -p 900
+pwm disarmed -c 1234 -p 900
+
+# Arm straightaway.
+pwm arm
+
+# Use 400 Hz PWM on all channels.
+pwm rate -a -r 400

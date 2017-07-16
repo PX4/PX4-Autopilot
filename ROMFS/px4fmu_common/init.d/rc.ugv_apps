@@ -3,6 +3,23 @@
 # Standard apps for unmanned ground vehicles (UGV)
 #
 
+if [ $MIXER == none ]
+then
+	# Set default mixer for UGV if not defined
+	set MIXER ugv_generic
+fi
+
+if [ $MAV_TYPE == none ]
+then
+	# Use MAV_TYPE = 10 (UGV) if not defined
+	set MAV_TYPE 10
+fi
+
+param set MAV_TYPE ${MAV_TYPE}
+
+# Load mixer and configure outputs
+sh /etc/init.d/rc.interface
+
 #
 # Start the attitude and position estimator
 #
@@ -10,13 +27,11 @@ ekf2 start
 #attitude_estimator_q start
 #local_position_estimator start
 
-
 #
 # Start attitude controllers
 #
 gnd_att_control start
 gnd_pos_control start
-
 
 #
 # Start Land Detector

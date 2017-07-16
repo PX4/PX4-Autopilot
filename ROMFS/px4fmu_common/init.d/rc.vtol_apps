@@ -3,11 +3,26 @@
 # Standard apps for vtol:
 # att & pos estimator, att & pos control.
 #
-#
 
+if [ $MIXER == none ]
+then
+	echo "VTOL mixer undefined"
+fi
+
+# Still no MAV_TYPE found
+if [ $MAV_TYPE == none ]
+then
+	echo "Unknown MAV_TYPE"
+	param set MAV_TYPE 19
+else
+	param set MAV_TYPE ${MAV_TYPE}
+fi
+
+# Load mixer and configure outputs
+sh /etc/init.d/rc.interface
 
 #---------------------------------------
-# Estimator group selction
+# Estimator group selection
 #
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
