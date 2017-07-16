@@ -272,6 +272,9 @@ struct pwm_output_rc_config {
 /** set alternate servo update clock */
 #define PWM_SERVO_SET_UPDATE_CLOCK _PX4_IOC(_PWM_SERVO_BASE, 36)
 
+/** set default servo update rate */
+#define PWM_SERVO_SET_DEFAULT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 37)
+
 /*
  *
  *

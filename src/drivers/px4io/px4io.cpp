@@ -2429,6 +2429,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE);
 		break;
 
+	case PWM_SERVO_SET_DEFAULT_UPDATE_RATE:
+		/* set the default update rate */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE, arg);
+		break;
+        
 	case PWM_SERVO_SET_UPDATE_RATE:
 		/* set the requested alternate rate */
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
