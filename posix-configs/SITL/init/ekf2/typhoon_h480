@@ -46,6 +46,7 @@ param set SYS_RESTART_TYPE 2
 param set TRIG_INTERFACE 3
 param set TRIG_MODE 4
 param set MNT_MODE_IN 0
+param set MAV_PROTO_VER 2
 replay tryapplyparams
 simulator start -s
 tone_alarm start
@@ -66,7 +67,7 @@ mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/hexa_x.main.mix
 mixer append /dev/pwm_output0 ROMFS/px4fmu_common/mixers/mount_legs.aux.mix
 mavlink start -u 14556 -r 4000000
 mavlink start -u 14557 -r 4000000 -m onboard -o 14540
-mavlink start -u 14558 -r 4000 -m onboard -o 14530
+mavlink start -u 14558 -r 4000 -f -m onboard -o 14530
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u 14556
