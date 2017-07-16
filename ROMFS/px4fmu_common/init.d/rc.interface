@@ -22,26 +22,39 @@ then
 		set MIXER_AUX ${MIXER}
 	fi
 
-	# Use the mixer file from the SD-card if it exists
+	# MIXER PATH
+	# mixer preference order
+	#  1. sdcard *.main.mix
+	#  2. sdcard *.mix
+	#  3. ${VEHICLE_TYPE}/${MIXER}.main.mix
+	#  4. ${MIXER}.main.mix
+
+	if [ -f /etc/mixers/${MIXER}.main.mix ]
+	then
+		set MIXER_FILE /etc/mixers/${MIXER}.main.mix
+	fi
+
+	if [ -f /etc/mixers/${VEHICLE_TYPE}/${MIXER}.main.mix ]
+	then
+		set MIXER_FILE /etc/mixers/${VEHICLE_TYPE}/${MIXER}.main.mix
+	fi
+
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
+	then
+		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
+	fi
+
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 	then
 		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
-	# Try out the old convention, for backward compatibility
-	else
-
-		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
-		then
-			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
-		else
-			set MIXER_FILE /etc/mixers/${MIXER}.main.mix
-		fi
 	fi
+
+	# OUTPUT DEVICE
+	set OUTPUT_DEV /dev/pwm_output0
 
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
 		set OUTPUT_DEV /dev/mkblctrl0
-	else
-		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
 	if [ $OUTPUT_MODE == uavcan_esc ]
@@ -54,20 +67,13 @@ then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
 
-	if mixer load ${OUTPUT_DEV} ${VEHICLE_TYPE}/${MIXER_FILE}
+	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
 	then
-		echo "INFO  [init] Mixer: ${VEHICLE_TYPE}/${MIXER_FILE} on ${OUTPUT_DEV}"
+		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
-		if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
-		then
-			echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
-		else
-			echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_FILE}"
-			echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_FILE}" >> $LOG_FILE
-			echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
-			echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
-		fi
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
+		tone_alarm ${TUNE_ERR}
 	fi
 
 	unset MIXER_FILE
@@ -121,7 +127,7 @@ then
 	set MIXER_AUX none
 fi
 
-#MindPX has not aux mixer
+# MindPX has no aux mixer
 if ver hwcmp MINDPX_V2
 then
 	set MIXER_AUX none
@@ -151,15 +157,19 @@ then
 	set MIXER_AUX_FILE none
 	set OUTPUT_AUX_DEV /dev/pwm_output1
 
+	if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
+	then
+		set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
+	fi
+
+	if [ -f /etc/mixers/${VEHICLE_TYPE}/${MIXER_AUX}.aux.mix ]
+	then
+		set MIXER_AUX_FILE /etc/mixers/${VEHICLE_TYPE}/${MIXER_AUX}.aux.mix
+	fi
+
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
 	then
 		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
-	else
-
-		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
-		then
-			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
-		fi
 	fi
 
 	if [ $MIXER_AUX_FILE != none ]
@@ -179,19 +189,12 @@ then
 			fi
 			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
-				if mixer load ${OUTPUT_AUX_DEV} ${VEHICLE_TYPE}/${MIXER_AUX_FILE}
+				if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
 				then
-					echo "INFO  [init] Mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
 				else
-					if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
-					then
-						echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
-					else
-						echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE}"
-						echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE}" >> $LOG_FILE
-						echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
-						echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
-					fi
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
+					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
 				fi
 			else
 				set PWM_AUX_OUT none
