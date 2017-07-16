@@ -40,6 +40,6 @@ then
 	param set MAV_TYPE 19
 fi
 
-set MIXER caipirinha_vtol
+set MIXER vtol_duo_tailsitter
 
 set PWM_OUT 1234

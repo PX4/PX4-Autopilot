@@ -1,0 +1,31 @@
+#!nsh
+#
+# @name Generic Duo Tailsitter
+#
+# @type VTOL Duo Tailsitter
+# @class VTOL
+#
+# @output MAIN1 motor right
+# @output MAIN2 motor left
+# @output MAIN5 elevon right
+# @output MAIN6 elevon left
+#
+# @maintainer Roman Bapst <roman@px4.io>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set VT_MOT_COUNT 2
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_TYPE 0
+	param set MAV_TYPE 19
+
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_FF 0.0
+fi
+
+set MIXER vtol_duo_tailsitter
+
+set PWM_OUT 1234

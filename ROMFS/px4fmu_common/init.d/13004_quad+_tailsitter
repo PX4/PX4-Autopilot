@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Quadrotor + Tailsitter
+# @name Generic Quadrotor + Tailsitter
 #
 # @type VTOL Quad Tailsitter
 # @class VTOL
