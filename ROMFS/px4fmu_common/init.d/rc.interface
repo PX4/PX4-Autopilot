@@ -54,13 +54,20 @@ then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
 
-	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
+	if mixer load ${OUTPUT_DEV} ${VEHICLE_TYPE}/${MIXER_FILE}
 	then
-		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
+		echo "INFO  [init] Mixer: ${VEHICLE_TYPE}/${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
-		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
-		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
+		then
+			echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
+		else
+			echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_FILE}"
+			echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_FILE}" >> $LOG_FILE
+			echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
+			echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
+			tone_alarm ${TUNE_ERR}
+		fi
 	fi
 
 	unset MIXER_FILE
@@ -172,12 +179,19 @@ then
 			fi
 			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 			then
-				if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
+				if mixer load ${OUTPUT_AUX_DEV} ${VEHICLE_TYPE}/${MIXER_AUX_FILE}
 				then
-					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+					echo "INFO  [init] Mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
 				else
-					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
-					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
+					if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
+					then
+						echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+					else
+						echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE}"
+						echo "ERROR  [init] Failed loading mixer: ${VEHICLE_TYPE}/${MIXER_AUX_FILE}" >> $LOG_FILE
+						echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
+						echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}" >> $LOG_FILE
+					fi
 				fi
 			else
 				set PWM_AUX_OUT none
