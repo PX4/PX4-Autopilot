@@ -3,7 +3,7 @@ import codecs
 import os
 
 class RCOutput():
-    def __init__(self, groups, board):
+    def __init__(self, init_dir, groups, board):
 
         result = (  "#\n"
                     "#\n"
@@ -38,7 +38,7 @@ class RCOutput():
                         excluded = True
                 if excluded:
                     continue
-                path = os.path.split(param.GetPath())[1]
+                path = os.path.relpath(param.GetPath(), init_dir)
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")
                 long_desc = param.GetFieldValue("long_desc")

@@ -1,6 +1,8 @@
 #!nsh
 #
-# @name Generic Ground Vehicle
+# @name Traxxas stampede vxl 2wd
+#
+# @url https://traxxas.com/products/models/electric/stampede-vxl-tsm
 #
 # @type Rover
 # @class Rover
@@ -8,14 +10,14 @@
 # @output MAIN2 steering
 # @output MAIN4 throttle
 #
-# @maintainer 
+# @maintainer Marco Zorzi
 #
 
-sh /etc/init.d/rc.gnd_defaults
+sh /etc/init.d/rc.ugv_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set BAT_N_CELLS 2
+	param set BAT_N_CELLS 7
 
 	param set FW_AIRSPD_MIN 0
 	param set FW_AIRSPD_TRIM 1

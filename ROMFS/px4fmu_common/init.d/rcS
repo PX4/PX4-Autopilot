@@ -1003,7 +1003,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard UGV apps
-		sh /etc/init.d/rc.gnd_apps
+		sh /etc/init.d/rc.ugv_apps
 	fi
 
 	#
