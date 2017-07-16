@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic Quadrotor X config with mount (e.g. gimbal)
+# @name Generic Quadrotor X with mount (e.g. gimbal)
 #
 # @type Quadrotor x
 # @class Copter

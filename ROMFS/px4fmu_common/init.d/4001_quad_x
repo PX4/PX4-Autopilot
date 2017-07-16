@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic Quadrotor X config
+# @name Generic Quadrotor X
 #
 # @type Quadrotor x
 # @class Copter
