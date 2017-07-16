@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Standard Plane
+# @name Generic Plane
 #
 # @type Standard Plane
 # @class Plane
@@ -22,6 +22,8 @@
 sh /etc/init.d/rc.fw_defaults
 
 set MIXER AETRFG
+
+set PWM_OUT 3
 
 set PWM_RATE 50
 set PWM_AUX_RATE 50
