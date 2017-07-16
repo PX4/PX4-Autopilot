@@ -15,7 +15,7 @@ set(h,'PaperPosition', [0 0 1 1]);
 margin = 5;
 
 subplot(3,1,1);
-plot(output.time_lapsed,output.euler_angles(:,1)*rad2deg);
+plot(output.time_lapsed,[output.euler_angles(:,1)*rad2deg,output.euler_angles(:,1)*rad2deg-2*sqrt(output.euler_variances(:,1)*rad2deg),output.euler_angles(:,1)*rad2deg+2*sqrt(output.euler_variances(:,1)*rad2deg)]);
 minVal = rad2deg*min(output.euler_angles(:,1))-margin;
 maxVal = rad2deg*max(output.euler_angles(:,1))+margin;
 ylim([minVal maxVal]);
@@ -24,24 +24,27 @@ titleText=strcat({'Euler Angle Estimates'},runIdentifier);
 title(titleText);
 ylabel('Roll (deg)');
 xlabel('time (sec)');
+legend('estimate','upper 95% bound','lower 95% bound');
 
 subplot(3,1,2);
-plot(output.time_lapsed,output.euler_angles(:,2)*rad2deg);
+plot(output.time_lapsed,[output.euler_angles(:,2)*rad2deg,output.euler_angles(:,2)*rad2deg-2*sqrt(output.euler_variances(:,2)*rad2deg),output.euler_angles(:,2)*rad2deg+2*sqrt(output.euler_variances(:,2)*rad2deg)]);
 minVal = rad2deg*min(output.euler_angles(:,2))-margin;
 maxVal = rad2deg*max(output.euler_angles(:,2))+margin;
 ylim([minVal maxVal]);
 grid on;
 ylabel('Pitch (deg)');
 xlabel('time (sec)');
+legend('estimate','upper 95% bound','lower 95% bound');
 
 subplot(3,1,3);
-plot(output.time_lapsed,output.euler_angles(:,3)*rad2deg);
+plot(output.time_lapsed,[output.euler_angles(:,3)*rad2deg,output.euler_angles(:,3)*rad2deg-2*sqrt(output.euler_variances(:,3)*rad2deg),output.euler_angles(:,3)*rad2deg+2*sqrt(output.euler_variances(:,3)*rad2deg)]);
 minVal = rad2deg*min(output.euler_angles(:,3))-margin;
 maxVal = rad2deg*max(output.euler_angles(:,3))+margin;
 ylim([minVal maxVal]);
 grid on;
 ylabel('Yaw (deg)');
 xlabel('time (sec)');
+legend('estimate','upper 95% bound','lower 95% bound');
 
 fileName='euler_angle_estimates.png';
 fullFileName = fullfile(folder, fileName);

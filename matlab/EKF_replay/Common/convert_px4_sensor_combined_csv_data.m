@@ -12,25 +12,18 @@ for source_index = 1:length(timestamp)
     end
 end
 
-%% convert IMU data to delta angles and velocities using trapezoidal integration
+%% convert IMU data to delta angles and velocities
+% Note: these quatntis were converted from delta angles and velocites using
+% the integral_dt values in the PX4 sensor module so we only need to
+% multiply by integral_dt to convert back
 clear imu_data;
 n_samples = length(timestamp);
-imu_data.time_us = timestamp(2:n_samples) + accelerometer_timestamp_relative(2:n_samples);
-imu_data.gyro_dt = gyro_integral_dt(2:n_samples);
-imu_data.del_ang = 0.5 * ([gyro_rad0(1:n_samples-1).*imu_data.gyro_dt, ...
-    gyro_rad1(1:n_samples-1).*imu_data.gyro_dt, ...
-    gyro_rad2(1:n_samples-1).*imu_data.gyro_dt] + ...
-    [gyro_rad0(2:n_samples).*imu_data.gyro_dt, ...
-    gyro_rad1(2:n_samples).*imu_data.gyro_dt, ...
-    gyro_rad2(2:n_samples).*imu_data.gyro_dt]);
+imu_data.time_us = timestamp + accelerometer_timestamp_relative;
+imu_data.gyro_dt = gyro_integral_dt;
+imu_data.del_ang = [gyro_rad0.*imu_data.gyro_dt, gyro_rad1.*imu_data.gyro_dt, gyro_rad2.*imu_data.gyro_dt];
 
-imu_data.accel_dt = accelerometer_integral_dt(2:n_samples);
-imu_data.del_vel = 0.5 * ([accelerometer_m_s20(1:n_samples-1).*imu_data.accel_dt, ...
-    accelerometer_m_s21(1:n_samples-1).*imu_data.accel_dt, ...
-    accelerometer_m_s22(1:n_samples-1).*imu_data.accel_dt] + ...
-    [accelerometer_m_s20(2:n_samples).*imu_data.accel_dt, ...
-    accelerometer_m_s21(2:n_samples).*imu_data.accel_dt, ...
-    accelerometer_m_s22(2:n_samples).*imu_data.accel_dt]);
+imu_data.accel_dt = accelerometer_integral_dt;
+imu_data.del_vel = [accelerometer_m_s20.*imu_data.accel_dt, accelerometer_m_s21.*imu_data.accel_dt, accelerometer_m_s22.*imu_data.accel_dt];
 
 %% convert magnetomer data
 clear mag_data;

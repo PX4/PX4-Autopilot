@@ -11,7 +11,7 @@ load '../TestData/PX4/imu_data.mat';
 load '../TestData/PX4/mag_data.mat';
 
 % set parameters to default values
-run('SetParameterDefaults.m');
+run('SetParameters.m');
 
 % run the filter replay
 output = RunFilter(param,imu_data,mag_data,baro_data,gps_data);

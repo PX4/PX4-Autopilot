@@ -148,6 +148,13 @@ for index = indexStart:indexStop
             output.state_variances(covIndex,i) = covariance(i,i);
         end
         
+        % output equivalent euler angle variances
+        error_transfer_matrix = quat_to_euler_error_transfer_matrix(states(1),states(2),states(3),states(4));
+        euler_covariance_matrix = error_transfer_matrix * covariance(1:4,1:4) * transpose(error_transfer_matrix);
+        for i=1:3
+            output.euler_variances(covIndex,i) = euler_covariance_matrix(i,i);
+        end
+        
         % Get most recent GPS data that had fallen behind the fusion time horizon
         latest_gps_index = find((gps_data.time_us - 1e6 * param.fusion.gpsTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
 
@@ -309,7 +316,7 @@ for index = indexStart:indexStop
                 last_drift_constrain_time = local_time;
                 
                 % convert delta positon measurements to velocity
-                relVelBodyMea = [viso_data.dVelX(latest_viso_index);viso_data.dVelY(latest_viso_index);viso_data.dVelZ(latest_viso_index)]./viso_data.dt(latest_viso_index);
+                relVelBodyMea = [viso_data.dPosX(latest_viso_index);viso_data.dPosY(latest_viso_index);viso_data.dPosZ(latest_viso_index)]./viso_data.dt(latest_viso_index);
                 
                 % convert quality metric to equivalent observation error
                 % (this is a guess)
