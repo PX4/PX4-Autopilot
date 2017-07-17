@@ -48,7 +48,6 @@
 #include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
 
 #include "navigator.h"

@@ -100,7 +100,6 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -1527,36 +1526,8 @@ int commander_thread_main(int argc, char *argv[])
 	struct vehicle_command_ack_s command_ack;
 	memset(&command_ack, 0, sizeof(command_ack));
 
-	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	orb_advert_t mission_pub = nullptr;
-	mission_s mission;
-
 	orb_advert_t commander_state_pub = nullptr;
-
 	orb_advert_t vehicle_status_flags_pub = nullptr;
-
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
-		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
-			if (mission.count > 0) {
-				mavlink_log_info(&mavlink_log_pub, "[cmd] Mission #%d loaded, %u WPs, curr: %d",
-						 mission.dataman_id, mission.count, mission.current_seq);
-			}
-
-		} else {
-			const char *missionfail = "reading mission state failed";
-			warnx("%s", missionfail);
-			mavlink_log_critical(&mavlink_log_pub, missionfail);
-
-			/* initialize mission state in dataman */
-			mission.dataman_id = 0;
-			mission.count = 0;
-			mission.current_seq = 0;
-			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
-		}
-
-		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
-		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
-	}
 
 	int ret;
 
@@ -2664,14 +2635,16 @@ int commander_thread_main(int argc, char *argv[])
 		 */
 		if (status_flags.condition_home_position_valid &&
 			(hrt_elapsed_time(&_home.timestamp) > 3000000) &&
-			_last_mission_instance != _mission_result.instance_count) {
+			(_last_mission_instance != _mission_result.instance_count)) {
 
 			if (!_mission_result.valid) {
 				/* the mission is invalid */
 				tune_mission_fail(true);
+
 			} else if (_mission_result.warning) {
 				/* the mission has a warning */
 				tune_mission_fail(true);
+
 			} else {
 				/* the mission is valid */
 				tune_mission_ok(true);

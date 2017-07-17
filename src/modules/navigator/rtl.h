@@ -96,6 +96,9 @@ private:
 	control::BlockParamFloat _param_land_delay;
 	control::BlockParamFloat _param_rtl_min_dist;
 	control::BlockParamInt _param_rtl_land_type;
+
+
+	//const Mission&	_mission;
 };
 
 #endif

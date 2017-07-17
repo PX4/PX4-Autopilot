@@ -4,7 +4,7 @@ uint32 seq_reached		# Sequence of the mission item which has been reached
 uint32 seq_current		# Sequence of the current mission item
 uint32 seq_total		# Total number of mission items
 
-bool valid			# true if mission is valid
+bool valid				# true if mission is valid
 bool warning			# true if mission is valid, but has potentially problematic items leading to safety warnings
 bool reached			# true if mission has been reached
 bool finished			# true if mission has been completed

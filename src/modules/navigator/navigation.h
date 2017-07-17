@@ -141,7 +141,6 @@ struct mission_item_s {
 	};
 };
 #pragma pack(pop)
-#include <uORB/topics/mission.h>
 
 /**
  * @}
