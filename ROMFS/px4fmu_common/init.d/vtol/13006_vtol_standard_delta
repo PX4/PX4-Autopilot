@@ -15,6 +15,7 @@
 # @output AUX2 Left elevon
 # @output AUX3 Motor
 #
+# @board px4fmu-v1 exclude
 
 sh /etc/init.d/rc.vtol_defaults
 
