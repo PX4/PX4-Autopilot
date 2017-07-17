@@ -1040,8 +1040,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
-	float dummy_var;
-	soln_status.flags.pos_vert_agl = get_terrain_vert_pos(&dummy_var);
+	soln_status.flags.pos_vert_agl = get_terrain_valid();
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_vert_abs;
