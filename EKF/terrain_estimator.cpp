@@ -150,18 +150,21 @@ void Ekf::fuseHagl()
 	}
 }
 
-// return true if the estimate is fresh
-// return the estimated vertical position of the terrain relative to the NED origin
-bool Ekf::get_terrain_vert_pos(float *ret)
+// return true if the terrain estimate is valid
+bool Ekf::get_terrain_valid()
 {
-	memcpy(ret, &_terrain_vpos, sizeof(float));
-
 	if (_terrain_initialised && _range_data_continuous && !_innov_check_fail_status.flags.reject_hagl) {
 		return true;
 
 	} else {
 		return false;
 	}
+}
+
+// get the estimated vertical position of the terrain relative to the NED origin
+void Ekf::get_terrain_vert_pos(float *ret)
+{
+	memcpy(ret, &_terrain_vpos, sizeof(float));
 }
 
 void Ekf::get_hagl_innov(float *hagl_innov)
