@@ -199,9 +199,11 @@ public:
 	// return true if the EKF is dead reckoning the position using inertial data only
 	virtual bool inertial_dead_reckoning() = 0;
 
-	// return true if the estimate is valid
-	// return the estimated terrain vertical position relative to the NED origin
-	virtual bool get_terrain_vert_pos(float *ret) = 0;
+	// return true if the terrain estimate is valid
+	virtual bool get_terrain_valid() = 0;
+
+	// get the estimated terrain vertical position relative to the NED origin
+	virtual void get_terrain_vert_pos(float *ret) = 0;
 
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
