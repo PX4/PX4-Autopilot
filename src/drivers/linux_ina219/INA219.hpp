@@ -116,7 +116,8 @@ private:
 	uint8t __device_address=0;
 	int write16(uint8_t reg ,uint8_t *value, int length);
 	int read16(uint8_t reg ,uint8_t *value);
-	int open();
+	int open_fd();
+	int close_fd();
 };
 
 void start();
