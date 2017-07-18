@@ -157,7 +157,7 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
-		if fmu mode_${AUX_MODE}
+		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
 			# Append aux mixer to main device
 			if [ $OUTPUT_MODE == hil ]
