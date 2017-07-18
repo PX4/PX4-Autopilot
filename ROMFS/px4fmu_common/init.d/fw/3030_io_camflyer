@@ -1,8 +1,8 @@
 #!nsh
 #
-# @name Skywalker X5 Flying Wing
+# @name IO Camflyer
 #
-# @url https://pixhawk.org/platforms/planes/skywalker_x5
+# @url https://pixhawk.org/platforms/planes/bormatec_camflyer_q
 #
 # @type Flying Wing
 # @class Plane
@@ -15,16 +15,16 @@
 # @output AUX2 feed-through of RC AUX2 channel
 # @output AUX3 feed-through of RC AUX3 channel
 #
-# @maintainer Julian Oes <julian@px4.io>
+# @maintainer Simon Wilks <simon@uaventure.com>
 #
 
 sh /etc/init.d/rc.fw_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set FW_AIRSPD_MIN 15
-	param set FW_AIRSPD_TRIM 20
-	param set FW_AIRSPD_MAX 40
+	param set FW_AIRSPD_MAX 15
+	param set FW_AIRSPD_MIN 10
+	param set FW_AIRSPD_TRIM 13
 	param set FW_R_TC 0.3
 	param set FW_P_TC 0.3
 	param set FW_L1_DAMPING 0.74
@@ -36,8 +36,15 @@ then
 	param set FW_LND_TLALT 5
 	param set FW_THR_LND_MAX 0
 	param set FW_PR_FF 0.35
+	param set FW_PR_IMAX 0.4
+	param set FW_PR_P 0.08
 	param set FW_RR_FF 0.6
+	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.04
 fi
 
-set MIXER X5
+set MIXER fw_generic_wing
+
+# Provide ESC a constant 1000 us pulse while disarmed
+set PWM_OUT 4
+set PWM_DISARMED 1000

@@ -1,0 +1,149 @@
+#!nsh
+
+set +e
+
+#
+# UART mapping on FMUv1/2/3/4:
+#
+# UART1			/dev/ttyS0		IO debug
+# USART2		/dev/ttyS1		TELEM1 (flow control)
+# USART3		/dev/ttyS2		TELEM2 (flow control)
+# UART4
+# UART7							CONSOLE
+# UART8							SERIAL4
+#
+#
+# UART mapping on FMUv5:
+#
+# UART1			/dev/ttyS0		GPS
+# USART2		/dev/ttyS1		TELEM1 (flow control)
+# USART3		/dev/ttyS2		TELEM2 (flow control)
+# UART4			/dev/ttyS3		?
+# USART6		/dev/ttyS4		TELEM3 (flow control)
+# UART7			/dev/ttyS5		?
+# UART8			/dev/ttyS6		CONSOLE
+
+set MAVLINK_F default
+set MAVLINK_COMPANION_DEVICE /dev/ttyS2
+
+if ver hwcmp PX4FMU_V5
+then
+	set MAVLINK_COMPANION_DEVICE /dev/ttyS3
+fi
+
+if [ $MAVLINK_F == default ]
+then
+	# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
+	if [ $TTYS1_BUSY == yes ]
+	then
+		# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
+		set MAVLINK_F "-r 1200 -d /dev/ttyS0"
+
+		# Exit from nsh to free port for mavlink
+		set EXIT_ON_END yes
+	else
+		set MAVLINK_F "-r 1200"
+		# Avoid using ttyS1 for MAVLink on FMUv4
+		if ver hwcmp PX4FMU_V4
+		then
+			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
+			# Start MAVLink on Wifi (ESP8266 port)
+			mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+		fi
+
+		if ver hwcmp AEROFC_V1
+		then
+			set MAVLINK_F "-r 1200 -d /dev/ttyS4"
+		fi
+	fi
+
+	if ver hwcmp CRAZYFLIE
+	then
+		# Avoid using either of the two available serials
+		set MAVLINK_F none
+	fi
+fi
+
+if [ "x$MAVLINK_F" == xnone ]
+then
+else
+	mavlink start ${MAVLINK_F}
+fi
+unset MAVLINK_F
+
+#
+# MAVLink onboard / TELEM2
+#
+if ver hwcmp PX4FMU_V1
+then
+else
+	# XXX We need a better way for runtime eval of shell variables,
+	# but this works for now
+	if param compare SYS_COMPANION 10
+	then
+		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
+	fi
+	if param compare SYS_COMPANION 20
+	then
+		syslink start
+		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
+	fi
+	if param compare SYS_COMPANION 921600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x
+	fi
+	if param compare SYS_COMPANION 57600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x
+	fi
+	if param compare SYS_COMPANION 460800
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x
+	fi
+	if param compare SYS_COMPANION 157600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
+	fi
+	if param compare SYS_COMPANION 257600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x
+	fi
+	if param compare SYS_COMPANION 319200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000
+	fi
+	if param compare SYS_COMPANION 338400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000
+	fi
+	if param compare SYS_COMPANION 357600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000
+	fi
+	if param compare SYS_COMPANION 3115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000
+	fi
+	if param compare SYS_COMPANION 419200
+	then
+		iridiumsbd start -d /dev/ttyS2
+		mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
+	fi
+	if param compare SYS_COMPANION 1921600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
+	fi
+	if param compare SYS_COMPANION 1500000
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x
+	fi
+fi
+
+if ver hwcmp AEROFC_V1
+then
+else
+	# Start MAVLink
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+fi
+
+unset MAVLINK_COMPANION_DEVICE

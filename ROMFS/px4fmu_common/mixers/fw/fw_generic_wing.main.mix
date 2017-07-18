@@ -1,9 +1,9 @@
-Delta-wing mixer for PX4FMU
+Generic wing mixer
 ===========================
 
-This file defines mixers suitable for controlling a delta wing aircraft using
-PX4FMU. The configuration assumes the elevon servos are connected to PX4FMU
-servo outputs 0 and 1 and the motor speed control to output 3. Output 2 is
+This file defines mixers suitable for controlling a delta wing aircraft.
+The configuration assumes the elevon servos are connected to servo
+outputs 0 and 1 and the motor speed control to output 3. Output 2 is
 assumed to be unused.
 
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0

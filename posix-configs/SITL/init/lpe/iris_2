@@ -63,7 +63,7 @@ attitude_estimator_q start
 local_position_estimator start
 mc_pos_control start
 mc_att_control start
-mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_dc.main.mix
+mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/mc/quad_dc.main.mix
 mavlink start -u 14558 -r 4000000
 mavlink start -u 14559 -r 4000000 -m onboard -o 14541
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14558

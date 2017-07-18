@@ -120,7 +120,7 @@ def main():
 
     if args.start_script:
         if args.verbose: print("Creating start script " + args.start_script)
-        out = rcout.RCOutput(param_groups, args.board)
+        out = rcout.RCOutput(args.airframes_path, param_groups, args.board)
         out.Save(args.start_script)
 
     if (args.verbose): print("All done!")

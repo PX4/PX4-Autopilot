@@ -274,23 +274,6 @@ then
 		echo "WARN  [init] VTOL mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
-	then
-		# Use mixer to detect vehicle type
-		if [ $MIXER == caipirinha_vtol ]
-		then
-			set MAV_TYPE 19
-		fi
-		if [ $MIXER == firefly6 ]
-		then
-			set MAV_TYPE 21
-		fi
-		if [ $MIXER == quad_x_pusher_vtol ]
-		then
-			set MAV_TYPE 22
-		fi
-	fi
-
 	# Still no MAV_TYPE found
 	if [ $MAV_TYPE == none ]
 	then

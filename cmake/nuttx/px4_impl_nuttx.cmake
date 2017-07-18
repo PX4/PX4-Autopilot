@@ -457,7 +457,7 @@ function(px4_nuttx_add_romfs)
 	endforeach()
 	add_custom_target(collect_extras DEPENDS ${extras})
 
-	add_custom_command(OUTPUT romfs.o
+	add_custom_command(OUTPUT romfs.o ${romfs_temp_dir}/init.d/rc.autostart
 		COMMAND cmake -E remove_directory ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 		COMMAND cmake -E copy_directory ${extras_dir} ${romfs_temp_dir}/extras

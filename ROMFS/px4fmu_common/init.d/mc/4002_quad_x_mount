@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Generic Quadrotor X config
+# @name Generic Quadrotor X with mount (e.g. gimbal)
 #
 # @type Quadrotor x
 # @class Copter
@@ -12,16 +12,20 @@
 # @output MAIN5 feed-through of RC AUX1 channel
 # @output MAIN6 feed-through of RC AUX2 channel
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-# @output AUX4 feed-through of RC FLAPS channel
+# @output AUX1 Mount pitch
+# @output AUX2 Mount roll
+# @output AUX3 Mount yaw
+# @output AUX4 Mount retract
 #
-# @maintainer Lorenz Meier <lorenz@px4.io>
+# @maintainer Leon Mueller <thedevleon>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
-
 set PWM_OUT 1234
+
+set MIXER_AUX mount
+set PWM_AUX_OUT 123456
+set PWM_AUX_RATE 50
+

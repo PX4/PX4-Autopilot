@@ -1,18 +1,9 @@
 #!nsh
 #
-# @name Quadrotor + Tailsitter
+# @name Generic Quadrotor X Tailsitter
 #
 # @type VTOL Quad Tailsitter
 # @class VTOL
-#
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 4
-# @output MAIN4 motor 5
-# @output MAIN5 elevon left
-# @output MAIN6 elevon right
-# @output MAIN7 canard surface
-# @output MAIN8 rudder
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
@@ -22,12 +13,12 @@ sh /etc/init.d/rc.vtol_defaults
 if [ $AUTOCNF == yes ]
 then
     param set VT_MOT_COUNT 4
-    param set VT_IDLE_PWM_MC  1080
+    param set VT_IDLE_PWM_MC 1080
     param set VT_TYPE 0
     param set VT_ELEV_MC_LOCK 1
 fi
 
-set MIXER quad_+_vtol
+set MIXER quad_x_vtol
 
 set PWM_OUT 1234
 set PWM_MAX 2000
