@@ -611,17 +611,6 @@ void Mavlink::mavlink_update_system()
 		_param_initialized = true;
 	}
 
-	/* warn users that they need to reboot to take this
-	 * into effect
-	 */
-	if (system_id != mavlink_system.sysid) {
-		send_statustext_critical("Save params and reboot to change SYSID");
-	}
-
-	if (component_id != mavlink_system.compid) {
-		send_statustext_critical("Save params and reboot to change COMPID");
-	}
-
 	int32_t system_type;
 	param_get(_param_system_type, &system_type);
 
