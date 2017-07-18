@@ -1210,7 +1210,7 @@ PX4FMU::cycle()
 			_current_update_rate = 0;
 		}
 
-		int poll_timeout = 20;
+		int poll_timeout = 5; // needs to be small enough so that we don't miss RC input data
 
 		if (!_run_as_task) {
 			/*
