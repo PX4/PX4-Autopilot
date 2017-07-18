@@ -134,6 +134,7 @@ public:
 		_max_readers(readers),
 		_report_len(sizeof(RType))
 	{
+		memset(_buf, 0, sizeof(_buf));
 		px4_sem_init(&_lock, 0, _max_readers);
 	}
 
@@ -277,6 +278,11 @@ private:
 		{
 			_actuator_outputs_sub[i] = -1;
 		}
+
+		simulator::RawGPSData gps_data{};
+		gps_data.eph = UINT16_MAX;
+		gps_data.epv = UINT16_MAX;
+		_gps.writeData(&gps_data);
 	}
 	~Simulator()
 	{
