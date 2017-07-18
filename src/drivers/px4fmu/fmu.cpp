@@ -470,7 +470,9 @@ PX4FMU::~PX4FMU()
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
+#ifdef RC_SERIAL_PORT
 	dsm_deinit();
+#endif
 
 	/* note - someone else is responsible for restoring the GPIO config */
 
