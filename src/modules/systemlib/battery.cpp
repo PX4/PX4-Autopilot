@@ -53,6 +53,7 @@ Battery::Battery() :
 	_param_crit_thr(this, "CRIT_THR"),
 	_param_emergency_thr(this, "EMERGEN_THR"),
 	_voltage_filtered_v(-1.0f),
+	_current_filtered_a(-1.0f),
 	_discharged_mah(0.0f),
 	_remaining_voltage(1.0f),
 	_remaining_capacity(1.0f),
