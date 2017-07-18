@@ -470,6 +470,8 @@ PX4FMU::~PX4FMU()
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
+	dsm_deinit();
+
 	/* note - someone else is responsible for restoring the GPIO config */
 
 	/* clean up the alternate device node */
