@@ -171,6 +171,11 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	/**
+	 * run the main loop: if running as task, continuously iterate, otherwise execute only one single cycle
+	 */
+	void cycle();
+
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
@@ -1062,7 +1067,7 @@ PX4FMU::cycle_trampoline(void *arg)
 		_object = dev;
 	}
 
-	dev->run();
+	dev->cycle();
 }
 
 void
@@ -1181,6 +1186,18 @@ PX4FMU::update_pwm_out_state(bool on)
 
 void
 PX4FMU::run()
+{
+	if (init() != 0) {
+		PX4_ERR("init failed");
+		exit_and_cleanup();
+		return;
+	}
+
+	cycle();
+}
+
+void
+PX4FMU::cycle()
 {
 	while (true) {
 
@@ -3355,15 +3372,7 @@ PX4FMU::fake(int argc, char *argv[])
 PX4FMU *PX4FMU::instantiate(int argc, char *argv[])
 {
 	// No arguments to parse. We also know that we should run as task
-	PX4FMU *dev = new PX4FMU(true);
-
-	if (dev && dev->init() != 0) {
-		PX4_ERR("init failed");
-		delete dev;
-		dev = nullptr;
-	}
-
-	return dev;
+	return new PX4FMU(true);
 }
 
 int PX4FMU::custom_command(int argc, char *argv[])
