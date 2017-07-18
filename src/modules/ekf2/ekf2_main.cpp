@@ -136,13 +136,13 @@ private:
 
 	// Used to down sample magnetometer data
 	float _mag_data_sum[3];			// summed magnetometer readings (Ga)
-	uint64_t _mag_time_sum_ms;		// summed magnetoemter time stamps (msec)
+	uint64_t _mag_time_sum_ms = 0;		// summed magnetoemter time stamps (msec)
 	uint8_t _mag_sample_count = 0;		// number of magnetometer measurements summed
 	uint32_t _mag_time_ms_last_used = 0;	// time stamp in msec of the last averaged magnetometer measurement used by the EKF
 
 	// Used to down sample barometer data
 	float _balt_data_sum;			// summed barometric altitude readings (m)
-	uint64_t _balt_time_sum_ms;		// summed barometric altitude time stamps (msec)
+	uint64_t _balt_time_sum_ms = 0;		// summed barometric altitude time stamps (msec)
 	uint8_t _balt_sample_count = 0;		// number of barometric altitude measurements summed
 	uint32_t _balt_time_ms_last_used =
 		0;	// time stamp in msec of the last averaged barometric altitude measurement used by the EKF
