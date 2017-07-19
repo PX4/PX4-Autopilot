@@ -228,6 +228,17 @@
 #define BOARD_HAS_CAPTURE 1
 #endif
 
+/*
+ * Defined when a supports version and type API.
+ */
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_VER_SIMPLE(s)	     0x90000+(s)
+
+#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
+#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
+#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#endif
 
 /************************************************************************************
  * Public Data
@@ -390,6 +401,51 @@ __EXPORT void board_system_reset(int status) noreturn_function;
 #  define board_set_bootload_mode(mode)
 #else
 __EXPORT int board_set_bootload_mode(board_reset_e mode);
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_type
+ *
+ * Description:
+ *   Optional returns a string defining the HW type
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT const char *board_get_hw_type_name(void);
+#else
+#define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_version
+ *
+ * Description:
+ *   Optional returns a integer HW version
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_version(void);
+#else
+#define board_get_hw_version() 0
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_revision
+ *
+ * Description:
+ *   Optional returns a integer HW revision
+ *
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_hw_revision(void);
+#else
+#define board_get_hw_revision() 0
 #endif
 
 #if !defined(BOARD_OVERRIDE_UUID)
