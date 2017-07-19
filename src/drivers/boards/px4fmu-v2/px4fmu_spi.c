@@ -268,11 +268,20 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_MAG_DRDY_OFF);
 	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
 	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
+#if defined(BOARD_HAS_VERSIONING)
 
+	/* Pixhawk mini has reused the GPIO_SPI_CS_EXT1 signal that was associated
+	 * with SPI4. So we must do this only on HW_VER_FMUV2MINI
+	 */
+	if (HW_VER_FMUV2MINI == board_get_hw_version()) {
+		stm32_configgpio(GPIO_20608_DRDY_OFF);
+		stm32_gpiowrite(GPIO_20608_DRDY_OFF, 0);
+	}
+
+#endif
 	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
-	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	/* set the sensor rail off */
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
@@ -310,7 +319,14 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI1_MISO);
 	stm32_configgpio(GPIO_SPI1_MOSI);
 
-	// // XXX bring up the EXTI pins again
+	// FIXME:bring up the EXTI pins again
+	/* Pixhawk mini has reused the GPIO_SPI_CS_EXT1 signal that was associated
+	 * with SPI4. So we must do this only on HW_VER_FMUV2MINI
+	 */
+	//if (HW_VER_FMUV2MINI == board_get_hw_version()) {
+	//	stm32_configgpio(GPIO_20608_DRDY_OFF);
+	//	stm32_gpiowrite(GPIO_20608_DRDY_OFF, 0);
+	//}
 	// stm32_configgpio(GPIO_GYRO_DRDY);
 	// stm32_configgpio(GPIO_MAG_DRDY);
 	// stm32_configgpio(GPIO_ACCEL_DRDY);
