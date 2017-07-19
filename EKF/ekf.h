@@ -154,9 +154,11 @@ public:
 	// return true if the EKF is dead reckoning the position using inertial data only
 	bool inertial_dead_reckoning();
 
-	// return true if the etimate is valid
-	// return the estimated terrain vertical position relative to the NED origin
-	bool get_terrain_vert_pos(float *ret);
+	// return true if the terrain estimate is valid
+	bool get_terrain_valid();
+
+	// get the estimated terrain vertical position relative to the NED origin
+	void get_terrain_vert_pos(float *ret);
 
 	// get the accerometer bias in m/s/s
 	void get_accel_bias(float bias[3]);
