@@ -24,6 +24,11 @@ matrix:
       sudo: required
       services:
         - docker
+      env: BUILD_TARGET=tests PX4_DOCKER_REPO=px4io/px4-dev-base:ubuntu17.10
+    - os: linux
+      sudo: required
+      services:
+        - docker
       env: BUILD_TARGET=clang-tidy
     - os: linux
       sudo: required
