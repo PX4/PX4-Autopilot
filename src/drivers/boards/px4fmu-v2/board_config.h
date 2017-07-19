@@ -70,41 +70,119 @@
 
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
 
-/* External interrupts */
-#define GPIO_EXTI_GYRO_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_EXTI_MAG_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_EXTI_ACCEL_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
-#define GPIO_EXTI_MPU_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
+/*
+ *  Define the ability to shut off off the sensor signals
+ *  by changing the signals to inputs
+ */
 
-/* Data ready pins off */
-#define GPIO_GYRO_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_MAG_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_ACCEL_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN4)
-#define GPIO_EXTI_MPU_DRDY_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
+#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_50MHz))
 
-/* SPI1 off */
-#define GPIO_SPI1_SCK_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN5)
-#define GPIO_SPI1_MISO_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_SPI1_MOSI_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN7)
+/* Due to inconsistent use of chip select and dry signal on
+ * different board that use this build. We are defining the GPIO
+ * inclusive of the SPI port and GPIO to help identify pins the
+ * are part of the sensor Net's controlled by different power
+ * domains.
+ *
+ *  Only the GPIO_SPIb_xxx_Ppi will be used in the code to insure this are no
+ *  cross connections.
+ *
+ *  --------------- SPI1 -------------------- SPI4 --------------     Incompatibilities    ---------
+ *  FMUv2:                                                        FmuV3 Cube        PixhawkMini
+ *   Power Domain:  VDD_3V3_SENSORS_EN        nVDD_5V_PERIPH_EN    V3V:SPI1&SPI4    V3V:SPI1 No SPI4
+ *   PA5            SPI_INT_SCK
+ *   PA6            SPI_INT_MISO
+ *   PA7            SPI_INT_MOSI
+ *   PB0            GYRO_DRDY                                      SPI4:EXTERN_DRDY        NC
+ *   PB1            MAG_DRDY                                       +SPI4:nEXTERN_CS        NC
+ *   PB4            ACCEL_DRDY                                     NC                      NC
+ *   PC1            Spare ADC ( NC )                               +SPI1:SPI_INT_MAG_!CS
+ *   PC2            nMPU_CS                                        @MPU6000|MPU9250        @MPU9250
+ *   PC13           nGYRO_CS                                       SPI4:nGYRO_EXT_CS       NC
+ *   PC14                                     GPIO_EXT_1           nBARO_EXT_CS            -20608_DRDY
+ *   PC15           nACCEL_MAG_CS                                  SPI4:nACCEL_MAG_EXT_CS  20608_CS
+ *   PD7            nBARO_CS
+ *   PD15           nMPU_DRDY                                      @MPU6000|MPU9250        @MPU9250
+ *   PE2                                      SPI_EXT_SCK                                  NC
+ *   PE4                                      nSPI_EXT_NSS         SPI4:nMPU_EXT_CS        NC
+ *   PE5                                      SPI_EXT_MISO                                 NC
+ *   PE6                                      SPI_EXT_MOSI                                 NC
+ *
+ *   Notes: Prefixed with @ Does not effect board control
+ *          Prefixed with + Input used as Output
+ *          Prefixed with - Output used as Input
+ *          Prefixed with SPIn: Bus changed
+ *
+ *  The board API provides for mechanism to perform a SPI bus reset.
+ *  To facilitate a SPI bus reset
+ *
+ *    1) All the pins: SPIn, CD, DRDY associated with the SPI bus are turned to inputs
+ *       with outputs driven low. (OFFIng)
+ *    2) The power domain of that bus is turned off.
+ *    3) A usleep it done for ms.
+ *    4) The power domain of that bus is turned back on.
+ *    5) The SPIn pins are re-initialized.
+ *    6) The SPI CS, DRDY pins are re-initialized.
+ *
+ * To insure the complete net is de-energized and is not bing back fed, it is important to
+ * note the all signals in the net list of the parts/bus.
+ *
+ * I.E. Not OFFIng PC1 on V3 would leave that pin back feeding the HMC part. As would not
+ * OFFIng PE4, not associated with SPI1 on V2, but would back feed an MPUxxxx on V3
+ *
+ */
 
-/* SPI1 chip selects off */
-#define GPIO_SPI_CS_GYRO_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_SPI_CS_ACCEL_MAG_OFF	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_SPI_CS_BARO_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTD|GPIO_PIN7)
-#define GPIO_SPI_CS_MPU_OFF		(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN2)
 
-/* SPI chip selects */
-#define GPIO_SPI_CS_GYRO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_SPI_CS_ACCEL_MAG	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_SPI_CS_BARO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
-#define GPIO_SPI_CS_FRAM	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
-#define GPIO_SPI_CS_HMC		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_SPI_CS_MPU		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_SPI_CS_EXT0	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
-#define GPIO_SPI_CS_EXT1	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN14)
-#define GPIO_SPI_CS_EXT2	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-#define GPIO_SPI_CS_EXT3	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_SPI_CS_LIS 	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
+/*----------------------------------------------------------*/
+/*            FMUv2 SPI chip selects and DRDY               */
+/*----------------------------------------------------------*/
+
+/* FMUv2 SPI1 chip selects */
+/*                   PC1 Spare ADC IN10                     */
+#define GPIO_SPI1_CS_PC2                 (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
+#define GPIO_SPI1_CS_PC13                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_SPI1_CS_PC15                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SPI1_CS_PD7                 (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
+
+/* FMUv2 SPI2 chip selects */
+#define GPIO_SPI2_CS_PD10                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
+
+/* FMUv2 SPI4 chip selects */
+#define GPIO_SPI4_GPIO_PC14  /* !V2M */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_SPI4_NSS_PE4                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
+
+/* FMUv2 SPI1 chip selects Assignments */
+
+#define GPIO_SPI1_CS_MPU                 GPIO_SPI1_CS_PC2
+#define GPIO_SPI1_CS_GYRO                GPIO_SPI1_CS_PC13
+#define GPIO_SPI1_CS_ACCEL_MAG           GPIO_SPI1_CS_PC15
+#define GPIO_SPI1_CS_BARO                GPIO_SPI1_CS_PD7
+
+/* FMUv2 SPI2 chip selects Assignments */
+
+#define GPIO_SPI2_CS_FRAM                GPIO_SPI2_CS_PD10
+
+/* FMUv2 SPI4 chip selects Assignments */
+
+#define GPIO_SPI4_GPIO_EXT               GPIO_SPI4_GPIO_PC14
+#define GPIO_SPI4_EXT_NSS                GPIO_SPI4_NSS_PE4
+
+/* FMUv2 DRDY */
+
+#define GPIO_SPI1_EXTI_DRDY_PB0          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN0)
+#define GPIO_SPI1_EXTI_DRDY_PB1 /*!V3 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN1)
+#define GPIO_SPI1_EXTI_DRDY_PB4          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
+#define GPIO_SPI1_EXTI_DRDY_PD15         (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
+
+/* FMUv2 DRDY Assignments */
+
+#define GPIO_SPI1_EXTI_GYRO_DRDY         GPIO_SPI1_EXTI_DRDY_PB0
+#define GPIO_SPI1_EXTI_MAG_DRDY          GPIO_SPI1_EXTI_DRDY_PB1
+#define GPIO_SPI1_EXTI_ACCEL_DRDY        GPIO_SPI1_EXTI_DRDY_PB4
+#define GPIO_SPI1_EXTI_MPU_DRDY          GPIO_SPI1_EXTI_DRDY_PD15
+
+/*----------------------------------------------------------*/
+/*        End FMUv2 SPI chip selects and DRDY               */
+/*----------------------------------------------------------*/
 
 #define PX4_SPI_BUS_SENSORS	1
 #define PX4_SPI_BUS_RAMTRON	2
@@ -112,27 +190,17 @@
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO		1
-#define PX4_SPIDEV_ACCEL_MAG	2
-#define PX4_SPIDEV_BARO		3
-#define PX4_SPIDEV_MPU		4
-#define PX4_SPIDEV_HMC		5
-#define PX4_SPIDEV_LIS		7
-#define	PX4_SPIDEV_BMI		8
+#define PX4_SPIDEV_GYRO           1
+#define PX4_SPIDEV_ACCEL_MAG      2
+#define PX4_SPIDEV_BARO           3
+#define PX4_SPIDEV_MPU            4
 
 /* External bus */
-#define PX4_SPIDEV_EXT0		1
-#define PX4_SPIDEV_EXT1		2
-#define PX4_SPIDEV_EXT2		3
-#define PX4_SPIDEV_EXT3		4
-
-/* FMUv3 SPI on external bus */
-#define PX4_SPIDEV_EXT_MPU		PX4_SPIDEV_EXT0
-#define PX4_SPIDEV_EXT_BARO		PX4_SPIDEV_EXT1
-#define PX4_SPIDEV_EXT_ACCEL_MAG	PX4_SPIDEV_EXT2
-#define PX4_SPIDEV_EXT_GYRO		PX4_SPIDEV_EXT3
-
-#define PX4_SPIDEV_EXT_BMI		PX4_SPIDEV_EXT_GYRO
+#define PX4_SPIDEV_EXT_MPU        10
+#define PX4_SPIDEV_EXT_GYRO       12
+#define PX4_SPIDEV_EXT_ACCEL_MAG  13
+#define PX4_SPIDEV_EXT_BARO       14
+#define PX4_SPIDEV_EXT_BMI        15
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
