@@ -482,6 +482,27 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 
 /**
+ * Set to 1 or 2 when the earth field is too close to vertical to give reliable heading.
+ *
+ * @group EKF2
+ * @value 0 Normal operation
+ * @value 1 Yaw = EKF2_MAG_YAWGND when on the ground and no heading or mag fusion in air.
+ * @value 2 yaw = EKF2_MAG_YAWGND when on the ground and 3-axis mag fusion in the air.
+ */
+PARAM_DEFINE_INT32(EKF2_MAG_FVERT, 0);
+
+/**
+ * This yaw angle will be used for alignment and fusion when on the ground if EKF2_MAG_FVERT = 1 or 2
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 360
+ * @unit deg
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_YAWGND, 0.0f);
+
+/**
  * Gate size for barometric height fusion
  *
  * @group EKF2

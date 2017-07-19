@@ -230,6 +230,8 @@ private:
 	control::BlockParamExtInt _mag_fuse_type;         // integer ued to control the type of magnetometer fusion used
 	control::BlockParamExtFloat _mag_acc_gate;	// manoeuvre threshold for use of 3-axis fusion (m/s**2)
 	control::BlockParamExtFloat _mag_yaw_rate_gate;	// yaw rate threshold for use of 3-axis fusion (rad/s)
+	control::BlockParamExtInt _mag_field_vertical;	// selectes how to fuse mag when the field is close to vertical
+	control::BlockParamExtFloat _mag_yaw_ground;	// yaw angle that will be used for alignment and fusion when on the ground if EKF2_MAG_FVERT = 1 or 2 (deg)
 
 	control::BlockParamExtInt _gps_check_mask;	// bitmasked integer used to activate the different GPS quality checks
 	control::BlockParamExtFloat _requiredEph;	// maximum acceptable horiz position error (m)
@@ -371,6 +373,8 @@ Ekf2::Ekf2():
 	_mag_fuse_type(this, "EKF2_MAG_TYPE", false, _params->mag_fusion_type),
 	_mag_acc_gate(this, "EKF2_MAG_ACCLIM", false, _params->mag_acc_gate),
 	_mag_yaw_rate_gate(this, "EKF2_MAG_YAWLIM", false, _params->mag_yaw_rate_gate),
+	_mag_field_vertical(this, "EKF2_MAG_FVERT", false, _params->mag_field_vertical),
+	_mag_yaw_ground(this, "EKF2_MAG_YAWGND", false, _params->mag_yaw_ground),
 	_gps_check_mask(this, "EKF2_GPS_CHECK", false, _params->gps_check_mask),
 	_requiredEph(this, "EKF2_REQ_EPH", false, _params->req_hacc),
 	_requiredEpv(this, "EKF2_REQ_EPV", false, _params->req_vacc),
