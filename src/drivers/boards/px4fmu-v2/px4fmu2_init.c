@@ -117,6 +117,14 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+static int hw_version = -1;
+static int hw_revision = -1;
+static char hw_type[4] = HW_VER_TYPE_INIT;
+#endif
+/****************************************************************************
  * Protected Functions
  ****************************************************************************/
 /****************************************************************************
@@ -143,6 +151,123 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 }
+
+/************************************************************************************
+  * Name: determin_hw_version
+ *
+ * Description:
+ *
+ * This function looks at HW deltas to determine what the
+ * build is running on using the following criteria:
+ *
+ * MSN  PB12   FMUv2                Cube             MINI
+ * CAN2_RX       CONECTOR             MX30521          NC
+ * PU.PD         1,0                   1,1             1,0
+ *
+ * LSN  PB4    FMUv2                Cube             MINI
+ *               ACCEL_DRDY LSM303D    NC              NC
+ * PU.PD         0,0                   1,0             1,0
+
+ *  PB12:PB4
+ *  ud   ud
+ *  10   00 - 0x8 FMUv2
+ *  11   10 - 0xE Cube AKA V2.0
+ *  10   10 - 0xA PixhawkMini
+ *
+ *  This will return OK on success and -1 on not supported
+ *
+ *  hw_type Initial state is {'V','2',0, 0}
+ *   V 2    - FMUv2
+ *   V 3 0  - FMUv3 2.0
+ *   V 3 1  - FMUv3 2.1 - not differentiateable,
+ *   V 2 M  - FMUv2 Mini
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+static int determin_hw_version(int *version, int *revision)
+{
+	*revision = -1; /* unknown */
+	int rv = 0;
+	int pos = 0;
+	stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB4 & ~GPIO_PUPD_MASK));
+	up_udelay(10);
+	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
+	stm32_configgpio(HW_VER_PB4);
+	up_udelay(10);
+	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
+
+	int votes = 16;
+	int ones[2] = {0, 0};
+	int zeros[2] = {0, 0};
+
+	while (votes--) {
+		stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB12 & ~GPIO_PUPD_MASK));
+		up_udelay(10);
+		stm32_gpioread(HW_VER_PB12) ? ones[0]++ : zeros[0]++;
+		stm32_configgpio(HW_VER_PB12);
+		up_udelay(10);
+		stm32_gpioread(HW_VER_PB12) ? ones[1]++ : zeros[1]++;
+	}
+
+	if (ones[0] > zeros[0]) {
+		rv |= 1 << pos;
+	}
+
+	pos++;
+
+	if (ones[1] > zeros[1]) {
+		rv |= 1 << pos;
+	}
+
+	stm32_configgpio(HW_VER_PB4_INIT);
+	stm32_configgpio(HW_VER_PB12_INIT);
+	*version = rv;
+	return OK;
+}
+
+/************************************************************************************
+ * Name: board_get_hw_type_name
+ *
+ * Description:
+ *   Optional returns a string defining the HW type
+ *
+ *
+ ************************************************************************************/
+
+__EXPORT const char *board_get_hw_type_name()
+{
+	return (const char *) hw_type;
+}
+
+/************************************************************************************
+ * Name: board_get_hw_version
+ *
+ * Description:
+ *   Optional returns a integer HW version
+ *
+ *
+ ************************************************************************************/
+
+__EXPORT int board_get_hw_version()
+{
+	return  HW_VER_SIMPLE(hw_version);
+}
+
+/************************************************************************************
+ * Name: board_get_hw_revision
+ *
+ * Description:
+ *   Optional returns a integer HW revision
+ *
+ *
+ ************************************************************************************/
+
+__EXPORT int board_get_hw_revision()
+{
+	return  hw_revision;
+}
+#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -235,6 +360,29 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
+
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+
+	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
+		switch (hw_version) {
+		default:
+		case 0x8:
+			break;
+
+		case 0xE:
+			hw_type[1]++;
+			hw_type[2] = '0';
+			break;
+
+		case 0xA:
+			hw_type[2] = 'M';
+			break;
+		}
+
+		PX4_INFO("Ver 0x%1X : Rev %x %s", hw_version, hw_revision, hw_type);
+	}
+
+#endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
