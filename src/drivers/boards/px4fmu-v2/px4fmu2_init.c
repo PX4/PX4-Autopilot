@@ -329,6 +329,10 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 	board_autoled_initialize();
 
+	/* Start with the Sensor voltage off */
+
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+
 	/* configure ADC pins */
 
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
@@ -340,7 +344,6 @@ stm32_boardinitialize(void)
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_USB_VALID);
@@ -348,8 +351,9 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
+	/* configure SPI interfaces is deferred to board_app_initialize
+	 * to delay the sensor power up with out adding a delay
+	 */
 
 }
 
@@ -385,6 +389,7 @@ static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	/* run C++ ctors before we go any further */
@@ -422,7 +427,21 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif // BOARD_HAS_SIMPLE_HW_VERSIONING
 
+	/* Bring up the Sensor power */
+
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+	/* Ensure the power is on 1 ms before we drive the GPIO pins */
+
+	usleep(1000);
+
+	/* Now it is ok to drive the pins high so configure SPI GPIO */
+
+	stm32_spiinitialize();
+
+
 	/* configure the high-resolution time/callout interface */
+
 	hrt_init();
 
 	param_init();
