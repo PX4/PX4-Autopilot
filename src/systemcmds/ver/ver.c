@@ -50,6 +50,7 @@
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[]    = "hwcmp";
+static const char sz_ver_hwtypecmp_str[]    = "hwtypecmp";
 static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[]    = "bdate";
 static const char sz_ver_buri_str[]     = "uri";
@@ -93,6 +94,7 @@ static void usage(const char *reason)
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hw>", "Hardware to compare against (eg. PX4FMU_V4)", false);
 }
 
@@ -125,11 +127,47 @@ int ver_main(int argc, char *argv[])
 				}
 			}
 
+			if (!strncmp(argv[1], sz_ver_hwtypecmp_str, sizeof(sz_ver_hwtypecmp_str))) {
+				if (argc >= 3 && argv[2] != NULL) {
+					/* compare 3rd parameter with px4_board_sub_type() string, in case of match, return 0 */
+					const char *board_type = px4_board_sub_type();
+					ret = strcmp(board_type, argv[2]);
+
+					if (ret == 0) {
+						PX4_INFO("match: %s", board_type);
+					}
+
+					return ret;
+
+				} else {
+					PX4_ERR("Not enough arguments, try 'ver hwtypecmp {V2|V2M|V30|V31}'");
+					return 1;
+				}
+			}
+
 			/* check if we want to show all */
 			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
 				printf("HW arch: %s\n", px4_board_name());
+#if defined(BOARD_HAS_VERSIONING)
+				char vb[14] = "NA";
+				char rb[14] = "NA";
+				int  v = px4_board_hw_version();
+				int  r = px4_board_hw_revision();
+
+				if (v > 0) {
+					snprintf(vb, sizeof(vb), "0x%08X", v);
+				}
+
+				if (r > 0) {
+					snprintf(rb, sizeof(rb), "0x%08X", r);
+				}
+
+				printf("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
+				printf("HW version: %s\n", vb);
+				printf("HW revision: %s\n", rb);
+#endif
 				ret = 0;
 
 			}
