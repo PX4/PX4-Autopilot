@@ -1043,3 +1043,16 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * @max 10.0
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
+
+/**
+ * Gate size used for innovation consistency checks for range aid fusion
+ *
+ * A lower value means HAGL needs to be more stable in order to use range finder for height estimation
+ * in range aid mode
+ *
+ * @group EKF2
+ * @unit SD
+ * @min 0.1
+ * @max 5.0
+ */
+PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
