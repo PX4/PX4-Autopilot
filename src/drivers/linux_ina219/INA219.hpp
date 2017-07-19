@@ -107,12 +107,19 @@ class INA219{
 public:
 	INA219(int bus);
 	void init();
-	void calibration();
-	int getCurrentVoltage();
+	void calibration32v1a();
+	void calibration32v2a();
+	void calibration32v2a();
+	void calibration16v400ma();
+	float getBusVoltage();
+	float getCurrentMa();
 	~INA219();
 private:
 	int __device_fd=-1;
 	int __device_bus=0;
+	int __ina219_currentDivider_mA=10;
+	int __ina219_powerDivider_mW=2;
+	uint16t __ina219_calValue=4096;
 	uint8t __device_address=0;
 	int write16(uint8_t reg ,uint8_t *value, int length);
 	int read16(uint8_t reg ,uint8_t *value);
