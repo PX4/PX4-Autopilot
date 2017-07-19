@@ -102,6 +102,11 @@ void Ekf::runTerrainEstimator()
 			_cos_tilt_rng = cosf(_params.rng_sens_pitch);
 
 		}
+
+		//constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
+		if (_terrain_vpos - _state.pos(2) < _params.rng_gnd_clearance) {
+			_terrain_vpos = _params.rng_gnd_clearance + _state.pos(2);
+		}
 	}
 }
 
