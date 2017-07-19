@@ -734,7 +734,7 @@ void Ekf::controlHeightFusion()
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				if (get_terrain_valid()) {
+				if (_terrain_initialised) {
 					_hgt_sensor_offset = _terrain_vpos;
 				} else {
 					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
@@ -774,7 +774,7 @@ void Ekf::controlHeightFusion()
 		// measurment matches our current height estimate
 		if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
 			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-			if (_control_status.flags.in_air && get_terrain_valid()) {
+			if (_control_status.flags.in_air && _terrain_initialised) {
 
 				_hgt_sensor_offset = _terrain_vpos;
 			} else if (_control_status.flags.in_air) {
@@ -807,7 +807,7 @@ void Ekf::controlHeightFusion()
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurment matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				if (get_terrain_valid()) {
+				if (_terrain_initialised) {
 					_hgt_sensor_offset = _terrain_vpos;
 				} else {
 					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
@@ -875,12 +875,12 @@ bool Ekf::rangeAidConditionsMet(bool in_range_aid_mode)
 		// check if we should use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool use_range_finder;
 		if (in_range_aid_mode) {
-			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
+			use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && _terrain_initialised;
 
 		} else {
 			// if we were not using range aid in the previous iteration then require the current height above terrain to be
 			// smaller than 70 % of the maximum allowed ground distance for range aid
-			use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
+			use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && _terrain_initialised;
 		}
 
 		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
