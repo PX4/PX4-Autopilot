@@ -43,5 +43,16 @@
  * Included Files
  ****************************************************************************************************/
 
+/* Run time Hardware detection */
+#define BOARD_HAS_SIMPLE_HW_VERSIONING 1
+#define HW_VER_PB4             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
+#define HW_VER_PB12            (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN12)
+#define HW_VER_PB4_INIT        (GPIO_EXTI_ACCEL_DRDY)
+#define HW_VER_PB12_INIT       (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTB|GPIO_PIN12)
+#define HW_VER_FMUV2_STATE     0x8 /* PB12:PU:1 PB12:PD:0 PB4:PU:0 PB4PD:0 */
+#define HW_VER_FMUV3_STATE     0xE /* PB12:PU:1 PB12:PD:1 PB4:PU:1 PB4PD:0 */
+#define HW_VER_FMUV2MINI_STATE 0xA /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:0 */
+#define HW_VER_TYPE_INIT {'V','2',0, 0}
+
 #include "../px4fmu-v2/board_config.h"
 #define PX4_SPIDEV_ICM_20608  PX4_SPIDEV_ACCEL_MAG // PixhawkMini has ICM_20608 on GPIO_SPI_CS_ACCEL_MAG
