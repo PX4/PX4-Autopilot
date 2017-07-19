@@ -9,7 +9,11 @@
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/battery_status.h>
 
 namespace linux_ina219 {
 /*=========================================================================*/
@@ -127,11 +131,20 @@ private:
 	int close_fd();
 };
 
+uint8_t __current_status=0;// 0 stoped,1 running,
+static px4_task_t _task_handle = -1;
+struct battery_status_s __battery_status_data;
+orb_advert_t __battery_status_pub;
+bool __should_exit = false;
+bool __is_running = false;
+bool __ina219_bus = 1;
+INA219 *ina219 = nullptr;
 void start();
 void stop();
+void running(int argc,char**argv);
 void status();
 void usage();
 
-}
+};
 extern "C" __EXPORT int linux_ina219_main(int argc, char **argv);
 
