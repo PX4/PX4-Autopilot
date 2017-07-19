@@ -67,6 +67,30 @@ static inline const char *px4_board_name(void)
 }
 
 /**
+ * get the board sub type
+ */
+static inline const char *px4_board_sub_type(void)
+{
+	return board_get_hw_type_name();
+}
+
+/**
+ * get the board HW version
+ */
+static inline int px4_board_hw_version(void)
+{
+	return board_get_hw_version();
+}
+
+/**
+ * get the board HW revision
+ */
+static inline int px4_board_hw_revision(void)
+{
+	return board_get_hw_revision();
+}
+
+/**
  * get the build URI (used for crash logging)
  */
 static inline const char *px4_build_uri(void)
