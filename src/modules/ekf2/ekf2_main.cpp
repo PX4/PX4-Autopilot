@@ -256,6 +256,8 @@ private:
 	_rng_aid;              // enables use of a range finder even if primary height source is not range finder (EKF2_HGT_MODE != 2)
 	control::BlockParamExtFloat _rng_aid_hor_vel_max; 	// maximum allowed horizontal velocity for range aid
 	control::BlockParamExtFloat _rng_aid_height_max; 	// maximum allowed absolute altitude (AGL) for range aid
+	control::BlockParamExtFloat
+	_rng_aid_innov_gate; // gate size used for innovation consistency checks for range aid fusion
 
 	// vision estimate fusion
 	control::BlockParamExtFloat _ev_pos_noise;		// default position observation noise for exernal vision measurements (m)
@@ -388,6 +390,7 @@ Ekf2::Ekf2():
 	_rng_aid(this, "EKF2_RNG_AID", false, _params->range_aid),
 	_rng_aid_hor_vel_max(this, "EKF2_RNG_A_VMAX", false, _params->max_vel_for_range_aid),
 	_rng_aid_height_max(this, "EKF2_RNG_A_HMAX", false, _params->max_hagl_for_range_aid),
+	_rng_aid_innov_gate(this, "EKF2_RNG_A_IGATE", false, _params->range_aid_innov_gate),
 	_ev_pos_noise(this, "EKF2_EVP_NOISE", false, _default_ev_pos_noise),
 	_ev_ang_noise(this, "EKF2_EVA_NOISE", false, _default_ev_ang_noise),
 	_ev_innov_gate(this, "EKF2_EV_GATE", false, _params->ev_innov_gate),
@@ -933,7 +936,8 @@ void Ekf2::run()
 			lpos.yaw = euler.psi();
 
 			float terrain_vpos;
-			lpos.dist_bottom_valid = _ekf.get_terrain_vert_pos(&terrain_vpos);
+			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
+			_ekf.get_terrain_vert_pos(&terrain_vpos);
 			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
 			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
