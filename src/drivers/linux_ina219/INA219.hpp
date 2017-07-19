@@ -1,4 +1,3 @@
-#pragma once
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -12,16 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/battery_status.h>
-
+#include <px4_getopt.h>
+#include <px4_posix.h>
+#ifndef INA219_H
+#define INA219_H
 namespace linux_ina219 {
-/*=========================================================================*/
-#if defined(__DF_INA_219_DEV)
-#define INA219_DEVICE __DF_INA_219_DEV
-#else
-#define INA219_DEVICE "/dev/i2c-1"
-#endif
 
 /*=========================================================================
  I2C ADDRESS/BITS
@@ -75,6 +69,7 @@ namespace linux_ina219 {
 #define INA219_CONFIG_MODE_SVOLT_CONTINUOUS    (0x0005)
 #define INA219_CONFIG_MODE_BVOLT_CONTINUOUS    (0x0006)
 #define INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS (0x0007)
+#define INA219_INTERVAL_US  800000
 /*=========================================================================*/
 
 /*=========================================================================
@@ -109,10 +104,9 @@ namespace linux_ina219 {
 
 class INA219{
 public:
-	INA219(int bus);
+	INA219(int bus,int address);
 	void init();
 	void calibration32v1a();
-	void calibration32v2a();
 	void calibration32v2a();
 	void calibration16v400ma();
 	float getBusVoltage();
@@ -123,28 +117,13 @@ private:
 	int __device_bus=0;
 	int __ina219_currentDivider_mA=10;
 	int __ina219_powerDivider_mW=2;
-	uint16t __ina219_calValue=4096;
-	uint8t __device_address=0;
-	int write16(uint8_t reg ,uint8_t *value, int length);
-	int read16(uint8_t reg ,uint8_t *value);
+	uint16_t __ina219_calValue=4096;
+	uint8_t __device_address=0;
+	int write16(uint8_t reg ,uint16_t *value, size_t length);
+	int read16(uint8_t reg ,uint16_t *value,size_t length);
 	int open_fd();
 	int close_fd();
 };
 
-uint8_t __current_status=0;// 0 stoped,1 running,
-static px4_task_t _task_handle = -1;
-struct battery_status_s __battery_status_data;
-orb_advert_t __battery_status_pub;
-bool __should_exit = false;
-bool __is_running = false;
-bool __ina219_bus = 1;
-INA219 *ina219 = nullptr;
-void start();
-void stop();
-void running(int argc,char**argv);
-void status();
-void usage();
-
-};
-extern "C" __EXPORT int linux_ina219_main(int argc, char **argv);
-
+}
+#endif

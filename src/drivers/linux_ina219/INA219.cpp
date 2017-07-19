@@ -45,7 +45,7 @@ void linux_ina219::INA219::calibration32v1a() {
 	__ina219_powerDivider_mW = 1;         // Power LSB = 800�W per bit
 	// Set Calibration register to 'Cal' calculated above
 	__ina219_calValue=10240;
-	this->write16(INA219_REG_CALIBRATION, &this->__ina219_calValue, sizeof(__ina219_calValue));
+	this->write16(INA219_REG_CALIBRATION, &this->__ina219_calValue, (size_t)sizeof(__ina219_calValue));
 
 	// Set Config register to take into account the settings above
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
@@ -85,7 +85,7 @@ int linux_ina219::INA219::open_fd() {
 	}
 
 	if (ioctl(this->__device_fd, I2C_SLAVE, this->__device_address) < 0) {
-		PX4_ERR("I2C slave %d failed [open_fd():ioctl %d]", address, errno);
+		PX4_ERR("I2C slave %d failed ", this->__device_address);
 		return -1;
 	}
 	return this->__device_fd;
@@ -97,7 +97,7 @@ float linux_ina219::INA219::getBusVoltage(){
 	  int status = this->read16(INA219_REG_BUSVOLTAGE, &value,sizeof(value));
 	  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
 	  result = (int16_t)((value >> 3) * 4);
-	  if(0>result)
+	  if(0>status)
 		  return -1;
 	  return result*0.001;
 }
@@ -109,13 +109,13 @@ float linux_ina219::INA219::getCurrentMa(){
 	  // reset the cal register, meaning CURRENT and POWER will
 	  // not be available ... avoid this by always setting a cal
 	  // value even if it's an unfortunate extra step
-	 int status = this->write16(INA219_REG_CALIBRATION, __ina219_calValue,sizeOf(__ina219_calValue));
+	 int status = this->write16(INA219_REG_CALIBRATION, &__ina219_calValue,sizeof(__ina219_calValue));
 	 if(status<0)
 		 return -1;
 	 status = this->read16(INA219_REG_CURRENT, &value,sizeof(value));
 	 if(status<0)
 		 return -1;
-	 float result = (float)value/ina219_currentDivider_mA;
+	 float result = (float)value/__ina219_currentDivider_mA;
 	 return result;
 }
 
@@ -126,6 +126,7 @@ float linux_ina219::INA219::getCurrentMa(){
  */
 int linux_ina219::INA219::close_fd() {
 	::close(this->__device_fd);
+	return 0;
 }
 
 //---------------------------------------------------------------------------------------------------------//
@@ -136,15 +137,15 @@ int linux_ina219::INA219::close_fd() {
  * @param length 数据长度
  *
  */
-int linux_ina219::INA219::read16(uint8_t reg, uint16_t *value, int length) {
+int linux_ina219::INA219::read16(uint8_t reg, uint16_t *value, size_t length) {
 	int status = this->open_fd();
 	if (status <= 0)
 		return status;
 	//缓冲区
 	uint8_t write_buffer[length + 1];
 	write_buffer[0] = reg;
-	int retry_count = 0;
-	int retries = 2;
+	int _retry_count = 0;
+	int _retries = 2;
 	int result = -1;
 	do {
 		ssize_t bytes_written = ::write(this->__device_fd,
@@ -158,16 +159,16 @@ int linux_ina219::INA219::read16(uint8_t reg, uint16_t *value, int length) {
 			break;
 		}
 
-	} while (retry_count++ < _retries);
+	} while (_retry_count++ < _retries);
 	//未能读取切换到寄存器地址，直接返回
-	if (result = -1)
+	if (-1==result)
 		return result;
 	//将输入读入value变量中
 	ssize_t bytes_read = 0;
 	bytes_read = ::read(this->__device_fd, (uint8_t*) value, length);
-	this->close_fd(this->__device_fd);
+	this->close_fd();
 	if (bytes_read != (ssize_t) length) {
-		PX4_ERROR("Can not read data from ina219, @ %d", reg);
+		PX4_ERR("Can not read data from ina219, @ %d", reg);
 		return -1;
 	}
 	return 0;
@@ -176,23 +177,23 @@ int linux_ina219::INA219::read16(uint8_t reg, uint16_t *value, int length) {
 /**
  * 将16位数据，写入8位地址
  */
-int linux_ina219::INA219::write16(uint8_t reg, uint16_t *value, int length) {
+int linux_ina219::INA219::write16(uint8_t reg, uint16_t *value, size_t length) {
 	int status = this->open_fd();
 	if (status <= 0)
 		return status;
 	uint8_t write_buffer[length + 1];
 	write_buffer[0] = reg;
 	if (nullptr != value && value) {
-		memcpy(&write_buffer[1], in_buffer, length);
+		memcpy(&write_buffer[1], value, length);
 	}
 
-	if (length + 1 > MAX_LEN_TRANSMIT_BUFFER_IN_BYTES) {
+	if (length + 1 > 128) {
 		PX4_ERR("error: caller's buffer exceeds max len");
 		return -1;
 	}
 
-	int retry_count = 0;
-	int retries = 2;
+	int _retry_count = 0;
+	int _retries = 2;
 	int result = -1;
 	do {
 		ssize_t bytes_written = ::write(this->__device_fd,
@@ -207,7 +208,7 @@ int linux_ina219::INA219::write16(uint8_t reg, uint16_t *value, int length) {
 			break;
 		}
 
-	} while (retry_count++ < _retries);
+	} while (_retry_count++ < _retries);
 	this->close_fd();
 	return result;
 }

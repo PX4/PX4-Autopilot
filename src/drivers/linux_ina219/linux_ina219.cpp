@@ -1,4 +1,4 @@
-#include "INA219.hpp"
+#include "linux_ina219.hpp"
 
 //---------------------------------------------------------------------------------------------//
 void linux_ina219::start() {
@@ -9,23 +9,20 @@ void linux_ina219::start() {
 	//param_get(param_find("PWM_MIN"), &rpi_pca9685_pwm_out::_pwm_min);
 	//param_get(param_find("PWM_MAX"), &rpi_pca9685_pwm_out::_pwm_max);
 
-	linux_ina219::ina219 = new linux_ina219::INA219(linux_ina219::__ina219_bus);
-	__battery_status_pub = orb_advertise(ORB_ID(battery_status), &__battery_status_data);
+	linux_ina219::ina219 = new linux_ina219::INA219(linux_ina219::__ina219_bus,INA219_ADDRESS);
+	__battery_status_pub = orb_advertise(ORB_ID(battery_status),
+			&__battery_status_data);
 
 	if (nullptr == __battery_status_pub) {
 		PX4_WARN("error: battery status advertise failed");
 		return;
 	}
-
-	ASSERT(_task_handle == -1);
 	linux_ina219::__should_exit = false;
 	/* start the task */
-	_task_handle = px4_task_spawn_cmd("pwm_out_main", SCHED_DEFAULT,
-	SCHED_PRIORITY_DEFAULT, 800000, (px4_main_t) & linux_ina219::running,
-			nullptr);
-
-	if (_task_handle < 0) {
-		warn("task start failed");
+	int result = work_queue(HPWORK, &_work, (worker_t) & linux_ina219::running,
+			nullptr, 0);
+	if (result < 0) {
+		PX4_ERR("linux_ina219 start failed");
 		delete (linux_ina219::ina219);
 		linux_ina219::ina219 = nullptr;
 		return;
@@ -37,12 +34,11 @@ void linux_ina219::start() {
 void linux_ina219::stop() {
 	if (linux_ina219::__is_running) {
 		linux_ina219::__should_exit = true;
-		while (_is_running) {
+		while (__is_running) {
 			usleep(200000);
 			PX4_INFO(".");
 		}
 		PX4_INFO("Stoped");
-		linux_ina219::_task_handle = -1;
 		linux_ina219::__should_exit = false;
 		linux_ina219::__is_running = false;
 		return;
@@ -50,34 +46,37 @@ void linux_ina219::stop() {
 	PX4_INFO("linux_ina219 is not running");
 }
 //----------------------------------------------------------------------------------------------//
-void linux_ina219::status(){
-	PX4_INFO("linux_ina219 is %s",__is_running?"running":"not running");
+void linux_ina219::status() {
+	PX4_INFO("linux_ina219 is %s", __is_running ? "running" : "not running");
 }
 //---------------------------------------------------------------------------------------------//
 void linux_ina219::usage() {
 	PX4_INFO("linux_ina219 start|stop|status -b <bus>");
 }
 //---------------------------------------------------------------------------------------------//
-void linux_ina219::running() {
+void linux_ina219::running(int argc,char**argv) {
 	float v;
 	float a;
-	while (false == linux_ina219::__should_exit) {
-		a = linux_ina219::ina219->getCurrentMa();
-		v = linux_ina219::ina219->getBusVoltage();
-		linux_ina219::battery_status_data.timestamp = hrt_absolute_time(); // required for logger
-		linux_ina219::battery_status_data.voltage_v = v;
-		linux_ina219::battery_status_data.voltage_filtered_v = v;
-		linux_ina219::battery_status_data.current_a = a;
-		linux_ina219::battery_status_data.current_filtered_a;
-		linux_ina219::battery_status_data.discharged_mah;
-		linux_ina219::battery_status_data.remaining;
-		linux_ina219::battery_status_data.scale;
-		linux_ina219::battery_status_data.cell_count = 3;
-		linux_ina219::battery_status_data.connected = true;
-		linux_ina219::battery_status_data.warning = 0;
-		uint8_t _padding0[6] = { 0, 0, 0, 0, 0, 0 }; // required for logger
-		orb_publish(ORB_ID(battery_status), __battery_status_pub, &battery_status_data);
-		usleep(800000);
+	a = linux_ina219::ina219->getCurrentMa();
+	v = linux_ina219::ina219->getBusVoltage();
+	linux_ina219::__battery_status_data.timestamp = hrt_absolute_time(); // required for logger
+	linux_ina219::__battery_status_data.voltage_v = v;
+	linux_ina219::__battery_status_data.voltage_filtered_v = v;
+	linux_ina219::__battery_status_data.current_a = a;
+	linux_ina219::__battery_status_data.current_filtered_a=a;
+	//linux_ina219::__battery_status_data.discharged_mah;
+	//linux_ina219::__battery_status_data.remaining;
+	//linux_ina219::__battery_status_data.scale;
+	linux_ina219::__battery_status_data.cell_count = 3;
+	linux_ina219::__battery_status_data.connected = true;
+	linux_ina219::__battery_status_data.warning = 0;
+	//linux_ina219::__battery_status_data._padding0[6] = {0}; // required for logger
+	memset(linux_ina219::__battery_status_data._padding0,0,sizeof(linux_ina219::__battery_status_data._padding0));
+	orb_publish(ORB_ID(battery_status), __battery_status_pub,
+			&__battery_status_data);
+	if (false==linux_ina219::__should_exit) {
+			work_queue(HPWORK, &_work, (worker_t) &linux_ina219::running,nullptr,
+					USEC2TICK(INA219_INTERVAL_US));
 	}
 }
 //---------------------------------------------------------------------------------------------//
