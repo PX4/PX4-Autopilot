@@ -154,7 +154,12 @@ int OcpocADC::read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len)
 	FILE *xadc_fd = fopen(ADC_VOLTAGE_PATH, "r");
 
 	if (xadc_fd != NULL) {
-		fscanf(xadc_fd, "%d", buff);
+		int ret_tmp = fscanf(xadc_fd, "%d", buff);
+
+		if (ret_tmp < 0) {
+			ret = ret_tmp;
+		}
+
 		fclose(xadc_fd);
 
 		(*buf)[0].am_data = buff[0];
