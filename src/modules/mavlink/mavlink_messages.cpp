@@ -1178,6 +1178,11 @@ public:
 		return new MavlinkStreamADSBVehicle(mavlink);
 	}
 
+	virtual bool const_rate()
+	{
+		return true;
+	}
+
 	unsigned get_size()
 	{
 		return (_pos_time > 0) ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
@@ -1201,7 +1206,7 @@ protected:
 	{
 		struct transponder_report_s pos;
 
-		if (_pos_sub->update(&_pos_time, &pos)) {
+		while (_pos_sub->update(&_pos_time, &pos)) {
 			mavlink_adsb_vehicle_t msg = {};
 
 			msg.ICAO_address = pos.ICAO_address;

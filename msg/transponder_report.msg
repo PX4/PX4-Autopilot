@@ -11,3 +11,5 @@ uint8 emitter_type 	# Type from ADSB_EMITTER_TYPE enum
 uint8 tslc 		# Time since last communication in seconds
 uint16 flags 		# Flags to indicate various statuses including valid data fields
 uint16 squawk 		# Squawk code
+
+uint32 ORB_QUEUE_LENGTH = 3
