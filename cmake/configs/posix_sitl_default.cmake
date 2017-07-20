@@ -184,6 +184,8 @@ set(config_extra_builtin_cmds
 	sercon
 	)
 
+set(GENERATE_RTPS_BRIDGE on)
+
 set(config_rtps_send_topics
 	sensor_baro
 	)
