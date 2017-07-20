@@ -375,6 +375,11 @@ private:
 	int			reset();
 
 
+	/**
+	 * Resets the main chip (excluding the magnetometer if any).
+	 */
+	int			reset_mpu();
+
 
 #if defined(USE_I2C)
 	/**
