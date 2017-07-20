@@ -2899,6 +2899,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	unlock();
+
+#else
+	ret = -ENOTTY;
 #endif
 	return ret;
 }
