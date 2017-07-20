@@ -113,6 +113,8 @@ MPU9250_mag::~MPU9250_mag()
 		delete _mag_reports;
 	}
 
+	orb_unadvertise(_mag_topic);
+
 	perf_free(_mag_reads);
 	perf_free(_mag_errors);
 	perf_free(_mag_overruns);
@@ -123,42 +125,37 @@ MPU9250_mag::~MPU9250_mag()
 int
 MPU9250_mag::init()
 {
-	int ret = ak8963_setup();
+	int ret = CDev::init();
 
-	if (ret == OK) {
-
-		ret = CDev::init();
-
-		/* if setup failed, bail now */
-		if (ret != OK) {
-			DEVICE_DEBUG("MPU9250 mag init failed");
-			return ret;
-		}
-
-		_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
-
-		if (_mag_reports == nullptr) {
-			goto out;
-		}
-
-		_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct mag_report mrp;
-		_mag_reports->get(&mrp);
-
-		_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-						 &_mag_orb_class_instance, ORB_PRIO_LOW);
-		//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-		if (_mag_topic == nullptr) {
-			PX4_ERR("ADVERT FAIL");
-		}
+	/* if cdev init failed, bail now */
+	if (ret != OK) {
+		DEVICE_DEBUG("MPU9250 mag init failed");
+		return ret;
 	}
 
-out:
-	return ret;
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+
+	if (_mag_reports == nullptr) {
+		return -ENOMEM;;
+	}
+
+	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+
+
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct mag_report mrp;
+	_mag_reports->get(&mrp);
+
+	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
+					 &_mag_orb_class_instance, ORB_PRIO_LOW);
+	//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+	if (_mag_topic == nullptr) {
+		PX4_ERR("ADVERT FAIL");
+		return -ENOMEM;
+	}
+
+	return OK;
 }
 
 bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
@@ -558,23 +555,31 @@ MPU9250_mag::ak8963_read_adjustments(void)
 }
 
 int
+MPU9250_mag::ak8963_setup_master_i2c(void)
+{
+	/* When _interface is null we are using SPI and must
+	 * use the parent interface to configure the device to act
+	 * in master mode (SPI to I2C bridge)
+	 */
+	if (_interface == nullptr) {
+		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
+		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+
+	} else {
+		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
+	}
+
+	return OK;
+}
+int
 MPU9250_mag::ak8963_setup(void)
 {
 	int retries = 10;
 
 	do {
 
-		/* When _interface is null we are using SPI and must
-		 * use the parent interface to configure the device to act
-		 * in master mode (SPI to I2C bridge)
-		 */
-		if (_interface == nullptr) {
-			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
-			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
-
-		} else {
-			_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
-		}
+		ak8963_setup_master_i2c();
+		write_reg(AK8963REG_CNTL2, AK8963_RESET);
 
 		uint8_t id = 0;
 
@@ -583,12 +588,9 @@ MPU9250_mag::ak8963_setup(void)
 		}
 
 		retries--;
-
-		if (retries < 8) {
-			PX4_ERR("AK8963: bad id %d retries %d", id, retries);
-			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-			up_udelay(100);
-		}
+		PX4_ERR("AK8963: bad id %d retries %d", id, retries);
+		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+		up_udelay(100);
 	} while (retries > 0);
 
 	if (retries > 0) {
@@ -598,16 +600,16 @@ MPU9250_mag::ak8963_setup(void)
 			retries--;
 			PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
 
-			if (retries == 5) {
-				_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-				up_udelay(100);
-			}
+			_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+			up_udelay(100);
+			ak8963_setup_master_i2c();
+			write_reg(AK8963REG_CNTL2, AK8963_RESET);
 		}
 	}
 
 	if (retries == 0) {
 		PX4_ERR("AK8963: failed to initialize, disabled!");
-		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
 		_parent->write_reg(MPUREG_I2C_MST_CTRL, 0);
 		return -EIO;
 	}

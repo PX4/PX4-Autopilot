@@ -218,6 +218,9 @@ MPU9250::~MPU9250()
 	/* make sure we are truly inactive */
 	stop();
 
+	orb_unadvertise(_accel_topic);
+	orb_unadvertise(_gyro->_gyro_topic);
+
 	/* delete the gyro subdriver */
 	delete _gyro;
 
@@ -257,14 +260,12 @@ MPU9250::init()
 	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
 #endif
 
-
 	int ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("MPU9250 probe failed");
 		return ret;
 	}
-
 
 	/* do init */
 
@@ -276,11 +277,9 @@ MPU9250::init()
 		return ret;
 	}
 
-
-
-
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	ret = -ENOMEM;
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -318,7 +317,7 @@ MPU9250::init()
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("gyro init failed");
-		return ret;
+		goto out;
 	}
 
 #ifdef USE_I2C
@@ -337,7 +336,7 @@ MPU9250::init()
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
 		DEVICE_DEBUG("mag init failed");
-		return ret;
+		goto out;
 	}
 
 
@@ -364,7 +363,8 @@ MPU9250::init()
 					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_ERR("ADVERT FAIL");
+		goto out;
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
@@ -375,7 +375,8 @@ MPU9250::init()
 			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
 	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
+		PX4_ERR("ADVERT FAIL");
+		goto out;
 	}
 
 out:
