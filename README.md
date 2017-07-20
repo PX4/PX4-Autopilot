@@ -1,7 +1,3 @@
-## FORK INFO ##
-
-Please added functionality for **PX4 Autopilot** to **Fast RTPS** in [eProsima README](src/modules/micrortps_bridge/README.md)
-
 ## PX4 Pro Drone Autopilot ##
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware) [![Build Status](https://travis-ci.org/PX4/Firmware.svg?branch=master)](https://travis-ci.org/PX4/Firmware) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
@@ -66,7 +62,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](https://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon)
     * [Christoph Tobler](https://github.com/ChristophTobler)
-    * [Mark Charlebois](https://github.com/mcharleb) 
+    * [Mark Charlebois](https://github.com/mcharleb)
   * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero)
     * [Lucas De Marchi](https://github.com/lucasdemarchi)
     * [José Roberto de Souza](https://github.com/zehortigoza)

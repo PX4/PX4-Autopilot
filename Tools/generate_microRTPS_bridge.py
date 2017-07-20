@@ -43,7 +43,7 @@ parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, h
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default="src/modules/micrortps_bridge/micrortps_agent")
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default="src/modules/micrortps_bridge/micrortps_client")
 parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?', help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
-parser.add_argument("--no-delete", dest='no_del', action="store_true", help="Do not delete dir tree output dir(s)")
+parser.add_argument("--delete-tree", dest='del_tree', action="store_true", help="Delete dir tree output dir(s)")
 
 if len(sys.argv) <= 1:
     parser.print_usage()
@@ -56,7 +56,7 @@ msg_files_send = args.send
 msg_files_receive = args.receive
 agent = args.agent
 client = args.client
-no_del = args.no_del
+del_tree = args.del_tree
 px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT)
 agent_out_dir = get_absolute_path(args.agentdir)
 client_out_dir = get_absolute_path(args.clientdir)
@@ -73,7 +73,7 @@ if agent == False and client == False:
     agent = True
     client = True
 
-if not no_del:
+if del_tree:
     if agent:
         _continue = str(raw_input("\nFiles in " +  agent_out_dir + " will be erased, continue?[Y/n]\n"))
         if _continue == "N" or _continue == "n":
