@@ -231,7 +231,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	switch (node->type) {
 	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
-			debug("unexpected type for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
@@ -241,7 +242,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 	case BSON_DOUBLE:
 		if (param_type(param) != PARAM_TYPE_FLOAT) {
-			debug("unexpected type for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
@@ -251,12 +253,14 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 	case BSON_BINDATA:
 		if (node->subtype != BSON_BIN_BINARY) {
-			debug("unexpected subtype for '%s", node->name);
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
 		if (bson_decoder_data_pending(decoder) != param_size(param)) {
-			debug("bad size for '%s'", node->name);
+			PX4_WARN("bad size for '%s'", node->name);
+			result = 1; // just skip this entry
 			goto out;
 		}
 
