@@ -1,4 +1,4 @@
-# Throughput test
+# Micro RTPS Throughput Test
 
 This a simple test to measure the throughput of the bridge. Sending an receiving messages of the 256 bytes at the same time as fast as we can.
 
@@ -7,7 +7,7 @@ We will create a new message for this test called **throughput_256.msg**, the co
   ``` text
   uint8[256] data
   ```
-We will create it next to the other *.msg* files in the folder *msg*:
+We will create it next to the other *.msg* files in the folder *msg/*:
 
   ``` sh
   $ cd /path/to/PX4/Firmware/msg
@@ -34,14 +34,22 @@ And giving it a topic id, adding a line in the *Tools/message_id.py* script:
 
 ## Creating the code
 
+First at all, we need to disable the automatic generation in the PX4 compiling process setting the variable `GENERATE_RTPS_BRIDGE` to *off* inside the *.cmake* file for the target platform (*cmake/configs/*):
+
+```sh
+set(GENERATE_RTPS_BRIDGE off)
+```
+
+And then generate the code:
+
   ``` sh
   $ cd /path/to/PX4/Firmware
-  $ python Tools/generate_microRTPS_bridge.py --send msg/throughput_256.msg --receive msg/throughput_256.msg -u src/examples/micrortps_client
+  $ python Tools/generate_microRTPS_bridge.py --send msg/throughput_256.msg --receive msg/throughput_256.msg
   ```
 
-That generates and installs the PX4 side of the code (the client) in *src/examples/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
+That generates and installs the PX4 side of the code (the client) in *src/modules/micrortps_bridge/micrortps_client* and the Fast RPS side (the agent) in *src/modules/micrortps_bridge/micrortps_agent*.
 
-Now, we have to modify the client to send a *throughput_256* message each time since nobody publish under this topic. In the file **src/examples/micrortps_client/microRTPS_client.cpp** inside the *send* function the loop should look like this:
+Now, we have to modify the client to send a *throughput_256* message each time since nobody publish under this topic. In the file **src/modules/micrortps_bridge/micrortps_client/microRTPS_client.cpp** inside the *send* function the while loop should look like this:
 
   ``` cpp
   ...
@@ -69,35 +77,9 @@ Now, we have to modify the client to send a *throughput_256* message each time s
   }
   ...
   ```
-  To enable the compilation of the example client we need to modify the *micrortps_client* line in the cmake of our platform (*cmake/configs*) in that way:
-
-  ``` cmake
-  set(config_module_list
-    ...
-    #src/modules/micrortps_bridge/micrortps_client
-    src/examples/micrortps_client
-    ...
-  )
-  ```
-
-  Also we need to a add basic CMakeLists.txt like that:
-
-  ``` cmake
-  px4_add_module(
-  	MODULE examples__micrortps_client
-  	MAIN micrortps_client
-  	STACK_MAIN 4096
-  	SRCS
-  		microRTPS_transport.cxx
-  		microRTPS_client.cpp
-  	DEPENDS
-  		platforms__common
-  	)
-  ```
-
 ## Result
 
-After compiling and launching both the [client](README.md#px4-firmware-the-micro-rtps-client) and the [agent](README.md#fast-rtps-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
+After compiling and launching both the [client](README.md#px4-firmware-side-the-micro-rtps-client) and the [agent](README.md#fast-rtps-side-the-micro-rtps-agent) we obtain a measure of throughput for our particular conditions. For a Pixracer and a ordinary PC running Ubuntu 16.04 in the client shell window we obtain:
 
   ```sh
   SENT:     13255 messages in 13255 LOOPS, 3512575 bytes in 30.994 seconds - 113.33KB/s
