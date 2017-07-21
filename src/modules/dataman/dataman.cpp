@@ -637,7 +637,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* Check for read error */
 	if (len < 0) {
-		return -1;
+		return -errno;
 	}
 
 	/* A zero length entry is a empty entry */
