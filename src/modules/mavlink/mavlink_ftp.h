@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <queue.h>
 
+#include <px4_defines.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
@@ -146,6 +147,12 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
+	/**
+	 * make sure that the working buffers _work_buffer* are allocated
+	 * @return true if buffers exist, false if allocation failed
+	 */
+	bool _ensure_buffers_exist();
+
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
 	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
@@ -173,6 +180,21 @@ private:
 	MavlinkFTP(const MavlinkFTP &);
 	MavlinkFTP operator=(const MavlinkFTP &);
 
+	/* work buffers: they're allocated as soon as we get the first request (lazy, since FTP is rarely used) */
+	char *_work_buffer1;
+	static constexpr int _work_buffer1_len = kMaxDataLength;
+	char *_work_buffer2;
+	static constexpr int _work_buffer2_len = 256;
+	hrt_abstime _last_work_buffer_access; ///< timestamp when the buffers were last accessed
+
+	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
+	// Note that requests can still fall outside of the root dir by using ../..
+#ifdef MAVLINK_FTP_UNIT_TEST
+	static constexpr const char _root_dir[] = "";
+#else
+	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
+#endif
+	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
 
 	// Mavlink test needs to be able to call send
 	friend class MavlinkFtpTest;
