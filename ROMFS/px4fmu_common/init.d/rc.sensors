@@ -100,21 +100,27 @@ then
 	then
 	fi
 
-	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -S -R 4 start
+	# V2 build hwtypecmp is always false
+	set BOARD_FMUV3 0
+	# V3 build hwtypecmp supports V2|V2M|V30
+	if ver hwtypecmp V30
 	then
-		set BOARD_FMUV3 true
-	else
-		# Check for Pixhawk 2.1 board
-		if mpu9250 -S -R 4 start
+		# Check for Pixhawk 2.0 cube
+		# external MPU6K is rotated 180 degrees yaw
+		if mpu6000 -S -R 4 start
 		then
-			set BOARD_FMUV3 true
+			set BOARD_FMUV3 20
 		else
-			set BOARD_FMUV3 false
+			# Check for Pixhawk 2.1 cube
+			# external MPU9250 is rotated 180 degrees yaw
+			if mpu9250 -S -R 4 start
+			then
+				set BOARD_FMUV3 21
+			fi
 		fi
 	fi
 
-	if [ $BOARD_FMUV3 == true ]
+	if [ $BOARD_FMUV3 != 0 ]
 	then
 		# sensor heating is available, but we disable it for now
 		param set SENS_EN_THERMAL 0
@@ -129,26 +135,43 @@ then
 		then
 		fi
 
-		# internal MPU6000 is rotated 180 deg roll, 270 deg yaw
-		if mpu6000 -R 14 start
+		if [ $BOARD_FMUV3 == 20 ]
 		then
-		else
+			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
+			if mpu6000 -R 14 start
+			then
+			fi
+			# v2.0 Has internal hmc5883 on SPI1
+			if hmc5883 -C -T -S -R 8 start
+			then
+			fi
+
+		fi
+		if [ $BOARD_FMUV3 == 21 ]
+		then
+			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
 			if mpu9250 -R 14 start
 			then
 			fi
 		fi
 
-		if hmc5883 -C -T -S -R 8 start
-		then
-		fi
 	else
-		# FMUv2
+		# $BOARD_FMUV3 == 0 -> FMUv2
+
 		if mpu6000 start
 		then
 		fi
 
-		if mpu9250 start
+		# As we will use the external mag and the ICM-20608-G
+		# V2 build hwtypecmp is always false
+		# V3 build hwtypecmp supports V2|V2M|V30
+		if ver hwtypecmp V2M
 		then
+		# On the PixhawkMini the mpu9250 has been disabled due to HW errata
+		else
+			if mpu9250 start
+			then
+			fi
 		fi
 
 		if l3gd20 start
