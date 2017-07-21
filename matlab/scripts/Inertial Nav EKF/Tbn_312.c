@@ -1,0 +1,15 @@
+t2 = sin(yaw);
+t3 = cos(yaw);
+t4 = sin(pitch);
+t5 = cos(pitch);
+t6 = sin(roll);
+t7 = cos(roll);
+A0[0][0] = t3*t5-t2*t4*t6;
+A0[0][1] = -t2*t7;
+A0[0][2] = t3*t4+t2*t5*t6;
+A0[1][0] = t2*t5+t3*t4*t6;
+A0[1][1] = t3*t7;
+A0[1][2] = t2*t4-t3*t5*t6;
+A0[2][0] = -t4*t7;
+A0[2][1] = t6;
+A0[2][2] = t5*t7;
