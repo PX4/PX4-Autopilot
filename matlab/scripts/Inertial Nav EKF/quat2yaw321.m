@@ -22,7 +22,7 @@ syms q0 q1 q2 q3 'real'
 Tbn_quat = Quat2Tbn([q0;q1;q2;q3]);
 
 % calculate the y,x terms required for calculation fo the yaw angle
-yaw_input_321 = [Tbn_quat(1,2);Tbn_quat(1,1)];
+yaw_input_321 = [Tbn_quat(2,1);Tbn_quat(1,1)];
 
 % convert to c code and save
 ccode(yaw_input_321,'file','yaw_input_321.c');
