@@ -176,14 +176,10 @@ bool MixerTest::loadAllTest()
 
 	if (dp == nullptr) {
 		PX4_ERR("File open failed");
-		// this is not an FTP error, abort directory by simulating eof
 		return false;
 	}
 
 	struct dirent *result = nullptr;
-
-	// move to the requested offset
-	//seekdir(dp, payload->offset);
 
 	for (;;) {
 		errno = 0;
