@@ -311,7 +311,8 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	struct dirent *result = nullptr;
 
 	// move to the requested offset
-	seekdir(dp, payload->offset);
+	int requested_offset = payload->offset;
+	while (requested_offset-- > 0 && readdir(dp));
 
 	for (;;) {
 		errno = 0;
