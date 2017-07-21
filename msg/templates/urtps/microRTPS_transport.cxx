@@ -199,9 +199,9 @@ ssize_t Transport_node::write(const char topic_ID, char buffer[], size_t length)
     return len + sizeof(header);
 
 err:
-    int errsv = errno;
-    if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
-    else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
+    //int errsv = errno;
+    //if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
+    //else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
 
     return len;
 }

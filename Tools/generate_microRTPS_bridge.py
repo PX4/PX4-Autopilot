@@ -92,6 +92,9 @@ if del_tree:
             if client and os.path.isdir(client_out_dir):
                 shutil.rmtree(client_out_dir)
 
+if agent and os.path.isdir(agent_out_dir + "/idl"):
+    shutil.rmtree(agent_out_dir + "/idl")
+
 uorb_templates_dir = msg_folder + "/templates/uorb"
 urtps_templates_dir = msg_folder + "/templates/urtps"
 
