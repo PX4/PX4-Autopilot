@@ -221,6 +221,28 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
+ * Output on reverse channel during back transition
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
+
+/**
+ * reverse thottle output during back transition
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_THR, 0.0f);
+
+/**
  * Transition blending airspeed
  *
  * Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
