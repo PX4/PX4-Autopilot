@@ -96,7 +96,7 @@ Test outputs can be found in the build directory under `libuavcan`.
 Note that unit tests must be executed in real time, otherwise they may produce false warnings;
 this implies that they will likely fail if ran on a virtual machine or on a highly loaded system.
 
-Contributors, please follow the [Zubax Style Guide](https://github.com/Zubax/zubax_style_guide).
+Contributors, please follow the [Zubax C++ Coding Conventions](https://kb.zubax.com/x/84Ah).
 
 ### Developing with Eclipse
 
