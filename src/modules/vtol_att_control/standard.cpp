@@ -50,6 +50,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_flag_enable_mc_motors(true),
 	_pusher_throttle(0.0f),
+	_reverse_output(0.0f),
 	_airspeed_trans_blend_margin(0.0f)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
@@ -72,6 +73,9 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles_standard.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
+	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
+	_params_handles_standard.reverse_throttle = param_find("VT_B_REV_THR");
+
 }
 
 Standard::~Standard()
@@ -127,6 +131,14 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.pitch_setpoint_offset, &v);
 	_params_standard.pitch_setpoint_offset = math::radians(v);
 
+	/* reverse output */
+	param_get(_params_handles_standard.reverse_output, &v);
+	_params_standard.reverse_output = math::constrain(v, 0.0f, 1.0f);
+
+	/* reverse throttle */
+	param_get(_params_handles_standard.reverse_throttle, &v);
+	_params_standard.reverse_throttle = math::constrain(v, 0.0f, 1.0f);
+
 
 }
 
@@ -138,6 +150,7 @@ void Standard::update_vtol_state()
 	 */
 
 	if (!_attc->is_fixed_wing_requested()) {
+
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == MC_MODE) {
 			// in mc mode
@@ -146,6 +159,8 @@ void Standard::update_vtol_state()
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 			_mc_throttle_weight = 1.0f;
+			_pusher_throttle = 0.0f;
+			_reverse_output = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// transition to mc mode
@@ -153,12 +168,24 @@ void Standard::update_vtol_state()
 				// Failsafe event, engage mc motors immediately
 				_vtol_schedule.flight_mode = MC_MODE;
 				_flag_enable_mc_motors = true;
+				_pusher_throttle = 0.0f;
+				_reverse_output = 0.0f;
+
 
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
 				_flag_enable_mc_motors = true;
 				_vtol_schedule.transition_start = hrt_absolute_time();
+
+				if (_params_handles_standard.reverse_output > FLT_EPSILON) {
+					_pusher_throttle = _params_standard.reverse_throttle;
+					_reverse_output = _params_standard.reverse_output;
+
+				} else {
+					_pusher_throttle = 0.0f;
+					_reverse_output = 0.0f;
+				}
 			}
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
@@ -168,6 +195,9 @@ void Standard::update_vtol_state()
 			_mc_pitch_weight = 1.0f;
 			_mc_yaw_weight = 1.0f;
 			_mc_throttle_weight = 1.0f;
+			_pusher_throttle = 0.0f;
+			_reverse_output = 0.0f;
+
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
@@ -176,10 +206,8 @@ void Standard::update_vtol_state()
 			    (_params_standard.back_trans_dur * 1000000.0f)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
-		}
 
-		// the pusher motor should never be powered when in or transitioning to mc mode
-		_pusher_throttle = 0.0f;
+		}
 
 	} else {
 		// the transition to fw mode switch is on
@@ -467,12 +495,15 @@ void Standard::fill_actuator_outputs()
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
 
+		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = _reverse_output;
+
 	} else {
 
 		// zero outputs when inactive
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _params->fw_pitch_trim;
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
 	}
 
 	// set the fixed wing throttle control
@@ -486,6 +517,8 @@ void Standard::fill_actuator_outputs()
 		// otherwise we may be ramping up the throttle during the transition to fw mode
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
 	}
+
+
 }
 
 void

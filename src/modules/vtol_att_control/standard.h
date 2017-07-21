@@ -78,6 +78,8 @@ private:
 		float forward_thrust_scale;
 		int airspeed_mode;
 		float pitch_setpoint_offset;
+		float reverse_output;
+		float reverse_throttle;
 	} _params_standard;
 
 	struct {
@@ -92,6 +94,8 @@ private:
 		param_t forward_thrust_scale;
 		param_t airspeed_mode;
 		param_t pitch_setpoint_offset;
+		param_t reverse_output;
+		param_t reverse_throttle;
 	} _params_handles_standard;
 
 	enum vtol_mode {
@@ -108,6 +112,7 @@ private:
 
 	bool _flag_enable_mc_motors;
 	float _pusher_throttle;
+	float _reverse_output;
 	float _airspeed_trans_blend_margin;
 
 	void set_max_mc(unsigned pwm_value);
