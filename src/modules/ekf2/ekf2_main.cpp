@@ -942,6 +942,12 @@ void Ekf2::run()
 			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 			_ekf.get_terrain_vert_pos(&terrain_vpos);
 			lpos.dist_bottom = terrain_vpos - pos[2]; // Distance to bottom surface (ground) in meters
+
+			// constrain the distance to ground to _params->rng_gnd_clearance
+			if (lpos.dist_bottom < _params->rng_gnd_clearance) {
+				lpos.dist_bottom = _params->rng_gnd_clearance;
+			}
+
 			lpos.dist_bottom_rate = -velocity[2]; // Distance to bottom surface (ground) change rate
 			lpos.surface_bottom_timestamp = now; // Time when new bottom surface found
 
