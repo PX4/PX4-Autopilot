@@ -137,7 +137,7 @@ public:
 	void get_pos_var(Vector3f &pos_var);
 
 	// return an array containing the output predictor angular, velocity and position tracking
-	// error magnitudes (rad), (m/s), (m)
+	// error magnitudes (rad), (m/sec), (m)
 	void get_output_tracking_error(float error[3]);
 
 	/*
@@ -208,177 +208,173 @@ public:
 
 private:
 
-	static constexpr uint8_t _k_num_states{24};
-	static constexpr float _k_earth_rate{0.000072921f};
-	static constexpr float _gravity_mss{9.80665f};
+	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
+	static constexpr float _k_earth_rate{0.000072921f};	///< earth spin rate (rad/sec)
+	static constexpr float _gravity_mss{9.80665f};		///< average earth gravity at sea level (m/sec**2)
 
-	// reset event monitoring
-	// structure containing velocity, position, height and yaw reset information
 	struct {
-		uint8_t velNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t velD_counter;	// number of vertical velocity reset events (allow to wrap if count exceeds 255)
-		uint8_t posNE_counter;	// number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t posD_counter;	// number of vertical position reset events (allow to wrap if count exceeds 255)
-		uint8_t quat_counter;	// number of quaternion reset events (allow to wrap if count exceeds 255)
-		Vector2f velNE_change;  // North East velocity change due to last reset (m)
-		float velD_change;	// Down velocity change due to last reset (m/s)
-		Vector2f posNE_change;	// North, East position change due to last reset (m)
-		float posD_change;	// Down position change due to last reset (m)
-		Quatf quat_change;	// quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
-	} _state_reset_status{};
+		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t velD_counter;	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
+		uint8_t posNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t posD_counter;	///< number of vertical position reset events (allow to wrap if count exceeds 255)
+		uint8_t quat_counter;	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+		Vector2f velNE_change;  ///< North East velocity change due to last reset (m)
+		float velD_change;	///< Down velocity change due to last reset (m/sec)
+		Vector2f posNE_change;	///< North, East position change due to last reset (m)
+		float posD_change;	///< Down position change due to last reset (m)
+		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
+	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 
-	float _dt_ekf_avg{0.001f * FILTER_UPDATE_PERIOD_MS};		// average update rate of the ekf
-	float _dt_update{0.01f};		// delta time since last ekf update. This time can be used for filters
-						// which run at the same rate as the Ekf::update() function
+	float _dt_ekf_avg{0.001f * FILTER_UPDATE_PERIOD_MS}; ///< average update rate of the ekf
+	float _dt_update{0.01f}; ///< delta time since last ekf update. This time can be used for filters which run at the same rate as the Ekf::update() function. (sec)
 
-	stateSample _state{};		// state struct of the ekf running at the delayed time horizon
+	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
-	bool _filter_initialised{false};	// true when the EKF sttes and covariances been initialised
-	bool _earth_rate_initialised{false};	// true when we know the earth rotatin rate (requires GPS)
+	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
+	bool _earth_rate_initialised{false};	///< true when we know the earth rotatin rate (requires GPS)
 
-	bool _fuse_height{false};		// baro height data should be fused
-	bool _fuse_pos{false};			// gps position data should be fused
-	bool _fuse_hor_vel{false};		// gps horizontal velocity measurement should be fused
-	bool _fuse_vert_vel{false};		// gps vertical velocity measurement should be fused
+	bool _fuse_height{false};	///< true when baro height data should be fused
+	bool _fuse_pos{false};		///< true when gps position data should be fused
+	bool _fuse_hor_vel{false};	///< true when gps horizontal velocity measurement should be fused
+	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
-	bool _gps_data_ready{false};
-	bool _mag_data_ready{false};
-	bool _baro_data_ready{false};
-	bool _range_data_ready{false};
-	bool _flow_data_ready{false};
-	bool _ev_data_ready{false};
-	bool _tas_data_ready{false};
+	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
+	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
+	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
+	bool _range_data_ready{false};	///< true when new range finder data has fallen behind the fusion time horizon and is available to be fused
+	bool _flow_data_ready{false};	///< true when new optical flow data has fallen behind the fusion time horizon and is available to be fused
+	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
+	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 
-	uint64_t _time_last_fake_gps{0};	// last time in us at which we have faked gps measurement for static mode
+	uint64_t _time_last_fake_gps{0};	///< last time we faked GPS position measurements to constrain tilt errors during operation without external aiding (uSec)
 
-	uint64_t _time_last_pos_fuse{0};   // time the last fusion of horizontal position measurements was performed (usec)
-	uint64_t _time_last_vel_fuse{0};   // time the last fusion of velocity measurements was performed (usec)
-	uint64_t _time_last_hgt_fuse{0};   // time the last fusion of height measurements was performed (usec)
-	uint64_t _time_last_of_fuse{0};    // time the last fusion of optical flow measurements were performed (usec)
-	uint64_t _time_last_arsp_fuse{0};	// time the last fusion of airspeed measurements were performed (usec)
-	uint64_t _time_last_beta_fuse{0};	// time the last fusion of synthetic sideslip measurements were performed (usec)
-	Vector2f _last_known_posNE;     // last known local NE position vector (m)
-	float _last_disarmed_posD{0.0f};      // vertical position recorded at arming (m)
-	float _imu_collection_time_adj{0.0f};	// the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
+	uint64_t _time_last_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
+	uint64_t _time_last_vel_fuse{0};	///< time the last fusion of velocity measurements was performed (uSec)
+	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of height measurements was performed (uSec)
+	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
+	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
+	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
+	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
+	float _last_disarmed_posD{0.0f};	///< vertical position recorded at arming (m)
+	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
-	uint64_t _time_acc_bias_check{0};	// last time the  accel bias check passed (usec)
-	uint64_t _delta_time_baro_us{0};	// delta time between two consecutive delayed baro samples from the buffer (usec)
+	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
+	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
 
-	Vector3f _earth_rate_NED;	// earth rotation vector (NED) in rad/s
+	Vector3f _earth_rate_NED;	///< earth rotation vector (NED) in rad/s
 
-	Dcmf _R_to_earth;	// transformation matrix from body frame to earth frame from last EKF predition
+	Dcmf _R_to_earth;	///< transformation matrix from body frame to earth frame from last EKF predition
 
 	// used by magnetometer fusion mode selection
-	Vector2f _accel_lpf_NE;			// Low pass filtered horizontal earth frame acceleration (m/s**2)
-	float _yaw_delta_ef{0.0f};		// Recent change in yaw angle measured about the earth frame D axis (rad)
-	float _yaw_rate_lpf_ef{0.0f};		// Filtered angular rate about earth frame D axis (rad/sec)
-	bool _mag_bias_observable{false};	// true when there is enough rotation to make magnetometer bias errors observable
-	bool _yaw_angle_observable{false};	// true when there is enough horizontal acceleration to make yaw observable
-	uint64_t _time_yaw_started{0};		// last system time in usec that a yaw rotation moaneouvre was detected
+	Vector2f _accel_lpf_NE;			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
+	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
+	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
+	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
+	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
+	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation moaneouvre was detected
 
-	float P[_k_num_states][_k_num_states] {};	// state covariance matrix
+	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 
-	float _vel_pos_innov[6] {};	// innovations: 0-2 vel,  3-5 pos
-	float _vel_pos_innov_var[6] {};	// innovation variances: 0-2 vel, 3-5 pos
+	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m**2)
+	float _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
 
-	float _mag_innov[3] {};		// earth magnetic field innovations
-	float _mag_innov_var[3] {};	// earth magnetic field innovation variance
+	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
+	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
 
-	float _airspeed_innov{0.0f};		// airspeed measurement innovation
-	float _airspeed_innov_var{0.0f};	// airspeed measurement innovation variance
+	float _airspeed_innov{0.0f};		///< airspeed measurement innovation (m/sec)
+	float _airspeed_innov_var{0.0f};	///< airspeed measurement innovation variance ((m/sec)**2)
 
-	float _beta_innov{0.0f};		// synthetic sideslip measurement innovation
-	float _beta_innov_var{0.0f};	// synthetic sideslip measurement innovation variance
+	float _beta_innov{0.0f};	///< synthetic sideslip measurement innovation (rad)
+	float _beta_innov_var{0.0f};	///< synthetic sideslip measurement innovation variance (rad**2)
 
-	float _drag_innov[2] {};		// multirotor drag measurement innovation
-	float _drag_innov_var[2] {};	// multirotor drag measurement innovation variance
+	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
+	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
-	float _heading_innov{0.0f};		// heading measurement innovation
-	float _heading_innov_var{0.0f};	// heading measurement innovation variance
+	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
+	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
 
 	// optical flow processing
-	float _flow_innov[2] {};		// flow measurement innovation
-	float _flow_innov_var[2] {};	// flow innovation variance
-	Vector3f _flow_gyro_bias;	// bias errors in optical flow sensor rate gyro outputs
-	Vector3f _imu_del_ang_of;	// bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates
-	float _delta_time_of{0.0f};		// time in sec that _imu_del_ang_of was accumulated over
+	float _flow_innov[2] {};	///< flow measurement innovation (rad/sec)
+	float _flow_innov_var[2] {};	///< flow innovation variance ((rad/sec)**2)
+	Vector3f _flow_gyro_bias;	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
+	Vector3f _imu_del_ang_of;	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
+	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
 
-	float _mag_declination{0.0f};		// magnetic declination used by reset and fusion functions (rad)
+	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
 
 	// output predictor states
-	Vector3f _delta_angle_corr;	// delta angle correction vector
-	imuSample _imu_down_sampled{};	// down sampled imu data (sensor rate -> filter update rate)
-	Quatf _q_down_sampled;	// down sampled quaternion (tracking delta angles between ekf update steps)
-	Vector3f _vel_err_integ;	// integral of velocity tracking error
-	Vector3f _pos_err_integ;	// integral of position tracking error
-	float _output_tracking_error[3] {}; // contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
+	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
+	imuSample _imu_down_sampled{};	///< down sampled imu data (sensor rate -> filter update rate)
+	Quatf _q_down_sampled;		///< down sampled quaternion (tracking delta angles between ekf update steps)
+	Vector3f _vel_err_integ;	///< integral of velocity tracking error (m)
+	Vector3f _pos_err_integ;	///< integral of position tracking error (m.s)
+	float _output_tracking_error[3] {}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	// variables used for the GPS quality checks
-	float _gpsDriftVelN{0.0f};		// GPS north position derivative (m/s)
-	float _gpsDriftVelE{0.0f};		// GPS east position derivative (m/s)
-	float _gps_drift_velD{0.0f};		// GPS down position derivative (m/s)
-	float _gps_velD_diff_filt{0.0f};	// GPS filtered Down velocity (m/s)
-	float _gps_velN_filt{0.0f};		// GPS filtered North velocity (m/s)
-	float _gps_velE_filt{0.0f};		// GPS filtered East velocity (m/s)
-	uint64_t _last_gps_fail_us{0};	// last system time in usec that the GPS failed it's checks
+	float _gpsDriftVelN{0.0f};		///< GPS north position derivative (m/sec)
+	float _gpsDriftVelE{0.0f};		///< GPS east position derivative (m/sec)
+	float _gps_drift_velD{0.0f};		///< GPS down position derivative (m/sec)
+	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
+	float _gps_velN_filt{0.0f};		///< GPS filtered North velocity (m/sec)
+	float _gps_velE_filt{0.0f};		///< GPS filtered East velocity (m/sec)
+	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
-	uint64_t _last_gps_origin_time_us{0};  // time the origin was last set (uSec)
-	float _gps_alt_ref{0.0f};		// WGS-84 height (m)
+	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)
+	float _gps_alt_ref{0.0f};		///< WGS-84 height (m)
 
 	// Variables used to initialise the filter states
-	uint32_t _hgt_counter{0};		// number of height samples read during initialisation
-	float _rng_filt_state{0.0f};		// filtered height measurement
-	uint32_t _mag_counter{0};		// number of magnetometer samples read during initialisation
-	uint32_t _ev_counter{0};		// number of exgernal vision samples read during initialisation
-	uint64_t _time_last_mag{0};	// measurement time of last magnetomter sample
-	Vector3f _mag_filt_state;	// filtered magnetometer measurement
-	Vector3f _delVel_sum;		// summed delta velocity
-	float _hgt_sensor_offset{0.0f};	// set as necessary if desired to maintain the same height after a height reset (m)
-	float _baro_hgt_offset{0.0f};		// baro height reading at the local NED origin (m)
+	uint32_t _hgt_counter{0};		///< number of height samples read during initialisation
+	float _rng_filt_state{0.0f};		///< filtered height measurement (m)
+	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
+	uint32_t _ev_counter{0};		///< number of external vision samples read during initialisation
+	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
+	Vector3f _mag_filt_state;		///< filtered magnetometer measurement (Gauss)
+	Vector3f _delVel_sum;			///< summed delta velocity (m/sec)
+	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
+	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
 
 	// Variables used to control activation of post takeoff functionality
-	float _last_on_ground_posD{0.0f};	// last vertical position when the in_air status was false (m)
-	bool _flt_mag_align_complete{true};	// true when the in-flight mag field alignment has been completed
-	uint64_t _time_last_movement{0};	// last system time in usec that sufficient movement to use 3-axis magnetometer fusion was detected
-	float _saved_mag_variance[6] {};	// magnetic field state variances that have been saved for use at the next initialisation (Ga**2)
+	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
+	bool _flt_mag_align_complete{true};	///< true when the in-flight mag field alignment has been completed
+	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
+	float _saved_mag_variance[6] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// variables used to inhibit accel bias learning
-	bool _accel_bias_inhibit{false};	// true when the accel bias learning is being inhibited
-	float _accel_mag_filt{0.0f};		// acceleration magnitude after application of a decaying envelope filter (m/sec**2)
-	float _ang_rate_mag_filt{0.0f};	// angular rate magnitude after application of a decaying envelope filter (rad/sec)
-	Vector3f _prev_dvel_bias_var;	// saved delta velocity XYZ bias variances (m/sec)**2
+	bool _accel_bias_inhibit{false};	///< true when the accel bias learning is being inhibited
+	float _accel_mag_filt{0.0f};		///< acceleration magnitude after application of a decaying envelope filter (m/sec**2)
+	float _ang_rate_mag_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
+	Vector3f _prev_dvel_bias_var;		///< saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation
-	float _terrain_vpos{0.0f};		// estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
-	float _terrain_var{1e4f};		// variance of terrain position estimate (m^2)
-	float _hagl_innov{0.0f};		// innovation of the last height above terrain measurement (m)
-	float _hagl_innov_var{0.0f};		// innovation variance for the last height above terrain measurement (m^2)
-	uint64_t _time_last_hagl_fuse;		// last system time in usec that the hagl measurement failed it's checks
-	bool _terrain_initialised{false};	// true when the terrain estimator has been intialised
-	float _sin_tilt_rng{0.0f};		// sine of the range finder tilt rotation about the Y body axis
-	float _cos_tilt_rng{0.0f};		// cosine of the range finder tilt rotation about the Y body axis
-	float _R_rng_to_earth_2_2{0.0f};	// 2,2 element of the rotation matrix from sensor frame to earth frame
-	bool _range_data_continuous{false};	// true when we are receiving range finder data faster than a 2Hz average
-	float _dt_last_range_update_filt_us{0.0f};	// filtered value of the delta time elapsed since the last range measurement came into
-							// the filter (microseconds)
+	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
+	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
+	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
+	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
+	uint64_t _time_last_hagl_fuse;		///< last system time that the hagl measurement failed it's checks (uSec)
+	bool _terrain_initialised{false};	///< true when the terrain estimator has been intialised
+	float _sin_tilt_rng{0.0f};		///< sine of the range finder tilt rotation about the Y body axis
+	float _cos_tilt_rng{0.0f};		///< cosine of the range finder tilt rotation about the Y body axis
+	float _R_rng_to_earth_2_2{0.0f};	///< 2,2 element of the rotation matrix from sensor frame to earth frame
+	bool _range_data_continuous{false};	///< true when we are receiving range finder data faster than a 2Hz average
+	float _dt_last_range_update_filt_us{0.0f};	///< filtered value of the delta time elapsed since the last range measurement came into the filter (uSec)
 
 	// height sensor fault status
-	bool _baro_hgt_faulty{false};		// true if valid baro data is unavailable for use
-	bool _gps_hgt_faulty{false};		// true if valid gps height data is unavailable for use
-	bool _rng_hgt_faulty{false};		// true if valid rnage finder height data is unavailable for use
-	int _primary_hgt_source{VDIST_SENSOR_BARO};	// priary source of height data set at initialisation
+	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
+	bool _gps_hgt_faulty{false};		///< true if valid gps height data is unavailable for use
+	bool _rng_hgt_faulty{false};		///< true if valid rnage finder height data is unavailable for use
+	int _primary_hgt_source{VDIST_SENSOR_BARO};	///< specifies primary source of height data
 
 	// imu fault status
-	uint64_t _time_bad_vert_accel{0};	// last time a bad vertical accel was detected (usec)
-	uint64_t _time_good_vert_accel{0};	// last time a good vertical accel was detected (usec)
-	bool _bad_vert_accel_detected{false};	// true when bad vertical accelerometer data has been detected
+	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
+	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
+	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
-    // variables used to control range aid functionality
-    bool _in_range_aid_mode;
+	// variables used to control range aid functionality
+	bool _in_range_aid_mode;		///< true when range finder is to be used as the height reference instead of the primary height sensor
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
