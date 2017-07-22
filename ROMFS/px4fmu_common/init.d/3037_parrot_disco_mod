@@ -84,7 +84,7 @@ then
 	
 fi
 
-set MIXER parrot_disco_mod
+set MIXER fw_generic_wing.main.mix
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 4
