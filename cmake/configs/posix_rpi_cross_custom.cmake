@@ -16,6 +16,7 @@ add_definitions(
 	-D__IMU_DEVICE_ACC_GYRO="/dev/spidev0.0"
 	-D__DF_BARO_DEV="/dev/i2c-0"
 	-D__DF_PCA9685_BUS=0
+	-D__DF_PCA9685_ADDRESS=0x60
 )
 
 
