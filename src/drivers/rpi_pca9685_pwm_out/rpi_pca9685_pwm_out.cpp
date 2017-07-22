@@ -81,7 +81,7 @@ int rpi_pca9685_pwm_out::pwm_initialize()
 {
 	/**************初始化PCA9685开始*************/
 	/**************PCA965 initializing********/
-	pwm.init(_pca9685_bus, 0x40);
+	pwm.init(_pca9685_bus, _pca9685_address);
 	usleep(1000 * 100);
 	/****12BIT 精度输出下，好赢电调可以到200HZ刷新***/
 	/****200HZ for 12bit Resolution, support most of the esc***/
