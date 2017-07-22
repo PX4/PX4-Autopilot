@@ -1030,8 +1030,13 @@ protected:
 			msg.lat = gps.lat;
 			msg.lon = gps.lon;
 			msg.alt = gps.alt;
-			msg.eph = gps.hdop * 100; //cm_uint16_from_m_float(gps.eph);
-			msg.epv = gps.vdop * 100; //cm_uint16_from_m_float(gps.epv);
+			msg.alt_ellipsoid = gps.alt_ellipsoid;
+			msg.eph = gps.hdop * 100;
+			msg.epv = gps.vdop * 100;
+			msg.h_acc = gps.eph * 1e3f;
+			msg.v_acc = gps.epv * 1e3f;
+			msg.vel_acc = gps.s_variance_m_s * 1e3f;
+			msg.hdg_acc = gps.c_variance_rad * 1e5f / M_DEG_TO_RAD_F;
 			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
 			    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
 				msg.satellites_visible = gps.satellites_used;
