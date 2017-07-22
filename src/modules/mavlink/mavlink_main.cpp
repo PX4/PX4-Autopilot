@@ -221,7 +221,7 @@ Mavlink::Mavlink() :
 	_receive_thread{},
 	_verbose(false),
 	_forwarding_on(false),
-	_forward_statustext_on(true),
+	_forward_statustext_on(false),
 	_ftp_on(false),
 	_uart_fd(-1),
 	_baudrate(57600),
