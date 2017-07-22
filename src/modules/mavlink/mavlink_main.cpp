@@ -1924,6 +1924,9 @@ Mavlink::task_main(int argc, char *argv[])
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
 
+	/* Initialize system properties */
+	mavlink_update_system();
+
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on || _ftp_on || _forward_statustext_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
@@ -1938,9 +1941,6 @@ Mavlink::task_main(int argc, char *argv[])
 		/* initialize message buffer mutex */
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
-
-	/* Initialize system properties */
-	mavlink_update_system();
 
 	/* start the MAVLink receiver */
 	MavlinkReceiver::receive_start(&_receive_thread, this);
