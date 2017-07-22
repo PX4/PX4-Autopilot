@@ -310,8 +310,8 @@ CONFIG_UART4_RXDMA=y
 CONFIG_UART5_RXDMA=y
 # CONFIG_USART6_RS485 is not set
 
-# USART6 DMA conflicts with SPI1_RX2 DMA 
-# CONFIG_USART6_RXDMA is not set
+# USART6 DMA must be enabled for reliable DSM protocol receive
+CONFIG_USART6_RXDMA=y
 # CONFIG_UART7_RS485 is not set
 
 # using UART7_RXDMA with SPI1 DMA causes oops on boot
