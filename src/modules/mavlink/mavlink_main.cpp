@@ -221,6 +221,7 @@ Mavlink::Mavlink() :
 	_receive_thread{},
 	_verbose(false),
 	_forwarding_on(false),
+	_forward_statustext_on(true),
 	_ftp_on(false),
 	_uart_fd(-1),
 	_baudrate(57600),
@@ -575,6 +576,7 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
+		_param_statustext_forward = param_find("MAV_FWD_STATUS");
 
 		/* test param - needs to be referenced, but is unused */
 		(void)param_find("MAV_TEST_PAR");
@@ -627,6 +629,8 @@ void Mavlink::mavlink_update_system()
 	param_get(_param_forward_externalsp, &forward_externalsp);
 
 	param_get(_param_broadcast, &_broadcast_mode);
+
+	param_get(_param_statustext_forward, &_forward_statustext_on);
 
 	_forward_externalsp = (bool)forward_externalsp;
 }
@@ -1238,7 +1242,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	if (get_forwarding_on()) {
+	if (get_forwarding_on()  || (get_forwarding_statustext_on() && msg->msgid == MAVLINK_MSG_ID_STATUSTEXT)) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
 	}
@@ -1577,7 +1581,7 @@ Mavlink::message_buffer_mark_read(int n)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	if (_forwarding_on) {
+	if (_forwarding_on || (_forward_statustext_on && msg->msgid == MAVLINK_MSG_ID_STATUSTEXT)) {
 		/* size is 8 bytes plus variable payload */
 		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
 		pthread_mutex_lock(&_message_buffer_mutex);
@@ -1921,7 +1925,7 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_mutex_init(&_send_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_forwarding_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on || _forward_statustext_on) {
 		/* initialize message buffer if multiplexing is on or its needed for FTP.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
@@ -2291,7 +2295,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* pass messages from other UARTs or FTP worker */
-		if (_forwarding_on || _ftp_on) {
+		if (_forwarding_on || _ftp_on || _forward_statustext_on) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -2399,7 +2403,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_socket_fd = -1;
 	}
 
-	if (_forwarding_on || _ftp_on) {
+	if (_forwarding_on || _ftp_on || _forward_statustext_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}

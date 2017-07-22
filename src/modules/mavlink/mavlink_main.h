@@ -210,6 +210,8 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
+	bool			get_forwarding_statustext_on() { return _forward_statustext_on; }
+
 	bool			get_config_link_on() { return _config_link_on; }
 
 	void			set_config_link_on(bool on) { _config_link_on = on; }
@@ -498,6 +500,7 @@ private:
 
 	bool			_verbose;
 	bool			_forwarding_on;
+	bool			_forward_statustext_on;
 	bool			_ftp_on;
 #ifndef __PX4_QURT
 	int			_uart_fd;
@@ -577,6 +580,7 @@ private:
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
 	param_t			_param_broadcast;
+	param_t			_param_statustext_forward;
 
 	unsigned		_system_type;
 	static bool		_config_link_on;

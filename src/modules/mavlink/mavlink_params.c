@@ -124,3 +124,14 @@ PARAM_DEFINE_INT32(MAV_BROADCAST, 0);
  * @max 1000
  */
 PARAM_DEFINE_INT32(MAV_TEST_PAR, 1);
+
+/**
+ * Forward statustext messages to other links
+ *
+ * This parameter allows links to send statustext messages
+ * the messages will be relayed by the flight controller
+ *
+ * @boolean
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_FWD_STATUS, 0);
