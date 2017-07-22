@@ -12,10 +12,10 @@ add_definitions(
 	-D__DF_ARM_GENERIC # 有这个定义的，视为通用的ARM,可自行定义设备地址
 	-D__DF_ACCEL_DEV="/dev/spidev0.0"
 	-D__DF_MAG_DEV="/dev/spidev0.0"
-	-D__DF_HMC5883_DEV="/dev/i2c-0"
+	-D__DF_HMC5883_DEV="/dev/i2c-1"
 	-D__IMU_DEVICE_ACC_GYRO="/dev/spidev0.0"
-	-D__DF_BARO_DEV="/dev/i2c-0"
-	-D__DF_PCA9685_BUS=0
+	-D__DF_BARO_DEV="/dev/i2c-1"
+	-D__DF_PCA9685_BUS=1
 	-D__DF_PCA9685_ADDRESS=0x60
 )
 
