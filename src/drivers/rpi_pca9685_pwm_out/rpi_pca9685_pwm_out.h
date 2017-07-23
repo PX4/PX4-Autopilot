@@ -98,7 +98,7 @@ int32_t _pwm_max;
 int _pca9685_bus=__DF_PCA9685_BUS;
 int _pca9685_address=__DF_PCA9685_ADDRESS;
 #else
-int _pca9685_address=0x40; //默认0x40
+int _pca9685_address=0x60; //默认0x40
 int _pca9685_bus=1; //默认兼容树莓派
 #endif
 
