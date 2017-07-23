@@ -12,4 +12,4 @@ uint8 tslc 		# Time since last communication in seconds
 uint16 flags 		# Flags to indicate various statuses including valid data fields
 uint16 squawk 		# Squawk code
 
-uint32 ORB_QUEUE_LENGTH = 3
+uint32 ORB_QUEUE_LENGTH = 10

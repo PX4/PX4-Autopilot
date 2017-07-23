@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,14 +59,14 @@ public:
 	 *
 	 * @param interval the inveral in microseconds (us) between messages
 	 */
-	void set_interval(const unsigned int interval);
+	void set_interval(const int interval);
 
 	/**
 	 * Get the interval
 	 *
 	 * @return the inveral in microseconds (us) between messages
 	 */
-	unsigned get_interval() { return _interval; }
+	int get_interval() { return _interval; }
 
 	/**
 	 * @return 0 if updated / sent, -1 if unchanged
@@ -97,10 +97,10 @@ public:
 
 protected:
 	Mavlink     *_mavlink;
-	unsigned int _interval;		///< if set to zero = unlimited rate
+	int _interval;		///< if set to negative value = unlimited rate
 
 #ifndef __PX4_QURT
-	virtual void send(const hrt_abstime t) = 0;
+	virtual bool send(const hrt_abstime t) = 0;
 #endif
 
 private:
