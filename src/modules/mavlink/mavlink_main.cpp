@@ -525,10 +525,25 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
 
-			/* if not in normal mode, we are an onboard link
-			 * onboard links should only pass on messages from the same system ID */
-			if (!(self->_mode != MAVLINK_MODE_NORMAL && msg->sysid != mavlink_system.sysid)) {
-				inst->pass_message(msg);
+			// Onboard links should pass all messages to the ground
+			// which originate from the same system.
+			// Offboard links should pass all messages from any system.
+			if ((self->_mode == MAVLINK_MODE_NORMAL)
+			    || ((self->_mode != MAVLINK_MODE_NORMAL) && msg->sysid != mavlink_system.sysid)) {
+
+				const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+
+				// Extract target system and target component if set
+				unsigned target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
+				unsigned target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 0;
+
+				// Broadcast or addressing this system and not trying to talk
+				// to the autopilot component -> pass on to other components
+				if ((target_system_id == 0 || target_system_id == self->get_system_id())
+				    && (target_component_id != self->get_component_id())) {
+
+					inst->pass_message(msg);
+				}
 			}
 		}
 	}
@@ -1999,6 +2014,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
+		// Image captured runs at full rate independent of
+		// any limit
+		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -2011,7 +2029,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
-		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("ADSB_VEHICLE", 5.0f);
 		configure_stream("COLLISION", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2030,9 +2048,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
-		//camera trigger is rate limited at the source, do not limit here
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
+		// Camera trigger runs at full rate independent of
+		// any limit
+		configure_stream("CAMERA_TRIGGER", 1.0f);
+		// Image captured runs at full rate independent of
+		// any limit
+		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
@@ -2069,7 +2090,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 10.0f);
-		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("ADSB_VEHICLE", 5.0f);
 		configure_stream("COLLISION", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2084,8 +2105,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
+		// Camera trigger runs at full rate independent of
+		// any limit
+		configure_stream("CAMERA_TRIGGER", 1.0f);
+		// Image captured runs at full rate independent of
+		// any limit
+		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
