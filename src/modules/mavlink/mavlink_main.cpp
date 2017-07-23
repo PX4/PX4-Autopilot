@@ -1355,23 +1355,31 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 	return sub_new;
 }
 
-unsigned int
+int
 Mavlink::interval_from_rate(float rate)
 {
-	return (rate > 0.0f) ? (1000000.0f / rate) : 0;
+	if (rate > 0.000001f) {
+		return (1000000.0f / rate);
+
+	} else if (rate < 0.0f) {
+		return -1;
+
+	} else {
+		return 0;
+	}
 }
 
 int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
-	/* calculate interval in us, 0 means disabled stream */
-	unsigned int interval = interval_from_rate(rate);
+	/* calculate interval in us, -1 means unlimited stream, 0 means disabled */
+	int interval = interval_from_rate(rate);
 
 	/* search if stream exists */
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
-			if (interval > 0) {
+			if (interval != 0) {
 				/* set new interval */
 				stream->set_interval(interval);
 
@@ -1385,7 +1393,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		}
 	}
 
-	if (interval <= 0) {
+	if (interval == 0) {
 		/* stream was not active and is requested to be disabled, do nothing */
 		return OK;
 	}
@@ -1404,7 +1412,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	/* if we reach here, the stream list does not contain the stream */
-	warnx("stream %s not found", stream_name);
+	PX4_WARN("stream %s not found", stream_name);
 
 	return PX4_ERROR;
 }
@@ -1413,7 +1421,7 @@ void
 Mavlink::adjust_stream_rates(const float multiplier)
 {
 	/* do not allow to push us to zero */
-	if (multiplier < 0.0005f) {
+	if (multiplier < MAVLINK_MIN_MULTIPLIER) {
 		return;
 	}
 
@@ -1421,16 +1429,23 @@ Mavlink::adjust_stream_rates(const float multiplier)
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		/* set new interval */
-		unsigned interval = stream->get_interval();
-		interval /= multiplier;
+		int interval = stream->get_interval();
 
-		/* allow max ~2000 Hz */
-		if (interval < 1600) {
-			interval = 500;
+		if (interval > 0) {
+			interval /= multiplier;
+
+			/* limit min / max interval */
+			if (interval < MAVLINK_MIN_INTERVAL) {
+				interval = MAVLINK_MIN_INTERVAL;
+			}
+
+			if (interval > MAVLINK_MAX_INTERVAL) {
+				interval = MAVLINK_MAX_INTERVAL;
+			}
+
+			/* set new interval */
+			stream->set_interval(interval);
 		}
-
-		/* set new interval */
-		stream->set_interval(interval * multiplier);
 	}
 }
 
@@ -1975,8 +1990,8 @@ Mavlink::task_main(int argc, char *argv[])
 		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
 		configure_stream("STATUSTEXT", 20.0f);
 
-		/* COMMAND_LONG stream: use high rate to avoid commands skipping */
-		configure_stream("COMMAND_LONG", 100.0f);
+		/* COMMAND_LONG stream: use unlimited rate to send all commands */
+		configure_stream("COMMAND_LONG");
 
 	}
 
@@ -1990,7 +2005,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
-		configure_stream("ADSB_VEHICLE", 2.0f);
+		configure_stream("ADSB_VEHICLE");
 		configure_stream("COLLISION", 2.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
@@ -2006,20 +2021,20 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED", 500.0f);
+		configure_stream("CAMERA_IMAGE_CAPTURED");
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream("HIGHRES_IMU", 50.0f);
-		configure_stream("ATTITUDE", 250.0f);
+		configure_stream("ATTITUDE", 100.0f);
 		configure_stream("ATTITUDE_QUATERNION", 50.0f);
 		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
-		configure_stream("ADSB_VEHICLE", 10.0f);
+		configure_stream("ADSB_VEHICLE");
 		configure_stream("COLLISION", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2038,9 +2053,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
-		//camera trigger is rate limited at the source, do not limit here
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
+		configure_stream("CAMERA_TRIGGER");
+		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
@@ -2077,7 +2091,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 10.0f);
-		configure_stream("ADSB_VEHICLE", 20.0f);
+		configure_stream("ADSB_VEHICLE");
 		configure_stream("COLLISION", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2092,8 +2106,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
-		configure_stream("CAMERA_TRIGGER", 500.0f);
-		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
+		configure_stream("CAMERA_TRIGGER");
+		configure_stream("CAMERA_IMAGE_CAPTURED");
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
@@ -2109,14 +2123,14 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
 
-	/* hard limit to 500 Hz at max */
-	if (_main_loop_delay < 2000) {
-		_main_loop_delay = 2000;
+	/* hard limit to 1000 Hz at max */
+	if (_main_loop_delay < MAVLINK_MIN_INTERVAL) {
+		_main_loop_delay = MAVLINK_MIN_INTERVAL;
 	}
 
 	/* hard limit to 100 Hz at least */
-	if (_main_loop_delay > 10000) {
-		_main_loop_delay = 10000;
+	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
+		_main_loop_delay = MAVLINK_MAX_INTERVAL;
 	}
 
 	/* now the instance is fully initialized and we can bump the instance count */
@@ -2147,53 +2161,7 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_update_system();
 		}
 
-		/* radio config check */
-		if (_uart_fd >= 0 && _radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
-			/* request to configure radio and radio is present */
-			FILE *fs = fdopen(_uart_fd, "w");
-
-			if (fs) {
-				/* switch to AT command mode */
-				usleep(1200000);
-				fprintf(fs, "+++\n");
-				usleep(1200000);
-
-				if (_radio_id > 0) {
-					/* set channel */
-					fprintf(fs, "ATS3=%u\n", _radio_id);
-					usleep(200000);
-
-				} else {
-					/* reset to factory defaults */
-					fprintf(fs, "AT&F\n");
-					usleep(200000);
-				}
-
-				/* write config */
-				fprintf(fs, "AT&W");
-				usleep(200000);
-
-				/* reboot */
-				fprintf(fs, "ATZ");
-				usleep(200000);
-
-				// XXX NuttX suffers from a bug where
-				// fclose() also closes the fd, not just
-				// the file stream. Since this is a one-time
-				// config thing, we leave the file struct
-				// allocated.
-#ifndef __PX4_NUTTX
-				fclose(fs);
-#endif
-
-			} else {
-				PX4_WARN("open fd %d failed", _uart_fd);
-			}
-
-			/* reset param and save */
-			_radio_id = 0;
-			param_set(_param_radio_id, &_radio_id);
-		}
+		check_radio_config();
 
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
@@ -2261,7 +2229,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* check for requested subscriptions */
 		if (_subscribe_to_stream != nullptr) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
-				if (_subscribe_to_stream_rate > 0.0f) {
+				if (fabsf(_subscribe_to_stream_rate) > 0.00001f) {
 					if (get_protocol() == SERIAL) {
 						PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
 							  (double)_subscribe_to_stream_rate);
@@ -2420,6 +2388,57 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("exiting channel %i", (int)_channel);
 
 	return OK;
+}
+
+void Mavlink::check_radio_config()
+{
+	/* radio config check */
+	if (_uart_fd >= 0 && _radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+		/* request to configure radio and radio is present */
+		FILE *fs = fdopen(_uart_fd, "w");
+
+		if (fs) {
+			/* switch to AT command mode */
+			usleep(1200000);
+			fprintf(fs, "+++\n");
+			usleep(1200000);
+
+			if (_radio_id > 0) {
+				/* set channel */
+				fprintf(fs, "ATS3=%u\n", _radio_id);
+				usleep(200000);
+
+			} else {
+				/* reset to factory defaults */
+				fprintf(fs, "AT&F\n");
+				usleep(200000);
+			}
+
+			/* write config */
+			fprintf(fs, "AT&W");
+			usleep(200000);
+
+			/* reboot */
+			fprintf(fs, "ATZ");
+			usleep(200000);
+
+			// XXX NuttX suffers from a bug where
+			// fclose() also closes the fd, not just
+			// the file stream. Since this is a one-time
+			// config thing, we leave the file struct
+			// allocated.
+#ifndef __PX4_NUTTX
+			fclose(fs);
+#endif
+
+		} else {
+			PX4_WARN("open fd %d failed", _uart_fd);
+		}
+
+		/* reset param and save */
+		_radio_id = 0;
+		param_set(_param_radio_id, &_radio_id);
+	}
 }
 
 int Mavlink::start_helper(int argc, char *argv[])

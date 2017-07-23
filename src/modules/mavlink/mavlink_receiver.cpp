@@ -2084,7 +2084,7 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.flags = adsb.flags;
 	t.squawk = adsb.squawk;
 
-	//warnx("code: %d callsign: %s, vel: %8.4f", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity);
+	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
 
 	if (_transponder_report_pub == nullptr) {
 		_transponder_report_pub = orb_advertise_queue(ORB_ID(transponder_report), &t, transponder_report_s::ORB_QUEUE_LENGTH);
