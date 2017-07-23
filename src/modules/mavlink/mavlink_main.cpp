@@ -520,34 +520,26 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
-
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
+			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-			// Onboard links should pass all messages to the ground
-			// which originate from the same system.
-			// Offboard links should pass all messages from any system.
-			if ((self->_mode == MAVLINK_MODE_NORMAL)
-			    || ((self->_mode != MAVLINK_MODE_NORMAL) && msg->sysid != mavlink_system.sysid)) {
+			// Extract target system and target component if set
+			unsigned target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
+			unsigned target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 233;
 
-				const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+			// Broadcast or addressing this system and not trying to talk
+			// to the autopilot component -> pass on to other components
+			if ((target_system_id == 0 || target_system_id == self->get_system_id())
+				&& (target_component_id == 0 || target_component_id != self->get_component_id())) {
 
-				// Extract target system and target component if set
-				unsigned target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
-				unsigned target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 0;
-
-				// Broadcast or addressing this system and not trying to talk
-				// to the autopilot component -> pass on to other components
-				if ((target_system_id == 0 || target_system_id == self->get_system_id())
-				    && (target_component_id != self->get_component_id())) {
-
-					inst->pass_message(msg);
-				}
+				inst->pass_message(msg);
 			}
 		}
 	}
 }
+
 
 int
 Mavlink::get_uart_fd(unsigned index)
