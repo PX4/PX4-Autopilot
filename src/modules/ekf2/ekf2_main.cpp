@@ -333,7 +333,7 @@ private:
 	control::BlockParamFloat _aspd_max;		///< upper limit on airspeed used for correction  (m/s**2)
 	control::BlockParamFloat _K_pstatic_coef_x;	///< static pressure position error coefficient along the X body axis
 	control::BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
-	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis	int update_subscriptions();
+	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
 };
 
