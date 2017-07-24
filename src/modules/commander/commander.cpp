@@ -104,6 +104,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/power_button_state.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
@@ -176,6 +177,8 @@ static int64_t lvel_probation_time_us = POSVEL_PROBATION_TAKEOFF;
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
+
+static orb_advert_t power_button_state_pub = nullptr;
 
 /* System autostart ID */
 static int autostart_id;
@@ -337,11 +340,34 @@ static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
-	// Note: this can be called from IRQ handlers
-	if (request == PWR_BUTTON_REQUEST_SHUT_DOWN) {
-		px4_shutdown_request(false, false);
+	// Note: this can be called from IRQ handlers, so we publish a message that will be handled
+	// on the main thread of commander.
+	power_button_state_s button_state;
+	button_state.timestamp = hrt_absolute_time();
+	int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
+
+	switch(request) {
+		case PWR_BUTTON_IDEL:
+			button_state.event = power_button_state_s::PWR_BUTTON_STATE_IDEL;
+			break;
+		case PWR_BUTTON_DOWN:
+			button_state.event = power_button_state_s::PWR_BUTTON_STATE_DOWN;
+			break;
+		case PWR_BUTTON_UP:
+			button_state.event = power_button_state_s::PWR_BUTTON_STATE_UP;
+			break;
+		case PWR_BUTTON_REQUEST_SHUT_DOWN:
+			button_state.event = power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN;
+			break;
+		default:
+			PX4_ERR("unhandled power button state: %i", (int)request);
+			return ret;
 	}
-	return PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
+
+	int instance;
+	orb_publish_auto(ORB_ID(power_button_state), &power_button_state_pub, &button_state, &instance, ORB_PRIO_DEFAULT);
+
+	return ret;
 }
 
 /**
@@ -1657,6 +1683,8 @@ int commander_thread_main(int argc, char *argv[])
 	struct system_power_s system_power;
 	memset(&system_power, 0, sizeof(system_power));
 
+	int power_button_state_sub = orb_subscribe(ORB_ID(power_button_state));
+
 	/* Subscribe to actuator controls (outputs) */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	struct actuator_controls_s actuator_controls;
@@ -1892,6 +1920,17 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
 
 			param_init_forced = false;
+		}
+
+		/* handle power button state */
+		orb_check(power_button_state_sub, &updated);
+
+		if (updated) {
+			power_button_state_s button_state;
+			orb_copy(ORB_ID(power_button_state), power_button_state_sub, &button_state);
+			if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
+				px4_shutdown_request(false, false);
+			}
 		}
 
 		orb_check(sp_man_sub, &updated);

@@ -69,8 +69,7 @@ __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
 
 
 /**
- * Request the system to shut down. It's save to call this from an IRQ context,
- * but the work queues need to be initialized already.
+ * Request the system to shut down or reboot.
  * Note the following:
  * - The system might not support to shutdown (or reboot). In that case -EINVAL will
  *   be returned.
