@@ -1674,6 +1674,7 @@ void Logger::write_version()
 		write_info("sys_mcu", mcu_ver);
 	}
 
+#ifndef BOARD_HAS_NO_UUID
 	/* write the UUID if enabled */
 	param_t write_uuid_param = param_find("SDLOG_UUID");
 
@@ -1687,6 +1688,7 @@ void Logger::write_version()
 			write_info("sys_uuid", uuid_string);
 		}
 	}
+#endif /* BOARD_HAS_NO_UUID */
 
 	int32_t utc_offset = 0;
 
