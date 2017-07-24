@@ -38,18 +38,18 @@
  *
  *State 1 (=ground_contact):
  *ground_contact is detected once the vehicle is not moving along the NED-z direction and has
- *a thrust value below 0.3 of the thrust_range (thrust_max - thrust_min). The condition has to be true
+ *a thrust value below 0.3 of the thrust_range (thrust_hover - thrust_min). The condition has to be true
  *for GROUND_CONTACT_TRIGGER_TIME_US in order to detect ground_contact
  *
  *State 2 (=maybe_landed):
  *maybe_landed can only occur if the internal ground_contact hysteresis state is true. maybe_landed criteria requires to have no motion in x and y,
- *no rotation and a thrust below 0.1 of the thrust_range (thrust_max - thrust_min). In addition, the mc_pos_control turns off the thrust_sp in
- *body frame along x and y. The criteria for maybe_landed needs to be true for MAYBE_LAND_DETECTOR_TRIGGER_TIME_US.
+ *no rotation and a thrust below 0.1 of the thrust_range (thrust_hover - thrust_min). In addition, the mc_pos_control turns off the thrust_sp in
+ *body frame along x and y which helps to detect maybe_landed. The criteria for maybe_landed needs to be true for MAYBE_LAND_DETECTOR_TRIGGER_TIME_US.
  *
  *State 3 (=landed)
  *landed can only be detected if maybe_landed is true for LAND_DETECTOR_TRIGGER_TIME_US. No farther criteria is tested, but the mc_pos_control goes into
- *idle (thrust_sp = 0). By doing this the thrust_criteria of State 2 will always be met, however the remaining criteria of no rotation and no motion still
- *has to be valid.
+ *idle (thrust_sp = 0) which helps to detect landed. By doing this the thrust-criteria of State 2 will always be met, however the remaining criteria of no rotation and no motion still
+ *have to be valid.
 
  *It is to note that if one criteria is not met, then vehicle exits the state directly without blocking.
  *
