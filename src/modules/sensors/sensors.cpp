@@ -169,7 +169,11 @@ private:
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] = {nullptr};			/**< battery status */
+
+#if BOARD_NUMBER_BRICKS > 1
 	int 			_battery_pub_intance0ndx = 0; /**< track the index of instance 0 */
+#endif
+
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
@@ -457,7 +461,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		 */
 
 		int selected_source = -1;
-		orb_advert_t tmp_h = nullptr;
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -503,17 +506,20 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							 * that is valid as the one that is the selected source for the
 							 * VDD_5V_IN
 							 */
-
 							selected_source = b;
 
-							/* Move the selected_source to instance 0 */
-							if (_battery_pub_intance0ndx != b) {
+#if BOARD_NUMBER_BRICKS > 1
 
-								tmp_h = _battery_pub[_battery_pub_intance0ndx];
-								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[b];
-								_battery_pub[b] = tmp_h;
-								_battery_pub_intance0ndx = b;
+							/* Move the selected_source to instance 0 */
+							if (_battery_pub_intance0ndx != selected_source) {
+
+								orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
+								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
+								_battery_pub[selected_source] = tmp_h;
+								_battery_pub_intance0ndx = selected_source;
 							}
+
+#endif
 						}
 
 						// todo:per brick scaling
