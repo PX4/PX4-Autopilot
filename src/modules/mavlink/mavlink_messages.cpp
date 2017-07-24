@@ -75,6 +75,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_corrected.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -629,6 +630,9 @@ private:
 	MavlinkOrbSubscription *_sensor_sub;
 	uint64_t _sensor_time;
 
+	MavlinkOrbSubscription *_bias_sub;
+	uint64_t _bias_time;
+
 	MavlinkOrbSubscription *_differential_pressure_sub;
 	uint64_t _differential_pressure_time;
 
@@ -645,6 +649,8 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
+		_bias_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_corrected))),
+		_bias_time(0),
 		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
 		_differential_pressure_time(0),
 		_accel_timestamp(0),
@@ -656,6 +662,7 @@ protected:
 	bool send(const hrt_abstime t)
 	{
 		struct sensor_combined_s sensor = {};
+		struct sensor_corrected_s bias = {};
 		struct differential_pressure_s differential_pressure = {};
 
 		if (_sensor_sub->update(&_sensor_time, &sensor)) {
@@ -685,20 +692,21 @@ protected:
 				_baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
 			}
 
+			_bias_sub->update(&_bias_time, &bias);
 			_differential_pressure_sub->update(&_differential_pressure_time, &differential_pressure);
 
 			mavlink_highres_imu_t msg = {};
 
 			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0];
-			msg.yacc = sensor.accelerometer_m_s2[1];
-			msg.zacc = sensor.accelerometer_m_s2[2];
-			msg.xgyro = sensor.gyro_rad[0];
-			msg.ygyro = sensor.gyro_rad[1];
-			msg.zgyro = sensor.gyro_rad[2];
-			msg.xmag = sensor.magnetometer_ga[0];
-			msg.ymag = sensor.magnetometer_ga[1];
-			msg.zmag = sensor.magnetometer_ga[2];
+			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_x_bias;
+			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_y_bias;
+			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_z_bias;
+			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_x_bias;
+			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_y_bias;
+			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_z_bias;
+			msg.xmag = sensor.magnetometer_ga[0] - bias.mag_x_bias;
+			msg.ymag = sensor.magnetometer_ga[1] - bias.mag_y_bias;
+			msg.zmag = sensor.magnetometer_ga[2] - bias.mag_z_bias;
 			msg.abs_pressure = 0;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = sensor.baro_alt_meter;
