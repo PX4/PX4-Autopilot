@@ -947,6 +947,10 @@ param_save_default(void)
 	while (res != OK && attempts > 0) {
 		res = param_export(fd, false);
 		attempts--;
+
+		if (res != OK) {
+			lseek(fd, 0, SEEK_SET); // jump back to the beginning of the file
+		}
 	}
 
 	if (res != OK) {
