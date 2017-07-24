@@ -118,7 +118,7 @@ static const int max_shutdown_hooks = 1;
 static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
 
-static const int shutdown_timeout_ms = 300; // force shutdown after this time if modules do not respond in time
+static const int shutdown_timeout_ms = 5000; ///< force shutdown after this time if modules do not respond in time
 
 
 /**
