@@ -1295,7 +1295,7 @@ MulticopterPositionControl::control_manual(float dt)
 	/* setpoint in NED frame */
 	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_frame)) * man_vel_sp;
 
-	/* adjust acceleration based on stick input only if jerk max < jerk min */
+	/* adjust acceleration based on stick input */
 	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
 	set_manual_acceleration_xy(stick_xy, dt);
 	float stick_z = man_vel_sp(2);
