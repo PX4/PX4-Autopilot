@@ -144,6 +144,8 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define STICK_ON_OFF_LIMIT 0.9f
 
+#define BOOT_TIMEOUT				(5 * 1000 * 1000)	/**< wait for system boot completion for up to 5 seconds */
+
 #define POSITION_TIMEOUT		(1 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 1000ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define OFFBOARD_TIMEOUT		500000
@@ -187,6 +189,7 @@ static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
 static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
+static bool boot_complete = false;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -419,6 +422,11 @@ int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "boot_complete")) {
+		boot_complete = true;
+		return 0;
+	}
+
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
 			int calib_ret = OK;
@@ -627,7 +635,7 @@ void usage(const char *reason)
 		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
+	PX4_INFO("usage: commander {start|stop|status|boot_complete|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
 }
 
 void print_status()
@@ -3266,12 +3274,21 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		uint8_t led_mode = led_control_s::MODE_OFF;
 		uint8_t led_color = led_control_s::COLOR_WHITE;
 		bool set_normal_color = false;
+		bool boot_timeout = hrt_elapsed_time(&commander_boot_timestamp) > BOOT_TIMEOUT;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
 		int overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1000 : 250000;
 
 		/* set mode */
-		if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
+		if (!boot_complete) {
+			if (!boot_timeout) {
+				led_mode = led_control_s::MODE_OFF;
+			} else {
+				led_mode = led_control_s::MODE_BLINK_SLOW;
+				led_color = led_control_s::COLOR_RED;
+			}
+
+		} else if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 

@@ -82,4 +82,5 @@ logger start -e -t
 vmount start
 camera_trigger start
 mavlink boot_complete
+commander boot_complete
 replay trystart
