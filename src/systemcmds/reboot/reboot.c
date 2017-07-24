@@ -43,6 +43,7 @@
 #include <px4_module.h>
 #include <px4_shutdown.h>
 #include <systemlib/systemlib.h>
+#include <string.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
 
@@ -52,6 +53,8 @@ static void print_usage(void)
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
 	PRINT_MODULE_USAGE_PARAM_FLAG('b', "Reboot into bootloader", true);
+
+	PRINT_MODULE_USAGE_ARG("lock|unlock", "Take/release the shutdown lock (for testing)", true);
 }
 
 int reboot_main(int argc, char *argv[])
@@ -73,6 +76,28 @@ int reboot_main(int argc, char *argv[])
 			return 1;
 
 		}
+	}
+
+	if (myoptind >= 0 && myoptind < argc) {
+		int ret = -1;
+
+		if (strcmp(argv[myoptind], "lock") == 0) {
+			ret = px4_shutdown_lock();
+
+			if (ret != 0) {
+				PX4_ERR("lock failed (%i)", ret);
+			}
+		}
+
+		if (strcmp(argv[myoptind], "unlock") == 0) {
+			ret = px4_shutdown_unlock();
+
+			if (ret != 0) {
+				PX4_ERR("unlock failed (%i)", ret);
+			}
+		}
+
+		return ret;
 	}
 
 	int ret = px4_shutdown_request(true, to_bootloader);
