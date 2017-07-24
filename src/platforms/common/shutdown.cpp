@@ -66,7 +66,13 @@ int px4_shutdown_unlock()
 	int ret = pthread_mutex_lock(&shutdown_mutex);
 
 	if (ret == 0) {
-		--shutdown_lock_counter;
+		if (shutdown_lock_counter > 0) {
+			--shutdown_lock_counter;
+
+		} else {
+			PX4_ERR("unmatched number of px4_shutdown_unlock() calls");
+		}
+
 		return pthread_mutex_unlock(&shutdown_mutex);
 	}
 
