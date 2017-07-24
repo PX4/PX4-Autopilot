@@ -75,7 +75,7 @@ set(config_module_list
 	# PX4 drivers
 	#
 	drivers/gps
-	drivers/ocpoc_sbus_rc_in
+	drivers/linux_sbus
 	drivers/linux_ina219
 	drivers/rpi_pca9685_pwm_out
 	drivers/linux_gpio
