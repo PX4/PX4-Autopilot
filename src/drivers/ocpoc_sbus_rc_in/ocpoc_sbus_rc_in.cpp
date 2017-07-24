@@ -53,7 +53,9 @@ namespace ocpoc_sbus_rc_in
 {
 
 extern "C" __EXPORT int ocpoc_sbus_rc_in_main(int argc, char *argv[]);
-
+#if defined(__DF_RPI_SINGLE)
+#define RCINPUT_DEVICE_PATH "/dev/ttyUSB0"
+#else
 #define RCINPUT_DEVICE_PATH "/dev/ttyS2"
 
 #define RCINPUT_MEASURE_INTERVAL_US 6500 // FUBATA T8J is 6.8ms frame rate, microseconds
