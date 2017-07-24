@@ -51,7 +51,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
-#define RCINPUT_MEASURE_INTERVAL_US 6500
+#define RCINPUT_MEASURE_INTERVAL_US 4700
 /* define range mapping here, -+100% -> 1000..2000 */
 #define SBUS_RANGE_MIN 200.0f
 #define SBUS_RANGE_MAX 1800.0f
