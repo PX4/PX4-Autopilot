@@ -240,9 +240,11 @@ RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
 		 * maybe we need to introduce a more aggressive limit here */
 		if (rc_val > _param_rc_values[i] + FLT_EPSILON || rc_val < _param_rc_values[i] - FLT_EPSILON) {
 			_param_rc_values[i] = rc_val;
-			float param_val = math::constrain(
-						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
-						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
+
+			float param_val = rc_val >= 0.0f ?
+					  _rc_parameter_map.value0[i] + rc_val * (_rc_parameter_map.value_max[i] - _rc_parameter_map.value0[i]) :
+					  _rc_parameter_map.value0[i] + rc_val * (_rc_parameter_map.value0[i] - _rc_parameter_map.value_min[i]);
+
 			param_set(parameter_handles.rc_param[i], &param_val);
 		}
 	}
