@@ -45,6 +45,35 @@
 #include <errno.h>
 #include <pthread.h>
 
+static pthread_mutex_t shutdown_mutex =
+	PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks & shutdown_lock_counter
+static uint8_t shutdown_lock_counter = 0;
+
+int px4_shutdown_lock()
+{
+	int ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret == 0) {
+		++shutdown_lock_counter;
+		return pthread_mutex_unlock(&shutdown_mutex);
+	}
+
+	return ret;
+}
+
+int px4_shutdown_unlock()
+{
+	int ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret == 0) {
+		--shutdown_lock_counter;
+		return pthread_mutex_unlock(&shutdown_mutex);
+	}
+
+	return ret;
+}
+
+
 #if (defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_WORKQUEUE)) || __PX4_QURT
 // minimal NuttX/QuRT build without work queue support
 
@@ -59,6 +88,9 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 
 int px4_shutdown_request(bool reboot, bool to_bootloader)
 {
+	pthread_mutex_lock(&shutdown_mutex);
+
+	// FIXME: if shutdown_lock_counter > 0, we should wait, but unfortunately we don't have work queues
 	if (reboot) {
 		px4_systemreset(to_bootloader);
 
@@ -66,13 +98,15 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 		return board_shutdown();
 	}
 
+	pthread_mutex_unlock(&shutdown_mutex);
+
 	return 0;
 }
 
 #else
 
 static struct work_s shutdown_work = {};
-static uint8_t shutdown_counter = 0;
+static uint16_t shutdown_counter = 0; ///< count how many times the shutdown worker was executed
 
 #define SHUTDOWN_ARG_IN_PROGRESS (1<<0)
 #define SHUTDOWN_ARG_REBOOT (1<<1)
@@ -80,7 +114,6 @@ static uint8_t shutdown_counter = 0;
 static uint8_t shutdown_args = 0;
 
 
-pthread_mutex_t shutdown_hooks_mutex = PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks
 static const int max_shutdown_hooks = 1;
 static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
@@ -97,33 +130,33 @@ static void shutdown_worker(void *arg);
 
 int px4_register_shutdown_hook(shutdown_hook_t hook)
 {
-	pthread_mutex_lock(&shutdown_hooks_mutex);
+	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (!shutdown_hooks[i]) {
 			shutdown_hooks[i] = hook;
-			pthread_mutex_unlock(&shutdown_hooks_mutex);
+			pthread_mutex_unlock(&shutdown_mutex);
 			return 0;
 		}
 	}
 
-	pthread_mutex_unlock(&shutdown_hooks_mutex);
+	pthread_mutex_unlock(&shutdown_mutex);
 	return -ENOMEM;
 }
 
 int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 {
-	pthread_mutex_lock(&shutdown_hooks_mutex);
+	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i] == hook) {
 			shutdown_hooks[i] = nullptr;
-			pthread_mutex_unlock(&shutdown_hooks_mutex);
+			pthread_mutex_unlock(&shutdown_mutex);
 			return 0;
 		}
 	}
 
-	pthread_mutex_unlock(&shutdown_hooks_mutex);
+	pthread_mutex_unlock(&shutdown_mutex);
 	return -EINVAL;
 }
 
@@ -134,7 +167,7 @@ void shutdown_worker(void *arg)
 	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
 	bool done = true;
 
-	pthread_mutex_lock(&shutdown_hooks_mutex);
+	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i]) {
@@ -144,9 +177,7 @@ void shutdown_worker(void *arg)
 		}
 	}
 
-	pthread_mutex_unlock(&shutdown_hooks_mutex);
-
-	if (done || ++shutdown_counter > shutdown_timeout_ms / 10) {
+	if ((done && shutdown_lock_counter == 0) || ++shutdown_counter > shutdown_timeout_ms / 10) {
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 			PX4_WARN("Reboot NOW.");
 			px4_systemreset(shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER);
@@ -156,7 +187,10 @@ void shutdown_worker(void *arg)
 			board_shutdown();
 		}
 
+		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
+
 	} else {
+		pthread_mutex_unlock(&shutdown_mutex);
 		work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(10000));
 	}
 }
@@ -192,7 +226,8 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 		shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
 	}
 
-	return work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(0));
+	shutdown_worker(nullptr);
+	return 0;
 }
 
 
