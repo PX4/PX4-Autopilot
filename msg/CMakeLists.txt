@@ -81,6 +81,7 @@ set(msg_file_names
 	parameter_update.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
+	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
 	rc_channels.msg
