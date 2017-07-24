@@ -21,7 +21,7 @@ syms q0 q1 q2 q3 'real'
 % function of the quaternions
 Tbn_quat = Quat2Tbn([q0;q1;q2;q3]);
 
-% calculate the y,x terms required for calculation fo the yaw angle
+% collect the y,x terms required for calculation of the yaw angle
 yaw_input_312 = [-Tbn_quat(1,2);Tbn_quat(2,2)];
 
 % convert to c code and save
