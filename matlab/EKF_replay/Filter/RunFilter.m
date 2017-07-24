@@ -157,52 +157,54 @@ for index = indexStart:indexStop
         
         % Get most recent GPS data that had fallen behind the fusion time horizon
         latest_gps_index = find((gps_data.time_us - 1e6 * param.fusion.gpsTimeDelay) < imu_data.time_us(imuIndex), 1, 'last' );
-
-        % Check if GPS use is being blocked by the user
-        if ((local_time < param.control.gpsOnTime) && (local_time > param.control.gpsOffTime))
-            gps_use_started = false;
-            gps_use_blocked = true;
-        else
-            gps_use_blocked = false;
-        end
         
-        % If we haven't started using GPS, check that the quality is sufficient before aligning the position and velocity states to GPS
-        if (~gps_use_started && ~gps_use_blocked)
-            if ((gps_data.spd_error(latest_gps_index) < param.control.gpsSpdErrLim) && (gps_data.pos_error(latest_gps_index) < param.control.gpsPosErrLim))
-                states(5:7) = gps_data.vel_ned(latest_gps_index,:);
-                states(8:9) = gps_data.pos_ned(latest_gps_index,1:2);
-                gps_use_started = true;
-                last_drift_constrain_time = local_time;
+        if ~isempty(latest_gps_index)
+            % Check if GPS use is being blocked by the user
+            if ((local_time < param.control.gpsOnTime) && (local_time > param.control.gpsOffTime))
+                gps_use_started = false;
+                gps_use_blocked = true;
+            else
+                gps_use_blocked = false;
             end
-        end
-        
-        % Fuse GPS data when available if GPS use has started
-        if (gps_use_started && ~gps_use_blocked && (latest_gps_index > last_gps_index))
-            last_gps_index = latest_gps_index;
-            gps_fuse_index = gps_fuse_index + 1;
-            last_drift_constrain_time = local_time;
             
-            % fuse NED GPS velocity
-            [states,covariance,velInnov,velInnovVar] = FuseVelocity(states,covariance,gps_data.vel_ned(latest_gps_index,:),param.fusion.gpsVelGate,gps_data.spd_error(latest_gps_index));
+            % If we haven't started using GPS, check that the quality is sufficient before aligning the position and velocity states to GPS
+            if (~gps_use_started && ~gps_use_blocked)
+                if ((gps_data.spd_error(latest_gps_index) < param.control.gpsSpdErrLim) && (gps_data.pos_error(latest_gps_index) < param.control.gpsPosErrLim))
+                    states(5:7) = gps_data.vel_ned(latest_gps_index,:);
+                    states(8:9) = gps_data.pos_ned(latest_gps_index,1:2);
+                    gps_use_started = true;
+                    last_drift_constrain_time = local_time;
+                end
+            end
             
-            % data logging
-            output.innovations.vel_time_lapsed(gps_fuse_index) = local_time;
-            output.innovations.vel_innov(gps_fuse_index,:) = velInnov';
-            output.innovations.vel_innov_var(gps_fuse_index,:) = velInnovVar';
-            
-            % fuse NE GPS position
-            [states,covariance,posInnov,posInnovVar] = FusePosition(states,covariance,gps_data.pos_ned(latest_gps_index,:),param.fusion.gpsPosGate,gps_data.pos_error(latest_gps_index));
-            
-            % data logging
-            output.innovations.pos_time_lapsed(gps_fuse_index) = local_time;
-            output.innovations.posInnov(gps_fuse_index,:) = posInnov';
-            output.innovations.posInnovVar(gps_fuse_index,:) = posInnovVar';
-        else
-            % Check if drift is being corrected by some form of aiding and if not, fuse in a zero position measurement at 5Hz to prevent states diverging
-            if ((local_time - last_drift_constrain_time) > param.control.velDriftTimeLim)
-                if ((local_time - last_synthetic_velocity_fusion_time) > 0.2)
-                    [states,covariance,~,~] = FusePosition(states,covariance,zeros(1,2),100.0,param.control.gpsPosErrLim);
-                    last_synthetic_velocity_fusion_time = local_time;
+            % Fuse GPS data when available if GPS use has started
+            if (gps_use_started && ~gps_use_blocked && (latest_gps_index > last_gps_index))
+                last_gps_index = latest_gps_index;
+                gps_fuse_index = gps_fuse_index + 1;
+                last_drift_constrain_time = local_time;
+                
+                % fuse NED GPS velocity
+                [states,covariance,velInnov,velInnovVar] = FuseVelocity(states,covariance,gps_data.vel_ned(latest_gps_index,:),param.fusion.gpsVelGate,gps_data.spd_error(latest_gps_index));
+                
+                % data logging
+                output.innovations.vel_time_lapsed(gps_fuse_index) = local_time;
+                output.innovations.vel_innov(gps_fuse_index,:) = velInnov';
+                output.innovations.vel_innov_var(gps_fuse_index,:) = velInnovVar';
+                
+                % fuse NE GPS position
+                [states,covariance,posInnov,posInnovVar] = FusePosition(states,covariance,gps_data.pos_ned(latest_gps_index,:),param.fusion.gpsPosGate,gps_data.pos_error(latest_gps_index));
+                
+                % data logging
+                output.innovations.pos_time_lapsed(gps_fuse_index) = local_time;
+                output.innovations.posInnov(gps_fuse_index,:) = posInnov';
+                output.innovations.posInnovVar(gps_fuse_index,:) = posInnovVar';
+            else
+                % Check if drift is being corrected by some form of aiding and if not, fuse in a zero position measurement at 5Hz to prevent states diverging
+                if ((local_time - last_drift_constrain_time) > param.control.velDriftTimeLim)
+                    if ((local_time - last_synthetic_velocity_fusion_time) > 0.2)
+                        [states,covariance,~,~] = FusePosition(states,covariance,zeros(1,2),100.0,param.control.gpsPosErrLim);
+                        last_synthetic_velocity_fusion_time = local_time;
+                    end
                 end
             end
         end
