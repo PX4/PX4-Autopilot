@@ -364,8 +364,11 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 			return ret;
 	}
 
-	int instance;
-	orb_publish_auto(ORB_ID(power_button_state), &power_button_state_pub, &button_state, &instance, ORB_PRIO_DEFAULT);
+	if (power_button_state_pub != nullptr) {
+		orb_publish(ORB_ID(power_button_state), power_button_state_pub, &button_state);
+	} else {
+		PX4_ERR("power_button_state_pub not properly initialized");
+	}
 
 	return ret;
 }
@@ -1431,6 +1434,17 @@ int commander_thread_main(int argc, char *argv[])
 		PX4_WARN("Buzzer init failed");
 	}
 
+	int power_button_state_sub = orb_subscribe(ORB_ID(power_button_state));
+	{
+		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
+		// in IRQ context.
+		power_button_state_s button_state;
+		button_state.timestamp = 0;
+		button_state.event = 0xff;
+		power_button_state_pub = orb_advertise(ORB_ID(power_button_state), &button_state);
+		orb_copy(ORB_ID(power_button_state), power_button_state_sub, &button_state);
+	}
+
 	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
 		PX4_ERR("Failed to register power notification callback");
 	}
@@ -1682,8 +1696,6 @@ int commander_thread_main(int argc, char *argv[])
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 	struct system_power_s system_power;
 	memset(&system_power, 0, sizeof(system_power));
-
-	int power_button_state_sub = orb_subscribe(ORB_ID(power_button_state));
 
 	/* Subscribe to actuator controls (outputs) */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
