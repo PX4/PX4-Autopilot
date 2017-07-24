@@ -144,8 +144,8 @@ void RcInput::_measure(void) {
 		fflush(stdout);
 		nread = read(_device_fd, &_sbusData, sizeof(_sbusData));
 		if (25 == nread) {
-			//if (0x0f == _sbusData[0] && 0x00 == _sbusData[24]) {
-			if (0x0f == _sbusData[0]){//移除限制，以支持其他subs协议
+			if (0x0f == _sbusData[0] && 0x00 == _sbusData[24]) {
+			//if (0x0f == _sbusData[0]){//移除限制，以支持其他subs协议
 				break;
 			}
 		}
