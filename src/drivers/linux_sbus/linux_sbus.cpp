@@ -134,7 +134,7 @@ void RcInput::_measure(void) {
 	//开始解析SBUS数据
 	int nread;
 	fd_set fds;
-	struct timeval tv;
+	//struct timeval tv;
 	FD_ZERO(&fds);
 	FD_SET(_device_fd, &fds);
 	//select(_device_fd + 1, &fds, nullptr, nullptr, &tv);
