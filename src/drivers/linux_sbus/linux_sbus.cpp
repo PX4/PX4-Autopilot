@@ -137,11 +137,11 @@ void RcInput::_measure(void) {
 	struct timeval tv;
 	FD_ZERO(&fds);
 	FD_SET(_device_fd, &fds);
-	select(_device_fd + 1, &fds, nullptr, nullptr, &tv);
+	//select(_device_fd + 1, &fds, nullptr, nullptr, &tv);
 	int count = 0; //error counter;
 	bool fail = false;
 	while (1) {
-		fflush(stdout);
+		//fflush(stdout);
 		nread = read(_device_fd, &_sbusData, sizeof(_sbusData));
 		if (25 == nread) {
 			if (0x0f == _sbusData[0] && 0x00 == _sbusData[24]) {
@@ -150,16 +150,18 @@ void RcInput::_measure(void) {
 			}
 		}
 		++count;
+		/*
 		if(4<count){
 			fail = true;
 			break;
-		}
+		}*/
 		usleep(RCINPUT_MEASURE_INTERVAL_US);
 	}
+	/*
 	if(true == fail){
 		PX4_ERR("Device %s reviced nothing\n, is the device correct ? ");
 		return;
-	}
+	}*/
 
 	// pars sbus data to pwm
 	_channels_data[0] =
@@ -212,7 +214,7 @@ void RcInput::_measure(void) {
 	_data.timestamp_last_signal = ts;
 	_data.channel_count = _channels;
 	_data.rssi = 100;
-	_data.rc_lost_frame_count = 0;
+	_data.rc_lost_frame_count = count;
 	_data.rc_total_frame_count = 1;
 	_data.rc_ppm_frame_length = 0;
 	_data.rc_failsafe = (_sbusData[23] & (1 << 3)) ? true : false;
