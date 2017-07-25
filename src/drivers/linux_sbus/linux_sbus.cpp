@@ -139,7 +139,7 @@ void RcInput::_measure(void) {
 	FD_SET(_device_fd, &fds);
 	//select(_device_fd + 1, &fds, nullptr, nullptr, &tv);
 	int count = 0; //error counter;
-	bool fail = false;
+	//bool fail = false;
 	while (1) {
 		//fflush(stdout);
 		nread = read(_device_fd, &_sbusData, sizeof(_sbusData));
