@@ -106,6 +106,19 @@ extern void led_off(int led);
 __END_DECLS
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int _bootloader_force_pin_callback(int irq, void *context)
+{
+	if (stm32_gpioread(GPIO_FORCE_BOOTLOADER)) {
+		up_systemreset();
+	}
+
+	return 0;
+}
+
+/****************************************************************************
  * Protected Functions
  ****************************************************************************/
 
@@ -175,7 +188,6 @@ fat_dma_free(FAR void *memory, size_t size)
 
 #endif
 
-
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -189,6 +201,9 @@ fat_dma_free(FAR void *memory, size_t size)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	stm32_configgpio(GPIO_FORCE_BOOTLOADER);
+	_bootloader_force_pin_callback(0, NULL);
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
@@ -210,6 +225,9 @@ static struct spi_dev_s *spi1;
 
 __EXPORT int nsh_archinitialize(void)
 {
+	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
+	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback);
+
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_5V_SENSORS_EN);
 
