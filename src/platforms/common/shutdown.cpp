@@ -94,6 +94,7 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 
 int px4_shutdown_request(bool reboot, bool to_bootloader)
 {
+	int ret = 0;
 	pthread_mutex_lock(&shutdown_mutex);
 
 	// FIXME: if shutdown_lock_counter > 0, we should wait, but unfortunately we don't have work queues
@@ -101,12 +102,12 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 		px4_systemreset(to_bootloader);
 
 	} else {
-		return board_shutdown();
+		ret = board_shutdown();
 	}
 
 	pthread_mutex_unlock(&shutdown_mutex);
 
-	return 0;
+	return ret;
 }
 
 #else
