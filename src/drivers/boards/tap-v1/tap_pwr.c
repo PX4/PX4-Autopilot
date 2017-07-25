@@ -59,6 +59,9 @@
 extern void led_on(int led);
 extern void led_off(int led);
 
+static struct timespec time_down;
+
+
 /************************************************************************************
  * Private Data
  ************************************************************************************/
@@ -80,6 +83,12 @@ static power_button_state_notification_t power_state_notification = default_powe
 int board_register_power_state_notification_cb(power_button_state_notification_t cb)
 {
 	power_state_notification = cb;
+
+	if (board_pwr_button_down() && (time_down.tv_nsec != 0 || time_down.tv_sec != 0)) {
+		// make sure we don't miss the first event
+		power_state_notification(PWR_BUTTON_DOWN);
+	}
+
 	return OK;
 }
 
@@ -99,8 +108,6 @@ int board_shutdown()
 
 static int board_button_irq(int irq, FAR void *context)
 {
-	static struct timespec time_down;
-
 	if (board_pwr_button_down()) {
 
 		led_on(BOARD_LED_RED);
