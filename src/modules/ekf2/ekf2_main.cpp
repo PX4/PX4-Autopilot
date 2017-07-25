@@ -324,15 +324,18 @@ private:
 	_mag_bias_alpha;	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
 	// Multi-rotor drag specific force fusion
-	control::BlockParamExtFloat _drag_noise;	///< observation noise for drag specific force measurements (m/sec**2)
+	control::BlockParamExtFloat
+	_drag_noise;	///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	control::BlockParamExtFloat _bcoef_x;		///< ballistic coefficient along the X-axis (kg/m**2)
 	control::BlockParamExtFloat _bcoef_y;		///< ballistic coefficient along the Y-axis (kg/m**2)
 
 	// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 	// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
 	control::BlockParamFloat _aspd_max;		///< upper limit on airspeed used for correction  (m/s**2)
-	control::BlockParamFloat _K_pstatic_coef_xp;	///< static pressure position error coefficient along the positive X body axis
-	control::BlockParamFloat _K_pstatic_coef_xn;	///< static pressure position error coefficient along the negative X body axis
+	control::BlockParamFloat
+	_K_pstatic_coef_xp;	///< static pressure position error coefficient along the positive X body axis
+	control::BlockParamFloat
+	_K_pstatic_coef_xn;	///< static pressure position error coefficient along the negative X body axis
 	control::BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	control::BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
