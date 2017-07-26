@@ -221,6 +221,20 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
 
 /**
+ * Deceleration during back transition
+ *
+ * The deceleration during a back transition in m/s/s
+ *
+ * @unit m/s/s
+ * @min 0.00
+ * @max 20.00
+ * @increment 1
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_DEC_MSS, 2.0f);
+
+/**
  * Output on reverse channel during back transition
  *
  * @min 0
