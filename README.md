@@ -33,7 +33,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
 ## Maintenance Team
 
   * Project / Founder - [Lorenz Meier](https://github.com/LorenzMeier)
-  * [Dev Call](https://github.com/PX4/Firmware/labels/devcall) - [Ramon Roche](https://github.com/mrpollo)
+    * [Dev Call](https://github.com/PX4/Firmware/labels/devcall) - [Ramon Roche](https://github.com/mrpollo)
   * Communication Architecture
     * [Beat Kueng](https://github.com/bkueng)
     * [Julian Oes](https://github.com/JulianOes)
@@ -62,13 +62,14 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * Obstacle Avoidance - [Vilhjalmur Vilhjalmsson](https://github.com/vilhjalmur89)
   * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon)
     * [Christoph Tobler](https://github.com/ChristophTobler)
-    * [Mark Charlebois](https://github.com/mcharleb) 
+    * [Mark Charlebois](https://github.com/mcharleb)
   * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero)
     * [Lucas De Marchi](https://github.com/lucasdemarchi)
     * [José Roberto de Souza](https://github.com/zehortigoza)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
   * [Parrot Bebop](https://github.com/PX4/Firmware/labels/bebop) - [Michael Schaeuble](https://github.com/eyeam3)
   * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
+  * RTPS/ROS2 Interface - [Vicente Monge](https://github.com/vicenteeprosima)
 
 ## Supported Hardware
 

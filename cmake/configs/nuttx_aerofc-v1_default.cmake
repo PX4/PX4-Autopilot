@@ -108,6 +108,7 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/rc
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common

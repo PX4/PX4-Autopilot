@@ -141,6 +141,9 @@ set(config_module_list
 	modules/uORB
 	modules/dataman
 
+	# micro RTPS
+	modules/micrortps_bridge/micrortps_client
+
 	#
 	# Libraries
 	#
@@ -161,6 +164,7 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
+	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -202,6 +206,17 @@ set(config_module_list
 	# EKF
 	examples/ekf_att_pos_estimator
 )
+
+set(GENERATE_RTPS_BRIDGE on)
+
+set(config_rtps_send_topics
+   sensor_combined
+   )
+
+set(config_rtps_receive_topics
+   sensor_baro
+   )
+
 
 set(config_extra_builtin_cmds
 	serdis
