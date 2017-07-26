@@ -2006,9 +2006,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("WIND_COV", 1.0f);
-		// Image captured runs at full rate independent of
-		// any limit
-		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
+		configure_stream("CAMERA_IMAGE_CAPTURED", 500.0f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -2021,7 +2019,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 5.0f);
-		configure_stream("ADSB_VEHICLE", 5.0f);
+		configure_stream("ADSB_VEHICLE", 10.0f);
 		configure_stream("COLLISION", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2040,12 +2038,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
 		configure_stream("CAMERA_CAPTURE", 2.0f);
-		// Camera trigger runs at full rate independent of
-		// any limit
-		configure_stream("CAMERA_TRIGGER", 1.0f);
-		// Image captured runs at full rate independent of
-		// any limit
-		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
+		//camera trigger is rate limited at the source, do not limit here
+		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 10.0f);
 		break;
 
@@ -2082,7 +2077,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream("ALTITUDE", 10.0f);
 		configure_stream("GPS_RAW_INT", 10.0f);
-		configure_stream("ADSB_VEHICLE", 5.0f);
+		configure_stream("ADSB_VEHICLE", 20.0f);
 		configure_stream("COLLISION", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
@@ -2097,12 +2092,8 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("WIND_COV", 10.0f);
-		// Camera trigger runs at full rate independent of
-		// any limit
-		configure_stream("CAMERA_TRIGGER", 1.0f);
-		// Image captured runs at full rate independent of
-		// any limit
-		configure_stream("CAMERA_IMAGE_CAPTURED", 1.0f);
+		configure_stream("CAMERA_TRIGGER", 500.0f);
+		configure_stream("CAMERA_IMAGE_CAPTURED", 5.0f);
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("MANUAL_CONTROL", 5.0f);
 		break;
