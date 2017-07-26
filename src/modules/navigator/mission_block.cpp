@@ -65,7 +65,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
 	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
-	_param_back_trans_dur(this, "VT_B_TRANS_DUR", false)
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false)
 {
 }
 
@@ -296,12 +296,11 @@ MissionBlock::is_mission_item_reached()
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition) {
 
-				float groundspeed = sqrtf(_navigator->get_global_position()->vel_n * _navigator->get_global_position()->vel_n +
-							  _navigator->get_global_position()->vel_e * _navigator->get_global_position()->vel_e);
+				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
-				if (_param_back_trans_dur.get() > FLT_EPSILON && groundspeed > FLT_EPSILON
-				    && groundspeed * _param_back_trans_dur.get() > mission_acceptance_radius) {
-					mission_acceptance_radius = groundspeed * _param_back_trans_dur.get();
+				if (_param_back_trans_dec_mss.get() > FLT_EPSILON && velocity > FLT_EPSILON) {
+					mission_acceptance_radius = (velocity / _param_back_trans_dec_mss.get() / 2) * velocity;
 				}
 
 			}
