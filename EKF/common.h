@@ -311,7 +311,7 @@ struct parameters {
 						///< the EKF will report that it is dead-reckoning (uSec)
 
 	// multi-rotor drag specific force fusion
-	float drag_noise{2.5f};			///< observation noise for drag specific force measurements (m/sec**2)
+	float drag_noise{2.5f};			///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	float bcoef_x{25.0f};			///< ballistic coefficient along the X-axis (kg/m**2)
 	float bcoef_y{25.0f};			///< ballistic coefficient along the Y-axis (kg/m**2)
 
