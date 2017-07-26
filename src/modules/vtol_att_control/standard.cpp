@@ -75,6 +75,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
 	_params_handles_standard.reverse_throttle = param_find("VT_B_REV_THR");
+	_params_handles_standard.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 
 }
 
@@ -139,6 +140,8 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.reverse_throttle, &v);
 	_params_standard.reverse_throttle = math::constrain(v, 0.0f, 1.0f);
 
+	/* mpc cruise speed */
+	param_get(_params_handles_standard.mpc_xy_cruise, &_params_standard.mpc_xy_cruise);
 
 }
 
@@ -202,8 +205,11 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed
 			// XXX: base this on XY hold velocity of MC
+			float vel = sqrtf(_local_pos->vx * _local_pos->vx + _local_pos->vy * _local_pos->vy);
+
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-			    (_params_standard.back_trans_dur * 1000000.0f)) {
+			    (_params_standard.back_trans_dur * 1000000.0f) ||
+			    vel <= _params_standard.mpc_xy_cruise) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 
