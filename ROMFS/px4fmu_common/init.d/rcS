@@ -749,7 +749,7 @@ then
 	then
 		if uavcan start
 		then
-			set LOGGER_BUF 7
+			set LOGGER_BUF 6
 			uavcan start fw
 		else
 			tone_alarm ${TUNE_ERR}
