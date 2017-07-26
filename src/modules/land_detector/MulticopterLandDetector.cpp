@@ -192,28 +192,37 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < _params.manual_stick_down_threshold);
 	const bool manual_control_idle_or_auto = manual_control_idle || !_control_mode.flag_control_manual_enabled;
 
-	// Widen acceptance thresholds for landed state right after landed
-	// so that motor spool-up and other effects do not trigger false negatives.
-	float landThresholdFactor = 1.0f;
-
-	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-		landThresholdFactor = 2.5f;
-	}
+	// land speed threshold
+	float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
 	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 	// an accurate in-air indication.
-	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * landThresholdFactor;
+	bool verticalMovement;
 
-	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
-	// we then can assume that the vehicle hit ground
-	bool in_descend = _is_climb_rate_enabled()
-			  && (_vehicleLocalPositionSetpoint.vz >= 0.9f * math::max(_params.landSpeed, 0.1f));
-	bool hit_ground = in_descend && !verticalMovement;
+	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+
+		// Widen acceptance thresholds for landed state right after arming
+		// so that motor spool-up and other effects do not trigger false negatives.
+		verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate  * 2.5f;
+
+	} else {
+
+		// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
+		float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
+				     _params.maxClimbRate;
+		verticalMovement = fabsf(_vehicleLocalPosition.vz) > maxClimbRate;
+	}
 
 	// Check if we are moving horizontally.
 	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
 					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+
+	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
+	// we then can assume that the vehicle hit ground
+	bool in_descend = _is_climb_rate_enabled()
+			  && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
+	bool hit_ground = in_descend && !verticalMovement;
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
