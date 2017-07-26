@@ -98,6 +98,9 @@ bool Ekf::resetPosition()
 	posNE_before_reset(0) = _state.pos(0);
 	posNE_before_reset(1) = _state.pos(1);
 
+	// let the next odometry update know that the previous value of states cannot be used to calculate the change in position
+	_hpos_prev_available = false;
+
 	if (_control_status.flags.gps) {
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.pos(0) = _gps_sample_delayed.pos(0);

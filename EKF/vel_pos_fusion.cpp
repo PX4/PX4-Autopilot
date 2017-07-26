@@ -99,10 +99,34 @@ void Ekf::fuseVelPosHeight()
 
 
 		} else if (_control_status.flags.ev_pos) {
-			// we are using external vision measurements
+			// calculate innovations
+			if(_hpos_odometry) {
+				if(!_hpos_prev_available) {
+					// no previous observation available to calculate position change
+					fuse_map[3] = fuse_map[4] = false;
+					_hpos_prev_available = true;
+
+				} else {
+					// use the change in position since the last measurement
+					_vel_pos_innov[3] = _state.pos(0) - _hpos_pred_prev(0) - _ev_sample_delayed.posNED(0) + _hpos_meas_prev(0);
+					_vel_pos_innov[4] = _state.pos(1) - _hpos_pred_prev(1) - _ev_sample_delayed.posNED(1) + _hpos_meas_prev(1);
+
+				}
+
+				// record observation and estimate for use next time
+				_hpos_meas_prev(0) = _ev_sample_delayed.posNED(0);
+				_hpos_meas_prev(1) = _ev_sample_delayed.posNED(1);
+				_hpos_pred_prev(0) = _state.pos(0);
+				_hpos_pred_prev(1) = _state.pos(1);
+
+			} else {
+				// use the absolute position
+				_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
+				_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
+			}
+
+			// observation 1-STD error
 			R[3] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
-			_vel_pos_innov[3] = _state.pos(0) - _ev_sample_delayed.posNED(0);
-			_vel_pos_innov[4] = _state.pos(1) - _ev_sample_delayed.posNED(1);
 
 			// innovation gate size
 			gate_size[3] = fmaxf(_params.ev_innov_gate, 1.0f);
