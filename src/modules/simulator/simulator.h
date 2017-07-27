@@ -242,6 +242,8 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
+		_vision_position_pub(nullptr),
+		_vision_attitude_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_initialized(false),
@@ -320,6 +322,8 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _vision_position_pub;
+	orb_advert_t _vision_attitude_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 
@@ -334,6 +338,7 @@ private:
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
+	int publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 #ifndef __PX4_QURT

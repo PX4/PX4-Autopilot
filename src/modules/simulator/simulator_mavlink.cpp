@@ -345,6 +345,12 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_flow_topic(&flow);
 		break;
 
+	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
+		mavlink_vision_position_estimate_t ev;
+		mavlink_msg_vision_position_estimate_decode(msg, &ev);
+		publish_ev_topic(&ev);
+		break;
+
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		mavlink_distance_sensor_t dist;
 		mavlink_msg_distance_sensor_decode(msg, &dist);
@@ -1055,6 +1061,34 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 
 	int flow_multi;
 	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
+
+	return OK;
+}
+
+int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
+{
+	uint64_t timestamp = hrt_absolute_time();
+
+	struct vehicle_local_position_s vision_position = {};
+
+	// Use the estimator type to identify the simple vision estimate
+	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
+
+	vision_position.timestamp = timestamp;
+	vision_position.x = ev_mavlink->x;
+	vision_position.y = ev_mavlink->y;
+	vision_position.z = ev_mavlink->z;
+
+	struct vehicle_attitude_s vision_attitude = {};
+
+	vision_attitude.timestamp = timestamp;
+
+	matrix::Quatf q(matrix::Eulerf(ev_mavlink->roll, ev_mavlink->pitch, ev_mavlink->yaw));
+	q.copyTo(vision_attitude.q);
+
+	int inst = 0;
+	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_HIGH);
 
 	return OK;
 }
