@@ -504,94 +504,98 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 #endif
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-    #ifndef ADC_SONAR_VOLTAGE_CHANNEL
-                        } else
-    #endif
+#ifndef ADC_SONAR_VOLTAGE_CHANNEL
+
+				} else
+#endif
 #endif
 
 #ifdef ADC_SONAR_VOLTAGE_CHANNEL
-    #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-                } else if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-    #else
-                if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-    #endif
-					float voltage_scaling = 2.04f;
-					float distance = buf_adc[i].am_data * 0.001f * voltage_scaling;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-					struct distance_sensor_s distance_report;
-					distance_report.timestamp = t;
-					distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-					distance_report.orientation = 8;
-					distance_report.current_distance = distance;
-					distance_report.min_distance = _min_sonar_distance;
-					distance_report.max_distance = _max_sonar_distance;
-					distance_report.covariance = 0.0f;
-					distance_report.id = 0;
-					orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
-				} else
+				} else if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+#else
+
+					if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 #endif
-				{
-					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+				float voltage_scaling = 2.04f;
+				float distance = buf_adc[i].am_data * 0.001f * voltage_scaling;
 
-						/* Once we have subscriptions, Do this once for the lowest (highest priority
-						 * supply on power controller) that is valid.
+				struct distance_sensor_s distance_report;
+				distance_report.timestamp = t;
+				distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+				distance_report.orientation = 8;
+				distance_report.current_distance = distance;
+				distance_report.min_distance = _min_sonar_distance;
+				distance_report.max_distance = _max_sonar_distance;
+				distance_report.covariance = 0.0f;
+				distance_report.id = 0;
+				orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
+
+			} else
+#endif
+			{
+				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+					/* Once we have subscriptions, Do this once for the lowest (highest priority
+					 * supply on power controller) that is valid.
+					 */
+					if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
+						/* Indicate the lowest brick (highest priority supply on power controller)
+						 * that is valid as the one that is the selected source for the
+						 * VDD_5V_IN
 						 */
-						if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
-							/* Indicate the lowest brick (highest priority supply on power controller)
-							 * that is valid as the one that is the selected source for the
-							 * VDD_5V_IN
-							 */
 
-							selected_source = b;
+						selected_source = b;
 
-							/* Move the selected_source to instance 0 */
-							if (_battery_pub_intance0ndx != b) {
+						/* Move the selected_source to instance 0 */
+						if (_battery_pub_intance0ndx != b) {
 
-								tmp_h = _battery_pub[_battery_pub_intance0ndx];
-								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[b];
-								_battery_pub[b] = tmp_h;
-								_battery_pub_intance0ndx = b;
-							}
+							tmp_h = _battery_pub[_battery_pub_intance0ndx];
+							_battery_pub[_battery_pub_intance0ndx] = _battery_pub[b];
+							_battery_pub[b] = tmp_h;
+							_battery_pub_intance0ndx = b;
 						}
+					}
 
-						// todo:per brick scaling
-						/* look for specific channels and process the raw voltage to measurement data */
-						if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
-							/* Voltage in volts */
-							bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+					// todo:per brick scaling
+					/* look for specific channels and process the raw voltage to measurement data */
+					if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
+						/* Voltage in volts */
+						bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
 
-						} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
-							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
-									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-						}
+					} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
+						bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
+								    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 					}
 				}
 			}
-
-			if (_parameters.battery_source == 0) {
-
-				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-					/* Consider the brick connected if there is a voltage */
-
-					bool connected = bat_voltage_v[b] > 1.5f;
-
-					actuator_controls_s ctrl;
-					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-
-					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
-									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-									_armed,  &_battery_status[b]);
-					int instance;
-					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
-				}
-			}
-
-			_last_adc = t;
-
 		}
+
+		if (_parameters.battery_source == 0) {
+
+			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+				/* Consider the brick connected if there is a voltage */
+
+				bool connected = bat_voltage_v[b] > 1.5f;
+
+				actuator_controls_s ctrl;
+				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+
+				_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
+								connected, selected_source == b, b,
+								ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+								_armed,  &_battery_status[b]);
+				int instance;
+				orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &_battery_status[b], &instance, ORB_PRIO_DEFAULT);
+			}
+		}
+
+		_last_adc = t;
+
 	}
+}
 }
 
 
@@ -650,7 +654,7 @@ Sensors::run()
 	/* advertise distance sensor topic */
 	struct distance_sensor_s ds_report = {};
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-												 &_orb_class_instance, ORB_PRIO_LOW);
+				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
 		PX4_ERR("Failed to create distance_sensor object. Did you start uORB?");
