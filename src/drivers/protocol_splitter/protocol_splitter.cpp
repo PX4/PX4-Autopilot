@@ -94,8 +94,10 @@ int ReadBuffer::read(int fd)
 	}
 
 	int r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
-	if (r < 0)
+
+	if (r < 0) {
 		return r;
+	}
 
 	buf_size += r;
 
@@ -133,6 +135,7 @@ protected:
 	void lock(enum Operation op)
 	{
 		sem_t *lock = op == Read ? &objects->r_lock : &objects->w_lock;
+
 		while (sem_wait(lock) != 0) {
 			/* The only case that an error should occur here is if
 			 * the wait was awakened by a signal.
@@ -252,9 +255,11 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	 * so now we'll just send remaining bytes */
 	if (_remaining_partial > 0) {
 		size_t len = _remaining_partial;
+
 		if (buflen < len) {
 			len = buflen;
 		}
+
 		memmove(buffer, _partial_buffer + _partial_start, len);
 		_partial_start += len;
 		_remaining_partial -= len;
@@ -262,6 +267,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 		if (_remaining_partial == 0) {
 			_partial_start = 0;
 		}
+
 		return len;
 	}
 
@@ -272,20 +278,24 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	lock(Read);
 	ret = _read_buffer->read(_fd);
 
-	if (ret < 0)
+	if (ret < 0) {
 		goto end;
+	}
 
 	ret = 0;
 
-	if (_read_buffer->buf_size < 3)
+	if (_read_buffer->buf_size < 3) {
 		goto end;
+	}
 
 	// Search for a mavlink packet on buffer to send it
 	i = 0;
+
 	while (i < (_read_buffer->buf_size - 3)
-			&& _read_buffer->buffer[i] != 253
-			&& _read_buffer->buffer[i] != 254)
+	       && _read_buffer->buffer[i] != 253
+	       && _read_buffer->buffer[i] != 254) {
 		i++;
+	}
 
 	// We need at least the first three bytes to get packet len
 	if (i >= _read_buffer->buf_size - 3) {
@@ -300,6 +310,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 		if (incompat_flags & 0x1) { //signing
 			packet_len += 13;
 		}
+
 	} else {
 		packet_len = _read_buffer->buffer[i + 1] + 8;
 	}
@@ -429,15 +440,19 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	if (ret < 0) {
 		goto end;
 	}
+
 	ret = 0;
 
-	if (_read_buffer->buf_size < HEADER_SIZE)
-		goto end; // starting ">>>" + topic + seq + lenhigh + lenlow + crchigh + crclow
+	if (_read_buffer->buf_size < HEADER_SIZE) {
+		goto end;        // starting ">>>" + topic + seq + lenhigh + lenlow + crchigh + crclow
+	}
 
 	// Search for a rtps packet on buffer to send it
 	i = 0;
-	while (i < (_read_buffer->buf_size - HEADER_SIZE) && (memcmp(_read_buffer->buffer + i, ">>>", 3) != 0))
+
+	while (i < (_read_buffer->buf_size - HEADER_SIZE) && (memcmp(_read_buffer->buffer + i, ">>>", 3) != 0)) {
 		i++;
+	}
 
 	// We need at least the first six bytes to get packet len
 	if (i >= _read_buffer->buf_size - HEADER_SIZE) {
@@ -481,6 +496,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 	switch (_parser_state) {
 	case ParserState::Idle:
 		ASSERT(buflen >= HEADER_SIZE);
+
 		if (memcmp(buffer, ">>>", 3) != 0) {
 			PX4_ERR("parser error");
 			return 0;
