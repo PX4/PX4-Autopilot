@@ -88,6 +88,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <DevMgr.hpp>
 
@@ -171,12 +172,14 @@ private:
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int     _orb_class_instance;
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
+	orb_advert_t    _distance_sensor_topic;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -193,6 +196,9 @@ private:
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+	float    _min_sonar_distance;
+	float    _max_sonar_distance;
 
 
 	/**
@@ -267,6 +273,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 	_sensor_preflight(nullptr),
+	_distance_sensor_topic(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
@@ -276,6 +283,10 @@ Sensors::Sensors(bool hil_enabled) :
 {
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
+
+	_orb_class_instance = -1;
+	_min_sonar_distance = 0.2f;
+	_max_sonar_distance = 7.65f;
 
 	initialize_parameter_handles(_parameter_handles);
 
@@ -468,78 +479,99 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		struct adc_msg_s buf_adc[12];
-		/* read all channels available */
-		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+        /* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+        struct adc_msg_s buf_adc[12];
+        /* read all channels available */
+        int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-		float bat_voltage_v = 0.0f;
-		float bat_current_a = 0.0f;
-		bool updated_battery = false;
+        float bat_voltage_v = 0.0f;
+        float bat_current_a = 0.0f;
+        bool updated_battery = false;
 
-		if (ret >= (int)sizeof(buf_adc[0])) {
+        if (ret >= (int) sizeof(buf_adc[0])) {
 
-			/* Read add channels we got */
-			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
+            /* Read add channels we got */
+            for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
+                /* look for specific channels and process the raw voltage to measurement data */
+                if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+                    /* Voltage in volts */
+                    bat_voltage_v =
+                            (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
 
-				/* look for specific channels and process the raw voltage to measurement data */
-				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-					/* Voltage in volts */
-					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+                    if (bat_voltage_v > 0.5f) {
+                        updated_battery = true;
+                    }
 
-					if (bat_voltage_v > 0.5f) {
-						updated_battery = true;
-					}
-
-				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = (((float)(buf_adc[i].am_data) * _parameters.battery_current_scaling)
-							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+                } else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
+                    bat_current_a = (((float) (buf_adc[i].am_data) * _parameters.battery_current_scaling)
+                                     - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+                } else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
-					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+                    /* calculate airspeed, raw is the difference from */
+                    float voltage = (float) (buf_adc[i].am_data) * 3.3f / 4096.0f *
+                                    2.0f;  // V_ref/4096 * (voltage divider factor)
 
-					/**
-					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor. Also assume a non-
-					 * zero offset from the sensor if its connected.
-					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
+                    /**
+                     * The voltage divider pulls the signal down, only act on
+                     * a valid voltage from a connected sensor. Also assume a non-
+                     * zero offset from the sensor if its connected.
+                     */
+                    if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+                        float diff_pres_pa_raw =
+                                voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-								(diff_pres_pa_raw * 0.1f);
-						_diff_pres.temperature = -1000.0f;
+                        _diff_pres.timestamp = t;
+                        _diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+                        _diff_pres.differential_pressure_filtered_pa =
+                                (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+                                (diff_pres_pa_raw * 0.1f);
+                        _diff_pres.temperature = -1000.0f;
 
-						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance,
-								 ORB_PRIO_DEFAULT);
-					}
-
+                        int instance;
+                        orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance,
+                                         ORB_PRIO_DEFAULT);
+                    }
 #endif
-				}
-			}
 
-			if (_parameters.battery_source == 0 && updated_battery) {
-				actuator_controls_s ctrl;
-				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							     _armed, &_battery_status);
+#ifdef ADC_SONAR_VOLTAGE_CHANNEL
+                } else if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+					float voltage_scaling = 2.04f;
+					float distance = buf_adc[i].am_data * 0.001f * voltage_scaling;
 
-				int instance;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
-			}
+					struct distance_sensor_s distance_report;
+					distance_report.timestamp = t;
+					distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+					distance_report.orientation = 8;
+					distance_report.current_distance = distance;
+					distance_report.min_distance = _min_sonar_distance;
+					distance_report.max_distance = _max_sonar_distance;
+					distance_report.covariance = 0.0f;
+					distance_report.id = 0;
+					orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
+#endif
+                }
+            }
 
-			_last_adc = t;
+            if (_parameters.battery_source == 0 && updated_battery) {
+                actuator_controls_s ctrl;
+                orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+                _battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a,
+                                             ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+                                             _armed, &_battery_status);
 
-		}
-	}
+                int instance;
+                orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance,
+                                 ORB_PRIO_DEFAULT);
+            }
+
+            _last_adc = t;
+
+        }
+    }
 }
 
 void
@@ -600,6 +632,15 @@ Sensors::task_main()
 	preflt.gyro_inconsistency_rad_s = 0.0f;
 
 	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
+
+	/* advertise distance sensor topic */
+	struct distance_sensor_s ds_report = {};
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+												 &_orb_class_instance, ORB_PRIO_LOW);
+
+	if (_distance_sensor_topic == nullptr) {
+		PX4_ERR("Failed to create distance_sensor object. Did you start uORB?");
+	}
 
 	/* wakeup source */
 	px4_pollfd_struct_t poll_fds = {};
