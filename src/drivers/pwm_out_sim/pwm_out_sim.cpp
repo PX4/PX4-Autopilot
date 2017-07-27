@@ -56,6 +56,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <float.h>
 #include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
@@ -112,6 +113,9 @@ public:
 	int		_task;
 
 private:
+
+        hrt_abstime _time_last_mix = 0;
+  
 	static const unsigned _max_actuators = 8;
 
 	Mode		_mode;
@@ -164,6 +168,8 @@ private:
 	uint32_t	gpio_read();
 	int		gpio_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
+    	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
+
 };
 
 namespace
@@ -197,7 +203,8 @@ PWMSim::PWMSim() :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_task_should_exit(false),
-	_mixers(nullptr)
+        _mixers(nullptr),
+        _mot_t_max(0.0f)
 {
 	_debug_enabled = true;
 	memset(_controls, 0, sizeof(_controls));
@@ -486,8 +493,29 @@ PWMSim::task_main()
 				break;
 			}
 
+
+			
+                	hrt_abstime now = hrt_absolute_time();
+                	float dt = (now - _time_last_mix) / 1e6f;
+                	_time_last_mix = now;
+                	
+                	if (dt < 0.0001f) {
+                	  dt = 0.0001f;
+                	  
+                	} else if (dt > 0.02f) {
+                	  dt = 0.02f;
+                	}
+                	
+                	if (_mot_t_max > FLT_EPSILON) {
+                	  // maximum value the ouputs of the multirotor mixer are allowed to change in this cycle
+                	  // factor 2 is needed because actuator ouputs are in the range [-1,1]
+                	  float delta_out_max = 2.0f * 1000.0f * dt / (2000.0f - 1000.0f) / _mot_t_max;
+                	  _mixers->set_max_delta_out_once(delta_out_max);
+                	}
+
 			/* do mixing */
 			num_outputs = _mixers->mix(&outputs.output[0], num_outputs, nullptr);
+
 			outputs.noutputs = num_outputs;
 			outputs.timestamp = hrt_absolute_time();
 
@@ -547,6 +575,15 @@ PWMSim::task_main()
 			_armed = aa.armed;
 			_failsafe = aa.force_failsafe;
 			_lockdown = aa.manual_lockdown;
+
+			param_t param_handle;
+			
+			// maximum motor slew rate parameter
+			param_handle = param_find("MOT_SLEW_MAX");
+			
+			if (param_handle != PARAM_INVALID) {
+			  param_get(param_handle, &_mot_t_max);
+			} 
 		}
 	}
 

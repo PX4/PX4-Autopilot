@@ -3527,6 +3527,8 @@ PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
  *
  * Has an influence on the cutoff frequency precision.
  *
+ * @reboot_required true
+ *
  * @min 1.0
  * @unit Hz
  * @group Radio Calibration
