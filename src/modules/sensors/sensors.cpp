@@ -84,6 +84,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <DevMgr.hpp>
 
@@ -166,6 +167,7 @@ private:
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int     _orb_class_instance;
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] = {nullptr};			/**< battery status */
@@ -173,6 +175,7 @@ private:
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
 	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 	orb_advert_t	_sensor_preflight;		/**< sensor preflight topic */
+	orb_advert_t    _distance_sensor_topic;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -189,6 +192,9 @@ private:
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+	float    _min_sonar_distance;
+	float    _max_sonar_distance;
 
 
 	/**
@@ -244,6 +250,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_airspeed_pub(nullptr),
 	_diff_pres_pub(nullptr),
 	_sensor_preflight(nullptr),
+	_distance_sensor_topic(nullptr),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
@@ -253,6 +260,10 @@ Sensors::Sensors(bool hil_enabled) :
 {
 	memset(&_diff_pres, 0, sizeof(_diff_pres));
 	memset(&_parameters, 0, sizeof(_parameters));
+
+	_orb_class_instance = -1;
+	_min_sonar_distance = 0.2f;
+	_max_sonar_distance = 7.65f;
 
 	initialize_parameter_handles(_parameter_handles);
 
@@ -490,6 +501,33 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 								 ORB_PRIO_DEFAULT);
 					}
 
+#endif
+
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+    #ifndef ADC_SONAR_VOLTAGE_CHANNEL
+                        } else
+    #endif
+#endif
+
+#ifdef ADC_SONAR_VOLTAGE_CHANNEL
+    #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+                } else if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+    #else
+                if (ADC_SONAR_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+    #endif
+					float voltage_scaling = 2.04f;
+					float distance = buf_adc[i].am_data * 0.001f * voltage_scaling;
+
+					struct distance_sensor_s distance_report;
+					distance_report.timestamp = t;
+					distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+					distance_report.orientation = 8;
+					distance_report.current_distance = distance;
+					distance_report.min_distance = _min_sonar_distance;
+					distance_report.max_distance = _max_sonar_distance;
+					distance_report.covariance = 0.0f;
+					distance_report.id = 0;
+					orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &distance_report);
 				} else
 #endif
 				{
@@ -608,6 +646,15 @@ Sensors::run()
 	preflt.gyro_inconsistency_rad_s = 0.0f;
 
 	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
+
+	/* advertise distance sensor topic */
+	struct distance_sensor_s ds_report = {};
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+												 &_orb_class_instance, ORB_PRIO_LOW);
+
+	if (_distance_sensor_topic == nullptr) {
+		PX4_ERR("Failed to create distance_sensor object. Did you start uORB?");
+	}
 
 	/* wakeup source */
 	px4_pollfd_struct_t poll_fds = {};

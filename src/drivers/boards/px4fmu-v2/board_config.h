@@ -159,6 +159,7 @@
 #define ADC_BATTERY_CURRENT_CHANNEL	3
 #define ADC_5V_RAIL_SENSE		4
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
+#define ADC_SONAR_VOLTAGE_CHANNEL       14
 
 /* Define Battery 1 Voltage Divider and A per V
  */
