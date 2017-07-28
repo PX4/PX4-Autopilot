@@ -63,6 +63,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <termios.h>
 #include <ctime>
 #include <pthread.h>
+#include <px4_time.h>
 
 #include <microcdr/microCdr.h>
 #include <uORB/uORB.h>
@@ -177,7 +178,7 @@ void* send(void*)
     initMicroCDR(&microCDRWriter, &microBufferWriter);
 
     struct timespec begin;
-    clock_gettime(0, &begin);
+    px4_clock_gettime(CLOCK_REALTIME, &begin);
 
     while (!_should_exit_task)
     {
@@ -204,7 +205,7 @@ void* send(void*)
     }
 
     struct timespec end;
-    clock_gettime(0, &end);
+    px4_clock_gettime(CLOCK_REALTIME, &end);
     double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
     printf("\nSENT:     %lu messages in %d LOOPS, %lu bytes in %.03f seconds - %.02fKB/s\n",
             sent, loop, total_sent, elapsed_secs, (double)total_sent/(1000*elapsed_secs));
@@ -290,7 +291,7 @@ static int micrortps_start(int argc, char *argv[])
     int total_read = 0;
     uint32_t received = 0;
     struct timespec begin;
-    clock_gettime(0, &begin);
+    px4_clock_gettime(CLOCK_REALTIME, &begin);
     int loop = 0;
     _should_exit_task = false;
 @[if send_topics]@
@@ -340,7 +341,7 @@ static int micrortps_start(int argc, char *argv[])
 @[end if]@
 
     struct timespec end;
-    clock_gettime(0, &end);
+    px4_clock_gettime(CLOCK_REALTIME, &end);
     double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
     printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
             (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read/(1000*elapsed_secs));
