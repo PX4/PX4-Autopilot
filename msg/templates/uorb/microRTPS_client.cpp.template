@@ -53,22 +53,21 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <termios.h>
+#include "microRTPS_transport.h"
+
+#include <cinttypes>
+#include <cstdio>
 #include <ctime>
 #include <pthread.h>
-#include <px4_time.h>
+#include <termios.h>
 
 #include <microcdr/microCdr.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_posix.h>
+#include <px4_tasks.h>
+#include <px4_time.h>
 #include <uORB/uORB.h>
-
-#include "microRTPS_transport.h"
 
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
@@ -207,7 +206,7 @@ void* send(void* /*unused*/)
     struct timespec end;
     px4_clock_gettime(CLOCK_REALTIME, &end);
     double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
-    printf("\nSENT:     %lu messages in %d LOOPS, %lu bytes in %.03f seconds - %.02fKB/s\n",
+    printf("\nSENT:     " PRIu64 " messages in %d LOOPS, " PRIu64 " bytes in %.03f seconds - %.02fKB/s\n",
             sent, loop, total_sent, elapsed_secs, (double)total_sent/(1000*elapsed_secs));
 
     return nullptr;
