@@ -732,6 +732,9 @@ void Ekf2::run()
 		bool fuse_beta = !vehicle_status.is_rotary_wing && _fuseBeta.get();
 		_ekf.set_fuse_beta_flag(fuse_beta);
 
+		// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+		_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
+
 		if (optical_flow_updated) {
 			flow_message flow;
 			flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
