@@ -8,7 +8,7 @@ elif [[ $@ =~ .*rpi.* ]] || [[ $@ =~ .*bebop.* ]]; then
 	PX4_DOCKER_REPO="px4io/px4-dev-raspi:2017-07-27"
 elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 	# eagle, excelsior
-	PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-01-14"
+	PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-07-28"
 elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
 	# clang tools
 	PX4_DOCKER_REPO="px4io/px4-dev-clang:2017-07-27"
