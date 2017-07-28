@@ -159,7 +159,7 @@ void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
     int length = 0;
-    char topic_ID = 255;
+    uint8_t topic_ID = 255;
 
     while (running)
     {
