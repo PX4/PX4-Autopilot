@@ -836,7 +836,6 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 
 	if (px4_poll(&fds[0], 1, 0) > 0) {
 		struct vehicle_command_s cmd;
-		memset(&cmd, 0, sizeof(cmd));
 
 		orb_copy(ORB_ID(vehicle_command), cancel_sub, &cmd);
 
