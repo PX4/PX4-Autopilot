@@ -48,7 +48,6 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
         list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
     endforeach()
 
-    set(topic_bridge_files_out microRTPS_client.cpp microRTPS_transport.cxx microRTPS_transport.h)
     foreach(topic ${config_rtps_send_topics})
         list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.cxx)
         list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Publisher.h)
@@ -59,18 +58,34 @@ if(NOT GENERATE_RTPS_BRIDGE MATCHES "off")
         list(APPEND topic_bridge_files_out ${msg_out_path}/${topic}_Subscriber.h)
     endforeach()
 
-    add_custom_command(OUTPUT ${topic_bridge_files_out}
-        COMMAND ${PYTHON_EXECUTABLE}
-        ${PX4_SOURCE_DIR}/Tools/generate_microRTPS_bridge.py
-        -f $ENV{FASTRTPSGEN_DIR}
-        -s ${send_topic_files}
-        -r ${receive_topic_files}
-        -t ${topic_msg_path}
-        -u ${msg_out_path}
-        DEPENDS ${DEPENDS} ${send_topic_files} ${receive_topic_files}
-        COMMENT "Generating RTPS topic bridge"
-        VERBATIM
-        )
+    if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_topics}" STREQUAL "")
+        set(topic_bridge_files_out microRTPS_client.cpp microRTPS_transport.cxx microRTPS_transport.h)
+
+	set(send_topic_files_opt)
+        if (NOT "${send_topic_files}" STREQUAL "")
+            set(send_topic_opt "-s")
+        endif()
+        
+	set(receive_topic_files_opt)
+        if (NOT "${receive_topic_files}" STREQUAL "")
+            set(receive_topic_opt "-r")
+        endif()
+
+	message("SEND ${send_topic_files_opt}")
+	message("RECV ${receive_topic_files_opt}")
+        add_custom_command(OUTPUT ${topic_bridge_files_out}
+            COMMAND ${PYTHON_EXECUTABLE}
+            ${PX4_SOURCE_DIR}/Tools/generate_microRTPS_bridge.py
+            -f $ENV{FASTRTPSGEN_DIR}
+            ${send_topic_opt} ${send_topic_files}
+            ${receive_topic_opt} ${receive_topic_files}
+            -t ${topic_msg_path}
+            -u ${msg_out_path}
+            DEPENDS ${DEPENDS} ${send_topic_files} ${receive_topic_files}
+            COMMENT "Generating RTPS topic bridge"
+            VERBATIM
+            )
+    endif()
 endif()
 
 px4_add_module(
