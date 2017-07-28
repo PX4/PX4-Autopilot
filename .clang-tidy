@@ -14,6 +14,7 @@ Checks:          '*
 		,-clang-analyzer-optin.cplusplus.VirtualCall
 		,-clang-analyzer-optin.performance.Padding
 		,-clang-analyzer-security.insecureAPI.strcpy
+		,-clang-analyzer-unix.API
 		,-clang-analyzer-unix.cstring.BadSizeArg
 		,-clang-analyzer-unix.Malloc
 		,-clang-analyzer-unix.MallocSizeof
