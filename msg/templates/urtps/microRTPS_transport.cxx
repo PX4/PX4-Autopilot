@@ -298,8 +298,14 @@ int UART_node::init()
         flush = true;
         usleep(1000);
     }
-    if (flush) printf("flush\n");
-    else printf("no flush\n");
+    if (flush)
+    {
+        printf("flush\n");
+    }
+    else
+    {
+        printf("no flush\n");
+    }
 
     poll_fd[0].fd = uart_fd;
     poll_fd[0].events = POLLIN;
@@ -359,7 +365,9 @@ UDP_node::~UDP_node()
 int UDP_node::init()
 {
     if (0 > init_receiver(udp_port_recv) || 0 > init_sender(udp_port_send))
+    {
         return -1;
+    }
     return 0;
 }
 

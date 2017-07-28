@@ -312,10 +312,11 @@ static int micrortps_start(int argc, char *argv[])
                 case @(message_id(topic)):
                 {
                     deserialize_@(topic)(&@(topic)_data, data_buffer, &microCDRReader);
-                    if (!@(topic)_pub)
+                    if (!@(topic)_pub) {
                         @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
-                    else
+                    } else {
                         orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
+                    }
                     ++received;
                 }
                 break;
@@ -335,7 +336,7 @@ static int micrortps_start(int argc, char *argv[])
     }
 @[if send_topics]@
     _should_exit_task = true;
-    pthread_join(sender_thread, 0);
+    pthread_join(sender_thread, nullptr);
 @[end if]@
 
     struct timespec end;
