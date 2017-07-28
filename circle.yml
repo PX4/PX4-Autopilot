@@ -17,7 +17,7 @@ dependencies:
     # After installing Homebrew, copy these commands to your shell:
     - brew tap PX4/px4
     - brew update
-    - brew install genromfs gcc-arm-none-eabi ninja fastrtps
+    - brew install cmake genromfs gcc-arm-none-eabi ninja fastrtps
 
     # Then install the required python packages:
     - sudo -H easy_install pip
