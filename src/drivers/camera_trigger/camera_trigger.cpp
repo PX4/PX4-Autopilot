@@ -483,10 +483,17 @@ CameraTrigger::stop()
 void
 CameraTrigger::test()
 {
-	struct vehicle_command_s cmd = {};
-	cmd.timestamp = hrt_absolute_time(),
-	    cmd.param5 = 1.0f;
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+	struct vehicle_command_s cmd = {
+		.timestamp = hrt_absolute_time(),
+		.param5 = 1.0f,
+		.param6 = 0.0f,
+		.param1 = 0.0f,
+		.param2 = 0.0f,
+		.param3 = 0.0f,
+		.param4 = 0.0f,
+		.param7 = 0.0f,
+		.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL
+	};
 
 	orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 	(void)orb_unadvertise(pub);
