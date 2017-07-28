@@ -154,7 +154,7 @@ static int parse_options(int argc, char *argv[])
 }
 
 @[if send_topics]@
-void* send(void*)
+void* send(void* /*unused*/)
 {
     char data_buffer[BUFFER_SIZE] = {};
     uint64_t sent = 0, total_sent = 0;
