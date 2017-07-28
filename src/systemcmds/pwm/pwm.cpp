@@ -543,6 +543,10 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
+		if (pwm_value < 0) {
+			return 0;
+		}
+
 		if (pwm_value == 0) {
 			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
 		}
