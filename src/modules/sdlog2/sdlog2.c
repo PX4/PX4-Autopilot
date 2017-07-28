@@ -385,6 +385,8 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strncmp(argv[1], "on", 2)) {
 		struct vehicle_command_s cmd;
+
+		memset(&cmd, 0, sizeof(cmd));
 		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;
@@ -396,6 +398,8 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "off")) {
 		struct vehicle_command_s cmd;
+
+		memset(&cmd, 0, sizeof(cmd));
 		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;

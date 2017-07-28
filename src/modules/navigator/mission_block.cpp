@@ -476,11 +476,14 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		}
 
 	} else {
-		struct vehicle_command_s cmd = {};
-		mission_item_to_vehicle_command(item, &cmd);
 		const hrt_abstime now = hrt_absolute_time();
+
+		struct vehicle_command_s cmd = {
+			.timestamp = now
+		};
+
+		mission_item_to_vehicle_command(item, &cmd);
 		_action_start = now;
-		cmd.timestamp = now;
 
 		_navigator->publish_vehicle_cmd(cmd);
 	}
@@ -713,10 +716,17 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	    !_navigator->get_vstatus()->is_rotary_wing &&
 	    _param_force_vtol.get() == 1) {
 
-		struct vehicle_command_s cmd = {};
-		cmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		cmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		cmd.timestamp = hrt_absolute_time();
+		struct vehicle_command_s cmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = NAV_CMD_DO_VTOL_TRANSITION
+		};
 
 		_navigator->publish_vehicle_cmd(cmd);
 	}

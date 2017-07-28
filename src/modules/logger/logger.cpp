@@ -2001,10 +2001,11 @@ int Logger::remove_directory(const char *dir)
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
 {
-	vehicle_command_ack_s vehicle_command_ack;
-	vehicle_command_ack.timestamp = hrt_absolute_time();
-	vehicle_command_ack.command = command;
-	vehicle_command_ack.result = result;
+	vehicle_command_ack_s vehicle_command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.command = command,
+		.result = (uint8_t)result
+	};
 
 	if (vehicle_command_ack_pub == nullptr) {
 		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,

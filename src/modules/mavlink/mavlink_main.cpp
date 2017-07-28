@@ -2202,7 +2202,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
-		struct vehicle_command_ack_s command_ack = {};
+		struct vehicle_command_ack_s command_ack;
 
 		if (ack_sub->update(&ack_time, &command_ack)) {
 			if (!command_ack.from_external) {

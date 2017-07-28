@@ -533,9 +533,11 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			}
 
 			// Acknowledge the received command
-			struct vehicle_command_ack_s ack = {};
-			ack.command = cmd.command;
-			ack.result = cmd_ack_result;
+			struct vehicle_command_ack_s ack = {
+				.timestamp = 0,
+				.command = cmd.command,
+				.result = cmd_ack_result
+			};
 
 			if (_command_ack_pub == nullptr) {
 				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);

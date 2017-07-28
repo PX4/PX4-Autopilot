@@ -480,21 +480,20 @@ int commander_main(int argc, char *argv[])
 
 			if (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "command line")) {
 
-				vehicle_command_s cmd = {};
-				cmd.target_system = status.system_id;
-				cmd.target_component = status.component_id;
-
-				cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
-				cmd.param1 = NAN; /* minimum pitch */
-				/* param 2-3 unused */
-				cmd.param2 = NAN;
-				cmd.param3 = NAN;
-				cmd.param4 = NAN;
-				cmd.param5 = NAN;
-				cmd.param6 = NAN;
-				cmd.param7 = NAN;
-
-				cmd.timestamp = hrt_absolute_time();
+				struct vehicle_command_s cmd = {
+					.timestamp = hrt_absolute_time(),
+					.param5 = NAN,
+					.param6 = NAN,
+					/* minimum pitch */
+					.param1 = NAN,
+					.param2 = NAN,
+					.param3 = NAN,
+					.param4 = NAN,
+					.param7 = NAN,
+					.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF,
+					.target_system = (uint8_t)status.system_id,
+					.target_component = (uint8_t)status.component_id
+				};
 
 				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 				(void)orb_unadvertise(h);
@@ -512,18 +511,20 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "land")) {
 
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-		/* param 2-3 unused */
-		cmd.param2 = NAN;
-		cmd.param3 = NAN;
-		cmd.param4 = NAN;
-		cmd.param5 = NAN;
-		cmd.param6 = NAN;
-		cmd.param7 = NAN;
+		struct vehicle_command_s cmd = {
+			.timestamp = 0,
+			.param5 = NAN,
+			.param6 = NAN,
+			/* minimum pitch */
+			.param1 = NAN,
+			.param2 = NAN,
+			.param3 = NAN,
+			.param4 = NAN,
+			.param7 = NAN,
+			.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND,
+			.target_system = (uint8_t)status.system_id,
+			.target_component = (uint8_t)status.component_id
+		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
@@ -533,20 +534,20 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "transition")) {
 
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-		/* transition to the other mode */
-		cmd.param1 = (status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		/* param 2-3 unused */
-		cmd.param2 = NAN;
-		cmd.param3 = NAN;
-		cmd.param4 = NAN;
-		cmd.param5 = NAN;
-		cmd.param6 = NAN;
-		cmd.param7 = NAN;
+		struct vehicle_command_s cmd = {
+			.timestamp = 0,
+			.param5 = NAN,
+			.param6 = NAN,
+			/* transition to the other mode */
+			.param1 = (float)((status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+			.param2 = NAN,
+			.param3 = NAN,
+			.param4 = NAN,
+			.param7 = NAN,
+			.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+			.target_system = (uint8_t)status.system_id,
+			.target_component = (uint8_t)status.component_id
+		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
@@ -602,13 +603,20 @@ int commander_main(int argc, char *argv[])
 			return 1;
 		}
 
-		vehicle_command_s cmd = {};
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-
-		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
-		/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
-		cmd.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f; /* lockdown */
+		struct vehicle_command_s cmd = {
+			.timestamp = 0,
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
+			.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f, /* lockdown */
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION,
+			.target_system = (uint8_t)status.system_id,
+			.target_component = (uint8_t)status.component_id
+		};
 
 		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		(void)orb_unadvertise(h);
@@ -1629,8 +1637,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
 
 	/* Subscribe to parameters changed topic */
 	int param_changed_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -2954,6 +2960,8 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(cmd_sub, &updated);
 
 		if (updated) {
+			struct vehicle_command_s cmd;
+
 			/* got command */
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
@@ -4093,9 +4101,11 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 	}
 
 	/* publish ACK */
-	vehicle_command_ack_s command_ack = {};
-	command_ack.command = cmd.command;
-	command_ack.result = result;
+	vehicle_command_ack_s command_ack = {
+		.timestamp = 0,
+		.command = cmd.command,
+		.result = (uint8_t)result
+	};
 
 	if (command_ack_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
@@ -4112,8 +4122,6 @@ void *commander_low_prio_loop(void *arg)
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-	memset(&cmd, 0, sizeof(cmd));
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
@@ -4134,6 +4142,7 @@ void *commander_low_prio_loop(void *arg)
 			warn("commander: poll error %d, %d", pret, errno);
 			continue;
 		} else if (pret != 0) {
+			struct vehicle_command_s cmd;
 
 			/* if we reach here, we have a valid command */
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
